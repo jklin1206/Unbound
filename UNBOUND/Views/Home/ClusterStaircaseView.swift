@@ -5,11 +5,17 @@ import SwiftUI
 // Primary cluster-detail view. Replaces the hex-grid `ClusterDetailView`
 // as the default way a cluster's progression is presented.
 //
-// Shape: a vertical zig-zag staircase of hexagons, grouped into sections
-// (ACHIEVED / ACTIVE / NEXT / KEYSTONE / MYTHIC / ALTERNATE PATHS). The
-// active node (the one the user is currently chasing) is centered,
-// oversized, and pulses with a purple glow. Dashed lines connect
-// consecutive hexes top-to-bottom.
+// Shape: a tight vertical column that only surfaces what matters right
+// now — the most recent achieved node (small/faded), the active node
+// (big, pulsing), up to 4 NEXT nodes in the keystone's ancestor chain,
+// an optional "+ N more beats to keystone" chip if ancestors exceed the
+// NEXT cap, a compact keystone pill at the bottom (or a full keystone
+// hex once the keystone becomes the active node), and finally any
+// genuine dead-end branches under ALTERNATE PATHS.
+//
+// "Keystone ancestors" = all nodes whose prereq chain eventually feeds
+// the keystone. Computed via reverse BFS from the keystone. Anything
+// NOT in that set, not mythic, and not achieved is a dead-end branch.
 //
 // Tapping any hex opens `SkillNodeDetailSheet` as a sheet over the
 // staircase — the staircase is never popped/dismissed by a tap. A
@@ -27,6 +33,7 @@ struct ClusterStaircaseView: View {
     @State private var selectedNode: SkillNode?
     @State private var showFullTree: Bool = false
     @State private var activePulse: CGFloat = 1.0
+    @State private var expandedRemaining: Bool = false
 
     // Reused everywhere — compute once per body pass.
     private var clusterNodes: [SkillNode] {
@@ -37,8 +44,6 @@ struct ClusterStaircaseView: View {
         buildSections()
     }
 
-    // Screen metrics for zig-zag math — approximated, clamped in layout
-    // math so we don't blow up on tiny widths.
     private let horizontalInset: CGFloat = 20
 
     var body: some View {
@@ -47,53 +52,53 @@ struct ClusterStaircaseView: View {
             divider
             ScrollViewReader { proxy in
                 ScrollView(.vertical, showsIndicators: false) {
-                    VStack(spacing: 28) {
+                    VStack(spacing: 12) {
                         summaryBlock
                             .padding(.horizontal, horizontalInset)
 
-                        if !sections.achieved.isEmpty {
-                            staircaseSection(
-                                label: "ACHIEVED",
-                                nodes: sections.achieved,
-                                widthFraction: 0.6,
-                                sizeKind: .far
-                            )
+                        // Most-recent achieved node — tiny faded hex above the
+                        // active node. Replaces the old full ACHIEVED section
+                        // to keep the view focused on the next action.
+                        if let recent = sections.recentAchieved {
+                            recentAchievedRow(recent)
+                                .padding(.top, 4)
                         }
 
-                        // Active section is always rendered (even if cluster
-                        // is fully complete, we surface the keystone as the
-                        // active anchor — see buildSections()).
                         activeSection
                             .id("active-anchor")
 
                         if !sections.next.isEmpty {
-                            staircaseSection(
-                                label: "NEXT",
-                                nodes: sections.next,
-                                widthFraction: 0.8,
-                                sizeKind: .adjacent
-                            )
+                            nextColumn(sections.next)
                         }
 
-                        if let keystone = sections.keystone,
-                           keystone.id != sections.active?.id {
-                            keystoneSection(keystone)
+                        if sections.remainingBeforeKeystone > 0 {
+                            remainingBeatsChip(count: sections.remainingBeforeKeystone)
+                        }
+
+                        if expandedRemaining, !sections.remainingNodes.isEmpty {
+                            remainingExpansion(sections.remainingNodes)
+                        }
+
+                        if let keystone = sections.keystone {
+                            if sections.keystoneIsActive {
+                                // Active-state keystone was already rendered
+                                // as the big active hex. Nothing to draw here.
+                                EmptyView()
+                            } else {
+                                keystonePill(keystone)
+                                    .padding(.top, 6)
+                            }
                         }
 
                         if !sections.mythic.isEmpty {
-                            staircaseSection(
-                                label: "MYTHIC",
-                                nodes: sections.mythic,
-                                widthFraction: 0.7,
-                                sizeKind: .mythic
-                            )
+                            mythicSection(sections.mythic)
                         }
 
                         if !sections.alternatePaths.isEmpty {
                             alternatePathsSection(sections.alternatePaths)
                         }
                     }
-                    .padding(.vertical, 16)
+                    .padding(.vertical, 14)
                     .padding(.bottom, 40)
                 }
                 .onAppear {
@@ -103,7 +108,6 @@ struct ClusterStaircaseView: View {
                             proxy.scrollTo("active-anchor", anchor: .center)
                         }
                     }
-                    // Kick off the pulse animation on the active hex.
                     withAnimation(
                         .easeInOut(duration: 1.5).repeatForever(autoreverses: true)
                     ) {
@@ -280,66 +284,269 @@ struct ClusterStaircaseView: View {
                 .frame(height: 1)
         }
         .padding(.horizontal, 24)
+    }
+
+    // MARK: - Recent achieved context
+
+    private func recentAchievedRow(_ node: SkillNode) -> some View {
+        VStack(spacing: 6) {
+            hexCell(node: node, sizeKind: .far)
+                .opacity(0.6)
+            // Dashed connector down to the active hex.
+            Rectangle()
+                .fill(Color.clear)
+                .frame(width: 1, height: 14)
+                .overlay(
+                    Rectangle()
+                        .fill(Color.unbound.accent.opacity(0.4))
+                        .frame(width: 1, height: 14)
+                        .mask(
+                            VStack(spacing: 3) {
+                                ForEach(0..<3, id: \.self) { _ in
+                                    Rectangle().frame(height: 3)
+                                }
+                            }
+                        )
+                )
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    // MARK: - Active section
+
+    @ViewBuilder
+    private var activeSection: some View {
+        VStack(spacing: 10) {
+            sectionDivider("ACTIVE")
+            if let active = sections.active {
+                VStack(spacing: 10) {
+                    // If the keystone IS the active node, render full keystone
+                    // presentation. Otherwise render the standard active hex.
+                    if sections.keystoneIsActive {
+                        hexCell(node: active, sizeKind: .keystone, pulses: true)
+                            .onTapGesture {
+                                UnboundHaptics.medium()
+                                selectedNode = active
+                            }
+                        Text("YOUR ARC ENDS HERE")
+                            .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                            .tracking(1.8)
+                            .foregroundStyle(Color.unbound.accent)
+                    } else {
+                        hexCell(node: active, sizeKind: .active, pulses: true)
+                            .onTapGesture {
+                                UnboundHaptics.medium()
+                                selectedNode = active
+                            }
+                    }
+                    Button {
+                        UnboundHaptics.medium()
+                        selectedNode = active
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "dumbbell.fill")
+                                .font(.system(size: 12, weight: .bold))
+                            Text("LOG SESSION")
+                                .font(Font.unbound.captionS.weight(.heavy))
+                                .tracking(1.6)
+                        }
+                        .foregroundStyle(Color.unbound.bg)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .background(
+                            Capsule().fill(Color.unbound.accent)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+                .frame(maxWidth: .infinity)
+            } else {
+                Text("Cluster complete.")
+                    .font(Font.unbound.bodyS)
+                    .foregroundStyle(Color.unbound.textTertiary)
+            }
+        }
+    }
+
+    // MARK: - NEXT column (up to 4 ancestors)
+
+    private func nextColumn(_ nodes: [SkillNode]) -> some View {
+        VStack(spacing: 10) {
+            sectionDivider("NEXT")
+            GeometryReader { geo in
+                let fullWidth = geo.size.width
+                let widthFraction: CGFloat = 0.78
+                let size = HexSizeKind.adjacent.size
+                let gap = HexSizeKind.adjacent.verticalGap
+                let bandWidth = fullWidth * widthFraction
+                let leftAnchor = (fullWidth - bandWidth) / 2
+                let rightAnchor = leftAnchor + bandWidth - size
+
+                ZStack(alignment: .topLeading) {
+                    connectingLines(
+                        nodes: nodes,
+                        leftAnchor: leftAnchor,
+                        rightAnchor: rightAnchor,
+                        sizeKind: .adjacent
+                    )
+                    ForEach(Array(nodes.enumerated()), id: \.element.id) { idx, node in
+                        let isLeft = (idx % 2 == 0)
+                        let x = isLeft ? leftAnchor : rightAnchor
+                        let y = CGFloat(idx) * (size + gap)
+                        hexCell(node: node, sizeKind: .adjacent)
+                            .offset(x: x, y: y)
+                    }
+                }
+                .frame(
+                    width: fullWidth,
+                    height: CGFloat(max(0, nodes.count)) * size
+                        + CGFloat(max(0, nodes.count - 1)) * gap
+                        + 12,
+                    alignment: .topLeading
+                )
+            }
+            .frame(
+                height: CGFloat(max(0, nodes.count)) * HexSizeKind.adjacent.size
+                    + CGFloat(max(0, nodes.count - 1)) * HexSizeKind.adjacent.verticalGap
+                    + 12
+            )
+        }
+    }
+
+    // MARK: - "+ N more beats to keystone" chip
+
+    private func remainingBeatsChip(count: Int) -> some View {
+        Button {
+            UnboundHaptics.soft()
+            withAnimation(.easeInOut(duration: 0.2)) {
+                expandedRemaining.toggle()
+            }
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: expandedRemaining ? "chevron.up" : "plus")
+                    .font(.system(size: 10, weight: .bold))
+                Text("\(count) MORE \(count == 1 ? "BEAT" : "BEATS") TO KEYSTONE")
+                    .font(Font.unbound.captionS.weight(.heavy))
+                    .tracking(1.6)
+            }
+            .foregroundStyle(Color.unbound.textSecondary)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .background(Capsule().fill(Color.unbound.surface))
+            .overlay(
+                Capsule().strokeBorder(Color.unbound.border, lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func remainingExpansion(_ nodes: [SkillNode]) -> some View {
+        VStack(spacing: 10) {
+            ForEach(nodes, id: \.id) { node in
+                HStack(spacing: 10) {
+                    hexCell(node: node, sizeKind: .far)
+                }
+            }
+        }
         .padding(.top, 4)
     }
 
-    // MARK: - Staircase (generic zig-zag column)
+    // MARK: - Keystone (compact pill form)
 
-    private func staircaseSection(
-        label: String,
-        nodes: [SkillNode],
-        widthFraction: CGFloat,
-        sizeKind: HexSizeKind
-    ) -> some View {
-        VStack(spacing: 14) {
-            sectionDivider(label)
-            staircaseColumn(nodes: nodes, widthFraction: widthFraction, sizeKind: sizeKind)
-        }
-    }
-
-    @ViewBuilder
-    private func staircaseColumn(
-        nodes: [SkillNode],
-        widthFraction: CGFloat,
-        sizeKind: HexSizeKind
-    ) -> some View {
-        GeometryReader { geo in
-            let fullWidth = geo.size.width
-            let bandWidth = fullWidth * widthFraction
-            let leftAnchor = (fullWidth - bandWidth) / 2
-            let rightAnchor = leftAnchor + bandWidth - sizeKind.size
-
-            ZStack(alignment: .topLeading) {
-                // Connecting dashed line layer (between consecutive hexes).
-                connectingLines(
-                    nodes: nodes,
-                    leftAnchor: leftAnchor,
-                    rightAnchor: rightAnchor,
-                    sizeKind: sizeKind
-                )
-
-                ForEach(Array(nodes.enumerated()), id: \.element.id) { idx, node in
-                    let isLeft = (idx % 2 == 0)
-                    let x = isLeft ? leftAnchor : rightAnchor
-                    let y = CGFloat(idx) * (sizeKind.size + sizeKind.verticalGap)
-                    hexCell(node: node, sizeKind: sizeKind)
-                        .offset(x: x, y: y)
+    private func keystonePill(_ node: SkillNode) -> some View {
+        let beats = sections.next.count + sections.remainingBeforeKeystone + 1
+        return Button {
+            UnboundHaptics.medium()
+            selectedNode = node
+        } label: {
+            HStack(spacing: 12) {
+                ZStack {
+                    Hexagon()
+                        .fill(Color.unbound.surface)
+                        .frame(width: 60, height: 60)
+                    Hexagon()
+                        .strokeBorder(Color.unbound.accent.opacity(0.6), lineWidth: 1.5)
+                        .frame(width: 60, height: 60)
+                    Image(systemName: "crown")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(Color.unbound.accent)
                 }
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 6) {
+                        Text("KEYSTONE")
+                            .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                            .tracking(1.8)
+                            .foregroundStyle(Color.unbound.accent)
+                    }
+                    Text(node.title)
+                        .font(Font.unbound.bodyS.weight(.semibold))
+                        .foregroundStyle(Color.unbound.textPrimary)
+                        .lineLimit(1)
+                    Text("\(beats) \(beats == 1 ? "beat" : "beats") away")
+                        .font(Font.unbound.captionS)
+                        .foregroundStyle(Color.unbound.textTertiary)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(Color.unbound.textTertiary)
             }
-            .frame(
-                width: fullWidth,
-                height: CGFloat(max(0, nodes.count)) * sizeKind.size
-                    + CGFloat(max(0, nodes.count - 1)) * sizeKind.verticalGap
-                    + 20,
-                alignment: .topLeading
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(Color.unbound.surface)
             )
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .strokeBorder(Color.unbound.accent.opacity(0.25), lineWidth: 1)
+            )
+            .padding(.horizontal, horizontalInset)
         }
-        .frame(
-            height: CGFloat(max(0, nodes.count)) * sizeKind.size
-                + CGFloat(max(0, nodes.count - 1)) * sizeKind.verticalGap
-                + 20
-        )
+        .buttonStyle(.plain)
     }
+
+    // MARK: - Mythic (post-keystone) — only surfaced when keystone complete
+
+    private func mythicSection(_ nodes: [SkillNode]) -> some View {
+        VStack(spacing: 10) {
+            sectionDivider("MYTHIC")
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 14) {
+                    ForEach(nodes, id: \.id) { n in
+                        hexCell(node: n, sizeKind: .mythic)
+                            .onTapGesture {
+                                UnboundHaptics.medium()
+                                selectedNode = n
+                            }
+                    }
+                }
+                .padding(.horizontal, horizontalInset)
+            }
+        }
+    }
+
+    // MARK: - Alternate paths
+
+    private func alternatePathsSection(_ nodes: [SkillNode]) -> some View {
+        VStack(spacing: 10) {
+            sectionDivider("ALTERNATE PATHS")
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 14) {
+                    ForEach(nodes, id: \.id) { n in
+                        hexCell(node: n, sizeKind: .alternate)
+                            .onTapGesture {
+                                UnboundHaptics.medium()
+                                selectedNode = n
+                            }
+                    }
+                }
+                .padding(.horizontal, horizontalInset)
+            }
+        }
+    }
+
+    // MARK: - Connecting lines between stacked hexes
 
     private func connectingLines(
         nodes: [SkillNode],
@@ -347,7 +554,7 @@ struct ClusterStaircaseView: View {
         rightAnchor: CGFloat,
         sizeKind: HexSizeKind
     ) -> some View {
-        Canvas { ctx, size in
+        Canvas { ctx, _ in
             guard nodes.count >= 2 else { return }
             for idx in 0..<(nodes.count - 1) {
                 let isLeft = (idx % 2 == 0)
@@ -359,7 +566,6 @@ struct ClusterStaircaseView: View {
 
                 var path = Path()
                 path.move(to: CGPoint(x: fromX, y: fromY))
-                // Gentle cubic curve so the line feels organic but never loops.
                 let midY = (fromY + toY) / 2
                 path.addCurve(
                     to: CGPoint(x: toX, y: toY),
@@ -385,118 +591,34 @@ struct ClusterStaircaseView: View {
         }
     }
 
-    // MARK: - Active section
-
-    @ViewBuilder
-    private var activeSection: some View {
-        VStack(spacing: 14) {
-            sectionDivider("ACTIVE")
-            if let active = sections.active {
-                VStack(spacing: 12) {
-                    hexCell(node: active, sizeKind: .active, pulses: true)
-                        .onTapGesture {
-                            UnboundHaptics.medium()
-                            selectedNode = active
-                        }
-                    Button {
-                        UnboundHaptics.medium()
-                        selectedNode = active
-                    } label: {
-                        HStack(spacing: 8) {
-                            Image(systemName: "dumbbell.fill")
-                                .font(.system(size: 12, weight: .bold))
-                            Text("LOG SESSION")
-                                .font(Font.unbound.captionS.weight(.heavy))
-                                .tracking(1.6)
-                        }
-                        .foregroundStyle(Color.unbound.bg)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 10)
-                        .background(
-                            Capsule().fill(Color.unbound.accent)
-                        )
-                    }
-                    .buttonStyle(.plain)
-                }
-                .frame(maxWidth: .infinity)
-            } else {
-                // Fallback — shouldn't happen because buildSections() always
-                // fills this slot, but stay defensive.
-                Text("Cluster complete.")
-                    .font(Font.unbound.bodyS)
-                    .foregroundStyle(Color.unbound.textTertiary)
-            }
-        }
-    }
-
-    // MARK: - Keystone section
-
-    private func keystoneSection(_ node: SkillNode) -> some View {
-        VStack(spacing: 14) {
-            sectionDivider("KEYSTONE")
-            VStack(spacing: 8) {
-                hexCell(node: node, sizeKind: .keystone)
-                    .onTapGesture {
-                        UnboundHaptics.medium()
-                        selectedNode = node
-                    }
-                Text("THE CLUSTER'S GATE")
-                    .font(Font.unbound.captionS.weight(.heavy))
-                    .tracking(2)
-                    .foregroundStyle(Color.unbound.textTertiary)
-            }
-            .frame(maxWidth: .infinity)
-        }
-    }
-
-    // MARK: - Alternate paths
-
-    private func alternatePathsSection(_ nodes: [SkillNode]) -> some View {
-        VStack(spacing: 14) {
-            sectionDivider("ALTERNATE PATHS")
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 14) {
-                    ForEach(nodes, id: \.id) { n in
-                        hexCell(node: n, sizeKind: .alternate)
-                            .onTapGesture {
-                                UnboundHaptics.medium()
-                                selectedNode = n
-                            }
-                    }
-                }
-                .padding(.horizontal, horizontalInset)
-            }
-        }
-    }
-
     // MARK: - Hex cell (shared rendering)
 
     private enum HexSizeKind {
-        case far        // dim achieved nodes
-        case adjacent   // next-up nodes
+        case far        // dim achieved / remaining-collapsed nodes
+        case adjacent   // NEXT nodes
         case active     // current node
-        case keystone   // cluster gate
+        case keystone   // full keystone presentation when it IS active
         case mythic     // post-keystone bosses
-        case alternate  // compact branch row
+        case alternate  // dead-end branch row
 
         var size: CGFloat {
             switch self {
-            case .far:        return 90
-            case .adjacent:   return 110
-            case .active:     return 140
+            case .far:        return 70
+            case .adjacent:   return 95
+            case .active:     return 130
             case .keystone:   return 150
-            case .mythic:     return 100
-            case .alternate:  return 80
+            case .mythic:     return 90
+            case .alternate:  return 72
             }
         }
 
         var verticalGap: CGFloat {
             switch self {
-            case .far:        return 22
-            case .adjacent:   return 28
-            case .mythic:     return 24
-            case .alternate:  return 18
-            case .active, .keystone: return 24
+            case .far:        return 14
+            case .adjacent:   return 18
+            case .mythic:     return 16
+            case .alternate:  return 14
+            case .active, .keystone: return 18
             }
         }
     }
@@ -506,7 +628,7 @@ struct ClusterStaircaseView: View {
         let state = nodeStates[node.id] ?? .locked
         let size = sizeKind.size
 
-        VStack(spacing: 8) {
+        VStack(spacing: 6) {
             ZStack {
                 Hexagon().fill(fillColor(for: node, state: state, kind: sizeKind))
                     .frame(width: size, height: size)
@@ -636,12 +758,12 @@ struct ClusterStaircaseView: View {
 
     private func baseFontSize(for kind: HexSizeKind) -> CGFloat {
         switch kind {
-        case .active:    return 32
+        case .active:    return 30
         case .keystone:  return 32
-        case .far:       return 20
+        case .far:       return 18
         case .alternate: return 18
-        case .adjacent:  return 24
-        case .mythic:    return 24
+        case .adjacent:  return 22
+        case .mythic:    return 22
         }
     }
 
@@ -671,12 +793,35 @@ struct ClusterStaircaseView: View {
     // MARK: - Section algorithm
 
     private struct StaircaseSections {
-        var achieved: [SkillNode]
+        var recentAchieved: SkillNode?
         var active: SkillNode?
         var next: [SkillNode]
+        var remainingBeforeKeystone: Int
+        var remainingNodes: [SkillNode]
         var keystone: SkillNode?
+        var keystoneIsActive: Bool
         var mythic: [SkillNode]
         var alternatePaths: [SkillNode]
+    }
+
+    /// Reverse BFS from the keystone walking backward through prereqs.
+    /// Produces every node that eventually feeds into the keystone
+    /// (excluding cross-cluster prereqs — we only walk within this cluster).
+    /// The returned set INCLUDES the keystone id itself.
+    private func keystoneAncestors(keystone: SkillNode) -> Set<String> {
+        var ancestors: Set<String> = [keystone.id]
+        var queue: [String] = [keystone.id]
+        while let currentId = queue.popLast() {
+            guard let node = clusterNodes.first(where: { $0.id == currentId }) else { continue }
+            let prereqIds = node.prereqs.flatMap { $0.nodeIds }
+            for prereqId in prereqIds {
+                if clusterNodes.contains(where: { $0.id == prereqId }) && !ancestors.contains(prereqId) {
+                    ancestors.insert(prereqId)
+                    queue.append(prereqId)
+                }
+            }
+        }
+        return ancestors
     }
 
     private func buildSections() -> StaircaseSections {
@@ -687,37 +832,43 @@ struct ClusterStaircaseView: View {
         func state(_ n: SkillNode) -> NodeState { nodeStates[n.id] ?? .locked }
         func isUnlockedState(_ s: NodeState) -> Bool { s == .achieved || s == .mastered }
 
-        // Keystone (after data fix, single node per cluster)
         let keystone = nodes.first { $0.isKeystone && !$0.isMythic }
         let mythicNodes = nodes.filter { $0.isMythic }
 
-        // Active = first attempting, else first locked-but-unlockable (lowest
-        // effective tier), else the keystone as a fallback.
-        let attempting = nodes.filter { state($0) == .attempting }
+        // Ancestor set for the keystone. Includes the keystone id itself.
+        // If there's no keystone at all (shouldn't happen post-data-fix),
+        // treat every node as an ancestor so nothing drops into ALTERNATE.
+        let ancestorSet: Set<String> = {
+            if let k = keystone { return keystoneAncestors(keystone: k) }
+            return Set(nodes.map(\.id))
+        }()
+
+        // Active = first attempting (ancestor-preferred), else lowest-tier
+        // locked-but-unlockable ancestor, else the keystone as a fallback.
+        let attemptingAncestors = nodes
+            .filter { state($0) == .attempting && ancestorSet.contains($0.id) }
             .sorted { (tiers[$0.id] ?? $0.tier) < (tiers[$1.id] ?? $1.tier) }
-        var activeNode: SkillNode? = attempting.first
+        let attemptingAny = nodes
+            .filter { state($0) == .attempting }
+            .sorted { (tiers[$0.id] ?? $0.tier) < (tiers[$1.id] ?? $1.tier) }
+
+        var activeNode: SkillNode? = attemptingAncestors.first ?? attemptingAny.first
 
         if activeNode == nil {
             let unlockables = nodes
+                .filter { ancestorSet.contains($0.id) }
                 .filter { state($0) == .locked }
                 .filter { node in
                     let withinClusterPrereqIds = node.prereqs
                         .flatMap { $0.nodeIds }
                         .filter { nodeById[$0] != nil }
                     guard !withinClusterPrereqIds.isEmpty || node.prereqs.isEmpty else {
-                        // Node has prereqs but all are cross-cluster — treat as unlockable.
                         return true
                     }
                     guard !node.prereqs.isEmpty else { return true }
-                    // Any group fully satisfied → unlockable
                     return node.prereqs.contains { group in
                         group.nodeIds.allSatisfy { pid in
-                            guard let prereq = nodeById[pid] else {
-                                // Cross-cluster — assume satisfied for purposes of
-                                // choosing the staircase's active node. We surface
-                                // cross-cluster gates via ClusterDetailView callouts.
-                                return true
-                            }
+                            guard let prereq = nodeById[pid] else { return true }
                             return isUnlockedState(state(prereq))
                         }
                     }
@@ -726,94 +877,55 @@ struct ClusterStaircaseView: View {
             activeNode = unlockables.first
         }
 
-        if activeNode == nil {
-            // Cluster effectively complete — use keystone as the anchor.
-            activeNode = keystone
-        }
+        if activeNode == nil { activeNode = keystone }
 
-        // Achieved: everything unlocked except the current active. Sorted by
-        // effective tier top-down so older wins sit at the top of the staircase.
-        let achieved: [SkillNode] = nodes
+        let keystoneIsActive = (activeNode?.id == keystone?.id) && keystone != nil
+
+        // Most recently achieved ancestor — highest effective tier among
+        // achieved/mastered nodes in the ancestor chain. Falls back to any
+        // achieved node if nothing in the ancestor set has been achieved.
+        let achievedAncestors = nodes
+            .filter { ancestorSet.contains($0.id) }
             .filter { isUnlockedState(state($0)) && $0.id != activeNode?.id }
+            .sorted { (tiers[$0.id] ?? $0.tier) > (tiers[$1.id] ?? $1.tier) }
+        let achievedAny = nodes
+            .filter { isUnlockedState(state($0)) && $0.id != activeNode?.id }
+            .sorted { (tiers[$0.id] ?? $0.tier) > (tiers[$1.id] ?? $1.tier) }
+        let recentAchieved = achievedAncestors.first ?? achievedAny.first
+
+        // NEXT = remaining locked ancestors (excluding active + keystone),
+        // sorted by effective tier, capped at 4.
+        let allRemainingAncestors: [SkillNode] = nodes
+            .filter { ancestorSet.contains($0.id) }
+            .filter { !isUnlockedState(state($0)) }
+            .filter { $0.id != activeNode?.id && $0.id != keystone?.id }
             .sorted { (tiers[$0.id] ?? $0.tier) < (tiers[$1.id] ?? $1.tier) }
 
-        // Primary path from active → keystone. Each step pick the child with the
-        // most descendants (the "main line"). Collect up to 3 nodes.
-        var nextPath: [SkillNode] = []
-        if let active = activeNode, let keystoneId = keystone?.id, active.id != keystoneId {
-            // Build child map within cluster.
-            var childMap: [String: [String]] = [:]
-            for n in nodes {
-                let prereqIds = n.prereqs.flatMap { $0.nodeIds }
-                for pid in prereqIds where nodeById[pid] != nil {
-                    childMap[pid, default: []].append(n.id)
-                }
-            }
-            // Memoized descendant count for ranking.
-            var descendantCache: [String: Int] = [:]
-            func descendants(_ id: String, seen: inout Set<String>) -> Int {
-                if let c = descendantCache[id] { return c }
-                if seen.contains(id) { return 0 }
-                seen.insert(id)
-                let kids = childMap[id] ?? []
-                var total = 0
-                for k in kids {
-                    total += 1 + descendants(k, seen: &seen)
-                }
-                descendantCache[id] = total
-                return total
-            }
+        let nextCap = 4
+        let nextNodes = Array(allRemainingAncestors.prefix(nextCap))
+        let remainingNodes = Array(allRemainingAncestors.dropFirst(nextCap))
+        let remainingCount = remainingNodes.count
 
-            var currentId = active.id
-            var guardCounter = 0
-            while currentId != keystoneId && nextPath.count < 3 && guardCounter < nodes.count {
-                guardCounter += 1
-                let kids = (childMap[currentId] ?? [])
-                    .compactMap { nodeById[$0] }
-                    .filter { !isUnlockedState(state($0)) && $0.id != activeNode?.id }
-                guard !kids.isEmpty else { break }
-                // Prefer the child that leads toward keystone: most descendants,
-                // tie-break by lower effective tier.
-                let ranked = kids.sorted { a, b in
-                    var sa = Set<String>()
-                    var sb = Set<String>()
-                    let da = descendants(a.id, seen: &sa)
-                    let db = descendants(b.id, seen: &sb)
-                    if da != db { return da > db }
-                    return (tiers[a.id] ?? a.tier) < (tiers[b.id] ?? b.tier)
-                }
-                guard let pick = ranked.first else { break }
-                nextPath.append(pick)
-                currentId = pick.id
-            }
-        }
-
-        // Alternate paths: every locked, non-mythic, non-keystone node that
-        // isn't already surfaced in active/next.
-        let shown: Set<String> = {
-            var s = Set<String>()
-            if let a = activeNode { s.insert(a.id) }
-            if let k = keystone { s.insert(k.id) }
-            nextPath.forEach { s.insert($0.id) }
-            mythicNodes.forEach { s.insert($0.id) }
-            achieved.forEach { s.insert($0.id) }
-            return s
-        }()
-
+        // Alternate paths = nodes NOT in the ancestor set, NOT mythic, NOT
+        // achieved. These are genuine dead-end branches off the main line.
         let alternate = nodes
-            .filter { !shown.contains($0.id) }
-            .filter { !$0.isMythic && !$0.isKeystone }
+            .filter { !ancestorSet.contains($0.id) }
+            .filter { !$0.isMythic }
+            .filter { !isUnlockedState(state($0)) }
             .sorted { (tiers[$0.id] ?? $0.tier) < (tiers[$1.id] ?? $1.tier) }
 
-        // Mythic only renders if keystone achieved/mastered.
+        // Mythic only surfaces once the keystone is complete.
         let keystoneUnlocked = keystone.map { isUnlockedState(state($0)) } ?? false
         let mythicToShow = keystoneUnlocked ? mythicNodes : []
 
         return StaircaseSections(
-            achieved: achieved,
+            recentAchieved: recentAchieved,
             active: activeNode,
-            next: nextPath,
+            next: nextNodes,
+            remainingBeforeKeystone: remainingCount,
+            remainingNodes: remainingNodes,
             keystone: keystone,
+            keystoneIsActive: keystoneIsActive,
             mythic: mythicToShow,
             alternatePaths: alternate
         )
