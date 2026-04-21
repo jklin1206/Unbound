@@ -1,0 +1,591 @@
+import SwiftUI
+
+// MARK: - UnboundSkillTreeTabView
+//
+// Full skill tree tab. Renders the user's archetype tree with live node
+// state from SkillProgressService. Pinch-zoom / scroll navigation.
+
+struct UnboundSkillTreeTabView: View {
+    @EnvironmentObject var services: ServiceContainer
+    @State private var profile: UserProfile?
+    @State private var selectedNode: SkillNode?
+    @State private var rankVM = SkillTreeViewModel()
+    @Bindable private var skillProgress = SkillProgressService.shared
+    @StateObject private var skinService = SkinService.shared
+    @AppStorage("unbound.isRecalibrating") private var isRecalibrating: Bool = false
+
+    var body: some View {
+        ZStack {
+            Color.unbound.bg.ignoresSafeArea()
+
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 18) {
+                    archetypeHero
+                    patternSections
+                    header
+                    SkillGraphView(
+                        graph: SkillGraph.shared,
+                        nodeStates: liveStatesForFullGraph(),
+                        nodeProgress: skillProgress.nodeProgress,
+                        onNodeTap: { node in
+                            UnboundHaptics.medium()
+                            selectedNode = node
+                        }
+                    )
+                    .padding(.vertical, 4)
+                    Spacer().frame(height: 24)
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 16)
+            }
+        }
+        .navigationTitle("Your tree")
+        .navigationBarTitleDisplayMode(.inline)
+        .task {
+            let userId = services.auth.currentUserId ?? "anonymous"
+            profile = try? await services.user.fetchProfile(userId: userId)
+            await SkillProgressService.shared.load(userId: userId)
+            await rankVM.load(
+                userId: userId,
+                archetype: profile?.preferredArchetype ?? .vTaper
+            )
+        }
+        .sheet(item: $selectedNode) { node in
+            SkillNodeDetailSheet(
+                node: node,
+                currentState: skillProgress.nodeStates[node.id] ?? .locked,
+                onManualMark: {
+                    Task {
+                        await SkillProgressService.shared.manuallyMark(nodeId: node.id, state: .achieved)
+                    }
+                    selectedNode = nil
+                }
+            )
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
+            .presentationBackground(Color.unbound.bg)
+        }
+        .nodeUnlockOverlay(archetype: profile?.preferredArchetype ?? .vTaper)
+        .skinUnlockToast()
+        .task(id: profile?.preferredArchetype) {
+            guard let archetype = profile?.preferredArchetype else { return }
+            let userId = services.auth.currentUserId ?? "anonymous"
+            _ = await skinService.evaluateUnlocks(userId: userId, archetype: archetype)
+        }
+    }
+
+    // MARK: Archetype hero — aggregate rank + identity
+
+    private var archetypeHero: some View {
+        let archetype = profile?.preferredArchetype ?? .vTaper
+        let rank = rankVM.archetypeRank
+        return ZStack(alignment: .topTrailing) {
+            HStack(alignment: .center, spacing: 16) {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("ARC RANK")
+                        .font(Font.unbound.monoS)
+                        .tracking(2.0)
+                        .foregroundStyle(Color.unbound.textTertiary)
+
+                    Text(archetype.displayName)
+                        .font(Font.unbound.titleL)
+                        .foregroundStyle(Color.unbound.textPrimary)
+                        .tracking(1.2)
+
+                    Text(archetype.characterTagline)
+                        .font(Font.unbound.monoS)
+                        .tracking(1.0)
+                        .foregroundStyle(Color.unbound.textTertiary)
+
+                    Text("Your arc rank — aggregate of \(archetype.emphasisLifts.count) emphasis lifts")
+                        .font(Font.unbound.captionS)
+                        .foregroundStyle(Color.unbound.textSecondary)
+                        .lineLimit(2)
+                }
+                Spacer(minLength: 8)
+
+                ZStack {
+                    Hexagon().fill(Color.unbound.surfaceElevated)
+                    Hexagon().strokeBorder(glowColor(for: rank), lineWidth: 2)
+                        .shadow(color: glowColor(for: rank).opacity(0.55), radius: 10)
+                    Text(rank.displayName)
+                        .font(.system(size: 30, weight: .black, design: .monospaced))
+                        .foregroundStyle(Color.unbound.textPrimary)
+                }
+                .frame(width: 92, height: 92)
+            }
+            .padding(18)
+            .frame(maxWidth: .infinity)
+            .background(
+                ChamferedRectangle(inset: 8)
+                    .fill(Color.unbound.surface)
+            )
+            .overlay(
+                ChamferedRectangle(inset: 8)
+                    .stroke(Color.unbound.border, lineWidth: 1)
+            )
+
+            if isRecalibrating {
+                Text("RECALIBRATING")
+                    .font(Font.unbound.monoS)
+                    .tracking(1.6)
+                    .foregroundStyle(Color.unbound.accent)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(
+                        Capsule()
+                            .fill(Color.unbound.accent.opacity(0.15))
+                    )
+                    .overlay(
+                        Capsule()
+                            .stroke(Color.unbound.accent.opacity(0.55), lineWidth: 1)
+                    )
+                    .padding(14)
+            }
+        }
+    }
+
+    // MARK: Movement-pattern sections
+
+    @ViewBuilder
+    private var patternSections: some View {
+        if !rankVM.sections.isEmpty {
+            VStack(alignment: .leading, spacing: 14) {
+                ForEach(rankVM.sections) { section in
+                    patternSection(section)
+                }
+            }
+        }
+    }
+
+    private func patternSection(_ section: SkillTreeViewModel.PatternSection) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .firstTextBaseline, spacing: 10) {
+                Image(systemName: section.pattern.icon)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Color.unbound.textSecondary)
+                Text(section.pattern.title.uppercased())
+                    .font(Font.unbound.monoS)
+                    .tracking(1.6)
+                    .foregroundStyle(Color.unbound.textSecondary)
+                Spacer()
+                rankChip(section.aggregate, filled: section.aggregate >= .bPlus)
+            }
+
+            VStack(spacing: 6) {
+                ForEach(section.ranks, id: \.id) { lift in
+                    HStack(spacing: 10) {
+                        Text(lift.displayName)
+                            .font(Font.unbound.bodyMStrong)
+                            .foregroundStyle(Color.unbound.textPrimary)
+                            .lineLimit(1)
+                        Spacer()
+                        rankChip(lift.currentRank, filled: lift.currentRank >= .bPlus)
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .background(
+                        ChamferedRectangle(inset: 6)
+                            .fill(Color.unbound.surface)
+                    )
+                    .overlay(
+                        ChamferedRectangle(inset: 6)
+                            .stroke(Color.unbound.borderSubtle, lineWidth: 1)
+                    )
+                }
+            }
+        }
+    }
+
+    private func rankChip(_ rank: SubRank, filled: Bool) -> some View {
+        let style = skinService.currentSkin.rankChipStyle
+        return Text(rank.displayName)
+            .font(Font.unbound.monoM)
+            .foregroundStyle(filled ? style.text : Color.unbound.textSecondary)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 4)
+            .background(
+                Capsule()
+                    .fill(filled ? style.background : Color.clear)
+            )
+            .overlay(
+                Capsule()
+                    .stroke(filled ? style.border : Color.unbound.border, lineWidth: 1)
+            )
+    }
+
+    private func glowColor(for rank: SubRank) -> Color {
+        if rank.ordinal >= SubRank.sMinus.ordinal {
+            return skinService.currentSkin.impactColor
+        }
+        return skinService.currentSkin.primaryColor
+    }
+
+    private var progressionPathsLink: some View {
+        NavigationLink {
+            ProgressionLadderView()
+                .environmentObject(services)
+        } label: {
+            HStack(spacing: 14) {
+                Image(systemName: "chart.bar.xaxis.ascending")
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundStyle(Color.unbound.accent)
+                    .frame(width: 42, height: 42)
+                    .background(Circle().fill(Color.unbound.accent.opacity(0.14)))
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Progression Paths")
+                        .font(Font.unbound.bodyLStrong)
+                        .foregroundStyle(Color.unbound.textPrimary)
+                    Text("Push · Pull · Single-leg · Core ladders")
+                        .font(Font.unbound.captionS)
+                        .foregroundStyle(Color.unbound.textSecondary)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Color.unbound.textTertiary)
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity)
+            .background(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(Color.unbound.surface)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .strokeBorder(Color.unbound.border, lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+        .padding(.top, 4)
+    }
+
+    private var header: some View {
+        HStack(alignment: .center, spacing: 14) {
+            Image(systemName: "hexagon.fill")
+                .font(.system(size: 22, weight: .semibold))
+                .foregroundStyle(Color.unbound.accent)
+            Text("YOUR SKILL MAP")
+                .font(Font.unbound.captionS.weight(.heavy))
+                .tracking(2.2)
+                .foregroundStyle(Color.unbound.textSecondary)
+            Spacer()
+        }
+    }
+
+    // Old header content kept commented for reference — removed in Chunk 4.
+    private var oldHeader: some View {
+        HStack(alignment: .center, spacing: 14) {
+            Image(systemName: "hexagon.fill")
+                .font(.system(size: 22, weight: .semibold))
+                .foregroundStyle(Color.unbound.accent)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("PATH TO")
+                    .font(Font.unbound.captionS)
+                    .tracking(1.4)
+                    .foregroundStyle(Color.unbound.textTertiary)
+                Text(activeTree.displayName)
+                    .font(Font.unbound.titleM)
+                    .foregroundStyle(Color.unbound.textPrimary)
+                    .tracking(0.5)
+            }
+            Spacer()
+        }
+    }
+
+    private var activeTree: SkillTree {
+        SkillTree.tree(for: profile?.preferredArchetype ?? .vTaper)
+    }
+
+    /// Live state from SkillProgressService, with spawn-point nodes
+    /// seeded to .attempting if nothing has been recorded yet. Operates
+    /// over the full SkillGraph (not a filtered subset).
+    private func liveStatesForFullGraph() -> [String: NodeState] {
+        var states = skillProgress.nodeStates
+        let archetype = profile?.preferredArchetype ?? .vTaper
+        let spawnIds = Set(ArchetypeSpawnPoints.nodeIds(for: archetype))
+        for node in SkillGraph.shared.nodes where states[node.id] == nil {
+            states[node.id] = spawnIds.contains(node.id) ? .attempting : .locked
+        }
+        return states
+    }
+}
+
+// MARK: - SkillNodeDetailSheet
+
+struct SkillNodeDetailSheet: View {
+    let node: SkillNode
+    var currentState: NodeState = .locked
+    var onManualMark: (() -> Void)? = nil
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                headerRow
+                badgesRow
+                requirementBlock
+
+                if !node.subtitle.isEmpty {
+                    Text(node.subtitle)
+                        .font(Font.unbound.bodyM)
+                        .foregroundStyle(Color.unbound.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                if !node.description.isEmpty {
+                    descriptionBlock
+                }
+
+                if !node.formCues.isEmpty {
+                    bulletBlock(title: "FORM CUES", bullets: node.formCues, tone: Color.unbound.accent)
+                }
+
+                if !node.commonMistakes.isEmpty {
+                    bulletBlock(title: "COMMON MISTAKES", bullets: node.commonMistakes, tone: Color.unbound.alert)
+                }
+
+                if !node.primaryMuscles.isEmpty || !node.secondaryMuscles.isEmpty {
+                    musclesBlock
+                }
+
+                if !node.timelineEstimate.isEmpty {
+                    timelineBlock
+                }
+
+                if canManuallyMark, let onManualMark {
+                    UnboundButton(title: "I hit this", icon: "checkmark", action: onManualMark)
+                        .padding(.top, 8)
+                } else if currentState == .achieved || currentState == .mastered {
+                    HStack(spacing: 10) {
+                        Image(systemName: currentState == .mastered ? "crown.fill" : "checkmark.seal.fill")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundStyle(currentState == .mastered ? Color.unbound.impact : Color.unbound.accent)
+                        Text(currentState == .mastered ? "Mastered." : "Achieved.")
+                            .font(Font.unbound.bodyLStrong)
+                            .foregroundStyle(Color.unbound.textPrimary)
+                        Spacer()
+                    }
+                    .padding(.top, 8)
+                }
+            }
+            .padding(24)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    // MARK: Header + identity
+
+    private var headerRow: some View {
+        HStack(alignment: .center, spacing: 14) {
+            ZStack {
+                Hexagon().fill(Color.unbound.surface)
+                Hexagon().strokeBorder(borderColor, lineWidth: 1.5)
+                Image(systemName: glyphName)
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundStyle(borderColor)
+            }
+            .frame(width: 64, height: 64)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(node.title)
+                    .font(Font.unbound.titleM)
+                    .foregroundStyle(Color.unbound.textPrimary)
+                Text(stateLabel)
+                    .font(Font.unbound.captionS)
+                    .tracking(1.4)
+                    .foregroundStyle(borderColor)
+            }
+            Spacer()
+        }
+    }
+
+    // MARK: Badge row — cluster · tier · equipment
+
+    private var badgesRow: some View {
+        HStack(spacing: 8) {
+            badge(text: "T\(node.tier)", glyph: nil)
+            badge(text: node.cluster.displayName.uppercased(), glyph: node.cluster.glyph)
+            ForEach(node.equipment, id: \.id) { eq in
+                badge(text: eq.displayName.uppercased(), glyph: eq.glyph)
+            }
+            Spacer()
+        }
+    }
+
+    private func badge(text: String, glyph: String?) -> some View {
+        HStack(spacing: 5) {
+            if let g = glyph {
+                Image(systemName: g)
+                    .font(.system(size: 10, weight: .semibold))
+            }
+            Text(text)
+                .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                .tracking(0.8)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 5)
+        .foregroundStyle(Color.unbound.textSecondary)
+        .background(
+            Capsule().fill(Color.unbound.surfaceElevated)
+        )
+        .overlay(
+            Capsule().strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
+        )
+    }
+
+    // MARK: Requirement block
+
+    private var requirementBlock: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("WHAT IT TAKES")
+                .font(Font.unbound.captionS.weight(.heavy))
+                .tracking(1.4)
+                .foregroundStyle(Color.unbound.textTertiary)
+            Text(node.requirement.displayName.capitalized)
+                .font(Font.unbound.bodyLStrong)
+                .foregroundStyle(Color.unbound.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    // MARK: Description block
+
+    private var descriptionBlock: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("WHAT IT IS")
+                .font(Font.unbound.captionS.weight(.heavy))
+                .tracking(1.4)
+                .foregroundStyle(Color.unbound.textTertiary)
+            Text(node.description)
+                .font(Font.unbound.bodyM)
+                .foregroundStyle(Color.unbound.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    // MARK: Muscles
+
+    private var musclesBlock: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("MUSCLES TRAINED")
+                .font(Font.unbound.captionS.weight(.heavy))
+                .tracking(1.4)
+                .foregroundStyle(Color.unbound.textTertiary)
+            HStack(spacing: 6) {
+                ForEach(node.primaryMuscles, id: \.rawValue) { m in
+                    muscleChip(m.displayName, primary: true)
+                }
+                ForEach(node.secondaryMuscles, id: \.rawValue) { m in
+                    muscleChip(m.displayName, primary: false)
+                }
+                Spacer()
+            }
+        }
+    }
+
+    private func muscleChip(_ text: String, primary: Bool) -> some View {
+        Text(text.uppercased())
+            .font(.system(size: 10, weight: .semibold, design: .monospaced))
+            .tracking(0.8)
+            .foregroundStyle(primary ? Color.unbound.textPrimary : Color.unbound.textSecondary)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 5)
+            .background(
+                Capsule().fill(primary ? Color.unbound.accent.opacity(0.18) : Color.unbound.surfaceElevated)
+            )
+            .overlay(
+                Capsule().strokeBorder(primary ? Color.unbound.accent.opacity(0.4) : Color.unbound.borderSubtle, lineWidth: 1)
+            )
+    }
+
+    // MARK: Timeline
+
+    private var timelineBlock: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "hourglass")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(Color.unbound.textTertiary)
+            Text(node.timelineEstimate)
+                .font(Font.unbound.bodyS)
+                .foregroundStyle(Color.unbound.textTertiary)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer()
+        }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(Color.unbound.surfaceElevated)
+        )
+    }
+
+    // MARK: Bullet list (form cues / common mistakes)
+
+    private func bulletBlock(title: String, bullets: [String], tone: Color) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(Font.unbound.captionS.weight(.heavy))
+                .tracking(1.4)
+                .foregroundStyle(Color.unbound.textTertiary)
+            VStack(alignment: .leading, spacing: 6) {
+                ForEach(bullets, id: \.self) { b in
+                    HStack(alignment: .top, spacing: 8) {
+                        Circle()
+                            .fill(tone)
+                            .frame(width: 5, height: 5)
+                            .padding(.top, 8)
+                        Text(b)
+                            .font(Font.unbound.bodyS)
+                            .foregroundStyle(Color.unbound.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: Styling
+
+    private var borderColor: Color {
+        switch currentState {
+        case .locked:     return Color.unbound.border
+        case .attempting: return Color.unbound.accent
+        case .achieved:   return Color.unbound.accent
+        case .mastered:   return Color.unbound.impact
+        }
+    }
+
+    private var glyphName: String {
+        switch currentState {
+        case .locked:     return "lock.fill"
+        case .attempting: return iconForType
+        case .achieved:   return "checkmark"
+        case .mastered:   return "crown.fill"
+        }
+    }
+
+    private var iconForType: String {
+        if node.isMythic { return "star.circle.fill" }
+        if node.isKeystone { return "shield.lefthalf.filled" }
+        switch node.type {
+        case .strength: return "dumbbell.fill"
+        case .skill:    return "figure.strengthtraining.functional"
+        case .hold:     return "figure.mind.and.body"
+        }
+    }
+
+    private var stateLabel: String {
+        switch currentState {
+        case .locked:
+            if node.isMythic { return "MYTHIC · LOCKED" }
+            if node.isKeystone { return "KEYSTONE · LOCKED" }
+            return "LOCKED"
+        case .attempting: return "IN PROGRESS"
+        case .achieved:   return "ACHIEVED"
+        case .mastered:   return "MASTERED"
+        }
+    }
+
+    private var canManuallyMark: Bool {
+        currentState == .attempting
+    }
+}

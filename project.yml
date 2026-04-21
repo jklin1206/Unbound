@@ -1,0 +1,54 @@
+name: UNBOUND
+options:
+  bundleIdPrefix: com.unboundapp
+  deploymentTarget:
+    iOS: "17.0"
+  xcodeVersion: "16.0"
+  generateEmptyDirectories: true
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    DEVELOPMENT_TEAM: ""
+    CODE_SIGN_STYLE: Automatic
+    INFOPLIST_KEY_NSCameraUsageDescription: "UNBOUND needs camera access to take your body scan photos"
+    INFOPLIST_KEY_UILaunchScreen_Generation: true
+    INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
+    INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown"
+
+# Firebase removed V1. Phase 2 adds Supabase as the real backend (auth,
+# Postgres, Storage, Edge Functions). Publishable/anon key is safe to ship;
+# RLS enforces access. Service-role key stays in Edge Functions only.
+packages:
+  RevenueCat:
+    url: https://github.com/RevenueCat/purchases-ios-spm.git
+    from: "5.0.0"
+  Superwall:
+    url: https://github.com/superwall/Superwall-iOS.git
+    from: "4.0.0"
+  Supabase:
+    url: https://github.com/supabase-community/supabase-swift
+    from: "2.0.0"
+
+targets:
+  UNBOUND:
+    type: application
+    platform: iOS
+    sources:
+      - path: UNBOUND
+        excludes:
+          - CloudFunctions/**
+          - supabase/**
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.unboundapp.ios
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: UNBOUND
+        CODE_SIGN_ENTITLEMENTS: UNBOUND/UNBOUND.entitlements
+    dependencies:
+      - package: RevenueCat
+        product: RevenueCat
+      - package: Superwall
+        product: SuperwallKit
+      - package: Supabase
+        product: Supabase

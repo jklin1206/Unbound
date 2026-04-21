@@ -1,0 +1,71 @@
+import SwiftUI
+
+@main
+struct UnboundApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    @StateObject private var services = ServiceContainer()
+
+    var body: some Scene {
+        WindowGroup {
+            RootView()
+                .environmentObject(services)
+                .preferredColorScheme(.dark)
+        }
+    }
+}
+
+struct RootView: View {
+    @EnvironmentObject var services: ServiceContainer
+    @ObservedObject private var entitlement = EntitlementService.shared
+    @State private var isAuthenticated = false
+    @State private var isCheckingAuth = true
+
+    // Reacts to UserDefaults changes — flipping this key from Settings
+    // immediately re-routes the app back into onboarding.
+    @AppStorage("onboardingCompleted") private var hasCompletedOnboarding: Bool = false
+    @AppStorage("unbound.calibration.completed") private var hasCompletedCalibration: Bool = false
+
+    var body: some View {
+        Group {
+            if isCheckingAuth {
+                ZStack {
+                    Color.unbound.bg.ignoresSafeArea()
+                    ProgressView()
+                        .tint(Color.unbound.accent)
+                }
+            } else if !hasCompletedOnboarding {
+                OnboardingContainerView(onComplete: {
+                    hasCompletedOnboarding = true
+                })
+            } else if !isAuthenticated {
+                AuthContainerView()
+            } else if !hasCompletedCalibration {
+                CalibrationContainerView(onComplete: {
+                    hasCompletedCalibration = true
+                })
+            } else {
+                // Entitlement gating now lives inline on premium features
+                // (Coach, Program, Report "unlock" CTA). The app root always
+                // lands on Home once onboarding + calibration are complete —
+                // the onboarding paywall step is the primary funnel, and
+                // per-feature paywalls handle subsequent conversion.
+                HomeTabView()
+            }
+        }
+        .task {
+            #if DEBUG
+            // Dev-only: skip the sign-in gate by auto-provisioning an anonymous local UUID.
+            AuthService.shared.autoProvisionIfNeeded()
+            #endif
+
+            for await userId in services.auth.authStatePublisher.values {
+                isAuthenticated = userId != nil
+                if let userId {
+                    services.analytics.setUserId(userId)
+                    try? await services.subscription.login(userId: userId)
+                }
+                isCheckingAuth = false
+            }
+        }
+    }
+}

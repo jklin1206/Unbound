@@ -1,0 +1,483 @@
+import SwiftUI
+
+// MARK: - ClusterDetailView
+//
+// Drill-in view for a single skill cluster. Renders the cluster's nodes
+// as a mini-graph with edges between prerequisite pairs. Keystones and
+// Mythic nodes get amplified visual treatment (outer ring / gold stroke).
+//
+// Layout: nodes positioned by tier (row = tier) and within-tier order
+// (column spread around center). Simple, predictable, no fancy
+// force-directed layout.
+//
+// Calisthenic Control has ~22 nodes and gets pan/zoom — all other
+// clusters fit in one viewport at standard node spacing.
+
+struct ClusterDetailView: View {
+    let cluster: SkillCluster
+    let graph: SkillGraph
+    let nodeStates: [String: NodeState]
+    var nodeProgress: [String: Double] = [:]
+    var onNodeTap: (SkillNode) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var scale: CGFloat = 1.0
+    @GestureState private var pinchScale: CGFloat = 1.0
+
+    private var clusterNodes: [SkillNode] {
+        graph.nodes(in: cluster)
+    }
+
+    /// Whether to enable pan+zoom. Only needed for dense clusters.
+    private var densePan: Bool {
+        clusterNodes.count > 14
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            header
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    summaryRow
+                    graphCanvas
+                        .padding(.horizontal, 10)
+                    callouts
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 40)
+            }
+        }
+        .background(Color.unbound.bg.ignoresSafeArea())
+    }
+
+    // MARK: Header
+
+    private var header: some View {
+        HStack(alignment: .center, spacing: 14) {
+            Image(systemName: cluster.glyph)
+                .font(.system(size: 22, weight: .semibold))
+                .foregroundStyle(Color.unbound.textPrimary)
+                .frame(width: 44, height: 44)
+                .background(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(Color.unbound.surfaceElevated)
+                )
+            VStack(alignment: .leading, spacing: 2) {
+                Text(cluster.displayName.uppercased())
+                    .font(Font.unbound.captionS.weight(.heavy))
+                    .tracking(2.2)
+                    .foregroundStyle(Color.unbound.textSecondary)
+                Text(cluster.tagline)
+                    .font(Font.unbound.bodyM)
+                    .foregroundStyle(Color.unbound.textSecondary)
+                    .lineLimit(1)
+            }
+            Spacer()
+            Button { dismiss() } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(Color.unbound.textSecondary)
+                    .frame(width: 30, height: 30)
+                    .background(
+                        Circle().fill(Color.unbound.surfaceElevated)
+                    )
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 12)
+        .padding(.bottom, 14)
+    }
+
+    // MARK: Summary row
+
+    private var summaryRow: some View {
+        let unlocked = clusterNodes.filter { isUnlocked(nodeStates[$0.id] ?? .locked) }.count
+        let keystone = clusterNodes.first { $0.isKeystone && !$0.isMythic }
+        return HStack(spacing: 16) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("PROGRESS")
+                    .font(Font.unbound.captionS.weight(.heavy))
+                    .tracking(1.4)
+                    .foregroundStyle(Color.unbound.textTertiary)
+                Text("\(unlocked) / \(clusterNodes.count)")
+                    .font(Font.unbound.monoL)
+                    .foregroundStyle(Color.unbound.textPrimary)
+            }
+            Spacer()
+            if let k = keystone {
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text("KEYSTONE")
+                        .font(Font.unbound.captionS.weight(.heavy))
+                        .tracking(1.4)
+                        .foregroundStyle(Color.unbound.textTertiary)
+                    Text(k.title)
+                        .font(Font.unbound.bodyMStrong)
+                        .foregroundStyle(Color.unbound.textPrimary)
+                }
+            }
+        }
+        .padding(.top, 4)
+    }
+
+    // MARK: Graph canvas
+
+    private var graphCanvas: some View {
+        let layout = computeLayout()
+        let width = layout.width
+        let height = layout.height
+
+        let canvas = ZStack {
+            Canvas { ctx, _ in
+                // Draw edges for nodes inside this cluster only.
+                for node in clusterNodes {
+                    guard let to = layout.positions[node.id] else { continue }
+                    let allPrereqIds = node.prereqs.flatMap { $0.nodeIds }
+                    for prereqId in allPrereqIds {
+                        guard clusterNodes.contains(where: { $0.id == prereqId }),
+                              let from = layout.positions[prereqId] else { continue }
+                        var path = Path()
+                        path.move(to: from)
+                        path.addLine(to: to)
+                        let reachable = isUnlocked(nodeStates[prereqId] ?? .locked)
+                        ctx.stroke(
+                            path,
+                            with: .color(reachable
+                                         ? Color.unbound.accent.opacity(0.55)
+                                         : Color.unbound.border),
+                            style: StrokeStyle(
+                                lineWidth: 1.5,
+                                lineCap: .round,
+                                dash: reachable ? [] : [3, 5]
+                            )
+                        )
+                    }
+                }
+            }
+            .frame(width: width, height: height)
+
+            ForEach(clusterNodes) { node in
+                clusterNodeCanvasEntry(node: node, layout: layout)
+            }
+        }
+        .frame(width: width, height: height)
+
+        if densePan {
+            return AnyView(
+                ScrollView([.horizontal, .vertical], showsIndicators: false) {
+                    canvas
+                        .scaleEffect(scale * pinchScale)
+                        .gesture(
+                            MagnificationGesture()
+                                .updating($pinchScale) { v, s, _ in s = v }
+                                .onEnded { v in
+                                    scale = max(0.6, min(1.6, scale * v))
+                                }
+                        )
+                }
+                .frame(height: 520)
+            )
+        } else {
+            return AnyView(canvas)
+        }
+    }
+
+    // MARK: Cross-cluster callouts
+
+    private var callouts: some View {
+        let crossEdges = computeCrossClusterPrereqs()
+        return Group {
+            if !crossEdges.isEmpty {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("CROSS-CLUSTER PATHS")
+                        .font(Font.unbound.captionS.weight(.heavy))
+                        .tracking(2)
+                        .foregroundStyle(Color.unbound.textSecondary)
+                        .padding(.top, 16)
+
+                    ForEach(crossEdges, id: \.self) { msg in
+                        HStack(alignment: .top, spacing: 12) {
+                            Image(systemName: "arrow.triangle.branch")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundStyle(Color.unbound.accent)
+                                .frame(width: 28, height: 28)
+                                .background(
+                                    Circle().fill(Color.unbound.accent.opacity(0.12))
+                                )
+                            Text(msg)
+                                .font(Font.unbound.bodyS)
+                                .foregroundStyle(Color.unbound.textSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                            Spacer()
+                        }
+                        .padding(14)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .fill(Color.unbound.surface)
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .strokeBorder(Color.unbound.border, lineWidth: 1)
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: Node canvas entry (extracted to help Swift type-inference)
+
+    @ViewBuilder
+    private func clusterNodeCanvasEntry(node: SkillNode, layout: Layout) -> some View {
+        if let p = layout.positions[node.id] {
+            ClusterNodeHex(
+                node: node,
+                state: nodeStates[node.id] ?? .locked,
+                progress: nodeProgress[node.id]
+            )
+            .position(p)
+            .onTapGesture {
+                UnboundHaptics.medium()
+                onNodeTap(node)
+            }
+        }
+    }
+
+    // MARK: Layout computation
+
+    private struct Layout {
+        let positions: [String: CGPoint]
+        let width: CGFloat
+        let height: CGFloat
+    }
+
+    private func computeLayout() -> Layout {
+        let rowHeight: CGFloat = densePan ? 150 : 130
+        let colSpacing: CGFloat = densePan ? 110 : 130
+        let minTier = clusterNodes.map(\.tier).min() ?? 1
+
+        // Group by tier
+        let byTier = Dictionary(grouping: clusterNodes, by: \.tier)
+            .mapValues { $0.sorted { $0.id < $1.id } }
+
+        let sortedTiers = byTier.keys.sorted()
+        let maxColumns = byTier.values.map(\.count).max() ?? 1
+        let width = max(320, CGFloat(maxColumns) * colSpacing + 80)
+        let height = CGFloat(sortedTiers.count) * rowHeight + 60
+        let centerX = width / 2
+
+        var positions: [String: CGPoint] = [:]
+        for tier in sortedTiers {
+            let row = tier - minTier
+            let nodes = byTier[tier] ?? []
+            let totalWidth = CGFloat(nodes.count - 1) * colSpacing
+            let startX = centerX - totalWidth / 2
+            for (idx, n) in nodes.enumerated() {
+                let x = startX + CGFloat(idx) * colSpacing
+                let y = CGFloat(row) * rowHeight + rowHeight / 2 + 30
+                positions[n.id] = CGPoint(x: x, y: y)
+            }
+        }
+        return Layout(positions: positions, width: width, height: height)
+    }
+
+    // MARK: Cross-cluster prereq messages
+
+    private func computeCrossClusterPrereqs() -> [String] {
+        var messages: [String] = []
+        for node in clusterNodes {
+            // Only surface cross-cluster prereqs for mythic/keystone to avoid noise
+            guard node.isKeystone || node.isMythic else { continue }
+            let prereqIds = node.prereqs.flatMap { $0.nodeIds }
+            let foreign = prereqIds.compactMap { graph.node(id: $0) }
+                .filter { $0.cluster != cluster }
+            guard !foreign.isEmpty else { continue }
+            let foreignNames = foreign.map(\.title).joined(separator: " + ")
+            messages.append("\(node.title) also requires \(foreignNames) (\(foreign[0].cluster.displayName))")
+        }
+        return messages
+    }
+
+    private func isUnlocked(_ s: NodeState) -> Bool {
+        s == .achieved || s == .mastered
+    }
+}
+
+// MARK: - Node hex for the cluster detail
+
+private struct ClusterNodeHex: View {
+    let node: SkillNode
+    let state: NodeState
+    var progress: Double? = nil        // 0.0-1.0; rendered as bottom fill when attempting
+
+    private var size: CGFloat {
+        if node.isMythic || node.isKeystone { return 92 }
+        return 72
+    }
+
+    private var clampedProgress: Double {
+        max(0, min(1, progress ?? 0))
+    }
+
+    var body: some View {
+        VStack(spacing: 8) {
+            ZStack {
+                Hexagon().fill(fillColor).frame(width: size, height: size)
+
+                // Live progress fill — only while attempting and progress > 0.
+                if state == .attempting, let p = progress, p > 0 {
+                    progressFill(fraction: p)
+                        .frame(width: size, height: size)
+                }
+
+                Hexagon().fill(.thinMaterial).opacity(0.08)
+                    .frame(width: size, height: size)
+                Hexagon()
+                    .strokeBorder(borderColor, lineWidth: strokeWidth)
+                    .frame(width: size, height: size)
+                if node.isKeystone && state != .locked {
+                    Hexagon()
+                        .strokeBorder(outerRingColor, lineWidth: 1)
+                        .frame(width: size + 12, height: size + 12)
+                        .shadow(color: outerRingColor.opacity(0.5), radius: 10)
+                }
+                if node.isMythic {
+                    Hexagon()
+                        .strokeBorder(Color.unbound.impact, lineWidth: 1.5)
+                        .frame(width: size + 16, height: size + 16)
+                        .opacity(state == .locked ? 0.3 : 0.8)
+                }
+                glyph
+
+                // Progress readout label (e.g. "7/10") over-painted for attempting nodes
+                if state == .attempting, let p = progress, p > 0 {
+                    progressLabel(fraction: p)
+                        .offset(y: size / 2 - 4)
+                }
+            }
+            .shadow(color: glowColor, radius: state == .locked ? 0 : 10)
+
+            VStack(spacing: 2) {
+                Text(node.title)
+                    .font(Font.unbound.captionS.weight(.semibold))
+                    .foregroundStyle(labelColor)
+                    .tracking(0.4)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(width: 96)
+
+                if node.isMythic {
+                    Text("MYTHIC")
+                        .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                        .tracking(1.8)
+                        .foregroundStyle(Color.unbound.impact)
+                } else if node.isKeystone {
+                    Text("KEYSTONE")
+                        .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                        .tracking(1.8)
+                        .foregroundStyle(Color.unbound.accent)
+                }
+            }
+        }
+    }
+
+    private var fillColor: Color {
+        switch state {
+        case .locked, .attempting: return Color.unbound.surface
+        case .achieved:            return Color.unbound.accent.opacity(0.18)
+        case .mastered:            return Color.unbound.impact.opacity(0.22)
+        }
+    }
+
+    private var borderColor: Color {
+        if node.isMythic && state == .locked { return Color.unbound.impact.opacity(0.45) }
+        switch state {
+        case .locked:     return Color.unbound.border
+        case .attempting: return Color.unbound.accent
+        case .achieved:   return Color.unbound.accent
+        case .mastered:   return Color.unbound.impact
+        }
+    }
+
+    private var strokeWidth: CGFloat {
+        switch state {
+        case .locked:     return node.isMythic ? 1.5 : 1
+        case .attempting: return 1.5
+        case .achieved:   return 1.5
+        case .mastered:   return 2
+        }
+    }
+
+    private var outerRingColor: Color {
+        state == .mastered ? Color.unbound.impact : Color.unbound.accent
+    }
+
+    private var glowColor: Color {
+        switch state {
+        case .locked:     return .clear
+        case .attempting: return Color.unbound.accent.opacity(0.4)
+        case .achieved:   return Color.unbound.accent.opacity(0.55)
+        case .mastered:   return Color.unbound.impact.opacity(0.6)
+        }
+    }
+
+    private var labelColor: Color {
+        state == .locked ? Color.unbound.textTertiary : Color.unbound.textPrimary
+    }
+
+    @ViewBuilder
+    private var glyph: some View {
+        let fontSize = node.isKeystone || node.isMythic ? 26.0 : 22.0
+        switch state {
+        case .locked:
+            Image(systemName: "lock.fill")
+                .font(.system(size: fontSize - 4, weight: .semibold))
+                .foregroundStyle(Color.unbound.textTertiary)
+        case .attempting:
+            Image(systemName: node.glyph)
+                .font(.system(size: fontSize, weight: .semibold))
+                .foregroundStyle(Color.unbound.accent)
+        case .achieved:
+            Image(systemName: "checkmark")
+                .font(.system(size: fontSize, weight: .bold))
+                .foregroundStyle(Color.unbound.accent)
+        case .mastered:
+            Image(systemName: "crown.fill")
+                .font(.system(size: fontSize, weight: .semibold))
+                .foregroundStyle(Color.unbound.impact)
+        }
+    }
+
+    // MARK: In-hex progress fill
+
+    private func progressFill(fraction: Double) -> some View {
+        let f = max(0, min(1, fraction))
+        return Hexagon()
+            .fill(Color.unbound.accent.opacity(0.35))
+            .mask(
+                VStack(spacing: 0) {
+                    Color.clear.frame(height: size * (1 - f))
+                    Color.black.frame(height: size * f)
+                }
+                .frame(width: size, height: size)
+            )
+            .animation(.easeOut(duration: 0.45), value: fraction)
+    }
+
+    private func progressLabel(fraction: Double) -> some View {
+        let pct = Int((max(0, min(1, fraction)) * 100).rounded())
+        return Text("\(pct)%")
+            .font(.system(size: 10, weight: .bold, design: .monospaced))
+            .foregroundStyle(Color.unbound.accent)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(
+                Capsule().fill(Color.unbound.bg)
+            )
+            .overlay(
+                Capsule().strokeBorder(Color.unbound.accent.opacity(0.6), lineWidth: 1)
+            )
+    }
+}
