@@ -169,10 +169,6 @@ private struct OnboardingRouter: View {
                     Step11_Experience(flow: flow, progress: flow.progress, onBack: back, onContinue: advance)
                         .transition(screenTransition)
 
-                case .currentFrequency:
-                    Step12_CurrentFrequency(flow: flow, progress: flow.progress, onBack: back, onContinue: advance)
-                        .transition(screenTransition)
-
                 case .targetFrequency:
                     Step13_TargetFrequency(flow: flow, progress: flow.progress, onBack: back, onContinue: advance)
                         .transition(screenTransition)

@@ -227,7 +227,7 @@ struct OnboardingScaffold<Content: View>: View {
         title: "How often do you train now?",
         subtitle: nil,
         primaryEnabled: true,
-        hudStep: .currentFrequency,
+        hudStep: .targetFrequency,
         onBack: {},
         onPrimary: {}
     ) {

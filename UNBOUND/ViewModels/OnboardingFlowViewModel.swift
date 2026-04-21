@@ -44,7 +44,6 @@ enum OnboardingStep: Int, CaseIterable, Identifiable {
     case height
     case weight
     case experience
-    case currentFrequency
     case targetFrequency
     case workoutTime         // when in the day
     case equipment
@@ -139,7 +138,7 @@ enum OnboardingStep: Int, CaseIterable, Identifiable {
         case .goals, .obstacles, .archetype, .targetAreas, .motivation,
              .commitDay30, .commitDay90, .commitToday:
             return .profile
-        case .experience, .currentFrequency, .targetFrequency, .workoutTime,
+        case .experience, .targetFrequency, .workoutTime,
              .equipment, .exerciseStyle, .sessionLength:
             return .training
         case .age, .gender, .height, .weight:
@@ -310,8 +309,6 @@ final class OnboardingFlowViewModel {
             return true
         case .experience:
             return experience != nil
-        case .currentFrequency:
-            return currentFrequency != nil
         case .targetFrequency:
             return targetFrequency != nil
         case .equipment:
