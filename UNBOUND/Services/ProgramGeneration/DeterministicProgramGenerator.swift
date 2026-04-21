@@ -170,6 +170,16 @@ enum DeterministicProgramGenerator {
     ) -> Workout {
         let allCatalog = ExerciseCatalog.allExercises
 
+        // Filter down to what this user can actually do with their equipment
+        // + training style. Keyword-based (see ExerciseEquipmentClassifier).
+        let compatibleCatalog = allCatalog.filter {
+            ExerciseEquipmentClassifier.isCompatible(
+                exerciseName: $0.name,
+                style: input.trainingStyle,
+                userEquipment: input.equipment
+            )
+        }
+
         // Which muscle groups does this template emphasize? weakPoint days
         // pull from the biased set; everything else uses the template's own
         // groups.
@@ -181,15 +191,14 @@ enum DeterministicProgramGenerator {
         }
 
         // First pass — exercises that hit at least one target group.
-        var eligiblePool = allCatalog.filter { entry in
+        var eligiblePool = compatibleCatalog.filter { entry in
             !Set(entry.muscleGroups).intersection(templateGroups).isEmpty
         }
 
         // Fallback: if nothing matched (e.g. weakPoint with an empty bias),
-        // accept any entry whose muscle groups overlap ANY catalog group —
-        // effectively every entry. The MVP bar is a non-empty pool.
+        // accept any compatible entry — the MVP bar is a non-empty pool.
         if eligiblePool.isEmpty {
-            eligiblePool = allCatalog
+            eligiblePool = compatibleCatalog
         }
 
         func klass(_ e: CatalogExercise) -> ExerciseClassification {

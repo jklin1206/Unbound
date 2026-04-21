@@ -65,6 +65,25 @@ final class DeterministicProgramGeneratorTests: XCTestCase {
                       "At least one day's label should reference shoulders; got: \(labels)")
     }
 
+    func testBodyweightUserHasNoBarbellExercises() throws {
+        var input = makeInput(frequency: .three, trainingDays: [.monday, .wednesday, .friday])
+        input.trainingStyle = .bodyweight
+        input.equipment = [.bodyweight]
+        let program = try DeterministicProgramGenerator.generate(input: input)
+        let allNames = program.days
+            .compactMap { $0.workout }
+            .flatMap { $0.mainExercises }
+            .map { $0.name.lowercased() }
+        for name in allNames {
+            XCTAssertFalse(name.contains("barbell"),
+                           "Bodyweight user shouldn't have a barbell exercise; saw \(name)")
+            XCTAssertFalse(name.contains("back squat"),
+                           "Bodyweight user shouldn't get back squat; saw \(name)")
+            XCTAssertFalse(name.contains("deadlift"),
+                           "Bodyweight user shouldn't get deadlift; saw \(name)")
+        }
+    }
+
     // MARK: — helper
 
     private func makeInput(frequency: TargetFrequency, trainingDays: Set<Weekday>) -> ProgramGeneratorInput {
