@@ -117,6 +117,7 @@ struct ClusterDetailView: View {
 
     private var graphCanvas: some View {
         let layout = computeLayout()
+        let tiers = computeEffectiveTiers()
         let width = layout.width
         let height = layout.height
 
@@ -129,8 +130,13 @@ struct ClusterDetailView: View {
                     for prereqId in allPrereqIds {
                         guard let prereq = graph.node(id: prereqId) else { continue }
                         // Only render descending edges — skip any edge where
-                        // prereq is at the same tier or higher than the node.
-                        guard prereq.tier < node.tier else { continue }
+                        // prereq is at the same effective tier or higher than
+                        // the node. Use effective tier (computed from prereqs)
+                        // so edges always descend even when hand-assigned tiers
+                        // are inconsistent.
+                        let prereqTier = tiers[prereq.id] ?? prereq.tier
+                        let nodeTier = tiers[node.id] ?? node.tier
+                        guard prereqTier < nodeTier else { continue }
                         guard clusterNodes.contains(where: { $0.id == prereqId }),
                               let from = layout.positions[prereqId] else { continue }
                         var path = Path()
@@ -236,16 +242,65 @@ struct ClusterDetailView: View {
         let height: CGFloat
     }
 
+    /// For each within-cluster node, compute its effective tier as depth from
+    /// the nearest root within this cluster. Root nodes (no within-cluster
+    /// prereqs) get effective tier 1. Cross-cluster prereqs are ignored — they
+    /// don't count toward depth inside THIS cluster.
+    ///
+    /// If the node has within-cluster prereqs, its effective tier is
+    /// `1 + max(effective tier of each within-cluster prereq)`.
+    ///
+    /// Cycle-safe: uses memoization + an "in-progress" marker to detect cycles.
+    /// If a cycle is detected, the involved nodes fall back to their
+    /// hand-assigned `tier` (graceful degradation).
+    private func computeEffectiveTiers() -> [String: Int] {
+        let nodeById = Dictionary(uniqueKeysWithValues: clusterNodes.map { ($0.id, $0) })
+        var cache: [String: Int] = [:]
+        var inProgress: Set<String> = []
+
+        func depth(_ id: String) -> Int {
+            if let cached = cache[id] { return cached }
+            guard let node = nodeById[id] else { return 1 }
+            if inProgress.contains(id) {
+                // Cycle — fall back to hand-assigned tier for this node.
+                return node.tier
+            }
+            inProgress.insert(id)
+            defer { inProgress.remove(id) }
+
+            let withinClusterPrereqIds = node.prereqs.flatMap { $0.nodeIds }
+                .filter { nodeById[$0] != nil }
+
+            let d: Int
+            if withinClusterPrereqIds.isEmpty {
+                d = 1   // root within this cluster
+            } else {
+                let maxPrereqDepth = withinClusterPrereqIds.map { depth($0) }.max() ?? 0
+                d = maxPrereqDepth + 1
+            }
+            cache[id] = d
+            return d
+        }
+
+        for node in clusterNodes {
+            _ = depth(node.id)
+        }
+        return cache
+    }
+
     private func computeLayout() -> Layout {
         // Pan+zoom is always on, so dense clusters just fit-to-width on appear.
         // Use consistent spacing regardless of cluster size.
         let dense = clusterNodes.count > 14
         let rowHeight: CGFloat = dense ? 150 : 130
         let colSpacing: CGFloat = dense ? 110 : 130
-        let minTier = clusterNodes.map(\.tier).min() ?? 1
+        let effectiveTier = computeEffectiveTiers()
+        let minTier = clusterNodes.compactMap { effectiveTier[$0.id] }.min() ?? 1
 
-        // Group by tier
-        let byTier = Dictionary(grouping: clusterNodes, by: \.tier)
+        // Group by effective tier (derived from prereq depth rather than the
+        // hand-assigned data field — guarantees every node renders below its
+        // within-cluster prereqs).
+        let byTier = Dictionary(grouping: clusterNodes, by: { effectiveTier[$0.id] ?? $0.tier })
 
         let sortedTiers = byTier.keys.sorted()
 
