@@ -122,22 +122,44 @@ extension TargetFrequency {
 // MARK: Equipment (Screen 14)
 
 enum Equipment: String, Codable, CaseIterable, Identifiable {
-    case fullGym, homeWeights, bodyweight, bands
+    case fullGym
+    case machines         // cables and machines (includes gym but without barbell)
+    case barbell          // barbell + rack
+    case dumbbells
+    case bench
+    case pullupBar
+    case bodyweight
+    case bands
+    // Legacy — kept for backward compat with pre-redesign stored profiles:
+    case homeWeights
+
     var id: String { rawValue }
+
     var displayName: String {
         switch self {
         case .fullGym: return "Full gym"
-        case .homeWeights: return "Home weights"
+        case .machines: return "Cables / machines"
+        case .barbell: return "Barbell + rack"
+        case .dumbbells: return "Dumbbells"
+        case .bench: return "Bench"
+        case .pullupBar: return "Pull-up bar"
         case .bodyweight: return "Bodyweight only"
         case .bands: return "Resistance bands"
+        case .homeWeights: return "Home weights"
         }
     }
+
     var icon: String {
         switch self {
         case .fullGym: return "dumbbell.fill"
-        case .homeWeights: return "house.fill"
-        case .bodyweight: return "figure.strengthtraining.functional"
+        case .machines: return "gearshape.fill"
+        case .barbell: return "figure.strengthtraining.traditional"
+        case .dumbbells: return "dumbbell"
+        case .bench: return "bed.double.fill"
+        case .pullupBar: return "figure.play"
+        case .bodyweight: return "figure.arms.open"
         case .bands: return "line.diagonal"
+        case .homeWeights: return "house.fill"
         }
     }
 }

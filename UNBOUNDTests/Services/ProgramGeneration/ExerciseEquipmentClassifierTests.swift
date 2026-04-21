@@ -154,4 +154,54 @@ final class ExerciseEquipmentClassifierTests: XCTestCase {
             userEquipment: [.bands]
         ))
     }
+
+    // MARK: - Granular chip cases
+
+    func testBarbellOnlyUserAcceptsBarbellAndBodyweight() {
+        XCTAssertTrue(ExerciseEquipmentClassifier.isCompatible(
+            exerciseName: "back squat", style: .freeWeights,
+            userEquipment: [.barbell]
+        ))
+        XCTAssertFalse(ExerciseEquipmentClassifier.isCompatible(
+            exerciseName: "dumbbell press", style: .freeWeights,
+            userEquipment: [.barbell]
+        ))
+        XCTAssertTrue(ExerciseEquipmentClassifier.isCompatible(
+            exerciseName: "pullup", style: .freeWeights,
+            userEquipment: [.barbell]
+        ))
+    }
+
+    func testMachinesUserAcceptsMachines() {
+        XCTAssertTrue(ExerciseEquipmentClassifier.isCompatible(
+            exerciseName: "lat pulldown", style: .machines,
+            userEquipment: [.machines]
+        ))
+        XCTAssertFalse(ExerciseEquipmentClassifier.isCompatible(
+            exerciseName: "back squat", style: .machines,
+            userEquipment: [.machines]
+        ))
+    }
+
+    func testBenchAndDumbbellsCombination() {
+        XCTAssertTrue(ExerciseEquipmentClassifier.isCompatible(
+            exerciseName: "dumbbell press", style: .freeWeights,
+            userEquipment: [.dumbbells, .bench]
+        ))
+        XCTAssertFalse(ExerciseEquipmentClassifier.isCompatible(
+            exerciseName: "back squat", style: .freeWeights,
+            userEquipment: [.dumbbells, .bench]
+        ))
+    }
+
+    func testPullupBarUserGetsBodyweightOnly() {
+        XCTAssertTrue(ExerciseEquipmentClassifier.isCompatible(
+            exerciseName: "pullup", style: .bodyweight,
+            userEquipment: [.pullupBar, .bodyweight]
+        ))
+        XCTAssertFalse(ExerciseEquipmentClassifier.isCompatible(
+            exerciseName: "back squat", style: .bodyweight,
+            userEquipment: [.pullupBar, .bodyweight]
+        ))
+    }
 }

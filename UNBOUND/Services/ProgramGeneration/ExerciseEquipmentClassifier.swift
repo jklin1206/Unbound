@@ -81,12 +81,16 @@ enum ExerciseEquipmentClassifier {
     /// equipment chips. Style is the hard filter (bodyweight users never get
     /// barbells); equipment is the physical-availability filter.
     ///
-    /// Equipment cases (`fullGym`, `homeWeights`, `bodyweight`, `bands`) map
-    /// roughly to:
-    /// - `.fullGym`     → barbells + dumbbells + machines + bodyweight
-    /// - `.homeWeights` → dumbbells + (likely) barbell + bodyweight, NO machines
+    /// Granular Equipment chips map roughly to:
+    /// - `.fullGym`     → trumps everything (barbell + dumbbells + machines + bodyweight)
+    /// - `.machines`    → cables / selectorized machines
+    /// - `.barbell`     → barbell + rack
+    /// - `.dumbbells`   → dumbbells
+    /// - `.bench`       → bench (pairs with dumbbells for press work)
+    /// - `.pullupBar`   → bodyweight pull/hang work (covered by bodyweight category)
     /// - `.bodyweight`  → bodyweight only
-    /// - `.bands`       → bodyweight + light-resistance (treated as dumbbell cat)
+    /// - `.bands`       → light-resistance proxy (treated as dumbbell cat for accessories)
+    /// - `.homeWeights` → legacy catch-all = dumbbells + bench + (likely) barbell + bodyweight
     static func isCompatible(
         exerciseName: String,
         style: TrainingStyle,
@@ -109,19 +113,23 @@ enum ExerciseEquipmentClassifier {
             return true
         }
 
+        // homeWeights is a legacy catch-all = dumbbells + bench + bodyweight
+        // (and generally a barbell home setup).
+        let hasHomeWeights = userEquipment.contains(.homeWeights)
+
         switch category {
         case .bodyweight:
             return true // handled above, kept for exhaustiveness.
         case .barbell:
-            // homeWeights assumed to include a barbell (bench + bar home setup).
-            return userEquipment.contains(.homeWeights)
+            return userEquipment.contains(.barbell)
+                || hasHomeWeights  // legacy: homeWeights implies barbell
         case .dumbbell:
-            // Accepted by homeWeights (dumbbells/bench) and bands (light-resistance proxy).
-            return userEquipment.contains(.homeWeights)
-                || userEquipment.contains(.bands)
+            return userEquipment.contains(.dumbbells)
+                || userEquipment.contains(.bench)
+                || hasHomeWeights
+                || userEquipment.contains(.bands)  // bands substitute for accessory-style dumbbell work
         case .machine:
-            // Machines only exist at a full gym.
-            return false
+            return userEquipment.contains(.machines)
         }
     }
 }
