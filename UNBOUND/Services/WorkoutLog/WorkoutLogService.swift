@@ -13,15 +13,31 @@ final class WorkoutLogService: WorkoutLogServiceProtocol, @unchecked Sendable {
         // Auto-update working weights from this log
         try await workingWeight.updateFromLog(log, userId: log.userId)
 
+        // Fetch the user's profile once so we can thread its
+        // cut-mode + feedback preferences into ProgressionEngine, and
+        // reuse it for skill-tree recompute below.
+        let profile: UserProfile? = try? await database.read(collection: "users", documentId: log.userId)
+
         // Hawks-style RPE progression. Evaluates each exercise in the log
         // against its ProgressionState, bumps weights when the
         // 2-consecutive-sessions-at-target-RPE rule fires, publishes
         // `.progressionAdvanced` for UI toasts.
-        await ProgressionEngine.shared.ingest(log: log)
+        //
+        // `.preserve` mode holds weights while the user is on a cut.
+        // Tier unlocks still fire regardless of mode. Feedback mode
+        // seeds new ProgressionState rows with the right targetRPE
+        // (`.silent` → 0 → pure rep-based progression).
+        let progressionMode: ProgressionMode = (profile?.cutMode.enabled == true) ? .preserve : .advance
+        let feedbackMode = profile?.trainingFeedbackMode
+        await ProgressionEngine.shared.ingest(
+            log: log,
+            mode: progressionMode,
+            feedbackMode: feedbackMode
+        )
 
         // Recompute skill tree state. Reads user's archetype + bodyweight
         // from the UserProfile and evaluates every node against the logs.
-        if let profile: UserProfile = try? await database.read(collection: "users", documentId: log.userId) {
+        if let profile {
             let archetype = profile.preferredArchetype ?? .vTaper
             let bw = profile.weightKg
             await SkillProgressService.shared.recompute(after: log, for: archetype, userBodyweightKg: bw)
