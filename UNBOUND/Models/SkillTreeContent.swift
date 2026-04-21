@@ -1391,36 +1391,271 @@ extension SkillGraph {
             timeline: "5+ years past the full planche pushup."
         ),
 
+        // ────────────────────────────────────────────────────────────────
+        // HANDBALANCE (hb) — wrists, pike press, HSPU staircase, one-arm
+        // ────────────────────────────────────────────────────────────────
+
         .simple(
-            id: "cal.wall-handstand-30",
+            id: "hb.wrist-conditioning",
+            title: "Wrist Conditioning",
+            cluster: .handbalance, tier: 1, type: .hold,
+            target: .hold(exercise: "reverse-hand plank", seconds: 30),
+            prereqs: [],
+            primary: [.forearms], secondary: [],
+            subtitle: "Before any weight hits your wrists, the wrists have to be ready.",
+            description: "Daily wrist prep — circles, flexion stretches, knuckle pushups, reverse-hand plank hold. Two weeks minimum before loading planche or HSPU work.",
+            formCues: [
+                "Wrist circles both directions, 10 each",
+                "Knuckle pushups: stack wrists over shoulders",
+                "Reverse-hand plank: fingers toward your feet, hold 30s",
+                "Progress only when fully pain-free"
+            ],
+            commonMistakes: [
+                "Skipping daily wrist prep",
+                "Loading too fast (tendons adapt slower than muscle)",
+                "Stopping before it's pain-free"
+            ],
+            timeline: "2 weeks of daily prep before moving to pressing work."
+        ),
+        .simple(
+            id: "hb.pike-pushup-10",
+            title: "Pike Pushup × 10",
+            cluster: .handbalance, tier: 2, type: .skill,
+            target: .reps(exercise: "pike pushup", count: 10),
+            prereqs: [PrerequisiteGroup("cal.pushup")],
+            primary: [.shoulders, .arms], secondary: [.core],
+            subtitle: "The vertical pressing pattern HSPU will test.",
+            description: "10 strict pike pushups. Hips high, back rounded, head descends between hands. Trains the HSPU motor pattern without the balance demand.",
+            formCues: [
+                "Hips over shoulders, not over hips",
+                "Head lowers between hands, not in front",
+                "Elbows track around 45°, not flared",
+                "Full ROM — top of head kisses floor"
+            ],
+            commonMistakes: [
+                "Hips too low (regresses to regular pushup)",
+                "Elbows flared wide",
+                "Cutting range of motion"
+            ],
+            timeline: "3–8 weeks from 10 strict pushups."
+        ),
+        .simple(
+            id: "hb.elevated-pike-pushup-10",
+            title: "Elevated Pike Pushup × 10",
+            cluster: .handbalance, tier: 3, type: .skill,
+            target: .reps(exercise: "elevated pike pushup", count: 10),
+            prereqs: [PrerequisiteGroup("hb.pike-pushup-10")],
+            equipment: [.bodyweight, .elevatedSurface],
+            primary: [.shoulders, .arms], secondary: [.core],
+            subtitle: "Steeper angle — halfway to vertical pressing.",
+            description: "Feet on a box or bench, hips stacked higher. 10 strict reps. The bridge between pike pushup and wall HSPU.",
+            formCues: [
+                "Box height around mid-shin or higher",
+                "Shoulders directly over hands",
+                "Head descends between the hands",
+                "Slow, controlled descent"
+            ],
+            commonMistakes: [
+                "Going too high too soon — spikes injury risk",
+                "Hips dropping mid-set",
+                "Rushing reps"
+            ],
+            timeline: "4–8 weeks after pike pushup × 10."
+        ),
+        .simple(
+            id: "hb.wall-handstand-30",
             title: "Wall Handstand 30s",
-            cluster: .calisthenicControl, tier: 2, type: .hold,
+            cluster: .handbalance, tier: 2, type: .hold,
             target: .hold(exercise: "wall handstand", seconds: 30),
-            prereqs: [PrerequisiteGroup("cal.plank-30")],
+            prereqs: [PrerequisiteGroup(["cal.plank-30", "hb.wrist-conditioning"])],
             primary: [.shoulders, .core], secondary: [.arms]
         ),
         .simple(
-            id: "cal.wall-handstand-60",
+            id: "hb.wall-handstand-60",
             title: "Wall Handstand 60s",
-            cluster: .calisthenicControl, tier: 3, type: .hold,
+            cluster: .handbalance, tier: 3, type: .hold,
             target: .hold(exercise: "wall handstand", seconds: 60),
-            prereqs: [PrerequisiteGroup("cal.wall-handstand-30")],
+            prereqs: [PrerequisiteGroup("hb.wall-handstand-30")],
             primary: [.shoulders, .core]
         ),
         .simple(
-            id: "cal.freestanding-handstand-10",
+            id: "hb.wall-hspu-negative-5s",
+            title: "Wall HSPU Negative (5s)",
+            cluster: .handbalance, tier: 4, type: .skill,
+            target: .reps(exercise: "wall hspu negative", count: 3),
+            prereqs: [PrerequisiteGroup(["hb.wall-handstand-60", "hb.elevated-pike-pushup-10"])],
+            primary: [.shoulders, .arms], secondary: [.core, .back],
+            subtitle: "Eccentric strength before concentric.",
+            description: "From full wall handstand, lower your head to the floor over 5 seconds. Step out, kick back up, repeat. 3 reps × 5s eccentric. Builds the strength to eventually press up.",
+            formCues: [
+                "Full 5-count descent — no dropping",
+                "Head touches gently",
+                "Bail by stepping down one leg at a time",
+                "Don't try to press up yet"
+            ],
+            commonMistakes: [
+                "Dropping the last 6 inches (cheating the eccentric)",
+                "Bailing forward in a collapse",
+                "Skipping this to rep-chase a full HSPU"
+            ],
+            timeline: "2–6 weeks from elevated pike pushup × 10."
+        ),
+        .simple(
+            id: "hb.first-wall-hspu",
+            title: "First Wall HSPU",
+            cluster: .handbalance, tier: 5, type: .skill,
+            target: .reps(exercise: "wall hspu", count: 1),
+            prereqs: [PrerequisiteGroup("hb.wall-hspu-negative-5s")],
+            primary: [.shoulders, .arms], secondary: [.core, .back],
+            subtitle: "First press to full lockout overhead.",
+            description: "One strict wall HSPU from head-on-floor to full elbow lockout. No kipping, no bridge, no partial rep.",
+            formCues: [
+                "Start at head-down (not from top)",
+                "Hands shoulder-width, fingers slightly spread",
+                "Press evenly — don't favor one side",
+                "Lockout: elbows straight, body stacked"
+            ],
+            commonMistakes: [
+                "Kipping legs off the wall",
+                "Partial lockout",
+                "Falling back onto the wall mid-press"
+            ],
+            timeline: "4–12 weeks after wall HSPU negative."
+        ),
+        .simple(
+            id: "hb.wall-hspu-3",
+            title: "Wall HSPU × 3",
+            cluster: .handbalance, tier: 6, type: .skill,
+            target: .reps(exercise: "wall hspu", count: 3),
+            prereqs: [PrerequisiteGroup("hb.first-wall-hspu")],
+            primary: [.shoulders, .arms], secondary: [.core],
+            subtitle: "Making the skill repeatable.",
+            description: "3 unbroken strict wall HSPUs. First taste of HSPU as a real training lift.",
+            formCues: [
+                "Same form as first HSPU, sustained across 3",
+                "Brief rest only at top lockout",
+                "Full ROM every rep",
+                "If form breaks, set ends"
+            ],
+            commonMistakes: [
+                "Reps 2–3 losing ROM",
+                "Using the wall for support mid-rep",
+                "Resting in a partial position"
+            ],
+            timeline: "4–8 weeks after first wall HSPU."
+        ),
+        .simple(
+            id: "hb.wall-hspu-5",
+            title: "Wall HSPU × 5",
+            cluster: .handbalance, tier: 7, type: .skill,
+            target: .reps(exercise: "wall hspu", count: 5),
+            prereqs: [PrerequisiteGroup("hb.wall-hspu-3")],
+            primary: [.shoulders, .arms], secondary: [.chest, .core],
+            subtitle: "Gateway to freestanding HSPU work.",
+            description: "5 unbroken strict wall HSPUs. Standard strength benchmark that clears you for freestanding HSPU training."
+        ),
+        .simple(
+            id: "hb.deficit-wall-hspu-3",
+            title: "Deficit Wall HSPU × 3",
+            cluster: .handbalance, tier: 8, type: .skill,
+            target: .reps(exercise: "deficit wall hspu", count: 3),
+            prereqs: [PrerequisiteGroup("hb.wall-hspu-5")],
+            equipment: [.bodyweight, .parallettes],
+            primary: [.shoulders, .arms], secondary: [.core],
+            subtitle: "More ROM than a floor HSPU will ever demand.",
+            description: "3 strict wall HSPUs with hands elevated on 4-inch blocks. Head descends below hand level into a deficit. Builds surplus ROM so regular HSPU feels easier.",
+            formCues: [
+                "Head descends below hand level",
+                "Blocks wide enough for head to clear",
+                "Full press back to lockout",
+                "Control the deficit — don't slam"
+            ],
+            commonMistakes: [
+                "Going too deep too soon (6\"+ blocks before 4\" feels solid)",
+                "Kipping out of the bottom"
+            ],
+            timeline: "8–16 weeks after wall HSPU × 5."
+        ),
+        .simple(
+            id: "hb.freestanding-hs-10",
             title: "Freestanding HS 10s",
-            cluster: .calisthenicControl, tier: 4, type: .hold,
+            cluster: .handbalance, tier: 4, type: .hold,
             target: .hold(exercise: "freestanding handstand", seconds: 10),
-            prereqs: [PrerequisiteGroup("cal.wall-handstand-60")],
+            prereqs: [PrerequisiteGroup("hb.wall-handstand-60")],
             primary: [.shoulders, .core], secondary: [.forearms]
         ),
         .simple(
-            id: "cal.freestanding-handstand-60",
+            id: "hb.freestanding-hspu-negative-5s",
+            title: "Freestanding HSPU Negative (5s)",
+            cluster: .handbalance, tier: 9, type: .skill,
+            target: .reps(exercise: "freestanding hspu negative", count: 3),
+            prereqs: [PrerequisiteGroup(["hb.freestanding-hs-10", "hb.wall-hspu-5"])],
+            primary: [.shoulders, .arms], secondary: [.core],
+            subtitle: "Balance + strength — eccentric only.",
+            description: "From freestanding handstand, lower to head over 5 seconds. Bail at bottom (cartwheel or pike out). 3 reps. Combines balance control with eccentric pressing.",
+            formCues: [
+                "Balance BEFORE descent — don't start if you're drifting",
+                "Slow 5-count",
+                "Bail safely, don't force a press up yet",
+                "Kick back into full HS between reps"
+            ],
+            commonMistakes: [
+                "Starting the descent while still drifting",
+                "Treating bail as failure (it's part of the rep)",
+                "Trying to press up and failing hard"
+            ],
+            timeline: "6–16 weeks after wall HSPU × 5 + free HS 10s."
+        ),
+        .simple(
+            id: "hb.freestanding-hspu-1",
+            title: "First Freestanding HSPU",
+            cluster: .handbalance, tier: 10, type: .skill,
+            target: .reps(exercise: "freestanding hspu", count: 1),
+            prereqs: [PrerequisiteGroup("hb.freestanding-hspu-negative-5s")],
+            isKeystone: true,
+            primary: [.shoulders, .arms], secondary: [.core],
+            subtitle: "Push the whole body against gravity.",
+            description: "One strict freestanding HSPU — head-to-floor to full lockout. No wall, no support, no kipping.",
+            formCues: [
+                "Kick up to a stable freestanding position FIRST",
+                "Lower with control — head touches the mat lightly",
+                "Hands slightly wider than shoulder-width",
+                "Drive up through the heels of the palms",
+                "Keep the line — don't pike the hips"
+            ],
+            commonMistakes: [
+                "Piking mid-descent to cheat the press out",
+                "Losing balance on the way down — bail before head taps",
+                "Partial ROM — stopping above head level"
+            ],
+            timeline: "2–4 years from wall HSPU."
+        ),
+        .simple(
+            id: "hb.freestanding-hspu-3",
+            title: "Freestanding HSPU × 3",
+            cluster: .handbalance, tier: 11, type: .skill,
+            target: .reps(exercise: "freestanding hspu", count: 3),
+            prereqs: [PrerequisiteGroup("hb.freestanding-hspu-1")],
+            primary: [.shoulders, .arms], secondary: [.core],
+            subtitle: "When it stops being a fluke.",
+            description: "3 unbroken freestanding HSPUs. Real strength + real balance, sustained.",
+            formCues: [
+                "Rest in full HS lockout between reps, not in pike",
+                "Consistent ROM across all 3",
+                "Small corrections in the lockout are fine"
+            ],
+            commonMistakes: [
+                "Reps 2–3 lose balance",
+                "Dropping into shortcut ROM"
+            ],
+            timeline: "6–18 months after first freestanding HSPU."
+        ),
+        .simple(
+            id: "hb.freestanding-hs-60",
             title: "Freestanding HS 60s",
-            cluster: .calisthenicControl, tier: 5, type: .hold,
+            cluster: .handbalance, tier: 5, type: .hold,
             target: .hold(exercise: "freestanding handstand", seconds: 60),
-            prereqs: [PrerequisiteGroup("cal.freestanding-handstand-10")],
+            prereqs: [PrerequisiteGroup("hb.freestanding-hs-10")],
             isKeystone: true,
             primary: [.shoulders, .core], secondary: [.forearms],
             subtitle: "Balance is the skill.",
@@ -1440,51 +1675,19 @@ extension SkillGraph {
             timeline: "1-3 years of daily practice."
         ),
         .simple(
-            id: "cal.wall-hspu",
-            title: "Wall HSPU × 5",
-            cluster: .calisthenicControl, tier: 5, type: .skill,
-            target: .reps(exercise: "wall hspu", count: 5),
-            prereqs: [PrerequisiteGroup("cal.wall-handstand-60")],
-            primary: [.shoulders, .arms], secondary: [.chest, .core]
-        ),
-        .simple(
-            id: "cal.freestanding-hspu",
-            title: "Freestanding HSPU",
-            cluster: .calisthenicControl, tier: 6, type: .skill,
-            target: .reps(exercise: "freestanding hspu", count: 1),
-            prereqs: [PrerequisiteGroup(["cal.wall-hspu", "cal.freestanding-handstand-10"])],
-            isKeystone: true,
-            primary: [.shoulders, .arms], secondary: [.core],
-            subtitle: "Push the whole body against gravity.",
-            description: "One freestanding handstand pushup. Lower to head tap, press back to full lockout. No wall, no support.",
-            formCues: [
-                "Kick up to a stable freestanding position FIRST",
-                "Lower with control — head touches the mat lightly",
-                "Hands slightly wider than shoulder-width",
-                "Drive up through the heels of the palms",
-                "Keep the line — don't pike the hips"
-            ],
-            commonMistakes: [
-                "Piking mid-descent to cheat the press out",
-                "Losing balance on the way down — bail before head taps",
-                "Partial ROM — stopping above head level"
-            ],
-            timeline: "2-4 years from wall HSPU."
-        ),
-        .simple(
-            id: "cal.handstand-walk",
+            id: "hb.handstand-walk-10m",
             title: "Handstand Walk 10m",
-            cluster: .calisthenicControl, tier: 5, type: .skill,
+            cluster: .handbalance, tier: 5, type: .skill,
             target: .steps(exercise: "handstand walk", count: 10),
-            prereqs: [PrerequisiteGroup("cal.freestanding-handstand-10")],
+            prereqs: [PrerequisiteGroup("hb.freestanding-hs-10")],
             primary: [.shoulders, .core]
         ),
         .simple(
-            id: "cal.one-arm-handstand",
+            id: "hb.one-arm-handstand-5s",
             title: "One-Arm Handstand 5s",
-            cluster: .calisthenicControl, tier: 7, type: .hold,
+            cluster: .handbalance, tier: 7, type: .hold,
             target: .hold(exercise: "one-arm handstand", seconds: 5),
-            prereqs: [PrerequisiteGroup("cal.freestanding-handstand-60")],
+            prereqs: [PrerequisiteGroup("hb.freestanding-hs-60")],
             isMythic: true,
             primary: [.shoulders, .core],
             subtitle: "Balance at the limit.",
@@ -1504,11 +1707,11 @@ extension SkillGraph {
             timeline: "3-7 years of daily handstand work."
         ),
         .simple(
-            id: "cal.one-arm-hspu",
+            id: "hb.one-arm-hspu",
             title: "One-Arm HSPU",
-            cluster: .calisthenicControl, tier: 7, type: .skill,
+            cluster: .handbalance, tier: 7, type: .skill,
             target: .reps(exercise: "one-arm hspu", count: 1),
-            prereqs: [PrerequisiteGroup(["cal.one-arm-handstand", "cal.freestanding-hspu"])],
+            prereqs: [PrerequisiteGroup(["hb.one-arm-handstand-5s", "hb.freestanding-hspu-1"])],
             isMythic: true,
             primary: [.shoulders, .arms, .core],
             subtitle: "The pinnacle of shoulder strength.",
@@ -1603,6 +1806,49 @@ extension SkillGraph {
         // CORE & LEVER (cl) — dynamic core + levers
         // ────────────────────────────────────────────────────────────────
 
+        .simple(
+            id: "cl.hollow-body-30",
+            title: "Hollow Body Hold 30s",
+            cluster: .coreLever, tier: 1, type: .hold,
+            target: .hold(exercise: "hollow body hold", seconds: 30),
+            prereqs: [],
+            primary: [.core], secondary: [],
+            subtitle: "The universal core position behind every advanced skill.",
+            description: "Lie on your back, arms overhead, legs straight, lower back pressed to floor. Ribs tucked, chin to chest. Hold 30 seconds. Foundation for front lever, planche, dragon flag, HSPU.",
+            formCues: [
+                "Lumbar spine glued to the floor",
+                "Ribs tucked, not flaring",
+                "Chin to chest",
+                "Legs straight, toes pointed",
+                "Arms overhead if possible"
+            ],
+            commonMistakes: [
+                "Lumbar pulling off floor (back arch)",
+                "Rib flare",
+                "Legs bent to cheat"
+            ],
+            timeline: "2–6 weeks from untrained."
+        ),
+        .simple(
+            id: "cl.hollow-body-60",
+            title: "Hollow Body Hold 60s",
+            cluster: .coreLever, tier: 2, type: .hold,
+            target: .hold(exercise: "hollow body hold", seconds: 60),
+            prereqs: [PrerequisiteGroup("cl.hollow-body-30")],
+            primary: [.core], secondary: [],
+            subtitle: "Mandatory gate before lever and planche work.",
+            description: "Hollow body hold, sustained 60 seconds. Universally cited prereq for front lever, planche, dragon flag. Tests core endurance, not just strength.",
+            formCues: [
+                "Same position as 30s — just longer",
+                "Breathing stays normal (don't hold breath)",
+                "Micro-adjustments are OK, major form breaks end the set"
+            ],
+            commonMistakes: [
+                "Losing lumbar contact as fatigue sets in",
+                "Cheating with shoulder shrug"
+            ],
+            timeline: "4–12 weeks from hollow body 30s."
+        ),
         .simple(
             id: "cl.hanging-knee-raise",
             title: "Hanging Knee Raise × 10",
