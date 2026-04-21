@@ -393,6 +393,12 @@ final class OnboardingFlowViewModel {
         if let workoutTime { fields["workoutTime"] = workoutTime.rawValue }
         if let archetype { fields["preferredArchetype"] = archetype.rawValue }
         if let experience { fields["experience"] = experience.rawValue }
+        // Auto-default training feedback mode from experience level.
+        // Beginner-equivalent (never/tried) → silent; active (used/current) → quick.
+        // User can promote to .detailed in Settings.
+        if fields["trainingFeedbackMode"] == nil, let exp = experience {
+            fields["trainingFeedbackMode"] = TrainingFeedbackMode.default(for: exp).rawValue
+        }
         if let currentFrequency { fields["currentFrequency"] = currentFrequency.rawValue }
         if let targetFrequency { fields["targetFrequency"] = targetFrequency.rawValue }
         if !trainingDays.isEmpty { fields["trainingDays"] = trainingDays.map(\.rawValue) }
