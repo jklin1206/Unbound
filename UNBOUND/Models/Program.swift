@@ -9,7 +9,7 @@ struct TrainingProgram: Codable, Identifiable {
     let archetype: Archetype
     var name: String
     var description: String
-    var durationDays: Int
+    var durationDays: Int = 14   // Locked by program redesign 2026-04-20: blocks are 14 days.
     var days: [ProgramDay]
     var nutritionPlan: NutritionPlan
     var recoveryPlan: RecoveryPlan
