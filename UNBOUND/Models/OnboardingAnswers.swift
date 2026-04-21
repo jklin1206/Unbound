@@ -107,6 +107,18 @@ enum TargetFrequency: String, Codable, CaseIterable, Identifiable {
     }
 }
 
+extension TargetFrequency {
+    /// Integer count used for schedule planning (number of training days per week).
+    var numericCount: Int {
+        switch self {
+        case .three: return 3
+        case .four: return 4
+        case .five: return 5
+        case .six: return 6
+        }
+    }
+}
+
 // MARK: Equipment (Screen 14)
 
 enum Equipment: String, Codable, CaseIterable, Identifiable {
