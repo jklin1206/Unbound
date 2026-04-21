@@ -84,12 +84,7 @@ enum DeterministicProgramGenerator {
             notes: ""
         )
 
-        // Rationale is fleshed out in Task 2.7 — minimal skeleton here.
-        let rationale = ProgramRationale(
-            headline: "Your Arc",
-            summaryCopy: "Deterministic plan built from your scan, equipment, and training days.",
-            decisions: []
-        )
+        let rationale = RationaleBuilder.build(input: input, bias: bias, split: split)
 
         return TrainingProgram(
             id: UUID().uuidString,
