@@ -10,8 +10,8 @@ import SwiftUI
 // sorted barycentrically (by average column of prereqs in the prior
 // tier) to minimize edge crossings.
 //
-// Pan+zoom is always enabled and the canvas fits-to-width on first
-// appear so dense clusters never get visually clipped.
+// Horizontal + vertical scroll is always available so dense clusters
+// scroll naturally rather than being clipped.
 
 struct ClusterDetailView: View {
     let cluster: SkillCluster
@@ -21,8 +21,6 @@ struct ClusterDetailView: View {
     var onNodeTap: (SkillNode) -> Void
 
     @Environment(\.dismiss) private var dismiss
-    @State private var scale: CGFloat = 1.0
-    @GestureState private var pinchScale: CGFloat = 1.0
 
     private var clusterNodes: [SkillNode] {
         graph.nodes(in: cluster)
@@ -161,31 +159,11 @@ struct ClusterDetailView: View {
         }
         .frame(width: width, height: height)
 
-        return GeometryReader { geo in
-            let fitScale = min(1.0, (geo.size.width - 20) / max(1, width))
-            ScrollView([.horizontal, .vertical], showsIndicators: false) {
-                canvas
-                    .scaleEffect(scale * pinchScale, anchor: .topLeading)
-                    .frame(
-                        width: width * scale * pinchScale,
-                        height: height * scale * pinchScale
-                    )
-                    .gesture(
-                        MagnificationGesture()
-                            .updating($pinchScale) { v, s, _ in s = v }
-                            .onEnded { v in
-                                scale = max(0.5, min(2.0, scale * v))
-                            }
-                    )
-            }
-            .onAppear {
-                // On first appear, fit the canvas width to the screen.
-                if scale == 1.0 && fitScale < 1.0 {
-                    scale = fitScale
-                }
-            }
+        return ScrollView([.horizontal, .vertical], showsIndicators: false) {
+            canvas
+                .padding(.vertical, 20)
         }
-        .frame(height: 560)
+        .frame(maxHeight: 560)
     }
 
     // MARK: Cross-cluster callouts
