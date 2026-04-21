@@ -29,6 +29,7 @@ extension SkillGraph {
             title: "BW Deadlift",
             cluster: .heavyLifting, tier: 2, type: .strength,
             target: .weightMultiplier(exercise: "deadlift", multiplier: 1.0),
+            prereqs: [PrerequisiteGroup("ld.goblet-20")],
             equipment: [.barbell],
             primary: [.back, .glutes, .legs], secondary: [.forearms, .core],
             subtitle: "Pull what you weigh.",
@@ -76,10 +77,7 @@ extension SkillGraph {
             title: "2× Deadlift",
             cluster: .heavyLifting, tier: 4, type: .strength,
             target: .weightMultiplier(exercise: "deadlift", multiplier: 2.0),
-            prereqs: [
-                PrerequisiteGroup(["hl.1.5x-deadlift", "co.bw-farmer-carry"]),
-                PrerequisiteGroup(["hl.1.5x-deadlift", "pp.10-pullups"])
-            ],
+            prereqs: [PrerequisiteGroup(["hl.1.5x-deadlift", "co.1.5x-farmer-carry"])],
             isKeystone: true,
             equipment: [.barbell],
             primary: [.back, .glutes, .legs], secondary: [.forearms, .traps, .lats],
@@ -92,6 +90,7 @@ extension SkillGraph {
             title: "BW Back Squat",
             cluster: .heavyLifting, tier: 2, type: .strength,
             target: .weightMultiplier(exercise: "back squat", multiplier: 1.0),
+            prereqs: [PrerequisiteGroup("ld.goblet-20")],
             equipment: [.barbell],
             primary: [.legs, .glutes], secondary: [.core, .back],
             subtitle: "The entry checkpoint for leg mass.",
@@ -168,6 +167,7 @@ extension SkillGraph {
             title: "0.75× Bench",
             cluster: .heavyLifting, tier: 2, type: .strength,
             target: .weightMultiplier(exercise: "bench press", multiplier: 0.75),
+            prereqs: [PrerequisiteGroup("cal.pushup")],
             equipment: [.barbell, .elevatedSurface],
             primary: [.chest, .shoulders, .arms],
             subtitle: "First real press milestone.",
@@ -231,6 +231,79 @@ extension SkillGraph {
                 "Training without a spotter on maxes"
             ],
             timeline: "1-3 years from first bench."
+        ),
+        .simple(
+            id: "hl.2x-bench",
+            title: "2× Bench",
+            cluster: .heavyLifting, tier: 4, type: .strength,
+            target: .weightMultiplier(exercise: "bench press", multiplier: 2.0),
+            prereqs: [PrerequisiteGroup("hl.1.25x-bench")],
+            isKeystone: true,
+            equipment: [.barbell, .elevatedSurface],
+            primary: [.chest, .shoulders, .arms], secondary: [.back, .core],
+            subtitle: "Double your bodyweight on the bench.",
+            description: "Strict barbell bench at 2× bodyweight. Advanced-to-elite press strength — fewer than 1% of lifetime gym-goers hit it.",
+            formCues: [
+                "Built over months of heavy triple/single programming",
+                "Aggressive leg drive into the floor",
+                "Upper back locked into the bench the whole set",
+                "Pause singles expose weak points long before the test",
+                "Reset grip + brace BEFORE every unrack"
+            ],
+            commonMistakes: [
+                "Testing maxes without a spotter + safeties",
+                "Chasing weight over form — ROM collapses under load",
+                "Skipping pause work — touch-and-go max hides sticking points"
+            ],
+            timeline: "4-8+ years of dedicated bench programming."
+        ),
+
+        .simple(
+            id: "hl.bw-ohp",
+            title: "BW Overhead Press",
+            cluster: .heavyLifting, tier: 2, type: .strength,
+            target: .weightMultiplier(exercise: "overhead press", multiplier: 0.6),
+            prereqs: [PrerequisiteGroup("cal.pushup")],
+            equipment: [.barbell],
+            primary: [.shoulders, .arms], secondary: [.core, .back],
+            subtitle: "Press your bodyweight overhead.",
+            description: "Strict standing overhead press at 0.6× bodyweight. The shoulder strength gate every upper-body lift depends on. Full bodyweight OHP is rare — 60% is the real first milestone.",
+            formCues: [
+                "Brace core hard before the bar leaves the rack",
+                "Bar path stays over mid-foot — drive head back, then through at lockout",
+                "Glutes + quads squeezed — whole body is tight",
+                "Lockout with biceps near ears, bar stacked over shoulders"
+            ],
+            commonMistakes: [
+                "Leaning back to cheat the press — turns into an incline",
+                "Pushing the bar forward instead of straight up",
+                "Soft bottom — no leg/core tension at the rack"
+            ],
+            timeline: "4-8 months from first barbell work."
+        ),
+        .simple(
+            id: "hl.1x-ohp",
+            title: "1× BW Overhead Press",
+            cluster: .heavyLifting, tier: 3, type: .strength,
+            target: .weightMultiplier(exercise: "overhead press", multiplier: 1.0),
+            prereqs: [PrerequisiteGroup("hl.bw-ohp")],
+            isKeystone: true,
+            equipment: [.barbell],
+            primary: [.shoulders, .arms], secondary: [.core, .back],
+            subtitle: "Shoulder strength benchmark.",
+            description: "Press your bodyweight overhead, strict. Elite shoulder strength — the press most lifters never touch even after years under the bar.",
+            formCues: [
+                "Build via 5× per week pressing at submax, not weekly maxes",
+                "Brace bigger than you think — belt optional, tension mandatory",
+                "Head through at lockout — biceps by the ears",
+                "Every rep ends in a full overhead stack, no soft lockout"
+            ],
+            commonMistakes: [
+                "Pressing with a bent-over brace (lean-press hybrid)",
+                "Stopping short of full lockout on heavy singles",
+                "Programming bench-style — OHP needs higher frequency, lower volume"
+            ],
+            timeline: "2-5 years from first barbell OHP."
         ),
 
         // ────────────────────────────────────────────────────────────────
@@ -333,7 +406,7 @@ extension SkillGraph {
             title: "BW Front Squat",
             cluster: .legDominance, tier: 3, type: .strength,
             target: .weightMultiplier(exercise: "front squat", multiplier: 1.0),
-            prereqs: [PrerequisiteGroup(["ld.goblet-20", "hl.1.5x-back-squat"])],
+            prereqs: [PrerequisiteGroup(["ld.goblet-20", "hl.bw-back-squat"])],
             equipment: [.barbell],
             primary: [.legs, .core], secondary: [.glutes, .back],
             subtitle: "Quads + core mastery combined.",
@@ -493,7 +566,7 @@ extension SkillGraph {
             title: "Jumping Pistol",
             cluster: .legDominance, tier: 7, type: .skill,
             target: .reps(exercise: "jumping pistol", count: 3),
-            prereqs: [PrerequisiteGroup("ld.dragon-pistol")],
+            prereqs: [PrerequisiteGroup("ld.weighted-pistol")],
             isMythic: true,
             primary: [.legs, .glutes], secondary: [.core],
             subtitle: "Single-leg explosive.",
@@ -749,6 +822,30 @@ extension SkillGraph {
             timeline: "3-9 months from 10 pullups."
         ),
         .simple(
+            id: "pp.weighted-pullup-0.5",
+            title: "Weighted Pullup 0.5× BW",
+            cluster: .pullingPower, tier: 5, type: .strength,
+            target: .weightMultiplier(exercise: "weighted pullup", multiplier: 0.5),
+            prereqs: [PrerequisiteGroup("pp.weighted-pullup-0.25")],
+            equipment: [.pullupBar, .dumbbells],
+            primary: [.lats, .arms], secondary: [.back, .forearms],
+            subtitle: "Half your bodyweight hanging from your waist.",
+            description: "Strict pullup with added weight equal to 50% of your bodyweight. The volume-strength gate for the one-arm pullup.",
+            formCues: [
+                "Dip belt with plates beats dumbbells at this load",
+                "Full dead hang each rep, no kip",
+                "Chin clears clean — partial reps don't count",
+                "Slower eccentric to build connective-tissue tolerance",
+                "Brace core — load pulls hips forward if you're soft"
+            ],
+            commonMistakes: [
+                "Jumping load faster than the biceps tendon adapts",
+                "Kipping to grind out the final inches",
+                "Skipping warmup pullups before loaded singles"
+            ],
+            timeline: "1-2 years from 0.25× weighted pullup."
+        ),
+        .simple(
             id: "pp.typewriter-pullup",
             title: "Typewriter Pullup",
             cluster: .pullingPower, tier: 5, type: .skill,
@@ -799,7 +896,7 @@ extension SkillGraph {
             title: "One-Arm Pullup",
             cluster: .pullingPower, tier: 6, type: .skill,
             target: .reps(exercise: "one-arm pullup", count: 1),
-            prereqs: [PrerequisiteGroup("pp.oap-negative")],
+            prereqs: [PrerequisiteGroup(["pp.oap-negative", "pp.weighted-pullup-0.5"])],
             isKeystone: true,
             equipment: [.pullupBar],
             primary: [.lats, .arms, .back], secondary: [.core, .forearms],
@@ -822,7 +919,7 @@ extension SkillGraph {
         .simple(
             id: "pp.muscle-up",
             title: "Muscle-Up",
-            cluster: .pullingPower, tier: 3, type: .skill,
+            cluster: .pullingPower, tier: 5, type: .skill,
             target: .reps(exercise: "muscle-up", count: 1),
             prereqs: [
                 PrerequisiteGroup(["pp.10-pullups", "cal.5-dips"]),
@@ -1041,7 +1138,7 @@ extension SkillGraph {
             title: "5 Dips",
             cluster: .calisthenicControl, tier: 2, type: .skill,
             target: .reps(exercise: "dip", count: 5),
-            prereqs: [PrerequisiteGroup("cal.pushup")],
+            prereqs: [PrerequisiteGroup("cal.slow-pushup")],
             equipment: [.parallettes, .elevatedSurface],
             primary: [.chest, .arms, .shoulders],
             subtitle: "Vertical press, meet bodyweight.",
@@ -1058,6 +1155,54 @@ extension SkillGraph {
                 "Swinging legs for momentum"
             ],
             timeline: "1-3 months from solid pushups."
+        ),
+        .simple(
+            id: "cal.ring-support-10",
+            title: "Ring Support Hold 10s",
+            cluster: .calisthenicControl, tier: 3, type: .hold,
+            target: .hold(exercise: "ring support hold", seconds: 10),
+            prereqs: [PrerequisiteGroup("cal.slow-pushup")],
+            equipment: [.gymnasticRings],
+            primary: [.shoulders, .arms, .chest], secondary: [.core],
+            subtitle: "Own the top of the ring dip.",
+            description: "Straight-arm support hold on gymnastic rings — body vertical, arms locked at the sides, rings turned out. 10 seconds unbroken.",
+            formCues: [
+                "Rings turned outward (thumbs-up position) — protects shoulders",
+                "Arms fully locked straight, no bent-arm cheat",
+                "Shoulders packed down, not shrugged up",
+                "Hollow body — core tight, ribs tucked",
+                "Breathe normally through the hold"
+            ],
+            commonMistakes: [
+                "Rings splayed outward — leaks shoulder stability",
+                "Shrugged shoulders under the load",
+                "Breaking the lock when rings start to shake"
+            ],
+            timeline: "2-4 months of ring exposure."
+        ),
+        .simple(
+            id: "cal.ring-dip",
+            title: "Ring Dip",
+            cluster: .calisthenicControl, tier: 4, type: .skill,
+            target: .reps(exercise: "ring dip", count: 5),
+            prereqs: [PrerequisiteGroup(["cal.ring-support-10", "cal.5-dips"])],
+            equipment: [.gymnasticRings],
+            primary: [.chest, .arms, .shoulders], secondary: [.core],
+            subtitle: "Strict dip on unstable rings.",
+            description: "5 strict dips on gymnastic rings, starting and ending with rings turned out in full support. Rings demand more stabilizer work than bars at every inch of the ROM.",
+            formCues: [
+                "Start and end each rep in a locked-out ring support",
+                "Turn rings out at the top — wrists rotate, palms forward",
+                "Descend with control — shoulders pull below elbows",
+                "Rings stay close to the body, not drifting outward",
+                "Press up smooth — no kipping"
+            ],
+            commonMistakes: [
+                "Rings flaring wide at the bottom",
+                "Partial ROM — not reaching full shoulder depth",
+                "Skipping the turn-out at the top — loses the strict standard"
+            ],
+            timeline: "3-6 months from 5 bar dips + ring support."
         ),
         .simple(
             id: "cal.diamond-pushup",
@@ -1108,7 +1253,7 @@ extension SkillGraph {
             title: "Tuck Planche 5s",
             cluster: .calisthenicControl, tier: 3, type: .hold,
             target: .hold(exercise: "tuck planche", seconds: 5),
-            prereqs: [PrerequisiteGroup(["cal.plank-30", "pp.pullup"])],
+            prereqs: [PrerequisiteGroup("cal.pseudo-planche-pushup")],
             equipment: [.parallettes],
             primary: [.shoulders, .core], secondary: [.chest, .arms],
             subtitle: "The planche on-ramp.",
@@ -1388,7 +1533,7 @@ extension SkillGraph {
             title: "Iron Cross 3s",
             cluster: .calisthenicControl, tier: 5, type: .hold,
             target: .hold(exercise: "iron cross", seconds: 3),
-            prereqs: [PrerequisiteGroup(["cl.full-back-lever", "pp.ring-muscle-up"])],
+            prereqs: [PrerequisiteGroup(["cal.ring-dip", "cl.full-back-lever", "pp.ring-muscle-up"])],
             equipment: [.gymnasticRings],
             primary: [.chest, .shoulders, .arms, .lats]
         ),
@@ -1465,7 +1610,21 @@ extension SkillGraph {
             target: .reps(exercise: "hanging knee raise", count: 10),
             prereqs: [PrerequisiteGroup("pp.dead-hang-30")],
             equipment: [.pullupBar],
-            primary: [.core], secondary: [.lats, .forearms]
+            primary: [.core], secondary: [.lats, .forearms],
+            subtitle: "Where visible abs start.",
+            description: "10 hanging knee raises. Dead hang from the bar, raise knees to chest, lower with control.",
+            formCues: [
+                "Start from a full dead hang — no swinging",
+                "Raise knees to chest, not just to waist",
+                "Control the descent — no freefall",
+                "Squeeze core at the top of each rep"
+            ],
+            commonMistakes: [
+                "Swinging to use momentum",
+                "Partial ROM — knees stop at 90°",
+                "Shrugged shoulders while hanging"
+            ],
+            timeline: "2-8 weeks from first dead hang."
         ),
         .simple(
             id: "cl.hanging-leg-raise",
@@ -1474,7 +1633,21 @@ extension SkillGraph {
             target: .reps(exercise: "hanging leg raise", count: 10),
             prereqs: [PrerequisiteGroup("cl.hanging-knee-raise")],
             equipment: [.pullupBar],
-            primary: [.core], secondary: [.lats]
+            primary: [.core], secondary: [.lats],
+            subtitle: "Full lower-ab control.",
+            description: "10 hanging leg raises. Straight legs from dead hang to parallel or higher.",
+            formCues: [
+                "Legs straight throughout — locked knees",
+                "Raise legs to parallel minimum, higher for clean reps",
+                "Toes pointed",
+                "Controlled 2s descent"
+            ],
+            commonMistakes: [
+                "Bent knees mid-rep — that's a knee raise",
+                "Kipping at the top for extra height",
+                "Quickly dropping the eccentric"
+            ],
+            timeline: "1-3 months from knee raises."
         ),
         .simple(
             id: "cl.toes-to-bar",
@@ -1483,14 +1656,43 @@ extension SkillGraph {
             target: .reps(exercise: "toes to bar", count: 5),
             prereqs: [PrerequisiteGroup("cl.hanging-leg-raise")],
             equipment: [.pullupBar],
-            primary: [.core, .lats]
+            primary: [.core, .lats],
+            subtitle: "Compression test.",
+            description: "5 strict toes-to-bar reps. Legs straight, toes touch the bar between your hands at the top.",
+            formCues: [
+                "Initiate with a lat pull to stabilize",
+                "Legs straight, compress hips to bring toes up",
+                "Toes CONTACT the bar, not just near it",
+                "Control the descent"
+            ],
+            commonMistakes: [
+                "Kipping — a different CrossFit skill",
+                "Bent knees to cheat the compression",
+                "Toes clearly short of the bar"
+            ],
+            timeline: "1-4 months from leg raises."
         ),
         .simple(
             id: "cl.ab-wheel",
             title: "Ab Wheel Standing × 5",
             cluster: .coreLever, tier: 3, type: .skill,
             target: .reps(exercise: "ab wheel standing", count: 5),
-            primary: [.core, .shoulders], secondary: [.lats]
+            prereqs: [PrerequisiteGroup("cal.plank-30")],
+            primary: [.core, .shoulders], secondary: [.lats],
+            subtitle: "Core + shoulder stability.",
+            description: "5 ab wheel rollouts from standing position — toes down, hands on wheel, roll all the way out and come back.",
+            formCues: [
+                "Hollow body throughout the rollout",
+                "Shoulders stay protracted and active",
+                "Glutes squeezed to prevent lumbar sag",
+                "Build range slowly — don't chase full rollout on day one"
+            ],
+            commonMistakes: [
+                "Lumbar sag — lower back arches under load",
+                "Full rollout before you have the strength (injury risk)",
+                "Holding breath instead of breathing through the rep"
+            ],
+            timeline: "3-12 months from kneeling ab wheel."
         ),
         .simple(
             id: "cl.dragon-flag-negative",
@@ -1498,7 +1700,22 @@ extension SkillGraph {
             cluster: .coreLever, tier: 4, type: .skill,
             target: .reps(exercise: "dragon flag negative", count: 3),
             prereqs: [PrerequisiteGroup(["cl.hanging-leg-raise", "cal.l-sit-20"])],
-            primary: [.core], secondary: [.lats, .glutes]
+            primary: [.core], secondary: [.lats, .glutes],
+            subtitle: "Eccentric bridge to the full flag.",
+            description: "3 dragon flag negatives. Lying on a bench, grip behind head, start vertical, lower body as one rigid line over 3-5 seconds.",
+            formCues: [
+                "Grip hard behind the head — don't let shoulders shrug",
+                "Start vertical (or close)",
+                "Lower as one rigid unit — no hip pike",
+                "3-5 second descent minimum",
+                "Reset at the top, don't bounce"
+            ],
+            commonMistakes: [
+                "Piking at the hips under load",
+                "Dropping fast when it burns",
+                "Losing shoulder position at the top"
+            ],
+            timeline: "3-9 months from L-sit 20s + hanging leg raises."
         ),
         .simple(
             id: "cl.dragon-flag",
@@ -1530,7 +1747,22 @@ extension SkillGraph {
             target: .hold(exercise: "tuck front lever", seconds: 10),
             prereqs: [PrerequisiteGroup(["pp.10-pullups", "cl.hanging-leg-raise"])],
             equipment: [.pullupBar],
-            primary: [.lats, .core]
+            primary: [.lats, .core],
+            subtitle: "Front lever on-ramp.",
+            description: "Hanging from the bar, knees tucked tight to chest, body pulled to horizontal. 10-second hold.",
+            formCues: [
+                "Depress and retract scaps — lats take the load",
+                "Knees tucked tight, heels near glutes",
+                "Body horizontal — hips at shoulder height",
+                "Arms straight and locked",
+                "Breathe — don't hold your breath"
+            ],
+            commonMistakes: [
+                "Bent arms — instantly easier but wrong skill",
+                "Hips drooping below horizontal",
+                "Shrugged shoulders (scap retraction lost)"
+            ],
+            timeline: "3-9 months from 10 pullups + solid hanging core."
         ),
         .simple(
             id: "cl.straddle-front-lever",
@@ -1539,7 +1771,21 @@ extension SkillGraph {
             target: .hold(exercise: "straddle front lever", seconds: 5),
             prereqs: [PrerequisiteGroup("cl.tuck-front-lever")],
             equipment: [.pullupBar],
-            primary: [.lats, .core]
+            primary: [.lats, .core],
+            subtitle: "Legs split. Lever longer.",
+            description: "Front lever with legs extended wide in a split. Reduces the lever slightly vs full but still demands horizontal hold. 5 seconds.",
+            formCues: [
+                "Extend legs wide — wider = easier",
+                "Tighten the split over months",
+                "Hips stay level — don't tilt with the spread",
+                "Point toes, squeeze the straddle even though split"
+            ],
+            commonMistakes: [
+                "Lazy split — legs drift together mid-hold",
+                "Piking hips upward",
+                "Losing scap retraction as fatigue sets in"
+            ],
+            timeline: "6-18 months from tuck front lever."
         ),
         .simple(
             id: "cl.full-front-lever",
@@ -1567,13 +1813,76 @@ extension SkillGraph {
             timeline: "1-3 years from tuck front lever."
         ),
         .simple(
+            id: "cl.tuck-back-lever",
+            title: "Tuck Back Lever 5s",
+            cluster: .coreLever, tier: 4, type: .hold,
+            target: .hold(exercise: "tuck back lever", seconds: 5),
+            prereqs: [PrerequisiteGroup(["pp.10-pullups", "cl.hanging-leg-raise"])],
+            equipment: [.pullupBar],
+            primary: [.shoulders, .chest, .core], secondary: [.lats, .arms],
+            subtitle: "First taste of horizontal pulling.",
+            description: "Hanging inverted, knees tucked tight to chest, lowered to a horizontal body position face-down with straight arms. 5-second hold.",
+            formCues: [
+                "Arms lock fully straight — no bent-arm cheat",
+                "Shoulders protract HARD — scaps spread apart",
+                "Knees tucked tight, heels near glutes",
+                "Body horizontal — hips at shoulder height",
+                "Breathe normally — don't brace statically"
+            ],
+            commonMistakes: [
+                "Bent arms once the biceps tendon loads up",
+                "Tucked legs drifting away from chest",
+                "Piking hips upward — scapular collapse"
+            ],
+            timeline: "3-9 months from 10 pullups + solid hanging core."
+        ),
+        .simple(
+            id: "cl.straddle-back-lever",
+            title: "Straddle Back Lever 5s",
+            cluster: .coreLever, tier: 5, type: .hold,
+            target: .hold(exercise: "straddle back lever", seconds: 5),
+            prereqs: [PrerequisiteGroup("cl.tuck-back-lever")],
+            equipment: [.pullupBar],
+            primary: [.shoulders, .chest, .core], secondary: [.lats, .arms],
+            subtitle: "Legs split. Lever longer.",
+            description: "Back lever with legs extended wide in a split. Reduces the lever vs full back lever but still demands straight-arm horizontal hold. 5 seconds.",
+            formCues: [
+                "Extend legs wide — wider = easier",
+                "Tighten the split over months as strength climbs",
+                "Arms lock fully straight under tension",
+                "Hips stay at shoulder height — no downward pike",
+                "Shoulders protract throughout"
+            ],
+            commonMistakes: [
+                "Lazy split — legs drift together mid-hold",
+                "Bent arms as fatigue sets in",
+                "Hips dropping below shoulder line"
+            ],
+            timeline: "6-18 months from tuck back lever."
+        ),
+        .simple(
             id: "cl.full-back-lever",
             title: "Full Back Lever",
             cluster: .coreLever, tier: 5, type: .hold,
             target: .hold(exercise: "back lever", seconds: 5),
-            prereqs: [PrerequisiteGroup("cl.tuck-front-lever")],
+            prereqs: [PrerequisiteGroup("cl.straddle-back-lever")],
             equipment: [.pullupBar, .gymnasticRings],
-            primary: [.shoulders, .chest, .core]
+            primary: [.shoulders, .chest, .core],
+            subtitle: "Horizontal, face down, straight arms.",
+            description: "Hanging inverted from bar or rings, lower to horizontal body position face-down. Arms straight, body rigid. 5-second hold.",
+            formCues: [
+                "Build up slowly — big biceps-tendon load",
+                "Arms lock fully straight",
+                "Body stays in one horizontal line",
+                "Shoulders protract HARD",
+                "Glutes + quads squeezed to prevent sag"
+            ],
+            commonMistakes: [
+                "Rushing progression — connective tissue needs months",
+                "Bent arms under load — injury risk",
+                "Piking hips downward"
+            ],
+            timeline: "6-18 months from tuck back lever."
         ),
         .simple(
             id: "cl.victorian",
@@ -1611,7 +1920,22 @@ extension SkillGraph {
             target: .carry(exercise: "farmer carry", seconds: 60, load: "bw"),
             prereqs: [PrerequisiteGroup("hl.bw-deadlift")],
             equipment: [.dumbbells, .kettlebell],
-            primary: [.forearms, .traps, .core], secondary: [.legs]
+            primary: [.forearms, .traps, .core], secondary: [.legs],
+            subtitle: "Real-world carry density.",
+            description: "60-second unbroken farmer carry at total load = bodyweight (split evenly across both hands). Grip, traps, core, and legs all taxed together.",
+            formCues: [
+                "Chest up, shoulders packed down",
+                "Neutral spine — don't slump forward",
+                "Short, even strides",
+                "Full-hand grip (all 4 fingers + thumb)",
+                "Breathe rhythmically — don't hold breath"
+            ],
+            commonMistakes: [
+                "Slumped shoulders — shrug DOWN, not up",
+                "Dropping early = no counted rep",
+                "Uneven loading between hands"
+            ],
+            timeline: "2-6 months from BW deadlift."
         ),
         .simple(
             id: "co.1.5x-farmer-carry",
@@ -1620,7 +1944,21 @@ extension SkillGraph {
             target: .carry(exercise: "farmer carry", seconds: 60, load: "1.5x bw"),
             prereqs: [PrerequisiteGroup(["co.bw-farmer-carry", "hl.1.5x-deadlift"])],
             equipment: [.dumbbells, .kettlebell],
-            primary: [.forearms, .traps, .core]
+            primary: [.forearms, .traps, .core],
+            subtitle: "Strongman-adjacent grip.",
+            description: "60 seconds of unbroken farmer carry at 1.5× bodyweight. Grip becomes the limiter at this load.",
+            formCues: [
+                "Chalk the hands — grip is the real test",
+                "Short, fast steps to keep momentum",
+                "Full 60s or fail — no passing bells hand-to-hand",
+                "Pull shoulders down the whole walk"
+            ],
+            commonMistakes: [
+                "Dropping on second 55 because grip gives out",
+                "Forward lean under load",
+                "Mis-loading hands"
+            ],
+            timeline: "1-3 years from BW farmer carry."
         ),
         .simple(
             id: "co.dead-hang-45",
@@ -1629,7 +1967,21 @@ extension SkillGraph {
             target: .hold(exercise: "dead hang", seconds: 45),
             prereqs: [PrerequisiteGroup("pp.dead-hang-30")],
             equipment: [.pullupBar],
-            primary: [.forearms, .lats]
+            primary: [.forearms, .lats],
+            subtitle: "Grip endurance step-up.",
+            description: "45 seconds of unbroken dead hang from a pullup bar. Active shoulders, full grip, no kipping.",
+            formCues: [
+                "Active shoulders — pull them down away from ears",
+                "All 4 fingers + thumb wrapped",
+                "Breathe normally",
+                "Legs neutral — no kipping for extra seconds"
+            ],
+            commonMistakes: [
+                "Passive shoulders as you fatigue",
+                "Gripping with 3 fingers",
+                "Dropping early instead of lowering with control"
+            ],
+            timeline: "2-6 weeks from dead hang 30s."
         ),
         .simple(
             id: "co.dead-hang-60",
@@ -1638,7 +1990,21 @@ extension SkillGraph {
             target: .hold(exercise: "dead hang", seconds: 60),
             prereqs: [PrerequisiteGroup("co.dead-hang-45")],
             equipment: [.pullupBar],
-            primary: [.forearms, .lats]
+            primary: [.forearms, .lats],
+            subtitle: "Grip endurance benchmark.",
+            description: "One full minute of active dead hang. Crosses from beginner grip capacity into real endurance territory.",
+            formCues: [
+                "At 60s the grip is doing real work — don't death-clench early",
+                "Controlled breathing prevents premature failure",
+                "Shoulders pack down throughout",
+                "Stay relaxed where you can — tension only where needed"
+            ],
+            commonMistakes: [
+                "Over-gripping the first 20s and burning out",
+                "Holding breath",
+                "Letting shoulders shrug as fatigue builds"
+            ],
+            timeline: "1-3 months from 45s."
         ),
         .simple(
             id: "co.sled-push",
@@ -1647,16 +2013,136 @@ extension SkillGraph {
             target: .carry(exercise: "sled push", seconds: 30, load: "2x bw"),
             prereqs: [PrerequisiteGroup("hl.bw-back-squat")],
             equipment: [.sled],
-            primary: [.legs, .glutes]
+            primary: [.legs, .glutes],
+            subtitle: "Engine-builder.",
+            description: "30 seconds of sustained sled push at 2× bodyweight of loaded sled. Brutal on legs + cardio without the eccentric damage of running.",
+            formCues: [
+                "Forward lean — chest drives into the handles",
+                "Short, powerful strides",
+                "Arms stay straight, transferring force to the sled",
+                "Glutes drive each step"
+            ],
+            commonMistakes: [
+                "Standing too upright — losing leverage",
+                "Huge strides stall momentum",
+                "Sprinting out the first 10s and dying"
+            ],
+            timeline: "Develops naturally alongside squat programming."
         ),
         .simple(
             id: "co.400m-row",
             title: "400m Row Sub-1:30",
             cluster: .conditioning, tier: 3, type: .skill,
             target: .steps(exercise: "row 400m", count: 1),
-            prereqs: [PrerequisiteGroup("co.bw-farmer-carry")],
             equipment: [.rower],
-            primary: [.back, .legs], secondary: [.arms]
+            primary: [.back, .legs], secondary: [.arms],
+            subtitle: "Short-burst conditioning.",
+            description: "400 meters on a rowing ergometer in under 1:30. Taxes legs, lungs, and back simultaneously.",
+            formCues: [
+                "Catch: shins vertical, arms straight, compressed",
+                "Drive: legs first, then hips, then arms — sequence matters",
+                "Recovery: arms out first, then hips, then legs",
+                "Long, powerful strokes — not short frantic ones"
+            ],
+            commonMistakes: [
+                "Arm-pulling too early — loses leg drive",
+                "Short strokes sacrifice distance per effort",
+                "Burning out in the first 200m"
+            ],
+            timeline: "2-6 months of rowing practice."
+        ),
+        .simple(
+            id: "co.mile-sub-7",
+            title: "Mile Run Sub-7",
+            cluster: .conditioning, tier: 3, type: .skill,
+            target: .steps(exercise: "run 1 mile", count: 1),
+            primary: [.legs], secondary: [.core],
+            subtitle: "Run a mile under 7 minutes.",
+            description: "One mile run in under 7 minutes. Aerobic capacity benchmark most lifters skip — the first test that keeps strength training honest.",
+            formCues: [
+                "Warm up 5-10 minutes easy before the effort",
+                "Even pacing beats fast-start-then-die",
+                "Cadence around 170-180 steps/min",
+                "Breathe in two, out two — find a rhythm",
+                "Relax the shoulders — tension wastes energy"
+            ],
+            commonMistakes: [
+                "Sprinting the first 400m and paying for it",
+                "No base aerobic miles in the weeks before — cramps mid-effort",
+                "Heel-striking hard — rolls into stride over midfoot"
+            ],
+            timeline: "2-4 months of 2-3 runs per week from untrained."
+        ),
+        .simple(
+            id: "co.5k-sub-22",
+            title: "5K Run Sub-22",
+            cluster: .conditioning, tier: 4, type: .skill,
+            target: .steps(exercise: "run 5k", count: 1),
+            prereqs: [PrerequisiteGroup("co.mile-sub-7")],
+            primary: [.legs], secondary: [.core],
+            subtitle: "5 kilometers under 22 minutes.",
+            description: "5K run in under 22 minutes (~7:00/mi pace). Real aerobic engine — puts you in the top third of recreational runners.",
+            formCues: [
+                "Target a negative split — second half slightly faster",
+                "Build mileage base (15-20 mi/week) before chasing the time",
+                "Stay on pace in the first mile — don't race the start",
+                "Breathe steady, mouth + nose — keep CO2 flushed",
+                "Relaxed arms, tight core, efficient stride"
+            ],
+            commonMistakes: [
+                "Treating it like a max-effort 5K every session",
+                "No long runs in the build — blows up in mile 2",
+                "Ignoring easy days — every run hard = no adaptation"
+            ],
+            timeline: "3-9 months from sub-7 mile."
+        ),
+        .simple(
+            id: "co.2x-farmer-carry",
+            title: "2× BW Farmer Carry 60s",
+            cluster: .conditioning, tier: 5, type: .strength,
+            target: .weightMultiplier(exercise: "farmer carry", multiplier: 2.0),
+            prereqs: [PrerequisiteGroup("co.1.5x-farmer-carry")],
+            isKeystone: true,
+            equipment: [.dumbbells, .kettlebell],
+            primary: [.forearms, .traps, .core], secondary: [.legs, .back],
+            subtitle: "Two times your bodyweight, 60 seconds, no drop.",
+            description: "60 seconds of unbroken farmer carry at 2× bodyweight total load. Strongman-territory grip + postural endurance — one of the rarest carry benchmarks.",
+            formCues: [
+                "Chalk hands, hook-grip optional at this load",
+                "Brace HARD before the pickup — don't yank",
+                "Short fast steps, aggressive shoulder pack-down",
+                "Every rep of the carry is a micro-max deadlift",
+                "Set the implements down with control — no drop"
+            ],
+            commonMistakes: [
+                "Dropping at 55s because grip gave out",
+                "Picking up with a rounded back",
+                "Walking too slow — grip fails before the clock"
+            ],
+            timeline: "2-4 years from 1.5× farmer carry."
+        ),
+        .simple(
+            id: "co.assault-bike-30",
+            title: "Assault Bike 30 Cal Sub-60s",
+            cluster: .conditioning, tier: 3, type: .skill,
+            target: .steps(exercise: "assault bike 30 cal", count: 1),
+            equipment: [.bodyweight],
+            primary: [.legs, .shoulders], secondary: [.core, .back],
+            subtitle: "30 calories, under a minute.",
+            description: "30 calories on the assault bike in under 60 seconds. MetCon-style capacity test — exposes the gap between strength and sustained output.",
+            formCues: [
+                "Drive with the legs first, let the arms follow the rhythm",
+                "Stay seated — standing costs more than it gains on short efforts",
+                "Pick a sustainable cadence, don't flail",
+                "Breathe big, nose + mouth — flush the CO2",
+                "Accept the discomfort — it's a 45-60s effort, not a mile"
+            ],
+            commonMistakes: [
+                "Arm-dominant start — legs disappear by calorie 15",
+                "Holding breath through the middle",
+                "Pacing like a 5-minute effort — leaves calories on the table"
+            ],
+            timeline: "2-6 months of bike intervals."
         )
     ]
 }
