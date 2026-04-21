@@ -173,6 +173,10 @@ private struct OnboardingRouter: View {
                     Step13_TargetFrequency(flow: flow, progress: flow.progress, onBack: back, onContinue: advance)
                         .transition(screenTransition)
 
+                case .trainingDays:
+                    Step_TrainingDays(flow: flow, progress: flow.progress, onBack: back, onContinue: advance)
+                        .transition(screenTransition)
+
                 case .workoutTime:
                     Step_WorkoutTime(flow: flow, progress: flow.progress, onBack: back, onContinue: advance)
                         .transition(screenTransition)

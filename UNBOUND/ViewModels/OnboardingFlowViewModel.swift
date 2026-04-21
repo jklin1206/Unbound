@@ -45,6 +45,7 @@ enum OnboardingStep: Int, CaseIterable, Identifiable {
     case weight
     case experience
     case targetFrequency
+    case trainingDays        // which weekdays to train (count must match targetFrequency)
     case workoutTime         // when in the day
     case equipment
     case exerciseStyle       // what kinds of exercises they enjoy
@@ -138,7 +139,7 @@ enum OnboardingStep: Int, CaseIterable, Identifiable {
         case .goals, .obstacles, .archetype, .targetAreas, .motivation,
              .commitDay30, .commitDay90, .commitToday:
             return .profile
-        case .experience, .targetFrequency, .workoutTime,
+        case .experience, .targetFrequency, .trainingDays, .workoutTime,
              .equipment, .exerciseStyle, .sessionLength:
             return .training
         case .age, .gender, .height, .weight:
@@ -191,6 +192,7 @@ final class OnboardingFlowViewModel {
     var exerciseStyles: Set<ExerciseStyle> = []
     var currentFrequency: Frequency? = nil
     var targetFrequency: TargetFrequency? = nil
+    var trainingDays: Set<Weekday> = []
     var equipment: Set<Equipment> = []
     var obstacles: Set<Obstacle> = []
     var sessionLength: SessionLength? = nil
@@ -311,6 +313,8 @@ final class OnboardingFlowViewModel {
             return experience != nil
         case .targetFrequency:
             return targetFrequency != nil
+        case .trainingDays:
+            return !trainingDays.isEmpty && trainingDays.count == (targetFrequency?.numericCount ?? 3)
         case .equipment:
             return !equipment.isEmpty
         case .exerciseStyle:
@@ -391,6 +395,7 @@ final class OnboardingFlowViewModel {
         if let experience { fields["experience"] = experience.rawValue }
         if let currentFrequency { fields["currentFrequency"] = currentFrequency.rawValue }
         if let targetFrequency { fields["targetFrequency"] = targetFrequency.rawValue }
+        if !trainingDays.isEmpty { fields["trainingDays"] = trainingDays.map(\.rawValue) }
         if let sessionLength { fields["sessionLength"] = sessionLength.rawValue }
         return fields
     }
