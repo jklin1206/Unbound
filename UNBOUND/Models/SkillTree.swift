@@ -187,6 +187,23 @@ struct SkillNode: Identifiable, Codable, Hashable, Sendable {
     }
 }
 
+// MARK: - SkillNode helpers
+
+extension SkillNode {
+    /// True if at least ONE prerequisite group is fully satisfied by the given states,
+    /// or the node has no prereqs. Matches the canonical OR-of-AND semantics used in
+    /// `SkillTree.swift:246` and `SkillProgressService.swift:81–91`.
+    func prereqsSatisfied(given states: [String: NodeState]) -> Bool {
+        if prereqs.isEmpty { return true }
+        return prereqs.contains { group in
+            group.nodeIds.allSatisfy { id in
+                let s = states[id] ?? .locked
+                return s == .achieved || s == .mastered
+            }
+        }
+    }
+}
+
 // MARK: - SkillGraph (the unified v3 source of truth)
 
 struct SkillGraph: Codable, Sendable {
