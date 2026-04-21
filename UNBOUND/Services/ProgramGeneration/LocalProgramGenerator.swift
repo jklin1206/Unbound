@@ -1447,3 +1447,17 @@ enum LocalProgramGenerator {
         )
     }
 }
+
+extension LocalProgramGenerator {
+
+    /// Clean entry point — delegates to the deterministic pipeline.
+    ///
+    /// Preferred for new code (Chunk 3 BlockRolloverService, future UI
+    /// integrations). The legacy wide-parameter `generate(archetype:...)`
+    /// stays in place for backward compatibility with existing call sites
+    /// (ProgramGenerationService, Step_WhyThisProgram preview) and will be
+    /// migrated off in a future cleanup.
+    static func generate(input: ProgramGeneratorInput) throws -> TrainingProgram {
+        return try DeterministicProgramGenerator.generate(input: input)
+    }
+}
