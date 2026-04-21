@@ -1397,13 +1397,13 @@ extension SkillGraph {
 
         .simple(
             id: "hb.wrist-conditioning",
-            title: "Wrist Conditioning",
+            title: "Reverse-Hand Plank 30s",
             cluster: .handbalance, tier: 1, type: .hold,
             target: .hold(exercise: "reverse-hand plank", seconds: 30),
             prereqs: [],
             primary: [.forearms], secondary: [],
-            subtitle: "Before any weight hits your wrists, the wrists have to be ready.",
-            description: "Daily wrist prep — circles, flexion stretches, knuckle pushups, reverse-hand plank hold. Two weeks minimum before loading planche or HSPU work.",
+            subtitle: "First wrist milestone.",
+            description: "Hold a reverse-hand plank (fingers pointing at your feet) for 30 seconds. Built over 2-3 weeks of daily wrist prep — the gate before your wrists are ready for planche and HSPU work.",
             formCues: [
                 "Wrist circles both directions, 10 each",
                 "Knuckle pushups: stack wrists over shoulders",
@@ -1656,7 +1656,7 @@ extension SkillGraph {
             cluster: .handbalance, tier: 5, type: .hold,
             target: .hold(exercise: "freestanding handstand", seconds: 60),
             prereqs: [PrerequisiteGroup("hb.freestanding-hs-10")],
-            isKeystone: true,
+            isKeystone: false,
             primary: [.shoulders, .core], secondary: [.forearms],
             subtitle: "Balance is the skill.",
             description: "60 seconds of freestanding handstand. Not just a strength benchmark — it's a balance mastery benchmark. Most never get past 10-15s free.",

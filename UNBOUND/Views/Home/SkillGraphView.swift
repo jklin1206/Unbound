@@ -40,18 +40,11 @@ struct SkillGraphView: View {
             clustersSection
         }
         .sheet(item: $focusedCluster) { cluster in
-            ClusterDetailView(
+            ClusterStaircaseView(
                 cluster: cluster,
                 graph: graph,
                 nodeStates: nodeStates,
-                nodeProgress: nodeProgress,
-                onNodeTap: { node in
-                    focusedCluster = nil
-                    // Small delay so the sheet dismisses before the node sheet opens.
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                        onNodeTap(node)
-                    }
-                }
+                nodeProgress: nodeProgress
             )
             .presentationDetents([.large])
             .presentationDragIndicator(.visible)
