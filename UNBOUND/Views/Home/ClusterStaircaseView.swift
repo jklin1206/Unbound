@@ -970,8 +970,9 @@ struct ClusterStaircaseView: View {
     // MARK: - Rails
 
     /// For each slot, walk actual prereq ids and draw a rail from every
-    /// prereq that is also visible in the chain. Anchor points use the
-    /// flat-top hex's 45°-edge midpoints on the side facing the neighbor.
+    /// prereq that is also visible in the chain. Rails exit straight down
+    /// from the parent's bottom-center and enter straight down into the
+    /// child's top-center — see `drawRail(...)` for the step-path geometry.
     private func drawPrereqRails(
         ctx: GraphicsContext,
         slots: [ChainSlot],
@@ -1011,15 +1012,18 @@ struct ClusterStaircaseView: View {
         }
     }
 
-    /// Draws a bezier rail between two hexes. Anchor points:
-    ///   • child right of parent → parent lower-right → child upper-left
-    ///   • child left  of parent → parent lower-left  → child upper-right
-    ///   • directly below        → parent bottom mid  → child top mid
-    /// Flat-top hex edge midpoints (centered at cx, cy, size S):
-    ///   upper-right (cx + 3S/8, cy - S/4)
-    ///   lower-right (cx + 3S/8, cy + S/4)
-    ///   lower-left  (cx - 3S/8, cy + S/4)
-    ///   upper-left  (cx - 3S/8, cy - S/4)
+    /// Draws an orthogonal "step" rail between two hexes, reading as an
+    /// intentional tree diagram. Anchors at the parent's bottom-center and
+    /// the child's top-center so every rail enters and exits straight down.
+    ///
+    /// Path shape:
+    ///   • Same column (|dx| ≤ tolerance): single vertical line start → end.
+    ///   • Different columns: down-stub → horizontal crossbar at midY →
+    ///     down-stub. Two bends, each rounded with a small arc so the
+    ///     corners read as crisp but not pixel-sharp.
+    ///
+    /// Each hex's OWN size drives its anchor so a larger active hex (S=120)
+    /// or keystone (S=140) still exits/enters cleanly from its own edge.
     private func drawRail(
         ctx: GraphicsContext,
         from parent: CGPoint,
@@ -1030,31 +1034,60 @@ struct ClusterStaircaseView: View {
         toReached: Bool,
         tint: Color
     ) {
-        let pdx: CGFloat = 3 * fromSize / 8
-        let pdy: CGFloat = fromSize / 4
-        let cdx: CGFloat = 3 * toSize / 8
-        let cdy: CGFloat = toSize / 4
-        let bottomOffset: CGFloat = fromSize / 2
-        let topOffset: CGFloat = toSize / 2
-
-        let dxTotal = child.x - parent.x
-        let tolerance: CGFloat = 1.0
-        let fromPt: CGPoint
-        let toPt: CGPoint
-        if abs(dxTotal) <= tolerance {
-            fromPt = CGPoint(x: parent.x, y: parent.y + bottomOffset)
-            toPt = CGPoint(x: child.x, y: child.y - topOffset)
-        } else if dxTotal > 0 {
-            fromPt = CGPoint(x: parent.x + pdx, y: parent.y + pdy)
-            toPt = CGPoint(x: child.x - cdx, y: child.y - cdy)
-        } else {
-            fromPt = CGPoint(x: parent.x - pdx, y: parent.y + pdy)
-            toPt = CGPoint(x: child.x + cdx, y: child.y - cdy)
-        }
+        let start = CGPoint(x: parent.x, y: parent.y + fromSize / 2)
+        let end   = CGPoint(x: child.x,  y: child.y  - toSize / 2)
 
         var path = Path()
-        path.move(to: fromPt)
-        path.addLine(to: toPt)
+        let tolerance: CGFloat = 1.0
+
+        if abs(end.x - start.x) <= tolerance {
+            // Same column — single clean vertical line.
+            path.move(to: start)
+            path.addLine(to: end)
+        } else {
+            // Step path: down, across, down. Round the two bends.
+            let midY = (start.y + end.y) / 2
+            let cornerRadius: CGFloat = 8
+
+            // Clamp the corner radius to the available stub / crossbar
+            // lengths so small spacings don't overshoot.
+            let vStub1 = midY - start.y
+            let vStub2 = end.y - midY
+            let hSpan  = abs(end.x - start.x)
+            let r = max(0, min(cornerRadius, min(vStub1, vStub2, hSpan / 2)))
+
+            let goingRight = end.x > start.x
+            let bend1 = CGPoint(x: start.x, y: midY)
+            let bend2 = CGPoint(x: end.x,   y: midY)
+
+            path.move(to: start)
+            if r > 0 {
+                // Vertical down to just above bend1.
+                path.addLine(to: CGPoint(x: start.x, y: midY - r))
+                // Arc around bend1 into the horizontal segment.
+                let afterBend1X = start.x + (goingRight ? r : -r)
+                path.addQuadCurve(
+                    to: CGPoint(x: afterBend1X, y: midY),
+                    control: bend1
+                )
+                // Horizontal across to just before bend2.
+                let beforeBend2X = end.x + (goingRight ? -r : r)
+                path.addLine(to: CGPoint(x: beforeBend2X, y: midY))
+                // Arc around bend2 into the second vertical.
+                path.addQuadCurve(
+                    to: CGPoint(x: end.x, y: midY + r),
+                    control: bend2
+                )
+                // Vertical down into child top-center.
+                path.addLine(to: end)
+            } else {
+                // Fallback: sharp bends when spacing is too tight to round.
+                path.addLine(to: bend1)
+                path.addLine(to: bend2)
+                path.addLine(to: end)
+            }
+        }
+
         strokeRail(ctx: ctx, path: path, fromReached: fromReached, toReached: toReached, tint: tint)
     }
 
