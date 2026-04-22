@@ -466,18 +466,6 @@ struct ClusterStaircaseView: View {
             bottomY: maxY
         )
 
-        // Dotted horizontal dividers between consecutive rank bands. Width
-        // matches the tree content so they bleed across the full scroll
-        // area (live inside the ScrollView content, not the overlay).
-        let rankDividers = computeRankDividerYs(bands: rankBands)
-
-        // Phase 2h: chapter dividers — one labeled separator per named
-        // sub-chapter, pinned above the chapter's topmost node.
-        let chapterBands = computeChapterBands(
-            positions: positions,
-            nodeById: nodeById
-        )
-
         return ScrollView(.horizontal, showsIndicators: false) {
             ZStack(alignment: .topLeading) {
                 Canvas { ctx, _ in
@@ -497,23 +485,6 @@ struct ClusterStaircaseView: View {
                 }
                 .frame(width: contentWidth, height: treeHeight)
                 .allowsHitTesting(false)
-
-                // Dotted rank-band dividers — sit under the nodes so hexes
-                // paint over them cleanly.
-                ForEach(Array(rankDividers.enumerated()), id: \.offset) { _, y in
-                    rankDividerLine(width: contentWidth)
-                        .position(x: contentWidth / 2, y: y)
-                        .allowsHitTesting(false)
-                }
-
-                // Chapter divider labels — sit above each chapter's top
-                // row. Drawn after dotted rank dividers so the label
-                // pill paints cleanly over them.
-                ForEach(chapterBands) { band in
-                    chapterDividerRow(label: band.title, width: contentWidth)
-                        .position(x: contentWidth / 2, y: band.y)
-                        .allowsHitTesting(false)
-                }
 
                 ForEach(Array(positions.keys), id: \.self) { id in
                     if let pos = positions[id],
@@ -614,34 +585,10 @@ struct ClusterStaircaseView: View {
         }
     }
 
-    /// Y coordinates for dotted horizontal dividers between consecutive
-    /// rank bands — placed at the midpoint between each pair of hex y's.
-    private func computeRankDividerYs(bands: [RankBand]) -> [CGFloat] {
-        guard bands.count >= 2 else { return [] }
-        var ys: [CGFloat] = []
-        for i in 0..<(bands.count - 1) {
-            let midY = (bands[i].y + bands[i + 1].y) / 2
-            ys.append(midY)
-        }
-        return ys
-    }
-
-    private func rankDividerLine(width: CGFloat) -> some View {
-        Path { path in
-            path.move(to: CGPoint(x: 0, y: 0))
-            path.addLine(to: CGPoint(x: width, y: 0))
-        }
-        .stroke(
-            Color.unbound.border.opacity(0.4),
-            style: StrokeStyle(lineWidth: 0.5, dash: [3, 5])
-        )
-        .frame(width: width, height: 1)
-    }
-
     /// Vertical rank-tier track rendered at the left edge of the tree
-    /// viewport. Hex badge per rank + a faint spine connecting them.
-    /// All 6 ranks render — absent ranks appear dimmed + greyed so the
-    /// user can see the full tier ladder at a glance.
+    /// viewport. Just the hex badges per rank — all 6 render, absent ranks
+    /// appear dimmed in neutral grey so the user can see the full tier
+    /// ladder at a glance.
     @ViewBuilder
     private func rankBandTrack(
         bands: [RankBand],
@@ -655,19 +602,6 @@ struct ClusterStaircaseView: View {
             let columnWidth = paddingLeading + hexSize + 4
 
             ZStack(alignment: .topLeading) {
-                // Faint spine connecting first → last badge. Now that the
-                // dotted tier dividers do most of the visual work, this is
-                // reduced to ~10% opacity so it recedes.
-                if bands.count >= 2,
-                   let top = bands.first,
-                   let bot = bands.last
-                {
-                    Rectangle()
-                        .fill(Color.unbound.accent.opacity(0.10))
-                        .frame(width: 1, height: max(0, bot.y - top.y))
-                        .position(x: paddingLeading + hexSize / 2, y: (top.y + bot.y) / 2)
-                }
-
                 // One hex per rank band (E through S, always 6).
                 ForEach(bands, id: \.rank) { band in
                     rankHexBadge(rank: band.rank, active: band.isPresent, size: hexSize)
@@ -676,90 +610,6 @@ struct ClusterStaircaseView: View {
             }
             .frame(width: columnWidth, height: height, alignment: .topLeading)
         }
-    }
-
-    // MARK: - Chapter bands (Phase 2h)
-
-    /// One labeled chapter separator. `y` is positioned ABOVE the first
-    /// node belonging to that chapter (chapter’s min-Y minus a pad), so
-    /// the label reads as a "header" for the hexes beneath it.
-    private struct ChapterBand: Identifiable {
-        let id: String   // chapter title is unique per tree
-        let title: String
-        let y: CGFloat
-    }
-
-    /// Walk every positioned non-mythic node that carries a `subChapter`,
-    /// group by chapter name, then emit one band per chapter anchored a
-    /// fixed offset above the chapter's topmost hex. Drop the first
-    /// chapter's band iff it would sit above the tree's top padding —
-    /// that chapter reads as the default start state and doesn't need a
-    /// label introducing it.
-    private func computeChapterBands(
-        positions: [String: CGPoint],
-        nodeById: [String: SkillNode]
-    ) -> [ChapterBand] {
-        var minY: [String: CGFloat] = [:]
-        for (id, pt) in positions {
-            guard let node = nodeById[id],
-                  !node.isMythic,
-                  let chapter = node.subChapter
-            else { continue }
-            if let existing = minY[chapter] {
-                if pt.y < existing { minY[chapter] = pt.y }
-            } else {
-                minY[chapter] = pt.y
-            }
-        }
-
-        // Offset the divider above the chapter's first hex so it clearly
-        // separates from the hex + its label. Half of the default row
-        // gap reads clean without crowding either side.
-        let labelOffset: CGFloat = 50
-        let ordered = minY.sorted { $0.value < $1.value }
-
-        // If the very first chapter would sit ABOVE the tree's top (80pt
-        // header), clamp it just below the header so it stays visible.
-        // Other chapters render at first-hex-y − labelOffset as-is.
-        var bands: [ChapterBand] = []
-        for (idx, entry) in ordered.enumerated() {
-            let y = entry.value - labelOffset
-            // For the first chapter, allow the band to sit at 34pt (just
-            // below the 0 origin, above the first hex at y≈80) so the
-            // opening chapter reads like a title, not a floating note.
-            let finalY: CGFloat = idx == 0 ? max(34, y) : y
-            bands.append(ChapterBand(id: entry.key, title: entry.key, y: finalY))
-        }
-        return bands
-    }
-
-    /// Horizontal divider row with the chapter title centered. Reads as
-    /// a quiet section header — uppercase caption with tracking, flanked
-    /// by hairline rules that bleed across the tree content width.
-    private func chapterDividerRow(label: String, width: CGFloat) -> some View {
-        HStack(spacing: 10) {
-            Rectangle()
-                .fill(Color.unbound.accent.opacity(0.35))
-                .frame(height: 1)
-            Text(label.uppercased())
-                .font(Font.unbound.captionS.weight(.heavy))
-                .tracking(2.2)
-                .foregroundStyle(Color.unbound.textSecondary)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 3)
-                .background(
-                    Capsule()
-                        .fill(Color.unbound.bg)
-                )
-                .overlay(
-                    Capsule()
-                        .strokeBorder(Color.unbound.accent.opacity(0.45), lineWidth: 0.5)
-                )
-            Rectangle()
-                .fill(Color.unbound.accent.opacity(0.35))
-                .frame(height: 1)
-        }
-        .frame(width: max(240, width - 40), height: 18)
     }
 
     /// Small rank hex badge in the gutter — matches RankBadge's Hexagon +

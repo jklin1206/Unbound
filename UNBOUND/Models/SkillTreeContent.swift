@@ -73,9 +73,10 @@ enum SkillSubChapterMap {
         // pp.5-oap-side is mythic — chapter-less.
 
         // ──────────────────────────────────────────────────────────────
-        // PUSH / CALISTHENIC CONTROL (cal) — pressing + ring holds + the
-        // flashy static ring work. Lever-ring finale lives up here too
-        // since those nodes are authored under `.calisthenicControl`.
+        // PUSH / CALISTHENIC CONTROL (cal) — pressing + ring holds. Iron
+        // Cross family moved to Core & Levers (Phase 2j) — Ring King
+        // chapter still maps those node ids, just under the coreLever
+        // tree now.
         // ──────────────────────────────────────────────────────────────
         "cal.pushup":              "Ground Work",
         "cal.slow-pushup":         "Ground Work",
@@ -89,6 +90,7 @@ enum SkillSubChapterMap {
         "cal.l-sit-10":            "Lock-In",
         "cal.l-sit-20":            "Lock-In",
 
+        // Iron Cross family — now lives in `.coreLever` cluster.
         "cal.iron-cross-3s":       "Ring King",
         "cal.iron-cross-10s":      "Ring King",
         // cal.maltese + cal.azarian are mythic — chapter-less.
@@ -1376,6 +1378,7 @@ extension SkillGraph {
             cluster: .calisthenicControl, tier: 4, type: .skill,
             target: .reps(exercise: "ring dip", count: 5),
             prereqs: [PrerequisiteGroup(["cal.ring-support-10", "cal.5-dips"])],
+            isKeystone: true,
             equipment: [.gymnasticRings],
             primary: [.chest, .arms, .shoulders], secondary: [.core],
             subtitle: "Strict dip on unstable rings.",
@@ -2173,7 +2176,7 @@ extension SkillGraph {
         .simple(
             id: "cal.iron-cross-3s",
             title: "Iron Cross",
-            cluster: .calisthenicControl, tier: 5, type: .hold,
+            cluster: .coreLever, tier: 5, type: .hold,
             target: .hold(exercise: "iron cross", seconds: 3),
             prereqs: [PrerequisiteGroup(["cal.ring-dip", "cl.full-back-lever", "pp.ring-muscle-up"])],
             equipment: [.gymnasticRings],
@@ -2190,10 +2193,9 @@ extension SkillGraph {
         .simple(
             id: "cal.iron-cross-10s",
             title: "Iron Cross Hold",
-            cluster: .calisthenicControl, tier: 6, type: .hold,
+            cluster: .coreLever, tier: 6, type: .hold,
             target: .hold(exercise: "iron cross", seconds: 10),
             prereqs: [PrerequisiteGroup("cal.iron-cross-3s")],
-            isKeystone: true,
             equipment: [.gymnasticRings],
             primary: [.chest, .shoulders, .arms, .lats],
             subtitle: "The gymnast's signature.",
@@ -2223,7 +2225,7 @@ extension SkillGraph {
         .simple(
             id: "cal.maltese",
             title: "Maltese",
-            cluster: .calisthenicControl, tier: 7, type: .hold,
+            cluster: .coreLever, tier: 7, type: .hold,
             target: .hold(exercise: "maltese", seconds: 1),
             prereqs: [PrerequisiteGroup(["cal.iron-cross-10s", "pl.full-planche"])],
             isMythic: true,
@@ -2243,7 +2245,7 @@ extension SkillGraph {
         .simple(
             id: "cal.azarian",
             title: "Azarian Press",
-            cluster: .calisthenicControl, tier: 7, type: .skill,
+            cluster: .coreLever, tier: 7, type: .skill,
             target: .reps(exercise: "azarian", count: 1),
             prereqs: [PrerequisiteGroup("cal.iron-cross-10s")],
             isMythic: true,
