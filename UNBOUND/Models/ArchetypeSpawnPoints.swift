@@ -9,15 +9,19 @@ import Foundation
 //
 // The old boss/archetype-lock model is gone. Every user can theoretically
 // reach every node; spawn points only dictate the initial "attempting" set.
+//
+// Phase 2 (program-redesign): Heavy Lifting cluster removed. TITAN/LEAN
+// archetypes re-seeded onto calisthenics + endurance entry nodes.
 
 enum ArchetypeSpawnPoints {
     static func nodeIds(for archetype: Archetype) -> [String] {
         switch archetype {
         case .heavyDuty:
-            // TITAN inherits the mass-heavy pull seed previously split with BRUISER.
-            return ["hl.bw-back-squat", "hl.bw-deadlift", "ld.goblet-20"]
+            // TITAN: mass-heavy foundation — squat base + carry base + core.
+            return ["ld.goblet-20", "co.bw-farmer-carry", "cal.plank-30"]
         case .leanCut:
-            return ["hl.0.75x-bench", "pp.dead-hang-30"]
+            // LEAN: aerobic + upper-body entry.
+            return ["pp.dead-hang-30", "cal.plank-30"]
         case .shredded:
             return ["cal.plank-30", "pp.dead-hang-30", "ld.bulgarian-split-squat"]
         case .vTaper:

@@ -241,8 +241,8 @@ struct SkillNodeHexagon: View {
             SkillTreeView(
                 tree: .unitTree,
                 nodeStates: [
-                    "hl.bw-back-squat": .attempting,
-                    "hl.bw-deadlift": .attempting
+                    "ld.goblet-20": .attempting,
+                    "pp.dead-hang-30": .attempting
                 ]
             )
             .padding(20)

@@ -3,15 +3,22 @@ import Foundation
 // MARK: - SkillCluster
 //
 // The regions of the unified skill graph. Every node in the graph
-// belongs to exactly one cluster. Clusters are the top-level navigation
-// on the Skill Map — tap a cluster, drill into its mini-graph.
+// belongs to exactly one cluster.
+//
+// Phase 2 (program-redesign) taxonomy:
+//   • Heavy Lifting removed — lifting lives in scan + program layer.
+//   • Handbalance tombstone removed — Handbalance is now an UMBRELLA on
+//     the landing screen that groups the three sub-clusters
+//     (.handstand, .handstandPushup, .oneArmHandstand). The umbrella is
+//     a display grouping only — see DisplayTree in SkillDisplayTree.swift.
+//
+// Landing-screen trees (6): Pull, Push, Legs, Core & Levers, Handbalance
+// (umbrella), Endurance. See `SkillDisplayTree` for the grouping.
 
 enum SkillCluster: String, Codable, CaseIterable, Sendable, Identifiable {
-    case heavyLifting       = "heavy_lifting"
     case legDominance       = "leg_dominance"
     case pullingPower       = "pulling_power"
     case calisthenicControl = "calisthenic_control"
-    case handbalance        = "handbalance"
     case handstand          = "handstand"
     case handstandPushup    = "handstand_pushup"
     case oneArmHandstand    = "one_arm_handstand"
@@ -20,14 +27,12 @@ enum SkillCluster: String, Codable, CaseIterable, Sendable, Identifiable {
 
     var id: String { rawValue }
 
-    /// Short code used as node-ID prefix (e.g. "hl.2x-deadlift").
+    /// Short code used as node-ID prefix (e.g. "pp.muscle-up").
     var slug: String {
         switch self {
-        case .heavyLifting:       return "hl"
         case .legDominance:       return "ld"
         case .pullingPower:       return "pp"
         case .calisthenicControl: return "cal"
-        case .handbalance:        return "hb"
         case .handstand:          return "hs"
         case .handstandPushup:    return "hspu"
         case .oneArmHandstand:    return "oah"
@@ -38,42 +43,36 @@ enum SkillCluster: String, Codable, CaseIterable, Sendable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .heavyLifting:       return "Heavy Lifting"
-        case .legDominance:       return "Leg Dominance"
-        case .pullingPower:       return "Pulling Power"
-        case .calisthenicControl: return "Calisthenic Control"
-        case .handbalance:        return "Handbalance"
+        case .legDominance:       return "Legs"
+        case .pullingPower:       return "Pull"
+        case .calisthenicControl: return "Push"
         case .handstand:          return "Handstand"
         case .handstandPushup:    return "Handstand Pushup"
         case .oneArmHandstand:    return "One-Arm Handstand"
-        case .coreLever:          return "Core & Lever"
-        case .conditioning:       return "Conditioning"
+        case .coreLever:          return "Core & Levers"
+        case .conditioning:       return "Endurance"
         }
     }
 
     var tagline: String {
         switch self {
-        case .heavyLifting:       return "Barbell multipliers — squat · DL · bench"
-        case .legDominance:       return "Single-leg, variation, bodyweight legs"
-        case .pullingPower:       return "Everything on the bar"
-        case .calisthenicControl: return "Holds, pushups, planche, front-lever"
-        case .handbalance:        return "On your hands — holds, HSPU, one-arm"
-        case .handstand:          return "Balance upside down — wall to free"
+        case .legDominance:       return "Pistol · shrimp · Nordic"
+        case .pullingPower:       return "Pull-up → muscle-up"
+        case .calisthenicControl: return "Dip → HSPU → planche"
+        case .handstand:          return "Balance upside down"
         case .handstandPushup:    return "Press your bodyweight overhead"
-        case .oneArmHandstand:    return "The final balance — one hand, full stack"
-        case .coreLever:          return "Dynamic core · levers"
-        case .conditioning:       return "Carries · hangs · grip endurance"
+        case .oneArmHandstand:    return "The final balance — one hand"
+        case .coreLever:          return "Hollow · L-sit · levers"
+        case .conditioning:       return "Carries · hangs · grip"
         }
     }
 
     /// SF Symbol glyph for tile + detail header.
     var glyph: String {
         switch self {
-        case .heavyLifting:       return "dumbbell.fill"
         case .legDominance:       return "figure.walk"
         case .pullingPower:       return "figure.climbing"
-        case .calisthenicControl: return "figure.flexibility"
-        case .handbalance:        return "figure.gymnastics"
+        case .calisthenicControl: return "figure.strengthtraining.functional"
         case .handstand:          return "figure.gymnastics"
         case .handstandPushup:    return "figure.strengthtraining.functional"
         case .oneArmHandstand:    return "figure.mind.and.body"

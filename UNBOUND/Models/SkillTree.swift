@@ -306,8 +306,8 @@ struct SkillTree: Codable, Sendable {
 
         // Assign legacy positions: one column per cluster, rows stacked by tier.
         let columnOrder: [SkillCluster] = [
-            .heavyLifting, .pullingPower, .legDominance,
-            .calisthenicControl, .handbalance,
+            .pullingPower, .legDominance,
+            .calisthenicControl,
             .handstand, .handstandPushup, .oneArmHandstand,
             .coreLever, .conditioning
         ]
