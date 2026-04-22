@@ -28,6 +28,7 @@ struct SkillGraphView: View {
     var onNodeTap: (SkillNode) -> Void
 
     @State private var focusedCluster: SkillCluster?
+    @State private var lockedInfoCluster: SkillCluster?
 
     private let clusterColumns = [
         GridItem(.flexible(), spacing: 12),
@@ -49,6 +50,15 @@ struct SkillGraphView: View {
             .presentationDetents([.large])
             .presentationDragIndicator(.visible)
             .presentationBackground(Color.unbound.bg)
+        }
+        .sheet(item: $lockedInfoCluster) { cluster in
+            if let required = cluster.requiresClusterKeystone {
+                LockedClusterInfoSheet(
+                    cluster: cluster,
+                    requiredCluster: required,
+                    graph: graph
+                )
+            }
         }
     }
 
@@ -157,17 +167,31 @@ struct SkillGraphView: View {
             }
             LazyVGrid(columns: clusterColumns, spacing: 12) {
                 ForEach(SkillCluster.allCases, id: \.id) { c in
-                    clusterTile(c)
+                    let isUnlocked = graph.isClusterUnlocked(c, nodeStates: nodeStates)
+                    clusterTile(c, isUnlocked: isUnlocked)
                         .onTapGesture {
                             UnboundHaptics.medium()
-                            focusedCluster = c
+                            if isUnlocked {
+                                focusedCluster = c
+                            } else {
+                                lockedInfoCluster = c
+                            }
                         }
                 }
             }
         }
     }
 
-    private func clusterTile(_ c: SkillCluster) -> some View {
+    @ViewBuilder
+    private func clusterTile(_ c: SkillCluster, isUnlocked: Bool) -> some View {
+        if isUnlocked {
+            unlockedTile(c)
+        } else {
+            lockedTile(c)
+        }
+    }
+
+    private func unlockedTile(_ c: SkillCluster) -> some View {
         let clusterNodes = graph.nodes(in: c)
         let unlocked = clusterNodes.filter {
             let s = nodeStates[$0.id] ?? .locked
@@ -230,6 +254,74 @@ struct SkillGraphView: View {
         .overlay(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .strokeBorder(Color.unbound.border, lineWidth: 1)
+        )
+    }
+
+    private func lockedTile(_ c: SkillCluster) -> some View {
+        let total = graph.nodes(in: c).count
+        let requiredName = c.requiresClusterKeystone?.displayName.uppercased() ?? "—"
+
+        return VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .top) {
+                Image(systemName: c.glyph)
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundStyle(Color.unbound.textSecondary)
+                    .frame(width: 44, height: 44)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(Color.unbound.surfaceElevated)
+                    )
+                    .opacity(0.6)
+                Spacer()
+                ZStack {
+                    Circle()
+                        .fill(Color.unbound.surfaceElevated)
+                        .frame(width: 32, height: 32)
+                    Image(systemName: "lock.fill")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(Color.unbound.textTertiary)
+                }
+            }
+            VStack(alignment: .leading, spacing: 4) {
+                Text(c.displayName)
+                    .font(Font.unbound.titleS)
+                    .foregroundStyle(Color.unbound.textSecondary)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text("\(total) skills · locked")
+                    .font(Font.unbound.captionS)
+                    .tracking(0.8)
+                    .foregroundStyle(Color.unbound.textTertiary)
+            }
+            Spacer(minLength: 0)
+            HStack(spacing: 6) {
+                Image(systemName: "arrow.up.right")
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundStyle(Color.unbound.textTertiary)
+                Text("REQUIRES · \(requiredName)")
+                    .font(Font.unbound.captionS.weight(.semibold))
+                    .tracking(1.2)
+                    .foregroundStyle(Color.unbound.textTertiary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(Capsule().fill(Color.unbound.surfaceElevated))
+        }
+        .padding(16)
+        .frame(height: 200)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(Color.unbound.surface.opacity(0.55))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(
+                    style: StrokeStyle(lineWidth: 1, dash: [4, 4])
+                )
+                .foregroundStyle(Color.unbound.border)
         )
     }
 

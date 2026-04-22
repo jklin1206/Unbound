@@ -1392,13 +1392,14 @@ extension SkillGraph {
         ),
 
         // ────────────────────────────────────────────────────────────────
-        // HANDBALANCE (hb) — wrists, pike press, HSPU staircase, one-arm
+        // HANDSTAND (hs) — wrists, wall holds, freestanding, walks
+        // Tree 1 of the split former "Handbalance" cluster.
         // ────────────────────────────────────────────────────────────────
 
         .simple(
-            id: "hb.wrist-conditioning",
+            id: "hs.wrist-conditioning",
             title: "Reverse-Hand Plank 30s",
-            cluster: .handbalance, tier: 1, type: .hold,
+            cluster: .handstand, tier: 1, type: .hold,
             target: .hold(exercise: "reverse-hand plank", seconds: 30),
             prereqs: [],
             primary: [.forearms], secondary: [],
@@ -1418,9 +1419,9 @@ extension SkillGraph {
             timeline: "2 weeks of daily prep before moving to pressing work."
         ),
         .simple(
-            id: "hb.pike-pushup-10",
+            id: "hspu.pike-pushup-10",
             title: "Pike Pushup × 10",
-            cluster: .handbalance, tier: 2, type: .skill,
+            cluster: .handstandPushup, tier: 2, type: .skill,
             target: .reps(exercise: "pike pushup", count: 10),
             prereqs: [PrerequisiteGroup("cal.pushup")],
             primary: [.shoulders, .arms], secondary: [.core],
@@ -1440,11 +1441,11 @@ extension SkillGraph {
             timeline: "3–8 weeks from 10 strict pushups."
         ),
         .simple(
-            id: "hb.elevated-pike-pushup-10",
+            id: "hspu.elevated-pike-pushup-10",
             title: "Elevated Pike Pushup × 10",
-            cluster: .handbalance, tier: 3, type: .skill,
+            cluster: .handstandPushup, tier: 3, type: .skill,
             target: .reps(exercise: "elevated pike pushup", count: 10),
-            prereqs: [PrerequisiteGroup("hb.pike-pushup-10")],
+            prereqs: [PrerequisiteGroup("hspu.pike-pushup-10")],
             equipment: [.bodyweight, .elevatedSurface],
             primary: [.shoulders, .arms], secondary: [.core],
             subtitle: "Steeper angle — halfway to vertical pressing.",
@@ -1463,27 +1464,27 @@ extension SkillGraph {
             timeline: "4–8 weeks after pike pushup × 10."
         ),
         .simple(
-            id: "hb.wall-handstand-30",
+            id: "hs.wall-handstand-30",
             title: "Wall Handstand 30s",
-            cluster: .handbalance, tier: 2, type: .hold,
+            cluster: .handstand, tier: 2, type: .hold,
             target: .hold(exercise: "wall handstand", seconds: 30),
-            prereqs: [PrerequisiteGroup(["cal.plank-30", "hb.wrist-conditioning"])],
+            prereqs: [PrerequisiteGroup(["cal.plank-30", "hs.wrist-conditioning"])],
             primary: [.shoulders, .core], secondary: [.arms]
         ),
         .simple(
-            id: "hb.wall-handstand-60",
+            id: "hs.wall-handstand-60",
             title: "Wall Handstand 60s",
-            cluster: .handbalance, tier: 3, type: .hold,
+            cluster: .handstand, tier: 3, type: .hold,
             target: .hold(exercise: "wall handstand", seconds: 60),
-            prereqs: [PrerequisiteGroup("hb.wall-handstand-30")],
+            prereqs: [PrerequisiteGroup("hs.wall-handstand-30")],
             primary: [.shoulders, .core]
         ),
         .simple(
-            id: "hb.wall-hspu-negative-5s",
+            id: "hspu.wall-hspu-negative-5s",
             title: "Wall HSPU Negative (5s)",
-            cluster: .handbalance, tier: 4, type: .skill,
+            cluster: .handstandPushup, tier: 4, type: .skill,
             target: .reps(exercise: "wall hspu negative", count: 3),
-            prereqs: [PrerequisiteGroup(["hb.wall-handstand-60", "hb.elevated-pike-pushup-10"])],
+            prereqs: [PrerequisiteGroup(["hs.wall-handstand-60", "hspu.elevated-pike-pushup-10"])],
             primary: [.shoulders, .arms], secondary: [.core, .back],
             subtitle: "Eccentric strength before concentric.",
             description: "From full wall handstand, lower your head to the floor over 5 seconds. Step out, kick back up, repeat. 3 reps × 5s eccentric. Builds the strength to eventually press up.",
@@ -1501,11 +1502,11 @@ extension SkillGraph {
             timeline: "2–6 weeks from elevated pike pushup × 10."
         ),
         .simple(
-            id: "hb.first-wall-hspu",
+            id: "hspu.first-wall-hspu",
             title: "First Wall HSPU",
-            cluster: .handbalance, tier: 5, type: .skill,
+            cluster: .handstandPushup, tier: 5, type: .skill,
             target: .reps(exercise: "wall hspu", count: 1),
-            prereqs: [PrerequisiteGroup("hb.wall-hspu-negative-5s")],
+            prereqs: [PrerequisiteGroup("hspu.wall-hspu-negative-5s")],
             primary: [.shoulders, .arms], secondary: [.core, .back],
             subtitle: "First press to full lockout overhead.",
             description: "One strict wall HSPU from head-on-floor to full elbow lockout. No kipping, no bridge, no partial rep.",
@@ -1523,11 +1524,11 @@ extension SkillGraph {
             timeline: "4–12 weeks after wall HSPU negative."
         ),
         .simple(
-            id: "hb.wall-hspu-3",
+            id: "hspu.wall-hspu-3",
             title: "Wall HSPU × 3",
-            cluster: .handbalance, tier: 6, type: .skill,
+            cluster: .handstandPushup, tier: 6, type: .skill,
             target: .reps(exercise: "wall hspu", count: 3),
-            prereqs: [PrerequisiteGroup("hb.first-wall-hspu")],
+            prereqs: [PrerequisiteGroup("hspu.first-wall-hspu")],
             primary: [.shoulders, .arms], secondary: [.core],
             subtitle: "Making the skill repeatable.",
             description: "3 unbroken strict wall HSPUs. First taste of HSPU as a real training lift.",
@@ -1545,21 +1546,21 @@ extension SkillGraph {
             timeline: "4–8 weeks after first wall HSPU."
         ),
         .simple(
-            id: "hb.wall-hspu-5",
+            id: "hspu.wall-hspu-5",
             title: "Wall HSPU × 5",
-            cluster: .handbalance, tier: 7, type: .skill,
+            cluster: .handstandPushup, tier: 7, type: .skill,
             target: .reps(exercise: "wall hspu", count: 5),
-            prereqs: [PrerequisiteGroup("hb.wall-hspu-3")],
+            prereqs: [PrerequisiteGroup("hspu.wall-hspu-3")],
             primary: [.shoulders, .arms], secondary: [.chest, .core],
             subtitle: "Gateway to freestanding HSPU work.",
             description: "5 unbroken strict wall HSPUs. Standard strength benchmark that clears you for freestanding HSPU training."
         ),
         .simple(
-            id: "hb.deficit-wall-hspu-3",
+            id: "hspu.deficit-wall-hspu-3",
             title: "Deficit Wall HSPU × 3",
-            cluster: .handbalance, tier: 8, type: .skill,
+            cluster: .handstandPushup, tier: 8, type: .skill,
             target: .reps(exercise: "deficit wall hspu", count: 3),
-            prereqs: [PrerequisiteGroup("hb.wall-hspu-5")],
+            prereqs: [PrerequisiteGroup("hspu.wall-hspu-5")],
             equipment: [.bodyweight, .parallettes],
             primary: [.shoulders, .arms], secondary: [.core],
             subtitle: "More ROM than a floor HSPU will ever demand.",
@@ -1577,19 +1578,42 @@ extension SkillGraph {
             timeline: "8–16 weeks after wall HSPU × 5."
         ),
         .simple(
-            id: "hb.freestanding-hs-10",
+            id: "hs.freestanding-hs-10",
             title: "Freestanding HS 10s",
-            cluster: .handbalance, tier: 4, type: .hold,
+            cluster: .handstand, tier: 4, type: .hold,
             target: .hold(exercise: "freestanding handstand", seconds: 10),
-            prereqs: [PrerequisiteGroup("hb.wall-handstand-60")],
+            prereqs: [PrerequisiteGroup("hs.wall-handstand-60")],
             primary: [.shoulders, .core], secondary: [.forearms]
         ),
         .simple(
-            id: "hb.freestanding-hspu-negative-5s",
+            id: "hs.freestanding-hs-30",
+            title: "Freestanding HS 30s",
+            cluster: .handstand, tier: 4, type: .hold,
+            target: .hold(exercise: "freestanding handstand", seconds: 30),
+            prereqs: [PrerequisiteGroup("hs.freestanding-hs-10")],
+            primary: [.shoulders, .core], secondary: [.forearms],
+            subtitle: "From survival to steady state.",
+            description: "30 seconds of freestanding handstand. The hold stops being a scramble and becomes a stable shape you can breathe inside.",
+            formCues: [
+                "Stack wrists → shoulders → hips → ankles",
+                "Finger-pressure micro-corrections, not whole-arm shoves",
+                "Ribs tucked, glutes squeezed, hollow line",
+                "Breathe at the top — do not hold breath",
+                "Eyes between the hands, not at the floor in front"
+            ],
+            commonMistakes: [
+                "Chasing the time count instead of the line",
+                "Bailing out of every drift instead of correcting",
+                "Bananaing the low back once the shoulders fatigue"
+            ],
+            timeline: "6–18 months of consistent freestanding practice."
+        ),
+        .simple(
+            id: "hspu.freestanding-hspu-negative-5s",
             title: "Freestanding HSPU Negative (5s)",
-            cluster: .handbalance, tier: 9, type: .skill,
+            cluster: .handstandPushup, tier: 9, type: .skill,
             target: .reps(exercise: "freestanding hspu negative", count: 3),
-            prereqs: [PrerequisiteGroup(["hb.freestanding-hs-10", "hb.wall-hspu-5"])],
+            prereqs: [PrerequisiteGroup(["hs.freestanding-hs-10", "hspu.wall-hspu-5"])],
             primary: [.shoulders, .arms], secondary: [.core],
             subtitle: "Balance + strength — eccentric only.",
             description: "From freestanding handstand, lower to head over 5 seconds. Bail at bottom (cartwheel or pike out). 3 reps. Combines balance control with eccentric pressing.",
@@ -1607,11 +1631,11 @@ extension SkillGraph {
             timeline: "6–16 weeks after wall HSPU × 5 + free HS 10s."
         ),
         .simple(
-            id: "hb.freestanding-hspu-1",
+            id: "hspu.first-freestanding-hspu",
             title: "First Freestanding HSPU",
-            cluster: .handbalance, tier: 10, type: .skill,
+            cluster: .handstandPushup, tier: 10, type: .skill,
             target: .reps(exercise: "freestanding hspu", count: 1),
-            prereqs: [PrerequisiteGroup("hb.freestanding-hspu-negative-5s")],
+            prereqs: [PrerequisiteGroup("hspu.freestanding-hspu-negative-5s")],
             isKeystone: true,
             primary: [.shoulders, .arms], secondary: [.core],
             subtitle: "Push the whole body against gravity.",
@@ -1631,11 +1655,11 @@ extension SkillGraph {
             timeline: "2–4 years from wall HSPU."
         ),
         .simple(
-            id: "hb.freestanding-hspu-3",
+            id: "hspu.freestanding-hspu-3",
             title: "Freestanding HSPU × 3",
-            cluster: .handbalance, tier: 11, type: .skill,
+            cluster: .handstandPushup, tier: 11, type: .skill,
             target: .reps(exercise: "freestanding hspu", count: 3),
-            prereqs: [PrerequisiteGroup("hb.freestanding-hspu-1")],
+            prereqs: [PrerequisiteGroup("hspu.first-freestanding-hspu")],
             primary: [.shoulders, .arms], secondary: [.core],
             subtitle: "When it stops being a fluke.",
             description: "3 unbroken freestanding HSPUs. Real strength + real balance, sustained.",
@@ -1651,12 +1675,12 @@ extension SkillGraph {
             timeline: "6–18 months after first freestanding HSPU."
         ),
         .simple(
-            id: "hb.freestanding-hs-60",
+            id: "hs.freestanding-hs-60",
             title: "Freestanding HS 60s",
-            cluster: .handbalance, tier: 5, type: .hold,
+            cluster: .handstand, tier: 5, type: .hold,
             target: .hold(exercise: "freestanding handstand", seconds: 60),
-            prereqs: [PrerequisiteGroup("hb.freestanding-hs-10")],
-            isKeystone: false,
+            prereqs: [PrerequisiteGroup("hs.freestanding-hs-30")],
+            isKeystone: true,
             primary: [.shoulders, .core], secondary: [.forearms],
             subtitle: "Balance is the skill.",
             description: "60 seconds of freestanding handstand. Not just a strength benchmark — it's a balance mastery benchmark. Most never get past 10-15s free.",
@@ -1675,19 +1699,20 @@ extension SkillGraph {
             timeline: "1-3 years of daily practice."
         ),
         .simple(
-            id: "hb.handstand-walk-10m",
+            id: "hs.handstand-walk-10m",
             title: "Handstand Walk 10m",
-            cluster: .handbalance, tier: 5, type: .skill,
+            cluster: .handstand, tier: 5, type: .skill,
             target: .steps(exercise: "handstand walk", count: 10),
-            prereqs: [PrerequisiteGroup("hb.freestanding-hs-10")],
+            prereqs: [PrerequisiteGroup("hs.freestanding-hs-10")],
             primary: [.shoulders, .core]
         ),
         .simple(
-            id: "hb.one-arm-handstand-5s",
+            id: "oah.one-arm-handstand-5s",
             title: "One-Arm Handstand 5s",
-            cluster: .handbalance, tier: 7, type: .hold,
+            cluster: .oneArmHandstand, tier: 7, type: .hold,
             target: .hold(exercise: "one-arm handstand", seconds: 5),
-            prereqs: [PrerequisiteGroup("hb.freestanding-hs-60")],
+            prereqs: [PrerequisiteGroup("hs.freestanding-hs-60")],
+            isKeystone: true,
             isMythic: true,
             primary: [.shoulders, .core],
             subtitle: "Balance at the limit.",
@@ -1707,11 +1732,11 @@ extension SkillGraph {
             timeline: "3-7 years of daily handstand work."
         ),
         .simple(
-            id: "hb.one-arm-hspu",
+            id: "oah.one-arm-hspu",
             title: "One-Arm HSPU",
-            cluster: .handbalance, tier: 7, type: .skill,
+            cluster: .oneArmHandstand, tier: 7, type: .skill,
             target: .reps(exercise: "one-arm hspu", count: 1),
-            prereqs: [PrerequisiteGroup(["hb.one-arm-handstand-5s", "hb.freestanding-hspu-1"])],
+            prereqs: [PrerequisiteGroup(["oah.one-arm-handstand-5s", "hspu.first-freestanding-hspu"])],
             isMythic: true,
             primary: [.shoulders, .arms, .core],
             subtitle: "The pinnacle of shoulder strength.",
