@@ -433,49 +433,62 @@ struct ClusterStaircaseView: View {
         }
     }
 
-    // MARK: - Zig-zag column (for ACHIEVED / NEXT / MYTHIC)
+    // MARK: - Tier-row column (for ACHIEVED / NEXT / MYTHIC)
+    //
+    // Parallelism-aware layout: nodes are grouped by effective tier (BFS
+    // depth through prereqs). Nodes at the same tier live on the same
+    // horizontal row, so independent training paths render side-by-side
+    // rather than in a forced zig-zag. Rails connect a node to its ACTUAL
+    // prereqs in the tier above, anchored to the diagonal edges of each
+    // flat-top hex so the line visually emerges from the 45° corner.
 
     private func zigzagColumn(
         nodes: [SkillNode],
         sizeKind: HexSizeKind
     ) -> some View {
-        let count = nodes.count
-        let verticalGap: CGFloat = 100   // center-to-center distance
-        let totalHeight: CGFloat = CGFloat(max(0, count - 1)) * verticalGap
+        let rows = groupIntoTierRows(nodes: nodes)
+        let rowCount = rows.count
+        let verticalGap: CGFloat = 100   // row center-to-center distance
+        let totalHeight: CGFloat = CGFloat(max(0, rowCount - 1)) * verticalGap
             + sizeKind.size
-            + 36  // label breathing room below last hex
+            + 36  // label breathing room below last row
 
         return GeometryReader { geo in
             let fullWidth = geo.size.width
-            // ~45° diagonal — horizontal travel ≈ verticalGap (100pt).
-            // On ~340pt container, 0.35/0.65 anchors give ~100pt hop.
-            let leftX: CGFloat = fullWidth * 0.35
-            let rightX: CGFloat = fullWidth * 0.65
+            let anchors = rowAnchors(width: fullWidth)
+
+            // Resolve every visible node's (cx, cy) up front so both the
+            // rail canvas and the hex views use the same coordinates.
+            let positions = computeNodePositions(
+                rows: rows,
+                anchors: anchors,
+                verticalGap: verticalGap,
+                sizeKind: sizeKind
+            )
+            let visibleIds: Set<String> = Set(positions.keys)
 
             ZStack(alignment: .topLeading) {
-                // Connecting rails drawn underneath.
+                // Prereq rails drawn underneath.
                 Canvas { ctx, _ in
-                    drawRails(
+                    drawPrereqRails(
                         ctx: ctx,
                         nodes: nodes,
-                        leftX: leftX,
-                        rightX: rightX,
-                        verticalGap: verticalGap,
+                        positions: positions,
+                        visibleIds: visibleIds,
                         sizeKind: sizeKind
                     )
                 }
                 .frame(width: fullWidth, height: totalHeight)
 
-                ForEach(Array(nodes.enumerated()), id: \.element.id) { idx, node in
-                    let isLeft = (idx % 2 == 0)
-                    let cx = isLeft ? leftX : rightX
-                    let cy = CGFloat(idx) * verticalGap + sizeKind.size / 2
-                    hexCell(node: node, sizeKind: sizeKind)
-                        .position(x: cx, y: cy)
-                        .onTapGesture {
-                            UnboundHaptics.medium()
-                            selectedNode = node
-                        }
+                ForEach(nodes, id: \.id) { node in
+                    if let p = positions[node.id] {
+                        hexCell(node: node, sizeKind: sizeKind)
+                            .position(x: p.x, y: p.y)
+                            .onTapGesture {
+                                UnboundHaptics.medium()
+                                selectedNode = node
+                            }
+                    }
                 }
             }
             .frame(width: fullWidth, height: totalHeight, alignment: .topLeading)
@@ -484,86 +497,189 @@ struct ClusterStaircaseView: View {
         .padding(.horizontal, 16)
     }
 
-    // Rails: quadratic bezier from bottom of hex[i] to top of hex[i+1].
-    // Draw a blurred-wide underlay + a solid narrow core for the purple glow.
-    private func drawRails(
-        ctx: GraphicsContext,
-        nodes: [SkillNode],
-        leftX: CGFloat,
-        rightX: CGFloat,
+    /// Group a section's nodes into tier-bucketed rows, preserving a
+    /// stable ordering (effective tier ascending, then id) and a stable
+    /// within-row order (id ascending) so layout doesn't flicker.
+    private func groupIntoTierRows(nodes: [SkillNode]) -> [[SkillNode]] {
+        guard !nodes.isEmpty else { return [] }
+        let tiers = computeEffectiveTiers(nodes: clusterNodes)
+        let bucketed = Dictionary(grouping: nodes) { node in
+            tiers[node.id] ?? node.tier
+        }
+        return bucketed.keys.sorted().map { key in
+            bucketed[key]!.sorted { $0.id < $1.id }
+        }
+    }
+
+    /// Horizontal anchors for 1, 2, or 3 nodes in a row. Wider rows
+    /// (rare in practice; NEXT caps at 5) fall back to evenly spaced
+    /// fractions between 0.18 and 0.82.
+    private func rowAnchors(width: CGFloat) -> (Int) -> [CGFloat] {
+        return { count in
+            switch count {
+            case 0:  return []
+            case 1:  return [width * 0.5]
+            case 2:  return [width * 0.32, width * 0.68]
+            case 3:  return [width * 0.22, width * 0.5, width * 0.78]
+            default:
+                let start: CGFloat = 0.18
+                let end: CGFloat = 0.82
+                let step = (end - start) / CGFloat(count - 1)
+                return (0..<count).map { width * (start + step * CGFloat($0)) }
+            }
+        }
+    }
+
+    /// Flatten tier rows to a per-node `id → (x, y)` map.
+    private func computeNodePositions(
+        rows: [[SkillNode]],
+        anchors: (Int) -> [CGFloat],
         verticalGap: CGFloat,
         sizeKind: HexSizeKind
+    ) -> [String: CGPoint] {
+        var out: [String: CGPoint] = [:]
+        for (rowIdx, row) in rows.enumerated() {
+            let xs = anchors(row.count)
+            let cy = CGFloat(rowIdx) * verticalGap + sizeKind.size / 2
+            for (colIdx, node) in row.enumerated() where colIdx < xs.count {
+                out[node.id] = CGPoint(x: xs[colIdx], y: cy)
+            }
+        }
+        return out
+    }
+
+    /// For each visible node, draw a rail to every prereq that is ALSO
+    /// visible in this section. Rails anchor to the diagonal edge of
+    /// each hex on the side facing the neighbor — so the line appears
+    /// to emerge from the hex's 45° corner.
+    private func drawPrereqRails(
+        ctx: GraphicsContext,
+        nodes: [SkillNode],
+        positions: [String: CGPoint],
+        visibleIds: Set<String>,
+        sizeKind: HexSizeKind
     ) {
-        guard nodes.count >= 2 else { return }
-        let hexHalf = sizeKind.size / 2
+        let S = sizeKind.size
+        // Flat-top hex diagonal-edge midpoint offsets from center.
+        //   upper-right (cx + 3S/8, cy - S/4)
+        //   lower-right (cx + 3S/8, cy + S/4)
+        //   lower-left  (cx - 3S/8, cy + S/4)
+        //   upper-left  (cx - 3S/8, cy - S/4)
+        let dx: CGFloat = 3 * S / 8
+        let dy: CGFloat = S / 4
+        // Fallback straight-vertical anchors (top and bottom tips are at
+        // the hex horizontal edges, not points — use mid-top / mid-bottom
+        // which for a flat-top hex sit on the top and bottom edges).
+        let topOffset: CGFloat = S / 2
+        let bottomOffset: CGFloat = S / 2
 
-        for idx in 0..<(nodes.count - 1) {
-            let isLeft = (idx % 2 == 0)
-            let nextIsLeft = ((idx + 1) % 2 == 0)
-            let fromX = isLeft ? leftX : rightX
-            let toX = nextIsLeft ? leftX : rightX
-            // Anchor lines just inside the hex outline (0.42 of size from center).
-            let fromY = CGFloat(idx) * verticalGap + sizeKind.size / 2 + hexHalf * 0.84
-            let toY = CGFloat(idx + 1) * verticalGap + sizeKind.size / 2 - hexHalf * 0.84
-            let midY = (fromY + toY) / 2
+        for child in nodes {
+            guard let childPt = positions[child.id] else { continue }
+            // Collect unique prereq ids that actually appear in this section.
+            let prereqIds = Set(
+                child.prereqs.flatMap { $0.nodeIds }
+            ).intersection(visibleIds)
+            guard !prereqIds.isEmpty else { continue }
 
-            var path = Path()
-            path.move(to: CGPoint(x: fromX, y: fromY))
-            path.addCurve(
-                to: CGPoint(x: toX, y: toY),
-                control1: CGPoint(x: fromX, y: midY),
-                control2: CGPoint(x: toX, y: midY)
-            )
+            for pid in prereqIds {
+                guard let parentPt = positions[pid] else { continue }
+                // Only draw rails top→down. Same-row or below-row prereqs
+                // (rare — would indicate a data inconsistency) are skipped.
+                guard parentPt.y < childPt.y else { continue }
 
-            let fromNode = nodes[idx]
-            let toNode = nodes[idx + 1]
-            let fromReached = isUnlockedState(nodeStates[fromNode.id] ?? .locked)
-            let toReached = isUnlockedState(nodeStates[toNode.id] ?? .locked)
+                let dxTotal = childPt.x - parentPt.x
+                let tolerance: CGFloat = 1.0
 
-            if fromReached && toReached {
-                // Both reached — bright solid with blurred underlay.
-                var blurCtx = ctx
-                blurCtx.addFilter(.blur(radius: 4))
-                blurCtx.stroke(
-                    path,
-                    with: .color(Color.unbound.accent.opacity(0.6)),
-                    style: StrokeStyle(lineWidth: 6, lineCap: .round)
+                let fromPt: CGPoint
+                let toPt: CGPoint
+                if abs(dxTotal) <= tolerance {
+                    // Directly above — anchor straight top/bottom centers.
+                    fromPt = CGPoint(x: parentPt.x, y: parentPt.y + bottomOffset)
+                    toPt = CGPoint(x: childPt.x, y: childPt.y - topOffset)
+                } else if dxTotal > 0 {
+                    // Child is to the right of parent — exit parent's
+                    // lower-right diagonal edge, enter child's upper-left.
+                    fromPt = CGPoint(x: parentPt.x + dx, y: parentPt.y + dy)
+                    toPt = CGPoint(x: childPt.x - dx, y: childPt.y - dy)
+                } else {
+                    // Child is to the left — exit parent's lower-left,
+                    // enter child's upper-right.
+                    fromPt = CGPoint(x: parentPt.x - dx, y: parentPt.y + dy)
+                    toPt = CGPoint(x: childPt.x + dx, y: childPt.y - dy)
+                }
+
+                // Subtle curve — anchors already sit on the hex corners,
+                // so the path reads as a near-straight 45° hop with just
+                // enough bend to feel organic.
+                let midY = (fromPt.y + toPt.y) / 2
+                var path = Path()
+                path.move(to: fromPt)
+                path.addCurve(
+                    to: toPt,
+                    control1: CGPoint(x: fromPt.x, y: midY),
+                    control2: CGPoint(x: toPt.x, y: midY)
                 )
-                ctx.stroke(
-                    path,
-                    with: .color(Color.unbound.accent),
-                    style: StrokeStyle(lineWidth: 2.5, lineCap: .round)
-                )
-            } else if fromReached {
-                // Partial — glow a touch dimmer, still solid.
-                var blurCtx = ctx
-                blurCtx.addFilter(.blur(radius: 3))
-                blurCtx.stroke(
-                    path,
-                    with: .color(Color.unbound.accent.opacity(0.45)),
-                    style: StrokeStyle(lineWidth: 5, lineCap: .round)
-                )
-                ctx.stroke(
-                    path,
-                    with: .color(Color.unbound.accent.opacity(0.85)),
-                    style: StrokeStyle(lineWidth: 2, lineCap: .round)
-                )
-            } else {
-                // Locked-to-locked — dim solid purple with a faint blurred
-                // underlay so every rail reads as a glowing line, not a dash.
-                var blurCtx = ctx
-                blurCtx.addFilter(.blur(radius: 2.5))
-                blurCtx.stroke(
-                    path,
-                    with: .color(Color.unbound.accent.opacity(0.25)),
-                    style: StrokeStyle(lineWidth: 4, lineCap: .round)
-                )
-                ctx.stroke(
-                    path,
-                    with: .color(Color.unbound.accent.opacity(0.55)),
-                    style: StrokeStyle(lineWidth: 1.8, lineCap: .round)
+
+                let fromReached = isUnlockedState(nodeStates[pid] ?? .locked)
+                let toReached = isUnlockedState(nodeStates[child.id] ?? .locked)
+                strokeRail(
+                    ctx: ctx,
+                    path: path,
+                    fromReached: fromReached,
+                    toReached: toReached
                 )
             }
+        }
+    }
+
+    /// Rail stroke styling preserved from the original three-tier glow:
+    /// both-reached = bright solid + blurred underlay, from-reached =
+    /// slightly dimmer, locked-to-locked = faint glow.
+    private func strokeRail(
+        ctx: GraphicsContext,
+        path: Path,
+        fromReached: Bool,
+        toReached: Bool
+    ) {
+        if fromReached && toReached {
+            var blurCtx = ctx
+            blurCtx.addFilter(.blur(radius: 4))
+            blurCtx.stroke(
+                path,
+                with: .color(Color.unbound.accent.opacity(0.6)),
+                style: StrokeStyle(lineWidth: 6, lineCap: .round)
+            )
+            ctx.stroke(
+                path,
+                with: .color(Color.unbound.accent),
+                style: StrokeStyle(lineWidth: 2.5, lineCap: .round)
+            )
+        } else if fromReached {
+            var blurCtx = ctx
+            blurCtx.addFilter(.blur(radius: 3))
+            blurCtx.stroke(
+                path,
+                with: .color(Color.unbound.accent.opacity(0.45)),
+                style: StrokeStyle(lineWidth: 5, lineCap: .round)
+            )
+            ctx.stroke(
+                path,
+                with: .color(Color.unbound.accent.opacity(0.85)),
+                style: StrokeStyle(lineWidth: 2, lineCap: .round)
+            )
+        } else {
+            var blurCtx = ctx
+            blurCtx.addFilter(.blur(radius: 2.5))
+            blurCtx.stroke(
+                path,
+                with: .color(Color.unbound.accent.opacity(0.25)),
+                style: StrokeStyle(lineWidth: 4, lineCap: .round)
+            )
+            ctx.stroke(
+                path,
+                with: .color(Color.unbound.accent.opacity(0.55)),
+                style: StrokeStyle(lineWidth: 1.8, lineCap: .round)
+            )
         }
     }
 
