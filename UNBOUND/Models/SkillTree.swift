@@ -134,6 +134,13 @@ struct SkillNode: Identifiable, Codable, Hashable, Sendable {
     /// Ordered 1-5 ladder. Empty until Phase 1c content migration.
     var levels: [SkillLevel] = []
 
+    /// Phase 2h: named sub-chapter within the owning cluster's tree.
+    /// Nodes that share a sub-chapter render beneath a horizontal
+    /// chapter divider in ClusterStaircaseView. Mythic nodes stay
+    /// chapter-less — they render in the dedicated MYTHIC section.
+    /// `nil` means "no chapter grouping" (default so old call sites compile).
+    var subChapter: String? = nil
+
     static func == (lhs: SkillNode, rhs: SkillNode) -> Bool { lhs.id == rhs.id }
     func hash(into hasher: inout Hasher) { hasher.combine(id) }
 
@@ -167,7 +174,8 @@ struct SkillNode: Identifiable, Codable, Hashable, Sendable {
         glyph: String? = nil,
         position: NodeGridPosition = .zero,
         rank: SkillRank = .d,
-        levels: [SkillLevel] = []
+        levels: [SkillLevel] = [],
+        subChapter: String? = nil
     ) -> SkillNode {
         SkillNode(
             id: id,
@@ -190,7 +198,8 @@ struct SkillNode: Identifiable, Codable, Hashable, Sendable {
             glyph: glyph ?? defaultGlyph(for: type, isMythic: isMythic),
             position: position,
             rank: rank,
-            levels: levels
+            levels: levels,
+            subChapter: subChapter
         )
     }
 
@@ -333,7 +342,8 @@ struct SkillTree: Codable, Sendable {
                     glyph: n.glyph,
                     position: NodeGridPosition(row: row, column: idx - columnOrder.count / 2),
                     rank: n.rank,
-                    levels: n.levels
+                    levels: n.levels,
+                    subChapter: n.subChapter
                 )
                 positioned.append(repositioned)
             }

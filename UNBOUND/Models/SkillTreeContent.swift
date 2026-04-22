@@ -13,7 +13,187 @@ import Foundation
 // on a subsequent content pass.
 
 extension SkillGraph {
-    static let shared = SkillGraph(nodes: Self.v3Nodes)
+    static let shared: SkillGraph = {
+        // Apply the Phase 2h sub-chapter map on top of the raw content
+        // declarations. Keeping the assignments in one table (rather than
+        // threading `subChapter:` through every .simple call) makes it
+        // trivial to audit what's in which chapter and to rename a chapter
+        // without touching 80+ lines.
+        let enriched: [SkillNode] = Self.v3Nodes.map { node in
+            guard let chapter = SkillSubChapterMap.chapter(for: node.id) else {
+                return node
+            }
+            var copy = node
+            copy.subChapter = chapter
+            return copy
+        }
+        return SkillGraph(nodes: enriched)
+    }()
+}
+
+// MARK: - Phase 2h sub-chapter map
+//
+// Every non-mythic node is assigned a short, anime/gym-neutral chapter
+// name scoped to its owning cluster. Mythic nodes are intentionally
+// chapter-less: they render in the MYTHIC section below the tree and
+// carry their own "MYTHIC" chip — a chapter label would be noise.
+//
+// Names are our own (never lifted from the "Muscle Up Summit / Pull Up
+// Dungeon" inspiration infographic) and steer clear of character names,
+// any anime IP, and the app's archetype vocabulary.
+
+enum SkillSubChapterMap {
+    static func chapter(for nodeId: String) -> String? { map[nodeId] }
+
+    static let map: [String: String] = [
+        // ──────────────────────────────────────────────────────────────
+        // PULL (pp) — four paths: grip, the pull, muscle-up crossover,
+        // then the solo-arm finale.
+        // ──────────────────────────────────────────────────────────────
+        "pp.dead-hang-30":         "The Grip",
+        "pp.negative-pullup":      "The Grip",
+
+        "pp.pullup":               "Ascent",
+        "pp.5-pullups":            "Ascent",
+        "pp.10-pullups":           "Ascent",
+        "pp.slow-pullup":          "Ascent",
+        "pp.chest-to-bar":         "Ascent",
+        "pp.l-sit-pullup":         "Ascent",
+        "pp.archer-pullup":        "Ascent",
+        "pp.weighted-pullup-0.25": "Ascent",
+        "pp.weighted-pullup-0.5":  "Ascent",
+
+        "pp.muscle-up":            "Crossover",
+        "pp.10-muscle-ups":        "Crossover",
+        "pp.ring-muscle-up":       "Crossover",
+
+        "pp.typewriter-pullup":    "Solo Arm",
+        "pp.oap-negative":         "Solo Arm",
+        "pp.one-arm-pullup":       "Solo Arm",
+        // pp.5-oap-side is mythic — chapter-less.
+
+        // ──────────────────────────────────────────────────────────────
+        // PUSH / CALISTHENIC CONTROL (cal) — pressing + ring holds + the
+        // flashy static ring work. Lever-ring finale lives up here too
+        // since those nodes are authored under `.calisthenicControl`.
+        // ──────────────────────────────────────────────────────────────
+        "cal.pushup":              "Ground Work",
+        "cal.slow-pushup":         "Ground Work",
+        "cal.diamond-pushup":      "Ground Work",
+
+        "cal.5-dips":              "The Dip",
+        "cal.ring-support-10":     "The Dip",
+        "cal.ring-dip":            "The Dip",
+
+        "cal.plank-30":            "Lock-In",
+        "cal.l-sit-10":            "Lock-In",
+        "cal.l-sit-20":            "Lock-In",
+
+        "cal.iron-cross-3s":       "Ring King",
+        "cal.iron-cross-10s":      "Ring King",
+        // cal.maltese + cal.azarian are mythic — chapter-less.
+
+        // ──────────────────────────────────────────────────────────────
+        // LEGS (ld) — squat base → unilateral bridge → pistol chain →
+        // a one-off strength branch.
+        // ──────────────────────────────────────────────────────────────
+        "ld.goblet-20":            "Foundation",
+        "ld.tempo-squat":          "Foundation",
+        "ld.bw-front-squat":       "Loaded Stance",
+
+        "ld.bulgarian-split-squat": "Unilateral",
+        "ld.100-lunges":           "Unilateral",
+        "ld.single-leg-rdl":       "Unilateral",
+        "ld.assisted-pistol":      "Unilateral",
+
+        "ld.shrimp-squat":         "Pistol Path",
+        "ld.pistol-squat":         "Pistol Path",
+        "ld.weighted-pistol":      "Pistol Path",
+        "ld.dragon-pistol":        "Pistol Path",
+        // ld.jumping-pistol is mythic — chapter-less.
+
+        // ──────────────────────────────────────────────────────────────
+        // CORE & LEVERS (cl) — hollow → raised / hanging → flag → two
+        // lever families.
+        // ──────────────────────────────────────────────────────────────
+        "cl.hollow-body-30":       "The Spine",
+        "cl.hollow-body-60":       "The Spine",
+
+        "cl.hanging-knee-raise":   "Raised Work",
+        "cl.hanging-leg-raise":    "Raised Work",
+        "cl.toes-to-bar":          "Raised Work",
+        "cl.ab-wheel":             "Raised Work",
+
+        "cl.dragon-flag-negative": "Flag Path",
+        "cl.dragon-flag":          "Flag Path",
+
+        "cl.tuck-front-lever":     "Front Lever",
+        "cl.straddle-front-lever": "Front Lever",
+        "cl.full-front-lever":     "Front Lever",
+
+        "cl.tuck-back-lever":      "Back Lever",
+        "cl.straddle-back-lever":  "Back Lever",
+        "cl.full-back-lever":      "Back Lever",
+        // cl.victorian is mythic — chapter-less.
+
+        // ──────────────────────────────────────────────────────────────
+        // HANDBALANCE — three sub-clusters; each gets its own chapters.
+        // ──────────────────────────────────────────────────────────────
+        // hs — Handstand
+        "hs.wrist-conditioning":   "Wall Path",
+        "hs.wall-handstand-30":    "Wall Path",
+        "hs.wall-handstand-60":    "Wall Path",
+
+        "hs.freestanding-hs-10":   "Freestanding",
+        "hs.freestanding-hs-30":   "Freestanding",
+        "hs.freestanding-hs-60":   "Freestanding",
+        "hs.handstand-walk-10m":   "Freestanding",
+
+        // hspu — Handstand Push-Up
+        "hspu.pike-pushup-10":     "Wall Press",
+        "hspu.elevated-pike-pushup-10": "Wall Press",
+        "hspu.wall-hspu-negative-5s":   "Wall Press",
+        "hspu.first-wall-hspu":    "Wall Press",
+        "hspu.wall-hspu-3":        "Wall Press",
+        "hspu.wall-hspu-5":        "Wall Press",
+        "hspu.deficit-wall-hspu-3": "Wall Press",
+
+        "hspu.freestanding-hspu-negative-5s": "Free Press",
+        "hspu.first-freestanding-hspu":       "Free Press",
+        "hspu.freestanding-hspu-3":           "Free Press",
+
+        // oah — One-Arm Handstand. Both non-mythic entries are mythic,
+        // so this sub-cluster has no chapter-bearing nodes.
+        // (oah.one-arm-handstand-5s + oah.one-arm-hspu are both mythic.)
+
+        // ──────────────────────────────────────────────────────────────
+        // PLANCHE (pl)
+        // ──────────────────────────────────────────────────────────────
+        "pl.pseudo-planche-pushup": "Lean Path",
+        "pl.tuck-planche":          "Tuck Path",
+        "pl.tuck-planche-pushup":   "Tuck Path",
+        "pl.straddle-planche":      "Float",
+        "pl.full-planche":          "Float",
+        "pl.full-planche-pushup":   "Float",
+        // pl.ninety-degree-pushup is mythic — chapter-less.
+
+        // ──────────────────────────────────────────────────────────────
+        // ENDURANCE / CONDITIONING (co)
+        // ──────────────────────────────────────────────────────────────
+        "co.dead-hang-45":         "Grip Engine",
+        "co.dead-hang-60":         "Grip Engine",
+
+        "co.mile-sub-7":           "Distance Run",
+        "co.5k-sub-22":            "Distance Run",
+
+        "co.400m-row":             "Engine",
+        "co.assault-bike-30":      "Engine",
+
+        "co.bw-farmer-carry":      "Loaded Carry",
+        "co.1.5x-farmer-carry":    "Loaded Carry",
+        "co.2x-farmer-carry":      "Loaded Carry",
+        "co.sled-push":            "Loaded Carry",
+    ]
 }
 
 // MARK: - All v3 nodes

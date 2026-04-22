@@ -165,6 +165,12 @@ struct SkillDetailView: View {
     private var clusterCrumb: String {
         let cluster = node.cluster.displayName.uppercased()
         let tierLabel = tierName(for: node.tier)
+        // Phase 2h — inject the sub-chapter between cluster and tier so
+        // the breadcrumb reads as: CLUSTER · CHAPTER · TIER. Mythic and
+        // other chapter-less nodes keep the two-element crumb.
+        if let chapter = node.subChapter?.uppercased(), !chapter.isEmpty {
+            return "\(cluster) · \(chapter) · \(tierLabel)"
+        }
         return "\(cluster) · \(tierLabel)"
     }
 
