@@ -1253,9 +1253,9 @@ extension SkillGraph {
             ]
         ),
         .simple(
-            id: "cal.pseudo-planche-pushup",
+            id: "pl.pseudo-planche-pushup",
             title: "Pseudo-Planche Push-Up",
-            cluster: .calisthenicControl, tier: 3, type: .skill,
+            cluster: .planche, tier: 3, type: .skill,
             target: .reps(exercise: "pseudo-planche pushup", count: 5),
             prereqs: [PrerequisiteGroup("cal.diamond-pushup")],
             primary: [.shoulders, .chest, .arms], secondary: [.core],
@@ -1283,11 +1283,11 @@ extension SkillGraph {
             ]
         ),
         .simple(
-            id: "cal.tuck-planche",
+            id: "pl.tuck-planche",
             title: "Tuck Planche",
-            cluster: .calisthenicControl, tier: 3, type: .hold,
+            cluster: .planche, tier: 3, type: .hold,
             target: .hold(exercise: "tuck planche", seconds: 5),
-            prereqs: [PrerequisiteGroup("cal.pseudo-planche-pushup")],
+            prereqs: [PrerequisiteGroup("pl.pseudo-planche-pushup")],
             equipment: [.parallettes],
             primary: [.shoulders, .core], secondary: [.chest, .arms],
             subtitle: "The planche on-ramp.",
@@ -1315,11 +1315,11 @@ extension SkillGraph {
             ]
         ),
         .simple(
-            id: "cal.tuck-planche-pushup",
+            id: "pl.tuck-planche-pushup",
             title: "Tuck Planche Push-Up",
-            cluster: .calisthenicControl, tier: 4, type: .skill,
+            cluster: .planche, tier: 4, type: .skill,
             target: .reps(exercise: "tuck planche pushup", count: 3),
-            prereqs: [PrerequisiteGroup(["cal.pseudo-planche-pushup", "cal.tuck-planche"])],
+            prereqs: [PrerequisiteGroup(["pl.pseudo-planche-pushup", "pl.tuck-planche"])],
             equipment: [.parallettes],
             primary: [.shoulders, .chest, .core],
             subtitle: "Planche meets press.",
@@ -1346,11 +1346,11 @@ extension SkillGraph {
             ]
         ),
         .simple(
-            id: "cal.straddle-planche",
+            id: "pl.straddle-planche",
             title: "Straddle Planche",
-            cluster: .calisthenicControl, tier: 5, type: .hold,
+            cluster: .planche, tier: 5, type: .hold,
             target: .hold(exercise: "straddle planche", seconds: 5),
-            prereqs: [PrerequisiteGroup("cal.tuck-planche")],
+            prereqs: [PrerequisiteGroup("pl.tuck-planche")],
             equipment: [.parallettes],
             primary: [.shoulders, .core],
             subtitle: "Legs split, body horizontal.",
@@ -1377,11 +1377,11 @@ extension SkillGraph {
             ]
         ),
         .simple(
-            id: "cal.full-planche",
+            id: "pl.full-planche",
             title: "Full Planche",
-            cluster: .calisthenicControl, tier: 6, type: .hold,
+            cluster: .planche, tier: 6, type: .hold,
             target: .hold(exercise: "full planche", seconds: 5),
-            prereqs: [PrerequisiteGroup("cal.straddle-planche")],
+            prereqs: [PrerequisiteGroup("pl.straddle-planche")],
             isKeystone: true,
             equipment: [.parallettes, .bodyweight],
             primary: [.shoulders, .core, .chest, .arms], secondary: [.forearms, .lats],
@@ -1410,11 +1410,11 @@ extension SkillGraph {
             ]
         ),
         .simple(
-            id: "cal.full-planche-pushup",
+            id: "pl.full-planche-pushup",
             title: "Full Planche Push-Up",
-            cluster: .calisthenicControl, tier: 6, type: .skill,
+            cluster: .planche, tier: 6, type: .skill,
             target: .reps(exercise: "full planche pushup", count: 1),
-            prereqs: [PrerequisiteGroup("cal.full-planche")],
+            prereqs: [PrerequisiteGroup("pl.full-planche")],
             equipment: [.parallettes],
             primary: [.shoulders, .chest, .core],
             subtitle: "Push while horizontal.",
@@ -1441,11 +1441,11 @@ extension SkillGraph {
             ]
         ),
         .simple(
-            id: "cal.ninety-degree-pushup",
+            id: "pl.ninety-degree-pushup",
             title: "Ninety-Degree Push-Up",
-            cluster: .calisthenicControl, tier: 7, type: .skill,
+            cluster: .planche, tier: 7, type: .skill,
             target: .reps(exercise: "90 degree pushup", count: 1),
-            prereqs: [PrerequisiteGroup("cal.full-planche-pushup")],
+            prereqs: [PrerequisiteGroup("pl.full-planche-pushup")],
             isMythic: true,
             equipment: [.parallettes],
             primary: [.shoulders, .arms, .chest], secondary: [.core],
@@ -2045,7 +2045,7 @@ extension SkillGraph {
             title: "Maltese",
             cluster: .calisthenicControl, tier: 7, type: .hold,
             target: .hold(exercise: "maltese", seconds: 1),
-            prereqs: [PrerequisiteGroup(["cal.iron-cross-10s", "cal.full-planche"])],
+            prereqs: [PrerequisiteGroup(["cal.iron-cross-10s", "pl.full-planche"])],
             isMythic: true,
             equipment: [.gymnasticRings],
             primary: [.chest, .shoulders, .arms, .core], secondary: [.lats, .forearms],

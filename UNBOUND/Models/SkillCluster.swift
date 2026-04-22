@@ -12,8 +12,8 @@ import Foundation
 //     (.handstand, .handstandPushup, .oneArmHandstand). The umbrella is
 //     a display grouping only — see DisplayTree in SkillDisplayTree.swift.
 //
-// Landing-screen trees (6): Pull, Push, Legs, Core & Levers, Handbalance
-// (umbrella), Endurance. See `SkillDisplayTree` for the grouping.
+// Landing-screen trees (7): Pull, Push, Legs, Core & Levers, Handbalance
+// (umbrella), Planche, Endurance. See `SkillDisplayTree` for the grouping.
 
 enum SkillCluster: String, Codable, CaseIterable, Sendable, Identifiable {
     case legDominance       = "leg_dominance"
@@ -22,6 +22,7 @@ enum SkillCluster: String, Codable, CaseIterable, Sendable, Identifiable {
     case handstand          = "handstand"
     case handstandPushup    = "handstand_pushup"
     case oneArmHandstand    = "one_arm_handstand"
+    case planche            = "planche"
     case coreLever          = "core_lever"
     case conditioning       = "conditioning"
 
@@ -36,6 +37,7 @@ enum SkillCluster: String, Codable, CaseIterable, Sendable, Identifiable {
         case .handstand:          return "hs"
         case .handstandPushup:    return "hspu"
         case .oneArmHandstand:    return "oah"
+        case .planche:            return "pl"
         case .coreLever:          return "cl"
         case .conditioning:       return "co"
         }
@@ -49,6 +51,7 @@ enum SkillCluster: String, Codable, CaseIterable, Sendable, Identifiable {
         case .handstand:          return "Handstand"
         case .handstandPushup:    return "Handstand Pushup"
         case .oneArmHandstand:    return "One-Arm Handstand"
+        case .planche:            return "Planche"
         case .coreLever:          return "Core & Levers"
         case .conditioning:       return "Endurance"
         }
@@ -58,10 +61,11 @@ enum SkillCluster: String, Codable, CaseIterable, Sendable, Identifiable {
         switch self {
         case .legDominance:       return "Pistol · shrimp · Nordic"
         case .pullingPower:       return "Pull-up → muscle-up"
-        case .calisthenicControl: return "Dip → HSPU → planche"
+        case .calisthenicControl: return "Dip → HSPU · pressing strength"
         case .handstand:          return "Balance upside down"
         case .handstandPushup:    return "Press your bodyweight overhead"
         case .oneArmHandstand:    return "The final balance — one hand"
+        case .planche:            return "Tuck → straddle → full planche"
         case .coreLever:          return "Hollow · L-sit · levers"
         case .conditioning:       return "Carries · hangs · grip"
         }
@@ -76,6 +80,7 @@ enum SkillCluster: String, Codable, CaseIterable, Sendable, Identifiable {
         case .handstand:          return "figure.gymnastics"
         case .handstandPushup:    return "figure.strengthtraining.functional"
         case .oneArmHandstand:    return "figure.mind.and.body"
+        case .planche:            return "figure.highintensity.intervaltraining"
         case .coreLever:          return "figure.core.training"
         case .conditioning:       return "flame.fill"
         }

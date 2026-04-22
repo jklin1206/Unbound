@@ -309,6 +309,7 @@ struct SkillTree: Codable, Sendable {
             .pullingPower, .legDominance,
             .calisthenicControl,
             .handstand, .handstandPushup, .oneArmHandstand,
+            .planche,
             .coreLever, .conditioning
         ]
         var positioned: [SkillNode] = []

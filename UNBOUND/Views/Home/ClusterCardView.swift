@@ -131,11 +131,19 @@ struct ClusterCardView: View {
             }
             .frame(width: 44, height: 44)
 
-            VStack(alignment: .leading, spacing: 3) {
-                Text(tree.displayName.uppercased())
-                    .font(Font.unbound.captionS.weight(.heavy))
-                    .tracking(2.2)
-                    .foregroundStyle(Color.unbound.textPrimary)
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text(tree.displayName.uppercased())
+                        .font(Font.unbound.captionS.weight(.heavy))
+                        .tracking(2.2)
+                        .foregroundStyle(Color.unbound.textPrimary)
+                    Text(tree.chapterSubtitle)
+                        .font(Font.unbound.captionS.weight(.regular).italic())
+                        .tracking(0.2)
+                        .foregroundStyle(Color.unbound.accent.opacity(0.85))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
+                }
                 Text(tree.tagline)
                     .font(Font.unbound.captionS)
                     .tracking(0.4)

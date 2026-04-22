@@ -2,17 +2,17 @@ import Foundation
 
 // MARK: - SkillDisplayTree
 //
-// The 6 top-level trees shown on the Skill Map landing screen.
+// The 7 top-level trees shown on the Skill Map landing screen.
 //
 // Most display trees map 1:1 to a `SkillCluster`. Handbalance is the lone
 // UMBRELLA — it groups the three sub-clusters (.handstand, .handstandPushup,
 // .oneArmHandstand) into one landing card. The per-cluster staircase views
 // still operate on sub-clusters individually; the umbrella is only a display
-// grouping so the landing screen shows a stable set of six trees.
+// grouping so the landing screen shows a stable set of seven trees.
 //
 // Adding a new display tree: append a case + wire it up in
-// `clusters`, `displayName`, `glyph`, `tagline`. The landing view iterates
-// `SkillDisplayTree.allCases` in declaration order.
+// `clusters`, `displayName`, `glyph`, `tagline`, `chapterSubtitle`. The
+// landing view iterates `SkillDisplayTree.allCases` in declaration order.
 
 enum SkillDisplayTree: String, CaseIterable, Identifiable, Sendable {
     case pull
@@ -20,6 +20,7 @@ enum SkillDisplayTree: String, CaseIterable, Identifiable, Sendable {
     case legs
     case coreLevers
     case handbalance  // UMBRELLA: handstand + HSPU + one-arm handstand
+    case planche
     case endurance
 
     var id: String { rawValue }
@@ -35,6 +36,7 @@ enum SkillDisplayTree: String, CaseIterable, Identifiable, Sendable {
         case .legs:        return [.legDominance]
         case .coreLevers:  return [.coreLever]
         case .handbalance: return [.handstand, .handstandPushup, .oneArmHandstand]
+        case .planche:     return [.planche]
         case .endurance:   return [.conditioning]
         }
     }
@@ -46,6 +48,7 @@ enum SkillDisplayTree: String, CaseIterable, Identifiable, Sendable {
         case .legs:        return "Legs"
         case .coreLevers:  return "Core & Levers"
         case .handbalance: return "Handbalance"
+        case .planche:     return "Planche"
         case .endurance:   return "Endurance"
         }
     }
@@ -53,11 +56,27 @@ enum SkillDisplayTree: String, CaseIterable, Identifiable, Sendable {
     var tagline: String {
         switch self {
         case .pull:        return "Pull-up → muscle-up"
-        case .push:        return "Dip → HSPU → planche"
+        case .push:        return "Dip → HSPU · pressing strength"
         case .legs:        return "Pistol · shrimp · Nordic"
         case .coreLevers:  return "Hollow · L-sit · front lever"
         case .handbalance: return "Balance upside down"
+        case .planche:     return "Tuck → straddle → full planche"
         case .endurance:   return "Carries · hangs · grip"
+        }
+    }
+
+    /// Short evocative chapter name shown alongside the plain display name
+    /// on cluster cards and staircase headers. Italic, lighter weight — the
+    /// poetic counterpart to the blunt label.
+    var chapterSubtitle: String {
+        switch self {
+        case .pull:        return "The Ascent"
+        case .push:        return "The Press"
+        case .legs:        return "The Pillar"
+        case .coreLevers:  return "The Spine"
+        case .handbalance: return "The Inversion"
+        case .planche:     return "The Float"
+        case .endurance:   return "The Long Road"
         }
     }
 
@@ -69,6 +88,7 @@ enum SkillDisplayTree: String, CaseIterable, Identifiable, Sendable {
         case .legs:        return "figure.walk"
         case .coreLevers:  return "figure.core.training"
         case .handbalance: return "figure.gymnastics"
+        case .planche:     return "figure.highintensity.intervaltraining"
         case .endurance:   return "flame.fill"
         }
     }
@@ -76,6 +96,17 @@ enum SkillDisplayTree: String, CaseIterable, Identifiable, Sendable {
     /// True when this display tree groups multiple clusters (i.e. the user
     /// has to pick which sub-staircase to drill into).
     var isUmbrella: Bool { clusters.count > 1 }
+}
+
+// MARK: - Cluster → Display tree lookup
+
+extension SkillDisplayTree {
+    /// The display tree that contains a given cluster. For umbrella trees,
+    /// the same tree is returned for each of its constituent sub-clusters.
+    /// Used by staircase views to surface the parent umbrella's subtitle.
+    static func containing(_ cluster: SkillCluster) -> SkillDisplayTree? {
+        allCases.first { $0.clusters.contains(cluster) }
+    }
 }
 
 // MARK: - Aggregate helpers

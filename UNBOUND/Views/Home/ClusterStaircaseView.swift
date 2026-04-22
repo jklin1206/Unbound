@@ -47,6 +47,14 @@ struct ClusterStaircaseView: View {
 
     private var sections: StaircaseSections { buildSections() }
 
+    /// Chapter subtitle surfaced in the header. Derived from the parent
+    /// display tree so umbrella sub-clusters (Handstand / HSPU / One-Arm)
+    /// inherit "The Inversion". Falls back to the cluster tagline if the
+    /// cluster is somehow not mapped to a display tree.
+    private var headerSubtitle: String {
+        SkillDisplayTree.containing(cluster)?.chapterSubtitle ?? cluster.tagline
+    }
+
     // MARK: - Body
 
     var body: some View {
@@ -140,9 +148,9 @@ struct ClusterStaircaseView: View {
                     .font(Font.unbound.captionS.weight(.heavy))
                     .tracking(2.0)
                     .foregroundStyle(Color.unbound.textSecondary)
-                Text(cluster.tagline)
-                    .font(Font.unbound.captionS)
-                    .foregroundStyle(Color.unbound.textTertiary)
+                Text(headerSubtitle)
+                    .font(Font.unbound.captionS.italic())
+                    .foregroundStyle(Color.unbound.accent.opacity(0.85))
                     .lineLimit(1)
             }
             Spacer()
@@ -448,6 +456,13 @@ struct ClusterStaircaseView: View {
             uniqueKeysWithValues: clusterNodes.map { ($0.id, $0) }
         )
 
+        // Compute rank bands: for each rank present in this cluster, find
+        // the minimum y of any node with that rank. Keystone included.
+        let rankBands = computeRankBands(
+            positions: positions,
+            nodeById: nodeById
+        )
+
         return ScrollView(.horizontal, showsIndicators: false) {
             ZStack(alignment: .topLeading) {
                 Canvas { ctx, _ in
@@ -486,7 +501,83 @@ struct ClusterStaircaseView: View {
             }
             .frame(width: contentWidth, height: treeHeight, alignment: .topLeading)
         }
+        // Rank-band track is an overlay on the scroll container, NOT the
+        // scroll content — so it stays pinned to the viewport's leading
+        // edge as the user scrolls horizontally through a wide tree.
+        .overlay(alignment: .topLeading) {
+            rankBandTrack(bands: rankBands, height: treeHeight)
+                .allowsHitTesting(false)
+        }
         .frame(height: treeHeight)
+    }
+
+    // MARK: - Rank bands
+
+    /// Compute the min-Y position for every rank tier that has at least one
+    /// node in this cluster. Sorted by difficulty order (E→S).
+    private func computeRankBands(
+        positions: [String: CGPoint],
+        nodeById: [String: SkillNode]
+    ) -> [(rank: SkillRank, y: CGFloat)] {
+        var minY: [SkillRank: CGFloat] = [:]
+        for (id, pt) in positions {
+            guard let node = nodeById[id] else { continue }
+            let r = node.rank
+            if let existing = minY[r] {
+                if pt.y < existing { minY[r] = pt.y }
+            } else {
+                minY[r] = pt.y
+            }
+        }
+        return SkillRank.allCases
+            .compactMap { r in minY[r].map { (rank: r, y: $0) } }
+    }
+
+    /// Vertical rank-tier track rendered at the left edge of the tree
+    /// viewport. Capsule pill per rank + a thin spine connecting them.
+    @ViewBuilder
+    private func rankBandTrack(
+        bands: [(rank: SkillRank, y: CGFloat)],
+        height: CGFloat
+    ) -> some View {
+        if bands.isEmpty {
+            Color.clear.frame(width: 0, height: 0)
+        } else {
+            ZStack(alignment: .topLeading) {
+                // Spine connecting first → last band.
+                if bands.count >= 2,
+                   let top = bands.first,
+                   let bot = bands.last
+                {
+                    Rectangle()
+                        .fill(Color.unbound.accent.opacity(0.15))
+                        .frame(width: 1, height: max(0, bot.y - top.y))
+                        .position(x: 8 + pillWidth / 2, y: (top.y + bot.y) / 2)
+                }
+
+                // One pill per rank band.
+                ForEach(bands, id: \.rank) { band in
+                    rankPill(band.rank)
+                        .position(x: 8 + pillWidth / 2, y: band.y)
+                }
+            }
+            .frame(width: 8 + pillWidth + 4, height: height, alignment: .topLeading)
+        }
+    }
+
+    private var pillWidth: CGFloat { 18 }
+
+    private func rankPill(_ rank: SkillRank) -> some View {
+        Text(rank.letter)
+            .font(.system(size: 10, weight: .heavy, design: .monospaced))
+            .foregroundStyle(Color.white.opacity(0.95))
+            .frame(width: pillWidth, height: 26)
+            .background(
+                Capsule().fill(rank.accentColor.opacity(0.70))
+            )
+            .overlay(
+                Capsule().strokeBorder(rank.accentColor.opacity(0.95), lineWidth: 1)
+            )
     }
 
     /// Tags the active hex with the `id("active")` anchor used by
