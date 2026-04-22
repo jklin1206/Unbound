@@ -99,43 +99,63 @@ struct SkillDetailView: View {
     // MARK: - Hero
 
     private var hero: some View {
-        ZStack(alignment: .bottomLeading) {
-            // Gradient backdrop
+        ZStack {
+            // Gradient backdrop — horizontal, reinforcing the split.
             LinearGradient(
                 colors: [
                     Color.unbound.bg,
-                    Color.unbound.accent.opacity(0.25),
+                    Color.unbound.accent.opacity(0.22),
                     Color.unbound.bg
                 ],
-                startPoint: .top,
-                endPoint: .bottom
+                startPoint: .leading,
+                endPoint: .trailing
             )
 
-            // Centered glyph (AI art placeholder)
-            Image(systemName: node.glyph)
-                .font(.system(size: 96, weight: .regular))
-                .foregroundStyle(Color.unbound.accent)
-                .shadow(color: Color.unbound.accent.opacity(0.55), radius: 24)
-                .frame(maxWidth: .infinity)
+            // Side-by-side split: LEFT 60% identity, RIGHT 40% silhouette.
+            GeometryReader { geo in
+                let leftWidth = geo.size.width * 0.60
+                let rightWidth = geo.size.width * 0.40
 
-            // Bottom-left identity overlay
-            HStack(alignment: .bottom, spacing: 12) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(clusterCrumb)
-                        .font(Font.unbound.captionS.weight(.heavy))
-                        .tracking(2.0)
-                        .foregroundStyle(Color.unbound.textSecondary)
-                    Text(node.title)
-                        .font(Font.unbound.titleL)
-                        .foregroundStyle(Color.unbound.textPrimary)
-                        .lineLimit(2)
-                        .fixedSize(horizontal: false, vertical: true)
+                HStack(spacing: 0) {
+                    // LEFT — cluster crumb + rank chip (top) + title (bottom).
+                    VStack(alignment: .leading, spacing: 0) {
+                        HStack(alignment: .center, spacing: 10) {
+                            Text(clusterCrumb)
+                                .font(Font.unbound.captionS.weight(.heavy))
+                                .tracking(2.0)
+                                .foregroundStyle(Color.unbound.textSecondary)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.7)
+                            rankChip
+                        }
+                        Spacer(minLength: 0)
+                        Text(node.title)
+                            .font(Font.unbound.titleL)
+                            .foregroundStyle(Color.unbound.textPrimary)
+                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .multilineTextAlignment(.leading)
+                    }
+                    .frame(width: leftWidth, alignment: .leading)
+                    .padding(.leading, 20)
+                    .padding(.vertical, 20)
+
+                    // RIGHT — silhouette placeholder (AI art slot).
+                    ZStack {
+                        // Violet glow behind the silhouette.
+                        Circle()
+                            .fill(Color.unbound.accent.opacity(0.22))
+                            .frame(width: 140, height: 140)
+                            .blur(radius: 32)
+                        Image(systemName: node.glyph)
+                            .font(.system(size: 88, weight: .regular))
+                            .foregroundStyle(Color.unbound.accent)
+                            .shadow(color: Color.unbound.accent.opacity(0.55), radius: 20)
+                    }
+                    .frame(width: rightWidth, alignment: .center)
+                    .padding(.trailing, 12)
                 }
-                Spacer(minLength: 12)
-                rankChip
             }
-            .padding(.horizontal, 20)
-            .padding(.bottom, 16)
         }
         .frame(height: 260)
         .frame(maxWidth: .infinity)
@@ -418,11 +438,11 @@ struct SkillDetailView: View {
             }
         } label: {
             Text(hasData ? "LV \(level)" : "—")
-                .font(.system(size: 12, weight: .heavy, design: .monospaced))
-                .tracking(1.6)
+                .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                .tracking(1.2)
                 .foregroundStyle(pillForeground(active: isActive, hasData: hasData))
                 .frame(maxWidth: .infinity)
-                .frame(height: 38)
+                .frame(height: 32)
                 .background(
                     Capsule().fill(pillFill(active: isActive))
                 )
@@ -562,7 +582,7 @@ struct SkillDetailView: View {
     private var tabContent: some View {
         switch selectedTab {
         case .overview:
-            OverviewTabView(node: node)
+            OverviewTabView(node: node, graph: graph)
         case .progressions:
             ProgressionsTabView(node: node, graph: graph, nodeStates: nodeStates)
         case .technique:
@@ -574,10 +594,12 @@ struct SkillDetailView: View {
 
     // MARK: - Shared styling helpers
 
+    /// Quieter section header per 2g text-density trim:
+    /// was `.heavy` + tracking 2.0; now `.semibold` + tracking 1.4.
     private func sectionHeader(_ title: String) -> some View {
         Text(title)
-            .font(Font.unbound.captionS.weight(.heavy))
-            .tracking(2.0)
+            .font(Font.unbound.captionS.weight(.semibold))
+            .tracking(1.4)
             .foregroundStyle(Color.unbound.textTertiary)
     }
 

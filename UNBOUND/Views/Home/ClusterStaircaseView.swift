@@ -456,12 +456,20 @@ struct ClusterStaircaseView: View {
             uniqueKeysWithValues: clusterNodes.map { ($0.id, $0) }
         )
 
-        // Compute rank bands: for each rank present in this cluster, find
-        // the minimum y of any node with that rank. Keystone included.
-        let rankBands = computeRankBands(
+        // Compute rank bands for ALL 6 ranks (E→S). Present ranks anchor to
+        // the min-Y of their first node; absent ranks get an interpolated Y
+        // so the gutter column reads as evenly spaced top-to-bottom.
+        let rankBands = computeAllRankBands(
             positions: positions,
-            nodeById: nodeById
+            nodeById: nodeById,
+            topY: topY,
+            bottomY: maxY
         )
+
+        // Dotted horizontal dividers between consecutive rank bands. Width
+        // matches the tree content so they bleed across the full scroll
+        // area (live inside the ScrollView content, not the overlay).
+        let rankDividers = computeRankDividerYs(bands: rankBands)
 
         return ScrollView(.horizontal, showsIndicators: false) {
             ZStack(alignment: .topLeading) {
@@ -482,6 +490,14 @@ struct ClusterStaircaseView: View {
                 }
                 .frame(width: contentWidth, height: treeHeight)
                 .allowsHitTesting(false)
+
+                // Dotted rank-band dividers — sit under the nodes so hexes
+                // paint over them cleanly.
+                ForEach(Array(rankDividers.enumerated()), id: \.offset) { _, y in
+                    rankDividerLine(width: contentWidth)
+                        .position(x: contentWidth / 2, y: y)
+                        .allowsHitTesting(false)
+                }
 
                 ForEach(Array(positions.keys), id: \.self) { id in
                     if let pos = positions[id],
@@ -513,12 +529,23 @@ struct ClusterStaircaseView: View {
 
     // MARK: - Rank bands
 
-    /// Compute the min-Y position for every rank tier that has at least one
-    /// node in this cluster. Sorted by difficulty order (E→S).
-    private func computeRankBands(
+    /// One gutter row. `isPresent` toggles colored vs dimmed styling.
+    private struct RankBand {
+        let rank: SkillRank
+        let y: CGFloat
+        let isPresent: Bool
+    }
+
+    /// Compute a row for ALL 6 rank tiers so the gutter always reads E-S.
+    /// Present ranks anchor to the min-Y of their nodes. Absent ranks get
+    /// an interpolated Y between the nearest present ranks above & below
+    /// so the column of hex badges spaces evenly top-to-bottom.
+    private func computeAllRankBands(
         positions: [String: CGPoint],
-        nodeById: [String: SkillNode]
-    ) -> [(rank: SkillRank, y: CGFloat)] {
+        nodeById: [String: SkillNode],
+        topY: CGFloat,
+        bottomY: CGFloat
+    ) -> [RankBand] {
         var minY: [SkillRank: CGFloat] = [:]
         for (id, pt) in positions {
             guard let node = nodeById[id] else { continue }
@@ -529,55 +556,129 @@ struct ClusterStaircaseView: View {
                 minY[r] = pt.y
             }
         }
-        return SkillRank.allCases
-            .compactMap { r in minY[r].map { (rank: r, y: $0) } }
+
+        let ranks = SkillRank.allCases  // E, D, C, B, A, S
+
+        // Anchors: y for every present rank. Synthetic edge anchors at the
+        // top/bottom so absent ranks at the head/tail of the list still get
+        // a sensible interpolation.
+        let presentIndices = ranks.indices.filter { minY[ranks[$0]] != nil }
+        let anchors: [(idx: Int, y: CGFloat)] = {
+            var a: [(Int, CGFloat)] = []
+            if !presentIndices.contains(0) {
+                a.append((-1, topY))
+            }
+            for idx in presentIndices {
+                a.append((idx, minY[ranks[idx]] ?? topY))
+            }
+            if !presentIndices.contains(ranks.count - 1) {
+                a.append((ranks.count, bottomY))
+            }
+            return a
+        }()
+
+        func interpolate(at index: Int) -> CGFloat {
+            // Find straddling anchors.
+            var before: (Int, CGFloat) = anchors.first ?? (-1, topY)
+            var after: (Int, CGFloat) = anchors.last ?? (ranks.count, bottomY)
+            for a in anchors {
+                if a.idx <= index { before = a }
+                if a.idx >= index { after = a; break }
+            }
+            if before.0 == after.0 { return before.1 }
+            let span = CGFloat(after.0 - before.0)
+            let offset = CGFloat(index - before.0) / max(1, span)
+            return before.1 + (after.1 - before.1) * offset
+        }
+
+        return ranks.enumerated().map { idx, rank in
+            let present = minY[rank] != nil
+            let y = present ? (minY[rank] ?? topY) : interpolate(at: idx)
+            return RankBand(rank: rank, y: y, isPresent: present)
+        }
+    }
+
+    /// Y coordinates for dotted horizontal dividers between consecutive
+    /// rank bands — placed at the midpoint between each pair of hex y's.
+    private func computeRankDividerYs(bands: [RankBand]) -> [CGFloat] {
+        guard bands.count >= 2 else { return [] }
+        var ys: [CGFloat] = []
+        for i in 0..<(bands.count - 1) {
+            let midY = (bands[i].y + bands[i + 1].y) / 2
+            ys.append(midY)
+        }
+        return ys
+    }
+
+    private func rankDividerLine(width: CGFloat) -> some View {
+        Path { path in
+            path.move(to: CGPoint(x: 0, y: 0))
+            path.addLine(to: CGPoint(x: width, y: 0))
+        }
+        .stroke(
+            Color.unbound.border.opacity(0.4),
+            style: StrokeStyle(lineWidth: 0.5, dash: [3, 5])
+        )
+        .frame(width: width, height: 1)
     }
 
     /// Vertical rank-tier track rendered at the left edge of the tree
-    /// viewport. Capsule pill per rank + a thin spine connecting them.
+    /// viewport. Hex badge per rank + a faint spine connecting them.
+    /// All 6 ranks render — absent ranks appear dimmed + greyed so the
+    /// user can see the full tier ladder at a glance.
     @ViewBuilder
     private func rankBandTrack(
-        bands: [(rank: SkillRank, y: CGFloat)],
+        bands: [RankBand],
         height: CGFloat
     ) -> some View {
         if bands.isEmpty {
             Color.clear.frame(width: 0, height: 0)
         } else {
+            let hexSize: CGFloat = 24
+            let paddingLeading: CGFloat = 8
+            let columnWidth = paddingLeading + hexSize + 4
+
             ZStack(alignment: .topLeading) {
-                // Spine connecting first → last band.
+                // Faint spine connecting first → last badge. Now that the
+                // dotted tier dividers do most of the visual work, this is
+                // reduced to ~10% opacity so it recedes.
                 if bands.count >= 2,
                    let top = bands.first,
                    let bot = bands.last
                 {
                     Rectangle()
-                        .fill(Color.unbound.accent.opacity(0.15))
+                        .fill(Color.unbound.accent.opacity(0.10))
                         .frame(width: 1, height: max(0, bot.y - top.y))
-                        .position(x: 8 + pillWidth / 2, y: (top.y + bot.y) / 2)
+                        .position(x: paddingLeading + hexSize / 2, y: (top.y + bot.y) / 2)
                 }
 
-                // One pill per rank band.
+                // One hex per rank band (E through S, always 6).
                 ForEach(bands, id: \.rank) { band in
-                    rankPill(band.rank)
-                        .position(x: 8 + pillWidth / 2, y: band.y)
+                    rankHexBadge(rank: band.rank, active: band.isPresent, size: hexSize)
+                        .position(x: paddingLeading + hexSize / 2, y: band.y)
                 }
             }
-            .frame(width: 8 + pillWidth + 4, height: height, alignment: .topLeading)
+            .frame(width: columnWidth, height: height, alignment: .topLeading)
         }
     }
 
-    private var pillWidth: CGFloat { 18 }
-
-    private func rankPill(_ rank: SkillRank) -> some View {
-        Text(rank.letter)
-            .font(.system(size: 10, weight: .heavy, design: .monospaced))
-            .foregroundStyle(Color.white.opacity(0.95))
-            .frame(width: pillWidth, height: 26)
-            .background(
-                Capsule().fill(rank.accentColor.opacity(0.70))
-            )
-            .overlay(
-                Capsule().strokeBorder(rank.accentColor.opacity(0.95), lineWidth: 1)
-            )
+    /// Small rank hex badge in the gutter — matches RankBadge's Hexagon +
+    /// letter pattern. Empty ranks render at low opacity in neutral grey.
+    private func rankHexBadge(rank: SkillRank, active: Bool, size: CGFloat) -> some View {
+        let stroke: Color = active ? rank.accentColor : Color.unbound.border
+        let letterColor: Color = active ? Color.unbound.textPrimary : Color.unbound.textTertiary
+        return ZStack {
+            Hexagon()
+                .fill(Color.unbound.surface)
+                .frame(width: size, height: size)
+            Hexagon()
+                .strokeBorder(stroke, lineWidth: 1)
+                .frame(width: size, height: size)
+            Text(rank.letter)
+                .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                .foregroundStyle(letterColor)
+        }
+        .opacity(active ? 1.0 : 0.35)
     }
 
     /// Tags the active hex with the `id("active")` anchor used by

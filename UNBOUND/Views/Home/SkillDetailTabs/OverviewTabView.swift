@@ -1,42 +1,50 @@
 import SwiftUI
 
-// MARK: - OverviewTabView (Phase 3a)
+// MARK: - OverviewTabView (Phase 3a / 2g polish)
 //
-// First tab in SkillDetailView. Three sections:
-//   • HOW TO UNLOCK — 2-3 derived checklist rows
-//   • PRO TIP — first formCue, or a generic placeholder
-//   • Greyed placeholder cards for RESEARCH-BACKED PATH + KEY STATISTICS
-//     (populated in Phase 3b once educational content is authored).
+// First tab in SkillDetailView.
+//   • HOW TO UNLOCK   — derived checklist. Long lists collapse to 2 rows
+//                        + "Show more" disclosure.
+//   • PRO TIP         — first formCue. Tight single-card treatment.
+//   • MORE COMING SOON — consolidates the old RESEARCH-BACKED PATH +
+//                        KEY STATISTICS stubs into one card with inline
+//                        badges; the individual sections return in Phase 3b.
 
 struct OverviewTabView: View {
     let node: SkillNode
+    /// Graph is passed so we can resolve prereq ids → titles cleanly.
+    /// Nil-tolerant: if we can't resolve, we fall back to a humanized id.
+    var graph: SkillGraph? = nil
+
+    @State private var unlockExpanded: Bool = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
             howToUnlockSection
             proTipCallout
-            placeholderCard(
-                title: "RESEARCH-BACKED PATH",
-                subtitle: "Coming in a future update.",
-                icon: "text.book.closed"
-            )
-            placeholderCard(
-                title: "KEY STATISTICS",
-                subtitle: "Coming in a future update.",
-                icon: "chart.bar.xaxis"
-            )
+            comingSoonCard
         }
     }
 
     // MARK: - How to unlock
 
     private var howToUnlockSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        let steps = unlockSteps
+        let collapsedLimit = 2
+        let needsCollapse = steps.count > collapsedLimit
+        let visible = (needsCollapse && !unlockExpanded)
+            ? Array(steps.prefix(collapsedLimit))
+            : steps
+
+        return VStack(alignment: .leading, spacing: 10) {
             sectionHeader("HOW TO UNLOCK")
 
             VStack(alignment: .leading, spacing: 10) {
-                ForEach(unlockSteps, id: \.title) { step in
+                ForEach(visible, id: \.title) { step in
                     unlockRow(step: step)
+                }
+                if needsCollapse {
+                    showMoreButton(total: steps.count, expanded: unlockExpanded)
                 }
             }
             .padding(14)
@@ -47,27 +55,28 @@ struct OverviewTabView: View {
 
     private struct UnlockStep {
         let title: String
-        let detail: String
+        let detail: String?
     }
 
     private var unlockSteps: [UnlockStep] {
         var steps: [UnlockStep] = []
 
-        // Step 1: highest-rank prereq summary (if any)
-        let allPrereqs = node.prereqs.flatMap { $0.nodeIds }
-        if let firstPrereqId = allPrereqs.first {
-            let name = firstPrereqId
-                .replacingOccurrences(of: "-", with: " ")
-                .capitalized
+        // Step 1: Prerequisite — resolve id → title via graph, not the raw
+        // hyphenated id. Old bug: "Pp.5 Pullups" came from capitalizing
+        // "pp-5-pullups" literally. Now "Clear Pull-Up" lands correctly.
+        let allPrereqIds = node.prereqs.flatMap { $0.nodeIds }
+        if let firstPrereqId = allPrereqIds.first {
+            let title = graph?.node(id: firstPrereqId)?.title
+                ?? humanize(id: firstPrereqId)
             steps.append(
                 UnlockStep(
-                    title: "Build the base",
-                    detail: "Clear prerequisite · \(name)"
+                    title: "Clear \(title)",
+                    detail: nil
                 )
             )
         }
 
-        // Step 2: Level 1 criterion
+        // Step 2: Level 1 criterion — first clean rep.
         if let lvl1 = node.levels.first(where: { $0.level == 1 }) {
             steps.append(
                 UnlockStep(
@@ -77,15 +86,36 @@ struct OverviewTabView: View {
             )
         }
 
-        // Step 3: call to action
+        // Step 3: Ongoing — log sessions.
         steps.append(
             UnlockStep(
                 title: "Log sessions",
-                detail: "Log sessions on this skill to level up the XP bar."
+                detail: "Each session feeds the XP bar and levels this skill up."
             )
         )
 
         return steps
+    }
+
+    /// Fallback when the graph lookup misses. Turns "pp-5-pullups" into
+    /// "5 Pullups" rather than the old "Pp.5 Pullups" artifact — strips
+    /// any short leading token that looks like a prefix code.
+    private func humanize(id: String) -> String {
+        let parts = id
+            .split(separator: "-")
+            .map { String($0) }
+        guard !parts.isEmpty else { return id }
+        // Drop a 1-2 char leading token (e.g. "pp", "hs") treated as a
+        // namespace prefix. Leave meaningful first tokens alone.
+        let meaningful: [String] = {
+            if let first = parts.first, first.count <= 2, !first.contains(where: \.isNumber) {
+                return Array(parts.dropFirst())
+            }
+            return parts
+        }()
+        return meaningful
+            .map { $0.prefix(1).uppercased() + $0.dropFirst() }
+            .joined(separator: " ")
     }
 
     private func unlockRow(step: UnlockStep) -> some View {
@@ -93,22 +123,44 @@ struct OverviewTabView: View {
             ZStack {
                 Circle()
                     .fill(Color.unbound.accent.opacity(0.15))
-                    .frame(width: 28, height: 28)
+                    .frame(width: 26, height: 26)
                 Image(systemName: "arrow.right")
-                    .font(.system(size: 12, weight: .heavy))
+                    .font(.system(size: 11, weight: .heavy))
                     .foregroundStyle(Color.unbound.accent)
             }
-            VStack(alignment: .leading, spacing: 3) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text(step.title)
                     .font(Font.unbound.bodyMStrong)
                     .foregroundStyle(Color.unbound.textPrimary)
-                Text(step.detail)
-                    .font(Font.unbound.bodyS)
-                    .foregroundStyle(Color.unbound.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                if let detail = step.detail {
+                    Text(detail)
+                        .font(Font.unbound.bodyS)
+                        .foregroundStyle(Color.unbound.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
             Spacer(minLength: 0)
         }
+    }
+
+    private func showMoreButton(total: Int, expanded: Bool) -> some View {
+        Button {
+            UnboundHaptics.medium()
+            withAnimation(.easeOut(duration: 0.2)) {
+                unlockExpanded.toggle()
+            }
+        } label: {
+            HStack(spacing: 6) {
+                Text(expanded ? "Show less" : "Show \(total - 2) more")
+                    .font(Font.unbound.captionS.weight(.semibold))
+                    .tracking(1.0)
+                Image(systemName: expanded ? "chevron.up" : "chevron.down")
+                    .font(.system(size: 10, weight: .bold))
+            }
+            .foregroundStyle(Color.unbound.textSecondary)
+            .padding(.top, 2)
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: - Pro tip
@@ -116,76 +168,84 @@ struct OverviewTabView: View {
     private var proTipCallout: some View {
         let tip: String = {
             if let first = node.formCues.first, !first.isEmpty { return first }
-            return "Consistency beats intensity. Train the progressions, not just the skill."
+            return "Consistency beats intensity. Train the progressions, not the skill."
         }()
-        return VStack(alignment: .leading, spacing: 10) {
+        return VStack(alignment: .leading, spacing: 8) {
             sectionHeader("PRO TIP")
 
-            HStack(alignment: .top, spacing: 12) {
+            HStack(alignment: .top, spacing: 10) {
                 Image(systemName: "lightbulb.fill")
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(Color.unbound.impact)
-                    .frame(width: 32, height: 32)
+                    .frame(width: 24, height: 24)
                     .background(Circle().fill(Color.unbound.impact.opacity(0.15)))
                 Text(tip)
                     .font(Font.unbound.bodyM)
                     .foregroundStyle(Color.unbound.textPrimary)
+                    .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: 0)
             }
-            .padding(14)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(cardBackground)
         }
     }
 
-    // MARK: - Placeholders
+    // MARK: - Consolidated "coming soon"
 
-    private func placeholderCard(title: String, subtitle: String, icon: String) -> some View {
+    /// Replaces the old two separate RESEARCH-BACKED PATH + KEY STATISTICS
+    /// stub cards. One card, two inline badges — less shouty, same intent.
+    private var comingSoonCard: some View {
         VStack(alignment: .leading, spacing: 10) {
-            sectionHeader(title)
+            sectionHeader("MORE COMING SOON")
 
-            HStack(spacing: 12) {
-                Image(systemName: icon)
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(Color.unbound.textTertiary)
-                    .frame(width: 32, height: 32)
-                    .background(Circle().fill(Color.unbound.surfaceElevated))
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(title)
-                        .font(Font.unbound.bodyMStrong)
-                        .foregroundStyle(Color.unbound.textSecondary)
-                    Text(subtitle)
-                        .font(Font.unbound.captionS)
-                        .foregroundStyle(Color.unbound.textTertiary)
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Research-backed progressions and key statistics arrive in a future update.")
+                    .font(Font.unbound.bodyM)
+                    .foregroundStyle(Color.unbound.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                HStack(spacing: 8) {
+                    comingSoonBadge(icon: "text.book.closed", label: "Research path")
+                    comingSoonBadge(icon: "chart.bar.xaxis", label: "Key stats")
+                    Spacer(minLength: 0)
                 }
-                Spacer(minLength: 0)
-                Text("SOON")
-                    .font(.system(size: 10, weight: .heavy, design: .monospaced))
-                    .tracking(1.6)
-                    .foregroundStyle(Color.unbound.textTertiary)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(
-                        Capsule().fill(Color.unbound.surfaceElevated)
-                    )
-                    .overlay(
-                        Capsule().strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
-                    )
             }
             .padding(14)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(placeholderBackground)
-            .opacity(0.85)
         }
+    }
+
+    private func comingSoonBadge(icon: String, label: String) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.system(size: 10, weight: .semibold))
+            Text(label)
+                .font(Font.unbound.captionS.weight(.semibold))
+                .tracking(0.6)
+        }
+        .foregroundStyle(Color.unbound.textTertiary)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(
+            Capsule().fill(Color.unbound.surfaceElevated)
+        )
+        .overlay(
+            Capsule().strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
+        )
     }
 
     // MARK: - Styling helpers
 
+    /// Quieter section header per 2g text-density trim:
+    /// was `.heavy` + tracking 2.0/2.4; now `.semibold` + tracking 1.4.
     private func sectionHeader(_ title: String) -> some View {
         Text(title)
-            .font(Font.unbound.captionS.weight(.heavy))
-            .tracking(2.0)
+            .font(Font.unbound.captionS.weight(.semibold))
+            .tracking(1.4)
             .foregroundStyle(Color.unbound.textTertiary)
     }
 

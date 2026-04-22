@@ -96,8 +96,8 @@ struct TechniqueTabView: View {
 
     private func sectionHeader(_ title: String) -> some View {
         Text(title)
-            .font(Font.unbound.captionS.weight(.heavy))
-            .tracking(2.0)
+            .font(Font.unbound.captionS.weight(.semibold))
+            .tracking(1.4)
             .foregroundStyle(Color.unbound.textTertiary)
     }
 
