@@ -87,14 +87,12 @@ struct ClusterStaircaseView: View {
             }
         }
         .background(Color.unbound.bg.ignoresSafeArea())
-        .sheet(item: $selectedNode) { node in
-            SkillNodeDetailSheet(
+        .fullScreenCover(item: $selectedNode) { node in
+            SkillDetailView(
                 node: node,
-                currentState: nodeStates[node.id] ?? .locked
+                graph: graph,
+                nodeStates: nodeStates
             )
-            .presentationDetents([.medium, .large])
-            .presentationDragIndicator(.visible)
-            .presentationBackground(Color.unbound.bg)
         }
         .sheet(isPresented: $showFullTree) {
             ClusterDetailView(
