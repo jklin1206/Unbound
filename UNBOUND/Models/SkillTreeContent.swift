@@ -26,7 +26,7 @@ extension SkillGraph {
 
         .simple(
             id: "ld.goblet-20",
-            title: "20 Goblet Squats",
+            title: "Goblet Squat",
             cluster: .legDominance, tier: 1, type: .skill,
             target: .reps(exercise: "goblet squat", count: 20, load: "0.5x bw"),
             equipment: [.dumbbells, .kettlebell],
@@ -119,7 +119,7 @@ extension SkillGraph {
         ),
         .simple(
             id: "ld.100-lunges",
-            title: "100 Lunge Steps",
+            title: "Lunge Walk",
             cluster: .legDominance, tier: 2, type: .skill,
             target: .steps(exercise: "walking lunge", count: 100),
             prereqs: [PrerequisiteGroup("ld.goblet-20")],
@@ -149,7 +149,7 @@ extension SkillGraph {
         ),
         .simple(
             id: "ld.bw-front-squat",
-            title: "BW Front Squat",
+            title: "Front Squat",
             cluster: .legDominance, tier: 3, type: .strength,
             target: .weightMultiplier(exercise: "front squat", multiplier: 1.0),
             prereqs: [PrerequisiteGroup(["ld.goblet-20", "ld.tempo-squat"])],
@@ -304,7 +304,7 @@ extension SkillGraph {
         ),
         .simple(
             id: "ld.weighted-pistol",
-            title: "Weighted Pistol 0.5× BW",
+            title: "Weighted Pistol",
             cluster: .legDominance, tier: 5, type: .strength,
             target: .reps(exercise: "weighted pistol", count: 3, load: "0.5x bw"),
             prereqs: [PrerequisiteGroup("ld.pistol-squat")],
@@ -401,7 +401,7 @@ extension SkillGraph {
 
         .simple(
             id: "pp.dead-hang-30",
-            title: "Dead Hang 30s",
+            title: "Dead Hang",
             cluster: .pullingPower, tier: 1, type: .hold,
             target: .hold(exercise: "dead hang", seconds: 30),
             equipment: [.pullupBar],
@@ -432,7 +432,7 @@ extension SkillGraph {
         ),
         .simple(
             id: "pp.negative-pullup",
-            title: "Negative Pullup × 3",
+            title: "Negative Pull-Up",
             cluster: .pullingPower, tier: 2, type: .skill,
             target: .reps(exercise: "negative pullup", count: 3),
             prereqs: [PrerequisiteGroup("pp.dead-hang-30")],
@@ -464,7 +464,7 @@ extension SkillGraph {
         ),
         .simple(
             id: "pp.pullup",
-            title: "First Pullup",
+            title: "First Pull-Up",
             cluster: .pullingPower, tier: 2, type: .skill,
             target: .reps(exercise: "pullup", count: 1),
             prereqs: [PrerequisiteGroup("pp.negative-pullup")],
@@ -496,7 +496,7 @@ extension SkillGraph {
         ),
         .simple(
             id: "pp.5-pullups",
-            title: "5 Pullups",
+            title: "Pull-Up",
             cluster: .pullingPower, tier: 3, type: .skill,
             target: .reps(exercise: "pullup", count: 5),
             prereqs: [PrerequisiteGroup("pp.pullup")],
@@ -527,7 +527,7 @@ extension SkillGraph {
         ),
         .simple(
             id: "pp.10-pullups",
-            title: "10 Pullups",
+            title: "Pull-Up Volume",
             cluster: .pullingPower, tier: 3, type: .skill,
             target: .reps(exercise: "pullup", count: 10),
             prereqs: [PrerequisiteGroup("pp.5-pullups")],
@@ -558,7 +558,7 @@ extension SkillGraph {
         ),
         .simple(
             id: "pp.slow-pullup",
-            title: "Slow Pullup (3s/3s)",
+            title: "Tempo Pull-Up",
             cluster: .pullingPower, tier: 3, type: .skill,
             target: .reps(exercise: "slow pullup", count: 5),
             prereqs: [PrerequisiteGroup("pp.5-pullups")],
@@ -589,7 +589,7 @@ extension SkillGraph {
         ),
         .simple(
             id: "pp.chest-to-bar",
-            title: "Chest-to-Bar × 5",
+            title: "Chest-to-Bar Pull-Up",
             cluster: .pullingPower, tier: 3, type: .skill,
             target: .reps(exercise: "chest-to-bar pullup", count: 5),
             prereqs: [PrerequisiteGroup("pp.5-pullups")],
@@ -620,7 +620,7 @@ extension SkillGraph {
         ),
         .simple(
             id: "pp.l-sit-pullup",
-            title: "L-Sit Pullup × 5",
+            title: "L-Sit Pull-Up",
             cluster: .pullingPower, tier: 4, type: .skill,
             target: .reps(exercise: "l-sit pullup", count: 5),
             prereqs: [PrerequisiteGroup(["pp.slow-pullup", "cal.l-sit-10"])],
@@ -651,7 +651,7 @@ extension SkillGraph {
         ),
         .simple(
             id: "pp.archer-pullup",
-            title: "Archer Pullup",
+            title: "Archer Pull-Up",
             cluster: .pullingPower, tier: 4, type: .skill,
             target: .reps(exercise: "archer pullup", count: 3),
             prereqs: [PrerequisiteGroup("pp.slow-pullup")],
@@ -682,7 +682,7 @@ extension SkillGraph {
         ),
         .simple(
             id: "pp.weighted-pullup-0.25",
-            title: "Weighted Pullup 0.25× BW",
+            title: "Weighted Pull-Up",
             cluster: .pullingPower, tier: 4, type: .strength,
             target: .weightMultiplier(exercise: "weighted pullup", multiplier: 0.25),
             prereqs: [PrerequisiteGroup("pp.10-pullups")],
@@ -713,7 +713,7 @@ extension SkillGraph {
         ),
         .simple(
             id: "pp.weighted-pullup-0.5",
-            title: "Weighted Pullup 0.5× BW",
+            title: "Heavy Pull-Up",
             cluster: .pullingPower, tier: 5, type: .strength,
             target: .weightMultiplier(exercise: "weighted pullup", multiplier: 0.5),
             prereqs: [PrerequisiteGroup("pp.weighted-pullup-0.25")],
@@ -745,7 +745,7 @@ extension SkillGraph {
         ),
         .simple(
             id: "pp.typewriter-pullup",
-            title: "Typewriter Pullup",
+            title: "Typewriter Pull-Up",
             cluster: .pullingPower, tier: 5, type: .skill,
             target: .reps(exercise: "typewriter pullup", count: 3),
             prereqs: [PrerequisiteGroup("pp.archer-pullup")],
@@ -776,7 +776,7 @@ extension SkillGraph {
         ),
         .simple(
             id: "pp.oap-negative",
-            title: "One-Arm Pullup Negative",
+            title: "One-Arm Pull-Up Negative",
             cluster: .pullingPower, tier: 5, type: .skill,
             target: .reps(exercise: "one-arm pullup negative", count: 3),
             prereqs: [PrerequisiteGroup("pp.typewriter-pullup")],
@@ -807,7 +807,7 @@ extension SkillGraph {
         ),
         .simple(
             id: "pp.one-arm-pullup",
-            title: "One-Arm Pullup",
+            title: "One-Arm Pull-Up",
             cluster: .pullingPower, tier: 6, type: .skill,
             target: .reps(exercise: "one-arm pullup", count: 1),
             prereqs: [PrerequisiteGroup(["pp.oap-negative", "pp.weighted-pullup-0.5"])],
@@ -876,7 +876,7 @@ extension SkillGraph {
         ),
         .simple(
             id: "pp.10-muscle-ups",
-            title: "10 Muscle-Ups",
+            title: "Muscle-Up Volume",
             cluster: .pullingPower, tier: 4, type: .skill,
             target: .reps(exercise: "muscle-up", count: 10),
             prereqs: [PrerequisiteGroup("pp.muscle-up")],
@@ -938,7 +938,7 @@ extension SkillGraph {
         ),
         .simple(
             id: "pp.5-oap-side",
-            title: "5 One-Arm Pullups / side",
+            title: "One-Arm Pull-Up Volume",
             cluster: .pullingPower, tier: 7, type: .skill,
             target: .reps(exercise: "one-arm pullup", count: 5),
             prereqs: [PrerequisiteGroup("pp.one-arm-pullup")],
@@ -975,7 +975,7 @@ extension SkillGraph {
 
         .simple(
             id: "cal.plank-30",
-            title: "30s Plank",
+            title: "Plank",
             cluster: .calisthenicControl, tier: 1, type: .hold,
             target: .hold(exercise: "plank", seconds: 30),
             primary: [.core, .shoulders],
@@ -1005,7 +1005,7 @@ extension SkillGraph {
         ),
         .simple(
             id: "cal.l-sit-10",
-            title: "L-Sit 10s",
+            title: "L-Sit",
             cluster: .calisthenicControl, tier: 2, type: .hold,
             target: .hold(exercise: "l-sit", seconds: 10),
             prereqs: [PrerequisiteGroup(["cal.plank-30", "cl.hanging-knee-raise"])],
@@ -1036,7 +1036,7 @@ extension SkillGraph {
         ),
         .simple(
             id: "cal.l-sit-20",
-            title: "L-Sit 20s",
+            title: "L-Sit Hold",
             cluster: .calisthenicControl, tier: 3, type: .hold,
             target: .hold(exercise: "l-sit", seconds: 20),
             prereqs: [PrerequisiteGroup("cal.l-sit-10")],
@@ -1068,7 +1068,7 @@ extension SkillGraph {
 
         .simple(
             id: "cal.pushup",
-            title: "Pushup",
+            title: "Push-Up",
             cluster: .calisthenicControl, tier: 1, type: .skill,
             target: .reps(exercise: "pushup", count: 10),
             primary: [.chest, .arms, .shoulders], secondary: [.core],
@@ -1099,7 +1099,7 @@ extension SkillGraph {
         ),
         .simple(
             id: "cal.slow-pushup",
-            title: "Slow Pushup (3s/3s)",
+            title: "Tempo Push-Up",
             cluster: .calisthenicControl, tier: 2, type: .skill,
             target: .reps(exercise: "slow pushup", count: 10),
             prereqs: [PrerequisiteGroup("cal.pushup")],
@@ -1129,7 +1129,7 @@ extension SkillGraph {
         ),
         .simple(
             id: "cal.5-dips",
-            title: "5 Dips",
+            title: "Dip",
             cluster: .calisthenicControl, tier: 2, type: .skill,
             target: .reps(exercise: "dip", count: 5),
             prereqs: [PrerequisiteGroup("cal.slow-pushup")],
@@ -1160,7 +1160,7 @@ extension SkillGraph {
         ),
         .simple(
             id: "cal.ring-support-10",
-            title: "Ring Support Hold 10s",
+            title: "Ring Support Hold",
             cluster: .calisthenicControl, tier: 3, type: .hold,
             target: .hold(exercise: "ring support hold", seconds: 10),
             prereqs: [PrerequisiteGroup("cal.slow-pushup")],
@@ -1224,7 +1224,7 @@ extension SkillGraph {
         ),
         .simple(
             id: "cal.diamond-pushup",
-            title: "Diamond Pushup × 10",
+            title: "Diamond Push-Up",
             cluster: .calisthenicControl, tier: 2, type: .skill,
             target: .reps(exercise: "diamond pushup", count: 10),
             prereqs: [PrerequisiteGroup("cal.slow-pushup")],
@@ -1254,7 +1254,7 @@ extension SkillGraph {
         ),
         .simple(
             id: "cal.pseudo-planche-pushup",
-            title: "Pseudo-Planche Pushup",
+            title: "Pseudo-Planche Push-Up",
             cluster: .calisthenicControl, tier: 3, type: .skill,
             target: .reps(exercise: "pseudo-planche pushup", count: 5),
             prereqs: [PrerequisiteGroup("cal.diamond-pushup")],
@@ -1284,7 +1284,7 @@ extension SkillGraph {
         ),
         .simple(
             id: "cal.tuck-planche",
-            title: "Tuck Planche 5s",
+            title: "Tuck Planche",
             cluster: .calisthenicControl, tier: 3, type: .hold,
             target: .hold(exercise: "tuck planche", seconds: 5),
             prereqs: [PrerequisiteGroup("cal.pseudo-planche-pushup")],
@@ -1316,7 +1316,7 @@ extension SkillGraph {
         ),
         .simple(
             id: "cal.tuck-planche-pushup",
-            title: "Tuck Planche Pushup",
+            title: "Tuck Planche Push-Up",
             cluster: .calisthenicControl, tier: 4, type: .skill,
             target: .reps(exercise: "tuck planche pushup", count: 3),
             prereqs: [PrerequisiteGroup(["cal.pseudo-planche-pushup", "cal.tuck-planche"])],
@@ -1347,7 +1347,7 @@ extension SkillGraph {
         ),
         .simple(
             id: "cal.straddle-planche",
-            title: "Straddle Planche 5s",
+            title: "Straddle Planche",
             cluster: .calisthenicControl, tier: 5, type: .hold,
             target: .hold(exercise: "straddle planche", seconds: 5),
             prereqs: [PrerequisiteGroup("cal.tuck-planche")],
@@ -1411,7 +1411,7 @@ extension SkillGraph {
         ),
         .simple(
             id: "cal.full-planche-pushup",
-            title: "Full Planche Pushup",
+            title: "Full Planche Push-Up",
             cluster: .calisthenicControl, tier: 6, type: .skill,
             target: .reps(exercise: "full planche pushup", count: 1),
             prereqs: [PrerequisiteGroup("cal.full-planche")],
@@ -1442,7 +1442,7 @@ extension SkillGraph {
         ),
         .simple(
             id: "cal.ninety-degree-pushup",
-            title: "90° Pushup",
+            title: "Ninety-Degree Push-Up",
             cluster: .calisthenicControl, tier: 7, type: .skill,
             target: .reps(exercise: "90 degree pushup", count: 1),
             prereqs: [PrerequisiteGroup("cal.full-planche-pushup")],
@@ -1480,7 +1480,7 @@ extension SkillGraph {
 
         .simple(
             id: "hs.wrist-conditioning",
-            title: "Reverse-Hand Plank 30s",
+            title: "Reverse-Hand Plank",
             cluster: .handstand, tier: 1, type: .hold,
             target: .hold(exercise: "reverse-hand plank", seconds: 30),
             prereqs: [],
@@ -1510,7 +1510,7 @@ extension SkillGraph {
         ),
         .simple(
             id: "hspu.pike-pushup-10",
-            title: "Pike Pushup × 10",
+            title: "Pike Push-Up",
             cluster: .handstandPushup, tier: 2, type: .skill,
             target: .reps(exercise: "pike pushup", count: 10),
             prereqs: [PrerequisiteGroup("cal.pushup")],
@@ -1540,7 +1540,7 @@ extension SkillGraph {
         ),
         .simple(
             id: "hspu.elevated-pike-pushup-10",
-            title: "Elevated Pike Pushup × 10",
+            title: "Elevated Pike Push-Up",
             cluster: .handstandPushup, tier: 3, type: .skill,
             target: .reps(exercise: "elevated pike pushup", count: 10),
             prereqs: [PrerequisiteGroup("hspu.pike-pushup-10")],
@@ -1571,7 +1571,7 @@ extension SkillGraph {
         ),
         .simple(
             id: "hs.wall-handstand-30",
-            title: "Wall Handstand 30s",
+            title: "Wall Handstand",
             cluster: .handstand, tier: 2, type: .hold,
             target: .hold(exercise: "wall handstand", seconds: 30),
             prereqs: [PrerequisiteGroup(["cal.plank-30", "hs.wrist-conditioning"])],
@@ -1587,7 +1587,7 @@ extension SkillGraph {
         ),
         .simple(
             id: "hs.wall-handstand-60",
-            title: "Wall Handstand 60s",
+            title: "Wall Handstand Hold",
             cluster: .handstand, tier: 3, type: .hold,
             target: .hold(exercise: "wall handstand", seconds: 60),
             prereqs: [PrerequisiteGroup("hs.wall-handstand-30")],
@@ -1603,7 +1603,7 @@ extension SkillGraph {
         ),
         .simple(
             id: "hspu.wall-hspu-negative-5s",
-            title: "Wall HSPU Negative (5s)",
+            title: "Wall HSPU Negative",
             cluster: .handstandPushup, tier: 4, type: .skill,
             target: .reps(exercise: "wall hspu negative", count: 3),
             prereqs: [PrerequisiteGroup(["hs.wall-handstand-60", "hspu.elevated-pike-pushup-10"])],
@@ -1663,7 +1663,7 @@ extension SkillGraph {
         ),
         .simple(
             id: "hspu.wall-hspu-3",
-            title: "Wall HSPU × 3",
+            title: "Wall HSPU",
             cluster: .handstandPushup, tier: 6, type: .skill,
             target: .reps(exercise: "wall hspu", count: 3),
             prereqs: [PrerequisiteGroup("hspu.first-wall-hspu")],
@@ -1693,7 +1693,7 @@ extension SkillGraph {
         ),
         .simple(
             id: "hspu.wall-hspu-5",
-            title: "Wall HSPU × 5",
+            title: "Wall HSPU Volume",
             cluster: .handstandPushup, tier: 7, type: .skill,
             target: .reps(exercise: "wall hspu", count: 5),
             prereqs: [PrerequisiteGroup("hspu.wall-hspu-3")],
@@ -1711,7 +1711,7 @@ extension SkillGraph {
         ),
         .simple(
             id: "hspu.deficit-wall-hspu-3",
-            title: "Deficit Wall HSPU × 3",
+            title: "Deficit Wall HSPU",
             cluster: .handstandPushup, tier: 8, type: .skill,
             target: .reps(exercise: "deficit wall hspu", count: 3),
             prereqs: [PrerequisiteGroup("hspu.wall-hspu-5")],
@@ -1741,7 +1741,7 @@ extension SkillGraph {
         ),
         .simple(
             id: "hs.freestanding-hs-10",
-            title: "Freestanding HS 10s",
+            title: "Freestanding Handstand Opener",
             cluster: .handstand, tier: 4, type: .hold,
             target: .hold(exercise: "freestanding handstand", seconds: 10),
             prereqs: [PrerequisiteGroup("hs.wall-handstand-60")],
@@ -1757,7 +1757,7 @@ extension SkillGraph {
         ),
         .simple(
             id: "hs.freestanding-hs-30",
-            title: "Freestanding HS 30s",
+            title: "Steady Handstand",
             cluster: .handstand, tier: 4, type: .hold,
             target: .hold(exercise: "freestanding handstand", seconds: 30),
             prereqs: [PrerequisiteGroup("hs.freestanding-hs-10")],
@@ -1788,7 +1788,7 @@ extension SkillGraph {
         ),
         .simple(
             id: "hspu.freestanding-hspu-negative-5s",
-            title: "Freestanding HSPU Negative (5s)",
+            title: "Freestanding HSPU Negative",
             cluster: .handstandPushup, tier: 9, type: .skill,
             target: .reps(exercise: "freestanding hspu negative", count: 3),
             prereqs: [PrerequisiteGroup(["hs.freestanding-hs-10", "hspu.wall-hspu-5"])],
@@ -1818,7 +1818,7 @@ extension SkillGraph {
         ),
         .simple(
             id: "hspu.first-freestanding-hspu",
-            title: "First Freestanding HSPU",
+            title: "Freestanding HSPU",
             cluster: .handstandPushup, tier: 10, type: .skill,
             target: .reps(exercise: "freestanding hspu", count: 1),
             prereqs: [PrerequisiteGroup("hspu.freestanding-hspu-negative-5s")],
@@ -1850,7 +1850,7 @@ extension SkillGraph {
         ),
         .simple(
             id: "hspu.freestanding-hspu-3",
-            title: "Freestanding HSPU × 3",
+            title: "Freestanding HSPU Volume",
             cluster: .handstandPushup, tier: 11, type: .skill,
             target: .reps(exercise: "freestanding hspu", count: 3),
             prereqs: [PrerequisiteGroup("hspu.first-freestanding-hspu")],
@@ -1878,7 +1878,7 @@ extension SkillGraph {
         ),
         .simple(
             id: "hs.freestanding-hs-60",
-            title: "Freestanding HS 60s",
+            title: "Freestanding Handstand",
             cluster: .handstand, tier: 5, type: .hold,
             target: .hold(exercise: "freestanding handstand", seconds: 60),
             prereqs: [PrerequisiteGroup("hs.freestanding-hs-30")],
@@ -1910,7 +1910,7 @@ extension SkillGraph {
         ),
         .simple(
             id: "hs.handstand-walk-10m",
-            title: "Handstand Walk 10m",
+            title: "Handstand Walk",
             cluster: .handstand, tier: 5, type: .skill,
             target: .steps(exercise: "handstand walk", count: 10),
             prereqs: [PrerequisiteGroup("hs.freestanding-hs-10")],
@@ -1926,7 +1926,7 @@ extension SkillGraph {
         ),
         .simple(
             id: "oah.one-arm-handstand-5s",
-            title: "One-Arm Handstand 5s",
+            title: "One-Arm Handstand",
             cluster: .oneArmHandstand, tier: 7, type: .hold,
             target: .hold(exercise: "one-arm handstand", seconds: 5),
             prereqs: [PrerequisiteGroup("hs.freestanding-hs-60")],
@@ -1992,7 +1992,7 @@ extension SkillGraph {
 
         .simple(
             id: "cal.iron-cross-3s",
-            title: "Iron Cross 3s",
+            title: "Iron Cross",
             cluster: .calisthenicControl, tier: 5, type: .hold,
             target: .hold(exercise: "iron cross", seconds: 3),
             prereqs: [PrerequisiteGroup(["cal.ring-dip", "cl.full-back-lever", "pp.ring-muscle-up"])],
@@ -2009,7 +2009,7 @@ extension SkillGraph {
         ),
         .simple(
             id: "cal.iron-cross-10s",
-            title: "Iron Cross 10s",
+            title: "Iron Cross Hold",
             cluster: .calisthenicControl, tier: 6, type: .hold,
             target: .hold(exercise: "iron cross", seconds: 10),
             prereqs: [PrerequisiteGroup("cal.iron-cross-3s")],
@@ -2099,7 +2099,7 @@ extension SkillGraph {
 
         .simple(
             id: "cl.hollow-body-30",
-            title: "Hollow Body Hold 30s",
+            title: "Hollow Body Hold",
             cluster: .coreLever, tier: 1, type: .hold,
             target: .hold(exercise: "hollow body hold", seconds: 30),
             prereqs: [],
@@ -2130,7 +2130,7 @@ extension SkillGraph {
         ),
         .simple(
             id: "cl.hollow-body-60",
-            title: "Hollow Body Hold 60s",
+            title: "Heavy Hollow Body Hold",
             cluster: .coreLever, tier: 2, type: .hold,
             target: .hold(exercise: "hollow body hold", seconds: 60),
             prereqs: [PrerequisiteGroup("cl.hollow-body-30")],
@@ -2158,7 +2158,7 @@ extension SkillGraph {
         ),
         .simple(
             id: "cl.hanging-knee-raise",
-            title: "Hanging Knee Raise × 10",
+            title: "Hanging Knee Raise",
             cluster: .coreLever, tier: 2, type: .skill,
             target: .reps(exercise: "hanging knee raise", count: 10),
             prereqs: [PrerequisiteGroup("pp.dead-hang-30")],
@@ -2189,7 +2189,7 @@ extension SkillGraph {
         ),
         .simple(
             id: "cl.hanging-leg-raise",
-            title: "Hanging Leg Raise × 10",
+            title: "Hanging Leg Raise",
             cluster: .coreLever, tier: 3, type: .skill,
             target: .reps(exercise: "hanging leg raise", count: 10),
             prereqs: [PrerequisiteGroup("cl.hanging-knee-raise")],
@@ -2220,7 +2220,7 @@ extension SkillGraph {
         ),
         .simple(
             id: "cl.toes-to-bar",
-            title: "Toes-to-Bar × 5",
+            title: "Toes-to-Bar",
             cluster: .coreLever, tier: 3, type: .skill,
             target: .reps(exercise: "toes to bar", count: 5),
             prereqs: [PrerequisiteGroup("cl.hanging-leg-raise")],
@@ -2251,7 +2251,7 @@ extension SkillGraph {
         ),
         .simple(
             id: "cl.ab-wheel",
-            title: "Ab Wheel Standing × 5",
+            title: "Standing Ab Wheel",
             cluster: .coreLever, tier: 3, type: .skill,
             target: .reps(exercise: "ab wheel standing", count: 5),
             prereqs: [PrerequisiteGroup("cal.plank-30")],
@@ -2281,7 +2281,7 @@ extension SkillGraph {
         ),
         .simple(
             id: "cl.dragon-flag-negative",
-            title: "Dragon Flag Negative × 3",
+            title: "Dragon Flag Negative",
             cluster: .coreLever, tier: 4, type: .skill,
             target: .reps(exercise: "dragon flag negative", count: 3),
             prereqs: [PrerequisiteGroup(["cl.hanging-leg-raise", "cal.l-sit-20"])],
@@ -2312,7 +2312,7 @@ extension SkillGraph {
         ),
         .simple(
             id: "cl.dragon-flag",
-            title: "Dragon Flag × 5",
+            title: "Dragon Flag",
             cluster: .coreLever, tier: 4, type: .skill,
             target: .reps(exercise: "dragon flag", count: 5),
             prereqs: [PrerequisiteGroup("cl.dragon-flag-negative")],
@@ -2343,7 +2343,7 @@ extension SkillGraph {
         ),
         .simple(
             id: "cl.tuck-front-lever",
-            title: "Tuck Front Lever 10s",
+            title: "Tuck Front Lever",
             cluster: .coreLever, tier: 4, type: .hold,
             target: .hold(exercise: "tuck front lever", seconds: 10),
             prereqs: [PrerequisiteGroup(["pp.10-pullups", "cl.hanging-leg-raise"])],
@@ -2375,7 +2375,7 @@ extension SkillGraph {
         ),
         .simple(
             id: "cl.straddle-front-lever",
-            title: "Straddle Front Lever 5s",
+            title: "Straddle Front Lever",
             cluster: .coreLever, tier: 5, type: .hold,
             target: .hold(exercise: "straddle front lever", seconds: 5),
             prereqs: [PrerequisiteGroup("cl.tuck-front-lever")],
@@ -2439,7 +2439,7 @@ extension SkillGraph {
         ),
         .simple(
             id: "cl.tuck-back-lever",
-            title: "Tuck Back Lever 5s",
+            title: "Tuck Back Lever",
             cluster: .coreLever, tier: 4, type: .hold,
             target: .hold(exercise: "tuck back lever", seconds: 5),
             prereqs: [PrerequisiteGroup(["pp.10-pullups", "cl.hanging-leg-raise"])],
@@ -2471,7 +2471,7 @@ extension SkillGraph {
         ),
         .simple(
             id: "cl.straddle-back-lever",
-            title: "Straddle Back Lever 5s",
+            title: "Straddle Back Lever",
             cluster: .coreLever, tier: 5, type: .hold,
             target: .hold(exercise: "straddle back lever", seconds: 5),
             prereqs: [PrerequisiteGroup("cl.tuck-back-lever")],
@@ -2572,7 +2572,7 @@ extension SkillGraph {
 
         .simple(
             id: "co.bw-farmer-carry",
-            title: "BW Farmer Carry 60s",
+            title: "Farmer Carry",
             cluster: .conditioning, tier: 2, type: .skill,
             target: .carry(exercise: "farmer carry", seconds: 60, load: "bw"),
             prereqs: [PrerequisiteGroup("ld.goblet-20")],
@@ -2604,7 +2604,7 @@ extension SkillGraph {
         ),
         .simple(
             id: "co.1.5x-farmer-carry",
-            title: "1.5× BW Farmer Carry 60s",
+            title: "Heavy Farmer Carry",
             cluster: .conditioning, tier: 4, type: .skill,
             target: .carry(exercise: "farmer carry", seconds: 60, load: "1.5x bw"),
             prereqs: [PrerequisiteGroup(["co.bw-farmer-carry"])],
@@ -2635,7 +2635,7 @@ extension SkillGraph {
         ),
         .simple(
             id: "co.dead-hang-45",
-            title: "Dead Hang 45s",
+            title: "Long Dead Hang",
             cluster: .conditioning, tier: 2, type: .hold,
             target: .hold(exercise: "dead hang", seconds: 45),
             prereqs: [PrerequisiteGroup("pp.dead-hang-30")],
@@ -2666,7 +2666,7 @@ extension SkillGraph {
         ),
         .simple(
             id: "co.dead-hang-60",
-            title: "Dead Hang 60s",
+            title: "Max Dead Hang",
             cluster: .conditioning, tier: 3, type: .hold,
             target: .hold(exercise: "dead hang", seconds: 60),
             prereqs: [PrerequisiteGroup("co.dead-hang-45")],
@@ -2697,7 +2697,7 @@ extension SkillGraph {
         ),
         .simple(
             id: "co.sled-push",
-            title: "Sled Push 2× BW 30s",
+            title: "Sled Push",
             cluster: .conditioning, tier: 3, type: .skill,
             target: .carry(exercise: "sled push", seconds: 30, load: "2x bw"),
             prereqs: [PrerequisiteGroup("ld.goblet-20")],
@@ -2728,7 +2728,7 @@ extension SkillGraph {
         ),
         .simple(
             id: "co.400m-row",
-            title: "400m Row Sub-1:30",
+            title: "Rower Sprint",
             cluster: .conditioning, tier: 3, type: .skill,
             target: .steps(exercise: "row 400m", count: 1),
             equipment: [.rower],
@@ -2758,7 +2758,7 @@ extension SkillGraph {
         ),
         .simple(
             id: "co.mile-sub-7",
-            title: "Mile Run Sub-7",
+            title: "Fast Mile",
             cluster: .conditioning, tier: 3, type: .skill,
             target: .steps(exercise: "run 1 mile", count: 1),
             primary: [.legs], secondary: [.core],
@@ -2788,7 +2788,7 @@ extension SkillGraph {
         ),
         .simple(
             id: "co.5k-sub-22",
-            title: "5K Run Sub-22",
+            title: "Fast 5K",
             cluster: .conditioning, tier: 4, type: .skill,
             target: .steps(exercise: "run 5k", count: 1),
             prereqs: [PrerequisiteGroup("co.mile-sub-7")],
@@ -2819,7 +2819,7 @@ extension SkillGraph {
         ),
         .simple(
             id: "co.2x-farmer-carry",
-            title: "2× BW Farmer Carry 60s",
+            title: "Elite Farmer Carry",
             cluster: .conditioning, tier: 5, type: .strength,
             target: .weightMultiplier(exercise: "farmer carry", multiplier: 2.0),
             prereqs: [PrerequisiteGroup("co.1.5x-farmer-carry")],
@@ -2852,7 +2852,7 @@ extension SkillGraph {
         ),
         .simple(
             id: "co.assault-bike-30",
-            title: "Assault Bike 30 Cal Sub-60s",
+            title: "Assault Bike Sprint",
             cluster: .conditioning, tier: 3, type: .skill,
             target: .steps(exercise: "assault bike 30 cal", count: 1),
             equipment: [.bodyweight],

@@ -68,17 +68,17 @@ struct Hexagon: InsettableShape {
         let r = rect.insetBy(dx: inset, dy: inset)
         let w = r.width
         let h = r.height
-        let q = w / 4
+        let q = h / 4   // pointy-top: top/bottom are single vertices, sides are flat
 
         var path = Path()
-        path.move(to: CGPoint(x: r.minX + q, y: r.minY))
-        path.addLine(to: CGPoint(x: r.minX + 3 * q, y: r.minY))
-        path.addLine(to: CGPoint(x: r.maxX, y: r.midY))
-        path.addLine(to: CGPoint(x: r.minX + 3 * q, y: r.maxY))
-        path.addLine(to: CGPoint(x: r.minX + q, y: r.maxY))
-        path.addLine(to: CGPoint(x: r.minX, y: r.midY))
+        path.move(to: CGPoint(x: r.midX, y: r.minY))                // top vertex
+        path.addLine(to: CGPoint(x: r.maxX, y: r.minY + q))         // upper-right
+        path.addLine(to: CGPoint(x: r.maxX, y: r.maxY - q))         // lower-right
+        path.addLine(to: CGPoint(x: r.midX, y: r.maxY))             // bottom vertex
+        path.addLine(to: CGPoint(x: r.minX, y: r.maxY - q))         // lower-left
+        path.addLine(to: CGPoint(x: r.minX, y: r.minY + q))         // upper-left
         path.closeSubpath()
-        _ = h // silence unused — path uses r.midY which derives from h implicitly
+        _ = w
         return path
     }
 

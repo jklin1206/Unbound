@@ -26,6 +26,7 @@ final class ServiceContainer: ObservableObject {
     let sessionXP: any SessionXPServiceProtocol
     let badges: any BadgeServiceProtocol
     let programPhase: any ProgramPhaseEngineProtocol
+    let statScore: any StatScoreServiceProtocol
 
     init() {
         self.logging = LoggingService.shared
@@ -52,6 +53,7 @@ final class ServiceContainer: ObservableObject {
         self.sessionXP = SessionXPService.shared
         self.badges = BadgeService.shared
         self.programPhase = ProgramPhaseEngine.shared
+        self.statScore = StatScoreService.shared
     }
 
     init(
@@ -77,7 +79,8 @@ final class ServiceContainer: ObservableObject {
         skin: any SkinServiceProtocol,
         sessionXP: any SessionXPServiceProtocol,
         badges: any BadgeServiceProtocol,
-        programPhase: any ProgramPhaseEngineProtocol
+        programPhase: any ProgramPhaseEngineProtocol,
+        statScore: any StatScoreServiceProtocol
     ) {
         self.logging = LoggingService.shared
         self.auth = auth
@@ -103,6 +106,7 @@ final class ServiceContainer: ObservableObject {
         self.sessionXP = sessionXP
         self.badges = badges
         self.programPhase = programPhase
+        self.statScore = statScore
     }
 
     static var mock: ServiceContainer {
@@ -129,7 +133,8 @@ final class ServiceContainer: ObservableObject {
             skin: MockSkinService(),
             sessionXP: MockSessionXPService(),
             badges: MockBadgeService(),
-            programPhase: MockProgramPhaseEngine()
+            programPhase: MockProgramPhaseEngine(),
+            statScore: MockStatScoreService()
         )
     }
 }

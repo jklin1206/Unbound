@@ -16,20 +16,20 @@ struct HomeTabView: View {
             .tag(0)
 
             NavigationStack {
-                UnboundSkillTreeTabView()
-            }
-            .tabItem {
-                Image(systemName: "hexagon.fill")
-                Text("Tree")
-            }
-            .tag(1)
-
-            NavigationStack {
                 ProgramOverviewView()
             }
             .tabItem {
                 Image(systemName: "dumbbell.fill")
                 Text("Program")
+            }
+            .tag(1)
+
+            NavigationStack {
+                UnboundSkillTreeTabView()
+            }
+            .tabItem {
+                Image(systemName: "hexagon.fill")
+                Text("Skills")
             }
             .tag(2)
 
@@ -46,8 +46,8 @@ struct HomeTabView: View {
                 SettingsView(services: services)
             }
             .tabItem {
-                Image(systemName: "gearshape.fill")
-                Text("Settings")
+                Image(systemName: "person.crop.circle")
+                Text("Profile")
             }
             .tag(4)
         }

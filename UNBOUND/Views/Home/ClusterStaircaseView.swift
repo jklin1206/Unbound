@@ -272,17 +272,17 @@ struct ClusterStaircaseView: View {
 
     private func belowOffset(for role: NodeRole) -> CGFloat {
         switch role {
-        case .active:   return 12 + 54
-        case .keystone: return 12 + 34
-        default:        return 12 + 18
+        case .active:   return 10 + 50
+        case .keystone: return 10 + 32
+        default:        return 8 + 14
         }
     }
 
     private func rowGap(for role: NodeRole) -> CGFloat {
         switch role {
-        case .active:   return 200
-        case .keystone: return 210
-        default:        return 160
+        case .active:   return 210
+        case .keystone: return 220
+        default:        return 175
         }
     }
 
@@ -619,6 +619,9 @@ struct ClusterStaircaseView: View {
             .multilineTextAlignment(.center)
             .lineLimit(2)
             .fixedSize(horizontal: false, vertical: true)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(Color.unbound.bg)
             .frame(width: 110)
     }
 
@@ -630,6 +633,9 @@ struct ClusterStaircaseView: View {
                 .multilineTextAlignment(.center)
                 .lineLimit(2)
                 .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 2)
+                .background(Color.unbound.bg)
                 .frame(width: 200)
 
             Button {
@@ -662,12 +668,18 @@ struct ClusterStaircaseView: View {
                 .multilineTextAlignment(.center)
                 .lineLimit(2)
                 .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 2)
+                .background(Color.unbound.bg)
                 .frame(width: 160)
 
             Text("\(beatsAway) \(beatsAway == 1 ? "BEAT" : "BEATS") AWAY")
                 .font(.system(size: 10, weight: .heavy, design: .monospaced))
                 .tracking(2.0)
                 .foregroundStyle(Color.unbound.accent)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 1)
+                .background(Color.unbound.bg)
         }
         .frame(width: 160)
     }
@@ -749,7 +761,8 @@ struct ClusterStaircaseView: View {
                     path.move(to: start)
                     path.addLine(to: end)
                 } else {
-                    let midY = (start.y + end.y) / 2
+                    let biased = start.y + (end.y - start.y) * 0.7
+                    let midY = min(biased, end.y - 2)
                     path.move(to: start)
                     path.addLine(to: CGPoint(x: start.x, y: midY))
                     path.addLine(to: CGPoint(x: end.x, y: midY))
@@ -797,7 +810,11 @@ struct ClusterStaircaseView: View {
             path.move(to: start)
             path.addLine(to: end)
         } else {
-            let midY = (start.y + end.y) / 2
+            // Bias the crossbar toward the child so it sits in the lower
+            // half of the rail, clear of the label rendered beneath the
+            // parent hex.
+            let biased = start.y + (end.y - start.y) * 0.7
+            let midY = min(biased, end.y - 2)
             let cornerRadius: CGFloat = 8
 
             let vStub1 = midY - start.y
