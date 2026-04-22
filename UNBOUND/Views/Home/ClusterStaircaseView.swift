@@ -272,7 +272,7 @@ struct ClusterStaircaseView: View {
 
     private func belowOffset(for role: NodeRole) -> CGFloat {
         switch role {
-        case .active:   return 10 + 50
+        case .active:   return 10 + 18
         case .keystone: return 10 + 32
         default:        return 8 + 14
         }
@@ -280,7 +280,7 @@ struct ClusterStaircaseView: View {
 
     private func rowGap(for role: NodeRole) -> CGFloat {
         switch role {
-        case .active:   return 210
+        case .active:   return 185
         case .keystone: return 220
         default:        return 175
         }
@@ -626,37 +626,16 @@ struct ClusterStaircaseView: View {
     }
 
     private func activeBelow(node: SkillNode) -> some View {
-        VStack(spacing: 10) {
-            Text(node.title)
-                .font(Font.unbound.bodyMStrong)
-                .foregroundStyle(Color.unbound.textPrimary)
-                .multilineTextAlignment(.center)
-                .lineLimit(2)
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 2)
-                .background(Color.unbound.bg)
-                .frame(width: 200)
-
-            Button {
-                UnboundHaptics.medium()
-                selectedNode = node
-            } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: "dumbbell.fill")
-                        .font(.system(size: 10, weight: .bold))
-                    Text("LOG SESSION")
-                        .font(Font.unbound.captionS.weight(.heavy))
-                        .tracking(1.6)
-                }
-                .foregroundStyle(Color.unbound.bg)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 7)
-                .background(Capsule().fill(Color.unbound.accent))
-            }
-            .buttonStyle(.plain)
-        }
-        .frame(width: 200)
+        Text(node.title)
+            .font(Font.unbound.bodyMStrong)
+            .foregroundStyle(Color.unbound.textPrimary)
+            .multilineTextAlignment(.center)
+            .lineLimit(2)
+            .fixedSize(horizontal: false, vertical: true)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 2)
+            .background(Color.unbound.bg)
+            .frame(width: 180)
     }
 
     private func keystoneBelow(node: SkillNode) -> some View {
