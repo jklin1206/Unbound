@@ -62,10 +62,18 @@ enum SkillSubChapterMap {
         "pp.archer-pullup":        "Ascent",
         "pp.weighted-pullup-0.25": "Ascent",
         "pp.weighted-pullup-0.5":  "Ascent",
+        "pp.chin-up":              "Ascent",
+        "pp.strict-chin-up":       "Ascent",
+        "pp.weighted-chin-up":     "Ascent",
+        "pp.l-sit-chin-up":        "Ascent",
+        "pp.wide-pullup":          "Ascent",
 
         "pp.muscle-up":            "Crossover",
         "pp.10-muscle-ups":        "Crossover",
         "pp.ring-muscle-up":       "Crossover",
+        "pp.clapping-pullup":      "Crossover",
+        "pp.explosive-pullup":     "Crossover",
+        "pp.plyometric-pullup":    "Crossover",
 
         "pp.typewriter-pullup":    "Solo Arm",
         "pp.oap-negative":         "Solo Arm",
@@ -81,10 +89,22 @@ enum SkillSubChapterMap {
         "cal.pushup":              "Ground Work",
         "cal.slow-pushup":         "Ground Work",
         "cal.diamond-pushup":      "Ground Work",
+        "cal.incline-pushup":      "Ground Work",
+        "cal.decline-pushup":      "Ground Work",
+        "cal.sphinx-pushup":       "Ground Work",
+        "cal.archer-pushup":       "Ground Work",
+        "cal.one-arm-pushup":      "Ground Work",
+        "cal.explosive-pushup":    "Ground Work",
+        "cal.clapping-pushup":     "Ground Work",
+        "cal.floating-pike-pushup": "Ground Work",
 
         "cal.5-dips":              "The Dip",
         "cal.ring-support-10":     "The Dip",
         "cal.ring-dip":            "The Dip",
+        "cal.bench-dip":           "The Dip",
+        "cal.l-sit-dip":           "The Dip",
+        "cal.weighted-dip":        "The Dip",
+        "cal.tempo-dip":           "The Dip",
 
         "cal.plank-30":            "Lock-In",
         "cal.l-sit-10":            "Lock-In",
@@ -93,7 +113,9 @@ enum SkillSubChapterMap {
         // Iron Cross family — now lives in `.coreLever` cluster.
         "cal.iron-cross-3s":       "Ring King",
         "cal.iron-cross-10s":      "Ring King",
-        // cal.maltese + cal.azarian are mythic — chapter-less.
+        "cl.skin-the-cat":         "Ring King",
+        "cl.german-hang":          "Ring King",
+        // cal.maltese + cal.azarian + cl.three-sixty-pulls are mythic — chapter-less.
 
         // ──────────────────────────────────────────────────────────────
         // LEGS (ld) — squat base → unilateral bridge → pistol chain →
@@ -101,18 +123,33 @@ enum SkillSubChapterMap {
         // ──────────────────────────────────────────────────────────────
         "ld.goblet-20":            "Foundation",
         "ld.tempo-squat":          "Foundation",
+        "ld.calf-raise":           "Foundation",
+        "ld.hip-hinge":            "Foundation",
         "ld.bw-front-squat":       "Loaded Stance",
 
         "ld.bulgarian-split-squat": "Unilateral",
         "ld.100-lunges":           "Unilateral",
         "ld.single-leg-rdl":       "Unilateral",
         "ld.assisted-pistol":      "Unilateral",
+        "ld.heighted-split-squat": "Unilateral",
 
         "ld.shrimp-squat":         "Pistol Path",
         "ld.pistol-squat":         "Pistol Path",
         "ld.weighted-pistol":      "Pistol Path",
         "ld.dragon-pistol":        "Pistol Path",
+        "ld.heighted-pistol":      "Pistol Path",
+        "ld.weighted-sl-calf":     "Pistol Path",
         // ld.jumping-pistol is mythic — chapter-less.
+
+        "ld.box-jump":             "Power",
+        "ld.jumping-squat":        "Power",
+
+        "ld.fire-hydrant":         "Glute Work",
+        "ld.single-leg-glute-bridge": "Glute Work",
+        "ld.flying-kickback":      "Glute Work",
+
+        "ld.advancing-nordic-curl": "Hamstring Forge",
+        // ld.floor-to-ceiling-squat is mythic — chapter-less.
 
         // ──────────────────────────────────────────────────────────────
         // CORE & LEVERS (cl) — hollow → raised / hanging → flag → two
@@ -120,11 +157,19 @@ enum SkillSubChapterMap {
         // ──────────────────────────────────────────────────────────────
         "cl.hollow-body-30":       "The Spine",
         "cl.hollow-body-60":       "The Spine",
+        "cl.crunch":               "The Spine",
+        "cl.reverse-crunch":       "The Spine",
+        "cl.superman-plank":       "The Spine",
+        "cl.standing-plank":       "The Spine",
+        "cl.extended-plank":       "The Spine",
+        "cl.levitation-crunch":    "The Spine",
 
         "cl.hanging-knee-raise":   "Raised Work",
         "cl.hanging-leg-raise":    "Raised Work",
         "cl.toes-to-bar":          "Raised Work",
         "cl.ab-wheel":             "Raised Work",
+        "cl.knee-ab-rollout":      "Raised Work",
+        "cl.inverted-situp":       "Raised Work",
 
         "cl.dragon-flag-negative": "Flag Path",
         "cl.dragon-flag":          "Flag Path",
@@ -145,11 +190,23 @@ enum SkillSubChapterMap {
         "hs.wrist-conditioning":   "Wall Path",
         "hs.wall-handstand-30":    "Wall Path",
         "hs.wall-handstand-60":    "Wall Path",
+        "hs.headstand":            "Wall Path",
 
         "hs.freestanding-hs-10":   "Freestanding",
         "hs.freestanding-hs-30":   "Freestanding",
         "hs.freestanding-hs-60":   "Freestanding",
         "hs.handstand-walk-10m":   "Freestanding",
+        "hs.tuck-handstand":       "Freestanding",
+        "hs.tuck-press":           "Freestanding",
+        "hs.straddle-press":       "Freestanding",
+        "hs.press-to-handstand":   "Freestanding",
+
+        "hs.crow-pose":            "Hand Poses",
+        "hs.crane-pose":           "Hand Poses",
+        "hs.frog-pose":            "Hand Poses",
+        "hs.flying-crow":          "Hand Poses",
+        "hs.elbow-lever":          "Hand Poses",
+        "hs.one-arm-elbow-lever":  "Hand Poses",
 
         // hspu — Handstand Push-Up
         "hspu.pike-pushup-10":     "Wall Press",
@@ -174,10 +231,12 @@ enum SkillSubChapterMap {
         "pl.pseudo-planche-pushup": "Lean Path",
         "pl.tuck-planche":          "Tuck Path",
         "pl.tuck-planche-pushup":   "Tuck Path",
+        "pl.bent-arm-planche":      "Tuck Path",
         "pl.straddle-planche":      "Float",
         "pl.full-planche":          "Float",
         "pl.full-planche-pushup":   "Float",
-        // pl.ninety-degree-pushup is mythic — chapter-less.
+        "pl.half-lay-planche":      "Float",
+        // pl.ninety-degree-pushup + pl.one-arm-planche are mythic — chapter-less.
 
         // ──────────────────────────────────────────────────────────────
         // ENDURANCE / CONDITIONING (co)
@@ -3062,7 +3121,1812 @@ extension SkillGraph {
                 SkillLevel(level: 4, target: .duration(seconds: 55), criterion: "30 cal under 0:55", xpReward: 200),
                 SkillLevel(level: 5, target: .duration(seconds: 50), criterion: "30 cal under 0:50", xpReward: 250),
             ]
-        )
+        ),
+
+        // ════════════════════════════════════════════════════════════════════
+        // PHASE 2K — CONTENT AUDIT ADDITIONS
+        //
+        // Missing exercises added to approach parity with the Sport Is My
+        // Game bodyweight reference infographic. Each batch is grouped by
+        // cluster and ordered roughly by difficulty.
+        // ════════════════════════════════════════════════════════════════════
+
+        // ────────────────────────────────────────────────────────────────
+        // PULL ADDITIONS — chin-up family + crossover plyometrics
+        // ────────────────────────────────────────────────────────────────
+
+        .simple(
+            id: "pp.chin-up",
+            title: "Chin-Up",
+            cluster: .pullingPower, tier: 2, type: .skill,
+            target: .reps(exercise: "chin-up", count: 1),
+            prereqs: [PrerequisiteGroup("pp.negative-pullup")],
+            equipment: [.pullupBar],
+            primary: [.arms, .lats], secondary: [.back],
+            subtitle: "Underhand grip. Biceps join the pull.",
+            description: "One strict chin-up — palms facing you, chin clears the bar from a full dead hang. Biceps-dominant cousin of the pullup.",
+            formCues: [
+                "Supinated grip — palms face your body",
+                "Start at dead hang with active shoulders",
+                "Drive elbows down and back",
+                "Chest rises toward the bar",
+                "Control the descent, no drop"
+            ],
+            commonMistakes: [
+                "Kipping with the knees",
+                "Not reaching dead hang between reps",
+                "Shrugging shoulders at the top"
+            ],
+            timeline: "4-10 weeks from first pullup attempt.",
+            rank: .d,
+            levels: [
+                SkillLevel(level: 1, target: .firstRep, criterion: "First clean chin-up to standard", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(3), criterion: "3 strict chin-up", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict chin-up", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(8), criterion: "8 strict chin-up", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(12), criterion: "12 strict chin-up", xpReward: 250),
+            ]
+        ),
+        .simple(
+            id: "pp.strict-chin-up",
+            title: "Strict Chin-Up",
+            cluster: .pullingPower, tier: 3, type: .skill,
+            target: .reps(exercise: "chin-up", count: 8),
+            prereqs: [PrerequisiteGroup("pp.chin-up")],
+            equipment: [.pullupBar],
+            primary: [.arms, .lats], secondary: [.back, .core],
+            subtitle: "Chin-up volume benchmark.",
+            description: "8 unbroken strict chin-ups from dead hang. First real capacity test on the underhand grip.",
+            formCues: [
+                "Full dead hang each rep",
+                "No kipping — hips stay still",
+                "Slow eccentric to preserve form late in the set",
+                "Breathe at the dead hang, not the top"
+            ],
+            commonMistakes: [
+                "Reps 6-8 going partial",
+                "Letting the elbows flare out",
+                "Bouncing out of the dead hang"
+            ],
+            timeline: "2-6 months from first chin-up.",
+            rank: .c,
+            levels: [
+                SkillLevel(level: 1, target: .reps(3), criterion: "3 strict chin-up", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(5), criterion: "5 strict chin-up", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(8), criterion: "8 strict chin-up", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(12), criterion: "12 strict chin-up", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(15), criterion: "15 strict chin-up", xpReward: 250),
+            ]
+        ),
+        .simple(
+            id: "pp.weighted-chin-up",
+            title: "Weighted Chin-Up",
+            cluster: .pullingPower, tier: 4, type: .strength,
+            target: .weightMultiplier(exercise: "weighted chin-up", multiplier: 0.25),
+            prereqs: [PrerequisiteGroup("pp.strict-chin-up")],
+            equipment: [.pullupBar, .dumbbells],
+            primary: [.arms, .lats], secondary: [.back],
+            subtitle: "Load the underhand pull.",
+            description: "Chin-up with a weighted belt or dumbbell held between the feet. Quarter bodyweight added load, clean ROM.",
+            formCues: [
+                "Same strict form as bodyweight chin-up",
+                "Add load in small increments",
+                "Dead hang reset between reps",
+                "Slow eccentric — load destroys sloppy descents"
+            ],
+            commonMistakes: [
+                "Adding too much weight too fast",
+                "Kipping to fight the load",
+                "Losing dead hang reset when fatigue hits"
+            ],
+            timeline: "2-6 months from strict chin-up × 8.",
+            rank: .c,
+            levels: [
+                SkillLevel(level: 1, target: .weight(multiplier: 0.15), criterion: "Chin-up with 0.15x bw load", xpReward: 50),
+                SkillLevel(level: 2, target: .weight(multiplier: 0.25), criterion: "Chin-up with 0.25x bw load", xpReward: 100),
+                SkillLevel(level: 3, target: .weight(multiplier: 0.4), criterion: "Chin-up with 0.4x bw load", xpReward: 150),
+                SkillLevel(level: 4, target: .weight(multiplier: 0.5), criterion: "Chin-up with 0.5x bw load", xpReward: 200),
+                SkillLevel(level: 5, target: .weight(multiplier: 0.65), criterion: "Chin-up with 0.65x bw load", xpReward: 250),
+            ]
+        ),
+        .simple(
+            id: "pp.l-sit-chin-up",
+            title: "L-Sit Chin-Up",
+            cluster: .pullingPower, tier: 5, type: .skill,
+            target: .reps(exercise: "l-sit chin-up", count: 3),
+            prereqs: [PrerequisiteGroup(["pp.strict-chin-up", "cal.l-sit-10"])],
+            equipment: [.pullupBar],
+            primary: [.arms, .lats, .core], secondary: [.back],
+            subtitle: "Chin-up while holding an L-sit.",
+            description: "Chin-up from a dead hang with legs locked out horizontally in L-sit position. 3 clean reps — combines pulling strength with core compression.",
+            formCues: [
+                "Enter in full L-sit before the pull",
+                "Legs stay locked and parallel throughout",
+                "Drive elbows down, keep the L-sit shape",
+                "Slow descent — no leg drop on the eccentric"
+            ],
+            commonMistakes: [
+                "Legs dropping mid-rep to steal reps",
+                "Bent knees — loses the L-sit standard",
+                "Kipping with the core to lift the body"
+            ],
+            timeline: "4-12 months from strict chin-up + L-sit.",
+            rank: .b,
+            levels: [
+                SkillLevel(level: 1, target: .firstRep, criterion: "First clean L-sit chin-up to standard", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(3), criterion: "3 strict L-sit chin-up", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict L-sit chin-up", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(8), criterion: "8 strict L-sit chin-up", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(10), criterion: "10 strict L-sit chin-up", xpReward: 250),
+            ]
+        ),
+        .simple(
+            id: "pp.wide-pullup",
+            title: "Wide Pull-Up",
+            cluster: .pullingPower, tier: 3, type: .skill,
+            target: .reps(exercise: "wide pullup", count: 5),
+            prereqs: [PrerequisiteGroup("pp.5-pullups")],
+            equipment: [.pullupBar],
+            primary: [.lats, .back], secondary: [.arms],
+            subtitle: "Lats first. Arms second.",
+            description: "5 strict pullups with hands set well outside shoulder width. Lat-dominant — emphasizes back width over arm pull.",
+            formCues: [
+                "Grip 1.5× shoulder width, palms facing away",
+                "Drive elbows DOWN to the ribs",
+                "Chest to the bar, not chin",
+                "Full dead hang each rep"
+            ],
+            commonMistakes: [
+                "Going too wide — shoulders grind",
+                "Partial ROM because leverage drops at width",
+                "Shrugging to cheat the last inch"
+            ],
+            timeline: "1-4 months from 5 standard pullups.",
+            rank: .c,
+            levels: [
+                SkillLevel(level: 1, target: .reps(3), criterion: "First clean wide pullup to standard", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(5), criterion: "5 strict wide pullup", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(8), criterion: "8 strict wide pullup", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(10), criterion: "10 strict wide pullup", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(15), criterion: "15 strict wide pullup", xpReward: 250),
+            ]
+        ),
+        .simple(
+            id: "pp.explosive-pullup",
+            title: "Explosive Pull-Up",
+            cluster: .pullingPower, tier: 4, type: .skill,
+            target: .reps(exercise: "explosive pullup", count: 3),
+            prereqs: [PrerequisiteGroup("pp.10-pullups")],
+            equipment: [.pullupBar],
+            primary: [.lats, .arms], secondary: [.back, .core],
+            subtitle: "Pull hard enough the hands come off.",
+            description: "3 pullups where the concentric is explosive enough that hands briefly leave the bar at the top. Bridge between strict pullup and muscle-up.",
+            formCues: [
+                "Full dead hang start",
+                "Accelerate aggressively on the concentric",
+                "Pull chest to bar, let hands release briefly",
+                "Re-grip and lower with control"
+            ],
+            commonMistakes: [
+                "Kipping for height instead of pulling",
+                "Missing the re-grip and dropping",
+                "Partial ROM under the explosive cue"
+            ],
+            timeline: "2-6 months from 10 pullups.",
+            rank: .c,
+            levels: [
+                SkillLevel(level: 1, target: .firstRep, criterion: "First clean explosive pullup to standard", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(3), criterion: "3 strict explosive pullup", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict explosive pullup", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(8), criterion: "8 strict explosive pullup", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(12), criterion: "12 strict explosive pullup", xpReward: 250),
+            ]
+        ),
+        .simple(
+            id: "pp.plyometric-pullup",
+            title: "Plyometric Pull-Up",
+            cluster: .pullingPower, tier: 5, type: .skill,
+            target: .reps(exercise: "plyometric pullup", count: 3),
+            prereqs: [PrerequisiteGroup("pp.explosive-pullup")],
+            equipment: [.pullupBar],
+            primary: [.lats, .arms, .back], secondary: [.core],
+            subtitle: "Release, catch, drop, repeat.",
+            description: "3 explosive pullups with the catch on the way down turning into a loaded eccentric that rebounds into the next rep. True plyometric pulling.",
+            formCues: [
+                "Explode up, release briefly, catch bar on the descent",
+                "Absorb eccentric with control, load the lats",
+                "Rebound immediately into the next rep",
+                "Reset if rhythm breaks — don't force continuity"
+            ],
+            commonMistakes: [
+                "Missing the bar catch",
+                "No eccentric control — just dropping",
+                "Shrugged shoulders on the catch (shoulder risk)"
+            ],
+            timeline: "3-9 months from explosive pullup.",
+            rank: .b,
+            levels: [
+                SkillLevel(level: 1, target: .firstRep, criterion: "First clean plyometric pullup to standard", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(3), criterion: "3 strict plyometric pullup", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict plyometric pullup", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(8), criterion: "8 strict plyometric pullup", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(10), criterion: "10 strict plyometric pullup", xpReward: 250),
+            ]
+        ),
+        .simple(
+            id: "pp.clapping-pullup",
+            title: "Clapping Pull-Up",
+            cluster: .pullingPower, tier: 5, type: .skill,
+            target: .reps(exercise: "clapping pullup", count: 1),
+            prereqs: [PrerequisiteGroup("pp.explosive-pullup")],
+            equipment: [.pullupBar],
+            primary: [.lats, .arms, .back], secondary: [.core],
+            subtitle: "Pull high enough to clap before catching.",
+            description: "One clean clapping pullup — pull explosively enough to release the bar, clap hands at chest, and re-grip before the descent. Bar-muscle-up prerequisite for most athletes.",
+            formCues: [
+                "Explosive pullup first, then add the clap",
+                "Clap at chest level, not overhead",
+                "Re-grip with both hands simultaneously",
+                "Absorb the catch, don't crash into dead hang"
+            ],
+            commonMistakes: [
+                "Missing the re-grip and dropping",
+                "Kipping to fake the height",
+                "Shrugging shoulders on the re-catch"
+            ],
+            timeline: "6-18 months from explosive pullup.",
+            rank: .b,
+            levels: [
+                SkillLevel(level: 1, target: .firstRep, criterion: "First clean clapping pullup to standard", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(3), criterion: "3 strict clapping pullup", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict clapping pullup", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(8), criterion: "8 strict clapping pullup", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(10), criterion: "10 strict clapping pullup", xpReward: 250),
+            ]
+        ),
+
+        // ────────────────────────────────────────────────────────────────
+        // PUSH ADDITIONS — pushup regressions, variants, plyos, dip family
+        // ────────────────────────────────────────────────────────────────
+
+        .simple(
+            id: "cal.incline-pushup",
+            title: "Incline Push-Up",
+            cluster: .calisthenicControl, tier: 1, type: .skill,
+            target: .reps(exercise: "incline pushup", count: 10),
+            equipment: [.bodyweight, .elevatedSurface],
+            primary: [.chest, .arms, .shoulders], secondary: [.core],
+            subtitle: "The pushup on-ramp.",
+            description: "Hands on a bench or box, feet on the floor. 10 clean reps at a reduced lever — the starting point for anyone who can't yet hit a strict floor pushup.",
+            formCues: [
+                "Hands slightly wider than shoulders on the bench",
+                "Body rigid as plank from head to heel",
+                "Chest touches the bench",
+                "Elbows tuck to ~45°, not flared"
+            ],
+            commonMistakes: [
+                "Hips sagging under the bench",
+                "Partial ROM — not touching the bench",
+                "Using a bench too tall — reduces useful loading"
+            ],
+            timeline: "1-4 weeks for most beginners.",
+            rank: .e,
+            levels: [
+                SkillLevel(level: 1, target: .reps(5), criterion: "First clean incline pushup to standard", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(10), criterion: "10 strict incline pushup", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(15), criterion: "15 strict incline pushup", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(20), criterion: "20 strict incline pushup", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(30), criterion: "30 strict incline pushup", xpReward: 250),
+            ]
+        ),
+        .simple(
+            id: "cal.decline-pushup",
+            title: "Decline Push-Up",
+            cluster: .calisthenicControl, tier: 2, type: .skill,
+            target: .reps(exercise: "decline pushup", count: 10),
+            prereqs: [PrerequisiteGroup("cal.pushup")],
+            equipment: [.bodyweight, .elevatedSurface],
+            primary: [.chest, .shoulders, .arms], secondary: [.core],
+            subtitle: "Feet up. Shoulders light up.",
+            description: "Feet elevated on a bench or box, hands on floor. 10 clean reps — shifts the load onto the upper chest and front delts.",
+            formCues: [
+                "Feet elevated around knee height or higher",
+                "Hands under shoulders, elbows ~45°",
+                "Body rigid — don't let hips pike",
+                "Full ROM: chest kisses floor"
+            ],
+            commonMistakes: [
+                "Piking the hips to shorten lever",
+                "Going too tall on the elevation too soon",
+                "Elbow flare under the shoulder load"
+            ],
+            timeline: "2-4 weeks from 10 standard pushups.",
+            rank: .d,
+            levels: [
+                SkillLevel(level: 1, target: .reps(5), criterion: "First clean decline pushup to standard", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(10), criterion: "10 strict decline pushup", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(15), criterion: "15 strict decline pushup", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(20), criterion: "20 strict decline pushup", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(30), criterion: "30 strict decline pushup", xpReward: 250),
+            ]
+        ),
+        .simple(
+            id: "cal.sphinx-pushup",
+            title: "Sphinx Push-Up",
+            cluster: .calisthenicControl, tier: 2, type: .skill,
+            target: .reps(exercise: "sphinx pushup", count: 8),
+            prereqs: [PrerequisiteGroup("cal.pushup")],
+            primary: [.arms], secondary: [.chest, .shoulders, .core],
+            subtitle: "Triceps in isolation.",
+            description: "Pushup on forearms — start from elbow plank, press up through the forearms until elbows lock out. 8 clean reps. Direct tricep hypertrophy.",
+            formCues: [
+                "Start elbow plank, forearms flat",
+                "Press through the forearms until arms lock",
+                "Body rigid — no hip sag or pike",
+                "Control the descent back to forearm plank"
+            ],
+            commonMistakes: [
+                "Hips rising for leverage",
+                "Partial ROM — not full elbow lockout at top",
+                "Rushing the eccentric"
+            ],
+            timeline: "2-4 weeks from 10 pushups.",
+            rank: .d,
+            levels: [
+                SkillLevel(level: 1, target: .reps(3), criterion: "First clean sphinx pushup to standard", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(5), criterion: "5 strict sphinx pushup", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(8), criterion: "8 strict sphinx pushup", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(12), criterion: "12 strict sphinx pushup", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(18), criterion: "18 strict sphinx pushup", xpReward: 250),
+            ]
+        ),
+        .simple(
+            id: "cal.archer-pushup",
+            title: "Archer Push-Up",
+            cluster: .calisthenicControl, tier: 3, type: .skill,
+            target: .reps(exercise: "archer pushup", count: 3),
+            prereqs: [PrerequisiteGroup("cal.diamond-pushup")],
+            primary: [.chest, .arms], secondary: [.shoulders, .core],
+            subtitle: "Unilateral pushup on-ramp.",
+            description: "Hands wide, weight shifts to one side as you descend — working arm bends deep, off arm stays straight. 3 reps per side. Bridge to the one-arm pushup.",
+            formCues: [
+                "Hands well outside shoulders",
+                "Shift weight to one hand, descend on that side",
+                "Off arm stays straight, acts as support",
+                "Alternate sides each rep or finish one side first"
+            ],
+            commonMistakes: [
+                "Not committing the weight shift — pushup stays centered",
+                "Off arm bending to assist",
+                "Chest not touching on the working side"
+            ],
+            timeline: "2-6 months from diamond pushup.",
+            rank: .c,
+            levels: [
+                SkillLevel(level: 1, target: .firstRep, criterion: "First clean archer pushup per side to standard", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(3), criterion: "3 strict archer pushup per side", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict archer pushup per side", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(8), criterion: "8 strict archer pushup per side", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(12), criterion: "12 strict archer pushup per side", xpReward: 250),
+            ]
+        ),
+        .simple(
+            id: "cal.one-arm-pushup",
+            title: "One-Arm Push-Up",
+            cluster: .calisthenicControl, tier: 4, type: .skill,
+            target: .reps(exercise: "one-arm pushup", count: 1),
+            prereqs: [PrerequisiteGroup("cal.archer-pushup")],
+            primary: [.chest, .arms, .shoulders, .core],
+            subtitle: "Full bodyweight on one arm.",
+            description: "One strict one-arm pushup. Feet wide for balance, body rigid, chest touches the floor, arm locks out at the top.",
+            formCues: [
+                "Feet wider than shoulders for base",
+                "Free hand behind the back or at hip",
+                "Hips don't rotate — body stays flat",
+                "Full chest-to-floor, full lockout top"
+            ],
+            commonMistakes: [
+                "Rotating the hips to cheat the lever",
+                "Partial ROM",
+                "Using free arm as secret support"
+            ],
+            timeline: "6-18 months from archer pushup.",
+            rank: .b,
+            levels: [
+                SkillLevel(level: 1, target: .firstRep, criterion: "First clean one-arm pushup per side to standard", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(3), criterion: "3 strict one-arm pushup per side", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict one-arm pushup per side", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(8), criterion: "8 strict one-arm pushup per side", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(12), criterion: "12 strict one-arm pushup per side", xpReward: 250),
+            ]
+        ),
+        .simple(
+            id: "cal.explosive-pushup",
+            title: "Explosive Push-Up",
+            cluster: .calisthenicControl, tier: 2, type: .skill,
+            target: .reps(exercise: "explosive pushup", count: 5),
+            prereqs: [PrerequisiteGroup("cal.pushup")],
+            primary: [.chest, .arms, .shoulders], secondary: [.core],
+            subtitle: "Ballistic pressing. Airtime included.",
+            description: "5 pushups with an aggressive concentric that launches the hands off the floor. Bridge to the clapping pushup.",
+            formCues: [
+                "Regular pushup descent with control",
+                "Explode up so hands leave the ground",
+                "Land with elbows slightly bent to absorb",
+                "Maintain rigid plank through each rep"
+            ],
+            commonMistakes: [
+                "Landing with locked elbows — shoulder risk",
+                "Half-committing the launch",
+                "Piking the hips to push off higher"
+            ],
+            timeline: "2-6 weeks from 10 pushups.",
+            rank: .d,
+            levels: [
+                SkillLevel(level: 1, target: .reps(3), criterion: "First clean explosive pushup to standard", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(5), criterion: "5 strict explosive pushup", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(8), criterion: "8 strict explosive pushup", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(12), criterion: "12 strict explosive pushup", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(20), criterion: "20 strict explosive pushup", xpReward: 250),
+            ]
+        ),
+        .simple(
+            id: "cal.clapping-pushup",
+            title: "Clapping Push-Up",
+            cluster: .calisthenicControl, tier: 3, type: .skill,
+            target: .reps(exercise: "clapping pushup", count: 3),
+            prereqs: [PrerequisiteGroup("cal.explosive-pushup")],
+            primary: [.chest, .arms, .shoulders], secondary: [.core],
+            subtitle: "Push high enough to clap.",
+            description: "3 pushups where the concentric is explosive enough to clap the hands at chest before landing. Classic plyometric benchmark.",
+            formCues: [
+                "Explode up, clap once at chest level",
+                "Catch with slightly bent elbows",
+                "Plank remains rigid — no pike during the clap",
+                "Reset between reps if rhythm breaks"
+            ],
+            commonMistakes: [
+                "Clapping at hips (not enough airtime)",
+                "Landing stiff-armed",
+                "Cheating with hip dip for liftoff"
+            ],
+            timeline: "1-4 months from explosive pushup.",
+            rank: .c,
+            levels: [
+                SkillLevel(level: 1, target: .firstRep, criterion: "First clean clapping pushup to standard", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(3), criterion: "3 strict clapping pushup", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict clapping pushup", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(8), criterion: "8 strict clapping pushup", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(12), criterion: "12 strict clapping pushup", xpReward: 250),
+            ]
+        ),
+        .simple(
+            id: "cal.floating-pike-pushup",
+            title: "Floating Pike Push-Up",
+            cluster: .calisthenicControl, tier: 5, type: .skill,
+            target: .reps(exercise: "floating pike pushup", count: 3),
+            prereqs: [PrerequisiteGroup(["cal.archer-pushup", "hspu.elevated-pike-pushup-10"])],
+            equipment: [.parallettes],
+            primary: [.shoulders, .arms], secondary: [.core],
+            subtitle: "Pike pushup with feet off the ground.",
+            description: "Pike pushup on parallettes where the feet never touch the floor — legs tucked or straddled. 3 reps of pure shoulder pressing.",
+            formCues: [
+                "Start from tuck or straddle support on parallettes",
+                "Hips stack over the shoulders",
+                "Head descends between the hands",
+                "Press back up without touching down"
+            ],
+            commonMistakes: [
+                "Feet brushing the floor mid-rep",
+                "Collapsing the tuck under load",
+                "Partial ROM — not bringing head down"
+            ],
+            timeline: "6-18 months from elevated pike pushup.",
+            rank: .b,
+            levels: [
+                SkillLevel(level: 1, target: .firstRep, criterion: "First clean floating pike pushup to standard", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(3), criterion: "3 strict floating pike pushup", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict floating pike pushup", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(8), criterion: "8 strict floating pike pushup", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(12), criterion: "12 strict floating pike pushup", xpReward: 250),
+            ]
+        ),
+        .simple(
+            id: "cal.bench-dip",
+            title: "Bench Dip",
+            cluster: .calisthenicControl, tier: 1, type: .skill,
+            target: .reps(exercise: "bench dip", count: 10),
+            equipment: [.bodyweight, .elevatedSurface],
+            primary: [.arms], secondary: [.chest, .shoulders],
+            subtitle: "The dip on-ramp.",
+            description: "10 bench dips — hands on a bench behind you, feet on the floor, lower hips toward the ground, press back up. Tricep-dominant starter.",
+            formCues: [
+                "Hands grip bench edge, fingers pointing forward",
+                "Elbows track straight back, not flared",
+                "Descend until upper arms parallel or deeper",
+                "Press through the palms to lockout"
+            ],
+            commonMistakes: [
+                "Elbows flaring wide — shoulder strain",
+                "Dropping hips forward away from the bench",
+                "Partial ROM — stopping well short of parallel"
+            ],
+            timeline: "1-3 weeks for most beginners.",
+            rank: .e,
+            levels: [
+                SkillLevel(level: 1, target: .reps(5), criterion: "First clean bench dip to standard", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(10), criterion: "10 strict bench dip", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(15), criterion: "15 strict bench dip", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(20), criterion: "20 strict bench dip", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(30), criterion: "30 strict bench dip", xpReward: 250),
+            ]
+        ),
+        .simple(
+            id: "cal.tempo-dip",
+            title: "Tempo Dip",
+            cluster: .calisthenicControl, tier: 3, type: .skill,
+            target: .reps(exercise: "tempo dip", count: 5),
+            prereqs: [PrerequisiteGroup("cal.5-dips")],
+            equipment: [.parallettes, .elevatedSurface],
+            primary: [.chest, .arms, .shoulders],
+            subtitle: "Slow exposes weak.",
+            description: "5 dips with a 3-second descent and 1-second hold at the bottom before pressing back up. Tempo burns out every rep to the last inch.",
+            formCues: [
+                "Count 3 on the way down",
+                "Full pause at the bottom — shoulders below elbows",
+                "No bounce out of the hole",
+                "Control the press, don't explode up"
+            ],
+            commonMistakes: [
+                "Bouncing out of the pause",
+                "Cheating tempo on reps 4-5",
+                "Losing ROM as fatigue sets in"
+            ],
+            timeline: "4-10 weeks from 5 clean dips.",
+            rank: .c,
+            levels: [
+                SkillLevel(level: 1, target: .reps(3), criterion: "First clean tempo (3s/1s) dip to standard", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(5), criterion: "5 strict tempo (3s/1s) dip", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(8), criterion: "8 strict tempo (3s/1s) dip", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(12), criterion: "12 strict tempo (3s/1s) dip", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(15), criterion: "15 strict tempo (3s/1s) dip", xpReward: 250),
+            ]
+        ),
+        .simple(
+            id: "cal.weighted-dip",
+            title: "Weighted Dip",
+            cluster: .calisthenicControl, tier: 3, type: .strength,
+            target: .weightMultiplier(exercise: "weighted dip", multiplier: 0.25),
+            prereqs: [PrerequisiteGroup("cal.5-dips")],
+            equipment: [.parallettes, .dumbbells],
+            primary: [.chest, .arms, .shoulders],
+            subtitle: "Load the dip.",
+            description: "Dip with added weight via belt or dumbbell between the feet. Quarter bodyweight, clean reps and ROM.",
+            formCues: [
+                "Same strict form as bodyweight dip",
+                "Add load in small 5-10 lb steps",
+                "Shoulders below elbows at the bottom",
+                "Full lockout top"
+            ],
+            commonMistakes: [
+                "Loading too heavy and losing ROM",
+                "Swinging the dumbbell for momentum",
+                "Shrugged shoulders under load"
+            ],
+            timeline: "2-6 months from 5 bodyweight dips.",
+            rank: .c,
+            levels: [
+                SkillLevel(level: 1, target: .weight(multiplier: 0.15), criterion: "Dip with 0.15x bw load", xpReward: 50),
+                SkillLevel(level: 2, target: .weight(multiplier: 0.25), criterion: "Dip with 0.25x bw load", xpReward: 100),
+                SkillLevel(level: 3, target: .weight(multiplier: 0.4), criterion: "Dip with 0.4x bw load", xpReward: 150),
+                SkillLevel(level: 4, target: .weight(multiplier: 0.5), criterion: "Dip with 0.5x bw load", xpReward: 200),
+                SkillLevel(level: 5, target: .weight(multiplier: 0.75), criterion: "Dip with 0.75x bw load", xpReward: 250),
+            ]
+        ),
+        .simple(
+            id: "cal.l-sit-dip",
+            title: "L-Sit Dip",
+            cluster: .calisthenicControl, tier: 4, type: .skill,
+            target: .reps(exercise: "l-sit dip", count: 3),
+            prereqs: [PrerequisiteGroup(["cal.5-dips", "cal.l-sit-10"])],
+            equipment: [.parallettes],
+            primary: [.chest, .arms, .shoulders, .core],
+            subtitle: "Dip while holding an L-sit.",
+            description: "3 strict dips with legs locked out parallel in an L-sit. Combines the pressing of the dip with the core compression of the L-sit.",
+            formCues: [
+                "Enter top position in a full L-sit",
+                "Legs stay parallel throughout",
+                "Dip to full depth — shoulders below elbows",
+                "No leg drop on the eccentric"
+            ],
+            commonMistakes: [
+                "Legs drooping as fatigue sets in",
+                "Bent knees — loses L-sit standard",
+                "Partial ROM on the dip"
+            ],
+            timeline: "3-12 months from 5 dips + L-sit 10s.",
+            rank: .b,
+            levels: [
+                SkillLevel(level: 1, target: .firstRep, criterion: "First clean L-sit dip to standard", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(3), criterion: "3 strict L-sit dip", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict L-sit dip", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(8), criterion: "8 strict L-sit dip", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(10), criterion: "10 strict L-sit dip", xpReward: 250),
+            ]
+        ),
+        .simple(
+            id: "cal.triple-clap-pushup",
+            title: "Triple Clap Push-Up",
+            cluster: .calisthenicControl, tier: 7, type: .skill,
+            target: .reps(exercise: "triple clap pushup", count: 1),
+            prereqs: [PrerequisiteGroup("cal.clapping-pushup")],
+            isMythic: true,
+            primary: [.chest, .arms, .shoulders], secondary: [.core],
+            subtitle: "Three claps. One rep. No excuses.",
+            description: "One clean pushup where the airtime is so violent you fit three claps before landing. Famed for being essentially impossible without elite power-to-weight.",
+            formCues: [
+                "Explode from a rigid plank",
+                "Clap three times at chest level mid-air",
+                "Catch with soft elbows, reset in plank",
+                "Only program once clapping pushup is trivial"
+            ],
+            commonMistakes: [
+                "Landing with locked arms — shoulder injury risk",
+                "Fake claps that barely touch",
+                "Piking hips for cheat airtime"
+            ],
+            timeline: "5+ years of power training. Very rare.",
+            rank: .s,
+            levels: [
+                SkillLevel(level: 1, target: .firstRep, criterion: "First clean triple clap pushup to standard", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(2), criterion: "2 strict triple clap pushup", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(3), criterion: "3 strict triple clap pushup", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(5), criterion: "5 strict triple clap pushup", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(8), criterion: "8 strict triple clap pushup", xpReward: 250),
+            ]
+        ),
+
+        // ────────────────────────────────────────────────────────────────
+        // LEGS ADDITIONS — calves, jumps, glute work, hamstring forge
+        // ────────────────────────────────────────────────────────────────
+
+        .simple(
+            id: "ld.calf-raise",
+            title: "Calf Raise",
+            cluster: .legDominance, tier: 1, type: .skill,
+            target: .reps(exercise: "calf raise", count: 20),
+            primary: [.calves],
+            subtitle: "The skipped muscle group.",
+            description: "20 double-leg calf raises — rise onto the balls of the feet, control the descent, heels touch the floor each rep.",
+            formCues: [
+                "Rise as high as possible — full plantar flexion",
+                "Pause 1s at the top",
+                "Lower slowly, heels kiss the floor",
+                "Feet parallel, knees locked"
+            ],
+            commonMistakes: [
+                "Bouncing through reps — no ROM",
+                "Partial ROM at the top",
+                "Rushing the eccentric"
+            ],
+            timeline: "1-2 weeks from zero.",
+            rank: .e,
+            levels: [
+                SkillLevel(level: 1, target: .reps(15), criterion: "15 clean calf raise", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(20), criterion: "20 clean calf raise", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(30), criterion: "30 clean calf raise", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(50), criterion: "50 clean calf raise", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(75), criterion: "75 clean calf raise", xpReward: 250),
+            ]
+        ),
+        .simple(
+            id: "ld.weighted-sl-calf",
+            title: "Weighted Single-Leg Calf Raise",
+            cluster: .legDominance, tier: 3, type: .strength,
+            target: .reps(exercise: "single-leg calf raise", count: 10, load: "0.5x bw"),
+            prereqs: [PrerequisiteGroup("ld.calf-raise")],
+            equipment: [.dumbbells, .kettlebell],
+            primary: [.calves],
+            subtitle: "Unilateral calf strength.",
+            description: "10 single-leg calf raises per side holding half bodyweight at the hip. Eliminates the stronger leg compensation that kills calf hypertrophy.",
+            formCues: [
+                "Load hangs on the working-side hand",
+                "Free leg bent, toes off the ground",
+                "Full plantar flexion at the top",
+                "Slow, controlled descent to heel-drop below toes"
+            ],
+            commonMistakes: [
+                "Bouncing out of the stretch",
+                "Partial ROM",
+                "Free leg sneaking assistance"
+            ],
+            timeline: "2-6 months from bodyweight calf raises.",
+            rank: .c,
+            levels: [
+                SkillLevel(level: 1, target: .reps(8), criterion: "8 single-leg calf raise at 0.25x bw", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(10), criterion: "10 single-leg calf raise at 0.5x bw", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(12), criterion: "12 single-leg calf raise at 0.5x bw", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(15), criterion: "15 single-leg calf raise at 0.75x bw", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(20), criterion: "20 single-leg calf raise at 1x bw", xpReward: 250),
+            ]
+        ),
+        .simple(
+            id: "ld.hip-hinge",
+            title: "Hip Hinge",
+            cluster: .legDominance, tier: 1, type: .skill,
+            target: .reps(exercise: "hip hinge", count: 15),
+            primary: [.glutes, .back], secondary: [.legs, .core],
+            subtitle: "The pattern behind every pull from the floor.",
+            description: "15 bodyweight hip hinges — push hips back, soft knee bend, neutral spine, return. Teaches the hinge pattern before it gets loaded.",
+            formCues: [
+                "Push hips back like shutting a car door with your butt",
+                "Soft knee bend — not a squat",
+                "Neutral spine throughout — no rounding",
+                "Feel the stretch in the hamstrings at the bottom"
+            ],
+            commonMistakes: [
+                "Squatting instead of hinging",
+                "Rounding the lower back",
+                "Knees drifting forward"
+            ],
+            timeline: "1-2 weeks to groove the pattern.",
+            rank: .e,
+            levels: [
+                SkillLevel(level: 1, target: .reps(10), criterion: "10 clean hip hinge to standard", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(15), criterion: "15 clean hip hinge", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(20), criterion: "20 clean hip hinge", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(30), criterion: "30 clean hip hinge", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(50), criterion: "50 clean hip hinge", xpReward: 250),
+            ]
+        ),
+        .simple(
+            id: "ld.box-jump",
+            title: "Box Jump",
+            cluster: .legDominance, tier: 2, type: .skill,
+            target: .reps(exercise: "box jump", count: 5),
+            prereqs: [PrerequisiteGroup("ld.tempo-squat")],
+            equipment: [.bodyweight, .elevatedSurface],
+            primary: [.legs, .glutes], secondary: [.calves, .core],
+            subtitle: "Explosive triple extension.",
+            description: "5 clean box jumps to a box at knee height or higher. Land soft, stand tall, step down — never jump down.",
+            formCues: [
+                "Arms swing for momentum",
+                "Hips, knees, ankles extend together",
+                "Land in a partial squat, absorb softly",
+                "Step down off the box — no ankle trauma"
+            ],
+            commonMistakes: [
+                "Landing stiff-legged — joints take the hit",
+                "Using a box that's too tall to land clean",
+                "Jumping down off the box"
+            ],
+            timeline: "1-3 weeks to groove the jump.",
+            rank: .d,
+            levels: [
+                SkillLevel(level: 1, target: .reps(3), criterion: "3 clean box jumps to knee height", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(5), criterion: "5 clean box jumps to mid-thigh", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(8), criterion: "8 clean box jumps to hip height", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(10), criterion: "10 clean box jumps to waist height", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(10), criterion: "10 clean box jumps to chest height", xpReward: 250),
+            ]
+        ),
+        .simple(
+            id: "ld.jumping-squat",
+            title: "Jumping Squat",
+            cluster: .legDominance, tier: 2, type: .skill,
+            target: .reps(exercise: "jumping squat", count: 10),
+            prereqs: [PrerequisiteGroup("ld.tempo-squat")],
+            primary: [.legs, .glutes], secondary: [.calves, .core],
+            subtitle: "Squat, then launch.",
+            description: "10 bodyweight jumping squats — full-depth squat, explode to jump, land soft, re-descend into the next rep. Power endurance.",
+            formCues: [
+                "Full-depth squat each rep",
+                "Explode straight up on the concentric",
+                "Land in the next rep's squat — absorb softly",
+                "Chest up, no forward collapse"
+            ],
+            commonMistakes: [
+                "Partial depth between jumps",
+                "Landing stiff — joints take a beating",
+                "Forward lean on the concentric"
+            ],
+            timeline: "1-3 weeks from solid tempo squats.",
+            rank: .d,
+            levels: [
+                SkillLevel(level: 1, target: .reps(5), criterion: "5 clean jumping squat to standard", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(10), criterion: "10 clean jumping squat", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(15), criterion: "15 clean jumping squat", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(20), criterion: "20 clean jumping squat", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(30), criterion: "30 clean jumping squat", xpReward: 250),
+            ]
+        ),
+        .simple(
+            id: "ld.heighted-split-squat",
+            title: "Elevated Bulgarian Split Squat",
+            cluster: .legDominance, tier: 3, type: .skill,
+            target: .reps(exercise: "elevated bulgarian split squat", count: 8),
+            prereqs: [PrerequisiteGroup("ld.bulgarian-split-squat")],
+            equipment: [.bodyweight, .elevatedSurface],
+            primary: [.legs, .glutes], secondary: [.core],
+            subtitle: "More range. More burn.",
+            description: "8 reps per leg with the front foot elevated on a plate or low box. Deepens the split squat ROM and hits glutes harder.",
+            formCues: [
+                "Front foot on a 2-4 inch plate or low box",
+                "Rear foot on a bench, laces down",
+                "Torso upright, drive through front heel",
+                "Full depth — deeper than floor split squat"
+            ],
+            commonMistakes: [
+                "Going too high on the front elevation",
+                "Front knee diving over toes",
+                "Partial ROM"
+            ],
+            timeline: "2-4 months from floor bulgarian split squat.",
+            rank: .b,
+            levels: [
+                SkillLevel(level: 1, target: .reps(5), criterion: "5 strict elevated bulgarian split squat per leg", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(8), criterion: "8 strict elevated bulgarian split squat per leg", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(10), criterion: "10 strict elevated bulgarian split squat per leg", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(12), criterion: "12 strict elevated bulgarian split squat per leg", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(15), criterion: "15 strict elevated bulgarian split squat per leg", xpReward: 250),
+            ]
+        ),
+        .simple(
+            id: "ld.heighted-pistol",
+            title: "Elevated Pistol Squat",
+            cluster: .legDominance, tier: 5, type: .skill,
+            target: .reps(exercise: "elevated pistol", count: 3),
+            prereqs: [PrerequisiteGroup("ld.pistol-squat")],
+            equipment: [.bodyweight, .elevatedSurface],
+            primary: [.legs, .glutes], secondary: [.core],
+            subtitle: "Pistol with free leg below the working foot.",
+            description: "Pistol squat performed on a raised platform so the free leg can drop below the foot — forces deeper hip flexion and real ankle mobility. 3 per side.",
+            formCues: [
+                "Box or plate 6-12 inches tall",
+                "Free leg drops below the platform",
+                "Full pistol depth on the working leg",
+                "Slow descent to keep heel planted"
+            ],
+            commonMistakes: [
+                "Free leg resting on the box for support",
+                "Cheating depth by not dropping below",
+                "Heel lifting under the depth"
+            ],
+            timeline: "3-9 months from clean pistol squat.",
+            rank: .b,
+            levels: [
+                SkillLevel(level: 1, target: .firstRep, criterion: "First clean elevated pistol squat per leg to standard", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(3), criterion: "3 strict elevated pistol squat per leg", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict elevated pistol squat per leg", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(8), criterion: "8 strict elevated pistol squat per leg", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(12), criterion: "12 strict elevated pistol squat per leg", xpReward: 250),
+            ]
+        ),
+        .simple(
+            id: "ld.fire-hydrant",
+            title: "Fire Hydrant",
+            cluster: .legDominance, tier: 1, type: .skill,
+            target: .reps(exercise: "fire hydrant", count: 15),
+            primary: [.glutes], secondary: [.core],
+            subtitle: "Hip abduction activator.",
+            description: "15 fire hydrants per side — on hands and knees, raise one bent leg out to the side, keeping the knee bent at 90°. Targets the glute medius.",
+            formCues: [
+                "Back flat, hips square to the floor",
+                "Raise leg straight out to the side, knee bent",
+                "Squeeze glute at the top",
+                "Control the descent"
+            ],
+            commonMistakes: [
+                "Rotating the spine to lift higher",
+                "Hips dropping to the opposite side",
+                "Rushing reps"
+            ],
+            timeline: "Immediate — activation drill.",
+            rank: .e,
+            levels: [
+                SkillLevel(level: 1, target: .reps(10), criterion: "10 clean fire hydrant per side", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(15), criterion: "15 clean fire hydrant per side", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(20), criterion: "20 clean fire hydrant per side", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(25), criterion: "25 clean fire hydrant per side", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(30), criterion: "30 clean fire hydrant per side", xpReward: 250),
+            ]
+        ),
+        .simple(
+            id: "ld.single-leg-glute-bridge",
+            title: "Single-Leg Glute Bridge",
+            cluster: .legDominance, tier: 2, type: .skill,
+            target: .reps(exercise: "single-leg glute bridge", count: 10),
+            prereqs: [PrerequisiteGroup("ld.fire-hydrant")],
+            primary: [.glutes], secondary: [.core, .legs],
+            subtitle: "Glute isolation. No quads allowed.",
+            description: "10 single-leg glute bridges per side — lying on back, foot planted, raise hips driving through the heel. Other leg extended.",
+            formCues: [
+                "Working foot flat, heel under knee",
+                "Free leg extended straight",
+                "Squeeze glute to drive hips up",
+                "Full hip extension at the top, no lumbar arch"
+            ],
+            commonMistakes: [
+                "Using the free leg for momentum",
+                "Lumbar arch instead of glute squeeze",
+                "Partial ROM — hips not reaching lockout"
+            ],
+            timeline: "1-3 weeks.",
+            rank: .d,
+            levels: [
+                SkillLevel(level: 1, target: .reps(5), criterion: "5 clean single-leg glute bridge per side", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(10), criterion: "10 clean single-leg glute bridge per side", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(15), criterion: "15 clean single-leg glute bridge per side", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(20), criterion: "20 clean single-leg glute bridge per side", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(25), criterion: "25 clean single-leg glute bridge per side", xpReward: 250),
+            ]
+        ),
+        .simple(
+            id: "ld.flying-kickback",
+            title: "Flying Kickback",
+            cluster: .legDominance, tier: 2, type: .skill,
+            target: .reps(exercise: "flying kickback", count: 12),
+            prereqs: [PrerequisiteGroup("ld.fire-hydrant")],
+            primary: [.glutes], secondary: [.back, .core],
+            subtitle: "Explosive glute extension.",
+            description: "12 flying kickbacks per side — on hands and knees, drive one leg straight back aggressively, squeeze glute hard, return with control.",
+            formCues: [
+                "Back flat, core braced",
+                "Drive the leg back fast, glute leads",
+                "Full hip extension — toe points back, not up",
+                "Controlled return, don't crash"
+            ],
+            commonMistakes: [
+                "Lumbar arching to fake glute extension",
+                "Leg drifting out to the side",
+                "Swinging instead of driving"
+            ],
+            timeline: "Immediate.",
+            rank: .d,
+            levels: [
+                SkillLevel(level: 1, target: .reps(8), criterion: "8 clean flying kickback per side", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(12), criterion: "12 clean flying kickback per side", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(15), criterion: "15 clean flying kickback per side", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(20), criterion: "20 clean flying kickback per side", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(25), criterion: "25 clean flying kickback per side", xpReward: 250),
+            ]
+        ),
+        .simple(
+            id: "ld.advancing-nordic-curl",
+            title: "Advancing Nordic Curl",
+            cluster: .legDominance, tier: 4, type: .skill,
+            target: .reps(exercise: "nordic curl", count: 3),
+            prereqs: [PrerequisiteGroup("ld.single-leg-rdl")],
+            equipment: [.bodyweight, .elevatedSurface],
+            primary: [.legs, .glutes], secondary: [.core],
+            subtitle: "The hamstring eccentric destroyer.",
+            description: "3 Nordic curls — kneeling with ankles anchored, lower the torso toward the floor with hamstrings, catch with the hands, push back up. Eccentric hamstring dominance.",
+            formCues: [
+                "Ankles anchored under a bar, bench, or partner",
+                "Knees, hips, shoulders stay in one line",
+                "Lower as slow as possible — 5s+ descent",
+                "Catch with hands, push back up to start"
+            ],
+            commonMistakes: [
+                "Piking at the hips to cheat",
+                "Falling the second the hamstrings fatigue",
+                "Anchor slipping mid-rep"
+            ],
+            timeline: "6-18 months from single-leg RDL.",
+            rank: .b,
+            levels: [
+                SkillLevel(level: 1, target: .firstRep, criterion: "First clean Nordic curl to standard", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(3), criterion: "3 strict Nordic curl", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict Nordic curl", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(8), criterion: "8 strict Nordic curl", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(12), criterion: "12 strict Nordic curl", xpReward: 250),
+            ]
+        ),
+        .simple(
+            id: "ld.floor-to-ceiling-squat",
+            title: "Floor to Ceiling Squat",
+            cluster: .legDominance, tier: 7, type: .skill,
+            target: .reps(exercise: "floor to ceiling squat", count: 1),
+            prereqs: [PrerequisiteGroup(["ld.jumping-pistol", "ld.advancing-nordic-curl"])],
+            isMythic: true,
+            primary: [.legs, .glutes], secondary: [.core, .calves],
+            subtitle: "From flat on the floor, jump up and touch ceiling.",
+            description: "Lie supine on the floor, stand up in one motion, and explode into a jump high enough to touch an 8-foot ceiling. One rep. Full-body explosive power.",
+            formCues: [
+                "Sit-up plus stand in one smooth motion",
+                "No push-off with the hands on the floor",
+                "Full-depth squat into an explosive vertical jump",
+                "Aim for fingertips to ceiling, not just wall mark"
+            ],
+            commonMistakes: [
+                "Rolling to the side to cheat the standup",
+                "Partial squat before the jump",
+                "Stopping short on the leap"
+            ],
+            timeline: "5+ years of explosive leg training. Very rare.",
+            rank: .s,
+            levels: [
+                SkillLevel(level: 1, target: .firstRep, criterion: "First clean floor to ceiling squat to standard", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(2), criterion: "2 strict floor to ceiling squat", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(3), criterion: "3 strict floor to ceiling squat", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(5), criterion: "5 strict floor to ceiling squat", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(8), criterion: "8 strict floor to ceiling squat", xpReward: 250),
+            ]
+        ),
+
+        // ────────────────────────────────────────────────────────────────
+        // CORE & LEVERS ADDITIONS — crunch variants, plank variants, rings
+        // ────────────────────────────────────────────────────────────────
+
+        .simple(
+            id: "cl.crunch",
+            title: "Crunch",
+            cluster: .coreLever, tier: 1, type: .skill,
+            target: .reps(exercise: "crunch", count: 20),
+            primary: [.core],
+            subtitle: "Starting point for ab-specific work.",
+            description: "20 strict crunches — lying on your back, knees bent, curl shoulder blades off the floor, touch fingertips toward knees. Short-range, ab-isolated.",
+            formCues: [
+                "Lower back pressed to floor throughout",
+                "Chin tucked, eyes on the ceiling",
+                "Lift shoulder blades off the floor — no more",
+                "Hands light on head, don't pull neck"
+            ],
+            commonMistakes: [
+                "Yanking on the neck to sit up",
+                "Sitting all the way up — that's a sit-up, not a crunch",
+                "Feet lifting off the floor"
+            ],
+            timeline: "Immediate.",
+            rank: .e,
+            levels: [
+                SkillLevel(level: 1, target: .reps(10), criterion: "10 clean crunch to standard", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(20), criterion: "20 clean crunch", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(30), criterion: "30 clean crunch", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(50), criterion: "50 clean crunch", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(75), criterion: "75 clean crunch", xpReward: 250),
+            ]
+        ),
+        .simple(
+            id: "cl.reverse-crunch",
+            title: "Reverse Crunch",
+            cluster: .coreLever, tier: 2, type: .skill,
+            target: .reps(exercise: "reverse crunch", count: 15),
+            prereqs: [PrerequisiteGroup("cl.crunch")],
+            primary: [.core], secondary: [.legs],
+            subtitle: "Lower abs emphasis.",
+            description: "15 reverse crunches — lie on back, curl hips off the floor by pulling knees toward chest. Targets lower ab engagement the standard crunch misses.",
+            formCues: [
+                "Start with knees stacked over hips",
+                "Curl hips off the floor, don't just swing legs",
+                "Lower slowly, no momentum",
+                "Shoulders stay down, don't shrug"
+            ],
+            commonMistakes: [
+                "Swinging the legs instead of curling the hips",
+                "Using momentum from the eccentric",
+                "Lumbar arching at the bottom"
+            ],
+            timeline: "1-2 weeks from crunches.",
+            rank: .d,
+            levels: [
+                SkillLevel(level: 1, target: .reps(8), criterion: "8 clean reverse crunch to standard", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(15), criterion: "15 clean reverse crunch", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(20), criterion: "20 clean reverse crunch", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(30), criterion: "30 clean reverse crunch", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(50), criterion: "50 clean reverse crunch", xpReward: 250),
+            ]
+        ),
+        .simple(
+            id: "cl.superman-plank",
+            title: "Superman Plank",
+            cluster: .coreLever, tier: 3, type: .hold,
+            target: .hold(exercise: "superman plank", seconds: 15),
+            prereqs: [PrerequisiteGroup("cal.plank-30")],
+            primary: [.core, .shoulders], secondary: [.back, .glutes],
+            subtitle: "Plank with limbs extended.",
+            description: "15-second plank with one arm extended forward and the opposite leg extended back. Hold, switch. Anti-rotation challenge.",
+            formCues: [
+                "Start in a rigid plank",
+                "Extend opposite arm and leg without hips twisting",
+                "Hold — don't lose the plank line",
+                "Return slowly, switch sides"
+            ],
+            commonMistakes: [
+                "Hips rotating as the limbs extend",
+                "Arm and leg on the same side — cancels the anti-rotation",
+                "Dropping the extended limb to the floor"
+            ],
+            timeline: "1-4 weeks from 30s plank.",
+            rank: .c,
+            levels: [
+                SkillLevel(level: 1, target: .hold(seconds: 10), criterion: "Hold superman plank for 10s per side", xpReward: 50),
+                SkillLevel(level: 2, target: .hold(seconds: 15), criterion: "Hold superman plank for 15s per side", xpReward: 100),
+                SkillLevel(level: 3, target: .hold(seconds: 20), criterion: "Hold superman plank for 20s per side", xpReward: 150),
+                SkillLevel(level: 4, target: .hold(seconds: 30), criterion: "Hold superman plank for 30s per side", xpReward: 200),
+                SkillLevel(level: 5, target: .hold(seconds: 45), criterion: "Hold superman plank for 45s per side", xpReward: 250),
+            ]
+        ),
+        .simple(
+            id: "cl.standing-plank",
+            title: "Standing Plank",
+            cluster: .coreLever, tier: 2, type: .hold,
+            target: .hold(exercise: "standing plank", seconds: 20),
+            prereqs: [PrerequisiteGroup("cal.plank-30")],
+            equipment: [.bodyweight, .elevatedSurface],
+            primary: [.core, .shoulders], secondary: [.back],
+            subtitle: "Plank with hands on a bench, feet on floor.",
+            description: "20-second inclined plank — forearms on a bench, feet back, body straight. Teaches the plank line with less load before the standing dial-up.",
+            formCues: [
+                "Forearms flat on the bench, elbows under shoulders",
+                "Body straight head to heel",
+                "Squeeze glutes to hold the line",
+                "Breathe normally"
+            ],
+            commonMistakes: [
+                "Hips sagging toward the floor",
+                "Piking up to rest",
+                "Holding breath"
+            ],
+            timeline: "Immediate from plank 30s.",
+            rank: .d,
+            levels: [
+                SkillLevel(level: 1, target: .hold(seconds: 15), criterion: "Hold standing plank for 15s, clean form", xpReward: 50),
+                SkillLevel(level: 2, target: .hold(seconds: 20), criterion: "Hold standing plank for 20s, clean form", xpReward: 100),
+                SkillLevel(level: 3, target: .hold(seconds: 30), criterion: "Hold standing plank for 30s, clean form", xpReward: 150),
+                SkillLevel(level: 4, target: .hold(seconds: 45), criterion: "Hold standing plank for 45s, clean form", xpReward: 200),
+                SkillLevel(level: 5, target: .hold(seconds: 60), criterion: "Hold standing plank for 60s, clean form", xpReward: 250),
+            ]
+        ),
+        .simple(
+            id: "cl.extended-plank",
+            title: "Extended Plank",
+            cluster: .coreLever, tier: 3, type: .hold,
+            target: .hold(exercise: "extended plank", seconds: 15),
+            prereqs: [PrerequisiteGroup("cal.plank-30")],
+            primary: [.core, .shoulders], secondary: [.arms],
+            subtitle: "Hands way out front of the shoulders.",
+            description: "15-second plank with hands reached forward past the shoulders — long lever demands more core tension than a standard plank.",
+            formCues: [
+                "Hands reach 6-12 inches past shoulders",
+                "Body rigid as plank — no sag, no pike",
+                "Shoulders stay packed down",
+                "Gaze at the floor, neck neutral"
+            ],
+            commonMistakes: [
+                "Reaching hands too far too soon",
+                "Hip sag as the lever gets long",
+                "Shrugged shoulders under the load"
+            ],
+            timeline: "2-4 weeks from plank 30s.",
+            rank: .d,
+            levels: [
+                SkillLevel(level: 1, target: .hold(seconds: 10), criterion: "Hold extended plank for 10s, clean form", xpReward: 50),
+                SkillLevel(level: 2, target: .hold(seconds: 15), criterion: "Hold extended plank for 15s, clean form", xpReward: 100),
+                SkillLevel(level: 3, target: .hold(seconds: 20), criterion: "Hold extended plank for 20s, clean form", xpReward: 150),
+                SkillLevel(level: 4, target: .hold(seconds: 30), criterion: "Hold extended plank for 30s, clean form", xpReward: 200),
+                SkillLevel(level: 5, target: .hold(seconds: 45), criterion: "Hold extended plank for 45s, clean form", xpReward: 250),
+            ]
+        ),
+        .simple(
+            id: "cl.knee-ab-rollout",
+            title: "Knee Ab Rollout",
+            cluster: .coreLever, tier: 2, type: .skill,
+            target: .reps(exercise: "ab wheel kneeling", count: 8),
+            prereqs: [PrerequisiteGroup("cal.plank-30")],
+            primary: [.core, .shoulders], secondary: [.lats],
+            subtitle: "Ab wheel on ramp.",
+            description: "8 kneeling ab wheel rollouts. Roll out as far as core can control, roll back. Gateway to the standing rollout.",
+            formCues: [
+                "Kneel with hands on the wheel under shoulders",
+                "Roll out keeping a hollow body",
+                "Pause at the end range before rolling back",
+                "Control both directions"
+            ],
+            commonMistakes: [
+                "Lumbar sag at the end range",
+                "Rolling too far too soon (injury risk)",
+                "Holding breath instead of breathing"
+            ],
+            timeline: "1-4 weeks from solid plank.",
+            rank: .d,
+            levels: [
+                SkillLevel(level: 1, target: .reps(5), criterion: "First clean kneeling ab rollout to standard", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(8), criterion: "8 strict kneeling ab rollout", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(12), criterion: "12 strict kneeling ab rollout", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(15), criterion: "15 strict kneeling ab rollout", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(20), criterion: "20 strict kneeling ab rollout", xpReward: 250),
+            ]
+        ),
+        .simple(
+            id: "cl.levitation-crunch",
+            title: "Levitation Crunch",
+            cluster: .coreLever, tier: 3, type: .skill,
+            target: .reps(exercise: "levitation crunch", count: 8),
+            prereqs: [PrerequisiteGroup("cl.reverse-crunch")],
+            primary: [.core], secondary: [.glutes],
+            subtitle: "Lift the whole body off the floor.",
+            description: "8 reps — lying on back, knees bent, curl hips and upper back off the floor simultaneously, only the mid-back stays in contact. Brutal on the rectus abdominis.",
+            formCues: [
+                "Curl both ends of the body toward the ceiling",
+                "Only mid-back stays in contact",
+                "Arms reach toward the knees",
+                "Slow descent — no crashing down"
+            ],
+            commonMistakes: [
+                "Yanking with the neck",
+                "Using the arms to swing up",
+                "Not fully levitating — partial ROM"
+            ],
+            timeline: "1-3 months from reverse crunch.",
+            rank: .c,
+            levels: [
+                SkillLevel(level: 1, target: .reps(5), criterion: "First clean levitation crunch to standard", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(8), criterion: "8 strict levitation crunch", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(12), criterion: "12 strict levitation crunch", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(15), criterion: "15 strict levitation crunch", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(20), criterion: "20 strict levitation crunch", xpReward: 250),
+            ]
+        ),
+        .simple(
+            id: "cl.inverted-situp",
+            title: "Inverted Sit-Up",
+            cluster: .coreLever, tier: 3, type: .skill,
+            target: .reps(exercise: "inverted sit-up", count: 5),
+            prereqs: [PrerequisiteGroup("cl.hanging-leg-raise")],
+            equipment: [.pullupBar],
+            primary: [.core, .lats], secondary: [.arms],
+            subtitle: "Sit-up while hanging upside down.",
+            description: "5 hanging sit-ups — hook legs over a pullup bar so you hang inverted, curl the torso toward the knees, return slowly. Demands real core strength.",
+            formCues: [
+                "Secure the legs over the bar before the first rep",
+                "Curl the torso up, don't swing",
+                "Touch knees or elbows",
+                "Slow descent to avoid whipping the spine"
+            ],
+            commonMistakes: [
+                "Swinging for momentum",
+                "Legs slipping off the bar",
+                "Partial ROM"
+            ],
+            timeline: "2-6 months from hanging leg raise.",
+            rank: .c,
+            levels: [
+                SkillLevel(level: 1, target: .reps(3), criterion: "First clean inverted sit-up to standard", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(5), criterion: "5 strict inverted sit-up", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(8), criterion: "8 strict inverted sit-up", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(12), criterion: "12 strict inverted sit-up", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(20), criterion: "20 strict inverted sit-up", xpReward: 250),
+            ]
+        ),
+        .simple(
+            id: "cl.skin-the-cat",
+            title: "Skin the Cat",
+            cluster: .coreLever, tier: 4, type: .skill,
+            target: .reps(exercise: "skin the cat", count: 3),
+            prereqs: [PrerequisiteGroup(["cal.ring-support-10", "cl.hanging-leg-raise"])],
+            equipment: [.gymnasticRings],
+            primary: [.shoulders, .core, .lats], secondary: [.arms],
+            subtitle: "Rings pass-through. Shoulder opener.",
+            description: "3 strict skin-the-cats on rings — from a hang, tuck or pike legs overhead, roll through to a german hang, reverse the path back. Shoulder mobility plus core control.",
+            formCues: [
+                "Start in a dead hang, arms straight",
+                "Tuck or pike the legs overhead",
+                "Roll through slowly — no dropping into the bottom",
+                "Reverse the path back to hang"
+            ],
+            commonMistakes: [
+                "Dropping into the german hang — shoulder shock",
+                "Bent arms during the pass-through",
+                "Skipping warm-up — shoulders need prep"
+            ],
+            timeline: "2-6 months from ring support hold.",
+            rank: .b,
+            levels: [
+                SkillLevel(level: 1, target: .firstRep, criterion: "First clean skin the cat to standard", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(3), criterion: "3 strict skin the cat", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict skin the cat", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(8), criterion: "8 strict skin the cat", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(12), criterion: "12 strict skin the cat", xpReward: 250),
+            ]
+        ),
+        .simple(
+            id: "cl.german-hang",
+            title: "German Hang",
+            cluster: .coreLever, tier: 4, type: .hold,
+            target: .hold(exercise: "german hang", seconds: 10),
+            prereqs: [PrerequisiteGroup("cl.skin-the-cat")],
+            equipment: [.gymnasticRings],
+            primary: [.shoulders, .chest], secondary: [.core, .arms],
+            subtitle: "The rings position only mobile shoulders own.",
+            description: "10-second hold in the bottom of the skin-the-cat — hanging face down, arms behind the body, shoulders open. Serious shoulder mobility demand.",
+            formCues: [
+                "Enter slowly through a skin-the-cat",
+                "Arms stay straight throughout",
+                "Breathe — don't tense the shoulders",
+                "Exit the same way you entered"
+            ],
+            commonMistakes: [
+                "Attempting without shoulder warm-up",
+                "Bent arms — wrong skill, injury risk",
+                "Holding through shoulder pain"
+            ],
+            timeline: "3-9 months from skin the cat.",
+            rank: .b,
+            levels: [
+                SkillLevel(level: 1, target: .hold(seconds: 5), criterion: "Hold german hang for 5s, clean form", xpReward: 50),
+                SkillLevel(level: 2, target: .hold(seconds: 10), criterion: "Hold german hang for 10s, clean form", xpReward: 100),
+                SkillLevel(level: 3, target: .hold(seconds: 15), criterion: "Hold german hang for 15s, clean form", xpReward: 150),
+                SkillLevel(level: 4, target: .hold(seconds: 20), criterion: "Hold german hang for 20s, clean form", xpReward: 200),
+                SkillLevel(level: 5, target: .hold(seconds: 30), criterion: "Hold german hang for 30s, clean form", xpReward: 250),
+            ]
+        ),
+        .simple(
+            id: "cl.three-sixty-pulls",
+            title: "360-Degree Pulls",
+            cluster: .coreLever, tier: 7, type: .skill,
+            target: .reps(exercise: "360-degree pulls", count: 1),
+            prereqs: [PrerequisiteGroup(["cl.german-hang", "pp.one-arm-pullup"])],
+            isMythic: true,
+            equipment: [.gymnasticRings, .pullupBar],
+            primary: [.lats, .arms, .core], secondary: [.back, .shoulders],
+            subtitle: "Pull, release, rotate 360°, re-grip, pull again.",
+            description: "One rep — from a pullup, release with enough height to rotate 360° in the air before re-catching the bar, then continue into the next pullup. Power plus spatial control.",
+            formCues: [
+                "Explosive enough pullup to clear head and then some",
+                "Tuck hard to speed the rotation",
+                "Track the bar through the spin",
+                "Absorb on re-catch, don't slam to dead hang"
+            ],
+            commonMistakes: [
+                "Missing the re-catch and dropping",
+                "Under-rotating and landing sideways",
+                "Shrugged shoulders on the re-catch"
+            ],
+            timeline: "5+ years of dedicated explosive pulling. Very rare.",
+            rank: .s,
+            levels: [
+                SkillLevel(level: 1, target: .firstRep, criterion: "First clean 360-degree pulls to standard", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(2), criterion: "2 strict 360-degree pulls", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(3), criterion: "3 strict 360-degree pulls", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(5), criterion: "5 strict 360-degree pulls", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(8), criterion: "8 strict 360-degree pulls", xpReward: 250),
+            ]
+        ),
+
+        // ────────────────────────────────────────────────────────────────
+        // HANDBALANCE ADDITIONS — poses, elbow lever, press progressions
+        // ────────────────────────────────────────────────────────────────
+
+        .simple(
+            id: "hs.headstand",
+            title: "Headstand",
+            cluster: .handstand, tier: 1, type: .hold,
+            target: .hold(exercise: "headstand", seconds: 30),
+            prereqs: [PrerequisiteGroup("hs.wrist-conditioning")],
+            primary: [.shoulders, .core], secondary: [.arms],
+            subtitle: "The easier inversion.",
+            description: "30-second headstand — tripod on hands and head against a wall, body stacked vertical. First real taste of inverted balance.",
+            formCues: [
+                "Tripod: hands and head form a triangle",
+                "Bodyweight distributed across all three contact points",
+                "Body stacked vertical against or near a wall",
+                "Breathe through the hold"
+            ],
+            commonMistakes: [
+                "All weight on the head — neck strain",
+                "Arching the spine to stay up",
+                "Kicking up too hard against the wall"
+            ],
+            timeline: "1-4 weeks from wrist conditioning.",
+            rank: .d,
+            levels: [
+                SkillLevel(level: 1, target: .hold(seconds: 10), criterion: "Hold headstand for 10s, clean form", xpReward: 50),
+                SkillLevel(level: 2, target: .hold(seconds: 20), criterion: "Hold headstand for 20s, clean form", xpReward: 100),
+                SkillLevel(level: 3, target: .hold(seconds: 30), criterion: "Hold headstand for 30s, clean form", xpReward: 150),
+                SkillLevel(level: 4, target: .hold(seconds: 45), criterion: "Hold headstand for 45s, clean form", xpReward: 200),
+                SkillLevel(level: 5, target: .hold(seconds: 60), criterion: "Hold headstand for 60s, clean form", xpReward: 250),
+            ]
+        ),
+        .simple(
+            id: "hs.tuck-handstand",
+            title: "Tuck Handstand",
+            cluster: .handstand, tier: 3, type: .hold,
+            target: .hold(exercise: "tuck handstand", seconds: 5),
+            prereqs: [PrerequisiteGroup("hs.wall-handstand-60")],
+            primary: [.shoulders, .core], secondary: [.arms],
+            subtitle: "Freestanding on-ramp.",
+            description: "5-second freestanding tuck handstand — balance on hands with knees pulled tight to chest. Easier lever than full handstand, teaches the balance.",
+            formCues: [
+                "Press into the floor through straight arms",
+                "Knees tucked tight to chest, heels near glutes",
+                "Balance with the fingers, not the shoulders",
+                "Micro-adjust — don't try to stand statue still"
+            ],
+            commonMistakes: [
+                "Losing the tuck to try to balance",
+                "Bent arms when balance shifts",
+                "Over-kicking into the position"
+            ],
+            timeline: "1-3 months from 60s wall handstand.",
+            rank: .c,
+            levels: [
+                SkillLevel(level: 1, target: .hold(seconds: 3), criterion: "Hold tuck handstand for 3s, clean form", xpReward: 50),
+                SkillLevel(level: 2, target: .hold(seconds: 5), criterion: "Hold tuck handstand for 5s, clean form", xpReward: 100),
+                SkillLevel(level: 3, target: .hold(seconds: 10), criterion: "Hold tuck handstand for 10s, clean form", xpReward: 150),
+                SkillLevel(level: 4, target: .hold(seconds: 15), criterion: "Hold tuck handstand for 15s, clean form", xpReward: 200),
+                SkillLevel(level: 5, target: .hold(seconds: 20), criterion: "Hold tuck handstand for 20s, clean form", xpReward: 250),
+            ]
+        ),
+        .simple(
+            id: "hs.crow-pose",
+            title: "Crow Pose",
+            cluster: .handstand, tier: 1, type: .hold,
+            target: .hold(exercise: "crow pose", seconds: 15),
+            prereqs: [PrerequisiteGroup("hs.wrist-conditioning")],
+            primary: [.shoulders, .arms, .core],
+            subtitle: "Knees on the triceps. Balance on the hands.",
+            description: "15-second crow pose — squat, plant hands, rest knees on the backs of the triceps, shift weight forward until feet leave the floor.",
+            formCues: [
+                "Hands shoulder-width, fingers spread wide",
+                "Knees pin onto the triceps, not just touching",
+                "Shift weight forward until feet float",
+                "Gaze slightly ahead, not straight down"
+            ],
+            commonMistakes: [
+                "Knees slipping off the triceps",
+                "Keeping weight over the feet — won't float",
+                "Tipping forward onto the head — yes, put a pillow down"
+            ],
+            timeline: "1-4 weeks from wrist conditioning.",
+            rank: .d,
+            levels: [
+                SkillLevel(level: 1, target: .hold(seconds: 5), criterion: "Hold crow pose for 5s, clean form", xpReward: 50),
+                SkillLevel(level: 2, target: .hold(seconds: 10), criterion: "Hold crow pose for 10s, clean form", xpReward: 100),
+                SkillLevel(level: 3, target: .hold(seconds: 15), criterion: "Hold crow pose for 15s, clean form", xpReward: 150),
+                SkillLevel(level: 4, target: .hold(seconds: 30), criterion: "Hold crow pose for 30s, clean form", xpReward: 200),
+                SkillLevel(level: 5, target: .hold(seconds: 60), criterion: "Hold crow pose for 60s, clean form", xpReward: 250),
+            ]
+        ),
+        .simple(
+            id: "hs.crane-pose",
+            title: "Crane Pose",
+            cluster: .handstand, tier: 2, type: .hold,
+            target: .hold(exercise: "crane pose", seconds: 10),
+            prereqs: [PrerequisiteGroup("hs.crow-pose")],
+            primary: [.shoulders, .arms, .core],
+            subtitle: "Crow, but arms straight.",
+            description: "10-second crane pose — same knees-on-triceps position as crow, but arms are fully locked out. Harder balance and a real strength challenge.",
+            formCues: [
+                "Enter from crow, slowly press arms straight",
+                "Knees stay on triceps as the arms straighten",
+                "Hips climb higher as arms lock",
+                "Balance shifts — fingers press into the floor"
+            ],
+            commonMistakes: [
+                "Losing the knee-tricep contact as arms straighten",
+                "Bending arms as soon as balance shifts",
+                "Hips dropping — arms not vertical"
+            ],
+            timeline: "1-3 months from crow pose.",
+            rank: .c,
+            levels: [
+                SkillLevel(level: 1, target: .hold(seconds: 5), criterion: "Hold crane pose for 5s, clean form", xpReward: 50),
+                SkillLevel(level: 2, target: .hold(seconds: 10), criterion: "Hold crane pose for 10s, clean form", xpReward: 100),
+                SkillLevel(level: 3, target: .hold(seconds: 15), criterion: "Hold crane pose for 15s, clean form", xpReward: 150),
+                SkillLevel(level: 4, target: .hold(seconds: 20), criterion: "Hold crane pose for 20s, clean form", xpReward: 200),
+                SkillLevel(level: 5, target: .hold(seconds: 30), criterion: "Hold crane pose for 30s, clean form", xpReward: 250),
+            ]
+        ),
+        .simple(
+            id: "hs.frog-pose",
+            title: "Frog Pose",
+            cluster: .handstand, tier: 1, type: .hold,
+            target: .hold(exercise: "frog pose", seconds: 15),
+            prereqs: [PrerequisiteGroup("hs.wrist-conditioning")],
+            primary: [.shoulders, .arms, .core],
+            subtitle: "The crow's cousin.",
+            description: "15-second frog pose — wide hand stance, knees rest on the outside of the upper arms, feet lift off the floor. Easier balance than crow for some.",
+            formCues: [
+                "Hands wider than shoulders, fingers spread",
+                "Knees out, shins press against the outside of biceps",
+                "Shift weight forward until feet float",
+                "Keep arms bent ~90° throughout"
+            ],
+            commonMistakes: [
+                "Knees slipping off the arms",
+                "Gazing straight down — easier to tip",
+                "Fingers not gripping the floor"
+            ],
+            timeline: "1-4 weeks.",
+            rank: .d,
+            levels: [
+                SkillLevel(level: 1, target: .hold(seconds: 5), criterion: "Hold frog pose for 5s, clean form", xpReward: 50),
+                SkillLevel(level: 2, target: .hold(seconds: 10), criterion: "Hold frog pose for 10s, clean form", xpReward: 100),
+                SkillLevel(level: 3, target: .hold(seconds: 15), criterion: "Hold frog pose for 15s, clean form", xpReward: 150),
+                SkillLevel(level: 4, target: .hold(seconds: 30), criterion: "Hold frog pose for 30s, clean form", xpReward: 200),
+                SkillLevel(level: 5, target: .hold(seconds: 60), criterion: "Hold frog pose for 60s, clean form", xpReward: 250),
+            ]
+        ),
+        .simple(
+            id: "hs.flying-crow",
+            title: "Flying Crow Pose",
+            cluster: .handstand, tier: 3, type: .hold,
+            target: .hold(exercise: "flying crow", seconds: 5),
+            prereqs: [PrerequisiteGroup("hs.crane-pose")],
+            primary: [.shoulders, .arms, .core],
+            subtitle: "One leg extended straight back.",
+            description: "5-second flying crow — from crane or crow, extend one leg straight back into the air. Full body engagement with a long lever fighting the balance.",
+            formCues: [
+                "Enter stable crane first",
+                "Extend one leg straight back, toe pointed",
+                "Press through fingers to counter the lever shift",
+                "Keep the knee on the tricep of the bent leg"
+            ],
+            commonMistakes: [
+                "Extending too fast — tips forward",
+                "Leg drifting out to the side",
+                "Losing knee-tricep contact on the bent leg"
+            ],
+            timeline: "3-9 months from crane.",
+            rank: .b,
+            levels: [
+                SkillLevel(level: 1, target: .hold(seconds: 3), criterion: "Hold flying crow for 3s, clean form", xpReward: 50),
+                SkillLevel(level: 2, target: .hold(seconds: 5), criterion: "Hold flying crow for 5s, clean form", xpReward: 100),
+                SkillLevel(level: 3, target: .hold(seconds: 10), criterion: "Hold flying crow for 10s, clean form", xpReward: 150),
+                SkillLevel(level: 4, target: .hold(seconds: 15), criterion: "Hold flying crow for 15s, clean form", xpReward: 200),
+                SkillLevel(level: 5, target: .hold(seconds: 20), criterion: "Hold flying crow for 20s, clean form", xpReward: 250),
+            ]
+        ),
+        .simple(
+            id: "hs.elbow-lever",
+            title: "Elbow Lever",
+            cluster: .handstand, tier: 2, type: .hold,
+            target: .hold(exercise: "elbow lever", seconds: 10),
+            prereqs: [PrerequisiteGroup("hs.wrist-conditioning")],
+            primary: [.shoulders, .core, .arms],
+            subtitle: "Body horizontal, elbows into the hips.",
+            description: "10-second elbow lever — hands plant on the floor, elbows drive into the ribs or hip crease, body extends horizontal. Parlor trick that builds serious core.",
+            formCues: [
+                "Hands shoulder-width, fingers spread wide",
+                "Elbows dig into the iliac crest / hip bones",
+                "Lean weight forward until legs lift",
+                "Body rigid and horizontal"
+            ],
+            commonMistakes: [
+                "Elbows not tucked into the hips — no support",
+                "Legs sagging below horizontal",
+                "Bent knees to cheat the lever"
+            ],
+            timeline: "2-8 weeks from wrist conditioning.",
+            rank: .d,
+            levels: [
+                SkillLevel(level: 1, target: .hold(seconds: 5), criterion: "Hold elbow lever for 5s, clean form", xpReward: 50),
+                SkillLevel(level: 2, target: .hold(seconds: 10), criterion: "Hold elbow lever for 10s, clean form", xpReward: 100),
+                SkillLevel(level: 3, target: .hold(seconds: 15), criterion: "Hold elbow lever for 15s, clean form", xpReward: 150),
+                SkillLevel(level: 4, target: .hold(seconds: 20), criterion: "Hold elbow lever for 20s, clean form", xpReward: 200),
+                SkillLevel(level: 5, target: .hold(seconds: 30), criterion: "Hold elbow lever for 30s, clean form", xpReward: 250),
+            ]
+        ),
+        .simple(
+            id: "hs.one-arm-elbow-lever",
+            title: "One-Arm Elbow Lever",
+            cluster: .handstand, tier: 4, type: .hold,
+            target: .hold(exercise: "one-arm elbow lever", seconds: 5),
+            prereqs: [PrerequisiteGroup("hs.elbow-lever")],
+            primary: [.shoulders, .core, .arms],
+            subtitle: "Same lever. Half the supports.",
+            description: "5-second one-arm elbow lever. Same position as the two-arm version but supported by a single arm — the elbow of the working side presses into the hip crease.",
+            formCues: [
+                "Enter from a two-arm elbow lever, shift weight to one side",
+                "Free arm extends straight out for balance",
+                "Working elbow stays locked into the hip",
+                "Shoulders stay square to the floor"
+            ],
+            commonMistakes: [
+                "Free arm bracing on the floor",
+                "Body rotating open as weight shifts",
+                "Working arm collapsing"
+            ],
+            timeline: "6-18 months from elbow lever.",
+            rank: .b,
+            levels: [
+                SkillLevel(level: 1, target: .hold(seconds: 3), criterion: "Hold one-arm elbow lever for 3s, clean form", xpReward: 50),
+                SkillLevel(level: 2, target: .hold(seconds: 5), criterion: "Hold one-arm elbow lever for 5s, clean form", xpReward: 100),
+                SkillLevel(level: 3, target: .hold(seconds: 10), criterion: "Hold one-arm elbow lever for 10s, clean form", xpReward: 150),
+                SkillLevel(level: 4, target: .hold(seconds: 15), criterion: "Hold one-arm elbow lever for 15s, clean form", xpReward: 200),
+                SkillLevel(level: 5, target: .hold(seconds: 20), criterion: "Hold one-arm elbow lever for 20s, clean form", xpReward: 250),
+            ]
+        ),
+        .simple(
+            id: "hs.tuck-press",
+            title: "Tuck Press to Handstand",
+            cluster: .handstand, tier: 5, type: .skill,
+            target: .reps(exercise: "tuck press", count: 3),
+            prereqs: [PrerequisiteGroup(["hs.tuck-handstand", "hs.freestanding-hs-30"])],
+            primary: [.shoulders, .core], secondary: [.arms],
+            subtitle: "Press up from tuck to handstand.",
+            description: "3 tuck presses — from an L-sit or compressed tuck on the floor, press through straight arms to a tuck handstand without kipping.",
+            formCues: [
+                "Start compressed — chest close to thighs",
+                "Arms straight throughout, no bending to cheat",
+                "Hips climb through the straight arms",
+                "Tuck stays tight until the handstand is achieved"
+            ],
+            commonMistakes: [
+                "Kipping the legs for momentum",
+                "Bent arms once weight shifts",
+                "Losing the tuck as hips rise"
+            ],
+            timeline: "6-18 months from tuck handstand.",
+            rank: .b,
+            levels: [
+                SkillLevel(level: 1, target: .firstRep, criterion: "First clean tuck press to standard", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(3), criterion: "3 strict tuck press", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict tuck press", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(8), criterion: "8 strict tuck press", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(10), criterion: "10 strict tuck press", xpReward: 250),
+            ]
+        ),
+        .simple(
+            id: "hs.straddle-press",
+            title: "Straddle Press to Handstand",
+            cluster: .handstand, tier: 6, type: .skill,
+            target: .reps(exercise: "straddle press", count: 3),
+            prereqs: [PrerequisiteGroup("hs.tuck-press")],
+            primary: [.shoulders, .core], secondary: [.arms],
+            subtitle: "Legs split. Straight arms all the way.",
+            description: "3 straddle presses to handstand — from a straddle pike compression on the floor, press through straight arms and a split-leg shape up to handstand. Hamstring flexibility + pressing strength.",
+            formCues: [
+                "Start pike compressed, chest on thighs",
+                "Arms straight throughout",
+                "Legs stay wide in the straddle as hips rise",
+                "Close the straddle only once handstand is held"
+            ],
+            commonMistakes: [
+                "Bent arms as fatigue sets in",
+                "Closing the straddle too early",
+                "Hamstring flexibility limits not addressed in warm-up"
+            ],
+            timeline: "1-3 years from tuck press.",
+            rank: .a,
+            levels: [
+                SkillLevel(level: 1, target: .firstRep, criterion: "First clean straddle press to standard", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(3), criterion: "3 strict straddle press", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict straddle press", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(8), criterion: "8 strict straddle press", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(10), criterion: "10 strict straddle press", xpReward: 250),
+            ]
+        ),
+        .simple(
+            id: "hs.press-to-handstand",
+            title: "Press to Handstand",
+            cluster: .handstand, tier: 7, type: .skill,
+            target: .reps(exercise: "press to handstand", count: 1),
+            prereqs: [PrerequisiteGroup("hs.straddle-press")],
+            primary: [.shoulders, .core], secondary: [.arms],
+            subtitle: "Legs glued. Straight up.",
+            description: "One clean pike press to handstand — legs together, arms straight, press from floor pike to vertical handstand without momentum. Gymnastic standard.",
+            formCues: [
+                "Start pike, legs together, chest on thighs",
+                "Arms straight, hands planted firm",
+                "Hips rise first, legs follow",
+                "No kip, no bent arm, no swing"
+            ],
+            commonMistakes: [
+                "Swinging legs for momentum",
+                "Bent arms once the hips rise",
+                "Losing the pike shape — hips lead too early"
+            ],
+            timeline: "2-4 years from straddle press.",
+            rank: .a,
+            levels: [
+                SkillLevel(level: 1, target: .firstRep, criterion: "First clean press to handstand to standard", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(2), criterion: "2 strict press to handstand", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(3), criterion: "3 strict press to handstand", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(5), criterion: "5 strict press to handstand", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(8), criterion: "8 strict press to handstand", xpReward: 250),
+            ]
+        ),
+
+        // ────────────────────────────────────────────────────────────────
+        // PLANCHE ADDITIONS — bent arm + half-lay + one-arm (mythic)
+        // ────────────────────────────────────────────────────────────────
+
+        .simple(
+            id: "pl.bent-arm-planche",
+            title: "Bent Arm Planche",
+            cluster: .planche, tier: 4, type: .hold,
+            target: .hold(exercise: "bent arm planche", seconds: 3),
+            prereqs: [PrerequisiteGroup("pl.tuck-planche")],
+            equipment: [.parallettes],
+            primary: [.shoulders, .chest, .core],
+            subtitle: "Planche before the straight-arm demand.",
+            description: "3-second bent arm planche — legs extended behind the body, arms bent at roughly 90°, body horizontal. Easier shoulder leverage than straight-arm but still brutal.",
+            formCues: [
+                "Arms bend to ~90°, elbows into the ribs",
+                "Body horizontal, legs extended",
+                "Shoulders protract hard",
+                "Chest drives forward toward the floor"
+            ],
+            commonMistakes: [
+                "Losing the horizontal line — hips drop",
+                "Arms bending too much — turns into a pushup",
+                "Not extending the legs fully"
+            ],
+            timeline: "6-18 months from tuck planche.",
+            rank: .b,
+            levels: [
+                SkillLevel(level: 1, target: .hold(seconds: 1), criterion: "Hold bent arm planche for 1s, clean form", xpReward: 50),
+                SkillLevel(level: 2, target: .hold(seconds: 3), criterion: "Hold bent arm planche for 3s, clean form", xpReward: 100),
+                SkillLevel(level: 3, target: .hold(seconds: 5), criterion: "Hold bent arm planche for 5s, clean form", xpReward: 150),
+                SkillLevel(level: 4, target: .hold(seconds: 8), criterion: "Hold bent arm planche for 8s, clean form", xpReward: 200),
+                SkillLevel(level: 5, target: .hold(seconds: 12), criterion: "Hold bent arm planche for 12s, clean form", xpReward: 250),
+            ]
+        ),
+        .simple(
+            id: "pl.half-lay-planche",
+            title: "Half-Lay Planche",
+            cluster: .planche, tier: 6, type: .hold,
+            target: .hold(exercise: "half-lay planche", seconds: 3),
+            prereqs: [PrerequisiteGroup("pl.straddle-planche")],
+            equipment: [.parallettes],
+            primary: [.shoulders, .core],
+            subtitle: "Half-straddle. Half-closed.",
+            description: "3-second half-lay planche — straddle planche with legs narrower than full straddle but wider than closed. The intermediate between straddle and full planche.",
+            formCues: [
+                "Start from rock-solid straddle planche",
+                "Close the legs halfway toward parallel",
+                "Hips stay at shoulder height",
+                "Toes pointed, legs squeeze even at narrower angle"
+            ],
+            commonMistakes: [
+                "Closing legs too fast — lever jumps",
+                "Hip drop as the lever tightens",
+                "Banana back"
+            ],
+            timeline: "6-18 months from straddle planche.",
+            rank: .a,
+            levels: [
+                SkillLevel(level: 1, target: .hold(seconds: 1), criterion: "Hold half-lay planche for 1s, clean form", xpReward: 50),
+                SkillLevel(level: 2, target: .hold(seconds: 3), criterion: "Hold half-lay planche for 3s, clean form", xpReward: 100),
+                SkillLevel(level: 3, target: .hold(seconds: 5), criterion: "Hold half-lay planche for 5s, clean form", xpReward: 150),
+                SkillLevel(level: 4, target: .hold(seconds: 8), criterion: "Hold half-lay planche for 8s, clean form", xpReward: 200),
+                SkillLevel(level: 5, target: .hold(seconds: 12), criterion: "Hold half-lay planche for 12s, clean form", xpReward: 250),
+            ]
+        ),
+        .simple(
+            id: "pl.one-arm-planche",
+            title: "One-Arm Planche",
+            cluster: .planche, tier: 7, type: .hold,
+            target: .hold(exercise: "one-arm planche", seconds: 1),
+            prereqs: [PrerequisiteGroup("pl.full-planche")],
+            isMythic: true,
+            equipment: [.parallettes],
+            primary: [.shoulders, .core, .chest, .arms],
+            subtitle: "Full planche. One arm.",
+            description: "One-second one-arm planche — full horizontal planche supported by a single arm. A handful of humans have ever held it cleanly. F-difficulty territory.",
+            formCues: [
+                "Never attempt without years of rock-solid full planche",
+                "Shift weight slowly to one arm, free arm stays off the floor",
+                "Body stays horizontal — no compensatory lean",
+                "Protract the working shoulder hard"
+            ],
+            commonMistakes: [
+                "Attempting without freakish full planche strength base",
+                "Rotating the body to cheat the lever",
+                "Any loss of straight-arm position"
+            ],
+            timeline: "5-10+ years. Fewer than 20 humans hold it cleanly.",
+            rank: .s,
+            levels: [
+                SkillLevel(level: 1, target: .hold(seconds: 1), criterion: "Hold one-arm planche for 1s per side, clean form", xpReward: 50),
+                SkillLevel(level: 2, target: .hold(seconds: 2), criterion: "Hold one-arm planche for 2s per side, clean form", xpReward: 100),
+                SkillLevel(level: 3, target: .hold(seconds: 3), criterion: "Hold one-arm planche for 3s per side, clean form", xpReward: 150),
+                SkillLevel(level: 4, target: .hold(seconds: 5), criterion: "Hold one-arm planche for 5s per side, clean form", xpReward: 200),
+                SkillLevel(level: 5, target: .hold(seconds: 8), criterion: "Hold one-arm planche for 8s per side, clean form", xpReward: 250),
+            ]
+        ),
     ]
 }
 
