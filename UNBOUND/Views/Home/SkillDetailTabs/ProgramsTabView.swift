@@ -10,7 +10,7 @@ struct ProgramsTabView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            sectionHeader("PROGRAMS")
+            sectionHeader("Programs")
 
             VStack(alignment: .leading, spacing: 16) {
                 HStack(alignment: .top, spacing: 12) {
@@ -34,7 +34,7 @@ struct ProgramsTabView: View {
                 }
 
                 UnboundButton(
-                    title: "OPT IN",
+                    title: "Opt In",
                     variant: .secondary,
                     icon: "lock.fill",
                     isEnabled: false
@@ -60,9 +60,8 @@ struct ProgramsTabView: View {
 
     private func sectionHeader(_ title: String) -> some View {
         Text(title)
-            .font(Font.unbound.captionS.weight(.semibold))
-            .tracking(1.4)
-            .foregroundStyle(Color.unbound.textTertiary)
+            .font(.system(.headline).weight(.semibold))
+            .foregroundStyle(Color.unbound.textPrimary)
     }
 
     private var cardBackground: some View {

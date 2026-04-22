@@ -1,24 +1,25 @@
 import SwiftUI
 
-// MARK: - SkillDetailView (Phase 3a)
+// MARK: - SkillDetailView (Phase 2i — typography + hero redesign)
 //
 // Full-screen detail view presented via `.fullScreenCover(item:)` from any
-// cluster view's hex tap. Replaces the legacy SkillNodeDetailSheet bottom
-// sheet with a premium dedicated screen.
+// cluster view's hex tap. Phase 2i softens the whole screen: Title Case
+// section headers, full-width silhouette hero with a top-left overlay, small
+// numbered level circles, merged Progress + Next Level card, and a sentence-
+// case Train CTA.
 //
 // Layout, top-to-bottom:
-//   1. Custom nav bar (back + bookmark)
-//   2. Hero section (glyph + cluster crumb + title + rank chip)
-//   3. Subtitle / description blurb
-//   4. Requirements card (OR-of-AND prereq groups)
-//   5. Progress card (level + XP bar from SkillProgressService)
-//   6. Levels selector (5 pills + inline expansion)
-//   7. TRAIN THIS SKILL CTA (awards session XP)
-//   8. 4 tabs: OVERVIEW / PROGRESSIONS / TECHNIQUE / PROGRAMS
+//   1. Hero (nav chevron + bookmark overlaid on a full-width silhouette card
+//      with top-left title / subtitle)
+//   2. Subtitle / description blurb
+//   3. Requirements card (✓/🔒 rows w/ separators, "Or" chip between groups)
+//   4. Progress card (level + XP bar + Next Level mini-header w/ criterion)
+//   5. Levels selector — 5 small numbered circles + inline expansion
+//   6. Train This Skill CTA (sentence case, softer)
+//   7. 4 tabs: Overview / Progressions / Technique / Programs
 //
-// Real AI hero art arrives in Phase 4. Authored educational content (tabs
-// OVERVIEW/TECHNIQUE) currently derives what it can from existing node
-// metadata and renders tagged placeholders for the rest.
+// Real AI hero art arrives in Phase 4. This view remains tolerant of missing
+// art — it renders a glyph + violet glow as the placeholder silhouette.
 
 struct SkillDetailView: View {
     let node: SkillNode
@@ -37,9 +38,7 @@ struct SkillDetailView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 0) {
-                navBar
                 hero
-                    .padding(.top, 4)
 
                 VStack(spacing: 20) {
                     subtitleBlock
@@ -57,147 +56,124 @@ struct SkillDetailView: View {
             }
         }
         .background(Color.unbound.bg.ignoresSafeArea())
-        .ignoresSafeArea(edges: .bottom)
-    }
-
-    // MARK: - Nav bar
-
-    private var navBar: some View {
-        HStack(spacing: 12) {
-            Button {
-                UnboundHaptics.medium()
-                dismiss()
-            } label: {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 15, weight: .bold))
-                    .foregroundStyle(Color.unbound.textSecondary)
-                    .frame(width: 36, height: 36)
-                    .background(Circle().fill(Color.unbound.surfaceElevated))
-            }
-            .buttonStyle(.plain)
-
-            Spacer()
-
-            Button {
-                UnboundHaptics.medium()
-                isBookmarked.toggle()
-            } label: {
-                Image(systemName: isBookmarked ? "bookmark.fill" : "bookmark")
-                    .font(.system(size: 15, weight: .bold))
-                    .foregroundStyle(
-                        isBookmarked ? Color.unbound.accent : Color.unbound.textSecondary
-                    )
-                    .frame(width: 36, height: 36)
-                    .background(Circle().fill(Color.unbound.surfaceElevated))
-            }
-            .buttonStyle(.plain)
-        }
-        .padding(.horizontal, 16)
-        .padding(.top, 12)
+        .ignoresSafeArea(edges: .top)
     }
 
     // MARK: - Hero
+    //
+    // Full-width silhouette card. Title + subtitle overlay the top-left,
+    // nav chevron sits above them, bookmark floats top-right. The silhouette
+    // (SF Symbol placeholder for now) centers in the card with a violet glow.
 
     private var hero: some View {
-        ZStack {
-            // Gradient backdrop — horizontal, reinforcing the split.
+        ZStack(alignment: .top) {
+            // Vertical gradient backdrop.
             LinearGradient(
                 colors: [
                     Color.unbound.bg,
-                    Color.unbound.accent.opacity(0.22),
+                    Color.unbound.accent.opacity(0.20),
                     Color.unbound.bg
                 ],
-                startPoint: .leading,
-                endPoint: .trailing
+                startPoint: .top,
+                endPoint: .bottom
             )
 
-            // Side-by-side split: LEFT 60% identity, RIGHT 40% silhouette.
-            GeometryReader { geo in
-                let leftWidth = geo.size.width * 0.60
-                let rightWidth = geo.size.width * 0.40
+            // Silhouette (AI art slot in Phase 4).
+            VStack {
+                Spacer(minLength: 0)
+                ZStack {
+                    Circle()
+                        .fill(Color.unbound.accent.opacity(0.22))
+                        .frame(width: 200, height: 200)
+                        .blur(radius: 46)
+                    Image(systemName: node.glyph)
+                        .font(.system(size: 140, weight: .regular))
+                        .foregroundStyle(Color.unbound.accent)
+                        .shadow(color: Color.unbound.accent.opacity(0.55), radius: 28)
+                }
+                .frame(height: 220)
+                Spacer(minLength: 0)
+            }
+            .frame(maxWidth: .infinity)
 
-                HStack(spacing: 0) {
-                    // LEFT — cluster crumb + rank chip (top) + title (bottom).
-                    VStack(alignment: .leading, spacing: 0) {
-                        HStack(alignment: .center, spacing: 10) {
-                            Text(clusterCrumb)
-                                .font(Font.unbound.captionS.weight(.heavy))
-                                .tracking(2.0)
-                                .foregroundStyle(Color.unbound.textSecondary)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.7)
-                            rankChip
-                        }
-                        Spacer(minLength: 0)
+            // Top-left title + subtitle overlay, plus top-right bookmark.
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 10) {
+                    backButton
+                    VStack(alignment: .leading, spacing: 4) {
                         Text(node.title)
-                            .font(Font.unbound.titleL)
+                            .font(.system(.title, design: .default).weight(.bold))
                             .foregroundStyle(Color.unbound.textPrimary)
                             .lineLimit(2)
                             .fixedSize(horizontal: false, vertical: true)
                             .multilineTextAlignment(.leading)
+                        Text(heroSubtitle)
+                            .font(.system(.subheadline))
+                            .foregroundStyle(Color.unbound.textSecondary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
                     }
-                    .frame(width: leftWidth, alignment: .leading)
-                    .padding(.leading, 20)
-                    .padding(.vertical, 20)
-
-                    // RIGHT — silhouette placeholder (AI art slot).
-                    ZStack {
-                        // Violet glow behind the silhouette.
-                        Circle()
-                            .fill(Color.unbound.accent.opacity(0.22))
-                            .frame(width: 140, height: 140)
-                            .blur(radius: 32)
-                        Image(systemName: node.glyph)
-                            .font(.system(size: 88, weight: .regular))
-                            .foregroundStyle(Color.unbound.accent)
-                            .shadow(color: Color.unbound.accent.opacity(0.55), radius: 20)
-                    }
-                    .frame(width: rightWidth, alignment: .center)
-                    .padding(.trailing, 12)
                 }
+                Spacer(minLength: 12)
+                bookmarkButton
             }
+            .padding(.horizontal, 20)
+            .padding(.top, 56) // clear status bar
         }
-        .frame(height: 260)
+        .frame(height: 320)
         .frame(maxWidth: .infinity)
         .clipped()
     }
 
-    private var clusterCrumb: String {
-        let cluster = node.cluster.displayName.uppercased()
-        let tierLabel = tierName(for: node.tier)
-        // Phase 2h — inject the sub-chapter between cluster and tier so
-        // the breadcrumb reads as: CLUSTER · CHAPTER · TIER. Mythic and
-        // other chapter-less nodes keep the two-element crumb.
-        if let chapter = node.subChapter?.uppercased(), !chapter.isEmpty {
-            return "\(cluster) · \(chapter) · \(tierLabel)"
+    private var backButton: some View {
+        Button {
+            UnboundHaptics.medium()
+            dismiss()
+        } label: {
+            Image(systemName: "chevron.left")
+                .font(.system(size: 15, weight: .bold))
+                .foregroundStyle(Color.unbound.textSecondary)
+                .frame(width: 36, height: 36)
+                .background(Circle().fill(Color.unbound.surfaceElevated.opacity(0.9)))
         }
-        return "\(cluster) · \(tierLabel)"
+        .buttonStyle(.plain)
     }
 
-    private func tierName(for tier: Int) -> String {
-        switch tier {
-        case ...1: return "NOVICE"
-        case 2:    return "FOUNDATION"
-        case 3:    return "INTERMEDIATE"
-        case 4:    return "ADVANCED"
-        case 5:    return "ELITE"
-        case 6:    return "ELITE+"
-        default:   return "MYTHIC"
+    private var bookmarkButton: some View {
+        Button {
+            UnboundHaptics.medium()
+            isBookmarked.toggle()
+        } label: {
+            Image(systemName: isBookmarked ? "bookmark.fill" : "bookmark")
+                .font(.system(size: 15, weight: .bold))
+                .foregroundStyle(
+                    isBookmarked ? Color.unbound.accent : Color.unbound.textSecondary
+                )
+                .frame(width: 36, height: 36)
+                .background(Circle().fill(Color.unbound.surfaceElevated.opacity(0.9)))
         }
+        .buttonStyle(.plain)
+        .padding(.top, 44) // aligned with title, not with chevron
     }
 
-    private var rankChip: some View {
-        ZStack {
-            Hexagon()
-                .fill(Color.unbound.surface)
-                .frame(width: 56, height: 56)
-            Hexagon()
-                .strokeBorder(node.rank.accentColor, lineWidth: 2)
-                .shadow(color: node.rank.accentColor.opacity(0.45), radius: 8)
-                .frame(width: 56, height: 56)
-            Text(node.rank.letter)
-                .font(.system(size: 22, weight: .heavy, design: .monospaced))
-                .foregroundStyle(Color.unbound.textPrimary)
+    /// "Pull Tree · Advanced Skill" style string. Tree = cluster displayName,
+    /// followed by a tier description that reads more like prose than a code.
+    private var heroSubtitle: String {
+        let tree = "\(node.cluster.displayName) Tree"
+        return "\(tree) · \(rankDescription(for: node.rank)) Skill"
+    }
+
+    /// Plain-English label for a rank — used as the hero subtitle.
+    /// Derived from rank, not tier, so the hero and the tree gutter stay
+    /// in agreement.
+    private func rankDescription(for rank: SkillRank) -> String {
+        switch rank {
+        case .e: return "Starter"
+        case .d: return "Beginner"
+        case .c: return "Intermediate"
+        case .b: return "Advanced"
+        case .a: return "Elite"
+        case .s: return "Mythic"
         }
     }
 
@@ -221,7 +197,7 @@ struct SkillDetailView: View {
 
     private var requirementsCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            sectionHeader("REQUIREMENTS")
+            sectionHeader("Requirements")
 
             if node.prereqs.isEmpty {
                 emptyPrereqCard
@@ -247,12 +223,12 @@ struct SkillDetailView: View {
     }
 
     private var prereqGroups: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 0) {
             ForEach(Array(node.prereqs.enumerated()), id: \.offset) { idx, group in
-                prereqGroupRow(group: group)
+                prereqGroupBlock(group: group)
 
                 if idx < node.prereqs.count - 1 {
-                    orDivider
+                    orChipRow
                 }
             }
         }
@@ -261,10 +237,18 @@ struct SkillDetailView: View {
         .background(roundedCardBackground)
     }
 
-    private func prereqGroupRow(group: PrerequisiteGroup) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            ForEach(group.nodeIds, id: \.self) { pid in
+    /// Renders each id inside a group as its own separated row.
+    @ViewBuilder
+    private func prereqGroupBlock(group: PrerequisiteGroup) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(Array(group.nodeIds.enumerated()), id: \.offset) { idx, pid in
                 prereqLine(id: pid)
+                    .padding(.vertical, 10)
+                if idx < group.nodeIds.count - 1 {
+                    Rectangle()
+                        .fill(Color.unbound.border.opacity(0.5))
+                        .frame(height: 1)
+                }
             }
         }
     }
@@ -274,60 +258,72 @@ struct SkillDetailView: View {
         let resolved = graph.node(id: id)
         let state = nodeStates[id] ?? .locked
         let met = (state == .achieved || state == .mastered)
-        HStack(spacing: 10) {
-            Image(systemName: met ? "checkmark.circle.fill" : "lock.fill")
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(
-                    met ? Color.unbound.accent : Color.unbound.textTertiary
-                )
+        let inProgress = (state == .attempting)
+
+        HStack(spacing: 12) {
+            Image(systemName: prereqIcon(met: met, inProgress: inProgress))
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(prereqIconColor(met: met, inProgress: inProgress))
+                .frame(width: 20, alignment: .center)
             Text(resolved?.title ?? id)
                 .font(Font.unbound.bodyM)
-                .foregroundStyle(
-                    met ? Color.unbound.textPrimary : Color.unbound.textTertiary
-                )
+                .foregroundStyle(met ? Color.unbound.textPrimary : Color.unbound.textSecondary)
                 .lineLimit(2)
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 0)
+            if met {
+                Image(systemName: "checkmark")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(Color.unbound.accent)
+            }
         }
     }
 
-    private var orDivider: some View {
+    private func prereqIcon(met: Bool, inProgress: Bool) -> String {
+        if met { return "checkmark.circle.fill" }
+        if inProgress { return "pencil.circle" }
+        return "lock.fill"
+    }
+
+    private func prereqIconColor(met: Bool, inProgress: Bool) -> Color {
+        if met { return Color.unbound.accent }
+        if inProgress { return Color.unbound.accent.opacity(0.7) }
+        return Color.unbound.textTertiary
+    }
+
+    /// Lowercase "Or" chip centered on a hairline — between groups only.
+    private var orChipRow: some View {
         HStack(spacing: 10) {
             Rectangle()
                 .fill(Color.unbound.border.opacity(0.5))
                 .frame(height: 1)
-            Text("OR")
-                .font(.system(size: 10, weight: .heavy, design: .monospaced))
-                .tracking(2.0)
+            Text("Or")
+                .font(Font.unbound.captionS.weight(.semibold))
                 .foregroundStyle(Color.unbound.textTertiary)
-                .padding(.horizontal, 8)
+                .padding(.horizontal, 10)
                 .padding(.vertical, 3)
-                .background(
-                    Capsule().fill(Color.unbound.surfaceElevated)
-                )
-                .overlay(
-                    Capsule().strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
-                )
+                .background(Capsule().fill(Color.unbound.surfaceElevated))
+                .overlay(Capsule().strokeBorder(Color.unbound.borderSubtle, lineWidth: 1))
             Rectangle()
                 .fill(Color.unbound.border.opacity(0.5))
                 .frame(height: 1)
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, 6)
     }
 
-    // MARK: - Progress card
+    // MARK: - Progress card (merged with Next Level)
 
     private var progressCard: some View {
         let sp = skillProgress.currentSkillProgress(for: node.id)
         let state = nodeStates[node.id] ?? .locked
         let isMastered = (state == .mastered && sp.currentLevel == 5)
         return VStack(alignment: .leading, spacing: 12) {
-            sectionHeader("PROGRESS")
+            sectionHeader("Progress")
 
             VStack(alignment: .leading, spacing: 12) {
                 HStack(alignment: .firstTextBaseline) {
-                    Text("LEVEL \(sp.currentLevel)")
-                        .font(Font.unbound.monoL)
+                    Text("Level \(sp.currentLevel)")
+                        .font(.system(.title3).weight(.semibold))
                         .foregroundStyle(Color.unbound.textPrimary)
                     Spacer()
                     if isMastered {
@@ -342,7 +338,7 @@ struct SkillDetailView: View {
                 xpBar(fraction: xpFraction(sp))
 
                 if !isMastered {
-                    nextLevelRow(progress: sp)
+                    nextLevelBlock(progress: sp)
                 }
             }
             .padding(14)
@@ -369,28 +365,28 @@ struct SkillDetailView: View {
         .frame(height: 8)
     }
 
+    /// Inlined "Next Level" header + criterion body. Replaces the separate
+    /// uppercase NEXT LEVEL row.
     @ViewBuilder
-    private func nextLevelRow(progress sp: SkillProgress) -> some View {
+    private func nextLevelBlock(progress sp: SkillProgress) -> some View {
         let nextLevelIdx = min(sp.currentLevel, max(0, node.levels.count - 1))
         if node.levels.indices.contains(nextLevelIdx) {
             let lvl = node.levels[nextLevelIdx]
-            HStack(spacing: 8) {
-                Text("NEXT LEVEL:")
-                    .font(Font.unbound.captionS.weight(.heavy))
-                    .tracking(1.4)
-                    .foregroundStyle(Color.unbound.textTertiary)
-                Text(lvl.criterion)
-                    .font(Font.unbound.captionS)
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Next Level")
+                    .font(.system(.subheadline).weight(.semibold))
                     .foregroundStyle(Color.unbound.textSecondary)
-                    .lineLimit(2)
+                Text(lvl.criterion)
+                    .font(Font.unbound.bodyM)
+                    .foregroundStyle(Color.unbound.textPrimary)
+                    .lineLimit(3)
                     .fixedSize(horizontal: false, vertical: true)
-                Spacer(minLength: 0)
             }
+            .padding(.top, 2)
         } else {
-            Text("KEEP TRAINING")
-                .font(Font.unbound.captionS.weight(.heavy))
-                .tracking(1.4)
-                .foregroundStyle(Color.unbound.textTertiary)
+            Text("Keep training")
+                .font(.system(.subheadline).weight(.semibold))
+                .foregroundStyle(Color.unbound.textSecondary)
         }
     }
 
@@ -398,32 +394,30 @@ struct SkillDetailView: View {
         HStack(spacing: 6) {
             Image(systemName: "crown.fill")
                 .font(.system(size: 11, weight: .bold))
-            Text("MASTERED")
-                .font(.system(size: 11, weight: .heavy, design: .monospaced))
-                .tracking(1.6)
+            Text("Mastered")
+                .font(.system(.caption).weight(.semibold))
         }
         .foregroundStyle(Color.unbound.impact)
         .padding(.horizontal, 10)
         .padding(.vertical, 5)
-        .background(
-            Capsule().fill(Color.unbound.impact.opacity(0.15))
-        )
-        .overlay(
-            Capsule().strokeBorder(Color.unbound.impact.opacity(0.5), lineWidth: 1)
-        )
+        .background(Capsule().fill(Color.unbound.impact.opacity(0.15)))
+        .overlay(Capsule().strokeBorder(Color.unbound.impact.opacity(0.5), lineWidth: 1))
     }
 
-    // MARK: - Levels selector
+    // MARK: - Levels selector (numbered circles)
 
     private var levelsSelector: some View {
         VStack(alignment: .leading, spacing: 12) {
-            sectionHeader("LEVELS")
+            sectionHeader("Levels")
 
-            HStack(spacing: 8) {
+            HStack(spacing: 16) {
+                Spacer(minLength: 0)
                 ForEach(1...5, id: \.self) { i in
-                    levelPill(level: i)
+                    levelCircle(level: i)
                 }
+                Spacer(minLength: 0)
             }
+            .padding(.vertical, 4)
 
             if let lvl = expandedLevel, let detail = levelDetail(for: lvl) {
                 expandedLevelCard(level: lvl, detail: detail)
@@ -432,48 +426,48 @@ struct SkillDetailView: View {
         }
     }
 
-    private func levelPill(level: Int) -> some View {
+    /// 34pt numbered circle. Active level = accent fill + bg-colored digit.
+    /// Inactive = surface fill with subtle border. Disabled (no data) dims.
+    private func levelCircle(level: Int) -> some View {
         let sp = skillProgress.currentSkillProgress(for: node.id)
         let isActive = level == sp.currentLevel
         let hasData = node.levels.contains(where: { $0.level == level })
         let isExpanded = expandedLevel == level
+
         return Button {
             UnboundHaptics.medium()
             withAnimation(.easeOut(duration: 0.22)) {
                 expandedLevel = isExpanded ? nil : level
             }
         } label: {
-            Text(hasData ? "LV \(level)" : "—")
-                .font(.system(size: 11, weight: .semibold, design: .monospaced))
-                .tracking(1.2)
-                .foregroundStyle(pillForeground(active: isActive, hasData: hasData))
-                .frame(maxWidth: .infinity)
-                .frame(height: 32)
-                .background(
-                    Capsule().fill(pillFill(active: isActive))
-                )
-                .overlay(
-                    Capsule().strokeBorder(pillBorder(active: isActive, expanded: isExpanded), lineWidth: 1.5)
-                )
+            ZStack {
+                Circle()
+                    .fill(isActive ? Color.unbound.accent : Color.unbound.surface)
+                Circle()
+                    .strokeBorder(
+                        levelCircleBorder(active: isActive, expanded: isExpanded),
+                        lineWidth: isActive ? 2 : 1
+                    )
+                Text("\(level)")
+                    .font(.system(.footnote).weight(.semibold))
+                    .foregroundStyle(levelCircleText(active: isActive, hasData: hasData))
+            }
+            .frame(width: 34, height: 34)
         }
         .buttonStyle(.plain)
         .disabled(!hasData)
         .opacity(hasData ? 1.0 : 0.45)
     }
 
-    private func pillFill(active: Bool) -> Color {
-        active ? Color.unbound.accent.opacity(0.22) : Color.unbound.surface
-    }
-
-    private func pillBorder(active: Bool, expanded: Bool) -> Color {
+    private func levelCircleBorder(active: Bool, expanded: Bool) -> Color {
         if active { return Color.unbound.accent }
         if expanded { return Color.unbound.accent.opacity(0.65) }
         return Color.unbound.border
     }
 
-    private func pillForeground(active: Bool, hasData: Bool) -> Color {
+    private func levelCircleText(active: Bool, hasData: Bool) -> Color {
         if !hasData { return Color.unbound.textTertiary }
-        return active ? Color.unbound.accent : Color.unbound.textSecondary
+        return active ? Color.unbound.bg : Color.unbound.textPrimary
     }
 
     private func levelDetail(for level: Int) -> SkillLevel? {
@@ -483,14 +477,12 @@ struct SkillDetailView: View {
     private func expandedLevelCard(level: Int, detail: SkillLevel) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
-                Text("LEVEL \(level)")
-                    .font(Font.unbound.captionS.weight(.heavy))
-                    .tracking(1.6)
+                Text("Level \(level)")
+                    .font(.system(.subheadline).weight(.semibold))
                     .foregroundStyle(Color.unbound.accent)
                 Spacer()
                 Text("+\(detail.xpReward) XP")
-                    .font(.system(size: 11, weight: .heavy, design: .monospaced))
-                    .tracking(1.2)
+                    .font(Font.unbound.monoS)
                     .foregroundStyle(Color.unbound.textSecondary)
             }
             Text(detail.criterion)
@@ -508,13 +500,13 @@ struct SkillDetailView: View {
 
     private func levelTargetLabel(_ target: LevelTarget) -> String {
         switch target {
-        case .firstRep:                        return "TARGET — first clean rep"
-        case .reps(let count):                 return "TARGET — \(count) reps"
-        case .hold(let seconds):               return "TARGET — \(seconds)s hold"
-        case .weight(let mult):                return "TARGET — \(formatMult(mult)) bodyweight"
-        case .distance(let meters):            return "TARGET — \(Int(meters))m"
-        case .duration(let seconds):           return "TARGET — \(seconds)s"
-        case .combined:                        return "TARGET — combined metric"
+        case .firstRep:                        return "Target — first clean rep"
+        case .reps(let count):                 return "Target — \(count) reps"
+        case .hold(let seconds):               return "Target — \(seconds)s hold"
+        case .weight(let mult):                return "Target — \(formatMult(mult)) bodyweight"
+        case .distance(let meters):            return "Target — \(Int(meters))m"
+        case .duration(let seconds):           return "Target — \(seconds)s"
+        case .combined:                        return "Target — combined metric"
         }
     }
 
@@ -525,7 +517,7 @@ struct SkillDetailView: View {
     // MARK: - Train CTA
 
     private var trainCTA: some View {
-        UnboundButton(title: "TRAIN THIS SKILL", icon: "dumbbell.fill") {
+        UnboundButton(title: "Train This Skill", icon: "dumbbell.fill") {
             UnboundHaptics.medium()
             Task {
                 await SkillProgressService.shared.awardSessionXP(forNodeId: node.id)
@@ -542,12 +534,8 @@ struct SkillDetailView: View {
             }
         }
         .padding(4)
-        .background(
-            Capsule().fill(Color.unbound.surface)
-        )
-        .overlay(
-            Capsule().strokeBorder(Color.unbound.border, lineWidth: 1)
-        )
+        .background(Capsule().fill(Color.unbound.surface))
+        .overlay(Capsule().strokeBorder(Color.unbound.border, lineWidth: 1))
     }
 
     private func tabSegment(_ tab: SkillDetailTab) -> some View {
@@ -559,8 +547,8 @@ struct SkillDetailView: View {
             }
         } label: {
             Text(tab.label)
-                .font(.system(size: 10, weight: .heavy, design: .monospaced))
-                .tracking(1.4)
+                .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                .tracking(1.2)
                 .foregroundStyle(
                     isSelected ? Color.unbound.textPrimary : Color.unbound.textSecondary
                 )
@@ -569,8 +557,7 @@ struct SkillDetailView: View {
                 .frame(maxWidth: .infinity)
                 .frame(height: 34)
                 .background(
-                    Capsule()
-                        .fill(isSelected ? Color.unbound.accent.opacity(0.22) : Color.clear)
+                    Capsule().fill(isSelected ? Color.unbound.accent.opacity(0.22) : Color.clear)
                 )
                 .overlay(
                     Capsule().strokeBorder(
@@ -600,13 +587,12 @@ struct SkillDetailView: View {
 
     // MARK: - Shared styling helpers
 
-    /// Quieter section header per 2g text-density trim:
-    /// was `.heavy` + tracking 2.0; now `.semibold` + tracking 1.4.
+    /// Phase 2i header style — Title Case, semibold headline, primary text
+    /// color, no tracking. Replaces the old uppercase + tracking treatment.
     private func sectionHeader(_ title: String) -> some View {
         Text(title)
-            .font(Font.unbound.captionS.weight(.semibold))
-            .tracking(1.4)
-            .foregroundStyle(Color.unbound.textTertiary)
+            .font(.system(.headline).weight(.semibold))
+            .foregroundStyle(Color.unbound.textPrimary)
     }
 
     private var roundedCardBackground: some View {
@@ -624,6 +610,8 @@ struct SkillDetailView: View {
 enum SkillDetailTab: String, CaseIterable, Hashable {
     case overview, progressions, technique, programs
 
+    /// Tab labels stay uppercase — tabs legitimately use that style — but
+    /// the render side applies reduced tracking (1.2) so they don't shout.
     var label: String {
         switch self {
         case .overview:     return "OVERVIEW"

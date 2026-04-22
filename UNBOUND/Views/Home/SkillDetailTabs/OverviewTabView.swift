@@ -37,7 +37,7 @@ struct OverviewTabView: View {
             : steps
 
         return VStack(alignment: .leading, spacing: 10) {
-            sectionHeader("HOW TO UNLOCK")
+            sectionHeader("How to Unlock")
 
             VStack(alignment: .leading, spacing: 10) {
                 ForEach(visible, id: \.title) { step in
@@ -171,13 +171,13 @@ struct OverviewTabView: View {
             return "Consistency beats intensity. Train the progressions, not the skill."
         }()
         return VStack(alignment: .leading, spacing: 8) {
-            sectionHeader("PRO TIP")
+            sectionHeader("Pro Tip")
 
             HStack(alignment: .top, spacing: 10) {
                 Image(systemName: "lightbulb.fill")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.system(size: 10, weight: .semibold))
                     .foregroundStyle(Color.unbound.impact)
-                    .frame(width: 24, height: 24)
+                    .frame(width: 20, height: 20)
                     .background(Circle().fill(Color.unbound.impact.opacity(0.15)))
                 Text(tip)
                     .font(Font.unbound.bodyM)
@@ -187,7 +187,7 @@ struct OverviewTabView: View {
                 Spacer(minLength: 0)
             }
             .padding(.horizontal, 12)
-            .padding(.vertical, 10)
+            .padding(.vertical, 8)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(cardBackground)
         }
@@ -199,7 +199,7 @@ struct OverviewTabView: View {
     /// stub cards. One card, two inline badges — less shouty, same intent.
     private var comingSoonCard: some View {
         VStack(alignment: .leading, spacing: 10) {
-            sectionHeader("MORE COMING SOON")
+            sectionHeader("More coming soon")
 
             VStack(alignment: .leading, spacing: 12) {
                 Text("Research-backed progressions and key statistics arrive in a future update.")
@@ -240,13 +240,12 @@ struct OverviewTabView: View {
 
     // MARK: - Styling helpers
 
-    /// Quieter section header per 2g text-density trim:
-    /// was `.heavy` + tracking 2.0/2.4; now `.semibold` + tracking 1.4.
+    /// Phase 2i header style — Title Case, semibold headline, primary text
+    /// color, no tracking.
     private func sectionHeader(_ title: String) -> some View {
         Text(title)
-            .font(Font.unbound.captionS.weight(.semibold))
-            .tracking(1.4)
-            .foregroundStyle(Color.unbound.textTertiary)
+            .font(.system(.headline).weight(.semibold))
+            .foregroundStyle(Color.unbound.textPrimary)
     }
 
     private var cardBackground: some View {

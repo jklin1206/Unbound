@@ -16,7 +16,7 @@ struct TechniqueTabView: View {
             } else {
                 if !node.formCues.isEmpty {
                     bulletBlock(
-                        title: "FORM CUES",
+                        title: "Form Cues",
                         bullets: node.formCues,
                         toneIcon: "sparkles",
                         toneColor: Color.unbound.accent
@@ -24,7 +24,7 @@ struct TechniqueTabView: View {
                 }
                 if !node.commonMistakes.isEmpty {
                     bulletBlock(
-                        title: "COMMON MISTAKES",
+                        title: "Common Mistakes",
                         bullets: node.commonMistakes,
                         toneIcon: "exclamationmark.triangle.fill",
                         toneColor: Color.unbound.impact
@@ -96,9 +96,8 @@ struct TechniqueTabView: View {
 
     private func sectionHeader(_ title: String) -> some View {
         Text(title)
-            .font(Font.unbound.captionS.weight(.semibold))
-            .tracking(1.4)
-            .foregroundStyle(Color.unbound.textTertiary)
+            .font(.system(.headline).weight(.semibold))
+            .foregroundStyle(Color.unbound.textPrimary)
     }
 
     private var cardBackground: some View {

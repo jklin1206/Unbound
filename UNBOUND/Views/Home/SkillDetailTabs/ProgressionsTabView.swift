@@ -15,7 +15,7 @@ struct ProgressionsTabView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            sectionHeader("PROGRESSION PATH")
+            sectionHeader("Progression Path")
 
             VStack(spacing: 10) {
                 let chain = ancestorChain()
@@ -127,7 +127,6 @@ struct ProgressionsTabView: View {
                         .fixedSize(horizontal: false, vertical: true)
                     Text(statusLabel(for: entry.node, isCurrent: isCurrent))
                         .font(Font.unbound.captionS)
-                        .tracking(1.2)
                         .foregroundStyle(Color.unbound.textTertiary)
                 }
                 Spacer(minLength: 0)
@@ -152,8 +151,7 @@ struct ProgressionsTabView: View {
             HStack(spacing: 6) {
                 ForEach(siblings, id: \.id) { sib in
                     Text(sib.title)
-                        .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                        .tracking(0.8)
+                        .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(Color.unbound.textTertiary)
                         .lineLimit(1)
                         .padding(.horizontal, 8)
@@ -220,13 +218,13 @@ struct ProgressionsTabView: View {
     }
 
     private func statusLabel(for n: SkillNode, isCurrent: Bool) -> String {
-        if isCurrent { return "CURRENT SKILL" }
+        if isCurrent { return "Current skill" }
         let state = nodeStates[n.id] ?? .locked
         switch state {
-        case .locked:     return "LOCKED"
-        case .attempting: return "IN PROGRESS"
-        case .achieved:   return "ACHIEVED"
-        case .mastered:   return "MASTERED"
+        case .locked:     return "Locked"
+        case .attempting: return "In progress"
+        case .achieved:   return "Achieved"
+        case .mastered:   return "Mastered"
         }
     }
 
@@ -247,9 +245,8 @@ struct ProgressionsTabView: View {
 
     private func sectionHeader(_ title: String) -> some View {
         Text(title)
-            .font(Font.unbound.captionS.weight(.semibold))
-            .tracking(1.4)
-            .foregroundStyle(Color.unbound.textTertiary)
+            .font(.system(.headline).weight(.semibold))
+            .foregroundStyle(Color.unbound.textPrimary)
     }
 
     private var cardBackground: some View {
