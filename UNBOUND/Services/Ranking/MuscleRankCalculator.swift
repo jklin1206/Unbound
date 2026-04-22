@@ -89,6 +89,15 @@ enum MuscleRankCalculator {
         return result
     }
 
+    /// Roll detailed region ranks into the 12-group heatmap space used by
+    /// `MuscleHeatmapView`. When multiple BodyRegions map to the same
+    /// MuscleHeatGroup (e.g. lats + lowerBack → back), take the highest
+    /// rank so the home hub reads as the user's best effort on that region.
+    static func heatmapRanks(liftRanks: [LiftRank]) -> [MuscleHeatGroup: SubRank] {
+        let regionToRank = computeAll(liftRanks: liftRanks).mapValues(\.rank)
+        return MuscleHeatGroup.aggregate(from: regionToRank)
+    }
+
     /// Pick the lowest-ranked region that still has visible room to grow.
     /// Anything already at B- or above is considered "in balance" — we only
     /// nudge a directive for real weaknesses so the home tile reads as a

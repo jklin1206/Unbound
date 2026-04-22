@@ -99,6 +99,14 @@ struct Step_Verdict: View {
                         Image(uiImage: photo)
                             .resizable()
                             .scaledToFill()
+                    } else if let baseline = UIImage(named: "body_baseline") {
+                        // User skipped capture (dev path / fallback) — show
+                        // the baseline starter silhouette as "you are here"
+                        // rather than a raw SF Symbol.
+                        Image(uiImage: baseline)
+                            .resizable()
+                            .scaledToFit()
+                            .background(Color.unbound.surfaceElevated)
                     } else {
                         Image(systemName: "figure.stand")
                             .font(.system(size: 80, weight: .ultraLight))

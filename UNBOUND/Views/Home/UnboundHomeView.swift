@@ -40,6 +40,7 @@ struct UnboundHomeView: View {
     // Ranking
     @State private var liftRanks: [LiftRank] = []
     @State private var regionRanks: [BodyRegion: RegionRank] = [:]
+    @State private var heatmapRanks: [MuscleHeatGroup: SubRank] = [:]
     @State private var aggregateRank: SubRank = .eMinus
 
     // Phase engine
@@ -162,6 +163,7 @@ struct UnboundHomeView: View {
         .fullScreenCover(isPresented: $showingExpandedMap) {
             ExpandedBodyMapView(
                 regionRanks: regionRanks,
+                groupRanks: heatmapRanks,
                 archetypeName: archetypeName,
                 aggregateRank: aggregateRank,
                 allLiftRanks: liftRanks
@@ -261,6 +263,13 @@ struct UnboundHomeView: View {
         let userId = services.auth.currentUserId ?? "anonymous"
         liftRanks = await services.rank.fetchAll(userId: userId)
         regionRanks = MuscleRankCalculator.computeAll(liftRanks: liftRanks)
+        var computed = MuscleRankCalculator.heatmapRanks(liftRanks: liftRanks)
+        // Backfill every heatmap group with .eMinus so every muscle shows
+        // at least the untrained tint on the body map — no dark gaps.
+        for group in MuscleHeatGroup.allCases where computed[group] == nil {
+            computed[group] = .eMinus
+        }
+        heatmapRanks = computed
         let archetype = profile?.preferredArchetype ?? .vTaper
         aggregateRank = await services.rank.archetypeRank(userId: userId, archetype: archetype)
     }
@@ -498,10 +507,17 @@ struct UnboundHomeView: View {
                     }
                 }
 
-                BodyMapView(regionRanks: regionRanks, onRegionTapped: { region in
+                MuscleHeatmapView(groupRanks: heatmapRanks, onGroupTapped: { group in
                     UnboundHaptics.medium()
-                    selectedRegion = region
+                    // MuscleDetailSheet currently keys on BodyRegion — pick a
+                    // representative region for the tapped heat group so the
+                    // existing sheet continues to render. Proper MuscleHeatGroup
+                    // routing is Chunk E cleanup.
+                    if let representative = BodyRegion.allCases.first(where: { $0.heatGroup == group }) {
+                        selectedRegion = representative
+                    }
                 })
+                .frame(maxWidth: 280)
                 .frame(maxWidth: .infinity)
 
                 heatmapLegend

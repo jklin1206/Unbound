@@ -25,6 +25,18 @@ struct NodeUnlockShareCard: View {
             // Base
             Color.unbound.bg.ignoresSafeArea()
 
+            // Archetype silhouette watermark — low-opacity behind the bloom
+            // so the card carries the user's archetype identity without
+            // fighting the node badge for attention.
+            if let uiImage = UIImage(named: archetype.silhouetteAssetName) {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .opacity(0.14)
+                    .frame(maxWidth: 900)
+                    .offset(y: 80)
+            }
+
             // Impact bloom behind badge
             RadialGradient(
                 colors: [

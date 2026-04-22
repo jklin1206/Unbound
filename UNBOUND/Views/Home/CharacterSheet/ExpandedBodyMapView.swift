@@ -11,6 +11,7 @@ import SwiftUI
 
 struct ExpandedBodyMapView: View {
     let regionRanks: [BodyRegion: RegionRank]
+    let groupRanks: [MuscleHeatGroup: SubRank]
     let archetypeName: String
     let aggregateRank: SubRank
     let allLiftRanks: [LiftRank]
@@ -77,11 +78,12 @@ struct ExpandedBodyMapView: View {
     // MARK: Figure
 
     private var figureSection: some View {
-        BodyMapView(regionRanks: regionRanks) { region in
+        MuscleHeatmapView(groupRanks: groupRanks) { group in
             UnboundHaptics.medium()
-            selectedRegion = region
+            if let representative = BodyRegion.allCases.first(where: { $0.heatGroup == group }) {
+                selectedRegion = representative
+            }
         }
-        .frame(minHeight: 520)
         .padding(.vertical, 6)
     }
 

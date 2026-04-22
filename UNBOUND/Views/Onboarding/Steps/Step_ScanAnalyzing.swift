@@ -80,8 +80,22 @@ struct Step_ScanAnalyzing: View {
                             RoundedRectangle(cornerRadius: 24, style: .continuous)
                         )
                         .padding(.horizontal, 40)
+                } else if let baseline = UIImage(named: "body_baseline") {
+                    // Fallback subject when the user has no scan photo yet
+                    // (dev skip / camera-denied path) — shows the baseline
+                    // starter silhouette getting "scanned" instead of a
+                    // raw SF Symbol.
+                    Image(uiImage: baseline)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(height: 420)
+                        .opacity(0.7)
+                        .overlay(
+                            Color.unbound.accent.opacity(0.12)
+                                .blendMode(.overlay)
+                        )
+                        .padding(.horizontal, 40)
                 } else {
-                    // Fallback silhouette
                     Image(systemName: "figure.stand")
                         .font(.system(size: 280, weight: .ultraLight))
                         .foregroundStyle(Color.unbound.textPrimary.opacity(0.22))

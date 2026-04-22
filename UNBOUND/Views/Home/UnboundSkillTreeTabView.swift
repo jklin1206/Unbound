@@ -270,7 +270,36 @@ struct UnboundSkillTreeTabView: View {
                 .tracking(2.2)
                 .foregroundStyle(Color.unbound.textSecondary)
             Spacer()
+            bodyTierLink
         }
+    }
+
+    // MARK: Body tier deep-link
+    //
+    // Loads the latest BodyAnalysis → MuscleGroupTierState and pushes
+    // BodyTierView. Shows an empty state if the user hasn't scanned yet.
+
+    private var bodyTierLink: some View {
+        NavigationLink {
+            BodyTierLoaderView()
+                .environmentObject(services)
+        } label: {
+            HStack(spacing: 5) {
+                Image(systemName: "figure.stand")
+                    .font(.system(size: 11, weight: .bold))
+                Text("BODY")
+                    .font(Font.unbound.captionS.weight(.heavy))
+                    .tracking(1.6)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 9, weight: .bold))
+            }
+            .foregroundStyle(Color.unbound.textSecondary)
+            .padding(.horizontal, 9)
+            .padding(.vertical, 5)
+            .background(Capsule().fill(Color.unbound.surface))
+            .overlay(Capsule().strokeBorder(Color.unbound.border, lineWidth: 1))
+        }
+        .buttonStyle(.plain)
     }
 
     // Old header content kept commented for reference — removed in Chunk 4.

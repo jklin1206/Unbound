@@ -11,6 +11,7 @@ struct Step_Arc03_Path: View {
     @State private var haptTicked: [Bool] = [false, false, false, false]
 
     private let archetypes = Archetype.allCases.map(\.shortName)
+    private let archetypeCases = Archetype.allCases
 
     var body: some View {
         ZStack {
@@ -39,13 +40,32 @@ struct Step_Arc03_Path: View {
                                 .transition(.opacity)
                         }
 
-                        SilhouetteView(
-                            rimLight: .impact,
-                            chromaticAberration: 0.0,
-                            breathe: true,
-                            scale: 0.85
-                        )
-                        .frame(width: 170)
+                        // Cycle through the 4 archetype renders in sync with
+                        // the rotating label — teaches the user that "strong"
+                        // has four distinct shapes before they commit.
+                        TimelineView(.animation(minimumInterval: 0.8)) { ctx in
+                            let idx = Int(ctx.date.timeIntervalSinceReferenceDate) % archetypeCases.count
+                            let arch = archetypeCases[idx]
+                            Group {
+                                if let uiImage = UIImage(named: arch.silhouetteAssetName) {
+                                    Image(uiImage: uiImage)
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fit)
+                                        .shadow(color: Color.unbound.impact.opacity(0.4), radius: 24)
+                                } else {
+                                    SilhouetteView(
+                                        rimLight: .impact,
+                                        chromaticAberration: 0.0,
+                                        breathe: true,
+                                        scale: 0.85
+                                    )
+                                }
+                            }
+                            .id(idx)
+                            .transition(.opacity.combined(with: .scale(scale: 0.96)))
+                            .animation(.easeInOut(duration: 0.55), value: idx)
+                        }
+                        .frame(width: 170, height: 260)
                     }
                     .opacity(silhouetteIn ? 1 : 0)
                     .offset(y: silhouetteIn ? 0 : 20)
