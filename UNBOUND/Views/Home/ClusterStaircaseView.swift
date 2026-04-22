@@ -447,9 +447,10 @@ struct ClusterStaircaseView: View {
 
         return GeometryReader { geo in
             let fullWidth = geo.size.width
-            // 50% zig-zag amplitude — nodes sit near the outer thirds.
-            let leftX: CGFloat = fullWidth * 0.28
-            let rightX: CGFloat = fullWidth * 0.72
+            // ~45° diagonal — horizontal travel ≈ verticalGap (100pt).
+            // On ~340pt container, 0.35/0.65 anchors give ~100pt hop.
+            let leftX: CGFloat = fullWidth * 0.35
+            let rightX: CGFloat = fullWidth * 0.65
 
             ZStack(alignment: .topLeading) {
                 // Connecting rails drawn underneath.
@@ -548,11 +549,19 @@ struct ClusterStaircaseView: View {
                     style: StrokeStyle(lineWidth: 2, lineCap: .round)
                 )
             } else {
-                // Locked-to-locked — dim dashed purple.
+                // Locked-to-locked — dim solid purple with a faint blurred
+                // underlay so every rail reads as a glowing line, not a dash.
+                var blurCtx = ctx
+                blurCtx.addFilter(.blur(radius: 2.5))
+                blurCtx.stroke(
+                    path,
+                    with: .color(Color.unbound.accent.opacity(0.25)),
+                    style: StrokeStyle(lineWidth: 4, lineCap: .round)
+                )
                 ctx.stroke(
                     path,
-                    with: .color(Color.unbound.accent.opacity(0.35)),
-                    style: StrokeStyle(lineWidth: 1.8, lineCap: .round, dash: [5, 6])
+                    with: .color(Color.unbound.accent.opacity(0.55)),
+                    style: StrokeStyle(lineWidth: 1.8, lineCap: .round)
                 )
             }
         }
@@ -752,21 +761,37 @@ struct ClusterStaircaseView: View {
 
         let keystoneIsActive = (activeNode?.id == keystone?.id) && keystone != nil
 
-        // NEXT: non-achieved, non-keystone, non-mythic, not the active node,
-        // sorted by effective tier ascending, first 4.
+        // NEXT: parallel training opportunities — every node that's
+        // unlockable-right-now (.locked w/ prereqs satisfied) OR .attempting,
+        // excluding the keystone, mythic, and the ACTIVE node itself.
+        // Dropped the "must be on keystone ancestor path" filter so
+        // parallel-lane skills (e.g. Handstand Walk 10m) show up here
+        // instead of getting shuffled into OTHER DIRECTIONS.
+        // Sort by effective tier asc, then id for stability, cap at 5.
         let nextCandidates = nodes
             .filter { !$0.isMythic }
             .filter { $0.id != keystone?.id }
             .filter { $0.id != activeNode?.id }
-            .filter { !isUnlockedState(state($0)) }
-            .sorted { (tiers[$0.id] ?? $0.tier) < (tiers[$1.id] ?? $1.tier) }
-        let next = Array(nextCandidates.prefix(4))
+            .filter { node in
+                let s = state(node)
+                if s == .attempting { return true }
+                if s == .locked && node.prereqsSatisfied(given: nodeStates) { return true }
+                return false
+            }
+            .sorted {
+                let ta = tiers[$0.id] ?? $0.tier
+                let tb = tiers[$1.id] ?? $1.tier
+                if ta != tb { return ta < tb }
+                return $0.id < $1.id
+            }
+        let next = Array(nextCandidates.prefix(5))
 
         // MYTHIC: only surfaced once keystone is achieved/mastered.
         let mythic = keystoneUnlocked ? mythicNodes : []
 
-        // OTHER: any node NOT in the above categories AND NOT on the
-        // keystone's ancestor path (true dead-end tangents).
+        // OTHER DIRECTIONS: deeper-tier dead-end tangents — nodes NOT
+        // unlockable yet AND NOT on the keystone ancestor path AND NOT
+        // mythic. Usually empty after Change 1 (fine — section hides).
         let ancestors = keystone.map { keystoneAncestors(keystone: $0, nodeById: nodeById) }
             ?? Set(nodes.map(\.id))
         let consumed: Set<String> = Set(
@@ -781,6 +806,13 @@ struct ClusterStaircaseView: View {
             .filter { !consumed.contains($0.id) }
             .filter { !ancestors.contains($0.id) }
             .filter { !isUnlockedState(state($0)) }
+            // Not unlockable right now (can't fit in NEXT).
+            .filter { node in
+                let s = state(node)
+                if s == .attempting { return false }
+                if s == .locked && node.prereqsSatisfied(given: nodeStates) { return false }
+                return true
+            }
             .sorted { (tiers[$0.id] ?? $0.tier) < (tiers[$1.id] ?? $1.tier) }
 
         return StaircaseSections(
