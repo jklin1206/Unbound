@@ -466,8 +466,45 @@ struct ClusterStaircaseView: View {
             bottomY: maxY
         )
 
+        // Compute band Y-ranges (one rectangle per present rank spanning
+        // full tree width) and dotted divider Y-positions between adjacent
+        // present ranks. Used for the radar-style background progression.
+        let bandRegions = computeRankBandRegions(
+            positions: positions,
+            nodeById: nodeById,
+            topY: 0,
+            bottomY: treeHeight
+        )
+
         return ScrollView(.horizontal, showsIndicators: false) {
             ZStack(alignment: .topLeading) {
+                // Rank-band background stripes — radar-faint tint per tier.
+                ForEach(bandRegions.bands, id: \.rank) { region in
+                    Rectangle()
+                        .fill(bandTint(for: region.rank))
+                        .frame(
+                            width: contentWidth,
+                            height: max(0, region.bottom - region.top)
+                        )
+                        .position(
+                            x: contentWidth / 2,
+                            y: (region.top + region.bottom) / 2
+                        )
+                }
+
+                // Dotted horizontal dividers between adjacent rank groups.
+                ForEach(Array(bandRegions.dividers.enumerated()), id: \.offset) { _, y in
+                    Path { path in
+                        path.move(to: CGPoint(x: 0, y: y))
+                        path.addLine(to: CGPoint(x: contentWidth, y: y))
+                    }
+                    .stroke(
+                        Color.unbound.border.opacity(0.5),
+                        style: StrokeStyle(lineWidth: 0.8, dash: [4, 6])
+                    )
+                    .frame(width: contentWidth, height: treeHeight)
+                }
+
                 Canvas { ctx, _ in
                     drawGhostRails(
                         ctx: ctx,
@@ -582,6 +619,79 @@ struct ClusterStaircaseView: View {
             let present = minY[rank] != nil
             let y = present ? (minY[rank] ?? topY) : interpolate(at: idx)
             return RankBand(rank: rank, y: y, isPresent: present)
+        }
+    }
+
+    // MARK: - Rank band regions (backgrounds + dividers)
+
+    /// A full-width horizontal stripe for a single rank.
+    private struct RankBandRegion {
+        let rank: SkillRank
+        let top: CGFloat
+        let bottom: CGFloat
+    }
+
+    /// Background stripes + dotted divider Y-positions. Driven only by
+    /// ranks actually present in the cluster (absent ranks collapse — no
+    /// empty stripe, no phantom divider). Divider between adjacent ranks
+    /// sits at the midpoint between the prior rank's max-Y and the next
+    /// rank's min-Y (so they land in the whitespace between rows).
+    private func computeRankBandRegions(
+        positions: [String: CGPoint],
+        nodeById: [String: SkillNode],
+        topY: CGFloat,
+        bottomY: CGFloat
+    ) -> (bands: [RankBandRegion], dividers: [CGFloat]) {
+        var minY: [SkillRank: CGFloat] = [:]
+        var maxY: [SkillRank: CGFloat] = [:]
+        for (id, pt) in positions {
+            guard let node = nodeById[id] else { continue }
+            let r = node.rank
+            if let e = minY[r] { if pt.y < e { minY[r] = pt.y } } else { minY[r] = pt.y }
+            if let e = maxY[r] { if pt.y > e { maxY[r] = pt.y } } else { maxY[r] = pt.y }
+        }
+
+        let presentRanks = SkillRank.allCases.filter { minY[$0] != nil }
+
+        // Short-circuit: no ranks present — single covering band.
+        guard !presentRanks.isEmpty else {
+            return ([], [])
+        }
+
+        // Dividers: midpoint between maxY(rN) and minY(rN+1) for each
+        // consecutive pair of present ranks.
+        var dividers: [CGFloat] = []
+        for i in 0..<(presentRanks.count - 1) {
+            let rA = presentRanks[i]
+            let rB = presentRanks[i + 1]
+            let aMax = maxY[rA] ?? topY
+            let bMin = minY[rB] ?? bottomY
+            dividers.append((aMax + bMin) / 2)
+        }
+
+        // Bands: first band starts at topY, last ends at bottomY. Inner
+        // boundaries follow the dividers.
+        var bands: [RankBandRegion] = []
+        for (i, rank) in presentRanks.enumerated() {
+            let top    = (i == 0) ? topY : dividers[i - 1]
+            let bottom = (i == presentRanks.count - 1) ? bottomY : dividers[i]
+            bands.append(RankBandRegion(rank: rank, top: top, bottom: bottom))
+        }
+
+        return (bands, dividers)
+    }
+
+    /// Faint per-rank background tint. Opacity ramps up from E→A, with
+    /// S switching to impact orange for the flame/mythic band. Values
+    /// tuned to sit just above perception — like a radar sweep.
+    private func bandTint(for rank: SkillRank) -> Color {
+        switch rank {
+        case .e: return Color.unbound.accent.opacity(0.01)
+        case .d: return Color.unbound.accent.opacity(0.02)
+        case .c: return Color.unbound.accent.opacity(0.035)
+        case .b: return Color.unbound.accent.opacity(0.05)
+        case .a: return Color.unbound.accent.opacity(0.07)
+        case .s: return Color.unbound.impact.opacity(0.06)
         }
     }
 
