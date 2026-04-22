@@ -33,6 +33,14 @@ final class SkillProgressService {
     /// mean "no data yet" — render the hex without a fill.
     private(set) var nodeProgress: [String: Double] = [:]
 
+    // MARK: - Phase 1a addition (skill-tree redesign)
+    //
+    // Peer snapshot of per-node 1-5 level + XP progression. Kept in parallel
+    // with `nodeStates` rather than folded into NodeState so that all existing
+    // `== .locked` / `== .achieved` comparisons across the codebase keep
+    // working unchanged. Empty until Phase 1b wires XP accrual.
+    private(set) var skillProgress: [String: SkillProgress] = [:]
+
     /// The most recent unlock event — views show a reveal when this changes.
     var pendingUnlock: NodeUnlockedEvent? = nil
 
@@ -53,10 +61,12 @@ final class SkillProgressService {
         if let existing: UserSkillProgress = try? await database.read(collection: "skillProgress", documentId: userId) {
             progress = existing
             nodeStates = existing.nodeStates
+            skillProgress = existing.skillProgress
         } else {
             let empty = UserSkillProgress.empty(userId: userId)
             progress = empty
             nodeStates = [:]
+            skillProgress = [:]
             try? await database.create(empty, collection: "skillProgress", documentId: userId)
         }
         seedSpawnPoints(for: archetype ?? currentArchetype())

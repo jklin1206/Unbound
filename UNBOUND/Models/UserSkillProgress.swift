@@ -15,13 +15,22 @@ struct UserSkillProgress: Codable {
     var masteredAt: [String: Date]                   // nodeId → first-mastered timestamp
     var updatedAt: Date
 
+    // MARK: - Phase 1a addition (skill-tree redesign)
+    //
+    // Peer dictionary to `nodeStates`, keyed by the same nodeId, carrying
+    // the 1-5 level + XP ladder progression. Mirrored in persistence so
+    // the struct survives a round-trip without tripping Codable. Empty in
+    // Phase 1a — Phase 1b wires the XP accrual logic that populates it.
+    var skillProgress: [String: SkillProgress] = [:]
+
     static func empty(userId: String) -> UserSkillProgress {
         UserSkillProgress(
             userId: userId,
             nodeStates: [:],
             achievedAt: [:],
             masteredAt: [:],
-            updatedAt: Date()
+            updatedAt: Date(),
+            skillProgress: [:]
         )
     }
 

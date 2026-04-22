@@ -121,6 +121,19 @@ struct SkillNode: Identifiable, Codable, Hashable, Sendable {
     // Legacy layout — Chunk 4 ships cluster-based positioning and drops this
     let position: NodeGridPosition
 
+    // MARK: - Phase 1a additions (skill-tree redesign)
+    //
+    // `rank` and `levels` are introduced so every node can carry an
+    // E/D/C/B/A/S difficulty tier and a 1-5 XP-gated ladder. Both default
+    // so existing content in SkillTreeContent.swift keeps compiling — the
+    // Phase 1c migration populates real values per node.
+
+    /// Difficulty tier shown on the node chip. Defaults to `.d`.
+    var rank: SkillRank = .d
+
+    /// Ordered 1-5 ladder. Empty until Phase 1c content migration.
+    var levels: [SkillLevel] = []
+
     static func == (lhs: SkillNode, rhs: SkillNode) -> Bool { lhs.id == rhs.id }
     func hash(into hasher: inout Hasher) { hasher.combine(id) }
 
@@ -152,7 +165,9 @@ struct SkillNode: Identifiable, Codable, Hashable, Sendable {
         commonMistakes: [String] = [],
         timeline: String = "",
         glyph: String? = nil,
-        position: NodeGridPosition = .zero
+        position: NodeGridPosition = .zero,
+        rank: SkillRank = .d,
+        levels: [SkillLevel] = []
     ) -> SkillNode {
         SkillNode(
             id: id,
@@ -173,7 +188,9 @@ struct SkillNode: Identifiable, Codable, Hashable, Sendable {
             commonMistakes: commonMistakes,
             timelineEstimate: timeline,
             glyph: glyph ?? defaultGlyph(for: type, isMythic: isMythic),
-            position: position
+            position: position,
+            rank: rank,
+            levels: levels
         )
     }
 
@@ -313,7 +330,9 @@ struct SkillTree: Codable, Sendable {
                     commonMistakes: n.commonMistakes,
                     timelineEstimate: n.timelineEstimate,
                     glyph: n.glyph,
-                    position: NodeGridPosition(row: row, column: idx - columnOrder.count / 2)
+                    position: NodeGridPosition(row: row, column: idx - columnOrder.count / 2),
+                    rank: n.rank,
+                    levels: n.levels
                 )
                 positioned.append(repositioned)
             }
