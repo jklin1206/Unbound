@@ -34,6 +34,25 @@ public enum SkillRank: String, Codable, CaseIterable, Sendable {
         SkillRank.allCases.firstIndex(of: self) ?? 0
     }
 
+    /// True when the rank sits at the top of the ladder (S = Ascended).
+    /// An S-rank skill is a life pursuit, not a rank tier — distinct visual
+    /// treatment (flame instead of hex, impact orange instead of muted
+    /// violet) is applied wherever rank chips render.
+    public var isAscendedTier: Bool { self == .s }
+
+    /// Supporting tagline shown alongside `unboundLabel` when space permits.
+    /// S-rank emphasizes the lifelong-practice framing.
+    public var tagline: String {
+        switch self {
+        case .e: return "Foundation."
+        case .d: return "Awakening the movement."
+        case .c: return "Forged through reps."
+        case .b: return "Sharpened edge."
+        case .a: return "Unbound from limits."
+        case .s: return "Ascended — years of dedicated practice."
+        }
+    }
+
     /// Accent color for rank-coded UI. Uses Color.unbound tokens if available,
     /// otherwise a sensible fallback. Keep the palette muted — rank is a
     /// signal, not a billboard.

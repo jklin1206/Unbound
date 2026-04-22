@@ -612,23 +612,50 @@ struct ClusterStaircaseView: View {
         }
     }
 
-    /// Small rank hex badge in the gutter — matches RankBadge's Hexagon +
-    /// letter pattern. Empty ranks render at low opacity in neutral grey.
+    /// Small rank badge in the gutter. For E–A this is a Hexagon + letter.
+    /// For S (Ascended / mythic) it becomes a flame glyph in impact orange
+    /// to read as "life pursuit" rather than just the next rank on the
+    /// ladder. Empty ranks render at low opacity in neutral grey.
     private func rankHexBadge(rank: SkillRank, active: Bool, size: CGFloat) -> some View {
         let stroke: Color = active ? rank.accentColor : Color.unbound.border
         let letterColor: Color = active ? Color.unbound.textPrimary : Color.unbound.textTertiary
-        return ZStack {
-            Hexagon()
-                .fill(Color.unbound.surface)
-                .frame(width: size, height: size)
-            Hexagon()
-                .strokeBorder(stroke, lineWidth: 1)
-                .frame(width: size, height: size)
-            Text(rank.letter)
-                .font(.system(size: 10, weight: .heavy, design: .monospaced))
-                .foregroundStyle(letterColor)
+        let mythicSize = size * (7.0 / 6.0)   // ~28pt when base is 24pt
+        return Group {
+            if rank.isAscendedTier {
+                // Mythic/Ascended — flame glyph, slightly larger, impact accent
+                ZStack {
+                    Hexagon()
+                        .fill(Color.unbound.surface)
+                        .frame(width: mythicSize, height: mythicSize)
+                    Hexagon()
+                        .strokeBorder(
+                            active ? Color.unbound.impact : Color.unbound.border,
+                            lineWidth: active ? 1.2 : 1
+                        )
+                        .frame(width: mythicSize, height: mythicSize)
+                    Image(systemName: "flame.fill")
+                        .font(.system(size: 13, weight: .black))
+                        .foregroundStyle(
+                            active ? Color.unbound.impact : Color.unbound.textTertiary
+                        )
+                }
+                .opacity(active ? 1.0 : 0.35)
+                .accessibilityLabel("Ascended — life pursuit")
+            } else {
+                ZStack {
+                    Hexagon()
+                        .fill(Color.unbound.surface)
+                        .frame(width: size, height: size)
+                    Hexagon()
+                        .strokeBorder(stroke, lineWidth: 1)
+                        .frame(width: size, height: size)
+                    Text(rank.letter)
+                        .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                        .foregroundStyle(letterColor)
+                }
+                .opacity(active ? 1.0 : 0.35)
+            }
         }
-        .opacity(active ? 1.0 : 0.35)
     }
 
     /// Tags the active hex with the `id("active")` anchor used by

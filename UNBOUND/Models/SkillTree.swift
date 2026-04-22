@@ -216,6 +216,12 @@ struct SkillNode: Identifiable, Codable, Hashable, Sendable {
 // MARK: - SkillNode helpers
 
 extension SkillNode {
+    /// True when this node deserves the "mythic / life pursuit" visual
+    /// treatment — S-rank OR the explicit `isMythic` flag. Drives the flame
+    /// rank chip and impact-coloured accents wherever rank is rendered.
+    /// Kept as a computed property so UI code reads it in one place.
+    var displaysMythic: Bool { rank == .s || isMythic }
+
     /// True if at least ONE prerequisite group is fully satisfied by the given states,
     /// or the node has no prereqs. Matches the canonical OR-of-AND semantics used in
     /// `SkillTree.swift:246` and `SkillProgressService.swift:81–91`.

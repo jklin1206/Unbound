@@ -258,18 +258,37 @@ struct ClusterCardView: View {
     }
 
     private func rankPill(rank: SkillRank) -> some View {
-        Text(rank.letter)
-            .font(.system(size: 12, weight: .heavy, design: .monospaced))
-            .foregroundStyle(Color.unbound.textPrimary)
-            .frame(width: 26, height: 26)
-            .background(
-                Hexagon()
-                    .fill(Color.unbound.surfaceElevated)
-            )
-            .overlay(
-                Hexagon()
-                    .strokeBorder(rank.accentColor, lineWidth: 1.2)
-            )
+        Group {
+            if rank.isAscendedTier {
+                // Mythic/Ascended keystones get the flame chip instead of a letter hex.
+                Image(systemName: "flame.fill")
+                    .font(.system(size: 13, weight: .black))
+                    .foregroundStyle(Color.unbound.impact)
+                    .frame(width: 28, height: 28)
+                    .background(
+                        Hexagon()
+                            .fill(Color.unbound.surfaceElevated)
+                    )
+                    .overlay(
+                        Hexagon()
+                            .strokeBorder(Color.unbound.impact, lineWidth: 1.2)
+                    )
+                    .accessibilityLabel("Ascended rank — life pursuit")
+            } else {
+                Text(rank.letter)
+                    .font(.system(size: 12, weight: .heavy, design: .monospaced))
+                    .foregroundStyle(Color.unbound.textPrimary)
+                    .frame(width: 26, height: 26)
+                    .background(
+                        Hexagon()
+                            .fill(Color.unbound.surfaceElevated)
+                    )
+                    .overlay(
+                        Hexagon()
+                            .strokeBorder(rank.accentColor, lineWidth: 1.2)
+                    )
+            }
+        }
     }
 }
 
