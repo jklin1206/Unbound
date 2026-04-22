@@ -270,7 +270,7 @@ struct ClusterStaircaseView: View {
         let rowIndex: Int     // y-axis bucket
         let column: Column    // left / right
         let role: Role
-        enum Column { case left, right, centerFallback(CGFloat) /* 0..1 fraction */ }
+        enum Column { case left, right, center, centerFallback(CGFloat) /* 0..1 fraction */ }
         enum Role { case achieved, active, next, keystone, tangent }
     }
 
@@ -442,6 +442,68 @@ struct ClusterStaircaseView: View {
                 }
             }
         }
+
+        // Second pass: center "branch parents" whose direct children in the
+        // next row occupy BOTH left and right columns. This avoids broken-
+        // looking forks where a left-column parent sends an arm back to the
+        // left and another diagonally across to the right.
+        //
+        // Guard: only re-center a node when its row contains exactly one
+        // slot (the node itself). If another slot shares the row (e.g. a
+        // tangent), keep parity to prevent hex overlap at x = 0.5W.
+        //
+        // Scope: only direct children in row i+1 count. Grandchildren don't
+        // cascade upward — branching has to actually happen at this level.
+        let visibleIdsByRow: [Int: Set<String>] = Dictionary(
+            grouping: slots, by: { $0.rowIndex }
+        ).mapValues { Set($0.map(\.id)) }
+
+        let slotIndexById: [String: Int] = Dictionary(
+            uniqueKeysWithValues: slots.enumerated().map { ($1.id, $0) }
+        )
+
+        for (i, slot) in slots.enumerated() {
+            // Only one-slot rows are eligible.
+            let rowMembers = slots.filter { $0.rowIndex == slot.rowIndex }
+            guard rowMembers.count == 1 else { continue }
+
+            let nextRow = slot.rowIndex + 1
+            guard let nextIds = visibleIdsByRow[nextRow] else { continue }
+
+            // Direct children = nodes in the next row whose prereqs include
+            // this slot's node id. Walk the actual prereq graph so a child
+            // that happens to sit in the next row by coincidence (but isn't
+            // this node's child) doesn't count.
+            let childSlots: [ChainSlot] = slots.filter { candidate in
+                guard candidate.rowIndex == nextRow,
+                      nextIds.contains(candidate.id) else { return false }
+                let parentIds = Set(candidate.node.prereqs.flatMap { $0.nodeIds })
+                return parentIds.contains(slot.id)
+            }
+            guard childSlots.count >= 2 else { continue }
+
+            var hasLeft = false
+            var hasRight = false
+            for c in childSlots {
+                switch c.column {
+                case .left:  hasLeft = true
+                case .right: hasRight = true
+                case .center, .centerFallback: break
+                }
+            }
+            guard hasLeft && hasRight else { continue }
+
+            if let idx = slotIndexById[slot.id] {
+                slots[idx] = ChainSlot(
+                    id: slot.id,
+                    node: slot.node,
+                    rowIndex: slot.rowIndex,
+                    column: .center,
+                    role: slot.role
+                )
+            }
+        }
+
         return slots
     }
 
@@ -496,6 +558,7 @@ struct ClusterStaircaseView: View {
                 let fullWidth = geo.size.width
                 let leftX = fullWidth * 0.28
                 let rightX = fullWidth * 0.72
+                let centerX = fullWidth * 0.5
 
                 let positions: [String: CGPoint] = Dictionary(
                     uniqueKeysWithValues: slots.map { slot in
@@ -503,6 +566,7 @@ struct ClusterStaircaseView: View {
                         switch slot.column {
                         case .left:              x = leftX
                         case .right:             x = rightX
+                        case .center:            x = centerX
                         case .centerFallback(let f): x = fullWidth * f
                         }
                         let y = rowCenters[slot.rowIndex]
@@ -988,14 +1052,9 @@ struct ClusterStaircaseView: View {
             toPt = CGPoint(x: child.x + cdx, y: child.y - cdy)
         }
 
-        let midY = (fromPt.y + toPt.y) / 2
         var path = Path()
         path.move(to: fromPt)
-        path.addCurve(
-            to: toPt,
-            control1: CGPoint(x: fromPt.x, y: midY),
-            control2: CGPoint(x: toPt.x, y: midY)
-        )
+        path.addLine(to: toPt)
         strokeRail(ctx: ctx, path: path, fromReached: fromReached, toReached: toReached, tint: tint)
     }
 
