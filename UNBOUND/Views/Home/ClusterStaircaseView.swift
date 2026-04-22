@@ -2,30 +2,37 @@ import SwiftUI
 
 // MARK: - ClusterStaircaseView
 //
-// Section-based vertical staircase. Each cluster is presented as a tight
-// column of labelled sections — ACHIEVED, ACTIVE, NEXT, KEYSTONE, MYTHIC,
-// OTHER DIRECTIONS — with hexes explicitly zig-zagged left/right and
-// connected by glowing purple bezier rails.
+// A single, continuous zig-zag chain of hexes reading top-to-bottom from
+// the lowest-tier achieved node through the active node, the path ahead,
+// and terminating at the keystone. Tangent (off-path) nodes in the same
+// cluster are integrated inline at their effective tier in the opposite
+// column from the keystone-path node at that tier.
 //
-// Sections
-//   • ACHIEVED        — up to last 2 non-keystone achieved/mastered nodes
-//   • ACTIVE          — single "do this now" hex (big, pulsing) + LOG SESSION
-//   • NEXT            — up to 4 upcoming unlockables, zig-zag'd
-//   • KEYSTONE        — big hex + "N beats away" label
-//   • MYTHIC          — only surfaced once the keystone is achieved
-//   • OTHER DIRECTIONS — horizontal scrollable row of true dead-end tangents
+// Layout rules (enforced — no centered single nodes):
+//   • Two fixed columns at 0.28W (LEFT) and 0.72W (RIGHT).
+//   • Row parity assignment: if a row has ONE node, it goes to LEFT on
+//     even row indices and RIGHT on odd. Row index is the node's effective
+//     tier within the chain, so the zig-zag is stable and globally aware.
+//   • If a row has TWO nodes (keystone-path + tangent), the keystone-path
+//     node keeps its parity slot and the tangent takes the opposite column.
+//   • If a row has THREE+ nodes (rare), fall back to evenly spaced 0.15W
+//     → 0.85W fractions.
 //
-// Each multi-node section lives in a GeometryReader-sized ZStack: hexes
-// are placed at alternating left/right x anchors and a Canvas underlay
-// draws quadratic-bezier rails between consecutive hexes. Rails go solid
-// + blurred when both endpoints are achieved, solid when only the source
-// is, and dashed-dim otherwise.
+// Rails:
+//   • Follow the real prereq graph — each visible node walks
+//     `prereqs.flatMap(\.nodeIds)` and draws a rail from each VISIBLE
+//     parent. Rails anchor to the flat-top hex's 45°-edge midpoints so
+//     the line visually emerges from the diagonal corner.
+//   • Gentle bezier, tiered glow (both reached / partial / locked).
 //
-// Integrations preserved
-//   • Tap any hex → `SkillNodeDetailSheet` via `.sheet(item:)`
-//   • `[FULL TREE]` → `ClusterDetailView` via `.sheet(isPresented:)`
-//   • Auto-scroll to the ACTIVE node on first appear (ScrollViewReader)
-//   • Back button pops the staircase
+// Sections below the chain:
+//   • MYTHIC — its own zig-zag section, surfaced only when the keystone
+//     is achieved or mastered.
+//
+// Preserved
+//   • buildSections() logic (active/keystone/achieved/next/mythic).
+//   • Auto-scroll to active node on appear.
+//   • Active pulse animation, tap-to-open detail sheet, FULL TREE button.
 
 struct ClusterStaircaseView: View {
     let cluster: SkillCluster
@@ -56,61 +63,14 @@ struct ClusterStaircaseView: View {
                             .padding(.top, 12)
                             .padding(.horizontal, 16)
 
-                        if !sections.achieved.isEmpty {
-                            sectionDivider("ACHIEVED")
-                                .padding(.top, 28)
-                            zigzagColumn(
-                                nodes: sections.achieved,
-                                sizeKind: .far
-                            )
-                            .padding(.top, 36)
-                        }
-
-                        if let active = sections.active {
-                            sectionDivider("ACTIVE")
-                                .padding(.top, 32)
-                            activeHex(node: active)
-                                .padding(.top, 36)
-                                .id("active")
-                            logSessionButton(for: active)
-                                .padding(.top, 14)
-                        }
-
-                        if !sections.next.isEmpty {
-                            sectionDivider("NEXT")
-                                .padding(.top, 32)
-                            zigzagColumn(
-                                nodes: sections.next,
-                                sizeKind: .adjacent
-                            )
-                            .padding(.top, 36)
-                        }
-
-                        if let keystone = sections.keystone,
-                           !sections.keystoneIsActive
-                        {
-                            sectionDivider("KEYSTONE")
-                                .padding(.top, 32)
-                            keystoneHex(keystone)
-                                .padding(.top, 36)
-                        }
+                        mainChain
+                            .padding(.top, 28)
 
                         if !sections.mythic.isEmpty {
                             sectionDivider("MYTHIC")
                                 .padding(.top, 32)
-                            zigzagColumn(
-                                nodes: sections.mythic,
-                                sizeKind: .mythic
-                            )
-                            .padding(.top, 36)
-                        }
-
-                        if !sections.other.isEmpty {
-                            sectionDivider("OTHER DIRECTIONS")
-                                .padding(.top, 32)
-                            otherRow(sections.other)
-                                .padding(.top, 16)
-                                .padding(.bottom, 4)
+                            mythicChain(nodes: sections.mythic)
+                                .padding(.top, 28)
                         }
                     }
                     .padding(.bottom, 48)
@@ -301,12 +261,340 @@ struct ClusterStaircaseView: View {
         .padding(.horizontal, 24)
     }
 
-    // MARK: - Active hex (big, pulsing) + LOG SESSION CTA
+    // MARK: - Main chain (the one true staircase)
 
-    private func activeHex(node: SkillNode) -> some View {
+    /// Data payload for rendering a row in the chain.
+    private struct ChainSlot: Identifiable {
+        let id: String        // node id
+        let node: SkillNode
+        let rowIndex: Int     // y-axis bucket
+        let column: Column    // left / right
+        let role: Role
+        enum Column { case left, right, centerFallback(CGFloat) /* 0..1 fraction */ }
+        enum Role { case achieved, active, next, keystone, tangent }
+    }
+
+    /// Assembles the ordered chain: achieved → active → next → keystone,
+    /// with tangents slotted in at their effective tier (opposite column
+    /// from the keystone-path node at that tier when present).
+    private func buildChainSlots() -> [ChainSlot] {
+        let tiers = computeEffectiveTiers(nodes: clusterNodes)
+
+        // Primary (keystone-path + active) ordered list.
+        var primary: [(node: SkillNode, role: ChainSlot.Role)] = []
+        for n in sections.achieved { primary.append((n, .achieved)) }
+        if let a = sections.active { primary.append((a, .active)) }
+        for n in sections.next { primary.append((n, .next)) }
+        if let k = sections.keystone, !sections.keystoneIsActive {
+            primary.append((k, .keystone))
+        }
+
+        // Dedup primary in case buildSections overlaps (it shouldn't, but
+        // defensive). Preserve the first-seen ordering.
+        var seen: Set<String> = []
+        primary = primary.filter { seen.insert($0.node.id).inserted }
+
+        // Map primary node → its row index in the rendered chain. Row 0
+        // is the top. Rows are normalized to be contiguous so the column
+        // parity reads naturally from top to bottom.
+        var rowOfPrimary: [String: Int] = [:]
+        for (i, entry) in primary.enumerated() {
+            rowOfPrimary[entry.node.id] = i
+        }
+
+        // Tangents: nodes in the cluster NOT in primary, NOT mythic.
+        // Place them at a row that corresponds to their effective tier,
+        // mapped into the chain's row space. If no primary occupies that
+        // tier, they get their own row appended in tier order.
+        let primaryIds = Set(primary.map { $0.node.id })
+        let tangents = clusterNodes
+            .filter { !$0.isMythic && !primaryIds.contains($0.id) }
+
+        // Primary tier buckets — group primary by effective tier so we
+        // can map a tangent's tier to a primary row.
+        var primaryByTier: [Int: String] = [:]
+        for entry in primary {
+            let t = tiers[entry.node.id] ?? entry.node.tier
+            // Prefer the first primary seen at that tier (keeps the
+            // keystone-path visible as the "anchor" of its row).
+            if primaryByTier[t] == nil {
+                primaryByTier[t] = entry.node.id
+            }
+        }
+
+        // Assign tangents to rows. If tangent's tier matches a primary
+        // tier, it shares that row. Otherwise, it gets its own new row
+        // inserted in sorted-tier position.
+        struct TangentAssignment {
+            let node: SkillNode
+            let tier: Int
+            var sharesRowWith: String?  // primary node id
+        }
+        let tangentAssignments: [TangentAssignment] = tangents
+            .map { t in
+                let tier = tiers[t.id] ?? t.tier
+                return TangentAssignment(
+                    node: t,
+                    tier: tier,
+                    sharesRowWith: primaryByTier[tier]
+                )
+            }
+            .sorted { (a, b) in
+                if a.tier != b.tier { return a.tier < b.tier }
+                return a.node.id < b.node.id
+            }
+
+        // Build the final row list. Start with primary rows in order.
+        // Then insert standalone tangent rows (those without a matching
+        // primary tier) at positions that preserve tier ordering.
+        struct RowSpec {
+            var primaryId: String?
+            var tier: Int
+            var tangents: [SkillNode] = []
+        }
+        var rows: [RowSpec] = []
+        for entry in primary {
+            let t = tiers[entry.node.id] ?? entry.node.tier
+            rows.append(RowSpec(primaryId: entry.node.id, tier: t))
+        }
+        for ta in tangentAssignments {
+            if let sharedId = ta.sharesRowWith,
+               let idx = rows.firstIndex(where: { $0.primaryId == sharedId })
+            {
+                rows[idx].tangents.append(ta.node)
+            } else {
+                // Insert a new standalone row at the correct tier position.
+                let insertAt = rows.firstIndex(where: { $0.tier > ta.tier })
+                    ?? rows.count
+                var new = RowSpec(primaryId: nil, tier: ta.tier)
+                new.tangents.append(ta.node)
+                rows.insert(new, at: insertAt)
+            }
+        }
+
+        // Walk rows with a fresh contiguous row index and produce slots.
+        var slots: [ChainSlot] = []
+        for (rowIdx, row) in rows.enumerated() {
+            // Primary node for the row (if any): parity slot.
+            let parityLeft = (rowIdx % 2 == 0) // row 0 = LEFT, 1 = RIGHT, ...
+            let primarySlotLeft = parityLeft
+            var usedLeft = false
+            var usedRight = false
+
+            if let pid = row.primaryId,
+               let entry = primary.first(where: { $0.node.id == pid })
+            {
+                let col: ChainSlot.Column = primarySlotLeft ? .left : .right
+                if primarySlotLeft { usedLeft = true } else { usedRight = true }
+                slots.append(ChainSlot(
+                    id: pid,
+                    node: entry.node,
+                    rowIndex: rowIdx,
+                    column: col,
+                    role: entry.role
+                ))
+            }
+
+            // Tangents on this row: first tangent takes the OPPOSITE
+            // column from the primary (or parity slot if no primary).
+            // Additional tangents fall back to an evenly-spaced fraction
+            // between 0.15W and 0.85W per the spec, skipping used cols.
+            let rowTangents = row.tangents
+            if !rowTangents.isEmpty {
+                // First tangent — opposite column from primary slot.
+                let first = rowTangents[0]
+                let firstCol: ChainSlot.Column
+                if usedLeft {
+                    firstCol = .right; usedRight = true
+                } else if usedRight {
+                    firstCol = .left;  usedLeft = true
+                } else {
+                    // No primary; parity puts primary on L, tangent alone
+                    // takes parity slot so the chain still zig-zags.
+                    firstCol = primarySlotLeft ? .left : .right
+                    if primarySlotLeft { usedLeft = true } else { usedRight = true }
+                }
+                slots.append(ChainSlot(
+                    id: first.id,
+                    node: first,
+                    rowIndex: rowIdx,
+                    column: firstCol,
+                    role: .tangent
+                ))
+
+                // Any further tangents — fall back to 0.15→0.85 fractions.
+                if rowTangents.count > 1 {
+                    let extras = Array(rowTangents.dropFirst())
+                    let count = extras.count
+                    let start: CGFloat = 0.15
+                    let end: CGFloat = 0.85
+                    let step = count == 1 ? 0 : (end - start) / CGFloat(count - 1)
+                    for (i, t) in extras.enumerated() {
+                        let f = count == 1 ? 0.5 : (start + step * CGFloat(i))
+                        slots.append(ChainSlot(
+                            id: t.id,
+                            node: t,
+                            rowIndex: rowIdx,
+                            column: .centerFallback(f),
+                            role: .tangent
+                        ))
+                    }
+                }
+            }
+        }
+        return slots
+    }
+
+    private var mainChain: some View {
+        let slots = buildChainSlots()
+        guard !slots.isEmpty else {
+            return AnyView(EmptyView())
+        }
+
+        let rowCount = (slots.map(\.rowIndex).max() ?? 0) + 1
+        let verticalGap: CGFloat = 110
+        let baseSize: CGFloat = 95       // standard adjacent size
+        let activeSize: CGFloat = 120
+        let keystoneSize: CGFloat = 140
+        // Row height allocation anchors on the largest hex in the chain.
+        let topPadding: CGFloat = keystoneSize / 2
+        let bottomPadding: CGFloat = keystoneSize / 2 + 44 // room for label + beats-away
+        let totalHeight: CGFloat = CGFloat(max(0, rowCount - 1)) * verticalGap
+            + topPadding + bottomPadding
+
+        return AnyView(
+            GeometryReader { geo in
+                let fullWidth = geo.size.width
+                let leftX = fullWidth * 0.28
+                let rightX = fullWidth * 0.72
+
+                let positions: [String: CGPoint] = Dictionary(
+                    uniqueKeysWithValues: slots.map { slot in
+                        let x: CGFloat
+                        switch slot.column {
+                        case .left:              x = leftX
+                        case .right:             x = rightX
+                        case .centerFallback(let f): x = fullWidth * f
+                        }
+                        let y = topPadding + CGFloat(slot.rowIndex) * verticalGap
+                        return (slot.id, CGPoint(x: x, y: y))
+                    }
+                )
+                let sizeFor: (ChainSlot) -> CGFloat = { slot in
+                    switch slot.role {
+                    case .active:   return activeSize
+                    case .keystone: return keystoneSize
+                    default:        return baseSize
+                    }
+                }
+                let visibleIds = Set(positions.keys)
+
+                ZStack(alignment: .topLeading) {
+                    // Rails under the hexes.
+                    Canvas { ctx, _ in
+                        drawPrereqRails(
+                            ctx: ctx,
+                            slots: slots,
+                            positions: positions,
+                            sizeFor: sizeFor,
+                            visibleIds: visibleIds
+                        )
+                    }
+                    .frame(width: fullWidth, height: totalHeight)
+                    .allowsHitTesting(false)
+
+                    ForEach(slots) { slot in
+                        if let p = positions[slot.id] {
+                            chainHex(slot: slot, size: sizeFor(slot))
+                                .position(x: p.x, y: p.y)
+                                .modifier(ActiveAnchorModifier(isActive: slot.role == .active))
+                        }
+                    }
+                }
+                .frame(width: fullWidth, height: totalHeight, alignment: .topLeading)
+            }
+            .frame(height: totalHeight)
+            .padding(.horizontal, 16)
+        )
+    }
+
+    /// Tags the active hex with the `id("active")` anchor used by
+    /// auto-scroll, without forcing every hex to own an id.
+    private struct ActiveAnchorModifier: ViewModifier {
+        let isActive: Bool
+        func body(content: Content) -> some View {
+            if isActive { content.id("active") } else { content }
+        }
+    }
+
+    // MARK: - Chain hex (role-aware sizing + inline LOG SESSION badge)
+
+    @ViewBuilder
+    private func chainHex(slot: ChainSlot, size: CGFloat) -> some View {
+        let node = slot.node
         let state = nodeStates[node.id] ?? .locked
-        let size: CGFloat = 140
-        return VStack(spacing: 10) {
+
+        switch slot.role {
+        case .active:
+            activeChainHex(node: node, state: state, size: size)
+        case .keystone:
+            keystoneChainHex(node: node, state: state, size: size)
+        default:
+            defaultChainHex(node: node, state: state, size: size, role: slot.role)
+        }
+    }
+
+    private func defaultChainHex(
+        node: SkillNode,
+        state: NodeState,
+        size: CGFloat,
+        role: ChainSlot.Role
+    ) -> some View {
+        let glyphSize: CGFloat = 24
+        // Achieved nodes far behind the current front render slightly faded
+        // to de-emphasize history without losing context.
+        let fade = role == .achieved ? 0.78 : 1.0
+
+        return VStack(spacing: 6) {
+            ZStack {
+                Hexagon()
+                    .fill(fillColor(state: state, faded: role == .achieved))
+                    .frame(width: size, height: size)
+                Hexagon()
+                    .strokeBorder(
+                        borderColor(node: node, state: state, faded: role == .achieved),
+                        lineWidth: strokeWidth(state: state)
+                    )
+                    .frame(width: size, height: size)
+                glyph(for: node, state: state, fontSize: glyphSize)
+            }
+            .shadow(color: glowColor(state: state, faded: role == .achieved), radius: state == .locked ? 0 : 10)
+            .opacity(fade)
+
+            Text(node.title)
+                .font(Font.unbound.captionS.weight(.semibold))
+                .foregroundStyle(
+                    state == .locked ? Color.unbound.textTertiary : Color.unbound.textPrimary
+                )
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(width: max(108, size + 14))
+        }
+        .frame(width: max(108, size + 14))
+        .contentShape(Rectangle())
+        .onTapGesture {
+            UnboundHaptics.medium()
+            selectedNode = node
+        }
+    }
+
+    private func activeChainHex(
+        node: SkillNode,
+        state: NodeState,
+        size: CGFloat
+    ) -> some View {
+        VStack(spacing: 10) {
             ZStack {
                 Hexagon()
                     .fill(Color.unbound.accent.opacity(0.22))
@@ -317,7 +605,7 @@ struct ClusterStaircaseView: View {
                 Hexagon()
                     .strokeBorder(Color.unbound.accent.opacity(0.7), lineWidth: 1)
                     .frame(width: size + 16, height: size + 16)
-                glyph(for: node, state: state, fontSize: 44)
+                glyph(for: node, state: state, fontSize: 36)
             }
             .scaleEffect(activePulse)
             .shadow(color: Color.unbound.accent.opacity(0.55), radius: 20)
@@ -330,36 +618,33 @@ struct ClusterStaircaseView: View {
                 .font(Font.unbound.bodyMStrong)
                 .foregroundStyle(Color.unbound.textPrimary)
                 .multilineTextAlignment(.center)
-                .frame(maxWidth: 240)
-        }
-        .frame(maxWidth: .infinity)
-    }
+                .frame(maxWidth: 180)
 
-    private func logSessionButton(for node: SkillNode) -> some View {
-        Button {
-            UnboundHaptics.medium()
-            selectedNode = node
-        } label: {
-            HStack(spacing: 8) {
-                Image(systemName: "dumbbell.fill")
-                    .font(.system(size: 12, weight: .bold))
-                Text("LOG SESSION")
-                    .font(Font.unbound.captionS.weight(.heavy))
-                    .tracking(1.6)
+            Button {
+                UnboundHaptics.medium()
+                selectedNode = node
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "dumbbell.fill")
+                        .font(.system(size: 10, weight: .bold))
+                    Text("LOG SESSION")
+                        .font(Font.unbound.captionS.weight(.heavy))
+                        .tracking(1.6)
+                }
+                .foregroundStyle(Color.unbound.bg)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 7)
+                .background(Capsule().fill(Color.unbound.accent))
             }
-            .foregroundStyle(Color.unbound.bg)
-            .padding(.horizontal, 18)
-            .padding(.vertical, 10)
-            .background(Capsule().fill(Color.unbound.accent))
+            .buttonStyle(.plain)
         }
-        .buttonStyle(.plain)
     }
 
-    // MARK: - Keystone hex (big) + "N beats away" label
-
-    private func keystoneHex(_ node: SkillNode) -> some View {
-        let state = nodeStates[node.id] ?? .locked
-        let size: CGFloat = 140
+    private func keystoneChainHex(
+        node: SkillNode,
+        state: NodeState,
+        size: CGFloat
+    ) -> some View {
         let beatsAway = sections.next.count + 1
         return VStack(spacing: 10) {
             ZStack {
@@ -396,14 +681,13 @@ struct ClusterStaircaseView: View {
                 .font(Font.unbound.bodyMStrong)
                 .foregroundStyle(Color.unbound.textPrimary)
                 .multilineTextAlignment(.center)
-                .frame(maxWidth: 240)
+                .frame(maxWidth: 200)
 
             Text("\(beatsAway) \(beatsAway == 1 ? "BEAT" : "BEATS") AWAY")
                 .font(.system(size: 10, weight: .heavy, design: .monospaced))
                 .tracking(2.0)
                 .foregroundStyle(Color.unbound.accent)
         }
-        .frame(maxWidth: .infinity)
     }
 
     private func keystoneFill(state: NodeState) -> Color {
@@ -415,79 +699,68 @@ struct ClusterStaircaseView: View {
         }
     }
 
-    // MARK: - OTHER DIRECTIONS (horizontal scroll)
+    // MARK: - Mythic chain (same zig-zag machinery, mythic styling)
 
-    private func otherRow(_ nodes: [SkillNode]) -> some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 14) {
-                ForEach(nodes, id: \.id) { n in
-                    hexCell(node: n, sizeKind: .alternate)
-                        .onTapGesture {
-                            UnboundHaptics.medium()
-                            selectedNode = n
-                        }
-                }
-            }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 8)
+    private func mythicChain(nodes: [SkillNode]) -> some View {
+        // Build a simple zig-zag by row index (no tier-math — each mythic
+        // gets its own row to keep the section readable).
+        struct MythicSlot: Identifiable {
+            let id: String
+            let node: SkillNode
+            let rowIndex: Int
+            let left: Bool
         }
-    }
-
-    // MARK: - Tier-row column (for ACHIEVED / NEXT / MYTHIC)
-    //
-    // Parallelism-aware layout: nodes are grouped by effective tier (BFS
-    // depth through prereqs). Nodes at the same tier live on the same
-    // horizontal row, so independent training paths render side-by-side
-    // rather than in a forced zig-zag. Rails connect a node to its ACTUAL
-    // prereqs in the tier above, anchored to the diagonal edges of each
-    // flat-top hex so the line visually emerges from the 45° corner.
-
-    private func zigzagColumn(
-        nodes: [SkillNode],
-        sizeKind: HexSizeKind
-    ) -> some View {
-        let rows = groupIntoTierRows(nodes: nodes)
-        let rowCount = rows.count
-        let verticalGap: CGFloat = 100   // row center-to-center distance
-        let totalHeight: CGFloat = CGFloat(max(0, rowCount - 1)) * verticalGap
-            + sizeKind.size
-            + 36  // label breathing room below last row
+        let slots: [MythicSlot] = nodes
+            .sorted { $0.id < $1.id }
+            .enumerated()
+            .map { idx, n in
+                MythicSlot(id: n.id, node: n, rowIndex: idx, left: idx % 2 == 0)
+            }
+        let rowCount = slots.count
+        let verticalGap: CGFloat = 110
+        let size: CGFloat = 90
+        let totalHeight = CGFloat(max(0, rowCount - 1)) * verticalGap + size + 44
 
         return GeometryReader { geo in
             let fullWidth = geo.size.width
-            let anchors = rowAnchors(width: fullWidth)
-
-            // Resolve every visible node's (cx, cy) up front so both the
-            // rail canvas and the hex views use the same coordinates.
-            let positions = computeNodePositions(
-                rows: rows,
-                anchors: anchors,
-                verticalGap: verticalGap,
-                sizeKind: sizeKind
+            let leftX = fullWidth * 0.28
+            let rightX = fullWidth * 0.72
+            let positions: [String: CGPoint] = Dictionary(
+                uniqueKeysWithValues: slots.map { s in
+                    (s.id, CGPoint(
+                        x: s.left ? leftX : rightX,
+                        y: size / 2 + CGFloat(s.rowIndex) * verticalGap
+                    ))
+                }
             )
-            let visibleIds: Set<String> = Set(positions.keys)
-
             ZStack(alignment: .topLeading) {
-                // Prereq rails drawn underneath.
                 Canvas { ctx, _ in
-                    drawPrereqRails(
-                        ctx: ctx,
-                        nodes: nodes,
-                        positions: positions,
-                        visibleIds: visibleIds,
-                        sizeKind: sizeKind
-                    )
+                    // Connect consecutive mythic hexes top→down for a
+                    // visual thread (mythic nodes rarely have real
+                    // prereqs within the mythic subset).
+                    for i in 0..<(slots.count - 1) {
+                        let a = slots[i]
+                        let b = slots[i + 1]
+                        guard let pa = positions[a.id], let pb = positions[b.id] else { continue }
+                        drawRail(
+                            ctx: ctx,
+                            from: pa,
+                            to: pb,
+                            fromSize: size,
+                            toSize: size,
+                            fromReached: isUnlockedState(nodeStates[a.id] ?? .locked),
+                            toReached: isUnlockedState(nodeStates[b.id] ?? .locked),
+                            tint: Color.unbound.impact
+                        )
+                    }
                 }
                 .frame(width: fullWidth, height: totalHeight)
+                .allowsHitTesting(false)
 
-                ForEach(nodes, id: \.id) { node in
-                    if let p = positions[node.id] {
-                        hexCell(node: node, sizeKind: sizeKind)
+                ForEach(slots) { slot in
+                    if let p = positions[slot.id] {
+                        mythicHex(node: slot.node, size: size)
                             .position(x: p.x, y: p.y)
-                            .onTapGesture {
-                                UnboundHaptics.medium()
-                                selectedNode = node
-                            }
                     }
                 }
             }
@@ -497,248 +770,26 @@ struct ClusterStaircaseView: View {
         .padding(.horizontal, 16)
     }
 
-    /// Group a section's nodes into tier-bucketed rows, preserving a
-    /// stable ordering (effective tier ascending, then id) and a stable
-    /// within-row order (id ascending) so layout doesn't flicker.
-    private func groupIntoTierRows(nodes: [SkillNode]) -> [[SkillNode]] {
-        guard !nodes.isEmpty else { return [] }
-        let tiers = computeEffectiveTiers(nodes: clusterNodes)
-        let bucketed = Dictionary(grouping: nodes) { node in
-            tiers[node.id] ?? node.tier
-        }
-        return bucketed.keys.sorted().map { key in
-            bucketed[key]!.sorted { $0.id < $1.id }
-        }
-    }
-
-    /// Horizontal anchors for 1, 2, or 3 nodes in a row. Wider rows
-    /// (rare in practice; NEXT caps at 5) fall back to evenly spaced
-    /// fractions between 0.18 and 0.82.
-    private func rowAnchors(width: CGFloat) -> (Int) -> [CGFloat] {
-        return { count in
-            switch count {
-            case 0:  return []
-            case 1:  return [width * 0.5]
-            case 2:  return [width * 0.32, width * 0.68]
-            case 3:  return [width * 0.22, width * 0.5, width * 0.78]
-            default:
-                let start: CGFloat = 0.18
-                let end: CGFloat = 0.82
-                let step = (end - start) / CGFloat(count - 1)
-                return (0..<count).map { width * (start + step * CGFloat($0)) }
-            }
-        }
-    }
-
-    /// Flatten tier rows to a per-node `id → (x, y)` map.
-    private func computeNodePositions(
-        rows: [[SkillNode]],
-        anchors: (Int) -> [CGFloat],
-        verticalGap: CGFloat,
-        sizeKind: HexSizeKind
-    ) -> [String: CGPoint] {
-        var out: [String: CGPoint] = [:]
-        for (rowIdx, row) in rows.enumerated() {
-            let xs = anchors(row.count)
-            let cy = CGFloat(rowIdx) * verticalGap + sizeKind.size / 2
-            for (colIdx, node) in row.enumerated() where colIdx < xs.count {
-                out[node.id] = CGPoint(x: xs[colIdx], y: cy)
-            }
-        }
-        return out
-    }
-
-    /// For each visible node, draw a rail to every prereq that is ALSO
-    /// visible in this section. Rails anchor to the diagonal edge of
-    /// each hex on the side facing the neighbor — so the line appears
-    /// to emerge from the hex's 45° corner.
-    private func drawPrereqRails(
-        ctx: GraphicsContext,
-        nodes: [SkillNode],
-        positions: [String: CGPoint],
-        visibleIds: Set<String>,
-        sizeKind: HexSizeKind
-    ) {
-        let S = sizeKind.size
-        // Flat-top hex diagonal-edge midpoint offsets from center.
-        //   upper-right (cx + 3S/8, cy - S/4)
-        //   lower-right (cx + 3S/8, cy + S/4)
-        //   lower-left  (cx - 3S/8, cy + S/4)
-        //   upper-left  (cx - 3S/8, cy - S/4)
-        let dx: CGFloat = 3 * S / 8
-        let dy: CGFloat = S / 4
-        // Fallback straight-vertical anchors (top and bottom tips are at
-        // the hex horizontal edges, not points — use mid-top / mid-bottom
-        // which for a flat-top hex sit on the top and bottom edges).
-        let topOffset: CGFloat = S / 2
-        let bottomOffset: CGFloat = S / 2
-
-        for child in nodes {
-            guard let childPt = positions[child.id] else { continue }
-            // Collect unique prereq ids that actually appear in this section.
-            let prereqIds = Set(
-                child.prereqs.flatMap { $0.nodeIds }
-            ).intersection(visibleIds)
-            guard !prereqIds.isEmpty else { continue }
-
-            for pid in prereqIds {
-                guard let parentPt = positions[pid] else { continue }
-                // Only draw rails top→down. Same-row or below-row prereqs
-                // (rare — would indicate a data inconsistency) are skipped.
-                guard parentPt.y < childPt.y else { continue }
-
-                let dxTotal = childPt.x - parentPt.x
-                let tolerance: CGFloat = 1.0
-
-                let fromPt: CGPoint
-                let toPt: CGPoint
-                if abs(dxTotal) <= tolerance {
-                    // Directly above — anchor straight top/bottom centers.
-                    fromPt = CGPoint(x: parentPt.x, y: parentPt.y + bottomOffset)
-                    toPt = CGPoint(x: childPt.x, y: childPt.y - topOffset)
-                } else if dxTotal > 0 {
-                    // Child is to the right of parent — exit parent's
-                    // lower-right diagonal edge, enter child's upper-left.
-                    fromPt = CGPoint(x: parentPt.x + dx, y: parentPt.y + dy)
-                    toPt = CGPoint(x: childPt.x - dx, y: childPt.y - dy)
-                } else {
-                    // Child is to the left — exit parent's lower-left,
-                    // enter child's upper-right.
-                    fromPt = CGPoint(x: parentPt.x - dx, y: parentPt.y + dy)
-                    toPt = CGPoint(x: childPt.x + dx, y: childPt.y - dy)
-                }
-
-                // Subtle curve — anchors already sit on the hex corners,
-                // so the path reads as a near-straight 45° hop with just
-                // enough bend to feel organic.
-                let midY = (fromPt.y + toPt.y) / 2
-                var path = Path()
-                path.move(to: fromPt)
-                path.addCurve(
-                    to: toPt,
-                    control1: CGPoint(x: fromPt.x, y: midY),
-                    control2: CGPoint(x: toPt.x, y: midY)
-                )
-
-                let fromReached = isUnlockedState(nodeStates[pid] ?? .locked)
-                let toReached = isUnlockedState(nodeStates[child.id] ?? .locked)
-                strokeRail(
-                    ctx: ctx,
-                    path: path,
-                    fromReached: fromReached,
-                    toReached: toReached
-                )
-            }
-        }
-    }
-
-    /// Rail stroke styling preserved from the original three-tier glow:
-    /// both-reached = bright solid + blurred underlay, from-reached =
-    /// slightly dimmer, locked-to-locked = faint glow.
-    private func strokeRail(
-        ctx: GraphicsContext,
-        path: Path,
-        fromReached: Bool,
-        toReached: Bool
-    ) {
-        if fromReached && toReached {
-            var blurCtx = ctx
-            blurCtx.addFilter(.blur(radius: 4))
-            blurCtx.stroke(
-                path,
-                with: .color(Color.unbound.accent.opacity(0.6)),
-                style: StrokeStyle(lineWidth: 6, lineCap: .round)
-            )
-            ctx.stroke(
-                path,
-                with: .color(Color.unbound.accent),
-                style: StrokeStyle(lineWidth: 2.5, lineCap: .round)
-            )
-        } else if fromReached {
-            var blurCtx = ctx
-            blurCtx.addFilter(.blur(radius: 3))
-            blurCtx.stroke(
-                path,
-                with: .color(Color.unbound.accent.opacity(0.45)),
-                style: StrokeStyle(lineWidth: 5, lineCap: .round)
-            )
-            ctx.stroke(
-                path,
-                with: .color(Color.unbound.accent.opacity(0.85)),
-                style: StrokeStyle(lineWidth: 2, lineCap: .round)
-            )
-        } else {
-            var blurCtx = ctx
-            blurCtx.addFilter(.blur(radius: 2.5))
-            blurCtx.stroke(
-                path,
-                with: .color(Color.unbound.accent.opacity(0.25)),
-                style: StrokeStyle(lineWidth: 4, lineCap: .round)
-            )
-            ctx.stroke(
-                path,
-                with: .color(Color.unbound.accent.opacity(0.55)),
-                style: StrokeStyle(lineWidth: 1.8, lineCap: .round)
-            )
-        }
-    }
-
-    // MARK: - Hex cell (shared rendering)
-
-    private enum HexSizeKind {
-        case far        // ACHIEVED (small, faded)
-        case adjacent   // NEXT
-        case mythic     // MYTHIC (gold stroke)
-        case alternate  // OTHER DIRECTIONS row
-
-        var size: CGFloat {
-            switch self {
-            case .far:       return 80
-            case .adjacent:  return 95
-            case .mythic:    return 90
-            case .alternate: return 72
-            }
-        }
-
-        var glyphSize: CGFloat {
-            switch self {
-            case .far:       return 20
-            case .adjacent:  return 24
-            case .mythic:    return 22
-            case .alternate: return 18
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func hexCell(node: SkillNode, sizeKind: HexSizeKind) -> some View {
+    private func mythicHex(node: SkillNode, size: CGFloat) -> some View {
         let state = nodeStates[node.id] ?? .locked
-        let size = sizeKind.size
-
-        VStack(spacing: 6) {
+        return VStack(spacing: 6) {
             ZStack {
                 Hexagon()
-                    .fill(fillColor(state: state, kind: sizeKind))
+                    .fill(fillColor(state: state, faded: false))
                     .frame(width: size, height: size)
                 Hexagon()
                     .strokeBorder(
-                        borderColor(node: node, state: state, kind: sizeKind),
-                        lineWidth: strokeWidth(state: state, kind: sizeKind)
+                        Color.unbound.impact,
+                        lineWidth: 1.5
                     )
                     .frame(width: size, height: size)
-                if sizeKind == .mythic {
-                    Hexagon()
-                        .strokeBorder(Color.unbound.impact, lineWidth: 1.5)
-                        .frame(width: size + 14, height: size + 14)
-                        .opacity(state == .locked ? 0.45 : 0.9)
-                }
-                glyph(for: node, state: state, fontSize: sizeKind.glyphSize)
+                Hexagon()
+                    .strokeBorder(Color.unbound.impact, lineWidth: 1.5)
+                    .frame(width: size + 14, height: size + 14)
+                    .opacity(state == .locked ? 0.45 : 0.9)
+                glyph(for: node, state: state, fontSize: 24)
             }
-            .shadow(
-                color: glowColor(state: state, kind: sizeKind),
-                radius: state == .locked ? 0 : 10
-            )
-            .opacity(sizeKind == .far ? 0.75 : 1.0)
+            .shadow(color: Color.unbound.impact.opacity(0.5), radius: state == .locked ? 0 : 10)
 
             Text(node.title)
                 .font(Font.unbound.captionS.weight(.semibold))
@@ -748,45 +799,192 @@ struct ClusterStaircaseView: View {
                 .multilineTextAlignment(.center)
                 .lineLimit(2)
                 .fixedSize(horizontal: false, vertical: true)
-                .frame(width: max(100, size + 10))
-
-            if sizeKind == .mythic {
-                Text("MYTHIC")
-                    .font(.system(size: 9, weight: .heavy, design: .monospaced))
-                    .tracking(1.8)
-                    .foregroundStyle(Color.unbound.impact)
-            }
+                .frame(width: max(108, size + 14))
+            Text("MYTHIC")
+                .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                .tracking(1.8)
+                .foregroundStyle(Color.unbound.impact)
         }
-        .frame(width: max(108, size + 10))
+        .frame(width: max(108, size + 14))
         .contentShape(Rectangle())
+        .onTapGesture {
+            UnboundHaptics.medium()
+            selectedNode = node
+        }
     }
 
-    private func fillColor(state: NodeState, kind: HexSizeKind) -> Color {
+    // MARK: - Rails
+
+    /// For each slot, walk actual prereq ids and draw a rail from every
+    /// prereq that is also visible in the chain. Anchor points use the
+    /// flat-top hex's 45°-edge midpoints on the side facing the neighbor.
+    private func drawPrereqRails(
+        ctx: GraphicsContext,
+        slots: [ChainSlot],
+        positions: [String: CGPoint],
+        sizeFor: (ChainSlot) -> CGFloat,
+        visibleIds: Set<String>
+    ) {
+        // id → slot map for O(1) size lookups.
+        let slotById: [String: ChainSlot] = Dictionary(
+            uniqueKeysWithValues: slots.map { ($0.id, $0) }
+        )
+
+        for child in slots {
+            guard let childPt = positions[child.id] else { continue }
+            let prereqIds = Set(child.node.prereqs.flatMap { $0.nodeIds })
+                .intersection(visibleIds)
+            guard !prereqIds.isEmpty else { continue }
+
+            for pid in prereqIds {
+                guard let parentSlot = slotById[pid],
+                      let parentPt = positions[pid]
+                else { continue }
+                // Only draw rails top→down.
+                guard parentPt.y < childPt.y else { continue }
+
+                drawRail(
+                    ctx: ctx,
+                    from: parentPt,
+                    to: childPt,
+                    fromSize: sizeFor(parentSlot),
+                    toSize: sizeFor(child),
+                    fromReached: isUnlockedState(nodeStates[pid] ?? .locked),
+                    toReached: isUnlockedState(nodeStates[child.id] ?? .locked),
+                    tint: Color.unbound.accent
+                )
+            }
+        }
+    }
+
+    /// Draws a bezier rail between two hexes. Anchor points:
+    ///   • child right of parent → parent lower-right → child upper-left
+    ///   • child left  of parent → parent lower-left  → child upper-right
+    ///   • directly below        → parent bottom mid  → child top mid
+    /// Flat-top hex edge midpoints (centered at cx, cy, size S):
+    ///   upper-right (cx + 3S/8, cy - S/4)
+    ///   lower-right (cx + 3S/8, cy + S/4)
+    ///   lower-left  (cx - 3S/8, cy + S/4)
+    ///   upper-left  (cx - 3S/8, cy - S/4)
+    private func drawRail(
+        ctx: GraphicsContext,
+        from parent: CGPoint,
+        to child: CGPoint,
+        fromSize: CGFloat,
+        toSize: CGFloat,
+        fromReached: Bool,
+        toReached: Bool,
+        tint: Color
+    ) {
+        let pdx: CGFloat = 3 * fromSize / 8
+        let pdy: CGFloat = fromSize / 4
+        let cdx: CGFloat = 3 * toSize / 8
+        let cdy: CGFloat = toSize / 4
+        let bottomOffset: CGFloat = fromSize / 2
+        let topOffset: CGFloat = toSize / 2
+
+        let dxTotal = child.x - parent.x
+        let tolerance: CGFloat = 1.0
+        let fromPt: CGPoint
+        let toPt: CGPoint
+        if abs(dxTotal) <= tolerance {
+            fromPt = CGPoint(x: parent.x, y: parent.y + bottomOffset)
+            toPt = CGPoint(x: child.x, y: child.y - topOffset)
+        } else if dxTotal > 0 {
+            fromPt = CGPoint(x: parent.x + pdx, y: parent.y + pdy)
+            toPt = CGPoint(x: child.x - cdx, y: child.y - cdy)
+        } else {
+            fromPt = CGPoint(x: parent.x - pdx, y: parent.y + pdy)
+            toPt = CGPoint(x: child.x + cdx, y: child.y - cdy)
+        }
+
+        let midY = (fromPt.y + toPt.y) / 2
+        var path = Path()
+        path.move(to: fromPt)
+        path.addCurve(
+            to: toPt,
+            control1: CGPoint(x: fromPt.x, y: midY),
+            control2: CGPoint(x: toPt.x, y: midY)
+        )
+        strokeRail(ctx: ctx, path: path, fromReached: fromReached, toReached: toReached, tint: tint)
+    }
+
+    private func strokeRail(
+        ctx: GraphicsContext,
+        path: Path,
+        fromReached: Bool,
+        toReached: Bool,
+        tint: Color
+    ) {
+        if fromReached && toReached {
+            var blurCtx = ctx
+            blurCtx.addFilter(.blur(radius: 4))
+            blurCtx.stroke(
+                path,
+                with: .color(tint.opacity(0.6)),
+                style: StrokeStyle(lineWidth: 6, lineCap: .round)
+            )
+            ctx.stroke(
+                path,
+                with: .color(tint),
+                style: StrokeStyle(lineWidth: 2.5, lineCap: .round)
+            )
+        } else if fromReached {
+            var blurCtx = ctx
+            blurCtx.addFilter(.blur(radius: 3))
+            blurCtx.stroke(
+                path,
+                with: .color(tint.opacity(0.45)),
+                style: StrokeStyle(lineWidth: 5, lineCap: .round)
+            )
+            ctx.stroke(
+                path,
+                with: .color(tint.opacity(0.85)),
+                style: StrokeStyle(lineWidth: 2, lineCap: .round)
+            )
+        } else {
+            var blurCtx = ctx
+            blurCtx.addFilter(.blur(radius: 2.5))
+            blurCtx.stroke(
+                path,
+                with: .color(tint.opacity(0.25)),
+                style: StrokeStyle(lineWidth: 4, lineCap: .round)
+            )
+            ctx.stroke(
+                path,
+                with: .color(tint.opacity(0.55)),
+                style: StrokeStyle(lineWidth: 1.8, lineCap: .round)
+            )
+        }
+    }
+
+    // MARK: - Hex styling helpers
+
+    private func fillColor(state: NodeState, faded: Bool) -> Color {
         switch state {
         case .locked:
             return Color.unbound.surface
         case .attempting:
             return Color.unbound.accent.opacity(0.14)
         case .achieved:
-            return Color.unbound.accent.opacity(kind == .far ? 0.1 : 0.18)
+            return Color.unbound.accent.opacity(faded ? 0.1 : 0.18)
         case .mastered:
-            return Color.unbound.impact.opacity(kind == .far ? 0.14 : 0.22)
+            return Color.unbound.impact.opacity(faded ? 0.14 : 0.22)
         }
     }
 
-    private func borderColor(node: SkillNode, state: NodeState, kind: HexSizeKind) -> Color {
+    private func borderColor(node: SkillNode, state: NodeState, faded: Bool) -> Color {
         if node.isMythic && state == .locked { return Color.unbound.impact.opacity(0.5) }
         switch state {
         case .locked:
-            return kind == .far ? Color.unbound.border.opacity(0.7) : Color.unbound.border
+            return faded ? Color.unbound.border.opacity(0.7) : Color.unbound.border
         case .attempting: return Color.unbound.accent
-        case .achieved:   return Color.unbound.accent.opacity(kind == .far ? 0.7 : 1.0)
+        case .achieved:   return Color.unbound.accent.opacity(faded ? 0.7 : 1.0)
         case .mastered:   return Color.unbound.impact
         }
     }
 
-    private func strokeWidth(state: NodeState, kind: HexSizeKind) -> CGFloat {
-        if kind == .mythic { return 1.5 }
+    private func strokeWidth(state: NodeState) -> CGFloat {
         switch state {
         case .locked:     return 1
         case .attempting: return 1.5
@@ -795,12 +993,11 @@ struct ClusterStaircaseView: View {
         }
     }
 
-    private func glowColor(state: NodeState, kind: HexSizeKind) -> Color {
+    private func glowColor(state: NodeState, faded: Bool) -> Color {
         if state == .locked { return .clear }
-        if kind == .mythic { return Color.unbound.impact.opacity(0.5) }
         switch state {
         case .attempting: return Color.unbound.accent.opacity(0.4)
-        case .achieved:   return Color.unbound.accent.opacity(kind == .far ? 0.25 : 0.45)
+        case .achieved:   return Color.unbound.accent.opacity(faded ? 0.25 : 0.45)
         case .mastered:   return Color.unbound.impact.opacity(0.55)
         case .locked:     return .clear
         }
@@ -837,7 +1034,6 @@ struct ClusterStaircaseView: View {
         var keystone: SkillNode?
         var keystoneIsActive: Bool
         var mythic: [SkillNode]
-        var other: [SkillNode]
     }
 
     private func buildSections() -> StaircaseSections {
@@ -852,7 +1048,8 @@ struct ClusterStaircaseView: View {
         let keystoneUnlocked = keystone.map { isUnlockedState(state($0)) } ?? false
 
         // ACHIEVED: all non-keystone, non-mythic achieved/mastered, sorted
-        // by effective tier ascending, keep only last 2 visible.
+        // by effective tier ascending. Keep the last 2 visible so the
+        // chain doesn't bloat with every historical win.
         let achievedAll = nodes
             .filter { !$0.isMythic && $0.id != keystone?.id }
             .filter { isUnlockedState(state($0)) }
@@ -860,12 +1057,11 @@ struct ClusterStaircaseView: View {
         let achieved = Array(achievedAll.suffix(2))
 
         // ACTIVE: first attempting → else lowest-tier unlockable locked →
-        // else keystone as fallback.
+        // else keystone fallback.
         let attempting = nodes
             .filter { state($0) == .attempting }
             .sorted { (tiers[$0.id] ?? $0.tier) < (tiers[$1.id] ?? $1.tier) }
         var activeNode: SkillNode? = attempting.first
-
         if activeNode == nil {
             let unlockables = nodes
                 .filter { state($0) == .locked }
@@ -877,20 +1073,10 @@ struct ClusterStaircaseView: View {
 
         let keystoneIsActive = (activeNode?.id == keystone?.id) && keystone != nil
 
-        // Keystone ancestors: the staircase behind the keystone (every node
-        // that eventually feeds the keystone). Used by NEXT so the path
-        // ahead renders even when each step is still locked.
         let ancestorIds: Set<String> = keystone
             .map { keystoneAncestors(keystone: $0, nodeById: nodeById) }
             ?? []
 
-        // NEXT: show the visible path ahead. Candidate pool:
-        //   • keystone-path ancestors (even if locked — renders dim so the
-        //     user can see the staircase between ACTIVE and KEYSTONE)
-        //   • parallel unlockables (locked w/ prereqs satisfied — tangents)
-        //   • any in-progress (.attempting) node anywhere
-        // Excludes mythic, the keystone itself, ACTIVE, and already-achieved.
-        // Sort by effective tier asc, then id for stability, cap at 5.
         let nextCandidates = nodes
             .filter { !$0.isMythic }
             .filter { $0.id != keystone?.id }
@@ -910,35 +1096,7 @@ struct ClusterStaircaseView: View {
             }
         let next = Array(nextCandidates.prefix(5))
 
-        // MYTHIC: only surfaced once keystone is achieved/mastered.
         let mythic = keystoneUnlocked ? mythicNodes : []
-
-        // OTHER DIRECTIONS: deeper-tier dead-end tangents — nodes NOT
-        // unlockable yet AND NOT on the keystone ancestor path AND NOT
-        // mythic. Usually empty after Change 1 (fine — section hides).
-        let ancestorsForOther: Set<String> = keystone == nil
-            ? Set(nodes.map(\.id))
-            : ancestorIds
-        let consumed: Set<String> = Set(
-            [activeNode?.id, keystone?.id].compactMap { $0 }
-        )
-            .union(achieved.map(\.id))
-            .union(next.map(\.id))
-            .union(mythic.map(\.id))
-
-        let other = nodes
-            .filter { !$0.isMythic }
-            .filter { !consumed.contains($0.id) }
-            .filter { !ancestorsForOther.contains($0.id) }
-            .filter { !isUnlockedState(state($0)) }
-            // Not unlockable right now (can't fit in NEXT).
-            .filter { node in
-                let s = state(node)
-                if s == .attempting { return false }
-                if s == .locked && node.prereqsSatisfied(given: nodeStates) { return false }
-                return true
-            }
-            .sorted { (tiers[$0.id] ?? $0.tier) < (tiers[$1.id] ?? $1.tier) }
 
         return StaircaseSections(
             achieved: achieved,
@@ -946,14 +1104,11 @@ struct ClusterStaircaseView: View {
             next: next,
             keystone: keystone,
             keystoneIsActive: keystoneIsActive,
-            mythic: mythic,
-            other: other
+            mythic: mythic
         )
     }
 
     /// Reverse BFS from the keystone walking backward through prereqs.
-    /// Returns every node id that eventually feeds the keystone (including
-    /// the keystone's own id).
     private func keystoneAncestors(
         keystone: SkillNode,
         nodeById: [String: SkillNode]
