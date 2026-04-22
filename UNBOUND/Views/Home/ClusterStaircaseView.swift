@@ -761,21 +761,29 @@ struct ClusterStaircaseView: View {
 
         let keystoneIsActive = (activeNode?.id == keystone?.id) && keystone != nil
 
-        // NEXT: parallel training opportunities — every node that's
-        // unlockable-right-now (.locked w/ prereqs satisfied) OR .attempting,
-        // excluding the keystone, mythic, and the ACTIVE node itself.
-        // Dropped the "must be on keystone ancestor path" filter so
-        // parallel-lane skills (e.g. Handstand Walk 10m) show up here
-        // instead of getting shuffled into OTHER DIRECTIONS.
+        // Keystone ancestors: the staircase behind the keystone (every node
+        // that eventually feeds the keystone). Used by NEXT so the path
+        // ahead renders even when each step is still locked.
+        let ancestorIds: Set<String> = keystone
+            .map { keystoneAncestors(keystone: $0, nodeById: nodeById) }
+            ?? []
+
+        // NEXT: show the visible path ahead. Candidate pool:
+        //   • keystone-path ancestors (even if locked — renders dim so the
+        //     user can see the staircase between ACTIVE and KEYSTONE)
+        //   • parallel unlockables (locked w/ prereqs satisfied — tangents)
+        //   • any in-progress (.attempting) node anywhere
+        // Excludes mythic, the keystone itself, ACTIVE, and already-achieved.
         // Sort by effective tier asc, then id for stability, cap at 5.
         let nextCandidates = nodes
             .filter { !$0.isMythic }
             .filter { $0.id != keystone?.id }
             .filter { $0.id != activeNode?.id }
+            .filter { !isUnlockedState(state($0)) }
             .filter { node in
-                let s = state(node)
-                if s == .attempting { return true }
-                if s == .locked && node.prereqsSatisfied(given: nodeStates) { return true }
+                if ancestorIds.contains(node.id) { return true }
+                if node.prereqsSatisfied(given: nodeStates) { return true }
+                if state(node) == .attempting { return true }
                 return false
             }
             .sorted {
@@ -792,8 +800,9 @@ struct ClusterStaircaseView: View {
         // OTHER DIRECTIONS: deeper-tier dead-end tangents — nodes NOT
         // unlockable yet AND NOT on the keystone ancestor path AND NOT
         // mythic. Usually empty after Change 1 (fine — section hides).
-        let ancestors = keystone.map { keystoneAncestors(keystone: $0, nodeById: nodeById) }
-            ?? Set(nodes.map(\.id))
+        let ancestorsForOther: Set<String> = keystone == nil
+            ? Set(nodes.map(\.id))
+            : ancestorIds
         let consumed: Set<String> = Set(
             [activeNode?.id, keystone?.id].compactMap { $0 }
         )
@@ -804,7 +813,7 @@ struct ClusterStaircaseView: View {
         let other = nodes
             .filter { !$0.isMythic }
             .filter { !consumed.contains($0.id) }
-            .filter { !ancestors.contains($0.id) }
+            .filter { !ancestorsForOther.contains($0.id) }
             .filter { !isUnlockedState(state($0)) }
             // Not unlockable right now (can't fit in NEXT).
             .filter { node in
