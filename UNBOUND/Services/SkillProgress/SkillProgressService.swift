@@ -46,13 +46,22 @@ final class SkillProgressService {
 
     // MARK: Dependencies
 
-    private var database: DatabaseServiceProtocol { DatabaseService.shared }
+    private let database: DatabaseServiceProtocol
     private var logger: LoggingService { LoggingService.shared }
     private var currentUserId: String? { AuthService.shared.currentUserId }
 
     private var progress: UserSkillProgress?
 
-    private init() {}
+    private init() {
+        self.database = DatabaseService.shared
+    }
+
+    /// Test-only initializer. Production code must use `SkillProgressService.shared`.
+    /// Lets tests inject a `MockDB`-style `DatabaseServiceProtocol` without
+    /// mutating the singleton's state.
+    internal init(database: DatabaseServiceProtocol) {
+        self.database = database
+    }
 
     // MARK: Public API
 
@@ -157,6 +166,114 @@ final class SkillProgressService {
     /// Clears the pending unlock after the reveal UI dismisses.
     func clearPendingUnlock() {
         pendingUnlock = nil
+    }
+
+    // MARK: - Phase 1b: XP API
+
+    /// Returns the current `SkillProgress` for `nodeId`, or `.starter`
+    /// (Lv1, 0/100 XP) if nothing has been stored yet. Never mutates.
+    func currentSkillProgress(for nodeId: String) -> SkillProgress {
+        skillProgress[nodeId] ?? .starter
+    }
+
+    /// Grants XP for a verified session on this node. Handles level-up
+    /// transitions (including multi-level jumps when xpAmount is large),
+    /// promotes `NodeState` to `.achieved` on the first level-up, and caps
+    /// the node at Level 5 with `.mastered` once the final XP bar fills.
+    ///
+    /// No-ops when the node is already `.mastered` (cap).
+    ///
+    /// - Parameters:
+    ///   - nodeId: The node that earned XP from this session.
+    ///   - xpAmount: XP to grant. Defaults to `25` (one verified session).
+    func awardSessionXP(forNodeId nodeId: String, xpAmount: Int = 25) async {
+        guard var p = progress else { return }
+        guard xpAmount > 0 else { return }
+
+        // 1. Load or initialize progress for this node.
+        var sp = p.skillProgress[nodeId] ?? .starter
+
+        // 2. Already capped at mastered → no-op.
+        let existingState = p.nodeStates[nodeId] ?? .locked
+        if existingState == .mastered && sp.currentLevel == 5 {
+            return
+        }
+
+        // 3. Add the XP.
+        sp.xpInLevel += xpAmount
+
+        // 4. Roll overflow forward, level by level, up to Lv5.
+        //    Lv5 keeps the Lv5 bar (175 XP) as its "until mastered" threshold
+        //    — filling it flips the node to .mastered in step 5 below.
+        while sp.xpInLevel >= sp.xpToNextLevel && sp.currentLevel < 5 {
+            sp.xpInLevel -= sp.xpToNextLevel
+            sp.currentLevel += 1
+            let nextThreshold = sp.currentLevel == 5
+                ? xpForLevel(5)
+                : xpForLevel(sp.currentLevel + 1)
+            sp.xpToNextLevel = nextThreshold
+        }
+
+        // 5. At Lv5 with its bar full → mastered.
+        let hasMasteredThisCall: Bool
+        if sp.currentLevel == 5 && sp.xpInLevel >= sp.xpToNextLevel {
+            sp.xpInLevel = sp.xpToNextLevel   // cap the display
+            hasMasteredThisCall = existingState != .mastered
+        } else {
+            hasMasteredThisCall = false
+        }
+
+        // 6. Side-effect on NodeState — never downgrade.
+        //    Lv1→Lv2+: promote .locked / .attempting to .achieved.
+        //    Lv5 with full XP: promote to .mastered.
+        var newNodeState: NodeState? = nil
+        if hasMasteredThisCall {
+            newNodeState = .mastered
+        } else if sp.currentLevel >= 2 && (existingState == .locked || existingState == .attempting) {
+            newNodeState = .achieved
+        }
+
+        // 7. Commit to state.
+        p.skillProgress[nodeId] = sp
+        if let newState = newNodeState {
+            p.nodeStates[nodeId] = newState
+            if newState == .achieved && p.achievedAt[nodeId] == nil {
+                p.achievedAt[nodeId] = Date()
+            }
+            if newState == .mastered && p.masteredAt[nodeId] == nil {
+                p.masteredAt[nodeId] = Date()
+            }
+        }
+        p.updatedAt = Date()
+        progress = p
+        skillProgress = p.skillProgress
+        nodeStates = p.nodeStates
+
+        // 8. Persist (mirrors the manuallyMark / recompute pattern).
+        try? await database.create(p, collection: "skillProgress", documentId: p.userId)
+
+        // 9. Publish an unlock event if this call pushed the node over a
+        //    reveal-worthy threshold. Uses the same NodeUnlockedEvent that
+        //    views already listen for via pendingUnlock.
+        if let newState = newNodeState,
+           let node = SkillGraph.shared.node(id: nodeId),
+           newState == .achieved || newState == .mastered {
+            let event = NodeUnlockedEvent(
+                node: node,
+                newState: newState,
+                gainsAwarded: gainsFor(node: node)
+            )
+            awardGains(event.gainsAwarded)
+            pendingUnlock = event
+        }
+    }
+
+    /// XP required to reach `level` starting from `level - 1`.
+    /// Lv1 is the starting floor — nothing required to be there.
+    /// Curve: 100 / 125 / 150 / 175 for Lv2 / Lv3 / Lv4 / Lv5.
+    func xpForLevel(_ level: Int) -> Int {
+        guard level >= 2 && level <= 5 else { return 0 }
+        return 100 + 25 * (level - 2)
     }
 
     // MARK: Internal helpers
