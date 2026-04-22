@@ -452,15 +452,44 @@ struct ClusterStaircaseView: View {
         }
 
         let rowCount = (slots.map(\.rowIndex).max() ?? 0) + 1
-        let verticalGap: CGFloat = 110
         let baseSize: CGFloat = 95       // standard adjacent size
         let activeSize: CGFloat = 120
         let keystoneSize: CGFloat = 140
-        // Row height allocation anchors on the largest hex in the chain.
-        let topPadding: CGFloat = keystoneSize / 2
-        let bottomPadding: CGFloat = keystoneSize / 2 + 44 // room for label + beats-away
-        let totalHeight: CGFloat = CGFloat(max(0, rowCount - 1)) * verticalGap
-            + topPadding + bottomPadding
+
+        // Determine the dominant role per row so variable row heights can
+        // be allocated (active/keystone rows need more vertical headroom
+        // for their stacked title + button/chip below the hex).
+        enum RowKind { case base, active, keystone }
+        var rowKinds: [RowKind] = Array(repeating: .base, count: rowCount)
+        for slot in slots {
+            switch slot.role {
+            case .active:
+                rowKinds[slot.rowIndex] = .active
+            case .keystone:
+                // keystone wins over base but not active (active+keystone
+                // shouldn't co-exist on one row in practice).
+                if rowKinds[slot.rowIndex] != .active {
+                    rowKinds[slot.rowIndex] = .keystone
+                }
+            default:
+                break
+            }
+        }
+        let rowHeights: [CGFloat] = rowKinds.map { kind in
+            switch kind {
+            case .base:     return 140
+            case .active:   return 180
+            case .keystone: return 200
+            }
+        }
+        // Cumulative row-center y: center of row i is sum(heights[0..<i]) + heights[i]/2.
+        var rowCenters: [CGFloat] = []
+        var running: CGFloat = 0
+        for h in rowHeights {
+            rowCenters.append(running + h / 2)
+            running += h
+        }
+        let totalHeight: CGFloat = running
 
         return AnyView(
             GeometryReader { geo in
@@ -476,7 +505,7 @@ struct ClusterStaircaseView: View {
                         case .right:             x = rightX
                         case .centerFallback(let f): x = fullWidth * f
                         }
-                        let y = topPadding + CGFloat(slot.rowIndex) * verticalGap
+                        let y = rowCenters[slot.rowIndex]
                         return (slot.id, CGPoint(x: x, y: y))
                     }
                 )
@@ -503,11 +532,19 @@ struct ClusterStaircaseView: View {
                     .frame(width: fullWidth, height: totalHeight)
                     .allowsHitTesting(false)
 
+                    // Render hex + detached label as separate positioned
+                    // elements per slot. Label x-center is locked to hex
+                    // x-center (same `p.x`) so it never drifts horizontally
+                    // regardless of text length.
                     ForEach(slots) { slot in
                         if let p = positions[slot.id] {
-                            chainHex(slot: slot, size: sizeFor(slot))
+                            let s = sizeFor(slot)
+                            chainHexCore(slot: slot, size: s)
                                 .position(x: p.x, y: p.y)
                                 .modifier(ActiveAnchorModifier(isActive: slot.role == .active))
+
+                            chainHexBelow(slot: slot, size: s)
+                                .position(x: p.x, y: p.y + s / 2 + belowAnchorOffset(for: slot))
                         }
                     }
                 }
@@ -516,6 +553,26 @@ struct ClusterStaircaseView: View {
             .frame(height: totalHeight)
             .padding(.horizontal, 16)
         )
+    }
+
+    /// Vertical offset from the hex's bottom edge to the anchor point of
+    /// the VStack placed below. We use `.position()` which centers on this
+    /// y coordinate, so we need to pick a y that puts the stack's natural
+    /// top just below the hex — SwiftUI centers the view on that y, so we
+    /// add half the stack's approximate height. For correctness we use
+    /// `.topLeading` via an overlaid `alignmentGuide`… simpler: we nudge
+    /// by a small gap and let `.frame(width:)` + `.fixedSize()` keep the
+    /// stack's own center close enough to the intended top.
+    private func belowAnchorOffset(for slot: ChainSlot) -> CGFloat {
+        // Position's y is the CENTER of the below-view. We want the below
+        // view's TOP to be roughly (hex bottom + 12). So center_y =
+        // hex_bottom + 12 + viewHeight/2. We estimate a nominal view
+        // height per role:
+        switch slot.role {
+        case .active:   return 12 + 54  // ~ title(40) + button(28) gap => halfHeight ~54
+        case .keystone: return 12 + 34  // title(40) + beats(14) gap => halfHeight ~34
+        default:        return 12 + 18  // 2-line caption => halfHeight ~18
+        }
     }
 
     /// Tags the active hex with the `id("active")` anchor used by
@@ -527,61 +584,68 @@ struct ClusterStaircaseView: View {
         }
     }
 
-    // MARK: - Chain hex (role-aware sizing + inline LOG SESSION badge)
+    // MARK: - Chain hex core (hex-only, no label) + below-content
 
+    /// The hex itself — positioned at the row center. Labels and buttons
+    /// are rendered separately via `chainHexBelow(...)` so they don't drag
+    /// the hex horizontally when they grow/wrap.
     @ViewBuilder
-    private func chainHex(slot: ChainSlot, size: CGFloat) -> some View {
+    private func chainHexCore(slot: ChainSlot, size: CGFloat) -> some View {
         let node = slot.node
         let state = nodeStates[node.id] ?? .locked
 
         switch slot.role {
         case .active:
-            activeChainHex(node: node, state: state, size: size)
+            activeHexOnly(node: node, state: state, size: size)
         case .keystone:
-            keystoneChainHex(node: node, state: state, size: size)
+            keystoneHexOnly(node: node, state: state, size: size)
         default:
-            defaultChainHex(node: node, state: state, size: size, role: slot.role)
+            defaultHexOnly(node: node, state: state, size: size, role: slot.role)
         }
     }
 
-    private func defaultChainHex(
+    /// The content rendered directly below a hex: title (+ LOG SESSION for
+    /// active, + BEATS AWAY for keystone). The VStack has a fixed width so
+    /// it centers on the hex's x-axis and wraps cleanly.
+    @ViewBuilder
+    private func chainHexBelow(slot: ChainSlot, size: CGFloat) -> some View {
+        let node = slot.node
+        let state = nodeStates[node.id] ?? .locked
+
+        switch slot.role {
+        case .active:
+            activeBelow(node: node)
+        case .keystone:
+            keystoneBelow(node: node, state: state)
+        default:
+            defaultBelow(node: node, state: state, role: slot.role)
+        }
+    }
+
+    // MARK: Hex-only variants
+
+    private func defaultHexOnly(
         node: SkillNode,
         state: NodeState,
         size: CGFloat,
         role: ChainSlot.Role
     ) -> some View {
         let glyphSize: CGFloat = 24
-        // Achieved nodes far behind the current front render slightly faded
-        // to de-emphasize history without losing context.
         let fade = role == .achieved ? 0.78 : 1.0
-
-        return VStack(spacing: 6) {
-            ZStack {
-                Hexagon()
-                    .fill(fillColor(state: state, faded: role == .achieved))
-                    .frame(width: size, height: size)
-                Hexagon()
-                    .strokeBorder(
-                        borderColor(node: node, state: state, faded: role == .achieved),
-                        lineWidth: strokeWidth(state: state)
-                    )
-                    .frame(width: size, height: size)
-                glyph(for: node, state: state, fontSize: glyphSize)
-            }
-            .shadow(color: glowColor(state: state, faded: role == .achieved), radius: state == .locked ? 0 : 10)
-            .opacity(fade)
-
-            Text(node.title)
-                .font(Font.unbound.captionS.weight(.semibold))
-                .foregroundStyle(
-                    state == .locked ? Color.unbound.textTertiary : Color.unbound.textPrimary
+        return ZStack {
+            Hexagon()
+                .fill(fillColor(state: state, faded: role == .achieved))
+                .frame(width: size, height: size)
+            Hexagon()
+                .strokeBorder(
+                    borderColor(node: node, state: state, faded: role == .achieved),
+                    lineWidth: strokeWidth(state: state)
                 )
-                .multilineTextAlignment(.center)
-                .lineLimit(2)
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(width: max(108, size + 14))
+                .frame(width: size, height: size)
+            glyph(for: node, state: state, fontSize: glyphSize)
         }
-        .frame(width: max(108, size + 14))
+        .shadow(color: glowColor(state: state, faded: role == .achieved), radius: state == .locked ? 0 : 10)
+        .opacity(fade)
         .contentShape(Rectangle())
         .onTapGesture {
             UnboundHaptics.medium()
@@ -589,36 +653,92 @@ struct ClusterStaircaseView: View {
         }
     }
 
-    private func activeChainHex(
+    private func activeHexOnly(
         node: SkillNode,
         state: NodeState,
         size: CGFloat
     ) -> some View {
-        VStack(spacing: 10) {
-            ZStack {
-                Hexagon()
-                    .fill(Color.unbound.accent.opacity(0.22))
-                    .frame(width: size, height: size)
-                Hexagon()
-                    .strokeBorder(Color.unbound.accent, lineWidth: 2)
-                    .frame(width: size, height: size)
-                Hexagon()
-                    .strokeBorder(Color.unbound.accent.opacity(0.7), lineWidth: 1)
-                    .frame(width: size + 16, height: size + 16)
-                glyph(for: node, state: state, fontSize: 36)
-            }
-            .scaleEffect(activePulse)
-            .shadow(color: Color.unbound.accent.opacity(0.55), radius: 20)
-            .onTapGesture {
-                UnboundHaptics.medium()
-                selectedNode = node
-            }
+        ZStack {
+            Hexagon()
+                .fill(Color.unbound.accent.opacity(0.22))
+                .frame(width: size, height: size)
+            Hexagon()
+                .strokeBorder(Color.unbound.accent, lineWidth: 2)
+                .frame(width: size, height: size)
+            Hexagon()
+                .strokeBorder(Color.unbound.accent.opacity(0.7), lineWidth: 1)
+                .frame(width: size + 16, height: size + 16)
+            glyph(for: node, state: state, fontSize: 36)
+        }
+        .scaleEffect(activePulse)
+        .shadow(color: Color.unbound.accent.opacity(0.55), radius: 20)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            UnboundHaptics.medium()
+            selectedNode = node
+        }
+    }
 
+    private func keystoneHexOnly(
+        node: SkillNode,
+        state: NodeState,
+        size: CGFloat
+    ) -> some View {
+        ZStack {
+            Hexagon()
+                .fill(keystoneFill(state: state))
+                .frame(width: size, height: size)
+            Hexagon()
+                .strokeBorder(Color.unbound.accent, lineWidth: 2)
+                .frame(width: size, height: size)
+            Hexagon()
+                .strokeBorder(
+                    state == .locked
+                        ? Color.unbound.accent.opacity(0.4)
+                        : Color.unbound.accent.opacity(0.85),
+                    lineWidth: 1
+                )
+                .frame(width: size + 18, height: size + 18)
+            Image(systemName: state == .locked ? "crown" : "crown.fill")
+                .font(.system(size: 44, weight: .semibold))
+                .foregroundStyle(Color.unbound.accent)
+        }
+        .shadow(
+            color: state == .locked
+                ? Color.unbound.accent.opacity(0.3)
+                : Color.unbound.accent.opacity(0.55),
+            radius: 16
+        )
+        .contentShape(Rectangle())
+        .onTapGesture {
+            UnboundHaptics.medium()
+            selectedNode = node
+        }
+    }
+
+    // MARK: Below-hex content variants
+
+    private func defaultBelow(node: SkillNode, state: NodeState, role: ChainSlot.Role) -> some View {
+        Text(node.title)
+            .font(Font.unbound.captionS.weight(.semibold))
+            .foregroundStyle(
+                state == .locked ? Color.unbound.textTertiary : Color.unbound.textPrimary
+            )
+            .multilineTextAlignment(.center)
+            .lineLimit(2)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(width: 120)
+    }
+
+    private func activeBelow(node: SkillNode) -> some View {
+        VStack(spacing: 10) {
             Text(node.title)
                 .font(Font.unbound.bodyMStrong)
                 .foregroundStyle(Color.unbound.textPrimary)
                 .multilineTextAlignment(.center)
-                .frame(maxWidth: 180)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(width: 200)
 
             Button {
                 UnboundHaptics.medium()
@@ -638,56 +758,26 @@ struct ClusterStaircaseView: View {
             }
             .buttonStyle(.plain)
         }
+        .frame(width: 200)
     }
 
-    private func keystoneChainHex(
-        node: SkillNode,
-        state: NodeState,
-        size: CGFloat
-    ) -> some View {
+    private func keystoneBelow(node: SkillNode, state: NodeState) -> some View {
         let beatsAway = sections.next.count + 1
-        return VStack(spacing: 10) {
-            ZStack {
-                Hexagon()
-                    .fill(keystoneFill(state: state))
-                    .frame(width: size, height: size)
-                Hexagon()
-                    .strokeBorder(Color.unbound.accent, lineWidth: 2)
-                    .frame(width: size, height: size)
-                Hexagon()
-                    .strokeBorder(
-                        state == .locked
-                            ? Color.unbound.accent.opacity(0.4)
-                            : Color.unbound.accent.opacity(0.85),
-                        lineWidth: 1
-                    )
-                    .frame(width: size + 18, height: size + 18)
-                Image(systemName: state == .locked ? "crown" : "crown.fill")
-                    .font(.system(size: 44, weight: .semibold))
-                    .foregroundStyle(Color.unbound.accent)
-            }
-            .shadow(
-                color: state == .locked
-                    ? Color.unbound.accent.opacity(0.3)
-                    : Color.unbound.accent.opacity(0.55),
-                radius: 16
-            )
-            .onTapGesture {
-                UnboundHaptics.medium()
-                selectedNode = node
-            }
-
+        return VStack(spacing: 8) {
             Text(node.title)
                 .font(Font.unbound.bodyMStrong)
                 .foregroundStyle(Color.unbound.textPrimary)
                 .multilineTextAlignment(.center)
-                .frame(maxWidth: 200)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(width: 220)
 
             Text("\(beatsAway) \(beatsAway == 1 ? "BEAT" : "BEATS") AWAY")
                 .font(.system(size: 10, weight: .heavy, design: .monospaced))
                 .tracking(2.0)
                 .foregroundStyle(Color.unbound.accent)
         }
+        .frame(width: 220)
     }
 
     private func keystoneFill(state: NodeState) -> Color {
