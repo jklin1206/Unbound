@@ -196,6 +196,32 @@ enum BadgeCatalog {
             iconSystemName: "chart.line.uptrend.xyaxis",
             rarity: .rare,
             unlockedAt: nil
+        ),
+
+        // MARK: Photo ritual (daily capture + cadence)
+        Badge(
+            id: "first_photo",
+            displayName: "Day Zero",
+            description: "Captured your first progress photo.",
+            iconSystemName: "camera.fill",
+            rarity: .common,
+            unlockedAt: nil
+        ),
+        Badge(
+            id: "biweekly_scan",
+            displayName: "Two-Week Read",
+            description: "Two bi-weekly scans within 14 days of each other.",
+            iconSystemName: "sparkle.magnifyingglass",
+            rarity: .rare,
+            unlockedAt: nil
+        ),
+        Badge(
+            id: "monthly_arc",
+            displayName: "Monthly Arc",
+            description: "Four or more captures in a rolling 30-day window.",
+            iconSystemName: "calendar.badge.checkmark",
+            rarity: .rare,
+            unlockedAt: nil
         )
     ]
 

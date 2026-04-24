@@ -28,7 +28,7 @@ struct HomeTabView: View {
                 UnboundSkillTreeTabView()
             }
             .tabItem {
-                Image(systemName: "tree.fill")
+                Image(systemName: "point.3.filled.connected.trianglepath.dotted")
                 Text("Skills")
             }
             .tag(2)

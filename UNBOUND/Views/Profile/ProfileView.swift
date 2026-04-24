@@ -50,7 +50,7 @@ struct ProfileView: View {
                         lifetimeStats
                         bodyMapCard
                         badgesCard
-                        photoLibraryPlaceholder
+                        PhotoCalendarView().environmentObject(services)
                         settingsLink
                         Spacer().frame(height: 28)
                     }

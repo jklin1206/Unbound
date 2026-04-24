@@ -112,6 +112,68 @@ final class BadgeService: BadgeServiceProtocol {
 
         case .setCompleted(let exerciseKey, let reps):
             return evaluateSetCompleted(exerciseKey: exerciseKey, reps: reps)
+
+        case .photoCaptured:
+            return await evaluatePhotoCaptured(userId: userId)
+
+        case .scanCompleted:
+            return await evaluateBiWeeklyScan(userId: userId)
+        }
+    }
+
+    // MARK: Photo / bi-weekly scan evaluators
+    //
+    // Photo ritual cadence badges. `first_photo` on the first capture ever.
+    // `monthly_arc` when the user hits ≥4 captures in a rolling 30-day
+    // window. `biweekly_scan` when two scans are within 14 days of each
+    // other.
+
+    private func evaluatePhotoCaptured(userId: String) async -> [String] {
+        let photos = await fetchProgressPhotos(userId: userId)
+        var result: [String] = ["first_photo"]
+
+        let cutoff = Date().addingTimeInterval(-30 * 24 * 3600)
+        let recent = photos.filter { $0.capturedAt >= cutoff }
+        if recent.count >= 4 {
+            result.append("monthly_arc")
+        }
+        return result
+    }
+
+    private func evaluateBiWeeklyScan(userId: String) async -> [String] {
+        let photos = await fetchProgressPhotos(userId: userId)
+        var result: [String] = ["first_scan"]
+
+        let scans = photos.filter { $0.source == .scan }.sorted { $0.capturedAt > $1.capturedAt }
+        if scans.count >= 2 {
+            let delta = scans[0].capturedAt.timeIntervalSince(scans[1].capturedAt)
+            if delta <= 14 * 24 * 3600 {
+                result.append("biweekly_scan")
+            }
+        }
+
+        // Monthly arc also counts scans.
+        let cutoff = Date().addingTimeInterval(-30 * 24 * 3600)
+        let recent = photos.filter { $0.capturedAt >= cutoff }
+        if recent.count >= 4 {
+            result.append("monthly_arc")
+        }
+        return result
+    }
+
+    private func fetchProgressPhotos(userId: String) async -> [ProgressPhoto] {
+        do {
+            let photos: [ProgressPhoto] = try await database.query(
+                collection: "progressPhotos",
+                field: "userId",
+                isEqualTo: userId,
+                orderBy: "capturedAt",
+                descending: true,
+                limit: 120
+            )
+            return photos
+        } catch {
+            return []
         }
     }
 

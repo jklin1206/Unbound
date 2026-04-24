@@ -47,6 +47,12 @@ enum BadgeTrigger: Sendable {
     case calibrationComplete
     case archetypeChosen(Archetype)
     case setCompleted(exerciseKey: String, reps: Int)
+    /// A plain progress photo was captured (no scan analysis). Fires
+    /// the photo-ritual streak/consistency badges.
+    case photoCaptured
+    /// A bi-weekly scan successfully completed (distinct from onboarding
+    /// `scanComplete`). Fires the scan-cadence badges.
+    case scanCompleted
 }
 
 // MARK: - Notification

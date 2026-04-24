@@ -32,6 +32,7 @@ struct UnboundHomeView: View {
     @AppStorage("unbound.gains") private var gains: Int = 0
     @AppStorage("unbound.streakDays") private var streakDays: Int = 0
     @AppStorage("unbound.lastScanTimestamp") private var lastScanTimestamp: Double = 0
+    @AppStorage("unbound.lastPhotoTimestamp") private var lastPhotoTimestamp: Double = 0
     @AppStorage("unbound.lastSessionDate") private var lastSessionTimestamp: Double = 0
     @State private var sessionXP: SessionXPRecord?
 
@@ -68,6 +69,9 @@ struct UnboundHomeView: View {
     // QuestService follow-up pass; today's quest is hardcoded so the card
     // layout can be reviewed before content is authored.
     @State private var dailyQuest = DailyQuestPlaceholder.sample
+
+    // Photo/Scan capture flow presentation
+    @State private var captureMode: PhotoCaptureFlow.Mode?
 
     // Level derivation: 250 XP per level. Simple, overrideable later.
     private let xpPerLevel: Int = 250
@@ -144,6 +148,17 @@ struct UnboundHomeView: View {
                     )
                 }
             }
+        }
+        .fullScreenCover(item: $captureMode) { mode in
+            PhotoCaptureFlow(mode: mode) { outcome in
+                captureMode = nil
+                if outcome == .photoSaved || outcome == .scanCompleted || outcome == .scanDegradedToPhoto {
+                    // Updated timestamps already persisted by the flow.
+                    // Just refresh rank/stat triggers that might care.
+                    Task { await refreshRanksAndStats() }
+                }
+            }
+            .environmentObject(services)
         }
         .fullScreenCover(isPresented: $showingExpandedMap) {
             ExpandedBodyMapView(
@@ -754,29 +769,49 @@ struct UnboundHomeView: View {
     }
 
     private var scanCTACard: some View {
-        HStack(spacing: 14) {
-            Image(systemName: "camera.fill")
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(Color.unbound.accent)
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Time to rescan")
-                    .font(Font.unbound.bodyMStrong)
-                    .foregroundStyle(Color.unbound.textPrimary)
-                Text("See what's changed in the last 30 days.")
-                    .font(Font.unbound.captionS)
-                    .foregroundStyle(Color.unbound.textSecondary)
+        let isScanDue = shouldShowScanEligibility
+        let title = isScanDue ? "Bi-weekly scan due" : "Lock in today's photo"
+        let subtitle = isScanDue
+            ? "3-sentence coach read · +25 SP"
+            : "Keep the arc honest · +5 SP"
+        let icon = isScanDue ? "sparkle.magnifyingglass" : "camera.fill"
+
+        return Button {
+            UnboundHaptics.medium()
+            captureMode = isScanDue ? .scan : .photo
+        } label: {
+            HStack(spacing: 14) {
+                Image(systemName: icon)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(Color.unbound.accent)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(Font.unbound.bodyMStrong)
+                        .foregroundStyle(Color.unbound.textPrimary)
+                    Text(subtitle)
+                        .font(Font.unbound.captionS)
+                        .foregroundStyle(Color.unbound.textSecondary)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(Color.unbound.textTertiary)
             }
-            Spacer()
-            Image(systemName: "chevron.right")
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(Color.unbound.textTertiary)
+            .padding(14)
+            .frame(maxWidth: .infinity)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(Color.unbound.surface)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .strokeBorder(
+                        isScanDue ? Color.unbound.accent.opacity(0.35) : Color.clear,
+                        lineWidth: 1
+                    )
+            )
         }
-        .padding(14)
-        .frame(maxWidth: .infinity)
-        .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color.unbound.surface)
-        )
+        .buttonStyle(.plain)
     }
 
     // MARK: - Stats grid
@@ -1026,10 +1061,16 @@ struct UnboundHomeView: View {
         calibrationSkipRatio > 0.5 && !hasLoggedAnyWorkout
     }
 
-    private var shouldShowScanCTA: Bool {
-        guard lastScanTimestamp > 0 else { return false }
+    /// Home's capture card is always shown — it's the daily photo entry
+    /// point, not just a rescan nudge.
+    private var shouldShowScanCTA: Bool { true }
+
+    /// True when ≥14 days since last successful scan (or never scanned).
+    /// Swaps the card's label from PHOTO +5 → SCAN +25.
+    private var shouldShowScanEligibility: Bool {
+        guard lastScanTimestamp > 0 else { return true }
         let secondsSince = Date().timeIntervalSince1970 - lastScanTimestamp
-        return secondsSince >= 30 * 24 * 3600
+        return secondsSince >= 14 * 24 * 3600
     }
 
     /// E/D/C/B/A/S → Dormant/Awakened/Forged/Sharpened/Unbound/Ascended
