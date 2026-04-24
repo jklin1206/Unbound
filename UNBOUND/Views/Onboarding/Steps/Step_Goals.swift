@@ -18,7 +18,7 @@ struct Step_Goals: View {
             onPrimary: onContinue
         ) {
             HUDMultiSelectGroup(
-                options: Goal.allCases,
+                options: visibleGoals,
                 selection: $flow.goals,
                 title: { $0.displayName },
                 subtitle: { $0.subtitle },
@@ -26,6 +26,15 @@ struct Step_Goals: View {
             )
             .padding(.top, 4)
         }
+    }
+
+    /// Narrowed from `Goal.allCases` — 4 goals that carry real signal for
+    /// protocol selection. `.getDefined` overlaps with build+cut so we let
+    /// users express it as two picks; `.feelBetter` is too abstract for a
+    /// body-transformation app's onboarding. Both still exist on the enum
+    /// for any persisted user data.
+    private var visibleGoals: [Goal] {
+        [.buildMuscle, .loseFat, .getStronger, .athletic]
     }
 }
 

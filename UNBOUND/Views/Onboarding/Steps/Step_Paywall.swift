@@ -62,12 +62,12 @@ struct Step_Paywall: View {
         VStack(spacing: 12) {
             RankBadge(letter: flow.derivedRank, size: .medium)
 
-            Text("Close the gap.")
+            Text("Start your arc.")
                 .font(Font.unbound.displayM)
                 .foregroundStyle(Color.unbound.textPrimary)
                 .multilineTextAlignment(.center)
 
-            Text("Unlock your adaptive protocol, scan tracking, and full exercise library.")
+            Text("Every rep tracked. Every node earned. Every milestone yours.")
                 .font(Font.unbound.bodyM)
                 .foregroundStyle(Color.unbound.textSecondary)
                 .multilineTextAlignment(.center)
@@ -79,10 +79,10 @@ struct Step_Paywall: View {
 
     private var benefits: some View {
         VStack(alignment: .leading, spacing: 12) {
-            benefitRow("Adaptive protocol that reacts to your logs")
-            benefitRow("Monthly rescans to measure real change")
-            benefitRow("Daily sessions, streaks, and Gains")
-            benefitRow("Full archetype training library")
+            benefitRow("Your adaptive protocol — three arcs, tailored to you")
+            benefitRow("Full skill tree: muscle-up, front lever, the whole ladder")
+            benefitRow("Rescan anytime — watch the arc move")
+            benefitRow("Daily sessions, streaks, and Gains logged forever")
         }
         .padding(18)
         .background(
@@ -178,8 +178,8 @@ struct Step_Paywall: View {
     private var ctaSection: some View {
         VStack(spacing: 8) {
             UnboundButton(
-                title: "Start 7-day free trial",
-                icon: "sparkles",
+                title: "Start the arc — 7 days free",
+                icon: "flame.fill",
                 action: purchase
             )
             Text("Cancel anytime. \(selectedPlan.billingAfterTrial) after trial.")

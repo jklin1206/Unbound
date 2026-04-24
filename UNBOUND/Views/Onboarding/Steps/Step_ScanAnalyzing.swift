@@ -2,13 +2,16 @@ import SwiftUI
 
 // MARK: - Step_ScanAnalyzing
 //
-// Cinematic post-scan analysis. Movie-forensic-scan vibe. 6s of sweep +
-// HUD readouts + crosshairs + status strings narrating analysis, then a
-// heavy haptic "complete" punch and advance to verdict.
+// Post-scan commitment beat. This screen does NOT do body-composition
+// analysis — the scan photo is just a day-zero marker. What's actually
+// happening during these 6s: we save the photo and compile the adaptive
+// protocol from the user's onboarding answers (archetype, focus areas,
+// experience, commitment, equipment). The copy is honest about that.
 //
-// Uses TimelineView to redraw every frame for smooth animation. Targeting
-// crosshairs jump between anatomical regions. BPM pulse line hums along
-// the bottom. Status string rotates through muscle groups.
+// The cinematic treatment (scan sweep, crosshairs, BPM pulse) is
+// atmosphere, not instrumentation. No fake "density: 58%" percentages
+// — anatomy labels only. Anything that implies measurement has been
+// pulled so we're not promising a product we don't ship.
 
 struct Step_ScanAnalyzing: View {
     @Bindable var flow: OnboardingFlowViewModel
@@ -18,6 +21,8 @@ struct Step_ScanAnalyzing: View {
     @State private var startTime: Date = .now
     @State private var hasCompleted = false
     @State private var completionBloom = false
+    @State private var insightsService = LocalBodyInsightsService()
+    @State private var analysisTask: Task<Void, Never>? = nil
 
     var body: some View {
         TimelineView(.animation(minimumInterval: 1.0 / 60.0)) { ctx in
@@ -138,6 +143,26 @@ struct Step_ScanAnalyzing: View {
         .toolbar(.hidden, for: .navigationBar)
         .onAppear {
             startTime = .now
+            runLocalBodyInsights()
+        }
+        .onDisappear {
+            analysisTask?.cancel()
+        }
+    }
+
+    /// Kicks off on-device Vision analysis of the front scan photo. Runs
+    /// concurrent with the 6s cinematic — usually completes in under 1s,
+    /// so by the time the sweep finishes, `flow.scanInsights` is ready
+    /// for the Verdict screen. Silently no-ops when there's no photo
+    /// (dev-skip path) or when Vision can't find a usable body pose.
+    private func runLocalBodyInsights() {
+        guard flow.scanInsights == nil else { return }
+        guard let photo = flow.capturedPhotos[.front] else { return }
+
+        analysisTask = Task { @MainActor in
+            let insights = await insightsService.analyze(image: photo)
+            guard !Task.isCancelled else { return }
+            flow.scanInsights = insights
         }
     }
 }
@@ -179,50 +204,45 @@ private struct ScanPlane: View {
 private struct TargetingCrosshairs: View {
     let elapsed: TimeInterval
 
+    // Anatomy labels only — no scores, no percentages. These are region
+    // names overlaid on the silhouette as atmosphere, NOT measurements.
+    // If we ever add real body-composition inference, this is where the
+    // real numbers would surface.
     private let regions: [(name: String, offset: CGSize)] = [
-        ("TRAPEZIUS",  .init(width: 0,    height: -180)),
-        ("DELTOIDS",   .init(width: 70,   height: -120)),
-        ("PECTORAL",   .init(width: 0,    height: -80)),
-        ("LATISSIMUS", .init(width: -70,  height: -40)),
-        ("CORE",       .init(width: 0,    height: 20)),
-        ("QUADRICEPS", .init(width: 30,   height: 100)),
-        ("CALVES",     .init(width: -30,  height: 170))
+        ("SHOULDERS", .init(width: 0,    height: -180)),
+        ("CHEST",     .init(width: 70,   height: -120)),
+        ("BACK",      .init(width: -70,  height: -40)),
+        ("CORE",      .init(width: 0,    height: 20)),
+        ("LEGS",      .init(width: 30,   height: 100)),
+        ("POSTURE",   .init(width: -30,  height: 170))
     ]
 
     var body: some View {
-        let index = Int(elapsed / 0.45) % regions.count
+        let index = Int(elapsed / 0.55) % regions.count
         let region = regions[index]
-        let score = 30 + (index * 11) % 60
 
         ZStack {
-            // Crosshair reticle
+            // Crosshair reticle — purely decorative frame
             Rectangle()
                 .strokeBorder(Color.unbound.accent, lineWidth: 1)
                 .frame(width: 42, height: 42)
 
-            // Readout tag
-            HStack(spacing: 6) {
-                Text(region.name)
-                    .font(Font.unbound.captionS.monospaced())
-                    .tracking(1.2)
-                    .foregroundStyle(Color.unbound.accent)
-                Text("·")
-                    .foregroundStyle(Color.unbound.textTertiary)
-                Text("\(score)%")
-                    .font(Font.unbound.captionS.monospaced())
-                    .foregroundStyle(Color.unbound.textPrimary)
-            }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(
-                RoundedRectangle(cornerRadius: 4, style: .continuous)
-                    .fill(Color.unbound.bg.opacity(0.85))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 4, style: .continuous)
-                    .strokeBorder(Color.unbound.accent.opacity(0.6), lineWidth: 0.5)
-            )
-            .offset(x: 56, y: -6)
+            // Region label — no score, no percentage. Just anatomy.
+            Text(region.name)
+                .font(Font.unbound.captionS.monospaced())
+                .tracking(1.4)
+                .foregroundStyle(Color.unbound.accent)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(
+                    RoundedRectangle(cornerRadius: 4, style: .continuous)
+                        .fill(Color.unbound.bg.opacity(0.85))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 4, style: .continuous)
+                        .strokeBorder(Color.unbound.accent.opacity(0.6), lineWidth: 0.5)
+                )
+                .offset(x: 56, y: -6)
         }
         .offset(region.offset)
         .transition(.opacity)
@@ -236,12 +256,17 @@ private struct HudReadouts: View {
     let percent: Int
     let elapsed: TimeInterval
 
+    // Status strings describe what's *actually* happening during these 6s.
+    // On-device Vision reads the user's body pose keypoints (real) and
+    // computes shoulder-to-hip ratio (real). The protocol compilation
+    // step weaves those ratios into the focus-area priorities from the
+    // questionnaire. Nothing aspirational — every line here is true.
     private let statusStrings = [
-        "MAPPING MUSCLE GROUPS",
-        "MEASURING SYMMETRY",
-        "CALCULATING DENSITY",
-        "SCORING POSTURE",
-        "COMPILING PROTOCOL"
+        "LOCKING YOUR DAY ZERO",
+        "READING YOUR FRAME",
+        "MEASURING SHOULDER-TO-HIP",
+        "TUNING YOUR FOCUS AREAS",
+        "BUILDING YOUR PROTOCOL"
     ]
 
     var body: some View {
@@ -251,21 +276,21 @@ private struct HudReadouts: View {
                     Text("\(percent)%")
                         .font(Font.unbound.monoL)
                         .foregroundStyle(Color.unbound.accent)
-                    Text("ANALYZING")
+                    Text("LOCKING IN")
                         .font(Font.unbound.captionS)
                         .tracking(1.4)
                         .foregroundStyle(Color.unbound.textSecondary)
                 }
                 Spacer()
                 VStack(alignment: .trailing, spacing: 4) {
-                    Text("BIOMETRIC")
+                    Text("DAY ZERO")
                         .font(Font.unbound.captionS)
                         .tracking(1.4)
                         .foregroundStyle(Color.unbound.textSecondary)
-                    Text("ANALYSIS")
+                    Text("COMMITTED")
                         .font(Font.unbound.captionS)
                         .tracking(1.4)
-                        .foregroundStyle(Color.unbound.textSecondary)
+                        .foregroundStyle(Color.unbound.ember)
                 }
             }
             .padding(.horizontal, 24)

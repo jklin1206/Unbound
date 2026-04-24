@@ -113,11 +113,10 @@ struct ArchetypePickerCard: View {
 
     @ViewBuilder
     private var illustration: some View {
-        if UIImage(named: assetName) != nil {
-            Image(assetName)
+        if let uiImage = Self.loadedSilhouettes[assetName] ?? UIImage(named: assetName) {
+            Image(uiImage: uiImage)
                 .resizable()
                 .scaledToFit()
-                .foregroundStyle(Color.unbound.textPrimary)
                 .opacity(isSelected ? 1.0 : 0.88)
                 .padding(.top, 26)
         } else {
@@ -129,6 +128,21 @@ struct ArchetypePickerCard: View {
     private var assetName: String {
         archetype.silhouetteAssetName
     }
+
+    /// Bridges loose PNG files in `Resources/BodyMap/` to SwiftUI since
+    /// `Image("name")` and `UIImage(named:)` only resolve asset-catalog
+    /// entries. Matches the pattern used in `SilhouetteView`.
+    private static let loadedSilhouettes: [String: UIImage] = {
+        let names = Archetype.allCases.map(\.silhouetteAssetName)
+        var out: [String: UIImage] = [:]
+        for name in names {
+            if let url = Bundle.main.url(forResource: name, withExtension: "png"),
+               let img = UIImage(contentsOfFile: url.path) {
+                out[name] = img
+            }
+        }
+        return out
+    }()
 
     private var fallbackSilhouette: some View {
         ZStack {

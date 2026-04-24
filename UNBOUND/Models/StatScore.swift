@@ -35,4 +35,17 @@ struct StatScore: Sendable, Equatable {
         vitality: 0,
         computedAt: .distantPast
     )
+
+    var strengthRank: SubRank { Self.rank(for: strength) }
+    var staminaRank:  SubRank { Self.rank(for: stamina)  }
+    var techniqueRank: SubRank { Self.rank(for: technique) }
+    var vitalityRank: SubRank { Self.rank(for: vitality) }
+
+    /// 0...100 → SubRank ladder (0...17). Each sub-rank covers ~5.5 points.
+    /// E-  at 0, S+ at 100, linear in between.
+    static func rank(for value: Int) -> SubRank {
+        let clamped = max(0, min(100, value))
+        let ordinal = Int((Double(clamped) / 100.0 * 17.0).rounded(.down))
+        return SubRank.allCases.first(where: { $0.ordinal == min(17, ordinal) }) ?? .eMinus
+    }
 }

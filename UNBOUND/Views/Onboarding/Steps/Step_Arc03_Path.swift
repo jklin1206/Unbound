@@ -10,8 +10,45 @@ struct Step_Arc03_Path: View {
     @State private var buttonPulse: Bool = false
     @State private var haptTicked: [Bool] = [false, false, false, false]
 
-    private let archetypes = Archetype.allCases.map(\.shortName)
     private let archetypeCases = Archetype.allCases
+
+    /// Hold time per archetype before cross-fading to the next. Slower than
+    /// a literal second so the user has time to read the rank differences
+    /// between builds, not just see a blur.
+    private let rotationInterval: TimeInterval = 2.6
+
+    /// Stat axes stay constant across every archetype (pattern recognition).
+    /// Only the rank values change per build — that's where the identity lives.
+    /// Axes match the locked 4-stat canon: Strength / Stamina / Technique / Vitality.
+    private let statLabels = ["STRENGTH", "STAMINA", "TECHNIQUE", "VITALITY"]
+
+    /// Per-archetype rank profile. Each tuple aligns to `statLabels` by index.
+    /// One S-tier signature per archetype — except SHREDDED, who's the
+    /// balanced generalist (all A, no peak, no weakness).
+    ///   V-TAPER      → Technique S (precision mastery)
+    ///   HEAVYWEIGHT  → Strength S  (immovable mass)
+    ///   SLEEPER      → Vitality S  (unbreakable ceiling)
+    ///   SHREDDED     → all A       (the athlete's archetype)
+    private static func ranks(for archetype: Archetype) -> [(tier: String, value: Double)] {
+        switch archetype {
+        case .vTaper:    // V-TAPER — precision, posture, quiet dominance
+            return [("B", 0.70), ("A", 0.80), ("S", 0.92), ("B", 0.72)]
+        case .leanCut:   // SHREDDED — balanced athletic generalist
+            return [("B", 0.75), ("A", 0.85), ("A", 0.80), ("A", 0.80)]
+        case .heavyDuty: // HEAVYWEIGHT — immovable mass
+            return [("S", 0.95), ("C", 0.58), ("B", 0.70), ("A", 0.82)]
+        case .shredded:  // SLEEPER — hidden ceiling, unkillable
+            return [("A", 0.82), ("A", 0.85), ("C", 0.60), ("S", 0.92)]
+        }
+    }
+
+    private var currentArchetype: Archetype {
+        archetypeCases[archetypeIndex]
+    }
+
+    private var currentRanks: [(tier: String, value: Double)] {
+        Self.ranks(for: currentArchetype)
+    }
 
     var body: some View {
         ZStack {
@@ -27,59 +64,54 @@ struct Step_Arc03_Path: View {
 
                 HStack(alignment: .center, spacing: 18) {
                     ZStack {
-                        TimelineView(.animation(minimumInterval: 0.8)) { ctx in
-                            let raw = ctx.date.timeIntervalSinceReferenceDate
-                            let idx = Int(raw) % archetypes.count
-                            Text(archetypes[idx])
-                                .font(Font.unbound.captionS)
-                                .tracking(1.6)
-                                .foregroundStyle(Color.unbound.textTertiary.opacity(0.55))
-                                .textCase(.uppercase)
-                                .offset(y: -140)
-                                .id(idx)
-                                .transition(.opacity)
-                        }
+                        Text(currentArchetype.shortName)
+                            .font(Font.unbound.captionS)
+                            .tracking(1.6)
+                            .foregroundStyle(Color.unbound.textTertiary.opacity(0.55))
+                            .textCase(.uppercase)
+                            .offset(y: -200)
+                            .id("label-\(archetypeIndex)")
+                            .transition(.opacity)
 
-                        // Cycle through the 4 archetype renders in sync with
-                        // the rotating label — teaches the user that "strong"
-                        // has four distinct shapes before they commit.
-                        TimelineView(.animation(minimumInterval: 0.8)) { ctx in
-                            let idx = Int(ctx.date.timeIntervalSinceReferenceDate) % archetypeCases.count
-                            let arch = archetypeCases[idx]
-                            Group {
-                                if let uiImage = UIImage(named: arch.silhouetteAssetName) {
-                                    Image(uiImage: uiImage)
-                                        .resizable()
-                                        .aspectRatio(contentMode: .fit)
-                                        .shadow(color: Color.unbound.impact.opacity(0.4), radius: 24)
-                                } else {
-                                    SilhouetteView(
-                                        rimLight: .impact,
-                                        chromaticAberration: 0.0,
-                                        breathe: true,
-                                        scale: 0.85
-                                    )
-                                }
+                        Group {
+                            if let uiImage = UIImage(named: currentArchetype.silhouetteAssetName) {
+                                Image(uiImage: uiImage)
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fit)
+                                    .shadow(color: Color.unbound.impact.opacity(0.4), radius: 24)
+                            } else {
+                                SilhouetteView(
+                                    rimLight: .impact,
+                                    chromaticAberration: 0.0,
+                                    breathe: true,
+                                    scale: 0.85
+                                )
                             }
-                            .id(idx)
-                            .transition(.opacity.combined(with: .scale(scale: 0.96)))
-                            .animation(.easeInOut(duration: 0.55), value: idx)
                         }
-                        .frame(width: 170, height: 260)
+                        .id("body-\(archetypeIndex)")
+                        .transition(.opacity.combined(with: .scale(scale: 0.96)))
+                        .frame(width: 190, height: 380)
                     }
+                    .animation(.easeInOut(duration: 0.55), value: archetypeIndex)
                     .opacity(silhouetteIn ? 1 : 0)
                     .offset(y: silhouetteIn ? 0 : 20)
 
                     VStack(spacing: 18) {
-                        StatBar(label: "STRENGTH", tier: "C", value: 0.62, animate: true, muted: false, startDelay: 0.55)
-                            .onAppear { schedHaptic(0, delay: 0.6) }
-                        StatBar(label: "STAMINA", tier: "C", value: 0.58, animate: true, muted: false, startDelay: 0.70)
-                            .onAppear { schedHaptic(1, delay: 0.75) }
-                        StatBar(label: "DISCIPLINE", tier: "B", value: 0.72, animate: true, muted: false, startDelay: 0.85)
-                            .onAppear { schedHaptic(2, delay: 0.90) }
-                        StatBar(label: "CONFIDENCE", tier: "A", value: 0.82, animate: true, muted: false, startDelay: 1.00)
-                            .onAppear { schedHaptic(3, delay: 1.05) }
+                        ForEach(Array(statLabels.enumerated()), id: \.offset) { index, label in
+                            let rank = currentRanks[index]
+                            StatBar(
+                                label: label,
+                                tier: rank.tier,
+                                value: rank.value,
+                                animate: true,
+                                muted: false,
+                                startDelay: 0.55 + Double(index) * 0.15
+                            )
+                            .id("stat-\(archetypeIndex)-\(index)")
+                            .onAppear { schedHaptic(index, delay: 0.6 + Double(index) * 0.15) }
+                        }
                     }
+                    .animation(.easeInOut(duration: 0.45), value: archetypeIndex)
                     .frame(maxWidth: .infinity)
                     .opacity(statsIn ? 1 : 0)
                     .offset(y: statsIn ? 0 : 16)
@@ -105,7 +137,7 @@ struct Step_Arc03_Path: View {
                         .lineLimit(2)
                         .minimumScaleFactor(0.85)
 
-                    Text("Every rep ranked. Every week measured.")
+                    Text("Every rep ranked. Every arc measured.")
                         .font(Font.unbound.bodyM)
                         .foregroundStyle(Color.unbound.textSecondary)
                         .multilineTextAlignment(.center)
@@ -140,6 +172,9 @@ struct Step_Arc03_Path: View {
             withAnimation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true).delay(1.4)) {
                 buttonPulse = true
             }
+        }
+        .onReceive(Timer.publish(every: rotationInterval, on: .main, in: .common).autoconnect()) { _ in
+            archetypeIndex = (archetypeIndex + 1) % archetypeCases.count
         }
     }
 

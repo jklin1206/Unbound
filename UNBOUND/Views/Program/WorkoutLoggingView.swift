@@ -1,5 +1,12 @@
 import SwiftUI
 
+// MARK: - WorkoutLoggingView
+//
+// The in-gym surface. Big enough to log sets with gloves, tight enough
+// to read fast between sets. Built in the UNBOUND palette (charcoal on
+// black, violet accent, mono digits). Preserves the original logic —
+// sets, RPE, skips, swaps, progression suggestions, session notes, save.
+
 struct WorkoutLoggingView: View {
     @StateObject private var viewModel: WorkoutLoggingViewModel
     @Environment(\.dismiss) private var dismiss
@@ -25,33 +32,29 @@ struct WorkoutLoggingView: View {
 
     var body: some View {
         ZStack {
-            Color.theme.background.ignoresSafeArea()
+            Color.unbound.bg.ignoresSafeArea()
 
             VStack(spacing: 0) {
-                header
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
-                    .background(Color.theme.surface)
-
-                ScrollView {
-                    VStack(spacing: 16) {
+                topBar
+                ScrollView(.vertical, showsIndicators: false) {
+                    VStack(spacing: 14) {
                         ForEach(Array(viewModel.exerciseEntries.indices), id: \.self) { index in
                             exerciseCard(index: index)
                         }
-
                         sessionFooter
+                        Spacer().frame(height: 100)
                     }
-                    .padding(16)
-                    .padding(.bottom, 100)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 12)
                 }
             }
 
-            // Bottom CTA
             VStack {
                 Spacer()
                 bottomBar
             }
         }
+        .navigationBarHidden(true)
         .task {
             await viewModel.loadWorkingWeights()
             if let userId = servicesRef.auth.currentUserId {
@@ -70,7 +73,7 @@ struct WorkoutLoggingView: View {
                 alternatives: swapAlternatives,
                 onSelect: { alt in
                     viewModel.swapExercise(at: ctx.index, to: alt)
-                    HapticManager.notification(.success)
+                    UnboundHaptics.success()
                 },
                 onCreateCustom: {
                     showingCustomBuilder = true
@@ -94,46 +97,81 @@ struct WorkoutLoggingView: View {
         UnboundHaptics.medium()
     }
 
-    // MARK: - Header
+    // MARK: - Top bar
 
-    private var header: some View {
-        HStack {
+    private var topBar: some View {
+        HStack(alignment: .center, spacing: 10) {
+            Button {
+                UnboundHaptics.soft()
+                dismiss()
+            } label: {
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(Color.unbound.textSecondary)
+                    .frame(width: 34, height: 34)
+                    .background(Circle().fill(Color.unbound.surface))
+                    .overlay(Circle().strokeBorder(Color.unbound.borderSubtle, lineWidth: 1))
+            }
+            .buttonStyle(.plain)
+
             VStack(alignment: .leading, spacing: 2) {
-                Text(viewModel.workout.name)
-                    .font(.subheadline(18))
-                    .foregroundColor(.theme.textPrimary)
+                Text(viewModel.workout.name.uppercased())
+                    .font(Font.unbound.titleS)
+                    .tracking(1.0)
+                    .foregroundStyle(Color.unbound.textPrimary)
                     .lineLimit(1)
-                Text(Date().formatted(date: .abbreviated, time: .omitted))
-                    .font(.caption(12))
-                    .foregroundColor(.theme.textMuted)
+                Text(Date().formatted(date: .abbreviated, time: .omitted).uppercased())
+                    .font(Font.unbound.captionS)
+                    .tracking(1.2)
+                    .foregroundStyle(Color.unbound.textTertiary)
             }
 
             Spacer()
 
-            // Elapsed timer
-            HStack(spacing: 4) {
-                Image(systemName: "clock")
-                    .font(.caption(13))
-                    .foregroundColor(.theme.textMuted)
-                Text(formattedElapsed)
-                    .font(.stat(16))
-                    .foregroundColor(.theme.primary)
-                    .monospacedDigit()
-            }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-            .background(Color.theme.surfaceLight)
-            .clipShape(Capsule())
+            timerBadge
         }
+        .padding(.horizontal, 16)
+        .padding(.top, 10)
+        .padding(.bottom, 12)
+        .background(
+            Color.unbound.bg
+                .overlay(
+                    Rectangle().fill(Color.unbound.borderSubtle).frame(height: 0.5),
+                    alignment: .bottom
+                )
+        )
+    }
+
+    private var timerBadge: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "timer")
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(Color.unbound.accent)
+            Text(formattedElapsed)
+                .font(Font.unbound.monoM.weight(.semibold))
+                .foregroundStyle(Color.unbound.textPrimary)
+                .monospacedDigit()
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(Capsule().fill(Color.unbound.surface))
+        .overlay(
+            Capsule().strokeBorder(Color.unbound.accent.opacity(0.40), lineWidth: 1)
+        )
+        .shadow(color: Color.unbound.accent.opacity(0.25), radius: 5)
     }
 
     private var formattedElapsed: String {
-        let m = elapsedSeconds / 60
+        let h = elapsedSeconds / 3600
+        let m = (elapsedSeconds % 3600) / 60
         let s = elapsedSeconds % 60
+        if h > 0 {
+            return String(format: "%d:%02d:%02d", h, m, s)
+        }
         return String(format: "%d:%02d", m, s)
     }
 
-    // MARK: - Exercise Card
+    // MARK: - Exercise card
 
     private func exerciseCard(index: Int) -> some View {
         let entry = viewModel.exerciseEntries[index]
@@ -141,74 +179,91 @@ struct WorkoutLoggingView: View {
         let suggestion = viewModel.progressionSuggestions[normalized]
 
         return VStack(alignment: .leading, spacing: 12) {
-            // Exercise header
-            HStack(alignment: .top) {
+            // Header
+            HStack(alignment: .top, spacing: 10) {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 8) {
-                        Text(entry.exercise.name)
-                            .font(.bodyMedium(16))
-                            .foregroundColor(entry.skipped ? .theme.textMuted : .theme.textPrimary)
+                        Text(entry.exercise.name.uppercased())
+                            .font(Font.unbound.bodyMStrong)
+                            .tracking(0.6)
+                            .foregroundStyle(
+                                entry.skipped ? Color.unbound.textTertiary : Color.unbound.textPrimary
+                            )
                             .strikethrough(entry.skipped)
                         if entry.swapped {
                             Text("SWAPPED")
-                                .font(.caption(10))
-                                .fontWeight(.bold)
-                                .foregroundColor(.theme.primary)
+                                .font(.system(size: 9, weight: .bold))
+                                .tracking(1.2)
+                                .foregroundStyle(Color.unbound.accent)
                                 .padding(.horizontal, 6)
                                 .padding(.vertical, 2)
-                                .background(Color.theme.primary.opacity(0.15))
-                                .clipShape(Capsule())
+                                .background(Capsule().fill(Color.unbound.accent.opacity(0.18)))
                         }
                     }
 
-                    Text("\(entry.exercise.sets) × \(entry.exercise.reps)")
-                        .font(.caption(13))
-                        .foregroundColor(.theme.textSecondary)
+                    Text("\(entry.exercise.sets) × \(entry.exercise.reps)".uppercased())
+                        .font(Font.unbound.monoS)
+                        .foregroundStyle(Color.unbound.textSecondary)
                 }
 
                 Spacer()
 
-                VStack(alignment: .trailing, spacing: 6) {
-                    // Skip button
-                    Button {
-                        viewModel.toggleSkip(at: index)
-                        HapticManager.selection()
-                    } label: {
-                        Text(entry.skipped ? "Unskip" : "Skip")
-                            .font(.caption(12))
-                            .foregroundColor(entry.skipped ? .theme.primary : .theme.textMuted)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 4)
-                            .background(Color.theme.surfaceLight)
-                            .clipShape(Capsule())
-                    }
+                // Skip toggle
+                Button {
+                    viewModel.toggleSkip(at: index)
+                    UnboundHaptics.soft()
+                } label: {
+                    Text(entry.skipped ? "UNSKIP" : "SKIP")
+                        .font(.system(size: 9, weight: .bold))
+                        .tracking(1.4)
+                        .foregroundStyle(
+                            entry.skipped ? Color.unbound.accent : Color.unbound.textTertiary
+                        )
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(Capsule().fill(Color.unbound.bg))
+                        .overlay(
+                            Capsule().strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
+                        )
                 }
+                .buttonStyle(.plain)
             }
 
-            // Last performance + progression suggestion
+            // Progression + last-session callouts
             if !entry.lastWeight.isEmpty || suggestion != nil {
                 HStack(spacing: 8) {
                     if !entry.lastWeight.isEmpty {
-                        Text("Last: \(entry.lastWeight)kg × \(entry.lastReps)")
-                            .font(.caption(12))
-                            .foregroundColor(.theme.textMuted)
+                        calloutChip(
+                            text: "LAST · \(entry.lastWeight)KG × \(entry.lastReps)",
+                            color: Color.unbound.textSecondary,
+                            fill: Color.unbound.bg
+                        )
                     }
-
                     if let suggestion {
-                        Text(suggestion.description)
-                            .font(.caption(12))
-                            .fontWeight(.semibold)
-                            .foregroundColor(.theme.success)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 3)
-                            .background(Color.theme.success.opacity(0.12))
-                            .clipShape(Capsule())
+                        calloutChip(
+                            text: suggestion.description.uppercased(),
+                            color: Color.unbound.success,
+                            fill: Color.unbound.success.opacity(0.12)
+                        )
                     }
+                    Spacer(minLength: 0)
                 }
             }
 
             if !entry.skipped {
-                Divider().background(Color.theme.surfaceLight)
+                // Column headers for the set table
+                HStack(spacing: 10) {
+                    columnHeader("SET", width: 26)
+                    columnHeader("WEIGHT", width: 60)
+                    columnHeader("REPS", width: 46)
+                    columnHeader("RPE", width: nil)
+                    Spacer(minLength: 0)
+                }
+                .padding(.top, 4)
+
+                Rectangle()
+                    .fill(Color.unbound.borderSubtle)
+                    .frame(height: 0.5)
 
                 // Set rows
                 ForEach(Array(entry.sets.indices), id: \.self) { setIndex in
@@ -232,67 +287,104 @@ struct WorkoutLoggingView: View {
                         ),
                         onDelete: entry.sets.count > 1 ? {
                             viewModel.removeSet(exerciseIndex: index, setIndex: setIndex)
-                            HapticManager.impact(.light)
                         } : nil
                     )
                 }
 
-                // Add Set button
                 Button {
                     viewModel.addSet(to: index)
-                    HapticManager.impact(.light)
+                    UnboundHaptics.soft()
                 } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "plus.circle")
-                            .font(.caption(13))
-                        Text("Add Set")
-                            .font(.caption(13))
+                    HStack(spacing: 6) {
+                        Image(systemName: "plus")
+                            .font(.system(size: 11, weight: .bold))
+                        Text("ADD SET")
+                            .font(Font.unbound.captionS.weight(.bold))
+                            .tracking(1.4)
                     }
-                    .foregroundColor(.theme.textSecondary)
-                    .padding(.top, 4)
+                    .foregroundStyle(Color.unbound.accent)
+                    .padding(.vertical, 6)
                 }
+                .buttonStyle(.plain)
 
                 // Per-exercise notes
-                TextField("Exercise notes…", text: Binding(
+                TextField("Notes…", text: Binding(
                     get: { viewModel.exerciseEntries[index].notes },
                     set: { viewModel.exerciseEntries[index].notes = $0 }
                 ), axis: .vertical)
-                    .font(.bodyText(13))
-                    .foregroundColor(.theme.textSecondary)
+                    .font(Font.unbound.bodyS)
+                    .foregroundStyle(Color.unbound.textSecondary)
+                    .tint(Color.unbound.accent)
                     .padding(10)
-                    .background(Color.theme.background)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .background(
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .fill(Color.unbound.bg)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
+                    )
             }
         }
         .padding(14)
-        .background(Color.theme.surface)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        .opacity(entry.skipped ? 0.6 : 1)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color.unbound.surface)
+        )
+        .opacity(entry.skipped ? 0.55 : 1)
         .onLongPressGesture(minimumDuration: 0.45) {
             presentSwap(at: index)
         }
     }
 
-    // MARK: - Session Footer
+    private func columnHeader(_ label: String, width: CGFloat?) -> some View {
+        Text(label)
+            .font(.system(size: 9, weight: .bold))
+            .tracking(1.4)
+            .foregroundStyle(Color.unbound.textTertiary)
+            .frame(width: width, alignment: width == nil ? .leading : .center)
+    }
+
+    private func calloutChip(text: String, color: Color, fill: Color) -> some View {
+        Text(text)
+            .font(.system(size: 10, weight: .bold))
+            .tracking(1.2)
+            .foregroundStyle(color)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(Capsule().fill(fill))
+            .overlay(Capsule().strokeBorder(color.opacity(0.25), lineWidth: 0.8))
+    }
+
+    // MARK: - Session footer
 
     private var sessionFooter: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Session Notes")
-                .font(.subheadline(15))
-                .foregroundColor(.theme.textPrimary)
+            Text("SESSION")
+                .font(Font.unbound.captionS.weight(.bold))
+                .tracking(1.8)
+                .foregroundStyle(Color.unbound.textTertiary)
 
             TextField("How did it go?", text: $viewModel.overallNotes, axis: .vertical)
-                .font(.bodyText(14))
-                .foregroundColor(.theme.textSecondary)
+                .font(Font.unbound.bodyS)
+                .foregroundStyle(Color.unbound.textPrimary)
+                .tint(Color.unbound.accent)
                 .padding(12)
-                .background(Color.theme.background)
-                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .background(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(Color.unbound.bg)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
+                )
                 .lineLimit(3...6)
 
             HStack {
-                Text("Session RPE")
-                    .font(.bodyMedium(14))
-                    .foregroundColor(.theme.textSecondary)
+                Text("SESSION RPE")
+                    .font(.system(size: 10, weight: .bold))
+                    .tracking(1.4)
+                    .foregroundStyle(Color.unbound.textTertiary)
 
                 Spacer()
 
@@ -302,68 +394,103 @@ struct WorkoutLoggingView: View {
                     }
                     Button("Clear") { viewModel.overallRPE = nil }
                 } label: {
-                    Text(viewModel.overallRPE.map { "RPE \($0)" } ?? "Set RPE")
-                        .font(.caption(13))
-                        .foregroundColor(viewModel.overallRPE != nil ? .theme.primary : .theme.textMuted)
-                        .padding(.horizontal, 12)
+                    Text(viewModel.overallRPE.map { "RPE \($0)" } ?? "—")
+                        .font(Font.unbound.monoS.weight(.semibold))
+                        .foregroundStyle(
+                            viewModel.overallRPE != nil
+                                ? Color.unbound.accent
+                                : Color.unbound.textTertiary
+                        )
+                        .padding(.horizontal, 10)
                         .padding(.vertical, 6)
-                        .background(Color.theme.surfaceLight)
-                        .clipShape(Capsule())
+                        .background(Capsule().fill(Color.unbound.bg))
+                        .overlay(
+                            Capsule().strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
+                        )
                 }
             }
 
             // Session summary
             HStack(spacing: 0) {
-                summaryCell(value: formattedElapsed, label: "Duration")
-                Divider().frame(height: 36).background(Color.theme.surfaceLight)
-                summaryCell(value: "\(viewModel.totalSets)", label: "Work Sets")
-                Divider().frame(height: 36).background(Color.theme.surfaceLight)
+                summaryCell(value: formattedElapsed, label: "DURATION")
+                Divider().frame(height: 36).background(Color.unbound.borderSubtle)
+                summaryCell(value: "\(viewModel.totalSets)", label: "WORK SETS")
+                Divider().frame(height: 36).background(Color.unbound.borderSubtle)
                 summaryCell(
                     value: "\(viewModel.exerciseEntries.filter { !$0.skipped }.count)",
-                    label: "Exercises"
+                    label: "EXERCISES"
                 )
             }
             .padding(.vertical, 12)
-            .background(Color.theme.background)
-            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .background(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(Color.unbound.bg)
+            )
         }
         .padding(14)
-        .background(Color.theme.surface)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color.unbound.surface)
+        )
     }
 
     private func summaryCell(value: String, label: String) -> some View {
         VStack(spacing: 3) {
             Text(value)
-                .font(.stat(18))
-                .foregroundColor(.theme.textPrimary)
+                .font(Font.unbound.monoL)
+                .foregroundStyle(Color.unbound.textPrimary)
+                .monospacedDigit()
             Text(label)
-                .font(.caption(11))
-                .foregroundColor(.theme.textSecondary)
+                .font(.system(size: 9, weight: .bold))
+                .tracking(1.4)
+                .foregroundStyle(Color.unbound.textTertiary)
         }
         .frame(maxWidth: .infinity)
     }
 
-    // MARK: - Bottom Bar
+    // MARK: - Bottom bar
 
     private var bottomBar: some View {
         VStack(spacing: 0) {
-            Divider().background(Color.theme.surfaceLight)
-            GradientButton(
-                title: "Complete Workout",
-                action: {
-                    Task {
-                        await viewModel.saveLog()
-                        if !viewModel.isSaving {
-                            dismiss()
-                        }
+            Rectangle()
+                .fill(Color.unbound.borderSubtle)
+                .frame(height: 0.5)
+
+            Button {
+                UnboundHaptics.medium()
+                Task {
+                    await viewModel.saveLog()
+                    if !viewModel.isSaving {
+                        dismiss()
                     }
-                },
-                isLoading: viewModel.isSaving
-            )
+                }
+            } label: {
+                HStack(spacing: 10) {
+                    if viewModel.isSaving {
+                        ProgressView().tint(Color.unbound.textPrimary)
+                    } else {
+                        Text("COMPLETE SESSION")
+                            .font(Font.unbound.bodyMStrong)
+                            .tracking(1.6)
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 13, weight: .bold))
+                    }
+                }
+                .foregroundStyle(Color.unbound.textPrimary)
+                .frame(maxWidth: .infinity)
+                .frame(height: 50)
+                .background(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .fill(Color.unbound.accent)
+                )
+                .shadow(color: Color.unbound.accent.opacity(0.45), radius: 14, y: 2)
+            }
+            .buttonStyle(.plain)
+            .disabled(viewModel.isSaving)
             .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+            .padding(.top, 12)
+            .padding(.bottom, 16)
         }
-        .background(Color.theme.background)
+        .background(Color.unbound.bg)
     }
 }

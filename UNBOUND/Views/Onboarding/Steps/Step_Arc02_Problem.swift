@@ -28,10 +28,10 @@ struct Step_Arc02_Problem: View {
                     .offset(y: silhouetteIn ? 0 : 20)
 
                     VStack(spacing: 18) {
-                        statBar(label: "STRENGTH", tier: "E", value: 0.18, delay: 0.00)
-                        statBar(label: "STAMINA", tier: "E", value: 0.22, delay: 0.08)
-                        statBar(label: "DISCIPLINE", tier: "E", value: 0.15, delay: 0.16)
-                        statBar(label: "CONFIDENCE", tier: "E", value: 0.24, delay: 0.24)
+                        statBar(label: "STRENGTH",  tier: "E", value: 0.18, delay: 0.00)
+                        statBar(label: "STAMINA",   tier: "E", value: 0.22, delay: 0.08)
+                        statBar(label: "TECHNIQUE", tier: "E", value: 0.15, delay: 0.16)
+                        statBar(label: "VITALITY",  tier: "E", value: 0.24, delay: 0.24)
                     }
                     .frame(maxWidth: .infinity)
                     .opacity(statsIn ? 1 : 0)

@@ -28,7 +28,7 @@ struct HomeTabView: View {
                 UnboundSkillTreeTabView()
             }
             .tabItem {
-                Image(systemName: "hexagon.fill")
+                Image(systemName: "tree.fill")
                 Text("Skills")
             }
             .tag(2)
@@ -43,7 +43,7 @@ struct HomeTabView: View {
             .tag(3)
 
             NavigationStack {
-                SettingsView(services: services)
+                ProfileView()
             }
             .tabItem {
                 Image(systemName: "person.crop.circle")

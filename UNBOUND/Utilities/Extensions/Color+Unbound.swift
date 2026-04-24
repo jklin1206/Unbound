@@ -39,6 +39,15 @@ struct UnboundColors {
     let accent = Color.unboundHex("7C3AED")           // cursed violet — primary interactive signal
     let impact = Color.unboundHex("A855F7")           // impact violet — rank-up, badge unlock
 
+    // Ember motif — "sparking embers to build the flame." Fiery red-orange,
+    // NOT violet. Reserved for ember particles, dramatic-moment atmosphere
+    // on the emotional-hype screens (Verdict, SkillTreePreview ending,
+    // pre-paywall ride). Do not use as a primary interactive accent —
+    // that's still violet. Per quiet-default / dramatic-moments rule.
+    let ember = Color.unboundHex("F05A28")            // core ember — fiery red-orange
+    let emberGlow = Color.unboundHex("FFB347")        // ember halo — warm amber
+    let emberDeep = Color.unboundHex("8A1F0A")        // dying ember — deep rust
+
     // Semantic
     let alert = Color.unboundHex("B91C1C")            // critical warnings only
     let success = Color.unboundHex("22C55E")          // sparingly — streak kept, rescan complete

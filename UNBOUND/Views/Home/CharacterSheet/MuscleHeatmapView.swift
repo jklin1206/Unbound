@@ -21,6 +21,7 @@ struct MuscleHeatmapView: View {
 
     @State private var selectedSide: BodyMapSide = .front
     @State private var pulsingGroups: Set<MuscleHeatGroup> = []
+    @State private var breathingScale: CGFloat = 1.0
 
     private static let bodyPaths = BodyPaths.shared
 
@@ -33,9 +34,23 @@ struct MuscleHeatmapView: View {
                 bodyFigure(side: .back).opacity(selectedSide == .back ? 1 : 0)
             }
             .aspectRatio(aspect, contentMode: .fit)
+            .scaleEffect(breathingScale)
             .animation(.easeInOut(duration: 0.25), value: selectedSide)
 
             sideSelector
+        }
+        .onAppear {
+            // Idle breathing: ~2.2% scale oscillation over 3s. Perceptible
+            // but not distracting — the figure reads as alive instead of
+            // static paint.
+            guard breathingScale == 1.0 else { return }
+            // Delay a beat so the onAppear animation doesn't race the
+            // parent view's initial layout.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                withAnimation(.easeInOut(duration: 3.0).repeatForever(autoreverses: true)) {
+                    breathingScale = 1.022
+                }
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: .rankAdvanced)) { note in
             guard let event = note.userInfo?["event"] as? RankAdvance else { return }
@@ -49,35 +64,56 @@ struct MuscleHeatmapView: View {
         let parts = Self.bodyPaths.parts(for: side)
         let viewBox = Self.bodyPaths.viewBox(for: side)
 
+        // Shared top-to-bottom depth composite used by every muscle + the
+        // decorative silhouette. Top gets a soft white highlight, bottom
+        // gets a shadow — gives the flat vector body a 3D-ish feel without
+        // needing per-muscle texture assets.
+        let highlight = LinearGradient(
+            colors: [Color.white.opacity(0.45), Color.white.opacity(0.10), .clear],
+            startPoint: .top,
+            endPoint: .center
+        )
+        let shadow = LinearGradient(
+            colors: [.clear, Color.black.opacity(0.25), Color.black.opacity(0.65)],
+            startPoint: .center,
+            endPoint: .bottom
+        )
+
         return ZStack {
-            // Decorative silhouette layer — head, hair, hands, etc. so the
-            // figure reads as a whole body even before any muscle is ranked.
+            // Decorative silhouette layer — head, hair, hands, feet, etc.
+            // Shaded with the same depth gradients so the silhouette reads
+            // dimensional instead of flat grey.
             ForEach(parts.filter { $0.isDecorative }) { part in
-                muscleShape(part: part, viewBox: viewBox)
-                    .fill(Color.unbound.textTertiary.opacity(0.22))
+                let shape = muscleShape(part: part, viewBox: viewBox)
+                shape
+                    .fill(Color.unbound.textSecondary.opacity(0.5))
+                    .overlay(shape.fill(highlight))
+                    .overlay(shape.fill(shadow))
                     .overlay(
-                        muscleShape(part: part, viewBox: viewBox)
-                            .stroke(Color.unbound.textTertiary.opacity(0.4), lineWidth: 0.9)
+                        shape.stroke(Color.unbound.textSecondary.opacity(0.7), lineWidth: 1.0)
                     )
             }
 
-            // Rank-tinted muscles on top.
+            // Rank-tinted muscles on top. Each muscle gets a rank tint fill
+            // + highlight + shadow + stroke + glow shadow for presence.
             ForEach(parts.filter { !$0.isDecorative }) { part in
                 if let group = part.heatGroup {
                     let rank = groupRanks[group] ?? .eMinus
                     let isPulsing = pulsingGroups.contains(group)
                     let tint = rank.regionTint
+                    let shape = muscleShape(part: part, viewBox: viewBox)
 
-                    muscleShape(part: part, viewBox: viewBox)
-                        .fill(tint.opacity(isPulsing ? 1.0 : 0.78))
+                    shape
+                        .fill(tint.opacity(isPulsing ? 1.0 : 0.82))
+                        .overlay(shape.fill(highlight))
+                        .overlay(shape.fill(shadow))
                         .overlay(
-                            muscleShape(part: part, viewBox: viewBox)
-                                .stroke(tint.opacity(0.95), lineWidth: isPulsing ? 1.6 : 1.0)
+                            shape.stroke(tint.opacity(0.95), lineWidth: isPulsing ? 1.6 : 1.0)
                         )
                         .shadow(color: tint.opacity(isPulsing ? 0.9 : 0.35),
                                 radius: isPulsing ? 14 : 3)
                         .scaleEffect(isPulsing ? 1.03 : 1.0)
-                        .contentShape(muscleShape(part: part, viewBox: viewBox))
+                        .contentShape(shape)
                         .onTapGesture {
                             UnboundHaptics.medium()
                             onGroupTapped(group)

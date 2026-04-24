@@ -186,8 +186,12 @@ final class OnboardingFlowViewModel {
     var gender: Gender = .unspecified
     var heightCm: Double = 175
     var weightKg: Double = 72
-    var useMetricHeight: Bool = false   // iOS default to imperial for US-first audience
-    var useMetricWeight: Bool = false
+    // Derived from the device's regional settings at init — US / Liberia /
+    // Myanmar get imperial defaults, everyone else gets metric. No HealthKit
+    // permission prompt, no personal data read; just the region the phone
+    // is already registered to. User can flip the toggle on screen.
+    var useMetricHeight: Bool = Locale.current.measurementSystem == .metric
+    var useMetricWeight: Bool = Locale.current.measurementSystem == .metric
     var experience: Experience? = nil
     var exerciseStyles: Set<ExerciseStyle> = []
     var currentFrequency: Frequency? = nil
@@ -216,6 +220,13 @@ final class OnboardingFlowViewModel {
     /// JPEG thumbnail (lower-res) of the front photo — used as the user's
     /// profile pic on the verdict screen.
     var profilePhoto: UIImage? { capturedPhotos[.front] }
+
+    /// On-device Vision-derived body-shape insights from the front scan
+    /// photo. Populated by `LocalBodyInsightsService` during the 6s
+    /// analyzing screen. `nil` if scan was skipped or Vision couldn't
+    /// detect a usable body pose — Verdict gracefully omits the scan
+    /// insight card in that case.
+    var scanInsights: BodyScanInsights? = nil
 
     /// Derived rank — computed post-scan. In Day 1.5 stub this is keyed off
     /// the user's chosen archetype + commitment. V1.1 swaps in real vision AI.

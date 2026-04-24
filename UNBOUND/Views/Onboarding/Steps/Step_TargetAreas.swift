@@ -21,7 +21,9 @@ struct Step_TargetAreas: View {
                 options: TargetArea.allCases,
                 selection: $flow.targetAreas,
                 title: { $0.displayName },
-                icon: { $0.icon }
+                icon: { $0.icon },
+                umbrella: .fullBody,
+                umbrellaSubtitle: "Train every angle — the full arc."
             )
             .padding(.top, 4)
         }

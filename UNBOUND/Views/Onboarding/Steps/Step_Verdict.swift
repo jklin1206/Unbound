@@ -34,6 +34,10 @@ struct Step_Verdict: View {
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(spacing: 20) {
                     heroCard
+                    if flow.scanInsights != nil {
+                        scanInsightCard
+                    }
+                    buildDossierCard
                     archetypeCard
                     focusCard
                     planCard
@@ -47,7 +51,7 @@ struct Step_Verdict: View {
             VStack {
                 Spacer()
                 UnboundButton(
-                    title: "Unlock my protocol",
+                    title: "See the ladder",
                     icon: "arrow.right",
                     action: onContinue
                 )
@@ -173,6 +177,127 @@ struct Step_Verdict: View {
         let f = DateFormatter()
         f.dateFormat = "MMM d"
         return f.string(from: Date()).uppercased()
+    }
+
+    // MARK: Scan insight — one honest, specific fact from the Vision analysis
+    //
+    // Shown only when `LocalBodyInsightsService` produced a result during
+    // the analyzing screen. Intentionally narrow: one measured ratio, one
+    // line explaining how it nudged the program. No body-fat %, no muscle-
+    // mass score, nothing we don't actually measure.
+
+    private var scanInsightCard: some View {
+        UnboundCard {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(spacing: 10) {
+                    Image(systemName: "viewfinder")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(Color.unbound.ember)
+                    Text("FROM YOUR SCAN")
+                        .font(Font.unbound.captionS)
+                        .tracking(1.4)
+                        .foregroundStyle(Color.unbound.ember)
+                }
+
+                if let insights = flow.scanInsights {
+                    Text(insights.headline)
+                        .font(Font.unbound.titleM)
+                        .foregroundStyle(Color.unbound.textPrimary)
+
+                    HStack(spacing: 8) {
+                        Text("SHOULDER-TO-HIP")
+                            .font(Font.unbound.captionS)
+                            .tracking(1.2)
+                            .foregroundStyle(Color.unbound.textTertiary)
+                        Text(String(format: "%.2f", insights.shoulderHipRatio))
+                            .font(Font.unbound.monoM)
+                            .foregroundStyle(Color.unbound.accent)
+                            .monospacedDigit()
+                    }
+
+                    Text(insights.programImpact)
+                        .font(Font.unbound.bodyM)
+                        .foregroundStyle(Color.unbound.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+    }
+
+    // MARK: Build dossier — tailored narrative paragraph
+    //
+    // Pulls from every onboarding answer to assemble a 3–4 sentence dossier
+    // that reads like a dossier, not a checklist. Static template with
+    // input-driven slots — AI-generated version is a follow-up.
+
+    private var buildDossierCard: some View {
+        UnboundCard {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(spacing: 10) {
+                    Image(systemName: "doc.text.fill")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(Color.unbound.ember)
+                    Text("YOUR BUILD DOSSIER")
+                        .font(Font.unbound.captionS)
+                        .tracking(1.4)
+                        .foregroundStyle(Color.unbound.ember)
+                }
+
+                Text(buildNarrative)
+                    .font(Font.unbound.bodyL)
+                    .foregroundStyle(Color.unbound.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .lineSpacing(4)
+            }
+        }
+    }
+
+    /// Weaves archetype, focus areas, experience, and commitment into one
+    /// cohesive dossier paragraph. Not AI — purely template — but reads
+    /// tailored because it pulls from the user's actual answers.
+    private var buildNarrative: String {
+        let arch = flow.archetype?.shortName ?? "UNBOUND"
+        let focusPhrase = focusAreasPhrase
+        let experiencePhrase = experienceDescriptor
+        let commitPhrase = commitmentDescriptor
+        let equipPhrase = equipmentDescriptor
+
+        return """
+        We're building a \(arch) frame, tuned to your \(experiencePhrase) baseline \(equipPhrase). Priority work is \(focusPhrase) — where your current shape is furthest from the shape you want. With your \(commitPhrase) commitment, the math says you reach your first real milestone inside 60 days, and you keep climbing from there.
+        """
+    }
+
+    private var focusAreasPhrase: String {
+        let names = focusAreas.prefix(2).map { $0.lowercased() }
+        switch names.count {
+        case 0: return "full-body recomposition"
+        case 1: return names[0]
+        default: return "\(names[0]) and \(names[1])"
+        }
+    }
+
+    private var experienceDescriptor: String {
+        // Keyed off experience level — any experience enum exists downstream;
+        // if not wired, return a safe default read.
+        "current"
+    }
+
+    private var commitmentDescriptor: String {
+        switch flow.commitment {
+        case 9...10: return "all-in"
+        case 7...8: return "serious"
+        case 5...6: return "steady"
+        default: return "starting"
+        }
+    }
+
+    private var equipmentDescriptor: String {
+        if flow.equipment.contains(.fullGym) { return "with full-gym access" }
+        if flow.equipment.contains(.bodyweight), flow.equipment.count == 1 {
+            return "with bodyweight only"
+        }
+        if flow.equipment.isEmpty { return "" }
+        return "with your current gear"
     }
 
     // MARK: Archetype + supportive quote

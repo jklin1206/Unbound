@@ -16,11 +16,11 @@ struct Step_ScanReview: View {
 
     var body: some View {
         OnboardingScaffold(
-            title: "Looks good?",
-            subtitle: "We'll read your body composition from this. Retake if you want a better angle.",
+            title: "Lock it in?",
+            subtitle: "Day zero. We'll read your frame and tune your focus areas — then you can rescan anytime to see it move.",
             progress: progress,
-            primaryTitle: "Analyze my body",
-            primaryIcon: "sparkles",
+            primaryTitle: "Lock in day zero",
+            primaryIcon: "flame.fill",
             primaryEnabled: flow.capturedPhotos[.front] != nil,
             hudStep: .scanReview,
             onBack: onBack,
