@@ -30,6 +30,9 @@ struct ProgramOverviewView: View {
     // History view state
     @State private var pastLogs: [WorkoutLog] = []
 
+    // Travel override (user hit the TRAVEL coach action)
+    @State private var activeTravelOverride: TravelOverride?
+
     // Routines view state
     @State private var selectedRoutine: RoutineDef?
 
@@ -67,6 +70,7 @@ struct ProgramOverviewView: View {
                 }
             } catch {}
             await refreshHistory()
+            await refreshTravelOverride()
         }
         .sheet(isPresented: $showPaywall) {
             PaywallPlaceholderView()
@@ -183,6 +187,11 @@ struct ProgramOverviewView: View {
                 programHeader(program)
                 weekStrip(program: program)
                 dayCard(program: program)
+                CoachActionsRow(
+                    program: program,
+                    todayDay: programDay(for: Date(), in: program)
+                )
+                .environmentObject(services)
                 if !services.entitlement.isEntitled {
                     subscriptionBanner
                 }
@@ -677,15 +686,74 @@ struct ProgramOverviewView: View {
         pastLogs = logs.filter { $0.completedAt != nil }
     }
 
+    @MainActor
+    private func refreshTravelOverride() async {
+        let userId = services.auth.currentUserId ?? "anonymous"
+        activeTravelOverride = await TravelOverrideStore.shared.activeOverride(for: userId)
+    }
+
     // MARK: - Helpers
 
     private func programDay(for date: Date, in program: TrainingProgram) -> ProgramDay? {
+        // Travel override wins whenever today falls in its window — the
+        // normal program rotation is suspended until the user is back.
+        if let override = activeTravelOverride, let tday = override.day(for: date) {
+            return travelProgramDay(from: tday, on: date)
+        }
         guard !program.days.isEmpty else { return nil }
         let daysSinceStart = Calendar.current.dateComponents(
             [.day], from: program.createdAt, to: date
         ).day ?? 0
         let idx = ((daysSinceStart % program.days.count) + program.days.count) % program.days.count
         return program.days[idx]
+    }
+
+    /// Synthesize a ProgramDay from a travel override day so the rest of
+    /// the UI renders it like any other scheduled workout.
+    private func travelProgramDay(from tday: TravelDay, on date: Date) -> ProgramDay {
+        let workout: Workout? = {
+            guard !tday.isRest else { return nil }
+            let exercises = tday.exercises.map { name in
+                Exercise(
+                    id: UUID().uuidString,
+                    name: name,
+                    muscleGroups: [],
+                    sets: 3,
+                    reps: "8-12",
+                    restSeconds: 60,
+                    rpe: nil,
+                    notes: nil,
+                    substitution: nil
+                )
+            }
+            return Workout(
+                name: tday.title,
+                targetMuscleGroups: [],
+                warmup: [],
+                mainExercises: exercises,
+                cooldown: [],
+                estimatedMinutes: parseMinutes(from: tday.duration),
+                notes: "Travel plan · \(activeTravelOverride?.summary ?? "")",
+                blockType: nil
+            )
+        }()
+        return ProgramDay(
+            id: "travel-\(Int(date.timeIntervalSince1970))",
+            dayNumber: 0,
+            label: tday.isRest ? "TRAVEL · REST" : "TRAVEL · \(tday.title)",
+            isRestDay: tday.isRest,
+            workout: workout,
+            nutritionOverride: nil,
+            recoveryActivities: []
+        )
+    }
+
+    /// Parse the LLM's duration string ("~30 MIN", "45 min", etc.) into
+    /// an integer minute count; falls back to 30 if parsing fails.
+    private func parseMinutes(from text: String) -> Int {
+        let digits = text.compactMap { $0.isNumber ? $0 : nil }
+        if let n = Int(String(digits)), n > 0 { return n }
+        return 30
     }
 
     private func cardTitle(for day: ProgramDay?) -> String {

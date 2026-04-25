@@ -73,6 +73,12 @@ struct UnboundHomeView: View {
     // Photo/Scan capture flow presentation
     @State private var captureMode: PhotoCaptureFlow.Mode?
 
+    // Coach note (daily AI insight, bounded to 1 call/user/day)
+    @State private var coachNote: CoachNote?
+
+    // Travel override (user hit the TRAVEL coach action)
+    @State private var activeTravelOverride: TravelOverride?
+
     // Level derivation: 250 XP per level. Simple, overrideable later.
     private let xpPerLevel: Int = 250
 
@@ -89,6 +95,9 @@ struct UnboundHomeView: View {
                     VStack(alignment: .leading, spacing: 20) {
                         topBar
                         playerCard
+                        if let note = coachNote {
+                            coachNoteCard(note: note)
+                        }
                         // Priority swap — on rest days / empty program, the
                         // Daily Quest takes the hero CTA slot above the
                         // session card.
@@ -817,6 +826,48 @@ struct UnboundHomeView: View {
     // MARK: - Stats grid
 
 
+    // MARK: - Coach note card
+    //
+    // One AI-generated insight per day. Surfaced on home in a compact
+    // card above Today's Mission. Generated once per calendar day via
+    // `CoachNotesService` — subsequent appearances hit the cache.
+
+    private func coachNoteCard(note: CoachNote) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(Color.unbound.accent.opacity(0.15))
+                Image(systemName: "sparkles")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(Color.unbound.accent)
+            }
+            .frame(width: 26, height: 26)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("COACH · TODAY")
+                    .font(Font.unbound.captionS.weight(.bold))
+                    .tracking(1.6)
+                    .foregroundStyle(Color.unbound.accent)
+                Text(note.text)
+                    .font(Font.unbound.bodyS)
+                    .foregroundStyle(Color.unbound.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .lineSpacing(2)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color.unbound.surface)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(Color.unbound.accent.opacity(0.25), lineWidth: 1)
+        )
+    }
+
     // MARK: - Last session recap (inline, no card)
 
     @ViewBuilder
@@ -929,6 +980,8 @@ struct UnboundHomeView: View {
         await refreshRanksAndStats()
         await refreshLastLog()
         await refreshWeeklyRhythm()
+        await refreshTravelOverride()
+        await refreshCoachNote()
 
         isLoading = false
         // Kick off ambient loops once the content is actually on screen —
@@ -955,6 +1008,18 @@ struct UnboundHomeView: View {
             computed[group] = .eMinus
         }
         heatmapRanks = computed
+    }
+
+    @MainActor
+    private func refreshTravelOverride() async {
+        let userId = services.auth.currentUserId ?? "anonymous"
+        activeTravelOverride = await TravelOverrideStore.shared.activeOverride(for: userId)
+    }
+
+    @MainActor
+    private func refreshCoachNote() async {
+        let userId = services.auth.currentUserId ?? "anonymous"
+        coachNote = await CoachNotesService.shared.todaysNote(userId: userId)
     }
 
     @MainActor
@@ -1047,6 +1112,10 @@ struct UnboundHomeView: View {
     }
 
     private var todayProgramDay: ProgramDay? {
+        // Travel override short-circuits the normal rotation.
+        if let override = activeTravelOverride, let tday = override.day(for: Date()) {
+            return synthesizeTravelDay(from: tday, override: override)
+        }
         guard let program else { return nil }
         guard !program.days.isEmpty else { return nil }
         let daysSinceStart = max(
@@ -1055,6 +1124,39 @@ struct UnboundHomeView: View {
         )
         let dayIndex = daysSinceStart % program.days.count
         return program.days[dayIndex]
+    }
+
+    private func synthesizeTravelDay(from tday: TravelDay, override: TravelOverride) -> ProgramDay {
+        let workout: Workout? = {
+            guard !tday.isRest else { return nil }
+            let exercises = tday.exercises.map { name in
+                Exercise(
+                    id: UUID().uuidString, name: name, muscleGroups: [],
+                    sets: 3, reps: "8-12", restSeconds: 60,
+                    rpe: nil, notes: nil, substitution: nil
+                )
+            }
+            let mins = Int(String(tday.duration.filter(\.isNumber))) ?? 30
+            return Workout(
+                name: tday.title,
+                targetMuscleGroups: [],
+                warmup: [],
+                mainExercises: exercises,
+                cooldown: [],
+                estimatedMinutes: mins,
+                notes: "Travel · \(override.summary)",
+                blockType: nil
+            )
+        }()
+        return ProgramDay(
+            id: "travel-home",
+            dayNumber: 0,
+            label: tday.isRest ? "TRAVEL · REST" : "TRAVEL · \(tday.title)",
+            isRestDay: tday.isRest,
+            workout: workout,
+            nutritionOverride: nil,
+            recoveryActivities: []
+        )
     }
 
     private var shouldShowCalibrationCard: Bool {

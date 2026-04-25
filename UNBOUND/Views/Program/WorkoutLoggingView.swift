@@ -16,6 +16,8 @@ struct WorkoutLoggingView: View {
     @State private var swapAlternatives: [CatalogExercise] = []
     @State private var swapPreferences: [ExercisePreference] = []
     @State private var showingCustomBuilder = false
+    @State private var shortModeApplied = false
+    @AppStorage("unbound.shortSessionDate") private var shortSessionDate: Double = 0
     private let servicesRef: ServiceContainer
 
     private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
@@ -36,6 +38,9 @@ struct WorkoutLoggingView: View {
 
             VStack(spacing: 0) {
                 topBar
+                if shortModeApplied {
+                    shortModeBanner
+                }
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(spacing: 14) {
                         ForEach(Array(viewModel.exerciseEntries.indices), id: \.self) { index in
@@ -60,6 +65,7 @@ struct WorkoutLoggingView: View {
             if let userId = servicesRef.auth.currentUserId {
                 swapPreferences = (try? await servicesRef.exercisePreference.fetchPreferences(userId: userId)) ?? []
             }
+            applyShortModeIfActive()
         }
         .onReceive(timer) { _ in
             elapsedSeconds += 1
@@ -159,6 +165,66 @@ struct WorkoutLoggingView: View {
             Capsule().strokeBorder(Color.unbound.accent.opacity(0.40), lineWidth: 1)
         )
         .shadow(color: Color.unbound.accent.opacity(0.25), radius: 5)
+    }
+
+    // MARK: - Short mode
+
+    /// Auto-skip exercises beyond the first 3 compounds when the user
+    /// activated short mode today. Idempotent via `shortModeApplied`.
+    private func applyShortModeIfActive() {
+        guard !shortModeApplied else { return }
+        let today = Calendar.current.startOfDay(for: Date()).timeIntervalSince1970
+        guard shortSessionDate > 0,
+              abs(shortSessionDate - today) < 60 else { return }
+
+        for index in viewModel.exerciseEntries.indices where index >= 3 {
+            if !viewModel.exerciseEntries[index].skipped {
+                viewModel.toggleSkip(at: index)
+            }
+        }
+        shortModeApplied = true
+    }
+
+    private var shortModeBanner: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "timer")
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(Color.unbound.coachCyan)
+            Text("SHORT MODE · COMPOUNDS ONLY")
+                .font(Font.unbound.captionS.weight(.bold))
+                .tracking(1.4)
+                .foregroundStyle(Color.unbound.coachCyan)
+            Spacer()
+            Button {
+                UnboundHaptics.soft()
+                disableShortMode()
+            } label: {
+                Text("UNDO")
+                    .font(Font.unbound.captionS.weight(.bold))
+                    .tracking(1.2)
+                    .foregroundStyle(Color.unbound.textTertiary)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .background(
+            Rectangle().fill(Color.unbound.coachCyan.opacity(0.12))
+        )
+        .overlay(
+            Rectangle().fill(Color.unbound.coachCyan.opacity(0.3)).frame(height: 0.5),
+            alignment: .bottom
+        )
+    }
+
+    private func disableShortMode() {
+        for index in viewModel.exerciseEntries.indices where index >= 3 {
+            if viewModel.exerciseEntries[index].skipped {
+                viewModel.toggleSkip(at: index)
+            }
+        }
+        shortModeApplied = false
+        shortSessionDate = 0
     }
 
     private var formattedElapsed: String {

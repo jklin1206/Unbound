@@ -34,22 +34,13 @@ struct HomeTabView: View {
             .tag(2)
 
             NavigationStack {
-                CoachTabView()
-            }
-            .tabItem {
-                Image(systemName: "bubble.left.and.bubble.right.fill")
-                Text("Coach")
-            }
-            .tag(3)
-
-            NavigationStack {
                 ProfileView()
             }
             .tabItem {
                 Image(systemName: "person.crop.circle")
                 Text("Profile")
             }
-            .tag(4)
+            .tag(3)
         }
         .tint(Color.unbound.accent)
         .rankUpCinematicOverlay()
