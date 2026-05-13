@@ -54,7 +54,7 @@ Nothing else can be designed correctly until this layer is locked.
 | 2 | Storage model | **Hybrid peak + current per attribute** (mirrors existing `LiftRank` pattern) |
 | 3 | Numeric scheme | **0–100 scalar internal**, tier label overlay via existing `SubRank`/`RankTitle` |
 | 4 | Training → attribute mapping | **Per-exercise tags** (catalog-authored contribution vectors) |
-| 5 | Decay model | **Gentle drift**, floor at 70% of peak after 30d zero contribution per axis |
+| 5 | Decay model | **Gentle drift, peak-independent.** 7-day grace, then linear interpolation toward floor over a 30-day window. Floor (70% of peak) reached exactly at 37d idle. Tempo identical regardless of starting level. |
 | 6 | Surface priority | **Profile primary** (full hex + readout), **Home preview** (chip), **Scan deep dive** (Δ panel) |
 | 7 | Rollout strategy | **Greenfield alongside, 4 phases** (1a → 1d) |
 | 8 | StatScore lifecycle | **Removed in Phase 1c/1d** (user confirmed "the existing doesn't do anything") |
@@ -155,10 +155,16 @@ Emits `AttributeRankUpEvent` whenever an axis crosses a `RankTitle` threshold du
 
 ### Per-session contribution
 
+**Ingest order matters.** Always project the profile forward to `session.finishedAt` (applying decay) *before* adding session gains. New sessions build on the already-decayed `current` value, not on stale pre-decay numbers from days ago.
+
 ```
 sessionIntensity(session) = session.intensity / 100        // existing field, normalize to ~0...1
 GAIN_CONSTANT = 4.0                                        // tuned so hard session moves dominant axis ~2–3 pts
 
+// 1. Roll forward (apply decay since lastContributionAt → session.finishedAt)
+profile = snapshot(asOf: session.finishedAt)
+
+// 2. Compute per-attribute deltas from session contents
 sessionEffortMass = Σ effortMass(entry) for entry in session.exercises
 
 for each exerciseEntry in session.exercises:
@@ -167,6 +173,7 @@ for each exerciseEntry in session.exercises:
     for (key, weight) in contribution.weights:
         delta[key] += sessionIntensity × exerciseEffort × weight × GAIN_CONSTANT
 
+// 3. Apply deltas on top of the decayed current values
 for each (key, delta) in deltas:
     profile.values[key].current = min(100, profile.values[key].current + delta)
     if profile.values[key].current > profile.values[key].peak:
@@ -181,18 +188,30 @@ for each (key, delta) in deltas:
 
 ### Drift math (on read, pure)
 
+Percentage-based interpolation toward the floor. Decay tempo is the **same for every user regardless of peak level** — a low-Power user and a high-Power user both reach 70%-of-peak after the same elapsed idle time.
+
 ```
+GRACE_DAYS = 7
+DECAY_WINDOW_DAYS = 30
+
 fn snapshot(asOf t: Date) -> AttributeProfile:
     for each (key, value) in profile.values:
-        daysIdle = max(0, daysBetween(value.lastContributionAt, t))
-        decayPerDay = max(0.5, value.peak * 0.01)
-        projected = value.current - decayPerDay * daysIdle
-        value.current = max(value.floor, projected)
+        floor = value.peak * 0.70
+        daysIdle = max(0.0, fractionalDaysBetween(value.lastContributionAt, t))
+        effectiveIdleDays = max(0.0, daysIdle - GRACE_DAYS)
+        decayProgress = min(1.0, effectiveIdleDays / DECAY_WINDOW_DAYS)
+        value.current = floor + (value.current - floor) * (1.0 - decayProgress)
 ```
 
+Properties this guarantees:
+
+- **No decay** during the first 7 idle days (`decayProgress == 0`).
+- **Smooth glide** toward floor over the next 30 days.
+- **Floor reached exactly** at 37 days idle (`decayProgress == 1.0`, `value.current == floor`).
+- **Peak-independent tempo** — low-level users don't decay faster than high-level users.
 - Drift is per-axis (leg day raises lower-body attributes while upper-body drifts).
-- Floor = `peak * 0.70` — never punish past this.
 - Pure on read. No timers, no Cloud Functions.
+- Uses fractional days (computed from seconds-elapsed / 86_400) so the curve is continuous across a single day, not step-wise.
 
 ### Initial state
 
@@ -287,10 +306,14 @@ Emission rule (in `AttributeService.ingest`):
 - 30-day fixture replay → expected dominant axis.
 
 **Drift math (Phase 1a)**
-- `snapshot(asOf: lastContributionAt)` returns identical values.
-- `snapshot(asOf: +30d)` with no contributions → all axes at floor.
-- `snapshot(asOf: +90d)` → never below floor.
-- Per-axis independence.
+- `snapshot(asOf: lastContributionAt)` returns identical values (`daysIdle == 0`).
+- `snapshot(asOf: +7d)` returns identical values (grace period, `decayProgress == 0`).
+- `snapshot(asOf: +22d)` (mid-window, 15 days into decay) → `current == floor + (preDecayCurrent − floor) × 0.50`.
+- `snapshot(asOf: +37d)` → `current == floor` exactly.
+- `snapshot(asOf: +90d)` → `current == floor`, clamped (never below).
+- Peak-independence: identical decay curve for `peak=20` and `peak=90` axes given the same idle interval.
+- Per-axis independence: a session contributing only to POW does not reset other axes' `lastContributionAt`.
+- Ingest order: a session at `t = lastContributionAt + 14d` decays first, then applies gains — assert `profile.current` after ingest equals `floor + (preDecayCurrent − floor) × (1 − (14−7)/30) + delta`.
 
 **UI snapshots (1b/1c/1d)**
 - `ProfileBuildCard`: empty / mixed (v5 example) / saturated.
@@ -301,7 +324,9 @@ Emission rule (in `AttributeService.ingest`):
 - Fresh user → onboarding (with + without seed survey selections) → first session → home shows non-zero hex.
 - Power-only week → POW dominant, build name "Power-leaning Hybrid."
 - Mixed week → "Balanced" if max−min < 15.
-- Skip 30 days → reopen → currents at floor, peaks unchanged.
+- Skip 7 days → reopen → currents identical to last close (grace period).
+- Skip 37 days → reopen → currents at floor (70% of peak) across all axes, peaks unchanged.
+- Train at day 14 of idle → gains land on partially-decayed current, not pre-decay value.
 
 ---
 
