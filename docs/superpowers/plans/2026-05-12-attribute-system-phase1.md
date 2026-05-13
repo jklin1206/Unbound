@@ -96,21 +96,21 @@ import XCTest
 @testable import UNBOUND
 
 final class AttributeKeyTests: XCTestCase {
-    func test_allCases_hasExactlySixAxes() {
+    func testAllCasesHasExactlySixAxes() {
         XCTAssertEqual(AttributeKey.allCases.count, 6)
     }
 
-    func test_shortCodes_areThreeLetterUppercase() {
+    func testShortCodesAreThreeLetterUppercase() {
         let expected = ["POW", "AGI", "CTL", "END", "MOB", "EXP"]
         XCTAssertEqual(AttributeKey.allCases.map(\.shortCode), expected)
     }
 
-    func test_displayNames_areTitleCased() {
+    func testDisplayNamesAreTitleCased() {
         let expected = ["Power", "Agility", "Control", "Endurance", "Mobility", "Explosiveness"]
         XCTAssertEqual(AttributeKey.allCases.map(\.displayName), expected)
     }
 
-    func test_rawValues_areLowercaseStable() {
+    func testRawValuesAreLowercaseStable() {
         XCTAssertEqual(AttributeKey.power.rawValue, "power")
         XCTAssertEqual(AttributeKey.explosiveness.rawValue, "explosiveness")
     }
@@ -194,25 +194,25 @@ import XCTest
 @testable import UNBOUND
 
 final class AttributeContributionTests: XCTestCase {
-    func test_sumWithinTolerance_returnsTrue_forValid() {
+    func testSumWithinToleranceReturnsTrueForValid() {
         let c = AttributeContribution(weights: [
             .power: 0.7, .endurance: 0.2, .control: 0.1
         ])
         XCTAssertTrue(c.sumIsValid)
     }
 
-    func test_sumWithinTolerance_returnsFalse_whenSumIsOff() {
+    func testSumWithinToleranceReturnsFalseWhenSumIsOff() {
         let c = AttributeContribution(weights: [.power: 0.5, .agility: 0.2])
         XCTAssertFalse(c.sumIsValid)
     }
 
-    func test_normalizedWeights_fillsMissingKeysWithZero() {
+    func testNormalizedWeightsFillsMissingKeysWithZero() {
         let c = AttributeContribution(weights: [.power: 1.0])
         XCTAssertEqual(c.weight(for: .power), 1.0)
         XCTAssertEqual(c.weight(for: .mobility), 0.0)
     }
 
-    func test_codable_roundTrips() throws {
+    func testCodableRoundTrips() throws {
         let original = AttributeContribution(weights: [.power: 0.6, .control: 0.4])
         let data = try JSONEncoder().encode(original)
         let decoded = try JSONDecoder().decode(AttributeContribution.self, from: data)
@@ -281,20 +281,20 @@ import XCTest
 final class AttributeValueTests: XCTestCase {
     private let t0 = Date(timeIntervalSince1970: 1_700_000_000)
 
-    func test_zero_isZeroValues() {
+    func testZeroIsZeroValues() {
         let v = AttributeValue.zero(at: t0)
         XCTAssertEqual(v.peak, 0)
         XCTAssertEqual(v.current, 0)
         XCTAssertEqual(v.lastContributionAt, t0)
     }
 
-    func test_floor_is70PercentOfPeak() {
+    func testFloorIs70PercentOfPeak() {
         var v = AttributeValue.zero(at: t0)
         v.peak = 80
         XCTAssertEqual(v.floor, 56.0, accuracy: 0.001)
     }
 
-    func test_subRank_reflectsCurrentNotPeak() {
+    func testSubRankReflectsCurrentNotPeak() {
         var v = AttributeValue.zero(at: t0)
         v.peak = 100; v.current = 0
         XCTAssertEqual(v.subRank, SubRank.eMinus)
@@ -302,7 +302,7 @@ final class AttributeValueTests: XCTestCase {
         XCTAssertEqual(v.subRank, SubRank.sPlus)
     }
 
-    func test_rankTitle_mapsThrough_RankTitleTable() {
+    func testRankTitleMapsThroughRankTitleTable() {
         var v = AttributeValue.zero(at: t0)
         v.peak = 100
         v.current = 50  // ordinal ~8 → cPlus → veteran (per existing SubRank.title table)
@@ -375,7 +375,7 @@ import XCTest
 final class AttributeProfileTests: XCTestCase {
     private let t0 = Date(timeIntervalSince1970: 1_700_000_000)
 
-    func test_empty_returnsProfileWithAllZeroAxes() {
+    func testEmptyReturnsProfileWithAllZeroAxes() {
         let p = AttributeProfile.empty(userId: "u1", at: t0)
         XCTAssertEqual(p.values.count, 6)
         for key in AttributeKey.allCases {
@@ -384,21 +384,21 @@ final class AttributeProfileTests: XCTestCase {
         }
     }
 
-    func test_dominant_isAxisWithHighestPeak() {
+    func testDominantIsAxisWithHighestPeak() {
         var p = AttributeProfile.empty(userId: "u1", at: t0)
         p.set(.power,    AttributeValue(peak: 80, current: 60, lastContributionAt: t0))
         p.set(.mobility, AttributeValue(peak: 40, current: 30, lastContributionAt: t0))
         XCTAssertEqual(p.dominant, .power)
     }
 
-    func test_weakest_isAxisWithLowestPeak() {
+    func testWeakestIsAxisWithLowestPeak() {
         var p = AttributeProfile.empty(userId: "u1", at: t0)
         p.set(.power,    AttributeValue(peak: 80, current: 60, lastContributionAt: t0))
         p.set(.mobility, AttributeValue(peak: 20, current: 14, lastContributionAt: t0))
         XCTAssertEqual(p.weakest, .mobility)
     }
 
-    func test_isBalanced_whenMaxMinusMinUnder15() {
+    func testIsBalancedWhenMaxMinusMinUnder15() {
         var p = AttributeProfile.empty(userId: "u1", at: t0)
         for key in AttributeKey.allCases {
             p.set(key, AttributeValue(peak: 50, current: 50, lastContributionAt: t0))
@@ -407,7 +407,7 @@ final class AttributeProfileTests: XCTestCase {
         XCTAssertTrue(p.isBalanced)  // 60 - 50 = 10 < 15
     }
 
-    func test_isBalanced_false_whenSpread15OrMore() {
+    func testIsBalancedFalseWhenSpread15OrMore() {
         var p = AttributeProfile.empty(userId: "u1", at: t0)
         for key in AttributeKey.allCases {
             p.set(key, AttributeValue(peak: 30, current: 30, lastContributionAt: t0))
@@ -416,7 +416,7 @@ final class AttributeProfileTests: XCTestCase {
         XCTAssertFalse(p.isBalanced)  // 50 - 30 = 20 ≥ 15
     }
 
-    func test_buildName_isBalanced_whenIsBalanced() {
+    func testBuildNameIsBalancedWhenIsBalanced() {
         var p = AttributeProfile.empty(userId: "u1", at: t0)
         for key in AttributeKey.allCases {
             p.set(key, AttributeValue(peak: 50, current: 50, lastContributionAt: t0))
@@ -424,7 +424,7 @@ final class AttributeProfileTests: XCTestCase {
         XCTAssertEqual(p.buildName, "Balanced")
     }
 
-    func test_buildName_isDominantLeaningHybrid_otherwise() {
+    func testBuildNameIsDominantLeaningHybridOtherwise() {
         var p = AttributeProfile.empty(userId: "u1", at: t0)
         p.set(.power, AttributeValue(peak: 70, current: 60, lastContributionAt: t0))
         p.set(.mobility, AttributeValue(peak: 20, current: 14, lastContributionAt: t0))
@@ -718,19 +718,19 @@ final class AttributeServiceDriftTests: XCTestCase {
         return p
     }
 
-    func test_noChange_atLastContributionAt() {
+    func testNoChangeAtLastContributionAt() {
         let p = makeProfile(peak: 80, current: 70, at: t0)
         let snap = AttributeDrift.project(p, to: t0)
         XCTAssertEqual(snap.value(for: .power).current, 70, accuracy: 0.001)
     }
 
-    func test_noChange_within7DayGrace() {
+    func testNoChangeWithin7DayGrace() {
         let p = makeProfile(peak: 80, current: 70, at: t0)
         let snap = AttributeDrift.project(p, to: t0.addingTimeInterval(7 * 86400))
         XCTAssertEqual(snap.value(for: .power).current, 70, accuracy: 0.001)
     }
 
-    func test_midWindow_at22DaysIdle_is50PercentTowardFloor() {
+    func testMidWindowAt22DaysIdleIs50PercentTowardFloor() {
         // 22d idle = 7d grace + 15d decay → decayProgress = 0.5
         // floor = 80 * 0.7 = 56; expected = 56 + (70 - 56) * 0.5 = 63
         let p = makeProfile(peak: 80, current: 70, at: t0)
@@ -738,19 +738,19 @@ final class AttributeServiceDriftTests: XCTestCase {
         XCTAssertEqual(snap.value(for: .power).current, 63, accuracy: 0.001)
     }
 
-    func test_exactFloor_at37DaysIdle() {
+    func testExactFloorAt37DaysIdle() {
         let p = makeProfile(peak: 80, current: 70, at: t0)
         let snap = AttributeDrift.project(p, to: t0.addingTimeInterval(37 * 86400))
         XCTAssertEqual(snap.value(for: .power).current, 56, accuracy: 0.001)  // 80 * 0.7
     }
 
-    func test_clampsAtFloor_past37Days() {
+    func testClampsAtFloorPast37Days() {
         let p = makeProfile(peak: 80, current: 70, at: t0)
         let snap = AttributeDrift.project(p, to: t0.addingTimeInterval(90 * 86400))
         XCTAssertEqual(snap.value(for: .power).current, 56, accuracy: 0.001)
     }
 
-    func test_peakIndependent_tempo_identicalCurveForLowAndHighPeaks() {
+    func testPeakIndependentTempoIdenticalCurveForLowAndHighPeaks() {
         let pLow  = makeProfile(peak: 20, current: 20, at: t0)
         let pHigh = makeProfile(peak: 90, current: 90, at: t0)
         let date = t0.addingTimeInterval(22 * 86400)  // mid-window
@@ -761,7 +761,7 @@ final class AttributeServiceDriftTests: XCTestCase {
         XCTAssertEqual(progressLow, progressHigh, accuracy: 0.001)
     }
 
-    func test_perAxisIndependence_unrelatedAxesDriftIndependently() {
+    func testPerAxisIndependenceUnrelatedAxesDriftIndependently() {
         var p = AttributeProfile.empty(userId: "u", at: t0)
         p.set(.power, AttributeValue(peak: 80, current: 70, lastContributionAt: t0))
         // Mobility contributed 14 days later (still within its own grace)
@@ -849,7 +849,7 @@ final class AttributeServiceIngestTests: XCTestCase {
         StubAttributeCatalog(byName: entries)
     }
 
-    func test_singleHeavySquatSession_movesPowerDominantly() {
+    func testSingleHeavySquatSessionMovesPowerDominantly() {
         let catalog = stubCatalog([
             "barbell_back_squat": AttributeContribution(weights: [.power: 0.7, .endurance: 0.2, .control: 0.1])
         ])
@@ -874,7 +874,7 @@ final class AttributeServiceIngestTests: XCTestCase {
         XCTAssertEqual(deltas[.mobility] ?? 0, 0)
     }
 
-    func test_emptySession_yieldsZeroDeltas() {
+    func testEmptySessionYieldsZeroDeltas() {
         let catalog = stubCatalog([:])
         let log = WorkoutLog(
             id: "w2", userId: "u", programId: "p", dayNumber: 1,
@@ -887,7 +887,7 @@ final class AttributeServiceIngestTests: XCTestCase {
         }
     }
 
-    func test_applyDeltas_liftsPeakWhenCurrentExceedsPeak() {
+    func testApplyDeltasLiftsPeakWhenCurrentExceedsPeak() {
         var p = AttributeProfile.empty(userId: "u", at: t0)
         let crossings = AttributeIngest.applyDeltas(&p, deltas: [.power: 25], at: t0)
         XCTAssertEqual(p.value(for: .power).current, 25, accuracy: 0.001)
@@ -895,7 +895,7 @@ final class AttributeServiceIngestTests: XCTestCase {
         XCTAssertTrue(crossings.isEmpty || crossings.first?.axis == .power)
     }
 
-    func test_applyDeltas_clampsCurrentAt100() {
+    func testApplyDeltasClampsCurrentAt100() {
         var p = AttributeProfile.empty(userId: "u", at: t0)
         p.set(.power, AttributeValue(peak: 95, current: 95, lastContributionAt: t0))
         _ = AttributeIngest.applyDeltas(&p, deltas: [.power: 50], at: t0)
@@ -903,7 +903,7 @@ final class AttributeServiceIngestTests: XCTestCase {
         XCTAssertEqual(p.value(for: .power).peak,    100, accuracy: 0.001)
     }
 
-    func test_applyDeltas_emitsTierEvent_onCrossingApprenticeToForged() {
+    func testApplyDeltasEmitsTierEventOnCrossingApprenticeToForged() {
         var p = AttributeProfile.empty(userId: "u", at: t0)
         // Apprentice = ordinal 4...5 → cMinus(6)/c(7) is Forged. Set current near boundary.
         // ordinal 5 (dPlus) = 5/17*100 ≈ 29.4 (Apprentice top). Push past to 36 (cMinus / Forged).
@@ -914,7 +914,7 @@ final class AttributeServiceIngestTests: XCTestCase {
         XCTAssertEqual(crossings.first?.level, .tier)
     }
 
-    func test_applyDeltas_emitsATierEvent_onCrossingHonedToVessel() {
+    func testApplyDeltasEmitsATierEventOnCrossingHonedToVessel() {
         var p = AttributeProfile.empty(userId: "u", at: t0)
         // Honed = ordinal 10...11 (b, bPlus); Vessel = ordinal 12...13 (aMinus, a).
         // Boundary: bPlus(11) ≈ 64.7, aMinus(12) ≈ 70.6.
@@ -923,7 +923,7 @@ final class AttributeServiceIngestTests: XCTestCase {
         XCTAssertEqual(crossings.first?.level, .aTier)
     }
 
-    func test_applyDeltas_emitsSubRankEvent_onIntraTierStep() {
+    func testApplyDeltasEmitsSubRankEventOnIntraTierStep() {
         var p = AttributeProfile.empty(userId: "u", at: t0)
         // E-(0) = 0; E(1) ≈ 5.9. Crossing 0 → 6 is a sub-rank step within Initiate.
         p.set(.power, AttributeValue(peak: 50, current: 0, lastContributionAt: t0))
@@ -1079,7 +1079,7 @@ import XCTest
 @testable import UNBOUND
 
 final class AttributeContributionCatalogTests: XCTestCase {
-    func test_everyExerciseHasAValidContribution() {
+    func testEveryExerciseHasAValidContribution() {
         let catalog = AttributeCatalog.shared
         for item in ExerciseLibrary.all {
             let c = catalog.contribution(forExerciseName: item.id)
@@ -1088,7 +1088,7 @@ final class AttributeContributionCatalogTests: XCTestCase {
         }
     }
 
-    func test_everyAttributeKeyAppearsInAtLeastOneVector() {
+    func testEveryAttributeKeyAppearsInAtLeastOneVector() {
         let catalog = AttributeCatalog.shared
         var represented: Set<AttributeKey> = []
         for item in ExerciseLibrary.all {
@@ -2353,12 +2353,12 @@ import SwiftUI
 final class ProfileBuildCardSnapshotTests: XCTestCase {
     private let t0 = Date(timeIntervalSince1970: 1_700_000_000)
 
-    func test_empty_profile_renders() {
+    func testEmptyProfileRenders() {
         let p = AttributeProfile.empty(userId: "u", at: t0)
         let _ = ProfileBuildCard(profile: p).body
     }
 
-    func test_mid_profile_renders() {
+    func testMidProfileRenders() {
         var p = AttributeProfile.empty(userId: "u", at: t0)
         p.set(.power,         AttributeValue(peak: 72, current: 72, lastContributionAt: t0))
         p.set(.agility,       AttributeValue(peak: 45, current: 45, lastContributionAt: t0))
@@ -2369,7 +2369,7 @@ final class ProfileBuildCardSnapshotTests: XCTestCase {
         let _ = ProfileBuildCard(profile: p).body
     }
 
-    func test_saturated_profile_renders() {
+    func testSaturatedProfileRenders() {
         var p = AttributeProfile.empty(userId: "u", at: t0)
         for key in AttributeKey.allCases {
             p.set(key, AttributeValue(peak: 95, current: 92, lastContributionAt: t0))
