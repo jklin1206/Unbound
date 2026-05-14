@@ -32,6 +32,7 @@ final class ServiceContainer: ObservableObject {
     let liftTier: LiftTierService
     let scanCheckpointStore: ScanCheckpointStore
     let scanCheckpointService: ScanCheckpointService
+    let trials: any TrialsServiceProtocol
 
     init() {
         self.logging = LoggingService.shared
@@ -64,6 +65,7 @@ final class ServiceContainer: ObservableObject {
         self.liftTier = LiftTierService.shared
         self.scanCheckpointStore = ScanCheckpointStore.shared
         self.scanCheckpointService = ScanCheckpointService.shared
+        self.trials = TrialsService.shared
     }
 
     init(
@@ -123,6 +125,7 @@ final class ServiceContainer: ObservableObject {
         self.liftTier = LiftTierService.shared
         self.scanCheckpointStore = ScanCheckpointStore.shared
         self.scanCheckpointService = ScanCheckpointService.shared
+        self.trials = TrialsService.shared
     }
 
     static var mock: ServiceContainer {
