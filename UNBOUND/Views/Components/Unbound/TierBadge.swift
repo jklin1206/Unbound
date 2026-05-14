@@ -13,19 +13,21 @@ struct TierBadge: View {
 
     var body: some View {
         let glowIntensity = max(0, Double(tier.rawValue - SkillTier.veteran.rawValue)) * 0.25
-        Text(tier.displayName.uppercased())
-            .font(.system(size: compact ? 9 : 11, weight: .heavy, design: .monospaced))
-            .tracking(1.5)
-            .foregroundStyle(textColor)
-            .padding(.horizontal, compact ? 6 : 8)
-            .padding(.vertical, compact ? 3 : 4)
-            .background(
-                Capsule().fill(backgroundColor)
-            )
-            .overlay(
-                Capsule().strokeBorder(strokeColor, lineWidth: 1)
-            )
-            .shadow(color: Color.unbound.accent.opacity(glowIntensity), radius: 6)
+        HStack(spacing: compact ? 4 : 6) {
+            Image(tier.assetName)
+                .resizable()
+                .scaledToFit()
+                .frame(width: compact ? 16 : 22, height: compact ? 16 : 22)
+            Text(tier.displayName.uppercased())
+                .font(.system(size: compact ? 9 : 11, weight: .heavy, design: .monospaced))
+                .tracking(1.5)
+                .foregroundStyle(textColor)
+        }
+        .padding(.horizontal, compact ? 6 : 8)
+        .padding(.vertical, compact ? 3 : 4)
+        .background(Capsule().fill(backgroundColor))
+        .overlay(Capsule().strokeBorder(strokeColor, lineWidth: 1))
+        .shadow(color: Color.unbound.accent.opacity(glowIntensity), radius: 6)
     }
 
     private var textColor: Color {

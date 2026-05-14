@@ -357,14 +357,14 @@ struct TierCinematicView: View {
         onDismiss()
     }
 
-    /// Maps a flagship SkillTier to its hero art asset name.
+    /// Maps a flagship SkillTier to its cinematic hero art asset name.
     /// SkillTier.rawValue is Int, so we use a switch rather than string interpolation.
     private func assetName(for tier: SkillTier) -> String {
         switch tier {
-        case .vessel:    return "rank_title_vessel"
-        case .unbound:   return "rank_title_unbound"
-        case .ascendant: return "rank_title_ascendant"
-        default:         return "rank_title_vessel" // fallback — gate ensures never reached
+        case .vessel:    return "cinematic_vessel"
+        case .unbound:   return "cinematic_unbound"
+        case .ascendant: return "cinematic_ascendant"
+        default:         return "cinematic_vessel" // fallback — gate ensures never reached
         }
     }
 }

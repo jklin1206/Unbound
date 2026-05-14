@@ -36,6 +36,21 @@ enum SkillTier: Int, Codable, CaseIterable, Sendable, Comparable {
     /// Lower tiers use the quiet bloom toast.
     var isFlagshipMoment: Bool { rawValue >= SkillTier.vessel.rawValue }
 
+    /// Asset name for the shield badge image in RankTitles/.
+    var assetName: String {
+        switch self {
+        case .initiate:   return "rank_title_initiate"
+        case .novice:     return "rank_title_novice"
+        case .apprentice: return "rank_title_apprentice"
+        case .forged:     return "rank_title_forged"
+        case .veteran:    return "rank_title_veteran"
+        case .honed:      return "rank_title_honed"
+        case .vessel:     return "rank_title_vessel"
+        case .unbound:    return "rank_title_unbound"
+        case .ascendant:  return "rank_title_ascendant"
+        }
+    }
+
     static func < (lhs: SkillTier, rhs: SkillTier) -> Bool {
         lhs.rawValue < rhs.rawValue
     }

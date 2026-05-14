@@ -21,6 +21,7 @@ struct ProfileBuildCard: View {
                     showLabels: true,
                     radius: 90
                 )
+                .padding(.vertical, 24)
                 Text(profile.buildName)
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(Color.unbound.textPrimary)
