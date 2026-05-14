@@ -4,7 +4,7 @@ import Foundation
 //
 // Granular muscle partition for the home character-sheet figure. Named
 // `BodyRegion` (not `MuscleGroup`) because a coarser `MuscleGroup` enum
-// already drives ExerciseCatalog tagging and Archetype priority groups.
+// already drives ExerciseCatalog tagging and BuildIdentity priority groups.
 // The two live in parallel: this one is purely a UI gauge.
 
 enum BodyRegion: String, Codable, CaseIterable, Sendable, Hashable, Identifiable {

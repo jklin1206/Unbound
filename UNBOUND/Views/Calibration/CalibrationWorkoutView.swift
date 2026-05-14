@@ -7,7 +7,6 @@ struct CalibrationWorkoutView: View {
     let onComplete: () -> Void
 
     @State private var entries: [CalibrationEntry] = []
-    @State private var archetype: Archetype = .vTaper
     @State private var equipment: Set<Equipment> = [.bodyweight]
     @State private var isSaving = false
     @State private var isLoading = true
@@ -113,7 +112,6 @@ struct CalibrationWorkoutView: View {
     private func bootstrap() async {
         let userId = services.auth.currentUserId ?? "anonymous"
         if let profile = try? await services.user.fetchProfile(userId: userId) {
-            archetype = profile.preferredArchetype ?? .vTaper
             equipment = Set(profile.equipment ?? [.bodyweight])
         }
         entries = buildEntries(userId: userId)
@@ -121,7 +119,7 @@ struct CalibrationWorkoutView: View {
     }
 
     private func buildEntries(userId: String) -> [CalibrationEntry] {
-        let useCalisthenic = archetype == .shredded || equipment == [.bodyweight]
+        let useCalisthenic = equipment == [.bodyweight]
         if useCalisthenic {
             return [
                 CalibrationEntry(userId: userId, exerciseKey: "pushup", name: "Pushup", kind: .reps),

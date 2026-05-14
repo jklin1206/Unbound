@@ -45,10 +45,6 @@ struct PhotoReviewView: View {
                         .padding(.horizontal, 20)
                     }
 
-                    // Archetype picker
-                    ArchetypePickerView(selectedArchetype: $viewModel.selectedArchetype)
-                        .padding(.horizontal, 20)
-
                     Spacer(minLength: 16)
 
                     // Analyze button

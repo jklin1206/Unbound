@@ -47,15 +47,14 @@ final class SupabaseWorkoutLogService: WorkoutLogServiceProtocol, @unchecked Sen
         )
 
         if let profile {
-            let archetype = profile.preferredArchetype ?? .vTaper
             let bw = profile.weightKg
-            await SkillProgressService.shared.recompute(after: log, for: archetype, userBodyweightKg: bw)
+            await SkillProgressService.shared.recompute(after: log, userBodyweightKg: bw)
 
             if let bw, bw > 0 {
                 await RankService.shared.evaluate(log: log, bodyweightKg: bw)
             }
 
-            _ = await SkinService.shared.evaluateUnlocks(userId: log.userId, archetype: archetype)
+            _ = await SkinService.shared.evaluateUnlocks(userId: log.userId)
             await SessionXPService.shared.recordSession(userId: log.userId, at: log.startedAt)
             _ = await BadgeService.shared.evaluate(trigger: .sessionLogged(log))
         }

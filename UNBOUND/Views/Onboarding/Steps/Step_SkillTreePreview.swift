@@ -23,7 +23,7 @@ struct Step_SkillTreePreview: View {
 
     var body: some View {
         // TODO(Phase 17): derive tree from seededAttributes BuildIdentity
-        let tree = SkillTree.tree(for: .vTaper)
+        let tree = SkillTree.universal
 
         OnboardingScaffold(
             title: "You won't stay at E.",

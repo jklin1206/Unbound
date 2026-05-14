@@ -117,7 +117,6 @@ final class SupabaseUserService: UserServiceProtocol, @unchecked Sendable {
         "displayHandle":         "display_handle",
         "displayName":           "display_name",
         "currentProgramId":      "current_program_id",
-        "preferredArchetype":    "preferred_archetype",
         "heightCm":              "height_cm",
         "weightKg":              "weight_kg",
         "biologicalSex":         "biological_sex",

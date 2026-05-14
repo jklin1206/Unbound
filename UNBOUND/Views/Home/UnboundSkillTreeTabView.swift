@@ -2,7 +2,7 @@ import SwiftUI
 
 // MARK: - UnboundSkillTreeTabView
 //
-// Full skill tree tab. Renders the user's archetype tree with live node
+// Full skill tree tab. Renders the universal skill tree with live node
 // state from SkillProgressService. Pinch-zoom / scroll navigation.
 
 struct UnboundSkillTreeTabView: View {
@@ -42,10 +42,7 @@ struct UnboundSkillTreeTabView: View {
             let userId = services.auth.currentUserId ?? "anonymous"
             profile = try? await services.user.fetchProfile(userId: userId)
             await SkillProgressService.shared.load(userId: userId)
-            await rankVM.load(
-                userId: userId,
-                archetype: profile?.preferredArchetype ?? .vTaper
-            )
+            await rankVM.load(userId: userId)
         }
         .fullScreenCover(item: $selectedNode) { node in
             SkillDetailView(
@@ -54,20 +51,18 @@ struct UnboundSkillTreeTabView: View {
                 nodeStates: liveStatesForFullGraph()
             )
         }
-        .nodeUnlockOverlay(archetype: profile?.preferredArchetype ?? .vTaper)
+        .nodeUnlockOverlay()
         .skinUnlockToast()
-        .task(id: profile?.preferredArchetype) {
-            guard let archetype = profile?.preferredArchetype else { return }
+        .task {
             let userId = services.auth.currentUserId ?? "anonymous"
-            _ = await skinService.evaluateUnlocks(userId: userId, archetype: archetype)
+            _ = await skinService.evaluateUnlocks(userId: userId)
         }
     }
 
-    // MARK: Archetype hero — aggregate rank + identity
+    // MARK: Build-identity hero — aggregate rank
 
     private var archetypeHero: some View {
-        let archetype = profile?.preferredArchetype ?? .vTaper
-        let rank = rankVM.archetypeRank
+        let rank = rankVM.aggregateRank
         return ZStack(alignment: .topTrailing) {
             HStack(alignment: .center, spacing: 16) {
                 VStack(alignment: .leading, spacing: 10) {
@@ -76,17 +71,12 @@ struct UnboundSkillTreeTabView: View {
                         .tracking(2.0)
                         .foregroundStyle(Color.unbound.textTertiary)
 
-                    Text(archetype.displayName)
+                    Text("Your Build")
                         .font(Font.unbound.titleL)
                         .foregroundStyle(Color.unbound.textPrimary)
                         .tracking(1.2)
 
-                    Text(archetype.characterTagline)
-                        .font(Font.unbound.monoS)
-                        .tracking(1.0)
-                        .foregroundStyle(Color.unbound.textTertiary)
-
-                    Text("Your arc rank — aggregate of \(archetype.emphasisLifts.count) emphasis lifts")
+                    Text("Aggregate rank across emphasis lifts")
                         .font(Font.unbound.captionS)
                         .foregroundStyle(Color.unbound.textSecondary)
                         .lineLimit(2)
@@ -291,39 +281,13 @@ struct UnboundSkillTreeTabView: View {
         .buttonStyle(.plain)
     }
 
-    // Old header content kept commented for reference — removed in Chunk 4.
-    private var oldHeader: some View {
-        HStack(alignment: .center, spacing: 14) {
-            Image(systemName: "hexagon.fill")
-                .font(.system(size: 22, weight: .semibold))
-                .foregroundStyle(Color.unbound.accent)
-            VStack(alignment: .leading, spacing: 2) {
-                Text("PATH TO")
-                    .font(Font.unbound.captionS)
-                    .tracking(1.4)
-                    .foregroundStyle(Color.unbound.textTertiary)
-                Text(activeTree.displayName)
-                    .font(Font.unbound.titleM)
-                    .foregroundStyle(Color.unbound.textPrimary)
-                    .tracking(0.5)
-            }
-            Spacer()
-        }
-    }
-
-    private var activeTree: SkillTree {
-        SkillTree.tree(for: profile?.preferredArchetype ?? .vTaper)
-    }
-
-    /// Live state from SkillProgressService, with spawn-point nodes
-    /// seeded to .attempting if nothing has been recorded yet. Operates
-    /// over the full SkillGraph (not a filtered subset).
+    /// Live state from SkillProgressService, with all nodes defaulting to
+    /// .locked when no state has been recorded yet. Operates over the full
+    /// SkillGraph (universal — same tree for everyone).
     private func liveStatesForFullGraph() -> [String: NodeState] {
         var states = skillProgress.nodeStates
-        let archetype = profile?.preferredArchetype ?? .vTaper
-        let spawnIds = Set(ArchetypeSpawnPoints.nodeIds(for: archetype))
         for node in SkillGraph.shared.nodes where states[node.id] == nil {
-            states[node.id] = spawnIds.contains(node.id) ? .attempting : .locked
+            states[node.id] = .locked
         }
         return states
     }

@@ -77,7 +77,7 @@ final class ScanContextBuilder {
             bodyweightKg: profile?.weightKg,
             age: profile?.age,
             biologicalSex: profile?.biologicalSex?.rawValue,
-            archetype: profile?.preferredArchetype?.rawValue ?? "v-taper",
+            archetype: "athlete",
             sessionCount: sessionCount,
             setsByMuscleGroup: volume,
             stalledExercises: stalledNames,

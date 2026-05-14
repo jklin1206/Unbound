@@ -110,7 +110,7 @@ final class PTContextBuilder {
     private func renderProfile(_ profile: UserProfile?, full: Bool) -> String {
         guard let p = profile else { return "## Profile\n- (unknown)\n" }
         var md = "## Profile\n"
-        md += "- Archetype: \(p.preferredArchetype?.rawValue ?? "unset")\n"
+        // Build identity determined by AttributeService, not a legacy archetype field.
         if let f = p.targetFrequency { md += "- Target frequency: \(f.rawValue)\n" }
         if let e = p.experience { md += "- Experience: \(e.rawValue)\n" }
         if let w = p.weightKg { md += "- Bodyweight: \(formatWeight(w))kg\n" }

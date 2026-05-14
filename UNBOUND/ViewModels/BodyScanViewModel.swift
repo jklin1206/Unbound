@@ -4,7 +4,6 @@ import SwiftUI
 final class BodyScanViewModel: ObservableObject {
     @Published var currentAngle: ScanAngle = .front
     @Published var capturedPhotos: [ScanAngle: UIImage] = [:]
-    @Published var selectedArchetype: Archetype = .vTaper
     @Published var scanState: LoadingState<ScanSession> = .idle
     @Published var analysisState: LoadingState<BodyAnalysis> = .idle
     @Published var programState: LoadingState<TrainingProgram> = .idle
@@ -65,7 +64,6 @@ final class BodyScanViewModel: ObservableObject {
             id: scanId,
             userId: userId,
             createdAt: Date(),
-            targetArchetype: selectedArchetype,
             photos: [],
             analysisId: nil,
             programId: nil,
@@ -94,14 +92,13 @@ final class BodyScanViewModel: ObservableObject {
             analysisProgress = .buildingReport
 
             try? await services.user.updateProfile(userId: userId, fields: [
-                "totalScans": (profile.totalScans + 1),
-                "preferredArchetype": selectedArchetype.rawValue
+                "totalScans": (profile.totalScans + 1)
             ])
 
             analysisProgress = .complete
             HapticManager.notification(.success)
             analysisState = .loaded(analysis)
-            services.analytics.track(.scanAnalysisCompleted(score: analysis.overallScore, archetype: selectedArchetype))
+            services.analytics.track(.scanAnalysisCompleted(score: analysis.overallScore))
 
         } catch let error as AppError {
             analysisProgress = .failed

@@ -62,7 +62,6 @@ enum LocalToSupabaseMigration {
             onboardingCompleted: legacy.onboardingCompleted,
             totalScans: legacy.totalScans,
             currentProgramId: legacy.currentProgramId,
-            preferredArchetype: legacy.preferredArchetype,
             heightCm: legacy.heightCm,
             weightKg: legacy.weightKg,
             age: legacy.age,

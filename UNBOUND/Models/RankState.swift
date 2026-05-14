@@ -38,25 +38,3 @@ struct LiftRank: Codable, Identifiable, Sendable, Hashable {
         self.lastActivityAt = lastActivityAt
     }
 }
-
-// MARK: - Archetype emphasis lifts
-//
-// Aggregate archetype rank = rounded average of sub-rank ordinals across
-// these emphasis lifts. Missing lifts default to `.eMinus`.
-
-extension Archetype {
-    /// Lifts used to compute the archetype aggregate rank. Canonical
-    /// exerciseKeys — matched case-insensitive in RankService.
-    var emphasisLifts: [String] {
-        switch self {
-        case .heavyDuty:
-            return ["back squat", "deadlift", "bench press", "overhead press"]
-        case .leanCut:
-            return ["pullup", "pushup", "dip"]
-        case .vTaper:
-            return ["overhead press", "weighted pullup", "bench press"]
-        case .shredded:
-            return ["pullup", "dip", "l-sit"]
-        }
-    }
-}

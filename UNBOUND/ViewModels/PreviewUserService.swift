@@ -15,7 +15,6 @@ final class PreviewUserService: UserServiceProtocol, @unchecked Sendable {
             onboardingCompleted: false,
             totalScans: 0,
             currentProgramId: nil,
-            preferredArchetype: nil,
             heightCm: nil,
             weightKg: nil,
             age: nil,

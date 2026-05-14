@@ -93,8 +93,7 @@ struct ProfileView: View {
             profile = nil
         }
 
-        let archetype = profile?.preferredArchetype ?? .vTaper
-        aggregateRank = await services.rank.archetypeRank(userId: userId, archetype: archetype)
+        aggregateRank = await services.rank.aggregateRank(userId: userId)
         attributeProfile = services.attribute.profile(userId: userId)
 
         liftRanks = await services.rank.fetchAll(userId: userId)
@@ -143,7 +142,6 @@ struct ProfileView: View {
         let level = (gains / xpPerLevel) + 1
         let levelProgress = Double(gains % xpPerLevel) / Double(xpPerLevel)
         let currentXP = gains % xpPerLevel
-        let archetype = profile?.preferredArchetype
         let initial = avatarInitial
         let scanCount = max(profile?.totalScans ?? 0, scanPhotoCount)
         let rankColor = aggregateRank.regionTint
@@ -187,7 +185,7 @@ struct ProfileView: View {
                         .foregroundStyle(Color.unbound.textPrimary)
                         .lineLimit(1)
                     HStack(spacing: 7) {
-                        profilePill(archetype?.displayName.uppercased() ?? "UNBOUND")
+                        profilePill("UNBOUND")
                         profilePill("LV \(level)")
                     }
                     VStack(alignment: .leading, spacing: 5) {
@@ -266,18 +264,12 @@ struct ProfileView: View {
 
     private var displayName: String {
         if let name = profile?.displayName, !name.isEmpty { return name }
-        if let archetype = profile?.preferredArchetype {
-            return archetype.shortName.uppercased()
-        }
         return "UNBOUND"
     }
 
     private var avatarInitial: String {
         if let name = profile?.displayName, let first = name.first {
             return String(first).uppercased()
-        }
-        if let archetype = profile?.preferredArchetype {
-            return String(archetype.shortName.prefix(1)).uppercased()
         }
         return "U"
     }

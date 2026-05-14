@@ -72,19 +72,16 @@ struct CalibrationContainerView: View {
         guard vm == nil else { return }
         let userId = services.auth.currentUserId ?? "anonymous"
 
-        var archetype: Archetype = .vTaper
         var equipment: Set<Equipment> = [.bodyweight]
         var experience: Experience? = nil
 
         if let profile = try? await services.user.fetchProfile(userId: userId) {
-            archetype = profile.preferredArchetype ?? .vTaper
             equipment = Set(profile.equipment ?? [.bodyweight])
             experience = profile.experience
         }
 
         vm = CalibrationViewModel(
             userId: userId,
-            archetype: archetype,
             equipment: equipment,
             experience: experience,
             useMetricWeight: false,

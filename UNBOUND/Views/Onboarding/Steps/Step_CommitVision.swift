@@ -147,13 +147,13 @@ struct Step_CommitVision: View {
 
     private var firstNodeTitle: String {
         // TODO(Phase 17): derive from seededAttributes BuildIdentity
-        let tree = SkillTree.tree(for: .vTaper)
+        let tree = SkillTree.universal
         return tree.nodes.first?.title ?? "Your first unlock"
     }
 
     private var midNodeTitle: String {
         // TODO(Phase 17): derive from seededAttributes BuildIdentity
-        let tree = SkillTree.tree(for: .vTaper)
+        let tree = SkillTree.universal
         let mid = tree.nodes.first(where: { $0.position.row == 3 })
         return mid?.title ?? tree.nodes[safe: 3]?.title ?? "A node nobody else sees"
     }

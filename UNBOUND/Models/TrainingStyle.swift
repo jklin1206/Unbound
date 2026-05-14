@@ -18,16 +18,6 @@ enum TrainingStyle: String, Codable, CaseIterable, Identifiable {
         }
     }
 
-    /// Archetype-driven default training style. The user can override in Settings.
-    /// - shredded  (Saitama)  → bodyweight (calisthenic-coded)
-    /// - leanCut   (Itadori)  → hybrid (athletic fighter mix)
-    /// - vTaper    (Toji)     → freeWeights (compound lifts for wide frame)
-    /// - heavyDuty (Todo)     → freeWeights (heroic mass)
-    static func `default`(for archetype: Archetype) -> TrainingStyle {
-        switch archetype {
-        case .shredded: return .bodyweight
-        case .leanCut: return .hybrid
-        case .vTaper, .heavyDuty: return .freeWeights
-        }
-    }
+    /// Default training style for users without equipment preference.
+    static var `default`: TrainingStyle { .hybrid }
 }

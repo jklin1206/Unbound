@@ -14,10 +14,10 @@ protocol SkinServiceProtocol: AnyObject {
     /// Switch the active skin. Throws if not unlocked.
     func setCurrent(_ skin: SkillTreeSkin) throws
 
-    /// Recompute unlock state from the user's peak archetype rank.
+    /// Recompute unlock state from the user's peak lift rank.
     /// Returns the skins that flipped from locked → unlocked this call.
     @discardableResult
-    func evaluateUnlocks(userId: String, archetype: Archetype) async -> [SkillTreeSkin]
+    func evaluateUnlocks(userId: String) async -> [SkillTreeSkin]
 }
 
 // MARK: - SkinServiceError
@@ -68,12 +68,10 @@ final class SkinService: SkinServiceProtocol, ObservableObject {
     }
 
     @discardableResult
-    func evaluateUnlocks(userId: String, archetype: Archetype) async -> [SkillTreeSkin] {
+    func evaluateUnlocks(userId: String) async -> [SkillTreeSkin] {
         let ranks = await RankService.shared.fetchAll(userId: userId)
-        let peakOrdinal = ranks
-            .filter { archetype.emphasisLifts.contains($0.exerciseKey) }
-            .map(\.peakRank.ordinal)
-            .max() ?? 0
+        // Use the user's peak rank across all tracked lifts.
+        let peakOrdinal = ranks.map(\.peakRank.ordinal).max() ?? 0
         let peak = SubRank.allCases.first(where: { $0.ordinal == peakOrdinal }) ?? .eMinus
 
         var newlyUnlocked: [SkillTreeSkin] = []
@@ -113,7 +111,7 @@ final class MockSkinService: SkinServiceProtocol, ObservableObject {
         currentSkin = skin
     }
 
-    func evaluateUnlocks(userId: String, archetype: Archetype) async -> [SkillTreeSkin] {
+    func evaluateUnlocks(userId: String) async -> [SkillTreeSkin] {
         []
     }
 }

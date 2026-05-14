@@ -5,7 +5,7 @@ import SwiftUI
 //
 // Backs the augmented skill-tree tab: loads all LiftRanks for the current
 // user, groups them by ExerciseCatalog movement pattern, and exposes the
-// archetype aggregate rank.
+// build-identity aggregate rank.
 
 @MainActor
 @Observable
@@ -17,7 +17,7 @@ final class SkillTreeViewModel {
         let aggregate: SubRank
     }
 
-    var archetypeRank: SubRank = .eMinus
+    var aggregateRank: SubRank = .eMinus
     var sections: [PatternSection] = []
     var loading: Bool = false
 
@@ -27,12 +27,12 @@ final class SkillTreeViewModel {
         self.rankService = rankService ?? RankService.shared
     }
 
-    func load(userId: String, archetype: Archetype) async {
+    func load(userId: String) async {
         loading = true
         defer { loading = false }
 
         let ranks = await rankService.fetchAll(userId: userId)
-        archetypeRank = await rankService.archetypeRank(userId: userId, archetype: archetype)
+        aggregateRank = await rankService.aggregateRank(userId: userId)
         sections = buildSections(ranks: ranks)
     }
 

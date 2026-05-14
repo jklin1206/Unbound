@@ -14,12 +14,11 @@ protocol RankServiceProtocol: AnyObject {
     /// ProgressionEngine after normal progression ingest.
     func evaluate(log: WorkoutLog, bodyweightKg: Double) async
 
-    /// Aggregate archetype rank = rounded mean of sub-rank ordinals across
-    /// the archetype's emphasis lifts. Unset lifts contribute eMinus.
-    func archetypeRank(userId: String, archetype: Archetype) async -> SubRank
-
-    /// Aggregate sub-rank across the user's BuildIdentity primary axis.
-    /// Replaces archetypeRank in Phase 2c. Added in Phase 6 (additive).
+    /// Aggregate sub-rank across the user's BuildIdentity primary axis (or
+    /// top-3 axes for balanced/hybridAthlete). Reads the user's
+    /// AttributeProfile via ServiceContainer.shared.attribute, derives
+    /// BuildIdentity, then averages currentRank.ordinal across the relevant
+    /// AttributeKey.emphasisLifts. Replaces archetypeRank in Phase 2c.
     func aggregateRank(userId: String) async -> SubRank
 
     /// All persisted lift ranks for the user, newest first.

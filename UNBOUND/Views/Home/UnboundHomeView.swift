@@ -1344,9 +1344,6 @@ struct UnboundHomeView: View {
         if let name = profile?.displayName, let first = name.first {
             return String(first).uppercased()
         }
-        if let archetype = profile?.preferredArchetype {
-            return String(archetype.shortName.prefix(1)).uppercased()
-        }
         return "U"
     }
 
@@ -2026,7 +2023,7 @@ struct UnboundHomeView: View {
             profile = UserProfile(
                 id: userId, email: nil, displayName: nil,
                 createdAt: Date(), onboardingCompleted: true, totalScans: 0,
-                currentProgramId: nil, preferredArchetype: .vTaper,
+                currentProgramId: nil,
                 heightCm: nil, weightKg: nil, age: nil, biologicalSex: nil
             )
         }
@@ -2052,8 +2049,7 @@ struct UnboundHomeView: View {
     @MainActor
     private func refreshRanksAndStats() async {
         let userId = services.auth.currentUserId ?? "anonymous"
-        let archetype = profile?.preferredArchetype ?? .vTaper
-        aggregateRank = await services.rank.archetypeRank(userId: userId, archetype: archetype)
+        aggregateRank = await services.rank.aggregateRank(userId: userId)
 
         liftRanks = await services.rank.fetchAll(userId: userId)
         regionRanks = MuscleRankCalculator.computeAll(liftRanks: liftRanks)
@@ -2164,7 +2160,7 @@ struct UnboundHomeView: View {
     // MARK: - Derived
 
     private var archetypeName: String {
-        profile?.preferredArchetype?.shortName ?? "UNBOUND"
+        "UNBOUND"
     }
 
     private var todayProgramDay: ProgramDay? {

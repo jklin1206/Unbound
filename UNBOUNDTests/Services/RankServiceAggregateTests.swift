@@ -6,7 +6,7 @@ import XCTest
 final class RankServiceAggregateTests: XCTestCase {
     func testMockAggregateRankReturnsOverride() async {
         let svc = MockRankService()
-        svc.archetypeRankOverride = .b
+        svc.aggregateRankOverride = .b
         let rank = await svc.aggregateRank(userId: "u")
         XCTAssertEqual(rank, .b)
     }
