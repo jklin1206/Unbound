@@ -102,7 +102,7 @@ struct UnboundHomeView: View {
                         dailyQuestBand
                         contextualStack
                         HomeBuildChipCard(profile: attributeProfile) {
-                            showingExpandedMap = true
+                            NotificationCenter.default.post(name: .requestNavigateToProfileTab, object: nil)
                         }
                         lastSessionRecap
                         Spacer().frame(height: 28)

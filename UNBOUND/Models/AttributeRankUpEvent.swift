@@ -22,4 +22,5 @@ struct AttributeRankUpEvent: Equatable, Sendable {
 
 extension Notification.Name {
     static let attributeRankUp = Notification.Name("unbound.attributeRankUp")
+    static let requestNavigateToProfileTab = Notification.Name("unbound.requestNavigateToProfileTab")
 }
