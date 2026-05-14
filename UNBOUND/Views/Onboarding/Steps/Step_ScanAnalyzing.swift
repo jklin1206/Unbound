@@ -159,6 +159,9 @@ struct Step_ScanAnalyzing: View {
     /// so by the time the sweep finishes, `flow.scanInsights` is ready
     /// for the Verdict screen. Silently no-ops when there's no photo
     /// (dev-skip path) or when Vision can't find a usable body pose.
+    ///
+    /// Also commits the first ScanCheckpoint so onboarding produces a
+    /// persistent scan record (the same one the recurring scan flow produces).
     private func runLocalBodyInsights() {
         guard flow.scanInsights == nil else { return }
         guard let photo = flow.capturedPhotos[.front] else { return }
@@ -167,6 +170,16 @@ struct Step_ScanAnalyzing: View {
             let insights = await insightsService.analyze(image: photo)
             guard !Task.isCancelled else { return }
             flow.scanInsights = insights
+
+            // Commit the day-zero ScanCheckpoint. Fire-and-forget — failure
+            // is silent; the user still proceeds to Verdict.
+            if let jpeg = photo.jpegData(compressionQuality: 0.85) {
+                let userId = AuthService.shared.currentUserId ?? "anonymous"
+                _ = try? await ScanCheckpointService.shared.commit(
+                    userId: userId,
+                    photoData: jpeg
+                )
+            }
         }
     }
 
