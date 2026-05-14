@@ -18,6 +18,14 @@ protocol RankServiceProtocol: AnyObject {
     /// Returns list of SkillTierAdvance per skill that crossed.
     func evaluateTierCrossings(log: WorkoutLog, userId: String) async -> [SkillTierAdvance]
 
+    /// Load the full UserSkillTierState for a user. Used by views that need
+    /// per-skill tier lookups without going through async evaluateTierCrossings.
+    func state(userId: String) -> UserSkillTierState
+
+    /// Aggregate skill tier across all per-skill + per-lift states.
+    /// Returns the highest tier reached.
+    func aggregateTier(userId: String) async -> SkillTier
+
     // MARK: - Legacy SubRank API
 
     /// Compute a lift's sub-rank from a workout log entry. Returns nil when

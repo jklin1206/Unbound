@@ -100,6 +100,26 @@ final class RankService: RankServiceProtocol {
         return advances
     }
 
+    // MARK: - State + Aggregate Tier
+
+    /// Load the full UserSkillTierState for a user. Used by views that need
+    /// per-skill tier lookups without going through async evaluateTierCrossings.
+    func state(userId: String) -> UserSkillTierState {
+        UserSkillTierStore.shared.load(userId: userId)
+    }
+
+    /// Aggregate skill tier across all per-skill + per-lift states.
+    /// Returns the highest tier reached.
+    func aggregateTier(userId: String) async -> SkillTier {
+        let skillState = UserSkillTierStore.shared.load(userId: userId)
+        let skillTiers = Array(skillState.perSkill.values)
+        let liftTiers = ["bench press", "back squat", "deadlift", "overhead press"].map {
+            LiftTierService.shared.tier(lift: $0, userId: userId)
+        }
+        let all = skillTiers + liftTiers
+        return all.max() ?? .initiate
+    }
+
     // MARK: - Legacy SubRank Compute
 
     func computeLiftRank(
@@ -359,6 +379,8 @@ final class MockRankService: RankServiceProtocol {
 
     func computeTier(skill: SkillNode, history: [ExerciseLogEntry], bodyweightKg: Double) -> SkillTier { .initiate }
     func evaluateTierCrossings(log: WorkoutLog, userId: String) async -> [SkillTierAdvance] { [] }
+    func state(userId: String) -> UserSkillTierState { .empty }
+    func aggregateTier(userId: String) async -> SkillTier { .initiate }
     func computeLiftRank(entry: ExerciseLogEntry, bodyweightKg: Double) -> SubRank? { .c }
     func evaluate(log: WorkoutLog, bodyweightKg: Double) async {}
     func aggregateRank(userId: String) async -> SubRank { aggregateRankOverride }
