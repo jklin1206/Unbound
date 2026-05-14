@@ -25,7 +25,7 @@ struct ProfileView: View {
 
     @State private var profile: UserProfile?
     @State private var aggregateRank: SubRank = .eMinus
-    @State private var statScore: StatScore = .empty
+    @State private var attributeProfile: AttributeProfile = AttributeProfile.empty(userId: "", at: .now)
     @State private var liftRanks: [LiftRank] = []
     @State private var heatmapRanks: [MuscleHeatGroup: SubRank] = [:]
     @State private var unlockedBadges: [Badge] = []
@@ -54,7 +54,7 @@ struct ProfileView: View {
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 16) {
                         headerCard
-                        characterSheetCard
+                        ProfileBuildCard(profile: attributeProfile)
                         heatmapPlaceholder
                         PhotoCalendarView().environmentObject(services)
                         badgesCard
@@ -70,6 +70,14 @@ struct ProfileView: View {
         }
         .navigationBarHidden(true)
         .task { await load() }
+        .onReceive(NotificationCenter.default.publisher(for: .attributeRankUp)) { _ in
+            if let userId = services.auth.currentUserId {
+                Task {
+                    attributeProfile = services.attribute.profile(userId: userId)
+                }
+            }
+        }
+        .attributeRankUpToast()
     }
 
     // MARK: - Load
@@ -87,7 +95,7 @@ struct ProfileView: View {
 
         let archetype = profile?.preferredArchetype ?? .vTaper
         aggregateRank = await services.rank.archetypeRank(userId: userId, archetype: archetype)
-        statScore = await services.statScore.compute(userId: userId, archetype: archetype)
+        attributeProfile = services.attribute.profile(userId: userId)
 
         liftRanks = await services.rank.fetchAll(userId: userId)
         var computed = MuscleRankCalculator.heatmapRanks(liftRanks: liftRanks)
@@ -380,269 +388,6 @@ struct ProfileView: View {
             : Color.unbound.textTertiary.opacity(0.5)
     }
 
-    // MARK: - Character Sheet (RPG-style)
-    //
-    // Class · Age · Height · Weight · Stats · Traits — sourced entirely
-    // from data captured during onboarding + scan, presented like a JRPG
-    // status screen. No invented numbers; missing fields just collapse
-    // their row so the panel stays honest.
-
-    private var characterSheetCard: some View {
-        VStack(spacing: 0) {
-            sheetHeader
-            sheetDivider
-            sheetVitals
-            sheetDivider
-            sheetStats
-            if !sheetTraits.isEmpty {
-                sheetDivider
-                sheetTraitsBlock
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            ZStack {
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(Color.unbound.surface)
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                Color.unbound.accent.opacity(0.06),
-                                Color.clear
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-            }
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .strokeBorder(Color.unbound.border, lineWidth: 1)
-        )
-    }
-
-    // MARK: Class header — class name + level
-
-    private var sheetHeader: some View {
-        let classText = profile?.preferredArchetype?.displayName.uppercased() ?? "UNBOUND"
-        let level = (gains / xpPerLevel) + 1
-
-        return HStack(alignment: .firstTextBaseline) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("CLASS")
-                    .font(Font.unbound.captionS.weight(.heavy))
-                    .tracking(1.6)
-                    .foregroundStyle(Color.unbound.textTertiary)
-                Text(classText)
-                    .font(Font.unbound.titleM)
-                    .tracking(1.2)
-                    .foregroundStyle(Color.unbound.textPrimary)
-            }
-            Spacer()
-            VStack(alignment: .trailing, spacing: 2) {
-                Text("LEVEL")
-                    .font(Font.unbound.captionS.weight(.heavy))
-                    .tracking(1.6)
-                    .foregroundStyle(Color.unbound.textTertiary)
-                Text("\(level)")
-                    .font(Font.unbound.titleM)
-                    .foregroundStyle(Color.unbound.accent)
-                    .monospacedDigit()
-            }
-        }
-        .padding(16)
-    }
-
-    // MARK: Vitals row
-
-    private var sheetVitals: some View {
-        let height = profile?.heightCm.flatMap(formatHeight) ?? "—"
-        let weight = profile?.weightKg.flatMap(formatWeight) ?? "—"
-        let age = profile?.age.map { "\($0)" } ?? "—"
-        let exp = profile?.experience?.displayName ?? "—"
-
-        return VStack(spacing: 10) {
-            HStack(spacing: 0) {
-                vitalCell(label: "AGE", value: age)
-                vitalDivider
-                vitalCell(label: "HEIGHT", value: height)
-                vitalDivider
-                vitalCell(label: "WEIGHT", value: weight)
-                vitalDivider
-                vitalCell(label: "EXP", value: exp)
-            }
-
-            Rectangle()
-                .fill(Color.unbound.border)
-                .frame(height: 1)
-                .padding(.horizontal, 4)
-
-            HStack(spacing: 0) {
-                vitalCell(label: "WORKOUTS", value: "\(totalWorkouts)")
-                vitalDivider
-                vitalCell(label: "SKILLS", value: "\(skillsObtained)")
-                vitalDivider
-                vitalCell(label: "BADGES", value: "\(unlockedBadges.count)")
-                vitalDivider
-                vitalCell(label: "STREAK", value: "\(sessionXP?.longestStreak ?? 0)D")
-            }
-        }
-        .padding(.vertical, 12)
-        .padding(.horizontal, 8)
-    }
-
-    private func vitalCell(label: String, value: String) -> some View {
-        VStack(spacing: 4) {
-            Text(label)
-                .font(Font.unbound.captionS.weight(.heavy))
-                .tracking(1.2)
-                .foregroundStyle(Color.unbound.textTertiary)
-            Text(value)
-                .font(Font.unbound.bodyMStrong)
-                .foregroundStyle(Color.unbound.textPrimary)
-                .monospacedDigit()
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-        }
-        .frame(maxWidth: .infinity)
-    }
-
-    private var vitalDivider: some View {
-        Rectangle()
-            .fill(Color.unbound.border)
-            .frame(width: 1, height: 28)
-    }
-
-    // MARK: Stats grid — STR / STA / TEC / VIT
-
-    private var sheetStats: some View {
-        let s = statScore
-
-        return VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text("STATS")
-                    .font(Font.unbound.captionS.weight(.heavy))
-                    .tracking(1.6)
-                    .foregroundStyle(Color.unbound.textTertiary)
-                Spacer()
-                Text("0 - 100")
-                    .font(Font.unbound.captionS.weight(.semibold))
-                    .foregroundStyle(Color.unbound.textTertiary)
-                    .monospacedDigit()
-            }
-
-            statRow(label: "STR", value: s.strength, rank: s.strengthRank)
-            statRow(label: "STA", value: s.stamina,  rank: s.staminaRank)
-            statRow(label: "TEC", value: s.technique, rank: s.techniqueRank)
-            statRow(label: "VIT", value: s.vitality, rank: s.vitalityRank)
-        }
-        .padding(16)
-    }
-
-    private func statRow(label: String, value: Int, rank: SubRank) -> some View {
-        let fraction = max(0, min(1, Double(value) / 100.0))
-        return HStack(spacing: 12) {
-            Text(label)
-                .font(Font.unbound.monoS.weight(.heavy))
-                .tracking(1.2)
-                .foregroundStyle(Color.unbound.textSecondary)
-                .frame(width: 32, alignment: .leading)
-
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    Capsule()
-                        .fill(Color.unbound.surfaceElevated)
-                    Capsule()
-                        .fill(Color.unbound.accent)
-                        .frame(width: max(4, geo.size.width * CGFloat(fraction)))
-                        .shadow(color: Color.unbound.accent.opacity(0.45), radius: 4)
-                }
-            }
-            .frame(height: 6)
-
-            Text("\(value)")
-                .font(Font.unbound.monoS.weight(.bold))
-                .foregroundStyle(Color.unbound.textPrimary)
-                .monospacedDigit()
-                .frame(width: 28, alignment: .trailing)
-
-            Text(rank.title.displayName.uppercased())
-                .font(Font.unbound.captionS.weight(.heavy))
-                .tracking(1.0)
-                .foregroundStyle(Color.unbound.accent)
-                .frame(width: 76, alignment: .trailing)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-        }
-    }
-
-    // MARK: Traits — distilled from goals + motivations + style
-
-    private var sheetTraitsBlock: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("TRAITS")
-                .font(Font.unbound.captionS.weight(.heavy))
-                .tracking(1.6)
-                .foregroundStyle(Color.unbound.textTertiary)
-
-            VStack(alignment: .leading, spacing: 6) {
-                ForEach(sheetTraits, id: \.self) { t in
-                    HStack(spacing: 8) {
-                        Circle()
-                            .fill(Color.unbound.accent)
-                            .frame(width: 5, height: 5)
-                        Text(t)
-                            .font(Font.unbound.bodyM)
-                            .foregroundStyle(Color.unbound.textPrimary)
-                    }
-                }
-            }
-        }
-        .padding(16)
-    }
-
-    /// Distilled flavor traits from the onboarding answers. Stays honest —
-    /// only emits a line if the underlying data is present.
-    private var sheetTraits: [String] {
-        guard let profile else { return [] }
-        var out: [String] = []
-        if let goals = profile.goals?.prefix(2), !goals.isEmpty {
-            out.append("Pursuit: " + goals.map { $0.displayName }.joined(separator: " · "))
-        }
-        if let style = profile.exerciseStyles?.prefix(2), !style.isEmpty {
-            out.append("Style: " + style.map { $0.displayName }.joined(separator: " · "))
-        }
-        if let freq = profile.targetFrequency {
-            out.append("Cadence: " + freq.displayName)
-        }
-        if let motivations = profile.motivations?.prefix(2), !motivations.isEmpty {
-            out.append("Drive: " + motivations.map { $0.displayName }.joined(separator: " · "))
-        }
-        return out
-    }
-
-    // MARK: Helpers
-
-    private var sheetDivider: some View {
-        Rectangle()
-            .fill(Color.unbound.border)
-            .frame(height: 1)
-    }
-
-    private func formatHeight(_ cm: Double) -> String {
-        let inches = cm / 2.54
-        let ft = Int(inches / 12)
-        let inch = Int(inches.rounded()) - ft * 12
-        return "\(ft)' \(inch)\""
-    }
-
-    private func formatWeight(_ kg: Double) -> String {
-        let lbs = kg * 2.20462
-        return "\(Int(lbs.rounded())) lb"
-    }
-
     // MARK: - Heatmap placeholder
     //
     // Per design memory: heatmap slot kept, render dropped. The full
@@ -696,181 +441,6 @@ struct ProfileView: View {
         .overlay(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .strokeBorder(Color.unbound.border, lineWidth: 1)
-        )
-    }
-
-    // MARK: - Lifetime record (legacy, not rendered)
-
-    private var bodySnapshotCard: some View {
-        let statRanks = [
-            ("STR", statScore.strengthRank),
-            ("STA", statScore.staminaRank),
-            ("TEC", statScore.techniqueRank),
-            ("VIT", statScore.vitalityRank)
-        ]
-        let bodyRanks = [
-            ("CHEST", aggregate(of: [.chest])),
-            ("BACK", aggregate(of: [.back])),
-            ("SHLDR", aggregate(of: [.shoulders, .traps])),
-            ("ARMS", aggregate(of: [.biceps, .triceps, .forearms])),
-            ("CORE", aggregate(of: [.core])),
-            ("LEGS", aggregate(of: [.legs, .hamstrings, .glutes, .calves]))
-        ]
-
-        return VStack(alignment: .leading, spacing: 14) {
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("PHYSICAL RECORD")
-                        .font(Font.unbound.captionS.weight(.bold))
-                        .tracking(1.8)
-                        .foregroundStyle(Color.unbound.textTertiary)
-                    Text("RANKED TRAITS")
-                        .font(Font.unbound.titleS)
-                        .tracking(0.8)
-                        .foregroundStyle(Color.unbound.textPrimary)
-                }
-                Spacer()
-                Text(aggregateRank.displayName)
-                    .font(Font.unbound.monoM.weight(.black))
-                    .foregroundStyle(aggregateRank.regionTint)
-                    .monospacedDigit()
-            }
-
-            VStack(spacing: 0) {
-                ForEach(statRanks, id: \.0) { item in
-                    traitLine(label: item.0, rank: item.1)
-                    if item.0 != statRanks.last?.0 {
-                        Rectangle()
-                            .fill(Color.unbound.borderSubtle.opacity(0.7))
-                            .frame(height: 0.5)
-                    }
-                }
-            }
-
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 14) {
-                    ForEach(bodyRanks, id: \.0) { item in
-                        bodyRankChip(label: item.0, rank: item.1)
-                    }
-                }
-                .padding(.vertical, 2)
-            }
-        }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color.unbound.surface)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
-        )
-    }
-
-    private func bodyRankChip(label: String, rank: SubRank) -> some View {
-        HStack(spacing: 6) {
-            Text(label)
-                .font(.system(size: 8, weight: .black))
-                .tracking(0.9)
-                .foregroundStyle(Color.unbound.textTertiary)
-                .lineLimit(1)
-            Text(rank.displayName)
-                .font(.system(size: 10, weight: .bold, design: .monospaced))
-                .foregroundStyle(rank.regionTint)
-                .monospacedDigit()
-        }
-        .padding(.vertical, 4)
-    }
-
-    private func traitLine(label: String, rank: SubRank) -> some View {
-        let fraction = max(0.05, min(1.0, Double(rank.ordinal) / 17.0))
-        return HStack(spacing: 12) {
-            Text(label)
-                .font(.system(size: 10, weight: .black))
-                .tracking(1.4)
-                .foregroundStyle(Color.unbound.textTertiary)
-                .frame(width: 34, alignment: .leading)
-            GeometryReader { proxy in
-                ZStack(alignment: .leading) {
-                    Rectangle()
-                        .fill(Color.unbound.borderSubtle)
-                        .frame(height: 1)
-                    Rectangle()
-                        .fill(rank.regionTint)
-                        .frame(width: max(4, proxy.size.width * fraction), height: 2)
-                }
-                .frame(maxHeight: .infinity)
-            }
-            .frame(height: 20)
-            Text(rank.displayName)
-                .font(.system(size: 12, weight: .bold, design: .monospaced))
-                .foregroundStyle(rank.regionTint)
-                .frame(width: 34, alignment: .trailing)
-                .monospacedDigit()
-        }
-        .frame(height: 34)
-    }
-
-    private func statRow(label: String, rank: SubRank) -> some View {
-        let color = rank.regionTint
-        return HStack(spacing: 10) {
-            Text(label)
-                .font(.system(size: 10, weight: .bold))
-                .tracking(1.4)
-                .foregroundStyle(Color.unbound.textTertiary)
-                .frame(width: 34, alignment: .leading)
-            Text(rank.displayName)
-                .font(Font.unbound.monoS.weight(.bold))
-                .foregroundStyle(color)
-                .shadow(color: color.opacity(0.5), radius: 3)
-                .monospacedDigit()
-            Spacer(minLength: 0)
-        }
-        .frame(height: 16)
-    }
-
-    private func bodyStatCell(label: String, rank: SubRank) -> some View {
-        let color = rank.regionTint
-        return HStack(spacing: 8) {
-            Text(label)
-                .font(.system(size: 9, weight: .bold))
-                .tracking(1.3)
-                .foregroundStyle(Color.unbound.textTertiary)
-                .frame(width: 44, alignment: .leading)
-            Text(rank.displayName)
-                .font(Font.unbound.monoS.weight(.semibold))
-                .foregroundStyle(color)
-                .monospacedDigit()
-            Spacer(minLength: 0)
-        }
-    }
-
-    private func aggregate(of groups: [MuscleHeatGroup]) -> SubRank {
-        guard !groups.isEmpty else { return .eMinus }
-        let ordinals = groups.map { Double(heatmapRanks[$0]?.ordinal ?? 0) }
-        let mean = ordinals.reduce(0, +) / Double(ordinals.count)
-        return SubRank.nearest(for: mean)
-    }
-
-    // MARK: - Body map card
-
-    private var bodyMapCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("BODY MAP")
-                .font(Font.unbound.captionS.weight(.bold))
-                .tracking(1.8)
-                .foregroundStyle(Color.unbound.textTertiary)
-
-            MuscleHeatmapView(groupRanks: heatmapRanks, onGroupTapped: { _ in })
-                .frame(maxWidth: 220)
-                .frame(maxWidth: .infinity)
-        }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color.unbound.surface)
         )
     }
 
