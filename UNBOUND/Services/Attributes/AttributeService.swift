@@ -25,6 +25,10 @@ protocol AttributeServiceProtocol: AnyObject {
 
     /// Returns historical pinned snapshots for the user, oldest first.
     func scanHistory(userId: String) -> [AttributeProfile]
+
+    /// Replay existing workout logs through ingest to backfill the profile.
+    /// Called once on first launch when no profile exists in the store.
+    func backfillFromExistingLogs(userId: String) async
 }
 
 // MARK: - AttributeService (real)
@@ -33,15 +37,19 @@ protocol AttributeServiceProtocol: AnyObject {
 final class AttributeService: AttributeServiceProtocol {
     static let shared = AttributeService(
         catalog: AttributeCatalog.shared,
-        store: AttributeProfileStore.shared
+        store: AttributeProfileStore.shared,
+        database: DatabaseService.shared
     )
 
     private let catalog: AttributeCatalogProtocol
     private let store: AttributeProfileStoreProtocol
+    private let database: any DatabaseServiceProtocol
+    private let logger = LoggingService.shared
 
-    init(catalog: AttributeCatalogProtocol, store: AttributeProfileStoreProtocol) {
+    init(catalog: AttributeCatalogProtocol, store: AttributeProfileStoreProtocol, database: any DatabaseServiceProtocol = DatabaseService.shared) {
         self.catalog = catalog
         self.store = store
+        self.database = database
     }
 
     func profile(userId: String) -> AttributeProfile {
@@ -95,6 +103,33 @@ final class AttributeService: AttributeServiceProtocol {
     func scanHistory(userId: String) -> [AttributeProfile] {
         store.history(userId: userId)
     }
+
+    func backfillFromExistingLogs(userId: String) async {
+        // Skip if a profile already exists for this user.
+        guard store.load(userId: userId) == nil else { return }
+
+        let logs: [WorkoutLog]
+        do {
+            logs = try await database.query(
+                collection: "workoutLogs",
+                field: "userId",
+                isEqualTo: userId,
+                orderBy: "startedAt",
+                descending: false,
+                limit: nil
+            )
+        } catch {
+            logger.log("AttributeService.backfill: failed to fetch logs: \(error)", level: .warning)
+            return
+        }
+
+        guard !logs.isEmpty else { return }
+
+        for log in logs {
+            await ingest(session: log, userId: userId)
+        }
+        logger.log("AttributeService.backfill: replayed \(logs.count) logs for user \(userId)", level: .info)
+    }
 }
 
 // MARK: - MockAttributeService
@@ -124,4 +159,5 @@ final class MockAttributeService: AttributeServiceProtocol {
     func scanHistory(userId: String) -> [AttributeProfile] {
         historyByUser[userId] ?? []
     }
+    func backfillFromExistingLogs(userId: String) async {}
 }
