@@ -29,6 +29,10 @@ protocol AttributeServiceProtocol: AnyObject {
     /// Replay existing workout logs through ingest to backfill the profile.
     /// Called once on first launch when no profile exists in the store.
     func backfillFromExistingLogs(userId: String) async
+
+    /// Apply a flat boost to a single axis (trial capstone payoff).
+    /// Clamps to 100. Posts `.attributeRankUp` if a rank tier is crossed.
+    func applyBoost(axis: AttributeKey, amount: Double, userId: String)
 }
 
 // MARK: - AttributeService (real)
@@ -130,6 +134,33 @@ final class AttributeService: AttributeServiceProtocol {
         }
         logger.log("AttributeService.backfill: replayed \(logs.count) logs for user \(userId)", level: .info)
     }
+
+    func applyBoost(axis: AttributeKey, amount: Double, userId: String) {
+        let now = Date()
+        var prof = profile(userId: userId)
+        var value = prof.value(for: axis)
+        let beforeSubRank = value.subRank
+        value.current = min(value.current + amount, 100)
+        value.peak = max(value.peak, value.current)
+        value.lastContributionAt = now
+        prof.set(axis, value)
+        prof.computedAt = now
+        store.save(prof)
+        // Fire rank-up notification if the sub-rank tier crossed.
+        let afterSubRank = value.subRank
+        if afterSubRank.ordinal > beforeSubRank.ordinal {
+            let event = AttributeRankUpEvent(
+                axis: axis,
+                fromTitle: beforeSubRank.title,
+                toTitle: afterSubRank.title,
+                fromSubRank: beforeSubRank,
+                toSubRank: afterSubRank,
+                level: .subRank,
+                timestamp: now
+            )
+            NotificationCenter.default.post(name: .attributeRankUp, object: event)
+        }
+    }
 }
 
 // MARK: - MockAttributeService
@@ -163,4 +194,13 @@ final class MockAttributeService: AttributeServiceProtocol {
         historyByUser[userId] ?? []
     }
     func backfillFromExistingLogs(userId: String) async {}
+    func applyBoost(axis: AttributeKey, amount: Double, userId: String) {
+        var prof = profileByUser[userId] ?? .empty(userId: userId, at: .now)
+        var value = prof.value(for: axis)
+        value.current = min(value.current + amount, 100)
+        value.peak = max(value.peak, value.current)
+        value.lastContributionAt = Date()
+        prof.set(axis, value)
+        profileByUser[userId] = prof
+    }
 }
