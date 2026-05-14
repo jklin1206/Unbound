@@ -32,42 +32,78 @@ struct MuscleDetailSheet: View {
             .padding(24)
         }
         .background(Color.unbound.bg.ignoresSafeArea())
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
         .task { await loadDetails() }
     }
 
     // MARK: Sections
 
     private var header: some View {
-        HStack {
-            Text(region.displayName.uppercased())
-                .font(Font.unbound.captionS)
-                .tracking(1.8)
-                .foregroundStyle(Color.unbound.textTertiary)
-            Spacer()
+        HStack(alignment: .top, spacing: 14) {
+            RankBadge(rank: regionRank.rank, size: .medium)
+
+            VStack(alignment: .leading, spacing: 5) {
+                Text("REGION INSPECT")
+                    .font(Font.unbound.captionS.weight(.bold))
+                    .tracking(1.6)
+                    .foregroundStyle(Color.unbound.textTertiary)
+                Text(region.displayName.uppercased())
+                    .font(Font.unbound.bodyM.weight(.semibold))
+                    .tracking(0.8)
+                    .foregroundStyle(Color.unbound.textPrimary)
+                Text(region.needsWorkDirective)
+                    .font(Font.unbound.bodyS)
+                    .foregroundStyle(Color.unbound.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer(minLength: 0)
+
             Button { dismiss() } label: {
                 Image(systemName: "xmark")
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(Color.unbound.textTertiary)
-                    .padding(8)
+                    .foregroundStyle(Color.unbound.textPrimary)
+                    .frame(width: 36, height: 36)
                     .background(Circle().fill(Color.unbound.surface))
+                    .overlay(Circle().stroke(Color.unbound.borderSubtle, lineWidth: 1))
             }
             .buttonStyle(.plain)
         }
     }
 
     private var rankDisplay: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .lastTextBaseline, spacing: 14) {
-                Text("RANK")
-                    .font(Font.unbound.captionS)
-                    .tracking(1.4)
-                    .foregroundStyle(Color.unbound.textTertiary)
-                Text(regionRank.rank.displayName)
-                    .font(Font.unbound.monoXL)
-                    .foregroundStyle(regionRank.rank.regionTint)
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 10) {
+                statBlock(label: "CURRENT", value: regionRank.rank.displayName, tint: regionRank.rank.regionTint)
+                statBlock(label: "NEXT", value: regionRank.rank.advanced(by: 1).displayName, tint: regionRank.rank.advanced(by: 1).regionTint)
+                statBlock(label: "LIFTS", value: "\(regionRank.topContributingLifts.count)", tint: Color.unbound.accent)
             }
             subRankCapsule
         }
+    }
+
+    private func statBlock(label: String, value: String, tint: Color) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(label)
+                .font(Font.unbound.captionS.weight(.bold))
+                .tracking(1.3)
+                .foregroundStyle(Color.unbound.textTertiary)
+            Text(value)
+                .font(Font.unbound.monoM.weight(.bold))
+                .foregroundStyle(tint)
+                .monospacedDigit()
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color.unbound.surface.opacity(0.82))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(tint.opacity(0.28), lineWidth: 1)
+        )
     }
 
     private var subRankCapsule: some View {
@@ -84,10 +120,17 @@ struct MuscleDetailSheet: View {
                 }
             }
             .frame(height: 6)
-            Text("NEXT · \(next.displayName)")
-                .font(Font.unbound.captionS)
-                .tracking(1.2)
-                .foregroundStyle(Color.unbound.textTertiary)
+            HStack {
+                Text("SUBRANK PROGRESS")
+                    .font(Font.unbound.captionS.weight(.bold))
+                    .tracking(1.2)
+                    .foregroundStyle(Color.unbound.textTertiary)
+                Spacer()
+                Text("NEXT · \(next.displayName)")
+                    .font(Font.unbound.captionS.weight(.bold))
+                    .tracking(1.2)
+                    .foregroundStyle(next.regionTint)
+            }
         }
     }
 

@@ -394,6 +394,19 @@ enum WorkoutTime: String, Codable, CaseIterable, Identifiable {
         case .varies: return "arrow.triangle.2.circlepath"
         }
     }
+
+    /// Hour (24h) to fire the workout reminder for this time preference.
+    var notificationHour: Int {
+        switch self {
+        case .earlyMorning: return 6
+        case .morning:      return 8
+        case .lunch:        return 12
+        case .afternoon:    return 15
+        case .evening:      return 18
+        case .lateNight:    return 21
+        case .varies:       return 8
+        }
+    }
 }
 
 // MARK: Motivation (Screen 5)

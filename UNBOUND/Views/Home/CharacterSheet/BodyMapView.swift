@@ -39,7 +39,7 @@ struct BodyMapView: View {
     // MARK: Layers
 
     private func figureLayer(side: BodyMapSide) -> some View {
-        let imageName = side == .front ? "body_front_male" : "body_back_male"
+        let imageName = side == .front ? "body_unbound_front" : "body_unbound_back"
         let ranks = BodyRegion.visible(on: side)
 
         // The overlay is attached to the Image itself, so the GeometryReader

@@ -32,6 +32,17 @@ struct Step_ScanReview: View {
             }
             .padding(.top, 4)
         }
+        .onAppear {
+            // Fire Gemini immediately — while the user reviews the photo we
+            // get a head start so the analyzing screen rarely has to wait.
+            guard flow.bodyRatings == nil,
+                  let photo = flow.capturedPhotos[.front],
+                  let jpeg = photo.jpegData(compressionQuality: 0.72) else { return }
+            Task { @MainActor in
+                let ratings = try? await OnboardingBodyRatingService.rate(jpeg: jpeg)
+                flow.bodyRatings = ratings
+            }
+        }
     }
 
     // MARK: Photo card — big, centered, premium

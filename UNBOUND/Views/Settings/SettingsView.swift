@@ -173,6 +173,14 @@ struct SettingsView: View {
             // MARK: Dev (DEBUG only)
             #if DEBUG
             Section {
+                NavigationLink {
+                    DevPlayerToolsView()
+                        .environmentObject(services)
+                } label: {
+                    Label("Dev Player Tools", systemImage: "gamecontroller")
+                        .foregroundColor(.theme.textPrimary)
+                }
+
                 Toggle(isOn: Binding(
                     get: { DevFlags.shared.unlockAllFeatures },
                     set: { DevFlags.shared.unlockAllFeatures = $0 }
@@ -254,8 +262,357 @@ struct SettingsView: View {
         let gen = UINotificationFeedbackGenerator()
         gen.notificationOccurred(.warning)
     }
-    #endif
+#endif
 }
+
+#if DEBUG
+private struct DevPlayerToolsView: View {
+    @EnvironmentObject private var services: ServiceContainer
+
+    @State private var selectedRank: RankTitle = .unbound
+    @State private var selectedLevel: Int = 25
+    @State private var isApplying = false
+    @State private var status = "Dev account is local-only and hidden in release builds."
+
+    private var currentUserId: String {
+        AuthService.shared.currentUserId ?? DevPlayerSeeder.userId
+    }
+
+    var body: some View {
+        List {
+            Section {
+                VStack(alignment: .leading, spacing: 14) {
+                    HStack(alignment: .center, spacing: 14) {
+                        ZStack {
+                            Circle()
+                                .fill(Color.theme.primary.opacity(0.16))
+                                .frame(width: 54, height: 54)
+                            Image(systemName: "gamecontroller.fill")
+                                .font(.system(size: 24, weight: .semibold))
+                                .foregroundColor(.theme.primary)
+                        }
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Dev Player")
+                                .font(.subheadline(18))
+                                .foregroundColor(.theme.textPrimary)
+                            Text(currentUserId)
+                                .font(.system(size: 11, weight: .medium, design: .monospaced))
+                                .foregroundColor(.theme.textMuted)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                        }
+
+                        Spacer()
+                    }
+
+                    Text(status)
+                        .font(.caption(12))
+                        .foregroundColor(.theme.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Button {
+                        run { await DevPlayerSeeder.activate(services: services) }
+                    } label: {
+                        Label("Activate Dev Player", systemImage: "person.crop.circle.badge.checkmark")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                    .disabled(isApplying)
+                }
+                .padding(.vertical, 6)
+            } footer: {
+                Text("This switches auth to a stable local user, completes onboarding, enables the paywall bypass, and seeds a usable profile.")
+                    .font(.caption(11))
+                    .foregroundColor(.theme.textMuted)
+            }
+
+            Section {
+                Stepper(value: $selectedLevel, in: 1...80) {
+                    HStack {
+                        Label("Level", systemImage: "bolt.fill")
+                            .foregroundColor(.theme.textPrimary)
+                        Spacer()
+                        Text("\(selectedLevel)")
+                            .font(.system(size: 16, weight: .semibold, design: .monospaced))
+                            .foregroundColor(.theme.primary)
+                    }
+                }
+
+                Picker("Rank Title", selection: $selectedRank) {
+                    ForEach(RankTitle.allCases, id: \.rawValue) { title in
+                        Text(title.displayName).tag(title)
+                    }
+                }
+
+                Button {
+                    run { await DevPlayerSeeder.applyLevel(selectedLevel) }
+                } label: {
+                    Label("Apply Level", systemImage: "bolt.badge.checkmark")
+                        .foregroundColor(.theme.primary)
+                }
+
+                Button {
+                    run { await DevPlayerSeeder.applyRank(selectedRank, services: services) }
+                } label: {
+                    Label("Apply Rank to All Core Lifts", systemImage: "shield.lefthalf.filled")
+                        .foregroundColor(.theme.primary)
+                }
+            } header: {
+                Text("Fast Tuning")
+                    .foregroundColor(.theme.textSecondary)
+            } footer: {
+                Text("Rank applies to the core lifts used by the home/profile archetype rank calculations.")
+                    .font(.caption(11))
+                    .foregroundColor(.theme.textMuted)
+            }
+
+            Section {
+                Button {
+                    run { await DevPlayerSeeder.unlockAllBadges() }
+                } label: {
+                    Label("Unlock All Badges", systemImage: "rosette")
+                        .foregroundColor(.theme.primary)
+                }
+
+                Button {
+                    run { await DevPlayerSeeder.masterSkillTree() }
+                } label: {
+                    Label("Master Skill Tree", systemImage: "circle.hexagongrid.fill")
+                        .foregroundColor(.theme.primary)
+                }
+
+                Button {
+                    run { await DevPlayerSeeder.seedSessionStats() }
+                } label: {
+                    Label("Seed Streak + Session Stats", systemImage: "flame.fill")
+                        .foregroundColor(.theme.primary)
+                }
+
+                Button {
+                    run {
+                        await DevPlayerSeeder.maxEverything(
+                            rankTitle: selectedRank,
+                            level: selectedLevel,
+                            services: services
+                        )
+                    }
+                } label: {
+                    Label("Max Everything", systemImage: "sparkles")
+                        .foregroundColor(.theme.primary)
+                }
+                .disabled(isApplying)
+            } header: {
+                Text("Feature Unlocks")
+                    .foregroundColor(.theme.textSecondary)
+            }
+
+            Section {
+                Button(role: .destructive) {
+                    DevPlayerSeeder.clearDevProgress()
+                    status = "Dev progress cleared. Activate again when you want a fresh sandbox."
+                } label: {
+                    Label("Clear Dev Progress", systemImage: "trash")
+                        .foregroundColor(.theme.danger)
+                }
+            }
+        }
+        .listStyle(.insetGrouped)
+        .scrollContentBackground(.hidden)
+        .background(Color.theme.background)
+        .navigationTitle("Dev Player")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private func run(_ action: @escaping () async -> Void) {
+        isApplying = true
+        status = "Applying..."
+        Task {
+            await action()
+            await MainActor.run {
+                isApplying = false
+                status = "Applied. Pull to refresh or switch tabs if a visible screen was already loaded."
+                UINotificationFeedbackGenerator().notificationOccurred(.success)
+            }
+        }
+    }
+}
+
+@MainActor
+private enum DevPlayerSeeder {
+    static let userId = "dev-player"
+
+    private static let gainsKey = "unbound.gains"
+    private static let badgeKey = "unbound.badges.\(userId)"
+    private static let sessionXPKey = "unbound.sessionxp.\(userId)"
+
+    static func activate(services: ServiceContainer) async {
+        AuthService.shared.activateDevUser(id: userId)
+        DevFlags.shared.unlockAllFeatures = true
+        UserDefaults.standard.set(true, forKey: "onboardingCompleted")
+        UserDefaults.standard.set(true, forKey: "unbound.calibration.completed")
+
+        var profile = UserProfile(
+            id: userId,
+            email: "dev@unbound.local",
+            displayName: "Dev Player",
+            createdAt: Date(),
+            onboardingCompleted: true,
+            totalScans: 12,
+            currentProgramId: nil,
+            preferredArchetype: .vTaper,
+            heightCm: 180,
+            weightKg: 82,
+            age: 28,
+            biologicalSex: .male
+        )
+        profile.displayHandle = "devplayer"
+        profile.experience = .current
+        profile.currentFrequency = .fivePlus
+        profile.targetFrequency = .five
+        profile.equipment = [.fullGym, .barbell, .dumbbells, .bench, .pullupBar, .bodyweight]
+        profile.goals = [.buildMuscle, .getDefined, .getStronger, .athletic]
+        profile.trainingStyleOverride = .freeWeights
+        profile.trainingFeedbackMode = .detailed
+        profile.trainingDays = [.monday, .tuesday, .wednesday, .thursday, .friday]
+
+        try? await DatabaseService.shared.create(profile, collection: "users", documentId: userId)
+        BadgeService.shared.bind(userId: userId)
+        await SkillProgressService.shared.load(userId: userId, archetype: .vTaper)
+        await seedSessionStats()
+        await applyLevel(25)
+    }
+
+    static func maxEverything(rankTitle: RankTitle, level: Int, services: ServiceContainer) async {
+        await activate(services: services)
+        await applyLevel(level)
+        await applyRank(rankTitle, services: services)
+        await unlockAllBadges()
+        await masterSkillTree()
+        await seedSessionStats()
+    }
+
+    static func applyLevel(_ level: Int) async {
+        let clamped = max(1, min(80, level))
+        UserDefaults.standard.set((clamped - 1) * 250, forKey: gainsKey)
+    }
+
+    static func applyRank(_ title: RankTitle, services: ServiceContainer) async {
+        AuthService.shared.activateDevUser(id: userId)
+        let rank = representativeSubRank(for: title)
+        for seed in canonicalLiftSeeds {
+            await services.rank.save(
+                LiftRank(
+                    userId: userId,
+                    exerciseKey: seed.key,
+                    displayName: seed.name,
+                    currentRank: rank,
+                    peakRank: rank,
+                    lastAdvanceAt: Date(),
+                    lastActivityAt: Date()
+                )
+            )
+        }
+    }
+
+    static func unlockAllBadges() async {
+        AuthService.shared.activateDevUser(id: userId)
+        let now = Date()
+        let unlocked = BadgeCatalog.all.enumerated().reduce(into: [String: Date]()) { result, pair in
+            result[pair.element.id] = Calendar.current.date(byAdding: .minute, value: -pair.offset, to: now) ?? now
+        }
+        if let data = try? JSONEncoder.unbound.encode(unlocked) {
+            UserDefaults.standard.set(data, forKey: badgeKey)
+        }
+        BadgeService.shared.bind(userId: userId)
+    }
+
+    static func seedSessionStats() async {
+        AuthService.shared.activateDevUser(id: userId)
+        var cal = Calendar.current
+        cal.firstWeekday = 2
+        let weekComponents = cal.dateComponents([.yearForWeekOfYear, .weekOfYear], from: Date())
+        let weekStart = cal.date(from: weekComponents) ?? cal.startOfDay(for: Date())
+        let record = SessionXPRecord(
+            userId: userId,
+            totalSessions: 96,
+            currentStreak: 21,
+            longestStreak: 45,
+            lastSessionDate: Date(),
+            weeklyCount: 5,
+            weekStartDate: weekStart
+        )
+        if let data = try? JSONEncoder.unbound.encode(record) {
+            UserDefaults.standard.set(data, forKey: sessionXPKey)
+        }
+        UserDefaults.standard.set(record.currentStreak, forKey: "unbound.streakDays")
+    }
+
+    static func masterSkillTree() async {
+        AuthService.shared.activateDevUser(id: userId)
+        let now = Date()
+        let graph = SkillGraph.shared
+        let states = Dictionary(uniqueKeysWithValues: graph.nodes.map { ($0.id, NodeState.mastered) })
+        let dates = Dictionary(uniqueKeysWithValues: graph.nodes.map { ($0.id, now) })
+        let progress = Dictionary(uniqueKeysWithValues: graph.nodes.map {
+            ($0.id, SkillProgress(currentLevel: 5, xpInLevel: 0, xpToNextLevel: 0))
+        })
+        let activeGoals = Set(graph.nodes.filter { !$0.isMythic }.prefix(6).map(\.id))
+        let schedule: [DayCategory?] = [.push, .pull, .legs, .core, .skills, .conditioning, .rest]
+
+        let payload = UserSkillProgress(
+            userId: userId,
+            nodeStates: states,
+            achievedAt: dates,
+            masteredAt: dates,
+            updatedAt: now,
+            skillProgress: progress,
+            lastTrainedAt: [:],
+            bookmarkedNodeIds: activeGoals,
+            activeGoalIds: activeGoals,
+            weeklySchedule: schedule,
+            currentWeekPhase: .heavy
+        )
+        try? await DatabaseService.shared.create(payload, collection: "skillProgress", documentId: userId)
+        await SkillProgressService.shared.load(userId: userId, archetype: .vTaper)
+    }
+
+    static func clearDevProgress() {
+        UserDefaults.standard.removeObject(forKey: gainsKey)
+        UserDefaults.standard.removeObject(forKey: badgeKey)
+        UserDefaults.standard.removeObject(forKey: sessionXPKey)
+        UserDefaults.standard.removeObject(forKey: "unbound.streakDays")
+        DevFlags.shared.unlockAllFeatures = false
+    }
+
+    private static func representativeSubRank(for title: RankTitle) -> SubRank {
+        switch title {
+        case .initiate: return .e
+        case .novice: return .dMinus
+        case .apprentice: return .dPlus
+        case .forged: return .c
+        case .veteran: return .bMinus
+        case .honed: return .bPlus
+        case .vessel: return .a
+        case .unbound: return .sMinus
+        case .ascendant: return .sPlus
+        }
+    }
+
+    private static let canonicalLiftSeeds: [(key: String, name: String)] = [
+        ("back squat", "Back Squat"),
+        ("deadlift", "Deadlift"),
+        ("bench press", "Bench Press"),
+        ("overhead press", "Overhead Press"),
+        ("pullup", "Pull-Up"),
+        ("weighted pullup", "Weighted Pull-Up"),
+        ("pushup", "Push-Up"),
+        ("dip", "Dip"),
+        ("l-sit", "L-Sit")
+    ]
+}
+#endif
 
 // MARK: - FAQ Placeholder
 

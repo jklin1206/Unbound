@@ -29,6 +29,14 @@ packages:
   Supabase:
     url: https://github.com/supabase-community/supabase-swift
     from: "2.0.0"
+  # Hot-reload for SwiftUI iteration. Debug-only; the linker keeps it
+  # out of release builds because the import is wrapped in #if DEBUG.
+  # Setup: install InjectionIII.app once and drag UNBOUND.xcodeproj
+  # onto its window. After that, save any .swift file and the simulator
+  # re-renders the affected views in ~1s with no rebuild.
+  HotReloading:
+    url: https://github.com/johnno1962/HotReloading
+    from: "2.0.0"
 
 targets:
   UNBOUND:
@@ -52,6 +60,8 @@ targets:
         product: SuperwallKit
       - package: Supabase
         product: Supabase
+      - package: HotReloading
+        product: HotReloading
 
   UNBOUNDTests:
     type: bundle.unit-test

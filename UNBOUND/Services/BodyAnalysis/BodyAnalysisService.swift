@@ -154,9 +154,21 @@ final class BodyAnalysisService: BodyAnalysisServiceProtocol, @unchecked Sendabl
             }
         }()
 
+        let scores = llm.scores.map {
+            AestheticScores(
+                leanness:    clamp($0.leanness),
+                muscleMass:  clamp($0.muscleMass),
+                definition:  clamp($0.definition),
+                proportions: clamp($0.proportions),
+                symmetry:    clamp($0.symmetry),
+                overall:     clamp($0.overall)
+            )
+        }
+
         let analysis = BodyScanAnalysis(
             userId: userId,
             photoId: photoId,
+            scores: scores,
             narrative: llm.narrative,
             focusArea: llm.focusArea,
             confidence: confidence,
@@ -182,7 +194,11 @@ extension MockBodyAnalysisService {
         BodyScanAnalysis(
             userId: userId,
             photoId: photoId,
-            narrative: "V-taper locking in — shoulder cap sharper vs last scan. Lats are the silhouette holdback. Back deserves the spotlight this block.",
+            scores: AestheticScores(
+                leanness: 8, muscleMass: 7, definition: 8,
+                proportions: 9, symmetry: 8, overall: 8
+            ),
+            narrative: "V-taper is real — shoulder-to-waist ratio is the standout, silhouette reads clean. Definition is there but lats are the ceiling right now. Lock the back in and this build jumps a level.",
             focusArea: "back",
             confidence: .high,
             observations: ["shoulder definition clearer", "lat width lagging vs chest"]
@@ -192,7 +208,17 @@ extension MockBodyAnalysisService {
 
 // MARK: - Gemini LLM IO (recurring scan)
 
+private struct BodyScanLLMScores: Decodable {
+    let leanness: Int
+    let muscleMass: Int
+    let definition: Int
+    let proportions: Int
+    let symmetry: Int
+    let overall: Int
+}
+
 private struct BodyScanLLMOutput: Decodable {
+    let scores: BodyScanLLMScores?
     let narrative: String
     let focusArea: String?
     let confidence: String
@@ -201,33 +227,41 @@ private struct BodyScanLLMOutput: Decodable {
 
 private enum BodyScanPrompt {
     static let systemPrompt: String = """
-    You are UNBOUND's body-read coach. Given a progress photo and the user's
-    training data, write 2-3 honest sentences and name one focus area.
+    You are UNBOUND's physique judge. Score the photo honestly across six
+    aesthetic dimensions, then write 2-3 sentences of coach commentary.
 
-    RULES (non-negotiable):
-    1. TRAINING DATA BEATS PHOTO. If a muscle group is getting high volume
-       and looks "weak" in the photo, do NOT recommend more of the same.
-       Trust the logs.
-    2. NO INVENTED NUMBERS. No percentages, cm, inches, body-fat %.
-       Qualitative only.
-    3. NO SETBACKS. Anything worse than last scan gets reframed as a focus
-       area for next block. Never "regressed", "lost", "declined".
-    4. NO MEDICAL CLAIMS. No health, injury, metabolism, or diet.
-    5. CONSERVATIVE. If lighting/pose makes a claim uncertain, say so or
-       omit. Never guess to fill space.
-    6. VOICE: UNBOUND coach — direct, anime-inflected mentor. Three
-       sentences maximum.
-    7. STAY IN LANE. Your job is visible body read + ONE focus area.
-       Do NOT recommend deloads, exercise swaps, volume changes, or any
-       program intervention. Other systems handle that.
+    SCORING CALIBRATION (1–10 integers):
+    - 9–10  Elite, competition-ready, immediately striking
+    - 7–8   Advanced, clearly above average, visible gains
+    - 5–6   Solid, noticeable development, intermediate stage
+    - 3–4   Early stage, limited visible development
+    - 1–2   Beginner, very early, little visible muscle/conditioning
 
-    OUTPUT: strict JSON matching the response schema. If confidence is
-    "low", narrative must say so. Never fabricate.
+    SCORING RULES:
+    1. SCORE WHAT YOU SEE. A visibly shredded physique earns high leanness.
+       A soft build earns a low score. Do not inflate to be kind.
+    2. If photo angle or quality makes a dimension unassessable, return 5.
+    3. Scores are independent — a big physique can score low on leanness.
+    4. No partial credit for effort, potential, or training context.
+
+    NARRATIVE RULES:
+    1. 2–3 sentences, UNBOUND coach voice — direct, no fluff.
+    2. Lead with the dominant visible characteristic (strength or weakness).
+    3. One honest callout on the single thing that would move the needle most.
+    4. NO invented numbers, body-fat %, cm, or medical claims.
+    5. If confidence is "low", say the photo made it hard to judge cleanly.
+
+    CONFIDENCE:
+    - "high"   Body clearly visible, front-facing, usable lighting
+    - "medium" Partial view, heavy clothing, or moderate lighting issues
+    - "low"    Photo quality prevents reliable assessment
+
+    OUTPUT: strict JSON. Never fabricate.
     """
 
     static func userPrompt(from ctx: ScanContext) -> String {
         var lines: [String] = []
-        lines.append("ARCHETYPE: \(ctx.archetype)")
+        lines.append("ARCHETYPE TARGET: \(ctx.archetype)")
 
         var bio: [String] = []
         if let h = ctx.heightCm { bio.append("\(Int(h))cm") }
@@ -237,27 +271,16 @@ private enum BodyScanPrompt {
         if !bio.isEmpty { lines.append("BIOMETRICS: " + bio.joined(separator: " / ")) }
 
         lines.append("SESSIONS LAST 14 DAYS: \(ctx.sessionCount)")
-        if !ctx.setsByMuscleGroup.isEmpty {
-            let sorted = ctx.setsByMuscleGroup.sorted { $0.value > $1.value }
-            let volLine = sorted.map { "\($0.key) \($0.value)" }.joined(separator: ", ")
-            lines.append("VOLUME BY MUSCLE (sets): " + volLine)
-        }
-        if !ctx.stalledExercises.isEmpty {
-            lines.append("STALLED: " + ctx.stalledExercises.joined(separator: ", "))
-        }
-        if !ctx.focusAreas.isEmpty {
-            lines.append("USER FOCUS AREAS: " + ctx.focusAreas.joined(separator: ", "))
-        }
 
         if let days = ctx.daysSinceLastScan {
             lines.append("DAYS SINCE LAST SCAN: \(days)")
-            lines.append("Photo 1 is current; photo 2 is previous scan. Compare honestly.")
+            lines.append("Photo 1 is current; photo 2 is the previous scan.")
         } else {
-            lines.append("FIRST RECURRING SCAN — no prior photo to compare.")
+            lines.append("FIRST SCAN — no prior photo to compare.")
         }
 
         lines.append("")
-        lines.append("Output the JSON only.")
+        lines.append("Score the current photo. Output the JSON only.")
         return lines.joined(separator: "\n")
     }
 
@@ -265,12 +288,26 @@ private enum BodyScanPrompt {
     {
       "type": "object",
       "properties": {
+        "scores": {
+          "type": "object",
+          "properties": {
+            "leanness":    { "type": "integer" },
+            "muscleMass":  { "type": "integer" },
+            "definition":  { "type": "integer" },
+            "proportions": { "type": "integer" },
+            "symmetry":    { "type": "integer" },
+            "overall":     { "type": "integer" }
+          },
+          "required": ["leanness", "muscleMass", "definition", "proportions", "symmetry", "overall"]
+        },
         "narrative":    { "type": "string" },
         "focusArea":    { "type": "string", "nullable": true },
         "confidence":   { "type": "string", "enum": ["high", "medium", "low"] },
         "observations": { "type": "array", "items": { "type": "string" } }
       },
-      "required": ["narrative", "confidence", "observations"]
+      "required": ["scores", "narrative", "confidence", "observations"]
     }
     """
 }
+
+private func clamp(_ n: Int) -> Int { max(1, min(10, n)) }

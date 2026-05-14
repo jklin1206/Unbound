@@ -14,11 +14,37 @@ import Supabase
 
 enum UnboundSupabase {
 
+    /// JSONEncoder used for all Postgres writes. Maps Swift's camelCase
+    /// property names to snake_case column names, encodes dates as ISO 8601.
+    /// Recursively applied to nested types (jsonb columns get snake_case keys
+    /// inside the JSON blob, which is consistent because reads use the
+    /// matching decoder).
+    static let dbEncoder: JSONEncoder = {
+        let e = JSONEncoder()
+        e.keyEncodingStrategy = .convertToSnakeCase
+        e.dateEncodingStrategy = .iso8601
+        return e
+    }()
+
+    /// JSONDecoder used for all Postgres reads. Mirror of `dbEncoder`.
+    static let dbDecoder: JSONDecoder = {
+        let d = JSONDecoder()
+        d.keyDecodingStrategy = .convertFromSnakeCase
+        d.dateDecodingStrategy = .iso8601
+        return d
+    }()
+
     /// Public (anon) client for user-scoped operations.
     static let client: SupabaseClient = {
         SupabaseClient(
             supabaseURL: URL(string: "https://xwoemvkzrnnsvtupxctu.supabase.co")!,
-            supabaseKey: "sb_publishable_fV5czmcBduBDMSK7BkEcCw_ahyzYdGF"
+            supabaseKey: "sb_publishable_fV5czmcBduBDMSK7BkEcCw_ahyzYdGF",
+            options: SupabaseClientOptions(
+                db: SupabaseClientOptions.DatabaseOptions(
+                    encoder: dbEncoder,
+                    decoder: dbDecoder
+                )
+            )
         )
     }()
 

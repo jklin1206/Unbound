@@ -5,6 +5,10 @@ struct DayDetailView: View {
     let nutritionPlan: NutritionPlan?
     let recoveryPlan: RecoveryPlan?
     var workoutLog: WorkoutLog? = nil
+    /// Optional — when present, WorkoutDetailView shows an Edit toolbar so
+    /// the user can swap exercises and adjust sets/reps.
+    var programViewModel: ProgramViewModel? = nil
+    var programId: String = ""
 
     var body: some View {
         ZStack {
@@ -16,7 +20,13 @@ struct DayDetailView: View {
                     dayHeader
 
                     if !day.isRestDay, let workout = day.workout {
-                        WorkoutSectionCard(workout: workout, workoutLog: workoutLog)
+                        WorkoutSectionCard(
+                            workout: workout,
+                            workoutLog: workoutLog,
+                            programId: programId,
+                            dayNumber: day.dayNumber,
+                            programViewModel: programViewModel
+                        )
                     }
 
                     if let nutrition = nutritionPlan {
@@ -82,6 +92,9 @@ struct DayDetailView: View {
 private struct WorkoutSectionCard: View {
     let workout: Workout
     var workoutLog: WorkoutLog? = nil
+    var programId: String = ""
+    var dayNumber: Int = 0
+    var programViewModel: ProgramViewModel? = nil
     @State private var navigate = false
 
     private var logStatusText: String {
@@ -92,7 +105,12 @@ private struct WorkoutSectionCard: View {
     }
 
     var body: some View {
-        NavigationLink(destination: WorkoutDetailView(workout: workout)) {
+        NavigationLink(destination: WorkoutDetailView(
+            workout: workout,
+            programId: programId,
+            dayNumber: dayNumber,
+            programViewModel: programViewModel
+        )) {
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
                     Label("Workout", systemImage: "dumbbell.fill")

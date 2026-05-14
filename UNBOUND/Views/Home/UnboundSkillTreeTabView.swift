@@ -20,9 +20,6 @@ struct UnboundSkillTreeTabView: View {
 
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 18) {
-                    archetypeHero
-                    patternSections
-                    header
                     SkillGraphView(
                         graph: SkillGraph.shared,
                         nodeStates: liveStatesForFullGraph(),

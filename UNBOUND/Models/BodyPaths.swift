@@ -40,6 +40,54 @@ struct BodyPaths: Sendable {
     }
 }
 
+enum BodyOverlayProfile: String, Sendable {
+    case legacy
+    case unboundV2
+
+    /// Ordered path-resource candidates for this profile. This lets us ship
+    /// a dedicated profile now and keep runtime safe until all custom path
+    /// files are authored and bundled.
+    var pathResourceCandidates: [String] {
+        switch self {
+        case .legacy:
+            return ["body_paths"]
+        case .unboundV2:
+            return ["body_paths_unbound_v2", "body_paths"]
+        }
+    }
+
+    /// Base body art used under the vector heat overlay.
+    func baseImageCandidates(for side: BodyMapSide) -> [String] {
+        switch (self, side) {
+        case (.legacy, .front):
+            return ["body_unbound_front"]
+        case (.legacy, .back):
+            return ["body_unbound_back"]
+        case (.unboundV2, .front):
+            return ["body_unbound_front"]
+        case (.unboundV2, .back):
+            return ["body_unbound_back"]
+        }
+    }
+
+    /// Overlay alignment tuning is profile-specific. This is what keeps each
+    /// path set independent, even if two profiles temporarily share path data.
+    func overlayTransform(for side: BodyMapSide) -> (scale: CGFloat, x: CGFloat, y: CGFloat) {
+        switch self {
+        case .legacy:
+            switch side {
+            case .front: return (scale: 0.955, x: 0, y: 8)
+            case .back:  return (scale: 0.95, x: 0, y: 10)
+            }
+        case .unboundV2:
+            switch side {
+            case .front: return (scale: 1.0, x: 0, y: 0)
+            case .back:  return (scale: 1.0, x: 0, y: 0)
+            }
+        }
+    }
+}
+
 // MARK: - Loader
 
 extension BodyPaths {
@@ -67,6 +115,15 @@ extension BodyPaths {
         )
     }
 
+    static func load(profile: BodyOverlayProfile) -> BodyPaths {
+        for resource in profile.pathResourceCandidates {
+            if let loaded = load(resourceName: resource) {
+                return loaded
+            }
+        }
+        return shared
+    }
+
     /// Union the bounding rects of every path in the given parts. Front and
     /// back of the source asset live in different coordinate spaces, so each
     /// side needs its own viewBox for the render to fit.
@@ -81,6 +138,19 @@ extension BodyPaths {
             }
         }
         return union.isNull ? CGRect(x: 0, y: 0, width: 724, height: 1448) : union
+    }
+
+    private static func load(resourceName: String) -> BodyPaths? {
+        guard let url = Bundle.main.url(forResource: resourceName, withExtension: "json") else {
+            return nil
+        }
+        do {
+            let data = try Data(contentsOf: url)
+            return try decode(from: data)
+        } catch {
+            assertionFailure("\(resourceName).json decode failed: \(error)")
+            return nil
+        }
     }
 
     private struct Raw: Decodable {

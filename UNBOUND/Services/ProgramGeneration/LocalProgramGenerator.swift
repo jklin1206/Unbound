@@ -2,7 +2,9 @@ import Foundation
 
 // MARK: - LocalProgramGenerator
 //
-// Rule-based 12-week TrainingProgram generator that runs entirely on-device.
+// Rule-based 4-week block generator that runs entirely on-device.
+// Each block is one arc (accumulation → intensification → realization).
+// Chunk 3 rollover generates the next block when this one ends.
 // Replaces the remote network call in the legacy ProgramGenerationService.
 //
 // Inputs (from UserProfile + archetype):
@@ -14,7 +16,7 @@ import Foundation
 //   - exerciseStyles      → accessory-slot bias
 //   - targetAreas         → accessory-slot weighting
 //
-// Output: 12-week TrainingProgram (84 days, split into 3 Arcs of 4 weeks)
+// Output: 4-week TrainingProgram (28 days = 1 arc)
 // with sessions balanced by archetype signature movements.
 //
 // Design: hand-tuned templates per archetype rather than a full programming
@@ -54,7 +56,8 @@ enum LocalProgramGenerator {
         archetypeRank: SubRank = .eMinus,
         userId: String,
         scanId: String = UUID().uuidString,
-        analysisId: String = UUID().uuidString
+        analysisId: String = UUID().uuidString,
+        blockNumber: Int = 1
     ) -> TrainingProgram {
 
         // Target frequency must not exceed current frequency + 2 (smooth ramp).
@@ -95,21 +98,29 @@ enum LocalProgramGenerator {
             uniqueKeysWithValues: familyStates.map { ($0.family, $0.unlockedTier) }
         )
 
-        // Generate 84 days (12 weeks). Block schedule for the final arc is
+        // Generate 28 days (4 weeks = 1 arc). Block type per week is
         // rank-gated: realization unlocks at B-, peaking unlocks at A-.
         let realizationUnlocked = archetypeRank.ordinal >= SubRank.bMinus.ordinal
         let peakingUnlocked = archetypeRank.ordinal >= SubRank.aMinus.ordinal
 
+        // Arc cycles every 3 blocks (1=accumulation, 2=intensification, 3=realization).
+        // Block 4 wraps back to arc 1 so periodization restarts with a fresh
+        // accumulation phase. Within a single 28-day block we stay in one arc.
+        let normalizedBlock = max(blockNumber, 1)
+
         var days: [ProgramDay] = []
-        for day in 1...84 {
+        for day in 1...28 {
             let weekNumber = (day - 1) / 7 + 1
             let dayInWeek = (day - 1) % 7 + 1
-            let arcNumber = (weekNumber - 1) / 4 + 1     // 1, 2, or 3
-            let weekInArc = ((weekNumber - 1) % 4) + 1   // 1..4
+            let globalWeek = weekNumber + (normalizedBlock - 1) * 4
+            let arcNumber = ((globalWeek - 1) / 4) % 3 + 1   // 1, 2, or 3
+            let weekInArc = ((weekNumber - 1) % 4) + 1       // 1..4
 
-            // Resolve which block this week falls under.
+            // Resolve which block this week falls under. We pass `globalWeek`
+            // so block 2 reads as weeks 5-8 (intensification) and block 3 as
+            // weeks 9-12 (realization/peaking) for the rank-gated schedule.
             let blockForWeek = scheduledBlock(
-                week: weekNumber,
+                week: globalWeek,
                 realizationUnlocked: realizationUnlocked,
                 peakingUnlocked: peakingUnlocked
             )
@@ -196,7 +207,7 @@ enum LocalProgramGenerator {
             archetype: archetype,
             name: programName(for: archetype),
             description: programDescription(for: archetype),
-            durationDays: 84,
+            durationDays: 28,
             days: days,
             nutritionPlan: defaultNutritionPlan(experience: experience),
             recoveryPlan: defaultRecoveryPlan(daysPerWeek: daysPerWeek),

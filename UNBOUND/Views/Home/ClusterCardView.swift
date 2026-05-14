@@ -7,7 +7,7 @@ import SwiftUI
 //   • Header: glyph + display name (uppercased, tracked) + tagline
 //   • Progress: achieved / total + thin bar
 //   • NOW chip: current `.attempting` node + level (if any)
-//   • Keystone preview: crown glyph + keystone title + rank chip
+//   • Farthest achievement: completed node title + rank chip
 //   • Locked state: 40% opacity, dashed border, REQUIRES caption
 //
 // Tap handling is owned by the parent view. For umbrella display trees
@@ -28,8 +28,14 @@ struct ClusterCardView: View {
     private var activeNode: SkillNode? {
         tree.activeNode(in: graph, states: nodeStates)
     }
-    private var keystone: SkillNode? {
-        tree.previewKeystone(in: graph, states: nodeStates)
+    private var achievementPreview: AchievementPreview? {
+        if let achievedNode = tree.farthestAchievement(in: graph, states: nodeStates) {
+            return AchievementPreview(node: achievedNode, label: "FARTHEST", icon: "trophy.fill", isAchieved: true)
+        }
+        if let activeNode {
+            return AchievementPreview(node: activeNode, label: "CHASING", icon: "scope", isAchieved: false)
+        }
+        return nil
     }
     private var isLocked: Bool {
         tree.isLocked(in: graph, states: nodeStates)
@@ -50,11 +56,11 @@ struct ClusterCardView: View {
             headerRow
             divider
             progressBlock
-            if let node = activeNode {
+            if let node = activeNode, achievementPreview?.isAchieved ?? true {
                 nowChip(node)
             }
-            if let ks = keystone {
-                keystoneRow(ks)
+            if let preview = achievementPreview {
+                achievementRow(preview)
             }
         }
         .padding(16)
@@ -234,15 +240,14 @@ struct ClusterCardView: View {
         .background(Capsule().fill(Color.unbound.surfaceElevated))
     }
 
-    private func keystoneRow(_ node: SkillNode) -> some View {
-        let state = nodeStates[node.id] ?? .locked
-        let achievedKS = state == .achieved || state == .mastered
+    private func achievementRow(_ preview: AchievementPreview) -> some View {
+        let node = preview.node
         return HStack(spacing: 10) {
-            Image(systemName: "crown.fill")
+            Image(systemName: preview.icon)
                 .font(.system(size: 12, weight: .bold))
-                .foregroundStyle(achievedKS ? Color.unbound.impact : Color.unbound.textTertiary)
+                .foregroundStyle(preview.isAchieved ? Color.unbound.impact : Color.unbound.textTertiary)
             VStack(alignment: .leading, spacing: 2) {
-                Text("KEYSTONE")
+                Text(preview.label)
                     .font(Font.unbound.captionS.weight(.heavy))
                     .tracking(1.6)
                     .foregroundStyle(Color.unbound.textTertiary)
@@ -258,38 +263,20 @@ struct ClusterCardView: View {
     }
 
     private func rankPill(rank: SkillRank) -> some View {
-        Group {
-            if rank.isAscendedTier {
-                // Mythic/Ascended keystones get the flame chip instead of a letter hex.
-                Image(systemName: "flame.fill")
-                    .font(.system(size: 13, weight: .black))
-                    .foregroundStyle(Color.unbound.impact)
-                    .frame(width: 28, height: 28)
-                    .background(
-                        Hexagon()
-                            .fill(Color.unbound.surfaceElevated)
-                    )
-                    .overlay(
-                        Hexagon()
-                            .strokeBorder(Color.unbound.impact, lineWidth: 1.2)
-                    )
-                    .accessibilityLabel("Ascended rank — life pursuit")
-            } else {
-                Text(rank.letter)
-                    .font(.system(size: 12, weight: .heavy, design: .monospaced))
-                    .foregroundStyle(Color.unbound.textPrimary)
-                    .frame(width: 26, height: 26)
-                    .background(
-                        Hexagon()
-                            .fill(Color.unbound.surfaceElevated)
-                    )
-                    .overlay(
-                        Hexagon()
-                            .strokeBorder(rank.accentColor, lineWidth: 1.2)
-                    )
-            }
-        }
+        Image(rank.rankTitle.assetName)
+            .resizable()
+            .scaledToFit()
+            .frame(width: 36, height: 36)
+            .shadow(color: rank.accentColor.opacity(0.35), radius: 8)
+            .accessibilityLabel("\(rank.rankTitle.displayName) difficulty")
     }
+}
+
+private struct AchievementPreview {
+    let node: SkillNode
+    let label: String
+    let icon: String
+    let isAchieved: Bool
 }
 
 // MARK: - Convenience init (no progress service)

@@ -141,6 +141,26 @@ extension SkillDisplayTree {
         return nil
     }
 
+    /// The farthest completed node in this display tree. Landing cards use
+    /// this as the compact achievement signal because terminal keystones can
+    /// be years away and read oddly before the user is close to them.
+    func farthestAchievement(in graph: SkillGraph, states: [String: NodeState]) -> SkillNode? {
+        allNodes(in: graph)
+            .filter { node in
+                let s = states[node.id] ?? .locked
+                return s == .achieved || s == .mastered
+            }
+            .max { lhs, rhs in
+                if lhs.tier != rhs.tier { return lhs.tier < rhs.tier }
+                if lhs.rank.difficultyOrder != rhs.rank.difficultyOrder {
+                    return lhs.rank.difficultyOrder < rhs.rank.difficultyOrder
+                }
+                if lhs.isMythic != rhs.isMythic { return !lhs.isMythic && rhs.isMythic }
+                if lhs.isKeystone != rhs.isKeystone { return !lhs.isKeystone && rhs.isKeystone }
+                return lhs.title.localizedStandardCompare(rhs.title) == .orderedDescending
+            }
+    }
+
     /// The keystone preview for the landing card. Walks clusters in order
     /// and returns the first keystone that is NOT yet achieved. If every
     /// keystone is achieved, returns the terminal keystone of the last

@@ -23,8 +23,8 @@ enum SilhouetteRimLight {
 }
 
 enum BodyAsset: String {
-    case frontMale = "body_front_male"
-    case backMale = "body_back_male"
+    case frontMale = "body_unbound_front"
+    case backMale = "body_unbound_back"
     /// Neutral sealed body used for Arc02 "dormant" state — archetype-agnostic
     /// baseline silhouette with a dim violet rim light.
     case dormant = "body_baseline"

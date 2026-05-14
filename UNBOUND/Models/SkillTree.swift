@@ -141,6 +141,13 @@ struct SkillNode: Identifiable, Codable, Hashable, Sendable {
     /// `nil` means "no chapter grouping" (default so old call sites compile).
     var subChapter: String? = nil
 
+    /// When true, the renderer places this node at the SAME y-coordinate
+    /// as its primary-parent prereq, offset horizontally — instead of one
+    /// row below. Used for "parallel" chain-connected siblings on the
+    /// same visual difficulty ring (e.g., Floating Pike Push-Up renders
+    /// at the same y as Elevated Pike Push-Up).
+    var isParallelToParent: Bool = false
+
     static func == (lhs: SkillNode, rhs: SkillNode) -> Bool { lhs.id == rhs.id }
     func hash(into hasher: inout Hasher) { hasher.combine(id) }
 
@@ -175,7 +182,8 @@ struct SkillNode: Identifiable, Codable, Hashable, Sendable {
         position: NodeGridPosition = .zero,
         rank: SkillRank = .d,
         levels: [SkillLevel] = [],
-        subChapter: String? = nil
+        subChapter: String? = nil,
+        isParallelToParent: Bool = false
     ) -> SkillNode {
         SkillNode(
             id: id,
@@ -199,7 +207,8 @@ struct SkillNode: Identifiable, Codable, Hashable, Sendable {
             position: position,
             rank: rank,
             levels: levels,
-            subChapter: subChapter
+            subChapter: subChapter,
+            isParallelToParent: isParallelToParent
         )
     }
 
@@ -349,7 +358,8 @@ struct SkillTree: Codable, Sendable {
                     position: NodeGridPosition(row: row, column: idx - columnOrder.count / 2),
                     rank: n.rank,
                     levels: n.levels,
-                    subChapter: n.subChapter
+                    subChapter: n.subChapter,
+                    isParallelToParent: n.isParallelToParent
                 )
                 positioned.append(repositioned)
             }

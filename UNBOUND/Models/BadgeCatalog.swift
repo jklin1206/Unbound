@@ -60,11 +60,27 @@ enum BadgeCatalog {
             unlockedAt: nil
         ),
         Badge(
+            id: "streak_14",
+            displayName: "Fortnight",
+            description: "14-session streak. The routine is starting to own the calendar.",
+            iconSystemName: "calendar.circle.fill",
+            rarity: .rare,
+            unlockedAt: nil
+        ),
+        Badge(
             id: "streak_30",
             displayName: "One Moon",
             description: "30 sessions in a row. Habit is identity.",
             iconSystemName: "flame.circle.fill",
             rarity: .rare,
+            unlockedAt: nil
+        ),
+        Badge(
+            id: "streak_60",
+            displayName: "Iron Season",
+            description: "60-session streak. Discipline is no longer temporary.",
+            iconSystemName: "shield.lefthalf.filled",
+            rarity: .legendary,
             unlockedAt: nil
         ),
         Badge(
@@ -86,10 +102,26 @@ enum BadgeCatalog {
             unlockedAt: nil
         ),
         Badge(
+            id: "sessions_25",
+            displayName: "Twenty-Five",
+            description: "25 lifetime sessions. The start is behind you.",
+            iconSystemName: "25.circle.fill",
+            rarity: .common,
+            unlockedAt: nil
+        ),
+        Badge(
             id: "sessions_50",
             displayName: "Fifty Deep",
             description: "50 lifetime sessions. The foundation's thick now.",
             iconSystemName: "50.circle.fill",
+            rarity: .rare,
+            unlockedAt: nil
+        ),
+        Badge(
+            id: "sessions_100",
+            displayName: "Hundred Club",
+            description: "100 lifetime sessions logged.",
+            iconSystemName: "100.circle.fill",
             rarity: .rare,
             unlockedAt: nil
         ),
@@ -99,6 +131,32 @@ enum BadgeCatalog {
             description: "250 logged sessions. Freak status unlocked.",
             iconSystemName: "trophy.fill",
             rarity: .legendary,
+            unlockedAt: nil
+        ),
+        Badge(
+            id: "sessions_500",
+            displayName: "Five Hundred",
+            description: "500 logged sessions. This is no longer a phase.",
+            iconSystemName: "medal.fill",
+            rarity: .legendary,
+            unlockedAt: nil
+        ),
+
+        // MARK: Session quality
+        Badge(
+            id: "clean_sweep",
+            displayName: "Clean Sweep",
+            description: "Finished every planned exercise in a session.",
+            iconSystemName: "checkmark.seal.fill",
+            rarity: .common,
+            unlockedAt: nil
+        ),
+        Badge(
+            id: "hour_glass",
+            displayName: "Hour Glass",
+            description: "Logged a session that lasted 60 minutes or more.",
+            iconSystemName: "hourglass.circle.fill",
+            rarity: .rare,
             unlockedAt: nil
         ),
 
@@ -113,32 +171,32 @@ enum BadgeCatalog {
         ),
         Badge(
             id: "rank_c_any",
-            displayName: "C-Tier",
-            description: "Reached C on any tracked lift.",
+            displayName: "Forged",
+            description: "Reached the Forged title on any tracked lift.",
             iconSystemName: "c.circle.fill",
             rarity: .common,
             unlockedAt: nil
         ),
         Badge(
             id: "rank_b_any",
-            displayName: "B-Tier",
-            description: "Reached B on any tracked lift.",
+            displayName: "Honed",
+            description: "Reached the Honed title on any tracked lift.",
             iconSystemName: "b.circle.fill",
             rarity: .rare,
             unlockedAt: nil
         ),
         Badge(
             id: "rank_a_any",
-            displayName: "A-Tier",
-            description: "Reached A on any tracked lift. Elite territory.",
+            displayName: "Unbound",
+            description: "Reached the Unbound title on any tracked lift.",
             iconSystemName: "a.circle.fill",
             rarity: .rare,
             unlockedAt: nil
         ),
         Badge(
             id: "rank_s_any",
-            displayName: "S-Tier",
-            description: "Reached S on any tracked lift. The summit.",
+            displayName: "Ascendant",
+            description: "Reached the Ascendant title on any tracked lift.",
             iconSystemName: "s.circle.fill",
             rarity: .legendary,
             unlockedAt: nil
@@ -159,6 +217,38 @@ enum BadgeCatalog {
             description: "Completed a set of handstand pushups.",
             iconSystemName: "figure.gymnastics",
             rarity: .legendary,
+            unlockedAt: nil
+        ),
+        Badge(
+            id: "first_pullup",
+            displayName: "First Pull",
+            description: "Completed a set of pull-ups or chin-ups.",
+            iconSystemName: "figure.pullup",
+            rarity: .common,
+            unlockedAt: nil
+        ),
+        Badge(
+            id: "first_dip",
+            displayName: "Locked Out",
+            description: "Completed a set of dips.",
+            iconSystemName: "figure.strengthtraining.functional",
+            rarity: .common,
+            unlockedAt: nil
+        ),
+        Badge(
+            id: "first_pistol_squat",
+            displayName: "Single-Leg Steel",
+            description: "Completed a set of pistol squats.",
+            iconSystemName: "figure.step.training",
+            rarity: .rare,
+            unlockedAt: nil
+        ),
+        Badge(
+            id: "pushup_50_set",
+            displayName: "Fifty Straight",
+            description: "Hit 50 push-ups in one set.",
+            iconSystemName: "50.square.fill",
+            rarity: .rare,
             unlockedAt: nil
         ),
 
@@ -197,6 +287,22 @@ enum BadgeCatalog {
             rarity: .rare,
             unlockedAt: nil
         ),
+        Badge(
+            id: "scan_archive_5",
+            displayName: "Scan Archive",
+            description: "Built a five-scan body record.",
+            iconSystemName: "person.crop.rectangle.stack.fill",
+            rarity: .rare,
+            unlockedAt: nil
+        ),
+        Badge(
+            id: "scan_archive_10",
+            displayName: "Ten Reads",
+            description: "Completed 10 body scans.",
+            iconSystemName: "waveform.path.ecg.rectangle",
+            rarity: .legendary,
+            unlockedAt: nil
+        ),
 
         // MARK: Photo ritual (daily capture + cadence)
         Badge(
@@ -221,6 +327,22 @@ enum BadgeCatalog {
             description: "Four or more captures in a rolling 30-day window.",
             iconSystemName: "calendar.badge.checkmark",
             rarity: .rare,
+            unlockedAt: nil
+        ),
+        Badge(
+            id: "proof_10",
+            displayName: "Proof Stack",
+            description: "Saved 10 progress captures.",
+            iconSystemName: "photo.on.rectangle.angled",
+            rarity: .rare,
+            unlockedAt: nil
+        ),
+        Badge(
+            id: "proof_25",
+            displayName: "Archive Built",
+            description: "Saved 25 progress captures.",
+            iconSystemName: "square.grid.3x3.fill",
+            rarity: .legendary,
             unlockedAt: nil
         )
     ]

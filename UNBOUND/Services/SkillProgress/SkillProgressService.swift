@@ -41,6 +41,24 @@ final class SkillProgressService {
     // working unchanged. Empty until Phase 1b wires XP accrual.
     private(set) var skillProgress: [String: SkillProgress] = [:]
 
+    /// Mirror of `UserSkillProgress.bookmarkedNodeIds` for view binding.
+    private(set) var bookmarkedNodeIds: Set<String> = []
+
+    /// Mirror of `UserSkillProgress.activeGoalIds` for view binding.
+    /// Active goals are skills the user has explicitly opted into training
+    /// — they drive the Program tab's TODAY'S TRAINING section.
+    private(set) var activeGoalIds: Set<String> = []
+
+    /// Mirror of `UserSkillProgress.weeklySchedule` for view binding.
+    /// Index 0 = Monday, 6 = Sunday. `nil` entries fall back to
+    /// `ProgramScheduler.defaultWeeklySchedule`. Observed by the Program
+    /// tab so editing the schedule re-flows TODAY'S TRAINING + day strip.
+    private(set) var weeklySchedule: [DayCategory?] = Array(repeating: nil, count: 7)
+
+    /// V4 — mirror of `UserSkillProgress.currentWeekPhase` for view binding.
+    /// Drives AI session prescriptions (heavy/moderate/light/deload).
+    private(set) var currentWeekPhase: WeekPhase = .moderate
+
     /// The most recent unlock event — views show a reveal when this changes.
     var pendingUnlock: NodeUnlockedEvent? = nil
 
@@ -71,11 +89,23 @@ final class SkillProgressService {
             progress = existing
             nodeStates = existing.nodeStates
             skillProgress = existing.skillProgress
+            bookmarkedNodeIds = existing.bookmarkedNodeIds
+            activeGoalIds = existing.activeGoalIds
+            // Older payloads predate `weeklySchedule` — Codable's default makes
+            // it `[]` rather than the 7-nil array, so normalize on hydrate.
+            weeklySchedule = existing.weeklySchedule.count == 7
+                ? existing.weeklySchedule
+                : Array(repeating: nil, count: 7)
+            currentWeekPhase = existing.currentWeekPhase
         } else {
             let empty = UserSkillProgress.empty(userId: userId)
             progress = empty
             nodeStates = [:]
             skillProgress = [:]
+            bookmarkedNodeIds = []
+            activeGoalIds = []
+            weeklySchedule = Array(repeating: nil, count: 7)
+            currentWeekPhase = .moderate
             try? await database.create(empty, collection: "skillProgress", documentId: userId)
         }
         seedSpawnPoints(for: archetype ?? currentArchetype())
@@ -199,6 +229,12 @@ final class SkillProgressService {
             return
         }
 
+        // 2b. Daily cap: one award per node per 24h. Prevents tap-to-grind.
+        if let last = p.lastTrainedAt[nodeId],
+           Date().timeIntervalSince(last) < 24 * 3600 {
+            return
+        }
+
         // 3. Add the XP.
         sp.xpInLevel += xpAmount
 
@@ -235,6 +271,7 @@ final class SkillProgressService {
 
         // 7. Commit to state.
         p.skillProgress[nodeId] = sp
+        p.lastTrainedAt[nodeId] = Date()
         if let newState = newNodeState {
             p.nodeStates[nodeId] = newState
             if newState == .achieved && p.achievedAt[nodeId] == nil {
@@ -268,6 +305,109 @@ final class SkillProgressService {
         }
     }
 
+    /// True when the Train CTA is allowed to award XP. Gated by the
+    /// 24h cap recorded in `UserSkillProgress.lastTrainedAt`. Treat
+    /// missing entries as "ready to train."
+    func canTrain(nodeId: String) -> Bool {
+        guard let last = progress?.lastTrainedAt[nodeId] else { return true }
+        return Date().timeIntervalSince(last) >= 24 * 3600
+    }
+
+    /// Wall-clock time the next train is available. Nil = ready now.
+    func nextTrainAvailable(nodeId: String) -> Date? {
+        guard let last = progress?.lastTrainedAt[nodeId] else { return nil }
+        return last.addingTimeInterval(24 * 3600)
+    }
+
+    // MARK: - Bookmarks
+
+    func isBookmarked(nodeId: String) -> Bool {
+        bookmarkedNodeIds.contains(nodeId)
+    }
+
+    /// Toggle the bookmark state for a node and persist. View binds via
+    /// `@Bindable` on the singleton so the icon flips after the await.
+    func toggleBookmark(nodeId: String) async {
+        guard var p = progress else { return }
+        if p.bookmarkedNodeIds.contains(nodeId) {
+            p.bookmarkedNodeIds.remove(nodeId)
+        } else {
+            p.bookmarkedNodeIds.insert(nodeId)
+        }
+        p.updatedAt = Date()
+        progress = p
+        bookmarkedNodeIds = p.bookmarkedNodeIds
+        try? await database.create(p, collection: "skillProgress", documentId: p.userId)
+    }
+
+    // MARK: - Active goals (Program scheduler)
+
+    /// Maximum number of skills a user can have actively training at once.
+    /// Cap exists to keep the Program tab focused — V1 surfaces all active
+    /// goals every day, so 3+ would already feel like a heavy daily list.
+    static let activeGoalCap: Int = 3
+
+    func isActiveGoal(nodeId: String) -> Bool {
+        activeGoalIds.contains(nodeId)
+    }
+
+    /// Toggle whether a node is an active goal. Caps at `activeGoalCap` —
+    /// attempts to add a new goal beyond the cap silently no-op (the view
+    /// should disable the add button when at cap, but the service guards
+    /// anyway). Persists via the same path as bookmarks.
+    func toggleActiveGoal(nodeId: String) async {
+        guard var p = progress else { return }
+        let wasGoal = p.activeGoalIds.contains(nodeId)
+        if wasGoal {
+            p.activeGoalIds.remove(nodeId)
+        } else {
+            // Cap enforcement — don't grow past the limit.
+            guard p.activeGoalIds.count < Self.activeGoalCap else { return }
+            p.activeGoalIds.insert(nodeId)
+        }
+        p.updatedAt = Date()
+        progress = p
+        activeGoalIds = p.activeGoalIds
+        try? await database.create(p, collection: "skillProgress", documentId: p.userId)
+
+        // On ADD: pre-generate today's session so the Program tab Train
+        // button is instant when the user gets there. Fire-and-forget —
+        // if the lookup fails it'll retry on first user-initiated open.
+        if !wasGoal, let userId = currentUserId {
+            Task.detached { @MainActor in
+                await RPESessionService.shared.prefetch(
+                    skillId: nodeId,
+                    userId: userId
+                )
+            }
+        }
+    }
+
+    // MARK: - Weekly schedule (Program scheduler V3)
+
+    /// Persist the user's weekly schedule. Index 0 = Monday, 6 = Sunday.
+    /// `nil` entries fall back to `ProgramScheduler.defaultWeeklySchedule`.
+    /// Observed views re-render via the @Observable property mirror.
+    func setWeeklySchedule(_ schedule: [DayCategory?]) async {
+        guard schedule.count == 7, var p = progress else { return }
+        p.weeklySchedule = schedule
+        p.updatedAt = Date()
+        progress = p
+        weeklySchedule = schedule
+        try? await database.create(p, collection: "skillProgress", documentId: p.userId)
+    }
+
+    /// V4 — Persist the user's current week-phase tag. Same pattern as
+    /// `setWeeklySchedule`. Drives AI session prescription intensity.
+    func setWeekPhase(_ phase: WeekPhase) async {
+        guard var p = progress else { return }
+        p.currentWeekPhase = phase
+        p.updatedAt = Date()
+        progress = p
+        currentWeekPhase = phase
+        try? await database.create(p, collection: "skillProgress", documentId: p.userId)
+    }
+
     /// XP required to reach `level` starting from `level - 1`.
     /// Lv1 is the starting floor — nothing required to be there.
     /// Curve: 100 / 125 / 150 / 175 for Lv2 / Lv3 / Lv4 / Lv5.
@@ -292,13 +432,34 @@ final class SkillProgressService {
     }
 
     /// Seeds `.attempting` for the archetype's spawn-point nodes if they
-    /// haven't already been recorded. Runs on load.
+    /// haven't already been recorded. Also self-heals: any node currently
+    /// `.attempting` whose prereqs are NOT met (because the tree was
+    /// restructured underneath them) gets demoted to `.locked`. This keeps
+    /// existing user state consistent with content updates.
     private func seedSpawnPoints(for archetype: Archetype) {
         guard var p = progress else { return }
+        let graph = SkillGraph.shared
+
+        // 1. Demote any orphaned .attempting nodes whose prereqs no longer hold.
+        for (id, state) in p.nodeStates where state == .attempting {
+            guard let node = graph.node(id: id) else { continue }
+            if !node.prereqs.isEmpty {
+                let met = node.prereqs.contains { group in
+                    group.nodeIds.allSatisfy { reqId in
+                        let s = p.state(for: reqId)
+                        return s == .achieved || s == .mastered
+                    }
+                }
+                if !met { p.nodeStates[id] = .locked }
+            }
+        }
+
+        // 2. Seed the archetype's roots as .attempting (only if currently locked).
         let spawnIds = ArchetypeSpawnPoints.nodeIds(for: archetype)
         for id in spawnIds where p.state(for: id) == .locked {
             p.nodeStates[id] = .attempting
         }
+
         progress = p
         nodeStates = p.nodeStates
     }

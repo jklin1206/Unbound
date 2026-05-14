@@ -62,6 +62,27 @@ struct Step_Arc03_Path: View {
             VStack(spacing: 0) {
                 Spacer().frame(height: 40)
 
+                HStack(spacing: 8) {
+                    Image(systemName: "scope")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(Color.unbound.accent)
+                    Text("ARCHETYPE PREVIEW")
+                        .font(.system(size: 10, weight: .black, design: .monospaced))
+                        .tracking(1.2)
+                        .foregroundStyle(Color.unbound.textSecondary)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 7)
+                .background(
+                    Capsule().fill(Color.unbound.surface.opacity(0.84))
+                )
+                .overlay(
+                    Capsule().strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
+                )
+                .opacity(copyIn ? 1 : 0)
+                .offset(y: copyIn ? 0 : -8)
+                .padding(.bottom, 12)
+
                 HStack(alignment: .center, spacing: 18) {
                     ZStack {
                         Text(currentArchetype.shortName)
@@ -117,6 +138,17 @@ struct Step_Arc03_Path: View {
                     .offset(y: statsIn ? 0 : 16)
                 }
                 .padding(.horizontal, 20)
+
+                HStack(spacing: 6) {
+                    ForEach(archetypeCases.indices, id: \.self) { index in
+                        Capsule()
+                            .fill(index == archetypeIndex ? Color.unbound.accent : Color.unbound.borderSubtle)
+                            .frame(width: index == archetypeIndex ? 18 : 8, height: 4)
+                            .animation(.easeInOut(duration: 0.3), value: archetypeIndex)
+                    }
+                }
+                .padding(.top, 14)
+                .opacity(statsIn ? 1 : 0)
 
                 Text("Your version of strong")
                     .font(Font.unbound.captionS)

@@ -25,10 +25,9 @@ struct Step_ScanLive: View {
     @State private var sessionStatus: SessionStatus = .starting
     @State private var isCapturing = false
     @State private var showsFlashOverlay = false
-    @State private var useAutoSnap: Bool = true
+    @State private var useWaveSnap: Bool = true
     @State private var countdownSeconds: Int? = nil
     @State private var countdownTask: Task<Void, Never>? = nil
-    @State private var alignedHoldStart: Date? = nil
 
     private enum SessionStatus: Equatable {
         case starting
@@ -60,13 +59,6 @@ struct Step_ScanLive: View {
             )
             .ignoresSafeArea()
             .allowsHitTesting(false)
-
-            // Body alignment guide — frame + corners + HEAD/FEET labels
-            // matched to the detector's actual thresholds so lining up
-            // inside the rectangle satisfies auto-snap.
-            BodyAlignmentGuide(alignment: detector.alignment)
-                .allowsHitTesting(false)
-                .ignoresSafeArea()
 
             // Countdown overlay — big number when auto-snap is firing
             if let s = countdownSeconds {
@@ -110,6 +102,14 @@ struct Step_ScanLive: View {
         }
         .onChange(of: detector.alignment) { _, new in
             handleAlignmentChange(new)
+        }
+        .onChange(of: detector.gestureDetected) { _, detected in
+            guard detected, useWaveSnap, sessionStatus == .running else {
+                if detected { detector.resetGesture() }
+                return
+            }
+            guard countdownTask == nil, !isCapturing else { return }
+            startCountdown(from: 3)
         }
     }
 
@@ -170,7 +170,7 @@ struct Step_ScanLive: View {
             }
             .foregroundStyle(Color.unbound.accent)
 
-            Text("Stand 6 ft back. Fill the frame.")
+            Text(useWaveSnap ? "Fill the frame. Raise your hand." : "Fill the frame. Tap to snap.")
                 .font(Font.unbound.titleL)
                 .foregroundStyle(Color.unbound.textPrimary)
                 .multilineTextAlignment(.center)
@@ -208,15 +208,16 @@ struct Step_ScanLive: View {
         }
     }
 
-    // MARK: - Auto-snap toggle
+    // MARK: - Snap mode toggle
 
     private var captureModePill: some View {
         HStack(spacing: 0) {
-            modeSegment(label: "Auto-snap", icon: "wand.and.stars", active: useAutoSnap) {
-                useAutoSnap = true
+            modeSegment(label: "Wave", icon: "hand.wave.fill", active: useWaveSnap) {
+                useWaveSnap = true
+                detector.resetGesture()
             }
-            modeSegment(label: "Manual", icon: "hand.tap.fill", active: !useAutoSnap) {
-                useAutoSnap = false
+            modeSegment(label: "Manual", icon: "hand.tap.fill", active: !useWaveSnap) {
+                useWaveSnap = false
                 cancelCountdown()
             }
         }
@@ -335,21 +336,16 @@ struct Step_ScanLive: View {
         countdownTask?.cancel()
         countdownTask = nil
         countdownSeconds = nil
+        detector.resetGesture()
         UnboundHaptics.medium()
     }
 
-    // MARK: - Alignment-driven auto-snap
+    // MARK: - Alignment change
 
     private func handleAlignmentChange(_ new: BodyAlignment) {
-        guard useAutoSnap, sessionStatus == .running else { return }
-        if new == .aligned, countdownTask == nil, !isCapturing {
-            // Tighter countdown for the auto path — the user has already been
-            // holding still for ~1s by the time we hit `.aligned`.
-            startCountdown(from: 3)
-        } else if new != .aligned, countdownTask != nil {
-            // Drift broke alignment mid-countdown — abort.
-            cancelCountdown()
-        }
+        guard countdownTask != nil else { return }
+        // Cancel an in-progress countdown only if the body fully leaves frame.
+        if case .noBody = new { cancelCountdown() }
     }
 
     // MARK: - Capture
@@ -374,6 +370,7 @@ struct Step_ScanLive: View {
     private func capture() {
         guard !isCapturing else { return }
         isCapturing = true
+        detector.resetGesture()
         UnboundHaptics.heavy()
 
         withAnimation(.easeOut(duration: 0.12)) { showsFlashOverlay = true }
@@ -385,6 +382,7 @@ struct Step_ScanLive: View {
             do {
                 let image = try await services.imageCapture.capturePhoto()
                 await MainActor.run {
+                    flow.bodyRatings = nil  // invalidate any result from prior photo
                     flow.capturedPhotos[.front] = image
                     isCapturing = false
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {

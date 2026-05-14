@@ -44,11 +44,6 @@ struct CameraView: View {
             .ignoresSafeArea()
             .allowsHitTesting(false)
 
-            // Bright alignment guide — frame + head/feet labels
-            BodyAlignmentGuide(alignment: detector.alignment)
-                .allowsHitTesting(false)
-                .ignoresSafeArea()
-
             // Countdown display
             if let s = countdownSeconds {
                 AutoSnapCountdown(seconds: s)

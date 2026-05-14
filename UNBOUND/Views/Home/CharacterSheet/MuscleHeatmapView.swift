@@ -17,17 +17,32 @@ import SwiftUI
 
 struct MuscleHeatmapView: View {
     let groupRanks: [MuscleHeatGroup: SubRank]
+    let overlayProfile: BodyOverlayProfile
     let onGroupTapped: (MuscleHeatGroup) -> Void
 
     @State private var selectedSide: BodyMapSide = .front
+    @State private var selectedGroup: MuscleHeatGroup?
     @State private var pulsingGroups: Set<MuscleHeatGroup> = []
     @State private var breathingScale: CGFloat = 1.0
 
-    private static let bodyPaths = BodyPaths.shared
+    init(
+        groupRanks: [MuscleHeatGroup: SubRank],
+        overlayProfile: BodyOverlayProfile = .unboundV2,
+        onGroupTapped: @escaping (MuscleHeatGroup) -> Void
+    ) {
+        self.groupRanks = groupRanks
+        self.overlayProfile = overlayProfile
+        self.onGroupTapped = onGroupTapped
+    }
+
+    private var bodyPaths: BodyPaths { BodyPaths.load(profile: overlayProfile) }
+    private var usesUnboundRegionOverlay: Bool { overlayProfile == .unboundV2 }
 
     var body: some View {
-        let aspect = max(Self.bodyPaths.frontViewBox.width, Self.bodyPaths.backViewBox.width) /
-            max(Self.bodyPaths.frontViewBox.height, Self.bodyPaths.backViewBox.height)
+        let aspect: CGFloat = usesUnboundRegionOverlay
+            ? (768.0 / 1376.0)
+            : (max(bodyPaths.frontViewBox.width, bodyPaths.backViewBox.width) /
+               max(bodyPaths.frontViewBox.height, bodyPaths.backViewBox.height))
         return VStack(spacing: 10) {
             ZStack {
                 bodyFigure(side: .front).opacity(selectedSide == .front ? 1 : 0)
@@ -35,6 +50,7 @@ struct MuscleHeatmapView: View {
             }
             .aspectRatio(aspect, contentMode: .fit)
             .scaleEffect(breathingScale)
+            .drawingGroup()
             .animation(.easeInOut(duration: 0.25), value: selectedSide)
 
             sideSelector
@@ -61,66 +77,308 @@ struct MuscleHeatmapView: View {
     // MARK: Figure
 
     private func bodyFigure(side: BodyMapSide) -> some View {
-        let parts = Self.bodyPaths.parts(for: side)
-        let viewBox = Self.bodyPaths.viewBox(for: side)
+        if usesUnboundRegionOverlay {
+            return AnyView(bodyFigureUnbound(side: side))
+        }
+        return AnyView(bodyFigureLegacy(side: side))
+    }
 
-        // Shared top-to-bottom depth composite used by every muscle + the
-        // decorative silhouette. Top gets a soft white highlight, bottom
-        // gets a shadow — gives the flat vector body a 3D-ish feel without
-        // needing per-muscle texture assets.
-        let highlight = LinearGradient(
-            colors: [Color.white.opacity(0.45), Color.white.opacity(0.10), .clear],
-            startPoint: .top,
-            endPoint: .center
-        )
-        let shadow = LinearGradient(
-            colors: [.clear, Color.black.opacity(0.25), Color.black.opacity(0.65)],
-            startPoint: .center,
-            endPoint: .bottom
-        )
+    private func bodyFigureLegacy(side: BodyMapSide) -> some View {
+        let parts = bodyPaths.parts(for: side)
+        let viewBox = bodyPaths.viewBox(for: side)
+        let transform = overlayProfile.overlayTransform(for: side)
 
         return ZStack {
-            // Decorative silhouette layer — head, hair, hands, feet, etc.
-            // Shaded with the same depth gradients so the silhouette reads
-            // dimensional instead of flat grey.
-            ForEach(parts.filter { $0.isDecorative }) { part in
-                let shape = muscleShape(part: part, viewBox: viewBox)
-                shape
-                    .fill(Color.unbound.textSecondary.opacity(0.5))
-                    .overlay(shape.fill(highlight))
-                    .overlay(shape.fill(shadow))
-                    .overlay(
-                        shape.stroke(Color.unbound.textSecondary.opacity(0.7), lineWidth: 1.0)
-                    )
-            }
+            customBodyBase(side: side)
+            figureAtmosphere(parts: parts, viewBox: viewBox)
+                .scaleEffect(transform.scale)
+                .offset(x: transform.x, y: transform.y)
 
-            // Rank-tinted muscles on top. Each muscle gets a rank tint fill
-            // + highlight + shadow + stroke + glow shadow for presence.
             ForEach(parts.filter { !$0.isDecorative }) { part in
                 if let group = part.heatGroup {
                     let rank = groupRanks[group] ?? .eMinus
                     let isPulsing = pulsingGroups.contains(group)
+                    let isSelected = selectedGroup == group
                     let tint = rank.regionTint
                     let shape = muscleShape(part: part, viewBox: viewBox)
 
                     shape
-                        .fill(tint.opacity(isPulsing ? 1.0 : 0.82))
-                        .overlay(shape.fill(highlight))
-                        .overlay(shape.fill(shadow))
+                        .fill(muscleFill(for: rank, isSelected: isSelected, isPulsing: isPulsing))
+                        .overlay(shape.fill(muscleTopLight(for: rank)))
+                        .overlay(shape.fill(muscleCoreAura(for: rank, isSelected: isSelected || isPulsing)))
                         .overlay(
-                            shape.stroke(tint.opacity(0.95), lineWidth: isPulsing ? 1.6 : 1.0)
+                            shape.stroke(Color.black.opacity(isSelected ? 0.74 : 0.30), lineWidth: isSelected ? 1.8 : 0.65)
                         )
-                        .shadow(color: tint.opacity(isPulsing ? 0.9 : 0.35),
-                                radius: isPulsing ? 14 : 3)
-                        .scaleEffect(isPulsing ? 1.03 : 1.0)
+                        .overlay(
+                            shape.stroke(
+                                tint.opacity(isSelected || isPulsing ? 1.0 : 0.48),
+                                lineWidth: isSelected || isPulsing ? 1.35 : 0.55
+                            )
+                        )
+                        .shadow(
+                            color: tint.opacity(isSelected || isPulsing ? 0.82 : 0.30),
+                            radius: isSelected || isPulsing ? 12 : rankGlowRadius(for: rank),
+                            x: 0,
+                            y: 0
+                        )
+                        .scaleEffect(isPulsing ? 1.025 : (isSelected ? 1.018 : 1.0))
                         .contentShape(shape)
                         .onTapGesture {
                             UnboundHaptics.medium()
+                            withAnimation(.spring(response: 0.28, dampingFraction: 0.78)) {
+                                selectedGroup = group
+                            }
                             onGroupTapped(group)
                         }
                         .animation(.easeInOut(duration: 0.4), value: isPulsing)
+                        .animation(.spring(response: 0.28, dampingFraction: 0.78), value: selectedGroup)
                 }
             }
+            .scaleEffect(transform.scale)
+                .offset(x: transform.x, y: transform.y)
+        }
+    }
+
+    private func bodyFigureUnbound(side: BodyMapSide) -> some View {
+        let regions = BodyRegion.visible(on: side)
+        let transform = overlayProfile.overlayTransform(for: side)
+
+        return ZStack {
+            customBodyBase(side: side)
+            unboundFigureAtmosphere(regions: regions, side: side)
+                .scaleEffect(transform.scale)
+                .offset(x: transform.x, y: transform.y)
+
+            ForEach(regions, id: \.self) { region in
+                let group = region.heatGroup
+                let rank = groupRanks[group] ?? .eMinus
+                let isPulsing = pulsingGroups.contains(group)
+                let isSelected = selectedGroup == group
+                let tint = rank.regionTint
+                let shape = MuscleRegionShape(region: region, side: side)
+
+                shape
+                    .fill(unboundPanelFill(for: rank, isSelected: isSelected, isPulsing: isPulsing))
+                    .overlay(
+                        shape.stroke(Color.black.opacity(isSelected ? 0.58 : 0.20), lineWidth: isSelected ? 1.2 : 0.45)
+                    )
+                    .overlay(
+                        shape.stroke(
+                            tint.opacity(isSelected || isPulsing ? 0.95 : unboundPanelStrokeOpacity(for: rank)),
+                            lineWidth: isSelected || isPulsing ? 1.25 : 0.55
+                        )
+                    )
+                    .shadow(
+                        color: tint.opacity(isSelected || isPulsing ? 0.72 : unboundPanelGlowOpacity(for: rank)),
+                        radius: isSelected || isPulsing ? 10 : unboundPanelGlowRadius(for: rank),
+                        x: 0,
+                        y: 0
+                    )
+                    .scaleEffect(isPulsing ? 1.025 : (isSelected ? 1.018 : 1.0))
+                    .contentShape(shape)
+                    .onTapGesture {
+                        UnboundHaptics.medium()
+                        withAnimation(.spring(response: 0.28, dampingFraction: 0.78)) {
+                            selectedGroup = group
+                        }
+                        onGroupTapped(group)
+                    }
+                    .animation(.easeInOut(duration: 0.4), value: isPulsing)
+                    .animation(.spring(response: 0.28, dampingFraction: 0.78), value: selectedGroup)
+            }
+            .scaleEffect(transform.scale)
+            .offset(x: transform.x, y: transform.y)
+        }
+    }
+
+    private func customBodyBase(side: BodyMapSide) -> some View {
+        let image = overlayProfile
+            .baseImageCandidates(for: side)
+            .compactMap { UIImage(named: $0) }
+            .first
+
+        return Group {
+            if let image {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFit()
+            } else {
+                Image(systemName: "figure.strengthtraining.traditional")
+                    .resizable()
+                    .scaledToFit()
+                    .padding(22)
+                    .foregroundStyle(Color.unbound.accent.opacity(0.6))
+            }
+        }
+        .saturation(0.92)
+        .contrast(1.04)
+        .shadow(color: Color.unbound.accent.opacity(0.18), radius: 18, x: 0, y: 0)
+        .allowsHitTesting(false)
+    }
+
+    private func figureAtmosphere(
+        parts: [BodyPaths.Part],
+        viewBox: CGRect
+    ) -> some View {
+        ZStack {
+            ForEach(parts) { part in
+                let shape = muscleShape(part: part, viewBox: viewBox)
+                shape
+                    .fill(Color.unbound.accent.opacity(0.045))
+                    .shadow(color: Color.unbound.accent.opacity(0.24), radius: 18)
+            }
+
+            ForEach(parts.filter { !$0.isDecorative }) { part in
+                if let group = part.heatGroup {
+                    let rank = groupRanks[group] ?? .eMinus
+                    let shape = muscleShape(part: part, viewBox: viewBox)
+                    shape
+                        .fill(rank.regionTint.opacity(rankAuraOpacity(for: rank)))
+                        .blur(radius: rank.letter == "A" || rank.letter == "S" ? 12 : 7)
+                }
+            }
+        }
+        .allowsHitTesting(false)
+    }
+
+    private func unboundFigureAtmosphere(
+        regions: [BodyRegion],
+        side: BodyMapSide
+    ) -> some View {
+        ZStack {
+            ForEach(regions, id: \.self) { region in
+                let rank = groupRanks[region.heatGroup] ?? .eMinus
+                let isActive = selectedGroup == region.heatGroup || pulsingGroups.contains(region.heatGroup)
+                let shouldGlow = isActive || rank.letter == "A" || rank.letter == "S"
+                let shape = MuscleRegionShape(region: region, side: side)
+                if shouldGlow {
+                    shape
+                        .fill(rank.regionTint.opacity(isActive ? 0.22 : 0.08))
+                        .blur(radius: isActive ? 8 : 5)
+                }
+            }
+        }
+        .allowsHitTesting(false)
+    }
+
+    private func unboundPanelFill(
+        for rank: SubRank,
+        isSelected: Bool,
+        isPulsing: Bool
+    ) -> LinearGradient {
+        let tint = rank.regionTint
+        let energy = isSelected || isPulsing
+        let baseOpacity: Double = {
+            switch rank.letter {
+            case "S": return 0.26
+            case "A": return 0.22
+            case "B": return 0.18
+            case "C": return 0.15
+            default: return 0.11
+            }
+        }()
+        return LinearGradient(
+            colors: [
+                tint.opacity(energy ? 0.40 : baseOpacity),
+                tint.opacity(energy ? 0.20 : baseOpacity * 0.45),
+                Color.clear
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+
+    private func unboundPanelStrokeOpacity(for rank: SubRank) -> Double {
+        switch rank.letter {
+        case "S": return 0.62
+        case "A": return 0.54
+        case "B": return 0.44
+        case "C": return 0.36
+        default: return 0.26
+        }
+    }
+
+    private func unboundPanelGlowOpacity(for rank: SubRank) -> Double {
+        switch rank.letter {
+        case "S": return 0.28
+        case "A": return 0.22
+        case "B": return 0.14
+        default: return 0.06
+        }
+    }
+
+    private func unboundPanelGlowRadius(for rank: SubRank) -> CGFloat {
+        switch rank.letter {
+        case "S": return 6
+        case "A": return 5
+        case "B": return 3
+        default: return 1.5
+        }
+    }
+
+    private func muscleFill(
+        for rank: SubRank,
+        isSelected: Bool,
+        isPulsing: Bool
+    ) -> LinearGradient {
+        let tint = rank.regionTint
+        let energy = isSelected || isPulsing
+        return LinearGradient(
+            colors: [
+                tint.opacity(energy ? 0.70 : 0.38),
+                tint.opacity(energy ? 0.42 : 0.18),
+                Color.clear
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+
+    private func muscleTopLight(for rank: SubRank) -> LinearGradient {
+        LinearGradient(
+            colors: [
+                Color.white.opacity(rank.letter == "S" ? 0.22 : 0.12),
+                Color.white.opacity(0.035),
+                Color.clear
+            ],
+            startPoint: .top,
+            endPoint: .center
+        )
+    }
+
+    private func muscleCoreAura(
+        for rank: SubRank,
+        isSelected: Bool
+    ) -> RadialGradient {
+        let tint = rank.regionTint
+        return RadialGradient(
+            colors: [
+                tint.opacity(isSelected ? 0.44 : 0.18),
+                tint.opacity(isSelected ? 0.16 : 0.05),
+                Color.clear
+            ],
+            center: .center,
+            startRadius: 0,
+            endRadius: 84
+        )
+    }
+
+    private func rankAuraOpacity(for rank: SubRank) -> Double {
+        switch rank.letter {
+        case "A": return 0.16
+        case "S": return 0.20
+        case "B": return 0.11
+        case "C": return 0.08
+        default: return 0.055
+        }
+    }
+
+    private func rankGlowRadius(for rank: SubRank) -> CGFloat {
+        switch rank.letter {
+        case "A": return 7
+        case "S": return 9
+        case "B": return 5
+        default: return 3
         }
     }
 

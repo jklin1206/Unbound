@@ -1,0 +1,105 @@
+import Foundation
+
+// MARK: - RankLadder
+//
+// 9-tier ladder used for per-skill mastery progression and overall
+// "Lift Rank" identity on the profile. Replaces the old E/D/C/B/A/S
+// difficulty grading at the user-facing surface — `SkillRank` now
+// describes a SKILL's intrinsic difficulty (authoring-time), while
+// `RankLadder` describes the USER's earned tier on a given skill.
+//
+// Bottom 4 (Initiate → Forged) use generic trainee tiers — the user
+// hasn't earned a "named" tier yet. Top 5 (Veteran → Ascendant) feel
+// distinct, with Unbound as the brand moment and Ascendant reserved
+// for outlier feats.
+//
+// Naming locked 2026-05-07 after design dialogue. Asset names match
+// the rank_title_<lowercase>.imageset bundle the user shipped under
+// Assets.xcassets/RankTitles.
+
+enum RankLadder: String, Codable, Hashable, CaseIterable, Sendable {
+    case initiate
+    case novice
+    case apprentice
+    case forged
+    case veteran
+    case honed
+    case vessel
+    case unbound
+    case ascendant
+
+    /// 1-9 ordinal. Used for "did the user just cross a tier?" comparisons,
+    /// progress bars, and serializing snapshots without mapping by string.
+    var ordinal: Int {
+        switch self {
+        case .initiate:   return 1
+        case .novice:     return 2
+        case .apprentice: return 3
+        case .forged:     return 4
+        case .veteran:    return 5
+        case .honed:      return 6
+        case .vessel:     return 7
+        case .unbound:    return 8
+        case .ascendant:  return 9
+        }
+    }
+
+    /// Title-cased display name shown in chips, banners, and rank cards.
+    var displayName: String {
+        switch self {
+        case .initiate:   return "Initiate"
+        case .novice:     return "Novice"
+        case .apprentice: return "Apprentice"
+        case .forged:     return "Forged"
+        case .veteran:    return "Veteran"
+        case .honed:      return "Honed"
+        case .vessel:     return "Vessel"
+        case .unbound:    return "Unbound"
+        case .ascendant:  return "Ascendant"
+        }
+    }
+
+    /// Asset name in Assets.xcassets/RankTitles. The bundle ships one
+    /// transparent PNG per rank — caller can render at any size.
+    var titleAssetName: String {
+        "rank_title_\(rawValue)"
+    }
+
+    /// "Named tiers" get the brand-flavored treatment — distinct color,
+    /// rank-up cinematic candidate, share-card eligible. The bottom four
+    /// stay quiet on purpose so the named-tier crossing feels earned.
+    var isNamedTier: Bool {
+        ordinal >= 5
+    }
+
+    /// True for the three crown tiers — Unbound (brand moment) and
+    /// Ascendant (top), plus Vessel as the "most committed trainees"
+    /// gate. Reserved for the full chain-shatter cinematic. See
+    /// `feedback_unbound_cinematic_asymmetry` — only A-tier crossings
+    /// previously got the cinematic; this is the new equivalent.
+    var deservesCinematic: Bool {
+        switch self {
+        case .vessel, .unbound, .ascendant: return true
+        default: return false
+        }
+    }
+
+    /// Next tier up, or nil if already at Ascendant.
+    var next: RankLadder? {
+        switch self {
+        case .initiate:   return .novice
+        case .novice:     return .apprentice
+        case .apprentice: return .forged
+        case .forged:     return .veteran
+        case .veteran:    return .honed
+        case .honed:      return .vessel
+        case .vessel:     return .unbound
+        case .unbound:    return .ascendant
+        case .ascendant:  return nil
+        }
+    }
+
+    /// Tier reached when a user has just unlocked their first rank on
+    /// a skill — i.e. attempted it but not yet hit any criterion.
+    static let entry: RankLadder = .initiate
+}

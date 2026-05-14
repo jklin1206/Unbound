@@ -35,9 +35,9 @@ final class MockProgramGenerationService: ProgramGenerationServiceProtocol, @unc
             userId: analysis.userId,
             createdAt: Date(),
             archetype: analysis.targetArchetype,
-            name: "\(analysis.targetArchetype.displayName) Blueprint: 2-Week Phase 1",
+            name: "\(analysis.targetArchetype.displayName) Blueprint: Block 1",
             description: "A targeted program to move you closer to the \(analysis.targetArchetype.displayName) archetype.",
-            durationDays: 14,
+            durationDays: 28,
             days: days,
             nutritionPlan: NutritionPlan(
                 dailyCalories: 2500, proteinGrams: 180, carbsGrams: 280, fatGrams: 80,

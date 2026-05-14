@@ -137,6 +137,12 @@ final class BadgeService: BadgeServiceProtocol {
         if recent.count >= 4 {
             result.append("monthly_arc")
         }
+        if photos.count >= 10 {
+            result.append("proof_10")
+        }
+        if photos.count >= 25 {
+            result.append("proof_25")
+        }
         return result
     }
 
@@ -151,12 +157,24 @@ final class BadgeService: BadgeServiceProtocol {
                 result.append("biweekly_scan")
             }
         }
+        if scans.count >= 5 {
+            result.append("scan_archive_5")
+        }
+        if scans.count >= 10 {
+            result.append("scan_archive_10")
+        }
 
         // Monthly arc also counts scans.
         let cutoff = Date().addingTimeInterval(-30 * 24 * 3600)
         let recent = photos.filter { $0.capturedAt >= cutoff }
         if recent.count >= 4 {
             result.append("monthly_arc")
+        }
+        if photos.count >= 10 {
+            result.append("proof_10")
+        }
+        if photos.count >= 25 {
+            result.append("proof_25")
         }
         return result
     }
@@ -183,8 +201,19 @@ final class BadgeService: BadgeServiceProtocol {
         let xp = SessionXPService.shared.record(userId: userId)
         let total = xp.totalSessions + 1 // post-increment count; XP service increments first
         if total >= 10 { result.append("sessions_10") }
+        if total >= 25 { result.append("sessions_25") }
         if total >= 50 { result.append("sessions_50") }
+        if total >= 100 { result.append("sessions_100") }
         if total >= 250 { result.append("sessions_250") }
+        if total >= 500 { result.append("sessions_500") }
+
+        if log.exerciseEntries.contains(where: { !$0.skipped }) &&
+            log.exerciseEntries.allSatisfy({ !$0.skipped }) {
+            result.append("clean_sweep")
+        }
+        if (log.durationMinutes ?? 0) >= 60 {
+            result.append("hour_glass")
+        }
 
         // Streak checks bounce through XP service record.
         let streak = xp.currentStreak
@@ -200,6 +229,19 @@ final class BadgeService: BadgeServiceProtocol {
             }
             if key.contains("handstand pushup") || key.contains("handstand push-up") || key.contains("hspu") {
                 result.append("first_handstand_pushup")
+            }
+            if key.contains("pull-up") || key.contains("pullup") || key.contains("chin-up") || key.contains("chin up") {
+                result.append("first_pullup")
+            }
+            if key.contains("dip") {
+                result.append("first_dip")
+            }
+            if key.contains("pistol squat") {
+                result.append("first_pistol_squat")
+            }
+            if (key.contains("push-up") || key.contains("pushup")) &&
+                entry.sets.contains(where: { !$0.isWarmup && $0.reps >= 50 }) {
+                result.append("pushup_50_set")
             }
         }
 
@@ -262,13 +304,11 @@ final class BadgeService: BadgeServiceProtocol {
 
     private func evaluateRankAdvance(advance: RankAdvance) -> [String] {
         var result: [String] = ["first_rank_up"]
-        switch advance.toRank.letter {
-        case "C": result.append("rank_c_any")
-        case "B": result.append("rank_b_any")
-        case "A": result.append("rank_a_any")
-        case "S": result.append("rank_s_any")
-        default: break
-        }
+        let ordinal = advance.toRank.ordinal
+        if ordinal >= SubRank.ordinalForLetter("C") { result.append("rank_c_any") }
+        if ordinal >= SubRank.ordinalForLetter("B") { result.append("rank_b_any") }
+        if ordinal >= SubRank.ordinalForLetter("A") { result.append("rank_a_any") }
+        if ordinal >= SubRank.ordinalForLetter("S") { result.append("rank_s_any") }
         // BW-multiple milestones are evaluated literally against working-set
         // weight in `.sessionLogged` (see evaluateBodyweightMultiples).
         // Letter-rank approximation is intentionally omitted here.
@@ -279,7 +319,9 @@ final class BadgeService: BadgeServiceProtocol {
         var result: [String] = []
         if streak >= 3 { result.append("streak_3") }
         if streak >= 7 { result.append("streak_7") }
+        if streak >= 14 { result.append("streak_14") }
         if streak >= 30 { result.append("streak_30") }
+        if streak >= 60 { result.append("streak_60") }
         if streak >= 100 { result.append("streak_100") }
         return result
     }
@@ -291,6 +333,12 @@ final class BadgeService: BadgeServiceProtocol {
         defaults.set(nextCount, forKey: "unbound.totalScans.\(userId)")
         if nextCount >= 3 {
             result.append("scan_streak_3")
+        }
+        if nextCount >= 5 {
+            result.append("scan_archive_5")
+        }
+        if nextCount >= 10 {
+            result.append("scan_archive_10")
         }
         return result
     }
@@ -304,6 +352,18 @@ final class BadgeService: BadgeServiceProtocol {
         }
         if key.contains("handstand pushup") || key.contains("handstand push-up") || key.contains("hspu") {
             result.append("first_handstand_pushup")
+        }
+        if key.contains("pull-up") || key.contains("pullup") || key.contains("chin-up") || key.contains("chin up") {
+            result.append("first_pullup")
+        }
+        if key.contains("dip") {
+            result.append("first_dip")
+        }
+        if key.contains("pistol squat") {
+            result.append("first_pistol_squat")
+        }
+        if (key.contains("push-up") || key.contains("pushup")), reps >= 50 {
+            result.append("pushup_50_set")
         }
         return result
     }

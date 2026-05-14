@@ -9,9 +9,6 @@ struct ExerciseDetailView: View {
 
             ScrollView {
                 VStack(spacing: 16) {
-                    // Video placeholder
-                    videoPlaceholder
-
                     // Muscle groups
                     muscleGroupsCard
 
@@ -34,29 +31,6 @@ struct ExerciseDetailView: View {
         }
         .navigationTitle(exercise.name)
         .navigationBarTitleDisplayMode(.inline)
-    }
-
-    private var videoPlaceholder: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color.theme.surface)
-                .frame(height: 200)
-
-            VStack(spacing: 12) {
-                Image(systemName: "play.circle.fill")
-                    .font(.system(size: 48))
-                    .foregroundColor(.theme.primary.opacity(0.4))
-
-                VStack(spacing: 4) {
-                    Text("Video Demo")
-                        .font(.bodyMedium(15))
-                        .foregroundColor(.theme.textSecondary)
-                    Text("Coming soon")
-                        .font(.caption(12))
-                        .foregroundColor(.theme.textMuted)
-                }
-            }
-        }
     }
 
     private var muscleGroupsCard: some View {

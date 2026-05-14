@@ -95,7 +95,7 @@ enum DeterministicProgramGenerator {
             archetype: input.archetype,
             name: "\(input.archetype.displayName) Arc",
             description: "\(input.targetFrequency.numericCount)-day personalized plan.",
-            durationDays: 14,
+            durationDays: 28,
             days: days,
             nutritionPlan: nutritionPlan,
             recoveryPlan: recoveryPlan,

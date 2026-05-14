@@ -34,6 +34,13 @@ public enum SkillRank: String, Codable, CaseIterable, Sendable {
         SkillRank.allCases.firstIndex(of: self) ?? 0
     }
 
+    /// Visual title badge used when showing skill difficulty. The internal
+    /// E/D/C/B/A/S ladder remains useful for ordering and content authoring,
+    /// but the UI presents the app's rank-title badges instead of letters.
+    var rankTitle: RankTitle {
+        RankTitle.legacyLetterFallback(rawValue)
+    }
+
     /// True when the rank sits at the top of the ladder (S = Ascended).
     /// An S-rank skill is a life pursuit, not a rank tier — distinct visual
     /// treatment (flame instead of hex, impact orange instead of muted

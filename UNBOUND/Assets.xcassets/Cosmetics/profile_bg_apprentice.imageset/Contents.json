@@ -1,0 +1,6 @@
+{
+  "images" : [
+    { "filename" : "profile_bg_apprentice.png", "idiom" : "universal" }
+  ],
+  "info" : { "author" : "xcode", "version" : 1 }
+}

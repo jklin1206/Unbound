@@ -6,7 +6,7 @@ import XCTest
 // Phase 1b verification. Exercises awardSessionXP end-to-end against an
 // in-memory DatabaseServiceProtocol — no real disk or Auth state required.
 //
-// Node choice: "hs.wrist-conditioning" is a real SkillGraph.shared entry
+// Node choice: "hs.wall-plank" is a real SkillGraph.shared entry
 // node with no prereqs. The XP API itself never consults the graph for
 // gating (it trusts the caller), but pendingUnlock resolution needs the
 // node to exist; we use a real one to keep the round-trip honest.
@@ -44,7 +44,7 @@ final class SkillProgressXPTests: XCTestCase {
         }
     }
 
-    private let realNodeId = "hs.wrist-conditioning"
+    private let realNodeId = "hs.wall-plank"
 
     // MARK: - Helpers
 

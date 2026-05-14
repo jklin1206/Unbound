@@ -39,8 +39,28 @@ enum SubRank: String, Codable, CaseIterable, Sendable, Comparable {
         }
     }
 
-    /// Uppercase ladder label ("E-", "B+", "S").
-    var displayName: String { letter + modifier }
+    /// Player-facing title band. Internally we keep the 18-step ordinal
+    /// ladder for progression math, but the app no longer presents letter
+    /// grades to users.
+    var displayName: String { title.displayName }
+
+    /// Internal legacy grade label ("E-", "B+", "S"). Useful for debugging
+    /// and old standards comments, not primary UI.
+    var gradeLabel: String { letter + modifier }
+
+    var title: RankTitle {
+        switch ordinal {
+        case 0...1: return .initiate
+        case 2...3: return .novice
+        case 4...5: return .apprentice
+        case 6...7: return .forged
+        case 8...9: return .veteran
+        case 10...11: return .honed
+        case 12...13: return .vessel
+        case 14...15: return .unbound
+        default: return .ascendant
+        }
+    }
 
     /// Letter portion only ("E", "B", "S"). Used for coarse UI / color bucketing.
     var letter: String {
@@ -96,6 +116,46 @@ enum SubRank: String, Codable, CaseIterable, Sendable, Comparable {
         case "A": return 13
         case "S": return 16
         default:  return 0
+        }
+    }
+}
+
+enum RankTitle: String, CaseIterable, Sendable {
+    case initiate
+    case novice
+    case apprentice
+    case forged
+    case veteran
+    case honed
+    case vessel
+    case unbound
+    case ascendant
+
+    var displayName: String {
+        switch self {
+        case .initiate: return "Initiate"
+        case .novice: return "Novice"
+        case .apprentice: return "Apprentice"
+        case .forged: return "Forged"
+        case .veteran: return "Veteran"
+        case .honed: return "Honed"
+        case .vessel: return "Vessel"
+        case .unbound: return "Unbound"
+        case .ascendant: return "Ascendant"
+        }
+    }
+
+    var assetName: String { "rank_title_\(rawValue)" }
+
+    static func legacyLetterFallback(_ letter: String) -> RankTitle {
+        switch letter.uppercased().prefix(1) {
+        case "E": return .initiate
+        case "D": return .apprentice
+        case "C": return .veteran
+        case "B": return .honed
+        case "A": return .unbound
+        case "S": return .ascendant
+        default: return .initiate
         }
     }
 }

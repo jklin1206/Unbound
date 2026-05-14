@@ -14,18 +14,24 @@ import Foundation
 // archetypes re-seeded onto calisthenics + endurance entry nodes.
 
 enum ArchetypeSpawnPoints {
+    /// Spawn points are ALWAYS root nodes (no prereqs) of each tree the
+    /// archetype engages with. Users start from the very top of every tree
+    /// they're seeded into — never mid-chain. If you change a tree's root,
+    /// update this list.
     static func nodeIds(for archetype: Archetype) -> [String] {
         switch archetype {
         case .heavyDuty:
-            // TITAN: mass-heavy foundation — squat base + carry base + core.
+            // TITAN: mass-heavy foundation — squat root + carry base + core root.
             return ["ld.goblet-20", "co.bw-farmer-carry", "cal.plank-30"]
         case .leanCut:
-            // LEAN: aerobic + upper-body entry.
-            return ["pp.dead-hang-30", "cal.plank-30"]
+            // LEAN: aerobic + upper-body roots (push + pull entry).
+            return ["co.bw-farmer-carry", "pp.incline-row", "cal.incline-pushup"]
         case .shredded:
-            return ["cal.plank-30", "pp.dead-hang-30", "ld.bulgarian-split-squat"]
+            // SHREDDED: balanced calisthenics — push + pull + legs + core roots.
+            return ["pp.incline-row", "cal.incline-pushup", "ld.goblet-20", "cal.plank-30"]
         case .vTaper:
-            return ["pp.dead-hang-30", "cal.plank-30"]
+            // V-TAPER: upper-body emphasis — push + pull + core roots.
+            return ["pp.incline-row", "cal.incline-pushup", "cal.plank-30"]
         }
     }
 }

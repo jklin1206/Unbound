@@ -3,10 +3,9 @@ import UIKit
 
 // MARK: - PhotoCalendarView
 //
-// Monthly calendar grid of the user's captured photos. Each day cell that
-// has one or more photos shows a thumbnail; today's cell is highlighted
-// violet regardless. Tap a photo cell → full-screen preview with
-// delete. Chevrons navigate prev/next month.
+// Identity archive for the user's captured photos. The grid is still the
+// durable month index, but the surface now leads with proof, recent captures,
+// and explicit scan/check-in actions.
 //
 // Lives inside `ProfileView` as the "come back and see change" surface —
 // long-horizon comparison is user's own eyes scrolling back, not invented
@@ -23,17 +22,27 @@ struct PhotoCalendarView: View {
     @AppStorage("unbound.lastScanTimestamp") private var lastScanTimestamp: Double = 0
 
     var body: some View {
+        // Slim proof archive: month strip + calendar grid + capture CTA.
+        // Drops the 3-stat boxes (redundant with profile header) and the
+        // horizontal recent strip (redundant with the calendar). Cells
+        // remain tappable — that's the way to revisit a day's photo.
         VStack(alignment: .leading, spacing: 14) {
             header
-            weekdayLabels
-            calendarGrid
-            captureButton
+            VStack(alignment: .leading, spacing: 8) {
+                weekdayLabels
+                calendarGrid
+            }
+            archiveActions
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .fill(Color.unbound.surface)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
         )
         .task { await loadPhotos() }
         .sheet(item: $selectedPhoto) { photo in
@@ -60,47 +69,175 @@ struct PhotoCalendarView: View {
     // MARK: - Header
 
     private var header: some View {
-        HStack(spacing: 10) {
-            Button {
-                UnboundHaptics.soft()
-                shiftMonth(by: -1)
-            } label: {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(Color.unbound.textSecondary)
-                    .frame(width: 28, height: 28)
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .firstTextBaseline) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("PROOF ARCHIVE")
+                        .font(Font.unbound.captionS.weight(.bold))
+                        .tracking(1.8)
+                        .foregroundStyle(Color.unbound.textTertiary)
+                    Text(monthLabel)
+                        .font(Font.unbound.titleS)
+                        .tracking(0.9)
+                        .foregroundStyle(Color.unbound.textPrimary)
+                }
+                Spacer()
+                HStack(spacing: 6) {
+                    monthButton(systemName: "chevron.left") {
+                        shiftMonth(by: -1)
+                    }
+                    monthButton(systemName: "chevron.right") {
+                        shiftMonth(by: 1)
+                    }
+                    .disabled(isCurrentMonth)
+                    .opacity(isCurrentMonth ? 0.35 : 1)
+                }
             }
-            .buttonStyle(.plain)
-
-            Spacer()
-
-            Text(monthLabel)
-                .font(Font.unbound.titleS)
-                .tracking(1.2)
-                .foregroundStyle(Color.unbound.textPrimary)
-
-            Spacer()
-
-            Button {
-                UnboundHaptics.soft()
-                shiftMonth(by: 1)
-            } label: {
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(Color.unbound.textSecondary)
-                    .frame(width: 28, height: 28)
-            }
-            .buttonStyle(.plain)
-            .disabled(isCurrentMonth)
-            .opacity(isCurrentMonth ? 0.3 : 1.0)
         }
+    }
+
+    private func monthButton(systemName: String, action: @escaping () -> Void) -> some View {
+        Button {
+            UnboundHaptics.soft()
+            action()
+        } label: {
+            Image(systemName: systemName)
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(Color.unbound.textSecondary)
+                .frame(width: 30, height: 30)
+                .background(Circle().fill(Color.unbound.bg.opacity(0.8)))
+                .overlay(Circle().strokeBorder(Color.unbound.borderSubtle, lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var archiveStats: some View {
+        HStack(spacing: 8) {
+            archiveStat("TOTAL", "\(photos.count)")
+            archiveStat("SCANS", "\(photos.filter { $0.source == .scan }.count)")
+            archiveStat("CHECK-INS", "\(photos.filter { $0.source == .manual }.count)")
+        }
+    }
+
+    private func archiveStat(_ label: String, _ value: String) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(label)
+                .font(.system(size: 8, weight: .bold))
+                .tracking(1.1)
+                .foregroundStyle(Color.unbound.textTertiary)
+                .lineLimit(1)
+            Text(value)
+                .font(Font.unbound.monoM.weight(.bold))
+                .foregroundStyle(Color.unbound.textPrimary)
+                .monospacedDigit()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 9)
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(Color.unbound.bg.opacity(0.72))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
+        )
+    }
+
+    private var recentStrip: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 10) {
+                if photos.isEmpty {
+                    archiveEmptyTile
+                } else {
+                    ForEach(Array(photos.prefix(10))) { photo in
+                        recentPhotoButton(photo)
+                    }
+                }
+            }
+            .padding(.vertical, 1)
+        }
+    }
+
+    private var archiveEmptyTile: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "photo.on.rectangle.angled")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(Color.unbound.textTertiary)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("NO PROOF YET")
+                    .font(Font.unbound.captionS.weight(.bold))
+                    .tracking(1.1)
+                    .foregroundStyle(Color.unbound.textSecondary)
+                Text("Start with a photo check-in or scan.")
+                    .font(Font.unbound.captionS)
+                    .foregroundStyle(Color.unbound.textTertiary)
+            }
+        }
+        .frame(width: 230, height: 92, alignment: .leading)
+        .padding(.horizontal, 14)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color.unbound.bg.opacity(0.72))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
+        )
+    }
+
+    private func recentPhotoButton(_ photo: ProgressPhoto) -> some View {
+        Button {
+            UnboundHaptics.soft()
+            selectedPhoto = photo
+        } label: {
+            ZStack(alignment: .bottomLeading) {
+                if let img = loadThumbnail(for: photo) {
+                    Image(uiImage: img)
+                        .resizable()
+                        .scaledToFill()
+                } else {
+                    Color.unbound.bg
+                    Image(systemName: "photo")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(Color.unbound.textTertiary.opacity(0.6))
+                }
+
+                LinearGradient(
+                    colors: [.clear, .black.opacity(0.68)],
+                    startPoint: .center,
+                    endPoint: .bottom
+                )
+
+                HStack(spacing: 5) {
+                    Image(systemName: photo.source == .scan ? "sparkle.magnifyingglass" : "camera.fill")
+                        .font(.system(size: 8, weight: .bold))
+                    Text(dayLabel(for: photo.capturedAt))
+                        .font(.system(size: 9, weight: .bold, design: .monospaced))
+                        .monospacedDigit()
+                }
+                .foregroundStyle(Color.white)
+                .padding(.horizontal, 7)
+                .padding(.vertical, 5)
+            }
+            .frame(width: 74, height: 96)
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .strokeBorder(
+                        photo.source == .scan ? Color.unbound.accent.opacity(0.65) : Color.unbound.borderSubtle,
+                        lineWidth: 1
+                    )
+            )
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: - Weekday labels
 
     private var weekdayLabels: some View {
         HStack(spacing: 0) {
-            ForEach(["M", "T", "W", "T", "F", "S", "S"], id: \.self) { l in
+            ForEach(Array(["M", "T", "W", "T", "F", "S", "S"].enumerated()), id: \.offset) { _, l in
                 Text(l)
                     .font(.system(size: 9, weight: .bold))
                     .tracking(1.2)
@@ -116,7 +253,7 @@ struct PhotoCalendarView: View {
         let days = daysForMonth()
         let columns = Array(repeating: GridItem(.flexible(), spacing: 4), count: 7)
         return LazyVGrid(columns: columns, spacing: 4) {
-            ForEach(days, id: \.self) { day in
+            ForEach(Array(days.enumerated()), id: \.offset) { _, day in
                 if let day {
                     cell(for: day)
                 } else {
@@ -206,29 +343,67 @@ struct PhotoCalendarView: View {
         .disabled(firstPhoto == nil)
     }
 
-    // MARK: - Capture button (swaps by eligibility)
+    // MARK: - Archive actions
 
-    private var captureButton: some View {
-        let isScanDue = isScanEligible
-        return Button {
+    private var archiveActions: some View {
+        HStack(spacing: 10) {
+            archiveAction(
+                title: "PHOTO CHECK-IN",
+                subtitle: "+5 SP",
+                systemName: "camera.fill",
+                isPrimary: false
+            ) {
+                captureMode = .photo
+            }
+            archiveAction(
+                title: "NEW SCAN",
+                subtitle: isScanEligible ? "+25 SP" : "UPDATE",
+                systemName: "sparkle.magnifyingglass",
+                isPrimary: true
+            ) {
+                captureMode = .scan
+            }
+        }
+    }
+
+    private func archiveAction(
+        title: String,
+        subtitle: String,
+        systemName: String,
+        isPrimary: Bool,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button {
             UnboundHaptics.medium()
-            captureMode = isScanDue ? .scan : .photo
+            action()
         } label: {
             HStack(spacing: 8) {
-                Image(systemName: isScanDue ? "sparkle.magnifyingglass" : "plus")
+                Image(systemName: systemName)
                     .font(.system(size: 12, weight: .bold))
-                Text(isScanDue ? "SCAN · +25 SP" : "NEW PHOTO · +5 SP")
-                    .font(Font.unbound.captionS.weight(.bold))
-                    .tracking(1.4)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(title)
+                        .font(.system(size: 10, weight: .black))
+                        .tracking(1.1)
+                    Text(subtitle)
+                        .font(.system(size: 9, weight: .bold, design: .monospaced))
+                        .tracking(0.8)
+                        .opacity(0.72)
+                }
+                Spacer(minLength: 0)
             }
-            .foregroundStyle(Color.unbound.textPrimary)
+            .foregroundStyle(isPrimary ? Color.unbound.textPrimary : Color.unbound.textSecondary)
+            .padding(.horizontal, 12)
             .frame(maxWidth: .infinity)
-            .frame(height: 40)
+            .frame(height: 46)
             .background(
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(Color.unbound.accent)
+                    .fill(isPrimary ? Color.unbound.accent : Color.unbound.bg.opacity(0.76))
             )
-            .shadow(color: Color.unbound.accent.opacity(0.35), radius: 8, y: 2)
+            .overlay(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .strokeBorder(isPrimary ? Color.unbound.accent.opacity(0.65) : Color.unbound.borderSubtle, lineWidth: 1)
+            )
+            .shadow(color: isPrimary ? Color.unbound.accent.opacity(0.25) : .clear, radius: 8, y: 2)
         }
         .buttonStyle(.plain)
     }
@@ -298,6 +473,12 @@ struct PhotoCalendarView: View {
         let f = DateFormatter()
         f.dateFormat = "MMMM yyyy"
         return f.string(from: displayedMonth).uppercased()
+    }
+
+    private func dayLabel(for date: Date) -> String {
+        let f = DateFormatter()
+        f.dateFormat = "MMM d"
+        return f.string(from: date).uppercased()
     }
 
     /// Returns 42 slots (6 weeks × 7 days) representing the displayed month.

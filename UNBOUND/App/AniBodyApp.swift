@@ -1,5 +1,13 @@
 import SwiftUI
 
+#if DEBUG
+// Hot-reload for SwiftUI iteration. Save any .swift file and the
+// simulator re-renders affected views without a rebuild. Requires
+// InjectionIII.app installed and pointed at this project.
+// See: https://github.com/johnno1962/HotReloading
+import HotReloading
+#endif
+
 @main
 struct UnboundApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate

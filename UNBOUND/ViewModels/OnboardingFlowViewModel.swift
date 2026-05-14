@@ -50,6 +50,7 @@ enum OnboardingStep: Int, CaseIterable, Identifiable {
     case equipment
     case exerciseStyle       // what kinds of exercises they enjoy
     case sessionLength
+    case resultsSnapshot     // early personalized checkpoint
     case diet
     case sleep
     case stress
@@ -87,6 +88,7 @@ enum OnboardingStep: Int, CaseIterable, Identifiable {
     case commitDay30
     case commitDay90
     case commitToday
+    case planReady           // custom-plan reveal right before pricing
 
     case paywall            // blurred protocol + hard CTA
 
@@ -150,6 +152,8 @@ enum OnboardingStep: Int, CaseIterable, Identifiable {
         case .scanLive, .scanReview, .scanAnalyzing:
             return .scan
         case .verdict, .trajectory, .skillTreePreview, .whyThisProgram:
+            return .reveal
+        case .resultsSnapshot, .planReady:
             return .reveal
         case .paywall:
             return .paywall
@@ -227,6 +231,19 @@ final class OnboardingFlowViewModel {
     /// detect a usable body pose — Verdict gracefully omits the scan
     /// insight card in that case.
     var scanInsights: BodyScanInsights? = nil
+
+    /// Gemini AI aesthetic scores from the onboarding photo. Populated
+    /// concurrently during the 6s analyzing screen — usually ready by
+    /// the time the user reaches the Verdict screen. `nil` if the user
+    /// skipped the scan, the Gemini call failed, or photo quality was too
+    /// low. Verdict falls back to Vision-based estimates in that case.
+    var scanAnalysis: BodyScanAnalysis? = nil
+
+    /// Per-body-part ratings from Gemini (shoulders, chest, arms, core,
+    /// legs, overall). Stricter calibration than the recurring scan —
+    /// most untrained people score 3-6. Populated during the 6s analyzing
+    /// screen alongside `scanAnalysis`.
+    var bodyRatings: OnboardingBodyRatings? = nil
 
     /// Derived rank — computed post-scan. In Day 1.5 stub this is keyed off
     /// the user's chosen archetype + commitment. V1.1 swaps in real vision AI.
@@ -334,6 +351,8 @@ final class OnboardingFlowViewModel {
             return !obstacles.isEmpty
         case .sessionLength:
             return sessionLength != nil
+        case .resultsSnapshot:
+            return true
         case .diet, .sleep, .stress, .commitment:
             return true
         case .priorAttempts:
@@ -342,7 +361,7 @@ final class OnboardingFlowViewModel {
             return !displayHandle.trimmingCharacters(in: .whitespaces).isEmpty
         case .notifications, .scanAnalyzing,
              .verdict, .trajectory, .skillTreePreview, .whyThisProgram,
-             .socialProofGallery, .commitDay30, .commitDay90, .commitToday, .paywall:
+             .socialProofGallery, .commitDay30, .commitDay90, .commitToday, .planReady, .paywall:
             return true
         case .scanLive, .scanReview:
             return capturedPhotos[.front] != nil
@@ -371,14 +390,24 @@ final class OnboardingFlowViewModel {
                 }
                 _ = await BadgeService.shared.evaluate(trigger: .archetypeChosen(chosenArchetype))
             }
+            await scheduleNotifications()
             logger.info("Onboarding answers persisted for user \(userId, privacy: .private)")
             return true
         } catch {
             logger.error("Failed to persist onboarding answers: \(String(describing: error))")
-            // Still flip the local flag so the user isn't trapped
             UserDefaults.standard.set(true, forKey: "onboardingCompleted")
+            await scheduleNotifications()
             return false
         }
+    }
+
+    private func scheduleNotifications() async {
+        guard let workoutTime else { return }
+        await NotificationService.scheduleWorkoutReminders(
+            workoutTime: workoutTime,
+            trainingDays: trainingDays
+        )
+        await NotificationService.scheduleRescanReminder()
     }
 
     func buildFirestorePayload() -> [String: Any] {

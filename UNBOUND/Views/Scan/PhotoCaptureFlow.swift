@@ -45,6 +45,11 @@ struct PhotoCaptureFlow: View {
     @State private var analysisError: Error?
     @AppStorage("unbound.scanConsentGranted") private var scanConsentGranted: Bool = false
 
+    // Auto-snap
+    @State private var detector = BodyAlignmentDetector()
+    @State private var bodyCountdownTask: Task<Void, Never>? = nil
+    @State private var bodyCountdownSeconds: Int? = nil
+
     private enum Stage {
         case intro
         case consent        // scan only, first time
@@ -172,6 +177,11 @@ struct PhotoCaptureFlow: View {
             ScanCameraPreview(service: services.imageCapture)
                 .ignoresSafeArea()
 
+            // Countdown — full-screen centered number
+            if let seconds = bodyCountdownSeconds {
+                AutoSnapCountdown(seconds: seconds)
+            }
+
             VStack {
                 HStack {
                     Button {
@@ -201,17 +211,44 @@ struct PhotoCaptureFlow: View {
 
                 Spacer()
 
+                // Scanning indicator — only shown in scan mode when no countdown is running
+                if mode == .scan && bodyCountdownSeconds == nil {
+                    BodyScanPulseIndicator()
+                        .padding(.bottom, 14)
+                }
+
+                // Capture button — cancels countdown if running, else shoots manually
                 Button {
-                    capture()
+                    if bodyCountdownSeconds != nil {
+                        cancelBodyCountdown()
+                    } else {
+                        capture()
+                    }
                 } label: {
                     ZStack {
                         Circle()
-                            .strokeBorder(Color.white, lineWidth: 3)
+                            .strokeBorder(
+                                bodyCountdownSeconds != nil ? Color.unbound.accent : Color.white,
+                                lineWidth: 3
+                            )
                             .frame(width: 74, height: 74)
-                        Circle()
-                            .fill(Color.unbound.accent)
-                            .frame(width: 60, height: 60)
-                            .shadow(color: Color.unbound.accent.opacity(0.55), radius: 10)
+                            .shadow(
+                                color: bodyCountdownSeconds != nil ? Color.unbound.accent.opacity(0.5) : .clear,
+                                radius: 10
+                            )
+
+                        if bodyCountdownSeconds != nil {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 20, weight: .bold))
+                                .foregroundStyle(Color.unbound.textPrimary)
+                                .frame(width: 60, height: 60)
+                                .background(Circle().fill(Color.unbound.accent))
+                        } else {
+                            Circle()
+                                .fill(Color.unbound.accent)
+                                .frame(width: 60, height: 60)
+                                .shadow(color: Color.unbound.accent.opacity(0.55), radius: 10)
+                        }
                     }
                 }
                 .buttonStyle(.plain)
@@ -228,9 +265,16 @@ struct PhotoCaptureFlow: View {
             do {
                 try await services.imageCapture.startSession()
                 cameraSessionStarted = true
+                if mode == .scan {
+                    services.imageCapture.attachVideoSampleHandler(detector)
+                }
             } catch {
                 onComplete(.cancelled)
             }
+        }
+        .onChange(of: detector.alignment) { _, new in
+            guard mode == .scan else { return }
+            handleBodyDetection(new)
         }
     }
 
@@ -251,8 +295,49 @@ struct PhotoCaptureFlow: View {
     }
 
     private func tearDownCamera() {
+        cancelBodyCountdown()
+        services.imageCapture.attachVideoSampleHandler(nil)
         services.imageCapture.stopSession()
         cameraSessionStarted = false
+    }
+
+    // MARK: - Auto-snap
+
+    private func handleBodyDetection(_ alignment: BodyAlignment) {
+        switch alignment {
+        case .closeToAligned, .aligned:
+            guard bodyCountdownTask == nil else { return }
+            startBodyCountdown()
+        default:
+            cancelBodyCountdown()
+        }
+    }
+
+    private func startBodyCountdown() {
+        UnboundHaptics.heavy()
+        bodyCountdownTask = Task {
+            for sec in stride(from: 5, through: 1, by: -1) {
+                if Task.isCancelled { break }
+                await MainActor.run {
+                    bodyCountdownSeconds = sec
+                    UnboundHaptics.tick()
+                }
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
+            }
+            if !Task.isCancelled {
+                await MainActor.run {
+                    bodyCountdownSeconds = nil
+                    bodyCountdownTask = nil
+                    capture()
+                }
+            }
+        }
+    }
+
+    private func cancelBodyCountdown() {
+        bodyCountdownTask?.cancel()
+        bodyCountdownTask = nil
+        bodyCountdownSeconds = nil
     }
 
     // MARK: - Review
@@ -367,11 +452,11 @@ struct PhotoCaptureFlow: View {
                     analyzingPhase = 360
                 }
             }
-            Text("READING BODY")
+            Text("PHYSIQUE READ")
                 .font(Font.unbound.captionS.weight(.bold))
                 .tracking(2.0)
                 .foregroundStyle(Color.unbound.accent)
-            Text("The coach is checking your photo against the last two weeks of training.")
+            Text("Scoring your build. Takes a moment.")
                 .font(Font.unbound.bodyS)
                 .foregroundStyle(Color.unbound.textSecondary)
                 .multilineTextAlignment(.center)
@@ -444,6 +529,15 @@ struct PhotoCaptureFlow: View {
                 object: nil,
                 userInfo: ["photoId": photoId, "analysisId": result.id]
             )
+
+            // Fire-and-forget delta comparison. If a baseline scan exists,
+            // ScanComparisonService produces a structured delta report that
+            // PTContextBuilder injects into the coach's next message.
+            // Failures are silent — coach simply skips the delta section.
+            Task.detached(priority: .utility) {
+                await ScanComparisonService.shared.triggerComparisonIfNeeded(userId: userId)
+            }
+
             stage = .payoff
         } catch {
             analysisError = error
@@ -492,6 +586,35 @@ struct PhotoCaptureFlow: View {
             try? await services.database.create(photo, collection: "progressPhotos", documentId: id)
         }
         return id
+    }
+}
+
+// MARK: - BodyScanPulseIndicator
+
+private struct BodyScanPulseIndicator: View {
+    @State private var pulse: CGFloat = 1.0
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Circle()
+                .fill(Color.unbound.accent)
+                .frame(width: 7, height: 7)
+                .scaleEffect(pulse)
+                .shadow(color: Color.unbound.accent.opacity(0.8), radius: 5)
+            Text("SCANNING")
+                .font(Font.unbound.captionS.weight(.bold))
+                .tracking(1.8)
+                .foregroundStyle(Color.unbound.textSecondary)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .background(Capsule().fill(.ultraThinMaterial))
+        .overlay(Capsule().strokeBorder(Color.unbound.borderSubtle, lineWidth: 1))
+        .onAppear {
+            withAnimation(.easeInOut(duration: 0.85).repeatForever(autoreverses: true)) {
+                pulse = 1.5
+            }
+        }
     }
 }
 

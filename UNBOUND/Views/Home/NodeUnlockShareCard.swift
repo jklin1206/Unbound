@@ -252,7 +252,7 @@ enum NodeUnlockShareCardRenderer {
 #Preview("Share card — mythic") {
     NodeUnlockShareCard(
         event: NodeUnlockedEvent(
-            node: SkillGraph.shared.node(id: "cal.maltese")!,
+            node: SkillGraph.shared.node(id: "pp.one-arm-pullup")!,
             newState: .achieved,
             gainsAwarded: 400
         ),

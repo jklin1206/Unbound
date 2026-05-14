@@ -8,8 +8,8 @@ struct Step_WhyThisProgram: View {
 
     var body: some View {
         OnboardingScaffold(
-            title: nil,
-            subtitle: nil,
+            title: "Protocol lock confirmed.",
+            subtitle: "Your answers mapped to concrete training decisions. Review the build logic below.",
             progress: progress,
             primaryTitle: "This is mine",
             primaryEnabled: true,
@@ -21,7 +21,8 @@ struct Step_WhyThisProgram: View {
             }
         ) {
             WhyThisProgramView(rationale: buildRationale())
-                .padding(.horizontal, -20)
+                .padding(.horizontal, -6)
+                .padding(.top, -6)
         }
     }
 

@@ -78,7 +78,7 @@ enum Archetype: String, CaseIterable, Identifiable {
 
     /// Expected filename for the archetype's hero silhouette PNG in
     /// Resources/BodyMap/. Files don't all exist yet — the loader falls
-    /// back to `body_front_male.png` and then SF Symbols.
+    /// back to `body_unbound_front.png` and then SF Symbols.
     var silhouetteAssetName: String {
         switch self {
         case .heavyDuty: return "archetype_heavyweight"

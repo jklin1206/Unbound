@@ -55,7 +55,7 @@ struct UnboundHomeView: View {
     @State private var showingSession = false
     @State private var showingCalibrationWorkout = false
     @State private var showingExpandedMap = false
-    @State private var navigateToCoach: String?
+    // navigateToCoach removed — replaced by CoachModesStrip
     @State private var showingGainsToast = false
     @State private var lastGainsAwarded: Int = 0
 
@@ -65,10 +65,10 @@ struct UnboundHomeView: View {
     @State private var xpShimmerPhase: CGFloat = -1
     @State private var statsRendered = false
 
-    // Daily Quest placeholder. Real library + rotation service lands in the
-    // QuestService follow-up pass; today's quest is hardcoded so the card
-    // layout can be reviewed before content is authored.
+    // Daily Quest — wired to RoutineLibrary. Rotation service lands later.
     @State private var dailyQuest = DailyQuestPlaceholder.sample
+    @State private var activeRoutine: SideQuest = SideQuestLibrary.pushProtocol
+    @State private var showRoutinePlayer = false
 
     // Photo/Scan capture flow presentation
     @State private var captureMode: PhotoCaptureFlow.Mode?
@@ -89,30 +89,20 @@ struct UnboundHomeView: View {
             Color.unbound.bg.ignoresSafeArea()
 
             if isLoading {
-                ProgressView().tint(Color.unbound.accent)
+                HomeLoadingSkeleton()
             } else {
                 ScrollView(.vertical, showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: 20) {
+                    VStack(alignment: .leading, spacing: 22) {
                         topBar
-                        playerCard
-                        if let note = coachNote {
-                            coachNoteCard(note: note)
-                        }
-                        // Priority swap — on rest days / empty program, the
-                        // Daily Quest takes the hero CTA slot above the
-                        // session card.
-                        if isQuestPrimary {
-                            dailyQuestCard(isHero: true)
-                            todayMissionCTA
-                        } else {
-                            todayMissionCTA
-                            dailyQuestCard(isHero: false)
-                        }
-                        weeklyRhythm
+                        homeBriefing
+                        trainingConsole
+                        modesStrip
+                        dailyQuestBand
                         contextualStack
                         lastSessionRecap
                         Spacer().frame(height: 28)
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 20)
                     .padding(.top, 8)
                 }
@@ -169,6 +159,15 @@ struct UnboundHomeView: View {
             }
             .environmentObject(services)
         }
+        .background(
+            EmptyView()
+                .fullScreenCover(isPresented: $showRoutinePlayer) {
+                    SideQuestPlayerView(routine: activeRoutine) { _ in
+                        showRoutinePlayer = false
+                    }
+                    .environmentObject(services)
+                }
+        )
         .fullScreenCover(isPresented: $showingExpandedMap) {
             ExpandedBodyMapView(
                 regionRanks: regionRanks,
@@ -195,15 +194,6 @@ struct UnboundHomeView: View {
         .nodeUnlockOverlay()
         .weightBumpToast()
         .tierUnlockToast()
-        .navigationDestination(isPresented: Binding(
-            get: { navigateToCoach != nil },
-            set: { if !$0 { navigateToCoach = nil } }
-        )) {
-            if let prompt = navigateToCoach {
-                CoachTabView(prefill: prompt)
-                    .environmentObject(services)
-            }
-        }
     }
 
     // MARK: - Top bar
@@ -212,6 +202,17 @@ struct UnboundHomeView: View {
         let level = (gains / xpPerLevel) + 1
         return HStack(alignment: .center, spacing: 10) {
             avatarBadge(level: level)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("UNBOUND")
+                    .font(Font.unbound.captionS.weight(.black))
+                    .tracking(2.0)
+                    .foregroundStyle(Color.unbound.textPrimary)
+                Text(archetypeName.uppercased())
+                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+                    .tracking(1.3)
+                    .foregroundStyle(Color.unbound.textTertiary)
+            }
 
             Spacer()
 
@@ -232,34 +233,1098 @@ struct UnboundHomeView: View {
         .frame(height: 44)
     }
 
+    // MARK: - Briefing
+
+    private var homeBriefing: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .firstTextBaseline, spacing: 12) {
+                Text(briefingTitle)
+                    .font(.system(size: 31, weight: .black))
+                    .foregroundStyle(Color.unbound.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+
+                Spacer(minLength: 10)
+
+                Text(shortDayString())
+                    .font(Font.unbound.monoS.weight(.semibold))
+                    .foregroundStyle(Color.unbound.textTertiary)
+                    .monospacedDigit()
+            }
+
+            Text(briefingCopy)
+                .font(Font.unbound.bodyM)
+                .foregroundStyle(Color.unbound.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .lineSpacing(2)
+                .frame(maxWidth: 330, alignment: .leading)
+        }
+        .padding(.top, 2)
+    }
+
+    // MARK: - Premium Home Concept
+
+    private var trainingConsole: some View {
+        let day = todayProgramDay
+        let workout = day?.workout
+        let isRest = day?.isRestDay ?? false
+        let canStart = workout != nil && !isRest
+        let tint = protocolTint(canStart: canStart, isRest: isRest)
+        let title = workout?.name ?? (isRest ? "Recovery Protocol" : "Coach Protocol")
+        let minutes = workout?.estimatedMinutes ?? (isRest ? 18 : 30)
+        let focus = workout?.targetMuscleGroups.first?.displayName.uppercased() ?? (isRest ? "RECOVERY" : "CUSTOM")
+
+        return ZStack(alignment: .topTrailing) {
+            ProtocolHeroBackground(tint: tint)
+
+            VStack(alignment: .leading, spacing: 18) {
+                HStack(alignment: .top, spacing: 14) {
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack(spacing: 8) {
+                            protocolStatusPill(label: "TODAY STATUS", value: todayStatusValue, tint: tint)
+                            Text(focus)
+                                .font(Font.unbound.captionS.weight(.bold))
+                                .tracking(1.4)
+                                .foregroundStyle(Color.unbound.textTertiary)
+                                .lineLimit(1)
+                        }
+
+                        Text(title)
+                            .font(.system(size: 33, weight: .black))
+                            .foregroundStyle(Color.unbound.textPrimary)
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.72)
+
+                        HStack(spacing: 8) {
+                            Text(programDayLabel)
+                            Text("·")
+                                .foregroundStyle(Color.unbound.textTertiary.opacity(0.55))
+                            Text("\(minutes) min")
+                            Text("·")
+                                .foregroundStyle(Color.unbound.textTertiary.opacity(0.55))
+                            Text("\(workout?.mainExercises.count ?? 0) movements")
+                        }
+                        .font(Font.unbound.monoS.weight(.semibold))
+                        .foregroundStyle(Color.unbound.textSecondary)
+                        .monospacedDigit()
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.70)
+                    }
+
+                    Spacer(minLength: 0)
+
+                    integratedRankRail
+                }
+
+                Button {
+                    UnboundHaptics.medium()
+                    if canStart {
+                        showingSession = true
+                    } else if isRest {
+                        captureMode = .photo
+                    }
+                } label: {
+                    HStack(spacing: 11) {
+                        Text(protocolPrimaryLabel(canStart: canStart, isRest: isRest).uppercased())
+                            .font(Font.unbound.bodyMStrong)
+                            .tracking(1.4)
+                        Image(systemName: canStart ? "arrow.right" : "camera.fill")
+                            .font(.system(size: 13, weight: .bold))
+                    }
+                    .foregroundStyle(Color.unbound.textPrimary)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 52)
+                    .background(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .fill(tint)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .strokeBorder(Color.white.opacity(0.16), lineWidth: 1)
+                    )
+                    .shadow(color: tint.opacity(0.22), radius: 18, y: 8)
+                }
+                .buttonStyle(.plain)
+
+                consoleDivider
+
+                consoleExercisePlan(workout: workout)
+
+                coachCueAnnotation
+
+                consoleDivider
+
+                weekPath
+            }
+            .padding(18)
+        }
+        .frame(maxWidth: .infinity)
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [
+                            Color.white.opacity(0.16),
+                            tint.opacity(0.28),
+                            Color.white.opacity(0.04)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1
+                )
+        }
+        .shadow(color: Color.black.opacity(0.28), radius: 24, y: 14)
+    }
+
+    private var integratedRankRail: some View {
+        let level = (gains / xpPerLevel) + 1
+        let xpInLevel = gains % xpPerLevel
+        let fraction = Double(xpInLevel) / Double(xpPerLevel)
+        let rankColor = aggregateRank.regionTint
+
+        return VStack(alignment: .trailing, spacing: 8) {
+            Text("RANK \(aggregateRank.letter)")
+                .font(Font.unbound.captionS.weight(.bold))
+                .tracking(1.4)
+                .foregroundStyle(rankColor)
+            Text("LV \(level)")
+                .font(Font.unbound.monoM.weight(.semibold))
+                .foregroundStyle(Color.unbound.textPrimary)
+                .monospacedDigit()
+            GeometryReader { proxy in
+                ZStack(alignment: .bottom) {
+                    Capsule()
+                        .fill(Color.white.opacity(0.08))
+                    Capsule()
+                        .fill(rankColor)
+                        .frame(height: max(8, proxy.size.height * fraction))
+                        .shadow(color: rankColor.opacity(0.35), radius: 8)
+                }
+            }
+            .frame(width: 5, height: 58)
+            Text("\(xpInLevel)/\(xpPerLevel) SP")
+                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                .foregroundStyle(Color.unbound.textTertiary)
+                .monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(0.65)
+        }
+        .frame(width: 76, alignment: .trailing)
+    }
+
+    private func consoleExercisePlan(workout: Workout?) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Text("SESSION PLAN")
+                    .font(Font.unbound.captionS.weight(.bold))
+                    .tracking(1.7)
+                    .foregroundStyle(Color.unbound.textTertiary)
+                Spacer()
+                Text(workout == nil ? "ADAPTIVE" : "\(workout?.mainExercises.count ?? 0) MOVES")
+                    .font(Font.unbound.monoS.weight(.semibold))
+                    .foregroundStyle(Color.unbound.textSecondary)
+                    .monospacedDigit()
+            }
+            .padding(.bottom, 6)
+
+            if let workout {
+                ForEach(Array(workout.mainExercises.prefix(3).enumerated()), id: \.offset) { index, exercise in
+                    premiumExerciseRow(index: index + 1, exercise: exercise)
+                    if index < min(2, workout.mainExercises.count - 1) {
+                        Rectangle()
+                            .fill(Color.white.opacity(0.07))
+                            .frame(height: 0.5)
+                            .padding(.leading, 38)
+                    }
+                }
+            } else {
+                protocolRecoveryRow(isRest: todayProgramDay?.isRestDay ?? false)
+            }
+        }
+    }
+
+    private var coachCueAnnotation: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Rectangle()
+                .fill(Color.unbound.accent.opacity(0.85))
+                .frame(width: 2)
+                .padding(.vertical, 3)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text("COACH CUE")
+                    .font(.system(size: 9, weight: .bold))
+                    .tracking(1.6)
+                    .foregroundStyle(Color.unbound.accent)
+                Text(coachCueText)
+                    .font(Font.unbound.bodyS)
+                    .foregroundStyle(Color.unbound.textPrimary)
+                    .lineLimit(2)
+                    .lineSpacing(2)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(
+            RoundedRectangle(cornerRadius: 13, style: .continuous)
+                .fill(Color.white.opacity(0.045))
+        )
+    }
+
+    private var weekPath: some View {
+        let labels = ["M", "T", "W", "T", "F", "S", "S"]
+        let todayIndex = ((Calendar.current.component(.weekday, from: Date()) + 5) % 7) + 1
+
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                HStack(spacing: 7) {
+                    Image(systemName: "flame.fill")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(Color.unbound.ember)
+                    Text("\(sessionXP?.currentStreak ?? streakDays) DAY STREAK")
+                        .font(Font.unbound.captionS.weight(.bold))
+                        .tracking(1.5)
+                        .foregroundStyle(Color.unbound.ember)
+                        .monospacedDigit()
+                }
+                Spacer()
+                Text("WEEK PATH \(weekSessionDays.count)/7")
+                    .font(Font.unbound.monoS.weight(.semibold))
+                    .foregroundStyle(Color.unbound.textSecondary)
+                    .monospacedDigit()
+            }
+
+            HStack(spacing: 0) {
+                ForEach(0..<7, id: \.self) { index in
+                    VStack(spacing: 7) {
+                        ZStack {
+                            if index < 6 {
+                                Rectangle()
+                                    .fill(Color.white.opacity(0.08))
+                                    .frame(height: 1)
+                                    .offset(x: 18)
+                            }
+                            Circle()
+                                .fill(weekPathColor(index: index, todayIndex: todayIndex))
+                                .frame(width: (index + 1) == todayIndex ? 13 : 10, height: (index + 1) == todayIndex ? 13 : 10)
+                                .overlay(
+                                    Circle()
+                                        .strokeBorder((index + 1) == todayIndex ? Color.white.opacity(0.45) : Color.clear, lineWidth: 1)
+                                )
+                        }
+                        Text(labels[index])
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundStyle(Color.unbound.textTertiary)
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+            }
+        }
+    }
+
+    private var consoleDivider: some View {
+        Rectangle()
+            .fill(Color.white.opacity(0.07))
+            .frame(height: 0.5)
+    }
+
+    private var exercisePreviewCard: some View {
+        let workout = todayProgramDay?.workout
+
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("SESSION PLAN")
+                    .font(Font.unbound.captionS.weight(.bold))
+                    .tracking(1.8)
+                    .foregroundStyle(Color.unbound.textTertiary)
+                Spacer()
+                Text(workout == nil ? "ADAPTIVE" : "\(workout?.mainExercises.count ?? 0) MOVES")
+                    .font(Font.unbound.monoS.weight(.semibold))
+                    .foregroundStyle(Color.unbound.textSecondary)
+                    .monospacedDigit()
+            }
+
+            if let workout {
+                VStack(spacing: 0) {
+                    ForEach(Array(workout.mainExercises.prefix(4).enumerated()), id: \.offset) { index, exercise in
+                        premiumExerciseRow(index: index + 1, exercise: exercise)
+                        if index < min(3, workout.mainExercises.count - 1) {
+                            Rectangle()
+                                .fill(Color.unbound.borderSubtle)
+                                .frame(height: 0.5)
+                                .padding(.leading, 38)
+                        }
+                    }
+                }
+            } else {
+                protocolRecoveryRow(isRest: todayProgramDay?.isRestDay ?? false)
+            }
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(Color.unbound.surface)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
+        )
+    }
+
+    private var rankMomentumCard: some View {
+        let level = (gains / xpPerLevel) + 1
+        let xpInLevel = gains % xpPerLevel
+        let fraction = Double(xpInLevel) / Double(xpPerLevel)
+        let rankColor = aggregateRank.regionTint
+
+        return HStack(alignment: .center, spacing: 14) {
+            RankBadge(rank: aggregateRank, size: .medium)
+                .frame(width: 62, height: 62)
+
+            VStack(alignment: .leading, spacing: 9) {
+                HStack(spacing: 8) {
+                    Text("RANK MOMENTUM")
+                        .font(Font.unbound.captionS.weight(.bold))
+                        .tracking(1.7)
+                        .foregroundStyle(Color.unbound.textTertiary)
+                    Spacer(minLength: 0)
+                    Text("LV \(level)")
+                        .font(Font.unbound.monoS.weight(.semibold))
+                        .foregroundStyle(Color.unbound.textSecondary)
+                        .monospacedDigit()
+                }
+
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text(tierName(for: aggregateRank).uppercased())
+                        .font(Font.unbound.titleS)
+                        .foregroundStyle(Color.unbound.textPrimary)
+                    Text("TO \(aggregateRank.advanced(by: 1).displayName)")
+                        .font(Font.unbound.monoS.weight(.semibold))
+                        .tracking(1.0)
+                        .foregroundStyle(rankColor)
+                }
+
+                GeometryReader { proxy in
+                    ZStack(alignment: .leading) {
+                        Capsule()
+                            .fill(Color.unbound.bg.opacity(0.7))
+                        Capsule()
+                            .fill(
+                                LinearGradient(
+                                    colors: [rankColor, Color.unbound.impact.opacity(0.9)],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .frame(width: max(6, proxy.size.width * fraction))
+                            .overlay(
+                                Rectangle()
+                                    .fill(
+                                        LinearGradient(
+                                            colors: [.clear, .white.opacity(0.45), .clear],
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        )
+                                    )
+                                    .frame(width: 24)
+                                    .offset(x: xpShimmerPhase * max(6, proxy.size.width * fraction))
+                                    .blendMode(.plusLighter)
+                            )
+                            .clipShape(Capsule())
+                    }
+                }
+                .frame(height: 5)
+
+                HStack(spacing: 8) {
+                    miniStatPill(label: "STR", rank: statScore.strengthRank)
+                    miniStatPill(label: "STA", rank: statScore.staminaRank)
+                    miniStatPill(label: "TEC", rank: statScore.techniqueRank)
+                    miniStatPill(label: "VIT", rank: statScore.vitalityRank)
+                }
+            }
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            ZStack {
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(Color.unbound.surface)
+                DiagonalAccentShape()
+                    .fill(rankColor.opacity(0.10))
+                    .frame(width: 150)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+                    .allowsHitTesting(false)
+            }
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
+        )
+    }
+
+    private var weeklyCoachBento: some View {
+        HStack(alignment: .top, spacing: 12) {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Text("WEEK")
+                        .font(Font.unbound.captionS.weight(.bold))
+                        .tracking(1.7)
+                        .foregroundStyle(Color.unbound.textTertiary)
+                    Spacer()
+                    Text("\(weekSessionDays.count)/7")
+                        .font(Font.unbound.monoS.weight(.semibold))
+                        .foregroundStyle(Color.unbound.ember)
+                        .monospacedDigit()
+                }
+                compactWeekGlyphs
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, minHeight: 112, alignment: .topLeading)
+            .background(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(Color.unbound.surface)
+            )
+
+            VStack(alignment: .leading, spacing: 9) {
+                HStack(spacing: 7) {
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(Color.unbound.accent)
+                    Text("COACH")
+                        .font(Font.unbound.captionS.weight(.bold))
+                        .tracking(1.7)
+                        .foregroundStyle(Color.unbound.textTertiary)
+                }
+                Text(coachNote?.text ?? "Keep the first lift crisp. If bar speed drops, trim one accessory set.")
+                    .font(Font.unbound.bodyS)
+                    .foregroundStyle(Color.unbound.textPrimary)
+                    .lineLimit(4)
+                    .lineSpacing(2)
+                    .minimumScaleFactor(0.86)
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, minHeight: 112, alignment: .topLeading)
+            .background(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(Color.unbound.surface)
+            )
+        }
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(Color.unbound.borderSubtle.opacity(0.45), lineWidth: 1)
+                .allowsHitTesting(false)
+        )
+    }
+
+    private var compactWeekGlyphs: some View {
+        let labels = ["M", "T", "W", "T", "F", "S", "S"]
+        let todayIndex = ((Calendar.current.component(.weekday, from: Date()) + 5) % 7) + 1
+        return HStack(spacing: 5) {
+            ForEach(0..<7, id: \.self) { index in
+                VStack(spacing: 7) {
+                    Text(labels[index])
+                        .font(.system(size: 8, weight: .bold))
+                        .foregroundStyle(Color.unbound.textTertiary)
+                    Capsule()
+                        .fill(weekSessionDays.contains(index + 1) ? Color.unbound.ember : ((index + 1) == todayIndex ? Color.unbound.accent : Color.unbound.borderSubtle))
+                        .frame(width: 12, height: weekSessionDays.contains(index + 1) ? 28 : ((index + 1) == todayIndex ? 18 : 10))
+                        .shadow(color: weekSessionDays.contains(index + 1) ? Color.unbound.ember.opacity(0.28) : .clear, radius: 6)
+                }
+                .frame(maxWidth: .infinity)
+            }
+        }
+        .frame(height: 54, alignment: .bottom)
+    }
+
+    private var dailyQuestBand: some View {
+        let categoryColor = questColor
+
+        return Button {
+            UnboundHaptics.medium()
+        } label: {
+            HStack(spacing: 12) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 13, style: .continuous)
+                        .fill(categoryColor.opacity(0.16))
+                    Image(systemName: "bolt.fill")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(categoryColor)
+                }
+                .frame(width: 42, height: 42)
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("DAILY QUEST")
+                        .font(Font.unbound.captionS.weight(.bold))
+                        .tracking(1.6)
+                        .foregroundStyle(Color.unbound.textTertiary)
+                    Text(dailyQuest.title)
+                        .font(Font.unbound.bodyMStrong)
+                        .foregroundStyle(Color.unbound.textPrimary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.78)
+                }
+
+                Spacer(minLength: 0)
+
+                Text("+\(dailyQuest.spReward)")
+                    .font(Font.unbound.monoS.weight(.bold))
+                    .foregroundStyle(categoryColor)
+                    .monospacedDigit()
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity)
+            .background(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(Color.unbound.surface)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .strokeBorder(categoryColor.opacity(0.24), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func protocolTint(canStart: Bool, isRest: Bool) -> Color {
+        canStart ? Color.unbound.accent : (isRest ? Color.unbound.coachCyan : Color.unbound.warnOrange)
+    }
+
+    private var todayStatusValue: String {
+        if !plateaus.isEmpty { return "WATCH" }
+        if shouldShowCalibrationCard { return "CALIBRATE" }
+        if todayProgramDay?.isRestDay == true { return "REST" }
+        if todayProgramDay?.workout != nil { return "TRAIN" }
+        return "PLAN"
+    }
+
+    private var programDayLabel: String {
+        guard let day = todayProgramDay else { return "No program" }
+        let total = program?.days.count ?? 14
+        if day.dayNumber > 0 {
+            return "Day \(day.dayNumber) / \(max(total, day.dayNumber))"
+        }
+        return "Travel day"
+    }
+
+    private var coachCueText: String {
+        if let note = coachNote?.text, !note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return note
+        }
+        if let first = todayProgramDay?.workout?.mainExercises.first {
+            return "Keep the first lift crisp: \(first.name). Stop one rep before form breaks."
+        }
+        if todayProgramDay?.isRestDay == true {
+            return "Recovery protects the block. Keep movement easy and log a photo check-in."
+        }
+        return "Build a useful session from your current program before you train."
+    }
+
+    private func weekPathColor(index: Int, todayIndex: Int) -> Color {
+        if weekSessionDays.contains(index + 1) { return Color.unbound.rankGreen }
+        if (index + 1) == todayIndex { return Color.unbound.ember }
+        return Color.white.opacity(0.16)
+    }
+
+    private func protocolHeroSubtitle(workout: Workout?, isRest: Bool) -> String {
+        if let workout {
+            return "\(workout.mainExercises.count) main lifts calibrated for today's block. Start clean, log every top set."
+        }
+        if isRest {
+            return "Recovery is scheduled. Bank the day with a photo check-in or low-intensity work."
+        }
+        return "No session is queued. Coach can build a practical session from your current program."
+    }
+
+    private func protocolPrimaryLabel(canStart: Bool, isRest: Bool) -> String {
+        if canStart { return "Begin Session" }
+        return isRest ? "Log Check-In" : "Ask Coach"
+    }
+
+    private func protocolMetaTile(label: String, value: String, tint: Color) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(label)
+                .font(.system(size: 9, weight: .bold))
+                .tracking(1.4)
+                .foregroundStyle(Color.unbound.textTertiary)
+            Text(value)
+                .font(Font.unbound.monoS.weight(.bold))
+                .foregroundStyle(tint)
+                .lineLimit(1)
+                .minimumScaleFactor(0.74)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 9)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color.white.opacity(0.045))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(Color.white.opacity(0.07), lineWidth: 1)
+        )
+    }
+
+    private func premiumExerciseRow(index: Int, exercise: Exercise) -> some View {
+        HStack(alignment: .center, spacing: 12) {
+            Text(String(format: "%02d", index))
+                .font(Font.unbound.monoS.weight(.bold))
+                .foregroundStyle(Color.unbound.textTertiary)
+                .frame(width: 26, alignment: .leading)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(exercise.name)
+                    .font(Font.unbound.bodyMStrong)
+                    .foregroundStyle(Color.unbound.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.76)
+                Text("\(exercise.sets) x \(exercise.reps) · \(exercise.restSeconds)s rest")
+                    .font(Font.unbound.captionS)
+                    .foregroundStyle(Color.unbound.textSecondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.76)
+            }
+
+            Spacer(minLength: 0)
+
+            if let rpe = exercise.rpe {
+                Text("RPE \(rpe)")
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundStyle(Color.unbound.accent)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 4)
+                    .background(Capsule().fill(Color.unbound.accent.opacity(0.12)))
+            }
+        }
+        .padding(.vertical, 10)
+    }
+
+    private var questColor: Color {
+        switch dailyQuest.category {
+        case .cardio:   return Color.unbound.coachCyan
+        case .mobility: return Color.unbound.rankGreen
+        case .activity: return Color.unbound.warnOrange
+        case .circuit:  return Color.unbound.accent
+        }
+    }
+
+    // MARK: - Today protocol
+
+    private var todayProtocolCard: some View {
+        let day = todayProgramDay
+        let workout = day?.workout
+        let isRest = day?.isRestDay ?? false
+        let canStart = workout != nil && !isRest
+        let tint = canStart ? Color.unbound.accent : (isRest ? Color.unbound.coachCyan : Color.unbound.warnOrange)
+        let title = workout?.name ?? (isRest ? "Recovery protocol" : "No protocol queued")
+        let subtitle: String = {
+            if let workout {
+                return "\(workout.mainExercises.count) main lifts · about \(workout.estimatedMinutes) min"
+            }
+            if isRest {
+                return "Keep the day useful with a photo check-in, light movement, or mobility."
+            }
+            return "Ask coach to rebuild today's work from your current program."
+        }()
+        let primaryLabel = canStart ? "Begin Session" : (isRest ? "Log Check-In" : "Ask Coach")
+        let primaryIcon = canStart ? "arrow.right" : (isRest ? "camera.fill" : "message.fill")
+
+        return VStack(alignment: .leading, spacing: 18) {
+            HStack(alignment: .center, spacing: 10) {
+                protocolStatusPill(label: "TODAY", value: readinessValue, tint: tint)
+                Spacer()
+                Text(shortDayString())
+                    .font(Font.unbound.monoS.weight(.semibold))
+                    .foregroundStyle(Color.unbound.textTertiary)
+                    .monospacedDigit()
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text(title)
+                    .font(.system(size: 28, weight: .black))
+                    .foregroundStyle(Color.unbound.textPrimary)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.76)
+
+                Text(subtitle)
+                    .font(Font.unbound.bodyM)
+                    .foregroundStyle(Color.unbound.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .lineSpacing(2)
+            }
+
+            if let workout {
+                VStack(spacing: 0) {
+                    ForEach(Array(workout.mainExercises.prefix(3).enumerated()), id: \.offset) { index, exercise in
+                        protocolExerciseRow(index: index + 1, exercise: exercise)
+                        if index < min(2, workout.mainExercises.count - 1) {
+                            Rectangle()
+                                .fill(Color.unbound.borderSubtle)
+                                .frame(height: 0.5)
+                                .padding(.leading, 34)
+                        }
+                    }
+                }
+                .padding(12)
+                .background(
+                    RoundedRectangle(cornerRadius: 13, style: .continuous)
+                        .fill(Color.unbound.bg.opacity(0.34))
+                )
+            } else {
+                protocolRecoveryRow(isRest: isRest)
+            }
+
+            Button {
+                UnboundHaptics.medium()
+                if canStart {
+                    showingSession = true
+                } else if isRest {
+                    captureMode = .photo
+                }
+            } label: {
+                HStack(spacing: 10) {
+                    Text(primaryLabel.uppercased())
+                        .font(Font.unbound.bodyMStrong)
+                        .tracking(1.4)
+                    Image(systemName: primaryIcon)
+                        .font(.system(size: 13, weight: .bold))
+                }
+                .foregroundStyle(Color.unbound.textPrimary)
+                .frame(maxWidth: .infinity)
+                .frame(height: 50)
+                .background(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(tint)
+                )
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            ZStack {
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(Color.unbound.surface)
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [tint.opacity(0.10), .clear],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+            }
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .strokeBorder(tint.opacity(0.28), lineWidth: 1)
+        )
+    }
+
+    private func protocolStatusPill(label: String, value: String, tint: Color) -> some View {
+        HStack(spacing: 8) {
+            Text(label)
+                .font(Font.unbound.captionS.weight(.bold))
+                .tracking(1.6)
+                .foregroundStyle(Color.unbound.textTertiary)
+            Text(value)
+                .font(Font.unbound.monoS.weight(.bold))
+                .foregroundStyle(tint)
+                .monospacedDigit()
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(Capsule().fill(tint.opacity(0.12)))
+        .overlay(Capsule().strokeBorder(tint.opacity(0.30), lineWidth: 1))
+    }
+
+    private func protocolExerciseRow(index: Int, exercise: Exercise) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
+            Text(String(format: "%02d", index))
+                .font(Font.unbound.monoS.weight(.semibold))
+                .foregroundStyle(Color.unbound.textTertiary)
+                .monospacedDigit()
+                .frame(width: 22, alignment: .leading)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(exercise.name)
+                    .font(Font.unbound.bodyMStrong)
+                    .foregroundStyle(Color.unbound.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.78)
+                Text("\(exercise.sets) SETS · \(exercise.reps) · \(exercise.restSeconds)S REST")
+                    .font(Font.unbound.captionS)
+                    .tracking(1.0)
+                    .foregroundStyle(Color.unbound.textTertiary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.76)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(.vertical, 8)
+    }
+
+    private func protocolRecoveryRow(isRest: Bool) -> some View {
+        HStack(spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill((isRest ? Color.unbound.coachCyan : Color.unbound.warnOrange).opacity(0.15))
+                Image(systemName: isRest ? "figure.cooldown" : "wand.and.stars")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(isRest ? Color.unbound.coachCyan : Color.unbound.warnOrange)
+            }
+            .frame(width: 34, height: 34)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(isRest ? "Recovery still counts" : "Coach can patch the gap")
+                    .font(Font.unbound.bodyMStrong)
+                    .foregroundStyle(Color.unbound.textPrimary)
+                Text(isRest ? "Photo, walk, mobility, or stretch." : "Generate a useful session from your current state.")
+                    .font(Font.unbound.captionS)
+                    .foregroundStyle(Color.unbound.textSecondary)
+                    .lineLimit(2)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 13, style: .continuous)
+                .fill(Color.unbound.bg.opacity(0.34))
+        )
+    }
+
+    private var progressionSnapshot: some View {
+        let level = (gains / xpPerLevel) + 1
+        let xpInLevel = gains % xpPerLevel
+        let fraction = Double(xpInLevel) / Double(xpPerLevel)
+        let rankColor = aggregateRank.regionTint
+
+        return VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .center, spacing: 12) {
+                RankBadge(rank: aggregateRank, size: .small)
+
+                VStack(alignment: .leading, spacing: 5) {
+                    HStack(spacing: 7) {
+                        Text(tierName(for: aggregateRank).uppercased())
+                            .font(Font.unbound.captionS.weight(.bold))
+                            .tracking(1.6)
+                            .foregroundStyle(rankColor)
+                        Text("LV \(level)")
+                            .font(Font.unbound.monoS.weight(.semibold))
+                            .foregroundStyle(Color.unbound.textSecondary)
+                            .monospacedDigit()
+                    }
+
+                    GeometryReader { proxy in
+                        ZStack(alignment: .leading) {
+                            Capsule()
+                                .fill(Color.unbound.borderSubtle)
+                            Capsule()
+                                .fill(rankColor)
+                                .frame(width: max(4, proxy.size.width * fraction))
+                                .overlay(
+                                    Rectangle()
+                                        .fill(
+                                            LinearGradient(
+                                                colors: [.clear, .white.opacity(0.45), .clear],
+                                                startPoint: .leading,
+                                                endPoint: .trailing
+                                            )
+                                        )
+                                        .frame(width: 22)
+                                        .offset(x: xpShimmerPhase * max(4, proxy.size.width * fraction))
+                                        .blendMode(.plusLighter)
+                                )
+                                .clipShape(Capsule())
+                        }
+                    }
+                    .frame(height: 4)
+                }
+
+                Spacer(minLength: 0)
+
+                Button {
+                    UnboundHaptics.medium()
+                    showingExpandedMap = true
+                } label: {
+                    Image(systemName: "person.crop.rectangle")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(Color.unbound.textSecondary)
+                        .frame(width: 38, height: 38)
+                        .background(Circle().fill(Color.unbound.bg.opacity(0.44)))
+                }
+                .buttonStyle(.plain)
+            }
+
+            HStack(spacing: 8) {
+                miniStatPill(label: "STR", rank: statScore.strengthRank)
+                miniStatPill(label: "STA", rank: statScore.staminaRank)
+                miniStatPill(label: "TEC", rank: statScore.techniqueRank)
+                miniStatPill(label: "VIT", rank: statScore.vitalityRank)
+            }
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color.unbound.surface)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
+        )
+    }
+
+    private func miniStatPill(label: String, rank: SubRank) -> some View {
+        let tint = rank.regionTint
+        return HStack(spacing: 5) {
+            Text(label)
+                .font(.system(size: 9, weight: .bold))
+                .tracking(1.0)
+                .foregroundStyle(Color.unbound.textTertiary)
+            Text(rank.displayName)
+                .font(Font.unbound.monoS.weight(.bold))
+                .foregroundStyle(tint)
+                .monospacedDigit()
+        }
+        .lineLimit(1)
+        .minimumScaleFactor(0.74)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 7)
+        .background(
+            RoundedRectangle(cornerRadius: 9, style: .continuous)
+                .fill(tint.opacity(0.10))
+        )
+    }
+
+    private var readinessRail: some View {
+        VStack(spacing: 0) {
+            railMetric(label: "READINESS", value: readinessValue, detail: readinessDetail, tint: readinessTint)
+            railDivider
+            railMetric(label: "NEXT RANK", value: aggregateRank.advanced(by: 1).displayName, detail: tierName(for: aggregateRank.advanced(by: 1)), tint: aggregateRank.advanced(by: 1).regionTint)
+            railDivider
+            HStack(spacing: 0) {
+                railMetric(label: "WEEK", value: "\(weekSessionDays.count)/7", detail: "sessions", tint: Color.unbound.ember)
+                verticalRailDivider
+                railMetric(label: "SP", value: "\(gains)", detail: "banked", tint: Color.unbound.textPrimary)
+            }
+        }
+        .padding(.vertical, 4)
+        .overlay(alignment: .leading) {
+            Rectangle()
+                .fill(Color.unbound.ember.opacity(0.82))
+                .frame(width: 2)
+        }
+    }
+
+    private func railMetric(label: String, value: String, detail: String, tint: Color) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
+            Text(label)
+                .font(Font.unbound.captionS.weight(.bold))
+                .tracking(1.5)
+                .foregroundStyle(Color.unbound.textTertiary)
+                .frame(width: 86, alignment: .leading)
+
+            Text(value)
+                .font(Font.unbound.monoM.weight(.semibold))
+                .foregroundStyle(tint)
+                .monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+
+            Spacer(minLength: 10)
+
+            Text(detail)
+                .font(Font.unbound.captionS)
+                .foregroundStyle(Color.unbound.textSecondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+        }
+        .padding(.leading, 16)
+        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity)
+    }
+
+    private var railDivider: some View {
+        Rectangle()
+            .fill(Color.unbound.borderSubtle)
+            .frame(height: 0.5)
+            .padding(.leading, 16)
+    }
+
+    private var verticalRailDivider: some View {
+        Rectangle()
+            .fill(Color.unbound.borderSubtle)
+            .frame(width: 0.5, height: 42)
+    }
+
+    private var briefingTitle: String {
+        if let name = profile?.displayName,
+           !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return "Move, \(name.components(separatedBy: " ").first ?? name)"
+        }
+        return "Move today"
+    }
+
+    private var briefingCopy: String {
+        if let day = todayProgramDay {
+            if day.isRestDay {
+                return "Recovery is scheduled. Keep the arc alive with a scan, a photo, or a low-friction quest."
+            }
+            if let workout = day.workout {
+                return "\(workout.name) is ready. \(workout.mainExercises.count) main lifts, about \(workout.estimatedMinutes) minutes."
+            }
+        }
+        return "No session is queued. Use the rail below to decide whether to train, scan, or recalibrate."
+    }
+
+    private var readinessValue: String {
+        if !plateaus.isEmpty { return "WATCH" }
+        if shouldShowCalibrationCard { return "CAL" }
+        if todayProgramDay?.isRestDay == true { return "REST" }
+        return "GO"
+    }
+
+    private var readinessDetail: String {
+        if let first = plateaus.first {
+            return "\(first.displayName) stalled"
+        }
+        if shouldShowCalibrationCard {
+            return "baseline"
+        }
+        if todayProgramDay?.isRestDay == true {
+            return "recovery"
+        }
+        return "clear"
+    }
+
+    private var readinessTint: Color {
+        if !plateaus.isEmpty { return Color.unbound.warnOrange }
+        if shouldShowCalibrationCard { return Color.unbound.ember }
+        if todayProgramDay?.isRestDay == true { return Color.unbound.coachCyan }
+        return Color.unbound.success
+    }
+
     /// Placeholder avatar: initials in a chamfered charcoal circle with a
     /// small violet LV chip overlapping the bottom-right. Swap to the real
-    /// user photo once the scan pipeline feeds it in.
+    /// user photo once the scan pipeline feeds it in. Frame derives from
+    /// the user's currently equipped rank-tier cosmetic.
     private func avatarBadge(level: Int) -> some View {
         let letter = avatarInitial
         return HStack(spacing: 8) {
             ZStack(alignment: .bottomTrailing) {
-                ZStack {
-                    Circle()
-                        .fill(Color.unbound.surface)
-                    Circle()
-                        .strokeBorder(
-                            LinearGradient(
-                                colors: [
-                                    Color.unbound.accent.opacity(0.65),
-                                    Color.unbound.accent.opacity(0.20)
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ),
-                            lineWidth: 1.5
-                        )
-                    Text(letter)
-                        .font(Font.unbound.titleS)
-                        .tracking(0.5)
-                        .foregroundStyle(Color.unbound.textPrimary)
-                }
-                .frame(width: 40, height: 40)
+                CosmeticAvatar(
+                    tier: aggregateRank.title,
+                    size: 44,
+                    image: nil,
+                    letterFallback: letter
+                )
 
                 Text("\(level)")
                     .font(.system(size: 9, weight: .bold))
@@ -347,132 +1412,167 @@ struct UnboundHomeView: View {
         let tierLabel = tierName(for: aggregateRank)
         let rankColor = aggregateRank.regionTint
         let nextRank = aggregateRank.advanced(by: 1)
+        let allGroupRanks = MuscleHeatGroup.allCases.map { heatmapRanks[$0] ?? .eMinus }
+        let weakestGroupRank = allGroupRanks.min() ?? .eMinus
+        let strongestGroupRank = allGroupRanks.max() ?? .eMinus
 
-        return HStack(alignment: .top, spacing: 14) {
-            // LEFT — compact body. Tap → expanded map.
-            Button {
-                UnboundHaptics.medium()
-                showingExpandedMap = true
-            } label: {
-                MuscleHeatmapView(groupRanks: heatmapRanks, onGroupTapped: { group in
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .top, spacing: 12) {
+                // LEFT — body map entry point.
+                Button {
                     UnboundHaptics.medium()
-                    if let representative = BodyRegion.allCases.first(where: { $0.heatGroup == group }) {
-                        selectedRegion = representative
-                    }
-                })
-                .frame(width: 128)
-            }
-            .buttonStyle(.plain)
-
-            // RIGHT — rank, level, stats stack.
-            VStack(alignment: .leading, spacing: 8) {
-                // Rank letter + tier + next
-                HStack(alignment: .firstTextBaseline, spacing: 10) {
-                    Text(aggregateRank.letter)
-                        .font(Font.unbound.displayL)
-                        .foregroundStyle(rankColor)
-                        .shadow(color: rankColor.opacity(0.55), radius: rankGlowRadius)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(tierLabel.uppercased())
-                            .font(Font.unbound.monoS)
-                            .tracking(1.6)
-                            .foregroundStyle(rankColor.opacity(0.9))
-                        Text("NEXT · \(nextRank.displayName)")
-                            .font(.system(size: 9, weight: .medium))
-                            .tracking(1.0)
-                            .foregroundStyle(Color.unbound.textTertiary)
-                    }
-                    Spacer(minLength: 0)
-                }
-
-                // Level + XP bar
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 6) {
-                        Text("LV")
-                            .font(.system(size: 9, weight: .bold))
-                            .tracking(1.2)
-                            .foregroundStyle(Color.unbound.textTertiary)
-                        Text("\(level)")
-                            .font(Font.unbound.monoM)
-                            .foregroundStyle(Color.unbound.textPrimary)
-                            .monospacedDigit()
-                        Spacer(minLength: 0)
-                        Text("\(xpInLevel) / \(xpPerLevel)")
-                            .font(.system(size: 9, weight: .medium))
-                            .foregroundStyle(Color.unbound.textTertiary)
-                            .monospacedDigit()
-                    }
-                    GeometryReader { proxy in
-                        ZStack(alignment: .leading) {
-                            Capsule()
-                                .fill(Color.unbound.borderSubtle)
-                            Capsule()
-                                .fill(Color.unbound.accent)
-                                .frame(width: max(4, proxy.size.width * fraction))
-                                .shadow(color: Color.unbound.accent.opacity(0.45), radius: 3)
-                                .overlay(
-                                    // Traveling shimmer highlight — a thin
-                                    // gradient streaks across the filled XP
-                                    // portion, clipped to the Capsule so it
-                                    // never leaks outside the bar.
-                                    Rectangle()
-                                        .fill(
-                                            LinearGradient(
-                                                colors: [
-                                                    .clear,
-                                                    .white.opacity(0.55),
-                                                    .clear
-                                                ],
-                                                startPoint: .leading,
-                                                endPoint: .trailing
-                                            )
-                                        )
-                                        .frame(width: 24)
-                                        .offset(x: xpShimmerPhase * max(4, proxy.size.width * fraction))
-                                        .blendMode(.plusLighter)
-                                        .allowsHitTesting(false)
-                                )
-                                .clipShape(Capsule())
+                    showingExpandedMap = true
+                } label: {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack(spacing: 6) {
+                            Text("BODY MAP")
+                                .font(Font.unbound.captionS.weight(.bold))
+                                .tracking(1.4)
+                                .foregroundStyle(Color.unbound.textSecondary)
+                            Spacer(minLength: 0)
+                            Image(systemName: "arrow.up.right")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundStyle(Color.unbound.accent.opacity(0.9))
                         }
+
+                        MuscleHeatmapView(groupRanks: heatmapRanks, onGroupTapped: { group in
+                            UnboundHaptics.medium()
+                            if let representative = BodyRegion.allCases.first(where: { $0.heatGroup == group }) {
+                                selectedRegion = representative
+                            }
+                        })
+                        .frame(width: 136)
                     }
-                    .frame(height: 3)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 9)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(Color.unbound.bg.opacity(0.33))
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
+                    )
                 }
+                .buttonStyle(.plain)
 
-                // Thin divider separating identity from stats
-                Rectangle()
-                    .fill(Color.unbound.borderSubtle)
-                    .frame(height: 0.5)
+                // RIGHT — rank, level, stats stack.
+                VStack(alignment: .leading, spacing: 8) {
+                    // Rank letter + tier + next
+                    HStack(alignment: .firstTextBaseline, spacing: 10) {
+                        Text(aggregateRank.letter)
+                            .font(Font.unbound.displayL)
+                            .foregroundStyle(rankColor)
+                            .shadow(color: rankColor.opacity(0.55), radius: rankGlowRadius)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(tierLabel.uppercased())
+                                .font(Font.unbound.monoS)
+                                .tracking(1.6)
+                                .foregroundStyle(rankColor.opacity(0.9))
+                            Text("NEXT · \(nextRank.displayName)")
+                                .font(.system(size: 9, weight: .medium))
+                                .tracking(1.0)
+                                .foregroundStyle(Color.unbound.textTertiary)
+                        }
+                        Spacer(minLength: 0)
+                    }
 
-                // Meta stats — 4 rank letters for the overall axes.
-                VStack(spacing: 3) {
-                    statRow(label: "STR", rank: statScore.strengthRank)
-                    statRow(label: "STA", rank: statScore.staminaRank)
-                    statRow(label: "TEC", rank: statScore.techniqueRank)
-                    statRow(label: "VIT", rank: statScore.vitalityRank)
+                    // Level + XP bar
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack(spacing: 6) {
+                            Text("LV")
+                                .font(.system(size: 9, weight: .bold))
+                                .tracking(1.2)
+                                .foregroundStyle(Color.unbound.textTertiary)
+                            Text("\(level)")
+                                .font(Font.unbound.monoM)
+                                .foregroundStyle(Color.unbound.textPrimary)
+                                .monospacedDigit()
+                            Spacer(minLength: 0)
+                            Text("\(xpInLevel) / \(xpPerLevel)")
+                                .font(.system(size: 9, weight: .medium))
+                                .foregroundStyle(Color.unbound.textTertiary)
+                                .monospacedDigit()
+                        }
+                        GeometryReader { proxy in
+                            ZStack(alignment: .leading) {
+                                Capsule()
+                                    .fill(Color.unbound.borderSubtle)
+                                Capsule()
+                                    .fill(Color.unbound.accent)
+                                    .frame(width: max(4, proxy.size.width * fraction))
+                                    .shadow(color: Color.unbound.accent.opacity(0.45), radius: 3)
+                                    .overlay(
+                                        // Traveling shimmer highlight — a thin
+                                        // gradient streaks across the filled XP
+                                        // portion, clipped to the Capsule so it
+                                        // never leaks outside the bar.
+                                        Rectangle()
+                                            .fill(
+                                                LinearGradient(
+                                                    colors: [
+                                                        .clear,
+                                                        .white.opacity(0.55),
+                                                        .clear
+                                                    ],
+                                                    startPoint: .leading,
+                                                    endPoint: .trailing
+                                                )
+                                            )
+                                            .frame(width: 24)
+                                            .offset(x: xpShimmerPhase * max(4, proxy.size.width * fraction))
+                                            .blendMode(.plusLighter)
+                                            .allowsHitTesting(false)
+                                    )
+                                    .clipShape(Capsule())
+                            }
+                        }
+                        .frame(height: 3)
+                    }
+
+                    // Thin divider separating identity from stats
+                    Rectangle()
+                        .fill(Color.unbound.borderSubtle)
+                        .frame(height: 0.5)
+
+                    // Meta stats — 4 rank letters for the overall axes.
+                    VStack(spacing: 3) {
+                        statRow(label: "STR", rank: statScore.strengthRank)
+                        statRow(label: "STA", rank: statScore.staminaRank)
+                        statRow(label: "TEC", rank: statScore.techniqueRank)
+                        statRow(label: "VIT", rank: statScore.vitalityRank)
+                    }
+
+                    // Body ranks — aggregated per anatomical group from the
+                    // heatmap data. Shows where the user is strong/weak by
+                    // body part, complementing the 4 meta-stats above. 2x3
+                    // grid keeps it tight inside the card.
+                    Rectangle()
+                        .fill(Color.unbound.borderSubtle)
+                        .frame(height: 0.5)
+
+                    let bodyColumns = [
+                        GridItem(.flexible(), spacing: 10),
+                        GridItem(.flexible(), spacing: 10)
+                    ]
+                    LazyVGrid(columns: bodyColumns, spacing: 4) {
+                        bodyStatCell(label: "CHEST", rank: aggregate(of: [.chest]))
+                        bodyStatCell(label: "BACK",  rank: aggregate(of: [.back]))
+                        bodyStatCell(label: "SHLDR", rank: aggregate(of: [.shoulders, .traps]))
+                        bodyStatCell(label: "ARMS",  rank: aggregate(of: [.biceps, .triceps, .forearms]))
+                        bodyStatCell(label: "CORE",  rank: aggregate(of: [.core]))
+                        bodyStatCell(label: "LEGS",  rank: aggregate(of: [.legs, .hamstrings, .glutes, .calves]))
+                    }
                 }
-
-                // Body ranks — aggregated per anatomical group from the
-                // heatmap data. Shows where the user is strong/weak by
-                // body part, complementing the 4 meta-stats above. 2x3
-                // grid keeps it tight inside the card.
-                Rectangle()
-                    .fill(Color.unbound.borderSubtle)
-                    .frame(height: 0.5)
-
-                let bodyColumns = [
-                    GridItem(.flexible(), spacing: 10),
-                    GridItem(.flexible(), spacing: 10)
-                ]
-                LazyVGrid(columns: bodyColumns, spacing: 4) {
-                    bodyStatCell(label: "CHEST", rank: aggregate(of: [.chest]))
-                    bodyStatCell(label: "BACK",  rank: aggregate(of: [.back]))
-                    bodyStatCell(label: "SHLDR", rank: aggregate(of: [.shoulders, .traps]))
-                    bodyStatCell(label: "ARMS",  rank: aggregate(of: [.biceps, .triceps, .forearms]))
-                    bodyStatCell(label: "CORE",  rank: aggregate(of: [.core]))
-                    bodyStatCell(label: "LEGS",  rank: aggregate(of: [.legs, .hamstrings, .glutes, .calves]))
-                }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+
+            HStack(spacing: 8) {
+                playerInsightPill(label: "WEAK", rank: weakestGroupRank)
+                playerInsightPill(label: "PEAK", rank: strongestGroupRank)
+                Spacer(minLength: 0)
+            }
+            .padding(.top, 2)
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -520,6 +1620,28 @@ struct UnboundHomeView: View {
                 .monospacedDigit()
             Spacer(minLength: 0)
         }
+    }
+
+    private func playerInsightPill(label: String, rank: SubRank) -> some View {
+        let tint = rank.regionTint
+        return HStack(spacing: 6) {
+            Text(label)
+                .font(.system(size: 9, weight: .bold))
+                .tracking(1.2)
+                .foregroundStyle(Color.unbound.textTertiary)
+            Text(rank.displayName)
+                .font(Font.unbound.monoS.weight(.bold))
+                .foregroundStyle(tint)
+                .monospacedDigit()
+        }
+        .padding(.horizontal, 9)
+        .padding(.vertical, 5)
+        .background(
+            Capsule().fill(tint.opacity(0.12))
+        )
+        .overlay(
+            Capsule().strokeBorder(tint.opacity(0.34), lineWidth: 1)
+        )
     }
 
     /// One stat row inside the player card: 3-letter label + sub-rank
@@ -726,10 +1848,6 @@ struct UnboundHomeView: View {
         VStack(spacing: 12) {
             RecalibratingBanner()
 
-            if !plateaus.isEmpty {
-                plateauBanner
-            }
-
             if shouldShowCalibrationCard {
                 DayOneCalibrationCard(style: .slim) {
                     UnboundHaptics.medium()
@@ -743,38 +1861,13 @@ struct UnboundHomeView: View {
         }
     }
 
-    private var plateauBanner: some View {
-        let first = plateaus[0]
-        return Button {
-            UnboundHaptics.medium()
-            navigateToCoach = "Why is my \(first.displayName.lowercased()) stuck?"
-        } label: {
-            HStack(spacing: 12) {
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(Color.unbound.warnOrange)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("\(first.displayName) has stalled")
-                        .font(Font.unbound.bodyMStrong)
-                        .foregroundStyle(Color.unbound.textPrimary)
-                    Text("\(first.stalledSessions) sessions without progress.")
-                        .font(Font.unbound.captionS)
-                        .foregroundStyle(Color.unbound.textSecondary)
-                        .lineLimit(1)
-                }
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(Color.unbound.textTertiary)
-            }
-            .padding(14)
-            .frame(maxWidth: .infinity)
-            .background(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(Color.unbound.surface)
-            )
+    private var modesStrip: some View {
+        CoachModesStrip(
+            plateaus: plateaus,
+            userId: services.auth.currentUserId ?? ""
+        ) { override in
+            activeTravelOverride = override
         }
-        .buttonStyle(.plain)
     }
 
     private var scanCTACard: some View {
@@ -1175,18 +2268,10 @@ struct UnboundHomeView: View {
         return secondsSince >= 14 * 24 * 3600
     }
 
-    /// E/D/C/B/A/S → Dormant/Awakened/Forged/Sharpened/Unbound/Ascended
-    /// per the brand rank tier system.
+    /// Player-facing rank title. The underlying ordinal ladder remains
+    /// strength-based; the UI now shows titles instead of letter grades.
     private func tierName(for rank: SubRank) -> String {
-        switch rank.letter {
-        case "E": return "Dormant"
-        case "D": return "Awakened"
-        case "C": return "Forged"
-        case "B": return "Sharpened"
-        case "A": return "Unbound"
-        case "S": return "Ascended"
-        default:  return "Dormant"
-        }
+        rank.displayName
     }
 
     private func dayWord(for date: Date) -> String {
@@ -1262,7 +2347,8 @@ struct UnboundHomeView: View {
 
             Button {
                 UnboundHaptics.medium()
-                // Accept wiring lands with QuestService.
+                activeRoutine = SideQuestLibrary.pushProtocol
+                showRoutinePlayer = true
             } label: {
                 HStack(spacing: 10) {
                     Text("ACCEPT")
@@ -1330,10 +2416,10 @@ struct UnboundHomeView: View {
         var spReward: Int
 
         static let sample = DailyQuestPlaceholder(
-            title: "20-min Zone 2 walk",
-            subtitle: "Keep heart rate in zone 2. Earn while you recover.",
-            category: .cardio,
-            spReward: 25
+            title: "Push Protocol",
+            subtitle: "5 exercises · 15 sets · ~25 min",
+            category: .circuit,
+            spReward: 40
         )
     }
 
@@ -1365,5 +2451,243 @@ struct UnboundHomeView: View {
         withAnimation(.easeOut(duration: 1.0)) {
             statsRendered = true
         }
+    }
+}
+
+private struct ProtocolHeroBackground: View {
+    let tint: Color
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color.unbound.surfaceElevated,
+                            Color.unbound.surface,
+                            Color.unbound.bg.opacity(0.95)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+
+            TopographicLines()
+                .stroke(Color.white.opacity(0.035), lineWidth: 1)
+
+            DiagonalAccentShape()
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            tint.opacity(0.28),
+                            tint.opacity(0.08),
+                            .clear
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .frame(width: 210)
+                .frame(maxWidth: .infinity, alignment: .trailing)
+
+            Circle()
+                .fill(
+                    RadialGradient(
+                        colors: [tint.opacity(0.22), .clear],
+                        center: .center,
+                        startRadius: 0,
+                        endRadius: 140
+                    )
+                )
+                .frame(width: 230, height: 230)
+                .offset(x: 126, y: -96)
+                .allowsHitTesting(false)
+        }
+    }
+}
+
+private struct DiagonalAccentShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        path.move(to: CGPoint(x: rect.width * 0.38, y: rect.minY))
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.minY))
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
+        path.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
+        path.closeSubpath()
+        return path
+    }
+}
+
+private struct TopographicLines: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        let rows = 8
+        for row in 0..<rows {
+            let baseY = rect.minY + CGFloat(row) * rect.height / CGFloat(rows - 1)
+            path.move(to: CGPoint(x: rect.minX - 20, y: baseY))
+            for step in 0...8 {
+                let x = rect.minX + CGFloat(step) * rect.width / 8
+                let wave = sin(CGFloat(step) * 0.95 + CGFloat(row) * 0.72) * 13
+                let next = CGPoint(x: x, y: baseY + wave)
+                path.addLine(to: next)
+            }
+        }
+        return path
+    }
+}
+
+private struct HomeLoadingSkeleton: View {
+    @State private var shimmer: CGFloat = -0.7
+
+    var body: some View {
+        ScrollView(.vertical, showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 22) {
+                HStack(spacing: 10) {
+                    skeletonCircle(size: 40)
+                    VStack(alignment: .leading, spacing: 6) {
+                        skeletonLine(width: 86, height: 10)
+                        skeletonLine(width: 72, height: 8)
+                    }
+                    Spacer()
+                    skeletonCapsule(width: 76, height: 30)
+                }
+                .frame(height: 44)
+
+                VStack(alignment: .leading, spacing: 12) {
+                    skeletonLine(width: 220, height: 30)
+                    skeletonLine(width: 318, height: 13)
+                    skeletonLine(width: 242, height: 13)
+                }
+
+                skeletonPanel(height: 238, cornerRadius: 16)
+
+                VStack(spacing: 0) {
+                    skeletonRailRow()
+                    skeletonDivider
+                    skeletonRailRow()
+                    skeletonDivider
+                    HStack(spacing: 0) {
+                        skeletonRailRow()
+                        Rectangle()
+                            .fill(Color.unbound.borderSubtle)
+                            .frame(width: 0.5, height: 42)
+                        skeletonRailRow()
+                    }
+                }
+                .overlay(alignment: .leading) {
+                    Rectangle()
+                        .fill(Color.unbound.ember.opacity(0.55))
+                        .frame(width: 2)
+                }
+
+                skeletonPanel(height: 154, cornerRadius: 16)
+                skeletonPanel(height: 94, cornerRadius: 12)
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 8)
+            .padding(.bottom, 28)
+        }
+        .background(Color.unbound.bg.ignoresSafeArea())
+        .overlay(shimmerOverlay.mask(skeletonMask))
+        .onAppear {
+            withAnimation(.easeInOut(duration: 1.45).repeatForever(autoreverses: false)) {
+                shimmer = 1.15
+            }
+        }
+    }
+
+    private var shimmerOverlay: some View {
+        GeometryReader { proxy in
+            Rectangle()
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            .clear,
+                            Color.white.opacity(0.075),
+                            .clear
+                        ],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .frame(width: proxy.size.width * 0.48)
+                .offset(x: proxy.size.width * shimmer)
+        }
+        .allowsHitTesting(false)
+    }
+
+    private var skeletonMask: some View {
+        VStack(alignment: .leading, spacing: 22) {
+            HStack(spacing: 10) {
+                Circle().frame(width: 40, height: 40)
+                VStack(alignment: .leading, spacing: 6) {
+                    RoundedRectangle(cornerRadius: 5).frame(width: 86, height: 10)
+                    RoundedRectangle(cornerRadius: 4).frame(width: 72, height: 8)
+                }
+                Spacer()
+                Capsule().frame(width: 76, height: 30)
+            }
+            .frame(height: 44)
+
+            VStack(alignment: .leading, spacing: 12) {
+                RoundedRectangle(cornerRadius: 8).frame(width: 220, height: 30)
+                RoundedRectangle(cornerRadius: 6).frame(width: 318, height: 13)
+                RoundedRectangle(cornerRadius: 6).frame(width: 242, height: 13)
+            }
+
+            RoundedRectangle(cornerRadius: 16).frame(height: 238)
+            RoundedRectangle(cornerRadius: 8).frame(height: 146)
+            RoundedRectangle(cornerRadius: 16).frame(height: 154)
+            RoundedRectangle(cornerRadius: 12).frame(height: 94)
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 8)
+    }
+
+    private var skeletonDivider: some View {
+        Rectangle()
+            .fill(Color.unbound.borderSubtle)
+            .frame(height: 0.5)
+            .padding(.leading, 16)
+    }
+
+    private func skeletonRailRow() -> some View {
+        HStack(spacing: 12) {
+            skeletonLine(width: 72, height: 9)
+            skeletonLine(width: 48, height: 17)
+            Spacer()
+            skeletonLine(width: 62, height: 9)
+        }
+        .padding(.leading, 16)
+        .padding(.vertical, 10)
+    }
+
+    private func skeletonPanel(height: CGFloat, cornerRadius: CGFloat) -> some View {
+        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+            .fill(Color.unbound.surface)
+            .overlay(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
+            )
+            .frame(maxWidth: .infinity)
+            .frame(height: height)
+    }
+
+    private func skeletonLine(width: CGFloat, height: CGFloat) -> some View {
+        RoundedRectangle(cornerRadius: height / 2, style: .continuous)
+            .fill(Color.unbound.surfaceElevated)
+            .frame(width: width, height: height)
+    }
+
+    private func skeletonCircle(size: CGFloat) -> some View {
+        Circle()
+            .fill(Color.unbound.surfaceElevated)
+            .frame(width: size, height: size)
+    }
+
+    private func skeletonCapsule(width: CGFloat, height: CGFloat) -> some View {
+        Capsule()
+            .fill(Color.unbound.surfaceElevated)
+            .frame(width: width, height: height)
     }
 }

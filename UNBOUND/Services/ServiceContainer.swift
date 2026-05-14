@@ -38,13 +38,13 @@ final class ServiceContainer: ObservableObject {
         self.paywall = PaywallService.shared
         self.network = NetworkService.shared
         self.storage = StorageService.shared
-        self.user = UserService.shared
+        self.user = SupabaseUserService.shared
         self.bodyAnalysis = BodyAnalysisService.shared
         self.programGeneration = ProgramGenerationService.shared
         self.imageCapture = ImageCaptureService()
         self.exercisePreference = ExercisePreferenceService.shared
         self.customExercise = CustomExerciseStore.shared
-        self.workoutLog = WorkoutLogService.shared
+        self.workoutLog = SupabaseWorkoutLogService.shared
         self.workingWeight = WorkingWeightService.shared
         self.cardioLog = CardioLogService.shared
         self.calibration = CalibrationService.shared

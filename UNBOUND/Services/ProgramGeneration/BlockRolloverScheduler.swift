@@ -1,6 +1,6 @@
 import Foundation
 
-/// Pure helpers for determining where we are in the current 2-week block.
+/// Pure helpers for determining where we are in the current 4-week block (28 days).
 ///
 /// Used by the home UI to show "days remaining" and by the rollover flow
 /// to detect when to prompt a re-scan / generate the next block.
@@ -10,7 +10,7 @@ import Foundation
 /// scheduler does only one thing: map (program.createdAt, now) → day number.
 enum BlockRolloverScheduler {
 
-    /// True if the current block has run its full 14-day duration.
+    /// True if the current block has run its full 28-day duration.
     static func shouldRollover(program: TrainingProgram, now: Date = Date()) -> Bool {
         daysRemaining(program: program, now: now) == 0
     }

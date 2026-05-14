@@ -30,33 +30,42 @@ struct ProfileView: View {
     @State private var heatmapRanks: [MuscleHeatGroup: SubRank] = [:]
     @State private var unlockedBadges: [Badge] = []
     @State private var totalBadgeCount: Int = 0
+    @State private var totalWorkouts: Int = 0
+    @State private var skillsObtained: Int = 0
     @State private var sessionXP: SessionXPRecord?
+    @State private var manualPhotoCount: Int = 0
+    @State private var scanPhotoCount: Int = 0
     @State private var isLoading = true
 
     @AppStorage("unbound.gains") private var gains: Int = 0
     private let xpPerLevel: Int = 250
 
     var body: some View {
-        ZStack {
+        ZStack(alignment: .top) {
             Color.unbound.bg.ignoresSafeArea()
+
+            // Rank-tier cosmetic backdrop behind the header.
+            CosmeticBackdrop(tier: aggregateRank.title, maxHeight: 360)
+                .ignoresSafeArea(edges: .top)
 
             if isLoading {
                 ProgressView().tint(Color.unbound.accent)
             } else {
                 ScrollView(.vertical, showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: 20) {
+                    VStack(alignment: .leading, spacing: 16) {
                         headerCard
-                        rankJourneyCard
-                        lifetimeStats
-                        bodyMapCard
-                        badgesCard
+                        characterSheetCard
+                        heatmapPlaceholder
                         PhotoCalendarView().environmentObject(services)
+                        badgesCard
                         settingsLink
                         Spacer().frame(height: 28)
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 20)
                     .padding(.top, 8)
                 }
+                .frame(maxWidth: .infinity)
             }
         }
         .navigationBarHidden(true)
@@ -92,6 +101,31 @@ struct ProfileView: View {
         totalBadgeCount = BadgeCatalog.all.count
         sessionXP = services.sessionXP.record(userId: userId)
 
+        let photos: [ProgressPhoto] = (try? await services.database.query(
+            collection: "progressPhotos",
+            field: "userId",
+            isEqualTo: userId,
+            orderBy: "capturedAt",
+            descending: true,
+            limit: 500
+        )) ?? []
+        manualPhotoCount = photos.filter { $0.source == .manual }.count
+        scanPhotoCount = photos.filter { $0.source == .scan }.count
+
+        // Total workouts + skills obtained — character-sheet vitals.
+        let logs: [SessionLog] = (try? await services.database.query(
+            collection: "sessionLogs",
+            field: "userId",
+            isEqualTo: userId,
+            orderBy: "createdAt",
+            descending: true,
+            limit: 1000
+        )) ?? []
+        totalWorkouts = logs.count
+
+        let states = SkillProgressService.shared.nodeStates
+        skillsObtained = states.values.filter { $0 == .achieved || $0 == .mastered }.count
+
         isLoading = false
     }
 
@@ -99,65 +133,135 @@ struct ProfileView: View {
 
     private var headerCard: some View {
         let level = (gains / xpPerLevel) + 1
+        let levelProgress = Double(gains % xpPerLevel) / Double(xpPerLevel)
+        let currentXP = gains % xpPerLevel
         let archetype = profile?.preferredArchetype
         let initial = avatarInitial
+        let scanCount = max(profile?.totalScans ?? 0, scanPhotoCount)
+        let rankColor = aggregateRank.regionTint
 
-        return HStack(alignment: .center, spacing: 16) {
-            // Avatar + LV badge (placeholder — real photo wires in later).
-            ZStack(alignment: .bottomTrailing) {
-                ZStack {
-                    Circle().fill(Color.unbound.surface)
-                    Circle()
-                        .strokeBorder(
-                            LinearGradient(
-                                colors: [
-                                    Color.unbound.accent.opacity(0.75),
-                                    Color.unbound.accent.opacity(0.25)
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ),
-                            lineWidth: 2
-                        )
-                    Text(initial)
-                        .font(Font.unbound.titleL)
+        return VStack(alignment: .leading, spacing: 16) {
+            HStack(alignment: .firstTextBaseline) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("UNBOUND")
+                        .font(Font.unbound.captionS.weight(.black))
+                        .tracking(2.0)
+                        .foregroundStyle(Color.unbound.accent)
+                    Text("PROFILE")
+                        .font(Font.unbound.titleM)
+                        .tracking(1.2)
                         .foregroundStyle(Color.unbound.textPrimary)
                 }
-                .frame(width: 72, height: 72)
-
-                Text("\(level)")
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(Color.unbound.textPrimary)
-                    .monospacedDigit()
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 2)
-                    .background(Capsule().fill(Color.unbound.accent))
-                    .offset(x: 6, y: 6)
-            }
-            .shadow(color: Color.unbound.accent.opacity(0.35), radius: 8)
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(displayName.uppercased())
-                    .font(Font.unbound.titleM)
-                    .tracking(0.4)
-                    .foregroundStyle(Color.unbound.textPrimary)
-                    .lineLimit(1)
-                if let archetype {
-                    Text(archetype.displayName.uppercased())
-                        .font(Font.unbound.captionS.weight(.bold))
-                        .tracking(1.6)
-                        .foregroundStyle(Color.unbound.accent)
+                Spacer()
+                NavigationLink(destination: SettingsView(services: services)) {
+                    Image(systemName: "gearshape.fill")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(Color.unbound.textSecondary)
+                        .frame(width: 38, height: 38)
+                        .background(Circle().fill(Color.unbound.bg.opacity(0.75)))
+                        .overlay(Circle().strokeBorder(Color.unbound.borderSubtle, lineWidth: 1))
                 }
-                Text("LV \(level) · \(longestStreakLabel)")
-                    .font(Font.unbound.monoS)
-                    .foregroundStyle(Color.unbound.textSecondary)
+                .buttonStyle(.plain)
             }
-            Spacer()
+
+            HStack(alignment: .center, spacing: 16) {
+                CosmeticAvatar(
+                    tier: aggregateRank.title,
+                    size: 104,
+                    image: nil, // future: user-uploaded profile photo
+                    letterFallback: initial
+                )
+
+                VStack(alignment: .leading, spacing: 7) {
+                    Text(displayName.uppercased())
+                        .font(Font.unbound.titleL)
+                        .tracking(0.2)
+                        .foregroundStyle(Color.unbound.textPrimary)
+                        .lineLimit(1)
+                    HStack(spacing: 7) {
+                        profilePill(archetype?.displayName.uppercased() ?? "UNBOUND")
+                        profilePill("LV \(level)")
+                    }
+                    VStack(alignment: .leading, spacing: 5) {
+                        HStack {
+                            Text("\(currentXP) / \(xpPerLevel) SP")
+                                .font(Font.unbound.monoS.weight(.bold))
+                                .foregroundStyle(Color.unbound.textSecondary)
+                            Spacer()
+                            Text(longestStreakLabel)
+                                .font(Font.unbound.monoS)
+                                .foregroundStyle(Color.unbound.textTertiary)
+                                .lineLimit(1)
+                        }
+                        GeometryReader { proxy in
+                            ZStack(alignment: .leading) {
+                                Capsule().fill(Color.unbound.borderSubtle)
+                                Capsule()
+                                    .fill(rankColor)
+                                    .frame(width: max(6, proxy.size.width * levelProgress))
+                                    .shadow(color: rankColor.opacity(0.45), radius: 5)
+                            }
+                        }
+                        .frame(height: 5)
+                    }
+                }
+            }
+
+            HStack(spacing: 8) {
+                profileMetric(label: "BEST", value: "\(sessionXP?.longestStreak ?? 0)D")
+                profileMetric(label: "SCANS", value: "\(scanCount)")
+                profileMetric(label: "PHOTOS", value: "\(manualPhotoCount)")
+            }
         }
+        .padding(16)
+        .background(
+            ZStack {
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(Color.unbound.surface)
+                DossierLinework(color: rankColor)
+                    .opacity(0.42)
+            }
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(rankColor.opacity(0.24), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+    }
+
+    private func profilePill(_ text: String) -> some View {
+        Text(text)
+            .font(.system(size: 9, weight: .bold))
+            .tracking(1.1)
+            .foregroundStyle(Color.unbound.textSecondary)
+            .lineLimit(1)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(Capsule().fill(Color.unbound.bg.opacity(0.72)))
+            .overlay(Capsule().strokeBorder(Color.unbound.borderSubtle, lineWidth: 1))
+    }
+
+    private func profileMetric(label: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(label)
+                .font(.system(size: 8, weight: .bold))
+                .tracking(1.2)
+                .foregroundStyle(Color.unbound.textTertiary)
+            Text(value)
+                .font(Font.unbound.monoM.weight(.black))
+                .foregroundStyle(Color.unbound.textPrimary)
+                .monospacedDigit()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 4)
     }
 
     private var displayName: String {
-        profile?.displayName ?? "WARRIOR"
+        if let name = profile?.displayName, !name.isEmpty { return name }
+        if let archetype = profile?.preferredArchetype {
+            return archetype.shortName.uppercased()
+        }
+        return "UNBOUND"
     }
 
     private var avatarInitial: String {
@@ -179,7 +283,6 @@ struct ProfileView: View {
     // MARK: - Rank journey card
 
     private var rankJourneyCard: some View {
-        let tier = tierName(for: aggregateRank)
         let nextRank = aggregateRank.advanced(by: 1)
         let ordinal = aggregateRank.ordinal
         let journeyFraction = max(0.05, min(1.0, Double(ordinal) / 17.0))
@@ -198,17 +301,14 @@ struct ProfileView: View {
                     .monospacedDigit()
             }
 
-            HStack(alignment: .firstTextBaseline, spacing: 12) {
-                Text(aggregateRank.letter)
-                    .font(Font.unbound.displayL)
-                    .foregroundStyle(rankColor)
-                    .shadow(color: rankColor.opacity(0.6), radius: 10)
+            HStack(alignment: .center, spacing: 12) {
+                RankBadge(rank: aggregateRank, size: .small)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(tier.uppercased())
+                    Text(aggregateRank.displayName.uppercased())
                         .font(Font.unbound.monoM)
                         .tracking(1.6)
                         .foregroundStyle(rankColor)
-                    Text(aggregateRank.displayName)
+                    Text("TITLE \(ordinal + 1) / 18")
                         .font(Font.unbound.captionS)
                         .tracking(1.2)
                         .foregroundStyle(Color.unbound.textSecondary)
@@ -225,7 +325,6 @@ struct ProfileView: View {
                 }
             }
 
-            // E──D──C──B──A──S progress bar. Thin, ranked-tick marks.
             rankJourneyBar(fraction: journeyFraction, color: rankColor)
         }
         .padding(16)
@@ -262,66 +361,455 @@ struct ProfileView: View {
             .frame(height: 4)
 
             HStack(spacing: 0) {
-                ForEach(["E", "D", "C", "B", "A", "S"], id: \.self) { letter in
-                    Text(letter)
+                ForEach(RankTitle.allCases, id: \.self) { title in
+                    Text(title.displayName.prefix(3).uppercased())
                         .font(.system(size: 9, weight: .bold))
-                        .tracking(1.2)
-                        .foregroundStyle(rankTickColor(for: letter))
+                        .tracking(0.7)
+                        .foregroundStyle(rankTickColor(for: title))
                         .frame(maxWidth: .infinity)
+                        .minimumScaleFactor(0.75)
                 }
             }
         }
     }
 
-    private func rankTickColor(for letter: String) -> Color {
-        // Letters the user has reached or passed tint with their rank color;
-        // future letters stay muted.
-        let ord = SubRank.ordinalForLetter(letter)
+    private func rankTickColor(for title: RankTitle) -> Color {
+        let ord = SubRank.allCases.first(where: { $0.title == title })?.ordinal ?? 0
         return ord <= aggregateRank.ordinal
             ? Color.unbound.textSecondary
             : Color.unbound.textTertiary.opacity(0.5)
     }
 
-    // MARK: - Lifetime stats
+    // MARK: - Character Sheet (RPG-style)
+    //
+    // Class · Age · Height · Weight · Stats · Traits — sourced entirely
+    // from data captured during onboarding + scan, presented like a JRPG
+    // status screen. No invented numbers; missing fields just collapse
+    // their row so the panel stays honest.
 
-    private var lifetimeStats: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("LIFETIME STATS")
-                .font(Font.unbound.captionS.weight(.bold))
-                .tracking(1.8)
-                .foregroundStyle(Color.unbound.textTertiary)
+    private var characterSheetCard: some View {
+        VStack(spacing: 0) {
+            sheetHeader
+            sheetDivider
+            sheetVitals
+            sheetDivider
+            sheetStats
+            if !sheetTraits.isEmpty {
+                sheetDivider
+                sheetTraitsBlock
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            ZStack {
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(Color.unbound.surface)
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color.unbound.accent.opacity(0.06),
+                                Color.clear
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+            }
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(Color.unbound.border, lineWidth: 1)
+        )
+    }
 
-            VStack(spacing: 6) {
-                statRow(label: "STR", rank: statScore.strengthRank)
-                statRow(label: "STA", rank: statScore.staminaRank)
-                statRow(label: "TEC", rank: statScore.techniqueRank)
-                statRow(label: "VIT", rank: statScore.vitalityRank)
+    // MARK: Class header — class name + level
+
+    private var sheetHeader: some View {
+        let classText = profile?.preferredArchetype?.displayName.uppercased() ?? "UNBOUND"
+        let level = (gains / xpPerLevel) + 1
+
+        return HStack(alignment: .firstTextBaseline) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("CLASS")
+                    .font(Font.unbound.captionS.weight(.heavy))
+                    .tracking(1.6)
+                    .foregroundStyle(Color.unbound.textTertiary)
+                Text(classText)
+                    .font(Font.unbound.titleM)
+                    .tracking(1.2)
+                    .foregroundStyle(Color.unbound.textPrimary)
+            }
+            Spacer()
+            VStack(alignment: .trailing, spacing: 2) {
+                Text("LEVEL")
+                    .font(Font.unbound.captionS.weight(.heavy))
+                    .tracking(1.6)
+                    .foregroundStyle(Color.unbound.textTertiary)
+                Text("\(level)")
+                    .font(Font.unbound.titleM)
+                    .foregroundStyle(Color.unbound.accent)
+                    .monospacedDigit()
+            }
+        }
+        .padding(16)
+    }
+
+    // MARK: Vitals row
+
+    private var sheetVitals: some View {
+        let height = profile?.heightCm.flatMap(formatHeight) ?? "—"
+        let weight = profile?.weightKg.flatMap(formatWeight) ?? "—"
+        let age = profile?.age.map { "\($0)" } ?? "—"
+        let exp = profile?.experience?.displayName ?? "—"
+
+        return VStack(spacing: 10) {
+            HStack(spacing: 0) {
+                vitalCell(label: "AGE", value: age)
+                vitalDivider
+                vitalCell(label: "HEIGHT", value: height)
+                vitalDivider
+                vitalCell(label: "WEIGHT", value: weight)
+                vitalDivider
+                vitalCell(label: "EXP", value: exp)
             }
 
             Rectangle()
-                .fill(Color.unbound.borderSubtle)
-                .frame(height: 0.5)
-                .padding(.vertical, 2)
+                .fill(Color.unbound.border)
+                .frame(height: 1)
+                .padding(.horizontal, 4)
 
-            let bodyColumns = [
-                GridItem(.flexible(), spacing: 14),
-                GridItem(.flexible(), spacing: 14)
-            ]
-            LazyVGrid(columns: bodyColumns, spacing: 6) {
-                bodyStatCell(label: "CHEST", rank: aggregate(of: [.chest]))
-                bodyStatCell(label: "BACK",  rank: aggregate(of: [.back]))
-                bodyStatCell(label: "SHLDR", rank: aggregate(of: [.shoulders, .traps]))
-                bodyStatCell(label: "ARMS",  rank: aggregate(of: [.biceps, .triceps, .forearms]))
-                bodyStatCell(label: "CORE",  rank: aggregate(of: [.core]))
-                bodyStatCell(label: "LEGS",  rank: aggregate(of: [.legs, .hamstrings, .glutes, .calves]))
+            HStack(spacing: 0) {
+                vitalCell(label: "WORKOUTS", value: "\(totalWorkouts)")
+                vitalDivider
+                vitalCell(label: "SKILLS", value: "\(skillsObtained)")
+                vitalDivider
+                vitalCell(label: "BADGES", value: "\(unlockedBadges.count)")
+                vitalDivider
+                vitalCell(label: "STREAK", value: "\(sessionXP?.longestStreak ?? 0)D")
+            }
+        }
+        .padding(.vertical, 12)
+        .padding(.horizontal, 8)
+    }
+
+    private func vitalCell(label: String, value: String) -> some View {
+        VStack(spacing: 4) {
+            Text(label)
+                .font(Font.unbound.captionS.weight(.heavy))
+                .tracking(1.2)
+                .foregroundStyle(Color.unbound.textTertiary)
+            Text(value)
+                .font(Font.unbound.bodyMStrong)
+                .foregroundStyle(Color.unbound.textPrimary)
+                .monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private var vitalDivider: some View {
+        Rectangle()
+            .fill(Color.unbound.border)
+            .frame(width: 1, height: 28)
+    }
+
+    // MARK: Stats grid — STR / STA / TEC / VIT
+
+    private var sheetStats: some View {
+        let s = statScore
+
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("STATS")
+                    .font(Font.unbound.captionS.weight(.heavy))
+                    .tracking(1.6)
+                    .foregroundStyle(Color.unbound.textTertiary)
+                Spacer()
+                Text("0 - 100")
+                    .font(Font.unbound.captionS.weight(.semibold))
+                    .foregroundStyle(Color.unbound.textTertiary)
+                    .monospacedDigit()
+            }
+
+            statRow(label: "STR", value: s.strength, rank: s.strengthRank)
+            statRow(label: "STA", value: s.stamina,  rank: s.staminaRank)
+            statRow(label: "TEC", value: s.technique, rank: s.techniqueRank)
+            statRow(label: "VIT", value: s.vitality, rank: s.vitalityRank)
+        }
+        .padding(16)
+    }
+
+    private func statRow(label: String, value: Int, rank: SubRank) -> some View {
+        let fraction = max(0, min(1, Double(value) / 100.0))
+        return HStack(spacing: 12) {
+            Text(label)
+                .font(Font.unbound.monoS.weight(.heavy))
+                .tracking(1.2)
+                .foregroundStyle(Color.unbound.textSecondary)
+                .frame(width: 32, alignment: .leading)
+
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(Color.unbound.surfaceElevated)
+                    Capsule()
+                        .fill(Color.unbound.accent)
+                        .frame(width: max(4, geo.size.width * CGFloat(fraction)))
+                        .shadow(color: Color.unbound.accent.opacity(0.45), radius: 4)
+                }
+            }
+            .frame(height: 6)
+
+            Text("\(value)")
+                .font(Font.unbound.monoS.weight(.bold))
+                .foregroundStyle(Color.unbound.textPrimary)
+                .monospacedDigit()
+                .frame(width: 28, alignment: .trailing)
+
+            Text(rank.title.displayName.uppercased())
+                .font(Font.unbound.captionS.weight(.heavy))
+                .tracking(1.0)
+                .foregroundStyle(Color.unbound.accent)
+                .frame(width: 76, alignment: .trailing)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+        }
+    }
+
+    // MARK: Traits — distilled from goals + motivations + style
+
+    private var sheetTraitsBlock: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("TRAITS")
+                .font(Font.unbound.captionS.weight(.heavy))
+                .tracking(1.6)
+                .foregroundStyle(Color.unbound.textTertiary)
+
+            VStack(alignment: .leading, spacing: 6) {
+                ForEach(sheetTraits, id: \.self) { t in
+                    HStack(spacing: 8) {
+                        Circle()
+                            .fill(Color.unbound.accent)
+                            .frame(width: 5, height: 5)
+                        Text(t)
+                            .font(Font.unbound.bodyM)
+                            .foregroundStyle(Color.unbound.textPrimary)
+                    }
+                }
+            }
+        }
+        .padding(16)
+    }
+
+    /// Distilled flavor traits from the onboarding answers. Stays honest —
+    /// only emits a line if the underlying data is present.
+    private var sheetTraits: [String] {
+        guard let profile else { return [] }
+        var out: [String] = []
+        if let goals = profile.goals?.prefix(2), !goals.isEmpty {
+            out.append("Pursuit: " + goals.map { $0.displayName }.joined(separator: " · "))
+        }
+        if let style = profile.exerciseStyles?.prefix(2), !style.isEmpty {
+            out.append("Style: " + style.map { $0.displayName }.joined(separator: " · "))
+        }
+        if let freq = profile.targetFrequency {
+            out.append("Cadence: " + freq.displayName)
+        }
+        if let motivations = profile.motivations?.prefix(2), !motivations.isEmpty {
+            out.append("Drive: " + motivations.map { $0.displayName }.joined(separator: " · "))
+        }
+        return out
+    }
+
+    // MARK: Helpers
+
+    private var sheetDivider: some View {
+        Rectangle()
+            .fill(Color.unbound.border)
+            .frame(height: 1)
+    }
+
+    private func formatHeight(_ cm: Double) -> String {
+        let inches = cm / 2.54
+        let ft = Int(inches / 12)
+        let inch = Int(inches.rounded()) - ft * 12
+        return "\(ft)' \(inch)\""
+    }
+
+    private func formatWeight(_ kg: Double) -> String {
+        let lbs = kg * 2.20462
+        return "\(Int(lbs.rounded())) lb"
+    }
+
+    // MARK: - Heatmap placeholder
+    //
+    // Per design memory: heatmap slot kept, render dropped. The full
+    // muscle-group heatmap will land alongside the per-skill rank
+    // migration. For now this card holds the slot so users see where
+    // it'll live and the profile doesn't feel hollow.
+
+    private var heatmapPlaceholder: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("MUSCLE HEATMAP")
+                    .font(Font.unbound.captionS.weight(.heavy))
+                    .tracking(1.8)
+                    .foregroundStyle(Color.unbound.textSecondary)
+                Spacer()
+                Text("COMING SOON")
+                    .font(Font.unbound.captionS.weight(.heavy))
+                    .tracking(1.4)
+                    .foregroundStyle(Color.unbound.accent)
+            }
+
+            HStack(spacing: 12) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(Color.unbound.surfaceElevated)
+                    Image(systemName: "figure.strengthtraining.traditional")
+                        .font(.system(size: 28, weight: .regular))
+                        .foregroundStyle(Color.unbound.accent.opacity(0.65))
+                }
+                .frame(width: 64, height: 64)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Per-muscle progression")
+                        .font(Font.unbound.bodyMStrong)
+                        .foregroundStyle(Color.unbound.textPrimary)
+                    Text("Track Chest · Lats · Quads · Glutes · Core through every PR and skill mastered. Lights up as you train.")
+                        .font(Font.unbound.captionS)
+                        .foregroundStyle(Color.unbound.textTertiary)
+                        .lineLimit(3)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 0)
             }
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .fill(Color.unbound.surface)
         )
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(Color.unbound.border, lineWidth: 1)
+        )
+    }
+
+    // MARK: - Lifetime record (legacy, not rendered)
+
+    private var bodySnapshotCard: some View {
+        let statRanks = [
+            ("STR", statScore.strengthRank),
+            ("STA", statScore.staminaRank),
+            ("TEC", statScore.techniqueRank),
+            ("VIT", statScore.vitalityRank)
+        ]
+        let bodyRanks = [
+            ("CHEST", aggregate(of: [.chest])),
+            ("BACK", aggregate(of: [.back])),
+            ("SHLDR", aggregate(of: [.shoulders, .traps])),
+            ("ARMS", aggregate(of: [.biceps, .triceps, .forearms])),
+            ("CORE", aggregate(of: [.core])),
+            ("LEGS", aggregate(of: [.legs, .hamstrings, .glutes, .calves]))
+        ]
+
+        return VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("PHYSICAL RECORD")
+                        .font(Font.unbound.captionS.weight(.bold))
+                        .tracking(1.8)
+                        .foregroundStyle(Color.unbound.textTertiary)
+                    Text("RANKED TRAITS")
+                        .font(Font.unbound.titleS)
+                        .tracking(0.8)
+                        .foregroundStyle(Color.unbound.textPrimary)
+                }
+                Spacer()
+                Text(aggregateRank.displayName)
+                    .font(Font.unbound.monoM.weight(.black))
+                    .foregroundStyle(aggregateRank.regionTint)
+                    .monospacedDigit()
+            }
+
+            VStack(spacing: 0) {
+                ForEach(statRanks, id: \.0) { item in
+                    traitLine(label: item.0, rank: item.1)
+                    if item.0 != statRanks.last?.0 {
+                        Rectangle()
+                            .fill(Color.unbound.borderSubtle.opacity(0.7))
+                            .frame(height: 0.5)
+                    }
+                }
+            }
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 14) {
+                    ForEach(bodyRanks, id: \.0) { item in
+                        bodyRankChip(label: item.0, rank: item.1)
+                    }
+                }
+                .padding(.vertical, 2)
+            }
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color.unbound.surface)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
+        )
+    }
+
+    private func bodyRankChip(label: String, rank: SubRank) -> some View {
+        HStack(spacing: 6) {
+            Text(label)
+                .font(.system(size: 8, weight: .black))
+                .tracking(0.9)
+                .foregroundStyle(Color.unbound.textTertiary)
+                .lineLimit(1)
+            Text(rank.displayName)
+                .font(.system(size: 10, weight: .bold, design: .monospaced))
+                .foregroundStyle(rank.regionTint)
+                .monospacedDigit()
+        }
+        .padding(.vertical, 4)
+    }
+
+    private func traitLine(label: String, rank: SubRank) -> some View {
+        let fraction = max(0.05, min(1.0, Double(rank.ordinal) / 17.0))
+        return HStack(spacing: 12) {
+            Text(label)
+                .font(.system(size: 10, weight: .black))
+                .tracking(1.4)
+                .foregroundStyle(Color.unbound.textTertiary)
+                .frame(width: 34, alignment: .leading)
+            GeometryReader { proxy in
+                ZStack(alignment: .leading) {
+                    Rectangle()
+                        .fill(Color.unbound.borderSubtle)
+                        .frame(height: 1)
+                    Rectangle()
+                        .fill(rank.regionTint)
+                        .frame(width: max(4, proxy.size.width * fraction), height: 2)
+                }
+                .frame(maxHeight: .infinity)
+            }
+            .frame(height: 20)
+            Text(rank.displayName)
+                .font(.system(size: 12, weight: .bold, design: .monospaced))
+                .foregroundStyle(rank.regionTint)
+                .frame(width: 34, alignment: .trailing)
+                .monospacedDigit()
+        }
+        .frame(height: 34)
     }
 
     private func statRow(label: String, rank: SubRank) -> some View {
@@ -391,64 +879,65 @@ struct ProfileView: View {
     private var badgesCard: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Text("BADGES")
-                    .font(Font.unbound.captionS.weight(.bold))
-                    .tracking(1.8)
-                    .foregroundStyle(Color.unbound.textTertiary)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("BADGES")
+                        .font(Font.unbound.captionS.weight(.bold))
+                        .tracking(1.8)
+                        .foregroundStyle(Color.unbound.textTertiary)
+                    Text("\(unlockedBadges.count) / \(totalBadgeCount) UNLOCKED")
+                        .font(Font.unbound.titleS)
+                        .tracking(0.7)
+                        .foregroundStyle(Color.unbound.textPrimary)
+                        .monospacedDigit()
+                }
                 Spacer()
-                Text("\(unlockedBadges.count) / \(totalBadgeCount)")
-                    .font(Font.unbound.monoS)
-                    .foregroundStyle(Color.unbound.textSecondary)
-                    .monospacedDigit()
+                NavigationLink(destination: BadgeGalleryView().environmentObject(services)) {
+                    Image(systemName: "arrow.right")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(Color.unbound.accent)
+                        .frame(width: 34, height: 34)
+                        .background(Circle().fill(Color.unbound.bg.opacity(0.75)))
+                        .overlay(Circle().strokeBorder(Color.unbound.borderSubtle, lineWidth: 1))
+                }
+                .buttonStyle(.plain)
             }
 
             if unlockedBadges.isEmpty {
-                Text("Earn your first badge by logging a session.")
-                    .font(Font.unbound.captionS)
-                    .foregroundStyle(Color.unbound.textTertiary)
+                HStack(spacing: 10) {
+                    Image(systemName: "seal")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(Color.unbound.textTertiary)
+                    Text("Earn your first badge by logging a session.")
+                        .font(Font.unbound.captionS)
+                        .foregroundStyle(Color.unbound.textTertiary)
+                }
+                .padding(.vertical, 10)
             } else {
-                let cols = [GridItem(.adaptive(minimum: 60, maximum: 72), spacing: 10)]
-                LazyVGrid(columns: cols, spacing: 10) {
-                    ForEach(unlockedBadges.prefix(12)) { b in
-                        badgeTile(b)
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 10) {
+                        ForEach(Array(unlockedBadges.prefix(10))) { b in
+                            badgeTile(b)
+                        }
                     }
+                    .padding(.vertical, 1)
                 }
             }
-
-            NavigationLink(destination: BadgeGalleryView().environmentObject(services)) {
-                HStack {
-                    Text("VIEW ALL")
-                        .font(Font.unbound.captionS.weight(.bold))
-                        .tracking(1.4)
-                    Image(systemName: "arrow.right")
-                        .font(.system(size: 10, weight: .bold))
-                }
-                .foregroundStyle(Color.unbound.accent)
-            }
-            .buttonStyle(.plain)
-            .padding(.top, 4)
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .fill(Color.unbound.surface)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
         )
     }
 
     private func badgeTile(_ badge: Badge) -> some View {
-        VStack(spacing: 4) {
-            ZStack {
-                Circle()
-                    .fill(badge.rarity.tint.opacity(0.12))
-                Circle()
-                    .strokeBorder(badge.rarity.tint.opacity(0.55), lineWidth: 1)
-                Image(systemName: badge.iconSystemName)
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundStyle(badge.rarity.tint)
-                    .shadow(color: badge.rarity.tint.opacity(0.5), radius: 4)
-            }
-            .frame(width: 52, height: 52)
+        VStack(spacing: 6) {
+            BadgeEmblemView(badge: badge, size: 58, isUnlocked: true)
             Text(badge.displayName.uppercased())
                 .font(.system(size: 8, weight: .bold))
                 .tracking(1.0)
@@ -456,6 +945,7 @@ struct ProfileView: View {
                 .lineLimit(1)
                 .truncationMode(.tail)
         }
+        .frame(width: 68)
     }
 
     // MARK: - Photo library placeholder
@@ -532,14 +1022,41 @@ struct ProfileView: View {
     // MARK: - Helpers
 
     private func tierName(for rank: SubRank) -> String {
-        switch rank.letter {
-        case "E": return "Dormant"
-        case "D": return "Awakened"
-        case "C": return "Forged"
-        case "B": return "Sharpened"
-        case "A": return "Unbound"
-        case "S": return "Ascended"
-        default:  return "Dormant"
+        rank.displayName
+    }
+}
+
+private struct DossierLinework: View {
+    let color: Color
+
+    var body: some View {
+        GeometryReader { proxy in
+            let width = proxy.size.width
+            let height = proxy.size.height
+
+            ZStack {
+                Path { path in
+                    path.move(to: CGPoint(x: width * 0.58, y: 0))
+                    path.addLine(to: CGPoint(x: width, y: height * 0.44))
+                    path.move(to: CGPoint(x: width * 0.72, y: 0))
+                    path.addLine(to: CGPoint(x: width, y: height * 0.24))
+                    path.move(to: CGPoint(x: width * 0.05, y: height * 0.72))
+                    path.addLine(to: CGPoint(x: width * 0.42, y: height))
+                }
+                .stroke(color.opacity(0.26), lineWidth: 1)
+
+                VStack(spacing: 8) {
+                    ForEach(0..<5, id: \.self) { index in
+                        Rectangle()
+                            .fill(Color.unbound.borderSubtle.opacity(0.42))
+                            .frame(width: width * CGFloat(0.14 + Double(index) * 0.035), height: 1)
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+                .padding(.trailing, 18)
+                .padding(.bottom, 18)
+            }
         }
+        .allowsHitTesting(false)
     }
 }

@@ -19,16 +19,20 @@ struct Step_ScanAnalyzing: View {
 
     private let duration: Double = 6.0
     @State private var startTime: Date = .now
-    @State private var hasCompleted = false
+    @State private var animationDone = false   // animation reached 100%
+    @State private var hasCompleted = false    // onComplete() already called
     @State private var completionBloom = false
     @State private var insightsService = LocalBodyInsightsService()
     @State private var analysisTask: Task<Void, Never>? = nil
+    @State private var geminiTask: Task<Void, Never>? = nil
+    @State private var timeoutTask: Task<Void, Never>? = nil
 
     var body: some View {
         TimelineView(.animation(minimumInterval: 1.0 / 60.0)) { ctx in
             let elapsed = ctx.date.timeIntervalSince(startTime)
             let fraction = min(1.0, elapsed / duration)
-            let percent = Int(fraction * 100)
+            // Hold at 99% while waiting for Gemini after animation completes
+            let percent = (animationDone && flow.bodyRatings == nil) ? 99 : Int(fraction * 100)
 
             ZStack {
                 Color.unbound.bg.ignoresSafeArea()
@@ -109,8 +113,8 @@ struct Step_ScanAnalyzing: View {
                 // Scan plane — sweeps top↔bottom
                 ScanPlane(fraction: fraction)
 
-                // Targeting crosshairs — jump every 400ms
-                TargetingCrosshairs(elapsed: elapsed)
+                // Pulsing corner reticles — atmosphere, no labels
+                ScanReticles(elapsed: elapsed)
 
                 // Corner HUD
                 HudReadouts(percent: percent, elapsed: elapsed)
@@ -128,15 +132,17 @@ struct Step_ScanAnalyzing: View {
                 }
             }
             .onChange(of: fraction) { _, new in
-                if new >= 1.0 && !hasCompleted {
-                    hasCompleted = true
-                    UnboundHaptics.heavy()
-                    withAnimation(.easeOut(duration: 0.35)) {
-                        completionBloom = true
-                    }
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
-                        onComplete()
-                    }
+                if new >= 1.0 && !animationDone {
+                    animationDone = true
+                    waitForGeminiThenComplete()
+                }
+            }
+            .onChange(of: flow.bodyRatings) { _, ratings in
+                // Gemini arrived — if animation is already done, complete now
+                if ratings != nil && animationDone && !hasCompleted {
+                    timeoutTask?.cancel()
+                    timeoutTask = nil
+                    complete()
                 }
             }
         }
@@ -144,10 +150,35 @@ struct Step_ScanAnalyzing: View {
         .onAppear {
             startTime = .now
             runLocalBodyInsights()
+            runGeminiAnalysis()
         }
         .onDisappear {
             analysisTask?.cancel()
+            geminiTask?.cancel()
+            timeoutTask?.cancel()
         }
+    }
+
+    /// Called when the 6s animation finishes. Advances immediately if Gemini
+    /// already resolved, otherwise waits up to 4 more seconds before giving up.
+    private func waitForGeminiThenComplete() {
+        if flow.bodyRatings != nil {
+            complete()
+            return
+        }
+        timeoutTask = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(4))
+            guard !Task.isCancelled else { return }
+            complete()
+        }
+    }
+
+    private func complete() {
+        guard !hasCompleted else { return }
+        hasCompleted = true
+        UnboundHaptics.heavy()
+        withAnimation(.easeOut(duration: 0.35)) { completionBloom = true }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { onComplete() }
     }
 
     /// Kicks off on-device Vision analysis of the front scan photo. Runs
@@ -163,6 +194,23 @@ struct Step_ScanAnalyzing: View {
             let insights = await insightsService.analyze(image: photo)
             guard !Task.isCancelled else { return }
             flow.scanInsights = insights
+        }
+    }
+
+    /// Calls Gemini with the front photo to get strict per-body-part ratings
+    /// (shoulders, chest, arms, core, legs, overall + one coach line).
+    /// Runs concurrently during the 6s cinematic. Result stored in
+    /// `flow.bodyRatings` for the Verdict screen. Silently no-ops on
+    /// failure — Verdict falls back to Vision-based estimates.
+    private func runGeminiAnalysis() {
+        guard flow.bodyRatings == nil else { return }
+        guard let photo = flow.capturedPhotos[.front],
+              let jpeg = photo.jpegData(compressionQuality: 0.72) else { return }
+
+        geminiTask = Task { @MainActor in
+            let ratings = try? await OnboardingBodyRatingService.rate(jpeg: jpeg)
+            guard !Task.isCancelled else { return }
+            flow.bodyRatings = ratings
         }
     }
 }
@@ -199,54 +247,58 @@ private struct ScanPlane: View {
     }
 }
 
-// MARK: - Targeting crosshairs + readouts
+// MARK: - Scan reticles (corner brackets, no labels)
 
-private struct TargetingCrosshairs: View {
+private struct ScanReticles: View {
     let elapsed: TimeInterval
 
-    // Anatomy labels only — no scores, no percentages. These are region
-    // names overlaid on the silhouette as atmosphere, NOT measurements.
-    // If we ever add real body-composition inference, this is where the
-    // real numbers would surface.
-    private let regions: [(name: String, offset: CGSize)] = [
-        ("SHOULDERS", .init(width: 0,    height: -180)),
-        ("CHEST",     .init(width: 70,   height: -120)),
-        ("BACK",      .init(width: -70,  height: -40)),
-        ("CORE",      .init(width: 0,    height: 20)),
-        ("LEGS",      .init(width: 30,   height: 100)),
-        ("POSTURE",   .init(width: -30,  height: 170))
-    ]
+    var body: some View {
+        GeometryReader { geo in
+            let pulse = 0.55 + 0.15 * sin(elapsed * 3.0)
+            let color = Color.unbound.accent.opacity(pulse)
+            let arm: CGFloat = 18
+            let stroke: CGFloat = 1.5
+            let inset: CGFloat = 40
+
+            ZStack {
+                // Top-left
+                CornerBracket(arm: arm, stroke: stroke, color: color)
+                    .position(x: inset, y: inset + 60)
+
+                // Top-right
+                CornerBracket(arm: arm, stroke: stroke, color: color)
+                    .rotationEffect(.degrees(90))
+                    .position(x: geo.size.width - inset, y: inset + 60)
+
+                // Bottom-left
+                CornerBracket(arm: arm, stroke: stroke, color: color)
+                    .rotationEffect(.degrees(270))
+                    .position(x: inset, y: geo.size.height - inset - 60)
+
+                // Bottom-right
+                CornerBracket(arm: arm, stroke: stroke, color: color)
+                    .rotationEffect(.degrees(180))
+                    .position(x: geo.size.width - inset, y: geo.size.height - inset - 60)
+            }
+        }
+        .ignoresSafeArea()
+    }
+}
+
+private struct CornerBracket: View {
+    let arm: CGFloat
+    let stroke: CGFloat
+    let color: Color
 
     var body: some View {
-        let index = Int(elapsed / 0.55) % regions.count
-        let region = regions[index]
-
-        ZStack {
-            // Crosshair reticle — purely decorative frame
-            Rectangle()
-                .strokeBorder(Color.unbound.accent, lineWidth: 1)
-                .frame(width: 42, height: 42)
-
-            // Region label — no score, no percentage. Just anatomy.
-            Text(region.name)
-                .font(Font.unbound.captionS.monospaced())
-                .tracking(1.4)
-                .foregroundStyle(Color.unbound.accent)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(
-                    RoundedRectangle(cornerRadius: 4, style: .continuous)
-                        .fill(Color.unbound.bg.opacity(0.85))
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 4, style: .continuous)
-                        .strokeBorder(Color.unbound.accent.opacity(0.6), lineWidth: 0.5)
-                )
-                .offset(x: 56, y: -6)
+        Canvas { ctx, size in
+            var path = Path()
+            path.move(to: CGPoint(x: arm, y: 0))
+            path.addLine(to: CGPoint(x: 0, y: 0))
+            path.addLine(to: CGPoint(x: 0, y: arm))
+            ctx.stroke(path, with: .color(color), style: StrokeStyle(lineWidth: stroke, lineCap: .square))
         }
-        .offset(region.offset)
-        .transition(.opacity)
-        .id(index)
+        .frame(width: arm, height: arm)
     }
 }
 

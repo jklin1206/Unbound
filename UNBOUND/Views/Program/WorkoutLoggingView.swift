@@ -16,6 +16,7 @@ struct WorkoutLoggingView: View {
     @State private var swapAlternatives: [CatalogExercise] = []
     @State private var swapPreferences: [ExercisePreference] = []
     @State private var showingCustomBuilder = false
+    @State private var rewardSummary: RewardSummary?
     @State private var shortModeApplied = false
     @AppStorage("unbound.shortSessionDate") private var shortSessionDate: Double = 0
     private let servicesRef: ServiceContainer
@@ -90,11 +91,27 @@ struct WorkoutLoggingView: View {
             CustomExerciseBuilderView()
                 .environmentObject(servicesRef)
         }
+        .sheet(item: Binding(
+            get: { rewardSummary.map(WorkoutRewardPresentation.init(summary:)) },
+            set: { rewardSummary = $0?.summary }
+        )) { item in
+            RewardCelebrationView(summary: item.summary) {
+                rewardSummary = nil
+                dismiss()
+            }
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
+        }
     }
 
     private struct SwapContext: Identifiable {
         let index: Int
         var id: Int { index }
+    }
+
+    private struct WorkoutRewardPresentation: Identifiable {
+        let id = UUID()
+        let summary: RewardSummary
     }
 
     private func presentSwap(at index: Int) {
@@ -525,8 +542,13 @@ struct WorkoutLoggingView: View {
             Button {
                 UnboundHaptics.medium()
                 Task {
-                    await viewModel.saveLog()
-                    if !viewModel.isSaving {
+                    let didSave = await viewModel.saveLog()
+                    guard didSave else { return }
+                    var summary = RewardSummary()
+                    summary.skillTitle = viewModel.workout.name
+                    summary.xpGained = max(10, viewModel.totalSets * 5)
+                    rewardSummary = summary
+                    if !summary.hasContent {
                         dismiss()
                     }
                 }

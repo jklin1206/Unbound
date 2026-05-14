@@ -48,48 +48,39 @@ enum SkillSubChapterMap {
     static let map: [String: String] = [
         // ──────────────────────────────────────────────────────────────
         // PULL (pp) — four paths: grip, the pull, muscle-up crossover,
-        // then the solo-arm finale.
+        // then the solo-arm finale. Canonical Pull Up Dungeon + Muscle
+        // Up Summit + Levers University hierarchy.
         // ──────────────────────────────────────────────────────────────
-        "pp.dead-hang-30":         "The Grip",
-        "pp.negative-pullup":      "The Grip",
+        "pp.dead-hang":            "The Grip",
 
         "pp.pullup":               "Ascent",
-        "pp.5-pullups":            "Ascent",
-        "pp.10-pullups":           "Ascent",
-        "pp.slow-pullup":          "Ascent",
-        "pp.chest-to-bar":         "Ascent",
-        "pp.l-sit-pullup":         "Ascent",
+        "pp.strict-pullup":        "Ascent",
         "pp.archer-pullup":        "Ascent",
-        "pp.weighted-pullup-0.25": "Ascent",
-        "pp.weighted-pullup-0.5":  "Ascent",
+        "pp.weighted-pullup":      "Ascent",
         "pp.chin-up":              "Ascent",
         "pp.strict-chin-up":       "Ascent",
         "pp.weighted-chin-up":     "Ascent",
         "pp.l-sit-chin-up":        "Ascent",
         "pp.wide-pullup":          "Ascent",
+        "pp.oap-negative":         "Solo Arm",
+        "pp.heighted-chin-up":     "Solo Arm",
 
         "pp.muscle-up":            "Crossover",
-        "pp.10-muscle-ups":        "Crossover",
         "pp.ring-muscle-up":       "Crossover",
         "pp.clapping-pullup":      "Crossover",
         "pp.explosive-pullup":     "Crossover",
-        "pp.plyometric-pullup":    "Crossover",
+        // pp.strict-muscle-up is mythic (T8, .s) — chapter-less.
 
-        "pp.typewriter-pullup":    "Solo Arm",
-        "pp.oap-negative":         "Solo Arm",
-        "pp.one-arm-pullup":       "Solo Arm",
-        "pp.heighted-chin-up":     "Solo Arm",
-        "pp.one-arm-chin-up":      "Solo Arm",
-        // pp.5-oap-side is mythic — chapter-less.
+        // pp.one-arm-pullup + pp.one-arm-chin-up are mythic (T8, .s) — chapter-less.
 
-        // Row family — reference infographic adds rows as a distinct
-        // pull-pattern progression at the base of the Pull axis.
+        // Row family — distinct pull-pattern progression at the base
+        // of the Pull axis.
         "pp.incline-row":          "The Row",
         "pp.decline-row":          "The Row",
+        "pp.one-arm-row":          "The Row",
         "pp.tuck-row":             "The Row",
         "pp.straddle-row":         "The Row",
-
-        "pp.strict-muscle-up":     "Crossover",
+        "pp.tuck-front-lever-pullup": "The Row",
 
         // ──────────────────────────────────────────────────────────────
         // PUSH / CALISTHENIC CONTROL (cal) — pressing + ring holds. Iron
@@ -98,66 +89,57 @@ enum SkillSubChapterMap {
         // tree now.
         // ──────────────────────────────────────────────────────────────
         "cal.pushup":              "Ground Work",
-        "cal.slow-pushup":         "Ground Work",
         "cal.diamond-pushup":      "Ground Work",
         "cal.incline-pushup":      "Ground Work",
         "cal.decline-pushup":      "Ground Work",
-        "cal.sphinx-pushup":       "Ground Work",
+        "cal.sphinx-pushup":       "Vertical Press",
         "cal.archer-pushup":       "Ground Work",
         "cal.one-arm-pushup":      "Ground Work",
         "cal.explosive-pushup":    "Ground Work",
         "cal.clapping-pushup":     "Ground Work",
-        "cal.floating-pike-pushup": "Ground Work",
+        "cal.pike-pushup":         "Vertical Press",
+        "cal.elevated-pike-pushup": "Vertical Press",
+        "cal.floating-pike-pushup": "Vertical Press",
+        "cal.pseudo-planche-pushup": "Lean Path",
+        "cal.tuck-planche-pushup": "Lean Path",
+        "cal.handstand-pushup":    "Vertical Press",
+        // cal.ninety-degree-pushup + cal.clapping-handstand-pushup are mythic/keystone — chapter-less.
 
         "cal.5-dips":              "The Dip",
-        "cal.ring-support-10":     "The Dip",
         "cal.ring-dip":            "The Dip",
         "cal.bench-dip":           "The Dip",
-        "cal.l-sit-dip":           "The Dip",
-        "cal.weighted-dip":        "The Dip",
-        "cal.tempo-dip":           "The Dip",
 
         "cal.plank-30":            "Lock-In",
         "cal.l-sit-10":            "Lock-In",
-        "cal.l-sit-20":            "Lock-In",
 
         "cal.bent-arm-press":      "Ground Work",
 
-        // Iron Cross family — now lives in `.coreLever` cluster.
-        "cal.iron-cross-3s":       "Ring King",
-        "cal.iron-cross-10s":      "Ring King",
+        // Ring family — pass-throughs in `.coreLever` cluster.
         "cl.skin-the-cat":         "Ring King",
         "cl.german-hang":          "Ring King",
-        // cal.maltese + cal.azarian + cl.three-sixty-pulls are mythic — chapter-less.
+        "cl.three-sixty-pulls":    "Ring King",
 
         // ──────────────────────────────────────────────────────────────
         // LEGS (ld) — squat base → unilateral bridge → pistol chain →
         // a one-off strength branch.
         // ──────────────────────────────────────────────────────────────
         "ld.goblet-20":            "Foundation",
-        "ld.tempo-squat":          "Foundation",
-        "ld.calf-raise":           "Foundation",
-        "ld.hip-hinge":            "Foundation",
         "ld.step-up":              "Foundation",
         "ld.deep-squat":           "Foundation",
         "ld.glute-bridge":         "Foundation",
-        "ld.bw-front-squat":       "Loaded Stance",
+        "ld.calf-raise":           "Foundation",
 
+        "ld.split-squat":          "Unilateral",
         "ld.bulgarian-split-squat": "Unilateral",
-        "ld.100-lunges":           "Unilateral",
-        "ld.single-leg-rdl":       "Unilateral",
-        "ld.assisted-pistol":      "Unilateral",
-        "ld.heighted-split-squat": "Unilateral",
+        "ld.weighted-split-squat": "Unilateral",
         "ld.weighted-bss":         "Unilateral",
 
         "ld.shrimp-squat":         "Pistol Path",
         "ld.pistol-squat":         "Pistol Path",
         "ld.weighted-pistol":      "Pistol Path",
-        "ld.dragon-pistol":        "Pistol Path",
-        "ld.heighted-pistol":      "Pistol Path",
         "ld.weighted-sl-calf":     "Pistol Path",
         "ld.sissy-squat":          "Pistol Path",
-        // ld.jumping-pistol is mythic — chapter-less.
+        "ld.leg-extensions":       "Pistol Path",
 
         "ld.box-jump":             "Power",
         "ld.jumping-squat":        "Power",
@@ -176,27 +158,27 @@ enum SkillSubChapterMap {
         // lever families.
         // ──────────────────────────────────────────────────────────────
         "cl.hollow-body-30":       "The Spine",
-        "cl.hollow-body-60":       "The Spine",
         "cl.crunch":               "The Spine",
         "cl.reverse-crunch":       "The Spine",
         "cl.superman-plank":       "The Spine",
-        "cl.standing-plank":       "The Spine",
         "cl.extended-plank":       "The Spine",
         "cl.levitation-crunch":    "The Spine",
-        "cl.straight-crunch":      "The Spine",
         "cl.bird-dog-plank":       "The Spine",
 
+        "cl.knee-raise":           "Raised Work",
+        "cl.leg-raise":            "Raised Work",
         "cl.hanging-knee-raise":   "Raised Work",
         "cl.hanging-leg-raise":    "Raised Work",
         "cl.toes-to-bar":          "Raised Work",
-        "cl.ab-wheel":             "Raised Work",
+        "cl.standing-ab-rollout":  "Raised Work",
         "cl.knee-ab-rollout":      "Raised Work",
         "cl.inverted-situp":       "Raised Work",
         "cl.decline-situp":        "Raised Work",
+        "cl.semi-straddle-l-sit":  "Raised Work",
         "cl.v-sit":                "Raised Work",
+        "cl.vertical-l-sit":       "Raised Work",
         "cl.straddle-l-sit":       "Raised Work",
 
-        "cl.dragon-flag-negative": "Flag Path",
         "cl.dragon-flag":          "Flag Path",
         "cl.dragon-flag-hip-raise": "Flag Path",
 
@@ -204,26 +186,19 @@ enum SkillSubChapterMap {
         "cl.straddle-front-lever": "Front Lever",
         "cl.full-front-lever":     "Front Lever",
 
-        "cl.tuck-back-lever":      "Back Lever",
         "cl.straddle-back-lever":  "Back Lever",
         "cl.full-back-lever":      "Back Lever",
-        // cl.victorian is mythic — chapter-less.
 
         // ──────────────────────────────────────────────────────────────
         // HANDBALANCE — three sub-clusters; each gets its own chapters.
         // ──────────────────────────────────────────────────────────────
         // hs — Handstand
-        "hs.wrist-conditioning":   "Wall Path",
-        "hs.wall-handstand-30":    "Wall Path",
-        "hs.wall-handstand-60":    "Wall Path",
-        "hs.headstand":            "Wall Path",
         "hs.wall-plank":           "Wall Path",
+        "hs.wall-handstand-30":    "Wall Path",
+        "hs.headstand":            "Wall Path",
         "hs.wall-supported-oah":   "Wall Path",
 
-        "hs.freestanding-hs-10":   "Freestanding",
         "hs.freestanding-hs-30":   "Freestanding",
-        "hs.freestanding-hs-60":   "Freestanding",
-        "hs.handstand-walk-10m":   "Freestanding",
         "hs.tuck-handstand":       "Freestanding",
         "hs.tuck-press":           "Freestanding",
         "hs.straddle-press":       "Freestanding",
@@ -231,40 +206,26 @@ enum SkillSubChapterMap {
 
         "hs.crow-pose":            "Hand Poses",
         "hs.crane-pose":           "Hand Poses",
-        "hs.frog-pose":            "Hand Poses",
         "hs.flying-crow":          "Hand Poses",
         "hs.elbow-lever":          "Hand Poses",
         "hs.one-arm-elbow-lever":  "Hand Poses",
 
-        // hspu — Handstand Push-Up
-        "hspu.pike-pushup-10":     "Wall Press",
-        "hspu.elevated-pike-pushup-10": "Wall Press",
-        "hspu.wall-hspu-negative-5s":   "Wall Press",
-        "hspu.first-wall-hspu":    "Wall Press",
-        "hspu.wall-hspu-3":        "Wall Press",
-        "hspu.wall-hspu-5":        "Wall Press",
-        "hspu.deficit-wall-hspu-3": "Wall Press",
+        // hspu — Handstand Push-Up cluster collapsed into Push tree (cal.handstand-pushup).
+        // No remaining nodes ship in `.handstandPushup`; cluster kept in the enum for legacy compat.
 
-        "hspu.freestanding-hspu-negative-5s": "Free Press",
-        "hspu.first-freestanding-hspu":       "Free Press",
-        "hspu.freestanding-hspu-3":           "Free Press",
-
-        // oah — One-Arm Handstand. Both non-mythic entries are mythic,
-        // so this sub-cluster has no chapter-bearing nodes.
-        // (oah.one-arm-handstand-5s + oah.one-arm-hspu are both mythic.)
+        // oah — One-Arm Handstand. The OAH 5s entry is mythic (S-tier
+        // keystone of the cluster); the Full One-Arm Handstand mythic
+        // sits above it. Neither bears a chapter label.
+        // (oah.one-arm-handstand-5s + oah.full-one-arm-handstand are both mythic.)
 
         // ──────────────────────────────────────────────────────────────
         // PLANCHE (pl)
         // ──────────────────────────────────────────────────────────────
-        "pl.pseudo-planche-pushup": "Lean Path",
         "pl.tuck-planche":          "Tuck Path",
-        "pl.tuck-planche-pushup":   "Tuck Path",
         "pl.bent-arm-planche":      "Tuck Path",
+        "pl.half-lay-planche":      "Float",
         "pl.straddle-planche":      "Float",
         "pl.full-planche":          "Float",
-        "pl.full-planche-pushup":   "Float",
-        "pl.half-lay-planche":      "Float",
-        // pl.ninety-degree-pushup + pl.one-arm-planche are mythic — chapter-less.
 
         // ──────────────────────────────────────────────────────────────
         // ENDURANCE / CONDITIONING (co)
@@ -295,71 +256,70 @@ extension SkillGraph {
 
         .simple(
             id: "ld.goblet-20",
-            title: "Goblet Squat",
+            title: "Half Squat",
             cluster: .legDominance, tier: 1, type: .skill,
-            target: .reps(exercise: "goblet squat", count: 20, load: "0.5x bw"),
-            equipment: [.dumbbells, .kettlebell],
+            target: .reps(exercise: "half squat", count: 15),
             primary: [.legs, .glutes, .core],
             subtitle: "The squat on-ramp.",
-            description: "20 full-depth squats holding a dumbbell or kettlebell at chest (half bodyweight). Builds the quad + glute + core base every leg skill grows from.",
+            description: "Half-depth bodyweight squats — thighs to roughly parallel, knees track over toes, chest up. The squat pattern entry point every leg skill grows from.",
             formCues: [
-                "Bell held tight to chest, elbows tucked",
                 "Feet shoulder-width, toes turned out ~15°",
-                "Hips below knees at the bottom — full depth",
+                "Drop until thighs are parallel to floor",
                 "Drive knees out over toes (not past)",
-                "Chest up, eyes forward throughout"
+                "Chest up, eyes forward throughout",
+                "Drive through the heels to stand"
             ],
             commonMistakes: [
-                "Heels lifting — ankle mobility or weight too heavy",
+                "Heels lifting — ankle mobility or stance too narrow",
                 "Knees caving inward on the concentric",
-                "Partial depth (stopping at parallel)"
+                "Bouncing out of the bottom"
             ],
-            timeline: "3-6 weeks once the squat pattern grooves.",
+            timeline: "1-3 weeks to groove the pattern.",
             rank: .e,
             levels: [
-                SkillLevel(level: 1, target: .firstRep, criterion: "First clean goblet squats to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(5), criterion: "5 strict goblet squats", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(8), criterion: "8 strict goblet squats", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(12), criterion: "12 strict goblet squats", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(15), criterion: "15 strict goblet squats", xpReward: 250),
+                SkillLevel(level: 1, target: .firstRep, criterion: "First clean half squat to standard", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(10), criterion: "10 strict half squats", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(15), criterion: "15 strict half squats", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(20), criterion: "20 strict half squats", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(30), criterion: "30 strict half squats", xpReward: 250),
             ]
         ),
         .simple(
-            id: "ld.tempo-squat",
-            title: "Tempo Squat",
+            id: "ld.split-squat",
+            title: "Split Squat",
             cluster: .legDominance, tier: 2, type: .skill,
-            target: .reps(exercise: "tempo squat", count: 10),
+            target: .reps(exercise: "split squat", count: 10),
             prereqs: [PrerequisiteGroup("ld.goblet-20")],
-            primary: [.legs, .glutes],
-            subtitle: "Slow exposes weak.",
-            description: "10 BW squats with 3s descent, 1s pause at the bottom, then stand. Builds control and bottom-position strength.",
+            primary: [.legs, .glutes], secondary: [.core],
+            subtitle: "Single-leg foundation.",
+            description: "10 strict split squats per leg — back foot planted on floor, front foot forward, drive through front heel. The unilateral on-ramp before the bulgarian.",
             formCues: [
-                "Count 3s on the descent — mental metronome",
-                "Hold the pause without bouncing",
-                "Drive up smooth, not explosive",
-                "Maintain depth for every rep"
+                "Back foot 2-3 feet behind",
+                "Front knee tracks over toes",
+                "Torso upright",
+                "Drive through front heel"
             ],
             commonMistakes: [
-                "Bouncing out of the hole",
-                "Rushing the eccentric when it burns",
-                "Losing chest position at the bottom"
+                "Stance too short — knee tracks past toes",
+                "Pushing off the rear foot",
+                "Forward lean into a lunge pattern"
             ],
-            timeline: "2-4 weeks from BW squat.",
+            timeline: "1-3 weeks from half squat.",
             rank: .e,
             levels: [
-                SkillLevel(level: 1, target: .firstRep, criterion: "First clean tempo squat to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(5), criterion: "5 strict tempo squat", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(8), criterion: "8 strict tempo squat", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(12), criterion: "12 strict tempo squat", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(15), criterion: "15 strict tempo squat", xpReward: 250),
+                SkillLevel(level: 1, target: .firstRep, criterion: "First clean split squat per leg", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(5), criterion: "5 strict split squats per leg", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(10), criterion: "10 strict split squats per leg", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(15), criterion: "15 strict split squats per leg", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(20), criterion: "20 strict split squats per leg", xpReward: 250),
             ]
         ),
         .simple(
             id: "ld.bulgarian-split-squat",
             title: "Bulgarian Split Squat",
-            cluster: .legDominance, tier: 4, type: .skill,
+            cluster: .legDominance, tier: 3, type: .skill,
             target: .reps(exercise: "bulgarian split squat", count: 10),
-            prereqs: [PrerequisiteGroup("ld.deep-squat")],
+            prereqs: [PrerequisiteGroup("ld.split-squat")],
             equipment: [.bodyweight, .elevatedSurface],
             primary: [.legs, .glutes], secondary: [.core],
             subtitle: "The single-leg on-ramp.",
@@ -376,82 +336,20 @@ extension SkillGraph {
                 "Pushing off the rear foot (it's a balance point, not a driver)",
                 "Uneven depth between reps"
             ],
-            timeline: "2-4 weeks from goblet squats.",
+            timeline: "2-4 weeks from split squat.",
             rank: .d,
             levels: [
                 SkillLevel(level: 1, target: .firstRep, criterion: "First clean bulgarian split squat per leg to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(3), criterion: "3 strict bulgarian split squat per leg", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict bulgarian split squat per leg", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(8), criterion: "8 strict bulgarian split squat per leg", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(12), criterion: "12 strict bulgarian split squat per leg", xpReward: 250),
-            ]
-        ),
-        .simple(
-            id: "ld.100-lunges",
-            title: "Lunge Walk",
-            cluster: .legDominance, tier: 2, type: .skill,
-            target: .steps(exercise: "walking lunge", count: 100),
-            prereqs: [PrerequisiteGroup("ld.goblet-20")],
-            primary: [.legs, .glutes],
-            subtitle: "Endurance that keeps mass functional.",
-            description: "100 walking lunge steps unbroken. Conditioning benchmark for leg capacity and knee tracking consistency.",
-            formCues: [
-                "Long stride — front shin close to vertical at depth",
-                "Rear knee brushes the floor each rep",
-                "Torso upright, no forward lean",
-                "Drive through the front heel to stand"
-            ],
-            commonMistakes: [
-                "Short stride — becomes a squat, not a lunge",
-                "Front knee crashing inward or over toes",
-                "Stopping to rest and calling it unbroken"
-            ],
-            timeline: "2-6 weeks once lunge pattern is solid.",
-            rank: .d,
-            levels: [
-                SkillLevel(level: 1, target: .firstRep, criterion: "First clean unbroken walking lunge steps to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(3), criterion: "3 strict unbroken walking lunge steps", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict unbroken walking lunge steps", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(8), criterion: "8 strict unbroken walking lunge steps", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(12), criterion: "12 strict unbroken walking lunge steps", xpReward: 250),
-            ]
-        ),
-        .simple(
-            id: "ld.bw-front-squat",
-            title: "Front Squat",
-            cluster: .legDominance, tier: 3, type: .strength,
-            target: .weightMultiplier(exercise: "front squat", multiplier: 1.0),
-            prereqs: [PrerequisiteGroup(["ld.goblet-20", "ld.tempo-squat"])],
-            equipment: [.barbell],
-            primary: [.legs, .core], secondary: [.glutes, .back],
-            subtitle: "Quads + core mastery combined.",
-            description: "Front squat at bodyweight. Bar sits in the front rack, more quad-dominant than back squat, punishes any loss of upper back position.",
-            formCues: [
-                "Bar sits in the shoulder shelf, fingertips on the bar",
-                "Elbows HIGH throughout — rack position defines this lift",
-                "Chest UP, vertical torso",
-                "Full depth — easier with the more upright posture",
-                "Drive up chest-first, elbows stay high"
-            ],
-            commonMistakes: [
-                "Elbows dropping — bar rolls forward",
-                "Not enough shoulder/wrist mobility to hold rack",
-                "Treating it like a back squat (leaning forward)"
-            ],
-            timeline: "3-12 months after solid back squat.",
-            rank: .c,
-            levels: [
-                SkillLevel(level: 1, target: .weight(multiplier: 0.5), criterion: "0.5x bodyweight front squat, clean ROM", xpReward: 50),
-                SkillLevel(level: 2, target: .weight(multiplier: 0.81), criterion: "0.81x bodyweight front squat, clean ROM", xpReward: 100),
-                SkillLevel(level: 3, target: .weight(multiplier: 1.0), criterion: "1.0x bodyweight front squat, clean ROM", xpReward: 150),
-                SkillLevel(level: 4, target: .weight(multiplier: 1.15), criterion: "1.15x bodyweight front squat, clean ROM", xpReward: 200),
-                SkillLevel(level: 5, target: .weight(multiplier: 1.3), criterion: "1.3x bodyweight front squat, clean ROM", xpReward: 250),
+                SkillLevel(level: 2, target: .reps(5), criterion: "5 strict bulgarian split squats per leg", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(8), criterion: "8 strict bulgarian split squats per leg", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(12), criterion: "12 strict bulgarian split squats per leg", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(15), criterion: "15 strict bulgarian split squats per leg", xpReward: 250),
             ]
         ),
         .simple(
             id: "ld.shrimp-squat",
             title: "Shrimp Squat",
-            cluster: .legDominance, tier: 3, type: .skill,
+            cluster: .legDominance, tier: 4, type: .skill,
             target: .reps(exercise: "shrimp squat", count: 3),
             prereqs: [PrerequisiteGroup("ld.bulgarian-split-squat")],
             primary: [.legs, .glutes], secondary: [.core],
@@ -472,71 +370,10 @@ extension SkillGraph {
             rank: .c,
             levels: [
                 SkillLevel(level: 1, target: .firstRep, criterion: "First clean shrimp squat per leg to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(3), criterion: "3 strict shrimp squat per leg", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict shrimp squat per leg", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(8), criterion: "8 strict shrimp squat per leg", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(10), criterion: "10 strict shrimp squat per leg", xpReward: 250),
-            ]
-        ),
-        .simple(
-            id: "ld.assisted-pistol",
-            title: "Assisted Pistol",
-            cluster: .legDominance, tier: 3, type: .skill,
-            target: .reps(exercise: "assisted pistol", count: 5),
-            prereqs: [PrerequisiteGroup(["ld.100-lunges", "ld.bulgarian-split-squat"])],
-            primary: [.legs, .glutes],
-            subtitle: "Pistol on training wheels.",
-            description: "Single-leg squat with a pole, band, or TRX for balance/light assistance. 5 reps per leg. Builds the bottom-position strength for the full pistol.",
-            formCues: [
-                "Use the assist for BALANCE, not to pull yourself up",
-                "Full depth — hips below working knee",
-                "Non-working leg straight out, no floor touch",
-                "Slow 3s descent to build the bottom"
-            ],
-            commonMistakes: [
-                "Pulling hard on the pole/band — turns it into a pullup-squat",
-                "Partial depth",
-                "Working heel rising"
-            ],
-            timeline: "2-4 months from shrimp squat.",
-            rank: .d,
-            levels: [
-                SkillLevel(level: 1, target: .firstRep, criterion: "First clean assisted pistol per leg to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(3), criterion: "3 strict assisted pistol per leg", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict assisted pistol per leg", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(8), criterion: "8 strict assisted pistol per leg", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(12), criterion: "12 strict assisted pistol per leg", xpReward: 250),
-            ]
-        ),
-        .simple(
-            id: "ld.single-leg-rdl",
-            title: "Single-Leg RDL",
-            cluster: .legDominance, tier: 3, type: .skill,
-            target: .reps(exercise: "single-leg rdl", count: 10),
-            prereqs: [PrerequisiteGroup("ld.100-lunges")],
-            primary: [.glutes, .back], secondary: [.legs, .core],
-            subtitle: "Glute isolator. Balance forge.",
-            description: "Single-leg Romanian deadlift at bodyweight. 10 reps per leg hinging at the hip, opposite leg extended back, spine neutral.",
-            formCues: [
-                "Hinge from the hips, not the lower back",
-                "Free leg extended back, toes pointed",
-                "Torso and free leg form a straight line at the bottom",
-                "Standing leg stays slightly bent throughout",
-                "Hips stay square — don't rotate open"
-            ],
-            commonMistakes: [
-                "Bending the knee of the standing leg too much (becomes a squat)",
-                "Rotating hips open for balance",
-                "Rounding the back"
-            ],
-            timeline: "2-6 weeks from lunges.",
-            rank: .d,
-            levels: [
-                SkillLevel(level: 1, target: .firstRep, criterion: "First clean single-leg RDL per leg to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(3), criterion: "3 strict single-leg RDL per leg", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict single-leg RDL per leg", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(8), criterion: "8 strict single-leg RDL per leg", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(12), criterion: "12 strict single-leg RDL per leg", xpReward: 250),
+                SkillLevel(level: 2, target: .reps(1), criterion: "1 strict shrimp squat per leg", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(2), criterion: "2 strict shrimp squats per leg", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(3), criterion: "3 strict shrimp squats per leg", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(5), criterion: "5 strict shrimp squats per leg", xpReward: 250),
             ]
         ),
         .simple(
@@ -544,7 +381,7 @@ extension SkillGraph {
             title: "Pistol Squat",
             cluster: .legDominance, tier: 4, type: .skill,
             target: .reps(exercise: "pistol squat", count: 5),
-            prereqs: [PrerequisiteGroup("ld.assisted-pistol")],
+            prereqs: [PrerequisiteGroup("ld.deep-squat")],
             isKeystone: true,
             primary: [.legs, .glutes], secondary: [.core],
             subtitle: "Single-leg mastery.",
@@ -595,72 +432,11 @@ extension SkillGraph {
             timeline: "6-12 months from clean pistol.",
             rank: .b,
             levels: [
-                SkillLevel(level: 1, target: .weight(multiplier: 0.25), criterion: "Pistol with 0.25x bw load", xpReward: 50),
-                SkillLevel(level: 2, target: .weight(multiplier: 0.35), criterion: "Pistol with 0.35x bw load", xpReward: 100),
-                SkillLevel(level: 3, target: .weight(multiplier: 0.5), criterion: "Pistol with 0.5x bw load", xpReward: 150),
-                SkillLevel(level: 4, target: .weight(multiplier: 0.65), criterion: "Pistol with 0.65x bw load", xpReward: 200),
-                SkillLevel(level: 5, target: .weight(multiplier: 0.75), criterion: "Pistol with 0.75x bw load", xpReward: 250),
-            ]
-        ),
-        .simple(
-            id: "ld.dragon-pistol",
-            title: "Dragon Pistol",
-            cluster: .legDominance, tier: 6, type: .skill,
-            target: .reps(exercise: "dragon pistol", count: 1),
-            prereqs: [PrerequisiteGroup("ld.weighted-pistol")],
-            primary: [.legs, .glutes], secondary: [.core],
-            subtitle: "Pistol through the leg.",
-            description: "Pistol squat where the free leg threads UNDER the working leg and reaches back. Demands hip mobility on top of pistol strength.",
-            formCues: [
-                "Demands open hips — mobility work is prerequisite",
-                "Descend with free leg tucking through and back",
-                "Working heel planted, as in standard pistol",
-                "Rise while unthreading — coordination wins"
-            ],
-            commonMistakes: [
-                "Attempting without adequate hip mobility — hurts the knee",
-                "Rushed descent loses control mid-thread",
-                "Dropping the free leg instead of controlling it"
-            ],
-            timeline: "1-3 years from weighted pistol.",
-            rank: .a,
-            levels: [
-                SkillLevel(level: 1, target: .firstRep, criterion: "First clean dragon pistol per leg to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(2), criterion: "2 strict dragon pistol per leg", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(3), criterion: "3 strict dragon pistol per leg", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(4), criterion: "4 strict dragon pistol per leg", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(5), criterion: "5 strict dragon pistol per leg", xpReward: 250),
-            ]
-        ),
-        .simple(
-            id: "ld.jumping-pistol",
-            title: "Jumping Pistol",
-            cluster: .legDominance, tier: 7, type: .skill,
-            target: .reps(exercise: "jumping pistol", count: 3),
-            prereqs: [PrerequisiteGroup("ld.weighted-pistol")],
-            isMythic: true,
-            primary: [.legs, .glutes], secondary: [.core],
-            subtitle: "Single-leg explosive.",
-            description: "Full-depth pistol squat, explode up into a jump that clears the floor with both feet — land on the same foot, absorb, go again. Three clean reps per side.",
-            formCues: [
-                "Full-depth descent with control",
-                "Explosive concentric — propel through the roof",
-                "Land in the same pistol position, absorb with bent knee",
-                "Torso upright throughout — no forward fold"
-            ],
-            commonMistakes: [
-                "Partial depth on the descent",
-                "Landing with both feet — not a jumping pistol",
-                "Torso collapse in the loaded-leg landing"
-            ],
-            timeline: "5+ years of single-leg work. Very rare in the wild.",
-            rank: .s,
-            levels: [
-                SkillLevel(level: 1, target: .firstRep, criterion: "First clean jumping pistol per leg to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(1), criterion: "1 strict jumping pistol per leg", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(2), criterion: "2 strict jumping pistol per leg", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(3), criterion: "3 strict jumping pistol per leg", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(3), criterion: "3 strict jumping pistol per leg", xpReward: 250),
+                SkillLevel(level: 1, target: .weight(multiplier: 0.15), criterion: "Pistol with 0.15x bw load", xpReward: 50),
+                SkillLevel(level: 2, target: .weight(multiplier: 0.25), criterion: "Pistol with 0.25x bw load", xpReward: 100),
+                SkillLevel(level: 3, target: .weight(multiplier: 0.35), criterion: "Pistol with 0.35x bw load", xpReward: 150),
+                SkillLevel(level: 4, target: .weight(multiplier: 0.4), criterion: "Pistol with 0.4x bw load", xpReward: 200),
+                SkillLevel(level: 5, target: .weight(multiplier: 0.5), criterion: "Pistol with 0.5x bw load", xpReward: 250),
             ]
         ),
 
@@ -669,7 +445,7 @@ extension SkillGraph {
         // ────────────────────────────────────────────────────────────────
 
         .simple(
-            id: "pp.dead-hang-30",
+            id: "pp.dead-hang",
             title: "Dead Hang",
             cluster: .pullingPower, tier: 2, type: .hold,
             target: .hold(exercise: "dead hang", seconds: 30),
@@ -696,52 +472,20 @@ extension SkillGraph {
                 SkillLevel(level: 1, target: .hold(seconds: 10), criterion: "Hold dead hang for 10s, clean form", xpReward: 50),
                 SkillLevel(level: 2, target: .hold(seconds: 20), criterion: "Hold dead hang for 20s, clean form", xpReward: 100),
                 SkillLevel(level: 3, target: .hold(seconds: 30), criterion: "Hold dead hang for 30s, clean form", xpReward: 150),
-                SkillLevel(level: 4, target: .hold(seconds: 45), criterion: "Hold dead hang for 45s, clean form", xpReward: 200),
-                SkillLevel(level: 5, target: .hold(seconds: 60), criterion: "Hold dead hang for 60s, clean form", xpReward: 250),
-            ]
-        ),
-        .simple(
-            id: "pp.negative-pullup",
-            title: "Negative Pull-Up",
-            cluster: .pullingPower, tier: 2, type: .skill,
-            target: .reps(exercise: "negative pullup", count: 3),
-            prereqs: [PrerequisiteGroup("pp.dead-hang-30")],
-            equipment: [.pullupBar],
-            primary: [.lats, .arms], secondary: [.back],
-            subtitle: "Slow descent builds the pull.",
-            description: "Jump or step to the top of a pullup, then lower yourself with control over 5 seconds. 3 reps. Eccentric loading that bridges hang and first pullup.",
-            formCues: [
-                "Start at the top — chin over bar, straight-arm position",
-                "5-second count on the descent",
-                "Shoulders active the whole way down",
-                "Full dead hang at bottom before the next rep",
-                "Step back to the top — don't jump repeatedly"
-            ],
-            commonMistakes: [
-                "Uncontrolled drop past halfway",
-                "Starting below the bar (not a real negative)",
-                "Shrugged shoulders at the bottom"
-            ],
-            timeline: "2-6 weeks from dead hang.",
-            rank: .e,
-            levels: [
-                SkillLevel(level: 1, target: .firstRep, criterion: "First clean 5-second negative pullup to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(2), criterion: "2 strict 5-second negative pullup", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(3), criterion: "3 strict 5-second negative pullup", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(5), criterion: "5 strict 5-second negative pullup", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(8), criterion: "8 strict 5-second negative pullup", xpReward: 250),
+                SkillLevel(level: 4, target: .hold(seconds: 60), criterion: "Hold dead hang for 60s, clean form", xpReward: 200),
+                SkillLevel(level: 5, target: .hold(seconds: 90), criterion: "Hold dead hang for 90s, clean form", xpReward: 250),
             ]
         ),
         .simple(
             id: "pp.pullup",
-            title: "First Pull-Up",
-            cluster: .pullingPower, tier: 2, type: .skill,
-            target: .reps(exercise: "pullup", count: 1),
-            prereqs: [PrerequisiteGroup("pp.negative-pullup")],
+            title: "Pull-Up",
+            cluster: .pullingPower, tier: 3, type: .skill,
+            target: .reps(exercise: "pullup", count: 5),
+            prereqs: [PrerequisiteGroup("pp.dead-hang")],
             equipment: [.pullupBar],
             primary: [.lats, .arms], secondary: [.back, .core],
             subtitle: "The move that separates gym-curious from gym-able.",
-            description: "One strict pullup from a full dead hang — chin over bar, no kip or leg swing. The foundation for every bar skill that follows.",
+            description: "Strict pullup from a full dead hang — chin over bar, no kip or leg swing. The foundation for every bar skill that follows.",
             formCues: [
                 "Start from a dead hang — straight arms, shoulders active",
                 "Pull elbows DOWN, not back",
@@ -760,171 +504,49 @@ extension SkillGraph {
                 SkillLevel(level: 1, target: .firstRep, criterion: "First clean pullup to standard", xpReward: 50),
                 SkillLevel(level: 2, target: .reps(3), criterion: "3 strict pullup", xpReward: 100),
                 SkillLevel(level: 3, target: .reps(5), criterion: "5 strict pullup", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(8), criterion: "8 strict pullup", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(12), criterion: "12 strict pullup", xpReward: 250),
+                SkillLevel(level: 4, target: .reps(10), criterion: "10 strict pullup", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(20), criterion: "20 strict pullup", xpReward: 250),
             ]
         ),
         .simple(
-            id: "pp.5-pullups",
-            title: "Pull-Up",
-            cluster: .pullingPower, tier: 3, type: .skill,
-            target: .reps(exercise: "pullup", count: 5),
+            id: "pp.strict-pullup",
+            title: "Strict Pull-Up",
+            cluster: .pullingPower, tier: 4, type: .skill,
+            target: .reps(exercise: "strict pullup", count: 5),
             prereqs: [PrerequisiteGroup("pp.pullup")],
-            equipment: [.pullupBar],
-            primary: [.lats, .arms], secondary: [.back],
-            subtitle: "Consistent pull strength.",
-            description: "5 strict pullups unbroken from dead hang. The first real volume checkpoint.",
-            formCues: [
-                "Same form as single pullup — just sustained",
-                "Don't rush — rhythm beats speed",
-                "Full dead hang between reps",
-                "Breathe at the top, don't hold"
-            ],
-            commonMistakes: [
-                "Partial reps on 4 and 5 as fatigue sets in",
-                "Starting to kip to squeeze out reps",
-                "Shoulders shrugging up at the top"
-            ],
-            timeline: "1-6 months from first pullup.",
-            rank: .d,
-            levels: [
-                SkillLevel(level: 1, target: .firstRep, criterion: "First clean pullup to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(3), criterion: "3 strict pullup", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict pullup", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(8), criterion: "8 strict pullup", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(12), criterion: "12 strict pullup", xpReward: 250),
-            ]
-        ),
-        .simple(
-            id: "pp.10-pullups",
-            title: "Pull-Up Volume",
-            cluster: .pullingPower, tier: 3, type: .skill,
-            target: .reps(exercise: "pullup", count: 10),
-            prereqs: [PrerequisiteGroup("pp.5-pullups")],
-            equipment: [.pullupBar],
-            primary: [.lats, .arms], secondary: [.back],
-            subtitle: "Back density benchmark.",
-            description: "10 strict pullups unbroken. The volume threshold that opens weighted pullup training, the one-arm pullup chain, and the muscle-up.",
-            formCues: [
-                "Same form as a single pullup — just sustained",
-                "Every rep from a full dead hang",
-                "Even tempo — don't burn fast then fail",
-                "Breathe at the top, not held through the set"
-            ],
-            commonMistakes: [
-                "Half-reps as you fatigue — don't cheat the last 3-4",
-                "Kipping to squeeze out final reps — counts as a different skill",
-                "Death-gripping the bar early and burning out grip"
-            ],
-            timeline: "3-12 months from first pullup.",
-            rank: .c,
-            levels: [
-                SkillLevel(level: 1, target: .firstRep, criterion: "First clean pullup to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(3), criterion: "3 strict pullup", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict pullup", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(8), criterion: "8 strict pullup", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(10), criterion: "10 strict pullup", xpReward: 250),
-            ]
-        ),
-        .simple(
-            id: "pp.slow-pullup",
-            title: "Tempo Pull-Up",
-            cluster: .pullingPower, tier: 3, type: .skill,
-            target: .reps(exercise: "slow pullup", count: 5),
-            prereqs: [PrerequisiteGroup("pp.5-pullups")],
+            isKeystone: true,
             equipment: [.pullupBar],
             primary: [.lats, .arms], secondary: [.back, .core],
-            subtitle: "Tempo forges control.",
-            description: "Pullup with a 3-second concentric and 3-second eccentric. Burns out weaknesses the fast version hides.",
+            subtitle: "The strict pull-up is the gateway to the rest of the tree.",
+            description: "Strict pull-ups — dead hang start, chin clears the bar, no kip, no swing, controlled descent. The volume gate that opens weighted pulling, explosive pulling, and the muscle-up.",
             formCues: [
-                "Count the tempo — mental metronome, not a feel",
-                "Never release tension at top or bottom",
-                "Keep shoulders packed throughout",
-                "Breathe at the bottom, hold during the pull"
+                "Full dead hang each rep — no bounce",
+                "Pull elbows down and back",
+                "Chin fully clears the bar",
+                "3-second eccentric to keep form honest",
+                "No leg swing, no hip thrust"
             ],
             commonMistakes: [
-                "Dropping pace on the eccentric when it burns",
-                "Partial ROM at the top — not breaking chin line",
-                "Cheating the 3-second count with a 1.5-second rep"
+                "Half-reps as fatigue sets in",
+                "Kipping to grind out the last reps",
+                "Skipping the dead hang reset"
             ],
-            timeline: "2-4 months after strict 5 pullups.",
-            rank: .c,
-            levels: [
-                SkillLevel(level: 1, target: .firstRep, criterion: "First clean slow (3s/3s) pullup to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(3), criterion: "3 strict slow (3s/3s) pullup", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict slow (3s/3s) pullup", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(7), criterion: "7 strict slow (3s/3s) pullup", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(10), criterion: "10 strict slow (3s/3s) pullup", xpReward: 250),
-            ]
-        ),
-        .simple(
-            id: "pp.chest-to-bar",
-            title: "Chest-to-Bar Pull-Up",
-            cluster: .pullingPower, tier: 3, type: .skill,
-            target: .reps(exercise: "chest-to-bar pullup", count: 5),
-            prereqs: [PrerequisiteGroup("pp.5-pullups")],
-            equipment: [.pullupBar],
-            primary: [.lats, .back], secondary: [.arms, .core],
-            subtitle: "Fuller range. Denser back.",
-            description: "Pullup pulling the CHEST to the bar instead of just the chin. 5 reps. Builds the upper back and sets you up for muscle-up mechanics.",
-            formCues: [
-                "Think 'chest at the bar' not 'chin over the bar'",
-                "Arch slightly at the top to get chest contact",
-                "Pull elbows aggressively down and back",
-                "Drive scaps together at the top"
-            ],
-            commonMistakes: [
-                "Chin-up range called chest-to-bar",
-                "Kipping to squeeze the top few inches",
-                "Shrugging shoulders at the top"
-            ],
-            timeline: "2-6 months from 5 pullups.",
-            rank: .c,
-            levels: [
-                SkillLevel(level: 1, target: .firstRep, criterion: "First clean chest-to-bar pullup to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(3), criterion: "3 strict chest-to-bar pullup", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict chest-to-bar pullup", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(7), criterion: "7 strict chest-to-bar pullup", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(10), criterion: "10 strict chest-to-bar pullup", xpReward: 250),
-            ]
-        ),
-        .simple(
-            id: "pp.l-sit-pullup",
-            title: "L-Sit Pull-Up",
-            cluster: .pullingPower, tier: 4, type: .skill,
-            target: .reps(exercise: "l-sit pullup", count: 5),
-            prereqs: [PrerequisiteGroup(["pp.slow-pullup", "cal.l-sit-10"])],
-            equipment: [.pullupBar],
-            primary: [.lats, .core, .arms],
-            subtitle: "Lats + core, simultaneously.",
-            description: "Pullup performed with legs held in L-sit position (parallel to floor) throughout the rep. 5 reps. Fuses upper-body pull strength with hollow-body core demand.",
-            formCues: [
-                "Legs LOCKED in L-sit before initiating the pull",
-                "Don't let legs drop as you pull — the challenge IS holding them up",
-                "Slower tempo works better here than explosive",
-                "Dead hang still clean at the bottom"
-            ],
-            commonMistakes: [
-                "Legs dropping or swinging through the pull",
-                "Partial ROM to cheat the core demand",
-                "Bent legs instead of straight"
-            ],
-            timeline: "3-9 months from clean L-sit + slow pullup.",
+            timeline: "3-12 months from first pullup.",
             rank: .b,
             levels: [
-                SkillLevel(level: 1, target: .firstRep, criterion: "First clean L-sit pullup to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(3), criterion: "3 strict L-sit pullup", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict L-sit pullup", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(6), criterion: "6 strict L-sit pullup", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(8), criterion: "8 strict L-sit pullup", xpReward: 250),
+                SkillLevel(level: 1, target: .firstRep, criterion: "First strict pullup to standard", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(3), criterion: "3 strict pullups", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict pullups", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(10), criterion: "10 strict pullups", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(15), criterion: "15 strict pullups", xpReward: 250),
             ]
         ),
         .simple(
             id: "pp.archer-pullup",
             title: "Archer Pull-Up",
-            cluster: .pullingPower, tier: 4, type: .skill,
+            cluster: .pullingPower, tier: 6, type: .skill,
             target: .reps(exercise: "archer pullup", count: 3),
-            prereqs: [PrerequisiteGroup("pp.slow-pullup")],
+            prereqs: [PrerequisiteGroup("pp.weighted-pullup")],
             equipment: [.pullupBar],
             primary: [.lats, .arms], secondary: [.core],
             subtitle: "The bridge to one-arm work.",
@@ -940,148 +562,87 @@ extension SkillGraph {
                 "Not clearing chin to the working hand",
                 "Rotating through the hips to lever up"
             ],
-            timeline: "2-6 months from slow pullup mastery.",
+            timeline: "2-6 months from weighted pullup mastery.",
             rank: .b,
             levels: [
                 SkillLevel(level: 1, target: .firstRep, criterion: "First clean archer pullup per side to standard", xpReward: 50),
                 SkillLevel(level: 2, target: .reps(2), criterion: "2 strict archer pullup per side", xpReward: 100),
                 SkillLevel(level: 3, target: .reps(3), criterion: "3 strict archer pullup per side", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(5), criterion: "5 strict archer pullup per side", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(8), criterion: "8 strict archer pullup per side", xpReward: 250),
-            ]
+                SkillLevel(level: 4, target: .reps(4), criterion: "4 strict archer pullup per side", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(5), criterion: "5 strict archer pullup per side", xpReward: 250),
+            ],
+            isParallelToParent: true
         ),
         .simple(
-            id: "pp.weighted-pullup-0.25",
+            id: "pp.weighted-pullup",
             title: "Weighted Pull-Up",
-            cluster: .pullingPower, tier: 4, type: .strength,
-            target: .weightMultiplier(exercise: "weighted pullup", multiplier: 0.25),
-            prereqs: [PrerequisiteGroup("pp.10-pullups")],
+            cluster: .pullingPower, tier: 5, type: .strength,
+            target: .weightMultiplier(exercise: "weighted pullup", multiplier: 0.5),
+            prereqs: [PrerequisiteGroup("pp.strict-pullup")],
             equipment: [.pullupBar, .dumbbells],
-            primary: [.lats, .arms], secondary: [.back],
+            primary: [.lats, .arms], secondary: [.back, .forearms],
             subtitle: "Load the pull.",
-            description: "Strict pullup with added weight equal to 25% of your bodyweight (belt + plate, or dumbbell between feet). Opens the weighted-pullup progression.",
+            description: "Strict pullup with added external load (belt + plate, or dumbbell between feet). Sweeps from 0.1× bodyweight up to a full bodyweight pull-up. Gateway to one-arm pulling.",
             formCues: [
                 "Secure the load first — dip belt is best",
                 "Full dead hang as always",
                 "Chin clears the bar clean",
-                "Slow eccentric with load to build tendon tolerance"
+                "Slow eccentric with load to build tendon tolerance",
+                "Brace core — load pulls hips forward if you're soft"
             ],
             commonMistakes: [
                 "Jumping straight to big weights without a buildup",
                 "Partial ROM under load",
                 "Not warming up the biceps tendon before heavy work"
             ],
-            timeline: "3-9 months from 10 pullups.",
-            rank: .c,
-            levels: [
-                SkillLevel(level: 1, target: .weight(multiplier: 0.15), criterion: "0.15x bodyweight weighted pullup, clean ROM", xpReward: 50),
-                SkillLevel(level: 2, target: .weight(multiplier: 0.25), criterion: "0.25x bodyweight weighted pullup, clean ROM", xpReward: 100),
-                SkillLevel(level: 3, target: .weight(multiplier: 0.35), criterion: "0.35x bodyweight weighted pullup, clean ROM", xpReward: 150),
-                SkillLevel(level: 4, target: .weight(multiplier: 0.5), criterion: "0.5x bodyweight weighted pullup, clean ROM", xpReward: 200),
-                SkillLevel(level: 5, target: .weight(multiplier: 0.65), criterion: "0.65x bodyweight weighted pullup, clean ROM", xpReward: 250),
-            ]
-        ),
-        .simple(
-            id: "pp.weighted-pullup-0.5",
-            title: "Heavy Pull-Up",
-            cluster: .pullingPower, tier: 5, type: .strength,
-            target: .weightMultiplier(exercise: "weighted pullup", multiplier: 0.5),
-            prereqs: [PrerequisiteGroup("pp.weighted-pullup-0.25")],
-            equipment: [.pullupBar, .dumbbells],
-            primary: [.lats, .arms], secondary: [.back, .forearms],
-            subtitle: "Half your bodyweight hanging from your waist.",
-            description: "Strict pullup with added weight equal to 50% of your bodyweight. The volume-strength gate for the one-arm pullup.",
-            formCues: [
-                "Dip belt with plates beats dumbbells at this load",
-                "Full dead hang each rep, no kip",
-                "Chin clears clean — partial reps don't count",
-                "Slower eccentric to build connective-tissue tolerance",
-                "Brace core — load pulls hips forward if you're soft"
-            ],
-            commonMistakes: [
-                "Jumping load faster than the biceps tendon adapts",
-                "Kipping to grind out the final inches",
-                "Skipping warmup pullups before loaded singles"
-            ],
-            timeline: "1-2 years from 0.25× weighted pullup.",
+            timeline: "1-2 years from strict pullup × 5.",
             rank: .b,
             levels: [
-                SkillLevel(level: 1, target: .weight(multiplier: 0.35), criterion: "0.35x bodyweight weighted pullup, clean ROM", xpReward: 50),
-                SkillLevel(level: 2, target: .weight(multiplier: 0.5), criterion: "0.5x bodyweight weighted pullup, clean ROM", xpReward: 100),
-                SkillLevel(level: 3, target: .weight(multiplier: 0.65), criterion: "0.65x bodyweight weighted pullup, clean ROM", xpReward: 150),
+                SkillLevel(level: 1, target: .weight(multiplier: 0.1), criterion: "0.1x bodyweight weighted pullup, clean ROM", xpReward: 50),
+                SkillLevel(level: 2, target: .weight(multiplier: 0.25), criterion: "0.25x bodyweight weighted pullup, clean ROM", xpReward: 100),
+                SkillLevel(level: 3, target: .weight(multiplier: 0.5), criterion: "0.5x bodyweight weighted pullup, clean ROM", xpReward: 150),
                 SkillLevel(level: 4, target: .weight(multiplier: 0.75), criterion: "0.75x bodyweight weighted pullup, clean ROM", xpReward: 200),
                 SkillLevel(level: 5, target: .weight(multiplier: 1.0), criterion: "1.0x bodyweight weighted pullup, clean ROM", xpReward: 250),
             ]
         ),
         .simple(
-            id: "pp.typewriter-pullup",
-            title: "Typewriter Pull-Up",
-            cluster: .pullingPower, tier: 5, type: .skill,
-            target: .reps(exercise: "typewriter pullup", count: 3),
-            prereqs: [PrerequisiteGroup("pp.archer-pullup")],
-            equipment: [.pullupBar],
-            primary: [.lats, .arms], secondary: [.core],
-            subtitle: "Lateral strength meets pull.",
-            description: "Pull up, then slide chin side-to-side at the top while staying at bar level. Like a typewriter carriage — smooth lateral movement at the peak.",
-            formCues: [
-                "Pull all the way up FIRST, then traverse",
-                "Chin stays at bar height throughout the slide",
-                "Hips square — resist rotating with the lateral movement",
-                "Return to the other side with control, not a drop"
-            ],
-            commonMistakes: [
-                "Dropping below bar during the lateral slide",
-                "Bending the 'straight' side arm",
-                "Rushing the traverse rather than slow lateral control"
-            ],
-            timeline: "3-6 months from archer mastery.",
-            rank: .b,
-            levels: [
-                SkillLevel(level: 1, target: .firstRep, criterion: "First clean typewriter pullup per side to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(2), criterion: "2 strict typewriter pullup per side", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(3), criterion: "3 strict typewriter pullup per side", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(5), criterion: "5 strict typewriter pullup per side", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(7), criterion: "7 strict typewriter pullup per side", xpReward: 250),
-            ]
-        ),
-        .simple(
             id: "pp.oap-negative",
             title: "One-Arm Pull-Up Negative",
-            cluster: .pullingPower, tier: 5, type: .skill,
+            cluster: .pullingPower, tier: 7, type: .skill,
             target: .reps(exercise: "one-arm pullup negative", count: 3),
-            prereqs: [PrerequisiteGroup("pp.typewriter-pullup")],
+            prereqs: [PrerequisiteGroup("pp.archer-pullup")],
             equipment: [.pullupBar],
-            primary: [.lats, .arms], secondary: [.core, .back],
-            subtitle: "Eccentric builds the path.",
-            description: "One-arm pullup lowering only. Start at the top, lower with control over 5 seconds, step or band-assist back up. The eccentric loads the exact motor pattern of the full OAP.",
+            primary: [.lats, .arms, .back], secondary: [.core, .forearms],
+            subtitle: "Lower yourself with one arm — the bridge to the full one-arm.",
+            description: "3 strict 5s eccentric one-arm pull-up negatives per side. Slow lower from the top, no jerk.",
             formCues: [
-                "Start fully locked out at the top with one arm",
-                "Control the full 5 seconds — don't let the last 2 inches slip",
-                "Free hand doesn't grip bar or body",
-                "Core + lats engaged to prevent rotation"
+                "Start at chin-over-bar with one arm",
+                "Lower under control — 5s minimum",
+                "No jerking or dropping",
+                "Free arm across chest, no assist"
             ],
             commonMistakes: [
-                "Dropping through the bottom half — no control where it matters",
-                "Holding the free arm at the bar (accidental assist)",
-                "Skipping the top half of the ROM"
+                "Dropping out of the negative",
+                "Free hand assisting",
+                "Cutting eccentric short of full extension"
             ],
-            timeline: "3-9 months from typewriter pullup.",
-            rank: .b,
+            timeline: "6-12 months of dedicated pull work.",
+            rank: .a,
             levels: [
-                SkillLevel(level: 1, target: .firstRep, criterion: "First clean 5-second one-arm pullup negative to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(2), criterion: "2 strict 5-second one-arm pullup negative", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(3), criterion: "3 strict 5-second one-arm pullup negative", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(5), criterion: "5 strict 5-second one-arm pullup negative", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(7), criterion: "7 strict 5-second one-arm pullup negative", xpReward: 250),
+                SkillLevel(level: 1, target: .firstRep, criterion: "First 3s eccentric one-arm pull-up negative per side", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(2), criterion: "2 reps 3s eccentric per side", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(3), criterion: "3 reps 5s eccentric per side", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(5), criterion: "5 reps 5s eccentric per side", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(8), criterion: "8 reps 5s eccentric per side", xpReward: 250),
             ]
         ),
         .simple(
             id: "pp.one-arm-pullup",
             title: "One-Arm Pull-Up",
-            cluster: .pullingPower, tier: 6, type: .skill,
+            cluster: .pullingPower, tier: 8, type: .skill,
             target: .reps(exercise: "one-arm pullup", count: 1),
-            prereqs: [PrerequisiteGroup(["pp.oap-negative", "pp.weighted-pullup-0.5"])],
-            isKeystone: true,
+            prereqs: [PrerequisiteGroup("pp.oap-negative")],
+            isMythic: true,
             equipment: [.pullupBar],
             primary: [.lats, .arms, .back], secondary: [.core, .forearms],
             subtitle: "The pulling ceiling most will never touch.",
@@ -1099,24 +660,21 @@ extension SkillGraph {
                 "Partial ROM — chin not fully over bar"
             ],
             timeline: "3-5+ years of dedicated pull programming.",
-            rank: .a,
+            rank: .s,
             levels: [
                 SkillLevel(level: 1, target: .firstRep, criterion: "First clean one-arm pullup per side to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(2), criterion: "2 strict one-arm pullup per side", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(3), criterion: "3 strict one-arm pullup per side", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(4), criterion: "4 strict one-arm pullup per side", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(5), criterion: "5 strict one-arm pullup per side", xpReward: 250),
+                SkillLevel(level: 2, target: .reps(1), criterion: "1 strict one-arm pullup per side", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(2), criterion: "2 strict one-arm pullup per side", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(3), criterion: "3 strict one-arm pullup per side", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(3), criterion: "3 strict one-arm pullup per side", xpReward: 250),
             ]
         ),
         .simple(
             id: "pp.muscle-up",
             title: "Muscle-Up",
-            cluster: .pullingPower, tier: 5, type: .skill,
+            cluster: .pullingPower, tier: 6, type: .skill,
             target: .reps(exercise: "muscle-up", count: 1),
-            prereqs: [
-                PrerequisiteGroup(["pp.10-pullups", "cal.5-dips"]),
-                PrerequisiteGroup(["pp.weighted-pullup-0.25", "cal.l-sit-20"])
-            ],
+            prereqs: [PrerequisiteGroup("pp.explosive-pullup")],
             isKeystone: true,
             equipment: [.pullupBar],
             primary: [.lats, .chest, .arms], secondary: [.core, .shoulders],
@@ -1135,50 +693,19 @@ extension SkillGraph {
                 "Stopping at bar-level instead of pressing through to full lockout"
             ],
             timeline: "6-18 months from first pullup, if dips are trained in parallel.",
-            rank: .c,
+            rank: .a,
             levels: [
                 SkillLevel(level: 1, target: .firstRep, criterion: "First clean bar muscle-up to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(3), criterion: "3 strict bar muscle-up", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict bar muscle-up", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(8), criterion: "8 strict bar muscle-up", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(10), criterion: "10 strict bar muscle-up", xpReward: 250),
-            ]
-        ),
-        .simple(
-            id: "pp.10-muscle-ups",
-            title: "Muscle-Up Volume",
-            cluster: .pullingPower, tier: 4, type: .skill,
-            target: .reps(exercise: "muscle-up", count: 10),
-            prereqs: [PrerequisiteGroup("pp.muscle-up")],
-            equipment: [.pullupBar],
-            primary: [.lats, .chest, .arms],
-            subtitle: "Volume unlocks the move.",
-            description: "10 strict muscle-ups unbroken. The difference between 'I can do a MU' and 'I own muscle-ups'.",
-            formCues: [
-                "Pacing matters more than raw strength here",
-                "Every rep starts from a full dead hang",
-                "Full dip lockout at the top of each rep",
-                "Breathe at the dip position, not mid-transition"
-            ],
-            commonMistakes: [
-                "Losing form on reps 7-10 — kipping in",
-                "Skipping the dip lockout on later reps",
-                "Going too fast and burning out early"
-            ],
-            timeline: "6-18 months from first MU.",
-            rank: .b,
-            levels: [
-                SkillLevel(level: 1, target: .firstRep, criterion: "First clean bar muscle-up to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(3), criterion: "3 strict bar muscle-up", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict bar muscle-up", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(6), criterion: "6 strict bar muscle-up", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(8), criterion: "8 strict bar muscle-up", xpReward: 250),
+                SkillLevel(level: 2, target: .reps(2), criterion: "2 strict bar muscle-up", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(3), criterion: "3 strict bar muscle-up", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(4), criterion: "4 strict bar muscle-up", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(5), criterion: "5 strict bar muscle-up", xpReward: 250),
             ]
         ),
         .simple(
             id: "pp.ring-muscle-up",
             title: "Ring Muscle-Up",
-            cluster: .pullingPower, tier: 4, type: .skill,
+            cluster: .pullingPower, tier: 7, type: .skill,
             target: .reps(exercise: "ring muscle-up", count: 1),
             prereqs: [PrerequisiteGroup("pp.muscle-up")],
             equipment: [.gymnasticRings],
@@ -1197,46 +724,15 @@ extension SkillGraph {
                 "Rings splayed outward at the top (poor lockout)"
             ],
             timeline: "3-12 months from bar MU.",
-            rank: .b,
+            rank: .a,
             levels: [
                 SkillLevel(level: 1, target: .firstRep, criterion: "First clean ring muscle-up to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(3), criterion: "3 strict ring muscle-up", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict ring muscle-up", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(6), criterion: "6 strict ring muscle-up", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(8), criterion: "8 strict ring muscle-up", xpReward: 250),
-            ]
-        ),
-        .simple(
-            id: "pp.5-oap-side",
-            title: "One-Arm Pull-Up Volume",
-            cluster: .pullingPower, tier: 7, type: .skill,
-            target: .reps(exercise: "one-arm pullup", count: 5),
-            prereqs: [PrerequisiteGroup("pp.one-arm-pullup")],
-            isMythic: true,
-            equipment: [.pullupBar],
-            primary: [.lats, .arms, .back],
-            subtitle: "Pulling volume most never sniff.",
-            description: "Five clean one-arm pullups per side. The volume benchmark above the single OAP — the difference between 'I have done it' and 'I own it'.",
-            formCues: [
-                "Each rep from a complete dead hang with no swing carry-over",
-                "Chin fully over the bar each rep",
-                "Rest a full minute between sides",
-                "Maintain form — last rep should look like the first"
+                SkillLevel(level: 2, target: .reps(1), criterion: "1 strict ring muscle-up", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(2), criterion: "2 strict ring muscle-up", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(3), criterion: "3 strict ring muscle-up", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(3), criterion: "3 strict ring muscle-up", xpReward: 250),
             ],
-            commonMistakes: [
-                "Swinging to chain reps",
-                "Half-reps on the last 2-3",
-                "Switching sides too fast to allow recovery"
-            ],
-            timeline: "1-3 years past the first clean OAP.",
-            rank: .s,
-            levels: [
-                SkillLevel(level: 1, target: .firstRep, criterion: "First clean one-arm pullup per side to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(1), criterion: "1 strict one-arm pullup per side", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(2), criterion: "2 strict one-arm pullup per side", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(3), criterion: "3 strict one-arm pullup per side", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(3), criterion: "3 strict one-arm pullup per side", xpReward: 250),
-            ]
+            isParallelToParent: true
         ),
 
         // ────────────────────────────────────────────────────────────────
@@ -1269,16 +765,16 @@ extension SkillGraph {
                 SkillLevel(level: 1, target: .hold(seconds: 10), criterion: "Hold plank for 10s, clean form", xpReward: 50),
                 SkillLevel(level: 2, target: .hold(seconds: 20), criterion: "Hold plank for 20s, clean form", xpReward: 100),
                 SkillLevel(level: 3, target: .hold(seconds: 30), criterion: "Hold plank for 30s, clean form", xpReward: 150),
-                SkillLevel(level: 4, target: .hold(seconds: 45), criterion: "Hold plank for 45s, clean form", xpReward: 200),
-                SkillLevel(level: 5, target: .hold(seconds: 60), criterion: "Hold plank for 60s, clean form", xpReward: 250),
+                SkillLevel(level: 4, target: .hold(seconds: 90), criterion: "Hold plank for 90s, clean form", xpReward: 200),
+                SkillLevel(level: 5, target: .hold(seconds: 180), criterion: "Hold plank for 180s, clean form", xpReward: 250),
             ]
         ),
         .simple(
             id: "cal.l-sit-10",
             title: "L-Sit",
-            cluster: .coreLever, tier: 2, type: .hold,
+            cluster: .coreLever, tier: 4, type: .hold,
             target: .hold(exercise: "l-sit", seconds: 10),
-            prereqs: [PrerequisiteGroup(["cal.plank-30", "cl.hanging-knee-raise"])],
+            prereqs: [PrerequisiteGroup("cl.knee-raise")],
             equipment: [.parallettes, .bodyweight],
             primary: [.core, .shoulders], secondary: [.arms, .legs],
             subtitle: "The move that makes people stop scrolling.",
@@ -1300,42 +796,10 @@ extension SkillGraph {
                 SkillLevel(level: 1, target: .hold(seconds: 3), criterion: "Hold L-sit for 3s, clean form", xpReward: 50),
                 SkillLevel(level: 2, target: .hold(seconds: 5), criterion: "Hold L-sit for 5s, clean form", xpReward: 100),
                 SkillLevel(level: 3, target: .hold(seconds: 10), criterion: "Hold L-sit for 10s, clean form", xpReward: 150),
-                SkillLevel(level: 4, target: .hold(seconds: 15), criterion: "Hold L-sit for 15s, clean form", xpReward: 200),
-                SkillLevel(level: 5, target: .hold(seconds: 20), criterion: "Hold L-sit for 20s, clean form", xpReward: 250),
+                SkillLevel(level: 4, target: .hold(seconds: 20), criterion: "Hold L-sit for 20s, clean form", xpReward: 200),
+                SkillLevel(level: 5, target: .hold(seconds: 30), criterion: "Hold L-sit for 30s, clean form", xpReward: 250),
             ]
         ),
-        .simple(
-            id: "cal.l-sit-20",
-            title: "L-Sit Hold",
-            cluster: .coreLever, tier: 3, type: .hold,
-            target: .hold(exercise: "l-sit", seconds: 20),
-            prereqs: [PrerequisiteGroup("cal.l-sit-10")],
-            equipment: [.parallettes, .bodyweight],
-            primary: [.core, .shoulders], secondary: [.arms, .legs],
-            subtitle: "20 seconds of violent core tension.",
-            description: "Double the L-sit hold time. 20 seconds demands actual conditioning on top of the basic position.",
-            formCues: [
-                "Same form as 10s, sustained — the burn is the test",
-                "Don't let legs sag in the back half of the hold",
-                "Posterior pelvic tilt throughout",
-                "Accumulate multiple shorter sets before chasing the full 20"
-            ],
-            commonMistakes: [
-                "Legs creeping downward in seconds 12-20",
-                "Shoulders shrugging up as grip fails",
-                "Holding breath — destroys the last few seconds"
-            ],
-            timeline: "2-6 months from L-Sit 10s.",
-            rank: .c,
-            levels: [
-                SkillLevel(level: 1, target: .hold(seconds: 8), criterion: "Hold L-sit for 8s, clean form", xpReward: 50),
-                SkillLevel(level: 2, target: .hold(seconds: 15), criterion: "Hold L-sit for 15s, clean form", xpReward: 100),
-                SkillLevel(level: 3, target: .hold(seconds: 20), criterion: "Hold L-sit for 20s, clean form", xpReward: 150),
-                SkillLevel(level: 4, target: .hold(seconds: 30), criterion: "Hold L-sit for 30s, clean form", xpReward: 200),
-                SkillLevel(level: 5, target: .hold(seconds: 45), criterion: "Hold L-sit for 45s, clean form", xpReward: 250),
-            ]
-        ),
-
         .simple(
             id: "cal.pushup",
             title: "Push-Up",
@@ -1363,45 +827,15 @@ extension SkillGraph {
             levels: [
                 SkillLevel(level: 1, target: .firstRep, criterion: "First clean pushup to standard", xpReward: 50),
                 SkillLevel(level: 2, target: .reps(5), criterion: "5 strict pushup", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(8), criterion: "8 strict pushup", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(12), criterion: "12 strict pushup", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(15), criterion: "15 strict pushup", xpReward: 250),
-            ]
-        ),
-        .simple(
-            id: "cal.slow-pushup",
-            title: "Tempo Push-Up",
-            cluster: .calisthenicControl, tier: 2, type: .skill,
-            target: .reps(exercise: "slow pushup", count: 10),
-            prereqs: [PrerequisiteGroup("cal.pushup")],
-            primary: [.chest, .arms, .shoulders],
-            subtitle: "Tempo exposes weakness.",
-            description: "10 pushups with a 3s descent and 3s press-up. Tempo forces genuine strength through every inch of the range.",
-            formCues: [
-                "Count the tempo aloud or in your head",
-                "Chest touches the floor at the bottom",
-                "No rest at top — maintain tension",
-                "Body rigid throughout"
-            ],
-            commonMistakes: [
-                "Cheating the tempo at the top half",
-                "Sagging hips by rep 6",
-                "Pausing at the bottom to catch breath"
-            ],
-            timeline: "2-4 weeks from 10 standard pushups.",
-            rank: .e,
-            levels: [
-                SkillLevel(level: 1, target: .firstRep, criterion: "First clean slow (3s/3s) pushup to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(5), criterion: "5 strict slow (3s/3s) pushup", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(8), criterion: "8 strict slow (3s/3s) pushup", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(12), criterion: "12 strict slow (3s/3s) pushup", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(15), criterion: "15 strict slow (3s/3s) pushup", xpReward: 250),
+                SkillLevel(level: 3, target: .reps(10), criterion: "10 strict pushup", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(25), criterion: "25 strict pushup", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(50), criterion: "50 strict pushup", xpReward: 250),
             ]
         ),
         .simple(
             id: "cal.5-dips",
             title: "Dip",
-            cluster: .calisthenicControl, tier: 2, type: .skill,
+            cluster: .calisthenicControl, tier: 3, type: .skill,
             target: .reps(exercise: "dip", count: 5),
             prereqs: [PrerequisiteGroup("cal.bench-dip")],
             equipment: [.parallettes, .elevatedSurface],
@@ -1425,40 +859,8 @@ extension SkillGraph {
                 SkillLevel(level: 1, target: .firstRep, criterion: "First clean dip to standard", xpReward: 50),
                 SkillLevel(level: 2, target: .reps(3), criterion: "3 strict dip", xpReward: 100),
                 SkillLevel(level: 3, target: .reps(5), criterion: "5 strict dip", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(8), criterion: "8 strict dip", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(12), criterion: "12 strict dip", xpReward: 250),
-            ]
-        ),
-        .simple(
-            id: "cal.ring-support-10",
-            title: "Ring Support Hold",
-            cluster: .calisthenicControl, tier: 3, type: .hold,
-            target: .hold(exercise: "ring support hold", seconds: 10),
-            prereqs: [PrerequisiteGroup("cal.slow-pushup")],
-            equipment: [.gymnasticRings],
-            primary: [.shoulders, .arms, .chest], secondary: [.core],
-            subtitle: "Own the top of the ring dip.",
-            description: "Straight-arm support hold on gymnastic rings — body vertical, arms locked at the sides, rings turned out. 10 seconds unbroken.",
-            formCues: [
-                "Rings turned outward (thumbs-up position) — protects shoulders",
-                "Arms fully locked straight, no bent-arm cheat",
-                "Shoulders packed down, not shrugged up",
-                "Hollow body — core tight, ribs tucked",
-                "Breathe normally through the hold"
-            ],
-            commonMistakes: [
-                "Rings splayed outward — leaks shoulder stability",
-                "Shrugged shoulders under the load",
-                "Breaking the lock when rings start to shake"
-            ],
-            timeline: "2-4 months of ring exposure.",
-            rank: .d,
-            levels: [
-                SkillLevel(level: 1, target: .hold(seconds: 3), criterion: "Hold ring support for 3s, clean form", xpReward: 50),
-                SkillLevel(level: 2, target: .hold(seconds: 5), criterion: "Hold ring support for 5s, clean form", xpReward: 100),
-                SkillLevel(level: 3, target: .hold(seconds: 10), criterion: "Hold ring support for 10s, clean form", xpReward: 150),
-                SkillLevel(level: 4, target: .hold(seconds: 20), criterion: "Hold ring support for 20s, clean form", xpReward: 200),
-                SkillLevel(level: 5, target: .hold(seconds: 30), criterion: "Hold ring support for 30s, clean form", xpReward: 250),
+                SkillLevel(level: 4, target: .reps(15), criterion: "15 strict dip", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(30), criterion: "30 strict dip", xpReward: 250),
             ]
         ),
         .simple(
@@ -1466,7 +868,7 @@ extension SkillGraph {
             title: "Ring Dip",
             cluster: .calisthenicControl, tier: 4, type: .skill,
             target: .reps(exercise: "ring dip", count: 5),
-            prereqs: [PrerequisiteGroup(["cal.ring-support-10", "cal.5-dips"])],
+            prereqs: [PrerequisiteGroup("cal.5-dips")],
             isKeystone: true,
             equipment: [.gymnasticRings],
             primary: [.chest, .arms, .shoulders], secondary: [.core],
@@ -1484,22 +886,22 @@ extension SkillGraph {
                 "Partial ROM — not reaching full shoulder depth",
                 "Skipping the turn-out at the top — loses the strict standard"
             ],
-            timeline: "3-6 months from 5 bar dips + ring support.",
+            timeline: "3-6 months from 5 bar dips.",
             rank: .c,
             levels: [
                 SkillLevel(level: 1, target: .firstRep, criterion: "First clean ring dip to standard", xpReward: 50),
                 SkillLevel(level: 2, target: .reps(3), criterion: "3 strict ring dip", xpReward: 100),
                 SkillLevel(level: 3, target: .reps(5), criterion: "5 strict ring dip", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(8), criterion: "8 strict ring dip", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(10), criterion: "10 strict ring dip", xpReward: 250),
+                SkillLevel(level: 4, target: .reps(10), criterion: "10 strict ring dip", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(15), criterion: "15 strict ring dip", xpReward: 250),
             ]
         ),
         .simple(
             id: "cal.diamond-pushup",
             title: "Diamond Push-Up",
-            cluster: .calisthenicControl, tier: 2, type: .skill,
+            cluster: .calisthenicControl, tier: 3, type: .skill,
             target: .reps(exercise: "diamond pushup", count: 10),
-            prereqs: [PrerequisiteGroup("cal.slow-pushup")],
+            prereqs: [PrerequisiteGroup("cal.pushup")],
             primary: [.arms, .chest],
             subtitle: "Triceps on notice.",
             description: "10 pushups with hands together, thumbs and index fingers forming a diamond. Elbows track close to the body. Tricep-dominant.",
@@ -1514,22 +916,22 @@ extension SkillGraph {
                 "Flared elbows — defeats the triceps emphasis",
                 "Partial depth to keep reps moving"
             ],
-            timeline: "2-6 weeks from slow pushup.",
+            timeline: "2-6 weeks from the strict push-up.",
             rank: .d,
             levels: [
                 SkillLevel(level: 1, target: .firstRep, criterion: "First clean diamond pushup to standard", xpReward: 50),
                 SkillLevel(level: 2, target: .reps(3), criterion: "3 strict diamond pushup", xpReward: 100),
                 SkillLevel(level: 3, target: .reps(5), criterion: "5 strict diamond pushup", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(8), criterion: "8 strict diamond pushup", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(12), criterion: "12 strict diamond pushup", xpReward: 250),
+                SkillLevel(level: 4, target: .reps(12), criterion: "12 strict diamond pushup", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(25), criterion: "25 strict diamond pushup", xpReward: 250),
             ]
         ),
         .simple(
-            id: "pl.pseudo-planche-pushup",
+            id: "cal.pseudo-planche-pushup",
             title: "Pseudo-Planche Push-Up",
-            cluster: .planche, tier: 3, type: .skill,
+            cluster: .calisthenicControl, tier: 4, type: .skill,
             target: .reps(exercise: "pseudo-planche pushup", count: 5),
-            prereqs: [PrerequisiteGroup("cal.diamond-pushup")],
+            prereqs: [PrerequisiteGroup("cal.decline-pushup")],
             primary: [.shoulders, .chest, .arms], secondary: [.core],
             subtitle: "Planche prep.",
             description: "Pushup with hands at hips (fingers pointing back toward feet), leaning weight forward so shoulders travel past the hands. 5 reps.",
@@ -1557,9 +959,9 @@ extension SkillGraph {
         .simple(
             id: "pl.tuck-planche",
             title: "Tuck Planche",
-            cluster: .planche, tier: 3, type: .hold,
+            cluster: .planche, tier: 5, type: .hold,
             target: .hold(exercise: "tuck planche", seconds: 5),
-            prereqs: [PrerequisiteGroup("pl.pseudo-planche-pushup")],
+            prereqs: [PrerequisiteGroup("hs.crane-pose")],
             equipment: [.parallettes],
             primary: [.shoulders, .core], secondary: [.chest, .arms],
             subtitle: "The planche on-ramp.",
@@ -1576,8 +978,8 @@ extension SkillGraph {
                 "Hips drooping below shoulders",
                 "Tucked legs come away from torso"
             ],
-            timeline: "3-9 months from pseudo-planche pushup.",
-            rank: .c,
+            timeline: "3-9 months from crane pose.",
+            rank: .b,
             levels: [
                 SkillLevel(level: 1, target: .hold(seconds: 3), criterion: "Hold tuck planche for 3s, clean form", xpReward: 50),
                 SkillLevel(level: 2, target: .hold(seconds: 5), criterion: "Hold tuck planche for 5s, clean form", xpReward: 100),
@@ -1587,11 +989,11 @@ extension SkillGraph {
             ]
         ),
         .simple(
-            id: "pl.tuck-planche-pushup",
+            id: "cal.tuck-planche-pushup",
             title: "Tuck Planche Push-Up",
-            cluster: .planche, tier: 4, type: .skill,
+            cluster: .calisthenicControl, tier: 5, type: .skill,
             target: .reps(exercise: "tuck planche pushup", count: 3),
-            prereqs: [PrerequisiteGroup(["pl.pseudo-planche-pushup", "pl.tuck-planche"])],
+            prereqs: [PrerequisiteGroup("cal.pseudo-planche-pushup")],
             equipment: [.parallettes],
             primary: [.shoulders, .chest, .core],
             subtitle: "Planche meets press.",
@@ -1620,9 +1022,9 @@ extension SkillGraph {
         .simple(
             id: "pl.straddle-planche",
             title: "Straddle Planche",
-            cluster: .planche, tier: 5, type: .hold,
+            cluster: .planche, tier: 6, type: .hold,
             target: .hold(exercise: "straddle planche", seconds: 5),
-            prereqs: [PrerequisiteGroup("pl.half-lay-planche")],
+            prereqs: [PrerequisiteGroup("pl.tuck-planche")],
             equipment: [.parallettes],
             primary: [.shoulders, .core],
             subtitle: "Legs split, body horizontal.",
@@ -1639,21 +1041,21 @@ extension SkillGraph {
                 "Banana back (lumbar arch, hips drop)"
             ],
             timeline: "1-2 years from tuck planche.",
-            rank: .b,
+            rank: .a,
             levels: [
-                SkillLevel(level: 1, target: .hold(seconds: 3), criterion: "Hold straddle planche for 3s, clean form", xpReward: 50),
-                SkillLevel(level: 2, target: .hold(seconds: 5), criterion: "Hold straddle planche for 5s, clean form", xpReward: 100),
-                SkillLevel(level: 3, target: .hold(seconds: 8), criterion: "Hold straddle planche for 8s, clean form", xpReward: 150),
-                SkillLevel(level: 4, target: .hold(seconds: 12), criterion: "Hold straddle planche for 12s, clean form", xpReward: 200),
-                SkillLevel(level: 5, target: .hold(seconds: 15), criterion: "Hold straddle planche for 15s, clean form", xpReward: 250),
+                SkillLevel(level: 1, target: .hold(seconds: 2), criterion: "Hold straddle planche for 2s, clean form", xpReward: 50),
+                SkillLevel(level: 2, target: .hold(seconds: 3), criterion: "Hold straddle planche for 3s, clean form", xpReward: 100),
+                SkillLevel(level: 3, target: .hold(seconds: 5), criterion: "Hold straddle planche for 5s, clean form", xpReward: 150),
+                SkillLevel(level: 4, target: .hold(seconds: 8), criterion: "Hold straddle planche for 8s, clean form", xpReward: 200),
+                SkillLevel(level: 5, target: .hold(seconds: 10), criterion: "Hold straddle planche for 10s, clean form", xpReward: 250),
             ]
         ),
         .simple(
             id: "pl.full-planche",
             title: "Full Planche",
-            cluster: .planche, tier: 6, type: .hold,
+            cluster: .planche, tier: 7, type: .hold,
             target: .hold(exercise: "full planche", seconds: 5),
-            prereqs: [PrerequisiteGroup("pl.straddle-planche")],
+            prereqs: [PrerequisiteGroup("pl.half-lay-planche")],
             isKeystone: true,
             equipment: [.parallettes, .bodyweight],
             primary: [.shoulders, .core, .chest, .arms], secondary: [.forearms, .lats],
@@ -1672,53 +1074,53 @@ extension SkillGraph {
                 "Bent arms — at this tier, arms MUST stay locked"
             ],
             timeline: "2-4 years from first tuck planche.",
-            rank: .a,
+            rank: .s,
             levels: [
                 SkillLevel(level: 1, target: .hold(seconds: 2), criterion: "Hold full planche for 2s, clean form", xpReward: 50),
                 SkillLevel(level: 2, target: .hold(seconds: 3), criterion: "Hold full planche for 3s, clean form", xpReward: 100),
                 SkillLevel(level: 3, target: .hold(seconds: 5), criterion: "Hold full planche for 5s, clean form", xpReward: 150),
                 SkillLevel(level: 4, target: .hold(seconds: 8), criterion: "Hold full planche for 8s, clean form", xpReward: 200),
-                SkillLevel(level: 5, target: .hold(seconds: 12), criterion: "Hold full planche for 12s, clean form", xpReward: 250),
+                SkillLevel(level: 5, target: .hold(seconds: 10), criterion: "Hold full planche for 10s, clean form", xpReward: 250),
             ]
         ),
         .simple(
-            id: "pl.full-planche-pushup",
-            title: "Full Planche Push-Up",
-            cluster: .planche, tier: 6, type: .skill,
-            target: .reps(exercise: "full planche pushup", count: 1),
-            prereqs: [PrerequisiteGroup("pl.full-planche")],
-            equipment: [.parallettes],
-            primary: [.shoulders, .chest, .core],
-            subtitle: "Push while horizontal.",
-            description: "From a full planche, bend elbows and press back up while maintaining horizontal body position. One clean rep.",
+            id: "cal.handstand-pushup",
+            title: "Handstand Push-Up",
+            cluster: .calisthenicControl, tier: 6, type: .skill,
+            target: .reps(exercise: "handstand pushup", count: 1),
+            prereqs: [PrerequisiteGroup("cal.elevated-pike-pushup")],
+            isKeystone: true,
+            primary: [.shoulders, .arms], secondary: [.core, .chest],
+            subtitle: "Pressing your bodyweight from upside down.",
+            description: "One strict handstand push-up — wall-supported acceptable for the early levels, freestanding for mastery. Forehead lightly contacts ground at the bottom, arms lock at the top.",
             formCues: [
-                "Start and end in crisp full planche",
-                "Descend SLOW — control is the skill",
-                "Keep body line through the descent",
-                "Elbows track back, not out"
+                "Wall-supported is fine for L1-L3, freestanding for L4-L5",
+                "Hands shoulder-width, fingers spread for balance",
+                "Forehead touches floor lightly at the bottom",
+                "Drive evenly through both palms — no favored side",
+                "Lockout at the top with ribs tucked, no banana arch"
             ],
             commonMistakes: [
-                "Losing horizontal body line mid-descent",
-                "Piking hips to reduce demand",
-                "Arm break (partial rep)"
+                "Kipping legs off the wall to cheat the press",
+                "Partial lockout at the top",
+                "Falling out of balance instead of bailing safely"
             ],
-            timeline: "1-2 years from full planche hold.",
+            timeline: "2-4 years from bent arm press.",
             rank: .a,
             levels: [
-                SkillLevel(level: 1, target: .firstRep, criterion: "First clean full planche pushup to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(2), criterion: "2 strict full planche pushup", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(3), criterion: "3 strict full planche pushup", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(4), criterion: "4 strict full planche pushup", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(5), criterion: "5 strict full planche pushup", xpReward: 250),
+                SkillLevel(level: 1, target: .firstRep, criterion: "First wall-supported negative, 5s eccentric", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(1), criterion: "1 strict wall handstand pushup", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(3), criterion: "3 strict wall handstand pushup", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(1), criterion: "1 strict freestanding handstand pushup", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(5), criterion: "5 strict freestanding handstand pushup", xpReward: 250),
             ]
         ),
         .simple(
-            id: "pl.ninety-degree-pushup",
+            id: "cal.ninety-degree-pushup",
             title: "Ninety-Degree Push-Up",
-            cluster: .planche, tier: 7, type: .skill,
+            cluster: .calisthenicControl, tier: 6, type: .skill,
             target: .reps(exercise: "90 degree pushup", count: 1),
-            prereqs: [PrerequisiteGroup("pl.full-planche-pushup")],
-            isMythic: true,
+            prereqs: [PrerequisiteGroup("cal.handstand-pushup")],
             equipment: [.parallettes],
             primary: [.shoulders, .arms, .chest], secondary: [.core],
             subtitle: "Pushup with elbows tucked to the hips.",
@@ -1727,21 +1129,54 @@ extension SkillGraph {
                 "Descent is slow and controlled — no bounce",
                 "Elbows tuck to the sides, arms pinned to the body",
                 "Body held in a pristine horizontal line throughout",
-                "Requires the full planche pushup as a baseline"
+                "Requires the handstand pushup as a baseline"
             ],
             commonMistakes: [
                 "Leaning forward to cheat the angle (then it's just a planche pushup)",
                 "Elbows flaring out to find leverage",
                 "Piking hips to reduce body-line demand"
             ],
-            timeline: "5+ years past the full planche pushup.",
-            rank: .s,
+            timeline: "5+ years of vertical pressing work.",
+            rank: .a,
             levels: [
                 SkillLevel(level: 1, target: .firstRep, criterion: "First clean 90-degree pushup to standard", xpReward: 50),
                 SkillLevel(level: 2, target: .reps(1), criterion: "1 strict 90-degree pushup", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(2), criterion: "2 strict 90-degree pushup", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(3), criterion: "3 strict 90-degree pushup", xpReward: 200),
+                SkillLevel(level: 3, target: .reps(1), criterion: "1 strict 90-degree pushup", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(2), criterion: "2 strict 90-degree pushup", xpReward: 200),
                 SkillLevel(level: 5, target: .reps(3), criterion: "3 strict 90-degree pushup", xpReward: 250),
+            ],
+            isParallelToParent: true
+        ),
+        .simple(
+            id: "cal.clapping-handstand-pushup",
+            title: "Clapping Handstand Push-Up",
+            cluster: .calisthenicControl, tier: 7, type: .skill,
+            target: .reps(exercise: "clapping handstand pushup", count: 1),
+            prereqs: [PrerequisiteGroup("cal.ninety-degree-pushup")],
+            isMythic: true,
+            primary: [.shoulders, .arms], secondary: [.core, .chest],
+            subtitle: "Push the floor away hard enough to clap upside down.",
+            description: "One freestanding handstand push-up explosive enough that the hands leave the floor and clap before catching. Power-to-weight on a different planet.",
+            formCues: [
+                "Start from a stable freestanding handstand",
+                "Descend with control to forehead-on-floor",
+                "Drive explosively — hands fully leave the ground",
+                "Clap once at the bottom of the airborne phase",
+                "Catch with slightly bent elbows and rebalance"
+            ],
+            commonMistakes: [
+                "Catching with locked arms — shoulder injury risk",
+                "Fake clap that barely separates the hands",
+                "Bailing instead of catching the rep"
+            ],
+            timeline: "Mostly aspirational. 7+ years past first HSPU.",
+            rank: .s,
+            levels: [
+                SkillLevel(level: 1, target: .firstRep, criterion: "First clean clapping handstand pushup to standard", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(1), criterion: "1 strict clapping handstand pushup", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(1), criterion: "1 strict clapping handstand pushup", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(1), criterion: "1 strict clapping handstand pushup", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(1), criterion: "1 strict clapping handstand pushup", xpReward: 250),
             ]
         ),
 
@@ -1751,41 +1186,11 @@ extension SkillGraph {
         // ────────────────────────────────────────────────────────────────
 
         .simple(
-            id: "hs.wrist-conditioning",
-            title: "Reverse-Hand Plank",
-            cluster: .handstand, tier: 2, type: .hold,
-            target: .hold(exercise: "reverse-hand plank", seconds: 30),
-            prereqs: [PrerequisiteGroup("hs.wall-plank")],
-            primary: [.forearms], secondary: [],
-            subtitle: "First wrist milestone.",
-            description: "Hold a reverse-hand plank (fingers pointing at your feet) for 30 seconds. Built over 2-3 weeks of daily wrist prep — the gate before your wrists are ready for planche and HSPU work.",
-            formCues: [
-                "Wrist circles both directions, 10 each",
-                "Knuckle pushups: stack wrists over shoulders",
-                "Reverse-hand plank: fingers toward your feet, hold 30s",
-                "Progress only when fully pain-free"
-            ],
-            commonMistakes: [
-                "Skipping daily wrist prep",
-                "Loading too fast (tendons adapt slower than muscle)",
-                "Stopping before it's pain-free"
-            ],
-            timeline: "2 weeks of daily prep before moving to pressing work.",
-            rank: .e,
-            levels: [
-                SkillLevel(level: 1, target: .hold(seconds: 10), criterion: "Hold reverse-hand plank for 10s, clean form", xpReward: 50),
-                SkillLevel(level: 2, target: .hold(seconds: 20), criterion: "Hold reverse-hand plank for 20s, clean form", xpReward: 100),
-                SkillLevel(level: 3, target: .hold(seconds: 30), criterion: "Hold reverse-hand plank for 30s, clean form", xpReward: 150),
-                SkillLevel(level: 4, target: .hold(seconds: 45), criterion: "Hold reverse-hand plank for 45s, clean form", xpReward: 200),
-                SkillLevel(level: 5, target: .hold(seconds: 60), criterion: "Hold reverse-hand plank for 60s, clean form", xpReward: 250),
-            ]
-        ),
-        .simple(
-            id: "hspu.pike-pushup-10",
+            id: "cal.pike-pushup",
             title: "Pike Push-Up",
-            cluster: .handstandPushup, tier: 2, type: .skill,
+            cluster: .calisthenicControl, tier: 4, type: .skill,
             target: .reps(exercise: "pike pushup", count: 10),
-            prereqs: [PrerequisiteGroup("cal.pushup")],
+            prereqs: [PrerequisiteGroup("cal.diamond-pushup")],
             primary: [.shoulders, .arms], secondary: [.core],
             subtitle: "The vertical pressing pattern HSPU will test.",
             description: "10 strict pike pushups. Hips high, back rounded, head descends between hands. Trains the HSPU motor pattern without the balance demand.",
@@ -1800,22 +1205,22 @@ extension SkillGraph {
                 "Elbows flared wide",
                 "Cutting range of motion"
             ],
-            timeline: "3–8 weeks from 10 strict pushups.",
+            timeline: "3–8 weeks from diamond pushup.",
             rank: .d,
             levels: [
                 SkillLevel(level: 1, target: .firstRep, criterion: "First clean pike pushup to standard", xpReward: 50),
                 SkillLevel(level: 2, target: .reps(3), criterion: "3 strict pike pushup", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict pike pushup", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(8), criterion: "8 strict pike pushup", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(12), criterion: "12 strict pike pushup", xpReward: 250),
+                SkillLevel(level: 3, target: .reps(8), criterion: "8 strict pike pushup", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(12), criterion: "12 strict pike pushup", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(20), criterion: "20 strict pike pushup", xpReward: 250),
             ]
         ),
         .simple(
-            id: "hspu.elevated-pike-pushup-10",
+            id: "cal.elevated-pike-pushup",
             title: "Elevated Pike Push-Up",
-            cluster: .handstandPushup, tier: 3, type: .skill,
+            cluster: .calisthenicControl, tier: 5, type: .skill,
             target: .reps(exercise: "elevated pike pushup", count: 10),
-            prereqs: [PrerequisiteGroup("hspu.pike-pushup-10")],
+            prereqs: [PrerequisiteGroup("cal.pike-pushup")],
             equipment: [.bodyweight, .elevatedSurface],
             primary: [.shoulders, .arms], secondary: [.core],
             subtitle: "Steeper angle — halfway to vertical pressing.",
@@ -1832,13 +1237,13 @@ extension SkillGraph {
                 "Rushing reps"
             ],
             timeline: "4–8 weeks after pike pushup × 10.",
-            rank: .d,
+            rank: .c,
             levels: [
                 SkillLevel(level: 1, target: .firstRep, criterion: "First clean elevated pike pushup to standard", xpReward: 50),
                 SkillLevel(level: 2, target: .reps(3), criterion: "3 strict elevated pike pushup", xpReward: 100),
                 SkillLevel(level: 3, target: .reps(5), criterion: "5 strict elevated pike pushup", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(8), criterion: "8 strict elevated pike pushup", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(12), criterion: "12 strict elevated pike pushup", xpReward: 250),
+                SkillLevel(level: 4, target: .reps(10), criterion: "10 strict elevated pike pushup", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(15), criterion: "15 strict elevated pike pushup", xpReward: 250),
             ]
         ),
         .simple(
@@ -1850,194 +1255,25 @@ extension SkillGraph {
             primary: [.shoulders, .core], secondary: [.arms],
             rank: .d,
             levels: [
-                SkillLevel(level: 1, target: .hold(seconds: 8), criterion: "Hold wall handstand for 8s, clean form", xpReward: 50),
-                SkillLevel(level: 2, target: .hold(seconds: 15), criterion: "Hold wall handstand for 15s, clean form", xpReward: 100),
-                SkillLevel(level: 3, target: .hold(seconds: 22), criterion: "Hold wall handstand for 22s, clean form", xpReward: 150),
-                SkillLevel(level: 4, target: .hold(seconds: 34), criterion: "Hold wall handstand for 34s, clean form", xpReward: 200),
-                SkillLevel(level: 5, target: .hold(seconds: 45), criterion: "Hold wall handstand for 45s, clean form", xpReward: 250),
-            ]
-        ),
-        .simple(
-            id: "hs.wall-handstand-60",
-            title: "Wall Handstand Hold",
-            cluster: .handstand, tier: 3, type: .hold,
-            target: .hold(exercise: "wall handstand", seconds: 60),
-            prereqs: [PrerequisiteGroup("hs.wall-handstand-30")],
-            primary: [.shoulders, .core],
-            rank: .d,
-            levels: [
-                SkillLevel(level: 1, target: .hold(seconds: 8), criterion: "Hold wall handstand for 8s, clean form", xpReward: 50),
-                SkillLevel(level: 2, target: .hold(seconds: 15), criterion: "Hold wall handstand for 15s, clean form", xpReward: 100),
-                SkillLevel(level: 3, target: .hold(seconds: 22), criterion: "Hold wall handstand for 22s, clean form", xpReward: 150),
-                SkillLevel(level: 4, target: .hold(seconds: 34), criterion: "Hold wall handstand for 34s, clean form", xpReward: 200),
-                SkillLevel(level: 5, target: .hold(seconds: 45), criterion: "Hold wall handstand for 45s, clean form", xpReward: 250),
-            ]
-        ),
-        .simple(
-            id: "hspu.wall-hspu-negative-5s",
-            title: "Wall HSPU Negative",
-            cluster: .handstandPushup, tier: 4, type: .skill,
-            target: .reps(exercise: "wall hspu negative", count: 3),
-            prereqs: [PrerequisiteGroup(["hs.wall-handstand-60", "hspu.elevated-pike-pushup-10"])],
-            primary: [.shoulders, .arms], secondary: [.core, .back],
-            subtitle: "Eccentric strength before concentric.",
-            description: "From full wall handstand, lower your head to the floor over 5 seconds. Step out, kick back up, repeat. 3 reps × 5s eccentric. Builds the strength to eventually press up.",
-            formCues: [
-                "Full 5-count descent — no dropping",
-                "Head touches gently",
-                "Bail by stepping down one leg at a time",
-                "Don't try to press up yet"
-            ],
-            commonMistakes: [
-                "Dropping the last 6 inches (cheating the eccentric)",
-                "Bailing forward in a collapse",
-                "Skipping this to rep-chase a full HSPU"
-            ],
-            timeline: "2–6 weeks from elevated pike pushup × 10.",
-            rank: .c,
-            levels: [
-                SkillLevel(level: 1, target: .firstRep, criterion: "First clean 5-second wall HSPU negative to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(3), criterion: "3 strict 5-second wall HSPU negative", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict 5-second wall HSPU negative", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(7), criterion: "7 strict 5-second wall HSPU negative", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(10), criterion: "10 strict 5-second wall HSPU negative", xpReward: 250),
-            ]
-        ),
-        .simple(
-            id: "hspu.first-wall-hspu",
-            title: "First Wall HSPU",
-            cluster: .handstandPushup, tier: 5, type: .skill,
-            target: .reps(exercise: "wall hspu", count: 1),
-            prereqs: [PrerequisiteGroup("hspu.wall-hspu-negative-5s")],
-            primary: [.shoulders, .arms], secondary: [.core, .back],
-            subtitle: "First press to full lockout overhead.",
-            description: "One strict wall HSPU from head-on-floor to full elbow lockout. No kipping, no bridge, no partial rep.",
-            formCues: [
-                "Start at head-down (not from top)",
-                "Hands shoulder-width, fingers slightly spread",
-                "Press evenly — don't favor one side",
-                "Lockout: elbows straight, body stacked"
-            ],
-            commonMistakes: [
-                "Kipping legs off the wall",
-                "Partial lockout",
-                "Falling back onto the wall mid-press"
-            ],
-            timeline: "4–12 weeks after wall HSPU negative.",
-            rank: .c,
-            levels: [
-                SkillLevel(level: 1, target: .firstRep, criterion: "First clean wall HSPU to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(3), criterion: "3 strict wall HSPU", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict wall HSPU", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(8), criterion: "8 strict wall HSPU", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(10), criterion: "10 strict wall HSPU", xpReward: 250),
-            ]
-        ),
-        .simple(
-            id: "hspu.wall-hspu-3",
-            title: "Wall HSPU",
-            cluster: .handstandPushup, tier: 6, type: .skill,
-            target: .reps(exercise: "wall hspu", count: 3),
-            prereqs: [PrerequisiteGroup("hspu.first-wall-hspu")],
-            primary: [.shoulders, .arms], secondary: [.core],
-            subtitle: "Making the skill repeatable.",
-            description: "3 unbroken strict wall HSPUs. First taste of HSPU as a real training lift.",
-            formCues: [
-                "Same form as first HSPU, sustained across 3",
-                "Brief rest only at top lockout",
-                "Full ROM every rep",
-                "If form breaks, set ends"
-            ],
-            commonMistakes: [
-                "Reps 2–3 losing ROM",
-                "Using the wall for support mid-rep",
-                "Resting in a partial position"
-            ],
-            timeline: "4–8 weeks after first wall HSPU.",
-            rank: .b,
-            levels: [
-                SkillLevel(level: 1, target: .firstRep, criterion: "First clean wall HSPU to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(3), criterion: "3 strict wall HSPU", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict wall HSPU", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(6), criterion: "6 strict wall HSPU", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(8), criterion: "8 strict wall HSPU", xpReward: 250),
-            ]
-        ),
-        .simple(
-            id: "hspu.wall-hspu-5",
-            title: "Wall HSPU Volume",
-            cluster: .handstandPushup, tier: 7, type: .skill,
-            target: .reps(exercise: "wall hspu", count: 5),
-            prereqs: [PrerequisiteGroup("hspu.wall-hspu-3")],
-            primary: [.shoulders, .arms], secondary: [.chest, .core],
-            subtitle: "Gateway to freestanding HSPU work.",
-            description: "5 unbroken strict wall HSPUs. Standard strength benchmark that clears you for freestanding HSPU training.",
-            rank: .b,
-            levels: [
-                SkillLevel(level: 1, target: .firstRep, criterion: "First clean wall HSPU to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(3), criterion: "3 strict wall HSPU", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict wall HSPU", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(6), criterion: "6 strict wall HSPU", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(8), criterion: "8 strict wall HSPU", xpReward: 250),
-            ]
-        ),
-        .simple(
-            id: "hspu.deficit-wall-hspu-3",
-            title: "Deficit Wall HSPU",
-            cluster: .handstandPushup, tier: 8, type: .skill,
-            target: .reps(exercise: "deficit wall hspu", count: 3),
-            prereqs: [PrerequisiteGroup("hspu.wall-hspu-5")],
-            equipment: [.bodyweight, .parallettes],
-            primary: [.shoulders, .arms], secondary: [.core],
-            subtitle: "More ROM than a floor HSPU will ever demand.",
-            description: "3 strict wall HSPUs with hands elevated on 4-inch blocks. Head descends below hand level into a deficit. Builds surplus ROM so regular HSPU feels easier.",
-            formCues: [
-                "Head descends below hand level",
-                "Blocks wide enough for head to clear",
-                "Full press back to lockout",
-                "Control the deficit — don't slam"
-            ],
-            commonMistakes: [
-                "Going too deep too soon (6\"+ blocks before 4\" feels solid)",
-                "Kipping out of the bottom"
-            ],
-            timeline: "8–16 weeks after wall HSPU × 5.",
-            rank: .b,
-            levels: [
-                SkillLevel(level: 1, target: .firstRep, criterion: "First clean deficit wall HSPU to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(3), criterion: "3 strict deficit wall HSPU", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict deficit wall HSPU", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(6), criterion: "6 strict deficit wall HSPU", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(8), criterion: "8 strict deficit wall HSPU", xpReward: 250),
-            ]
-        ),
-        .simple(
-            id: "hs.freestanding-hs-10",
-            title: "Freestanding Handstand Opener",
-            cluster: .handstand, tier: 4, type: .hold,
-            target: .hold(exercise: "freestanding handstand", seconds: 10),
-            prereqs: [PrerequisiteGroup("hs.wall-handstand-60")],
-            primary: [.shoulders, .core], secondary: [.forearms],
-            rank: .c,
-            levels: [
-                SkillLevel(level: 1, target: .hold(seconds: 3), criterion: "Hold freestanding handstand for 3s, clean form", xpReward: 50),
-                SkillLevel(level: 2, target: .hold(seconds: 5), criterion: "Hold freestanding handstand for 5s, clean form", xpReward: 100),
-                SkillLevel(level: 3, target: .hold(seconds: 10), criterion: "Hold freestanding handstand for 10s, clean form", xpReward: 150),
-                SkillLevel(level: 4, target: .hold(seconds: 15), criterion: "Hold freestanding handstand for 15s, clean form", xpReward: 200),
-                SkillLevel(level: 5, target: .hold(seconds: 20), criterion: "Hold freestanding handstand for 20s, clean form", xpReward: 250),
+                SkillLevel(level: 1, target: .hold(seconds: 10), criterion: "Hold wall handstand for 10s, clean form", xpReward: 50),
+                SkillLevel(level: 2, target: .hold(seconds: 20), criterion: "Hold wall handstand for 20s, clean form", xpReward: 100),
+                SkillLevel(level: 3, target: .hold(seconds: 30), criterion: "Hold wall handstand for 30s, clean form", xpReward: 150),
+                SkillLevel(level: 4, target: .hold(seconds: 60), criterion: "Hold wall handstand for 60s, clean form", xpReward: 200),
+                SkillLevel(level: 5, target: .hold(seconds: 120), criterion: "Hold wall handstand for 120s, clean form", xpReward: 250),
             ]
         ),
         .simple(
             id: "hs.freestanding-hs-30",
-            title: "Steady Handstand",
-            cluster: .handstand, tier: 4, type: .hold,
+            title: "Handstand",
+            cluster: .handstand, tier: 3, type: .hold,
             target: .hold(exercise: "freestanding handstand", seconds: 30),
-            prereqs: [PrerequisiteGroup("hs.freestanding-hs-10")],
+            prereqs: [PrerequisiteGroup("hs.wall-handstand-30")],
+            isKeystone: true,
             primary: [.shoulders, .core], secondary: [.forearms],
-            subtitle: "From survival to steady state.",
-            description: "30 seconds of freestanding handstand. The hold stops being a scramble and becomes a stable shape you can breathe inside.",
+            subtitle: "Balance is the skill.",
+            description: "Freestanding handstand. The hold stops being a scramble and becomes a stable shape you can breathe inside. Not just a strength benchmark — it's a balance mastery benchmark. Most never get past 10-15s free.",
             formCues: [
-                "Stack wrists → shoulders → hips → ankles",
+                "Stack wrists → shoulders → hips → ankles — straight line",
                 "Finger-pressure micro-corrections, not whole-arm shoves",
                 "Ribs tucked, glutes squeezed, hollow line",
                 "Breathe at the top — do not hold breath",
@@ -2045,163 +1281,25 @@ extension SkillGraph {
             ],
             commonMistakes: [
                 "Chasing the time count instead of the line",
-                "Bailing out of every drift instead of correcting",
-                "Bananaing the low back once the shoulders fatigue"
-            ],
-            timeline: "6–18 months of consistent freestanding practice.",
-            rank: .c,
-            levels: [
-                SkillLevel(level: 1, target: .hold(seconds: 8), criterion: "Hold freestanding handstand for 8s, clean form", xpReward: 50),
-                SkillLevel(level: 2, target: .hold(seconds: 15), criterion: "Hold freestanding handstand for 15s, clean form", xpReward: 100),
-                SkillLevel(level: 3, target: .hold(seconds: 22), criterion: "Hold freestanding handstand for 22s, clean form", xpReward: 150),
-                SkillLevel(level: 4, target: .hold(seconds: 34), criterion: "Hold freestanding handstand for 34s, clean form", xpReward: 200),
-                SkillLevel(level: 5, target: .hold(seconds: 45), criterion: "Hold freestanding handstand for 45s, clean form", xpReward: 250),
-            ]
-        ),
-        .simple(
-            id: "hspu.freestanding-hspu-negative-5s",
-            title: "Freestanding HSPU Negative",
-            cluster: .handstandPushup, tier: 9, type: .skill,
-            target: .reps(exercise: "freestanding hspu negative", count: 3),
-            prereqs: [PrerequisiteGroup(["hs.freestanding-hs-10", "hspu.wall-hspu-5"])],
-            primary: [.shoulders, .arms], secondary: [.core],
-            subtitle: "Balance + strength — eccentric only.",
-            description: "From freestanding handstand, lower to head over 5 seconds. Bail at bottom (cartwheel or pike out). 3 reps. Combines balance control with eccentric pressing.",
-            formCues: [
-                "Balance BEFORE descent — don't start if you're drifting",
-                "Slow 5-count",
-                "Bail safely, don't force a press up yet",
-                "Kick back into full HS between reps"
-            ],
-            commonMistakes: [
-                "Starting the descent while still drifting",
-                "Treating bail as failure (it's part of the rep)",
-                "Trying to press up and failing hard"
-            ],
-            timeline: "6–16 weeks after wall HSPU × 5 + free HS 10s.",
-            rank: .a,
-            levels: [
-                SkillLevel(level: 1, target: .firstRep, criterion: "First clean 5-second freestanding HSPU negative to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(2), criterion: "2 strict 5-second freestanding HSPU negative", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(3), criterion: "3 strict 5-second freestanding HSPU negative", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(4), criterion: "4 strict 5-second freestanding HSPU negative", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(5), criterion: "5 strict 5-second freestanding HSPU negative", xpReward: 250),
-            ]
-        ),
-        .simple(
-            id: "hspu.first-freestanding-hspu",
-            title: "Freestanding HSPU",
-            cluster: .handstandPushup, tier: 10, type: .skill,
-            target: .reps(exercise: "freestanding hspu", count: 1),
-            prereqs: [PrerequisiteGroup("hspu.freestanding-hspu-negative-5s")],
-            isKeystone: true,
-            primary: [.shoulders, .arms], secondary: [.core],
-            subtitle: "Push the whole body against gravity.",
-            description: "One strict freestanding HSPU — head-to-floor to full lockout. No wall, no support, no kipping.",
-            formCues: [
-                "Kick up to a stable freestanding position FIRST",
-                "Lower with control — head touches the mat lightly",
-                "Hands slightly wider than shoulder-width",
-                "Drive up through the heels of the palms",
-                "Keep the line — don't pike the hips"
-            ],
-            commonMistakes: [
-                "Piking mid-descent to cheat the press out",
-                "Losing balance on the way down — bail before head taps",
-                "Partial ROM — stopping above head level"
-            ],
-            timeline: "2–4 years from wall HSPU.",
-            rank: .a,
-            levels: [
-                SkillLevel(level: 1, target: .firstRep, criterion: "First clean freestanding HSPU to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(2), criterion: "2 strict freestanding HSPU", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(3), criterion: "3 strict freestanding HSPU", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(4), criterion: "4 strict freestanding HSPU", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(5), criterion: "5 strict freestanding HSPU", xpReward: 250),
-            ]
-        ),
-        .simple(
-            id: "hspu.freestanding-hspu-3",
-            title: "Freestanding HSPU Volume",
-            cluster: .handstandPushup, tier: 11, type: .skill,
-            target: .reps(exercise: "freestanding hspu", count: 3),
-            prereqs: [PrerequisiteGroup("hspu.first-freestanding-hspu")],
-            primary: [.shoulders, .arms], secondary: [.core],
-            subtitle: "When it stops being a fluke.",
-            description: "3 unbroken freestanding HSPUs. Real strength + real balance, sustained.",
-            formCues: [
-                "Rest in full HS lockout between reps, not in pike",
-                "Consistent ROM across all 3",
-                "Small corrections in the lockout are fine"
-            ],
-            commonMistakes: [
-                "Reps 2–3 lose balance",
-                "Dropping into shortcut ROM"
-            ],
-            timeline: "6–18 months after first freestanding HSPU.",
-            rank: .a,
-            levels: [
-                SkillLevel(level: 1, target: .firstRep, criterion: "First clean freestanding HSPU to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(2), criterion: "2 strict freestanding HSPU", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(3), criterion: "3 strict freestanding HSPU", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(4), criterion: "4 strict freestanding HSPU", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(5), criterion: "5 strict freestanding HSPU", xpReward: 250),
-            ]
-        ),
-        .simple(
-            id: "hs.freestanding-hs-60",
-            title: "Full Handstand",
-            cluster: .handstand, tier: 5, type: .hold,
-            target: .hold(exercise: "freestanding handstand", seconds: 60),
-            prereqs: [PrerequisiteGroup("hs.freestanding-hs-30")],
-            isKeystone: true,
-            primary: [.shoulders, .core], secondary: [.forearms],
-            subtitle: "Balance is the skill.",
-            description: "60 seconds of freestanding handstand. Not just a strength benchmark — it's a balance mastery benchmark. Most never get past 10-15s free.",
-            formCues: [
-                "Stack wrists → shoulders → hips → ankles — straight line",
-                "Micro-correct with fingertips, not the whole hand",
-                "Hollow body posture, no banana back",
-                "Ribs tucked, glutes squeezed",
-                "Breathe — holding breath kills balance"
-            ],
-            commonMistakes: [
                 "Over-correcting instead of micro-adjusting",
-                "Looking at the floor too late to catch an overbalance",
                 "Loose core — letting the body bend into a banana"
             ],
             timeline: "1-3 years of daily practice.",
-            rank: .b,
+            rank: .a,
             levels: [
                 SkillLevel(level: 1, target: .hold(seconds: 5), criterion: "Hold freestanding handstand for 5s, clean form", xpReward: 50),
-                SkillLevel(level: 2, target: .hold(seconds: 10), criterion: "Hold freestanding handstand for 10s, clean form", xpReward: 100),
-                SkillLevel(level: 3, target: .hold(seconds: 15), criterion: "Hold freestanding handstand for 15s, clean form", xpReward: 150),
-                SkillLevel(level: 4, target: .hold(seconds: 22), criterion: "Hold freestanding handstand for 22s, clean form", xpReward: 200),
-                SkillLevel(level: 5, target: .hold(seconds: 30), criterion: "Hold freestanding handstand for 30s, clean form", xpReward: 250),
-            ]
-        ),
-        .simple(
-            id: "hs.handstand-walk-10m",
-            title: "Handstand Walk",
-            cluster: .handstand, tier: 5, type: .skill,
-            target: .steps(exercise: "handstand walk", count: 10),
-            prereqs: [PrerequisiteGroup("hs.freestanding-hs-10")],
-            primary: [.shoulders, .core],
-            rank: .c,
-            levels: [
-                SkillLevel(level: 1, target: .distance(meters: 2), criterion: "Walk 2m on hands", xpReward: 50),
-                SkillLevel(level: 2, target: .distance(meters: 5), criterion: "Walk 5m on hands", xpReward: 100),
-                SkillLevel(level: 3, target: .distance(meters: 10), criterion: "Walk 10m on hands", xpReward: 150),
-                SkillLevel(level: 4, target: .distance(meters: 15), criterion: "Walk 15m on hands", xpReward: 200),
-                SkillLevel(level: 5, target: .distance(meters: 25), criterion: "Walk 25m on hands", xpReward: 250),
+                SkillLevel(level: 2, target: .hold(seconds: 15), criterion: "Hold freestanding handstand for 15s, clean form", xpReward: 100),
+                SkillLevel(level: 3, target: .hold(seconds: 30), criterion: "Hold freestanding handstand for 30s, clean form", xpReward: 150),
+                SkillLevel(level: 4, target: .hold(seconds: 45), criterion: "Hold freestanding handstand for 45s, clean form", xpReward: 200),
+                SkillLevel(level: 5, target: .hold(seconds: 60), criterion: "Hold freestanding handstand for 60s, clean form", xpReward: 250),
             ]
         ),
         .simple(
             id: "oah.one-arm-handstand-5s",
             title: "One-Arm Handstand",
-            cluster: .oneArmHandstand, tier: 7, type: .hold,
+            cluster: .oneArmHandstand, tier: 6, type: .hold,
             target: .hold(exercise: "one-arm handstand", seconds: 5),
-            prereqs: [PrerequisiteGroup("hs.freestanding-hs-60")],
+            prereqs: [PrerequisiteGroup("hs.wall-supported-oah")],
             isKeystone: true,
             isMythic: true,
             primary: [.shoulders, .core],
@@ -2225,144 +1323,37 @@ extension SkillGraph {
                 SkillLevel(level: 1, target: .hold(seconds: 2), criterion: "Hold one-arm handstand for 2s, clean form", xpReward: 50),
                 SkillLevel(level: 2, target: .hold(seconds: 3), criterion: "Hold one-arm handstand for 3s, clean form", xpReward: 100),
                 SkillLevel(level: 3, target: .hold(seconds: 5), criterion: "Hold one-arm handstand for 5s, clean form", xpReward: 150),
-                SkillLevel(level: 4, target: .hold(seconds: 7), criterion: "Hold one-arm handstand for 7s, clean form", xpReward: 200),
-                SkillLevel(level: 5, target: .hold(seconds: 10), criterion: "Hold one-arm handstand for 10s, clean form", xpReward: 250),
+                SkillLevel(level: 4, target: .hold(seconds: 6), criterion: "Hold one-arm handstand for 6s, clean form", xpReward: 200),
+                SkillLevel(level: 5, target: .hold(seconds: 8), criterion: "Hold one-arm handstand for 8s, clean form", xpReward: 250),
             ]
         ),
         .simple(
-            id: "oah.one-arm-hspu",
-            title: "One-Arm HSPU",
-            cluster: .oneArmHandstand, tier: 7, type: .skill,
-            target: .reps(exercise: "one-arm hspu", count: 1),
-            prereqs: [PrerequisiteGroup(["oah.one-arm-handstand-5s", "hspu.first-freestanding-hspu"])],
+            id: "oah.full-one-arm-handstand",
+            title: "Full One-Arm Handstand",
+            cluster: .oneArmHandstand, tier: 7, type: .hold,
+            target: .hold(exercise: "full one arm handstand", seconds: 5),
+            prereqs: [PrerequisiteGroup("oah.one-arm-handstand-5s")],
             isMythic: true,
-            primary: [.shoulders, .arms, .core],
-            subtitle: "The pinnacle of shoulder strength.",
-            description: "One handstand pushup on a single arm — lower to head-tap, press back to lockout. Both the OA handstand AND the freestanding HSPU are required baselines.",
+            primary: [.shoulders, .core],
+            subtitle: "Free balance on one hand.",
+            description: "5+ seconds freestanding on one arm — body straight, vertical line through wrist, no wall contact. Years of practice.",
             formCues: [
-                "Attempt only after both prerequisite skills are rock-solid for months",
-                "Usually first achieved wall-assisted (legs against wall)",
-                "Free hand stays off the floor throughout",
-                "Balance is the limiter, not raw pressing strength",
-                "Expect months of partial-range failed attempts"
+                "Body stacked over the support hand",
+                "Free shoulder pulled up away from floor",
+                "Long line from wrist through heels",
+                "Breathe through the hold"
             ],
-            commonMistakes: [
-                "Any approach that skips the OA handstand baseline",
-                "Using the free arm to 'catch' mid-rep",
-                "Partial ROM"
-            ],
-            timeline: "Most who reach OA-HS never complete this. 7+ years.",
+            timeline: "5-10+ years of daily handstand work. Aspirational.",
             rank: .s,
             levels: [
-                SkillLevel(level: 1, target: .firstRep, criterion: "First clean one-arm HSPU to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(1), criterion: "1 strict one-arm HSPU", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(2), criterion: "2 strict one-arm HSPU", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(3), criterion: "3 strict one-arm HSPU", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(3), criterion: "3 strict one-arm HSPU", xpReward: 250),
+                SkillLevel(level: 1, target: .hold(seconds: 2), criterion: "Hold full one-arm handstand for 2s, clean form", xpReward: 50),
+                SkillLevel(level: 2, target: .hold(seconds: 3), criterion: "Hold full one-arm handstand for 3s, clean form", xpReward: 100),
+                SkillLevel(level: 3, target: .hold(seconds: 5), criterion: "Hold full one-arm handstand for 5s, clean form", xpReward: 150),
+                SkillLevel(level: 4, target: .hold(seconds: 8), criterion: "Hold full one-arm handstand for 8s, clean form", xpReward: 200),
+                SkillLevel(level: 5, target: .hold(seconds: 15), criterion: "Hold full one-arm handstand for 15s, clean form", xpReward: 250),
             ]
         ),
 
-        .simple(
-            id: "cal.iron-cross-3s",
-            title: "Iron Cross",
-            cluster: .coreLever, tier: 5, type: .hold,
-            target: .hold(exercise: "iron cross", seconds: 3),
-            prereqs: [PrerequisiteGroup(["cal.ring-dip", "cl.full-back-lever", "pp.ring-muscle-up"])],
-            equipment: [.gymnasticRings],
-            primary: [.chest, .shoulders, .arms, .lats],
-            rank: .a,
-            levels: [
-                SkillLevel(level: 1, target: .hold(seconds: 1), criterion: "Hold iron cross for 1s, clean form", xpReward: 50),
-                SkillLevel(level: 2, target: .hold(seconds: 2), criterion: "Hold iron cross for 2s, clean form", xpReward: 100),
-                SkillLevel(level: 3, target: .hold(seconds: 3), criterion: "Hold iron cross for 3s, clean form", xpReward: 150),
-                SkillLevel(level: 4, target: .hold(seconds: 5), criterion: "Hold iron cross for 5s, clean form", xpReward: 200),
-                SkillLevel(level: 5, target: .hold(seconds: 8), criterion: "Hold iron cross for 8s, clean form", xpReward: 250),
-            ]
-        ),
-        .simple(
-            id: "cal.iron-cross-10s",
-            title: "Iron Cross Hold",
-            cluster: .coreLever, tier: 6, type: .hold,
-            target: .hold(exercise: "iron cross", seconds: 10),
-            prereqs: [PrerequisiteGroup("cal.iron-cross-3s")],
-            equipment: [.gymnasticRings],
-            primary: [.chest, .shoulders, .arms, .lats],
-            subtitle: "The gymnast's signature.",
-            description: "Suspended upright on rings with arms straight out to the sides — the Christian cross shape — for 10 seconds. Requires years of ring-specific connective tissue prep.",
-            formCues: [
-                "Straight arms ALWAYS — bent arms = wrong skill, big shoulder risk",
-                "Rings turned slightly out (thumbs-up position)",
-                "Chest up, body vertical",
-                "Build hold time VERY slowly — 1s → 3s → 5s → 10s over many months",
-                "Never attempt without solid back lever + ring-strength base"
-            ],
-            commonMistakes: [
-                "Rushing progression — this is a years-long skill",
-                "Bent-arm cross — beats up elbows and biceps tendon",
-                "Skipping the pull-out eccentric work that builds tolerance"
-            ],
-            timeline: "4-6 years of dedicated ring work.",
-            rank: .s,
-            levels: [
-                SkillLevel(level: 1, target: .hold(seconds: 3), criterion: "Hold iron cross for 3s, clean form", xpReward: 50),
-                SkillLevel(level: 2, target: .hold(seconds: 5), criterion: "Hold iron cross for 5s, clean form", xpReward: 100),
-                SkillLevel(level: 3, target: .hold(seconds: 5), criterion: "Hold iron cross for 5s, clean form", xpReward: 150),
-                SkillLevel(level: 4, target: .hold(seconds: 8), criterion: "Hold iron cross for 8s, clean form", xpReward: 200),
-                SkillLevel(level: 5, target: .hold(seconds: 10), criterion: "Hold iron cross for 10s, clean form", xpReward: 250),
-            ]
-        ),
-        .simple(
-            id: "cal.maltese",
-            title: "Maltese",
-            cluster: .coreLever, tier: 7, type: .hold,
-            target: .hold(exercise: "maltese", seconds: 1),
-            prereqs: [PrerequisiteGroup(["cal.iron-cross-10s", "pl.full-planche"])],
-            isMythic: true,
-            equipment: [.gymnasticRings],
-            primary: [.chest, .shoulders, .arms, .core], secondary: [.lats, .forearms],
-            subtitle: "The pinnacle of straight-arm strength.",
-            timeline: "5-10 years of serious ring work. <500 humans hold it cleanly.",
-            rank: .s,
-            levels: [
-                SkillLevel(level: 1, target: .hold(seconds: 1), criterion: "Hold maltese for 1s, clean form", xpReward: 50),
-                SkillLevel(level: 2, target: .hold(seconds: 2), criterion: "Hold maltese for 2s, clean form", xpReward: 100),
-                SkillLevel(level: 3, target: .hold(seconds: 3), criterion: "Hold maltese for 3s, clean form", xpReward: 150),
-                SkillLevel(level: 4, target: .hold(seconds: 5), criterion: "Hold maltese for 5s, clean form", xpReward: 200),
-                SkillLevel(level: 5, target: .hold(seconds: 8), criterion: "Hold maltese for 8s, clean form", xpReward: 250),
-            ]
-        ),
-        .simple(
-            id: "cal.azarian",
-            title: "Azarian Press",
-            cluster: .coreLever, tier: 7, type: .skill,
-            target: .reps(exercise: "azarian", count: 1),
-            prereqs: [PrerequisiteGroup("cal.iron-cross-10s")],
-            isMythic: true,
-            equipment: [.gymnasticRings],
-            primary: [.chest, .shoulders, .arms],
-            subtitle: "Roll into a cross.",
-            description: "From a back lever position, press up through straight arms into an iron cross. Straight-arm strength from lats, chest, and shoulders working in concert.",
-            formCues: [
-                "Not a skill you program — a skill you earn after the iron cross",
-                "Full body tension throughout the roll",
-                "Locked elbows under heavy tension",
-                "Controlled tempo — momentum does not help here"
-            ],
-            commonMistakes: [
-                "Attempting without a solid 10s iron cross first",
-                "Bending arms mid-roll",
-                "Losing control of rings (outward drift)"
-            ],
-            timeline: "5-10 years. Competitive gymnasts and dedicated specialists only.",
-            rank: .s,
-            levels: [
-                SkillLevel(level: 1, target: .firstRep, criterion: "First clean azarian press to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(1), criterion: "1 strict azarian press", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(2), criterion: "2 strict azarian press", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(3), criterion: "3 strict azarian press", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(3), criterion: "3 strict azarian press", xpReward: 250),
-            ]
-        ),
 
         // ────────────────────────────────────────────────────────────────
         // CORE & LEVER (cl) — dynamic core + levers
@@ -2370,7 +1361,7 @@ extension SkillGraph {
 
         .simple(
             id: "cl.hollow-body-30",
-            title: "Hollow Body Hold",
+            title: "Hollow Body",
             cluster: .coreLever, tier: 2, type: .hold,
             target: .hold(exercise: "hollow body hold", seconds: 30),
             prereqs: [PrerequisiteGroup("cal.plank-30")],
@@ -2395,44 +1386,16 @@ extension SkillGraph {
                 SkillLevel(level: 1, target: .hold(seconds: 10), criterion: "Hold hollow body for 10s, clean form", xpReward: 50),
                 SkillLevel(level: 2, target: .hold(seconds: 20), criterion: "Hold hollow body for 20s, clean form", xpReward: 100),
                 SkillLevel(level: 3, target: .hold(seconds: 30), criterion: "Hold hollow body for 30s, clean form", xpReward: 150),
-                SkillLevel(level: 4, target: .hold(seconds: 45), criterion: "Hold hollow body for 45s, clean form", xpReward: 200),
-                SkillLevel(level: 5, target: .hold(seconds: 60), criterion: "Hold hollow body for 60s, clean form", xpReward: 250),
-            ]
-        ),
-        .simple(
-            id: "cl.hollow-body-60",
-            title: "Heavy Hollow Body Hold",
-            cluster: .coreLever, tier: 2, type: .hold,
-            target: .hold(exercise: "hollow body hold", seconds: 60),
-            prereqs: [PrerequisiteGroup("cl.hollow-body-30")],
-            primary: [.core], secondary: [],
-            subtitle: "Mandatory gate before lever and planche work.",
-            description: "Hollow body hold, sustained 60 seconds. Universally cited prereq for front lever, planche, dragon flag. Tests core endurance, not just strength.",
-            formCues: [
-                "Same position as 30s — just longer",
-                "Breathing stays normal (don't hold breath)",
-                "Micro-adjustments are OK, major form breaks end the set"
-            ],
-            commonMistakes: [
-                "Losing lumbar contact as fatigue sets in",
-                "Cheating with shoulder shrug"
-            ],
-            timeline: "4–12 weeks from hollow body 30s.",
-            rank: .d,
-            levels: [
-                SkillLevel(level: 1, target: .hold(seconds: 8), criterion: "Hold hollow body for 8s, clean form", xpReward: 50),
-                SkillLevel(level: 2, target: .hold(seconds: 15), criterion: "Hold hollow body for 15s, clean form", xpReward: 100),
-                SkillLevel(level: 3, target: .hold(seconds: 22), criterion: "Hold hollow body for 22s, clean form", xpReward: 150),
-                SkillLevel(level: 4, target: .hold(seconds: 34), criterion: "Hold hollow body for 34s, clean form", xpReward: 200),
-                SkillLevel(level: 5, target: .hold(seconds: 45), criterion: "Hold hollow body for 45s, clean form", xpReward: 250),
+                SkillLevel(level: 4, target: .hold(seconds: 60), criterion: "Hold hollow body for 60s, clean form", xpReward: 200),
+                SkillLevel(level: 5, target: .hold(seconds: 90), criterion: "Hold hollow body for 90s, clean form", xpReward: 250),
             ]
         ),
         .simple(
             id: "cl.hanging-knee-raise",
             title: "Hanging Knee Raise",
-            cluster: .coreLever, tier: 2, type: .skill,
+            cluster: .coreLever, tier: 5, type: .skill,
             target: .reps(exercise: "hanging knee raise", count: 10),
-            prereqs: [PrerequisiteGroup("pp.dead-hang-30")],
+            prereqs: [PrerequisiteGroup("cl.leg-raise")],
             equipment: [.pullupBar],
             primary: [.core], secondary: [.lats, .forearms],
             subtitle: "Where visible abs start.",
@@ -2453,9 +1416,9 @@ extension SkillGraph {
             levels: [
                 SkillLevel(level: 1, target: .firstRep, criterion: "First clean hanging knee raise to standard", xpReward: 50),
                 SkillLevel(level: 2, target: .reps(5), criterion: "5 strict hanging knee raise", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(8), criterion: "8 strict hanging knee raise", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(12), criterion: "12 strict hanging knee raise", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(15), criterion: "15 strict hanging knee raise", xpReward: 250),
+                SkillLevel(level: 3, target: .reps(10), criterion: "10 strict hanging knee raise", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(15), criterion: "15 strict hanging knee raise", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(20), criterion: "20 strict hanging knee raise", xpReward: 250),
             ]
         ),
         .simple(
@@ -2485,9 +1448,10 @@ extension SkillGraph {
                 SkillLevel(level: 1, target: .firstRep, criterion: "First clean hanging leg raise to standard", xpReward: 50),
                 SkillLevel(level: 2, target: .reps(3), criterion: "3 strict hanging leg raise", xpReward: 100),
                 SkillLevel(level: 3, target: .reps(5), criterion: "5 strict hanging leg raise", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(8), criterion: "8 strict hanging leg raise", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(12), criterion: "12 strict hanging leg raise", xpReward: 250),
-            ]
+                SkillLevel(level: 4, target: .reps(10), criterion: "10 strict hanging leg raise", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(15), criterion: "15 strict hanging leg raise", xpReward: 250),
+            ],
+            isParallelToParent: true
         ),
         .simple(
             id: "cl.toes-to-bar",
@@ -2514,21 +1478,21 @@ extension SkillGraph {
             rank: .c,
             levels: [
                 SkillLevel(level: 1, target: .firstRep, criterion: "First clean strict toes-to-bar to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(3), criterion: "3 strict strict toes-to-bar", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict strict toes-to-bar", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(8), criterion: "8 strict strict toes-to-bar", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(10), criterion: "10 strict strict toes-to-bar", xpReward: 250),
+                SkillLevel(level: 2, target: .reps(3), criterion: "3 strict toes-to-bar", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict toes-to-bar", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(10), criterion: "10 strict toes-to-bar", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(15), criterion: "15 strict toes-to-bar", xpReward: 250),
             ]
         ),
         .simple(
-            id: "cl.ab-wheel",
-            title: "Standing Ab Wheel",
-            cluster: .coreLever, tier: 3, type: .skill,
-            target: .reps(exercise: "ab wheel standing", count: 5),
-            prereqs: [PrerequisiteGroup("cal.plank-30")],
+            id: "cl.standing-ab-rollout",
+            title: "Standing Ab Rollout",
+            cluster: .coreLever, tier: 5, type: .skill,
+            target: .reps(exercise: "standing ab rollout", count: 5),
+            prereqs: [PrerequisiteGroup("cl.superman-plank")],
             primary: [.core, .shoulders], secondary: [.lats],
             subtitle: "Core + shoulder stability.",
-            description: "5 ab wheel rollouts from standing position — toes down, hands on wheel, roll all the way out and come back.",
+            description: "5 standing ab rollouts from feet — toes down, hands on wheel, roll all the way out and come back. Beyond the kneeling rollout.",
             formCues: [
                 "Hollow body throughout the rollout",
                 "Shoulders stay protracted and active",
@@ -2540,53 +1504,23 @@ extension SkillGraph {
                 "Full rollout before you have the strength (injury risk)",
                 "Holding breath instead of breathing through the rep"
             ],
-            timeline: "3-12 months from kneeling ab wheel.",
-            rank: .d,
+            timeline: "3-12 months from kneeling rollout.",
+            rank: .a,
             levels: [
-                SkillLevel(level: 1, target: .firstRep, criterion: "First clean standing ab wheel rollout to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(3), criterion: "3 strict standing ab wheel rollout", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict standing ab wheel rollout", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(8), criterion: "8 strict standing ab wheel rollout", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(12), criterion: "12 strict standing ab wheel rollout", xpReward: 250),
-            ]
-        ),
-        .simple(
-            id: "cl.dragon-flag-negative",
-            title: "Dragon Flag Negative",
-            cluster: .coreLever, tier: 4, type: .skill,
-            target: .reps(exercise: "dragon flag negative", count: 3),
-            prereqs: [PrerequisiteGroup(["cl.hanging-leg-raise", "cal.l-sit-20"])],
-            primary: [.core], secondary: [.lats, .glutes],
-            subtitle: "Eccentric bridge to the full flag.",
-            description: "3 dragon flag negatives. Lying on a bench, grip behind head, start vertical, lower body as one rigid line over 3-5 seconds.",
-            formCues: [
-                "Grip hard behind the head — don't let shoulders shrug",
-                "Start vertical (or close)",
-                "Lower as one rigid unit — no hip pike",
-                "3-5 second descent minimum",
-                "Reset at the top, don't bounce"
+                SkillLevel(level: 1, target: .firstRep, criterion: "First clean standing ab rollout to standard", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(3), criterion: "3 strict standing ab rollout", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict standing ab rollout", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(10), criterion: "10 strict standing ab rollout", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(15), criterion: "15 strict standing ab rollout", xpReward: 250),
             ],
-            commonMistakes: [
-                "Piking at the hips under load",
-                "Dropping fast when it burns",
-                "Losing shoulder position at the top"
-            ],
-            timeline: "3-9 months from L-sit 20s + hanging leg raises.",
-            rank: .b,
-            levels: [
-                SkillLevel(level: 1, target: .firstRep, criterion: "First clean 5-second dragon flag negative to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(3), criterion: "3 strict 5-second dragon flag negative", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict 5-second dragon flag negative", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(6), criterion: "6 strict 5-second dragon flag negative", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(8), criterion: "8 strict 5-second dragon flag negative", xpReward: 250),
-            ]
+            isParallelToParent: true
         ),
         .simple(
             id: "cl.dragon-flag",
             title: "Dragon Flag",
-            cluster: .coreLever, tier: 4, type: .skill,
+            cluster: .coreLever, tier: 5, type: .skill,
             target: .reps(exercise: "dragon flag", count: 5),
-            prereqs: [PrerequisiteGroup("cl.dragon-flag-negative")],
+            prereqs: [PrerequisiteGroup("cl.dragon-flag-hip-raise")],
             primary: [.core], secondary: [.lats, .glutes],
             subtitle: "Bruce Lee's signature.",
             description: "Lying on a bench, grip behind head, body lifts to vertical then lowers as a single rigid line. Five clean reps with no hip-pike.",
@@ -2606,8 +1540,8 @@ extension SkillGraph {
             rank: .b,
             levels: [
                 SkillLevel(level: 1, target: .firstRep, criterion: "First clean dragon flag to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(3), criterion: "3 strict dragon flag", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict dragon flag", xpReward: 150),
+                SkillLevel(level: 2, target: .reps(2), criterion: "2 strict dragon flag", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(4), criterion: "4 strict dragon flag", xpReward: 150),
                 SkillLevel(level: 4, target: .reps(6), criterion: "6 strict dragon flag", xpReward: 200),
                 SkillLevel(level: 5, target: .reps(8), criterion: "8 strict dragon flag", xpReward: 250),
             ]
@@ -2615,9 +1549,9 @@ extension SkillGraph {
         .simple(
             id: "cl.tuck-front-lever",
             title: "Tuck Front Lever",
-            cluster: .coreLever, tier: 4, type: .hold,
+            cluster: .coreLever, tier: 3, type: .hold,
             target: .hold(exercise: "tuck front lever", seconds: 10),
-            prereqs: [PrerequisiteGroup(["pp.10-pullups", "cl.hanging-leg-raise"])],
+            prereqs: [PrerequisiteGroup("pp.decline-row")],
             equipment: [.pullupBar],
             primary: [.lats, .core],
             subtitle: "Front lever on-ramp.",
@@ -2701,43 +1635,11 @@ extension SkillGraph {
             timeline: "1-3 years from tuck front lever.",
             rank: .a,
             levels: [
-                SkillLevel(level: 1, target: .hold(seconds: 3), criterion: "Hold full front lever for 3s, clean form", xpReward: 50),
-                SkillLevel(level: 2, target: .hold(seconds: 5), criterion: "Hold full front lever for 5s, clean form", xpReward: 100),
-                SkillLevel(level: 3, target: .hold(seconds: 8), criterion: "Hold full front lever for 8s, clean form", xpReward: 150),
-                SkillLevel(level: 4, target: .hold(seconds: 11), criterion: "Hold full front lever for 11s, clean form", xpReward: 200),
-                SkillLevel(level: 5, target: .hold(seconds: 15), criterion: "Hold full front lever for 15s, clean form", xpReward: 250),
-            ]
-        ),
-        .simple(
-            id: "cl.tuck-back-lever",
-            title: "Tuck Back Lever",
-            cluster: .coreLever, tier: 4, type: .hold,
-            target: .hold(exercise: "tuck back lever", seconds: 5),
-            prereqs: [PrerequisiteGroup(["pp.10-pullups", "cl.hanging-leg-raise"])],
-            equipment: [.pullupBar],
-            primary: [.shoulders, .chest, .core], secondary: [.lats, .arms],
-            subtitle: "First taste of horizontal pulling.",
-            description: "Hanging inverted, knees tucked tight to chest, lowered to a horizontal body position face-down with straight arms. 5-second hold.",
-            formCues: [
-                "Arms lock fully straight — no bent-arm cheat",
-                "Shoulders protract HARD — scaps spread apart",
-                "Knees tucked tight, heels near glutes",
-                "Body horizontal — hips at shoulder height",
-                "Breathe normally — don't brace statically"
-            ],
-            commonMistakes: [
-                "Bent arms once the biceps tendon loads up",
-                "Tucked legs drifting away from chest",
-                "Piking hips upward — scapular collapse"
-            ],
-            timeline: "3-9 months from 10 pullups + solid hanging core.",
-            rank: .b,
-            levels: [
-                SkillLevel(level: 1, target: .hold(seconds: 3), criterion: "Hold tuck back lever for 3s, clean form", xpReward: 50),
-                SkillLevel(level: 2, target: .hold(seconds: 5), criterion: "Hold tuck back lever for 5s, clean form", xpReward: 100),
-                SkillLevel(level: 3, target: .hold(seconds: 10), criterion: "Hold tuck back lever for 10s, clean form", xpReward: 150),
-                SkillLevel(level: 4, target: .hold(seconds: 15), criterion: "Hold tuck back lever for 15s, clean form", xpReward: 200),
-                SkillLevel(level: 5, target: .hold(seconds: 20), criterion: "Hold tuck back lever for 20s, clean form", xpReward: 250),
+                SkillLevel(level: 1, target: .hold(seconds: 2), criterion: "Hold full front lever for 2s, clean form", xpReward: 50),
+                SkillLevel(level: 2, target: .hold(seconds: 4), criterion: "Hold full front lever for 4s, clean form", xpReward: 100),
+                SkillLevel(level: 3, target: .hold(seconds: 6), criterion: "Hold full front lever for 6s, clean form", xpReward: 150),
+                SkillLevel(level: 4, target: .hold(seconds: 8), criterion: "Hold full front lever for 8s, clean form", xpReward: 200),
+                SkillLevel(level: 5, target: .hold(seconds: 10), criterion: "Hold full front lever for 10s, clean form", xpReward: 250),
             ]
         ),
         .simple(
@@ -2745,7 +1647,7 @@ extension SkillGraph {
             title: "Straddle Back Lever",
             cluster: .coreLever, tier: 5, type: .hold,
             target: .hold(exercise: "straddle back lever", seconds: 5),
-            prereqs: [PrerequisiteGroup("cl.tuck-back-lever")],
+            prereqs: [PrerequisiteGroup("cl.skin-the-cat")],
             equipment: [.pullupBar],
             primary: [.shoulders, .chest, .core], secondary: [.lats, .arms],
             subtitle: "Legs split. Lever longer.",
@@ -2770,7 +1672,8 @@ extension SkillGraph {
                 SkillLevel(level: 3, target: .hold(seconds: 8), criterion: "Hold straddle back lever for 8s, clean form", xpReward: 150),
                 SkillLevel(level: 4, target: .hold(seconds: 12), criterion: "Hold straddle back lever for 12s, clean form", xpReward: 200),
                 SkillLevel(level: 5, target: .hold(seconds: 15), criterion: "Hold straddle back lever for 15s, clean form", xpReward: 250),
-            ]
+            ],
+            isParallelToParent: true
         ),
         .simple(
             id: "cl.full-back-lever",
@@ -2802,38 +1705,6 @@ extension SkillGraph {
                 SkillLevel(level: 3, target: .hold(seconds: 8), criterion: "Hold full back lever for 8s, clean form", xpReward: 150),
                 SkillLevel(level: 4, target: .hold(seconds: 11), criterion: "Hold full back lever for 11s, clean form", xpReward: 200),
                 SkillLevel(level: 5, target: .hold(seconds: 15), criterion: "Hold full back lever for 15s, clean form", xpReward: 250),
-            ]
-        ),
-        .simple(
-            id: "cl.victorian",
-            title: "Victorian",
-            cluster: .coreLever, tier: 7, type: .hold,
-            target: .hold(exercise: "victorian", seconds: 1),
-            prereqs: [PrerequisiteGroup(["cl.full-front-lever", "cal.iron-cross-10s"])],
-            isMythic: true,
-            equipment: [.gymnasticRings],
-            primary: [.lats, .core, .shoulders],
-            subtitle: "Front lever with arms at your sides.",
-            description: "Body horizontal as in a front lever, but arms extended down to hip level instead of overhead. Combines front lever lat strength with iron cross adduction. F-difficulty in gymnastics.",
-            formCues: [
-                "You do not program toward Victorian — it's a by-product of many years",
-                "Requires pristine shoulder health",
-                "Full body tension, no breaks in form",
-                "Coach-spotted partial attempts for years before freestanding"
-            ],
-            commonMistakes: [
-                "Any attempt before full FL + 10s Iron Cross + 5+ years of ring work",
-                "Bending arms under load",
-                "Rushing progression — Victorian breaks bodies when rushed"
-            ],
-            timeline: "5-10+ years. Fewer than 50 humans hold it cleanly.",
-            rank: .s,
-            levels: [
-                SkillLevel(level: 1, target: .hold(seconds: 1), criterion: "Hold victorian for 1s, clean form", xpReward: 50),
-                SkillLevel(level: 2, target: .hold(seconds: 2), criterion: "Hold victorian for 2s, clean form", xpReward: 100),
-                SkillLevel(level: 3, target: .hold(seconds: 3), criterion: "Hold victorian for 3s, clean form", xpReward: 150),
-                SkillLevel(level: 4, target: .hold(seconds: 5), criterion: "Hold victorian for 5s, clean form", xpReward: 200),
-                SkillLevel(level: 5, target: .hold(seconds: 8), criterion: "Hold victorian for 8s, clean form", xpReward: 250),
             ]
         ),
 
@@ -2909,7 +1780,7 @@ extension SkillGraph {
             title: "Long Dead Hang",
             cluster: .conditioning, tier: 2, type: .hold,
             target: .hold(exercise: "dead hang", seconds: 45),
-            prereqs: [PrerequisiteGroup("pp.dead-hang-30")],
+            prereqs: [PrerequisiteGroup("pp.dead-hang")],
             equipment: [.pullupBar],
             primary: [.forearms, .lats],
             subtitle: "Grip endurance step-up.",
@@ -3168,13 +2039,13 @@ extension SkillGraph {
         .simple(
             id: "pp.chin-up",
             title: "Chin-Up",
-            cluster: .pullingPower, tier: 2, type: .skill,
-            target: .reps(exercise: "chin-up", count: 1),
-            prereqs: [PrerequisiteGroup("pp.negative-pullup")],
+            cluster: .pullingPower, tier: 3, type: .skill,
+            target: .reps(exercise: "chin-up", count: 5),
+            prereqs: [PrerequisiteGroup("pp.dead-hang")],
             equipment: [.pullupBar],
             primary: [.arms, .lats], secondary: [.back],
             subtitle: "Underhand grip. Biceps join the pull.",
-            description: "One strict chin-up — palms facing you, chin clears the bar from a full dead hang. Biceps-dominant cousin of the pullup.",
+            description: "Strict chin-up — palms facing you, chin clears the bar from a full dead hang. Biceps-dominant cousin of the pullup.",
             formCues: [
                 "Supinated grip — palms face your body",
                 "Start at dead hang with active shoulders",
@@ -3187,26 +2058,26 @@ extension SkillGraph {
                 "Not reaching dead hang between reps",
                 "Shrugging shoulders at the top"
             ],
-            timeline: "4-10 weeks from first pullup attempt.",
+            timeline: "4-10 weeks from first chin-up attempt.",
             rank: .d,
             levels: [
                 SkillLevel(level: 1, target: .firstRep, criterion: "First clean chin-up to standard", xpReward: 50),
                 SkillLevel(level: 2, target: .reps(3), criterion: "3 strict chin-up", xpReward: 100),
                 SkillLevel(level: 3, target: .reps(5), criterion: "5 strict chin-up", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(8), criterion: "8 strict chin-up", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(12), criterion: "12 strict chin-up", xpReward: 250),
+                SkillLevel(level: 4, target: .reps(10), criterion: "10 strict chin-up", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(20), criterion: "20 strict chin-up", xpReward: 250),
             ]
         ),
         .simple(
             id: "pp.strict-chin-up",
             title: "Strict Chin-Up",
-            cluster: .pullingPower, tier: 3, type: .skill,
+            cluster: .pullingPower, tier: 4, type: .skill,
             target: .reps(exercise: "chin-up", count: 8),
             prereqs: [PrerequisiteGroup("pp.chin-up")],
             equipment: [.pullupBar],
             primary: [.arms, .lats], secondary: [.back, .core],
             subtitle: "Chin-up volume benchmark.",
-            description: "8 unbroken strict chin-ups from dead hang. First real capacity test on the underhand grip.",
+            description: "Strict chin-ups unbroken from dead hang. First real capacity test on the underhand grip.",
             formCues: [
                 "Full dead hang each rep",
                 "No kipping — hips stay still",
@@ -3214,30 +2085,30 @@ extension SkillGraph {
                 "Breathe at the dead hang, not the top"
             ],
             commonMistakes: [
-                "Reps 6-8 going partial",
+                "Partial reps as fatigue sets in",
                 "Letting the elbows flare out",
                 "Bouncing out of the dead hang"
             ],
             timeline: "2-6 months from first chin-up.",
-            rank: .c,
+            rank: .b,
             levels: [
-                SkillLevel(level: 1, target: .firstRep, criterion: "First clean chin-up to standard", xpReward: 50),
+                SkillLevel(level: 1, target: .firstRep, criterion: "First clean strict chin-up to standard", xpReward: 50),
                 SkillLevel(level: 2, target: .reps(3), criterion: "3 strict chin-up", xpReward: 100),
                 SkillLevel(level: 3, target: .reps(5), criterion: "5 strict chin-up", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(8), criterion: "8 strict chin-up", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(10), criterion: "10 strict chin-up", xpReward: 250),
+                SkillLevel(level: 4, target: .reps(10), criterion: "10 strict chin-up", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(15), criterion: "15 strict chin-up", xpReward: 250),
             ]
         ),
         .simple(
             id: "pp.weighted-chin-up",
             title: "Weighted Chin-Up",
-            cluster: .pullingPower, tier: 4, type: .strength,
-            target: .weightMultiplier(exercise: "weighted chin-up", multiplier: 0.25),
+            cluster: .pullingPower, tier: 5, type: .strength,
+            target: .weightMultiplier(exercise: "weighted chin-up", multiplier: 0.5),
             prereqs: [PrerequisiteGroup("pp.strict-chin-up")],
             equipment: [.pullupBar, .dumbbells],
             primary: [.arms, .lats], secondary: [.back],
             subtitle: "Load the underhand pull.",
-            description: "Chin-up with a weighted belt or dumbbell held between the feet. Quarter bodyweight added load, clean ROM.",
+            description: "Chin-up with a weighted belt or dumbbell held between the feet. Sweeps from 0.1× bodyweight up to a full bodyweight chin-up.",
             formCues: [
                 "Same strict form as bodyweight chin-up",
                 "Add load in small increments",
@@ -3249,21 +2120,21 @@ extension SkillGraph {
                 "Kipping to fight the load",
                 "Losing dead hang reset when fatigue hits"
             ],
-            timeline: "2-6 months from strict chin-up × 8.",
-            rank: .c,
+            timeline: "1-2 years from strict chin-up × 8.",
+            rank: .b,
             levels: [
-                SkillLevel(level: 1, target: .weight(multiplier: 0.15), criterion: "Chin-up with 0.15x bw load", xpReward: 50),
+                SkillLevel(level: 1, target: .weight(multiplier: 0.1), criterion: "Chin-up with 0.1x bw load", xpReward: 50),
                 SkillLevel(level: 2, target: .weight(multiplier: 0.25), criterion: "Chin-up with 0.25x bw load", xpReward: 100),
-                SkillLevel(level: 3, target: .weight(multiplier: 0.4), criterion: "Chin-up with 0.4x bw load", xpReward: 150),
-                SkillLevel(level: 4, target: .weight(multiplier: 0.5), criterion: "Chin-up with 0.5x bw load", xpReward: 200),
-                SkillLevel(level: 5, target: .weight(multiplier: 0.65), criterion: "Chin-up with 0.65x bw load", xpReward: 250),
+                SkillLevel(level: 3, target: .weight(multiplier: 0.5), criterion: "Chin-up with 0.5x bw load", xpReward: 150),
+                SkillLevel(level: 4, target: .weight(multiplier: 0.75), criterion: "Chin-up with 0.75x bw load", xpReward: 200),
+                SkillLevel(level: 5, target: .weight(multiplier: 1.0), criterion: "Chin-up with 1.0x bw load", xpReward: 250),
             ]
         ),
         .simple(
             id: "pp.l-sit-chin-up",
             title: "L-Sit Chin-Up",
             cluster: .pullingPower, tier: 5, type: .skill,
-            target: .reps(exercise: "l-sit chin-up", count: 3),
+            target: .reps(exercise: "l-sit chin-up", count: 5),
             prereqs: [PrerequisiteGroup(["pp.strict-chin-up", "cal.l-sit-10"])],
             equipment: [.pullupBar],
             primary: [.arms, .lats, .core], secondary: [.back],
@@ -3293,13 +2164,13 @@ extension SkillGraph {
         .simple(
             id: "pp.wide-pullup",
             title: "Wide Pull-Up",
-            cluster: .pullingPower, tier: 3, type: .skill,
+            cluster: .pullingPower, tier: 5, type: .skill,
             target: .reps(exercise: "wide pullup", count: 5),
-            prereqs: [PrerequisiteGroup("pp.5-pullups")],
+            prereqs: [PrerequisiteGroup("pp.strict-pullup")],
             equipment: [.pullupBar],
             primary: [.lats, .back], secondary: [.arms],
-            subtitle: "Lats first. Arms second.",
-            description: "5 strict pullups with hands set well outside shoulder width. Lat-dominant — emphasizes back width over arm pull.",
+            subtitle: "Wider grip, more lat.",
+            description: "Strict pullups with hands set well outside shoulder width. Lat-dominant — emphasizes back width over arm pull.",
             formCues: [
                 "Grip 1.5× shoulder width, palms facing away",
                 "Drive elbows DOWN to the ribs",
@@ -3311,26 +2182,26 @@ extension SkillGraph {
                 "Partial ROM because leverage drops at width",
                 "Shrugging to cheat the last inch"
             ],
-            timeline: "1-4 months from 5 standard pullups.",
-            rank: .c,
+            timeline: "1-4 months from strict pullup × 5.",
+            rank: .b,
             levels: [
                 SkillLevel(level: 1, target: .firstRep, criterion: "First clean wide pullup to standard", xpReward: 50),
                 SkillLevel(level: 2, target: .reps(3), criterion: "3 strict wide pullup", xpReward: 100),
                 SkillLevel(level: 3, target: .reps(5), criterion: "5 strict wide pullup", xpReward: 150),
                 SkillLevel(level: 4, target: .reps(8), criterion: "8 strict wide pullup", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(10), criterion: "10 strict wide pullup", xpReward: 250),
+                SkillLevel(level: 5, target: .reps(12), criterion: "12 strict wide pullup", xpReward: 250),
             ]
         ),
         .simple(
             id: "pp.explosive-pullup",
             title: "Explosive Pull-Up",
-            cluster: .pullingPower, tier: 4, type: .skill,
+            cluster: .pullingPower, tier: 5, type: .skill,
             target: .reps(exercise: "explosive pullup", count: 3),
-            prereqs: [PrerequisiteGroup("pp.10-pullups")],
+            prereqs: [PrerequisiteGroup("pp.strict-pullup")],
             equipment: [.pullupBar],
             primary: [.lats, .arms], secondary: [.back, .core],
             subtitle: "Pull hard enough the hands come off.",
-            description: "3 pullups where the concentric is explosive enough that hands briefly leave the bar at the top. Bridge between strict pullup and muscle-up.",
+            description: "Pullups where the concentric is explosive enough that hands briefly leave the bar at the top. Bridge between strict pullup and muscle-up.",
             formCues: [
                 "Full dead hang start",
                 "Accelerate aggressively on the concentric",
@@ -3342,8 +2213,8 @@ extension SkillGraph {
                 "Missing the re-grip and dropping",
                 "Partial ROM under the explosive cue"
             ],
-            timeline: "2-6 months from 10 pullups.",
-            rank: .c,
+            timeline: "2-6 months from strict pullup mastery.",
+            rank: .b,
             levels: [
                 SkillLevel(level: 1, target: .firstRep, criterion: "First clean explosive pullup to standard", xpReward: 50),
                 SkillLevel(level: 2, target: .reps(3), criterion: "3 strict explosive pullup", xpReward: 100),
@@ -3353,46 +2224,15 @@ extension SkillGraph {
             ]
         ),
         .simple(
-            id: "pp.plyometric-pullup",
-            title: "Plyometric Pull-Up",
-            cluster: .pullingPower, tier: 5, type: .skill,
-            target: .reps(exercise: "plyometric pullup", count: 3),
-            prereqs: [PrerequisiteGroup("pp.explosive-pullup")],
-            equipment: [.pullupBar],
-            primary: [.lats, .arms, .back], secondary: [.core],
-            subtitle: "Release, catch, drop, repeat.",
-            description: "3 explosive pullups with the catch on the way down turning into a loaded eccentric that rebounds into the next rep. True plyometric pulling.",
-            formCues: [
-                "Explode up, release briefly, catch bar on the descent",
-                "Absorb eccentric with control, load the lats",
-                "Rebound immediately into the next rep",
-                "Reset if rhythm breaks — don't force continuity"
-            ],
-            commonMistakes: [
-                "Missing the bar catch",
-                "No eccentric control — just dropping",
-                "Shrugged shoulders on the catch (shoulder risk)"
-            ],
-            timeline: "3-9 months from explosive pullup.",
-            rank: .b,
-            levels: [
-                SkillLevel(level: 1, target: .firstRep, criterion: "First clean plyometric pullup to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(3), criterion: "3 strict plyometric pullup", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict plyometric pullup", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(6), criterion: "6 strict plyometric pullup", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(8), criterion: "8 strict plyometric pullup", xpReward: 250),
-            ]
-        ),
-        .simple(
             id: "pp.clapping-pullup",
             title: "Clapping Pull-Up",
-            cluster: .pullingPower, tier: 5, type: .skill,
+            cluster: .pullingPower, tier: 6, type: .skill,
             target: .reps(exercise: "clapping pullup", count: 1),
             prereqs: [PrerequisiteGroup("pp.explosive-pullup")],
             equipment: [.pullupBar],
             primary: [.lats, .arms, .back], secondary: [.core],
             subtitle: "Pull high enough to clap before catching.",
-            description: "One clean clapping pullup — pull explosively enough to release the bar, clap hands at chest, and re-grip before the descent. Bar-muscle-up prerequisite for most athletes.",
+            description: "Clapping pullup — pull explosively enough to release the bar, clap hands at chest, and re-grip before the descent. Bar-muscle-up prerequisite for most athletes.",
             formCues: [
                 "Explosive pullup first, then add the clap",
                 "Clap at chest level, not overhead",
@@ -3405,13 +2245,13 @@ extension SkillGraph {
                 "Shrugging shoulders on the re-catch"
             ],
             timeline: "6-18 months from explosive pullup.",
-            rank: .b,
+            rank: .a,
             levels: [
                 SkillLevel(level: 1, target: .firstRep, criterion: "First clean clapping pullup to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(3), criterion: "3 strict clapping pullup", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict clapping pullup", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(6), criterion: "6 strict clapping pullup", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(8), criterion: "8 strict clapping pullup", xpReward: 250),
+                SkillLevel(level: 2, target: .reps(2), criterion: "2 strict clapping pullup", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(3), criterion: "3 strict clapping pullup", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(4), criterion: "4 strict clapping pullup", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(5), criterion: "5 strict clapping pullup", xpReward: 250),
             ]
         ),
 
@@ -3444,9 +2284,9 @@ extension SkillGraph {
             levels: [
                 SkillLevel(level: 1, target: .firstRep, criterion: "First clean incline pushup to standard", xpReward: 50),
                 SkillLevel(level: 2, target: .reps(5), criterion: "5 strict incline pushup", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(8), criterion: "8 strict incline pushup", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(12), criterion: "12 strict incline pushup", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(15), criterion: "15 strict incline pushup", xpReward: 250),
+                SkillLevel(level: 3, target: .reps(10), criterion: "10 strict incline pushup", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(20), criterion: "20 strict incline pushup", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(30), criterion: "30 strict incline pushup", xpReward: 250),
             ]
         ),
         .simple(
@@ -3475,17 +2315,17 @@ extension SkillGraph {
             levels: [
                 SkillLevel(level: 1, target: .firstRep, criterion: "First clean decline pushup to standard", xpReward: 50),
                 SkillLevel(level: 2, target: .reps(3), criterion: "3 strict decline pushup", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict decline pushup", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(8), criterion: "8 strict decline pushup", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(12), criterion: "12 strict decline pushup", xpReward: 250),
+                SkillLevel(level: 3, target: .reps(8), criterion: "8 strict decline pushup", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(15), criterion: "15 strict decline pushup", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(30), criterion: "30 strict decline pushup", xpReward: 250),
             ]
         ),
         .simple(
             id: "cal.sphinx-pushup",
             title: "Sphinx Push-Up",
-            cluster: .calisthenicControl, tier: 2, type: .skill,
+            cluster: .calisthenicControl, tier: 4, type: .skill,
             target: .reps(exercise: "sphinx pushup", count: 8),
-            prereqs: [PrerequisiteGroup("cal.pushup")],
+            prereqs: [PrerequisiteGroup("cal.pike-pushup")],
             primary: [.arms], secondary: [.chest, .shoulders, .core],
             subtitle: "Triceps in isolation.",
             description: "Pushup on forearms — start from elbow plank, press up through the forearms until elbows lock out. 8 clean reps. Direct tricep hypertrophy.",
@@ -3500,22 +2340,22 @@ extension SkillGraph {
                 "Partial ROM — not full elbow lockout at top",
                 "Rushing the eccentric"
             ],
-            timeline: "2-4 weeks from 10 pushups.",
+            timeline: "2-4 weeks from 10 pike pushups.",
             rank: .d,
             levels: [
                 SkillLevel(level: 1, target: .firstRep, criterion: "First clean sphinx pushup to standard", xpReward: 50),
                 SkillLevel(level: 2, target: .reps(3), criterion: "3 strict sphinx pushup", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict sphinx pushup", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(8), criterion: "8 strict sphinx pushup", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(12), criterion: "12 strict sphinx pushup", xpReward: 250),
+                SkillLevel(level: 3, target: .reps(8), criterion: "8 strict sphinx pushup", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(12), criterion: "12 strict sphinx pushup", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(15), criterion: "15 strict sphinx pushup", xpReward: 250),
             ]
         ),
         .simple(
             id: "cal.archer-pushup",
             title: "Archer Push-Up",
-            cluster: .calisthenicControl, tier: 3, type: .skill,
+            cluster: .calisthenicControl, tier: 4, type: .skill,
             target: .reps(exercise: "archer pushup", count: 3),
-            prereqs: [PrerequisiteGroup("cal.diamond-pushup")],
+            prereqs: [PrerequisiteGroup("cal.decline-pushup")],
             primary: [.chest, .arms], secondary: [.shoulders, .core],
             subtitle: "Unilateral pushup on-ramp.",
             description: "Hands wide, weight shifts to one side as you descend — working arm bends deep, off arm stays straight. 3 reps per side. Bridge to the one-arm pushup.",
@@ -3530,20 +2370,20 @@ extension SkillGraph {
                 "Off arm bending to assist",
                 "Chest not touching on the working side"
             ],
-            timeline: "2-6 months from diamond pushup.",
+            timeline: "2-6 months from decline pushup.",
             rank: .c,
             levels: [
                 SkillLevel(level: 1, target: .firstRep, criterion: "First clean archer pushup per side to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(3), criterion: "3 strict archer pushup per side", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict archer pushup per side", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(8), criterion: "8 strict archer pushup per side", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(10), criterion: "10 strict archer pushup per side", xpReward: 250),
+                SkillLevel(level: 2, target: .reps(2), criterion: "2 strict archer pushup per side", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(3), criterion: "3 strict archer pushup per side", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(5), criterion: "5 strict archer pushup per side", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(8), criterion: "8 strict archer pushup per side", xpReward: 250),
             ]
         ),
         .simple(
             id: "cal.one-arm-pushup",
             title: "One-Arm Push-Up",
-            cluster: .calisthenicControl, tier: 4, type: .skill,
+            cluster: .calisthenicControl, tier: 5, type: .skill,
             target: .reps(exercise: "one-arm pushup", count: 1),
             prereqs: [PrerequisiteGroup("cal.archer-pushup")],
             primary: [.chest, .arms, .shoulders, .core],
@@ -3564,18 +2404,18 @@ extension SkillGraph {
             rank: .b,
             levels: [
                 SkillLevel(level: 1, target: .firstRep, criterion: "First clean one-arm pushup per side to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(3), criterion: "3 strict one-arm pushup per side", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict one-arm pushup per side", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(6), criterion: "6 strict one-arm pushup per side", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(8), criterion: "8 strict one-arm pushup per side", xpReward: 250),
+                SkillLevel(level: 2, target: .reps(2), criterion: "2 strict one-arm pushup per side", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(3), criterion: "3 strict one-arm pushup per side", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(4), criterion: "4 strict one-arm pushup per side", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(5), criterion: "5 strict one-arm pushup per side", xpReward: 250),
             ]
         ),
         .simple(
             id: "cal.explosive-pushup",
             title: "Explosive Push-Up",
-            cluster: .calisthenicControl, tier: 2, type: .skill,
+            cluster: .calisthenicControl, tier: 3, type: .skill,
             target: .reps(exercise: "explosive pushup", count: 5),
-            prereqs: [PrerequisiteGroup("cal.pushup")],
+            prereqs: [PrerequisiteGroup("cal.decline-pushup")],
             primary: [.chest, .arms, .shoulders], secondary: [.core],
             subtitle: "Ballistic pressing. Airtime included.",
             description: "5 pushups with an aggressive concentric that launches the hands off the floor. Bridge to the clapping pushup.",
@@ -3590,20 +2430,21 @@ extension SkillGraph {
                 "Half-committing the launch",
                 "Piking the hips to push off higher"
             ],
-            timeline: "2-6 weeks from 10 pushups.",
+            timeline: "2-6 weeks from decline pushup.",
             rank: .d,
             levels: [
                 SkillLevel(level: 1, target: .firstRep, criterion: "First clean explosive pushup to standard", xpReward: 50),
                 SkillLevel(level: 2, target: .reps(3), criterion: "3 strict explosive pushup", xpReward: 100),
                 SkillLevel(level: 3, target: .reps(5), criterion: "5 strict explosive pushup", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(8), criterion: "8 strict explosive pushup", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(12), criterion: "12 strict explosive pushup", xpReward: 250),
-            ]
+                SkillLevel(level: 4, target: .reps(10), criterion: "10 strict explosive pushup", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(15), criterion: "15 strict explosive pushup", xpReward: 250),
+            ],
+            isParallelToParent: true
         ),
         .simple(
             id: "cal.clapping-pushup",
             title: "Clapping Push-Up",
-            cluster: .calisthenicControl, tier: 3, type: .skill,
+            cluster: .calisthenicControl, tier: 4, type: .skill,
             target: .reps(exercise: "clapping pushup", count: 3),
             prereqs: [PrerequisiteGroup("cal.explosive-pushup")],
             primary: [.chest, .arms, .shoulders], secondary: [.core],
@@ -3624,9 +2465,9 @@ extension SkillGraph {
             rank: .c,
             levels: [
                 SkillLevel(level: 1, target: .firstRep, criterion: "First clean clapping pushup to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(3), criterion: "3 strict clapping pushup", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict clapping pushup", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(8), criterion: "8 strict clapping pushup", xpReward: 200),
+                SkillLevel(level: 2, target: .reps(2), criterion: "2 strict clapping pushup", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(3), criterion: "3 strict clapping pushup", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(5), criterion: "5 strict clapping pushup", xpReward: 200),
                 SkillLevel(level: 5, target: .reps(10), criterion: "10 strict clapping pushup", xpReward: 250),
             ]
         ),
@@ -3635,7 +2476,7 @@ extension SkillGraph {
             title: "Floating Pike Push-Up",
             cluster: .calisthenicControl, tier: 5, type: .skill,
             target: .reps(exercise: "floating pike pushup", count: 3),
-            prereqs: [PrerequisiteGroup(["cal.archer-pushup", "hspu.elevated-pike-pushup-10"])],
+            prereqs: [PrerequisiteGroup("cal.elevated-pike-pushup")],
             equipment: [.parallettes],
             primary: [.shoulders, .arms], secondary: [.core],
             subtitle: "Pike pushup with feet off the ground.",
@@ -3659,14 +2500,15 @@ extension SkillGraph {
                 SkillLevel(level: 3, target: .reps(5), criterion: "5 strict floating pike pushup", xpReward: 150),
                 SkillLevel(level: 4, target: .reps(6), criterion: "6 strict floating pike pushup", xpReward: 200),
                 SkillLevel(level: 5, target: .reps(8), criterion: "8 strict floating pike pushup", xpReward: 250),
-            ]
+            ],
+            isParallelToParent: true
         ),
         .simple(
             id: "cal.bench-dip",
             title: "Bench Dip",
             cluster: .calisthenicControl, tier: 2, type: .skill,
             target: .reps(exercise: "bench dip", count: 10),
-            prereqs: [PrerequisiteGroup("cal.pushup")],
+            prereqs: [PrerequisiteGroup("cal.incline-pushup")],
             equipment: [.bodyweight, .elevatedSurface],
             primary: [.arms], secondary: [.chest, .shoulders],
             subtitle: "The dip on-ramp.",
@@ -3687,102 +2529,9 @@ extension SkillGraph {
             levels: [
                 SkillLevel(level: 1, target: .firstRep, criterion: "First clean bench dip to standard", xpReward: 50),
                 SkillLevel(level: 2, target: .reps(5), criterion: "5 strict bench dip", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(8), criterion: "8 strict bench dip", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(12), criterion: "12 strict bench dip", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(15), criterion: "15 strict bench dip", xpReward: 250),
-            ]
-        ),
-        .simple(
-            id: "cal.tempo-dip",
-            title: "Tempo Dip",
-            cluster: .calisthenicControl, tier: 3, type: .skill,
-            target: .reps(exercise: "tempo dip", count: 5),
-            prereqs: [PrerequisiteGroup("cal.5-dips")],
-            equipment: [.parallettes, .elevatedSurface],
-            primary: [.chest, .arms, .shoulders],
-            subtitle: "Slow exposes weak.",
-            description: "5 dips with a 3-second descent and 1-second hold at the bottom before pressing back up. Tempo burns out every rep to the last inch.",
-            formCues: [
-                "Count 3 on the way down",
-                "Full pause at the bottom — shoulders below elbows",
-                "No bounce out of the hole",
-                "Control the press, don't explode up"
-            ],
-            commonMistakes: [
-                "Bouncing out of the pause",
-                "Cheating tempo on reps 4-5",
-                "Losing ROM as fatigue sets in"
-            ],
-            timeline: "4-10 weeks from 5 clean dips.",
-            rank: .c,
-            levels: [
-                SkillLevel(level: 1, target: .firstRep, criterion: "First clean tempo (3s/1s) dip to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(3), criterion: "3 strict tempo (3s/1s) dip", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict tempo (3s/1s) dip", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(8), criterion: "8 strict tempo (3s/1s) dip", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(10), criterion: "10 strict tempo (3s/1s) dip", xpReward: 250),
-            ]
-        ),
-        .simple(
-            id: "cal.weighted-dip",
-            title: "Weighted Dip",
-            cluster: .calisthenicControl, tier: 3, type: .strength,
-            target: .weightMultiplier(exercise: "weighted dip", multiplier: 0.25),
-            prereqs: [PrerequisiteGroup("cal.5-dips")],
-            equipment: [.parallettes, .dumbbells],
-            primary: [.chest, .arms, .shoulders],
-            subtitle: "Load the dip.",
-            description: "Dip with added weight via belt or dumbbell between the feet. Quarter bodyweight, clean reps and ROM.",
-            formCues: [
-                "Same strict form as bodyweight dip",
-                "Add load in small 5-10 lb steps",
-                "Shoulders below elbows at the bottom",
-                "Full lockout top"
-            ],
-            commonMistakes: [
-                "Loading too heavy and losing ROM",
-                "Swinging the dumbbell for momentum",
-                "Shrugged shoulders under load"
-            ],
-            timeline: "2-6 months from 5 bodyweight dips.",
-            rank: .c,
-            levels: [
-                SkillLevel(level: 1, target: .weight(multiplier: 0.15), criterion: "Dip with 0.15x bw load", xpReward: 50),
-                SkillLevel(level: 2, target: .weight(multiplier: 0.25), criterion: "Dip with 0.25x bw load", xpReward: 100),
-                SkillLevel(level: 3, target: .weight(multiplier: 0.4), criterion: "Dip with 0.4x bw load", xpReward: 150),
-                SkillLevel(level: 4, target: .weight(multiplier: 0.5), criterion: "Dip with 0.5x bw load", xpReward: 200),
-                SkillLevel(level: 5, target: .weight(multiplier: 0.75), criterion: "Dip with 0.75x bw load", xpReward: 250),
-            ]
-        ),
-        .simple(
-            id: "cal.l-sit-dip",
-            title: "L-Sit Dip",
-            cluster: .calisthenicControl, tier: 4, type: .skill,
-            target: .reps(exercise: "l-sit dip", count: 3),
-            prereqs: [PrerequisiteGroup(["cal.5-dips", "cal.l-sit-10"])],
-            equipment: [.parallettes],
-            primary: [.chest, .arms, .shoulders, .core],
-            subtitle: "Dip while holding an L-sit.",
-            description: "3 strict dips with legs locked out parallel in an L-sit. Combines the pressing of the dip with the core compression of the L-sit.",
-            formCues: [
-                "Enter top position in a full L-sit",
-                "Legs stay parallel throughout",
-                "Dip to full depth — shoulders below elbows",
-                "No leg drop on the eccentric"
-            ],
-            commonMistakes: [
-                "Legs drooping as fatigue sets in",
-                "Bent knees — loses L-sit standard",
-                "Partial ROM on the dip"
-            ],
-            timeline: "3-12 months from 5 dips + L-sit 10s.",
-            rank: .b,
-            levels: [
-                SkillLevel(level: 1, target: .firstRep, criterion: "First clean L-sit dip to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(3), criterion: "3 strict L-sit dip", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict L-sit dip", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(6), criterion: "6 strict L-sit dip", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(8), criterion: "8 strict L-sit dip", xpReward: 250),
+                SkillLevel(level: 3, target: .reps(10), criterion: "10 strict bench dip", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(20), criterion: "20 strict bench dip", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(30), criterion: "30 strict bench dip", xpReward: 250),
             ]
         ),
         .simple(
@@ -3811,9 +2560,9 @@ extension SkillGraph {
             levels: [
                 SkillLevel(level: 1, target: .firstRep, criterion: "First clean triple clap pushup to standard", xpReward: 50),
                 SkillLevel(level: 2, target: .reps(1), criterion: "1 strict triple clap pushup", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(2), criterion: "2 strict triple clap pushup", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(3), criterion: "3 strict triple clap pushup", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(3), criterion: "3 strict triple clap pushup", xpReward: 250),
+                SkillLevel(level: 3, target: .reps(1), criterion: "1 strict triple clap pushup", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(1), criterion: "1 strict triple clap pushup", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(1), criterion: "1 strict triple clap pushup", xpReward: 250),
             ]
         ),
 
@@ -3824,9 +2573,9 @@ extension SkillGraph {
         .simple(
             id: "ld.calf-raise",
             title: "Calf Raise",
-            cluster: .legDominance, tier: 4, type: .skill,
+            cluster: .legDominance, tier: 3, type: .skill,
             target: .reps(exercise: "calf raise", count: 20),
-            prereqs: [PrerequisiteGroup("ld.deep-squat")],
+            prereqs: [PrerequisiteGroup("ld.step-up")],
             primary: [.calves],
             subtitle: "The skipped muscle group.",
             description: "20 double-leg calf raises — rise onto the balls of the feet, control the descent, heels touch the floor each rep.",
@@ -3844,23 +2593,23 @@ extension SkillGraph {
             timeline: "1-2 weeks from zero.",
             rank: .e,
             levels: [
-                SkillLevel(level: 1, target: .firstRep, criterion: "First clean clean calf raise to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(5), criterion: "5 strict clean calf raise", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(8), criterion: "8 strict clean calf raise", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(12), criterion: "12 strict clean calf raise", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(15), criterion: "15 strict clean calf raise", xpReward: 250),
+                SkillLevel(level: 1, target: .firstRep, criterion: "First clean calf raise to standard", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(15), criterion: "15 strict calf raises", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(25), criterion: "25 strict calf raises", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(35), criterion: "35 strict calf raises", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(50), criterion: "50 strict calf raises", xpReward: 250),
             ]
         ),
         .simple(
             id: "ld.weighted-sl-calf",
             title: "Weighted Single-Leg Calf Raise",
-            cluster: .legDominance, tier: 3, type: .strength,
+            cluster: .legDominance, tier: 4, type: .strength,
             target: .reps(exercise: "single-leg calf raise", count: 10, load: "0.5x bw"),
             prereqs: [PrerequisiteGroup("ld.calf-raise")],
             equipment: [.dumbbells, .kettlebell],
             primary: [.calves],
             subtitle: "Unilateral calf strength.",
-            description: "10 single-leg calf raises per side holding half bodyweight at the hip. Eliminates the stronger leg compensation that kills calf hypertrophy.",
+            description: "Single-leg calf raises per side holding half bodyweight at the hip. Eliminates the stronger leg compensation that kills calf hypertrophy.",
             formCues: [
                 "Load hangs on the working-side hand",
                 "Free leg bent, toes off the ground",
@@ -3876,52 +2625,22 @@ extension SkillGraph {
             rank: .c,
             levels: [
                 SkillLevel(level: 1, target: .firstRep, criterion: "First clean single-leg calf raise at 0.25x bw to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(3), criterion: "3 strict single-leg calf raise at 0.5x bw", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict single-leg calf raise at 0.5x bw", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(8), criterion: "8 strict single-leg calf raise at 0.75x bw", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(10), criterion: "10 strict single-leg calf raise at 1x bw", xpReward: 250),
-            ]
-        ),
-        .simple(
-            id: "ld.hip-hinge",
-            title: "Hip Hinge",
-            cluster: .legDominance, tier: 2, type: .skill,
-            target: .reps(exercise: "hip hinge", count: 15),
-            prereqs: [PrerequisiteGroup("ld.goblet-20")],
-            primary: [.glutes, .back], secondary: [.legs, .core],
-            subtitle: "The pattern behind every pull from the floor.",
-            description: "15 bodyweight hip hinges — push hips back, soft knee bend, neutral spine, return. Teaches the hinge pattern before it gets loaded.",
-            formCues: [
-                "Push hips back like shutting a car door with your butt",
-                "Soft knee bend — not a squat",
-                "Neutral spine throughout — no rounding",
-                "Feel the stretch in the hamstrings at the bottom"
-            ],
-            commonMistakes: [
-                "Squatting instead of hinging",
-                "Rounding the lower back",
-                "Knees drifting forward"
-            ],
-            timeline: "1-2 weeks to groove the pattern.",
-            rank: .e,
-            levels: [
-                SkillLevel(level: 1, target: .firstRep, criterion: "First clean clean hip hinge to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(5), criterion: "5 strict clean hip hinge", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(8), criterion: "8 strict clean hip hinge", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(12), criterion: "12 strict clean hip hinge", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(15), criterion: "15 strict clean hip hinge", xpReward: 250),
+                SkillLevel(level: 2, target: .reps(10), criterion: "10 strict single-leg calf raises at 0.25x bw", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(15), criterion: "15 strict single-leg calf raises at 0.5x bw", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(20), criterion: "20 strict single-leg calf raises at 0.5x bw", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(30), criterion: "30 strict single-leg calf raises at 0.5x bw", xpReward: 250),
             ]
         ),
         .simple(
             id: "ld.box-jump",
             title: "Box Jump",
-            cluster: .legDominance, tier: 2, type: .skill,
+            cluster: .legDominance, tier: 4, type: .skill,
             target: .reps(exercise: "box jump", count: 5),
-            prereqs: [PrerequisiteGroup("ld.deep-squat")],
+            prereqs: [PrerequisiteGroup("ld.jumping-squat")],
             equipment: [.bodyweight, .elevatedSurface],
             primary: [.legs, .glutes], secondary: [.calves, .core],
             subtitle: "Explosive triple extension.",
-            description: "5 clean box jumps to a box at knee height or higher. Land soft, stand tall, step down — never jump down.",
+            description: "Clean box jumps to a box at knee height or higher. Land soft, stand tall, step down — never jump down.",
             formCues: [
                 "Arms swing for momentum",
                 "Hips, knees, ankles extend together",
@@ -3936,22 +2655,23 @@ extension SkillGraph {
             timeline: "1-3 weeks to groove the jump.",
             rank: .d,
             levels: [
-                SkillLevel(level: 1, target: .firstRep, criterion: "First clean clean box jumps to knee height to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(3), criterion: "3 strict clean box jumps to mid-thigh", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict clean box jumps to hip height", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(8), criterion: "8 strict clean box jumps to waist height", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(10), criterion: "10 clean box jumps to chest height", xpReward: 250),
-            ]
+                SkillLevel(level: 1, target: .firstRep, criterion: "First clean box jump to knee height", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(5), criterion: "5 clean box jumps to 18\" box", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(5), criterion: "5 clean box jumps to 24\" box", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(5), criterion: "5 clean box jumps to 30\" box", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(3), criterion: "3 clean box jumps to 40\" box", xpReward: 250),
+            ],
+            isParallelToParent: true
         ),
         .simple(
             id: "ld.jumping-squat",
             title: "Jumping Squat",
-            cluster: .legDominance, tier: 2, type: .skill,
+            cluster: .legDominance, tier: 4, type: .skill,
             target: .reps(exercise: "jumping squat", count: 10),
             prereqs: [PrerequisiteGroup("ld.deep-squat")],
             primary: [.legs, .glutes], secondary: [.calves, .core],
             subtitle: "Squat, then launch.",
-            description: "10 bodyweight jumping squats — full-depth squat, explode to jump, land soft, re-descend into the next rep. Power endurance.",
+            description: "Bodyweight jumping squats — full-depth squat, explode to jump, land soft, re-descend into the next rep. Power endurance.",
             formCues: [
                 "Full-depth squat each rep",
                 "Explode straight up on the concentric",
@@ -3963,87 +2683,56 @@ extension SkillGraph {
                 "Landing stiff — joints take a beating",
                 "Forward lean on the concentric"
             ],
-            timeline: "1-3 weeks from solid tempo squats.",
+            timeline: "1-3 weeks from deep squat.",
             rank: .d,
             levels: [
-                SkillLevel(level: 1, target: .firstRep, criterion: "First clean clean jumping squat to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(3), criterion: "3 strict clean jumping squat", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict clean jumping squat", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(8), criterion: "8 strict clean jumping squat", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(12), criterion: "12 strict clean jumping squat", xpReward: 250),
+                SkillLevel(level: 1, target: .firstRep, criterion: "First clean jumping squat to standard", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(10), criterion: "10 strict jumping squats", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(15), criterion: "15 strict jumping squats", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(20), criterion: "20 strict jumping squats", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(30), criterion: "30 strict jumping squats", xpReward: 250),
             ]
         ),
         .simple(
-            id: "ld.heighted-split-squat",
-            title: "Elevated Bulgarian Split Squat",
-            cluster: .legDominance, tier: 3, type: .skill,
-            target: .reps(exercise: "elevated bulgarian split squat", count: 8),
-            prereqs: [PrerequisiteGroup("ld.bulgarian-split-squat")],
-            equipment: [.bodyweight, .elevatedSurface],
+            id: "ld.weighted-split-squat",
+            title: "Weighted Split Squat",
+            cluster: .legDominance, tier: 3, type: .strength,
+            target: .reps(exercise: "weighted split squat", count: 8, load: "0.25x bw"),
+            prereqs: [PrerequisiteGroup("ld.split-squat")],
+            equipment: [.dumbbells, .kettlebell],
             primary: [.legs, .glutes], secondary: [.core],
-            subtitle: "More range. More burn.",
-            description: "8 reps per leg with the front foot elevated on a plate or low box. Deepens the split squat ROM and hits glutes harder.",
+            subtitle: "Load the lead leg.",
+            description: "Split squat holding dumbbells or kettlebells at the sides. 8 reps per leg under load. Bridge between bodyweight split squat and the bulgarian split squat.",
             formCues: [
-                "Front foot on a 2-4 inch plate or low box",
-                "Rear foot on a bench, laces down",
+                "Back foot 2-3 feet behind, planted on floor",
+                "Hold weights at the sides — no swinging",
                 "Torso upright, drive through front heel",
-                "Full depth — deeper than floor split squat"
+                "Full depth — back knee brushes the floor"
             ],
             commonMistakes: [
-                "Going too high on the front elevation",
-                "Front knee diving over toes",
-                "Partial ROM"
+                "Load too heavy too fast — form decays",
+                "Front knee tracking past toes",
+                "Pushing off the rear foot"
             ],
-            timeline: "2-4 months from floor bulgarian split squat.",
-            rank: .b,
+            timeline: "2-4 weeks from bodyweight split squat.",
+            rank: .d,
             levels: [
-                SkillLevel(level: 1, target: .firstRep, criterion: "First clean elevated bulgarian split squat per leg to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(3), criterion: "3 strict elevated bulgarian split squat per leg", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict elevated bulgarian split squat per leg", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(6), criterion: "6 strict elevated bulgarian split squat per leg", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(8), criterion: "8 strict elevated bulgarian split squat per leg", xpReward: 250),
-            ]
-        ),
-        .simple(
-            id: "ld.heighted-pistol",
-            title: "Elevated Pistol Squat",
-            cluster: .legDominance, tier: 5, type: .skill,
-            target: .reps(exercise: "elevated pistol", count: 3),
-            prereqs: [PrerequisiteGroup("ld.pistol-squat")],
-            equipment: [.bodyweight, .elevatedSurface],
-            primary: [.legs, .glutes], secondary: [.core],
-            subtitle: "Pistol with free leg below the working foot.",
-            description: "Pistol squat performed on a raised platform so the free leg can drop below the foot — forces deeper hip flexion and real ankle mobility. 3 per side.",
-            formCues: [
-                "Box or plate 6-12 inches tall",
-                "Free leg drops below the platform",
-                "Full pistol depth on the working leg",
-                "Slow descent to keep heel planted"
-            ],
-            commonMistakes: [
-                "Free leg resting on the box for support",
-                "Cheating depth by not dropping below",
-                "Heel lifting under the depth"
-            ],
-            timeline: "3-9 months from clean pistol squat.",
-            rank: .b,
-            levels: [
-                SkillLevel(level: 1, target: .firstRep, criterion: "First clean elevated pistol squat per leg to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(3), criterion: "3 strict elevated pistol squat per leg", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict elevated pistol squat per leg", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(6), criterion: "6 strict elevated pistol squat per leg", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(8), criterion: "8 strict elevated pistol squat per leg", xpReward: 250),
+                SkillLevel(level: 1, target: .weight(multiplier: 0.15), criterion: "0.15x bw weighted split squat, 8 reps per leg", xpReward: 50),
+                SkillLevel(level: 2, target: .weight(multiplier: 0.25), criterion: "0.25x bw weighted split squat, 8 reps per leg", xpReward: 100),
+                SkillLevel(level: 3, target: .weight(multiplier: 0.35), criterion: "0.35x bw weighted split squat, 8 reps per leg", xpReward: 150),
+                SkillLevel(level: 4, target: .weight(multiplier: 0.4), criterion: "0.4x bw weighted split squat, 8 reps per leg", xpReward: 200),
+                SkillLevel(level: 5, target: .weight(multiplier: 0.5), criterion: "0.5x bw weighted split squat, 8 reps per leg", xpReward: 250),
             ]
         ),
         .simple(
             id: "ld.fire-hydrant",
             title: "Fire Hydrant",
-            cluster: .legDominance, tier: 3, type: .skill,
+            cluster: .legDominance, tier: 5, type: .skill,
             target: .reps(exercise: "fire hydrant", count: 15),
-            prereqs: [PrerequisiteGroup("ld.glute-bridge")],
+            prereqs: [PrerequisiteGroup("ld.flying-kickback")],
             primary: [.glutes], secondary: [.core],
             subtitle: "Hip abduction activator.",
-            description: "15 fire hydrants per side — on hands and knees, raise one bent leg out to the side, keeping the knee bent at 90°. Targets the glute medius.",
+            description: "Fire hydrants per side — on hands and knees, raise one bent leg out to the side, keeping the knee bent at 90°. Targets the glute medius.",
             formCues: [
                 "Back flat, hips square to the floor",
                 "Raise leg straight out to the side, knee bent",
@@ -4056,13 +2745,13 @@ extension SkillGraph {
                 "Rushing reps"
             ],
             timeline: "Immediate — activation drill.",
-            rank: .e,
+            rank: .b,
             levels: [
-                SkillLevel(level: 1, target: .firstRep, criterion: "First clean clean fire hydrant per side to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(5), criterion: "5 strict clean fire hydrant per side", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(8), criterion: "8 strict clean fire hydrant per side", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(12), criterion: "12 strict clean fire hydrant per side", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(15), criterion: "15 strict clean fire hydrant per side", xpReward: 250),
+                SkillLevel(level: 1, target: .firstRep, criterion: "First clean fire hydrant per side", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(10), criterion: "10 strict fire hydrants per side", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(15), criterion: "15 strict fire hydrants per side", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(20), criterion: "20 strict fire hydrants per side", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(25), criterion: "25 strict fire hydrants per side", xpReward: 250),
             ]
         ),
         .simple(
@@ -4088,22 +2777,22 @@ extension SkillGraph {
             timeline: "1-3 weeks.",
             rank: .d,
             levels: [
-                SkillLevel(level: 1, target: .firstRep, criterion: "First clean clean single-leg glute bridge per side to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(3), criterion: "3 strict clean single-leg glute bridge per side", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict clean single-leg glute bridge per side", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(8), criterion: "8 strict clean single-leg glute bridge per side", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(12), criterion: "12 strict clean single-leg glute bridge per side", xpReward: 250),
+                SkillLevel(level: 1, target: .firstRep, criterion: "First clean single-leg glute bridge per side", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(8), criterion: "8 strict single-leg glute bridges per side", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(12), criterion: "12 strict single-leg glute bridges per side", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(15), criterion: "15 strict single-leg glute bridges per side", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(20), criterion: "20 strict single-leg glute bridges per side", xpReward: 250),
             ]
         ),
         .simple(
             id: "ld.flying-kickback",
-            title: "Flying Kickback",
-            cluster: .legDominance, tier: 3, type: .skill,
-            target: .reps(exercise: "fire kickback", count: 12),
-            prereqs: [PrerequisiteGroup("ld.glute-bridge")],
+            title: "Leg Kickback",
+            cluster: .legDominance, tier: 4, type: .skill,
+            target: .reps(exercise: "leg kickback", count: 12),
+            prereqs: [PrerequisiteGroup("ld.single-leg-glute-bridge")],
             primary: [.glutes], secondary: [.back, .core],
             subtitle: "Explosive glute extension.",
-            description: "12 fire kickbacks per side — on hands and knees, drive one leg straight back aggressively, squeeze glute hard, return with control.",
+            description: "12 leg kickbacks per side — on hands and knees, drive one leg straight back aggressively, squeeze glute hard, return with control.",
             formCues: [
                 "Back flat, core braced",
                 "Drive the leg back fast, glute leads",
@@ -4118,54 +2807,84 @@ extension SkillGraph {
             timeline: "Immediate.",
             rank: .d,
             levels: [
-                SkillLevel(level: 1, target: .firstRep, criterion: "First clean clean fire kickback per side to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(3), criterion: "3 strict clean fire kickback per side", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict clean fire kickback per side", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(8), criterion: "8 strict clean fire kickback per side", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(12), criterion: "12 strict clean fire kickback per side", xpReward: 250),
+                SkillLevel(level: 1, target: .firstRep, criterion: "First clean leg kickback per side to standard", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(5), criterion: "5 strict leg kickbacks per side", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(10), criterion: "10 strict leg kickbacks per side", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(15), criterion: "15 strict leg kickbacks per side", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(20), criterion: "20 strict leg kickbacks per side", xpReward: 250),
+            ]
+        ),
+        .simple(
+            id: "ld.leg-extensions",
+            title: "Leg Extensions",
+            cluster: .legDominance, tier: 4, type: .skill,
+            target: .reps(exercise: "leg extensions", count: 15),
+            prereqs: [PrerequisiteGroup("ld.deep-squat")],
+            primary: [.legs], secondary: [.core],
+            subtitle: "Quad isolation.",
+            description: "15 strict bodyweight or banded leg extensions — knee stays still, lower leg moves through full ROM, controlled descent.",
+            formCues: [
+                "Knee stays put",
+                "Full extension at top",
+                "Slow eccentric (3s)",
+                "No swinging"
+            ],
+            commonMistakes: [
+                "Knee drifting during the rep",
+                "Bouncing out of the bottom",
+                "Cutting ROM short at the top"
+            ],
+            timeline: "1-3 weeks.",
+            rank: .d,
+            levels: [
+                SkillLevel(level: 1, target: .firstRep, criterion: "First clean leg extension to standard", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(8), criterion: "8 strict leg extensions", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(15), criterion: "15 strict leg extensions", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(20), criterion: "20 strict leg extensions", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(30), criterion: "30 strict leg extensions", xpReward: 250),
             ]
         ),
         .simple(
             id: "ld.advancing-nordic-curl",
-            title: "Advancing Nordic Curl",
-            cluster: .legDominance, tier: 6, type: .skill,
-            target: .reps(exercise: "nordic curl", count: 3),
+            title: "Advanced Nordic Hip Hinge",
+            cluster: .legDominance, tier: 5, type: .skill,
+            target: .reps(exercise: "advanced nordic hip hinge", count: 5),
             prereqs: [PrerequisiteGroup("ld.nordic-hip-hinge")],
-            equipment: [.bodyweight, .elevatedSurface],
+            equipment: [.elevatedSurface],
             primary: [.legs, .glutes], secondary: [.core],
-            subtitle: "The hamstring eccentric destroyer.",
-            description: "3 Nordic curls — kneeling with ankles anchored, lower the torso toward the floor with hamstrings, catch with the hands, push back up. Eccentric hamstring dominance.",
+            subtitle: "Deeper hinge, no curl yet.",
+            description: "Kneeling, ankles anchored — hinge further forward than the basic nordic hip hinge, breaking the hip-shoulder line slightly to extend ROM. The eccentric stepping stone before the full nordic curl pattern.",
             formCues: [
                 "Ankles anchored under a bar, bench, or partner",
-                "Knees, hips, shoulders stay in one line",
-                "Lower as slow as possible — 5s+ descent",
-                "Catch with hands, push back up to start"
+                "Hinge deeper than the basic nordic hip hinge",
+                "Slow eccentric — 4s+ descent",
+                "Return without crashing or pushing off"
             ],
             commonMistakes: [
-                "Piking at the hips to cheat",
-                "Falling the second the hamstrings fatigue",
+                "Piking the hips to cheat range",
+                "Pushing off with hands (that's a nordic curl regression)",
                 "Anchor slipping mid-rep"
             ],
-            timeline: "6-18 months from single-leg RDL.",
+            timeline: "1-3 months from nordic hip hinge.",
             rank: .b,
             levels: [
-                SkillLevel(level: 1, target: .firstRep, criterion: "First clean Nordic curl to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(3), criterion: "3 strict Nordic curl", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict Nordic curl", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(6), criterion: "6 strict Nordic curl", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(8), criterion: "8 strict Nordic curl", xpReward: 250),
+                SkillLevel(level: 1, target: .firstRep, criterion: "First clean advanced nordic hip hinge to standard", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(2), criterion: "2 strict advanced nordic hip hinges", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(3), criterion: "3 strict advanced nordic hip hinges", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(4), criterion: "4 strict advanced nordic hip hinges", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(5), criterion: "5 strict advanced nordic hip hinges", xpReward: 250),
             ]
         ),
         .simple(
             id: "ld.floor-to-ceiling-squat",
             title: "Floor to Ceiling Squat",
-            cluster: .legDominance, tier: 7, type: .skill,
+            cluster: .legDominance, tier: 5, type: .skill,
             target: .reps(exercise: "floor to ceiling squat", count: 1),
-            prereqs: [PrerequisiteGroup(["ld.jumping-pistol", "ld.advancing-nordic-curl"])],
+            prereqs: [PrerequisiteGroup("ld.jumping-squat")],
             isMythic: true,
             primary: [.legs, .glutes], secondary: [.core, .calves],
             subtitle: "From flat on the floor, jump up and touch ceiling.",
-            description: "Lie supine on the floor, stand up in one motion, and explode into a jump high enough to touch an 8-foot ceiling. One rep. Full-body explosive power.",
+            description: "Lie supine on the floor, stand up in one motion, and explode into a jump high enough to touch an 8-foot ceiling. Full-body explosive power.",
             formCues: [
                 "Sit-up plus stand in one smooth motion",
                 "No push-off with the hands on the floor",
@@ -4182,9 +2901,9 @@ extension SkillGraph {
             levels: [
                 SkillLevel(level: 1, target: .firstRep, criterion: "First clean floor to ceiling squat to standard", xpReward: 50),
                 SkillLevel(level: 2, target: .reps(1), criterion: "1 strict floor to ceiling squat", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(2), criterion: "2 strict floor to ceiling squat", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(3), criterion: "3 strict floor to ceiling squat", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(3), criterion: "3 strict floor to ceiling squat", xpReward: 250),
+                SkillLevel(level: 3, target: .reps(2), criterion: "2 strict floor to ceiling squats", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(3), criterion: "3 strict floor to ceiling squats", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(5), criterion: "5 strict floor to ceiling squats", xpReward: 250),
             ]
         ),
 
@@ -4215,11 +2934,11 @@ extension SkillGraph {
             timeline: "Immediate.",
             rank: .e,
             levels: [
-                SkillLevel(level: 1, target: .firstRep, criterion: "First clean clean crunch to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(5), criterion: "5 strict clean crunch", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(8), criterion: "8 strict clean crunch", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(12), criterion: "12 strict clean crunch", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(15), criterion: "15 strict clean crunch", xpReward: 250),
+                SkillLevel(level: 1, target: .firstRep, criterion: "First clean crunch to standard", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(8), criterion: "8 strict crunches", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(15), criterion: "15 strict crunches", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(22), criterion: "22 strict crunches", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(30), criterion: "30 strict crunches", xpReward: 250),
             ]
         ),
         .simple(
@@ -4245,19 +2964,19 @@ extension SkillGraph {
             timeline: "1-2 weeks from crunches.",
             rank: .d,
             levels: [
-                SkillLevel(level: 1, target: .firstRep, criterion: "First clean clean reverse crunch to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(3), criterion: "3 strict clean reverse crunch", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict clean reverse crunch", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(8), criterion: "8 strict clean reverse crunch", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(12), criterion: "12 strict clean reverse crunch", xpReward: 250),
+                SkillLevel(level: 1, target: .firstRep, criterion: "First clean reverse crunch to standard", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(5), criterion: "5 strict reverse crunches", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(12), criterion: "12 strict reverse crunches", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(18), criterion: "18 strict reverse crunches", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(25), criterion: "25 strict reverse crunches", xpReward: 250),
             ]
         ),
         .simple(
             id: "cl.superman-plank",
             title: "Superman Plank",
-            cluster: .coreLever, tier: 3, type: .hold,
+            cluster: .coreLever, tier: 5, type: .hold,
             target: .hold(exercise: "superman plank", seconds: 15),
-            prereqs: [PrerequisiteGroup("cal.plank-30")],
+            prereqs: [PrerequisiteGroup("cl.knee-ab-rollout")],
             primary: [.core, .shoulders], secondary: [.back, .glutes],
             subtitle: "Plank with limbs extended.",
             description: "15-second plank with one arm extended forward and the opposite leg extended back. Hold, switch. Anti-rotation challenge.",
@@ -4277,40 +2996,9 @@ extension SkillGraph {
             levels: [
                 SkillLevel(level: 1, target: .hold(seconds: 8), criterion: "Hold superman plank for 8s, clean form", xpReward: 50),
                 SkillLevel(level: 2, target: .hold(seconds: 15), criterion: "Hold superman plank for 15s per side", xpReward: 100),
-                SkillLevel(level: 3, target: .hold(seconds: 20), criterion: "Hold superman plank for 20s per side", xpReward: 150),
-                SkillLevel(level: 4, target: .hold(seconds: 30), criterion: "Hold superman plank for 30s per side", xpReward: 200),
-                SkillLevel(level: 5, target: .hold(seconds: 45), criterion: "Hold superman plank for 45s per side", xpReward: 250),
-            ]
-        ),
-        .simple(
-            id: "cl.standing-plank",
-            title: "Standing Plank",
-            cluster: .coreLever, tier: 2, type: .hold,
-            target: .hold(exercise: "standing plank", seconds: 20),
-            prereqs: [PrerequisiteGroup("cal.plank-30")],
-            equipment: [.bodyweight, .elevatedSurface],
-            primary: [.core, .shoulders], secondary: [.back],
-            subtitle: "Plank with hands on a bench, feet on floor.",
-            description: "20-second inclined plank — forearms on a bench, feet back, body straight. Teaches the plank line with less load before the standing dial-up.",
-            formCues: [
-                "Forearms flat on the bench, elbows under shoulders",
-                "Body straight head to heel",
-                "Squeeze glutes to hold the line",
-                "Breathe normally"
-            ],
-            commonMistakes: [
-                "Hips sagging toward the floor",
-                "Piking up to rest",
-                "Holding breath"
-            ],
-            timeline: "Immediate from plank 30s.",
-            rank: .d,
-            levels: [
-                SkillLevel(level: 1, target: .hold(seconds: 8), criterion: "Hold standing plank for 8s, clean form", xpReward: 50),
-                SkillLevel(level: 2, target: .hold(seconds: 15), criterion: "Hold standing plank for 15s, clean form", xpReward: 100),
-                SkillLevel(level: 3, target: .hold(seconds: 22), criterion: "Hold standing plank for 22s, clean form", xpReward: 150),
-                SkillLevel(level: 4, target: .hold(seconds: 34), criterion: "Hold standing plank for 34s, clean form", xpReward: 200),
-                SkillLevel(level: 5, target: .hold(seconds: 45), criterion: "Hold standing plank for 45s, clean form", xpReward: 250),
+                SkillLevel(level: 3, target: .hold(seconds: 25), criterion: "Hold superman plank for 25s per side", xpReward: 150),
+                SkillLevel(level: 4, target: .hold(seconds: 40), criterion: "Hold superman plank for 40s per side", xpReward: 200),
+                SkillLevel(level: 5, target: .hold(seconds: 60), criterion: "Hold superman plank for 60s per side", xpReward: 250),
             ]
         ),
         .simple(
@@ -4318,7 +3006,7 @@ extension SkillGraph {
             title: "Extended Plank",
             cluster: .coreLever, tier: 3, type: .hold,
             target: .hold(exercise: "extended plank", seconds: 15),
-            prereqs: [PrerequisiteGroup("cal.plank-30")],
+            prereqs: [PrerequisiteGroup("cl.bird-dog-plank")],
             primary: [.core, .shoulders], secondary: [.arms],
             subtitle: "Hands way out front of the shoulders.",
             description: "15-second plank with hands reached forward past the shoulders — long lever demands more core tension than a standard plank.",
@@ -4338,17 +3026,17 @@ extension SkillGraph {
             levels: [
                 SkillLevel(level: 1, target: .hold(seconds: 8), criterion: "Hold extended plank for 8s, clean form", xpReward: 50),
                 SkillLevel(level: 2, target: .hold(seconds: 15), criterion: "Hold extended plank for 15s, clean form", xpReward: 100),
-                SkillLevel(level: 3, target: .hold(seconds: 20), criterion: "Hold extended plank for 20s, clean form", xpReward: 150),
-                SkillLevel(level: 4, target: .hold(seconds: 30), criterion: "Hold extended plank for 30s, clean form", xpReward: 200),
-                SkillLevel(level: 5, target: .hold(seconds: 45), criterion: "Hold extended plank for 45s, clean form", xpReward: 250),
+                SkillLevel(level: 3, target: .hold(seconds: 30), criterion: "Hold extended plank for 30s, clean form", xpReward: 150),
+                SkillLevel(level: 4, target: .hold(seconds: 60), criterion: "Hold extended plank for 60s, clean form", xpReward: 200),
+                SkillLevel(level: 5, target: .hold(seconds: 90), criterion: "Hold extended plank for 90s, clean form", xpReward: 250),
             ]
         ),
         .simple(
             id: "cl.knee-ab-rollout",
             title: "Knee Ab Rollout",
-            cluster: .coreLever, tier: 2, type: .skill,
+            cluster: .coreLever, tier: 4, type: .skill,
             target: .reps(exercise: "ab wheel kneeling", count: 8),
-            prereqs: [PrerequisiteGroup("cal.plank-30")],
+            prereqs: [PrerequisiteGroup("cl.extended-plank")],
             primary: [.core, .shoulders], secondary: [.lats],
             subtitle: "Ab wheel on ramp.",
             description: "8 kneeling ab wheel rollouts. Roll out as far as core can control, roll back. Gateway to the standing rollout.",
@@ -4367,10 +3055,10 @@ extension SkillGraph {
             rank: .d,
             levels: [
                 SkillLevel(level: 1, target: .firstRep, criterion: "First clean kneeling ab rollout to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(3), criterion: "3 strict kneeling ab rollout", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict kneeling ab rollout", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(8), criterion: "8 strict kneeling ab rollout", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(12), criterion: "12 strict kneeling ab rollout", xpReward: 250),
+                SkillLevel(level: 2, target: .reps(5), criterion: "5 strict kneeling ab rollout", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(10), criterion: "10 strict kneeling ab rollout", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(15), criterion: "15 strict kneeling ab rollout", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(20), criterion: "20 strict kneeling ab rollout", xpReward: 250),
             ]
         ),
         .simple(
@@ -4378,7 +3066,7 @@ extension SkillGraph {
             title: "Levitation Crunch",
             cluster: .coreLever, tier: 3, type: .skill,
             target: .reps(exercise: "levitation crunch", count: 8),
-            prereqs: [PrerequisiteGroup("cl.reverse-crunch")],
+            prereqs: [PrerequisiteGroup("cl.crunch")],
             primary: [.core], secondary: [.glutes],
             subtitle: "Lift the whole body off the floor.",
             description: "8 reps — lying on back, knees bent, curl hips and upper back off the floor simultaneously, only the mid-back stays in contact. Brutal on the rectus abdominis.",
@@ -4398,17 +3086,17 @@ extension SkillGraph {
             levels: [
                 SkillLevel(level: 1, target: .firstRep, criterion: "First clean levitation crunch to standard", xpReward: 50),
                 SkillLevel(level: 2, target: .reps(3), criterion: "3 strict levitation crunch", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict levitation crunch", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(8), criterion: "8 strict levitation crunch", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(10), criterion: "10 strict levitation crunch", xpReward: 250),
+                SkillLevel(level: 3, target: .reps(6), criterion: "6 strict levitation crunch", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(9), criterion: "9 strict levitation crunch", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(12), criterion: "12 strict levitation crunch", xpReward: 250),
             ]
         ),
         .simple(
             id: "cl.inverted-situp",
             title: "Inverted Sit-Up",
-            cluster: .coreLever, tier: 3, type: .skill,
+            cluster: .coreLever, tier: 5, type: .skill,
             target: .reps(exercise: "inverted sit-up", count: 5),
-            prereqs: [PrerequisiteGroup("cl.hanging-leg-raise")],
+            prereqs: [PrerequisiteGroup("cl.decline-situp")],
             equipment: [.pullupBar],
             primary: [.core, .lats], secondary: [.arms],
             subtitle: "Sit-up while hanging upside down.",
@@ -4429,9 +3117,9 @@ extension SkillGraph {
             levels: [
                 SkillLevel(level: 1, target: .firstRep, criterion: "First clean inverted sit-up to standard", xpReward: 50),
                 SkillLevel(level: 2, target: .reps(3), criterion: "3 strict inverted sit-up", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict inverted sit-up", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(8), criterion: "8 strict inverted sit-up", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(10), criterion: "10 strict inverted sit-up", xpReward: 250),
+                SkillLevel(level: 3, target: .reps(6), criterion: "6 strict inverted sit-up", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(10), criterion: "10 strict inverted sit-up", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(15), criterion: "15 strict inverted sit-up", xpReward: 250),
             ]
         ),
         .simple(
@@ -4439,11 +3127,11 @@ extension SkillGraph {
             title: "Skin the Cat",
             cluster: .coreLever, tier: 4, type: .skill,
             target: .reps(exercise: "skin the cat", count: 3),
-            prereqs: [PrerequisiteGroup(["cal.ring-support-10", "cl.hanging-leg-raise"])],
+            prereqs: [PrerequisiteGroup("cl.german-hang")],
             equipment: [.gymnasticRings],
             primary: [.shoulders, .core, .lats], secondary: [.arms],
             subtitle: "Rings pass-through. Shoulder opener.",
-            description: "3 strict skin-the-cats on rings — from a hang, tuck or pike legs overhead, roll through to a german hang, reverse the path back. Shoulder mobility plus core control.",
+            description: "Strict skin-the-cats on rings — from a hang, tuck or pike legs overhead, roll through to a german hang, reverse the path back. Shoulder mobility plus core control.",
             formCues: [
                 "Start in a dead hang, arms straight",
                 "Tuck or pike the legs overhead",
@@ -4455,26 +3143,26 @@ extension SkillGraph {
                 "Bent arms during the pass-through",
                 "Skipping warm-up — shoulders need prep"
             ],
-            timeline: "2-6 months from ring support hold.",
+            timeline: "2-6 months from german hang.",
             rank: .b,
             levels: [
                 SkillLevel(level: 1, target: .firstRep, criterion: "First clean skin the cat to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(3), criterion: "3 strict skin the cat", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict skin the cat", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(6), criterion: "6 strict skin the cat", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(8), criterion: "8 strict skin the cat", xpReward: 250),
+                SkillLevel(level: 2, target: .reps(2), criterion: "2 strict skin the cat", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(3), criterion: "3 strict skin the cat", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(4), criterion: "4 strict skin the cat", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(5), criterion: "5 strict skin the cat", xpReward: 250),
             ]
         ),
         .simple(
             id: "cl.german-hang",
             title: "German Hang",
-            cluster: .coreLever, tier: 4, type: .hold,
+            cluster: .coreLever, tier: 3, type: .hold,
             target: .hold(exercise: "german hang", seconds: 10),
-            prereqs: [PrerequisiteGroup("cl.skin-the-cat")],
+            prereqs: [PrerequisiteGroup("cl.tuck-front-lever")],
             equipment: [.gymnasticRings],
             primary: [.shoulders, .chest], secondary: [.core, .arms],
             subtitle: "The rings position only mobile shoulders own.",
-            description: "10-second hold in the bottom of the skin-the-cat — hanging face down, arms behind the body, shoulders open. Serious shoulder mobility demand.",
+            description: "Hold at the bottom of the skin-the-cat — hanging face down, arms behind the body, shoulders open. Serious shoulder mobility demand.",
             formCues: [
                 "Enter slowly through a skin-the-cat",
                 "Arms stay straight throughout",
@@ -4486,27 +3174,27 @@ extension SkillGraph {
                 "Bent arms — wrong skill, injury risk",
                 "Holding through shoulder pain"
             ],
-            timeline: "3-9 months from skin the cat.",
+            timeline: "3-9 months from tuck front lever.",
             rank: .b,
             levels: [
-                SkillLevel(level: 1, target: .hold(seconds: 5), criterion: "Hold german hang for 5s, clean form", xpReward: 50),
-                SkillLevel(level: 2, target: .hold(seconds: 10), criterion: "Hold german hang for 10s, clean form", xpReward: 100),
-                SkillLevel(level: 3, target: .hold(seconds: 15), criterion: "Hold german hang for 15s, clean form", xpReward: 150),
-                SkillLevel(level: 4, target: .hold(seconds: 20), criterion: "Hold german hang for 20s, clean form", xpReward: 200),
-                SkillLevel(level: 5, target: .hold(seconds: 30), criterion: "Hold german hang for 30s, clean form", xpReward: 250),
-            ]
+                SkillLevel(level: 1, target: .hold(seconds: 10), criterion: "Hold german hang for 10s, clean form", xpReward: 50),
+                SkillLevel(level: 2, target: .hold(seconds: 20), criterion: "Hold german hang for 20s, clean form", xpReward: 100),
+                SkillLevel(level: 3, target: .hold(seconds: 30), criterion: "Hold german hang for 30s, clean form", xpReward: 150),
+                SkillLevel(level: 4, target: .hold(seconds: 45), criterion: "Hold german hang for 45s, clean form", xpReward: 200),
+                SkillLevel(level: 5, target: .hold(seconds: 60), criterion: "Hold german hang for 60s, clean form", xpReward: 250),
+            ],
+            isParallelToParent: true
         ),
         .simple(
             id: "cl.three-sixty-pulls",
             title: "360-Degree Pulls",
-            cluster: .coreLever, tier: 7, type: .skill,
+            cluster: .coreLever, tier: 6, type: .skill,
             target: .reps(exercise: "360-degree pulls", count: 1),
-            prereqs: [PrerequisiteGroup(["cl.german-hang", "pp.one-arm-pullup"])],
-            isMythic: true,
+            prereqs: [PrerequisiteGroup("cl.skin-the-cat")],
             equipment: [.gymnasticRings, .pullupBar],
             primary: [.lats, .arms, .core], secondary: [.back, .shoulders],
             subtitle: "Pull, release, rotate 360°, re-grip, pull again.",
-            description: "One rep — from a pullup, release with enough height to rotate 360° in the air before re-catching the bar, then continue into the next pullup. Power plus spatial control.",
+            description: "From a pullup, release with enough height to rotate 360° in the air before re-catching the bar, then continue into the next pullup. Power plus spatial control.",
             formCues: [
                 "Explosive enough pullup to clear head and then some",
                 "Tuck hard to speed the rotation",
@@ -4519,13 +3207,13 @@ extension SkillGraph {
                 "Shrugged shoulders on the re-catch"
             ],
             timeline: "5+ years of dedicated explosive pulling. Very rare.",
-            rank: .s,
+            rank: .a,
             levels: [
                 SkillLevel(level: 1, target: .firstRep, criterion: "First clean 360-degree pulls to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(1), criterion: "1 strict 360-degree pulls", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(2), criterion: "2 strict 360-degree pulls", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(3), criterion: "3 strict 360-degree pulls", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(3), criterion: "3 strict 360-degree pulls", xpReward: 250),
+                SkillLevel(level: 2, target: .reps(2), criterion: "2 strict 360-degree pulls", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(3), criterion: "3 strict 360-degree pulls", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(4), criterion: "4 strict 360-degree pulls", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(5), criterion: "5 strict 360-degree pulls", xpReward: 250),
             ]
         ),
 
@@ -4553,14 +3241,14 @@ extension SkillGraph {
                 "Arching the spine to stay up",
                 "Kicking up too hard against the wall"
             ],
-            timeline: "1-4 weeks from wrist conditioning.",
+            timeline: "1-4 weeks from wall plank.",
             rank: .d,
             levels: [
-                SkillLevel(level: 1, target: .hold(seconds: 8), criterion: "Hold headstand for 8s, clean form", xpReward: 50),
-                SkillLevel(level: 2, target: .hold(seconds: 15), criterion: "Hold headstand for 15s, clean form", xpReward: 100),
-                SkillLevel(level: 3, target: .hold(seconds: 22), criterion: "Hold headstand for 22s, clean form", xpReward: 150),
-                SkillLevel(level: 4, target: .hold(seconds: 34), criterion: "Hold headstand for 34s, clean form", xpReward: 200),
-                SkillLevel(level: 5, target: .hold(seconds: 45), criterion: "Hold headstand for 45s, clean form", xpReward: 250),
+                SkillLevel(level: 1, target: .hold(seconds: 10), criterion: "Hold headstand for 10s, clean form", xpReward: 50),
+                SkillLevel(level: 2, target: .hold(seconds: 20), criterion: "Hold headstand for 20s, clean form", xpReward: 100),
+                SkillLevel(level: 3, target: .hold(seconds: 30), criterion: "Hold headstand for 30s, clean form", xpReward: 150),
+                SkillLevel(level: 4, target: .hold(seconds: 45), criterion: "Hold headstand for 45s, clean form", xpReward: 200),
+                SkillLevel(level: 5, target: .hold(seconds: 60), criterion: "Hold headstand for 60s, clean form", xpReward: 250),
             ]
         ),
         .simple(
@@ -4568,7 +3256,7 @@ extension SkillGraph {
             title: "Tuck Handstand",
             cluster: .handstand, tier: 3, type: .hold,
             target: .hold(exercise: "tuck handstand", seconds: 5),
-            prereqs: [PrerequisiteGroup("hs.wall-handstand-60")],
+            prereqs: [PrerequisiteGroup("hs.wall-handstand-30")],
             primary: [.shoulders, .core], secondary: [.arms],
             subtitle: "Freestanding on-ramp.",
             description: "5-second freestanding tuck handstand — balance on hands with knees pulled tight to chest. Easier lever than full handstand, teaches the balance.",
@@ -4583,14 +3271,14 @@ extension SkillGraph {
                 "Bent arms when balance shifts",
                 "Over-kicking into the position"
             ],
-            timeline: "1-3 months from 60s wall handstand.",
+            timeline: "1-3 months from wall handstand.",
             rank: .c,
             levels: [
-                SkillLevel(level: 1, target: .hold(seconds: 3), criterion: "Hold tuck handstand for 3s, clean form", xpReward: 50),
-                SkillLevel(level: 2, target: .hold(seconds: 5), criterion: "Hold tuck handstand for 5s, clean form", xpReward: 100),
-                SkillLevel(level: 3, target: .hold(seconds: 10), criterion: "Hold tuck handstand for 10s, clean form", xpReward: 150),
-                SkillLevel(level: 4, target: .hold(seconds: 15), criterion: "Hold tuck handstand for 15s, clean form", xpReward: 200),
-                SkillLevel(level: 5, target: .hold(seconds: 20), criterion: "Hold tuck handstand for 20s, clean form", xpReward: 250),
+                SkillLevel(level: 1, target: .hold(seconds: 5), criterion: "Hold tuck handstand for 5s, clean form", xpReward: 50),
+                SkillLevel(level: 2, target: .hold(seconds: 10), criterion: "Hold tuck handstand for 10s, clean form", xpReward: 100),
+                SkillLevel(level: 3, target: .hold(seconds: 15), criterion: "Hold tuck handstand for 15s, clean form", xpReward: 150),
+                SkillLevel(level: 4, target: .hold(seconds: 20), criterion: "Hold tuck handstand for 20s, clean form", xpReward: 200),
+                SkillLevel(level: 5, target: .hold(seconds: 30), criterion: "Hold tuck handstand for 30s, clean form", xpReward: 250),
             ]
         ),
         .simple(
@@ -4598,7 +3286,7 @@ extension SkillGraph {
             title: "Crow Pose",
             cluster: .handstand, tier: 3, type: .hold,
             target: .hold(exercise: "crow pose", seconds: 15),
-            prereqs: [PrerequisiteGroup("hs.wall-handstand-30")],
+            prereqs: [PrerequisiteGroup("hs.headstand")],
             primary: [.shoulders, .arms, .core],
             subtitle: "Knees on the triceps. Balance on the hands.",
             description: "15-second crow pose — squat, plant hands, rest knees on the backs of the triceps, shift weight forward until feet leave the floor.",
@@ -4613,20 +3301,20 @@ extension SkillGraph {
                 "Keeping weight over the feet — won't float",
                 "Tipping forward onto the head — yes, put a pillow down"
             ],
-            timeline: "1-4 weeks from wrist conditioning.",
+            timeline: "1-4 weeks from headstand.",
             rank: .d,
             levels: [
                 SkillLevel(level: 1, target: .hold(seconds: 5), criterion: "Hold crow pose for 5s, clean form", xpReward: 50),
                 SkillLevel(level: 2, target: .hold(seconds: 10), criterion: "Hold crow pose for 10s, clean form", xpReward: 100),
                 SkillLevel(level: 3, target: .hold(seconds: 15), criterion: "Hold crow pose for 15s, clean form", xpReward: 150),
-                SkillLevel(level: 4, target: .hold(seconds: 30), criterion: "Hold crow pose for 30s, clean form", xpReward: 200),
-                SkillLevel(level: 5, target: .hold(seconds: 45), criterion: "Hold crow pose for 45s, clean form", xpReward: 250),
+                SkillLevel(level: 4, target: .hold(seconds: 22), criterion: "Hold crow pose for 22s, clean form", xpReward: 200),
+                SkillLevel(level: 5, target: .hold(seconds: 30), criterion: "Hold crow pose for 30s, clean form", xpReward: 250),
             ]
         ),
         .simple(
             id: "hs.crane-pose",
             title: "Crane Pose",
-            cluster: .handstand, tier: 2, type: .hold,
+            cluster: .handstand, tier: 4, type: .hold,
             target: .hold(exercise: "crane pose", seconds: 10),
             prereqs: [PrerequisiteGroup("hs.crow-pose")],
             primary: [.shoulders, .arms, .core],
@@ -4646,49 +3334,19 @@ extension SkillGraph {
             timeline: "1-3 months from crow pose.",
             rank: .c,
             levels: [
-                SkillLevel(level: 1, target: .hold(seconds: 5), criterion: "Hold crane pose for 5s, clean form", xpReward: 50),
-                SkillLevel(level: 2, target: .hold(seconds: 10), criterion: "Hold crane pose for 10s, clean form", xpReward: 100),
-                SkillLevel(level: 3, target: .hold(seconds: 15), criterion: "Hold crane pose for 15s, clean form", xpReward: 150),
-                SkillLevel(level: 4, target: .hold(seconds: 20), criterion: "Hold crane pose for 20s, clean form", xpReward: 200),
-                SkillLevel(level: 5, target: .hold(seconds: 30), criterion: "Hold crane pose for 30s, clean form", xpReward: 250),
-            ]
-        ),
-        .simple(
-            id: "hs.frog-pose",
-            title: "Frog Pose",
-            cluster: .handstand, tier: 3, type: .hold,
-            target: .hold(exercise: "frog pose", seconds: 15),
-            prereqs: [PrerequisiteGroup("hs.crow-pose")],
-            primary: [.shoulders, .arms, .core],
-            subtitle: "The crow's cousin.",
-            description: "15-second frog pose — wide hand stance, knees rest on the outside of the upper arms, feet lift off the floor. Easier balance than crow for some.",
-            formCues: [
-                "Hands wider than shoulders, fingers spread",
-                "Knees out, shins press against the outside of biceps",
-                "Shift weight forward until feet float",
-                "Keep arms bent ~90° throughout"
-            ],
-            commonMistakes: [
-                "Knees slipping off the arms",
-                "Gazing straight down — easier to tip",
-                "Fingers not gripping the floor"
-            ],
-            timeline: "1-4 weeks.",
-            rank: .d,
-            levels: [
-                SkillLevel(level: 1, target: .hold(seconds: 5), criterion: "Hold frog pose for 5s, clean form", xpReward: 50),
-                SkillLevel(level: 2, target: .hold(seconds: 10), criterion: "Hold frog pose for 10s, clean form", xpReward: 100),
-                SkillLevel(level: 3, target: .hold(seconds: 15), criterion: "Hold frog pose for 15s, clean form", xpReward: 150),
-                SkillLevel(level: 4, target: .hold(seconds: 30), criterion: "Hold frog pose for 30s, clean form", xpReward: 200),
-                SkillLevel(level: 5, target: .hold(seconds: 45), criterion: "Hold frog pose for 45s, clean form", xpReward: 250),
+                SkillLevel(level: 1, target: .hold(seconds: 3), criterion: "Hold crane pose for 3s, clean form", xpReward: 50),
+                SkillLevel(level: 2, target: .hold(seconds: 5), criterion: "Hold crane pose for 5s, clean form", xpReward: 100),
+                SkillLevel(level: 3, target: .hold(seconds: 10), criterion: "Hold crane pose for 10s, clean form", xpReward: 150),
+                SkillLevel(level: 4, target: .hold(seconds: 15), criterion: "Hold crane pose for 15s, clean form", xpReward: 200),
+                SkillLevel(level: 5, target: .hold(seconds: 20), criterion: "Hold crane pose for 20s, clean form", xpReward: 250),
             ]
         ),
         .simple(
             id: "hs.flying-crow",
             title: "Flying Crow Pose",
-            cluster: .handstand, tier: 3, type: .hold,
+            cluster: .handstand, tier: 4, type: .hold,
             target: .hold(exercise: "flying crow", seconds: 5),
-            prereqs: [PrerequisiteGroup("hs.crane-pose")],
+            prereqs: [PrerequisiteGroup("hs.crow-pose")],
             primary: [.shoulders, .arms, .core],
             subtitle: "One leg extended straight back.",
             description: "5-second flying crow — from crane or crow, extend one leg straight back into the air. Full body engagement with a long lever fighting the balance.",
@@ -4703,14 +3361,14 @@ extension SkillGraph {
                 "Leg drifting out to the side",
                 "Losing knee-tricep contact on the bent leg"
             ],
-            timeline: "3-9 months from crane.",
-            rank: .b,
+            timeline: "3-9 months from crow.",
+            rank: .c,
             levels: [
-                SkillLevel(level: 1, target: .hold(seconds: 3), criterion: "Hold flying crow for 3s, clean form", xpReward: 50),
-                SkillLevel(level: 2, target: .hold(seconds: 5), criterion: "Hold flying crow for 5s, clean form", xpReward: 100),
-                SkillLevel(level: 3, target: .hold(seconds: 10), criterion: "Hold flying crow for 10s, clean form", xpReward: 150),
-                SkillLevel(level: 4, target: .hold(seconds: 15), criterion: "Hold flying crow for 15s, clean form", xpReward: 200),
-                SkillLevel(level: 5, target: .hold(seconds: 20), criterion: "Hold flying crow for 20s, clean form", xpReward: 250),
+                SkillLevel(level: 1, target: .reps(1), criterion: "1 jump-through to flying crow, clean form", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(2), criterion: "2 jump-throughs to flying crow, clean form", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(3), criterion: "3 jump-throughs to flying crow, clean form", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(4), criterion: "4 jump-throughs to flying crow, clean form", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(5), criterion: "5 jump-throughs to flying crow, clean form", xpReward: 250),
             ]
         ),
         .simple(
@@ -4718,7 +3376,7 @@ extension SkillGraph {
             title: "Elbow Lever",
             cluster: .handstand, tier: 3, type: .hold,
             target: .hold(exercise: "elbow lever", seconds: 10),
-            prereqs: [PrerequisiteGroup("hs.wall-handstand-30")],
+            prereqs: [PrerequisiteGroup("hs.headstand")],
             primary: [.shoulders, .core, .arms],
             subtitle: "Body horizontal, elbows into the hips.",
             description: "10-second elbow lever — hands plant on the floor, elbows drive into the ribs or hip crease, body extends horizontal. Parlor trick that builds serious core.",
@@ -4733,13 +3391,13 @@ extension SkillGraph {
                 "Legs sagging below horizontal",
                 "Bent knees to cheat the lever"
             ],
-            timeline: "2-8 weeks from wrist conditioning.",
+            timeline: "2-8 weeks from headstand.",
             rank: .d,
             levels: [
                 SkillLevel(level: 1, target: .hold(seconds: 5), criterion: "Hold elbow lever for 5s, clean form", xpReward: 50),
                 SkillLevel(level: 2, target: .hold(seconds: 10), criterion: "Hold elbow lever for 10s, clean form", xpReward: 100),
                 SkillLevel(level: 3, target: .hold(seconds: 15), criterion: "Hold elbow lever for 15s, clean form", xpReward: 150),
-                SkillLevel(level: 4, target: .hold(seconds: 20), criterion: "Hold elbow lever for 20s, clean form", xpReward: 200),
+                SkillLevel(level: 4, target: .hold(seconds: 22), criterion: "Hold elbow lever for 22s, clean form", xpReward: 200),
                 SkillLevel(level: 5, target: .hold(seconds: 30), criterion: "Hold elbow lever for 30s, clean form", xpReward: 250),
             ]
         ),
@@ -4768,9 +3426,9 @@ extension SkillGraph {
             levels: [
                 SkillLevel(level: 1, target: .hold(seconds: 3), criterion: "Hold one-arm elbow lever for 3s, clean form", xpReward: 50),
                 SkillLevel(level: 2, target: .hold(seconds: 5), criterion: "Hold one-arm elbow lever for 5s, clean form", xpReward: 100),
-                SkillLevel(level: 3, target: .hold(seconds: 10), criterion: "Hold one-arm elbow lever for 10s, clean form", xpReward: 150),
-                SkillLevel(level: 4, target: .hold(seconds: 15), criterion: "Hold one-arm elbow lever for 15s, clean form", xpReward: 200),
-                SkillLevel(level: 5, target: .hold(seconds: 20), criterion: "Hold one-arm elbow lever for 20s, clean form", xpReward: 250),
+                SkillLevel(level: 3, target: .hold(seconds: 8), criterion: "Hold one-arm elbow lever for 8s, clean form", xpReward: 150),
+                SkillLevel(level: 4, target: .hold(seconds: 12), criterion: "Hold one-arm elbow lever for 12s, clean form", xpReward: 200),
+                SkillLevel(level: 5, target: .hold(seconds: 15), criterion: "Hold one-arm elbow lever for 15s, clean form", xpReward: 250),
             ]
         ),
         .simple(
@@ -4778,7 +3436,7 @@ extension SkillGraph {
             title: "Tuck Press to Handstand",
             cluster: .handstand, tier: 5, type: .skill,
             target: .reps(exercise: "tuck press", count: 3),
-            prereqs: [PrerequisiteGroup(["hs.tuck-handstand", "hs.freestanding-hs-30"])],
+            prereqs: [PrerequisiteGroup("hs.tuck-handstand")],
             primary: [.shoulders, .core], secondary: [.arms],
             subtitle: "Press up from tuck to handstand.",
             description: "3 tuck presses — from an L-sit or compressed tuck on the floor, press through straight arms to a tuck handstand without kipping.",
@@ -4797,10 +3455,10 @@ extension SkillGraph {
             rank: .b,
             levels: [
                 SkillLevel(level: 1, target: .firstRep, criterion: "First clean tuck press to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(3), criterion: "3 strict tuck press", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict tuck press", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(6), criterion: "6 strict tuck press", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(8), criterion: "8 strict tuck press", xpReward: 250),
+                SkillLevel(level: 2, target: .reps(2), criterion: "2 strict tuck press", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(3), criterion: "3 strict tuck press", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(4), criterion: "4 strict tuck press", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(5), criterion: "5 strict tuck press", xpReward: 250),
             ]
         ),
         .simple(
@@ -4873,7 +3531,7 @@ extension SkillGraph {
             title: "Bent Arm Planche",
             cluster: .planche, tier: 4, type: .hold,
             target: .hold(exercise: "bent arm planche", seconds: 3),
-            prereqs: [PrerequisiteGroup("pl.tuck-planche")],
+            prereqs: [PrerequisiteGroup("hs.elbow-lever")],
             equipment: [.parallettes],
             primary: [.shoulders, .chest, .core],
             subtitle: "Planche before the straight-arm demand.",
@@ -4889,29 +3547,29 @@ extension SkillGraph {
                 "Arms bending too much — turns into a pushup",
                 "Not extending the legs fully"
             ],
-            timeline: "6-18 months from tuck planche.",
+            timeline: "6-18 months from elbow lever.",
             rank: .b,
             levels: [
-                SkillLevel(level: 1, target: .hold(seconds: 1), criterion: "Hold bent arm planche for 1s, clean form", xpReward: 50),
+                SkillLevel(level: 1, target: .hold(seconds: 2), criterion: "Hold bent arm planche for 2s, clean form", xpReward: 50),
                 SkillLevel(level: 2, target: .hold(seconds: 3), criterion: "Hold bent arm planche for 3s, clean form", xpReward: 100),
                 SkillLevel(level: 3, target: .hold(seconds: 5), criterion: "Hold bent arm planche for 5s, clean form", xpReward: 150),
                 SkillLevel(level: 4, target: .hold(seconds: 8), criterion: "Hold bent arm planche for 8s, clean form", xpReward: 200),
-                SkillLevel(level: 5, target: .hold(seconds: 12), criterion: "Hold bent arm planche for 12s, clean form", xpReward: 250),
+                SkillLevel(level: 5, target: .hold(seconds: 10), criterion: "Hold bent arm planche for 10s, clean form", xpReward: 250),
             ]
         ),
         .simple(
             id: "pl.half-lay-planche",
             title: "Half-Lay Planche",
-            cluster: .planche, tier: 4, type: .hold,
+            cluster: .planche, tier: 6, type: .hold,
             target: .hold(exercise: "half-lay planche", seconds: 3),
-            prereqs: [PrerequisiteGroup("pl.bent-arm-planche")],
+            prereqs: [PrerequisiteGroup("pl.tuck-planche")],
             equipment: [.parallettes],
             primary: [.shoulders, .core],
             subtitle: "Half-straddle. Half-closed.",
-            description: "3-second half-lay planche — straddle planche with legs narrower than full straddle but wider than closed. The intermediate between straddle and full planche.",
+            description: "3-second half-lay planche — legs narrower than full straddle but wider than closed. The intermediate between tuck and full planche.",
             formCues: [
-                "Start from rock-solid straddle planche",
-                "Close the legs halfway toward parallel",
+                "Start from rock-solid tuck planche",
+                "Extend legs halfway between tuck and straddle",
                 "Hips stay at shoulder height",
                 "Toes pointed, legs squeeze even at narrower angle"
             ],
@@ -4920,46 +3578,14 @@ extension SkillGraph {
                 "Hip drop as the lever tightens",
                 "Banana back"
             ],
-            timeline: "6-18 months from straddle planche.",
+            timeline: "6-18 months from tuck planche.",
             rank: .a,
             levels: [
-                SkillLevel(level: 1, target: .hold(seconds: 1), criterion: "Hold half-lay planche for 1s, clean form", xpReward: 50),
+                SkillLevel(level: 1, target: .hold(seconds: 2), criterion: "Hold half-lay planche for 2s, clean form", xpReward: 50),
                 SkillLevel(level: 2, target: .hold(seconds: 3), criterion: "Hold half-lay planche for 3s, clean form", xpReward: 100),
                 SkillLevel(level: 3, target: .hold(seconds: 5), criterion: "Hold half-lay planche for 5s, clean form", xpReward: 150),
-                SkillLevel(level: 4, target: .hold(seconds: 8), criterion: "Hold half-lay planche for 8s, clean form", xpReward: 200),
-                SkillLevel(level: 5, target: .hold(seconds: 12), criterion: "Hold half-lay planche for 12s, clean form", xpReward: 250),
-            ]
-        ),
-        .simple(
-            id: "pl.one-arm-planche",
-            title: "One-Arm Planche",
-            cluster: .planche, tier: 7, type: .hold,
-            target: .hold(exercise: "one-arm planche", seconds: 1),
-            prereqs: [PrerequisiteGroup("pl.full-planche")],
-            isMythic: true,
-            equipment: [.parallettes],
-            primary: [.shoulders, .core, .chest, .arms],
-            subtitle: "Full planche. One arm.",
-            description: "One-second one-arm planche — full horizontal planche supported by a single arm. A handful of humans have ever held it cleanly. F-difficulty territory.",
-            formCues: [
-                "Never attempt without years of rock-solid full planche",
-                "Shift weight slowly to one arm, free arm stays off the floor",
-                "Body stays horizontal — no compensatory lean",
-                "Protract the working shoulder hard"
-            ],
-            commonMistakes: [
-                "Attempting without freakish full planche strength base",
-                "Rotating the body to cheat the lever",
-                "Any loss of straight-arm position"
-            ],
-            timeline: "5-10+ years. Fewer than 20 humans hold it cleanly.",
-            rank: .s,
-            levels: [
-                SkillLevel(level: 1, target: .hold(seconds: 1), criterion: "Hold one-arm planche for 1s per side, clean form", xpReward: 50),
-                SkillLevel(level: 2, target: .hold(seconds: 2), criterion: "Hold one-arm planche for 2s per side, clean form", xpReward: 100),
-                SkillLevel(level: 3, target: .hold(seconds: 3), criterion: "Hold one-arm planche for 3s per side, clean form", xpReward: 150),
-                SkillLevel(level: 4, target: .hold(seconds: 5), criterion: "Hold one-arm planche for 5s per side, clean form", xpReward: 200),
-                SkillLevel(level: 5, target: .hold(seconds: 8), criterion: "Hold one-arm planche for 8s per side, clean form", xpReward: 250),
+                SkillLevel(level: 4, target: .hold(seconds: 6), criterion: "Hold half-lay planche for 6s, clean form", xpReward: 200),
+                SkillLevel(level: 5, target: .hold(seconds: 8), criterion: "Hold half-lay planche for 8s, clean form", xpReward: 250),
             ]
         ),
 
@@ -4998,11 +3624,11 @@ extension SkillGraph {
             timeline: "2-4 weeks for most untrained adults.",
             rank: .e,
             levels: [
-                SkillLevel(level: 1, target: .firstRep, criterion: "First clean clean incline rows to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(5), criterion: "5 strict clean incline rows", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(8), criterion: "8 strict clean incline rows", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(12), criterion: "12 strict clean incline rows", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(15), criterion: "15 strict clean incline rows", xpReward: 250),
+                SkillLevel(level: 1, target: .firstRep, criterion: "First clean incline row to standard", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(8), criterion: "8 strict incline rows", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(12), criterion: "12 strict incline rows", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(18), criterion: "18 strict incline rows", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(25), criterion: "25 strict incline rows", xpReward: 250),
             ]
         ),
         .simple(
@@ -5029,12 +3655,44 @@ extension SkillGraph {
             timeline: "2-6 weeks from incline row.",
             rank: .d,
             levels: [
-                SkillLevel(level: 1, target: .firstRep, criterion: "First clean clean decline rows to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(3), criterion: "3 strict clean decline rows", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict clean decline rows", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(8), criterion: "8 strict clean decline rows", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(12), criterion: "12 strict clean decline rows", xpReward: 250),
+                SkillLevel(level: 1, target: .firstRep, criterion: "First clean decline row to standard", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(5), criterion: "5 strict decline rows", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(10), criterion: "10 strict decline rows", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(15), criterion: "15 strict decline rows", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(20), criterion: "20 strict decline rows", xpReward: 250),
             ]
+        ),
+        .simple(
+            id: "pp.one-arm-row",
+            title: "One-Arm Row",
+            cluster: .pullingPower, tier: 3, type: .skill,
+            target: .reps(exercise: "one arm row", count: 5),
+            prereqs: [PrerequisiteGroup("pp.decline-row")],
+            equipment: [.pullupBar],
+            primary: [.back, .lats], secondary: [.arms, .core],
+            subtitle: "Pull your bodyweight on one arm.",
+            description: "Strict one-arm rows on rings or a low bar — bodyweight horizontal, single arm pulls chest to the implement, control the descent.",
+            formCues: [
+                "Body straight head-to-heels",
+                "Free arm tucked or held out",
+                "Pull elbow to ribs, no twist",
+                "Squeeze shoulder blade at top"
+            ],
+            commonMistakes: [
+                "Twisting torso to cheat",
+                "Bent body instead of straight",
+                "Partial ROM"
+            ],
+            timeline: "2-6 months from decline row.",
+            rank: .c,
+            levels: [
+                SkillLevel(level: 1, target: .firstRep, criterion: "First clean one-arm row per side to standard", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(2), criterion: "2 strict one-arm rows per side", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict one-arm rows per side", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(8), criterion: "8 strict one-arm rows per side", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(12), criterion: "12 strict one-arm rows per side", xpReward: 250),
+            ],
+            isParallelToParent: true
         ),
         .simple(
             id: "pp.tuck-row",
@@ -5098,31 +3756,62 @@ extension SkillGraph {
                 SkillLevel(level: 5, target: .reps(8), criterion: "8 strict clean straddle rows", xpReward: 250),
             ]
         ),
+        .simple(
+            id: "pp.tuck-front-lever-pullup",
+            title: "Tuck Front Lever Pull-Up",
+            cluster: .pullingPower, tier: 4, type: .skill,
+            target: .reps(exercise: "tuck front lever pullup", count: 3),
+            prereqs: [PrerequisiteGroup("pp.one-arm-row")],
+            equipment: [.pullupBar],
+            primary: [.lats, .arms, .core], secondary: [.back],
+            subtitle: "Pull-up while holding the front lever.",
+            description: "Pull-ups performed while holding a tuck front lever — body horizontal, knees tucked. Combines pulling strength with lever core demand.",
+            formCues: [
+                "Enter tuck front lever before initiating the pull",
+                "Hold knees tight to chest throughout",
+                "Pull sternum to bar, body stays horizontal",
+                "Slow eccentric — re-load the lever"
+            ],
+            commonMistakes: [
+                "Losing the lever shape mid-rep",
+                "Vertical pullup with bent legs (different skill)",
+                "Bent arms at the bottom"
+            ],
+            timeline: "6-18 months from one-arm row + tuck front lever.",
+            rank: .b,
+            levels: [
+                SkillLevel(level: 1, target: .firstRep, criterion: "First clean tuck front lever pull-up to standard", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(2), criterion: "2 strict tuck front lever pull-ups", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(3), criterion: "3 strict tuck front lever pull-ups", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(5), criterion: "5 strict tuck front lever pull-ups", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(8), criterion: "8 strict tuck front lever pull-ups", xpReward: 250),
+            ]
+        ),
 
         // MARK: Pull — Ascent / Crossover / Solo Arm additions
         .simple(
             id: "pp.heighted-chin-up",
             title: "Heighted Chin-Up",
-            cluster: .pullingPower, tier: 5, type: .skill,
+            cluster: .pullingPower, tier: 7, type: .skill,
             target: .reps(exercise: "heighted chin-up", count: 3),
             prereqs: [PrerequisiteGroup("pp.weighted-chin-up")],
             equipment: [.pullupBar],
-            primary: [.lats, .arms], secondary: [.back, .core],
-            subtitle: "Bar above the collarbones.",
-            description: "Chin-up where you pull the bar below the sternum — collarbones-to-bar or deeper. 3 clean reps. Extra range, extra bicep demand, direct bridge to one-arm chin-up work.",
+            primary: [.lats, .arms, .back], secondary: [.core, .forearms],
+            subtitle: "Beyond chin-to-bar — pull collarbones to the bar.",
+            description: "3 strict chin-ups where the collarbones (sternum) clear the bar — extreme ROM, requires explosive pull off a base of weighted chin-up strength.",
             formCues: [
-                "Explosive pull — build momentum early",
-                "Drive elbows down hard to hit the extra ROM",
-                "Let the chest rise to the bar, don't crane the neck",
-                "Slow eccentric from the top each rep"
+                "Underhand grip, dead hang start",
+                "Pull until collarbones clear the bar",
+                "No kip, no leg drive",
+                "Slow eccentric to dead hang"
             ],
             commonMistakes: [
-                "Kipping to buy the extra height",
-                "Letting the chin clear the bar and calling it done",
-                "Shrugged shoulders at the top"
+                "Stopping at chin-over-bar (that's a regular chin-up)",
+                "Kipping for the extra height",
+                "Partial ROM at the bottom"
             ],
-            timeline: "3-9 months from weighted chin-up mastery.",
-            rank: .b,
+            timeline: "6-12 months from weighted chin-up.",
+            rank: .a,
             levels: [
                 SkillLevel(level: 1, target: .firstRep, criterion: "First clean heighted chin-up to standard", xpReward: 50),
                 SkillLevel(level: 2, target: .reps(2), criterion: "2 strict heighted chin-ups", xpReward: 100),
@@ -5134,9 +3823,10 @@ extension SkillGraph {
         .simple(
             id: "pp.one-arm-chin-up",
             title: "One-Arm Chin-Up",
-            cluster: .pullingPower, tier: 6, type: .skill,
+            cluster: .pullingPower, tier: 8, type: .skill,
             target: .reps(exercise: "one-arm chin-up", count: 1),
-            prereqs: [PrerequisiteGroup(["pp.heighted-chin-up", "pp.oap-negative"])],
+            prereqs: [PrerequisiteGroup("pp.heighted-chin-up")],
+            isMythic: true,
             equipment: [.pullupBar],
             primary: [.lats, .arms, .back], secondary: [.core, .forearms],
             subtitle: "Supinated ceiling.",
@@ -5154,21 +3844,22 @@ extension SkillGraph {
                 "Chin not fully clearing the bar"
             ],
             timeline: "3-5+ years of dedicated pull work.",
-            rank: .a,
+            rank: .s,
             levels: [
                 SkillLevel(level: 1, target: .firstRep, criterion: "First clean one-arm chin-up per side to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(2), criterion: "2 strict one-arm chin-ups per side", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(3), criterion: "3 strict one-arm chin-ups per side", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(4), criterion: "4 strict one-arm chin-ups per side", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(5), criterion: "5 strict one-arm chin-ups per side", xpReward: 250),
+                SkillLevel(level: 2, target: .reps(1), criterion: "1 strict one-arm chin-up per side", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(2), criterion: "2 strict one-arm chin-ups per side", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(3), criterion: "3 strict one-arm chin-ups per side", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(3), criterion: "3 strict one-arm chin-ups per side", xpReward: 250),
             ]
         ),
         .simple(
             id: "pp.strict-muscle-up",
             title: "Strict Muscle-Up",
-            cluster: .pullingPower, tier: 5, type: .skill,
+            cluster: .pullingPower, tier: 8, type: .skill,
             target: .reps(exercise: "strict muscle-up", count: 1),
-            prereqs: [PrerequisiteGroup("pp.muscle-up")],
+            prereqs: [PrerequisiteGroup("pp.ring-muscle-up")],
+            isMythic: true,
             equipment: [.pullupBar],
             primary: [.lats, .chest, .arms], secondary: [.core, .shoulders],
             subtitle: "No hips. No kip.",
@@ -5185,13 +3876,13 @@ extension SkillGraph {
                 "Using momentum from the eccentric of a previous rep"
             ],
             timeline: "6-18 months from first muscle-up.",
-            rank: .b,
+            rank: .s,
             levels: [
                 SkillLevel(level: 1, target: .firstRep, criterion: "First clean strict muscle-up to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(2), criterion: "2 strict muscle-ups", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(3), criterion: "3 strict muscle-ups", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(5), criterion: "5 strict muscle-ups", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(8), criterion: "8 strict muscle-ups", xpReward: 250),
+                SkillLevel(level: 2, target: .reps(1), criterion: "1 strict muscle-up", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(2), criterion: "2 strict muscle-ups", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(3), criterion: "3 strict muscle-ups", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(3), criterion: "3 strict muscle-ups", xpReward: 250),
             ]
         ),
 
@@ -5199,9 +3890,9 @@ extension SkillGraph {
         .simple(
             id: "cal.bent-arm-press",
             title: "Bent Arm Press",
-            cluster: .calisthenicControl, tier: 4, type: .skill,
+            cluster: .calisthenicControl, tier: 6, type: .skill,
             target: .reps(exercise: "bent arm press", count: 3),
-            prereqs: [PrerequisiteGroup("hspu.elevated-pike-pushup-10")],
+            prereqs: [PrerequisiteGroup("cal.floating-pike-pushup")],
             primary: [.shoulders, .arms], secondary: [.core, .chest],
             subtitle: "Vertical press without a wall.",
             description: "Standing strict overhead press of your full bodyweight equivalent via a bent-arm press pattern — from a pike/elevated pike start, press up through bent arms to full overhead lockout. 3 reps. Bridge between elevated pike work and freestanding HSPU strength.",
@@ -5216,14 +3907,14 @@ extension SkillGraph {
                 "Arching through the lumbar to lock out",
                 "Soft lockout — elbows not fully extended"
             ],
-            timeline: "3-9 months from elevated pike push-up.",
+            timeline: "3-9 months from floating pike push-up.",
             rank: .b,
             levels: [
                 SkillLevel(level: 1, target: .firstRep, criterion: "First clean bent arm press to standard", xpReward: 50),
                 SkillLevel(level: 2, target: .reps(2), criterion: "2 strict bent arm presses", xpReward: 100),
                 SkillLevel(level: 3, target: .reps(3), criterion: "3 strict bent arm presses", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(5), criterion: "5 strict bent arm presses", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(8), criterion: "8 strict bent arm presses", xpReward: 250),
+                SkillLevel(level: 4, target: .reps(4), criterion: "4 strict bent arm presses", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(5), criterion: "5 strict bent arm presses", xpReward: 250),
             ]
         ),
 
@@ -5231,13 +3922,13 @@ extension SkillGraph {
         .simple(
             id: "ld.step-up",
             title: "Step Up",
-            cluster: .legDominance, tier: 4, type: .skill,
+            cluster: .legDominance, tier: 2, type: .skill,
             target: .reps(exercise: "step up", count: 15),
-            prereqs: [PrerequisiteGroup("ld.deep-squat")],
+            prereqs: [PrerequisiteGroup("ld.goblet-20")],
             equipment: [.elevatedSurface],
             primary: [.legs, .glutes], secondary: [.core],
             subtitle: "The most skipped entry.",
-            description: "Step up onto a knee-height box, drive through the heel, control the descent. 15 reps per leg. Hidden gold for quad/glute strength and single-leg control without needing pistol-level mobility.",
+            description: "Step up onto a knee-height box, drive through the heel, control the descent. Hidden gold for quad/glute strength and single-leg control without needing pistol-level mobility.",
             formCues: [
                 "Full foot on the box — not just the ball",
                 "Drive through the heel to stand",
@@ -5252,11 +3943,11 @@ extension SkillGraph {
             timeline: "Immediate.",
             rank: .e,
             levels: [
-                SkillLevel(level: 1, target: .firstRep, criterion: "First clean clean step ups per leg to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(5), criterion: "5 strict clean step ups per leg", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(8), criterion: "8 strict clean step ups per leg", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(12), criterion: "12 strict clean step ups per leg", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(15), criterion: "15 strict clean step ups per leg", xpReward: 250),
+                SkillLevel(level: 1, target: .firstRep, criterion: "First clean step up per leg", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(10), criterion: "10 strict step ups per leg", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(15), criterion: "15 strict step ups per leg", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(20), criterion: "20 strict step ups per leg", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(25), criterion: "25 strict step ups per leg", xpReward: 250),
             ]
         ),
         .simple(
@@ -5264,10 +3955,10 @@ extension SkillGraph {
             title: "Deep Squat",
             cluster: .legDominance, tier: 3, type: .hold,
             target: .hold(exercise: "deep squat", seconds: 60),
-            prereqs: [PrerequisiteGroup("ld.tempo-squat")],
+            prereqs: [PrerequisiteGroup("ld.step-up")],
             primary: [.legs, .glutes], secondary: [.core],
             subtitle: "The squat your body forgot.",
-            description: "Sit in a full-depth bodyweight squat — hips below knees, feet flat, chest up — for 60 seconds. Ankle, hip, and knee mobility floor that every squat progression depends on.",
+            description: "Sit in a full-depth bodyweight squat — hips below knees, feet flat, chest up — for the duration. Ankle, hip, and knee mobility floor that every squat progression depends on.",
             formCues: [
                 "Feet flat — if heels lift, ankle mobility first",
                 "Hips below knees — full depth, no inch lost",
@@ -5282,11 +3973,11 @@ extension SkillGraph {
             timeline: "Immediate to 6 weeks for rusty adults.",
             rank: .e,
             levels: [
-                SkillLevel(level: 1, target: .hold(seconds: 10), criterion: "Hold deep squat for 10s, clean form", xpReward: 50),
-                SkillLevel(level: 2, target: .hold(seconds: 20), criterion: "Hold deep squat for 20s, clean form", xpReward: 100),
-                SkillLevel(level: 3, target: .hold(seconds: 30), criterion: "Hold deep squat for 30s, clean form", xpReward: 150),
-                SkillLevel(level: 4, target: .hold(seconds: 45), criterion: "Hold Hold deep squat for 2 minutes for 45s, clean form", xpReward: 200),
-                SkillLevel(level: 5, target: .hold(seconds: 60), criterion: "Hold Hold deep squat for 5 minutes for 60s, clean form", xpReward: 250),
+                SkillLevel(level: 1, target: .hold(seconds: 30), criterion: "Hold deep squat for 30s, clean form", xpReward: 50),
+                SkillLevel(level: 2, target: .hold(seconds: 60), criterion: "Hold deep squat for 60s, clean form", xpReward: 100),
+                SkillLevel(level: 3, target: .hold(seconds: 120), criterion: "Hold deep squat for 2 minutes, clean form", xpReward: 150),
+                SkillLevel(level: 4, target: .hold(seconds: 180), criterion: "Hold deep squat for 3 minutes, clean form", xpReward: 200),
+                SkillLevel(level: 5, target: .hold(seconds: 300), criterion: "Hold deep squat for 5 minutes, clean form", xpReward: 250),
             ]
         ),
         .simple(
@@ -5312,11 +4003,11 @@ extension SkillGraph {
             timeline: "Immediate.",
             rank: .e,
             levels: [
-                SkillLevel(level: 1, target: .firstRep, criterion: "First clean clean glute bridges with top squeeze to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(5), criterion: "5 strict clean glute bridges", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(8), criterion: "8 strict clean glute bridges", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(12), criterion: "12 strict clean glute bridges", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(15), criterion: "15 strict clean glute bridges unbroken", xpReward: 250),
+                SkillLevel(level: 1, target: .firstRep, criterion: "First clean glute bridge with top squeeze", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(10), criterion: "10 strict glute bridges", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(15), criterion: "15 strict glute bridges", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(20), criterion: "20 strict glute bridges", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(30), criterion: "30 strict glute bridges unbroken", xpReward: 250),
             ]
         ),
         .simple(
@@ -5344,21 +4035,21 @@ extension SkillGraph {
             rank: .c,
             levels: [
                 SkillLevel(level: 1, target: .weight(multiplier: 0.25), criterion: "0.25x bw weighted BSS per leg, 8 reps", xpReward: 50),
-                SkillLevel(level: 2, target: .weight(multiplier: 0.35), criterion: "0.35x bw weighted BSS per leg, 8 reps", xpReward: 100),
+                SkillLevel(level: 2, target: .weight(multiplier: 0.4), criterion: "0.4x bw weighted BSS per leg, 8 reps", xpReward: 100),
                 SkillLevel(level: 3, target: .weight(multiplier: 0.5), criterion: "0.5x bw weighted BSS per leg, 8 reps", xpReward: 150),
                 SkillLevel(level: 4, target: .weight(multiplier: 0.65), criterion: "0.65x bw weighted BSS per leg, 8 reps", xpReward: 200),
-                SkillLevel(level: 5, target: .weight(multiplier: 0.8), criterion: "0.8x bw weighted BSS per leg, 8 reps", xpReward: 250),
+                SkillLevel(level: 5, target: .weight(multiplier: 0.75), criterion: "0.75x bw weighted BSS per leg, 8 reps", xpReward: 250),
             ]
         ),
         .simple(
             id: "ld.sissy-squat",
             title: "Sissy Squat",
-            cluster: .legDominance, tier: 4, type: .skill,
+            cluster: .legDominance, tier: 5, type: .skill,
             target: .reps(exercise: "sissy squat", count: 8),
-            prereqs: [PrerequisiteGroup("ld.deep-squat")],
+            prereqs: [PrerequisiteGroup("ld.leg-extensions")],
             primary: [.legs], secondary: [.core],
             subtitle: "Pure quad isolation.",
-            description: "Lean back, bend at the knees only (hips stay extended), drop the heels — torso, hips, and knees stay in a straight line. 8 reps. The brutal quad-only movement that gym bros sleep on.",
+            description: "Lean back, bend at the knees only (hips stay extended), drop the heels — torso, hips, and knees stay in a straight line. The brutal quad-only movement that gym bros sleep on.",
             formCues: [
                 "Heels rise — knees push forward and down",
                 "Straight line from knees to shoulders throughout",
@@ -5371,25 +4062,25 @@ extension SkillGraph {
                 "Too-aggressive knee travel before ready — patellar issues"
             ],
             timeline: "4-8 weeks of quad-specific work.",
-            rank: .c,
+            rank: .b,
             levels: [
-                SkillLevel(level: 1, target: .firstRep, criterion: "First clean clean sissy squats to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(3), criterion: "3 strict clean sissy squats", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict clean sissy squats", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(8), criterion: "8 strict clean sissy squats", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(10), criterion: "10 strict clean sissy squats", xpReward: 250),
+                SkillLevel(level: 1, target: .firstRep, criterion: "First clean sissy squat to standard", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(3), criterion: "3 strict sissy squats", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict sissy squats", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(8), criterion: "8 strict sissy squats", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(10), criterion: "10 strict sissy squats", xpReward: 250),
             ]
         ),
         .simple(
             id: "ld.nordic-hip-hinge",
             title: "Nordic Hip Hinge",
-            cluster: .legDominance, tier: 5, type: .skill,
+            cluster: .legDominance, tier: 4, type: .skill,
             target: .reps(exercise: "nordic hip hinge", count: 8),
-            prereqs: [PrerequisiteGroup("ld.step-up")],
+            prereqs: [PrerequisiteGroup("ld.single-leg-glute-bridge")],
             equipment: [.elevatedSurface],
             primary: [.legs, .glutes], secondary: [.core],
             subtitle: "Hamstrings meet hip hinge.",
-            description: "Kneeling hip hinge with feet anchored — lean forward from the knees, hinge at the hips mid-rep, then return. 8 reps. The on-ramp to the full Nordic curl that teaches the exact motor pattern.",
+            description: "Kneeling hip hinge with feet anchored — lean forward from the knees, hinge at the hips mid-rep, then return. The on-ramp to the full Nordic curl that teaches the exact motor pattern.",
             formCues: [
                 "Feet and shins fully anchored",
                 "Quads vertical at the start",
@@ -5401,26 +4092,26 @@ extension SkillGraph {
                 "Ankles unanchored — position breaks",
                 "Using hands for a third contact point"
             ],
-            timeline: "2-6 weeks from single-leg RDL.",
+            timeline: "2-6 weeks from single-leg glute bridge.",
             rank: .d,
             levels: [
-                SkillLevel(level: 1, target: .firstRep, criterion: "First clean clean nordic hip hinges to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(3), criterion: "3 strict clean nordic hip hinges", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict clean nordic hip hinges", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(8), criterion: "8 strict clean nordic hip hinges", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(12), criterion: "12 strict clean nordic hip hinges", xpReward: 250),
+                SkillLevel(level: 1, target: .firstRep, criterion: "First clean nordic hip hinge to standard", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(3), criterion: "3 strict nordic hip hinges", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict nordic hip hinges", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(8), criterion: "8 strict nordic hip hinges", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(10), criterion: "10 strict nordic hip hinges", xpReward: 250),
             ]
         ),
         .simple(
             id: "ld.nordic-curl",
             title: "Nordic Curl",
-            cluster: .legDominance, tier: 5, type: .skill,
+            cluster: .legDominance, tier: 6, type: .skill,
             target: .reps(exercise: "nordic curl", count: 3),
             prereqs: [PrerequisiteGroup("ld.advancing-nordic-curl")],
             equipment: [.elevatedSurface],
             primary: [.legs, .glutes], secondary: [.core],
             subtitle: "The hamstring holy grail.",
-            description: "Kneeling, ankles anchored, lower the torso to the floor using only hamstring strength — then pull yourself back up with no hand assist. 3 clean reps. The hardest bodyweight hamstring move in existence.",
+            description: "Kneeling, ankles anchored, lower the torso to the floor using only hamstring strength — then pull yourself back up with no hand assist. The hardest bodyweight hamstring move in existence.",
             formCues: [
                 "Ankles and calves fully anchored",
                 "Body rigid — straight line from knees to head",
@@ -5428,58 +4119,28 @@ extension SkillGraph {
                 "Drive up using hamstrings only — hands only catch a failure"
             ],
             commonMistakes: [
-                "Pushing off with the hands (that's advancing nordic curl)",
+                "Pushing off with the hands (that's advanced nordic hip hinge)",
                 "Breaking at the hips to cheat",
                 "Dropping the last 6 inches of descent"
             ],
-            timeline: "1-3 years from advancing nordic curl.",
-            rank: .b,
+            timeline: "1-3 years from advanced nordic hip hinge.",
+            rank: .a,
             levels: [
                 SkillLevel(level: 1, target: .firstRep, criterion: "First clean nordic curl to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(2), criterion: "2 strict nordic curls", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(3), criterion: "3 strict nordic curls", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(5), criterion: "5 strict nordic curls", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(8), criterion: "8 strict nordic curls", xpReward: 250),
+                SkillLevel(level: 2, target: .reps(1), criterion: "1 strict nordic curl", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(2), criterion: "2 strict nordic curls", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(3), criterion: "3 strict nordic curls", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(5), criterion: "5 strict nordic curls", xpReward: 250),
             ]
         ),
 
         // MARK: Core — Spine/Raised gap nodes
         .simple(
-            id: "cl.straight-crunch",
-            title: "Straight Crunch",
-            cluster: .coreLever, tier: 3, type: .skill,
-            target: .reps(exercise: "straight crunch", count: 20),
-            prereqs: [PrerequisiteGroup("cl.crunch")],
-            primary: [.core],
-            subtitle: "Legs locked, abs only.",
-            description: "Crunch performed with legs fully extended and heels hovering just off the floor. 20 reps. The hip-flexor-off variant that isolates the rectus abdominis.",
-            formCues: [
-                "Legs locked straight, heels 2 inches off floor",
-                "Crunch the rib cage toward the pelvis",
-                "Don't pull on the neck",
-                "Lower with control — don't slam"
-            ],
-            commonMistakes: [
-                "Feet touching floor — kills the ab demand",
-                "Yanking the head with the hands",
-                "Bending knees to make it easier"
-            ],
-            timeline: "Immediate.",
-            rank: .e,
-            levels: [
-                SkillLevel(level: 1, target: .firstRep, criterion: "First clean clean straight crunches to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(5), criterion: "5 strict clean straight crunches", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(8), criterion: "8 strict clean straight crunches", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(12), criterion: "12 strict clean straight crunches", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(15), criterion: "15 strict clean straight crunches", xpReward: 250),
-            ]
-        ),
-        .simple(
             id: "cl.bird-dog-plank",
             title: "Bird Dog Plank",
             cluster: .coreLever, tier: 2, type: .hold,
             target: .hold(exercise: "bird dog plank", seconds: 30),
-            prereqs: [PrerequisiteGroup("cl.hollow-body-30")],
+            prereqs: [PrerequisiteGroup("cal.plank-30")],
             primary: [.core, .glutes], secondary: [.back, .shoulders],
             subtitle: "Anti-rotation under tension.",
             description: "From a full plank, extend the opposite arm and leg simultaneously. Hold 30 seconds per side without hip or shoulder drift. The anti-rotation benchmark that separates owned cores from surface-deep planks.",
@@ -5498,18 +4159,18 @@ extension SkillGraph {
             rank: .d,
             levels: [
                 SkillLevel(level: 1, target: .hold(seconds: 8), criterion: "Hold bird dog plank for 8s, clean form", xpReward: 50),
-                SkillLevel(level: 2, target: .hold(seconds: 15), criterion: "Hold bird dog plank for 15s, clean form", xpReward: 100),
-                SkillLevel(level: 3, target: .hold(seconds: 22), criterion: "Hold bird dog plank for 22s, clean form", xpReward: 150),
-                SkillLevel(level: 4, target: .hold(seconds: 34), criterion: "Hold bird dog plank for 34s, clean form", xpReward: 200),
-                SkillLevel(level: 5, target: .hold(seconds: 45), criterion: "Hold bird dog plank for 45s, clean form", xpReward: 250),
+                SkillLevel(level: 2, target: .hold(seconds: 20), criterion: "Hold bird dog plank for 20s, clean form", xpReward: 100),
+                SkillLevel(level: 3, target: .hold(seconds: 30), criterion: "Hold bird dog plank for 30s, clean form", xpReward: 150),
+                SkillLevel(level: 4, target: .hold(seconds: 45), criterion: "Hold bird dog plank for 45s, clean form", xpReward: 200),
+                SkillLevel(level: 5, target: .hold(seconds: 60), criterion: "Hold bird dog plank for 60s, clean form", xpReward: 250),
             ]
         ),
         .simple(
             id: "cl.v-sit",
             title: "V-Sit",
-            cluster: .coreLever, tier: 4, type: .hold,
+            cluster: .coreLever, tier: 5, type: .hold,
             target: .hold(exercise: "v-sit", seconds: 10),
-            prereqs: [PrerequisiteGroup("cal.l-sit-20")],
+            prereqs: [PrerequisiteGroup("cal.l-sit-10")],
             primary: [.core, .arms], secondary: [.shoulders],
             subtitle: "L-Sit, compressed upward.",
             description: "From a seated push-up position, lift the legs until they're above horizontal — body forms a V shape. 10 seconds. The compression and hip-flexor strength benchmark beyond the L-sit.",
@@ -5529,17 +4190,17 @@ extension SkillGraph {
             levels: [
                 SkillLevel(level: 1, target: .hold(seconds: 3), criterion: "Hold V-sit for 3s, legs above horizontal", xpReward: 50),
                 SkillLevel(level: 2, target: .hold(seconds: 5), criterion: "Hold V-sit for 5s, legs above horizontal", xpReward: 100),
-                SkillLevel(level: 3, target: .hold(seconds: 10), criterion: "Hold V-sit for 10s, legs above horizontal", xpReward: 150),
-                SkillLevel(level: 4, target: .hold(seconds: 15), criterion: "Hold V-sit for 15s, legs above horizontal", xpReward: 200),
-                SkillLevel(level: 5, target: .hold(seconds: 20), criterion: "Hold V-sit for 20s, legs above horizontal", xpReward: 250),
+                SkillLevel(level: 3, target: .hold(seconds: 8), criterion: "Hold V-sit for 8s, legs above horizontal", xpReward: 150),
+                SkillLevel(level: 4, target: .hold(seconds: 12), criterion: "Hold V-sit for 12s, legs above horizontal", xpReward: 200),
+                SkillLevel(level: 5, target: .hold(seconds: 15), criterion: "Hold V-sit for 15s, legs above horizontal", xpReward: 250),
             ]
         ),
         .simple(
             id: "cl.straddle-l-sit",
             title: "Straddle L-Sit",
-            cluster: .coreLever, tier: 4, type: .hold,
+            cluster: .coreLever, tier: 6, type: .hold,
             target: .hold(exercise: "straddle l-sit", seconds: 10),
-            prereqs: [PrerequisiteGroup("cal.l-sit-20")],
+            prereqs: [PrerequisiteGroup("cl.semi-straddle-l-sit")],
             primary: [.core, .arms], secondary: [.shoulders],
             subtitle: "Wide. Horizontal. Humbling.",
             description: "L-sit with legs split into a wide straddle — legs parallel to floor, toes pointed outward. 10 seconds. The lateral compression demand the standard L-sit doesn't test.",
@@ -5567,9 +4228,9 @@ extension SkillGraph {
         .simple(
             id: "cl.dragon-flag-hip-raise",
             title: "Dragon Flag Hip Raise",
-            cluster: .coreLever, tier: 3, type: .skill,
+            cluster: .coreLever, tier: 4, type: .skill,
             target: .reps(exercise: "dragon flag hip raise", count: 8),
-            prereqs: [PrerequisiteGroup("cl.dragon-flag-negative")],
+            prereqs: [PrerequisiteGroup("cl.reverse-crunch")],
             equipment: [.elevatedSurface],
             primary: [.core], secondary: [.back, .shoulders],
             subtitle: "Dragon flag's missing link.",
@@ -5585,22 +4246,22 @@ extension SkillGraph {
                 "Kipping with the legs for momentum",
                 "Releasing the grip before the rep is done"
             ],
-            timeline: "2-4 months from dragon flag negative.",
+            timeline: "2-4 months from reverse crunch.",
             rank: .c,
             levels: [
-                SkillLevel(level: 1, target: .firstRep, criterion: "First clean clean dragon flag hip raises to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(3), criterion: "3 strict clean dragon flag hip raises", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict clean dragon flag hip raises", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(8), criterion: "8 strict clean dragon flag hip raises", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(10), criterion: "10 strict clean dragon flag hip raises", xpReward: 250),
+                SkillLevel(level: 1, target: .firstRep, criterion: "First clean dragon flag hip raise to standard", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(3), criterion: "3 strict dragon flag hip raises", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(6), criterion: "6 strict dragon flag hip raises", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(9), criterion: "9 strict dragon flag hip raises", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(12), criterion: "12 strict dragon flag hip raises", xpReward: 250),
             ]
         ),
         .simple(
             id: "cl.decline-situp",
             title: "Decline Sit-Up",
-            cluster: .coreLever, tier: 2, type: .skill,
+            cluster: .coreLever, tier: 4, type: .skill,
             target: .reps(exercise: "decline sit-up", count: 15),
-            prereqs: [PrerequisiteGroup("cl.crunch")],
+            prereqs: [PrerequisiteGroup("cl.levitation-crunch")],
             equipment: [.elevatedSurface],
             primary: [.core], secondary: [.legs],
             subtitle: "More range. More burn.",
@@ -5619,11 +4280,133 @@ extension SkillGraph {
             timeline: "2-4 weeks from crunch.",
             rank: .d,
             levels: [
-                SkillLevel(level: 1, target: .firstRep, criterion: "First clean clean decline sit-ups to standard", xpReward: 50),
-                SkillLevel(level: 2, target: .reps(3), criterion: "3 strict clean decline sit-ups", xpReward: 100),
-                SkillLevel(level: 3, target: .reps(5), criterion: "5 strict clean decline sit-ups", xpReward: 150),
-                SkillLevel(level: 4, target: .reps(8), criterion: "8 strict clean decline sit-ups", xpReward: 200),
-                SkillLevel(level: 5, target: .reps(12), criterion: "12 strict clean decline sit-ups", xpReward: 250),
+                SkillLevel(level: 1, target: .firstRep, criterion: "First clean decline sit-up to standard", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(8), criterion: "8 strict decline sit-ups", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(15), criterion: "15 strict decline sit-ups", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(22), criterion: "22 strict decline sit-ups", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(30), criterion: "30 strict decline sit-ups", xpReward: 250),
+            ]
+        ),
+
+        // MARK: Core — Canonical hierarchy additions
+        .simple(
+            id: "cl.knee-raise",
+            title: "Knee Raise",
+            cluster: .coreLever, tier: 3, type: .skill,
+            target: .reps(exercise: "knee raise", count: 12),
+            prereqs: [PrerequisiteGroup("cl.hollow-body-30")],
+            primary: [.core], secondary: [.shoulders],
+            subtitle: "Supported knee lifts.",
+            description: "12 knee raises while supporting body on parallel bars or dip station — keep torso upright, drive knees up to chest, control the descent. Floor variant acceptable for early levels.",
+            formCues: [
+                "Shoulders depressed, body supported",
+                "Drive knees toward chest, not just up",
+                "No swinging or kipping",
+                "Slow eccentric"
+            ],
+            commonMistakes: [
+                "Swinging for momentum",
+                "Partial ROM — knees stop at 90°",
+                "Shrugged shoulders under support"
+            ],
+            timeline: "1-4 weeks from hollow body.",
+            rank: .d,
+            levels: [
+                SkillLevel(level: 1, target: .firstRep, criterion: "First clean knee raise to standard", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(5), criterion: "5 strict knee raises", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(12), criterion: "12 strict knee raises", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(15), criterion: "15 strict knee raises", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(20), criterion: "20 strict knee raises", xpReward: 250),
+            ]
+        ),
+        .simple(
+            id: "cl.leg-raise",
+            title: "Leg Raise",
+            cluster: .coreLever, tier: 4, type: .skill,
+            target: .reps(exercise: "leg raise", count: 12),
+            prereqs: [PrerequisiteGroup("cl.knee-raise")],
+            primary: [.core], secondary: [.legs],
+            subtitle: "Straight legs, full ROM.",
+            description: "12 strict leg raises — supine on floor or supported on dip bars. Legs locked straight, lower back pressed down, raise legs to vertical, controlled descent.",
+            formCues: [
+                "Lower back pressed flat throughout",
+                "Legs locked straight",
+                "Raise to perpendicular, no further",
+                "No bouncing or kipping"
+            ],
+            commonMistakes: [
+                "Bent knees mid-rep — that's a knee raise",
+                "Lumbar arching off the floor",
+                "Using momentum on the way down"
+            ],
+            timeline: "2-6 weeks from knee raise.",
+            rank: .d,
+            levels: [
+                SkillLevel(level: 1, target: .firstRep, criterion: "First clean leg raise to standard", xpReward: 50),
+                SkillLevel(level: 2, target: .reps(5), criterion: "5 strict leg raises", xpReward: 100),
+                SkillLevel(level: 3, target: .reps(12), criterion: "12 strict leg raises", xpReward: 150),
+                SkillLevel(level: 4, target: .reps(15), criterion: "15 strict leg raises", xpReward: 200),
+                SkillLevel(level: 5, target: .reps(20), criterion: "20 strict leg raises", xpReward: 250),
+            ]
+        ),
+        .simple(
+            id: "cl.semi-straddle-l-sit",
+            title: "Semi Straddle L-Sit",
+            cluster: .coreLever, tier: 5, type: .hold,
+            target: .hold(exercise: "semi straddle l-sit", seconds: 10),
+            prereqs: [PrerequisiteGroup("cal.l-sit-10")],
+            primary: [.core, .arms], secondary: [.shoulders, .legs],
+            subtitle: "L-sit with one leg straddled out.",
+            description: "10s hold with one leg in standard L-sit position, the other leg opened to the side at ~45°. Bridges L-sit to full straddle.",
+            formCues: [
+                "Hands press down, shoulders depressed",
+                "One leg locked forward, one leg opened ~45°",
+                "Both legs above hand line",
+                "Switch sides each set"
+            ],
+            commonMistakes: [
+                "Open leg drops below hand line",
+                "Bent knees on either leg",
+                "Shoulders shrugging up"
+            ],
+            timeline: "2-6 months from clean L-sit.",
+            rank: .b,
+            levels: [
+                SkillLevel(level: 1, target: .hold(seconds: 3), criterion: "Hold semi straddle L-sit for 3s", xpReward: 50),
+                SkillLevel(level: 2, target: .hold(seconds: 5), criterion: "Hold semi straddle L-sit for 5s", xpReward: 100),
+                SkillLevel(level: 3, target: .hold(seconds: 10), criterion: "Hold semi straddle L-sit for 10s", xpReward: 150),
+                SkillLevel(level: 4, target: .hold(seconds: 15), criterion: "Hold semi straddle L-sit for 15s", xpReward: 200),
+                SkillLevel(level: 5, target: .hold(seconds: 20), criterion: "Hold semi straddle L-sit for 20s", xpReward: 250),
+            ]
+        ),
+        .simple(
+            id: "cl.vertical-l-sit",
+            title: "Vertical L-Sit",
+            cluster: .coreLever, tier: 6, type: .hold,
+            target: .hold(exercise: "vertical l-sit", seconds: 5),
+            prereqs: [PrerequisiteGroup("cl.v-sit")],
+            primary: [.core, .arms], secondary: [.shoulders],
+            subtitle: "Legs go past vertical.",
+            description: "5s hold with hands pressed on parallel bars or floor, legs lifted past vertical so the body forms a V — extreme compression and pressing strength. Beyond V-sit.",
+            formCues: [
+                "Arms locked, shoulders depressed",
+                "Compress hard — torso folds toward thighs",
+                "Legs lift past vertical, not just to vertical",
+                "Toes pointed, no bend in knees"
+            ],
+            commonMistakes: [
+                "Legs only at vertical (that's a V-sit)",
+                "Bent arms cheat the press",
+                "Hips drop below hand line"
+            ],
+            timeline: "1-2 years from clean V-sit.",
+            rank: .a,
+            levels: [
+                SkillLevel(level: 1, target: .hold(seconds: 2), criterion: "Hold vertical L-sit for 2s", xpReward: 50),
+                SkillLevel(level: 2, target: .hold(seconds: 3), criterion: "Hold vertical L-sit for 3s", xpReward: 100),
+                SkillLevel(level: 3, target: .hold(seconds: 5), criterion: "Hold vertical L-sit for 5s", xpReward: 150),
+                SkillLevel(level: 4, target: .hold(seconds: 8), criterion: "Hold vertical L-sit for 8s", xpReward: 200),
+                SkillLevel(level: 5, target: .hold(seconds: 10), criterion: "Hold vertical L-sit for 10s", xpReward: 250),
             ]
         ),
 
@@ -5650,19 +4433,19 @@ extension SkillGraph {
             timeline: "Immediate to 2 weeks.",
             rank: .e,
             levels: [
-                SkillLevel(level: 1, target: .hold(seconds: 10), criterion: "Hold wall plank for 10s, shoulders stacked", xpReward: 50),
-                SkillLevel(level: 2, target: .hold(seconds: 20), criterion: "Hold wall plank for 20s", xpReward: 100),
-                SkillLevel(level: 3, target: .hold(seconds: 30), criterion: "Hold wall plank for 30s", xpReward: 150),
-                SkillLevel(level: 4, target: .hold(seconds: 45), criterion: "Hold wall plank for 45s", xpReward: 200),
-                SkillLevel(level: 5, target: .hold(seconds: 60), criterion: "Hold wall plank for 60s", xpReward: 250),
+                SkillLevel(level: 1, target: .hold(seconds: 15), criterion: "Hold wall plank for 15s, shoulders stacked", xpReward: 50),
+                SkillLevel(level: 2, target: .hold(seconds: 30), criterion: "Hold wall plank for 30s", xpReward: 100),
+                SkillLevel(level: 3, target: .hold(seconds: 45), criterion: "Hold wall plank for 45s", xpReward: 150),
+                SkillLevel(level: 4, target: .hold(seconds: 60), criterion: "Hold wall plank for 60s", xpReward: 200),
+                SkillLevel(level: 5, target: .hold(seconds: 90), criterion: "Hold wall plank for 90s", xpReward: 250),
             ]
         ),
         .simple(
             id: "hs.wall-supported-oah",
             title: "Wall Supported One-Arm Handstand",
-            cluster: .handstand, tier: 6, type: .hold,
+            cluster: .handstand, tier: 5, type: .hold,
             target: .hold(exercise: "wall-supported one-arm handstand", seconds: 5),
-            prereqs: [PrerequisiteGroup("hs.freestanding-hs-60")],
+            prereqs: [PrerequisiteGroup("hs.freestanding-hs-30")],
             primary: [.shoulders, .core], secondary: [.forearms, .arms],
             subtitle: "One arm. Wall for insurance.",
             description: "One-arm handstand with the back against the wall providing light balance insurance. 5 seconds per side. The bridge between freestanding handstand and a freestanding one-arm handstand.",
@@ -5680,11 +4463,11 @@ extension SkillGraph {
             timeline: "1-2 years from freestanding handstand.",
             rank: .a,
             levels: [
-                SkillLevel(level: 1, target: .hold(seconds: 2), criterion: "Hold wall-supported one-arm handstand 2s per side", xpReward: 50),
-                SkillLevel(level: 2, target: .hold(seconds: 3), criterion: "Hold wall-supported one-arm handstand 3s per side", xpReward: 100),
-                SkillLevel(level: 3, target: .hold(seconds: 5), criterion: "Hold wall-supported one-arm handstand 5s per side", xpReward: 150),
-                SkillLevel(level: 4, target: .hold(seconds: 8), criterion: "Hold wall-supported one-arm handstand 8s per side", xpReward: 200),
-                SkillLevel(level: 5, target: .hold(seconds: 12), criterion: "Hold wall-supported one-arm handstand 12s per side", xpReward: 250),
+                SkillLevel(level: 1, target: .hold(seconds: 5), criterion: "Hold wall-supported one-arm handstand 5s per side", xpReward: 50),
+                SkillLevel(level: 2, target: .hold(seconds: 10), criterion: "Hold wall-supported one-arm handstand 10s per side", xpReward: 100),
+                SkillLevel(level: 3, target: .hold(seconds: 15), criterion: "Hold wall-supported one-arm handstand 15s per side", xpReward: 150),
+                SkillLevel(level: 4, target: .hold(seconds: 22), criterion: "Hold wall-supported one-arm handstand 22s per side", xpReward: 200),
+                SkillLevel(level: 5, target: .hold(seconds: 30), criterion: "Hold wall-supported one-arm handstand 30s per side", xpReward: 250),
             ]
         ),
     ]

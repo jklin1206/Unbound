@@ -172,7 +172,7 @@ struct RankUpShareCard: View {
         // fall back to the generic male silhouette, and finally an SF Symbol
         // so the card still renders cleanly pre-asset.
         if let uiImage = UIImage(named: archetype.silhouetteAssetName)
-            ?? UIImage(named: "body_front_male") {
+            ?? UIImage(named: "body_unbound_front") {
             Image(uiImage: uiImage)
                 .resizable()
                 .aspectRatio(contentMode: .fit)

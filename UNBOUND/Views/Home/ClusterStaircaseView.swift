@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 // MARK: - ClusterStaircaseView
 //
@@ -42,6 +43,10 @@ struct ClusterStaircaseView: View {
     @State private var selectedNode: SkillNode?
     @State private var showFullTree: Bool = false
     @State private var activePulse: CGFloat = 1.0
+    @State private var treeLayout: ComputedTreeLayout?
+
+    private let minZoom: CGFloat = 0.45
+    private let maxZoom: CGFloat = 1.5
 
     private var clusterNodes: [SkillNode] { graph.nodes(in: cluster) }
 
@@ -61,35 +66,37 @@ struct ClusterStaircaseView: View {
         VStack(spacing: 0) {
             header
             divider
-            ScrollViewReader { proxy in
-                ScrollView(.vertical, showsIndicators: false) {
-                    VStack(spacing: 0) {
-                        summaryCard
-                            .padding(.top, 12)
-                            .padding(.horizontal, 16)
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(spacing: 0) {
+                    summaryCard
+                        .padding(.top, 12)
+                        .padding(.horizontal, 16)
 
-                        mainTree
+                    if let layout = treeLayout {
+                        mainTree(layout: layout)
                             .padding(.top, 28)
+                    } else {
+                        Color.unbound.bg
+                            .frame(height: 500)
+                            .padding(.top, 28)
+                    }
 
-                        if !sections.mythic.isEmpty {
-                            sectionDivider("MYTHIC")
-                                .padding(.top, 32)
-                            mythicChain(nodes: sections.mythic)
-                                .padding(.top, 28)
-                        }
+                    if !sections.mythic.isEmpty {
+                        sectionDivider("MYTHIC")
+                            .padding(.top, 32)
+                        mythicChain(nodes: sections.mythic)
+                            .padding(.top, 28)
                     }
-                    .padding(.bottom, 48)
                 }
+                .padding(.bottom, 48)
                 .onAppear {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                        withAnimation(.easeOut(duration: 0.4)) {
-                            proxy.scrollTo("active", anchor: .center)
-                        }
-                    }
                     withAnimation(
                         .easeInOut(duration: 1.5).repeatForever(autoreverses: true)
                     ) {
                         activePulse = 1.05
+                    }
+                    if treeLayout == nil {
+                        treeLayout = buildLayout()
                     }
                 }
             }
@@ -266,7 +273,7 @@ struct ClusterStaircaseView: View {
 
     // MARK: - Roles
 
-    private enum NodeRole { case achieved, active, next, keystone, tangent }
+    fileprivate enum NodeRole { case achieved, active, next, keystone, tangent }
 
     private func sizeFor(role: NodeRole) -> CGFloat {
         switch role {
@@ -286,15 +293,18 @@ struct ClusterStaircaseView: View {
 
     private func rowGap(for role: NodeRole) -> CGFloat {
         switch role {
-        case .active:   return 185
-        case .keystone: return 220
-        default:        return 175
+        case .active:   return 245
+        case .keystone: return 290
+        default:        return 235
         }
     }
 
     // MARK: - Tree structure
 
-    /// Assembles the primary-parent tree for this cluster's non-mythic nodes.
+    /// Assembles the primary-parent tree for every node in this cluster —
+    /// mythics included. Mythics are real terminals (Strict Muscle-Up,
+    /// One-Arm Pull-Up, etc.) that chain naturally off non-mythic parents,
+    /// so they belong in the main tree, not a separate section.
     /// Returns the root ids (nodes with no in-cluster prereq), a children map
     /// (parent → sorted child ids), a primary-parent map, and a role map.
     private func buildTreeStructure() -> (
@@ -303,7 +313,7 @@ struct ClusterStaircaseView: View {
         primaryParent: [String: String],
         roles: [String: NodeRole]
     ) {
-        let nodes = clusterNodes.filter { !$0.isMythic }
+        let nodes = clusterNodes
         let clusterIds = Set(nodes.map(\.id))
 
         // Primary parent: first in-cluster prereq id in declaration order.
@@ -345,17 +355,25 @@ struct ClusterStaircaseView: View {
         return (rootIds, children, primaryParent, roles)
     }
 
-    /// Bottom-up pre-pass: each node's subtree width is either its own hex
-    /// cell width (leaf) or the sum of its children's subtree widths plus
-    /// gaps. Cycle-safe via a visited set — a revisit returns the leaf width.
+    /// Bottom-up pre-pass: each node's subtree width is its own hex cell
+    /// width (leaf), the sum of regular children's subtree widths centered
+    /// below it, plus the sum of any parallel children's subtree widths
+    /// extending to the right at the same y. Cycle-safe via a visited set.
     private func computeSubtreeWidths(
         rootIds: [String],
         children: [String: [String]]
     ) -> [String: CGFloat] {
-        let hexCellWidth: CGFloat = 120
-        let gap: CGFloat = 24
+        let hexCellWidth: CGFloat = 160
+        let gap: CGFloat = 48
         var widths: [String: CGFloat] = [:]
         var visiting: Set<String> = []
+        let nodeById: [String: SkillNode] = Dictionary(
+            uniqueKeysWithValues: clusterNodes.map { ($0.id, $0) }
+        )
+
+        func isParallel(_ id: String) -> Bool {
+            nodeById[id]?.isParallelToParent ?? false
+        }
 
         func compute(_ id: String) -> CGFloat {
             if let w = widths[id] { return w }
@@ -364,13 +382,28 @@ struct ClusterStaircaseView: View {
             defer { visiting.remove(id) }
 
             let kids = children[id] ?? []
-            if kids.isEmpty {
-                widths[id] = hexCellWidth
-                return hexCellWidth
+            let regularKids = kids.filter { !isParallel($0) }
+            let parallelKids = kids.filter { isParallel($0) }
+
+            // Regular subtree below: standard child packing centered under self.
+            let regularBelowWidth: CGFloat
+            if regularKids.isEmpty {
+                regularBelowWidth = hexCellWidth
+            } else {
+                let sum = regularKids.map { compute($0) }.reduce(0, +)
+                    + gap * CGFloat(max(0, regularKids.count - 1))
+                regularBelowWidth = max(hexCellWidth, sum)
             }
-            let kidTotal = kids.map { compute($0) }.reduce(0, +)
-                + gap * CGFloat(max(0, kids.count - 1))
-            let w = max(hexCellWidth, kidTotal)
+
+            // Parallel siblings extend to the right of the parent's own
+            // bounding box; each parallel kid contributes its own subtree
+            // width plus a leading gap separating it from what's left.
+            let parallelSideWidth = parallelKids
+                .map { compute($0) }
+                .reduce(0, +)
+                + gap * CGFloat(parallelKids.count)
+
+            let w = regularBelowWidth + parallelSideWidth
             widths[id] = w
             return w
         }
@@ -379,8 +412,9 @@ struct ClusterStaircaseView: View {
         return widths
     }
 
-    /// Recurse from each root, centering children around the parent's x
-    /// using subtree widths. Vertical step varies per role.
+    /// Recurse from each root, centering regular children around the
+    /// parent's x and placing parallel children at the same y to the
+    /// right. Vertical step varies per role.
     private func assignPositions(
         rootIds: [String],
         children: [String: [String]],
@@ -389,53 +423,108 @@ struct ClusterStaircaseView: View {
         totalWidth: CGFloat,
         topY: CGFloat
     ) -> [String: CGPoint] {
-        let gap: CGFloat = 24
+        let gap: CGFloat = 48
+        let hexCellWidth: CGFloat = 160
         var positions: [String: CGPoint] = [:]
         var visiting: Set<String> = []
+        let nodeById: [String: SkillNode] = Dictionary(
+            uniqueKeysWithValues: clusterNodes.map { ($0.id, $0) }
+        )
 
-        func place(_ id: String, x: CGFloat, y: CGFloat) {
+        func isParallel(_ id: String) -> Bool {
+            nodeById[id]?.isParallelToParent ?? false
+        }
+
+        // Place a node into a horizontal allocation slot starting at
+        // `slotLeft` with width `subtreeWidths[id]`. The node's own x is
+        // anchored to the centerline of its regular-below subtree (i.e.
+        // its left "block"). Parallel kids consume the right-hand
+        // portion of the slot at the parent's y.
+        func place(_ id: String, slotLeft: CGFloat, y: CGFloat) {
             if visiting.contains(id) { return }
             visiting.insert(id)
             defer { visiting.remove(id) }
-            positions[id] = CGPoint(x: x, y: y)
 
             let kids = children[id] ?? []
-            guard !kids.isEmpty else { return }
-            let kidWidths = kids.map { subtreeWidths[$0] ?? 120 }
-            let totalKidWidth = kidWidths.reduce(0, +) + gap * CGFloat(max(0, kids.count - 1))
-            var cursor = x - totalKidWidth / 2
-            for (i, kid) in kids.enumerated() {
-                let kw = kidWidths[i]
-                let kx = cursor + kw / 2
-                let ky = y + rowGap(for: roles[kid] ?? .tangent)
-                place(kid, x: kx, y: ky)
-                cursor += kw + gap
+            let regularKids = kids.filter { !isParallel($0) }
+            let parallelKids = kids.filter { isParallel($0) }
+
+            // Reconstruct the regular-below width so we can position self
+            // over its center. Mirrors logic in computeSubtreeWidths.
+            let regularBelowWidth: CGFloat = {
+                if regularKids.isEmpty { return hexCellWidth }
+                let sum = regularKids.map { subtreeWidths[$0] ?? hexCellWidth }.reduce(0, +)
+                    + gap * CGFloat(max(0, regularKids.count - 1))
+                return max(hexCellWidth, sum)
+            }()
+
+            let selfX = slotLeft + regularBelowWidth / 2
+            positions[id] = CGPoint(x: selfX, y: y)
+
+            // Regular kids: distribute centered around self at y + rowGap.
+            if !regularKids.isEmpty {
+                var cursor = slotLeft
+                if regularKids.count == 1 {
+                    // Center single child directly under parent.
+                    let kw = subtreeWidths[regularKids[0]] ?? hexCellWidth
+                    let kSlotLeft = selfX - kw / 2
+                    let ky = y + rowGap(for: roles[regularKids[0]] ?? .tangent)
+                    place(regularKids[0], slotLeft: kSlotLeft, y: ky)
+                } else {
+                    // Pack regular kids' slots end-to-end across the
+                    // regular-below band, which already starts at slotLeft
+                    // and is regularBelowWidth wide (centered on selfX).
+                    let bandLeft = selfX - regularBelowWidth / 2
+                    cursor = bandLeft
+                    for kid in regularKids {
+                        let kw = subtreeWidths[kid] ?? hexCellWidth
+                        let ky = y + rowGap(for: roles[kid] ?? .tangent)
+                        place(kid, slotLeft: cursor, y: ky)
+                        cursor += kw + gap
+                    }
+                }
+            }
+
+            // Parallel kids: same y, march to the right of self's regular
+            // block. Each one starts after a gap.
+            if !parallelKids.isEmpty {
+                var cursor = slotLeft + regularBelowWidth + gap
+                for kid in parallelKids {
+                    let kw = subtreeWidths[kid] ?? hexCellWidth
+                    place(kid, slotLeft: cursor, y: y)
+                    cursor += kw + gap
+                }
             }
         }
 
         // Lay roots side-by-side along the top row.
-        let rootWidths = rootIds.map { subtreeWidths[$0] ?? 120 }
+        let rootWidths = rootIds.map { subtreeWidths[$0] ?? hexCellWidth }
         let totalRootsWidth = rootWidths.reduce(0, +) + gap * CGFloat(max(0, rootIds.count - 1))
         let startX = (totalWidth - totalRootsWidth) / 2
         var cursor = startX
         for (i, id) in rootIds.enumerated() {
             let w = rootWidths[i]
-            let x = cursor + w / 2
-            place(id, x: x, y: topY)
+            place(id, slotLeft: cursor, y: topY)
             cursor += w + gap
+            _ = i
         }
         return positions
     }
 
     // MARK: - Main tree
 
-    private var mainTree: some View {
+    /// Pre-compute everything needed to render the tree, including the rails
+    /// as a UIImage. Called once on .onAppear, cached in `treeLayout` state.
+    /// Rails are rendered with UIGraphicsImageRenderer (which always renders
+    /// the FULL content size) rather than SwiftUI Canvas (which renders
+    /// lazily per visible rect inside UIScrollView — causing rails connecting
+    /// to off-viewport nodes to vanish when the user zooms out).
+    private func buildLayout() -> ComputedTreeLayout {
         let (rootIds, children, primaryParent, roles) = buildTreeStructure()
         let subtreeWidths = computeSubtreeWidths(rootIds: rootIds, children: children)
 
-        // Compute overall tree width from root subtree widths.
         let rootWidthsSum = rootIds.map { subtreeWidths[$0] ?? 120 }.reduce(0, +)
-        let rootGapWidth = CGFloat(max(0, rootIds.count - 1)) * 24
+        let rootGapWidth = CGFloat(max(0, rootIds.count - 1)) * 48
         let contentWidth = max(340, rootWidthsSum + rootGapWidth + 32)
 
         let topY: CGFloat = 80
@@ -448,7 +537,6 @@ struct ClusterStaircaseView: View {
             topY: topY
         )
 
-        // Compute tree height from positions + bottom padding for keystone label.
         let maxY = positions.values.map(\.y).max() ?? topY
         let treeHeight = maxY + 200
 
@@ -456,9 +544,6 @@ struct ClusterStaircaseView: View {
             uniqueKeysWithValues: clusterNodes.map { ($0.id, $0) }
         )
 
-        // Compute rank bands for ALL 6 ranks (E→S). Present ranks anchor to
-        // the min-Y of their first node; absent ranks get an interpolated Y
-        // so the gutter column reads as evenly spaced top-to-bottom.
         let rankBands = computeAllRankBands(
             positions: positions,
             nodeById: nodeById,
@@ -466,9 +551,6 @@ struct ClusterStaircaseView: View {
             bottomY: maxY
         )
 
-        // Compute band Y-ranges (one rectangle per present rank spanning
-        // full tree width) and dotted divider Y-positions between adjacent
-        // present ranks. Used for the radar-style background progression.
         let bandRegions = computeRankBandRegions(
             positions: positions,
             nodeById: nodeById,
@@ -476,58 +558,98 @@ struct ClusterStaircaseView: View {
             bottomY: treeHeight
         )
 
-        return ScrollView(.horizontal, showsIndicators: false) {
+        let activeId = roles.first(where: { $0.value == .active })?.key
+        let activePos = activeId.flatMap { positions[$0] }
+        let activeZoom = min(maxZoom, max(minZoom, 1.0))
+
+        let viewportH = mapViewportHeight(contentWidth: contentWidth, for: treeHeight)
+        let initialOffset: CGPoint? = activePos.map { pt in
+            let viewportW = UIScreen.main.bounds.width
+            let scaledX = pt.x * activeZoom - viewportW / 2
+            let scaledY = pt.y * activeZoom - viewportH / 2
+            let maxOffX = max(0, contentWidth * activeZoom - viewportW)
+            let maxOffY = max(0, treeHeight * activeZoom - viewportH)
+            return CGPoint(
+                x: min(max(0, scaledX), maxOffX),
+                y: min(max(0, scaledY), maxOffY)
+            )
+        }
+
+        let railsImage = renderRailsImage(
+            positions: positions,
+            primaryParent: primaryParent,
+            roles: roles,
+            nodeById: nodeById,
+            contentWidth: contentWidth,
+            treeHeight: treeHeight
+        )
+
+        return ComputedTreeLayout(
+            contentWidth: contentWidth,
+            treeHeight: treeHeight,
+            positions: positions,
+            primaryParent: primaryParent,
+            roles: roles,
+            nodeById: nodeById,
+            rankBands: rankBands,
+            bandRegions: bandRegions,
+            railsImage: railsImage,
+            initialOffset: initialOffset,
+            activeZoom: activeZoom,
+            viewportHeight: viewportH
+        )
+    }
+
+    private func mainTree(layout: ComputedTreeLayout) -> some View {
+        ZoomableTreeScrollView(
+            contentSize: CGSize(width: layout.contentWidth, height: layout.treeHeight),
+            minZoom: minZoom,
+            maxZoom: maxZoom,
+            initialZoom: layout.activeZoom,
+            initialOffset: layout.initialOffset
+        ) {
             ZStack(alignment: .topLeading) {
                 // Rank-band background stripes — radar-faint tint per tier.
-                ForEach(bandRegions.bands, id: \.rank) { region in
+                ForEach(layout.bandRegions.bands, id: \.rank) { region in
                     Rectangle()
                         .fill(bandTint(for: region.rank))
                         .frame(
-                            width: contentWidth,
+                            width: layout.contentWidth,
                             height: max(0, region.bottom - region.top)
                         )
                         .position(
-                            x: contentWidth / 2,
+                            x: layout.contentWidth / 2,
                             y: (region.top + region.bottom) / 2
                         )
                 }
 
                 // Dotted horizontal dividers between adjacent rank groups.
-                ForEach(Array(bandRegions.dividers.enumerated()), id: \.offset) { _, y in
+                ForEach(Array(layout.bandRegions.dividers.enumerated()), id: \.offset) { _, y in
                     Path { path in
                         path.move(to: CGPoint(x: 0, y: y))
-                        path.addLine(to: CGPoint(x: contentWidth, y: y))
+                        path.addLine(to: CGPoint(x: layout.contentWidth, y: y))
                     }
                     .stroke(
                         Color.unbound.border.opacity(0.5),
                         style: StrokeStyle(lineWidth: 0.8, dash: [4, 6])
                     )
-                    .frame(width: contentWidth, height: treeHeight)
+                    .frame(width: layout.contentWidth, height: layout.treeHeight)
                 }
 
-                Canvas { ctx, _ in
-                    drawGhostRails(
-                        ctx: ctx,
-                        positions: positions,
-                        primaryParent: primaryParent,
-                        roles: roles,
-                        nodeById: nodeById
-                    )
-                    drawPrimaryRails(
-                        ctx: ctx,
-                        positions: positions,
-                        primaryParent: primaryParent,
-                        roles: roles
-                    )
-                }
-                .frame(width: contentWidth, height: treeHeight)
-                .allowsHitTesting(false)
+                // Rails — pre-rendered UIImage at full content size. Avoids
+                // SwiftUI Canvas lazy-rendering bug inside UIScrollView where
+                // off-viewport rails vanish when zoomed out.
+                Image(uiImage: layout.railsImage)
+                    .frame(width: layout.contentWidth, height: layout.treeHeight)
+                    .allowsHitTesting(false)
 
-                ForEach(Array(positions.keys), id: \.self) { id in
-                    if let pos = positions[id],
-                       let node = nodeById[id]
+                // Interactive hex nodes — kept OUTSIDE any drawingGroup so
+                // tap gestures still fire.
+                ForEach(Array(layout.positions.keys), id: \.self) { id in
+                    if let pos = layout.positions[id],
+                       let node = layout.nodeById[id]
                     {
-                        let role = roles[id] ?? .tangent
+                        let role = layout.roles[id] ?? .tangent
                         let size = sizeFor(role: role)
 
                         hexCore(node: node, role: role, size: size)
@@ -538,23 +660,75 @@ struct ClusterStaircaseView: View {
                             .position(x: pos.x, y: pos.y + size / 2 + belowOffset(for: role))
                     }
                 }
+
+                rankBandTrack(bands: layout.rankBands, height: layout.treeHeight)
+                    .allowsHitTesting(false)
             }
-            .frame(width: contentWidth, height: treeHeight, alignment: .topLeading)
+            .frame(width: layout.contentWidth, height: layout.treeHeight, alignment: .topLeading)
         }
-        // Rank-band track is an overlay on the scroll container, NOT the
-        // scroll content — so it stays pinned to the viewport's leading
-        // edge as the user scrolls horizontally through a wide tree.
-        .overlay(alignment: .topLeading) {
-            rankBandTrack(bands: rankBands, height: treeHeight)
-                .allowsHitTesting(false)
+        .frame(height: layout.viewportHeight)
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(Color.unbound.border.opacity(0.65), lineWidth: 1)
+        )
+    }
+
+    /// Renders the ghost rails + primary rails into a single UIImage sized
+    /// to the full tree content. UIGraphicsImageRenderer ALWAYS renders the
+    /// entire requested rect (unlike SwiftUI Canvas which renders lazily).
+    private func renderRailsImage(
+        positions: [String: CGPoint],
+        primaryParent: [String: String],
+        roles: [String: NodeRole],
+        nodeById: [String: SkillNode],
+        contentWidth: CGFloat,
+        treeHeight: CGFloat
+    ) -> UIImage {
+        let size = CGSize(width: contentWidth, height: treeHeight)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = UIScreen.main.scale
+        format.opaque = false
+        let renderer = UIGraphicsImageRenderer(size: size, format: format)
+        return renderer.image { ctx in
+            let cgCtx = ctx.cgContext
+            cgCtx.setLineCap(.round)
+            cgCtx.setLineJoin(.round)
+            drawGhostRailsCG(
+                cgCtx,
+                positions: positions,
+                primaryParent: primaryParent,
+                roles: roles,
+                nodeById: nodeById
+            )
+            drawPrimaryRailsCG(
+                cgCtx,
+                positions: positions,
+                primaryParent: primaryParent,
+                roles: roles,
+                nodeById: nodeById
+            )
         }
-        .frame(height: treeHeight)
+    }
+
+    /// Pick a viewport height for the tree map that matches the rendered
+    /// height of the content at its initial zoom. If the tree is wide and
+    /// gets clamped down to fit horizontally, the content renders shorter
+    /// vertically too — sizing the viewport off the *rendered* height
+    /// avoids the black empty space that appears when the frame is taller
+    /// than the actual zoomed content.
+    private func mapViewportHeight(contentWidth: CGFloat, for treeHeight: CGFloat) -> CGFloat {
+        let screenWidth = UIScreen.main.bounds.width
+        let initialZoom = min(1.0, max(minZoom, screenWidth / max(contentWidth, 1)))
+        let renderedHeight = ceil(treeHeight * initialZoom)
+        let screenHeight = UIScreen.main.bounds.height
+        return min(max(renderedHeight, 400), min(screenHeight * 0.72, 760))
     }
 
     // MARK: - Rank bands
 
     /// One gutter row. `isPresent` toggles colored vs dimmed styling.
-    private struct RankBand {
+    fileprivate struct RankBand {
         let rank: SkillRank
         let y: CGFloat
         let isPresent: Bool
@@ -625,7 +799,7 @@ struct ClusterStaircaseView: View {
     // MARK: - Rank band regions (backgrounds + dividers)
 
     /// A full-width horizontal stripe for a single rank.
-    private struct RankBandRegion {
+    fileprivate struct RankBandRegion {
         let rank: SkillRank
         let top: CGFloat
         let bottom: CGFloat
@@ -707,65 +881,35 @@ struct ClusterStaircaseView: View {
         if bands.isEmpty {
             Color.clear.frame(width: 0, height: 0)
         } else {
-            let hexSize: CGFloat = 24
+            let badgeSize: CGFloat = 34
             let paddingLeading: CGFloat = 8
-            let columnWidth = paddingLeading + hexSize + 4
+            let columnWidth = paddingLeading + badgeSize + 4
 
             ZStack(alignment: .topLeading) {
-                // One hex per rank band (E through S, always 6).
+                // One difficulty badge per rank band, always bottom-to-top.
                 ForEach(bands, id: \.rank) { band in
-                    rankHexBadge(rank: band.rank, active: band.isPresent, size: hexSize)
-                        .position(x: paddingLeading + hexSize / 2, y: band.y)
+                    rankTitleBadge(rank: band.rank, active: band.isPresent, size: badgeSize)
+                        .position(x: paddingLeading + badgeSize / 2, y: band.y)
                 }
             }
             .frame(width: columnWidth, height: height, alignment: .topLeading)
         }
     }
 
-    /// Small rank badge in the gutter. For E–A this is a Hexagon + letter.
-    /// For S (Ascended / mythic) it becomes a flame glyph in impact orange
-    /// to read as "life pursuit" rather than just the next rank on the
-    /// ladder. Empty ranks render at low opacity in neutral grey.
-    private func rankHexBadge(rank: SkillRank, active: Bool, size: CGFloat) -> some View {
-        let stroke: Color = active ? rank.accentColor : Color.unbound.border
-        let letterColor: Color = active ? Color.unbound.textPrimary : Color.unbound.textTertiary
-        let mythicSize = size * (7.0 / 6.0)   // ~28pt when base is 24pt
-        return Group {
-            if rank.isAscendedTier {
-                // Mythic/Ascended — flame glyph, slightly larger, impact accent
-                ZStack {
-                    Hexagon()
-                        .fill(Color.unbound.surface)
-                        .frame(width: mythicSize, height: mythicSize)
-                    Hexagon()
-                        .strokeBorder(
-                            active ? Color.unbound.impact : Color.unbound.border,
-                            lineWidth: active ? 1.2 : 1
-                        )
-                        .frame(width: mythicSize, height: mythicSize)
-                    Image(systemName: "flame.fill")
-                        .font(.system(size: 13, weight: .black))
-                        .foregroundStyle(
-                            active ? Color.unbound.impact : Color.unbound.textTertiary
-                        )
-                }
-                .opacity(active ? 1.0 : 0.35)
-                .accessibilityLabel("Ascended — life pursuit")
-            } else {
-                ZStack {
-                    Hexagon()
-                        .fill(Color.unbound.surface)
-                        .frame(width: size, height: size)
-                    Hexagon()
-                        .strokeBorder(stroke, lineWidth: 1)
-                        .frame(width: size, height: size)
-                    Text(rank.letter)
-                        .font(.system(size: 10, weight: .heavy, design: .monospaced))
-                        .foregroundStyle(letterColor)
-                }
-                .opacity(active ? 1.0 : 0.35)
-            }
-        }
+    /// Small difficulty badge in the gutter. Uses rank-title badge art so
+    /// difficulty reads as Initiate → Ascendant rather than letter grades.
+    private func rankTitleBadge(rank: SkillRank, active: Bool, size: CGFloat) -> some View {
+        Image(rank.rankTitle.assetName)
+            .resizable()
+            .scaledToFit()
+            .frame(width: size, height: size)
+            .saturation(active ? 1 : 0.15)
+            .opacity(active ? 1.0 : 0.28)
+            .shadow(
+                color: rank.accentColor.opacity(active ? 0.35 : 0),
+                radius: active ? 8 : 0
+            )
+            .accessibilityLabel("\(rank.rankTitle.displayName) difficulty")
     }
 
     /// Tags the active hex with the `id("active")` anchor used by
@@ -952,33 +1096,83 @@ struct ClusterStaircaseView: View {
     // MARK: - Rails
 
     /// Primary rails: child ← primary parent. Orthogonal step path with
-    /// full-accent glow tiered by reached/partial/locked state.
+    /// full-accent glow tiered by reached/partial/locked state. Parallel
+    /// children render a horizontal side-rail at the shared y instead.
     private func drawPrimaryRails(
         ctx: GraphicsContext,
         positions: [String: CGPoint],
         primaryParent: [String: String],
-        roles: [String: NodeRole]
+        roles: [String: NodeRole],
+        nodeById: [String: SkillNode]
     ) {
         for (childId, parentId) in primaryParent {
             guard let childPt = positions[childId],
-                  let parentPt = positions[parentId],
-                  parentPt.y < childPt.y
+                  let parentPt = positions[parentId]
             else { continue }
 
             let fromSize = sizeFor(role: roles[parentId] ?? .tangent)
             let toSize   = sizeFor(role: roles[childId]  ?? .tangent)
+            let isParallel = nodeById[childId]?.isParallelToParent ?? false
 
-            drawRail(
-                ctx: ctx,
-                from: parentPt,
-                to: childPt,
-                fromSize: fromSize,
-                toSize: toSize,
-                fromReached: isUnlockedState(nodeStates[parentId] ?? .locked),
-                toReached: isUnlockedState(nodeStates[childId] ?? .locked),
-                tint: Color.unbound.accent
-            )
+            if isParallel {
+                drawParallelRail(
+                    ctx: ctx,
+                    from: parentPt,
+                    to: childPt,
+                    fromSize: fromSize,
+                    toSize: toSize,
+                    fromReached: isUnlockedState(nodeStates[parentId] ?? .locked),
+                    toReached: isUnlockedState(nodeStates[childId] ?? .locked),
+                    tint: Color.unbound.accent
+                )
+            } else {
+                guard parentPt.y < childPt.y else { continue }
+                drawRail(
+                    ctx: ctx,
+                    from: parentPt,
+                    to: childPt,
+                    fromSize: fromSize,
+                    toSize: toSize,
+                    fromReached: isUnlockedState(nodeStates[parentId] ?? .locked),
+                    toReached: isUnlockedState(nodeStates[childId] ?? .locked),
+                    tint: Color.unbound.accent
+                )
+            }
         }
+    }
+
+    /// Horizontal "side" rail used when a child is rendered parallel to
+    /// its parent (same y, offset to the right). Anchors at the parent's
+    /// right hex edge and the child's left hex edge.
+    private func drawParallelRail(
+        ctx: GraphicsContext,
+        from parent: CGPoint,
+        to child: CGPoint,
+        fromSize: CGFloat,
+        toSize: CGFloat,
+        fromReached: Bool,
+        toReached: Bool,
+        tint: Color
+    ) {
+        let goingRight = child.x >= parent.x
+        let start = CGPoint(
+            x: parent.x + (goingRight ? fromSize / 2 : -fromSize / 2),
+            y: parent.y
+        )
+        let end = CGPoint(
+            x: child.x + (goingRight ? -toSize / 2 : toSize / 2),
+            y: child.y
+        )
+        var path = Path()
+        path.move(to: start)
+        path.addLine(to: end)
+        strokeRail(
+            ctx: ctx,
+            path: path,
+            fromReached: fromReached,
+            toReached: toReached,
+            tint: tint
+        )
     }
 
     /// Ghost rails: secondary prereqs (anything other than the primary
@@ -1156,6 +1350,246 @@ struct ClusterStaircaseView: View {
         }
     }
 
+    // MARK: - Rails (CGContext versions for UIGraphicsImageRenderer)
+    //
+    // SwiftUI Canvas inside UIHostingController inside UIScrollView renders
+    // lazily — only what UIKit considers "visible." When the user zooms out,
+    // rails connecting nodes outside the original viewport simply vanish.
+    // `.drawingGroup()` doesn't help (the Metal texture itself is sized to
+    // the visible region). The CG renderer below draws into a full-content-
+    // sized UIImage that gets displayed inline, bypassing the lazy behavior.
+
+    private func drawPrimaryRailsCG(
+        _ cgCtx: CGContext,
+        positions: [String: CGPoint],
+        primaryParent: [String: String],
+        roles: [String: NodeRole],
+        nodeById: [String: SkillNode]
+    ) {
+        for (childId, parentId) in primaryParent {
+            guard let childPt = positions[childId],
+                  let parentPt = positions[parentId]
+            else { continue }
+
+            let fromSize = sizeFor(role: roles[parentId] ?? .tangent)
+            let toSize   = sizeFor(role: roles[childId]  ?? .tangent)
+            let isParallel = nodeById[childId]?.isParallelToParent ?? false
+
+            if isParallel {
+                drawParallelRailCG(
+                    cgCtx,
+                    from: parentPt,
+                    to: childPt,
+                    fromSize: fromSize,
+                    toSize: toSize,
+                    fromReached: isUnlockedState(nodeStates[parentId] ?? .locked),
+                    toReached: isUnlockedState(nodeStates[childId] ?? .locked),
+                    tint: Color.unbound.accent
+                )
+            } else {
+                guard parentPt.y < childPt.y else { continue }
+                drawRailCG(
+                    cgCtx,
+                    from: parentPt,
+                    to: childPt,
+                    fromSize: fromSize,
+                    toSize: toSize,
+                    fromReached: isUnlockedState(nodeStates[parentId] ?? .locked),
+                    toReached: isUnlockedState(nodeStates[childId] ?? .locked),
+                    tint: Color.unbound.accent
+                )
+            }
+        }
+    }
+
+    private func drawParallelRailCG(
+        _ cgCtx: CGContext,
+        from parent: CGPoint,
+        to child: CGPoint,
+        fromSize: CGFloat,
+        toSize: CGFloat,
+        fromReached: Bool,
+        toReached: Bool,
+        tint: Color
+    ) {
+        let goingRight = child.x >= parent.x
+        let start = CGPoint(
+            x: parent.x + (goingRight ? fromSize / 2 : -fromSize / 2),
+            y: parent.y
+        )
+        let end = CGPoint(
+            x: child.x + (goingRight ? -toSize / 2 : toSize / 2),
+            y: child.y
+        )
+        let path = CGMutablePath()
+        path.move(to: start)
+        path.addLine(to: end)
+        strokeRailCG(
+            cgCtx,
+            path: path,
+            fromReached: fromReached,
+            toReached: toReached,
+            tint: tint
+        )
+    }
+
+    private func drawGhostRailsCG(
+        _ cgCtx: CGContext,
+        positions: [String: CGPoint],
+        primaryParent: [String: String],
+        roles: [String: NodeRole],
+        nodeById: [String: SkillNode]
+    ) {
+        let ghostUIColor = UIColor(Color.unbound.textTertiary).withAlphaComponent(0.3)
+
+        for (childId, childPt) in positions {
+            guard let childNode = nodeById[childId] else { continue }
+            let allPrereqIds = Set(childNode.prereqs.flatMap { $0.nodeIds })
+            let primary = primaryParent[childId]
+            let secondary = allPrereqIds
+                .filter { $0 != primary }
+                .filter { positions[$0] != nil }
+
+            let toSize = sizeFor(role: roles[childId] ?? .tangent)
+
+            for pid in secondary {
+                guard let parentPt = positions[pid],
+                      parentPt.y < childPt.y
+                else { continue }
+                let fromSize = sizeFor(role: roles[pid] ?? .tangent)
+                let start = CGPoint(x: parentPt.x, y: parentPt.y + fromSize / 2)
+                let end   = CGPoint(x: childPt.x,  y: childPt.y  - toSize / 2)
+
+                let path = CGMutablePath()
+                let tolerance: CGFloat = 1.0
+                if abs(end.x - start.x) <= tolerance {
+                    path.move(to: start)
+                    path.addLine(to: end)
+                } else {
+                    let biased = start.y + (end.y - start.y) * 0.7
+                    let midY = min(biased, end.y - 2)
+                    path.move(to: start)
+                    path.addLine(to: CGPoint(x: start.x, y: midY))
+                    path.addLine(to: CGPoint(x: end.x, y: midY))
+                    path.addLine(to: end)
+                }
+                cgCtx.saveGState()
+                cgCtx.setStrokeColor(ghostUIColor.cgColor)
+                cgCtx.setLineWidth(1.2)
+                cgCtx.setLineDash(phase: 0, lengths: [4, 6])
+                cgCtx.addPath(path)
+                cgCtx.strokePath()
+                cgCtx.setLineDash(phase: 0, lengths: [])
+                cgCtx.restoreGState()
+            }
+        }
+    }
+
+    private func drawRailCG(
+        _ cgCtx: CGContext,
+        from parent: CGPoint,
+        to child: CGPoint,
+        fromSize: CGFloat,
+        toSize: CGFloat,
+        fromReached: Bool,
+        toReached: Bool,
+        tint: Color
+    ) {
+        let start = CGPoint(x: parent.x, y: parent.y + fromSize / 2)
+        let end   = CGPoint(x: child.x,  y: child.y  - toSize / 2)
+
+        let path = CGMutablePath()
+        let tolerance: CGFloat = 1.0
+
+        if abs(end.x - start.x) <= tolerance {
+            path.move(to: start)
+            path.addLine(to: end)
+        } else {
+            let biased = start.y + (end.y - start.y) * 0.7
+            let midY = min(biased, end.y - 2)
+            let cornerRadius: CGFloat = 8
+
+            let vStub1 = midY - start.y
+            let vStub2 = end.y - midY
+            let hSpan  = abs(end.x - start.x)
+            let r = max(0, min(cornerRadius, min(vStub1, vStub2, hSpan / 2)))
+
+            let goingRight = end.x > start.x
+            let bend1 = CGPoint(x: start.x, y: midY)
+            let bend2 = CGPoint(x: end.x,   y: midY)
+
+            path.move(to: start)
+            if r > 0 {
+                path.addLine(to: CGPoint(x: start.x, y: midY - r))
+                let afterBend1X = start.x + (goingRight ? r : -r)
+                path.addQuadCurve(
+                    to: CGPoint(x: afterBend1X, y: midY),
+                    control: bend1
+                )
+                let beforeBend2X = end.x + (goingRight ? -r : r)
+                path.addLine(to: CGPoint(x: beforeBend2X, y: midY))
+                path.addQuadCurve(
+                    to: CGPoint(x: end.x, y: midY + r),
+                    control: bend2
+                )
+                path.addLine(to: end)
+            } else {
+                path.addLine(to: bend1)
+                path.addLine(to: bend2)
+                path.addLine(to: end)
+            }
+        }
+
+        strokeRailCG(cgCtx, path: path, fromReached: fromReached, toReached: toReached, tint: tint)
+    }
+
+    private func strokeRailCG(
+        _ cgCtx: CGContext,
+        path: CGMutablePath,
+        fromReached: Bool,
+        toReached: Bool,
+        tint: Color
+    ) {
+        let uiTint = UIColor(tint)
+        if fromReached && toReached {
+            cgCtx.saveGState()
+            cgCtx.setShadow(offset: .zero, blur: 4, color: uiTint.withAlphaComponent(0.6).cgColor)
+            cgCtx.setStrokeColor(uiTint.withAlphaComponent(0.6).cgColor)
+            cgCtx.setLineWidth(6)
+            cgCtx.addPath(path)
+            cgCtx.strokePath()
+            cgCtx.restoreGState()
+            cgCtx.setStrokeColor(uiTint.cgColor)
+            cgCtx.setLineWidth(2.5)
+            cgCtx.addPath(path)
+            cgCtx.strokePath()
+        } else if fromReached {
+            cgCtx.saveGState()
+            cgCtx.setShadow(offset: .zero, blur: 3, color: uiTint.withAlphaComponent(0.45).cgColor)
+            cgCtx.setStrokeColor(uiTint.withAlphaComponent(0.45).cgColor)
+            cgCtx.setLineWidth(5)
+            cgCtx.addPath(path)
+            cgCtx.strokePath()
+            cgCtx.restoreGState()
+            cgCtx.setStrokeColor(uiTint.withAlphaComponent(0.85).cgColor)
+            cgCtx.setLineWidth(2)
+            cgCtx.addPath(path)
+            cgCtx.strokePath()
+        } else {
+            cgCtx.saveGState()
+            cgCtx.setShadow(offset: .zero, blur: 2.5, color: uiTint.withAlphaComponent(0.25).cgColor)
+            cgCtx.setStrokeColor(uiTint.withAlphaComponent(0.25).cgColor)
+            cgCtx.setLineWidth(4)
+            cgCtx.addPath(path)
+            cgCtx.strokePath()
+            cgCtx.restoreGState()
+            cgCtx.setStrokeColor(uiTint.withAlphaComponent(0.55).cgColor)
+            cgCtx.setLineWidth(1.8)
+            cgCtx.addPath(path)
+            cgCtx.strokePath()
+        }
+    }
+
     // MARK: - Mythic chain
 
     private func mythicChain(nodes: [SkillNode]) -> some View {
@@ -1315,17 +1749,41 @@ struct ClusterStaircaseView: View {
                 .font(.system(size: fontSize - 3, weight: .semibold))
                 .foregroundStyle(Color.unbound.textTertiary)
         case .attempting:
-            Image(systemName: node.glyph)
-                .font(.system(size: fontSize, weight: .semibold))
-                .foregroundStyle(Color.unbound.accent)
+            skillIcon(for: node, size: fontSize * 2.4, fallback: node.glyph,
+                      tint: Color.unbound.accent)
         case .achieved:
-            Image(systemName: node.isKeystone ? "crown.fill" : "checkmark")
-                .font(.system(size: fontSize, weight: .bold))
-                .foregroundStyle(Color.unbound.accent)
+            skillIcon(for: node, size: fontSize * 2.4,
+                      fallback: node.isKeystone ? "crown.fill" : "checkmark",
+                      tint: Color.unbound.accent)
         case .mastered:
-            Image(systemName: "crown.fill")
-                .font(.system(size: fontSize, weight: .semibold))
-                .foregroundStyle(Color.unbound.impact)
+            skillIcon(for: node, size: fontSize * 2.4, fallback: "crown.fill",
+                      tint: Color.unbound.impact)
+        }
+    }
+
+    /// Renders the AI-generated skill icon if the asset exists; otherwise falls
+    /// back to an SF Symbol. Asset images already carry the violet silhouette
+    /// styling so we don't tint them — only the SF Symbol fallback is tinted.
+    /// Asset names map node ids by replacing dots with underscores
+    /// (e.g. `cal.pushup` → `cal_pushup`).
+    @ViewBuilder
+    private func skillIcon(
+        for node: SkillNode,
+        size: CGFloat,
+        fallback symbolName: String,
+        tint: Color
+    ) -> some View {
+        let assetName = node.id.replacingOccurrences(of: ".", with: "_")
+        if UIImage(named: assetName) != nil {
+            Image(assetName)
+                .resizable()
+                .interpolation(.high)
+                .aspectRatio(contentMode: .fit)
+                .frame(width: size, height: size)
+        } else {
+            Image(systemName: symbolName)
+                .font(.system(size: size / 2.4, weight: .semibold))
+                .foregroundStyle(tint)
         }
     }
 
@@ -1395,7 +1853,11 @@ struct ClusterStaircaseView: View {
             }
         let next = Array(nextCandidates.prefix(5))
 
-        let mythic = keystoneUnlocked ? mythicNodes : []
+        // Mythics now render inline in the main tree as the deepest tier,
+        // so the dedicated MYTHIC section below the tree is empty.
+        let mythic: [SkillNode] = []
+        _ = mythicNodes
+        _ = keystoneUnlocked
 
         return StaircaseSections(
             achieved: achieved,
@@ -1459,5 +1921,174 @@ struct ClusterStaircaseView: View {
 
     private func isUnlockedState(_ s: NodeState) -> Bool {
         s == .achieved || s == .mastered
+    }
+}
+
+/// Snapshot of everything ClusterStaircaseView needs to draw the tree,
+/// computed once on appear and cached in @State. The `railsImage` field
+/// is a pre-rendered UIImage covering the FULL content size — see
+/// `renderRailsImage(...)` for the reason.
+private struct ComputedTreeLayout {
+    let contentWidth: CGFloat
+    let treeHeight: CGFloat
+    let positions: [String: CGPoint]
+    let primaryParent: [String: String]
+    let roles: [String: ClusterStaircaseView.NodeRole]
+    let nodeById: [String: SkillNode]
+    let rankBands: [ClusterStaircaseView.RankBand]
+    let bandRegions: (bands: [ClusterStaircaseView.RankBandRegion], dividers: [CGFloat])
+    let railsImage: UIImage
+    let initialOffset: CGPoint?
+    let activeZoom: CGFloat
+    let viewportHeight: CGFloat
+}
+
+private struct ZoomableTreeScrollView<Content: View>: UIViewRepresentable {
+    let contentSize: CGSize
+    let minZoom: CGFloat
+    let maxZoom: CGFloat
+    let initialZoom: CGFloat
+    let initialOffset: CGPoint?
+    @ViewBuilder let content: () -> Content
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(minZoom: minZoom, maxZoom: maxZoom)
+    }
+
+    func makeUIView(context: Context) -> UIScrollView {
+        let scrollView = UIScrollView()
+        scrollView.delegate = context.coordinator
+        scrollView.minimumZoomScale = minZoom
+        scrollView.maximumZoomScale = maxZoom
+        scrollView.zoomScale = initialZoom
+        // Hard boundaries: no bounce past content edges on any axis.
+        // bouncesZoom stays on so pinch overshoot still feels rubbery.
+        scrollView.bounces = false
+        scrollView.bouncesZoom = true
+        scrollView.alwaysBounceHorizontal = false
+        scrollView.alwaysBounceVertical = false
+        scrollView.showsHorizontalScrollIndicator = false
+        scrollView.showsVerticalScrollIndicator = false
+        scrollView.decelerationRate = .normal
+        scrollView.delaysContentTouches = false
+        scrollView.canCancelContentTouches = true
+        scrollView.backgroundColor = .clear
+        scrollView.clipsToBounds = true
+
+        let host = UIHostingController(rootView: content())
+        host.view.backgroundColor = .clear
+        host.view.frame = CGRect(origin: .zero, size: contentSize)
+        host.view.isUserInteractionEnabled = true
+        context.coordinator.hostingController = host
+
+        scrollView.addSubview(host.view)
+        scrollView.contentSize = contentSize
+
+        let doubleTap = UITapGestureRecognizer(
+            target: context.coordinator,
+            action: #selector(Coordinator.handleDoubleTap(_:))
+        )
+        doubleTap.numberOfTapsRequired = 2
+        doubleTap.cancelsTouchesInView = false
+        scrollView.addGestureRecognizer(doubleTap)
+        context.coordinator.scrollView = scrollView
+
+        return scrollView
+    }
+
+    func updateUIView(_ scrollView: UIScrollView, context: Context) {
+        let isInteracting = scrollView.isZooming || scrollView.isDragging || scrollView.isDecelerating
+        if !isInteracting {
+            context.coordinator.hostingController?.rootView = content()
+            if context.coordinator.hostingController?.view.bounds.size != contentSize {
+                context.coordinator.hostingController?.view.frame = CGRect(origin: .zero, size: contentSize)
+            }
+        }
+        context.coordinator.minZoom = minZoom
+        context.coordinator.maxZoom = maxZoom
+        scrollView.minimumZoomScale = minZoom
+        scrollView.maximumZoomScale = maxZoom
+        scrollView.contentSize = contentSize
+
+        if !context.coordinator.didApplyInitialZoom {
+            let zoom = min(max(initialZoom, minZoom), maxZoom)
+            scrollView.setZoomScale(zoom, animated: false)
+            context.coordinator.didApplyInitialZoom = true
+        } else if scrollView.zoomScale < minZoom || scrollView.zoomScale > maxZoom {
+            scrollView.setZoomScale(min(max(scrollView.zoomScale, minZoom), maxZoom), animated: false)
+        }
+
+        // Apply initial content offset once, after zoom is set, so the
+        // active node lands centered in the viewport on open.
+        if !context.coordinator.didApplyInitialOffset, let offset = initialOffset {
+            // Clamp to valid range against the *current* zoomed content size
+            // and viewport bounds, in case sizing changed between layouts.
+            let maxOffX = max(0, scrollView.contentSize.width - scrollView.bounds.width)
+            let maxOffY = max(0, scrollView.contentSize.height - scrollView.bounds.height)
+            let clamped = CGPoint(
+                x: min(max(0, offset.x), maxOffX),
+                y: min(max(0, offset.y), maxOffY)
+            )
+            scrollView.setContentOffset(clamped, animated: false)
+            context.coordinator.didApplyInitialOffset = true
+        }
+
+        context.coordinator.centerContentIfNeeded()
+    }
+
+    final class Coordinator: NSObject, UIScrollViewDelegate, UIGestureRecognizerDelegate {
+        var hostingController: UIHostingController<Content>?
+        weak var scrollView: UIScrollView?
+        var minZoom: CGFloat = 0.45
+        var maxZoom: CGFloat = 1.5
+        var didApplyInitialZoom = false
+        var didApplyInitialOffset = false
+
+        init(minZoom: CGFloat, maxZoom: CGFloat) {
+            self.minZoom = minZoom
+            self.maxZoom = maxZoom
+            super.init()
+        }
+
+        func viewForZooming(in scrollView: UIScrollView) -> UIView? {
+            hostingController?.view
+        }
+
+        func scrollViewDidZoom(_ scrollView: UIScrollView) {
+            centerContentIfNeeded()
+        }
+
+        @objc func handleDoubleTap(_ recognizer: UITapGestureRecognizer) {
+            guard let scrollView else { return }
+            if scrollView.zoomScale > minZoom + 0.08 {
+                scrollView.setZoomScale(minZoom, animated: true)
+                return
+            }
+
+            let tapPoint = recognizer.location(in: hostingController?.view)
+            let targetZoom = min(max(1.0, minZoom), maxZoom)
+            let width = scrollView.bounds.width / targetZoom
+            let height = scrollView.bounds.height / targetZoom
+            let rect = CGRect(
+                x: tapPoint.x - width / 2,
+                y: tapPoint.y - height / 2,
+                width: width,
+                height: height
+            )
+            scrollView.zoom(to: rect, animated: true)
+        }
+
+        func centerContentIfNeeded() {
+            guard let scrollView, let hostedView = hostingController?.view else { return }
+            let boundsSize = scrollView.bounds.size
+            var frame = hostedView.frame
+            frame.origin.x = frame.size.width < boundsSize.width
+                ? (boundsSize.width - frame.size.width) / 2
+                : 0
+            frame.origin.y = frame.size.height < boundsSize.height
+                ? (boundsSize.height - frame.size.height) / 2
+                : 0
+            hostedView.frame = frame
+        }
     }
 }

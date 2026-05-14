@@ -37,13 +37,15 @@ enum BodyAlignment: Equatable {
 /// Tunables for the alignment detector. Centralized so jlin can tweak from
 /// one place without spelunking the request pipeline.
 struct BodyAlignmentThresholds {
-    var minBoxWidthFraction: Double = 0.32
+    var minBoxWidthFraction: Double = 0.22          // lowered from 0.32 — allows standing further back
     var maxBoxWidthFraction: Double = 0.85
     var horizontalCenterTolerance: Double = 0.18    // ±18% of screen width
     var headBandFraction: Double = 0.22             // top 22% of frame must contain head
     var feetBandFraction: Double = 0.22             // bottom 22% must contain ankles
     var sustainedFramesForAligned: Int = 24          // ~0.8s at 30fps
     var minLandmarkConfidence: Float = 0.35
+    var wristRaiseOffset: Double = 0.10             // wrist must be 10% above shoulder in Vision y
+    var wristSustainFrames: Int = 10                // ~0.7s at 15fps before gesture fires
 
     static let `default` = BodyAlignmentThresholds()
 }
@@ -58,12 +60,15 @@ struct BodyAlignmentThresholds {
 final class BodyAlignmentDetector: VideoSampleHandling {
 
     private(set) var alignment: BodyAlignment = .noBody
-    private var thresholds: BodyAlignmentThresholds
 
-    /// Number of consecutive frames the body has been in alignment range.
-    /// Once it reaches `thresholds.sustainedFramesForAligned`, alignment
-    /// flips to `.aligned`.
+    /// Set true when the user holds a wrist above shoulder level for
+    /// `thresholds.wristSustainFrames` consecutive frames. Consumed by
+    /// `Step_ScanLive` to start the capture countdown. Reset via `resetGesture()`.
+    private(set) var gestureDetected: Bool = false
+
+    private var thresholds: BodyAlignmentThresholds
     private var sustainedAlignedFrames = 0
+    private var sustainedWristFrames = 0
     private var lastFrameAt: Date = .distantPast
 
     private nonisolated let request: VNDetectHumanBodyPoseRequest
@@ -73,28 +78,24 @@ final class BodyAlignmentDetector: VideoSampleHandling {
         self.request = VNDetectHumanBodyPoseRequest()
     }
 
-    /// Reset between sessions (e.g. retake) so a stale aligned state doesn't
-    /// auto-snap as soon as the detector spins back up.
     func reset() {
         sustainedAlignedFrames = 0
         alignment = .noBody
+        resetGesture()
+    }
+
+    func resetGesture() {
+        gestureDetected = false
+        sustainedWristFrames = 0
     }
 
     // MARK: - VideoSampleHandling
 
     nonisolated func process(pixelBuffer: CVPixelBuffer, orientation: CGImagePropertyOrientation) {
-        // Throttle to ~15fps — we don't need 30fps body pose for a coarse UX
-        // signal and Vision is heavy on the CPU.
         let now = Date()
-        let throttled: Bool
         let last = lastFrameAtUnsafe
-        if now.timeIntervalSince(last) < (1.0 / 15.0) {
-            throttled = true
-        } else {
-            throttled = false
-            lastFrameAtUnsafe = now
-        }
-        if throttled { return }
+        guard now.timeIntervalSince(last) >= (1.0 / 15.0) else { return }
+        lastFrameAtUnsafe = now
 
         let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, orientation: orientation, options: [:])
         do {
@@ -104,10 +105,10 @@ final class BodyAlignmentDetector: VideoSampleHandling {
         }
 
         let observation = request.results?.first
-        let computed = computeAlignment(from: observation)
+        let (computed, wristRaised) = computeAlignment(from: observation)
 
-        Task { @MainActor [computed] in
-            self.applyAlignment(computed)
+        Task { @MainActor [computed, wristRaised] in
+            self.applyAlignment(computed, wristRaised: wristRaised)
         }
     }
 
@@ -123,8 +124,8 @@ final class BodyAlignmentDetector: VideoSampleHandling {
     }
     private let _lastFrameAtBox = ThrottleBox()
 
-    private nonisolated func computeAlignment(from observation: VNHumanBodyPoseObservation?) -> BodyAlignment {
-        guard let observation else { return .noBody }
+    private nonisolated func computeAlignment(from observation: VNHumanBodyPoseObservation?) -> (BodyAlignment, Bool) {
+        guard let observation else { return (.noBody, false) }
 
         let minConfidence = thresholdsSnapshot.minLandmarkConfidence
         let recognizedPoints: [VNHumanBodyPoseObservation.JointName: VNRecognizedPoint] = {
@@ -134,7 +135,8 @@ final class BodyAlignmentDetector: VideoSampleHandling {
                           .leftShoulder, .rightShoulder,
                           .leftHip, .rightHip,
                           .leftAnkle, .rightAnkle,
-                          .leftKnee, .rightKnee] {
+                          .leftKnee, .rightKnee,
+                          .leftWrist, .rightWrist] {
                 if let p = try? observation.recognizedPoint(joint), p.confidence >= minConfidence {
                     out[joint] = p
                 }
@@ -142,8 +144,7 @@ final class BodyAlignmentDetector: VideoSampleHandling {
             return out
         }()
 
-        // Need at least a head reference + one ankle to call this a body.
-        guard !recognizedPoints.isEmpty else { return .noBody }
+        guard !recognizedPoints.isEmpty else { return (.noBody, false) }
 
         // Vision points are in 0...1 normalized coordinates with origin at
         // bottom-left for the source image. After our `.leftMirrored`
@@ -164,19 +165,18 @@ final class BodyAlignmentDetector: VideoSampleHandling {
 
         // Distance check
         if bboxWidth > t.maxBoxWidthFraction {
-            return .outOfFrame(reason: .tooClose)
+            return (.outOfFrame(reason: .tooClose), false)
         }
         if bboxWidth < t.minBoxWidthFraction {
-            return .outOfFrame(reason: .tooFar)
+            return (.outOfFrame(reason: .tooFar), false)
         }
 
         // Centering check
         if abs(bboxCenterX - 0.5) > t.horizontalCenterTolerance {
-            return .outOfFrame(reason: .offCenterX)
+            return (.outOfFrame(reason: .offCenterX), false)
         }
 
-        // Head visibility — top of bbox must sit inside top headBandFraction
-        // OR the nose must exist in that band.
+        // Head visibility
         let headInBand: Bool = {
             if let nose = recognizedPoints[.nose] {
                 return (1.0 - Double(nose.location.y)) <= t.headBandFraction * 1.4
@@ -184,29 +184,35 @@ final class BodyAlignmentDetector: VideoSampleHandling {
             return minY <= t.headBandFraction
         }()
         if !headInBand {
-            return .outOfFrame(reason: .headNotVisible)
+            return (.outOfFrame(reason: .headNotVisible), false)
         }
 
-        // Feet visibility — at least one ankle in the bottom band, OR bbox
-        // bottom inside the bottom band.
+        // Feet visibility
         let feetInBand: Bool = {
             if let leftAnkle = recognizedPoints[.leftAnkle] {
-                if (1.0 - Double(leftAnkle.location.y)) >= (1.0 - t.feetBandFraction * 1.4) {
-                    return true
-                }
+                if (1.0 - Double(leftAnkle.location.y)) >= (1.0 - t.feetBandFraction * 1.4) { return true }
             }
             if let rightAnkle = recognizedPoints[.rightAnkle] {
-                if (1.0 - Double(rightAnkle.location.y)) >= (1.0 - t.feetBandFraction * 1.4) {
-                    return true
-                }
+                if (1.0 - Double(rightAnkle.location.y)) >= (1.0 - t.feetBandFraction * 1.4) { return true }
             }
             return maxY >= (1.0 - t.feetBandFraction)
         }()
         if !feetInBand {
-            return .outOfFrame(reason: .feetNotVisible)
+            return (.outOfFrame(reason: .feetNotVisible), false)
         }
 
-        return .closeToAligned
+        // Wrist-raise gesture — any wrist above any shoulder by ≥ wristRaiseOffset.
+        // Vision coords: y=0 bottom, y=1 top. Higher y = physically higher.
+        let wristRaised: Bool = {
+            let wrists = [recognizedPoints[.leftWrist], recognizedPoints[.rightWrist]].compactMap { $0 }
+            let shoulders = [recognizedPoints[.leftShoulder], recognizedPoints[.rightShoulder]].compactMap { $0 }
+            guard !wrists.isEmpty, !shoulders.isEmpty else { return false }
+            let maxWristY = wrists.map { Double($0.location.y) }.max() ?? 0
+            let maxShoulderY = shoulders.map { Double($0.location.y) }.max() ?? 0
+            return maxWristY > maxShoulderY + t.wristRaiseOffset
+        }()
+
+        return (.closeToAligned, wristRaised)
     }
 
     /// Snapshot of thresholds — taken on init and immutable for the lifetime
@@ -216,24 +222,28 @@ final class BodyAlignmentDetector: VideoSampleHandling {
         BodyAlignmentThresholds.default
     }
 
-    private func applyAlignment(_ next: BodyAlignment) {
+    private func applyAlignment(_ next: BodyAlignment, wristRaised: Bool) {
         switch next {
         case .closeToAligned:
             sustainedAlignedFrames += 1
             if sustainedAlignedFrames >= thresholds.sustainedFramesForAligned {
-                if alignment != .aligned {
-                    alignment = .aligned
-                }
+                if alignment != .aligned { alignment = .aligned }
             } else {
-                if alignment != .closeToAligned {
-                    alignment = .closeToAligned
-                }
+                if alignment != .closeToAligned { alignment = .closeToAligned }
             }
         default:
             sustainedAlignedFrames = 0
-            if alignment != next {
-                alignment = next
+            if alignment != next { alignment = next }
+        }
+
+        // Gesture: sustain wrist raise while body is in frame
+        if wristRaised && !gestureDetected && next != .noBody {
+            sustainedWristFrames += 1
+            if sustainedWristFrames >= thresholds.wristSustainFrames {
+                gestureDetected = true
             }
+        } else if !wristRaised {
+            sustainedWristFrames = 0
         }
     }
 }

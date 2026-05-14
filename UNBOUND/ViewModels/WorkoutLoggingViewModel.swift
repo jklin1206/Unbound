@@ -139,8 +139,8 @@ final class WorkoutLoggingViewModel: ObservableObject {
         exerciseEntries.filter { !$0.skipped }.flatMap(\.sets).filter { !$0.isWarmup }.count
     }
 
-    func saveLog() async {
-        guard let userId = services.auth.currentUserId else { return }
+    func saveLog() async -> Bool {
+        guard let userId = services.auth.currentUserId else { return false }
         isSaving = true
 
         let entries = exerciseEntries.map { entry in
@@ -185,10 +185,12 @@ final class WorkoutLoggingViewModel: ObservableObject {
                 durationMinutes: durationMinutes, totalSets: totalSets
             ))
             HapticManager.notification(.success)
+            isSaving = false
+            return true
         } catch {
             HapticManager.notification(.error)
+            isSaving = false
+            return false
         }
-
-        isSaving = false
     }
 }

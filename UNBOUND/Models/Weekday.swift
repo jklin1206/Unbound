@@ -18,6 +18,20 @@ enum Weekday: String, Codable, CaseIterable, Identifiable, Hashable {
         }
     }
 
+    /// Gregorian weekday integer (1 = Sunday … 7 = Saturday) for use with
+    /// `UNCalendarNotificationTrigger` date components.
+    var calendarWeekday: Int {
+        switch self {
+        case .sunday:    return 1
+        case .monday:    return 2
+        case .tuesday:   return 3
+        case .wednesday: return 4
+        case .thursday:  return 5
+        case .friday:    return 6
+        case .saturday:  return 7
+        }
+    }
+
     /// Initialize from a Date using the given calendar. Returns nil only if the
     /// calendar returns an unexpected weekday component (shouldn't happen in
     /// practice — Gregorian always returns 1–7).
