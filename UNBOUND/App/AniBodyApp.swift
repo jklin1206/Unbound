@@ -74,6 +74,9 @@ struct RootView: View {
                     // Backfill the 6-axis hex from existing logs on first launch
                     // (no-op if the profile already exists in the store).
                     await services.attribute.backfillFromExistingLogs(userId: userId)
+                    // Trials: roll week on Monday or first launch. Marks prior
+                    // uncompleted trial as .missed and generates 3 fresh cards.
+                    await services.trials.ensureCurrentWeek(userId: userId)
                     // One-time skill-tier migration: replay full log history
                     // to seed UserSkillTierState. Idempotent — guarded by
                     // a UserDefaults flag so it only runs once per user.
