@@ -77,6 +77,11 @@ struct UnboundHomeView: View {
     // Travel override (user hit the TRAVEL coach action)
     @State private var activeTravelOverride: TravelOverride?
 
+    // Scan cadence — drives ScanDueCard visibility
+    @State private var scanCadence: ScanCadenceState = .compute(lastScanAt: nil, now: .now)
+    @State private var lastScanAt: Date? = nil
+    @State private var showScanCaptureFlow = false
+
     // Level derivation: 250 XP per level. Simple, overrideable later.
     private let xpPerLevel: Int = 250
 
@@ -182,6 +187,18 @@ struct UnboundHomeView: View {
                     .environmentObject(services)
                 }
         )
+        .fullScreenCover(isPresented: $showScanCaptureFlow, onDismiss: {
+            // Refresh cadence after a scan completes
+            let userId = services.auth.currentUserId ?? "anonymous"
+            let history = (try? ScanCheckpointStore.shared.history(userId: userId)) ?? []
+            lastScanAt = history.last?.createdAt
+            scanCadence = ScanCadenceState.compute(lastScanAt: lastScanAt, now: .now)
+        }) {
+            PhotoCaptureFlow(mode: .scan) { _ in
+                showScanCaptureFlow = false
+            }
+            .environmentObject(services)
+        }
         .nodeUnlockOverlay()
         .weightBumpToast()
         .tierUnlockToast()
@@ -1549,6 +1566,14 @@ struct UnboundHomeView: View {
                 }
             }
 
+            if scanCadence.isUnlocked || lastScanAt == nil {
+                ScanDueCard(
+                    cadenceState: scanCadence,
+                    isFirstScan: lastScanAt == nil,
+                    onTap: { showScanCaptureFlow = true }
+                )
+            }
+
             if shouldShowScanCTA {
                 scanCTACard
             }
@@ -1770,6 +1795,11 @@ struct UnboundHomeView: View {
         await refreshCoachNote()
 
         attributeProfile = services.attribute.profile(userId: userId)
+
+        // Load scan cadence for ScanDueCard
+        let history = (try? ScanCheckpointStore.shared.history(userId: userId)) ?? []
+        lastScanAt = history.last?.createdAt
+        scanCadence = ScanCadenceState.compute(lastScanAt: lastScanAt, now: .now)
 
         isLoading = false
         // Kick off ambient loops once the content is actually on screen —
