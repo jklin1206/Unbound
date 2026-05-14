@@ -388,7 +388,7 @@ final class OnboardingFlowViewModel {
                 await MainActor.run {
                     BadgeService.shared.bind(userId: userId)
                 }
-                _ = await BadgeService.shared.evaluate(trigger: .archetypeChosen(chosenArchetype))
+                // archetypeChosen trigger removed (superseded by firstBuildIdentityResolved)
             }
             await scheduleNotifications()
             logger.info("Onboarding answers persisted for user \(userId, privacy: .private)")
