@@ -237,17 +237,6 @@ final class OnboardingFlowViewModel {
 
     /// Gemini AI aesthetic scores from the onboarding photo. Populated
     /// concurrently during the 6s analyzing screen — usually ready by
-    /// the time the user reaches the Verdict screen. `nil` if the user
-    /// skipped the scan, the Gemini call failed, or photo quality was too
-    /// low. Verdict falls back to Vision-based estimates in that case.
-    var scanAnalysis: BodyScanAnalysis? = nil
-
-    /// Per-body-part ratings from Gemini (shoulders, chest, arms, core,
-    /// legs, overall). Stricter calibration than the recurring scan —
-    /// most untrained people score 3-6. Populated during the 6s analyzing
-    /// screen alongside `scanAnalysis`.
-    var bodyRatings: OnboardingBodyRatings? = nil
-
     /// Derived rank — computed post-scan. In Day 1.5 stub this is keyed off
     /// the user's chosen archetype + commitment. V1.1 swaps in real vision AI.
     var derivedRank: String {

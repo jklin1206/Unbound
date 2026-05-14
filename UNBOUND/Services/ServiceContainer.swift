@@ -30,6 +30,8 @@ final class ServiceContainer: ObservableObject {
     let photoXP: any PhotoXPServiceProtocol
     let userSkillTier: UserSkillTierStore
     let liftTier: LiftTierService
+    let scanCheckpointStore: ScanCheckpointStore
+    let scanCheckpointService: ScanCheckpointService
 
     init() {
         self.logging = LoggingService.shared
@@ -60,6 +62,8 @@ final class ServiceContainer: ObservableObject {
         self.photoXP = PhotoXPService.shared
         self.userSkillTier = UserSkillTierStore.shared
         self.liftTier = LiftTierService.shared
+        self.scanCheckpointStore = ScanCheckpointStore.shared
+        self.scanCheckpointService = ScanCheckpointService.shared
     }
 
     init(
@@ -117,6 +121,8 @@ final class ServiceContainer: ObservableObject {
         self.photoXP = photoXP
         self.userSkillTier = UserSkillTierStore.shared
         self.liftTier = LiftTierService.shared
+        self.scanCheckpointStore = ScanCheckpointStore.shared
+        self.scanCheckpointService = ScanCheckpointService.shared
     }
 
     static var mock: ServiceContainer {

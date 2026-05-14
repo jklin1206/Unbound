@@ -253,32 +253,10 @@ struct UnboundSkillTreeTabView: View {
         }
     }
 
-    // MARK: Body tier deep-link
-    //
-    // Loads the latest BodyAnalysis → MuscleGroupTierState and pushes
-    // BodyTierView. Shows an empty state if the user hasn't scanned yet.
-
+    // Body tier link removed — BodyTierView deleted in scan-redesign-v2.
+    // Body/heatmap visualization is a future pass (heatmap slot kept in Profile).
     private var bodyTierLink: some View {
-        NavigationLink {
-            BodyTierLoaderView()
-                .environmentObject(services)
-        } label: {
-            HStack(spacing: 5) {
-                Image(systemName: "figure.stand")
-                    .font(.system(size: 11, weight: .bold))
-                Text("BODY")
-                    .font(Font.unbound.captionS.weight(.heavy))
-                    .tracking(1.6)
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 9, weight: .bold))
-            }
-            .foregroundStyle(Color.unbound.textSecondary)
-            .padding(.horizontal, 9)
-            .padding(.vertical, 5)
-            .background(Capsule().fill(Color.unbound.surface))
-            .overlay(Capsule().strokeBorder(Color.unbound.border, lineWidth: 1))
-        }
-        .buttonStyle(.plain)
+        EmptyView()
     }
 
     /// Live state from SkillProgressService, with all nodes defaulting to

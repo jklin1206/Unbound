@@ -39,10 +39,9 @@ struct PhotoCaptureFlow: View {
 
     @State private var stage: Stage = .intro
     @State private var capturedImage: UIImage?
-    @State private var analysis: BodyScanAnalysis?
+    @State private var scanCheckpoint: ScanCheckpoint?
     @State private var cameraPermissionGranted = false
     @State private var cameraSessionStarted = false
-    @State private var analysisError: Error?
     @AppStorage("unbound.scanConsentGranted") private var scanConsentGranted: Bool = false
 
     // Auto-snap
@@ -470,10 +469,12 @@ struct PhotoCaptureFlow: View {
 
     @ViewBuilder
     private var payoffView: some View {
-        if let img = capturedImage, let a = analysis {
-            ScanPayoffView(image: img, analysis: a) {
-                onComplete(.scanCompleted)
-            }
+        if let cp = scanCheckpoint {
+            ScanPayoffView(
+                checkpoint: cp,
+                onDone: { onComplete(.scanCompleted) },
+                onShare: { /* share sheet handled inside ScanPayoffView */ }
+            )
         } else {
             ProgressView().tint(Color.unbound.accent)
         }
@@ -501,48 +502,43 @@ struct PhotoCaptureFlow: View {
         guard let image = capturedImage else { return }
         let userId = services.auth.currentUserId ?? "anonymous"
 
-        guard let ctx = await ScanContextBuilder.shared.build(userId: userId, currentImage: image) else {
-            await degradeToPhoto()
-            return
-        }
-
-        // Save the photo FIRST — even if Gemini fails, the user's photo is
-        // in the library. Scan ID is the photo ID.
+        // Save the photo to the library. Scan ID is the photo ID.
         let photoId = savePhotoToDatabase(image: image, userId: userId, source: .scan)
 
-        do {
-            let result = try await services.bodyAnalysis.analyzeScan(
-                context: ctx,
+        // Commit the ScanCheckpoint — this is the authoritative scan record.
+        // Reads BuildIdentity from AttributeService, generates Haiku narrative,
+        // and persists to disk. AI never grades the body.
+        if let photoData = image.jpegData(compressionQuality: 0.85) {
+            if let cp = try? await ScanCheckpointService.shared.commit(
                 userId: userId,
-                photoId: photoId
-            )
-            analysis = result
-            services.photoXP.awardScan(userId: userId)
-            UserDefaults.standard.set(
-                Date().timeIntervalSince1970,
-                forKey: "unbound.lastScanTimestamp"
-            )
-            services.badges.bind(userId: userId)
-            _ = await services.badges.evaluate(trigger: .scanCompleted)
-            NotificationCenter.default.post(
-                name: .scanCompleted,
-                object: nil,
-                userInfo: ["photoId": photoId, "analysisId": result.id]
-            )
-
-            // Fire-and-forget delta comparison. If a baseline scan exists,
-            // ScanComparisonService produces a structured delta report that
-            // PTContextBuilder injects into the coach's next message.
-            // Failures are silent — coach simply skips the delta section.
-            Task.detached(priority: .utility) {
-                await ScanComparisonService.shared.triggerComparisonIfNeeded(userId: userId)
+                photoData: photoData
+            ) {
+                scanCheckpoint = cp
             }
-
-            stage = .payoff
-        } catch {
-            analysisError = error
-            await degradeToPhoto()
         }
+
+        services.photoXP.awardScan(userId: userId)
+        UserDefaults.standard.set(
+            Date().timeIntervalSince1970,
+            forKey: "unbound.lastScanTimestamp"
+        )
+        services.badges.bind(userId: userId)
+        _ = await services.badges.evaluate(trigger: .scanCompleted)
+        NotificationCenter.default.post(
+            name: .scanCompleted,
+            object: nil,
+            userInfo: ["photoId": photoId]
+        )
+
+        // Fire-and-forget delta comparison. If a baseline scan exists,
+        // ScanComparisonService produces a structured delta report that
+        // PTContextBuilder injects into the coach's next message.
+        // Failures are silent — coach simply skips the delta section.
+        Task.detached(priority: .utility) {
+            await ScanComparisonService.shared.triggerComparisonIfNeeded(userId: userId)
+        }
+
+        stage = .payoff
     }
 
     /// Scan failed or context couldn't be built. Treat as a photo instead:

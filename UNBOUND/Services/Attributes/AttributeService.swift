@@ -155,7 +155,10 @@ final class MockAttributeService: AttributeServiceProtocol {
     func applySeed(_ seeded: Set<AttributeKey>, userId: String) {
         seededFor[userId] = seeded
     }
-    func snapshotForScan(scanId: String, userId: String) async {}
+    func snapshotForScan(scanId: String, userId: String) async {
+        let profile = self.profile(userId: userId)
+        historyByUser[userId, default: []].append(profile)
+    }
     func scanHistory(userId: String) -> [AttributeProfile] {
         historyByUser[userId] ?? []
     }
