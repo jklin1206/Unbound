@@ -16,8 +16,7 @@ import UIKit
 
 struct RankUpCinematic: View {
     let advance: RankAdvance
-    let archetypeDisplayName: String
-    let archetype: Archetype
+    let buildIdentity: BuildIdentity
     let onDismiss: () -> Void
 
     @State private var showFlash: Bool = false
@@ -152,8 +151,7 @@ struct RankUpCinematic: View {
             RankUpShareCard(
                 rank: advance.toRank,
                 exerciseDisplayName: advance.displayName,
-                archetypeDisplayName: archetypeDisplayName,
-                archetype: archetype,
+                buildIdentity: buildIdentity,
                 skin: SkinService.shared.currentSkin
             )
             .scaleEffect(0.18)
@@ -229,8 +227,7 @@ struct RankUpCinematic: View {
         guard let image = RankUpShareCardRenderer.render(
             rank: advance.toRank,
             exerciseDisplayName: advance.displayName,
-            archetypeDisplayName: archetypeDisplayName,
-            archetype: archetype
+            buildIdentity: buildIdentity
         ) else {
             onDismiss()
             return
@@ -272,13 +269,12 @@ private struct ShareSheet: UIViewControllerRepresentable {
 struct RankUpCinematicPresenter: ViewModifier {
     @State private var pending: RankAdvance?
     @EnvironmentObject private var services: ServiceContainer
-    @State private var archetypeName: String = "UNBOUND"
-    @State private var archetype: Archetype = .vTaper
+    @State private var buildIdentity: BuildIdentity = BuildIdentity(primary: nil, secondary: nil, shape: .balancedAthlete)
 
     func body(content: Content) -> some View {
         content
             .task {
-                await loadArchetype()
+                await loadBuildIdentity()
             }
             .onReceive(NotificationCenter.default.publisher(for: .rankAdvanced)) { note in
                 guard let event = note.userInfo?["event"] as? RankAdvance else { return }
@@ -290,20 +286,15 @@ struct RankUpCinematicPresenter: ViewModifier {
             )) { advance in
                 RankUpCinematic(
                     advance: advance,
-                    archetypeDisplayName: archetypeName,
-                    archetype: archetype,
+                    buildIdentity: buildIdentity,
                     onDismiss: { pending = nil }
                 )
             }
     }
 
-    private func loadArchetype() async {
+    private func loadBuildIdentity() async {
         let userId = services.auth.currentUserId ?? "anonymous"
-        if let profile: UserProfile = try? await services.user.fetchProfile(userId: userId),
-           let resolved = profile.preferredArchetype {
-            archetypeName = resolved.displayName
-            archetype = resolved
-        }
+        buildIdentity = services.attribute.snapshot(userId: userId, asOf: Date.now).buildIdentity
     }
 }
 
