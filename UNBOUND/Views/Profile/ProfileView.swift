@@ -36,6 +36,12 @@ struct ProfileView: View {
     @State private var scanPhotoCount: Int = 0
     @State private var isLoading = true
 
+    // Scan cadence + flow presentation
+    @State private var scanCadence: ScanCadenceState = .compute(lastScanAt: nil, now: .now)
+    @State private var lastScanDate: Date? = nil
+    @State private var showScanCaptureFlow = false
+    @State private var showCadenceConfirmation = false
+
     @AppStorage("unbound.gains") private var gains: Int = 0
     private let xpPerLevel: Int = 250
 
@@ -54,6 +60,13 @@ struct ProfileView: View {
                     VStack(alignment: .leading, spacing: 16) {
                         headerCard
                         ProfileBuildCard(profile: attributeProfile)
+                        ProfileScanRow(lastScanDate: lastScanDate, cadenceState: scanCadence) {
+                            if !scanCadence.isUnlocked && lastScanDate != nil {
+                                showCadenceConfirmation = true
+                            } else {
+                                showScanCaptureFlow = true
+                            }
+                        }
                         heatmapPlaceholder
                         PhotoCalendarView().environmentObject(services)
                         badgesCard
@@ -69,6 +82,27 @@ struct ProfileView: View {
         }
         .navigationBarHidden(true)
         .task { await load() }
+        .confirmationDialog(
+            "Your body adapts on a 4-week cycle.",
+            isPresented: $showCadenceConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Scan anyway") { showScanCaptureFlow = true }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text("\(scanCadence.daysUntilNext) days until next recommended scan window.")
+        }
+        .fullScreenCover(isPresented: $showScanCaptureFlow, onDismiss: {
+            let userId = services.auth.currentUserId ?? "anonymous"
+            let history = (try? ScanCheckpointStore.shared.history(userId: userId)) ?? []
+            lastScanDate = history.last?.createdAt
+            scanCadence = ScanCadenceState.compute(lastScanAt: lastScanDate, now: .now)
+        }) {
+            PhotoCaptureFlow(mode: .scan) { _ in
+                showScanCaptureFlow = false
+            }
+            .environmentObject(services)
+        }
         .onReceive(NotificationCenter.default.publisher(for: .attributeRankUp)) { _ in
             if let userId = services.auth.currentUserId {
                 Task {
@@ -125,6 +159,11 @@ struct ProfileView: View {
 
         let states = SkillProgressService.shared.nodeStates
         skillsObtained = states.values.filter { $0 == .achieved || $0 == .mastered }.count
+
+        // Load scan cadence for ProfileScanRow
+        let scanHistory = (try? ScanCheckpointStore.shared.history(userId: userId)) ?? []
+        lastScanDate = scanHistory.last?.createdAt
+        scanCadence = ScanCadenceState.compute(lastScanAt: lastScanDate, now: .now)
 
         isLoading = false
     }
