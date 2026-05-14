@@ -157,7 +157,7 @@ struct BodyTierView: View {
         let avg = states.isEmpty ? 0 : states.map(\.score).reduce(0, +) / states.count
         let overallTier = MuscleGroupTier.from(score: avg)
         return HStack(spacing: 14) {
-            RankBadge(letter: overallTier.letter, size: .medium)
+            TierBadge(tier: overallTier.asSkillTier)
             VStack(alignment: .leading, spacing: 4) {
                 Text("Overall tier")
                     .font(Font.unbound.captionS.weight(.heavy))

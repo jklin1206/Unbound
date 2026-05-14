@@ -79,7 +79,7 @@ extension AttributeKey {
     }
 
     /// Anchor lifts for aggregate-rank computation. IDs must match `CatalogExercise.name` —
-    /// space-lowercase format used throughout production (WorkoutLog, LiftRank).
+    /// space-lowercase format used throughout production (WorkoutLog).
     ///
     /// NOTE: These were previously authored in snake_case (ExerciseLibrary format),
     /// which caused silent lookup misses. All IDs now match ExerciseCatalog exactly.

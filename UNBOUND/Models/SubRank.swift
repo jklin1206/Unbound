@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 
 // MARK: - SubRank
 //
@@ -195,4 +196,46 @@ struct RankAdvance: Identifiable, Sendable {
 
 extension Notification.Name {
     static let rankAdvanced = Notification.Name("unbound.rankAdvanced")
+}
+
+// MARK: - SubRank tint ramp
+//
+// Red → green → violet → gold heat ramp.
+//   E-, E, E+ → rankRed          (#B91C1C)   untrained / urgent
+//   D-, D, D+ → rankOrange       (#F97316)   weak
+//   C-, C, C+ → rankAmber        (#EAB308)   moderate
+//   B-, B, B+ → rankGreen        (#22C55E)   solid
+//   A-, A, A+ → accent / impact  (#7C3AED)   advanced (violet = brand)
+//   S-, S, S+ → rankGold         (#FFC857)   elite
+
+extension SubRank {
+    /// Steady-state tint used by heatmap and rank displays.
+    var regionTint: Color {
+        switch self.letter {
+        case "E":
+            return Color.unbound.rankRed
+        case "D":
+            return Color.unbound.rankOrange
+        case "C":
+            return Color.unbound.rankAmber
+        case "B":
+            return Color.unbound.rankGreen
+        case "A":
+            return self == .aMinus ? Color.unbound.accent : Color.unbound.impact
+        case "S":
+            return Color.unbound.rankGold
+        default:
+            return Color.unbound.rankRed
+        }
+    }
+
+    /// True when the rank should render with a holographic shimmer (S / S+ only).
+    var usesHolographicShimmer: Bool {
+        self == .s || self == .sPlus
+    }
+}
+
+extension Color {
+    /// Gold reserved for S-tier ranks.
+    static let unboundGold = Color(.sRGB, red: 1.0, green: 0.784, blue: 0.341, opacity: 1.0) // #FFC857
 }

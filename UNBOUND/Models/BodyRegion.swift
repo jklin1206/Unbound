@@ -52,9 +52,9 @@ enum BodyRegion: String, Codable, CaseIterable, Sendable, Hashable, Identifiable
         }
     }
 
-    /// Canonical lowercase exercise keys (matching ExerciseCatalog + LiftRank
-    /// exerciseKey conventions) that contribute to this region's rank. Keys
-    /// are substring-matched, so "bench press" will match both "bench press"
+    /// Canonical lowercase exercise keys (matching ExerciseCatalog exerciseKey
+    /// conventions) that contribute to this region's rank. Keys are
+    /// substring-matched, so "bench press" will match both "bench press"
     /// and "incline bench press" lifts.
     var contributingLifts: [String] {
         switch self {

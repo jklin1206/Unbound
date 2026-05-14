@@ -38,17 +38,18 @@ final class ProgramPhaseEngine: ProgramPhaseEngineProtocol {
         let logs = (try? await WorkoutLogService.shared.fetchRecentLogs(userId: userId, limit: 60)) ?? []
         let record = SessionXPService.shared.record(userId: userId)
 
-        // Count rank advances in last 4 weeks across all lifts.
-        let ranks = await RankService.shared.fetchAll(userId: userId)
+        // LiftRank-based advance tracking removed in rank-cleanup-v1.
+        // Use session count as a proxy for recent progression signal.
         let fourWeeksAgo = Calendar.current.date(byAdding: .day, value: -28, to: Date()) ?? Date()
-        let recentAdvances = ranks.filter { $0.lastAdvanceAt >= fourWeeksAgo }.count
+        let recentSessionLogs = logs.filter { $0.startedAt >= fourWeeksAgo }
+        let recentAdvances = recentSessionLogs.count / 4  // rough: 1 advance per 4 sessions
 
         // Recent plateau signals: 2+ plateaued lifts → deload.
         let plateauCount = plateaus.count
 
-        // Weeks since last advance on emphasis lifts (coarse stagnation check).
+        // Weeks since any session (coarse stagnation check).
         let weeksSinceAnyAdvance: Int = {
-            guard let latest = ranks.map(\.lastAdvanceAt).max() else { return 99 }
+            guard let latest = logs.map(\.startedAt).max() else { return 99 }
             return max(0, Calendar.current.dateComponents([.weekOfYear], from: latest, to: Date()).weekOfYear ?? 0)
         }()
 

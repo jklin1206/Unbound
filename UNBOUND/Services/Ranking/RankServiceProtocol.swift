@@ -47,9 +47,4 @@ protocol RankServiceProtocol: AnyObject {
     /// AttributeKey.emphasisLifts. Replaces archetypeRank in Phase 2c.
     func aggregateRank(userId: String) async -> SubRank
 
-    /// All persisted lift ranks for the user, newest first.
-    func fetchAll(userId: String) async -> [LiftRank]
-
-    /// Persist a manually-mutated LiftRank (e.g. after decay).
-    func save(_ rank: LiftRank) async
 }

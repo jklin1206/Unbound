@@ -269,7 +269,6 @@ struct SettingsView: View {
 private struct DevPlayerToolsView: View {
     @EnvironmentObject private var services: ServiceContainer
 
-    @State private var selectedRank: RankTitle = .unbound
     @State private var selectedLevel: Int = 25
     @State private var isApplying = false
     @State private var status = "Dev account is local-only and hidden in release builds."
@@ -340,12 +339,6 @@ private struct DevPlayerToolsView: View {
                     }
                 }
 
-                Picker("Rank Title", selection: $selectedRank) {
-                    ForEach(RankTitle.allCases, id: \.rawValue) { title in
-                        Text(title.displayName).tag(title)
-                    }
-                }
-
                 Button {
                     run { await DevPlayerSeeder.applyLevel(selectedLevel) }
                 } label: {
@@ -353,12 +346,6 @@ private struct DevPlayerToolsView: View {
                         .foregroundColor(.theme.primary)
                 }
 
-                Button {
-                    run { await DevPlayerSeeder.applyRank(selectedRank, services: services) }
-                } label: {
-                    Label("Apply Rank to All Core Lifts", systemImage: "shield.lefthalf.filled")
-                        .foregroundColor(.theme.primary)
-                }
             } header: {
                 Text("Fast Tuning")
                     .foregroundColor(.theme.textSecondary)
@@ -393,7 +380,6 @@ private struct DevPlayerToolsView: View {
                 Button {
                     run {
                         await DevPlayerSeeder.maxEverything(
-                            rankTitle: selectedRank,
                             level: selectedLevel,
                             services: services
                         )
@@ -483,10 +469,9 @@ private enum DevPlayerSeeder {
         await applyLevel(25)
     }
 
-    static func maxEverything(rankTitle: RankTitle, level: Int, services: ServiceContainer) async {
+    static func maxEverything(level: Int, services: ServiceContainer) async {
         await activate(services: services)
         await applyLevel(level)
-        await applyRank(rankTitle, services: services)
         await unlockAllBadges()
         await masterSkillTree()
         await seedSessionStats()
@@ -495,24 +480,6 @@ private enum DevPlayerSeeder {
     static func applyLevel(_ level: Int) async {
         let clamped = max(1, min(80, level))
         UserDefaults.standard.set((clamped - 1) * 250, forKey: gainsKey)
-    }
-
-    static func applyRank(_ title: RankTitle, services: ServiceContainer) async {
-        AuthService.shared.activateDevUser(id: userId)
-        let rank = representativeSubRank(for: title)
-        for seed in canonicalLiftSeeds {
-            await services.rank.save(
-                LiftRank(
-                    userId: userId,
-                    exerciseKey: seed.key,
-                    displayName: seed.name,
-                    currentRank: rank,
-                    peakRank: rank,
-                    lastAdvanceAt: Date(),
-                    lastActivityAt: Date()
-                )
-            )
-        }
     }
 
     static func unlockAllBadges() async {
@@ -585,31 +552,6 @@ private enum DevPlayerSeeder {
         DevFlags.shared.unlockAllFeatures = false
     }
 
-    private static func representativeSubRank(for title: RankTitle) -> SubRank {
-        switch title {
-        case .initiate: return .e
-        case .novice: return .dMinus
-        case .apprentice: return .dPlus
-        case .forged: return .c
-        case .veteran: return .bMinus
-        case .honed: return .bPlus
-        case .vessel: return .a
-        case .unbound: return .sMinus
-        case .ascendant: return .sPlus
-        }
-    }
-
-    private static let canonicalLiftSeeds: [(key: String, name: String)] = [
-        ("back squat", "Back Squat"),
-        ("deadlift", "Deadlift"),
-        ("bench press", "Bench Press"),
-        ("overhead press", "Overhead Press"),
-        ("pullup", "Pull-Up"),
-        ("weighted pullup", "Weighted Pull-Up"),
-        ("pushup", "Push-Up"),
-        ("dip", "Dip"),
-        ("l-sit", "L-Sit")
-    ]
 }
 #endif
 

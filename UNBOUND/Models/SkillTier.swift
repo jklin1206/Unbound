@@ -64,3 +64,40 @@ extension Notification.Name {
     /// Phase 8 renames or merges.
     static let skillTierAdvanced = Notification.Name("unbound.skillTierAdvanced")
 }
+
+// MARK: - SubRank → SkillTier bridge
+
+extension SubRank {
+    /// Convert a SubRank to the nearest SkillTier. Used at RankBadge →
+    /// TierBadge call sites during the rank-cleanup migration.
+    var asSkillTier: SkillTier {
+        switch ordinal {
+        case 0...1: return .initiate
+        case 2...3: return .novice
+        case 4...5: return .apprentice
+        case 6...7: return .forged
+        case 8...9: return .veteran
+        case 10...11: return .honed
+        case 12...13: return .vessel
+        case 14...15: return .unbound
+        default:    return .ascendant
+        }
+    }
+}
+
+extension RankTitle {
+    /// Convert a RankTitle to its equivalent SkillTier.
+    var asSkillTier: SkillTier {
+        switch self {
+        case .initiate:   return .initiate
+        case .novice:     return .novice
+        case .apprentice: return .apprentice
+        case .forged:     return .forged
+        case .veteran:    return .veteran
+        case .honed:      return .honed
+        case .vessel:     return .vessel
+        case .unbound:    return .unbound
+        case .ascendant:  return .ascendant
+        }
+    }
+}
