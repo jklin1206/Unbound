@@ -52,7 +52,7 @@ struct ScanDueCard: View {
 
     private var subline: String {
         isFirstScan
-            ? "3 photos · ~2 min · on-device only"
-            : "30 days since last scan · 3 photos"
+            ? "1 photo · 30 seconds · on-device only"
+            : "30 days since last scan"
     }
 }

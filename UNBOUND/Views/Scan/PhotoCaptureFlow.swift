@@ -9,14 +9,14 @@ import UIKit
 //            ProgressPhoto(source: .manual) → +5 SP (deduped per day) →
 //            dismiss with toast.
 //
-//   .scan  — bi-weekly Gemini body read. Consent gate (first time only)
-//            → camera → review → confirm → analyzing cinematic (~1.2s,
-//            during which ScanContextBuilder + BodyAnalysisService
-//            .analyzeScan run concurrently) → ScanPayoffView → RETURN
-//            HOME → +25 SP + ProgressPhoto(source: .scan).
+//   .scan  — monthly checkpoint. Consent gate (first time only)
+//            → camera → tap shutter → review → confirm → analyzing cinematic
+//            → ScanPayoffView → RETURN HOME → +25 SP + ProgressPhoto(source: .scan).
+//            Build Identity comes from training data, not photo analysis.
+//            No alignment gating — open camera, tap shutter, done.
 //
 // On scan failure: degrades silently to photo path (+5 SP) and does NOT
-// advance the 14-day scan timer — user can retry immediately.
+// advance the scan timer — user can retry immediately.
 
 struct PhotoCaptureFlow: View {
     enum Mode: String, Identifiable, Equatable {
@@ -43,11 +43,6 @@ struct PhotoCaptureFlow: View {
     @State private var cameraPermissionGranted = false
     @State private var cameraSessionStarted = false
     @AppStorage("unbound.scanConsentGranted") private var scanConsentGranted: Bool = false
-
-    // Auto-snap
-    @State private var detector = BodyAlignmentDetector()
-    @State private var bodyCountdownTask: Task<Void, Never>? = nil
-    @State private var bodyCountdownSeconds: Int? = nil
 
     private enum Stage {
         case intro
@@ -146,7 +141,7 @@ struct PhotoCaptureFlow: View {
     }
     private var introBody: String {
         mode == .scan
-            ? "A quick front photo. The coach reads it against your last two weeks of training and tells you what it sees. 3 sentences, no numbers."
+            ? "One photo to mark this moment. No coaching, no analysis — just an honest checkpoint to look back on."
             : "One photo. Keeps the arc honest. Come back in a month and see the change."
     }
     private var introCTA: String { "OPEN CAMERA" }
@@ -175,11 +170,6 @@ struct PhotoCaptureFlow: View {
         ZStack {
             ScanCameraPreview(service: services.imageCapture)
                 .ignoresSafeArea()
-
-            // Countdown — full-screen centered number
-            if let seconds = bodyCountdownSeconds {
-                AutoSnapCountdown(seconds: seconds)
-            }
 
             VStack {
                 HStack {
@@ -210,44 +200,16 @@ struct PhotoCaptureFlow: View {
 
                 Spacer()
 
-                // Scanning indicator — only shown in scan mode when no countdown is running
-                if mode == .scan && bodyCountdownSeconds == nil {
-                    BodyScanPulseIndicator()
-                        .padding(.bottom, 14)
-                }
-
-                // Capture button — cancels countdown if running, else shoots manually
-                Button {
-                    if bodyCountdownSeconds != nil {
-                        cancelBodyCountdown()
-                    } else {
-                        capture()
-                    }
-                } label: {
+                // Shutter button — always enabled, tap to capture
+                Button { capture() } label: {
                     ZStack {
                         Circle()
-                            .strokeBorder(
-                                bodyCountdownSeconds != nil ? Color.unbound.accent : Color.white,
-                                lineWidth: 3
-                            )
+                            .strokeBorder(Color.white, lineWidth: 3)
                             .frame(width: 74, height: 74)
-                            .shadow(
-                                color: bodyCountdownSeconds != nil ? Color.unbound.accent.opacity(0.5) : .clear,
-                                radius: 10
-                            )
-
-                        if bodyCountdownSeconds != nil {
-                            Image(systemName: "xmark")
-                                .font(.system(size: 20, weight: .bold))
-                                .foregroundStyle(Color.unbound.textPrimary)
-                                .frame(width: 60, height: 60)
-                                .background(Circle().fill(Color.unbound.accent))
-                        } else {
-                            Circle()
-                                .fill(Color.unbound.accent)
-                                .frame(width: 60, height: 60)
-                                .shadow(color: Color.unbound.accent.opacity(0.55), radius: 10)
-                        }
+                        Circle()
+                            .fill(Color.unbound.accent)
+                            .frame(width: 60, height: 60)
+                            .shadow(color: Color.unbound.accent.opacity(0.55), radius: 10)
                     }
                 }
                 .buttonStyle(.plain)
@@ -264,16 +226,9 @@ struct PhotoCaptureFlow: View {
             do {
                 try await services.imageCapture.startSession()
                 cameraSessionStarted = true
-                if mode == .scan {
-                    services.imageCapture.attachVideoSampleHandler(detector)
-                }
             } catch {
                 onComplete(.cancelled)
             }
-        }
-        .onChange(of: detector.alignment) { _, new in
-            guard mode == .scan else { return }
-            handleBodyDetection(new)
         }
     }
 
@@ -294,49 +249,8 @@ struct PhotoCaptureFlow: View {
     }
 
     private func tearDownCamera() {
-        cancelBodyCountdown()
-        services.imageCapture.attachVideoSampleHandler(nil)
         services.imageCapture.stopSession()
         cameraSessionStarted = false
-    }
-
-    // MARK: - Auto-snap
-
-    private func handleBodyDetection(_ alignment: BodyAlignment) {
-        switch alignment {
-        case .closeToAligned, .aligned:
-            guard bodyCountdownTask == nil else { return }
-            startBodyCountdown()
-        default:
-            cancelBodyCountdown()
-        }
-    }
-
-    private func startBodyCountdown() {
-        UnboundHaptics.heavy()
-        bodyCountdownTask = Task {
-            for sec in stride(from: 5, through: 1, by: -1) {
-                if Task.isCancelled { break }
-                await MainActor.run {
-                    bodyCountdownSeconds = sec
-                    UnboundHaptics.tick()
-                }
-                try? await Task.sleep(nanoseconds: 1_000_000_000)
-            }
-            if !Task.isCancelled {
-                await MainActor.run {
-                    bodyCountdownSeconds = nil
-                    bodyCountdownTask = nil
-                    capture()
-                }
-            }
-        }
-    }
-
-    private func cancelBodyCountdown() {
-        bodyCountdownTask?.cancel()
-        bodyCountdownTask = nil
-        bodyCountdownSeconds = nil
     }
 
     // MARK: - Review
@@ -582,35 +496,6 @@ struct PhotoCaptureFlow: View {
             try? await services.database.create(photo, collection: "progressPhotos", documentId: id)
         }
         return id
-    }
-}
-
-// MARK: - BodyScanPulseIndicator
-
-private struct BodyScanPulseIndicator: View {
-    @State private var pulse: CGFloat = 1.0
-
-    var body: some View {
-        HStack(spacing: 8) {
-            Circle()
-                .fill(Color.unbound.accent)
-                .frame(width: 7, height: 7)
-                .scaleEffect(pulse)
-                .shadow(color: Color.unbound.accent.opacity(0.8), radius: 5)
-            Text("SCANNING")
-                .font(Font.unbound.captionS.weight(.bold))
-                .tracking(1.8)
-                .foregroundStyle(Color.unbound.textSecondary)
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 8)
-        .background(Capsule().fill(.ultraThinMaterial))
-        .overlay(Capsule().strokeBorder(Color.unbound.borderSubtle, lineWidth: 1))
-        .onAppear {
-            withAnimation(.easeInOut(duration: 0.85).repeatForever(autoreverses: true)) {
-                pulse = 1.5
-            }
-        }
     }
 }
 
