@@ -128,6 +128,12 @@ final class SkillProgressXPTests: XCTestCase {
         XCTAssertEqual(sp.xpInLevel, 75)
         XCTAssertNotEqual(svc.nodeStates[realNodeId], .mastered)
 
+        // Reset the 24h daily cap so the next award isn't gated by the timer.
+        var reloaded = (try? await db.read(collection: "skillProgress", documentId: "test-user")) as UserSkillProgress?
+        reloaded?.lastTrainedAt[realNodeId] = Date(timeIntervalSinceNow: -25 * 3600)
+        try? await db.create(reloaded!, collection: "skillProgress", documentId: "test-user")
+        await svc.load(userId: "test-user")
+
         // Grant enough to fill the bar → mastered + capped.
         await svc.awardSessionXP(forNodeId: realNodeId, xpAmount: 200)
         sp = svc.currentSkillProgress(for: realNodeId)
@@ -135,7 +141,7 @@ final class SkillProgressXPTests: XCTestCase {
         XCTAssertEqual(sp.xpInLevel, 175)
         XCTAssertEqual(svc.nodeStates[realNodeId], .mastered)
 
-        // Further awards are no-ops — already mastered.
+        // Further awards are no-ops — already mastered (cap guard, not time guard).
         await svc.awardSessionXP(forNodeId: realNodeId, xpAmount: 500)
         sp = svc.currentSkillProgress(for: realNodeId)
         XCTAssertEqual(sp.currentLevel, 5)

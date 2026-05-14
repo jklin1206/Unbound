@@ -284,12 +284,14 @@ struct SkillGraph: Codable, Sendable {
     // Some clusters (e.g. HSPU, One-Arm Handstand) are staged behind the
     // keystone(s) of a prerequisite cluster. Returns true when the cluster
     // has no prereq or all keystones of its prereq cluster are achieved.
-    // If the required cluster has no keystones defined yet, we fail open
-    // (treat as unlocked) so POC content gaps never soft-brick the UI.
+    // If the required cluster has no keystones defined, the gate stays CLOSED
+    // — a cluster that requires a prereq with no achievable keystones remains
+    // locked until content is added. This preserves the intended progression
+    // chain even when a cluster's nodes are moved to another cluster.
     func isClusterUnlocked(_ cluster: SkillCluster, nodeStates: [String: NodeState]) -> Bool {
         guard let required = cluster.requiresClusterKeystone else { return true }
         let keystones = self.nodes.filter { $0.cluster == required && $0.isKeystone }
-        guard !keystones.isEmpty else { return true }
+        guard !keystones.isEmpty else { return false }
         return keystones.allSatisfy { ks in
             let state = nodeStates[ks.id] ?? .locked
             return state == .achieved || state == .mastered
