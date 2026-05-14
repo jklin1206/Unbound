@@ -19,7 +19,28 @@ final class RankService: RankServiceProtocol {
 
     private init() {}
 
-    // MARK: Compute
+    // MARK: - SkillTier API (Phase 4.2+)
+
+    func computeTier(
+        skill: SkillNode,
+        history: [ExerciseLogEntry],
+        bodyweightKg: Double
+    ) -> SkillTier {
+        // Walk tiers from highest to lowest. First satisfied wins.
+        for tier in SkillTier.allCases.reversed() {
+            guard let criterion = skill.tierCriteria[tier] else { continue }
+            if TierCriterionEvaluator.satisfied(
+                criterion: criterion,
+                history: history,
+                bodyweightKg: bodyweightKg
+            ) {
+                return tier
+            }
+        }
+        return .initiate
+    }
+
+    // MARK: - Legacy SubRank Compute
 
     func computeLiftRank(
         entry: ExerciseLogEntry,
@@ -276,6 +297,7 @@ final class MockRankService: RankServiceProtocol {
     var ranks: [LiftRank] = []
     var aggregateRankOverride: SubRank = .c
 
+    func computeTier(skill: SkillNode, history: [ExerciseLogEntry], bodyweightKg: Double) -> SkillTier { .initiate }
     func computeLiftRank(entry: ExerciseLogEntry, bodyweightKg: Double) -> SubRank? { .c }
     func evaluate(log: WorkoutLog, bodyweightKg: Double) async {}
     func aggregateRank(userId: String) async -> SubRank { aggregateRankOverride }

@@ -2,6 +2,18 @@ import Foundation
 
 @MainActor
 protocol RankServiceProtocol: AnyObject {
+    // MARK: - SkillTier API (Phase 4+)
+
+    /// Pure: returns the highest tier whose criterion is satisfied by the
+    /// user's log history for this skill. Defaults to .initiate if nothing matches.
+    func computeTier(
+        skill: SkillNode,
+        history: [ExerciseLogEntry],
+        bodyweightKg: Double
+    ) -> SkillTier
+
+    // MARK: - Legacy SubRank API
+
     /// Compute a lift's sub-rank from a workout log entry. Returns nil when
     /// the exercise isn't a tracked lift or the log lacks usable data.
     func computeLiftRank(
