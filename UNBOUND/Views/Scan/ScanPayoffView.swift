@@ -8,6 +8,8 @@ struct ScanPayoffView: View {
 
     @State private var photoAppeared = false
     @State private var scoresRevealed = false
+    @EnvironmentObject private var services: ServiceContainer
+    @State private var attributeHistory: [AttributeProfile] = []
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -21,6 +23,13 @@ struct ScanPayoffView: View {
                         statCards(scores)
                     }
                     narrativeSection
+                    if attributeHistory.count >= 2,
+                       let first = attributeHistory.first,
+                       let latest = attributeHistory.last {
+                        ScanBuildDeltaCard(firstScan: first, latestScan: latest)
+                            .padding(.horizontal, 20)
+                            .padding(.top, 12)
+                    }
                     Spacer().frame(height: 110)
                 }
             }
@@ -35,6 +44,10 @@ struct ScanPayoffView: View {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 withAnimation { scoresRevealed = true }
             }
+        }
+        .task {
+            let uid = services.auth.currentUserId ?? "anonymous"
+            attributeHistory = services.attribute.scanHistory(userId: uid)
         }
     }
 
