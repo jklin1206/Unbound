@@ -14,3 +14,16 @@ struct TitleID: Codable, Hashable, Sendable {
     let path: Path
     let tier: Tier
 }
+
+// MARK: - Display helpers
+
+extension TitleID {
+    var displayName: String {
+        let pathLabel: String
+        switch path {
+        case .axis(let key):      pathLabel = key.buildVocab
+        case .cardKind(let kind): pathLabel = kind.rawValue.capitalized
+        }
+        return "\(pathLabel) · \(tier.rawValue.capitalized)"
+    }
+}
