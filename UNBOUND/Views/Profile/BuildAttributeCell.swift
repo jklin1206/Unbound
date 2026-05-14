@@ -29,10 +29,11 @@ struct BuildAttributeCell: View {
                 }
                 .clipShape(RoundedRectangle(cornerRadius: 2))
 
-            HStack(spacing: 5) {
-                Circle()
-                    .fill(isHighTier ? Color.unbound.accent : Color.unbound.textTertiary)
-                    .frame(width: 5, height: 5)
+            HStack(spacing: 6) {
+                Image(value.rankTitle.assetName)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 16, height: 16)
                 Text(value.rankTitle.displayName.uppercased())
                     .font(.system(size: 9, weight: .semibold, design: .monospaced))
                     .tracking(1.5)
