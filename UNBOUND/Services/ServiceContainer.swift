@@ -33,6 +33,12 @@ final class ServiceContainer: ObservableObject {
     let scanCheckpointStore: ScanCheckpointStore
     let scanCheckpointService: ScanCheckpointService
     let trials: any TrialsServiceProtocol
+    let squads: any SquadServiceProtocol
+    let squadActivity: any SquadActivityServiceProtocol
+    let squadPresence: any SquadPresenceServiceProtocol
+    let squadMission: any SquadMissionServiceProtocol
+    let squadHonors: any SquadHonorsServiceProtocol
+    let friendChallenge: any FriendChallengeServiceProtocol
 
     init() {
         self.logging = LoggingService.shared
@@ -66,6 +72,12 @@ final class ServiceContainer: ObservableObject {
         self.scanCheckpointStore = ScanCheckpointStore.shared
         self.scanCheckpointService = ScanCheckpointService.shared
         self.trials = TrialsService.shared
+        self.squads = SquadService.shared
+        self.squadActivity = SquadActivityService.shared
+        self.squadPresence = SquadPresenceService.shared
+        self.squadMission = SquadMissionService.shared
+        self.squadHonors = SquadHonorsService.shared
+        self.friendChallenge = FriendChallengeService.shared
     }
 
     init(
@@ -126,6 +138,12 @@ final class ServiceContainer: ObservableObject {
         self.scanCheckpointStore = ScanCheckpointStore.shared
         self.scanCheckpointService = ScanCheckpointService.shared
         self.trials = TrialsService.shared
+        self.squads = SquadService.shared
+        self.squadActivity = SquadActivityService.shared
+        self.squadPresence = SquadPresenceService.shared
+        self.squadMission = SquadMissionService.shared
+        self.squadHonors = SquadHonorsService.shared
+        self.friendChallenge = FriendChallengeService.shared
     }
 
     static var mock: ServiceContainer {

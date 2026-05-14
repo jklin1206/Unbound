@@ -11,6 +11,43 @@ protocol SessionXPServiceProtocol: AnyObject {
     /// `.sessionXPUpdated`. Badge evaluation is handled by callers.
     @discardableResult
     func recordSession(userId: String, at: Date) async -> SessionXPDelta
+
+    /// Apply an out-of-band XP bonus (e.g. linked-session +20%, affinity +10%).
+    /// Posts `.sessionXPBonusAdded` with the amount and reason.
+    func addBonus(userId: String, amount: Int, reason: String) async
+
+    /// Returns the affinity bonus amount applied during the most recent bonus
+    /// entry for the given user (reason == "affinity"), or 0 if none.
+    func affinityBonusForLatestSession(userId: String) async -> Int
+
+    /// Records a session AND applies the squad affinity +10% bonus if the
+    /// session's dominant axis matches the squad's affinity axis.
+    ///
+    /// - Parameters:
+    ///   - userId: The user.
+    ///   - date: Session date.
+    ///   - log: The finished `WorkoutLog`. Used to derive dominant axis.
+    ///   - catalog: Attribute catalog for delta computation.
+    ///   - squadService: Squad service for affinity lookup.
+    @discardableResult
+    func recordSessionWithAffinity(
+        userId: String,
+        at date: Date,
+        log: WorkoutLog,
+        catalog: AttributeCatalogProtocol,
+        squadService: SquadServiceProtocol
+    ) async -> SessionXPDelta
+}
+
+// MARK: - SessionXPBonusEntry
+//
+// A lightweight ledger entry written for each out-of-band XP bonus.
+// Stored per-user under "unbound.sessionxpbonus.<userId>".
+
+struct SessionXPBonusEntry: Codable, Sendable {
+    let amount: Int
+    let reason: String
+    let date: Date
 }
 
 // MARK: - SessionXPService
@@ -22,6 +59,7 @@ final class SessionXPService: SessionXPServiceProtocol {
     private let logger = LoggingService.shared
     private let defaults = UserDefaults.standard
     private let keyPrefix = "unbound.sessionxp."
+    private let bonusKeyPrefix = "unbound.sessionxpbonus."
     private let streakResetKey = "unbound.streakResetDays"
 
     private init() {
@@ -95,9 +133,77 @@ final class SessionXPService: SessionXPServiceProtocol {
         return delta
     }
 
+    // MARK: Affinity + Session
+
+    @discardableResult
+    func recordSessionWithAffinity(
+        userId: String,
+        at date: Date,
+        log: WorkoutLog,
+        catalog: AttributeCatalogProtocol,
+        squadService: SquadServiceProtocol
+    ) async -> SessionXPDelta {
+        // 1. Record the base session (streak, counters, .sessionXPUpdated).
+        let delta = await recordSession(userId: userId, at: date)
+
+        // 2. Check squad affinity.
+        //    baseXP proxy: fixed 10 units per session for bonus computation.
+        //    +10% of base = 1 unit, +20% of base = 2 units, net max = 2 (non-stacking).
+        let baseXP = 10
+
+        let squadState = squadService.state(userId: userId)
+        if let squad = squadState.currentSquad,
+           let affinityAxis = squad.affinityAxis,
+           let dominant = AttributeIngest.dominantAxis(for: log, catalog: catalog),
+           affinityAxis == dominant {
+            let affinityBonus = Int(Double(baseXP) * 0.10)
+            await addBonus(userId: userId, amount: affinityBonus, reason: "affinity")
+        }
+
+        return delta
+    }
+
+    // MARK: Bonus
+
+    func addBonus(userId: String, amount: Int, reason: String) async {
+        guard amount != 0 else { return }
+        let entry = SessionXPBonusEntry(amount: amount, reason: reason, date: Date())
+        var ledger = loadBonusLedger(userId: userId)
+        ledger.append(entry)
+        persistBonusLedger(ledger, userId: userId)
+        NotificationCenter.default.post(
+            name: .sessionXPBonusAdded,
+            object: nil,
+            userInfo: ["userId": userId, "amount": amount, "reason": reason]
+        )
+        logger.log(
+            "Session XP bonus: userId=\(userId) amount=\(amount) reason=\(reason)",
+            level: .debug
+        )
+    }
+
+    func affinityBonusForLatestSession(userId: String) async -> Int {
+        let ledger = loadBonusLedger(userId: userId)
+        return ledger.last(where: { $0.reason == "affinity" })?.amount ?? 0
+    }
+
     // MARK: Persistence
 
     private func key(for userId: String) -> String { keyPrefix + userId }
+
+    private func bonusKey(for userId: String) -> String { bonusKeyPrefix + userId }
+
+    private func loadBonusLedger(userId: String) -> [SessionXPBonusEntry] {
+        guard let data = defaults.data(forKey: bonusKey(for: userId)) else { return [] }
+        return (try? JSONDecoder.unbound.decode([SessionXPBonusEntry].self, from: data)) ?? []
+    }
+
+    private func persistBonusLedger(_ ledger: [SessionXPBonusEntry], userId: String) {
+        // Cap the ledger at 200 entries to avoid unbounded growth.
+        let capped = ledger.count > 200 ? Array(ledger.suffix(200)) : ledger
+        guard let data = try? JSONEncoder.unbound.encode(capped) else { return }
+        defaults.set(data, forKey: bonusKey(for: userId))
+    }
 
     private func load(userId: String) -> SessionXPRecord? {
         guard let data = defaults.data(forKey: key(for: userId)) else { return nil }
@@ -125,6 +231,15 @@ final class SessionXPService: SessionXPServiceProtocol {
 final class MockSessionXPService: SessionXPServiceProtocol {
     var records: [String: SessionXPRecord] = [:]
 
+    // Spy properties for test assertions.
+    struct BonusCall: Equatable {
+        let userId: String
+        let amount: Int
+        let reason: String
+    }
+    var bonusCalls: [BonusCall] = []
+    var stubbedAffinityBonus: Int = 0
+
     func record(userId: String) -> SessionXPRecord {
         records[userId] ?? .empty(userId: userId, weekStart: Date())
     }
@@ -140,6 +255,40 @@ final class MockSessionXPService: SessionXPServiceProtocol {
         r.weeklyCount += 1
         records[userId] = r
         return SessionXPDelta(previous: previous, updated: r, streakExtended: true, streakBroken: false)
+    }
+
+    func addBonus(userId: String, amount: Int, reason: String) async {
+        bonusCalls.append(BonusCall(userId: userId, amount: amount, reason: reason))
+    }
+
+    func affinityBonusForLatestSession(userId: String) async -> Int {
+        stubbedAffinityBonus
+    }
+
+    // Spy support for affinity tests.
+    var stubbedDominantAxis: AttributeKey? = nil
+
+    @discardableResult
+    func recordSessionWithAffinity(
+        userId: String,
+        at date: Date,
+        log: WorkoutLog,
+        catalog: AttributeCatalogProtocol,
+        squadService: SquadServiceProtocol
+    ) async -> SessionXPDelta {
+        let delta = await recordSession(userId: userId, at: date)
+        let baseXP = 10
+        let squadState = squadService.state(userId: userId)
+        // In tests, use the stubbed dominant axis rather than computing from log.
+        let dominant = stubbedDominantAxis ?? AttributeIngest.dominantAxis(for: log, catalog: catalog)
+        if let squad = squadState.currentSquad,
+           let affinityAxis = squad.affinityAxis,
+           let dominant = dominant,
+           affinityAxis == dominant {
+            let bonus = Int(Double(baseXP) * 0.10)
+            await addBonus(userId: userId, amount: bonus, reason: "affinity")
+        }
+        return delta
     }
 }
 

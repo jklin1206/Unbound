@@ -1,3 +1,23 @@
+// UNBOUND/App/AniBodyApp.swift
+//
+// Universal Links — /squad/<code>
+// AASA (apple-app-site-association) must be deployed at:
+//   https://unboundapp.com/.well-known/apple-app-site-association
+//
+// Required AASA content:
+// {
+//   "applinks": {
+//     "details": [
+//       {
+//         "appIDs": ["TEAMID.com.unboundapp.ios"],
+//         "components": [{ "/": "/squad/*" }]
+//       }
+//     ]
+//   }
+// }
+//
+// AASA deployment is a marketing-site concern (not in this PR).
+// The app side: entitlement + onContinueUserActivity handler below.
 import SwiftUI
 
 #if DEBUG
@@ -18,6 +38,27 @@ struct UnboundApp: App {
             RootView()
                 .environmentObject(services)
                 .preferredColorScheme(.dark)
+                .onContinueUserActivity(NSUserActivityTypeBrowsingWeb) { activity in
+                    guard
+                        let url = activity.webpageURL,
+                        let components = URLComponents(url: url, resolvingAgainstBaseURL: true),
+                        components.host == "unboundapp.com"
+                    else { return }
+
+                    let pathComponents = components.path
+                        .split(separator: "/")
+                        .map(String.init)
+
+                    // Match /squad/<invite-code>
+                    if pathComponents.count == 2,
+                       pathComponents[0] == "squad" {
+                        let code = pathComponents[1]
+                        NotificationCenter.default.post(
+                            name: .squadInviteCodeReceived,
+                            object: code
+                        )
+                    }
+                }
         }
     }
 }

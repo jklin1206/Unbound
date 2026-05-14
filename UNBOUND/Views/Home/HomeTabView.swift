@@ -41,6 +41,15 @@ struct HomeTabView: View {
                 Text("Profile")
             }
             .tag(3)
+
+            NavigationStack {
+                SquadTabView()
+            }
+            .tabItem {
+                Image(systemName: "figure.2")
+                Text("Squad")
+            }
+            .tag(4)
         }
         .tint(Color.unbound.accent)
         .rankUpCinematicOverlay()

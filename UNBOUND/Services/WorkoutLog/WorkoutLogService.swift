@@ -74,6 +74,25 @@ final class WorkoutLogService: WorkoutLogServiceProtocol, @unchecked Sendable {
             bodyweightKg: profile?.weightKg ?? 70.0
         )
 
+        // Squad presence: mark this user as in-workout for 3h.
+        let squadForPresence = await MainActor.run { SquadService.shared.state(userId: log.userId).currentSquad }
+        if let squad = squadForPresence {
+            await SquadPresenceService.shared.markInWorkout(userId: log.userId, squadId: squad.id)
+        }
+
+        // Squad Mission: increment progress against active mission.
+        await SquadMissionService.shared.recordProgress(log: log, userId: log.userId)
+
+        // Squad activity feed: record this log as an activity entry.
+        // (Only if user is in a squad.)
+        // TODO(squads-impl): SquadActivityService records aligned-axis sessions
+
+        // Friend Challenges: update progress on any active challenge involving this user.
+        await FriendChallengeService.shared.recordProgress(log: log, userId: log.userId)
+
+        // Clear squad presence — saveLog represents end-of-workout.
+        await SquadPresenceService.shared.clearPresence(userId: log.userId)
+
         logger.log("Workout logged: \(log.plannedWorkoutName)", level: .info, context: ["dayNumber": log.dayNumber])
     }
 

@@ -47,6 +47,13 @@ enum AttributeIngest {
         return deltas
     }
 
+    /// Returns the dominant (highest-delta) axis for a finished workout, or nil if no deltas.
+    /// Used by SessionXPService to check squad affinity bonus eligibility.
+    static func dominantAxis(for session: WorkoutLog, catalog: AttributeCatalogProtocol) -> AttributeKey? {
+        let d = deltas(for: session, catalog: catalog)
+        return d.max(by: { $0.value < $1.value })?.key
+    }
+
     // NOTE: skill-session deltas path deferred — `UserSkillProgress.Session` does not
     // exist in this codebase yet. When the skill-session completion type is introduced,
     // add a `static func deltas(for skillSession:catalog:) -> [AttributeKey: Double]`

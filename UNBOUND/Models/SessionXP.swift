@@ -40,5 +40,6 @@ struct SessionXPDelta: Sendable {
 }
 
 extension Notification.Name {
-    static let sessionXPUpdated = Notification.Name("unbound.sessionXPUpdated")
+    static let sessionXPUpdated   = Notification.Name("unbound.sessionXPUpdated")
+    static let sessionXPBonusAdded = Notification.Name("unbound.sessionXPBonusAdded")
 }
