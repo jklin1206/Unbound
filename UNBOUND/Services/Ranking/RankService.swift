@@ -374,7 +374,6 @@ final class RankService: RankServiceProtocol {
 
 @MainActor
 final class MockRankService: RankServiceProtocol {
-    var ranks: [LiftRank] = []
     var aggregateRankOverride: SubRank = .c
 
     func computeTier(skill: SkillNode, history: [ExerciseLogEntry], bodyweightKg: Double) -> SkillTier { .initiate }
@@ -384,9 +383,4 @@ final class MockRankService: RankServiceProtocol {
     func computeLiftRank(entry: ExerciseLogEntry, bodyweightKg: Double) -> SubRank? { .c }
     func evaluate(log: WorkoutLog, bodyweightKg: Double) async {}
     func aggregateRank(userId: String) async -> SubRank { aggregateRankOverride }
-    func fetchAll(userId: String) async -> [LiftRank] { ranks.filter { $0.userId == userId } }
-    func save(_ rank: LiftRank) async {
-        ranks.removeAll { $0.id == rank.id }
-        ranks.append(rank)
-    }
 }
