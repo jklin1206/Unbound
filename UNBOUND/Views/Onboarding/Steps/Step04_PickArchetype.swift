@@ -1,8 +1,12 @@
 import SwiftUI
 
-// MARK: - Step 04: Pick your archetype
+// MARK: - Step04_PickArchetype (DEPRECATED — Phase 11)
 //
-// 4 archetype cards in a clean 2×2 grid. Selection required to advance.
+// This step is no longer reachable: .archetype was removed from OnboardingStep
+// and this view is no longer routed from OnboardingContainerView.
+// File is kept to avoid cascading deletes — fully removed in Phase 17.
+//
+// TODO(Phase 17): delete this file entirely.
 
 struct Step04_PickArchetype: View {
     @Bindable var flow: OnboardingFlowViewModel
@@ -10,14 +14,17 @@ struct Step04_PickArchetype: View {
     let onBack: () -> Void
     let onContinue: () -> Void
 
+    // Local stub — flow.archetype was removed in Phase 11.
+    @State private var selectedArchetype: Archetype? = nil
+
     var body: some View {
         OnboardingScaffold(
             title: "Who do you want to become?",
             subtitle: "Pick the build you'd actually be proud to walk around in. No wrong answer.",
             progress: progress,
             primaryTitle: "Continue",
-            primaryEnabled: flow.archetype != nil,
-            hudStep: .archetype,
+            primaryEnabled: selectedArchetype != nil,
+            hudStep: .buildSeed, // .archetype removed; use nearest valid step
             onBack: onBack,
             onPrimary: onContinue
         ) {
@@ -32,17 +39,15 @@ struct Step04_PickArchetype: View {
                     ArchetypePickerCard(
                         archetype: arch,
                         index: idx,
-                        isSelected: flow.archetype == arch
+                        isSelected: selectedArchetype == arch
                     ) {
-                        flow.archetype = arch
+                        selectedArchetype = arch
                     }
                 }
             }
         }
     }
 
-    // Order (2×2 grid, left-to-right, top-to-bottom):
-    // V-TAPER · SHREDDED / HEAVYWEIGHT · SLEEPER — aspirational first, sleeper last.
     private var orderedArchetypes: [Archetype] {
         [.vTaper, .leanCut, .heavyDuty, .shredded]
     }

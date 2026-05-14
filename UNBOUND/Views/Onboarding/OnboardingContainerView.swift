@@ -137,10 +137,6 @@ private struct OnboardingRouter: View {
                     Step15_Obstacles(flow: flow, progress: flow.progress, onBack: back, onContinue: advance)
                         .transition(screenTransition)
 
-                case .archetype:
-                    Step04_PickArchetype(flow: flow, progress: flow.progress, onBack: back, onContinue: advance)
-                        .transition(screenTransition)
-
                 case .targetAreas:
                     Step_TargetAreas(flow: flow, progress: flow.progress, onBack: back, onContinue: advance)
                         .transition(screenTransition)
@@ -510,7 +506,8 @@ private struct Step_PlanReady: View {
     }
 
     private var planTitle: String {
-        "\(flow.archetype?.shortName ?? "UNBOUND") PROTOCOL"
+        // TODO(Phase 17): wire to BuildIdentity once archetype is fully removed
+        "UNBOUND PROTOCOL"
     }
 
     var body: some View {
@@ -606,18 +603,8 @@ private struct Step_PlanReady: View {
     }
 
     private var secondaryWorkoutLabel: String {
-        switch flow.archetype {
-        case .heavyDuty:
-            return "Strength Progression"
-        case .vTaper:
-            return "Back + Shoulder Frame"
-        case .shredded:
-            return "Conditioning + Density"
-        case .leanCut:
-            return "Athletic Volume Mix"
-        case nil:
-            return "Lower + Core Foundation"
-        }
+        // TODO(Phase 17): key this off BuildIdentity once archetype is fully removed
+        return "Lower + Core Foundation"
     }
 
     private func planStat(label: String, value: String) -> some View {

@@ -36,7 +36,6 @@ enum OnboardingStep: Int, CaseIterable, Identifiable {
     case obstacles           // moved up: what's been getting in the way
 
     // MARK: Profile answers
-    case archetype
     case targetAreas         // where to focus
     case motivation          // why it matters (emotional driver)
     case age
@@ -139,7 +138,7 @@ enum OnboardingStep: Int, CaseIterable, Identifiable {
             return .intro
         case .chapterMapping, .chapterScan, .chapterPath:
             return .chapter
-        case .goals, .obstacles, .archetype, .targetAreas, .motivation,
+        case .goals, .obstacles, .targetAreas, .motivation,
              .commitDay30, .commitDay90, .commitToday:
             return .profile
         case .experience, .targetFrequency, .trainingDays, .workoutTime,
@@ -182,7 +181,7 @@ final class OnboardingFlowViewModel {
 
     // MARK: Answer model
 
-    var archetype: Archetype? = nil
+    // archetype property removed — BuildSeed is the only path (Phase 11)
     var motivations: Set<Motivation> = []
     var goals: Set<Goal> = []
     var targetAreas: Set<TargetArea> = []
@@ -329,8 +328,6 @@ final class OnboardingFlowViewModel {
             return true
         case .goals:
             return !goals.isEmpty
-        case .archetype:
-            return archetype != nil
         case .targetAreas:
             return !targetAreas.isEmpty
         case .motivation:
@@ -386,15 +383,11 @@ final class OnboardingFlowViewModel {
     @discardableResult
     func finish(userId: String) async -> Bool {
         let fields: [String: Any] = buildFirestorePayload()
-        let chosenArchetype = archetype
         do {
             try await userService.updateProfile(userId: userId, fields: fields)
             UserDefaults.standard.set(true, forKey: "onboardingCompleted")
-            if let chosenArchetype {
-                await MainActor.run {
-                    BadgeService.shared.bind(userId: userId)
-                }
-                // archetypeChosen trigger removed (superseded by firstBuildIdentityResolved)
+            await MainActor.run {
+                BadgeService.shared.bind(userId: userId)
             }
             await scheduleNotifications()
             logger.info("Onboarding answers persisted for user \(userId, privacy: .private)")
@@ -437,7 +430,7 @@ final class OnboardingFlowViewModel {
             "priorAttempts": priorAttempts.map(\.rawValue)
         ]
         if let workoutTime { fields["workoutTime"] = workoutTime.rawValue }
-        if let archetype { fields["preferredArchetype"] = archetype.rawValue }
+        // preferredArchetype field removed — seededAttributes drive Build instead
         if let experience { fields["experience"] = experience.rawValue }
         // Auto-default training feedback mode from experience level.
         // Beginner-equivalent (never/tried) → silent; active (used/current) → quick.
