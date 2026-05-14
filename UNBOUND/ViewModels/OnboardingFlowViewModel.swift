@@ -49,6 +49,7 @@ enum OnboardingStep: Int, CaseIterable, Identifiable {
     case workoutTime         // when in the day
     case equipment
     case exerciseStyle       // what kinds of exercises they enjoy
+    case buildSeed           // attribute system seed survey (sub-project #1, Task 1a.12)
     case sessionLength
     case resultsSnapshot     // early personalized checkpoint
     case diet
@@ -142,7 +143,7 @@ enum OnboardingStep: Int, CaseIterable, Identifiable {
              .commitDay30, .commitDay90, .commitToday:
             return .profile
         case .experience, .targetFrequency, .trainingDays, .workoutTime,
-             .equipment, .exerciseStyle, .sessionLength:
+             .equipment, .exerciseStyle, .buildSeed, .sessionLength:
             return .training
         case .age, .gender, .height, .weight:
             return .body
@@ -215,6 +216,9 @@ final class OnboardingFlowViewModel {
     var calisthenicPushReps: Int = 3
     /// Max reps of a standard pullup — mapped to starting pull tier on finish().
     var calisthenicPullReps: Int = 0
+
+    /// Attribute seed survey — Task 1a.12. Up to 2 attributes get +15 prefill via AttributeService.applySeed.
+    var seededAttributes: Set<AttributeKey> = []
 
     // MARK: Scan captures
 
@@ -359,6 +363,8 @@ final class OnboardingFlowViewModel {
             return !priorAttempts.isEmpty
         case .name:
             return !displayHandle.trimmingCharacters(in: .whitespaces).isEmpty
+        case .buildSeed:
+            return true  // 0–2 selections allowed — always advanceable
         case .notifications, .scanAnalyzing,
              .verdict, .trajectory, .skillTreePreview, .whyThisProgram,
              .socialProofGallery, .commitDay30, .commitDay90, .commitToday, .planReady, .paywall:

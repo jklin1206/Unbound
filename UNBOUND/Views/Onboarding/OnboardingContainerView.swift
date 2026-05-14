@@ -189,6 +189,10 @@ private struct OnboardingRouter: View {
                     Step_ExerciseStyle(flow: flow, progress: flow.progress, onBack: back, onContinue: advance)
                         .transition(screenTransition)
 
+                case .buildSeed:
+                    Step_BuildSeed(flow: flow, progress: flow.progress, onBack: back, onContinue: advance)
+                        .transition(screenTransition)
+
                 case .sessionLength:
                     Step16_SessionLength(flow: flow, progress: flow.progress, onBack: back, onContinue: advance)
                         .transition(screenTransition)
