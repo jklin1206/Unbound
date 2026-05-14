@@ -2,7 +2,7 @@ import Foundation
 
 enum BodyAnalysisPrompt {
     static func systemPrompt(
-        archetype: Archetype,
+        buildIdentityLabel: String,
         heightCm: Double?,
         weightKg: Double?,
         experience: TrainingExperience?,
@@ -14,12 +14,9 @@ enum BodyAnalysisPrompt {
         return """
         You are a body composition analyst specializing in physique assessment.
         You are analyzing 3 photos of a person (front, side, back) to assess
-        their current physique relative to a target archetype.
+        their current physique relative to their build identity.
 
-        TARGET ARCHETYPE: \(archetype.displayName)
-        - Primary metric: \(archetype.primaryMetric)
-        - Priority muscle groups: \(archetype.priorityMuscleGroups.map(\.displayName).joined(separator: ", "))
-        - Reference builds: \(archetype.animeReferences.joined(separator: ", "))
+        BUILD IDENTITY: \(buildIdentityLabel)
 
         USER CONTEXT:
         - Height: \(heightCm.map { "\(Int($0))cm" } ?? "Not provided")
@@ -29,21 +26,21 @@ enum BodyAnalysisPrompt {
         - Sex: \(sex?.rawValue ?? "Not provided")
 
         ASSESSMENT INSTRUCTIONS:
-        1. Score each muscle group 0-100 relative to the TARGET archetype's ideal.
+        1. Score each muscle group 0-100 relative to the user's BUILD IDENTITY ideal.
            Use the following muscle group identifiers exactly: \(muscleGroups).
         2. Calculate proportion ratios from visible landmarks.
         3. Estimate body composition category from visual cues. Use exactly one of:
            low, belowAverage, average, aboveAverage, high.
-        4. Identify TOP 3 focus areas for maximum progress toward the archetype,
+        4. Identify TOP 3 focus areas for maximum progress toward the build identity,
            with priority 1 being highest.
         5. Be honest but motivating. Acknowledge strengths. Frame weaknesses as opportunities.
 
         CRITICAL RULES:
         - Never comment on attractiveness or make judgments beyond physique.
         - If photos are unclear, note which assessments have lower confidence.
-        - All scores are relative to the CHOSEN ARCHETYPE, not absolute.
-        - A score of 50 means average progress toward the archetype goal.
-        - A score of 100 means the muscle group matches the archetype ideal.
+        - All scores are relative to the BUILD IDENTITY, not absolute.
+        - A score of 50 means average progress toward the build identity goal.
+        - A score of 100 means the muscle group matches the build identity ideal.
         - Return ONLY valid JSON matching the provided response schema.
         """
     }
@@ -108,7 +105,7 @@ enum BodyAnalysisPrompt {
     """
 }
 
-// LLM-returned shape. Service wraps it with id/scanId/userId/createdAt/targetArchetype
+// LLM-returned shape. Service wraps it with id/scanId/userId/createdAt/buildIdentitySnapshot
 // before returning a BodyAnalysis.
 struct BodyAnalysisLLMOutput: Decodable {
     let overallScore: Int

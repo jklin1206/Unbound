@@ -2,21 +2,16 @@ import SwiftUI
 
 struct BodyScoreCard: View {
     let analysis: BodyAnalysis
+    let buildIdentity: BuildIdentity
 
     var body: some View {
         VStack(spacing: 20) {
             ScoreRing(score: analysis.overallScore, maxScore: 100, size: 150)
 
-            VStack(spacing: 6) {
-                Text("Your snapshot · \(analysis.targetArchetype.displayName)")
-                    .font(.subheadline(20))
-                    .foregroundColor(.theme.textPrimary)
-                    .multilineTextAlignment(.center)
-
-                Text(analysis.targetArchetype.animeReferences.joined(separator: " / "))
-                    .font(.caption())
-                    .foregroundColor(.theme.primary)
-            }
+            Text("Your snapshot · \(buildIdentity.displayName)")
+                .font(.subheadline(20))
+                .foregroundColor(.theme.textPrimary)
+                .multilineTextAlignment(.center)
 
             Text(analysis.summary)
                 .font(.bodyText())
