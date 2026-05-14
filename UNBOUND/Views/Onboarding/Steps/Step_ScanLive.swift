@@ -382,7 +382,6 @@ struct Step_ScanLive: View {
             do {
                 let image = try await services.imageCapture.capturePhoto()
                 await MainActor.run {
-                    flow.bodyRatings = nil  // invalidate any result from prior photo
                     flow.capturedPhotos[.front] = image
                     isCapturing = false
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {

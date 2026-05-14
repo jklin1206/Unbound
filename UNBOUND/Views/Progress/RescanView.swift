@@ -7,7 +7,8 @@ struct RescanView: View {
     let previousEntry: ProgressEntry
 
     var body: some View {
-        ScanIntroView()
+        // ScanIntroView removed — scan is now accessed via ScanDueCard on Home / ProfileScanRow.
+        PhotoCaptureFlow(mode: .scan) { _ in }
             .environmentObject(services)
     }
 }

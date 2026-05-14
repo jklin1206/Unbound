@@ -22,27 +22,7 @@ struct ProgressTimelineView: View {
                 timelineList
             }
 
-            // FAB — New Scan
-            NavigationLink(destination: ScanIntroView().environmentObject(services)) {
-                ZStack {
-                    Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: [Color.theme.primary, Color.theme.primaryLight],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .frame(width: 60, height: 60)
-                        .shadow(color: Color.theme.primary.opacity(0.4), radius: 12, x: 0, y: 6)
-
-                    Image(systemName: "plus")
-                        .font(.system(size: 24, weight: .semibold))
-                        .foregroundColor(.white)
-                }
-            }
-            .padding(.trailing, 20)
-            .padding(.bottom, 32)
+            // FAB removed — scan is now accessed via ScanDueCard on Home / ProfileScanRow.
         }
         .navigationTitle("Progress")
         .navigationBarTitleDisplayMode(.large)
@@ -71,21 +51,10 @@ struct ProgressTimelineView: View {
                     .foregroundColor(.theme.textSecondary)
             }
 
-            NavigationLink(destination: ScanIntroView().environmentObject(services)) {
-                Text("Start Your First Scan")
-                    .font(.bodyMedium(17))
-                    .fontWeight(.bold)
-                    .foregroundColor(.white)
-                    .frame(width: 240, height: 52)
-                    .background(
-                        LinearGradient(
-                            colors: [Color.theme.primary, Color.theme.primaryLight],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-            }
+            Text("Use the Scan button on Home or Profile to start.")
+                .font(.bodyText(14))
+                .foregroundColor(.theme.textMuted)
+                .multilineTextAlignment(.center)
 
             Spacer()
         }

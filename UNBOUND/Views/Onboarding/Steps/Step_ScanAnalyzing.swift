@@ -24,15 +24,13 @@ struct Step_ScanAnalyzing: View {
     @State private var completionBloom = false
     @State private var insightsService = LocalBodyInsightsService()
     @State private var analysisTask: Task<Void, Never>? = nil
-    @State private var geminiTask: Task<Void, Never>? = nil
-    @State private var timeoutTask: Task<Void, Never>? = nil
 
     var body: some View {
         TimelineView(.animation(minimumInterval: 1.0 / 60.0)) { ctx in
             let elapsed = ctx.date.timeIntervalSince(startTime)
             let fraction = min(1.0, elapsed / duration)
             // Hold at 99% while waiting for Gemini after animation completes
-            let percent = (animationDone && flow.bodyRatings == nil) ? 99 : Int(fraction * 100)
+            let percent = Int(fraction * 100)
 
             ZStack {
                 Color.unbound.bg.ignoresSafeArea()
@@ -134,14 +132,6 @@ struct Step_ScanAnalyzing: View {
             .onChange(of: fraction) { _, new in
                 if new >= 1.0 && !animationDone {
                     animationDone = true
-                    waitForGeminiThenComplete()
-                }
-            }
-            .onChange(of: flow.bodyRatings) { _, ratings in
-                // Gemini arrived — if animation is already done, complete now
-                if ratings != nil && animationDone && !hasCompleted {
-                    timeoutTask?.cancel()
-                    timeoutTask = nil
                     complete()
                 }
             }
@@ -150,26 +140,9 @@ struct Step_ScanAnalyzing: View {
         .onAppear {
             startTime = .now
             runLocalBodyInsights()
-            runGeminiAnalysis()
         }
         .onDisappear {
             analysisTask?.cancel()
-            geminiTask?.cancel()
-            timeoutTask?.cancel()
-        }
-    }
-
-    /// Called when the 6s animation finishes. Advances immediately if Gemini
-    /// already resolved, otherwise waits up to 4 more seconds before giving up.
-    private func waitForGeminiThenComplete() {
-        if flow.bodyRatings != nil {
-            complete()
-            return
-        }
-        timeoutTask = Task { @MainActor in
-            try? await Task.sleep(for: .seconds(4))
-            guard !Task.isCancelled else { return }
-            complete()
         }
     }
 
@@ -197,23 +170,8 @@ struct Step_ScanAnalyzing: View {
         }
     }
 
-    /// Calls Gemini with the front photo to get strict per-body-part ratings
-    /// (shoulders, chest, arms, core, legs, overall + one coach line).
-    /// Runs concurrently during the 6s cinematic. Result stored in
-    /// `flow.bodyRatings` for the Verdict screen. Silently no-ops on
-    /// failure — Verdict falls back to Vision-based estimates.
-    private func runGeminiAnalysis() {
-        guard flow.bodyRatings == nil else { return }
-        guard let photo = flow.capturedPhotos[.front],
-              let jpeg = photo.jpegData(compressionQuality: 0.72) else { return }
-
-        geminiTask = Task { @MainActor in
-            let ratings = try? await OnboardingBodyRatingService.rate(jpeg: jpeg)
-            guard !Task.isCancelled else { return }
-            flow.bodyRatings = ratings
-        }
-    }
 }
+
 
 // MARK: - Scan plane
 
