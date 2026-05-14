@@ -82,6 +82,10 @@ struct UnboundHomeView: View {
     @State private var lastScanAt: Date? = nil
     @State private var showScanCaptureFlow = false
 
+    // Trials
+    @State private var trialsState: TrialsState = .empty
+    @State private var showTrialPicker = false
+
     // Level derivation: 250 XP per level. Simple, overrideable later.
     private let xpPerLevel: Int = 250
 
@@ -203,6 +207,27 @@ struct UnboundHomeView: View {
         .weightBumpToast()
         .tierUnlockToast()
         .attributeRankUpToast()
+        .trialCapstoneToast()
+        .sheet(isPresented: $showTrialPicker) {
+            TrialPickerSheet(
+                cards: trialsState.currentWeekCards,
+                onPick: { card in
+                    guard let userId = services.auth.currentUserId else { return }
+                    services.trials.pickCard(card, userId: userId)
+                    trialsState = services.trials.state(userId: userId)
+                }
+            )
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .trialCompleted)) { _ in
+            if let userId = services.auth.currentUserId {
+                trialsState = services.trials.state(userId: userId)
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .trialWeekRolled)) { _ in
+            if let userId = services.auth.currentUserId {
+                trialsState = services.trials.state(userId: userId)
+            }
+        }
     }
 
     // MARK: - Top bar
@@ -815,6 +840,16 @@ struct UnboundHomeView: View {
         if let note = coachNote?.text, !note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             return note
         }
+        // Trial-aware cue: surface the first aligned exercise when a trial is active
+        if let trial = trialsState.currentTrial,
+           trial.capstoneState == .pending || trial.capstoneState == .windowOpen,
+           let workout = todayProgramDay?.workout,
+           let alignedExercise = workout.mainExercises.first(where: { isAlignedExercise($0) }) {
+            let motivation = trial.chosenCard.kind == .prestige
+                ? "Stretch the envelope."
+                : "This is your trial axis — push +1 RPE on your top set."
+            return "Trial: push +1 RPE on \(alignedExercise.name). \(motivation)"
+        }
         if let first = todayProgramDay?.workout?.mainExercises.first {
             return "Keep the first lift crisp: \(first.name). Stop one rep before form breaks."
         }
@@ -871,7 +906,10 @@ struct UnboundHomeView: View {
     }
 
     private func premiumExerciseRow(index: Int, exercise: Exercise) -> some View {
-        HStack(alignment: .center, spacing: 12) {
+        let trialAligned = isAlignedExercise(exercise)
+        let trialTint = trialsState.currentTrial?.chosenCard.theme.tintColor ?? Color.unbound.accent
+
+        return HStack(alignment: .center, spacing: 12) {
             Text(String(format: "%02d", index))
                 .font(Font.unbound.monoS.weight(.bold))
                 .foregroundStyle(Color.unbound.textTertiary)
@@ -892,6 +930,23 @@ struct UnboundHomeView: View {
 
             Spacer(minLength: 0)
 
+            // Trial-aligned indicator (shown before RPE chip when active)
+            if trialAligned {
+                HStack(spacing: 4) {
+                    Text("TRIAL")
+                        .font(.system(size: 8, weight: .heavy, design: .monospaced))
+                        .tracking(1.0)
+                        .foregroundStyle(trialTint)
+                    Text("+1 RPE")
+                        .font(.system(size: 8, weight: .bold, design: .monospaced))
+                        .foregroundStyle(trialTint.opacity(0.8))
+                }
+                .padding(.horizontal, 7)
+                .padding(.vertical, 4)
+                .background(Capsule().fill(trialTint.opacity(0.14)))
+                .overlay(Capsule().strokeBorder(trialTint.opacity(0.28), lineWidth: 0.5))
+            }
+
             if let rpe = exercise.rpe {
                 Text("RPE \(rpe)")
                     .font(.system(size: 9, weight: .bold))
@@ -902,6 +957,17 @@ struct UnboundHomeView: View {
             }
         }
         .padding(.vertical, 10)
+    }
+
+    /// Returns true if the exercise name contributes to any axis that the
+    /// current trial's theme targets. No trial = always false.
+    private func isAlignedExercise(_ exercise: Exercise) -> Bool {
+        guard let trial = trialsState.currentTrial,
+              trial.capstoneState != .missed,
+              trial.capstoneState != .completed else { return false }
+        guard case .axis(let targetAxis) = trial.chosenCard.theme else { return false }
+        let contribution = AttributeCatalog.shared.contribution(forExerciseName: exercise.name)
+        return contribution.weight(for: targetAxis) > 0.05
     }
 
     private var questColor: Color {
@@ -1574,6 +1640,16 @@ struct UnboundHomeView: View {
                 )
             }
 
+            // ── Trial status card ──────────────────────────────────
+            if let activeTrial = trialsState.currentTrial,
+               activeTrial.capstoneState != .missed {
+                ActiveTrialCard(trial: activeTrial)
+            } else if !trialsState.skippedCurrentWeek && !trialsState.currentWeekCards.isEmpty {
+                TrialPickerPromptCard {
+                    showTrialPicker = true
+                }
+            }
+
             if shouldShowScanCTA {
                 scanCTACard
             }
@@ -1800,6 +1876,9 @@ struct UnboundHomeView: View {
         let history = (try? ScanCheckpointStore.shared.history(userId: userId)) ?? []
         lastScanAt = history.last?.createdAt
         scanCadence = ScanCadenceState.compute(lastScanAt: lastScanAt, now: .now)
+
+        // Load trials state
+        trialsState = services.trials.state(userId: userId)
 
         isLoading = false
         // Kick off ambient loops once the content is actually on screen —
