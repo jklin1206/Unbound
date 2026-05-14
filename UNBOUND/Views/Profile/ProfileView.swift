@@ -27,8 +27,6 @@ struct ProfileView: View {
     @State private var aggregateRank: SubRank = .eMinus
     @State private var aggregateTier: SkillTier = .initiate
     @State private var attributeProfile: AttributeProfile = AttributeProfile.empty(userId: "", at: .now)
-    @State private var liftRanks: [LiftRank] = []
-    @State private var heatmapRanks: [MuscleHeatGroup: SubRank] = [:]
     @State private var unlockedBadges: [Badge] = []
     @State private var totalBadgeCount: Int = 0
     @State private var totalWorkouts: Int = 0
@@ -97,13 +95,6 @@ struct ProfileView: View {
         aggregateRank = await services.rank.aggregateRank(userId: userId)
         aggregateTier = await services.rank.aggregateTier(userId: userId)
         attributeProfile = services.attribute.profile(userId: userId)
-
-        liftRanks = await services.rank.fetchAll(userId: userId)
-        var computed = MuscleRankCalculator.heatmapRanks(liftRanks: liftRanks)
-        for g in MuscleHeatGroup.allCases where computed[g] == nil {
-            computed[g] = .eMinus
-        }
-        heatmapRanks = computed
 
         unlockedBadges = services.badges.unlockedBadges(userId: userId)
             .sorted { ($0.unlockedAt ?? .distantPast) > ($1.unlockedAt ?? .distantPast) }

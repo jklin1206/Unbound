@@ -39,9 +39,6 @@ struct UnboundHomeView: View {
     // Ranking + stats
     @State private var aggregateRank: SubRank = .eMinus
     @State private var aggregateTier: SkillTier = .initiate
-    @State private var liftRanks: [LiftRank] = []
-    @State private var regionRanks: [BodyRegion: RegionRank] = [:]
-    @State private var heatmapRanks: [MuscleHeatGroup: SubRank] = [:]
 
     // Contextual triggers
     @State private var plateaus: [PlateauedExercise] = []
@@ -51,10 +48,8 @@ struct UnboundHomeView: View {
     @State private var weekSessionDays: Set<Int> = [] // Mon=1...Sun=7
 
     // Modal state
-    @State private var selectedRegion: BodyRegion?
     @State private var showingSession = false
     @State private var showingCalibrationWorkout = false
-    @State private var showingExpandedMap = false
     // navigateToCoach removed — replaced by CoachModesStrip
     @State private var showingGainsToast = false
     @State private var lastGainsAwarded: Int = 0
@@ -187,29 +182,6 @@ struct UnboundHomeView: View {
                     .environmentObject(services)
                 }
         )
-        .fullScreenCover(isPresented: $showingExpandedMap) {
-            ExpandedBodyMapView(
-                regionRanks: regionRanks,
-                groupRanks: heatmapRanks,
-                archetypeName: archetypeName,
-                aggregateRank: aggregateRank,
-                allLiftRanks: liftRanks
-            )
-            .environmentObject(services)
-        }
-        .sheet(item: $selectedRegion) { region in
-            MuscleDetailSheet(
-                region: region,
-                regionRank: regionRanks[region] ?? RegionRank(
-                    region: region,
-                    rank: .eMinus,
-                    topContributingLifts: [],
-                    needsWork: true
-                ),
-                allLiftRanks: liftRanks
-            )
-            .environmentObject(services)
-        }
         .nodeUnlockOverlay()
         .weightBumpToast()
         .tierUnlockToast()
@@ -1160,19 +1132,6 @@ struct UnboundHomeView: View {
                     .frame(height: 4)
                 }
 
-                Spacer(minLength: 0)
-
-                Button {
-                    UnboundHaptics.medium()
-                    showingExpandedMap = true
-                } label: {
-                    Image(systemName: "person.crop.rectangle")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(Color.unbound.textSecondary)
-                        .frame(width: 38, height: 38)
-                        .background(Circle().fill(Color.unbound.bg.opacity(0.44)))
-                }
-                .buttonStyle(.plain)
             }
 
         }
@@ -1400,240 +1359,6 @@ struct UnboundHomeView: View {
     }
 
     // MARK: - Rank card
-
-    // MARK: - Player card
-    //
-    // Character-sheet hero: compact heatmap on the left, rank + level + 4
-    // stats on the right. One block that tells the whole "who I am right
-    // now" story at a glance. Tapping the body opens the expanded view or
-    // a muscle-detail sheet. The card's ambient wash takes the rank-tier
-    // color so E reads dormant-red, A reads brand-violet, S reads gold.
-
-    private var playerCard: some View {
-        let level = (gains / xpPerLevel) + 1
-        let xpInLevel = gains % xpPerLevel
-        let fraction = Double(xpInLevel) / Double(xpPerLevel)
-        let tierLabel = tierName(for: aggregateRank)
-        let rankColor = aggregateRank.regionTint
-        let nextRank = aggregateRank.advanced(by: 1)
-        let allGroupRanks = MuscleHeatGroup.allCases.map { heatmapRanks[$0] ?? .eMinus }
-        let weakestGroupRank = allGroupRanks.min() ?? .eMinus
-        let strongestGroupRank = allGroupRanks.max() ?? .eMinus
-
-        return VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .top, spacing: 12) {
-                // LEFT — body map entry point.
-                Button {
-                    UnboundHaptics.medium()
-                    showingExpandedMap = true
-                } label: {
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack(spacing: 6) {
-                            Text("BODY MAP")
-                                .font(Font.unbound.captionS.weight(.bold))
-                                .tracking(1.4)
-                                .foregroundStyle(Color.unbound.textSecondary)
-                            Spacer(minLength: 0)
-                            Image(systemName: "arrow.up.right")
-                                .font(.system(size: 10, weight: .bold))
-                                .foregroundStyle(Color.unbound.accent.opacity(0.9))
-                        }
-
-                        MuscleHeatmapView(groupRanks: heatmapRanks, onGroupTapped: { group in
-                            UnboundHaptics.medium()
-                            if let representative = BodyRegion.allCases.first(where: { $0.heatGroup == group }) {
-                                selectedRegion = representative
-                            }
-                        })
-                        .frame(width: 136)
-                    }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 9)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .fill(Color.unbound.bg.opacity(0.33))
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
-                    )
-                }
-                .buttonStyle(.plain)
-
-                // RIGHT — rank, level, stats stack.
-                VStack(alignment: .leading, spacing: 8) {
-                    // Rank letter + tier + next
-                    HStack(alignment: .firstTextBaseline, spacing: 10) {
-                        Text(aggregateRank.letter)
-                            .font(Font.unbound.displayL)
-                            .foregroundStyle(rankColor)
-                            .shadow(color: rankColor.opacity(0.55), radius: rankGlowRadius)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(tierLabel.uppercased())
-                                .font(Font.unbound.monoS)
-                                .tracking(1.6)
-                                .foregroundStyle(rankColor.opacity(0.9))
-                            Text("NEXT · \(nextRank.displayName)")
-                                .font(.system(size: 9, weight: .medium))
-                                .tracking(1.0)
-                                .foregroundStyle(Color.unbound.textTertiary)
-                        }
-                        Spacer(minLength: 0)
-                    }
-
-                    // Level + XP bar
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack(spacing: 6) {
-                            Text("LV")
-                                .font(.system(size: 9, weight: .bold))
-                                .tracking(1.2)
-                                .foregroundStyle(Color.unbound.textTertiary)
-                            Text("\(level)")
-                                .font(Font.unbound.monoM)
-                                .foregroundStyle(Color.unbound.textPrimary)
-                                .monospacedDigit()
-                            Spacer(minLength: 0)
-                            Text("\(xpInLevel) / \(xpPerLevel)")
-                                .font(.system(size: 9, weight: .medium))
-                                .foregroundStyle(Color.unbound.textTertiary)
-                                .monospacedDigit()
-                        }
-                        GeometryReader { proxy in
-                            ZStack(alignment: .leading) {
-                                Capsule()
-                                    .fill(Color.unbound.borderSubtle)
-                                Capsule()
-                                    .fill(Color.unbound.accent)
-                                    .frame(width: max(4, proxy.size.width * fraction))
-                                    .shadow(color: Color.unbound.accent.opacity(0.45), radius: 3)
-                                    .overlay(
-                                        // Traveling shimmer highlight — a thin
-                                        // gradient streaks across the filled XP
-                                        // portion, clipped to the Capsule so it
-                                        // never leaks outside the bar.
-                                        Rectangle()
-                                            .fill(
-                                                LinearGradient(
-                                                    colors: [
-                                                        .clear,
-                                                        .white.opacity(0.55),
-                                                        .clear
-                                                    ],
-                                                    startPoint: .leading,
-                                                    endPoint: .trailing
-                                                )
-                                            )
-                                            .frame(width: 24)
-                                            .offset(x: xpShimmerPhase * max(4, proxy.size.width * fraction))
-                                            .blendMode(.plusLighter)
-                                            .allowsHitTesting(false)
-                                    )
-                                    .clipShape(Capsule())
-                            }
-                        }
-                        .frame(height: 3)
-                    }
-
-                    // Body ranks — aggregated per anatomical group from the
-                    // heatmap data. Shows where the user is strong/weak by
-                    // body part, complementing the 4 meta-stats above. 2x3
-                    // grid keeps it tight inside the card.
-                    Rectangle()
-                        .fill(Color.unbound.borderSubtle)
-                        .frame(height: 0.5)
-
-                    let bodyColumns = [
-                        GridItem(.flexible(), spacing: 10),
-                        GridItem(.flexible(), spacing: 10)
-                    ]
-                    LazyVGrid(columns: bodyColumns, spacing: 4) {
-                        bodyStatCell(label: "CHEST", rank: aggregate(of: [.chest]))
-                        bodyStatCell(label: "BACK",  rank: aggregate(of: [.back]))
-                        bodyStatCell(label: "SHLDR", rank: aggregate(of: [.shoulders, .traps]))
-                        bodyStatCell(label: "ARMS",  rank: aggregate(of: [.biceps, .triceps, .forearms]))
-                        bodyStatCell(label: "CORE",  rank: aggregate(of: [.core]))
-                        bodyStatCell(label: "LEGS",  rank: aggregate(of: [.legs, .hamstrings, .glutes, .calves]))
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-
-            HStack(spacing: 8) {
-                playerInsightPill(label: "WEAK", rank: weakestGroupRank)
-                playerInsightPill(label: "PEAK", rank: strongestGroupRank)
-                Spacer(minLength: 0)
-            }
-            .padding(.top, 2)
-        }
-        .padding(12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            ZStack {
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(Color.unbound.surface)
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(
-                        RadialGradient(
-                            colors: [rankColor.opacity(0.10), .clear],
-                            center: .topTrailing,
-                            startRadius: 0,
-                            endRadius: 280
-                        )
-                    )
-            }
-        )
-    }
-
-    /// Aggregate SubRank for a set of MuscleHeatGroups — mean of their
-    /// ordinals, rounded to the nearest sub-rank. Missing groups are
-    /// treated as .eMinus so the cell always renders a readable letter.
-    private func aggregate(of groups: [MuscleHeatGroup]) -> SubRank {
-        guard !groups.isEmpty else { return .eMinus }
-        let ordinals = groups.map { Double(heatmapRanks[$0]?.ordinal ?? 0) }
-        let mean = ordinals.reduce(0, +) / Double(ordinals.count)
-        return SubRank.nearest(for: mean)
-    }
-
-    /// Compact body-region cell: label + rank letter packed left,
-    /// trailing Spacer so the pair hugs the cell's leading edge.
-    private func bodyStatCell(label: String, rank: SubRank) -> some View {
-        let color = rank.regionTint
-        return HStack(spacing: 8) {
-            Text(label)
-                .font(.system(size: 9, weight: .bold))
-                .tracking(1.3)
-                .foregroundStyle(Color.unbound.textTertiary)
-                .frame(width: 38, alignment: .leading)
-            Text(rank.displayName)
-                .font(Font.unbound.monoS.weight(.semibold))
-                .foregroundStyle(color)
-                .shadow(color: color.opacity(0.4), radius: 2)
-                .monospacedDigit()
-            Spacer(minLength: 0)
-        }
-    }
-
-    private func playerInsightPill(label: String, rank: SubRank) -> some View {
-        let tint = rank.regionTint
-        return HStack(spacing: 6) {
-            Text(label)
-                .font(.system(size: 9, weight: .bold))
-                .tracking(1.2)
-                .foregroundStyle(Color.unbound.textTertiary)
-            Text(rank.displayName)
-                .font(Font.unbound.monoS.weight(.bold))
-                .foregroundStyle(tint)
-                .monospacedDigit()
-        }
-        .padding(.horizontal, 9)
-        .padding(.vertical, 5)
-        .background(
-            Capsule().fill(tint.opacity(0.12))
-        )
-        .overlay(
-            Capsule().strokeBorder(tint.opacity(0.34), lineWidth: 1)
-        )
-    }
 
     // MARK: - Today's Mission CTA
 
@@ -2060,16 +1785,6 @@ struct UnboundHomeView: View {
         let userId = services.auth.currentUserId ?? "anonymous"
         aggregateRank = await services.rank.aggregateRank(userId: userId)
         aggregateTier = await services.rank.aggregateTier(userId: userId)
-
-        liftRanks = await services.rank.fetchAll(userId: userId)
-        regionRanks = MuscleRankCalculator.computeAll(liftRanks: liftRanks)
-        var computed = MuscleRankCalculator.heatmapRanks(liftRanks: liftRanks)
-        // Backfill missing groups with .eMinus so every muscle always
-        // tints — the vector body should never have dark gaps.
-        for group in MuscleHeatGroup.allCases where computed[group] == nil {
-            computed[group] = .eMinus
-        }
-        heatmapRanks = computed
     }
 
     @MainActor
