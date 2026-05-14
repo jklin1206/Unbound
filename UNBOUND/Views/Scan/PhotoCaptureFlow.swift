@@ -40,6 +40,7 @@ struct PhotoCaptureFlow: View {
     @State private var stage: Stage = .intro
     @State private var capturedImage: UIImage?
     @State private var analysis: BodyScanAnalysis?
+    @State private var scanCheckpoint: ScanCheckpoint?
     @State private var cameraPermissionGranted = false
     @State private var cameraSessionStarted = false
     @State private var analysisError: Error?
@@ -470,10 +471,12 @@ struct PhotoCaptureFlow: View {
 
     @ViewBuilder
     private var payoffView: some View {
-        if let img = capturedImage, let a = analysis {
-            ScanPayoffView(image: img, analysis: a) {
-                onComplete(.scanCompleted)
-            }
+        if let cp = scanCheckpoint {
+            ScanPayoffView(
+                checkpoint: cp,
+                onDone: { onComplete(.scanCompleted) },
+                onShare: { /* share sheet handled inside ScanPayoffView */ }
+            )
         } else {
             ProgressView().tint(Color.unbound.accent)
         }
@@ -517,6 +520,15 @@ struct PhotoCaptureFlow: View {
                 photoId: photoId
             )
             analysis = result
+            // Commit the new ScanCheckpoint (Phase 6 wiring). Uses already-saved photo data.
+            if let photoData = image.jpegData(compressionQuality: 0.85) {
+                if let cp = try? await ScanCheckpointService.shared.commit(
+                    userId: userId,
+                    photoData: photoData
+                ) {
+                    scanCheckpoint = cp
+                }
+            }
             services.photoXP.awardScan(userId: userId)
             UserDefaults.standard.set(
                 Date().timeIntervalSince1970,
