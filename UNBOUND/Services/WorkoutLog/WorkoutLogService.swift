@@ -55,6 +55,10 @@ final class WorkoutLogService: WorkoutLogServiceProtocol, @unchecked Sendable {
             _ = await BadgeService.shared.evaluate(trigger: .sessionLogged(log))
         }
 
+        // Attribute System: ingest this session to update the 6-axis hex.
+        // Fires .attributeRankUp notifications for any tier crossings.
+        await AttributeService.shared.ingest(session: log, userId: log.userId)
+
         logger.log("Workout logged: \(log.plannedWorkoutName)", level: .info, context: ["dayNumber": log.dayNumber])
     }
 
