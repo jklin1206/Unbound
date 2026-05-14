@@ -67,6 +67,13 @@ final class WorkoutLogService: WorkoutLogServiceProtocol, @unchecked Sendable {
             NotificationCenter.default.post(name: .skillTierAdvanced, object: advance)
         }
 
+        // Trials: evaluate capstone progress from this log.
+        await TrialsService.shared.evaluateCapstoneFromLog(
+            userId: log.userId,
+            history: log.exerciseEntries,
+            bodyweightKg: profile?.weightKg ?? 70.0
+        )
+
         logger.log("Workout logged: \(log.plannedWorkoutName)", level: .info, context: ["dayNumber": log.dayNumber])
     }
 
