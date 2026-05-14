@@ -180,6 +180,44 @@ final class RankService: RankServiceProtocol {
         return .eMinus
     }
 
+    // MARK: BuildIdentity aggregate (Phase 6 — additive)
+
+    func aggregateRank(userId: String) async -> SubRank {
+        // Derive BuildIdentity from the user's current attribute profile.
+        let profile = AttributeService.shared.snapshot(userId: userId, asOf: Date.now)
+        let identity = profile.buildIdentity
+
+        // Pick the lifts to aggregate over based on shape.
+        let lifts: [String]
+        switch identity.shape {
+        case .balancedAthlete, .hybridAthlete:
+            // Top-3 axes by peak; union of their emphasis lifts (deduped).
+            let topThree = AttributeKey.allCases
+                .sorted { profile.value(for: $0).peak > profile.value(for: $1).peak }
+                .prefix(3)
+            var seen = Set<String>()
+            var union: [String] = []
+            for key in topThree {
+                for lift in key.emphasisLifts where seen.insert(lift).inserted {
+                    union.append(lift)
+                }
+            }
+            lifts = union
+        case .specialist, .hybrid, .lean:
+            lifts = identity.primary?.emphasisLifts ?? []
+        }
+
+        guard !lifts.isEmpty else { return .eMinus }
+
+        // Average currentRank ordinal across tracked emphasis lifts.
+        let ranks = await fetchAll(userId: userId)
+        let byKey: [String: LiftRank] = Dictionary(uniqueKeysWithValues: ranks.map { ($0.exerciseKey, $0) })
+        let tracked: [Double] = lifts.compactMap { byKey[$0].map { Double($0.currentRank.ordinal) } }
+        guard !tracked.isEmpty else { return .eMinus }
+        let mean = tracked.reduce(0.0, +) / Double(lifts.count)
+        return SubRank.nearest(for: mean)
+    }
+
     /// Mean SubRank ordinal derived from family-tier state. Returns nil when
     /// the user has no family-tier records yet.
     private func familyTierOrdinalMean(userId: String) async -> Double? {
@@ -294,6 +332,7 @@ final class MockRankService: RankServiceProtocol {
     func computeLiftRank(entry: ExerciseLogEntry, bodyweightKg: Double) -> SubRank? { .c }
     func evaluate(log: WorkoutLog, bodyweightKg: Double) async {}
     func archetypeRank(userId: String, archetype: Archetype) async -> SubRank { archetypeRankOverride }
+    func aggregateRank(userId: String) async -> SubRank { archetypeRankOverride }
     func fetchAll(userId: String) async -> [LiftRank] { ranks.filter { $0.userId == userId } }
     func save(_ rank: LiftRank) async {
         ranks.removeAll { $0.id == rank.id }

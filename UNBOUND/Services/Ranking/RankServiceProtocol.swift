@@ -18,6 +18,10 @@ protocol RankServiceProtocol: AnyObject {
     /// the archetype's emphasis lifts. Unset lifts contribute eMinus.
     func archetypeRank(userId: String, archetype: Archetype) async -> SubRank
 
+    /// Aggregate sub-rank across the user's BuildIdentity primary axis.
+    /// Replaces archetypeRank in Phase 2c. Added in Phase 6 (additive).
+    func aggregateRank(userId: String) async -> SubRank
+
     /// All persisted lift ranks for the user, newest first.
     func fetchAll(userId: String) async -> [LiftRank]
 
