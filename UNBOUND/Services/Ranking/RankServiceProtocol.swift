@@ -12,6 +12,12 @@ protocol RankServiceProtocol: AnyObject {
         bodyweightKg: Double
     ) -> SkillTier
 
+    // MARK: - Ascension Tier API
+
+    /// Evaluate tier crossings introduced by the new log.
+    /// Returns list of SkillTierAdvance per skill that crossed.
+    func evaluateTierCrossings(log: WorkoutLog, userId: String) async -> [SkillTierAdvance]
+
     // MARK: - Legacy SubRank API
 
     /// Compute a lift's sub-rank from a workout log entry. Returns nil when
