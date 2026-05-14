@@ -74,6 +74,20 @@ struct RootView: View {
                     // Backfill the 6-axis hex from existing logs on first launch
                     // (no-op if the profile already exists in the store).
                     await services.attribute.backfillFromExistingLogs(userId: userId)
+                    // One-time skill-tier migration: replay full log history
+                    // to seed UserSkillTierState. Idempotent — guarded by
+                    // a UserDefaults flag so it only runs once per user.
+                    Task {
+                        let profile = try? await services.user.fetchProfile(userId: userId)
+                        let bodyweightKg = profile?.weightKg ?? 70.0
+                        let logs = (try? await services.workoutLog.fetchLogs(userId: userId, programId: nil)) ?? []
+                        let history = logs.flatMap { $0.exerciseEntries }
+                        await SkillTierMigration.migrateIfNeeded(
+                            userId: userId,
+                            history: history,
+                            bodyweightKg: bodyweightKg
+                        )
+                    }
                 }
                 isCheckingAuth = false
             }
