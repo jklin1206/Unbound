@@ -39,14 +39,15 @@ enum SubRank: String, Codable, CaseIterable, Sendable, Comparable {
         }
     }
 
-    /// Player-facing title band. Internally we keep the 18-step ordinal
-    /// ladder for progression math, but the app no longer presents letter
-    /// grades to users.
-    var displayName: String { title.displayName }
+    /// Letter-grade label for this sub-rank ("E-", "B+", "S", etc.).
+    /// This is the primary display label used throughout the UI — e.g. rank
+    /// chips, skill nodes, share cards.  Always returns `letter + modifier`.
+    var displayName: String { letter + modifier }
 
-    /// Internal legacy grade label ("E-", "B+", "S"). Useful for debugging
-    /// and old standards comments, not primary UI.
-    var gradeLabel: String { letter + modifier }
+    /// Human-readable title band ("Initiate", "Veteran", "Ascendant", etc.).
+    /// Use this for new surfaces that want the nine-tier title instead of the
+    /// letter-grade (e.g. Build hex phase 8+ UI).
+    var rankTitleName: String { title.displayName }
 
     var title: RankTitle {
         switch ordinal {
