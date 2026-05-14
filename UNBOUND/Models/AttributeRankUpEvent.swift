@@ -25,4 +25,17 @@ extension Notification.Name {
     static let requestNavigateToProfileTab = Notification.Name("unbound.requestNavigateToProfileTab")
     static let trialCapstoneCompleted = Notification.Name("unbound.trialCapstoneCompleted")
     static let trialExpired = Notification.Name("unbound.trialExpired")
+    // Squad notification names
+    static let squadStateChanged       = Notification.Name("unbound.squadStateChanged")
+    static let squadPresenceChanged    = Notification.Name("unbound.squadPresenceChanged")
+    static let squadActivityRecorded   = Notification.Name("unbound.squadActivityRecorded")
+    static let linkedSessionDetected   = Notification.Name("unbound.linkedSessionDetected")
+    static let squadStreakExtended     = Notification.Name("unbound.squadStreakExtended")
+    static let squadTitleUnlocked      = Notification.Name("unbound.squadTitleUnlocked")
+    /// Posted by the universal-link handler when a /squad/<code> URL is opened. Object is invite code (String).
+    static let squadInviteCodeReceived = Notification.Name("unbound.squadInviteCodeReceived")
+    static let squadMissionCompleted   = Notification.Name("unbound.squadMissionCompleted")
+    static let weeklyHonorReceived     = Notification.Name("unbound.weeklyHonorReceived")
+    static let friendChallengeExpired  = Notification.Name("unbound.friendChallengeExpired")
+    static let friendChallengeAccepted = Notification.Name("unbound.friendChallengeAccepted")
 }
