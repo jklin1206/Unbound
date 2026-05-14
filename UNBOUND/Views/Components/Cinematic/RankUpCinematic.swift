@@ -268,6 +268,10 @@ private struct ShareSheet: UIViewControllerRepresentable {
 
 struct RankUpCinematicPresenter: ViewModifier {
     @State private var pending: RankAdvance?
+    /// Pending flagship SkillTierAdvance (Vessel/Unbound/Ascendant). These
+    /// trigger the chain-shatter cinematic. Non-flagship advances use the
+    /// quiet TierBloomToast instead.
+    @State private var pendingTier: SkillTierAdvance?
     @EnvironmentObject private var services: ServiceContainer
     @State private var buildIdentity: BuildIdentity = BuildIdentity(primary: nil, secondary: nil, shape: .balancedAthlete)
 
@@ -280,6 +284,13 @@ struct RankUpCinematicPresenter: ViewModifier {
                 guard let event = note.userInfo?["event"] as? RankAdvance else { return }
                 pending = event
             }
+            .onReceive(NotificationCenter.default.publisher(for: .skillTierAdvanced)) { note in
+                guard let advance = note.object as? SkillTierAdvance else { return }
+                // Only Vessel/Unbound/Ascendant crossings trigger the full
+                // chain-shatter cinematic. Lower-tier advances use TierBloomToast.
+                guard advance.isFlagship else { return }
+                pendingTier = advance
+            }
             .fullScreenCover(item: Binding(
                 get: { pending },
                 set: { if $0 == nil { pending = nil } }
@@ -288,6 +299,30 @@ struct RankUpCinematicPresenter: ViewModifier {
                     advance: advance,
                     buildIdentity: buildIdentity,
                     onDismiss: { pending = nil }
+                )
+            }
+            .fullScreenCover(item: Binding(
+                get: { pendingTier },
+                set: { if $0 == nil { pendingTier = nil } }
+            )) { tierAdvance in
+                // Synthesize a RankAdvance so the existing cinematic view can
+                // render. The skill display name comes from the skill graph.
+                let skillTitle = SkillGraph.shared.nodes
+                    .first(where: { $0.id == tierAdvance.skillId })?.title
+                    ?? tierAdvance.skillId
+                let synth = RankAdvance(
+                    userId: services.auth.currentUserId ?? "anonymous",
+                    exerciseKey: tierAdvance.skillId,
+                    displayName: skillTitle,
+                    fromRank: .c,
+                    toRank: .sPlus,
+                    at: Date(),
+                    userBodyweightKg: nil
+                )
+                RankUpCinematic(
+                    advance: synth,
+                    buildIdentity: buildIdentity,
+                    onDismiss: { pendingTier = nil }
                 )
             }
     }
