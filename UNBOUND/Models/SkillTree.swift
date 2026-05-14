@@ -148,6 +148,13 @@ struct SkillNode: Identifiable, Codable, Hashable, Sendable {
     /// at the same y as Elevated Pike Push-Up).
     var isParallelToParent: Bool = false
 
+    // MARK: - Phase 4.2 additions (ascension tier)
+    //
+    // Per-skill 9-tier criteria. Stamped at graph-init time from the cluster
+    // authoring tables (CalSkillTiers, PpSkillTiers, …). Defaults to empty
+    // so all existing content compiles before Phase 4.2 populates it.
+    var tierCriteria: [SkillTier: TierCriterion] = [:]
+
     static func == (lhs: SkillNode, rhs: SkillNode) -> Bool { lhs.id == rhs.id }
     func hash(into hasher: inout Hasher) { hasher.combine(id) }
 
@@ -183,7 +190,8 @@ struct SkillNode: Identifiable, Codable, Hashable, Sendable {
         rank: SkillRank = .d,
         levels: [SkillLevel] = [],
         subChapter: String? = nil,
-        isParallelToParent: Bool = false
+        isParallelToParent: Bool = false,
+        tierCriteria: [SkillTier: TierCriterion] = [:]
     ) -> SkillNode {
         SkillNode(
             id: id,
@@ -208,7 +216,8 @@ struct SkillNode: Identifiable, Codable, Hashable, Sendable {
             rank: rank,
             levels: levels,
             subChapter: subChapter,
-            isParallelToParent: isParallelToParent
+            isParallelToParent: isParallelToParent,
+            tierCriteria: tierCriteria
         )
     }
 
@@ -338,7 +347,8 @@ struct SkillTree: Codable, Sendable {
                     rank: n.rank,
                     levels: n.levels,
                     subChapter: n.subChapter,
-                    isParallelToParent: n.isParallelToParent
+                    isParallelToParent: n.isParallelToParent,
+                    tierCriteria: n.tierCriteria
                 )
                 positioned.append(repositioned)
             }

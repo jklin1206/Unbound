@@ -20,15 +20,34 @@ extension SkillGraph {
         // trivial to audit what's in which chapter and to rename a chapter
         // without touching 80+ lines.
         let enriched: [SkillNode] = Self.v3Nodes.map { node in
-            guard let chapter = SkillSubChapterMap.chapter(for: node.id) else {
-                return node
-            }
             var copy = node
-            copy.subChapter = chapter
+            // Stamp tier criteria from the cluster-specific authoring table.
+            copy.tierCriteria = Self.tierCriteriaTable(for: node.id)[node.id] ?? [:]
+            if let chapter = SkillSubChapterMap.chapter(for: node.id) {
+                copy.subChapter = chapter
+            }
             return copy
         }
         return SkillGraph(nodes: enriched)
     }()
+
+    /// Routes a skill id to its cluster's tier-criteria table by prefix.
+    /// Empty dict for unknown prefixes — SkillTreeCoverageGateTests catches drift.
+    private static func tierCriteriaTable(for skillId: String) -> [String: [SkillTier: TierCriterion]] {
+        let prefix = String(skillId.prefix(while: { $0 != "." }))
+        switch prefix {
+        case "cal":  return CalSkillTiers.table
+        case "cl":   return ClSkillTiers.table
+        case "co":   return CoSkillTiers.table
+        case "hs":   return HsSkillTiers.table
+        case "hspu": return HspuSkillTiers.table
+        case "ld":   return LdSkillTiers.table
+        case "oah":  return OahSkillTiers.table
+        case "pl":   return PlSkillTiers.table
+        case "pp":   return PpSkillTiers.table
+        default:     return [:]
+        }
+    }
 }
 
 // MARK: - Phase 2h sub-chapter map
