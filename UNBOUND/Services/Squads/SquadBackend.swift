@@ -184,10 +184,35 @@ final class SquadBackend: SquadBackendProtocol, @unchecked Sendable {
     }
 
     func invokeJoinSquadEdgeFunction(inviteCode: String, userId: UUID) async throws -> Squad {
-        // TODO(squads-impl): invoke via UnboundSupabase.client.functions.invoke("join_squad", options:)
-        // For now, throw backendUnavailable so production callers fail safely until
-        // the Edge Function is deployed (Phase 9).
-        throw SquadError.backendUnavailable
+        struct JoinBody: Encodable {
+            let invite_code: String
+        }
+        struct JoinResponse: Decodable {
+            let squad: SquadRow
+        }
+        let body = JoinBody(invite_code: inviteCode.uppercased())
+        let options = FunctionInvokeOptions(body: body)
+        do {
+            let response: JoinResponse = try await UnboundSupabase.client.functions
+                .invoke("join_squad", options: options)
+            return response.squad.toSquad()
+        } catch let error as FunctionsError {
+            switch error {
+            case .httpError(let code, let data):
+                // Surface structured error codes from the Edge Function
+                if let payload = try? JSONDecoder().decode([String: String].self, from: data) {
+                    switch payload["error"] {
+                    case "already_in_squad": throw SquadError.alreadyInSquad
+                    case "squad_full":       throw SquadError.squadFull
+                    case "invalid_invite_code": throw SquadError.invalidInviteCode
+                    default: break
+                    }
+                }
+                throw SquadError.backendUnavailable
+            case .relayError:
+                throw SquadError.backendUnavailable
+            }
+        }
     }
 
     func fetchMySquadId(userId: UUID) async throws -> UUID? {
