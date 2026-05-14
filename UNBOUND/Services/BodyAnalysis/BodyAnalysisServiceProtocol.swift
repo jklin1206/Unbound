@@ -1,14 +1,12 @@
-import UIKit
+import Foundation
 
-protocol BodyAnalysisServiceProtocol: Sendable {
-    /// Onboarding scan analysis — runs the deep multi-photo Gemini call that
-    /// feeds Verdict. Unchanged from V1.
-    func analyze(scanSession: ScanSession, photos: [ScanAngle: UIImage], userProfile: UserProfile) async throws -> BodyAnalysis
-
-    /// Recurring bi-weekly scan analysis — qualitative coach-voice read of a
-    /// single photo in the context of the user's recent training. Returns a
-    /// narrow `BodyScanAnalysis`. Throws `BodyAnalysisError.unavailable` if
-    /// Gemini can't be reached, the response can't be parsed, or any error
-    /// falls through. Caller must degrade gracefully on throw.
-    func analyzeScan(context: ScanContext, userId: String, photoId: String) async throws -> BodyScanAnalysis
+/// Body Analysis is now strictly flavor copy generation.
+/// The OLD grading pipeline (Gemini-based scoring, gap analysis, proportion analysis)
+/// is removed per the "AI never grades the body" rule.
+@MainActor
+protocol BodyAnalysisServiceProtocol {
+    /// Returns one-line flavor copy for the user's earned Build Identity.
+    /// Never references specific body parts. Never grades.
+    /// Backed by Anthropic Haiku 4.5.
+    func flavorCopy(for identity: BuildIdentity) async -> String
 }
