@@ -183,7 +183,7 @@ struct Step29_SocialProof: View {
             Text(label)
                 .font(.system(size: 9, weight: .bold, design: .monospaced))
                 .foregroundStyle(Color.unbound.textTertiary)
-            RankBadge(letter: value, size: .small)
+            TierBadge(tier: RankTitle.legacyLetterFallback(value).asSkillTier, compact: true)
                 .frame(width: 26, height: 26)
             Text(value)
                 .font(Font.unbound.monoS.weight(.bold))

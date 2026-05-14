@@ -601,7 +601,7 @@ struct UnboundHomeView: View {
         let rankColor = aggregateRank.regionTint
 
         return HStack(alignment: .center, spacing: 14) {
-            RankBadge(rank: aggregateRank, size: .medium)
+            TierBadge(tier: aggregateRank.asSkillTier)
                 .frame(width: 62, height: 62)
 
             VStack(alignment: .leading, spacing: 9) {
@@ -1120,7 +1120,7 @@ struct UnboundHomeView: View {
 
         return VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .center, spacing: 12) {
-                RankBadge(rank: aggregateRank, size: .small)
+                TierBadge(tier: aggregateRank.asSkillTier, compact: true)
 
                 VStack(alignment: .leading, spacing: 5) {
                     HStack(spacing: 7) {

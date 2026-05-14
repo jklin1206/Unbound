@@ -108,7 +108,7 @@ struct ExpandedBodyMapView: View {
 
     private var header: some View {
         HStack(alignment: .center, spacing: 14) {
-            RankBadge(rank: aggregateRank, size: .medium)
+            TierBadge(tier: aggregateRank.asSkillTier)
 
             VStack(alignment: .leading, spacing: 5) {
                 Text("CHARACTER SHEET")
@@ -325,7 +325,7 @@ private struct CharacterCallout: View {
                     Spacer(minLength: 0)
                 }
                 HStack(alignment: .center, spacing: 8) {
-                    RankBadge(rank: regionRank.rank, size: .small)
+                    TierBadge(tier: regionRank.rank.asSkillTier, compact: true)
                         .frame(width: 38, height: 38)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(regionRank.region.displayName.uppercased())
@@ -374,7 +374,7 @@ private struct CharacterRegionRow: View {
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: style == .priority ? 12 : 9) {
-                RankBadge(rank: regionRank.rank, size: .small)
+                TierBadge(tier: regionRank.rank.asSkillTier, compact: style != .priority)
                     .frame(width: style == .priority ? 42 : 34, height: style == .priority ? 42 : 34)
 
                 VStack(alignment: .leading, spacing: style == .priority ? 6 : 4) {

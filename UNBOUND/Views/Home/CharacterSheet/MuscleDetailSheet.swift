@@ -41,7 +41,7 @@ struct MuscleDetailSheet: View {
 
     private var header: some View {
         HStack(alignment: .top, spacing: 14) {
-            RankBadge(rank: regionRank.rank, size: .medium)
+            TierBadge(tier: regionRank.rank.asSkillTier)
 
             VStack(alignment: .leading, spacing: 5) {
                 Text("REGION INSPECT")

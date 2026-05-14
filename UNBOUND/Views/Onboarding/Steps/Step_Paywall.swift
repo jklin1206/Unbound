@@ -60,7 +60,7 @@ struct Step_Paywall: View {
 
     private var header: some View {
         VStack(spacing: 12) {
-            RankBadge(letter: flow.derivedRank, size: .medium)
+            TierBadge(tier: RankTitle.legacyLetterFallback(flow.derivedRank).asSkillTier)
 
             Text("Start your arc.")
                 .font(Font.unbound.displayM)

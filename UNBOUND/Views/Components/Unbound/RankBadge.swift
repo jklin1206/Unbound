@@ -3,8 +3,11 @@ import UIKit
 
 // MARK: - RankBadge
 //
-// Hexagon-shaped rank badge. Letter (E/D/C/B/A/S) in Geist Mono (fallback
-// .monospaced). Violet stroke. Used on dashboard, verdict, summary screens.
+// DEPRECATED. All call sites migrated to TierBadge(tier: SkillTier).
+// This file is retained only for the #Preview block.
+// Scheduled for deletion after xcodebuild confirms BUILD SUCCEEDED.
+//
+// Hexagon shape moved to Views/Components/Hexagon.swift.
 
 enum RankBadgeSize {
     case small, medium, large
@@ -93,36 +96,6 @@ struct RankBadge: View {
         case .unbound: return Color.unbound.impact
         case .ascendant: return Color.unbound.rankGold
         }
-    }
-}
-
-// MARK: - Hexagon Shape
-
-struct Hexagon: InsettableShape {
-    var inset: CGFloat = 0
-
-    func path(in rect: CGRect) -> Path {
-        let r = rect.insetBy(dx: inset, dy: inset)
-        let w = r.width
-        let h = r.height
-        let q = h / 4   // pointy-top: top/bottom are single vertices, sides are flat
-
-        var path = Path()
-        path.move(to: CGPoint(x: r.midX, y: r.minY))                // top vertex
-        path.addLine(to: CGPoint(x: r.maxX, y: r.minY + q))         // upper-right
-        path.addLine(to: CGPoint(x: r.maxX, y: r.maxY - q))         // lower-right
-        path.addLine(to: CGPoint(x: r.midX, y: r.maxY))             // bottom vertex
-        path.addLine(to: CGPoint(x: r.minX, y: r.maxY - q))         // lower-left
-        path.addLine(to: CGPoint(x: r.minX, y: r.minY + q))         // upper-left
-        path.closeSubpath()
-        _ = w
-        return path
-    }
-
-    func inset(by amount: CGFloat) -> Hexagon {
-        var copy = self
-        copy.inset += amount
-        return copy
     }
 }
 
