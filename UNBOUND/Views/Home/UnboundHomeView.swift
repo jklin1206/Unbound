@@ -17,7 +17,7 @@ import SwiftUI
 //   5. Stats grid    — 2×2 Strength / Stamina / Technique / Vitality
 //   6. Last session  — inline recap line, no card
 //
-// Reads SessionXPService for streak, StatScoreService for the four axes,
+// Reads SessionXPService for streak, AttributeService for the six axes,
 // RankService for aggregate rank, WorkoutLogService for the recap line.
 
 struct UnboundHomeView: View {

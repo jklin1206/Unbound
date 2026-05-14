@@ -26,8 +26,7 @@ final class ServiceContainer: ObservableObject {
     let sessionXP: any SessionXPServiceProtocol
     let badges: any BadgeServiceProtocol
     let programPhase: any ProgramPhaseEngineProtocol
-    let statScore: any StatScoreServiceProtocol         // keep — removed in Phase 17
-    let attribute: any AttributeServiceProtocol          // new
+    let attribute: any AttributeServiceProtocol
     let photoXP: any PhotoXPServiceProtocol
 
     init() {
@@ -55,7 +54,6 @@ final class ServiceContainer: ObservableObject {
         self.sessionXP = SessionXPService.shared
         self.badges = BadgeService.shared
         self.programPhase = ProgramPhaseEngine.shared
-        self.statScore = StatScoreService.shared
         self.attribute = AttributeService.shared
         self.photoXP = PhotoXPService.shared
     }
@@ -84,7 +82,6 @@ final class ServiceContainer: ObservableObject {
         sessionXP: any SessionXPServiceProtocol,
         badges: any BadgeServiceProtocol,
         programPhase: any ProgramPhaseEngineProtocol,
-        statScore: any StatScoreServiceProtocol,
         attribute: any AttributeServiceProtocol,
         photoXP: any PhotoXPServiceProtocol
     ) {
@@ -112,7 +109,6 @@ final class ServiceContainer: ObservableObject {
         self.sessionXP = sessionXP
         self.badges = badges
         self.programPhase = programPhase
-        self.statScore = statScore
         self.attribute = attribute
         self.photoXP = photoXP
     }
@@ -142,7 +138,6 @@ final class ServiceContainer: ObservableObject {
             sessionXP: MockSessionXPService(),
             badges: MockBadgeService(),
             programPhase: MockProgramPhaseEngine(),
-            statScore: MockStatScoreService(),
             attribute: MockAttributeService(),
             photoXP: MockPhotoXPService()
         )
