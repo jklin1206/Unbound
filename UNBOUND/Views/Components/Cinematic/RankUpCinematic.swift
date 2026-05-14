@@ -260,6 +260,115 @@ private struct ShareSheet: UIViewControllerRepresentable {
     func updateUIViewController(_ controller: UIActivityViewController, context: Context) {}
 }
 
+// MARK: - TierCinematicView
+//
+// Full-screen cinematic for flagship SkillTier crossings (Vessel / Unbound /
+// Ascendant). Uses chain-motif hero art as a Ken Burns background.
+//
+// Beat timeline (~5s):
+//   0.0–0.6s: tier art fades/zooms in, content fades in at 0.3s delay
+//   0.6–5.0s: slow Ken Burns zoom continues (scale 1.0 → 1.15)
+//   5.0s: auto-dismiss (tappable to dismiss earlier)
+
+struct TierCinematicView: View {
+    let advance: SkillTierAdvance
+    let onDismiss: () -> Void
+
+    @State private var imageScale: CGFloat = 1.0
+    @State private var contentOpacity: Double = 0.0
+    @State private var dismissScheduled: Bool = false
+
+    var body: some View {
+        ZStack {
+            // Full-screen tier art with Ken Burns zoom
+            Image(assetName(for: advance.to))
+                .resizable()
+                .scaledToFill()
+                .scaleEffect(imageScale)
+                .clipped()
+                .ignoresSafeArea()
+                .overlay(Color.black.opacity(0.35))
+
+            // Content overlay
+            VStack(spacing: 24) {
+                Spacer()
+                Spacer()
+
+                Text(advance.to.displayName.uppercased())
+                    .font(.system(size: 56, weight: .black, design: .default))
+                    .tracking(4)
+                    .foregroundStyle(.white)
+                    .shadow(color: .black.opacity(0.6), radius: 8)
+
+                Rectangle()
+                    .fill(Color.unbound.accent)
+                    .frame(width: 60, height: 2)
+
+                Text(skillTitle.uppercased())
+                    .font(.system(size: 14, weight: .heavy, design: .monospaced))
+                    .tracking(3)
+                    .foregroundStyle(.white.opacity(0.85))
+
+                Spacer()
+
+                Button("TAP TO DISMISS") {
+                    dismiss()
+                }
+                .font(.system(size: 11, weight: .heavy, design: .monospaced))
+                .tracking(2)
+                .foregroundStyle(.white.opacity(0.55))
+                .padding(.bottom, 60)
+            }
+            .opacity(contentOpacity)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .contentShape(Rectangle())
+            .onTapGesture { dismiss() }
+        }
+        .background(Color.black)
+        .ignoresSafeArea()
+        .task {
+            // Ken Burns slow zoom-in over 5 seconds
+            withAnimation(.easeOut(duration: 5.0)) {
+                imageScale = 1.15
+            }
+            withAnimation(.easeIn(duration: 0.6).delay(0.3)) {
+                contentOpacity = 1.0
+            }
+            UnboundHaptics.heavy()
+
+            // Auto-dismiss after 5s if user hasn't tapped
+            DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
+                guard !dismissScheduled else { return }
+                dismissScheduled = true
+                onDismiss()
+            }
+        }
+    }
+
+    private var skillTitle: String {
+        SkillGraph.shared.nodes
+            .first(where: { $0.id == advance.skillId })?.title
+            ?? advance.skillId
+    }
+
+    private func dismiss() {
+        guard !dismissScheduled else { return }
+        dismissScheduled = true
+        onDismiss()
+    }
+
+    /// Maps a flagship SkillTier to its hero art asset name.
+    /// SkillTier.rawValue is Int, so we use a switch rather than string interpolation.
+    private func assetName(for tier: SkillTier) -> String {
+        switch tier {
+        case .vessel:    return "rank_title_vessel"
+        case .unbound:   return "rank_title_unbound"
+        case .ascendant: return "rank_title_ascendant"
+        default:         return "rank_title_vessel" // fallback — gate ensures never reached
+        }
+    }
+}
+
 // MARK: - Root-level presentation modifier
 //
 // Attach once at the top of your view hierarchy. Listens for
@@ -291,6 +400,7 @@ struct RankUpCinematicPresenter: ViewModifier {
                 guard advance.isFlagship else { return }
                 pendingTier = advance
             }
+            // Attribute rank-ups (BuildIdentity axes) — unchanged path
             .fullScreenCover(item: Binding(
                 get: { pending },
                 set: { if $0 == nil { pending = nil } }
@@ -301,27 +411,13 @@ struct RankUpCinematicPresenter: ViewModifier {
                     onDismiss: { pending = nil }
                 )
             }
+            // Flagship SkillTier crossings — TierCinematicView with hero art
             .fullScreenCover(item: Binding(
                 get: { pendingTier },
                 set: { if $0 == nil { pendingTier = nil } }
             )) { tierAdvance in
-                // Synthesize a RankAdvance so the existing cinematic view can
-                // render. The skill display name comes from the skill graph.
-                let skillTitle = SkillGraph.shared.nodes
-                    .first(where: { $0.id == tierAdvance.skillId })?.title
-                    ?? tierAdvance.skillId
-                let synth = RankAdvance(
-                    userId: services.auth.currentUserId ?? "anonymous",
-                    exerciseKey: tierAdvance.skillId,
-                    displayName: skillTitle,
-                    fromRank: .c,
-                    toRank: .sPlus,
-                    at: Date(),
-                    userBodyweightKg: nil
-                )
-                RankUpCinematic(
-                    advance: synth,
-                    buildIdentity: buildIdentity,
+                TierCinematicView(
+                    advance: tierAdvance,
                     onDismiss: { pendingTier = nil }
                 )
             }
