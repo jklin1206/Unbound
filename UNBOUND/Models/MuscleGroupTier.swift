@@ -62,3 +62,17 @@ enum MuscleGroupTier: String, CaseIterable, Codable, Sendable {
 extension Notification.Name {
     static let muscleGroupTierChanged = Notification.Name("unbound.muscleGroupTierChanged")
 }
+
+extension MuscleGroupTier {
+    /// Map to the nearest SkillTier for display via TierBadge.
+    var asSkillTier: SkillTier {
+        switch self {
+        case .e: return .initiate
+        case .d: return .apprentice
+        case .c: return .veteran
+        case .b: return .honed
+        case .a: return .unbound
+        case .s: return .ascendant
+        }
+    }
+}
