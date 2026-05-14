@@ -38,6 +38,7 @@ struct UnboundHomeView: View {
 
     // Ranking + stats
     @State private var aggregateRank: SubRank = .eMinus
+    @State private var aggregateTier: SkillTier = .initiate
     @State private var liftRanks: [LiftRank] = []
     @State private var regionRanks: [BodyRegion: RegionRank] = [:]
     @State private var heatmapRanks: [MuscleHeatGroup: SubRank] = [:]
@@ -124,8 +125,16 @@ struct UnboundHomeView: View {
             }
         }
         .task { await load() }
+        .tierBloomToast()
         .onReceive(NotificationCenter.default.publisher(for: .rankAdvanced)) { _ in
             Task { await refreshRanksAndStats() }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .skillTierAdvanced)) { _ in
+            if let userId = services.auth.currentUserId {
+                Task {
+                    aggregateTier = await services.rank.aggregateTier(userId: userId)
+                }
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: .sessionXPUpdated)) { _ in
             Task {
@@ -396,7 +405,7 @@ struct UnboundHomeView: View {
         let rankColor = aggregateRank.regionTint
 
         return VStack(alignment: .trailing, spacing: 8) {
-            Text("RANK \(aggregateRank.letter)")
+            Text(aggregateTier.displayName.uppercased())
                 .font(Font.unbound.captionS.weight(.bold))
                 .tracking(1.4)
                 .foregroundStyle(rankColor)
@@ -2050,6 +2059,7 @@ struct UnboundHomeView: View {
     private func refreshRanksAndStats() async {
         let userId = services.auth.currentUserId ?? "anonymous"
         aggregateRank = await services.rank.aggregateRank(userId: userId)
+        aggregateTier = await services.rank.aggregateTier(userId: userId)
 
         liftRanks = await services.rank.fetchAll(userId: userId)
         regionRanks = MuscleRankCalculator.computeAll(liftRanks: liftRanks)
