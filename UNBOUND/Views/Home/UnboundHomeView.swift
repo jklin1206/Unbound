@@ -38,7 +38,6 @@ struct UnboundHomeView: View {
 
     // Ranking + stats
     @State private var aggregateRank: SubRank = .eMinus
-    @State private var statScore: StatScore = .empty
     @State private var liftRanks: [LiftRank] = []
     @State private var regionRanks: [BodyRegion: RegionRank] = [:]
     @State private var heatmapRanks: [MuscleHeatGroup: SubRank] = [:]
@@ -58,6 +57,9 @@ struct UnboundHomeView: View {
     // navigateToCoach removed — replaced by CoachModesStrip
     @State private var showingGainsToast = false
     @State private var lastGainsAwarded: Int = 0
+
+    // Attribute profile (Phase 8+)
+    @State private var attributeProfile: AttributeProfile = AttributeProfile.empty(userId: "", at: .now)
 
     // Ambient animation state
     @State private var rankGlowRadius: CGFloat = 6
@@ -99,6 +101,9 @@ struct UnboundHomeView: View {
                         modesStrip
                         dailyQuestBand
                         contextualStack
+                        HomeBuildChipCard(profile: attributeProfile) {
+                            showingExpandedMap = true
+                        }
                         lastSessionRecap
                         Spacer().frame(height: 28)
                     }
@@ -128,6 +133,11 @@ struct UnboundHomeView: View {
                 await refreshRanksAndStats()
                 await refreshLastLog()
                 await refreshWeeklyRhythm()
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .attributeRankUp)) { _ in
+            if let userId = services.auth.currentUserId {
+                attributeProfile = services.attribute.profile(userId: userId)
             }
         }
         .fullScreenCover(isPresented: $showingCalibrationWorkout, onDismiss: {
@@ -194,6 +204,7 @@ struct UnboundHomeView: View {
         .nodeUnlockOverlay()
         .weightBumpToast()
         .tierUnlockToast()
+        .attributeRankUpToast()
     }
 
     // MARK: - Top bar
@@ -637,13 +648,6 @@ struct UnboundHomeView: View {
                     }
                 }
                 .frame(height: 5)
-
-                HStack(spacing: 8) {
-                    miniStatPill(label: "STR", rank: statScore.strengthRank)
-                    miniStatPill(label: "STA", rank: statScore.staminaRank)
-                    miniStatPill(label: "TEC", rank: statScore.techniqueRank)
-                    miniStatPill(label: "VIT", rank: statScore.vitalityRank)
-                }
             }
         }
         .padding(14)
@@ -1162,12 +1166,6 @@ struct UnboundHomeView: View {
                 .buttonStyle(.plain)
             }
 
-            HStack(spacing: 8) {
-                miniStatPill(label: "STR", rank: statScore.strengthRank)
-                miniStatPill(label: "STA", rank: statScore.staminaRank)
-                miniStatPill(label: "TEC", rank: statScore.techniqueRank)
-                miniStatPill(label: "VIT", rank: statScore.vitalityRank)
-            }
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -1530,19 +1528,6 @@ struct UnboundHomeView: View {
                         .frame(height: 3)
                     }
 
-                    // Thin divider separating identity from stats
-                    Rectangle()
-                        .fill(Color.unbound.borderSubtle)
-                        .frame(height: 0.5)
-
-                    // Meta stats — 4 rank letters for the overall axes.
-                    VStack(spacing: 3) {
-                        statRow(label: "STR", rank: statScore.strengthRank)
-                        statRow(label: "STA", rank: statScore.staminaRank)
-                        statRow(label: "TEC", rank: statScore.techniqueRank)
-                        statRow(label: "VIT", rank: statScore.vitalityRank)
-                    }
-
                     // Body ranks — aggregated per anatomical group from the
                     // heatmap data. Shows where the user is strong/weak by
                     // body part, complementing the 4 meta-stats above. 2x3
@@ -1642,28 +1627,6 @@ struct UnboundHomeView: View {
         .overlay(
             Capsule().strokeBorder(tint.opacity(0.34), lineWidth: 1)
         )
-    }
-
-    /// One stat row inside the player card: 3-letter label + sub-rank
-    /// letter, left-aligned and compact. Tier color on the rank letter.
-    private func statRow(label: String, rank: SubRank) -> some View {
-        let color = rank.regionTint
-        return HStack(spacing: 10) {
-            Text(label)
-                .font(.system(size: 10, weight: .bold))
-                .tracking(1.4)
-                .foregroundStyle(Color.unbound.textTertiary)
-                .frame(width: 28, alignment: .leading)
-
-            Text(rank.displayName)
-                .font(Font.unbound.monoS.weight(.bold))
-                .foregroundStyle(color)
-                .shadow(color: color.opacity(0.5), radius: 3)
-                .monospacedDigit()
-
-            Spacer(minLength: 0)
-        }
-        .frame(height: 15)
     }
 
     // MARK: - Today's Mission CTA
@@ -2076,6 +2039,8 @@ struct UnboundHomeView: View {
         await refreshTravelOverride()
         await refreshCoachNote()
 
+        attributeProfile = services.attribute.profile(userId: userId)
+
         isLoading = false
         // Kick off ambient loops once the content is actually on screen —
         // .onAppear fires while still in the loading state, so the
@@ -2090,7 +2055,6 @@ struct UnboundHomeView: View {
         let userId = services.auth.currentUserId ?? "anonymous"
         let archetype = profile?.preferredArchetype ?? .vTaper
         aggregateRank = await services.rank.archetypeRank(userId: userId, archetype: archetype)
-        statScore = await services.statScore.compute(userId: userId, archetype: archetype)
 
         liftRanks = await services.rank.fetchAll(userId: userId)
         regionRanks = MuscleRankCalculator.computeAll(liftRanks: liftRanks)
