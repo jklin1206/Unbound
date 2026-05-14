@@ -292,41 +292,21 @@ struct SkillGraph: Codable, Sendable {
 //
 // The old UnboundSkillTreeTabView + SkillTreeView expect a `SkillTree`
 // with nodes + a single `bossNodeId` and `rowCount`. We synthesize that
-// from SkillGraph filtered to an archetype's spawn reach.
+// from the full SkillGraph (universal — same tree for everyone).
 //
 // Chunk 4 kills this. Until then it keeps the tree tab rendering.
 
 struct SkillTree: Codable, Sendable {
-    let archetype: Archetype
     let nodes: [SkillNode]
     let bossNodeId: String
 
-    var displayName: String { archetype.shortName }
     var rowCount: Int { (nodes.map(\.position.row).max() ?? 0) + 1 }
 
-    /// Legacy API — returns the per-archetype "reachable" slice of the
-    /// shared SkillGraph. Nodes are re-positioned column-by-cluster so
-    /// the old SkillTreeView lays them out coherently.
-    static func tree(for archetype: Archetype) -> SkillTree {
+    /// Universal tree — all nodes from SkillGraph, repositioned by cluster.
+    /// The skill tree is the same for everyone; identity comes from BuildIdentity,
+    /// not a filtered subset.
+    static var universal: SkillTree {
         let graph = SkillGraph.shared
-        let spawnIds = Set(ArchetypeSpawnPoints.nodeIds(for: archetype))
-
-        // Compute reachable set via fixed-point iteration on OR-groups.
-        var reachable: Set<String> = spawnIds
-        var changed = true
-        while changed {
-            changed = false
-            for node in graph.nodes where !reachable.contains(node.id) {
-                guard !node.prereqs.isEmpty else { continue }
-                let any = node.prereqs.contains { group in
-                    group.nodeIds.allSatisfy { reachable.contains($0) }
-                }
-                if any {
-                    reachable.insert(node.id)
-                    changed = true
-                }
-            }
-        }
 
         // Assign legacy positions: one column per cluster, rows stacked by tier.
         let columnOrder: [SkillCluster] = [
@@ -339,7 +319,6 @@ struct SkillTree: Codable, Sendable {
         var positioned: [SkillNode] = []
         for (idx, cluster) in columnOrder.enumerated() {
             let clusterNodes = graph.nodes(in: cluster)
-                .filter { reachable.contains($0.id) }
                 .sorted { $0.tier < $1.tier }
             for (row, n) in clusterNodes.enumerated() {
                 let repositioned = SkillNode(
@@ -367,7 +346,6 @@ struct SkillTree: Codable, Sendable {
 
         let topKeystone = positioned.first(where: { $0.isKeystone && !$0.isMythic })
         return SkillTree(
-            archetype: archetype,
             nodes: positioned,
             bossNodeId: topKeystone?.id ?? ""
         )

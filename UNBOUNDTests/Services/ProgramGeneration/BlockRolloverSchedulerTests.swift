@@ -54,7 +54,6 @@ final class BlockRolloverSchedulerTests: XCTestCase {
             analysisId: "a-1",
             userId: "u-1",
             createdAt: createdAt,
-            archetype: .shredded,
             name: "Test",
             description: "Test program",
             durationDays: 14,

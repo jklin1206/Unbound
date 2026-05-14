@@ -6,33 +6,29 @@ import SwiftUI
 // Rendered to UIImage via ImageRenderer on tap from the cinematic.
 //
 // Layout (top → bottom):
-//   - "UNBOUND" wordmark + archetype label
+//   - "UNBOUND" wordmark + build identity label
 //   - Giant rank display (180pt mono, skin glow)
 //   - Exercise name
-//   - Archetype tagline beneath
-//   - Footer: unboundapp.com + archetype pill
+//   - Build identity tagline beneath
+//   - Footer: unboundapp.com + identity pill
 //
-// Background: base dark + archetype-colored diagonal gradient + grid +
-// ember particles + archetype hero watermark at 15% opacity.
+// Background: base dark + diagonal gradient + grid + ember particles.
 
 struct RankUpShareCard: View {
     let rank: SubRank
     let exerciseDisplayName: String
-    let archetypeDisplayName: String
-    let archetype: Archetype
+    let buildIdentity: BuildIdentity
     let skin: SkillTreeSkin
 
     init(
         rank: SubRank,
         exerciseDisplayName: String,
-        archetypeDisplayName: String,
-        archetype: Archetype = .vTaper,
+        buildIdentity: BuildIdentity,
         skin: SkillTreeSkin = .violet
     ) {
         self.rank = rank
         self.exerciseDisplayName = exerciseDisplayName
-        self.archetypeDisplayName = archetypeDisplayName
-        self.archetype = archetype
+        self.buildIdentity = buildIdentity
         self.skin = skin
     }
 
@@ -41,10 +37,10 @@ struct RankUpShareCard: View {
             // Base
             Color.unbound.bg.ignoresSafeArea()
 
-            // Archetype diagonal gradient tint
+            // Diagonal gradient tint (neutral accent)
             LinearGradient(
                 colors: [
-                    archetypeTint.opacity(0.55),
+                    tint.opacity(0.55),
                     Color.unbound.bg,
                     skin.impactColor.opacity(0.25)
                 ],
@@ -61,11 +57,6 @@ struct RankUpShareCard: View {
             // Ember particles
             ParticleEmitter(config: .embers, isActive: true)
                 .opacity(0.45)
-
-            // Hero silhouette watermark
-            archetypeSilhouette
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .opacity(0.15)
 
             VStack(spacing: 0) {
                 header
@@ -89,10 +80,10 @@ struct RankUpShareCard: View {
                 .font(.system(size: 38, weight: .heavy, design: .monospaced))
                 .tracking(6.0)
                 .foregroundStyle(Color.unbound.textPrimary)
-            Text(archetype.shortName)
+            Text(buildIdentity.displayName.uppercased())
                 .font(.system(size: 22, weight: .semibold, design: .monospaced))
                 .tracking(4.0)
-                .foregroundStyle(archetypeTint)
+                .foregroundStyle(tint)
         }
     }
 
@@ -123,7 +114,7 @@ struct RankUpShareCard: View {
 
     private var footer: some View {
         VStack(spacing: 14) {
-            Text(archetypeTagline.uppercased())
+            Text(tagline.uppercased())
                 .font(.system(size: 22, weight: .medium, design: .default))
                 .tracking(1.5)
                 .foregroundStyle(Color.unbound.textSecondary)
@@ -138,55 +129,20 @@ struct RankUpShareCard: View {
                 Circle()
                     .fill(Color.unbound.textTertiary)
                     .frame(width: 4, height: 4)
-                Text("ARC · \(archetype.shortName)")
+                Text("ARC · \(buildIdentity.displayName.uppercased())")
                     .font(.system(size: 20, weight: .semibold, design: .monospaced))
                     .tracking(1.4)
-                    .foregroundStyle(archetypeTint)
+                    .foregroundStyle(tint)
             }
         }
     }
 
-    // MARK: Archetype presentation
+    // MARK: Identity presentation
 
-    private var archetypeTint: Color {
-        switch archetype {
-        case .heavyDuty: return Color(.sRGB, red: 0.72, green: 0.50, blue: 0.28, opacity: 1) // bronze
-        case .leanCut:   return Color(.sRGB, red: 0.80, green: 0.22, blue: 0.30, opacity: 1) // crimson
-        case .vTaper:    return Color.unbound.accent                                          // violet
-        case .shredded:  return Color(.sRGB, red: 0.55, green: 0.60, blue: 0.66, opacity: 1) // steel
-        }
-    }
+    /// Neutral accent tint. Future polish can map `buildIdentity.shape` → tint variant.
+    private var tint: Color { Color.unbound.accent }
 
-    private var archetypeTagline: String {
-        switch archetype {
-        case .heavyDuty: return "Take up space."
-        case .leanCut:   return "Built like a fighter."
-        case .vTaper:    return "Own the room."
-        case .shredded:  return "Precision over bulk."
-        }
-    }
-
-    @ViewBuilder
-    private var archetypeSilhouette: some View {
-        // Prefer the archetype-specific render (e.g. archetype_sovereign),
-        // fall back to the generic male silhouette, and finally an SF Symbol
-        // so the card still renders cleanly pre-asset.
-        if let uiImage = UIImage(named: archetype.silhouetteAssetName)
-            ?? UIImage(named: "body_unbound_front") {
-            Image(uiImage: uiImage)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(maxHeight: 1200)
-                .colorMultiply(archetypeTint)
-                .blendMode(.screen)
-        } else {
-            Image(systemName: "figure.stand")
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(width: 620, height: 1100)
-                .foregroundStyle(archetypeTint)
-        }
-    }
+    private var tagline: String { buildIdentity.tagline }
 }
 
 // MARK: Renderer helper
@@ -198,16 +154,14 @@ enum RankUpShareCardRenderer {
     static func render(
         rank: SubRank,
         exerciseDisplayName: String,
-        archetypeDisplayName: String,
-        archetype: Archetype = .vTaper,
+        buildIdentity: BuildIdentity,
         skin: SkillTreeSkin? = nil
     ) -> UIImage? {
         let resolvedSkin = skin ?? SkinService.shared.currentSkin
         let card = RankUpShareCard(
             rank: rank,
             exerciseDisplayName: exerciseDisplayName,
-            archetypeDisplayName: archetypeDisplayName,
-            archetype: archetype,
+            buildIdentity: buildIdentity,
             skin: resolvedSkin
         )
         let renderer = ImageRenderer(content: card)
@@ -232,8 +186,7 @@ enum RankUpShareCardRenderer {
     RankUpShareCard(
         rank: .bPlus,
         exerciseDisplayName: "Back Squat",
-        archetypeDisplayName: "V-TAPER",
-        archetype: .vTaper,
+        buildIdentity: BuildIdentity(primary: .power, secondary: nil, shape: .specialist),
         skin: .violet
     )
     .scaleEffect(0.25)

@@ -197,7 +197,6 @@ final class ScanComparisonService: @unchecked Sendable {
                 id: photo.id,
                 userId: userId,
                 createdAt: photo.capturedAt,
-                targetArchetype: .vTaper,    // unused for delta — placeholder
                 photos: [ScanPhoto(
                     angle: photo.angle ?? .front,
                     storageUrl: photo.storageUrl,

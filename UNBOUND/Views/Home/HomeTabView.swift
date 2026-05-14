@@ -46,5 +46,8 @@ struct HomeTabView: View {
         .rankUpCinematicOverlay()
         .skinUnlockToast()
         .badgeUnlockToast()
+        .onReceive(NotificationCenter.default.publisher(for: .requestNavigateToProfileTab)) { _ in
+            selectedTab = 3
+        }
     }
 }

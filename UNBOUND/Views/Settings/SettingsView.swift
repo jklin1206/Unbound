@@ -461,7 +461,6 @@ private enum DevPlayerSeeder {
             onboardingCompleted: true,
             totalScans: 12,
             currentProgramId: nil,
-            preferredArchetype: .vTaper,
             heightCm: 180,
             weightKg: 82,
             age: 28,
@@ -479,7 +478,7 @@ private enum DevPlayerSeeder {
 
         try? await DatabaseService.shared.create(profile, collection: "users", documentId: userId)
         BadgeService.shared.bind(userId: userId)
-        await SkillProgressService.shared.load(userId: userId, archetype: .vTaper)
+        await SkillProgressService.shared.load(userId: userId)
         await seedSessionStats()
         await applyLevel(25)
     }
@@ -575,7 +574,7 @@ private enum DevPlayerSeeder {
             currentWeekPhase: .heavy
         )
         try? await DatabaseService.shared.create(payload, collection: "skillProgress", documentId: userId)
-        await SkillProgressService.shared.load(userId: userId, archetype: .vTaper)
+        await SkillProgressService.shared.load(userId: userId)
     }
 
     static func clearDevProgress() {

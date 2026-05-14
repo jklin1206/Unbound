@@ -116,26 +116,25 @@ final class LocalBodyInsightsService {
         return (Double(point.location.x), Double(point.location.y))
     }
 
-    /// Maps the two measured ratios into one of the four onboarding
-    /// archetypes. The archetype enum's raw values are what we persist.
+    /// Maps the two measured ratios into a build tendency label.
     private func suggestedArchetype(
         shoulderHipRatio: Double,
         frameCategory: BodyScanInsights.FrameCategory
     ) -> String {
         // V-TAPER: strong shoulder-to-hip dominance, narrow-to-balanced frame.
         if shoulderHipRatio >= 1.5, frameCategory != .broad {
-            return Archetype.vTaper.rawValue
+            return "vTaper"
         }
         // HEAVYWEIGHT: broad frame regardless of V-taper — density reads first.
         if frameCategory == .broad {
-            return Archetype.heavyDuty.rawValue
+            return "heavyDuty"
         }
         // SLEEPER: narrow frame with low shoulder dominance — hidden ceiling.
         if frameCategory == .narrow, shoulderHipRatio < 1.3 {
-            return Archetype.shredded.rawValue
+            return "shredded"
         }
-        // Default middle ground: the balanced-athlete SHREDDED bucket.
-        return Archetype.leanCut.rawValue
+        // Default middle ground: the balanced-athlete bucket.
+        return "leanCut"
     }
 }
 

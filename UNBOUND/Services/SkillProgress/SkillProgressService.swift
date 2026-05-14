@@ -84,7 +84,7 @@ final class SkillProgressService {
     // MARK: Public API
 
     /// Load the user's progress from disk. Call on app start / home appear.
-    func load(userId: String, archetype: Archetype? = nil) async {
+    func load(userId: String) async {
         if let existing: UserSkillProgress = try? await database.read(collection: "skillProgress", documentId: userId) {
             progress = existing
             nodeStates = existing.nodeStates
@@ -108,12 +108,12 @@ final class SkillProgressService {
             currentWeekPhase = .moderate
             try? await database.create(empty, collection: "skillProgress", documentId: userId)
         }
-        seedSpawnPoints(for: archetype ?? currentArchetype())
+        seedRootNodes()
     }
 
     /// Re-evaluate node states after a workout log is saved.
     /// Scans the full SkillGraph against the user's recent logs.
-    func recompute(after log: WorkoutLog, for archetype: Archetype, userBodyweightKg: Double?) async {
+    func recompute(after log: WorkoutLog, userBodyweightKg: Double?) async {
         let graph = SkillGraph.shared
         var mutated = false
         var unlocked: NodeUnlockedEvent? = nil
@@ -431,12 +431,12 @@ final class SkillProgressService {
         }
     }
 
-    /// Seeds `.attempting` for the archetype's spawn-point nodes if they
-    /// haven't already been recorded. Also self-heals: any node currently
+    /// Seeds `.attempting` for the universal root nodes (no-prereq nodes) if
+    /// they haven't already been recorded. Also self-heals: any node currently
     /// `.attempting` whose prereqs are NOT met (because the tree was
     /// restructured underneath them) gets demoted to `.locked`. This keeps
     /// existing user state consistent with content updates.
-    private func seedSpawnPoints(for archetype: Archetype) {
+    private func seedRootNodes() {
         guard var p = progress else { return }
         let graph = SkillGraph.shared
 
@@ -454,20 +454,14 @@ final class SkillProgressService {
             }
         }
 
-        // 2. Seed the archetype's roots as .attempting (only if currently locked).
-        let spawnIds = ArchetypeSpawnPoints.nodeIds(for: archetype)
-        for id in spawnIds where p.state(for: id) == .locked {
+        // 2. Seed root nodes (no prereqs) as .attempting (only if currently locked).
+        let rootIds = graph.nodes.filter { $0.prereqs.isEmpty }.map(\.id)
+        for id in rootIds where p.state(for: id) == .locked {
             p.nodeStates[id] = .attempting
         }
 
         progress = p
         nodeStates = p.nodeStates
-    }
-
-    private func currentArchetype() -> Archetype {
-        // Best-effort read from UserDefaults cache; real implementation
-        // would take archetype as a parameter or cache on load.
-        .vTaper
     }
 
     // MARK: Requirement evaluation

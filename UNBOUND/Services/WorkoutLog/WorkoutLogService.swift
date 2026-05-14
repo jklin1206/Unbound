@@ -35,12 +35,11 @@ final class WorkoutLogService: WorkoutLogServiceProtocol, @unchecked Sendable {
             feedbackMode: feedbackMode
         )
 
-        // Recompute skill tree state. Reads user's archetype + bodyweight
+        // Recompute skill tree state. Reads user's bodyweight
         // from the UserProfile and evaluates every node against the logs.
         if let profile {
-            let archetype = profile.preferredArchetype ?? .vTaper
             let bw = profile.weightKg
-            await SkillProgressService.shared.recompute(after: log, for: archetype, userBodyweightKg: bw)
+            await SkillProgressService.shared.recompute(after: log, userBodyweightKg: bw)
 
             // SubRank system: detect sub-rank threshold crossings per lift
             // and post `.rankAdvanced` for the UI cinematic.
@@ -50,10 +49,14 @@ final class WorkoutLogService: WorkoutLogServiceProtocol, @unchecked Sendable {
 
             // After rank evaluation, check for skin unlocks and record
             // session XP + badge triggers.
-            _ = await SkinService.shared.evaluateUnlocks(userId: log.userId, archetype: archetype)
+            _ = await SkinService.shared.evaluateUnlocks(userId: log.userId)
             await SessionXPService.shared.recordSession(userId: log.userId, at: log.startedAt)
             _ = await BadgeService.shared.evaluate(trigger: .sessionLogged(log))
         }
+
+        // Attribute System: ingest this session to update the 6-axis hex.
+        // Fires .attributeRankUp notifications for any tier crossings.
+        await AttributeService.shared.ingest(session: log, userId: log.userId)
 
         logger.log("Workout logged: \(log.plannedWorkoutName)", level: .info, context: ["dayNumber": log.dayNumber])
     }

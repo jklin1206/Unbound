@@ -1,24 +1,17 @@
 import Foundation
 
-// Program generation runs entirely on-device via LocalProgramGenerator —
-// rule-based, deterministic, no network. The Claude API is reserved for
-// the coach chat tab; program building is too high-stakes (and too
-// frequently hit) to depend on a remote model.
-//
-// Public API surface is preserved so call sites (BodyScanViewModel,
-// ProgramOverviewView, UnboundHomeView) continue working unchanged.
-//
-// DB writes use `try?` intentionally — a 401 in dev or transient FS
-// hiccup must never block the user from seeing their program.
+// Program generation is Claude-first with a local deterministic fallback.
+// Claude produces a 7-day weekly template + nutrition + recovery + rationale;
+// ProgramBuilder expands it to 84 days. If Claude fails for any reason, we
+// quietly use LocalProgramGenerator so the user never sees a broken flow.
 
 final class ProgramGenerationService: ProgramGenerationServiceProtocol, @unchecked Sendable {
     static let shared = ProgramGenerationService()
     private let database = DatabaseService.shared
     private let logger = LoggingService.shared
+    private let claude = ClaudeClient.shared
 
     private init() {}
-
-    // MARK: - Post-scan path
 
     func generateProgram(analysis: BodyAnalysis, userProfile: UserProfile) async throws -> TrainingProgram {
         try? await database.update(
@@ -27,12 +20,237 @@ final class ProgramGenerationService: ProgramGenerationServiceProtocol, @uncheck
             documentId: analysis.scanId
         )
 
-        let archetype = userProfile.preferredArchetype ?? analysis.targetArchetype
-        let calibrations = await CalibrationService.shared.fetchAll(userId: userProfile.id)
-        let rank = await resolveArchetypeRank(userId: userProfile.id, archetype: archetype)
+        let buildIdentity = await AttributeService.shared.snapshot(userId: userProfile.id, asOf: Date()).buildIdentity
 
-        let program = LocalProgramGenerator.generate(
-            archetype: archetype,
+        let inputs = buildInputs(
+            buildIdentity: buildIdentity,
+            userProfile: userProfile,
+            analysis: analysis
+        )
+
+        let program: TrainingProgram
+        if let llm = try? await callClaude(inputs: inputs) {
+            program = ProgramBuilder.build(
+                from: llm,
+                userId: userProfile.id,
+                scanId: analysis.scanId,
+                analysisId: analysis.id,
+                buildIdentity: buildIdentity
+            )
+            logger.log("Program generated via Claude", level: .info, context: [
+                "programId": program.id,
+                "buildIdentity": buildIdentity.displayName
+            ])
+        } else {
+            program = await localFallback(
+                userProfile: userProfile,
+                buildIdentity: buildIdentity,
+                scanId: analysis.scanId,
+                analysisId: analysis.id
+            )
+            logger.log("Program generated via local fallback", level: .warning, context: [
+                "programId": program.id,
+                "buildIdentity": buildIdentity.displayName
+            ])
+        }
+
+        try? await database.create(program, collection: "programs", documentId: program.id)
+        try? await database.update(
+            ["programId": program.id, "status": ScanStatus.complete.rawValue],
+            collection: "scans",
+            documentId: analysis.scanId
+        )
+        try? await database.update(
+            ["currentProgramId": program.id],
+            collection: "users",
+            documentId: analysis.userId
+        )
+
+        return program
+    }
+
+    // MARK: - Convenience: generate without a scan
+
+    func generateFromOnboarding(
+        userId: String,
+        targetFrequency: TargetFrequency?,
+        equipment: Set<Equipment>,
+        experience: Experience?,
+        sessionLength: SessionLength?,
+        exerciseStyles: Set<ExerciseStyle>,
+        targetAreas: Set<TargetArea>,
+        goals: Set<Goal> = [],
+        obstacles: Set<Obstacle> = [],
+        sleepQuality: Int = 5,
+        stressLevel: Int = 5,
+        currentFrequency: Frequency? = nil,
+        commitment: Int = 8,
+        displayHandle: String = "",
+        age: Int = 0,
+        gender: Gender = .unspecified,
+        heightCm: Double = 0,
+        weightKg: Double = 0
+    ) async -> TrainingProgram {
+        // MIGRATION: derive BuildIdentity from AttributeService rather than relying
+        // on the archetype param. The archetype param is kept for external API
+        // compatibility (callers like UnboundHomeView still pass it) until Phase 2g
+        // removes it from the call sites.
+        let buildIdentity = await AttributeService.shared.snapshot(userId: userId, asOf: Date()).buildIdentity
+
+        let inputs = ProgramGenerationPrompt.Inputs(
+            buildIdentity: buildIdentity,
+            targetFrequency: days(for: targetFrequency),
+            equipment: equipment.map(\.rawValue),
+            experience: experience?.rawValue ?? "unspecified",
+            sessionLengthMinutes: sessionLength?.minutes ?? 60,
+            exerciseStyles: exerciseStyles.map(\.rawValue),
+            targetAreas: targetAreas.map(\.rawValue),
+            goals: goals.map(\.rawValue),
+            obstacles: obstacles.map(\.rawValue),
+            sleepQuality: sleepQuality,
+            stressLevel: stressLevel,
+            commitment: commitment,
+            displayHandle: displayHandle,
+            age: age > 0 ? age : nil,
+            gender: gender == .unspecified ? nil : gender.rawValue,
+            heightCm: heightCm > 0 ? heightCm : nil,
+            weightKg: weightKg > 0 ? weightKg : nil,
+            analysisSummary: nil,
+            focusAreas: [],
+            weaknesses: [],
+            strengths: []
+        )
+
+        let program: TrainingProgram
+        if let llm = try? await callClaude(inputs: inputs) {
+            program = ProgramBuilder.build(
+                from: llm,
+                userId: userId,
+                scanId: "",
+                analysisId: "",
+                buildIdentity: buildIdentity
+            )
+            logger.log("Onboarding program via Claude", level: .info, context: ["programId": program.id])
+        } else {
+            let calibrations = await CalibrationService.shared.fetchAll(userId: userId)
+            let rank = await resolveArchetypeRank(userId: userId)
+            let fallback = LocalProgramGenerator.generate(
+                buildIdentity: buildIdentity,
+                targetFrequency: targetFrequency,
+                equipment: equipment,
+                experience: experience,
+                sessionLength: sessionLength,
+                exerciseStyles: exerciseStyles,
+                targetAreas: targetAreas,
+                goals: goals,
+                obstacles: obstacles,
+                sleepQuality: sleepQuality,
+                stressLevel: stressLevel,
+                currentFrequency: currentFrequency,
+                commitment: commitment,
+                displayHandle: displayHandle,
+                age: age,
+                gender: gender,
+                heightCm: heightCm,
+                weightKg: weightKg,
+                preferences: [],
+                progressionStates: [],
+                familyStates: [],
+                customExercises: [],
+                calibrations: calibrations,
+                archetypeRank: rank,
+                userId: userId
+            )
+            program = fallback
+            logger.log("Onboarding program via local fallback", level: .warning, context: ["programId": program.id])
+        }
+
+        try? await database.create(program, collection: "programs", documentId: program.id)
+        try? await database.update(
+            ["currentProgramId": program.id],
+            collection: "users",
+            documentId: userId
+        )
+        return program
+    }
+
+    // MARK: - Claude call
+
+    private func callClaude(inputs: ProgramGenerationPrompt.Inputs) async throws -> ProgramLLMOutput {
+        let schema = try JSONValue.fromJSONString(ProgramGenerationPrompt.schemaJSON)
+        let tool = ClaudeClient.Tool(
+            name: ProgramGenerationPrompt.toolName,
+            description: ProgramGenerationPrompt.toolDescription,
+            inputSchema: schema
+        )
+        return try await claude.sendStructured(
+            ProgramLLMOutput.self,
+            model: .sonnet46,
+            system: ProgramGenerationPrompt.systemPrompt(inputs),
+            userText: ProgramGenerationPrompt.userPrompt,
+            tool: tool,
+            maxTokens: 8192
+        )
+    }
+
+    // MARK: - Input builders
+
+    private func buildInputs(
+        buildIdentity: BuildIdentity,
+        userProfile: UserProfile,
+        analysis: BodyAnalysis
+    ) -> ProgramGenerationPrompt.Inputs {
+        let focusAreaNames = analysis.focusAreas
+            .sorted { $0.priority < $1.priority }
+            .map { $0.muscleGroup.displayName }
+
+        return ProgramGenerationPrompt.Inputs(
+            buildIdentity: buildIdentity,
+            targetFrequency: days(for: userProfile.targetFrequency),
+            equipment: (userProfile.equipment ?? []).map(\.rawValue),
+            experience: userProfile.experience?.rawValue ?? "unspecified",
+            sessionLengthMinutes: userProfile.sessionLength?.minutes ?? 60,
+            exerciseStyles: (userProfile.exerciseStyles ?? []).map(\.rawValue),
+            targetAreas: (userProfile.targetAreas ?? []).map(\.rawValue),
+            goals: (userProfile.goals ?? []).map(\.rawValue),
+            obstacles: (userProfile.obstacles ?? []).map(\.rawValue),
+            sleepQuality: userProfile.sleepQuality ?? 5,
+            stressLevel: userProfile.stressLevel ?? 5,
+            commitment: userProfile.commitment ?? 8,
+            displayHandle: userProfile.displayHandle ?? userProfile.displayName ?? "",
+            age: userProfile.age,
+            gender: userProfile.gender?.rawValue,
+            heightCm: userProfile.heightCm,
+            weightKg: userProfile.weightKg,
+            analysisSummary: analysis.summary,
+            focusAreas: focusAreaNames,
+            weaknesses: analysis.weaknesses,
+            strengths: analysis.strengths
+        )
+    }
+
+    private func days(for frequency: TargetFrequency?) -> Int {
+        switch frequency {
+        case .three: return 3
+        case .four: return 4
+        case .five: return 5
+        case .six: return 6
+        case .none: return 4
+        }
+    }
+
+    // MARK: - Local fallback
+
+    private func localFallback(
+        userProfile: UserProfile,
+        buildIdentity: BuildIdentity,
+        scanId: String,
+        analysisId: String
+    ) async -> TrainingProgram {
+        let calibrations = await CalibrationService.shared.fetchAll(userId: userProfile.id)
+        let rank = await resolveArchetypeRank(userId: userProfile.id)
+        return LocalProgramGenerator.generate(
+            buildIdentity: buildIdentity,
             targetFrequency: userProfile.targetFrequency,
             equipment: Set(userProfile.equipment ?? []),
             experience: userProfile.experience,
@@ -57,98 +275,18 @@ final class ProgramGenerationService: ProgramGenerationServiceProtocol, @uncheck
             calibrations: calibrations,
             archetypeRank: rank,
             userId: userProfile.id,
-            scanId: analysis.scanId,
-            analysisId: analysis.id
+            scanId: scanId,
+            analysisId: analysisId
         )
-
-        logger.log("Program generated locally", level: .info, context: [
-            "programId": program.id,
-            "archetype": archetype.rawValue,
-            "source": "post-scan"
-        ])
-
-        await SupabaseProgramService.shared.saveProgram(program, userId: analysis.userId)
-        try? await database.update(
-            ["programId": program.id, "status": ScanStatus.complete.rawValue],
-            collection: "scans",
-            documentId: analysis.scanId
-        )
-
-        return program
     }
 
-    // MARK: - Onboarding path (no scan yet)
-
-    func generateFromOnboarding(
-        userId: String,
-        archetype: Archetype,
-        targetFrequency: TargetFrequency?,
-        equipment: Set<Equipment>,
-        experience: Experience?,
-        sessionLength: SessionLength?,
-        exerciseStyles: Set<ExerciseStyle>,
-        targetAreas: Set<TargetArea>,
-        goals: Set<Goal> = [],
-        obstacles: Set<Obstacle> = [],
-        sleepQuality: Int = 5,
-        stressLevel: Int = 5,
-        currentFrequency: Frequency? = nil,
-        commitment: Int = 8,
-        displayHandle: String = "",
-        age: Int = 0,
-        gender: Gender = .unspecified,
-        heightCm: Double = 0,
-        weightKg: Double = 0
-    ) async -> TrainingProgram {
-        let calibrations = await CalibrationService.shared.fetchAll(userId: userId)
-        let rank = await resolveArchetypeRank(userId: userId, archetype: archetype)
-
-        let program = LocalProgramGenerator.generate(
-            archetype: archetype,
-            targetFrequency: targetFrequency,
-            equipment: equipment,
-            experience: experience,
-            sessionLength: sessionLength,
-            exerciseStyles: exerciseStyles,
-            targetAreas: targetAreas,
-            goals: goals,
-            obstacles: obstacles,
-            sleepQuality: sleepQuality,
-            stressLevel: stressLevel,
-            currentFrequency: currentFrequency,
-            commitment: commitment,
-            displayHandle: displayHandle,
-            age: age,
-            gender: gender,
-            heightCm: heightCm,
-            weightKg: weightKg,
-            preferences: [],
-            progressionStates: [],
-            familyStates: [],
-            customExercises: [],
-            calibrations: calibrations,
-            archetypeRank: rank,
-            userId: userId
-        )
-
-        logger.log("Program generated locally", level: .info, context: [
-            "programId": program.id,
-            "archetype": archetype.rawValue,
-            "source": "onboarding"
-        ])
-
-        await SupabaseProgramService.shared.saveProgram(program, userId: userId)
-        return program
-    }
-
-    // MARK: - Helpers
-
-    /// Resolve the user's current archetype aggregate rank. RankService is
-    /// `@MainActor`; structured concurrency hops over and back.
-    private func resolveArchetypeRank(userId: String, archetype: Archetype) async -> SubRank {
+    /// Resolve the user's current aggregate rank. Runs on the
+    /// main actor (RankService is @MainActor) and funnels back here via
+    /// structured concurrency.
+    private func resolveArchetypeRank(userId: String) async -> SubRank {
         await MainActor.run {
             Task { @MainActor in
-                await RankService.shared.archetypeRank(userId: userId, archetype: archetype)
+                await RankService.shared.aggregateRank(userId: userId)
             }
         }.value
     }

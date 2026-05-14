@@ -123,9 +123,6 @@ final class CoachNotesService {
     }
 
     private func buildContext(userId: String) async -> NoteContext {
-        let profile = try? await user.fetchProfile(userId: userId)
-        let archetype = profile?.preferredArchetype?.rawValue ?? "v-taper"
-
         let xp = sessionXP.record(userId: userId)
         let streak = xp.currentStreak
 
@@ -136,15 +133,7 @@ final class CoachNotesService {
         let progressionStates = await progressionStore.fetchAll(userId: userId)
         let plateaus = await plateauDetector.detect(userId: userId, states: progressionStates)
 
-        let rankLetter: String = {
-            if let archetypeEnum = profile?.preferredArchetype {
-                // Approximate letter from archetype-level rank without
-                // inflating scope — use the raw SubRank letter.
-                return "—"  // Placeholder; full resolution would need RankService,
-                            // but the note prompt doesn't require high precision.
-            }
-            return "—"
-        }()
+        let rankLetter = "—"
 
         let lastSessionLabel: String = {
             guard let last = logs.first else { return "none logged yet" }
@@ -159,7 +148,7 @@ final class CoachNotesService {
         }()
 
         return NoteContext(
-            archetype: archetype,
+            archetype: "build",
             rankLetter: rankLetter,
             currentStreak: streak,
             sessions14d: recent.count,

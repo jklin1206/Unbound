@@ -28,7 +28,7 @@ struct Step_WhyThisProgram: View {
 
     private func buildRationale() -> ProgramRationale {
         LocalProgramGenerator.previewRationale(
-            archetype: flow.archetype ?? .vTaper,
+            buildIdentity: BuildIdentity(primary: nil, secondary: nil, shape: .balancedAthlete),
             targetFrequency: flow.targetFrequency,
             equipment: flow.equipment,
             experience: flow.experience,

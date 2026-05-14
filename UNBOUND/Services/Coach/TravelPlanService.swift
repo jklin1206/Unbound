@@ -24,15 +24,13 @@ final class TravelPlanService {
         startDate: Date = Date()
     ) async throws -> TravelPlanResult {
 
-        // Pull minimal context — archetype + current block for tone
-        let profile: UserProfile? = try? await database.read(collection: "users", documentId: userId)
-        let archetype = profile?.preferredArchetype?.rawValue ?? "general"
+        // Pull minimal context for tone
         let endDate = Calendar.current.date(byAdding: .day, value: days - 1, to: startDate) ?? startDate
 
         let payload: TravelPlanPayload = try await claude.sendStructured(
             TravelPlanPayload.self,
             model: .sonnet46,
-            system: systemPrompt(archetype: archetype, days: days),
+            system: systemPrompt(archetype: "athlete", days: days),
             userText: "Generate a \(days)-day travel training plan. No equipment assumed — bodyweight only unless hotel gym is mentioned.",
             tool: planTool,
             maxTokens: 1024

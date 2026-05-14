@@ -107,8 +107,8 @@ final class BadgeService: BadgeServiceProtocol {
         case .calibrationComplete:
             return ["calibration_complete"]
 
-        case .archetypeChosen:
-            return ["archetype_chosen"]
+        case .firstBuildIdentityResolved:
+            return ["first_build_identity_resolved"]
 
         case .setCompleted(let exerciseKey, let reps):
             return evaluateSetCompleted(exerciseKey: exerciseKey, reps: reps)

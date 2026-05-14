@@ -8,18 +8,23 @@ struct Split: Equatable {
     let trainingDayTemplates: [DayTemplate]
 }
 
-/// Deterministic (archetype, frequency) → Split. No AI, no dynamic branching
-/// beyond the lookup. Archetype decides whether to use the calisthenic
-/// branch (bodyweight-coded: `.shredded`) or the weights branch (everyone else).
+/// Deterministic (buildIdentity, frequency) → Split. No AI, no dynamic branching
+/// beyond the lookup. BuildIdentity decides whether to use the calisthenic
+/// branch (control-primary / .specialist with control) or the weights branch (everyone else).
+///
+/// Calisthenic branch gated on `.primary == .control` (precision / bodyweight mastery).
 enum SplitLookup {
-    static func split(archetype: Archetype, frequency: TargetFrequency) -> Split {
-        let isCalisthenic = (archetype == .shredded)
+    static func split(buildIdentity: BuildIdentity, frequency: TargetFrequency) -> Split {
+        // Control-primary specialist = calisthenic branch — move your own bodyweight
+        // like a weapon.
+        let isCalisthenic = (buildIdentity.primary == .control && buildIdentity.shape == .specialist)
+            || buildIdentity.programTemplateKey == "control"
         return Split(trainingDayTemplates: templates(isCalisthenic: isCalisthenic, frequency: frequency))
     }
 
     private static func templates(isCalisthenic: Bool, frequency: TargetFrequency) -> [DayTemplate] {
         switch (isCalisthenic, frequency) {
-        // Calisthenic branch (.shredded = Saitama)
+        // Calisthenic branch (control-primary specialist)
         case (true, .three):
             return [.fullBody, .fullBody, .fullBody]
         case (true, .four):
@@ -29,7 +34,7 @@ enum SplitLookup {
         case (true, .six):
             return [.push, .pull, .legs, .push, .pull, .skill]
 
-        // Weights branch (vTaper, heavyDuty, leanCut)
+        // Weights branch (power, endurance, balanced, etc.)
         case (false, .three):
             return [.upper, .lower, .fullBody]
         case (false, .four):

@@ -8,7 +8,6 @@ struct UserProfile: Codable, Identifiable {
     var onboardingCompleted: Bool
     var totalScans: Int
     var currentProgramId: String?
-    var preferredArchetype: Archetype?
     var heightCm: Double?
     var weightKg: Double?
     var age: Int?
@@ -58,7 +57,6 @@ struct UserProfile: Codable, Identifiable {
         onboardingCompleted: Bool,
         totalScans: Int,
         currentProgramId: String? = nil,
-        preferredArchetype: Archetype? = nil,
         heightCm: Double? = nil,
         weightKg: Double? = nil,
         age: Int? = nil,
@@ -71,7 +69,6 @@ struct UserProfile: Codable, Identifiable {
         self.onboardingCompleted = onboardingCompleted
         self.totalScans = totalScans
         self.currentProgramId = currentProgramId
-        self.preferredArchetype = preferredArchetype
         self.heightCm = heightCm
         self.weightKg = weightKg
         self.age = age
@@ -88,7 +85,7 @@ struct UserProfile: Codable, Identifiable {
 
     private enum CodingKeys: String, CodingKey {
         case id, email, displayName, createdAt, onboardingCompleted, totalScans
-        case currentProgramId, preferredArchetype, heightCm, weightKg, age, biologicalSex
+        case currentProgramId, heightCm, weightKg, age, biologicalSex
         case displayHandle, gender, motivations, currentBodyType, experience
         case currentFrequency, targetFrequency, equipment, obstacles, sessionLength
         case priorAttempts, dietQuality, sleepQuality, stressLevel, commitment
@@ -105,7 +102,7 @@ struct UserProfile: Codable, Identifiable {
         self.onboardingCompleted = try c.decode(Bool.self, forKey: .onboardingCompleted)
         self.totalScans = try c.decode(Int.self, forKey: .totalScans)
         self.currentProgramId = try c.decodeIfPresent(String.self, forKey: .currentProgramId)
-        self.preferredArchetype = try c.decodeIfPresent(Archetype.self, forKey: .preferredArchetype)
+        // Legacy field `preferredArchetype` may exist in persisted JSON — silently discard.
         self.heightCm = try c.decodeIfPresent(Double.self, forKey: .heightCm)
         self.weightKg = try c.decodeIfPresent(Double.self, forKey: .weightKg)
         self.age = try c.decodeIfPresent(Int.self, forKey: .age)

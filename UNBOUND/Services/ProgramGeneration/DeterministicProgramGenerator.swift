@@ -10,7 +10,8 @@ struct ProgramGeneratorInput {
     let userId: String
     let scanId: String?
     let analysisId: String?
-    let archetype: Archetype
+    /// BuildIdentity derived from AttributeService.
+    let buildIdentity: BuildIdentity
     var trainingStyle: TrainingStyle
     var equipment: [Equipment]
     let targetFrequency: TargetFrequency
@@ -42,7 +43,7 @@ enum DeterministicProgramGenerator {
 
     static func generate(input: ProgramGeneratorInput) throws -> TrainingProgram {
         let bias = WeakPointBiaser.bias(from: input.focusAreas)
-        let split = SplitLookup.split(archetype: input.archetype, frequency: input.targetFrequency)
+        let split = SplitLookup.split(buildIdentity: input.buildIdentity, frequency: input.targetFrequency)
 
         let days = try scheduleDays(
             split: split,
@@ -92,10 +93,9 @@ enum DeterministicProgramGenerator {
             analysisId: input.analysisId ?? "",
             userId: input.userId,
             createdAt: input.blockStartDate,
-            archetype: input.archetype,
-            name: "\(input.archetype.displayName) Arc",
+            name: "\(input.buildIdentity.displayName) Arc",
             description: "\(input.targetFrequency.numericCount)-day personalized plan.",
-            durationDays: 28,
+            durationDays: 14,
             days: days,
             nutritionPlan: nutritionPlan,
             recoveryPlan: recoveryPlan,

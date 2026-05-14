@@ -15,9 +15,8 @@ enum AnalyticsEvent {
     case scanStarted
     case scanPhotoTaken(angle: ScanAngle)
     case scanPhotosCompleted
-    case scanArchetypeSelected(archetype: Archetype)
     case scanAnalysisStarted
-    case scanAnalysisCompleted(score: Int, archetype: Archetype)
+    case scanAnalysisCompleted(score: Int)
     case scanAnalysisFailed(error: String)
     case reportViewed(scanId: String, score: Int)
     case reportShared(scanId: String)
@@ -74,7 +73,6 @@ enum AnalyticsEvent {
         case .scanStarted: return "scan_started"
         case .scanPhotoTaken: return "scan_photo_taken"
         case .scanPhotosCompleted: return "scan_photos_completed"
-        case .scanArchetypeSelected: return "scan_archetype_selected"
         case .scanAnalysisStarted: return "scan_analysis_started"
         case .scanAnalysisCompleted: return "scan_analysis_completed"
         case .scanAnalysisFailed: return "scan_analysis_failed"
@@ -128,10 +126,8 @@ enum AnalyticsEvent {
             return ["method": method, "error": error]
         case .scanPhotoTaken(let angle):
             return ["angle": angle.rawValue]
-        case .scanArchetypeSelected(let archetype):
-            return ["archetype": archetype.rawValue]
-        case .scanAnalysisCompleted(let score, let archetype):
-            return ["score": score, "archetype": archetype.rawValue]
+        case .scanAnalysisCompleted(let score):
+            return ["score": score]
         case .scanAnalysisFailed(let error):
             return ["error": error]
         case .reportViewed(let scanId, let score):

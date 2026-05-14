@@ -71,6 +71,9 @@ struct RootView: View {
                 if let userId {
                     services.analytics.setUserId(userId)
                     try? await services.subscription.login(userId: userId)
+                    // Backfill the 6-axis hex from existing logs on first launch
+                    // (no-op if the profile already exists in the store).
+                    await services.attribute.backfillFromExistingLogs(userId: userId)
                 }
                 isCheckingAuth = false
             }

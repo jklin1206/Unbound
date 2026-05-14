@@ -4475,18 +4475,11 @@ extension SkillGraph {
 
 // MARK: - Legacy SkillTree content access (keeps old callers compiling)
 //
-// Synthesized per-archetype views over SkillGraph.shared.
+// referenced the old per-archetype trees. All resolve to .universal.
 
 extension SkillTree {
-    static var unitTree:     SkillTree { .tree(for: .heavyDuty) }
-    static var leanCutTree:  SkillTree { .tree(for: .leanCut) }
-    static var carvedTree:   SkillTree { .tree(for: .shredded) }
-    static var vTaperTree:   SkillTree { .tree(for: .vTaper) }
-
-    static let allTrees: [Archetype: SkillTree] = [
-        .heavyDuty: .tree(for: .heavyDuty),
-        .leanCut:   .tree(for: .leanCut),
-        .shredded:  .tree(for: .shredded),
-        .vTaper:    .tree(for: .vTaper)
-    ]
+    static var unitTree:     SkillTree { .universal }
+    static var leanCutTree:  SkillTree { .universal }
+    static var carvedTree:   SkillTree { .universal }
+    static var vTaperTree:   SkillTree { .universal }
 }

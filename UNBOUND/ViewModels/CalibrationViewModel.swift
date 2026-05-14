@@ -43,7 +43,6 @@ final class CalibrationViewModel {
     var didAddCustom: Bool = false
 
     private let userId: String
-    private let archetype: Archetype
     private let equipment: Set<Equipment>
     private let experience: Experience?
     private let useMetricWeight: Bool
@@ -53,7 +52,6 @@ final class CalibrationViewModel {
 
     init(
         userId: String,
-        archetype: Archetype,
         equipment: Set<Equipment>,
         experience: Experience?,
         useMetricWeight: Bool,
@@ -61,7 +59,6 @@ final class CalibrationViewModel {
         preferenceService: any ExercisePreferenceServiceProtocol
     ) {
         self.userId = userId
-        self.archetype = archetype
         self.equipment = equipment.isEmpty ? [.bodyweight] : equipment
         self.experience = experience
         self.useMetricWeight = useMetricWeight
@@ -151,9 +148,7 @@ final class CalibrationViewModel {
     }
 
     private func generateBaselines() -> [CalibrationBaseline] {
-        let useCalisthenic = archetype == .shredded || isBodyweightOnly
-
-        if useCalisthenic {
+        if isBodyweightOnly {
             return calisthenicBaselines()
         }
 
@@ -163,23 +158,11 @@ final class CalibrationViewModel {
             ("deadlift", "Deadlift"),
             ("overhead press", "Overhead Press")
         ]
-        switch archetype {
-        case .heavyDuty:
-            // TITAN absorbs BRUISER's mass-compound role — Front Squat is the
-            // archetype-specific lift stacked on the core big-4.
-            lifts.append(("front squat", "Front Squat"))
-        case .leanCut:
+        if equipment.contains(.fullGym) {
+            lifts.append(("weighted pullup", "Weighted Pullup"))
+        } else {
             return lifts.map { weightBaseline(key: $0.0, name: $0.1) }
                 + [repBaseline(key: "pullup", name: "Pullup")]
-        case .vTaper:
-            if equipment.contains(.fullGym) {
-                lifts.append(("weighted pullup", "Weighted Pullup"))
-            } else {
-                return lifts.map { weightBaseline(key: $0.0, name: $0.1) }
-                    + [repBaseline(key: "pullup", name: "Pullup")]
-            }
-        case .shredded:
-            break
         }
         return lifts.map { weightBaseline(key: $0.0, name: $0.1) }
     }
@@ -255,7 +238,7 @@ final class CalibrationViewModel {
     // MARK: Adaptive preferences
 
     private func generatePreferenceRows() -> [CalibrationPreferenceRow] {
-        let useCalisthenic = archetype == .shredded || isBodyweightOnly
+        let useCalisthenic = isBodyweightOnly
 
         let universal: [(String, String, [MuscleGroup])] = [
             ("bench press", "Bench Press", [.chest, .shoulders, .arms]),

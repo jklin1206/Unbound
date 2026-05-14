@@ -47,7 +47,7 @@ struct ReportShareView: View {
 
             ScoreRing(score: analysis.overallScore, maxScore: 100, size: 100)
 
-            Text(analysis.targetArchetype.displayName.uppercased())
+            Text(analysis.buildIdentitySnapshot?.uppercased() ?? "YOUR BUILD")
                 .font(.subheadline())
                 .foregroundColor(.theme.textPrimary)
                 .tracking(2)

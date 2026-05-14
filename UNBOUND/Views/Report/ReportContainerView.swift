@@ -3,6 +3,7 @@ import SwiftUI
 struct ReportContainerView: View {
     @StateObject private var viewModel: ReportViewModel
     @EnvironmentObject var services: ServiceContainer
+    @State private var buildIdentity: BuildIdentity = BuildIdentity(primary: nil, secondary: nil, shape: .balancedAthlete)
 
     init(analysis: BodyAnalysis, services: ServiceContainer) {
         _viewModel = StateObject(wrappedValue: ReportViewModel(analysis: analysis, services: services))
@@ -11,7 +12,7 @@ struct ReportContainerView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 24) {
-                BodyScoreCard(analysis: viewModel.analysis)
+                BodyScoreCard(analysis: viewModel.analysis, buildIdentity: buildIdentity)
                 MuscleGroupBreakdown(
                     assessments: viewModel.analysis.muscleAssessments,
                     radarData: viewModel.radarData
@@ -40,6 +41,10 @@ struct ReportContainerView: View {
         }
         .sheet(isPresented: $viewModel.showShareSheet) {
             ReportShareView(analysis: viewModel.analysis)
+        }
+        .task {
+            let userId = services.auth.currentUserId ?? "anonymous"
+            buildIdentity = services.attribute.snapshot(userId: userId, asOf: .now).buildIdentity
         }
     }
 }

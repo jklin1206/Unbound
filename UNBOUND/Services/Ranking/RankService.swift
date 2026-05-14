@@ -127,57 +127,42 @@ final class RankService: RankServiceProtocol {
         }
     }
 
-    // MARK: Archetype aggregate
-    //
-    // Blend: when the user has < 2 barbell LiftRanks for the archetype's
-    // emphasis lifts, we blend in ProgressionFamilyState tiers so a
-    // bodyweight-only athlete isn't pinned at .eMinus.
-    //
-    //  - 2+ barbell ranks → straight average across emphasis lifts (missing
-    //    lifts score 0).
-    //  - 1 barbell rank  → 70% barbell / 30% family-tier average.
-    //  - 0 barbell ranks → 100% family-tier average (or .eMinus if no
-    //    family state exists yet).
+    // MARK: BuildIdentity aggregate
 
-    func archetypeRank(userId: String, archetype: Archetype) async -> SubRank {
+    func aggregateRank(userId: String) async -> SubRank {
+        // Derive BuildIdentity from the user's current attribute profile.
+        let profile = AttributeService.shared.snapshot(userId: userId, asOf: Date.now)
+        let identity = profile.buildIdentity
+
+        // Pick the lifts to aggregate over based on shape.
+        let lifts: [String]
+        switch identity.shape {
+        case .balancedAthlete, .hybridAthlete:
+            // Top-3 axes by peak; union of their emphasis lifts (deduped).
+            let topThree = AttributeKey.allCases
+                .sorted { profile.value(for: $0).peak > profile.value(for: $1).peak }
+                .prefix(3)
+            var seen = Set<String>()
+            var union: [String] = []
+            for key in topThree {
+                for lift in key.emphasisLifts where seen.insert(lift).inserted {
+                    union.append(lift)
+                }
+            }
+            lifts = union
+        case .specialist, .hybrid, .lean:
+            lifts = identity.primary?.emphasisLifts ?? []
+        }
+
+        guard !lifts.isEmpty else { return .eMinus }
+
+        // Average currentRank ordinal across tracked emphasis lifts.
         let ranks = await fetchAll(userId: userId)
         let byKey: [String: LiftRank] = Dictionary(uniqueKeysWithValues: ranks.map { ($0.exerciseKey, $0) })
-
-        let emphasis = archetype.emphasisLifts
-        guard !emphasis.isEmpty else { return .eMinus }
-
-        // Bodyweight-rep lifts aren't in StrengthStandards' barbell table, but
-        // they DO produce LiftRanks via the rep/hold ladder. Count any
-        // LiftRank that matches an emphasis slot as a "tracked" rank.
-        let tracked: [Double] = emphasis.compactMap { key in
-            byKey[key].map { Double($0.currentRank.ordinal) }
-        }
-
-        let familyMean = await familyTierOrdinalMean(userId: userId)
-
-        if tracked.count >= 2 {
-            let sumMissingZero = tracked.reduce(0.0, +)
-            let mean = sumMissingZero / Double(emphasis.count)
-            return SubRank.nearest(for: mean)
-        }
-
-        if tracked.count == 1, let familyMean {
-            let blended = 0.70 * tracked[0] + 0.30 * familyMean
-            return SubRank.nearest(for: blended)
-        }
-
-        if tracked.count == 1 {
-            // One barbell rank, no family state — honor the single rank but
-            // soften against 0 for the missing slots.
-            let mean = tracked[0] / Double(emphasis.count)
-            return SubRank.nearest(for: mean)
-        }
-
-        // Zero barbell ranks. Fall entirely to family-tier signal.
-        if let familyMean {
-            return SubRank.nearest(for: familyMean)
-        }
-        return .eMinus
+        let tracked: [Double] = lifts.compactMap { byKey[$0].map { Double($0.currentRank.ordinal) } }
+        guard !tracked.isEmpty else { return .eMinus }
+        let mean = tracked.reduce(0.0, +) / Double(lifts.count)
+        return SubRank.nearest(for: mean)
     }
 
     /// Mean SubRank ordinal derived from family-tier state. Returns nil when
@@ -289,11 +274,11 @@ final class RankService: RankServiceProtocol {
 @MainActor
 final class MockRankService: RankServiceProtocol {
     var ranks: [LiftRank] = []
-    var archetypeRankOverride: SubRank = .c
+    var aggregateRankOverride: SubRank = .c
 
     func computeLiftRank(entry: ExerciseLogEntry, bodyweightKg: Double) -> SubRank? { .c }
     func evaluate(log: WorkoutLog, bodyweightKg: Double) async {}
-    func archetypeRank(userId: String, archetype: Archetype) async -> SubRank { archetypeRankOverride }
+    func aggregateRank(userId: String) async -> SubRank { aggregateRankOverride }
     func fetchAll(userId: String) async -> [LiftRank] { ranks.filter { $0.userId == userId } }
     func save(_ rank: LiftRank) async {
         ranks.removeAll { $0.id == rank.id }

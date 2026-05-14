@@ -45,7 +45,7 @@ enum BadgeTrigger: Sendable {
     case streakUpdated(Int)
     case scanComplete
     case calibrationComplete
-    case archetypeChosen(Archetype)
+    case firstBuildIdentityResolved(BuildIdentity)
     case setCompleted(exerciseKey: String, reps: Int)
     /// A plain progress photo was captured (no scan analysis). Fires
     /// the photo-ritual streak/consistency badges.

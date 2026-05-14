@@ -9,16 +9,7 @@ struct AnalysisLoadingView: View {
     @State private var showReport = false
 
     private var archetypeFunFact: String {
-        switch viewModel.selectedArchetype {
-        case .vTaper:
-            return "The V-TAPER silhouette — wide shoulders, carved waist, total presence. Toji Fushiguro embodies it perfectly."
-        case .heavyDuty:
-            return "HEAVYWEIGHT frame — heroic mass built by total commitment to compounds. Todo didn't get that size by accident."
-        case .shredded:
-            return "SLEEPER precision — compact, carved, every fiber visible. Saitama's build comes from relentless control and conditioning."
-        case .leanCut:
-            return "SHREDDED proportions — fast, lean, capable. Itadori's build blends strength and speed — train like an athlete, eat like one."
-        }
+        return "Analyzing your build — every rep you've done is about to pay off."
     }
 
     var body: some View {

@@ -36,7 +36,6 @@ enum OnboardingStep: Int, CaseIterable, Identifiable {
     case obstacles           // moved up: what's been getting in the way
 
     // MARK: Profile answers
-    case archetype
     case targetAreas         // where to focus
     case motivation          // why it matters (emotional driver)
     case age
@@ -49,6 +48,7 @@ enum OnboardingStep: Int, CaseIterable, Identifiable {
     case workoutTime         // when in the day
     case equipment
     case exerciseStyle       // what kinds of exercises they enjoy
+    case buildSeed           // attribute system seed survey (sub-project #1, Task 1a.12)
     case sessionLength
     case resultsSnapshot     // early personalized checkpoint
     case diet
@@ -138,11 +138,11 @@ enum OnboardingStep: Int, CaseIterable, Identifiable {
             return .intro
         case .chapterMapping, .chapterScan, .chapterPath:
             return .chapter
-        case .goals, .obstacles, .archetype, .targetAreas, .motivation,
+        case .goals, .obstacles, .targetAreas, .motivation,
              .commitDay30, .commitDay90, .commitToday:
             return .profile
         case .experience, .targetFrequency, .trainingDays, .workoutTime,
-             .equipment, .exerciseStyle, .sessionLength:
+             .equipment, .exerciseStyle, .buildSeed, .sessionLength:
             return .training
         case .age, .gender, .height, .weight:
             return .body
@@ -181,7 +181,7 @@ final class OnboardingFlowViewModel {
 
     // MARK: Answer model
 
-    var archetype: Archetype? = nil
+    // archetype property removed — BuildSeed is the only path (Phase 11)
     var motivations: Set<Motivation> = []
     var goals: Set<Goal> = []
     var targetAreas: Set<TargetArea> = []
@@ -215,6 +215,9 @@ final class OnboardingFlowViewModel {
     var calisthenicPushReps: Int = 3
     /// Max reps of a standard pullup — mapped to starting pull tier on finish().
     var calisthenicPullReps: Int = 0
+
+    /// Attribute seed survey — Task 1a.12. Up to 2 attributes get +15 prefill via AttributeService.applySeed.
+    var seededAttributes: Set<AttributeKey> = []
 
     // MARK: Scan captures
 
@@ -325,8 +328,6 @@ final class OnboardingFlowViewModel {
             return true
         case .goals:
             return !goals.isEmpty
-        case .archetype:
-            return archetype != nil
         case .targetAreas:
             return !targetAreas.isEmpty
         case .motivation:
@@ -359,6 +360,8 @@ final class OnboardingFlowViewModel {
             return !priorAttempts.isEmpty
         case .name:
             return !displayHandle.trimmingCharacters(in: .whitespaces).isEmpty
+        case .buildSeed:
+            return true  // 0–2 selections allowed — always advanceable
         case .notifications, .scanAnalyzing,
              .verdict, .trajectory, .skillTreePreview, .whyThisProgram,
              .socialProofGallery, .commitDay30, .commitDay90, .commitToday, .planReady, .paywall:
@@ -380,15 +383,11 @@ final class OnboardingFlowViewModel {
     @discardableResult
     func finish(userId: String) async -> Bool {
         let fields: [String: Any] = buildFirestorePayload()
-        let chosenArchetype = archetype
         do {
             try await userService.updateProfile(userId: userId, fields: fields)
             UserDefaults.standard.set(true, forKey: "onboardingCompleted")
-            if let chosenArchetype {
-                await MainActor.run {
-                    BadgeService.shared.bind(userId: userId)
-                }
-                _ = await BadgeService.shared.evaluate(trigger: .archetypeChosen(chosenArchetype))
+            await MainActor.run {
+                BadgeService.shared.bind(userId: userId)
             }
             await scheduleNotifications()
             logger.info("Onboarding answers persisted for user \(userId, privacy: .private)")
@@ -431,7 +430,7 @@ final class OnboardingFlowViewModel {
             "priorAttempts": priorAttempts.map(\.rawValue)
         ]
         if let workoutTime { fields["workoutTime"] = workoutTime.rawValue }
-        if let archetype { fields["preferredArchetype"] = archetype.rawValue }
+        // preferredArchetype field removed — seededAttributes drive Build instead
         if let experience { fields["experience"] = experience.rawValue }
         // Auto-default training feedback mode from experience level.
         // Beginner-equivalent (never/tried) → silent; active (used/current) → quick.

@@ -9,7 +9,6 @@ final class MockBodyAnalysisService: BodyAnalysisServiceProtocol, @unchecked Sen
             scanId: scanSession.id,
             userId: scanSession.userId,
             createdAt: Date(),
-            targetArchetype: scanSession.targetArchetype,
             overallScore: 67,
             muscleAssessments: MuscleGroup.allCases.prefix(6).map { group in
                 MuscleGroupAssessment(
