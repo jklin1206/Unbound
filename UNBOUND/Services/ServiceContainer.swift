@@ -28,6 +28,8 @@ final class ServiceContainer: ObservableObject {
     let programPhase: any ProgramPhaseEngineProtocol
     let attribute: any AttributeServiceProtocol
     let photoXP: any PhotoXPServiceProtocol
+    let userSkillTier: UserSkillTierStore
+    let liftTier: LiftTierService
 
     init() {
         self.logging = LoggingService.shared
@@ -56,6 +58,8 @@ final class ServiceContainer: ObservableObject {
         self.programPhase = ProgramPhaseEngine.shared
         self.attribute = AttributeService.shared
         self.photoXP = PhotoXPService.shared
+        self.userSkillTier = UserSkillTierStore.shared
+        self.liftTier = LiftTierService.shared
     }
 
     init(
@@ -111,6 +115,8 @@ final class ServiceContainer: ObservableObject {
         self.programPhase = programPhase
         self.attribute = attribute
         self.photoXP = photoXP
+        self.userSkillTier = UserSkillTierStore.shared
+        self.liftTier = LiftTierService.shared
     }
 
     static var mock: ServiceContainer {
