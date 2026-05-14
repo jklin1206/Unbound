@@ -69,10 +69,8 @@ final class SkinService: SkinServiceProtocol, ObservableObject {
 
     @discardableResult
     func evaluateUnlocks(userId: String) async -> [SkillTreeSkin] {
-        let ranks = await RankService.shared.fetchAll(userId: userId)
-        // Use the user's peak rank across all tracked lifts.
-        let peakOrdinal = ranks.map(\.peakRank.ordinal).max() ?? 0
-        let peak = SubRank.allCases.first(where: { $0.ordinal == peakOrdinal }) ?? .eMinus
+        // LiftRank.peakRank removed in rank-cleanup-v1; use aggregate rank as proxy.
+        let peak = await RankService.shared.aggregateRank(userId: userId)
 
         var newlyUnlocked: [SkillTreeSkin] = []
         for skin in SkillTreeSkin.allCases {

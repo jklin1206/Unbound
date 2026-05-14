@@ -163,6 +163,11 @@ final class RankService: RankServiceProtocol {
         return nil
     }
 
+    // In-memory session-scoped lift rank cache.
+    // LiftRank Firestore persistence removed in rank-cleanup-v1.
+    // evaluate() still fires .rankAdvanced so cinematic/badge triggers work.
+    private var sessionRanks: [String: SubRank] = [:]
+
     func evaluate(log: WorkoutLog, bodyweightKg: Double) async {
         guard bodyweightKg > 0 else {
             logger.log("RankService skipping evaluate — bodyweight unknown", level: .debug)
@@ -172,46 +177,19 @@ final class RankService: RankServiceProtocol {
             guard let candidate = computeLiftRank(entry: entry, bodyweightKg: bodyweightKg) else { continue }
 
             let key = entry.exerciseName.trimmingCharacters(in: .whitespaces).lowercased()
-            let id = "\(log.userId):\(key)"
 
-            var existing: LiftRank? = try? await database.read(
-                collection: "lift_ranks",
-                documentId: id
-            )
-
-            if existing == nil {
-                existing = LiftRank(
-                    userId: log.userId,
-                    exerciseKey: key,
-                    displayName: entry.exerciseName,
-                    currentRank: candidate,
-                    peakRank: candidate,
-                    lastAdvanceAt: log.startedAt,
-                    lastActivityAt: log.startedAt
-                )
-                try? await database.create(existing!, collection: "lift_ranks", documentId: id)
-                continue
-            }
-
-            var next = existing!
-            next.lastActivityAt = log.startedAt
-
-            if candidate > next.currentRank {
-                let from = next.currentRank
-                next.currentRank = candidate
-                if candidate > next.peakRank { next.peakRank = candidate }
-                next.lastAdvanceAt = log.startedAt
-                try? await database.create(next, collection: "lift_ranks", documentId: id)
-
+            let existing = sessionRanks[key] ?? .eMinus
+            if candidate > existing {
                 let event = RankAdvance(
                     userId: log.userId,
                     exerciseKey: key,
                     displayName: entry.exerciseName,
-                    fromRank: from,
+                    fromRank: existing,
                     toRank: candidate,
                     at: log.startedAt,
                     userBodyweightKg: bodyweightKg
                 )
+                sessionRanks[key] = candidate
                 NotificationCenter.default.post(
                     name: .rankAdvanced,
                     object: nil,
@@ -219,50 +197,19 @@ final class RankService: RankServiceProtocol {
                 )
                 _ = await BadgeService.shared.evaluate(trigger: .rankAdvanced(event))
                 logger.log(
-                    "Rank advanced: \(entry.exerciseName) \(from.displayName) → \(candidate.displayName)",
+                    "Rank advanced: \(entry.exerciseName) \(existing.displayName) → \(candidate.displayName)",
                     level: .info
                 )
-            } else {
-                try? await database.create(next, collection: "lift_ranks", documentId: id)
             }
         }
     }
 
     // MARK: BuildIdentity aggregate
 
+    /// Aggregate SubRank derived from family-tier progression states.
+    /// LiftRank-based aggregation removed in rank-cleanup-v1.
     func aggregateRank(userId: String) async -> SubRank {
-        // Derive BuildIdentity from the user's current attribute profile.
-        let profile = AttributeService.shared.snapshot(userId: userId, asOf: Date.now)
-        let identity = profile.buildIdentity
-
-        // Pick the lifts to aggregate over based on shape.
-        let lifts: [String]
-        switch identity.shape {
-        case .balancedAthlete, .hybridAthlete:
-            // Top-3 axes by peak; union of their emphasis lifts (deduped).
-            let topThree = AttributeKey.allCases
-                .sorted { profile.value(for: $0).peak > profile.value(for: $1).peak }
-                .prefix(3)
-            var seen = Set<String>()
-            var union: [String] = []
-            for key in topThree {
-                for lift in key.emphasisLifts where seen.insert(lift).inserted {
-                    union.append(lift)
-                }
-            }
-            lifts = union
-        case .specialist, .hybrid, .lean:
-            lifts = identity.primary?.emphasisLifts ?? []
-        }
-
-        guard !lifts.isEmpty else { return .eMinus }
-
-        // Average currentRank ordinal across tracked emphasis lifts.
-        let ranks = await fetchAll(userId: userId)
-        let byKey: [String: LiftRank] = Dictionary(uniqueKeysWithValues: ranks.map { ($0.exerciseKey, $0) })
-        let tracked: [Double] = lifts.compactMap { byKey[$0].map { Double($0.currentRank.ordinal) } }
-        guard !tracked.isEmpty else { return .eMinus }
-        let mean = tracked.reduce(0.0, +) / Double(lifts.count)
+        guard let mean = await familyTierOrdinalMean(userId: userId) else { return .eMinus }
         return SubRank.nearest(for: mean)
     }
 
@@ -273,27 +220,6 @@ final class RankService: RankServiceProtocol {
         guard !states.isEmpty else { return nil }
         let ordinals = states.map { Double(StrengthStandards.subRank(forFamilyTier: $0.unlockedTier).ordinal) }
         return ordinals.reduce(0.0, +) / Double(ordinals.count)
-    }
-
-    func fetchAll(userId: String) async -> [LiftRank] {
-        do {
-            let ranks: [LiftRank] = try await database.query(
-                collection: "lift_ranks",
-                field: "userId",
-                isEqualTo: userId,
-                orderBy: "lastActivityAt",
-                descending: true,
-                limit: nil
-            )
-            return ranks
-        } catch {
-            logger.log("RankService fetchAll failed: \(error)", level: .warning)
-            return []
-        }
-    }
-
-    func save(_ rank: LiftRank) async {
-        try? await database.create(rank, collection: "lift_ranks", documentId: rank.id)
     }
 
     // MARK: Private helpers
