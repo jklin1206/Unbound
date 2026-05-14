@@ -35,6 +35,7 @@ struct ProfileView: View {
     @State private var manualPhotoCount: Int = 0
     @State private var scanPhotoCount: Int = 0
     @State private var isLoading = true
+    @State private var trialsState: TrialsState = .empty
 
     // Scan cadence + flow presentation
     @State private var scanCadence: ScanCadenceState = .compute(lastScanAt: nil, now: .now)
@@ -67,6 +68,8 @@ struct ProfileView: View {
                                 showScanCaptureFlow = true
                             }
                         }
+                        ProfileTrialHistorySection(trialsState: trialsState)
+                            .padding(.horizontal, 0)
                         heatmapPlaceholder
                         PhotoCalendarView().environmentObject(services)
                         badgesCard
@@ -164,6 +167,9 @@ struct ProfileView: View {
         let scanHistory = (try? ScanCheckpointStore.shared.history(userId: userId)) ?? []
         lastScanDate = scanHistory.last?.createdAt
         scanCadence = ScanCadenceState.compute(lastScanAt: lastScanDate, now: .now)
+
+        // Load trials state
+        trialsState = services.trials.state(userId: userId)
 
         isLoading = false
     }
