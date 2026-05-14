@@ -63,6 +63,10 @@ enum TierCriterionEvaluator {
             .max() ?? 0
     }
 
+    /// Returns the heaviest weight across ALL entries in `history` regardless
+    /// of exercise name. Callers passing multi-exercise history must pre-filter
+    /// to the relevant exercise before calling, or `.weightKg` and
+    /// `.bodyweightRatio` criteria can be satisfied by an unrelated lift.
     private static func bestWeight(in history: [ExerciseLogEntry]) -> Double {
         history
             .flatMap { $0.sets }

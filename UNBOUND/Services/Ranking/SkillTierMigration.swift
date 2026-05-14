@@ -10,7 +10,7 @@ import Foundation
 ///   history = all ExerciseLogEntry items flattened from
 ///             services.workoutLog.fetchLogs(userId:programId:nil)
 ///   bodyweightKg = profile.weightKg ?? 70
-/// Until wired, sessions logged post-install hit RankService.ingest directly
+/// Until wired, sessions logged post-install hit RankService.evaluate directly
 /// and tier state accumulates correctly going forward.
 @MainActor
 enum SkillTierMigration {
@@ -46,7 +46,7 @@ enum SkillTierMigration {
         }
         // rankUpsEarned: sum of tier ordinals across all non-initiate skills.
         // Each skill at tier N contributed N crossings to get there, matching
-        // the semantics of RankService.ingest which adds
+        // the semantics of RankService.evaluate which adds
         // (newTier.rawValue - priorTier.rawValue) per advance.
         state.rankUpsEarned = state.perSkill.values
             .filter { $0 != .initiate }
