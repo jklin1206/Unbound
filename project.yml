@@ -47,6 +47,7 @@ targets:
         excludes:
           - CloudFunctions/**
           - supabase/**
+          - Views/Components/Unbound/TierBloomToast.swift
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.unboundapp.ios

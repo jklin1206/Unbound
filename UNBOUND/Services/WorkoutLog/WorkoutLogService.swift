@@ -58,6 +58,15 @@ final class WorkoutLogService: WorkoutLogServiceProtocol, @unchecked Sendable {
         // Fires .attributeRankUp notifications for any tier crossings.
         await AttributeService.shared.ingest(session: log, userId: log.userId)
 
+        // Ascension Tier: evaluate tier crossings against new log + accumulated history.
+        // Fires .skillTierAdvanced for each crossing (skill or aggregate).
+        // Listeners decide: cinematic for top-3 tiers (Vessel/Unbound/Ascendant),
+        // TierBloomToast for lower crossings.
+        let advances = await RankService.shared.evaluateTierCrossings(log: log, userId: log.userId)
+        for advance in advances {
+            NotificationCenter.default.post(name: .skillTierAdvanced, object: advance)
+        }
+
         logger.log("Workout logged: \(log.plannedWorkoutName)", level: .info, context: ["dayNumber": log.dayNumber])
     }
 

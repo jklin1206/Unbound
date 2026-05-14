@@ -258,6 +258,9 @@ struct ClusterCardView: View {
                     .minimumScaleFactor(0.85)
             }
             Spacer()
+            let userId = AuthService.shared.currentUserId ?? "anonymous"
+            let skillTier = UserSkillTierStore.shared.load(userId: userId).perSkill[node.id] ?? .initiate
+            TierBadge(tier: skillTier, compact: true)
             rankPill(rank: node.rank)
         }
     }

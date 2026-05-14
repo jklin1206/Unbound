@@ -25,6 +25,7 @@ struct ProfileView: View {
 
     @State private var profile: UserProfile?
     @State private var aggregateRank: SubRank = .eMinus
+    @State private var aggregateTier: SkillTier = .initiate
     @State private var attributeProfile: AttributeProfile = AttributeProfile.empty(userId: "", at: .now)
     @State private var liftRanks: [LiftRank] = []
     @State private var heatmapRanks: [MuscleHeatGroup: SubRank] = [:]
@@ -94,6 +95,7 @@ struct ProfileView: View {
         }
 
         aggregateRank = await services.rank.aggregateRank(userId: userId)
+        aggregateTier = await services.rank.aggregateTier(userId: userId)
         attributeProfile = services.attribute.profile(userId: userId)
 
         liftRanks = await services.rank.fetchAll(userId: userId)
@@ -187,6 +189,7 @@ struct ProfileView: View {
                     HStack(spacing: 7) {
                         profilePill("UNBOUND")
                         profilePill("LV \(level)")
+                        TierBadge(tier: aggregateTier, compact: true)
                     }
                     VStack(alignment: .leading, spacing: 5) {
                         HStack {

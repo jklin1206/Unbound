@@ -259,6 +259,8 @@ struct SkillDetailView: View {
     private var titleBlock: some View {
         let sp = skillProgress.currentSkillProgress(for: node.id)
         let subtitle = "\(node.cluster.displayName) · \(rankDescription(for: node.rank)) · Lv \(sp.currentLevel)"
+        let userId = AuthService.shared.currentUserId ?? "anonymous"
+        let skillTier = UserSkillTierStore.shared.load(userId: userId).perSkill[node.id] ?? .initiate
         return VStack(spacing: 8) {
             Text(node.title)
                 .font(.system(.title, design: .default).weight(.bold))
@@ -271,6 +273,7 @@ struct SkillDetailView: View {
                 .foregroundStyle(Color.unbound.textSecondary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
+            TierBadge(tier: skillTier)
         }
         .frame(maxWidth: .infinity)
     }
