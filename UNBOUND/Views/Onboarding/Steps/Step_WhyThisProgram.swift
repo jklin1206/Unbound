@@ -27,9 +27,8 @@ struct Step_WhyThisProgram: View {
     }
 
     private func buildRationale() -> ProgramRationale {
-        // TODO(Phase 17): wire archetype param to BuildIdentity once archetype is fully removed
         LocalProgramGenerator.previewRationale(
-            archetype: .vTaper,
+            buildIdentity: BuildIdentity(primary: nil, secondary: nil, shape: .balancedAthlete),
             targetFrequency: flow.targetFrequency,
             equipment: flow.equipment,
             experience: flow.experience,

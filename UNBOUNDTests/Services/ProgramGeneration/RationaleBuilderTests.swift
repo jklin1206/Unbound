@@ -1,11 +1,14 @@
 import XCTest
 @testable import UNBOUND
 
+// MIGRATION (Phase 2e): ProgramGeneratorInput.archetype replaced by buildIdentity.
+// SplitLookup.split now takes buildIdentity:. Tests updated accordingly.
+
 final class RationaleBuilderTests: XCTestCase {
 
     func testIncludesFrequencyAndSplit() {
         let input = makeInput(frequency: .four, trainingDays: [.monday, .tuesday, .thursday, .friday])
-        let split = SplitLookup.split(archetype: input.archetype, frequency: input.targetFrequency)
+        let split = SplitLookup.split(buildIdentity: input.buildIdentity, frequency: input.targetFrequency)
         let bias = WeakPointBiaser.bias(from: input.focusAreas)
         let rationale = RationaleBuilder.build(input: input, bias: bias, split: split)
 
@@ -16,7 +19,7 @@ final class RationaleBuilderTests: XCTestCase {
 
     func testIncludesTrainingDayList() {
         let input = makeInput(frequency: .three, trainingDays: [.monday, .wednesday, .friday])
-        let split = SplitLookup.split(archetype: input.archetype, frequency: input.targetFrequency)
+        let split = SplitLookup.split(buildIdentity: input.buildIdentity, frequency: input.targetFrequency)
         let rationale = RationaleBuilder.build(input: input, bias: [:], split: split)
         let summaries = rationale.decisions.map(\.inputSummary).joined(separator: " | ").lowercased()
         XCTAssertTrue(summaries.contains("mon") && summaries.contains("wed") && summaries.contains("fri"))
@@ -25,7 +28,7 @@ final class RationaleBuilderTests: XCTestCase {
     func testMentionsBodyweightWhenStyleIsBodyweight() {
         var input = makeInput(frequency: .three, trainingDays: [.monday, .wednesday, .friday])
         input.trainingStyle = .bodyweight
-        let split = SplitLookup.split(archetype: input.archetype, frequency: input.targetFrequency)
+        let split = SplitLookup.split(buildIdentity: input.buildIdentity, frequency: input.targetFrequency)
         let rationale = RationaleBuilder.build(input: input, bias: [:], split: split)
         let joined = rationale.decisions.flatMap { [$0.inputSummary, $0.decisionApplied] }
             .joined(separator: " | ").lowercased()
@@ -39,7 +42,7 @@ final class RationaleBuilderTests: XCTestCase {
             FocusArea(muscleGroup: .shoulders, priority: 1, rationale: "narrow", suggestedFocus: "side delts"),
             FocusArea(muscleGroup: .back, priority: 2, rationale: "flat", suggestedFocus: "rows")
         ]
-        let split = SplitLookup.split(archetype: input.archetype, frequency: input.targetFrequency)
+        let split = SplitLookup.split(buildIdentity: input.buildIdentity, frequency: input.targetFrequency)
         let bias = WeakPointBiaser.bias(from: input.focusAreas)
         let rationale = RationaleBuilder.build(input: input, bias: bias, split: split)
         let joined = rationale.decisions.map(\.inputSummary).joined(separator: " | ").lowercased()
@@ -49,7 +52,7 @@ final class RationaleBuilderTests: XCTestCase {
 
     func testBiasNotMentionedWhenFocusAreasEmpty() {
         let input = makeInput(frequency: .four, trainingDays: [.monday, .tuesday, .thursday, .friday])
-        let split = SplitLookup.split(archetype: input.archetype, frequency: input.targetFrequency)
+        let split = SplitLookup.split(buildIdentity: input.buildIdentity, frequency: input.targetFrequency)
         let rationale = RationaleBuilder.build(input: input, bias: [:], split: split)
         let joined = rationale.decisions.map(\.inputSummary).joined(separator: " | ").lowercased()
         XCTAssertFalse(joined.contains("scan flagged"))
@@ -58,7 +61,7 @@ final class RationaleBuilderTests: XCTestCase {
     func testMentionsCutWhenCutModeActive() {
         var input = makeInput(frequency: .four, trainingDays: [.monday, .tuesday, .thursday, .friday])
         input.cutModeActive = true
-        let split = SplitLookup.split(archetype: input.archetype, frequency: input.targetFrequency)
+        let split = SplitLookup.split(buildIdentity: input.buildIdentity, frequency: input.targetFrequency)
         let rationale = RationaleBuilder.build(input: input, bias: [:], split: split)
         let joined = rationale.decisions.map(\.decisionApplied).joined(separator: " | ").lowercased()
         XCTAssertTrue(joined.contains("deficit") || joined.contains("cut"),
@@ -67,7 +70,7 @@ final class RationaleBuilderTests: XCTestCase {
 
     func testHeadlineAndSummaryNonEmpty() {
         let input = makeInput(frequency: .four, trainingDays: [.monday, .tuesday, .thursday, .friday])
-        let split = SplitLookup.split(archetype: input.archetype, frequency: input.targetFrequency)
+        let split = SplitLookup.split(buildIdentity: input.buildIdentity, frequency: input.targetFrequency)
         let rationale = RationaleBuilder.build(input: input, bias: [:], split: split)
         XCTAssertFalse(rationale.headline.isEmpty)
         XCTAssertFalse(rationale.summaryCopy.isEmpty)
@@ -75,12 +78,13 @@ final class RationaleBuilderTests: XCTestCase {
 
     // MARK: — helper
 
+    // MIGRATION: was archetype: .shredded — now control specialist (equivalent calisthenic identity)
     private func makeInput(frequency: TargetFrequency, trainingDays: Set<Weekday>) -> ProgramGeneratorInput {
         ProgramGeneratorInput(
             userId: "u-1",
             scanId: "s-1",
             analysisId: "a-1",
-            archetype: .shredded,
+            buildIdentity: BuildIdentity(primary: .control, secondary: nil, shape: .specialist),
             trainingStyle: .bodyweight,
             equipment: [.bodyweight],
             targetFrequency: frequency,

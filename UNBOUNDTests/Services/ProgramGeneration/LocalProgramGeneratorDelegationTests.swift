@@ -1,16 +1,21 @@
 import XCTest
 @testable import UNBOUND
 
+// MIGRATION (Phase 2e): ProgramGeneratorInput.archetype replaced by buildIdentity.
+// Tests updated to pass equivalent BuildIdentity.
+
 final class LocalProgramGeneratorDelegationTests: XCTestCase {
 
     /// The new entry point delegates to DeterministicProgramGenerator — same
     /// input should produce an equivalent 14-day program.
     func testNewEntryPointDelegatesToDeterministic() throws {
+        // MIGRATION: was archetype: .shredded — now control specialist (equivalent)
+        let buildIdentity = BuildIdentity(primary: .control, secondary: nil, shape: .specialist)
         let input = ProgramGeneratorInput(
             userId: "u-1",
             scanId: "s-1",
             analysisId: "a-1",
-            archetype: .shredded,
+            buildIdentity: buildIdentity,
             trainingStyle: .bodyweight,
             equipment: [.bodyweight],
             targetFrequency: .four,
@@ -33,7 +38,6 @@ final class LocalProgramGeneratorDelegationTests: XCTestCase {
         // IDs and timestamps will differ (each call generates fresh UUIDs) —
         // compare shape only.
         XCTAssertEqual(direct.days.count, viaFacade.days.count)
-        XCTAssertEqual(direct.archetype, viaFacade.archetype)
         XCTAssertEqual(direct.durationDays, viaFacade.durationDays)
         XCTAssertEqual(direct.nutritionPlan.dailyCalories, viaFacade.nutritionPlan.dailyCalories)
         XCTAssertEqual(

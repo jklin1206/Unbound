@@ -2013,7 +2013,6 @@ struct UnboundHomeView: View {
             } else {
                 let generated = await ProgramGenerationService.shared.generateFromOnboarding(
                     userId: userId,
-                    archetype: fetched.preferredArchetype ?? .vTaper,
                     targetFrequency: fetched.targetFrequency,
                     equipment: Set(fetched.equipment ?? []),
                     experience: fetched.experience,

@@ -52,9 +52,8 @@ final class ProgramPhaseEngine: ProgramPhaseEngineProtocol {
             return max(0, Calendar.current.dateComponents([.weekOfYear], from: latest, to: Date()).weekOfYear ?? 0)
         }()
 
-        // Archetype aggregate rank for realization gating.
-        let archetype = await currentArchetype(userId: userId)
-        let aggregateRank = await RankService.shared.archetypeRank(userId: userId, archetype: archetype)
+        // Aggregate rank for realization gating.
+        let aggregateRank = await RankService.shared.aggregateRank(userId: userId)
 
         // Recovery proxy: use recent session density as a stress proxy when
         // we have no explicit HRV. More than 5 sessions in the last 7 days
@@ -138,16 +137,6 @@ final class ProgramPhaseEngine: ProgramPhaseEngineProtocol {
             defaults.set(Date(), forKey: startKey)
             return 1
         }
-    }
-
-    // MARK: Current archetype
-
-    private func currentArchetype(userId: String) async -> Archetype {
-        let profile: UserProfile? = try? await DatabaseService.shared.read(
-            collection: "user_profiles",
-            documentId: userId
-        )
-        return profile?.preferredArchetype ?? .vTaper
     }
 
     // MARK: Rationale + hint copy

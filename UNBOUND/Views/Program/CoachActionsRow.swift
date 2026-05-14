@@ -625,7 +625,7 @@ private struct TravelAdjustSheet: View {
         defer { generating = false }
         errorMsg = nil
 
-        let archetype = program?.archetype.rawValue ?? "v-taper"
+        let archetype = "balanced-athlete" // archetype field removed; use generic label
         let equipmentList = equipment.map(\.rawValue).sorted().joined(separator: ", ")
 
         let schemaJSON = """

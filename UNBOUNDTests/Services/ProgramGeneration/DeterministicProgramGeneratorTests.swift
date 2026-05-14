@@ -1,6 +1,8 @@
 import XCTest
 @testable import UNBOUND
 
+// MIGRATION (Phase 2e): ProgramGeneratorInput.archetype replaced by buildIdentity.
+
 final class DeterministicProgramGeneratorTests: XCTestCase {
 
     func testGeneratesExactlyFourteenDays() throws {
@@ -86,12 +88,13 @@ final class DeterministicProgramGeneratorTests: XCTestCase {
 
     // MARK: — helper
 
+    // MIGRATION: was archetype: .shredded — now control specialist (equivalent calisthenic identity)
     private func makeInput(frequency: TargetFrequency, trainingDays: Set<Weekday>) -> ProgramGeneratorInput {
         ProgramGeneratorInput(
             userId: "u-1",
             scanId: "s-1",
             analysisId: "a-1",
-            archetype: .shredded,
+            buildIdentity: BuildIdentity(primary: .control, secondary: nil, shape: .specialist),
             trainingStyle: .bodyweight,
             equipment: [.bodyweight],
             targetFrequency: frequency,

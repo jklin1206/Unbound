@@ -108,7 +108,6 @@ struct ProgramOverviewView: View {
                     vm.state = .loading
                     let generated = await ProgramGenerationService.shared.generateFromOnboarding(
                         userId: userId,
-                        archetype: profile.preferredArchetype ?? .vTaper,
                         targetFrequency: profile.targetFrequency,
                         equipment: Set(profile.equipment ?? []),
                         experience: profile.experience,
@@ -914,21 +913,18 @@ struct ProgramOverviewView: View {
 
         do {
             let profile: UserProfile = try await services.user.fetchProfile(userId: userId)
-            let result = await BlockRolloverService.generateNextBlock(
-                currentProgram: currentProgram,
+            let newProgram = try await BlockRolloverService.performRollover(
                 userId: userId,
-                profile: profile
+                profile: profile,
+                analysis: nil,
+                scan: nil
             )
-            if let newProgram = result {
-                vm.program = newProgram
-                vm.state = .loaded(newProgram)
-                await vm.loadTrackingData()
-            } else {
-                vm.state = restoreState
-            }
+            vm.program = newProgram
+            vm.state = .loaded(newProgram)
+            await vm.loadTrackingData()
         } catch {
             services.logging.log(
-                "BlockRolloverService.generateNextBlock failed: \(error)",
+                "BlockRolloverService.performRollover failed: \(error)",
                 level: .error,
                 context: ["currentProgramId": currentProgram.id]
             )
@@ -1037,7 +1033,7 @@ struct ProgramOverviewView: View {
                     .font(Font.unbound.titleM)
                     .tracking(0.4)
                     .foregroundStyle(Color.unbound.textPrimary)
-                Text("\(program.archetype.displayName.uppercased()) · \(program.durationDays) DAYS")
+                Text("\(program.durationDays) DAYS")
                     .font(Font.unbound.captionS)
                     .tracking(1.4)
                     .foregroundStyle(Color.unbound.textTertiary)
