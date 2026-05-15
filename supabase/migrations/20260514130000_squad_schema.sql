@@ -4,29 +4,7 @@
 -- Spec: docs/superpowers/specs/2026-05-13-squads-design.md § Backend schema
 -- =============================================================================
 
--- ---------------------------------------------------------------------------
--- Helper: is_squad_member
--- Used by RLS policies to avoid repeated subquery joins.
--- security definer so it runs with the definer's rights (bypasses RLS on
--- squad_members when called from a policy on another table) — standard
--- Supabase pattern for helper functions referenced in policies.
--- search_path is pinned to '' and table is fully-qualified to prevent
--- search_path-manipulation privilege escalation.
--- ---------------------------------------------------------------------------
-create or replace function is_squad_member(p_user_id uuid, p_squad_id uuid)
-returns boolean
-language sql
-security definer
-set search_path = ''
-stable
-as $$
-  select exists (
-    select 1
-    from   public.squad_members sm
-    where  sm.squad_id = p_squad_id
-    and    sm.user_id  = p_user_id
-  );
-$$;
+-- (is_squad_member helper function is created AFTER squad_members table below)
 
 -- ---------------------------------------------------------------------------
 -- Table: squads
@@ -101,6 +79,30 @@ create index on squad_members(squad_id);
 create index on squad_activity(squad_id, created_at desc);
 create index on linked_sessions(squad_id, started_at desc);
 create index on squad_presence(squad_id);
+
+-- ---------------------------------------------------------------------------
+-- Helper: is_squad_member (defined AFTER squad_members exists)
+-- Used by RLS policies to avoid repeated subquery joins.
+-- security definer so it runs with the definer's rights (bypasses RLS on
+-- squad_members when called from a policy on another table) — standard
+-- Supabase pattern for helper functions referenced in policies.
+-- search_path is pinned to '' and table is fully-qualified to prevent
+-- search_path-manipulation privilege escalation.
+-- ---------------------------------------------------------------------------
+create or replace function is_squad_member(p_user_id uuid, p_squad_id uuid)
+returns boolean
+language sql
+security definer
+set search_path = ''
+stable
+as $$
+  select exists (
+    select 1
+    from   public.squad_members sm
+    where  sm.squad_id = p_squad_id
+    and    sm.user_id  = p_user_id
+  );
+$$;
 
 -- ---------------------------------------------------------------------------
 -- Row Level Security — enable on all five tables
