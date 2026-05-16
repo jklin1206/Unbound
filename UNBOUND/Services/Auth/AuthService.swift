@@ -194,9 +194,20 @@ final class AuthService: NSObject, AuthServiceProtocol, @unchecked Sendable {
             guard let self else { return }
             for await (event, session) in UnboundSupabase.client.auth.authStateChanges {
                 switch event {
-                case .signedIn, .tokenRefreshed, .initialSession:
+                case .signedIn, .tokenRefreshed:
+                    // Fresh session by definition (sign-in just completed or a
+                    // refresh just succeeded) — safe to cache.
                     if let uid = session?.user.id.uuidString {
                         self.cacheUserId(uid)
+                    }
+                case .initialSession:
+                    // With emitLocalSessionAsInitialSession=true (see
+                    // SupabaseClient.swift), this fires with the locally stored
+                    // session even if it's expired. Only treat it as signed-in
+                    // when still valid; an expired local session must NOT opt
+                    // the user in — auto-refresh or explicit sign-in drives that.
+                    if let session, !session.isExpired {
+                        self.cacheUserId(session.user.id.uuidString)
                     }
                 case .signedOut, .userDeleted:
                     UserDefaults.standard.removeObject(forKey: cachedUserIdKey)

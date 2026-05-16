@@ -43,6 +43,17 @@ enum UnboundSupabase {
                 db: SupabaseClientOptions.DatabaseOptions(
                     encoder: dbEncoder,
                     decoder: dbDecoder
+                ),
+                // Opt into the fixed session-emission behavior (supabase-swift
+                // PR #822). Without this the SDK logs a deprecation warning and,
+                // in the next major, would silently change behavior. With it,
+                // the locally stored session is emitted immediately as the
+                // initial session regardless of validity — callers that gate on
+                // the initial session must check `session.isExpired` themselves.
+                // All other auth defaults (keychain storage, PKCE, auto-refresh)
+                // are preserved by the iOS convenience initializer.
+                auth: SupabaseClientOptions.AuthOptions(
+                    emitLocalSessionAsInitialSession: true
                 )
             )
         )
