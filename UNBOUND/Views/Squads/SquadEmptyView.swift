@@ -8,10 +8,12 @@ struct SquadEmptyView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 24) {
-                Spacer().frame(height: 60)
-                Image(systemName: "figure.2")
-                    .font(.system(size: 56, weight: .light))
-                    .foregroundStyle(Color.unbound.accent)
+                Spacer().frame(height: 48)
+                Image("SquadCrest")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 240, height: 240)
+                    .accessibilityHidden(true)
                 Text("Train with your crew.")
                     .font(Font.unbound.titleL)
                     .foregroundStyle(Color.unbound.textPrimary)

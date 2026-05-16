@@ -34,20 +34,20 @@ struct HomeTabView: View {
             .tag(2)
 
             NavigationStack {
+                SquadTabView()
+            }
+            .tabItem {
+                Image(systemName: "flag.2.crossed.fill")
+                Text("Squad")
+            }
+            .tag(3)
+
+            NavigationStack {
                 ProfileView()
             }
             .tabItem {
                 Image(systemName: "person.crop.circle")
                 Text("Profile")
-            }
-            .tag(3)
-
-            NavigationStack {
-                SquadTabView()
-            }
-            .tabItem {
-                Image(systemName: "figure.2")
-                Text("Squad")
             }
             .tag(4)
         }
@@ -56,7 +56,7 @@ struct HomeTabView: View {
         .skinUnlockToast()
         .badgeUnlockToast()
         .onReceive(NotificationCenter.default.publisher(for: .requestNavigateToProfileTab)) { _ in
-            selectedTab = 3
+            selectedTab = 4
         }
     }
 }
