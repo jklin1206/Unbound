@@ -1,6 +1,19 @@
 import Foundation
 import Combine
 
+/// First integer run in a rep prescription string. "8-10"→8, "30s"→30,
+/// "12 each side"→12, "AMRAP"→nil, ""→nil.
+enum RepRange {
+    static func lowerBound(_ s: String) -> Int? {
+        var digits = ""
+        for ch in s {
+            if ch.isNumber { digits.append(ch) }
+            else if !digits.isEmpty { break }
+        }
+        return Int(digits)
+    }
+}
+
 @MainActor
 final class ActiveWorkoutSession: ObservableObject {
 
@@ -11,6 +24,39 @@ final class ActiveWorkoutSession: ObservableObject {
         var rpe: Int?
         var isWarmup: Bool
         var logged: Bool
+        var suggestedWeightKg: Double?
+        var suggestedReps: Int?
+        var suggestedRPE: Int?
+
+        init(id: String, weightKg: Double?, reps: Int?, rpe: Int?,
+             isWarmup: Bool, logged: Bool,
+             suggestedWeightKg: Double? = nil,
+             suggestedReps: Int? = nil,
+             suggestedRPE: Int? = nil) {
+            self.id = id; self.weightKg = weightKg; self.reps = reps
+            self.rpe = rpe; self.isWarmup = isWarmup; self.logged = logged
+            self.suggestedWeightKg = suggestedWeightKg
+            self.suggestedReps = suggestedReps
+            self.suggestedRPE = suggestedRPE
+        }
+
+        enum CodingKeys: String, CodingKey {
+            case id, weightKg, reps, rpe, isWarmup, logged
+            case suggestedWeightKg, suggestedReps, suggestedRPE
+        }
+
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            id = try c.decode(String.self, forKey: .id)
+            weightKg = try c.decodeIfPresent(Double.self, forKey: .weightKg)
+            reps = try c.decodeIfPresent(Int.self, forKey: .reps)
+            rpe = try c.decodeIfPresent(Int.self, forKey: .rpe)
+            isWarmup = try c.decodeIfPresent(Bool.self, forKey: .isWarmup) ?? false
+            logged = try c.decodeIfPresent(Bool.self, forKey: .logged) ?? false
+            suggestedWeightKg = try c.decodeIfPresent(Double.self, forKey: .suggestedWeightKg)
+            suggestedReps = try c.decodeIfPresent(Int.self, forKey: .suggestedReps)
+            suggestedRPE = try c.decodeIfPresent(Int.self, forKey: .suggestedRPE)
+        }
     }
 
     struct ActiveExercise: Identifiable, Codable, Sendable {
@@ -23,6 +69,44 @@ final class ActiveWorkoutSession: ObservableObject {
         var sets: [ActiveSet]
         var skipped: Bool
         var notes: String
+        var targetRPE: Int?
+        var formCues: String?
+        var substitution: String?
+
+        init(id: String, name: String, plannedSets: Int, plannedReps: String,
+             restSeconds: Int, muscleGroups: [MuscleGroup], sets: [ActiveSet],
+             skipped: Bool, notes: String,
+             targetRPE: Int? = nil, formCues: String? = nil,
+             substitution: String? = nil) {
+            self.id = id; self.name = name; self.plannedSets = plannedSets
+            self.plannedReps = plannedReps; self.restSeconds = restSeconds
+            self.muscleGroups = muscleGroups; self.sets = sets
+            self.skipped = skipped; self.notes = notes
+            self.targetRPE = targetRPE; self.formCues = formCues
+            self.substitution = substitution
+        }
+
+        enum CodingKeys: String, CodingKey {
+            case id, name, plannedSets, plannedReps, restSeconds
+            case muscleGroups, sets, skipped, notes
+            case targetRPE, formCues, substitution
+        }
+
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            id = try c.decode(String.self, forKey: .id)
+            name = try c.decode(String.self, forKey: .name)
+            plannedSets = try c.decodeIfPresent(Int.self, forKey: .plannedSets) ?? 0
+            plannedReps = try c.decodeIfPresent(String.self, forKey: .plannedReps) ?? ""
+            restSeconds = try c.decodeIfPresent(Int.self, forKey: .restSeconds) ?? 0
+            muscleGroups = try c.decodeIfPresent([MuscleGroup].self, forKey: .muscleGroups) ?? []
+            sets = try c.decodeIfPresent([ActiveSet].self, forKey: .sets) ?? []
+            skipped = try c.decodeIfPresent(Bool.self, forKey: .skipped) ?? false
+            notes = try c.decodeIfPresent(String.self, forKey: .notes) ?? ""
+            targetRPE = try c.decodeIfPresent(Int.self, forKey: .targetRPE)
+            formCues = try c.decodeIfPresent(String.self, forKey: .formCues)
+            substitution = try c.decodeIfPresent(String.self, forKey: .substitution)
+        }
     }
 
     struct Snapshot: Codable, Sendable {
@@ -62,10 +146,16 @@ final class ActiveWorkoutSession: ObservableObject {
                 muscleGroups: ex.muscleGroups,
                 sets: (0..<max(1, ex.sets)).map { _ in
                     ActiveSet(id: UUID().uuidString, weightKg: nil, reps: nil,
-                              rpe: nil, isWarmup: false, logged: false)
+                              rpe: nil, isWarmup: false, logged: false,
+                              suggestedWeightKg: nil,
+                              suggestedReps: RepRange.lowerBound(ex.reps),
+                              suggestedRPE: ex.rpe)
                 },
                 skipped: false,
-                notes: ""
+                notes: "",
+                targetRPE: ex.rpe,
+                formCues: ex.notes,
+                substitution: ex.substitution
             )
         }
     }
@@ -178,6 +268,32 @@ final class ActiveWorkoutSession: ObservableObject {
         guard exercises.indices.contains(ei),
               exercises[ei].sets.indices.contains(si) else { return }
         exercises[ei].sets[si].rpe = rpe
+    }
+
+    /// One-tap "did it as planned": copy the program's suggestion into the
+    /// actual values and log. No-op if already logged or indices invalid.
+    func confirmAsPlanned(exerciseIndex ei: Int, setIndex si: Int) {
+        guard exercises.indices.contains(ei),
+              exercises[ei].sets.indices.contains(si),
+              !exercises[ei].sets[si].logged else { return }
+        exercises[ei].sets[si].weightKg = exercises[ei].sets[si].suggestedWeightKg
+        exercises[ei].sets[si].reps = exercises[ei].sets[si].suggestedReps
+        exercises[ei].sets[si].rpe = exercises[ei].sets[si].suggestedRPE
+        exercises[ei].sets[si].logged = true
+    }
+
+    /// Implicit logging: a set is logged once weight AND reps are both set.
+    /// Never un-logs. Returns true only on the false→true edge so the caller
+    /// can fire the haptic + rest exactly once.
+    @discardableResult
+    func recomputeLogged(exerciseIndex ei: Int, setIndex si: Int) -> Bool {
+        guard exercises.indices.contains(ei),
+              exercises[ei].sets.indices.contains(si) else { return false }
+        let was = exercises[ei].sets[si].logged
+        let complete = exercises[ei].sets[si].weightKg != nil
+            && exercises[ei].sets[si].reps != nil
+        if complete { exercises[ei].sets[si].logged = true }
+        return complete && !was
     }
 
     func addSet(toExerciseIndex ei: Int) {
