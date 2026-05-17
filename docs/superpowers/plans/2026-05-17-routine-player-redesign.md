@@ -10,6 +10,39 @@
 
 ---
 
+## ⚠️ Cluster revision — 2026-05-17, post-T5 discovery (jlin-approved)
+
+T5 execution surfaced a second routine surface the original spec missed:
+`UNBOUND/Models/RoutineLibrary.swift` (`SideQuestLibrary` → `[SideQuest]`) and
+the **Home "Daily Quest" card** (`UnboundHomeView.swift:68`
+`@State activeRoutine: SideQuest`, line 188 `SideQuestPlayerView(routine:)`).
+jlin decided: **ship Program-only; keep the old path alive.** Revised cluster:
+
+- **T5 stays as committed (`ad7b269`).** Its deletions (`RoutineDef.sideQuest`,
+  `RoutineStepParser`, `RoutineCategory.sideQuestCategory`, the
+  `String.matches/firstMatch` extension) are correct — they only served the
+  Program `.sideQuest` path. Home uses `SideQuest` directly from
+  `SideQuestLibrary`, never `RoutineDef.sideQuest`, so Home is unaffected.
+- **T6 (revised):** create the new `struct RoutinePlayerView` in a **new file**
+  `UNBOUND/Views/Routine/RoutineSequencePlayer.swift`. Do **NOT** rewrite or
+  delete `UNBOUND/Views/Routine/RoutinePlayerView.swift` (it holds
+  `SideQuestPlayerView`, still used by Home). `SideQuestPlayerView` /
+  `SideQuest` / `SideQuestExercise` / `SideQuestLog` / `SideQuestSetLog` /
+  `Models/RoutineLibrary.swift` all stay alive.
+- **T7 (revised):** wire the **Program path only**: `.fullScreenCover(item:
+  $activeRoutinePlayer)` → the new `RoutinePlayerView`; `completeRoutine(_:
+  record:)`; switch the Program-side `RoutineCompletionStore` call sites →
+  `RoutineHistoryStore.shared`; render typed steps in the Program detail
+  card/sheet. **Grep-guard before deleting the legacy `RoutineCompletionStore`
+  enum** — delete it only if no remaining referencer (Home/SideQuest path may
+  not use it; if anything outside ProgramOverviewView does, keep it). Do NOT
+  delete `SideQuestPlayerView`/`SideQuest*`. The module is green at the T7
+  seam with **zero Home changes**.
+- Full retirement of `SideQuestPlayerView`/`SideQuest*` is an explicit
+  follow-up sub-project once Home's Daily Quest is migrated. Out of scope here.
+
+---
+
 ## File Structure
 
 | File | Responsibility | Task |
