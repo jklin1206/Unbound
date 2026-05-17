@@ -1,15 +1,18 @@
 import SwiftUI
 
 /// Onboarding "try the app" RPE sandbox: a real 3-set Bench Press logged with
-/// the production ExerciseLogCard/SetLogGridRow + a throwaway ActiveWorkoutSession.
+/// the production ExerciseLogCard, teaching the real 6–10 RPE scale via the
+/// production RPEPickerSheet.
 struct RPEOnboardingStep: View {
     let onContinue: () -> Void
 
     @StateObject private var demo = RPEOnboardingStep.makeDemo()
     @State private var editing: EditCell?
+    @State private var rpeTarget: RPETarget?
     @State private var hasLogged = false
 
     private struct EditCell: Identifiable { let id = UUID(); let si: Int; let isWeight: Bool }
+    private struct RPETarget: Identifiable { let id = UUID(); let si: Int }
 
     private static func makeDemo() -> ActiveWorkoutSession {
         let ex = Exercise(id: "demo-bench", name: "Bench Press",
@@ -19,16 +22,14 @@ struct RPEOnboardingStep: View {
                         mainExercises: [ex], cooldown: [],
                         estimatedMinutes: 0, notes: nil, blockType: nil)
         let s = ActiveWorkoutSession(workout: w, programId: "onboarding-demo", dayNumber: 0)
-        for i in s.exercises[0].sets.indices {        // prefill so it's tappable immediately
+        for i in s.exercises[0].sets.indices {
             s.exercises[0].sets[i].weightKg = 60
             s.exercises[0].sets[i].reps = 8
         }
         return s
     }
 
-    private var allLogged: Bool {
-        demo.exercises.first?.sets.allSatisfy(\.logged) ?? false
-    }
+    private var allLogged: Bool { demo.exercises.first?.sets.allSatisfy(\.logged) ?? false }
 
     var body: some View {
         VStack(spacing: 24) {
@@ -37,8 +38,8 @@ struct RPEOnboardingStep: View {
                     .font(Font.unbound.captionS).tracking(2)
                     .foregroundStyle(Color.unbound.textTertiary)
                 Text(allLogged
-                     ? "That's RPE. You'll do this every set — it teaches the app how hard to push you."
-                     : "Log these 3 sets. Tap the dot to log it, tap it again to set how hard it felt — green easy, yellow solid, red hard.")
+                     ? "That's RPE — how many reps you had left. 10 = none, 8 = ~2, 6 = 4+. We use it to adjust your weights."
+                     : "Log these 3 sets (tap the ✓). Then tap RPE and pick how hard it felt — it's how many reps you had left in the tank.")
                     .font(Font.unbound.bodyM)
                     .foregroundStyle(Color.unbound.textSecondary)
                     .multilineTextAlignment(.center)
@@ -61,7 +62,7 @@ struct RPEOnboardingStep: View {
                                     reps: demo.exercises[0].sets[si].reps)
                         hasLogged = true
                     },
-                    onCycleEffort: { si in demo.cycleEffort(exerciseIndex: 0, setIndex: si) },
+                    onPickRPE:    { si in rpeTarget = RPETarget(si: si) },
                     onAddSet: {}
                 )
                 .padding(.horizontal, 16)
@@ -90,14 +91,18 @@ struct RPEOnboardingStep: View {
                     ? (demo.exercises[0].sets[cell.si].weightKg ?? 0)
                     : Double(demo.exercises[0].sets[cell.si].reps ?? 0),
                 onSave: { v in
-                    if cell.isWeight {
-                        demo.exercises[0].sets[cell.si].weightKg = v > 0 ? v : nil
-                    } else {
-                        demo.exercises[0].sets[cell.si].reps = v > 0 ? Int(v) : nil
-                    }
+                    if cell.isWeight { demo.exercises[0].sets[cell.si].weightKg = v > 0 ? v : nil }
+                    else { demo.exercises[0].sets[cell.si].reps = v > 0 ? Int(v) : nil }
                 }
             )
             .presentationDetents([.height(260)])
+        }
+        .sheet(item: $rpeTarget) { t in
+            RPEPickerSheet(
+                current: demo.exercises[0].sets[t.si].rpe,
+                onPick: { v in demo.setRPE(exerciseIndex: 0, setIndex: t.si, v) }
+            )
+            .presentationDetents([.height(420)])
         }
     }
 }
@@ -110,24 +115,16 @@ private struct OnboardingSetEditor: View {
     @State private var value: Double
 
     init(isWeight: Bool, initial: Double, onSave: @escaping (Double) -> Void) {
-        self.isWeight = isWeight
-        self.initial = initial
-        self.onSave = onSave
+        self.isWeight = isWeight; self.initial = initial; self.onSave = onSave
         _value = State(initialValue: initial)
     }
 
     var body: some View {
         VStack(spacing: 28) {
-            StepperControl(
-                label: isWeight ? "Weight" : "Reps",
-                value: $value,
-                step: isWeight ? 2.5 : 1,
-                unit: isWeight ? "kg" : nil,
-                allowsDecimal: isWeight)
-            Button {
-                onSave(value)
-                dismiss()
-            } label: {
+            StepperControl(label: isWeight ? "Weight" : "Reps", value: $value,
+                           step: isWeight ? 2.5 : 1, unit: isWeight ? "kg" : nil,
+                           allowsDecimal: isWeight)
+            Button { onSave(value); dismiss() } label: {
                 Text("DONE")
                     .font(Font.unbound.bodyLStrong).tracking(2)
                     .foregroundStyle(Color.unbound.bg)
