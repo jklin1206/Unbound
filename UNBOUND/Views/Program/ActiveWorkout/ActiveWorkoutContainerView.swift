@@ -30,6 +30,10 @@ struct ActiveWorkoutContainerView: View {
     // Grid cell editor state
     @State private var editing: EditTarget? = nil
 
+    // RPE picker state
+    @State private var rpeTarget: RPETarget?
+    private struct RPETarget: Identifiable { let id = UUID(); let ei: Int; let si: Int }
+
     // Rest timer
     @StateObject private var restTimer = RestTimerModel(notifier: RestNotifier.shared)
     private let restClock = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
@@ -97,10 +101,7 @@ struct ActiveWorkoutContainerView: View {
                     try? draftStore.save(session)
                     startRest(ei: ei)
                 },
-                onCycleEffort: { ei, si in
-                    session.cycleEffort(exerciseIndex: ei, setIndex: si)
-                    try? draftStore.save(session)
-                },
+                onPickRPE: { ei, si in rpeTarget = RPETarget(ei: ei, si: si) },
                 onAddSet: { ei in
                     session.addSet(toExerciseIndex: ei)
                     try? draftStore.save(session)
@@ -141,6 +142,19 @@ struct ActiveWorkoutContainerView: View {
                 isWeight: t.isWeight,
                 onSave: { try? draftStore.save(session) }
             )
+        }
+        // RPE picker sheet
+        .sheet(item: $rpeTarget) { t in
+            RPEPickerSheet(
+                current: (session.exercises.indices.contains(t.ei)
+                          && session.exercises[t.ei].sets.indices.contains(t.si))
+                    ? session.exercises[t.ei].sets[t.si].rpe : nil,
+                onPick: { v in
+                    session.setRPE(exerciseIndex: t.ei, setIndex: t.si, v)
+                    try? draftStore.save(session)
+                }
+            )
+            .presentationDetents([.height(420)])
         }
         // Swap sheet — uses the existing ExerciseSwapSheet with real init
         .sheet(item: Binding(

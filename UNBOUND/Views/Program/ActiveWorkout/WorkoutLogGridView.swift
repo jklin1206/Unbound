@@ -6,7 +6,7 @@ struct WorkoutLogGridView: View {
     let onEditWeight: (Int, Int) -> Void
     let onEditReps: (Int, Int) -> Void
     let onLog: (Int, Int) -> Void
-    let onCycleEffort: (Int, Int) -> Void
+    let onPickRPE: (Int, Int) -> Void
     let onAddSet: (Int) -> Void
     let onComplete: () -> Void
 
@@ -23,7 +23,7 @@ struct WorkoutLogGridView: View {
                             onEditWeight: { onEditWeight(ei, $0) },
                             onEditReps: { onEditReps(ei, $0) },
                             onLog: { onLog(ei, $0) },
-                            onCycleEffort: { onCycleEffort(ei, $0) },
+                            onPickRPE: { onPickRPE(ei, $0) },
                             onAddSet: { onAddSet(ei) }
                         )
                     }
