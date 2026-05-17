@@ -1826,6 +1826,32 @@ struct UnboundHomeView: View {
         let userId = services.auth.currentUserId ?? "anonymous"
         services.badges.bind(userId: userId)
 
+        // ── Phase 1: essentials → paint ASAP ─────────────────────────────
+        // Cached program is an instant local read (no network); ranks are
+        // fast; sync reads are free. A placeholder profile guarantees no
+        // card renders against nil — the real profile replaces it in Phase 2.
+        if let cached = loadCachedProgram(userId) { program = cached }
+        profile = UserProfile(
+            id: userId, email: nil, displayName: nil,
+            createdAt: Date(), onboardingCompleted: true, totalScans: 0,
+            currentProgramId: program?.id,
+            heightCm: nil, weightKg: nil, age: nil, biologicalSex: nil
+        )
+        let (r0, t0) = await loadRanks(userId)
+        aggregateRank = r0
+        aggregateTier = t0
+        sessionXP = services.sessionXP.record(userId: userId)
+        calibrationSkipRatio = services.calibration.skipRatio(userId: userId)
+        attributeProfile = services.attribute.profile(userId: userId)
+        trialsState = services.trials.state(userId: userId)
+
+        isLoading = false
+        // Kick off ambient loops once content is on screen.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            startAmbientAnimations()
+        }
+
+        // ── Phase 2: secondary, concurrent, streams into the cards ────────
         async let skillLoad: Void = SkillProgressService.shared.load(userId: userId)
         async let rankDecay: Void = RankDecayService.shared.evaluateOnForeground(userId: userId)
         async let plateausResult: [PlateauedExercise] = {
@@ -1834,7 +1860,6 @@ struct UnboundHomeView: View {
         }()
         async let profileProgram: (UserProfile?, TrainingProgram?) = loadProfileAndProgram(userId)
         async let recentLogs: [WorkoutLog] = fetchRecentLogsSafe(userId: userId, limit: 40)
-        async let ranks: (SubRank, SkillTier) = loadRanks(userId)
         async let travel: TravelOverride? = TravelOverrideStore.shared.activeOverride(for: userId)
         async let coach: CoachNote? = CoachNotesService.shared.todaysNote(userId: userId)
 
@@ -1845,42 +1870,21 @@ struct UnboundHomeView: View {
         let (fetchedProfile, loadedProgram) = await profileProgram
         if let fetchedProfile {
             profile = fetchedProfile
-            program = loadedProgram
-        } else {
-            profile = UserProfile(
-                id: userId, email: nil, displayName: nil,
-                createdAt: Date(), onboardingCompleted: true, totalScans: 0,
-                currentProgramId: nil,
-                heightCm: nil, weightKg: nil, age: nil, biologicalSex: nil
-            )
+            if let loadedProgram { program = loadedProgram }
         }
 
         applyRecentLogs(await recentLogs)
-
-        let (r, t) = await ranks
-        aggregateRank = r
-        aggregateTier = t
         activeTravelOverride = await travel
         coachNote = await coach
-
-        // Cheap synchronous reads — keep last, same values as before.
-        sessionXP = services.sessionXP.record(userId: userId)
-        calibrationSkipRatio = services.calibration.skipRatio(userId: userId)
-        attributeProfile = services.attribute.profile(userId: userId)
 
         let history = (try? ScanCheckpointStore.shared.history(userId: userId)) ?? []
         lastScanAt = history.last?.createdAt
         scanCadence = ScanCadenceState.compute(lastScanAt: lastScanAt, now: .now)
+    }
 
-        trialsState = services.trials.state(userId: userId)
-
-        isLoading = false
-        // Kick off ambient loops once the content is actually on screen —
-        // .onAppear fires while still in the loading state, so the
-        // animation bindings never connect to rendered views.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            startAmbientAnimations()
-        }
+    /// Instant local program read (no network) for the Phase-1 paint.
+    private func loadCachedProgram(_ userId: String) -> TrainingProgram? {
+        ProgramStore.shared.loadLocal(userId: userId)
     }
 
     private func loadProfileAndProgram(_ userId: String) async -> (UserProfile?, TrainingProgram?) {
