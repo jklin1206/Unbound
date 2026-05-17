@@ -1,38 +1,72 @@
 import SwiftUI
 
+/// Onboarding "try the app" RPE sandbox: a real 3-set Bench Press logged with
+/// the production ExerciseLogCard/SetLogGridRow + a throwaway ActiveWorkoutSession.
 struct RPEOnboardingStep: View {
     let onContinue: () -> Void
-    @State private var demo: Effort = .solid
+
+    @StateObject private var demo = RPEOnboardingStep.makeDemo()
+    @State private var editing: EditCell?
+    @State private var hasLogged = false
+
+    private struct EditCell: Identifiable { let id = UUID(); let si: Int; let isWeight: Bool }
+
+    private static func makeDemo() -> ActiveWorkoutSession {
+        let ex = Exercise(id: "demo-bench", name: "Bench Press",
+                          muscleGroups: [], sets: 3, reps: "8",
+                          restSeconds: 90, rpe: nil, notes: nil, substitution: nil)
+        let w = Workout(name: "Try it", targetMuscleGroups: [], warmup: [],
+                        mainExercises: [ex], cooldown: [],
+                        estimatedMinutes: 0, notes: nil, blockType: nil)
+        let s = ActiveWorkoutSession(workout: w, programId: "onboarding-demo", dayNumber: 0)
+        for i in s.exercises[0].sets.indices {        // prefill so it's tappable immediately
+            s.exercises[0].sets[i].weightKg = 60
+            s.exercises[0].sets[i].reps = 8
+        }
+        return s
+    }
+
+    private var allLogged: Bool {
+        demo.exercises.first?.sets.allSatisfy(\.logged) ?? false
+    }
 
     var body: some View {
-        VStack(spacing: 28) {
-            Spacer()
-            Text("HOW HARD WAS THAT SET?")
-                .font(Font.unbound.captionS).tracking(2)
-                .foregroundStyle(Color.unbound.textTertiary)
-
-            Button {
-                let order: [Effort] = [.easy, .solid, .hard]
-                demo = order[((order.firstIndex(of: demo) ?? 1) + 1) % 3]
-                UnboundHaptics.tick()
-            } label: {
-                Circle().fill(color(demo))
-                    .frame(width: 96, height: 96)
-                    .overlay(Circle().strokeBorder(Color.unbound.border, lineWidth: 1))
-                    .shadow(color: color(demo).opacity(0.5), radius: 24)
+        VStack(spacing: 24) {
+            VStack(spacing: 10) {
+                Text("TRY IT — RPE")
+                    .font(Font.unbound.captionS).tracking(2)
+                    .foregroundStyle(Color.unbound.textTertiary)
+                Text(allLogged
+                     ? "That's RPE. You'll do this every set — it teaches the app how hard to push you."
+                     : "Log these 3 sets. Tap the dot to log it, tap it again to set how hard it felt — green easy, yellow solid, red hard.")
+                    .font(Font.unbound.bodyM)
+                    .foregroundStyle(Color.unbound.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 28)
+                    .animation(.easeInOut(duration: 0.25), value: allLogged)
             }
-            .buttonStyle(.plain)
+            .padding(.top, 24)
 
-            Text(demo == .easy ? "Easy" : demo == .solid ? "Solid" : "Hard")
-                .font(Font.unbound.titleM)
-                .foregroundStyle(Color.unbound.textPrimary)
-                .contentTransition(.opacity)
+            if let ex = demo.exercises.first {
+                ExerciseLogCard(
+                    name: ex.name,
+                    isWarmupCurrent: false,
+                    sets: ex.sets,
+                    onIntent: { _ in },
+                    onEditWeight: { si in editing = EditCell(si: si, isWeight: true) },
+                    onEditReps:   { si in editing = EditCell(si: si, isWeight: false) },
+                    onLog: { si in
+                        demo.logSet(exerciseIndex: 0, setIndex: si,
+                                    weightKg: demo.exercises[0].sets[si].weightKg,
+                                    reps: demo.exercises[0].sets[si].reps)
+                        hasLogged = true
+                    },
+                    onCycleEffort: { si in demo.cycleEffort(exerciseIndex: 0, setIndex: si) },
+                    onAddSet: {}
+                )
+                .padding(.horizontal, 16)
+            }
 
-            Text("Tap it after every set. Green easy, yellow solid, red hard. That's it — it tunes your program for you.")
-                .font(Font.unbound.bodyM)
-                .foregroundStyle(Color.unbound.textSecondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 36)
             Spacer()
 
             Button(action: onContinue) {
@@ -44,17 +78,66 @@ struct RPEOnboardingStep: View {
                     .background(RoundedRectangle(cornerRadius: 18).fill(Color.unbound.accent))
             }
             .buttonStyle(.plain)
+            .opacity(hasLogged ? 1.0 : 0.85)
             .padding(.horizontal, 20)
             .padding(.bottom, 24)
         }
         .background(Color.unbound.bg.ignoresSafeArea())
+        .sheet(item: $editing) { cell in
+            OnboardingSetEditor(
+                isWeight: cell.isWeight,
+                initial: cell.isWeight
+                    ? (demo.exercises[0].sets[cell.si].weightKg ?? 0)
+                    : Double(demo.exercises[0].sets[cell.si].reps ?? 0),
+                onSave: { v in
+                    if cell.isWeight {
+                        demo.exercises[0].sets[cell.si].weightKg = v > 0 ? v : nil
+                    } else {
+                        demo.exercises[0].sets[cell.si].reps = v > 0 ? Int(v) : nil
+                    }
+                }
+            )
+            .presentationDetents([.height(260)])
+        }
+    }
+}
+
+private struct OnboardingSetEditor: View {
+    let isWeight: Bool
+    let initial: Double
+    let onSave: (Double) -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var value: Double
+
+    init(isWeight: Bool, initial: Double, onSave: @escaping (Double) -> Void) {
+        self.isWeight = isWeight
+        self.initial = initial
+        self.onSave = onSave
+        _value = State(initialValue: initial)
     }
 
-    private func color(_ e: Effort) -> Color {
-        switch e {
-        case .easy:  return Color.unbound.success
-        case .solid: return Color.unbound.warnOrange
-        case .hard:  return Color.unbound.alert
+    var body: some View {
+        VStack(spacing: 28) {
+            StepperControl(
+                label: isWeight ? "Weight" : "Reps",
+                value: $value,
+                step: isWeight ? 2.5 : 1,
+                unit: isWeight ? "kg" : nil,
+                allowsDecimal: isWeight)
+            Button {
+                onSave(value)
+                dismiss()
+            } label: {
+                Text("DONE")
+                    .font(Font.unbound.bodyLStrong).tracking(2)
+                    .foregroundStyle(Color.unbound.bg)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(RoundedRectangle(cornerRadius: 16).fill(Color.unbound.accent))
+            }
+            .buttonStyle(.plain)
         }
+        .padding(24)
+        .background(Color.unbound.bg.ignoresSafeArea())
     }
 }
