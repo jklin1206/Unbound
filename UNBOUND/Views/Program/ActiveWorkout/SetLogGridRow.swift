@@ -27,10 +27,10 @@ struct SetLogGridRow: View {
             Button {
                 if logged {
                     onCycleEffort()
-                    HapticManager.selection()
+                    UnboundHaptics.tick()
                 } else {
                     onLog()
-                    HapticManager.notification(.success)
+                    UnboundHaptics.success()
                     if !reduceMotion {
                         pop = true
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.28) { pop = false }
