@@ -8,7 +8,7 @@ struct ExerciseLogCard: View {
     let onEditWeight: (Int) -> Void
     let onEditReps: (Int) -> Void
     let onLog: (Int) -> Void
-    let onCycleEffort: (Int) -> Void
+    let onPickRPE: (Int) -> Void
     let onAddSet: () -> Void
 
     var body: some View {
@@ -22,11 +22,12 @@ struct ExerciseLogCard: View {
             }
             .padding(.bottom, 4)
 
-            HStack(spacing: 10) {
-                Text("SET").frame(width: 22, alignment: .leading)
+            HStack(spacing: 8) {
+                Text("SET").frame(width: 20, alignment: .leading)
                 Text("WEIGHT").frame(maxWidth: .infinity)
                 Text("REPS").frame(maxWidth: .infinity)
-                Text("RPE").frame(width: 40)
+                Text("RPE").frame(width: 44)
+                Spacer().frame(width: 40)        // ✓ column, unlabeled
             }
             .font(Font.unbound.captionS)
             .tracking(1.2)
@@ -37,12 +38,12 @@ struct ExerciseLogCard: View {
                     setNumber: idx + 1,
                     weightKg: set.weightKg,
                     reps: set.reps,
-                    effort: set.effort,
+                    rpe: set.rpe,
                     logged: set.logged,
                     onEditWeight: { onEditWeight(idx) },
                     onEditReps: { onEditReps(idx) },
-                    onLog: { onLog(idx) },
-                    onCycleEffort: { onCycleEffort(idx) }
+                    onPickRPE: { onPickRPE(idx) },
+                    onLog: { onLog(idx) }
                 )
                 if idx < sets.count - 1 {
                     Divider().overlay(Color.unbound.borderSubtle)
