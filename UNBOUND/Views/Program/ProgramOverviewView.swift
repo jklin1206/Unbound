@@ -194,8 +194,8 @@ struct ProgramOverviewView: View {
             WorkoutLogSummaryView(log: log)
         }
         .fullScreenCover(item: $activeRoutinePlayer) { routine in
-            SideQuestPlayerView(routine: routine.sideQuest) { log in
-                completeRoutine(routine, log: log)
+            RoutinePlayerView(routine: routine) { record in
+                completeRoutine(routine, record: record)
             }
             .environmentObject(services)
         }
@@ -1499,24 +1499,35 @@ struct ProgramOverviewView: View {
         }
     }
 
-    private func completeRoutine(_ routine: RoutineDef, log: SideQuestLog?) {
-        let didAward = RoutineCompletionStore.complete(routine)
+    private func completeRoutine(_ routine: RoutineDef, record: RoutineCompletionRecord) {
+        let didAward = RoutineHistoryStore.shared.complete(routine)
+        RoutineHistoryStore.shared.record(record)
         activeRoutinePlayer = nil
+
+        let setsValue: Int
+        let totalValue: Int
+        switch record.primaryMetric {
+        case .repCount(let total, let bursts):
+            setsValue = total
+            totalValue = max(total, bursts.reduce(0, +))
+        case .steps(let done, let total):
+            setsValue = done
+            totalValue = total
+        case .time:
+            setsValue = 0
+            totalValue = 0
+        }
+
         completedRoutineReward = RoutineRewardPayload(
             title: routine.title,
             category: routine.category,
-            elapsedSeconds: elapsedSeconds(from: log),
-            completedSets: log?.setLogs.count ?? routine.steps.count,
-            totalSets: max(routine.steps.count, log?.setLogs.count ?? 0),
-            spAwarded: didAward ? routine.spReward : 0,
+            elapsedSeconds: record.elapsedSeconds,
+            completedSets: setsValue,
+            totalSets: totalValue,
+            spAwarded: routine.spReward,
             wasAlreadyCleared: !didAward
         )
         Task { await refreshHistory() }
-    }
-
-    private func elapsedSeconds(from log: SideQuestLog?) -> Int {
-        guard let log, let completedAt = log.completedAt else { return 0 }
-        return max(0, Int(completedAt.timeIntervalSince(log.startedAt)))
     }
 
     private func routineSection(category: RoutineCategory) -> some View {
@@ -2049,40 +2060,16 @@ struct ProgramOverviewView: View {
     }
 }
 
-// MARK: - RoutineCompletionStore
-//
-// UserDefaults-backed completion log for routines. One award per routine
-// per 24h. Bumps the `unbound.gains` total (same key the rest of the app
-// reads) so SP shows up everywhere a Gains counter is rendered.
-//
-// Real RoutineService will replace this with proper logging — interface
-// stays the same so the view doesn't change.
+// MARK: - Routine step preview helper
 
-@MainActor
-enum RoutineCompletionStore {
-    private static let keyPrefix = "unbound.routineLastCompleted."
-    private static let gainsKey = "unbound.gains"
-    private static let cooldown: TimeInterval = 24 * 3600
-
-    static func canComplete(routineId: String) -> Bool {
-        guard let last = lastCompleted(routineId: routineId) else { return true }
-        return Date().timeIntervalSince(last) >= cooldown
-    }
-
-    static func lastCompleted(routineId: String) -> Date? {
-        let raw = UserDefaults.standard.double(forKey: keyPrefix + routineId)
-        return raw > 0 ? Date(timeIntervalSince1970: raw) : nil
-    }
-
-    /// Records the completion + awards SP. Returns true if newly awarded,
-    /// false if still inside the 24h cooldown window.
-    @discardableResult
-    static func complete(_ routine: RoutineDef) -> Bool {
-        guard canComplete(routineId: routine.id) else { return false }
-        UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: keyPrefix + routine.id)
-        let current = UserDefaults.standard.integer(forKey: gainsKey)
-        UserDefaults.standard.set(current + routine.spReward, forKey: gainsKey)
-        return true
+private func routineStepPreview(_ step: RoutineStep) -> String {
+    switch step {
+    case .instruction(let t, _):            return t
+    case .timed(let l, let s, _):           return "\(l) — \(s)s"
+    case .interval(let l, let r, _):        return "\(l) — \(r) rounds"
+    case .repTarget(let n, let t, _):       return t.map { "\(n) — \($0)" } ?? "\(n) — AMRAP"
+    case .circuit(let r, _, _):             return "Circuit × \(r) rounds"
+    case .note(let t):                      return t
     }
 }
 
@@ -2092,7 +2079,7 @@ private struct RoutineChallengeCard: View {
     let routine: RoutineDef
 
     private var canComplete: Bool {
-        RoutineCompletionStore.canComplete(routineId: routine.id)
+        RoutineHistoryStore.shared.canComplete(routineId: routine.id)
     }
 
     var body: some View {
@@ -2133,7 +2120,7 @@ private struct RoutineChallengeCard: View {
                 }
 
                 HStack(spacing: 12) {
-                    Text(routine.steps.first ?? "Open the mission and start.")
+                    Text(routine.steps.first.map(routineStepPreview) ?? "Open the mission and start.")
                         .font(Font.unbound.captionS)
                         .foregroundStyle(Color.unbound.textSecondary)
                         .lineLimit(2)
@@ -2531,7 +2518,7 @@ private struct RoutinePreviewSheet: View {
                                         .foregroundStyle(routine.category.color)
                                         .frame(width: 20, alignment: .trailing)
                                         .padding(.top, 1)
-                                    Text(step)
+                                    Text(routineStepPreview(step))
                                         .font(Font.unbound.bodyM)
                                         .foregroundStyle(Color.unbound.textPrimary)
                                         .fixedSize(horizontal: false, vertical: true)
@@ -2554,7 +2541,7 @@ private struct RoutinePreviewSheet: View {
                         )
                     }
 
-                    let canComplete = RoutineCompletionStore.canComplete(routineId: routine.id)
+                    let canComplete = RoutineHistoryStore.shared.canComplete(routineId: routine.id)
                     let label: String = {
                         if didComplete { return "+\(routine.spReward) SP LOCKED IN" }
                         if !canComplete { return "DONE TODAY · COME BACK TOMORROW" }
@@ -2568,7 +2555,7 @@ private struct RoutinePreviewSheet: View {
 
                     Button {
                         UnboundHaptics.medium()
-                        let awarded = RoutineCompletionStore.complete(routine)
+                        let awarded = RoutineHistoryStore.shared.complete(routine)
                         if awarded {
                             withAnimation(.easeOut(duration: 0.2)) { didComplete = true }
                             DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) { dismiss() }
