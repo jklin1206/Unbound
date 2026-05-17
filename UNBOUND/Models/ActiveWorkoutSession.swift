@@ -170,6 +170,48 @@ final class ActiveWorkoutSession: ObservableObject {
         exercises[index].notes = text
     }
 
+    // MARK: Index-addressed mutators (grid logs any set in any order)
+
+    private static let effortCycle: [Effort] = [.easy, .solid, .hard]
+
+    func logSet(exerciseIndex ei: Int, setIndex si: Int, weightKg: Double?, reps: Int?) {
+        guard exercises.indices.contains(ei),
+              exercises[ei].sets.indices.contains(si) else { return }
+        exercises[ei].sets[si].weightKg = weightKg
+        exercises[ei].sets[si].reps = reps
+        exercises[ei].sets[si].logged = true
+        if exercises[ei].sets[si].effort == nil {
+            exercises[ei].sets[si].effort = .solid
+        }
+    }
+
+    func setEffort(exerciseIndex ei: Int, setIndex si: Int, _ effort: Effort) {
+        guard exercises.indices.contains(ei),
+              exercises[ei].sets.indices.contains(si) else { return }
+        exercises[ei].sets[si].effort = effort
+    }
+
+    func cycleEffort(exerciseIndex ei: Int, setIndex si: Int) {
+        guard exercises.indices.contains(ei),
+              exercises[ei].sets.indices.contains(si) else { return }
+        let current = exercises[ei].sets[si].effort ?? .solid
+        let idx = Self.effortCycle.firstIndex(of: current) ?? 1
+        exercises[ei].sets[si].effort = Self.effortCycle[(idx + 1) % Self.effortCycle.count]
+    }
+
+    func addSet(toExerciseIndex ei: Int) {
+        guard exercises.indices.contains(ei) else { return }
+        exercises[ei].sets.append(
+            ActiveSet(id: UUID().uuidString, weightKg: nil, reps: nil,
+                      effort: nil, isWarmup: false, logged: false))
+    }
+
+    func removeLastSet(fromExerciseIndex ei: Int) {
+        guard exercises.indices.contains(ei),
+              exercises[ei].sets.count > 1 else { return }
+        exercises[ei].sets.removeLast()
+    }
+
     func assembleWorkoutLog(userId: String) -> WorkoutLog {
         let entries = exercises.map { ex in
             ExerciseLogEntry(
