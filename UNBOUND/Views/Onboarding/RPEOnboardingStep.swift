@@ -10,6 +10,7 @@ struct RPEOnboardingStep: View {
     @State private var editing: EditCell?
     @State private var rpeTarget: RPETarget?
     @State private var hasLogged = false
+    @State private var isExpanded = false
 
     private struct EditCell: Identifiable { let id = UUID(); let si: Int; let isWeight: Bool }
     private struct RPETarget: Identifiable { let id = UUID(); let si: Int }
@@ -51,18 +52,25 @@ struct RPEOnboardingStep: View {
             if let ex = demo.exercises.first {
                 ExerciseLogCard(
                     name: ex.name,
+                    plannedSets: ex.sets.count,
+                    plannedReps: "8",
+                    targetRPE: nil,
+                    restSeconds: 90,
+                    muscleGroups: [],
+                    formCues: nil,
+                    substitution: nil,
                     isWarmupCurrent: false,
                     sets: ex.sets,
+                    isExpanded: isExpanded,
+                    onToggleExpand: { isExpanded.toggle() },
                     onIntent: { _ in },
                     onEditWeight: { si in editing = EditCell(si: si, isWeight: true) },
                     onEditReps:   { si in editing = EditCell(si: si, isWeight: false) },
-                    onLog: { si in
-                        demo.logSet(exerciseIndex: 0, setIndex: si,
-                                    weightKg: demo.exercises[0].sets[si].weightKg,
-                                    reps: demo.exercises[0].sets[si].reps)
+                    onPickRPE:    { si in rpeTarget = RPETarget(si: si) },
+                    onConfirmAsPlanned: { si in
+                        demo.confirmAsPlanned(exerciseIndex: 0, setIndex: si)
                         hasLogged = true
                     },
-                    onPickRPE:    { si in rpeTarget = RPETarget(si: si) },
                     onAddSet: {}
                 )
                 .padding(.horizontal, 16)

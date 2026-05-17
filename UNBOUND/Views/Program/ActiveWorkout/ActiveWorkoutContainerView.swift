@@ -90,18 +90,12 @@ struct ActiveWorkoutContainerView: View {
                 onIntent: { ei, intent in handleIntent(ei, intent) },
                 onEditWeight: { ei, si in editing = EditTarget(ei: ei, si: si, isWeight: true) },
                 onEditReps:   { ei, si in editing = EditTarget(ei: ei, si: si, isWeight: false) },
-                onLog: { ei, si in
-                    let g = ghost(ei: ei, si: si)
-                    session.logSet(
-                        exerciseIndex: ei,
-                        setIndex: si,
-                        weightKg: session.exercises[ei].sets[si].weightKg ?? g?.weightKg,
-                        reps: session.exercises[ei].sets[si].reps ?? g?.reps
-                    )
-                    try? draftStore.save(session)
-                    startRest(ei: ei)
-                },
                 onPickRPE: { ei, si in rpeTarget = RPETarget(ei: ei, si: si) },
+                onConfirmAsPlanned: { ei, si in
+                    session.confirmAsPlanned(exerciseIndex: ei, setIndex: si)
+                    try? draftStore.save(session)
+                    transition(ei: ei)
+                },
                 onAddSet: { ei in
                     session.addSet(toExerciseIndex: ei)
                     try? draftStore.save(session)
@@ -140,7 +134,11 @@ struct ActiveWorkoutContainerView: View {
                 ei: t.ei,
                 si: t.si,
                 isWeight: t.isWeight,
-                onSave: { try? draftStore.save(session) }
+                onCommitted: {
+                    let didLog = session.recomputeLogged(exerciseIndex: t.ei, setIndex: t.si)
+                    try? draftStore.save(session)
+                    if didLog { transition(ei: t.ei) }
+                }
             )
         }
         // RPE picker sheet
@@ -148,7 +146,9 @@ struct ActiveWorkoutContainerView: View {
             RPEPickerSheet(
                 current: (session.exercises.indices.contains(t.ei)
                           && session.exercises[t.ei].sets.indices.contains(t.si))
-                    ? session.exercises[t.ei].sets[t.si].rpe : nil,
+                    ? (session.exercises[t.ei].sets[t.si].rpe
+                       ?? session.exercises[t.ei].sets[t.si].suggestedRPE)
+                    : nil,
                 onPick: { v in
                     session.setRPE(exerciseIndex: t.ei, setIndex: t.si, v)
                     try? draftStore.save(session)
@@ -230,6 +230,29 @@ struct ActiveWorkoutContainerView: View {
         restTimer.start(seconds: secs, nextLabel: next)
     }
 
+    /// Fired exactly once per set on the SUGGESTED→LOGGED edge.
+    private func transition(ei: Int) {
+        UnboundHaptics.success()
+        startRest(ei: ei)
+    }
+
+    /// After loadContext resolves history/working-weight, fill each set's
+    /// dim suggested weight via the existing SetPrefill ghost.
+    private func applySuggestedWeights() {
+        for ei in session.exercises.indices {
+            for si in session.exercises[ei].sets.indices
+            where session.exercises[ei].sets[si].suggestedWeightKg == nil {
+                if let g = SetPrefill.ghost(
+                    exerciseName: session.exercises[ei].name,
+                    setIndex: si,
+                    priorEntries: priorEntries,
+                    workingWeightKg: workingWeightKg) {
+                    session.exercises[ei].sets[si].suggestedWeightKg = g.weightKg
+                }
+            }
+        }
+    }
+
     // MARK: - Ghost prefill
 
     private func ghost(ei: Int, si: Int) -> SetPrefill.Ghost? {
@@ -301,6 +324,7 @@ struct ActiveWorkoutContainerView: View {
                 workingWeightKg = ww.weightKg
             }
         }
+        applySuggestedWeights()
     }
 
     // MARK: - Save + reward
@@ -342,7 +366,7 @@ private struct EditorSheet: View {
     let ei: Int
     let si: Int
     let isWeight: Bool
-    let onSave: () -> Void
+    let onCommitted: () -> Void
 
     @State private var value: Double
     @Environment(\.dismiss) private var dismiss
@@ -351,23 +375,25 @@ private struct EditorSheet: View {
          ei: Int,
          si: Int,
          isWeight: Bool,
-         onSave: @escaping () -> Void) {
+         onCommitted: @escaping () -> Void) {
         self.session = session
         self.ei = ei
         self.si = si
         self.isWeight = isWeight
-        self.onSave = onSave
+        self.onCommitted = onCommitted
 
         let initial: Double
         if isWeight {
             initial = session.exercises.indices.contains(ei)
                 && session.exercises[ei].sets.indices.contains(si)
-                ? session.exercises[ei].sets[si].weightKg ?? 0
+                ? (session.exercises[ei].sets[si].weightKg
+                   ?? session.exercises[ei].sets[si].suggestedWeightKg ?? 0)
                 : 0
         } else {
             initial = session.exercises.indices.contains(ei)
                 && session.exercises[ei].sets.indices.contains(si)
-                ? Double(session.exercises[ei].sets[si].reps ?? 0)
+                ? Double(session.exercises[ei].sets[si].reps
+                         ?? session.exercises[ei].sets[si].suggestedReps ?? 0)
                 : 0
         }
         _value = State(initialValue: initial)
@@ -420,7 +446,7 @@ private struct EditorSheet: View {
             session.exercises[ei].sets[si].reps = Int(value) > 0 ? Int(value) : nil
         }
         // Keep .logged unchanged — do not clear it.
-        onSave()
+        onCommitted()
         dismiss()
     }
 }
