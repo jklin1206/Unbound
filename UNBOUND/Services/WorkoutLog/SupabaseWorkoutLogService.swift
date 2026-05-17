@@ -7,8 +7,15 @@ import Foundation
 // (progression, skill recompute, rank, skins, session XP, badges) after
 // every save so the UI stays in sync with what local WorkoutLogService did.
 //
-// Falls back to the local WorkoutLogService when Supabase auth isn't ready
-// — keeps dev / pre-Sign-in-with-Apple flows working.
+// Offline-first: falls back to the local WorkoutLogService on ANY cloud
+// failure — not just `.notAuthenticated`, but also no network, timeouts,
+// and RLS rejections. A workout is never lost because the device was
+// offline (or running in a simulator with no Supabase reachability).
+//
+// KNOWN LIMITATION: logs written locally during an outage are not yet
+// pushed back to Supabase when connectivity returns (no sync queue).
+// They remain readable locally because fetch falls back the same way.
+// A background reconciliation queue is a deliberate follow-up.
 
 final class SupabaseWorkoutLogService: WorkoutLogServiceProtocol, @unchecked Sendable {
     static let shared = SupabaseWorkoutLogService()
@@ -25,7 +32,15 @@ final class SupabaseWorkoutLogService: WorkoutLogServiceProtocol, @unchecked Sen
     func saveLog(_ log: WorkoutLog) async throws {
         do {
             _ = try await supabase.upsert(log, into: "workout_logs")
-        } catch SupabaseDatabaseError.notAuthenticated {
+        } catch {
+            // Any cloud failure (offline, timeout, auth, RLS) → persist
+            // locally so the session is never lost. local.saveLog runs the
+            // full side-effect chain itself, so we return here.
+            logger.log(
+                "Cloud workout save failed; persisted locally: \(error)",
+                level: .warning,
+                context: ["logId": log.id, "dayNumber": log.dayNumber]
+            )
             try await local.saveLog(log)
             return
         }
@@ -67,7 +82,12 @@ final class SupabaseWorkoutLogService: WorkoutLogServiceProtocol, @unchecked Sen
     func updateLog(_ log: WorkoutLog) async throws {
         do {
             _ = try await supabase.upsert(log, into: "workout_logs")
-        } catch SupabaseDatabaseError.notAuthenticated {
+        } catch {
+            logger.log(
+                "Cloud workout update failed; updated locally: \(error)",
+                level: .warning,
+                context: ["logId": log.id]
+            )
             try await local.updateLog(log)
         }
     }
@@ -88,7 +108,12 @@ final class SupabaseWorkoutLogService: WorkoutLogServiceProtocol, @unchecked Sen
                 return logs.filter { $0.programId == programId }
             }
             return logs
-        } catch SupabaseDatabaseError.notAuthenticated {
+        } catch {
+            logger.log(
+                "Cloud workout fetch failed; reading local store: \(error)",
+                level: .warning,
+                context: ["userId": userId]
+            )
             return try await local.fetchLogs(userId: userId, programId: programId)
         }
     }
@@ -105,7 +130,12 @@ final class SupabaseWorkoutLogService: WorkoutLogServiceProtocol, @unchecked Sen
                 ascending: false,
                 limit: limit
             )
-        } catch SupabaseDatabaseError.notAuthenticated {
+        } catch {
+            logger.log(
+                "Cloud recent-logs fetch failed; reading local store: \(error)",
+                level: .warning,
+                context: ["userId": userId]
+            )
             return try await local.fetchRecentLogs(userId: userId, limit: limit)
         }
     }
@@ -115,7 +145,12 @@ final class SupabaseWorkoutLogService: WorkoutLogServiceProtocol, @unchecked Sen
     func deleteLog(id: String) async throws {
         do {
             try await supabase.delete(from: "workout_logs", keyedBy: "id", equals: id)
-        } catch SupabaseDatabaseError.notAuthenticated {
+        } catch {
+            logger.log(
+                "Cloud workout delete failed; deleted locally: \(error)",
+                level: .warning,
+                context: ["logId": id]
+            )
             try await local.deleteLog(id: id)
         }
     }
