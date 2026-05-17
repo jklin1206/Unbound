@@ -165,12 +165,37 @@ final class ProgramGenerationService: ProgramGenerationServiceProtocol, @uncheck
             logger.log("Onboarding program via local fallback", level: .warning, context: ["programId": program.id])
         }
 
-        try? await database.create(program, collection: "programs", documentId: program.id)
-        try? await database.update(
-            ["currentProgramId": program.id],
-            collection: "users",
-            documentId: userId
-        )
+        // Persist on a DETACHED task so a torn-down caller cannot abort the
+        // writes. These two calls used to run inside the caller's task as
+        // `try? await …`; when the SwiftUI `.task` that kicked off generation
+        // is cancelled (RootView re-routes the moment sign-in flips
+        // `isAuthenticated`, or the user switches tabs), each `await` threw
+        // CancellationError, `try?` swallowed it, and the generated program
+        // was never saved — so `currentProgramId` never got set and the user
+        // was stuck forever on "No program yet" (regenerating + re-cancelling
+        // on every appearance). A detached task is independent of the caller's
+        // cancellation tree, so the program reliably lands in the DB and the
+        // next load short-circuits to it.
+        let db = database
+        let log = logger
+        let savedProgram = program
+        let savedUserId = userId
+        Task.detached(priority: .userInitiated) {
+            do {
+                try await db.create(savedProgram, collection: "programs", documentId: savedProgram.id)
+                try await db.update(
+                    ["currentProgramId": savedProgram.id],
+                    collection: "users",
+                    documentId: savedUserId
+                )
+            } catch {
+                log.log(
+                    "Onboarding program persist failed",
+                    level: .error,
+                    context: ["programId": savedProgram.id, "error": "\(error)"]
+                )
+            }
+        }
         return program
     }
 
