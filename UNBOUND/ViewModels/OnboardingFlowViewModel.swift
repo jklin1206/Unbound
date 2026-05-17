@@ -89,6 +89,7 @@ enum OnboardingStep: Int, CaseIterable, Identifiable {
     case commitDay90
     case commitToday
     case planReady           // custom-plan reveal right before pricing
+    case rpeTeach            // one-screen RPE colour-code teach & try (green/yellow/red)
 
     case paywall            // blurred protocol + hard CTA
 
@@ -153,7 +154,7 @@ enum OnboardingStep: Int, CaseIterable, Identifiable {
             return .scan
         case .verdict, .trajectory, .skillTreePreview, .whyThisProgram:
             return .reveal
-        case .resultsSnapshot, .planReady:
+        case .resultsSnapshot, .planReady, .rpeTeach:
             return .reveal
         case .paywall:
             return .paywall
@@ -353,7 +354,7 @@ final class OnboardingFlowViewModel {
             return true  // 0–2 selections allowed — always advanceable
         case .notifications, .scanAnalyzing,
              .verdict, .trajectory, .skillTreePreview, .whyThisProgram,
-             .socialProofGallery, .commitDay30, .commitDay90, .commitToday, .planReady, .paywall:
+             .socialProofGallery, .commitDay30, .commitDay90, .commitToday, .planReady, .rpeTeach, .paywall:
             return true
         case .scanLive, .scanReview:
             return capturedPhotos[.front] != nil

@@ -299,6 +299,10 @@ private struct OnboardingRouter: View {
                     Step_PlanReady(flow: flow, progress: flow.progress, onBack: back, onContinue: advance)
                         .transition(screenTransition)
 
+                case .rpeTeach:
+                    RPEOnboardingStep(onContinue: advance)
+                        .transition(.opacity)
+
                 case .paywall:
                     Step_Paywall(flow: flow, onUnlock: onComplete)
                         .transition(.opacity)
