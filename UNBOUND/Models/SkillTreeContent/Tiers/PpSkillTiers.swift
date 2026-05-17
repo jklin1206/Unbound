@@ -246,15 +246,16 @@ enum PpSkillTiers {
 
         // MARK: - Crossover
 
-        // pp.muscle-up — Muscle-Up. anchor: 1 rep = Forged.
+        // pp.muscle-up — Muscle-Up. Hard-skill ladder: lower tiers track
+        // objective readiness/assistance gates, first real rep lands at Forged.
         "pp.muscle-up": [
-            .initiate:   .reps(1,  exerciseName: "muscle-up"),
-            .novice:     .reps(2,  exerciseName: "muscle-up"),
-            .apprentice: .reps(3,  exerciseName: "muscle-up"),
-            .forged:     .reps(5,  exerciseName: "muscle-up"),
-            .veteran:    .reps(7,  exerciseName: "muscle-up"),
-            .honed:      .reps(8,  exerciseName: "muscle-up"),
-            .vessel:     .reps(9,  exerciseName: "muscle-up"),
+            .initiate:   .compound([.reps(5, exerciseName: "pullup"), .reps(5, exerciseName: "straight bar dip")]),
+            .novice:     .compound([.reps(3, exerciseName: "chest-to-bar pullup"), .variant("straight bar dip")]),
+            .apprentice: .compound([.reps(3, exerciseName: "banded muscle-up"), .variant("low-bar muscle-up transition")]),
+            .forged:     .reps(1,  exerciseName: "muscle-up"),
+            .veteran:    .reps(2,  exerciseName: "muscle-up"),
+            .honed:      .reps(5,  exerciseName: "muscle-up"),
+            .vessel:     .reps(8,  exerciseName: "muscle-up"),
             .unbound:    .reps(10, exerciseName: "muscle-up"),
             .ascendant:  .reps(12, exerciseName: "muscle-up"),
         ],

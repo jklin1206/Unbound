@@ -77,6 +77,12 @@ enum ExerciseLibrary {
         // UPPER BODY — PULL (VERTICAL)
         ExerciseLibraryItem(id: "pull_up", name: "Pull Up", category: .bodyweight, muscleGroups: [.back, .arms, .lats], equipment: ["Pull-up Bar"], isCompound: true),
         ExerciseLibraryItem(id: "chin_up", name: "Chin Up", category: .bodyweight, muscleGroups: [.back, .arms, .lats], equipment: ["Pull-up Bar"], isCompound: true),
+        ExerciseLibraryItem(id: "chest_to_bar_pullup", name: "Chest-to-Bar Pullup", category: .bodyweight, muscleGroups: [.back, .lats, .arms], equipment: ["Pull-up Bar"], isCompound: true),
+        ExerciseLibraryItem(id: "straight_bar_dip", name: "Straight Bar Dip", category: .bodyweight, muscleGroups: [.chest, .arms, .shoulders], equipment: ["Pull-up Bar"], isCompound: true),
+        ExerciseLibraryItem(id: "banded_muscle_up", name: "Banded Muscle-Up", category: .bodyweight, muscleGroups: [.back, .lats, .arms, .chest, .core], equipment: ["Pull-up Bar", "Resistance Band"], isCompound: true),
+        ExerciseLibraryItem(id: "low_bar_muscle_up_transition", name: "Low-Bar Muscle-Up Transition", category: .bodyweight, muscleGroups: [.back, .lats, .arms, .chest, .core], equipment: ["Low Bar"], isCompound: true),
+        ExerciseLibraryItem(id: "assisted_turnover_freeze", name: "Assisted Turnover Freeze", category: .bodyweight, muscleGroups: [.back, .lats, .arms, .chest, .core], equipment: ["Low Bar", "Box"], isCompound: true),
+        ExerciseLibraryItem(id: "muscle_up", name: "Muscle-Up", category: .bodyweight, muscleGroups: [.back, .lats, .arms, .chest, .core], equipment: ["Pull-up Bar"], isCompound: true),
         ExerciseLibraryItem(id: "lat_pulldown", name: "Lat Pulldown", category: .cable, muscleGroups: [.back, .lats, .arms], equipment: ["Lat Pulldown Machine"], isCompound: true),
         ExerciseLibraryItem(id: "lat_pulldown_neutral", name: "Lat Pulldown (Neutral)", category: .cable, muscleGroups: [.back, .lats, .arms], equipment: ["Lat Pulldown Machine"], isCompound: true),
         ExerciseLibraryItem(id: "straight_arm_pulldown", name: "Straight Arm Pulldown", category: .cable, muscleGroups: [.lats, .back], equipment: ["Cable Machine"], isCompound: false),

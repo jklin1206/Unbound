@@ -28,6 +28,8 @@ struct SkillDetailView: View {
     @State private var isQuickLogPresented: Bool = false
     @State private var isTrainChooserPresented: Bool = false
     @State private var isRankPathExpanded: Bool = false
+    @State private var recentExerciseHistory: [ExerciseLogEntry] = []
+    @State private var readinessHistoryLoaded: Bool = false
 
     // MARK: - Body
 
@@ -113,6 +115,9 @@ struct SkillDetailView: View {
                 .presentationDetents([.medium])
                 .presentationDragIndicator(.visible)
                 .presentationBackground(Color.unbound.bg)
+        }
+        .task(id: node.id) {
+            await loadReadinessHistory()
         }
     }
 
@@ -335,6 +340,49 @@ struct SkillDetailView: View {
         .frame(width: size, height: size)
     }
 
+    private func criterionSummary(_ criterion: TierCriterion) -> String {
+        switch criterion {
+        case .reps(let count, let exerciseName):
+            return "\(count) \(displayExerciseName(exerciseName))"
+        case .seconds(let seconds):
+            return "\(seconds)-second hold"
+        case .weightKg(let weight):
+            return "\(Int(weight.rounded())) kg working set"
+        case .bodyweightRatio(let ratio):
+            return "\(String(format: "%.2g", ratio))x bodyweight"
+        case .variant(let name):
+            return "Log \(displayExerciseName(name))"
+        case .compound(let criteria):
+            return criteria.map(criterionSummary).joined(separator: " + ")
+        }
+    }
+
+    private func displayExerciseName(_ name: String) -> String {
+        name
+            .split(separator: " ")
+            .map { part in
+                part
+                    .split(separator: "-")
+                    .map { $0.prefix(1).uppercased() + $0.dropFirst() }
+                    .joined(separator: "-")
+            }
+            .joined(separator: " ")
+    }
+
+    @MainActor
+    private func loadReadinessHistory() async {
+        readinessHistoryLoaded = false
+        guard let userId = AuthService.shared.currentUserId else {
+            recentExerciseHistory = []
+            readinessHistoryLoaded = true
+            return
+        }
+
+        let logs = (try? await SupabaseWorkoutLogService.shared.fetchRecentLogs(userId: userId, limit: 60)) ?? []
+        recentExerciseHistory = logs.flatMap(\.exerciseEntries)
+        readinessHistoryLoaded = true
+    }
+
     // MARK: - 5. Rank Path section
     //
     // Replaces the old "NEXT BEAT" card. Shows all 9 ranks for this skill
@@ -344,166 +392,319 @@ struct SkillDetailView: View {
     // top-tier criteria are authored (Chunk 3 of the rank redesign).
 
     private var rankPathSection: some View {
-        let sp = skillProgress.currentSkillProgress(for: node.id)
-        let state = nodeStates[node.id] ?? .locked
-        let current = RankTitle.derived(
-            state: state,
-            currentLevel: sp.currentLevel,
-            skillRank: node.rank
-        )
+        let rows = rankPathRows()
+        let active = rows.first(where: { $0.isCurrent }) ?? rows.first
+        let clearedCount = rows.filter(\.isCleared).count
 
         return VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .firstTextBaseline) {
-                sectionHeader("Rank Path")
-                Spacer()
-                Button {
-                    withAnimation(.spring(response: 0.38, dampingFraction: 0.85)) {
-                        isRankPathExpanded.toggle()
-                    }
-                    UnboundHaptics.soft()
-                } label: {
-                    HStack(spacing: 6) {
-                        Text(isRankPathExpanded ? "COLLAPSE" : "SHOW ALL")
-                            .font(Font.unbound.captionS.weight(.heavy))
-                            .tracking(1.4)
-                        Image(systemName: isRankPathExpanded ? "chevron.up" : "chevron.down")
-                            .font(.system(size: 11, weight: .bold))
-                    }
-                    .foregroundStyle(Color.unbound.accent)
+                VStack(alignment: .leading, spacing: 3) {
+                    sectionHeader("Rank Path")
+                    Text("Objective gates for \(node.title)")
+                        .font(Font.unbound.captionS)
+                        .foregroundStyle(Color.unbound.textTertiary)
+                        .lineLimit(1)
                 }
-                .buttonStyle(.plain)
+                Spacer()
+                VStack(alignment: .trailing, spacing: 4) {
+                    Text("\(clearedCount)/\(rows.count)")
+                        .font(.system(size: 16, weight: .heavy, design: .rounded))
+                        .foregroundStyle(Color.unbound.textPrimary)
+                        .monospacedDigit()
+                    Text(readinessHistoryLoaded ? "CLEARED" : "LOADING")
+                        .font(Font.unbound.captionS.weight(.heavy))
+                        .tracking(1.2)
+                        .foregroundStyle(Color.unbound.textTertiary)
+                }
             }
 
-            // Collapsed: current rank + a peek of next.
-            // Expanded: full Initiate→Ascendant ladder in natural order.
-            VStack(spacing: 8) {
-                ForEach(visibleRankTiers(current: current), id: \.self) { tier in
-                    rankPathRow(tier: tier, currentTier: current)
+            if let active {
+                rankFocusCard(active)
+            }
+
+            VStack(spacing: 0) {
+                ForEach(Array(visibleRankRows(rows).enumerated()), id: \.element.id) { index, row in
+                    rankPathRow(row, isLast: index == visibleRankRows(rows).count - 1)
                 }
             }
+            .padding(.vertical, 6)
+            .background(roundedCardBackground)
+
+            Button {
+                withAnimation(.spring(response: 0.38, dampingFraction: 0.86)) {
+                    isRankPathExpanded.toggle()
+                }
+                UnboundHaptics.soft()
+            } label: {
+                HStack(spacing: 6) {
+                    Text(isRankPathExpanded ? "Collapse ladder" : "Show all ranks")
+                        .font(Font.unbound.captionS.weight(.heavy))
+                        .tracking(1.0)
+                    Image(systemName: isRankPathExpanded ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 10, weight: .bold))
+                }
+                .foregroundStyle(Color.unbound.accent)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .background(Capsule().fill(Color.unbound.accent.opacity(0.12)))
+            }
+            .buttonStyle(.plain)
         }
     }
 
-    @ViewBuilder
-    private func rankPathRow(tier: RankTitle, currentTier: RankTitle) -> some View {
-        let isCleared = tier.ordinal < currentTier.ordinal
-        let isCurrent = tier == currentTier
-        let criterion = rankCriterion(for: tier)
-        let isAuthored = criterion != nil
+    private struct RankPathDisplayRow: Identifiable {
+        var id: SkillTier { tier }
+        let tier: SkillTier
+        let detail: String
+        let isCleared: Bool
+        let isCurrent: Bool
+        let isFuture: Bool
+    }
 
-        HStack(spacing: 14) {
-            rankBadge(tier: tier, isCleared: isCleared, isCurrent: isCurrent, isAuthored: isAuthored)
+    private func rankPathRows() -> [RankPathDisplayRow] {
+        let tiers = SkillTier.allCases
+        let firstUncleared = tiers.first { tier in
+            guard let criterion = criterion(for: tier) else { return true }
+            return !TierCriterionEvaluator.satisfied(
+                criterion: criterion,
+                history: recentExerciseHistory,
+                bodyweightKg: 70
+            )
+        }
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text(tier.displayName)
-                    .font(Font.unbound.bodyMStrong)
-                    .foregroundStyle(
-                        isCurrent
-                            ? Color.unbound.accent
-                            : (isCleared ? Color.unbound.textPrimary : Color.unbound.textSecondary)
-                    )
-                Text(criterion ?? "Top-tier criterion coming soon")
-                    .font(Font.unbound.captionS)
-                    .foregroundStyle(Color.unbound.textTertiary)
-                    .lineLimit(2)
-                    .fixedSize(horizontal: false, vertical: true)
+        return tiers.map { tier in
+            let criterion = criterion(for: tier)
+            let cleared = criterion.map {
+                TierCriterionEvaluator.satisfied(
+                    criterion: $0,
+                    history: recentExerciseHistory,
+                    bodyweightKg: 70
+                )
+            } ?? false
+            let current = firstUncleared == tier
+            return RankPathDisplayRow(
+                tier: tier,
+                detail: criterion.map(criterionSummary) ?? fallbackRankCriterion(for: tier),
+                isCleared: cleared,
+                isCurrent: current,
+                isFuture: !cleared && !current
+            )
+        }
+    }
+
+    private func visibleRankRows(_ rows: [RankPathDisplayRow]) -> [RankPathDisplayRow] {
+        if isRankPathExpanded { return rows }
+        guard let currentIndex = rows.firstIndex(where: { $0.isCurrent }) else {
+            return Array(rows.suffix(3))
+        }
+        let lower = max(0, currentIndex - 1)
+        let upper = min(rows.count - 1, currentIndex + 1)
+        return Array(rows[lower...upper])
+    }
+
+    private func rankFocusCard(_ row: RankPathDisplayRow) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .center, spacing: 14) {
+                rankBadge(tier: row.tier, isCleared: row.isCleared, isCurrent: true)
+                    .frame(width: 54, height: 54)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(row.isCleared ? "Latest cleared" : "Current gate")
+                        .font(Font.unbound.captionS.weight(.heavy))
+                        .tracking(1.2)
+                        .foregroundStyle(Color.unbound.accent)
+                    Text(row.tier.displayName)
+                        .font(.system(.title3).weight(.bold))
+                        .foregroundStyle(Color.unbound.textPrimary)
+                    Text(row.detail)
+                        .font(Font.unbound.bodyS)
+                        .foregroundStyle(Color.unbound.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                Spacer(minLength: 0)
             }
+
+            if let plan = SkillTrainingPlanLibrary.plan(for: node.id), !row.isCleared {
+                trainingChips(plan: plan, targetText: row.detail)
+            }
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            ZStack {
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(Color.unbound.surface)
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color.unbound.accent.opacity(0.18),
+                                Color.unbound.accent.opacity(0.04),
+                                Color.clear
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .strokeBorder(Color.unbound.accent.opacity(0.45), lineWidth: 1)
+            }
+        )
+    }
+
+    private func rankPathRow(_ row: RankPathDisplayRow, isLast: Bool) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            VStack(spacing: 0) {
+                rankBadge(tier: row.tier, isCleared: row.isCleared, isCurrent: row.isCurrent)
+                    .frame(width: 34, height: 34)
+                if !isLast {
+                    Rectangle()
+                        .fill(row.isCleared ? Color.unbound.accent.opacity(0.45) : Color.unbound.border.opacity(0.6))
+                        .frame(width: 1, height: row.isCurrent ? 44 : 28)
+                        .padding(.vertical, 5)
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 8) {
+                    Text(row.tier.displayName)
+                        .font(Font.unbound.bodyMStrong)
+                        .foregroundStyle(row.isCurrent ? Color.unbound.accent : (row.isFuture ? Color.unbound.textSecondary : Color.unbound.textPrimary))
+                    statusPill(for: row)
+                }
+
+                Text(row.detail)
+                    .font(Font.unbound.bodyS)
+                    .foregroundStyle(row.isFuture ? Color.unbound.textTertiary : Color.unbound.textSecondary)
+                    .lineLimit(row.isCurrent ? 3 : 2)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                if row.isCurrent, let plan = SkillTrainingPlanLibrary.plan(for: node.id) {
+                    trainingChips(plan: plan, targetText: row.detail)
+                        .padding(.top, 2)
+                }
+            }
+            .padding(.bottom, isLast ? 0 : 10)
 
             Spacer(minLength: 0)
-
-            if isCleared {
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundStyle(Color.unbound.accent)
-            } else if isCurrent {
-                Text("CURRENT")
-                    .font(Font.unbound.captionS.weight(.heavy))
-                    .tracking(1.2)
-                    .foregroundStyle(Color.unbound.accent)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3)
-                    .background(Capsule().fill(Color.unbound.accent.opacity(0.16)))
-            } else if !isAuthored {
-                Image(systemName: "hourglass")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(Color.unbound.textTertiary)
-            } else {
-                Image(systemName: "lock.fill")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(Color.unbound.textTertiary)
-            }
         }
         .padding(.horizontal, 12)
-        .padding(.vertical, 10)
-        .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(isCurrent ? Color.unbound.accent.opacity(0.10) : Color.unbound.surface)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .strokeBorder(
-                    isCurrent ? Color.unbound.accent.opacity(0.55) : Color.unbound.border,
-                    lineWidth: 1
-                )
-        )
-        .opacity(isCleared || isCurrent || isAuthored ? 1.0 : 0.6)
+        .padding(.top, 8)
+        .opacity(row.isFuture ? 0.74 : 1)
+    }
+
+    private func statusPill(for row: RankPathDisplayRow) -> some View {
+        let label = row.isCleared ? "CLEARED" : (row.isCurrent ? "NEXT" : "LOCKED")
+        let color = row.isCleared || row.isCurrent ? Color.unbound.accent : Color.unbound.textTertiary
+        return Text(label)
+            .font(Font.unbound.captionS.weight(.heavy))
+            .tracking(1.0)
+            .foregroundStyle(color)
+            .padding(.horizontal, 7)
+            .padding(.vertical, 2)
+            .background(Capsule().fill(color.opacity(0.14)))
     }
 
     @ViewBuilder
-    private func rankBadge(tier: RankTitle, isCleared: Bool, isCurrent: Bool, isAuthored: Bool) -> some View {
-        Group {
+    private func rankBadge(tier: SkillTier, isCleared: Bool, isCurrent: Bool) -> some View {
+        ZStack {
+            Circle()
+                .fill(isCurrent ? Color.unbound.accent.opacity(0.18) : Color.unbound.surfaceElevated)
             if let img = UIImage(named: tier.assetName) {
                 Image(uiImage: img)
                     .resizable()
                     .scaledToFit()
+                    .padding(3)
             } else {
-                ZStack {
-                    Circle()
-                        .fill(Color.unbound.surfaceElevated)
-                    Text(String(tier.displayName.prefix(1)))
-                        .font(.system(size: 13, weight: .heavy, design: .monospaced))
-                        .foregroundStyle(Color.unbound.textSecondary)
+                Text(String(tier.displayName.prefix(1)))
+                    .font(.system(size: 13, weight: .heavy, design: .rounded))
+                    .foregroundStyle(isCurrent ? Color.unbound.accent : Color.unbound.textSecondary)
+            }
+
+            if isCleared {
+                Circle()
+                    .fill(Color.unbound.accent)
+                    .frame(width: 14, height: 14)
+                    .overlay(
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 8, weight: .heavy))
+                            .foregroundStyle(Color.unbound.bg)
+                    )
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+            }
+        }
+        .overlay(
+            Circle()
+                .strokeBorder(isCurrent ? Color.unbound.accent : Color.unbound.border, lineWidth: isCurrent ? 1.5 : 1)
+        )
+        .saturation(isCleared || isCurrent ? 1.0 : 0.4)
+    }
+
+    private func trainingChips(plan: SkillTrainingPlan, targetText: String) -> some View {
+        let options = recommendedTrainingOptions(plan: plan, targetText: targetText)
+        return VStack(alignment: .leading, spacing: 8) {
+            Text("Train this next")
+                .font(Font.unbound.captionS.weight(.heavy))
+                .tracking(1.2)
+                .foregroundStyle(Color.unbound.textTertiary)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(options, id: \.name) { option in
+                        HStack(spacing: 6) {
+                            Image(systemName: "dumbbell.fill")
+                                .font(.system(size: 9, weight: .bold))
+                            Text(option.name)
+                                .font(Font.unbound.captionS.weight(.semibold))
+                                .lineLimit(1)
+                        }
+                        .foregroundStyle(Color.unbound.textPrimary)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 7)
+                        .background(Capsule().fill(Color.unbound.surfaceElevated))
+                        .overlay(Capsule().strokeBorder(Color.unbound.borderSubtle, lineWidth: 1))
+                    }
                 }
             }
         }
-        .frame(width: 36, height: 36)
-        .opacity(isCleared || isCurrent ? 1.0 : (isAuthored ? 0.7 : 0.45))
-        .saturation(isCleared || isCurrent ? 1.0 : 0.6)
     }
 
-    /// Filters the 9-tier ladder for the rank-path section. Collapsed
-    /// shows only the user's current tier + the next one (so the path
-    /// reads "you are HERE, target is THIS"). Expanded shows the full
-    /// Initiate → Ascendant ladder in natural order.
-    private func visibleRankTiers(current: RankTitle) -> [RankTitle] {
-        if isRankPathExpanded { return RankTitle.allCases }
-        var tiers: [RankTitle] = [current]
-        if let next = current.next { tiers.append(next) }
-        return tiers
+    private func recommendedTrainingOptions(plan: SkillTrainingPlan, targetText: String) -> [TrainingExercise] {
+        let normalizedTarget = targetText.lowercased()
+        let candidates = plan.regressions + plan.accessories
+        let matching = candidates.filter { exercise in
+            let name = exercise.name.lowercased()
+            let simplifiedName = name
+                .replacingOccurrences(of: "-", with: " ")
+                .replacingOccurrences(of: "pull-up", with: "pullup")
+            return normalizedTarget.contains(name)
+                || normalizedTarget.contains(simplifiedName)
+        }
+        if !matching.isEmpty { return Array(matching.prefix(3)) }
+        return Array(candidates.prefix(3))
     }
 
-    /// Maps a rank tier to its authored criterion text. Levels 1-5 in
-    /// the existing per-skill ladder feed Novice through Honed. Initiate
-    /// is the entry tier (skill unlocked, not yet cleared). Top three
-    /// (Vessel/Unbound/Ascendant) return nil until per-skill criteria
-    /// are authored — UI shows the hourglass placeholder.
-    private func rankCriterion(for tier: RankTitle) -> String? {
+    private func criterion(for tier: SkillTier) -> TierCriterion? {
+        node.tierCriteria[tier]
+    }
+
+    private func fallbackRankCriterion(for tier: SkillTier) -> String {
         switch tier {
         case .initiate:
-            return "Unlock and attempt this skill"
+            return "Unlock and begin training this skill"
         case .novice:
-            return node.levels.first(where: { $0.level == 1 })?.criterion
+            return node.levels.first(where: { $0.level == 1 })?.criterion ?? "First clean exposure"
         case .apprentice:
-            return node.levels.first(where: { $0.level == 2 })?.criterion
+            return node.levels.first(where: { $0.level == 2 })?.criterion ?? "Build repeatable control"
         case .forged:
-            return node.levels.first(where: { $0.level == 3 })?.criterion
+            return node.levels.first(where: { $0.level == 3 })?.criterion ?? "Own the core standard"
         case .veteran:
-            return node.levels.first(where: { $0.level == 4 })?.criterion
+            return node.levels.first(where: { $0.level == 4 })?.criterion ?? "Add volume or difficulty"
         case .honed:
-            return node.levels.first(where: { $0.level == 5 })?.criterion
+            return node.levels.first(where: { $0.level == 5 })?.criterion ?? "High-quality repeatability"
         case .vessel, .unbound, .ascendant:
-            // Authoring lands in Chunk 3 of the rank redesign.
-            return nil
+            return "Advanced standard coming soon"
         }
     }
 
