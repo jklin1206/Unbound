@@ -2,17 +2,13 @@ import SwiftUI
 
 // MARK: - ActiveWorkoutContainerView
 //
-// Session orchestrator for the new set-by-set logging surface.
-// Owns the ActiveWorkoutSession, autosaves drafts, routes between
-// set entry and rest timer, and on COMPLETE assembles + saves the
-// WorkoutLog via the unchanged saveLog path.
+// Session orchestrator for the new grid-based logging surface.
+// Owns the ActiveWorkoutSession, autosaves drafts, hosts WorkoutLogGridView
+// + RestTimerPill overlay, and on COMPLETE assembles + saves the WorkoutLog
+// via the unchanged saveLog path.
 
 struct ActiveWorkoutContainerView: View {
     @StateObject private var session: ActiveWorkoutSession
-    @State private var phase: Phase = .set
-    @State private var elapsed = 0
-    @State private var weight: Double = 0
-    @State private var reps: Double = 0
     @State private var priorEntries: [ExerciseLogEntry] = []
     @State private var workingWeightKg: Double? = nil
     @State private var saving = false
@@ -31,15 +27,26 @@ struct ActiveWorkoutContainerView: View {
     // Reward state — mirrors WorkoutLoggingView's exact pattern
     @State private var rewardSummary: RewardSummary? = nil
 
+    // Grid cell editor state
+    @State private var editing: EditTarget? = nil
+
+    // Rest timer
+    @StateObject private var restTimer = RestTimerModel(notifier: RestNotifier.shared)
+    private let restClock = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+
     @Environment(\.dismiss) private var dismiss
 
     private let services: ServiceContainer
     private let draftStore: WorkoutDraftStore
-    private let clock = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
-    enum Phase { case set, rest }
+    // MARK: - Private types
 
-    // MARK: - Identifiable wrappers (mirrors WorkoutLoggingView pattern)
+    struct EditTarget: Identifiable {
+        let id = UUID()
+        let ei: Int
+        let si: Int
+        let isWeight: Bool
+    }
 
     private struct SwapContext: Identifiable {
         let index: Int
@@ -71,54 +78,49 @@ struct ActiveWorkoutContainerView: View {
     // MARK: - Body
 
     var body: some View {
-        ZStack {
+        ZStack(alignment: .bottom) {
             Color.unbound.bg.ignoresSafeArea()
 
-            switch phase {
-            case .set:
-                if let ex = session.currentExercise {
-                    ActiveSetView(
-                        exerciseName: ex.name,
-                        setNumber: session.currentSetIndex + 1,
-                        totalSets: ex.sets.count,
-                        ghost: SetPrefill.ghost(
-                            exerciseName: ex.name,
-                            setIndex: session.currentSetIndex,
-                            priorEntries: priorEntries,
-                            workingWeightKg: workingWeightKg
-                        ),
-                        isWarmup: ex.sets.indices.contains(session.currentSetIndex)
-                            ? ex.sets[session.currentSetIndex].isWarmup : false,
-                        isFinalSet: session.isLastSetOfWorkout,
-                        exerciseCount: session.exercises.count,
-                        currentExerciseIndex: session.currentExerciseIndex,
-                        completedExerciseIndices: completedIndices,
-                        elapsedSeconds: elapsed,
-                        weight: $weight,
-                        reps: $reps,
-                        onLogSet: logSet,
-                        onPickEffort: { session.setEffort($0); afterLog() },
-                        onJumpExercise: { session.jumpToExercise($0); syncInputs() },
-                        onIntent: handle
+            WorkoutLogGridView(
+                session: session,
+                onIntent: { ei, intent in handleIntent(ei, intent) },
+                onEditWeight: { ei, si in editing = EditTarget(ei: ei, si: si, isWeight: true) },
+                onEditReps:   { ei, si in editing = EditTarget(ei: ei, si: si, isWeight: false) },
+                onLog: { ei, si in
+                    let g = ghost(ei: ei, si: si)
+                    session.logSet(
+                        exerciseIndex: ei,
+                        setIndex: si,
+                        weightKg: session.exercises[ei].sets[si].weightKg ?? g?.weightKg,
+                        reps: session.exercises[ei].sets[si].reps ?? g?.reps
                     )
-                }
+                    try? draftStore.save(session)
+                    startRest(ei: ei)
+                },
+                onCycleEffort: { ei, si in
+                    session.cycleEffort(exerciseIndex: ei, setIndex: si)
+                    try? draftStore.save(session)
+                },
+                onAddSet: { ei in
+                    session.addSet(toExerciseIndex: ei)
+                    try? draftStore.save(session)
+                },
+                onComplete: { showCompleteConfirm = true }
+            )
 
-            case .rest:
-                RestTimerView(
-                    totalSeconds: session.currentExercise?.restSeconds ?? 90,
-                    nextLabel: nextLabel,
-                    onFinished: { withAnimation { phase = .set } },
-                    onSkip: { withAnimation { phase = .set } }
-                )
-                .transition(.opacity)
-            }
+            RestTimerPill(
+                model: restTimer,
+                onAddThirty: { restTimer.addThirty() },
+                onDismiss: { restTimer.dismiss() }
+            )
+            .padding(.bottom, 16)
         }
-        .onReceive(clock) { _ in
-            elapsed = Int(Date().timeIntervalSince(session.startedAt))
-        }
+        .onReceive(restClock) { _ in restTimer.tick() }
         .task {
             await loadContext()
-            syncInputs()
+        }
+        .task {
+            await RestNotifier.shared.requestAuthIfNeeded()
         }
         .interactiveDismissDisabled(true)
         // Complete confirmation dialog
@@ -129,6 +131,16 @@ struct ActiveWorkoutContainerView: View {
         ) {
             Button("Finish workout", role: .destructive) { Task { await complete() } }
             Button("Keep training", role: .cancel) {}
+        }
+        // Grid cell editor sheet
+        .sheet(item: $editing) { t in
+            EditorSheet(
+                session: session,
+                ei: t.ei,
+                si: t.si,
+                isWeight: t.isWeight,
+                onSave: { try? draftStore.save(session) }
+            )
         }
         // Swap sheet — uses the existing ExerciseSwapSheet with real init
         .sheet(item: Binding(
@@ -190,92 +202,64 @@ struct ActiveWorkoutContainerView: View {
 
     // MARK: - Computed helpers
 
-    private var completedIndices: Set<Int> {
-        Set(
-            session.exercises.enumerated()
-                .filter { $0.element.skipped || $0.element.sets.allSatisfy(\.logged) }
-                .map(\.offset)
-        )
-    }
-
-    private var nextLabel: String {
-        guard let ex = session.currentExercise else { return "" }
-        return "\(ex.name) · set \(session.currentSetIndex + 1)"
-    }
-
     private var totalWorkingSets: Int {
         session.exercises.filter { !$0.skipped }.reduce(0) { $0 + $1.sets.filter { !$0.isWarmup }.count }
     }
 
-    // MARK: - Core actions
+    // MARK: - Rest timer
 
-    private func logSet() {
-        session.logCurrentSet(
-            weightKg: weight > 0 ? weight : nil,
-            reps: Int(reps) > 0 ? Int(reps) : nil
-        )
-        try? draftStore.save(session)
+    private func startRest(ei: Int) {
+        guard session.exercises.indices.contains(ei) else { return }
+        let secs = session.exercises[ei].restSeconds
+        let next = session.exercises[ei].name
+        restTimer.onElapsed = { UnboundHaptics.success() }
+        restTimer.start(seconds: secs, nextLabel: next)
     }
 
-    private func afterLog() {
-        let hasRemaining = session.exercises.contains {
-            !$0.skipped && !$0.sets.allSatisfy(\.logged)
-        }
-        if session.isLastSetOfWorkout {
-            if hasRemaining {
-                showCompleteConfirm = true
-            } else {
-                Task { await complete() }
-            }
-        } else {
-            session.advance()
-            try? draftStore.save(session)
-            syncInputs()
-            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                phase = .rest
-            }
-        }
-    }
+    // MARK: - Ghost prefill
 
-    private func syncInputs() {
-        let g = SetPrefill.ghost(
-            exerciseName: session.currentExercise?.name ?? "",
-            setIndex: session.currentSetIndex,
+    private func ghost(ei: Int, si: Int) -> SetPrefill.Ghost? {
+        guard session.exercises.indices.contains(ei) else { return nil }
+        return SetPrefill.ghost(
+            exerciseName: session.exercises[ei].name,
+            setIndex: si,
             priorEntries: priorEntries,
             workingWeightKg: workingWeightKg
         )
-        weight = g?.weightKg ?? 0
-        reps = Double(g?.reps ?? 0)
     }
 
-    private func handle(_ intent: OverflowIntent) {
+    // MARK: - Intent handler
+
+    private func handleIntent(_ ei: Int, _ intent: OverflowIntent) {
         switch intent {
         case .toggleWarmup:
-            session.toggleCurrentWarmup()
+            if session.exercises.indices.contains(ei),
+               let s0 = session.exercises[ei].sets.indices.first {
+                session.exercises[ei].sets[s0].isWarmup.toggle()
+            }
 
         case .addSet:
-            session.addSetToCurrentExercise()
+            session.addSet(toExerciseIndex: ei)
 
         case .removeSet:
-            session.removeLastSetFromCurrentExercise()
+            session.removeLastSet(fromExerciseIndex: ei)
 
         case .skipExercise:
-            session.skipCurrentExercise()
-            syncInputs()
+            if session.exercises.indices.contains(ei) {
+                session.exercises[ei].skipped = true
+            }
 
         case .editNotes:
-            let idx = session.currentExerciseIndex
-            notesEditingIndex = idx
-            notesEditingText = session.exercises.indices.contains(idx)
-                ? session.exercises[idx].notes : ""
+            notesEditingIndex = ei
+            notesEditingText = session.exercises.indices.contains(ei)
+                ? session.exercises[ei].notes : ""
             showNotesSheet = true
             return // draft save happens in the sheet's onSave closure
 
         case .swapExercise:
-            let idx = session.currentExerciseIndex
-            guard session.exercises.indices.contains(idx) else { return }
-            swapAlternatives = ExerciseCatalog.alternatives(to: session.exercises[idx].name)
-            swapExerciseIndex = idx
+            guard session.exercises.indices.contains(ei) else { return }
+            swapAlternatives = ExerciseCatalog.alternatives(to: session.exercises[ei].name)
+            swapExerciseIndex = ei
             return // draft save happens in swap onSelect closure
         }
         try? draftStore.save(session)
@@ -332,6 +316,98 @@ struct ActiveWorkoutContainerView: View {
             HapticManager.notification(.error)
             saving = false
         }
+    }
+}
+
+// MARK: - EditorSheet
+
+/// Inline stepper sheet for editing a single weight or reps cell.
+/// Writes back to session on Done; keeps `logged` state unchanged.
+private struct EditorSheet: View {
+    @ObservedObject var session: ActiveWorkoutSession
+    let ei: Int
+    let si: Int
+    let isWeight: Bool
+    let onSave: () -> Void
+
+    @State private var value: Double
+    @Environment(\.dismiss) private var dismiss
+
+    init(session: ActiveWorkoutSession,
+         ei: Int,
+         si: Int,
+         isWeight: Bool,
+         onSave: @escaping () -> Void) {
+        self.session = session
+        self.ei = ei
+        self.si = si
+        self.isWeight = isWeight
+        self.onSave = onSave
+
+        let initial: Double
+        if isWeight {
+            initial = session.exercises.indices.contains(ei)
+                && session.exercises[ei].sets.indices.contains(si)
+                ? session.exercises[ei].sets[si].weightKg ?? 0
+                : 0
+        } else {
+            initial = session.exercises.indices.contains(ei)
+                && session.exercises[ei].sets.indices.contains(si)
+                ? Double(session.exercises[ei].sets[si].reps ?? 0)
+                : 0
+        }
+        _value = State(initialValue: initial)
+    }
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Color.unbound.bg.ignoresSafeArea()
+                VStack(spacing: 32) {
+                    Spacer()
+                    StepperControl(
+                        label: isWeight ? "Weight" : "Reps",
+                        value: $value,
+                        step: isWeight ? 2.5 : 1,
+                        unit: isWeight ? "kg" : nil,
+                        allowsDecimal: isWeight
+                    )
+                    Spacer()
+                }
+                .padding(24)
+            }
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { commit() }
+                        .foregroundStyle(Color.unbound.accent)
+                        .fontWeight(.semibold)
+                }
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                        .foregroundStyle(Color.unbound.textSecondary)
+                }
+            }
+        }
+        .presentationDetents([.height(280)])
+        .presentationDragIndicator(.visible)
+        .presentationBackground(Color.unbound.bg)
+    }
+
+    private func commit() {
+        guard session.exercises.indices.contains(ei),
+              session.exercises[ei].sets.indices.contains(si) else {
+            dismiss()
+            return
+        }
+        if isWeight {
+            session.exercises[ei].sets[si].weightKg = value > 0 ? value : nil
+        } else {
+            session.exercises[ei].sets[si].reps = Int(value) > 0 ? Int(value) : nil
+        }
+        // Keep .logged unchanged — do not clear it.
+        onSave()
+        dismiss()
     }
 }
 
