@@ -14,7 +14,7 @@ import Supabase
 // Swallows SupabaseDatabaseError.notAuthenticated and falls back to the
 // local DatabaseService — keeps dev (local-UUID) flows working.
 
-final class SupabaseProgramService: @unchecked Sendable {
+final class SupabaseProgramService: ProgramRemote, @unchecked Sendable {
     static let shared = SupabaseProgramService()
 
     private let supabase = SupabaseDatabase.shared
@@ -52,6 +52,31 @@ final class SupabaseProgramService: @unchecked Sendable {
                 collection: "users",
                 documentId: userId
             )
+        }
+    }
+
+    /// Like `saveProgram` but reports whether the write reached the server,
+    /// so `ProgramStore` knows when to clear its dirty flag. A local-dev /
+    /// unauthenticated fallback counts as persisted (matches `saveProgram`).
+    func persist(_ program: TrainingProgram, userId: String) async -> Bool {
+        do {
+            _ = try await supabase.upsert(program, into: "programs")
+            try await supabase.patch(
+                ["current_program_id": AnyJSON.string(program.id)],
+                in: "users", keyedBy: "id", equals: userId)
+            return true
+        } catch SupabaseDatabaseError.notAuthenticated {
+            try? await local.create(program, collection: "programs", documentId: program.id)
+            try? await local.update(["currentProgramId": program.id],
+                                    collection: "users", documentId: userId)
+            return true
+        } catch {
+            logger.log("SupabaseProgramService.persist failed: \(error)",
+                       level: .error, context: ["programId": program.id])
+            try? await local.create(program, collection: "programs", documentId: program.id)
+            try? await local.update(["currentProgramId": program.id],
+                                    collection: "users", documentId: userId)
+            return false
         }
     }
 
