@@ -98,14 +98,12 @@ struct WorkoutDetailView: View {
             }
         }
         .fullScreenCover(isPresented: $showLogging) {
-            NavigationStack {
-                WorkoutLoggingView(
-                    workout: liveWorkout,
-                    programId: programId,
-                    dayNumber: dayNumber,
-                    services: services
-                )
-            }
+            ActiveWorkoutContainerView(
+                workout: liveWorkout,
+                programId: programId,
+                dayNumber: dayNumber,
+                services: services
+            )
         }
         .sheet(item: Binding(
             get: { swapTargetExerciseId.map(SwapTarget.init(id:)) },

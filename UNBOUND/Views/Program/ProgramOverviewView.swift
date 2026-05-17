@@ -65,6 +65,11 @@ struct ProgramOverviewView: View {
     @State private var nextBlockNumberPreview: Int = 2
     @State private var currentBlockNumberPreview: Int = 1
 
+    // Resume draft affordance.
+    @State private var resumeDraft: ActiveWorkoutSession?
+    @State private var showResume = false
+    private let draftStore = WorkoutDraftStore()
+
     enum Tab: Hashable { case program, routines, history }
 
     var body: some View {
@@ -1005,6 +1010,37 @@ struct ProgramOverviewView: View {
     private func programBody(_ program: TrainingProgram) -> some View {
         ScrollView(.vertical, showsIndicators: false) {
             VStack(alignment: .leading, spacing: 16) {
+                // Resume banner — calm, top-of-content, only when a draft exists.
+                if draftStore.hasDraft {
+                    Button {
+                        resumeDraft = draftStore.load()
+                        showResume = resumeDraft != nil
+                    } label: {
+                        HStack(spacing: 12) {
+                            Image(systemName: "arrow.uturn.forward.circle.fill")
+                                .font(.system(size: 22))
+                                .foregroundStyle(Color.unbound.accent)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Resume your workout?")
+                                    .font(Font.unbound.bodyMStrong)
+                                    .foregroundStyle(Color.unbound.textPrimary)
+                                Text("Your last session is saved.")
+                                    .font(Font.unbound.monoS)
+                                    .foregroundStyle(Color.unbound.textSecondary)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundStyle(Color.unbound.textSecondary)
+                        }
+                        .padding(16)
+                        .background(RoundedRectangle(cornerRadius: 16).fill(Color.unbound.surfaceElevated))
+                        .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(Color.unbound.border, lineWidth: 1))
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.bottom, 12)
+                }
+
                 if ProgramScheduler.shared.hasActiveGoals() {
                     todaysTrainingSection
                 }
@@ -1023,6 +1059,19 @@ struct ProgramOverviewView: View {
             }
             .padding(.horizontal, 20)
             .padding(.top, 8)
+        }
+        .fullScreenCover(isPresented: $showResume, onDismiss: { resumeDraft = nil }) {
+            if let draft = resumeDraft {
+                ActiveWorkoutContainerView(
+                    workout: Workout(name: "", targetMuscleGroups: [], warmup: [],
+                                    mainExercises: [], cooldown: [], estimatedMinutes: 0,
+                                    notes: nil, blockType: nil),
+                    programId: "",
+                    dayNumber: 0,
+                    services: services,
+                    resuming: draft
+                )
+            }
         }
     }
 
