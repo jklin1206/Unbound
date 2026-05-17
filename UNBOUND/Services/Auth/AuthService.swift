@@ -106,6 +106,7 @@ final class AuthService: NSObject, AuthServiceProtocol, @unchecked Sendable {
 
     func signOut() throws {
         Task { try? await UnboundSupabase.client.auth.signOut() }
+        Task { @MainActor in ProgramStore.shared.clear() }
         UserDefaults.standard.removeObject(forKey: cachedUserIdKey)
         UserDefaults.standard.removeObject(forKey: legacyLocalUserIdKey)
         authStateSubject.send(nil)

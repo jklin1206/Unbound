@@ -1886,14 +1886,21 @@ struct UnboundHomeView: View {
     private func loadProfileAndProgram(_ userId: String) async -> (UserProfile?, TrainingProgram?) {
         do {
             let fetched: UserProfile = try await services.user.fetchProfile(userId: userId)
+            let store = ProgramStore.shared
             if let programId = fetched.currentProgramId {
+                // Instant local paint; revalidate is a no-op unless a new
+                // programId (rollover) superseded it.
+                if store.loadLocal(userId: userId)?.id == programId {
+                    await store.revalidate(userId: userId, expectedProgramId: programId)
+                    return (fetched, store.program)
+                }
                 if let existing: TrainingProgram = try? await services.database.read(
                     collection: "programs", documentId: programId) {
+                    store.adopt(existing, userId: userId)
                     return (fetched, existing)
                 }
-                // programId present but read failed — do NOT kick a multi-second
-                // Claude generate on a transient blip (that was the old stuck
-                // regenerate loop). Surface no program; next load retries.
+                // programId present but read failed — do NOT generate on a
+                // transient blip; surface no program, next load retries.
                 return (fetched, nil)
             }
             // Genuine first run: no program id yet.
@@ -1906,6 +1913,7 @@ struct UnboundHomeView: View {
                 exerciseStyles: [],
                 targetAreas: Set(fetched.targetAreas ?? [])
             )
+            store.adopt(generated, userId: userId)
             return (fetched, generated)
         } catch {
             return (nil, nil)
