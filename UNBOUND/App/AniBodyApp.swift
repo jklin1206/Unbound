@@ -32,6 +32,7 @@ import HotReloading
 struct UnboundApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var services = ServiceContainer()
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
         WindowGroup {
@@ -58,6 +59,10 @@ struct UnboundApp: App {
                             object: code
                         )
                     }
+                }
+                .task { SyncTriggers.shared.start() }
+                .onChange(of: scenePhase) { _, phase in
+                    if phase == .active { Task { await SyncEngine.shared.flush() } }
                 }
         }
     }

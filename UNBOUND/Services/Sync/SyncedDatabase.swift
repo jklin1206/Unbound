@@ -35,7 +35,10 @@ final class SyncedDatabase: DatabaseServiceProtocol, @unchecked Sendable {
         let entry = OutboxEntry(id: UUID(), userId: "", collection: collection,
                                 docId: documentId, op: .delete, payloadJSON: nil,
                                 enqueuedAt: Date(), attempt: 0)
-        await MainActor.run { outbox.enqueue(entry) }
+        await MainActor.run {
+            outbox.enqueue(entry)
+            NotificationCenter.default.post(name: .outboxDidEnqueue, object: nil)
+        }
     }
 
     func query<T: Codable>(collection: String, field: String, isEqualTo value: Any,
@@ -57,6 +60,9 @@ final class SyncedDatabase: DatabaseServiceProtocol, @unchecked Sendable {
         let entry = OutboxEntry(id: UUID(), userId: userId, collection: collection,
                                 docId: docId, op: .upsert, payloadJSON: payload,
                                 enqueuedAt: Date(), attempt: 0)
-        await MainActor.run { outbox.enqueue(entry) }
+        await MainActor.run {
+            outbox.enqueue(entry)
+            NotificationCenter.default.post(name: .outboxDidEnqueue, object: nil)
+        }
     }
 }
