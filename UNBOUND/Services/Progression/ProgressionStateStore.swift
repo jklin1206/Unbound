@@ -3,7 +3,7 @@ import Foundation
 @MainActor
 final class ProgressionStateStore {
     static let shared = ProgressionStateStore()
-    private let database = DatabaseService.shared
+    private let database: any DatabaseServiceProtocol = SyncedDatabase.shared
     private let logger = LoggingService.shared
 
     private init() {}

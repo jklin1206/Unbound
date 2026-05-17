@@ -2,26 +2,18 @@ import Foundation
 
 // MARK: - SupabaseWorkoutLogService
 //
-// Cloud-backed implementation of WorkoutLogServiceProtocol. Persists to the
-// public.workout_logs table; runs the full local side-effect chain
-// (progression, skill recompute, rank, skins, session XP, badges) after
-// every save so the UI stays in sync with what local WorkoutLogService did.
-//
-// Offline-first: falls back to the local WorkoutLogService on ANY cloud
-// failure — not just `.notAuthenticated`, but also no network, timeouts,
-// and RLS rejections. A workout is never lost because the device was
-// offline (or running in a simulator with no Supabase reachability).
-//
-// KNOWN LIMITATION: logs written locally during an outage are not yet
-// pushed back to Supabase when connectivity returns (no sync queue).
-// They remain readable locally because fetch falls back the same way.
-// A background reconciliation queue is a deliberate follow-up.
+// WorkoutLog persistence now flows through the unified offline outbox:
+// SyncedDatabase writes the local store (authoritative, instant) and
+// enqueues the cloud upsert/delete, which SyncEngine drains on
+// foreground/reconnect. This file keeps the post-save side-effect chain
+// (progression, skill recompute, rank, skins, session XP, badges) and the
+// profile loader. The previous ad-hoc "try Supabase / catch any error /
+// fall back to local" logic is removed — the outbox is the single sync path.
 
 final class SupabaseWorkoutLogService: WorkoutLogServiceProtocol, @unchecked Sendable {
     static let shared = SupabaseWorkoutLogService()
 
-    private let supabase = SupabaseDatabase.shared
-    private let local = WorkoutLogService.shared
+    private let db = SyncedDatabase.shared
     private let workingWeight = WorkingWeightService.shared
     private let logger = LoggingService.shared
 
@@ -30,27 +22,12 @@ final class SupabaseWorkoutLogService: WorkoutLogServiceProtocol, @unchecked Sen
     // MARK: - saveLog
 
     func saveLog(_ log: WorkoutLog) async throws {
-        do {
-            _ = try await supabase.upsert(log, into: "workout_logs")
-        } catch {
-            // Any cloud failure (offline, timeout, auth, RLS) → persist
-            // locally so the session is never lost. local.saveLog runs the
-            // full side-effect chain itself, so we return here.
-            logger.log(
-                "Cloud workout save failed; persisted locally: \(error)",
-                level: .warning,
-                context: ["logId": log.id, "dayNumber": log.dayNumber]
-            )
-            try await local.saveLog(log)
-            return
-        }
+        // Local-authoritative write + outbox enqueue (offline-safe).
+        try await db.create(log, collection: "workoutLogs", documentId: log.id)
 
         // --- Side-effects: identical chain to WorkoutLogService.saveLog() ---
-
         try await workingWeight.updateFromLog(log, userId: log.userId)
 
-        // User profile drives progression/cut mode + skill tree recompute.
-        // Pull from Supabase if signed in, otherwise local.
         let profile: UserProfile? = await loadProfile(userId: log.userId)
 
         let progressionMode: ProgressionMode = (profile?.cutMode.enabled == true) ? .preserve : .advance
@@ -74,103 +51,47 @@ final class SupabaseWorkoutLogService: WorkoutLogServiceProtocol, @unchecked Sen
             _ = await BadgeService.shared.evaluate(trigger: .sessionLogged(log))
         }
 
-        logger.log("Workout logged (Supabase): \(log.plannedWorkoutName)", level: .info, context: ["dayNumber": log.dayNumber])
+        logger.log("Workout logged: \(log.plannedWorkoutName)", level: .info, context: ["dayNumber": log.dayNumber])
     }
 
     // MARK: - updateLog
 
     func updateLog(_ log: WorkoutLog) async throws {
-        do {
-            _ = try await supabase.upsert(log, into: "workout_logs")
-        } catch {
-            logger.log(
-                "Cloud workout update failed; updated locally: \(error)",
-                level: .warning,
-                context: ["logId": log.id]
-            )
-            try await local.updateLog(log)
-        }
+        // Upsert semantics: rewrite the doc locally + enqueue.
+        try await db.create(log, collection: "workoutLogs", documentId: log.id)
     }
 
     // MARK: - fetchLogs
 
     func fetchLogs(userId: String, programId: String?) async throws -> [WorkoutLog] {
-        do {
-            let logs: [WorkoutLog] = try await supabase.query(
-                from: "workout_logs",
-                whereColumn: "user_id",
-                equals: userId,
-                orderBy: "started_at",
-                ascending: false,
-                limit: nil
-            )
-            if let programId {
-                return logs.filter { $0.programId == programId }
-            }
-            return logs
-        } catch {
-            logger.log(
-                "Cloud workout fetch failed; reading local store: \(error)",
-                level: .warning,
-                context: ["userId": userId]
-            )
-            return try await local.fetchLogs(userId: userId, programId: programId)
-        }
+        let logs: [WorkoutLog] = try await db.query(
+            collection: "workoutLogs", field: "userId", isEqualTo: userId,
+            orderBy: "startedAt", descending: true, limit: nil
+        )
+        if let programId { return logs.filter { $0.programId == programId } }
+        return logs
     }
 
     // MARK: - fetchRecentLogs
 
     func fetchRecentLogs(userId: String, limit: Int) async throws -> [WorkoutLog] {
-        do {
-            return try await supabase.query(
-                from: "workout_logs",
-                whereColumn: "user_id",
-                equals: userId,
-                orderBy: "started_at",
-                ascending: false,
-                limit: limit
-            )
-        } catch {
-            logger.log(
-                "Cloud recent-logs fetch failed; reading local store: \(error)",
-                level: .warning,
-                context: ["userId": userId]
-            )
-            return try await local.fetchRecentLogs(userId: userId, limit: limit)
-        }
+        try await db.query(
+            collection: "workoutLogs", field: "userId", isEqualTo: userId,
+            orderBy: "startedAt", descending: true, limit: limit
+        )
     }
 
     // MARK: - deleteLog
 
     func deleteLog(id: String) async throws {
-        do {
-            try await supabase.delete(from: "workout_logs", keyedBy: "id", equals: id)
-        } catch {
-            logger.log(
-                "Cloud workout delete failed; deleted locally: \(error)",
-                level: .warning,
-                context: ["logId": id]
-            )
-            try await local.deleteLog(id: id)
-        }
+        try await db.delete(collection: "workoutLogs", documentId: id)
     }
 
     // MARK: - Helpers
 
-    /// Load the user profile, preferring Supabase but falling back to the
-    /// local DatabaseService cache. Returns nil if neither store has it.
+    /// Load the user profile from the local store (local-first; profile
+    /// cloud sync is handled by the outbox / restore path elsewhere).
     private func loadProfile(userId: String) async -> UserProfile? {
-        do {
-            if let p: UserProfile = try await supabase.fetchOne(
-                from: "users",
-                keyedBy: "id",
-                equals: userId
-            ) {
-                return p
-            }
-        } catch {
-            // fall through to local
-        }
-        return try? await DatabaseService.shared.read(collection: "users", documentId: userId)
+        try? await DatabaseService.shared.read(collection: "users", documentId: userId)
     }
 }

@@ -43,7 +43,7 @@ final class ServiceContainer: ObservableObject {
     init() {
         self.logging = LoggingService.shared
         self.auth = AuthService.shared
-        self.database = DatabaseService.shared
+        self.database = SyncedDatabase.shared
         self.analytics = AnalyticsService.shared
         self.subscription = SubscriptionService.shared
         self.paywall = PaywallService.shared

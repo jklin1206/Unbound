@@ -2,7 +2,7 @@ import Foundation
 
 final class ExercisePreferenceService: ExercisePreferenceServiceProtocol, @unchecked Sendable {
     static let shared = ExercisePreferenceService()
-    private let database = DatabaseService.shared
+    private let database: any DatabaseServiceProtocol = SyncedDatabase.shared
     private let logger = LoggingService.shared
     private var cache: [ExercisePreference]?
 

@@ -14,7 +14,7 @@ actor ProgramBlockStore {
     private let database: DatabaseServiceProtocol
     private let collection = "program_blocks"
 
-    init(database: DatabaseServiceProtocol = DatabaseService.shared) {
+    init(database: DatabaseServiceProtocol = SyncedDatabase.shared) {
         self.database = database
     }
 
