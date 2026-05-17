@@ -55,6 +55,29 @@ final class RoutineRunTests: XCTestCase {
         XCTAssertEqual(run.map(\.id), [0, 1])
     }
 
+    func testEmptyInnerCircuitProducesEmpty() {
+        let (run, notes) = RoutineRun.build([
+            .circuit(rounds: 3, restBetweenSeconds: 60, steps: [])
+        ])
+        XCTAssertTrue(run.isEmpty, "empty-inner circuit must not emit phantom rests")
+        XCTAssertTrue(notes.isEmpty)
+    }
+
+    func testSingleRoundCircuitHasNoTrailingRest() {
+        let (run, _) = RoutineRun.build([
+            .circuit(rounds: 1, restBetweenSeconds: 60, steps: [
+                .instruction(text: "Push-ups × 15", cue: nil),
+                .timed(label: "Plank", seconds: 45, style: .work)
+            ])
+        ])
+        XCTAssertEqual(run.count, 2, "rounds:1 ⇒ exactly inner.count steps, no rest")
+        XCTAssertEqual(run[0].roundLabel, "ROUND 1 / 1")
+        XCTAssertEqual(run[1].roundLabel, "ROUND 1 / 1")
+        if case .timed(_, _, let style) = run[1].kind {
+            XCTAssertEqual(style, .work, "no trailing inter-round rest for a single round")
+        } else { XCTFail("expected the work step, not a rest") }
+    }
+
     func testFlatSequencePreservesOrder() {
         let (run, _) = RoutineRun.build([
             .timed(label: "Warm", seconds: 120, style: .work),

@@ -30,11 +30,11 @@ enum RoutineRun {
                 notes.append(text)
 
             case .circuit(let rounds, let restBetween, let inner):
-                guard rounds > 0 else { continue }
+                guard rounds > 0, !inner.isEmpty else { continue }
                 for round in 1...rounds {
                     let label = "ROUND \(round) / \(rounds)"
                     for innerStep in inner {
-                        if case .note(let t) = innerStep {
+                        if case .note(let t) = innerStep {   // inner notes hoist to top-level notes (intentional)
                             notes.append(t)
                         } else {
                             append(innerStep, roundLabel: label)
