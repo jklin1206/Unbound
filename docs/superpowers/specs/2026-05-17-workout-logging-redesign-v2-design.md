@@ -25,18 +25,24 @@ is **out of scope here**.
    rows. All exercises stacked in one scrollable session; log any set in any
    order; one `COMPLETE SESSION` at the bottom. (The classic full-session
    logger.)
-2. **Per-set RPE = traffic light, inline, no numerics.** Each set row ends in
-   a single tap-dot that is *both* the log control and the RPE:
-   - empty `◯` = not logged. Tap → logs the set, fills **yellow** (solid =
-     implicit default). One tap is the whole interaction for the casual user.
-   - Tap a filled dot to cycle **🟢 easy → 🟡 solid → 🔴 hard**. Engaged users
-     only. No numbers ever shown.
-   - The column carries a small **"RPE"** header label (top, in the
-     SET/WEIGHT/REPS/RPE header row) so the term is learnable in context.
+2. **Per-set RPE = real numeric 6–10 scale (REVISED — supersedes the
+   traffic-light dot).** The set row is `SET · WEIGHT · REPS · RPE · ✓`:
+   - **✓ is the log control** — tap to log the set. Logging never requires
+     RPE.
+   - **RPE is its own optional value cell** between REPS and ✓: shows the
+     chosen number or "—". Tap it → an `RPEPickerSheet` listing **6, 7, 8, 9,
+     10** each with its reps-in-reserve meaning (10 = nothing left, 9 = 1 rep
+     left, 8 = 2, 7 = 3, 6 = 4+), plus "Clear". This is the real
+     strength-training RPE scale minus the dead 1–5 range; the in-picker
+     meanings are the "explain it well" requirement.
+   - Column header row reads `SET WEIGHT REPS RPE`.
+   - **Retired:** the traffic-light dot, the `Effort` enum, and `EffortRPEMap`
+     (+ its tests). `ActiveSet` stores `rpe: Int?` directly (the underlying
+     `SetLog.rpe` is already `Int?`), passed straight through —
+     `assembleWorkoutLog` uses `set.rpe`, no Effort→Int mapping.
 3. **Auto-progression signal:** primary = reps logged vs the prescribed rep
-   target (zero user action, no numerics); the per-set RPE color *refines*
-   it. `EffortRPEMap` maps green/yellow/red ↔ Easy/Solid/Hard ↔ the Int RPE
-   the existing ProgressionEngine consumes.
+   target (zero user action); the optional per-set numeric RPE *refines* it,
+   fed straight to the existing ProgressionEngine via `SetLog.rpe: Int?`.
 4. **No "previous session" display.** Drop the ghost/prev column. Input fields
    still *prefill* a sensible starting value (working weight) but the row
    shows no "prev 80×8" reference.
@@ -55,12 +61,13 @@ is **out of scope here**.
    Press with 3 sets**, rendered with the ACTUAL production `ExerciseLogCard`
    /`SetLogGridRow` components backed by a throwaway in-memory
    `ActiveWorkoutSession`, prefilled (e.g. 60kg×8) so the user can immediately
-   log all 3 sets and tap the RPE dot to feel green/yellow/red. Cells are
-   tappable to edit (real stepper) so they can "type in a set." Copy explains
-   what RPE *is* (how hard the set felt → it tunes your program) and the
-   reinforcement line updates after they've logged all 3. Continue ("GOT IT")
-   is always tappable (non-blocking) with a gentle nudge until first
-   interaction — onboarding must never trap the user.
+   log all 3 sets (✓) and tap the RPE cell to pick a number from the **6–10
+   scale with the reps-in-reserve meanings shown** — this is where RPE is
+   actually taught. Cells are tappable to edit (real stepper). Copy explains
+   the scale (reps-left framing) and the reinforcement line updates after
+   they've logged all 3. Continue ("GOT IT") is always tappable (non-blocking)
+   with a gentle nudge until first interaction — onboarding must never trap
+   the user.
 
 ## What survives from the sub-project A build (do NOT rebuild)
 
