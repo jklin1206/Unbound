@@ -150,6 +150,54 @@ enum FormPhaseLibrary {
     ) -> [FormPhase] {
         switch skillId {
 
+        case "pp.muscle-up":
+            return [
+                FormPhase(
+                    id: "phase1",
+                    title: "Set",
+                    cues: [
+                        "Start from an active hang",
+                        "Ribs down, legs quiet",
+                        "Keep the bar close from the first pull"
+                    ],
+                    assetName: "pp_muscle-up",
+                    fallbackSymbol: "figure.strengthtraining.functional"
+                ),
+                FormPhase(
+                    id: "phase2",
+                    title: "High Pull",
+                    cues: [
+                        "Pull toward the lower chest",
+                        "Elbows drive down and back",
+                        "Do not start pressing from a low pull"
+                    ],
+                    assetName: "pp_muscle-up_f2",
+                    fallbackSymbol: "figure.strengthtraining.functional"
+                ),
+                FormPhase(
+                    id: "phase3",
+                    title: "Turnover",
+                    cues: [
+                        "Chest travels over the bar",
+                        "Wrists roll around the bar",
+                        "Both elbows arrive together"
+                    ],
+                    assetName: "pp_muscle-up_f2",
+                    fallbackSymbol: "arrow.triangle.branch"
+                ),
+                FormPhase(
+                    id: "phase4",
+                    title: "Support",
+                    cues: [
+                        "Press to straight arms",
+                        "Shoulders down, torso tall",
+                        "Finish stable before lowering"
+                    ],
+                    assetName: "pp_muscle-up",
+                    fallbackSymbol: "figure.strengthtraining.functional"
+                ),
+            ]
+
         case "pp.pullup":
             return [
                 FormPhase(

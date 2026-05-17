@@ -13,6 +13,8 @@ struct ActiveWorkoutContainerView: View {
     @State private var workingWeightKg: Double? = nil
     @State private var saving = false
     @State private var showCompleteConfirm = false
+    @State private var saveError = false
+    @State private var showExitConfirm = false
 
     // Swap sheet state
     @State private var swapExerciseIndex: Int? = nil
@@ -110,6 +112,22 @@ struct ActiveWorkoutContainerView: View {
             )
             .padding(.bottom, 16)
         }
+        .overlay(alignment: .topLeading) {
+            Button {
+                showExitConfirm = true
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundStyle(Color.unbound.textSecondary)
+                    .frame(width: 36, height: 36)
+                    .background(Circle().fill(Color.unbound.surfaceElevated))
+                    .overlay(Circle().strokeBorder(Color.unbound.borderSubtle, lineWidth: 1))
+            }
+            .buttonStyle(.plain)
+            .padding(.leading, 16)
+            .padding(.top, 8)
+            .accessibilityLabel("Close workout")
+        }
         .onReceive(restClock) { _ in restTimer.tick() }
         .task {
             await loadContext()
@@ -118,6 +136,27 @@ struct ActiveWorkoutContainerView: View {
             await RestNotifier.shared.requestAuthIfNeeded()
         }
         .interactiveDismissDisabled(true)
+        // Always-available escape hatch — the draft is autosaved on every
+        // mutation, so leaving keeps the workout resumable. Without this the
+        // user is trapped whenever saveLog fails.
+        .confirmationDialog(
+            "Leave this workout?",
+            isPresented: $showExitConfirm,
+            titleVisibility: .visible
+        ) {
+            Button("Save & finish") { Task { await complete() } }
+            Button("Leave (keeps progress)", role: .destructive) { dismiss() }
+            Button("Keep training", role: .cancel) {}
+        } message: {
+            Text("Your logged sets are saved as a draft you can resume.")
+        }
+        // saveLog failed — never trap the user; let them retry or leave.
+        .alert("Couldn't save workout", isPresented: $saveError) {
+            Button("Retry") { Task { await complete() } }
+            Button("Leave (keeps draft)", role: .cancel) { dismiss() }
+        } message: {
+            Text("Check your connection. Your progress is saved locally and will be here when you come back.")
+        }
         // Complete confirmation dialog
         .confirmationDialog(
             "Finish with sets remaining?",
@@ -206,7 +245,9 @@ struct ActiveWorkoutContainerView: View {
             set: { rewardSummary = $0?.summary }
         )) { item in
             RewardCelebrationView(summary: item.summary) {
-                rewardSummary = nil
+                // Dismiss the fullScreenCover; the reward sheet tears down
+                // with it. Do NOT also nil rewardSummary here — that is the
+                // competing-mutation race that left the session stuck.
                 dismiss()
             }
             .presentationDetents([.medium, .large])
@@ -330,7 +371,12 @@ struct ActiveWorkoutContainerView: View {
     // MARK: - Save + reward
 
     private func complete() async {
-        guard let uid = services.auth.currentUserId, !saving else { return }
+        guard !saving else { return }
+        guard let uid = services.auth.currentUserId else {
+            // No session — don't trap the user behind a disabled dismiss.
+            dismiss()
+            return
+        }
         saving = true
         let log = session.assembleWorkoutLog(userId: uid)
         do {
@@ -338,21 +384,24 @@ struct ActiveWorkoutContainerView: View {
             HapticManager.notification(.success)
             draftStore.clear()
 
-            // Wire point 3: reproduce WorkoutLoggingView's exact post-save reward trigger.
-            // WorkoutLoggingView: var summary = RewardSummary(); summary.skillTitle = workout.name;
-            // summary.xpGained = max(10, totalSets * 5); rewardSummary = summary
-            // If summary.hasContent → sheet; else → dismiss() immediately.
+            // Reward summary construction is unchanged (sub-project B wires
+            // richer content here later). The dismiss/sheet race is the fix:
+            // set rewardSummary ONLY when there is content to show, else
+            // dismiss directly. Never mutate the sheet item AND dismiss the
+            // fullScreenCover in the same tick — SwiftUI drops one and the
+            // session gets stuck open.
             var summary = RewardSummary()
             summary.skillTitle = session.plannedWorkoutName
             summary.xpGained = max(10, totalWorkingSets * 5)
-            rewardSummary = summary
-            if !summary.hasContent {
+            if summary.hasContent {
+                rewardSummary = summary   // reward sheet dismisses the cover on close
+            } else {
                 dismiss()
             }
-            // If summary.hasContent, the reward sheet will call dismiss() in its completion closure.
         } catch {
             HapticManager.notification(.error)
             saving = false
+            saveError = true   // surface it + offer Retry / Leave — never trap
         }
     }
 }
