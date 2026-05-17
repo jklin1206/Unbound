@@ -44,6 +44,11 @@ struct ProgramOverviewView: View {
 
     // History view state
     @State private var pastLogs: [WorkoutLog] = []
+    @State private var selectedLog: WorkoutLog?
+    @State private var historyMonth: Date = {
+        let c = Calendar.current
+        return c.date(from: c.dateComponents([.year, .month], from: Date())) ?? Date()
+    }()
 
     // Travel override (user hit the TRAVEL coach action)
     @State private var activeTravelOverride: TravelOverride?
@@ -184,6 +189,9 @@ struct ProgramOverviewView: View {
                 programViewModel: viewModel,
                 programId: viewModel?.program?.id ?? ""
             )
+        }
+        .navigationDestination(item: $selectedLog) { log in
+            WorkoutLogSummaryView(log: log)
         }
         .fullScreenCover(item: $activeRoutinePlayer) { routine in
             SideQuestPlayerView(routine: routine.sideQuest) { log in
@@ -1592,17 +1600,20 @@ struct ProgramOverviewView: View {
     }
 
     // MARK: - HISTORY tab
+    //
+    // Workout calendar — completed sessions plotted on a month grid.
+    // A filled cell means you trained that day; tap it to drill into that
+    // session's WorkoutLogSummaryView. Mirrors PhotoCalendarView's
+    // month-grid structure so the two archives feel like one app.
 
     private var historyTab: some View {
         ScrollView(.vertical, showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: 16) {
                 if pastLogs.isEmpty {
                     historyEmpty
-                        .padding(.top, 40)
+                        .padding(.top, 48)
                 } else {
-                    ForEach(historyGroups, id: \.weekStart) { group in
-                        historyGroup(group)
-                    }
+                    historyCalendarCard
                 }
                 Spacer().frame(height: 28)
             }
@@ -1626,69 +1637,244 @@ struct ProgramOverviewView: View {
         .frame(maxWidth: .infinity)
     }
 
-    private struct HistoryGroup {
-        let weekStart: Date
-        let logs: [WorkoutLog]
-    }
-
-    private var historyGroups: [HistoryGroup] {
-        var cal = Calendar.current
-        cal.firstWeekday = 2
-        var buckets: [Date: [WorkoutLog]] = [:]
-        for log in pastLogs {
-            let comps = cal.dateComponents([.yearForWeekOfYear, .weekOfYear], from: log.startedAt)
-            let key = cal.date(from: comps) ?? log.startedAt
-            buckets[key, default: []].append(log)
+    private var historyCalendarCard: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            historyCalendarHeader
+            VStack(alignment: .leading, spacing: 8) {
+                historyWeekdayLabels
+                historyCalendarGrid
+            }
+            historyMonthSummary
         }
-        return buckets
-            .map { HistoryGroup(weekStart: $0.key, logs: $0.value.sorted { $0.startedAt > $1.startedAt }) }
-            .sorted { $0.weekStart > $1.weekStart }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color.unbound.surface)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
+        )
     }
 
-    private func historyGroup(_ group: HistoryGroup) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(historyWeekLabel(group.weekStart))
-                .font(Font.unbound.captionS.weight(.bold))
-                .tracking(1.6)
-                .foregroundStyle(Color.unbound.textTertiary)
+    private var historyCalendarHeader: some View {
+        HStack(alignment: .firstTextBaseline) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("TRAINING LOG")
+                    .font(Font.unbound.captionS.weight(.bold))
+                    .tracking(1.8)
+                    .foregroundStyle(Color.unbound.textTertiary)
+                Text(historyMonthLabel)
+                    .font(Font.unbound.titleS)
+                    .tracking(0.9)
+                    .foregroundStyle(Color.unbound.textPrimary)
+            }
+            Spacer()
+            HStack(spacing: 6) {
+                historyMonthButton(systemName: "chevron.left") {
+                    shiftHistoryMonth(by: -1)
+                }
+                historyMonthButton(systemName: "chevron.right") {
+                    shiftHistoryMonth(by: 1)
+                }
+                .disabled(isHistoryCurrentMonth)
+                .opacity(isHistoryCurrentMonth ? 0.35 : 1)
+            }
+        }
+    }
 
-            VStack(spacing: 8) {
-                ForEach(group.logs, id: \.id) { log in
-                    historyRow(log: log)
+    private func historyMonthButton(systemName: String, action: @escaping () -> Void) -> some View {
+        Button {
+            UnboundHaptics.soft()
+            action()
+        } label: {
+            Image(systemName: systemName)
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(Color.unbound.textSecondary)
+                .frame(width: 30, height: 30)
+                .background(Circle().fill(Color.unbound.bg.opacity(0.8)))
+                .overlay(Circle().strokeBorder(Color.unbound.borderSubtle, lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var historyWeekdayLabels: some View {
+        HStack(spacing: 0) {
+            ForEach(Array(["M", "T", "W", "T", "F", "S", "S"].enumerated()), id: \.offset) { _, l in
+                Text(l)
+                    .font(.system(size: 9, weight: .bold))
+                    .tracking(1.2)
+                    .foregroundStyle(Color.unbound.textTertiary)
+                    .frame(maxWidth: .infinity)
+            }
+        }
+    }
+
+    private var historyCalendarGrid: some View {
+        let days = historyDaysForMonth()
+        let columns = Array(repeating: GridItem(.flexible(), spacing: 4), count: 7)
+        return LazyVGrid(columns: columns, spacing: 4) {
+            ForEach(Array(days.enumerated()), id: \.offset) { _, day in
+                if let day {
+                    historyCell(for: day)
+                } else {
+                    Color.clear.aspectRatio(1, contentMode: .fit)
                 }
             }
         }
     }
 
-    private func historyRow(log: WorkoutLog) -> some View {
-        HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(log.plannedWorkoutName.uppercased())
-                    .font(Font.unbound.bodyMStrong)
-                    .tracking(0.4)
-                    .foregroundStyle(Color.unbound.textPrimary)
-                Text(historyDateLabel(log.startedAt))
-                    .font(Font.unbound.captionS)
-                    .tracking(0.6)
-                    .foregroundStyle(Color.unbound.textTertiary)
+    @ViewBuilder
+    private func historyCell(for date: Date) -> some View {
+        let cal = Calendar.current
+        let isToday = cal.isDateInToday(date)
+        let dayLogs = logsOn(date)
+        let trained = !dayLogs.isEmpty
+
+        Button {
+            UnboundHaptics.soft()
+            if let log = dayLogs.first { selectedLog = log }
+        } label: {
+            ZStack {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(trained ? Color.unbound.accent.opacity(0.18) : Color.unbound.bg)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .strokeBorder(
+                                trained
+                                    ? Color.unbound.accent
+                                    : (isToday ? Color.unbound.accent.opacity(0.5) : Color.unbound.borderSubtle),
+                                lineWidth: (trained || isToday) ? 1.5 : 0.75
+                            )
+                    )
+
+                VStack(spacing: 0) {
+                    HStack {
+                        Spacer()
+                        if dayLogs.count > 1 {
+                            Text("\(dayLogs.count)")
+                                .font(.system(size: 8, weight: .black, design: .monospaced))
+                                .foregroundStyle(Color.unbound.accent)
+                                .padding(3)
+                                .background(Circle().fill(Color.black.opacity(0.45)))
+                                .padding(3)
+                        }
+                    }
+                    Spacer()
+                    HStack(spacing: 0) {
+                        Text("\(cal.component(.day, from: date))")
+                            .font(Font.unbound.monoS.weight(.bold))
+                            .foregroundStyle(
+                                trained
+                                    ? Color.unbound.textPrimary
+                                    : (isToday ? Color.unbound.accent : Color.unbound.textSecondary)
+                            )
+                            .monospacedDigit()
+                        Spacer()
+                        if trained {
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 8, weight: .black))
+                                .foregroundStyle(Color.unbound.accent)
+                        }
+                    }
+                    .padding(.horizontal, 5)
+                    .padding(.bottom, 4)
+                }
             }
-            Spacer()
-            if let mins = log.durationMinutes {
-                Text("\(mins) MIN")
-                    .font(Font.unbound.monoS)
-                    .foregroundStyle(Color.unbound.textSecondary)
-                    .monospacedDigit()
-            }
-            Image(systemName: "chevron.right")
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(Color.unbound.textTertiary)
+            .aspectRatio(1, contentMode: .fit)
         }
-        .padding(14)
-        .frame(maxWidth: .infinity)
+        .buttonStyle(.plain)
+        .disabled(!trained)
+    }
+
+    private var historyMonthSummary: some View {
+        let monthLogs = pastLogs.filter {
+            Calendar.current.isDate($0.startedAt, equalTo: historyMonth, toGranularity: .month)
+        }
+        let minutes = monthLogs.reduce(0) { $0 + ($1.durationMinutes ?? 0) }
+        return HStack(spacing: 8) {
+            historySummaryStat("SESSIONS", "\(monthLogs.count)")
+            historySummaryStat("MINUTES", "\(minutes)")
+            historySummaryStat("LIFETIME", "\(pastLogs.count)")
+        }
+    }
+
+    private func historySummaryStat(_ label: String, _ value: String) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(label)
+                .font(.system(size: 8, weight: .bold))
+                .tracking(1.1)
+                .foregroundStyle(Color.unbound.textTertiary)
+                .lineLimit(1)
+            Text(value)
+                .font(Font.unbound.monoM.weight(.bold))
+                .foregroundStyle(Color.unbound.textPrimary)
+                .monospacedDigit()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 9)
         .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color.unbound.surface)
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(Color.unbound.bg.opacity(0.72))
         )
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
+        )
+    }
+
+    // MARK: - History calendar data
+
+    private func logsOn(_ date: Date) -> [WorkoutLog] {
+        let cal = Calendar.current
+        return pastLogs
+            .filter { cal.isDate($0.startedAt, inSameDayAs: date) }
+            .sorted { $0.startedAt > $1.startedAt }
+    }
+
+    private func shiftHistoryMonth(by delta: Int) {
+        let cal = Calendar.current
+        guard let newMonth = cal.date(byAdding: .month, value: delta, to: historyMonth) else { return }
+        if newMonth > Self.monthStart(of: Date()) { return }
+        withAnimation(.easeInOut(duration: 0.2)) {
+            historyMonth = newMonth
+        }
+    }
+
+    private var isHistoryCurrentMonth: Bool {
+        Calendar.current.isDate(historyMonth, equalTo: Date(), toGranularity: .month)
+    }
+
+    private var historyMonthLabel: String {
+        let f = DateFormatter()
+        f.dateFormat = "MMMM yyyy"
+        return f.string(from: historyMonth).uppercased()
+    }
+
+    /// 42 slots (6 weeks × 7 days), Monday-first. Slots outside the
+    /// displayed month are nil (rendered as empty space).
+    private func historyDaysForMonth() -> [Date?] {
+        var cal = Calendar.current
+        cal.firstWeekday = 2
+        let firstOfMonth = Self.monthStart(of: historyMonth)
+        let weekdayOfFirst = cal.component(.weekday, from: firstOfMonth)
+        let leadingEmpty = (weekdayOfFirst + 5) % 7   // Mon = 0 … Sun = 6
+        let daysInMonth = (cal.range(of: .day, in: .month, for: firstOfMonth) ?? 1..<32).count
+        var slots: [Date?] = Array(repeating: nil, count: leadingEmpty)
+        for d in 0..<daysInMonth {
+            if let date = cal.date(byAdding: .day, value: d, to: firstOfMonth) {
+                slots.append(date)
+            }
+        }
+        while slots.count < 42 { slots.append(nil) }
+        return slots
+    }
+
+    private static func monthStart(of date: Date) -> Date {
+        let cal = Calendar.current
+        return cal.date(from: cal.dateComponents([.year, .month], from: date)) ?? date
     }
 
     @MainActor
@@ -1696,6 +1882,11 @@ struct ProgramOverviewView: View {
         let userId = services.auth.currentUserId ?? "anonymous"
         let logs = (try? await services.workoutLog.fetchRecentLogs(userId: userId, limit: 40)) ?? []
         pastLogs = logs.filter { $0.completedAt != nil }
+        // Land the calendar on the most recent session's month — never an
+        // empty grid for someone who trained last month but not yet this one.
+        if let latest = pastLogs.max(by: { $0.startedAt < $1.startedAt }) {
+            historyMonth = Self.monthStart(of: latest.startedAt)
+        }
     }
 
     @MainActor
@@ -1808,28 +1999,6 @@ struct ProgramOverviewView: View {
         return f.string(from: date)
     }
 
-    private func historyWeekLabel(_ date: Date) -> String {
-        let cal = Calendar.current
-        let now = Date()
-        let nowComps = cal.dateComponents([.yearForWeekOfYear, .weekOfYear], from: now)
-        let lastComps = cal.dateComponents(
-            [.yearForWeekOfYear, .weekOfYear],
-            from: cal.date(byAdding: .day, value: -7, to: now) ?? now
-        )
-        let itemComps = cal.dateComponents([.yearForWeekOfYear, .weekOfYear], from: date)
-        if itemComps == nowComps { return "THIS WEEK" }
-        if itemComps == lastComps { return "LAST WEEK" }
-        let f = DateFormatter()
-        f.dateFormat = "MMMM d"
-        return f.string(from: date).uppercased()
-    }
-
-    private func historyDateLabel(_ date: Date) -> String {
-        let f = DateFormatter()
-        f.dateFormat = "EEE MMM d · h:mm a"
-        return f.string(from: date)
-    }
-
     // MARK: - Legacy subviews
 
     private var subscriptionBanner: some View {
@@ -1880,53 +2049,6 @@ struct ProgramOverviewView: View {
     }
 }
 
-// MARK: - Routine library (placeholder)
-//
-// Hardcoded routines until a real RoutineService ships. Shape matches what
-// the real RoutineDef + categories will expose so wiring it later is a
-// data-source swap, not a view rewrite.
-
-enum RoutineCategory: CaseIterable, Hashable {
-    case cardio, mobility, challenge, altCircuit
-
-    var label: String {
-        switch self {
-        case .cardio:     return "CARDIO"
-        case .mobility:   return "MOBILITY"
-        case .challenge:  return "CHALLENGES"
-        case .altCircuit: return "ALT CIRCUITS"
-        }
-    }
-
-    var systemImage: String {
-        switch self {
-        case .cardio:     return "figure.run"
-        case .mobility:   return "figure.flexibility"
-        case .challenge:  return "flame.fill"
-        case .altCircuit: return "dumbbell.fill"
-        }
-    }
-
-    var color: Color {
-        switch self {
-        case .cardio:     return Color.unbound.coachCyan
-        case .mobility:   return Color.unbound.rankGreen
-        case .challenge:  return Color.unbound.warnOrange
-        case .altCircuit: return Color.unbound.accent
-        }
-    }
-}
-
-struct RoutineDef: Identifiable, Hashable {
-    let id: String
-    let title: String
-    let subtitle: String
-    let durationLabel: String
-    let category: RoutineCategory
-    let spReward: Int
-    var steps: [String] = []
-}
-
 // MARK: - RoutineCompletionStore
 //
 // UserDefaults-backed completion log for routines. One award per routine
@@ -1962,207 +2084,6 @@ enum RoutineCompletionStore {
         UserDefaults.standard.set(current + routine.spReward, forKey: gainsKey)
         return true
     }
-}
-
-enum RoutineLibrary {
-    static let placeholderRoutines: [RoutineDef] = [
-        // Cardio
-        RoutineDef(id: "z2-walk-20", title: "20-min Zone 2 walk",
-                   subtitle: "Keep HR in zone 2. Easy breathing, steady pace.",
-                   durationLabel: "~20 MIN", category: .cardio, spReward: 25,
-                   steps: ["Warm up 2 min slow walk", "Maintain conversational pace — can hold a sentence", "Target HR: 60–70% max (roughly 180 − your age)", "20 min steady. Do not surge.", "Cool down 1 min slow"]),
-
-        RoutineDef(id: "intervals-15", title: "15-min HR intervals",
-                   subtitle: "5 × 1-min hard / 1-min easy. Build conditioning.",
-                   durationLabel: "~15 MIN", category: .cardio, spReward: 35,
-                   steps: ["Warm up 5 min easy run or bike", "GO — 1 min max effort (sprint, bike, row)", "Recover — 1 min slow walk or easy spin", "Repeat × 5 rounds", "Cool down 3 min easy"]),
-
-        RoutineDef(id: "easy-bike-30", title: "30-min easy bike",
-                   subtitle: "Steady-state spin. Low impact recovery cardio.",
-                   durationLabel: "~30 MIN", category: .cardio, spReward: 30,
-                   steps: ["Adjust seat so leg extends ~90% at bottom", "RPM 80–90, resistance light to moderate", "Maintain steady breathing — nasal if possible", "30 min continuous. No breaks.", "Stretch quads and hip flexors after"]),
-
-        // Mobility
-        RoutineDef(id: "mobility-10", title: "Morning mobility flow",
-                   subtitle: "Spine, hips, shoulders. Wake the body up.",
-                   durationLabel: "~10 MIN", category: .mobility, spReward: 15,
-                   steps: ["Cat-cow × 10 reps (slow, full range)", "World's greatest stretch × 5/side", "Thread the needle × 8/side", "Hip 90-90 switches × 10 reps", "Shoulder circles forward + back × 10", "Deep squat hold 60 sec"]),
-
-        RoutineDef(id: "stretch-8", title: "Evening stretch",
-                   subtitle: "Cool-down flexibility. Hip openers, hamstring.",
-                   durationLabel: "~8 MIN", category: .mobility, spReward: 10,
-                   steps: ["Hamstring fold — 60 sec/side", "Pigeon pose — 60 sec/side", "Supine figure-4 stretch — 45 sec/side", "Seated forward fold — 60 sec", "Lying spinal twist — 30 sec/side"]),
-
-        RoutineDef(id: "hip-flow-15", title: "Hip flow",
-                   subtitle: "15-min mobility sequence targeting hip health.",
-                   durationLabel: "~15 MIN", category: .mobility, spReward: 20,
-                   steps: ["Hip circles × 10 each direction", "Deep lunge hold — 45 sec/side", "Side-lying clamshell × 15/side", "Frog stretch — 90 sec", "Hip flexor couch stretch — 60 sec/side", "Lateral band walk × 20 steps/side (bodyweight if no band)", "Glute bridge × 15 reps"]),
-
-        // Challenges
-        RoutineDef(id: "100-pushup", title: "100 pushup challenge",
-                   subtitle: "As many sets as it takes. Track your count.",
-                   durationLabel: "~15 MIN", category: .challenge, spReward: 50,
-                   steps: ["Set a timer", "Do as many push-ups as possible with good form", "Rest as needed — no time limit on rest", "Log your sets and counts", "Hit 100 total reps across however many sets", "Standard form: chest to 1 inch from floor, elbows 45°"]),
-
-        RoutineDef(id: "plank-ladder", title: "Plank ladder",
-                   subtitle: "30s / 45s / 60s / 75s / 90s — rest 30s between.",
-                   durationLabel: "~12 MIN", category: .challenge, spReward: 40,
-                   steps: ["Plank 30 sec → rest 30 sec", "Plank 45 sec → rest 30 sec", "Plank 60 sec → rest 30 sec", "Plank 75 sec → rest 30 sec", "Plank 90 sec — finish", "Cues: neutral spine, squeeze glutes, breathe steady"]),
-
-        RoutineDef(id: "tabata-core", title: "Tabata core",
-                   subtitle: "8 × 20s on / 10s off. 4 rotating moves.",
-                   durationLabel: "~8 MIN", category: .challenge, spReward: 45,
-                   steps: ["Set tabata timer: 20s on / 10s off × 8 rounds", "Round 1–2: Mountain climbers", "Round 3–4: Bicycle crunches", "Round 5–6: Hollow body hold", "Round 7–8: V-ups", "Max effort on every working set"]),
-
-        RoutineDef(id: "saitama-protocol", title: "Zero Limit Protocol",
-                   subtitle: "100 push-ups, 100 sit-ups, 100 squats, 10km run. Every. Single. Day.",
-                   durationLabel: "~60–90 MIN", category: .challenge, spReward: 200,
-                   steps: ["100 push-ups — break into sets, complete all", "100 sit-ups — full range, hands behind head", "100 bodyweight squats — parallel depth minimum", "10km run — any pace, no stopping", "No rest days. No excuses.", "Warning: this protocol exists. So does overtraining. Earn it."]),
-
-        RoutineDef(id: "8-gates-protocol", title: "8 Gates Protocol",
-                   subtitle: "8 rounds. Each gate adds a layer. You stop when your body does.",
-                   durationLabel: "~45 MIN", category: .challenge, spReward: 120,
-                   steps: [
-                       "Gate 1 — 10 push-ups",
-                       "Gate 2 — 10 push-ups + 15 squats",
-                       "Gate 3 — 10 push-ups + 15 squats + 10 dips (chair or bench)",
-                       "Gate 4 — 10 push-ups + 15 squats + 10 dips + 10 pull-ups (or 15 Australian rows)",
-                       "Gate 5 — repeat Gate 4 + 20 mountain climbers",
-                       "Gate 6 — repeat Gate 5 + 30s plank hold",
-                       "Gate 7 — repeat Gate 6 + 10 burpees",
-                       "Gate 8 — repeat Gate 7 + 400m sprint",
-                       "Rest 60–90s between gates. No skipping. No half gates.",
-                       "Warning: most people DNF after Gate 5. That's the point."
-                   ]),
-
-        RoutineDef(id: "beach-forge", title: "Beach Forge",
-                   subtitle: "Heavy carries, sprints, pull-ups. Zero to forged in 40 minutes.",
-                   durationLabel: "~40 MIN", category: .challenge, spReward: 90,
-                   steps: [
-                       "Farmer carry — 2 × heaviest DBs or loaded bags, 40m down and back × 4",
-                       "Rest 60s",
-                       "400m run (or 2 min treadmill at race pace)",
-                       "Rest 60s",
-                       "Pull-ups × max reps — 4 sets, rest 45s between",
-                       "Rest 90s",
-                       "Sandbag or loaded backpack squat × 15 reps — 3 sets",
-                       "Rest 60s",
-                       "400m run — final sprint, leave nothing",
-                       "Inspired by carrying dead weight every day until you're not weak anymore"
-                   ]),
-
-        RoutineDef(id: "underground-grind", title: "Underground Grind",
-                   subtitle: "Pull-ups, dips, push-ups, core. Pure calisthenics. No mercy.",
-                   durationLabel: "~30 MIN", category: .challenge, spReward: 85,
-                   steps: [
-                       "Pull-ups × max reps — do not break form",
-                       "Rest 45s",
-                       "Dips × max reps (parallel bars or between chairs)",
-                       "Rest 45s",
-                       "Diamond push-ups × 15",
-                       "Rest 45s",
-                       "Hanging leg raises × 12",
-                       "Rest 45s",
-                       "Repeat circuit 4 times total",
-                       "Finish: L-sit hold on bars or chairs — max duration × 3 attempts",
-                       "If you can't do pull-ups: Australian rows under a table, 15 reps"
-                   ]),
-
-        RoutineDef(id: "3d-maneuver-conditioning", title: "3D Conditioning",
-                   subtitle: "Core, grip, pulling power. Built for bodies that move in all directions.",
-                   durationLabel: "~25 MIN", category: .challenge, spReward: 70,
-                   steps: [
-                       "Dead hang — 60 sec (build grip and shoulder stability)",
-                       "Rest 30s",
-                       "Pull-ups × 8 — controlled descent (3 sec down)",
-                       "Rest 45s",
-                       "Tuck jumps × 10 — drive knees up hard",
-                       "Rest 30s",
-                       "Hollow body hold — 45 sec",
-                       "Rest 30s",
-                       "Explosive push-up × 10 (hands leave floor)",
-                       "Rest 45s",
-                       "Repeat 4 rounds",
-                       "Goal: move like you weigh nothing. Train like it costs something."
-                   ]),
-
-        RoutineDef(id: "daily-quest", title: "Daily Quest",
-                   subtitle: "The weakest start. The discipline compounds. Begin your rank climb.",
-                   durationLabel: "~20 MIN", category: .challenge, spReward: 50,
-                   steps: [
-                       "Push-ups × 30",
-                       "Sit-ups × 30",
-                       "Bodyweight squats × 30",
-                       "2km run (or 12-min treadmill walk/jog)",
-                       "This is the E-rank version. Do it every day for 2 weeks.",
-                       "Week 3: increase to 50 reps each + 5km",
-                       "Week 5: 100 reps each + 10km — you are no longer E-rank",
-                       "The only way to level up is to show up"
-                   ]),
-
-        RoutineDef(id: "thunder-circuit", title: "Thunder Circuit",
-                   subtitle: "Speed, power, explosiveness. Train the fast-twitch you've been ignoring.",
-                   durationLabel: "~20 MIN", category: .challenge, spReward: 65,
-                   steps: [
-                       "Broad jump × 6 — maximum distance each rep",
-                       "Rest 30s",
-                       "Sprint 40m × 6 (or 10-sec treadmill sprint) — full effort",
-                       "Rest 45s",
-                       "Clap push-ups × 8",
-                       "Rest 30s",
-                       "Jump squats × 12 — land soft, explode hard",
-                       "Rest 45s",
-                       "Lateral bounds × 10/side",
-                       "Rest 30s",
-                       "Repeat 3 rounds",
-                       "Every rep is a strike. Every second of rest is borrowed time."
-                   ]),
-
-        RoutineDef(id: "gravity-chamber", title: "Gravity Chamber",
-                   subtitle: "High volume. Every rep heavier than the last. Build the body that survives pressure.",
-                   durationLabel: "~50 MIN", category: .challenge, spReward: 110,
-                   steps: [
-                       "Weighted push-ups (plate or loaded pack on back) × 20 — 5 sets",
-                       "Rest 60s between sets",
-                       "Weighted squats (DBs at sides or barbell) × 15 — 5 sets",
-                       "Rest 90s between sets",
-                       "Pull-ups with weight belt or DB between legs × 8 — 4 sets",
-                       "Rest 60s between sets",
-                       "Weighted plank — 60 sec (plate on back) × 3",
-                       "Rest 45s between sets",
-                       "No equipment? Add 1 extra rep to every set. Volume is the weight.",
-                       "The chamber does not adjust to you. You adjust to the chamber."
-                   ]),
-
-        RoutineDef(id: "vessel-protocol", title: "Vessel Protocol",
-                   subtitle: "Strength and speed. The body is a weapon. Forge it like one.",
-                   durationLabel: "~35 MIN", category: .challenge, spReward: 95,
-                   steps: [
-                       "Clean and press (DBs or barbell) × 8 — 4 sets. Go heavy.",
-                       "Rest 60s",
-                       "Sprint 100m × 4 — walk back recovery between",
-                       "Rest 90s",
-                       "Single-arm DB row × 10/side — 3 sets. Drive the elbow, not the hand.",
-                       "Rest 45s",
-                       "Box jump or step-up jumps × 8 — 3 sets",
-                       "Rest 60s",
-                       "Bear crawl 20m forward + 20m backward × 3",
-                       "Rest 45s",
-                       "Finish: 50 push-ups any style — clock running",
-                       "A weapon with no edge is dead weight. Stay sharp."
-                   ]),
-
-        // Alt circuits
-        RoutineDef(id: "bw-full-30", title: "Bodyweight full-body",
-                   subtitle: "No equipment. Pushup, squat, lunge, plank.",
-                   durationLabel: "~30 MIN", category: .altCircuit, spReward: 40,
-                   steps: ["Push-ups × 15", "Bodyweight squats × 20", "Reverse lunges × 12/leg", "Pike push-ups × 10", "Glute bridges × 20", "Plank 45 sec", "Repeat circuit 3 rounds, 60 sec rest between"]),
-
-        RoutineDef(id: "db-full-25", title: "Dumbbell full-body",
-                   subtitle: "Compound circuit with a pair of DBs.",
-                   durationLabel: "~25 MIN", category: .altCircuit, spReward: 45,
-                   steps: ["DB goblet squat × 12", "DB Romanian deadlift × 10", "DB bent-over row × 10/arm", "DB shoulder press × 10", "DB chest press × 12", "DB curl × 12", "3 rounds, 90 sec rest between"])
-    ]
 }
 
 // MARK: - Routine challenge carousel
@@ -2420,133 +2341,6 @@ private struct RoutineChallengePressStyle: ButtonStyle {
 
 private extension RoutineDef {
     var coverAssetName: String { "routine_challenge_\(id)" }
-
-    var sideQuest: SideQuest {
-        let exercises = steps.isEmpty
-            ? [SideQuestExercise(
-                id: "\(id)-mission",
-                name: title,
-                sets: 1,
-                reps: "1",
-                restSeconds: 0,
-                cue: subtitle
-            )]
-            : steps.enumerated().map { index, step in
-                let parsed = RoutineStepParser.parse(step: step, fallbackIndex: index)
-                return SideQuestExercise(
-                    id: "\(id)-\(index)",
-                    name: parsed.name,
-                    sets: parsed.sets,
-                    reps: parsed.reps,
-                    restSeconds: parsed.restSeconds,
-                    cue: parsed.cue
-                )
-            }
-
-        return SideQuest(
-            id: id,
-            title: title,
-            subtitle: subtitle,
-            category: category.sideQuestCategory,
-            estimatedMinutes: estimatedMinutes,
-            spReward: spReward,
-            exercises: exercises
-        )
-    }
-
-    private var estimatedMinutes: Int {
-        let numbers = durationLabel.matches(for: #"\d+"#).compactMap(Int.init)
-        return numbers.first ?? max(5, steps.count * 3)
-    }
-}
-
-private extension RoutineCategory {
-    var sideQuestCategory: SideQuestCategory {
-        switch self {
-        case .cardio: return .cardio
-        case .mobility: return .mobility
-        case .challenge, .altCircuit: return .circuit
-        }
-    }
-}
-
-private enum RoutineStepParser {
-    static func parse(step: String, fallbackIndex: Int) -> (name: String, sets: Int, reps: String, restSeconds: Int, cue: String) {
-        let clean = step.trimmingCharacters(in: .whitespacesAndNewlines)
-        let lower = clean.lowercased()
-        let name = parsedName(from: clean, fallbackIndex: fallbackIndex)
-        let sets = parsedSets(from: clean)
-        let reps = parsedReps(from: clean, lower: lower)
-        let rest = parsedRest(from: lower)
-        return (name, sets, reps, rest, clean)
-    }
-
-    private static func parsedName(from step: String, fallbackIndex: Int) -> String {
-        let separators = [" — ", " - ", " → ", " × ", " x "]
-        for separator in separators {
-            if let range = step.range(of: separator) {
-                let name = String(step[..<range.lowerBound]).trimmingCharacters(in: .whitespacesAndNewlines)
-                if !name.isEmpty { return name }
-            }
-        }
-        let clipped = step.components(separatedBy: ".").first ?? step
-        let trimmed = clipped.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? "Step \(fallbackIndex + 1)" : trimmed
-    }
-
-    private static func parsedSets(from step: String) -> Int {
-        guard let value = step.firstMatch(for: #"(?i)(\d+)\s*(sets|rounds)"#) else { return 1 }
-        return Int(value) ?? 1
-    }
-
-    private static func parsedReps(from step: String, lower: String) -> String {
-        if lower.contains("amrap") || lower.contains("max reps") || lower.contains("max duration") {
-            return "AMRAP"
-        }
-        if lower.contains("km") {
-            return "1"
-        }
-        if lower.contains("min"), let value = step.firstMatch(for: #"(\d+)\s*[-–]?\s*\d*\s*min"#).flatMap(Int.init) {
-            return "\(value * 60)s"
-        }
-        if lower.contains("sec"), let value = step.firstMatch(for: #"(\d+)\s*sec"#).flatMap(Int.init) {
-            return "\(value)s"
-        }
-        if lower.contains("s "), let value = step.firstMatch(for: #"(\d+)s"#).flatMap(Int.init) {
-            return "\(value)s"
-        }
-        if let value = step.firstMatch(for: #"[×x]\s*(\d+)"#) {
-            return value
-        }
-        return step.firstMatch(for: #"(\d+)"#) ?? "1"
-    }
-
-    private static func parsedRest(from lower: String) -> Int {
-        if let value = lower.firstMatch(for: #"rest\s*(\d+)"#).flatMap(Int.init) {
-            return value
-        }
-        return 30
-    }
-}
-
-private extension String {
-    func matches(for pattern: String) -> [String] {
-        guard let regex = try? NSRegularExpression(pattern: pattern) else { return [] }
-        let range = NSRange(startIndex..<endIndex, in: self)
-        return regex.matches(in: self, range: range).compactMap { match in
-            guard let range = Range(match.range, in: self) else { return nil }
-            return String(self[range])
-        }
-    }
-
-    func firstMatch(for pattern: String) -> String? {
-        guard let regex = try? NSRegularExpression(pattern: pattern) else { return nil }
-        let range = NSRange(startIndex..<endIndex, in: self)
-        guard let match = regex.firstMatch(in: self, range: range) else { return nil }
-        let captureIndex = match.numberOfRanges > 1 ? 1 : 0
-        guard let matchRange = Range(match.range(at: captureIndex), in: self) else { return nil }
-        return String(self[matchRange])
-    }
 }
 
 private struct RoutineRewardPayload: Identifiable, Hashable {
