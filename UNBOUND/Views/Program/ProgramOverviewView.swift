@@ -1549,25 +1549,6 @@ struct ProgramOverviewView: View {
             .frame(height: 356)
 
             RoutineChallengeDots(challenges: items, selectedId: selectedId)
-
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 10) {
-                    ForEach(items) { routine in
-                        Button {
-                            withAnimation(.spring(response: 0.34, dampingFraction: 0.82)) {
-                                selectedRoutineIdsByCategory[category] = routine.id
-                            }
-                        } label: {
-                            RoutineChallengePill(
-                                routine: routine,
-                                isSelected: selectedId == routine.id
-                            )
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .padding(.vertical, 2)
-            }
         }
     }
 
