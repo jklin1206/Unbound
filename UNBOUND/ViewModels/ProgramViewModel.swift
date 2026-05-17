@@ -17,11 +17,34 @@ final class ProgramViewModel {
     }
 
     func loadProgram(programId: String) async {
+        let store = ProgramStore.shared
+        let userId = services.auth.currentUserId
+
+        // Local-first: paint instantly from the durable copy, then revalidate
+        // (cheap id-compare; only a new programId triggers a network fetch).
+        if let userId, let cached = store.loadLocal(userId: userId), cached.id == programId {
+            self.program = cached
+            state = .loaded(cached)
+            services.analytics.track(.programViewed(programId: programId))
+            await loadTrackingData()
+            await store.revalidate(userId: userId, expectedProgramId: programId)
+            if let refreshed = store.program, refreshed.id != cached.id {
+                self.program = refreshed
+                state = .loaded(refreshed)
+                await loadTrackingData()
+            }
+            return
+        }
+
+        // No usable local copy (first run / different id) → network, then
+        // adopt as the clean local authority.
         state = .loading
         do {
-            let program: TrainingProgram = try await services.database.read(collection: "programs", documentId: programId)
-            self.program = program
-            state = .loaded(program)
+            let fetched: TrainingProgram = try await services.database.read(
+                collection: "programs", documentId: programId)
+            self.program = fetched
+            state = .loaded(fetched)
+            if let userId { store.adopt(fetched, userId: userId) }
             services.analytics.track(.programViewed(programId: programId))
             await loadTrackingData()
         } catch {
@@ -107,24 +130,16 @@ final class ProgramViewModel {
         }
     }
 
-    /// Persist the full program back to the document store. Best-effort —
-    /// FS errors are logged but not surfaced (the in-memory mutation has
-    /// already happened, so the user sees their edit immediately).
+    /// Persist the full program. Durable-local-first via ProgramStore (the
+    /// edit survives offline / app-kill), then best-effort remote sync.
     func saveProgram() async {
         guard let program else { return }
-        do {
-            try await services.database.create(
-                program,
-                collection: "programs",
-                documentId: program.id
-            )
-        } catch {
-            services.logging.log(
-                "saveProgram failed: \(error)",
-                level: .warning,
-                context: ["programId": program.id]
-            )
+        guard let userId = services.auth.currentUserId else {
+            services.logging.log("saveProgram: no user id", level: .warning,
+                                  context: ["programId": program.id])
+            return
         }
+        await ProgramStore.shared.save(program, userId: userId)
     }
 
     // MARK: - Private mutation helpers
