@@ -62,7 +62,15 @@ struct UnboundApp: App {
                 }
                 .task { SyncTriggers.shared.start() }
                 .onChange(of: scenePhase) { _, phase in
-                    if phase == .active { Task { await SyncEngine.shared.flush() } }
+                    if phase == .active {
+                        Task { await SyncEngine.shared.flush() }
+                        if let uid = services.auth.currentUserId {
+                            Task {
+                                await RolloverCoordinator.shared
+                                    .evaluateOnForeground(userId: uid, services: services)
+                            }
+                        }
+                    }
                 }
         }
     }
@@ -123,6 +131,20 @@ struct RootView: View {
                     // Trials: roll week on Monday or first launch. Marks prior
                     // uncompleted trial as .missed and generates 3 fresh cards.
                     await services.trials.ensureCurrentWeek(userId: userId)
+                    // Restore-on-sign-in: if this device has no local program
+                    // cache for the user, pull their data down once and
+                    // rehydrate the active program. Gated on "no local cache"
+                    // so it does NOT run on every launch.
+                    if ProgramStore.shared.loadLocal(userId: userId) == nil {
+                        try? await SyncEngine.shared.restore(userId: userId)
+                        if let profile: UserProfile = try? await DatabaseService.shared
+                            .read(collection: "users", documentId: userId),
+                           let pid = profile.currentProgramId,
+                           let prog: TrainingProgram = try? await DatabaseService.shared
+                            .read(collection: "programs", documentId: pid) {
+                            ProgramStore.shared.adopt(prog, userId: userId)
+                        }
+                    }
                     // One-time skill-tier migration: replay full log history
                     // to seed UserSkillTierState. Idempotent — guarded by
                     // a UserDefaults flag so it only runs once per user.
