@@ -50,9 +50,17 @@ is **out of scope here**.
 6. **Exercise-detail screen redesigned premium.** The Target Muscles /
    Programming / Form Cues screen (`WorkoutDetailView`) is reworked: no giant
    wrapping monospace, real type hierarchy and spacing, on-brand, restrained.
-7. **New onboarding RPE teach-and-try step.** One short onboarding screen
-   explains the green/yellow/red idea and lets the user tap a sample set dot
-   through the three colors once, so they understand it before real sessions.
+7. **New onboarding RPE sandbox step ("try the app").** A dedicated slide that
+   is a real mini logging session, not a passive demo: an example **Bench
+   Press with 3 sets**, rendered with the ACTUAL production `ExerciseLogCard`
+   /`SetLogGridRow` components backed by a throwaway in-memory
+   `ActiveWorkoutSession`, prefilled (e.g. 60kg×8) so the user can immediately
+   log all 3 sets and tap the RPE dot to feel green/yellow/red. Cells are
+   tappable to edit (real stepper) so they can "type in a set." Copy explains
+   what RPE *is* (how hard the set felt → it tunes your program) and the
+   reinforcement line updates after they've logged all 3. Continue ("GOT IT")
+   is always tappable (non-blocking) with a gentle nudge until first
+   interaction — onboarding must never trap the user.
 
 ## What survives from the sub-project A build (do NOT rebuild)
 
