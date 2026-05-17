@@ -46,11 +46,11 @@ final class ActiveWorkoutSessionTests: XCTestCase {
         s.logCurrentSet(weightKg: 80, reps: 7); s.advance()
         XCTAssertTrue(s.isLastSetOfWorkout)
     }
-    func test_setEffort_storesOnCurrentSet() {
+    func test_setRPE_storesOnCurrentSet() {
         let s = ActiveWorkoutSession(workout: workout(), programId: "p", dayNumber: 1)
         s.logCurrentSet(weightKg: 80, reps: 8)
-        s.setEffort(.hard)
-        XCTAssertEqual(s.exercises[0].sets[0].effort, .hard)
+        s.setRPE(exerciseIndex: 0, setIndex: 0, 9)
+        XCTAssertEqual(s.exercises[0].sets[0].rpe, 9)
     }
     func test_addAndRemoveSet() {
         let s = ActiveWorkoutSession(workout: workout(), programId: "p", dayNumber: 1)
@@ -75,8 +75,12 @@ final class ActiveWorkoutSessionTests: XCTestCase {
     }
     func test_assembleWorkoutLog_matchesModel() {
         let s = ActiveWorkoutSession(workout: workout(), programId: "p", dayNumber: 1)
-        s.logCurrentSet(weightKg: 80, reps: 8); s.setEffort(.solid); s.advance()
-        s.logCurrentSet(weightKg: 82.5, reps: 6); s.setEffort(.hard); s.advance()
+        s.logCurrentSet(weightKg: 80, reps: 8)
+        s.setRPE(exerciseIndex: 0, setIndex: 0, 8)
+        s.advance()
+        s.logCurrentSet(weightKg: 82.5, reps: 6)
+        s.setRPE(exerciseIndex: 0, setIndex: 1, 9)
+        s.advance()
         s.skipCurrentExercise()
         let log = s.assembleWorkoutLog(userId: "u")
         XCTAssertEqual(log.userId, "u")
@@ -98,12 +102,14 @@ final class ActiveWorkoutSessionTests: XCTestCase {
     }
     func test_snapshotRoundTrip() throws {
         let s = ActiveWorkoutSession(workout: workout(), programId: "p", dayNumber: 1)
-        s.logCurrentSet(weightKg: 80, reps: 8); s.setEffort(.solid); s.advance()
+        s.logCurrentSet(weightKg: 80, reps: 8)
+        s.setRPE(exerciseIndex: 0, setIndex: 0, 8)
+        s.advance()
         let data = try JSONEncoder().encode(s.snapshot())
         let snap = try JSONDecoder().decode(ActiveWorkoutSession.Snapshot.self, from: data)
         let restored = ActiveWorkoutSession(snapshot: snap)
         XCTAssertEqual(restored.exercises[0].sets[0].weightKg, 80)
-        XCTAssertEqual(restored.exercises[0].sets[0].effort, .solid)
+        XCTAssertEqual(restored.exercises[0].sets[0].rpe, 8)
         XCTAssertEqual(restored.currentSetIndex, 1)
         XCTAssertEqual(restored.plannedWorkoutName, "Push")
     }

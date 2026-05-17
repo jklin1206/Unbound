@@ -8,7 +8,7 @@ final class ActiveWorkoutSession: ObservableObject {
         let id: String
         var weightKg: Double?
         var reps: Int?
-        var effort: Effort?
+        var rpe: Int?
         var isWarmup: Bool
         var logged: Bool
     }
@@ -62,7 +62,7 @@ final class ActiveWorkoutSession: ObservableObject {
                 muscleGroups: ex.muscleGroups,
                 sets: (0..<max(1, ex.sets)).map { _ in
                     ActiveSet(id: UUID().uuidString, weightKg: nil, reps: nil,
-                              effort: nil, isWarmup: false, logged: false)
+                              rpe: nil, isWarmup: false, logged: false)
                 },
                 skipped: false,
                 notes: ""
@@ -107,12 +107,6 @@ final class ActiveWorkoutSession: ObservableObject {
         exercises[currentExerciseIndex].sets[currentSetIndex].logged = true
     }
 
-    func setEffort(_ effort: Effort) {
-        guard exercises.indices.contains(currentExerciseIndex),
-              exercises[currentExerciseIndex].sets.indices.contains(currentSetIndex) else { return }
-        exercises[currentExerciseIndex].sets[currentSetIndex].effort = effort
-    }
-
     func toggleCurrentWarmup() {
         guard exercises.indices.contains(currentExerciseIndex),
               exercises[currentExerciseIndex].sets.indices.contains(currentSetIndex) else { return }
@@ -147,7 +141,7 @@ final class ActiveWorkoutSession: ObservableObject {
         guard exercises.indices.contains(currentExerciseIndex) else { return }
         exercises[currentExerciseIndex].sets.append(
             ActiveSet(id: UUID().uuidString, weightKg: nil, reps: nil,
-                      effort: nil, isWarmup: false, logged: false))
+                      rpe: nil, isWarmup: false, logged: false))
     }
 
     func removeLastSetFromCurrentExercise() {
@@ -172,38 +166,25 @@ final class ActiveWorkoutSession: ObservableObject {
 
     // MARK: Index-addressed mutators (grid logs any set in any order)
 
-    private static let effortCycle: [Effort] = [.easy, .solid, .hard]
-
     func logSet(exerciseIndex ei: Int, setIndex si: Int, weightKg: Double?, reps: Int?) {
         guard exercises.indices.contains(ei),
               exercises[ei].sets.indices.contains(si) else { return }
         exercises[ei].sets[si].weightKg = weightKg
         exercises[ei].sets[si].reps = reps
         exercises[ei].sets[si].logged = true
-        if exercises[ei].sets[si].effort == nil {
-            exercises[ei].sets[si].effort = .solid
-        }
     }
 
-    func setEffort(exerciseIndex ei: Int, setIndex si: Int, _ effort: Effort) {
+    func setRPE(exerciseIndex ei: Int, setIndex si: Int, _ rpe: Int?) {
         guard exercises.indices.contains(ei),
               exercises[ei].sets.indices.contains(si) else { return }
-        exercises[ei].sets[si].effort = effort
-    }
-
-    func cycleEffort(exerciseIndex ei: Int, setIndex si: Int) {
-        guard exercises.indices.contains(ei),
-              exercises[ei].sets.indices.contains(si) else { return }
-        let current = exercises[ei].sets[si].effort ?? .solid
-        let idx = Self.effortCycle.firstIndex(of: current) ?? 1
-        exercises[ei].sets[si].effort = Self.effortCycle[(idx + 1) % Self.effortCycle.count]
+        exercises[ei].sets[si].rpe = rpe
     }
 
     func addSet(toExerciseIndex ei: Int) {
         guard exercises.indices.contains(ei) else { return }
         exercises[ei].sets.append(
             ActiveSet(id: UUID().uuidString, weightKg: nil, reps: nil,
-                      effort: nil, isWarmup: false, logged: false))
+                      rpe: nil, isWarmup: false, logged: false))
     }
 
     func removeLastSet(fromExerciseIndex ei: Int) {
@@ -226,7 +207,7 @@ final class ActiveWorkoutSession: ObservableObject {
                         setNumber: i + 1,
                         weightKg: set.weightKg,
                         reps: set.reps ?? 0,
-                        rpe: set.effort?.rpe,
+                        rpe: set.rpe,
                         isWarmup: set.isWarmup
                     )
                 },
