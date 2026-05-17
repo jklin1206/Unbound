@@ -10,8 +10,18 @@
 
 **Spec:** `docs/superpowers/specs/2026-05-17-offline-sync-outbox-design.md`
 
-**Build command (used throughout):**
-`xcodebuild build -scheme UNBOUND -destination 'platform=iOS Simulator,name=iPhone 17' -quiet`
+**⚠️ PROJECT USES XCODEGEN — file registration mechanism (global, applies to every task):**
+`UNBOUND.xcodeproj/project.pbxproj` is **generated and gitignored**. `project.yml`
+is the source of truth and globs all files under `UNBOUND/` and `UNBOUNDTests/`.
+After creating ANY new `.swift` file you MUST run `xcodegen generate` **before**
+building/testing, or the new file won't be in the target. Do NOT hand-edit
+`project.pbxproj` (it gets clobbered). New files do not need manual project
+edits — `xcodegen generate` picks them up via globbing. `xcodegen` is at
+`/opt/homebrew/bin/xcodegen`. The `.xcodeproj` itself is committed; the
+gitignored `project.pbxproj` is not — so commits only include `.swift`/doc files.
+
+**Build command (used throughout — run `xcodegen generate` first if files were added):**
+`xcodegen generate && xcodebuild build -scheme UNBOUND -destination 'platform=iOS Simulator,name=iPhone 17' -quiet`
 
 **Test command (per suite):**
 `xcodebuild test -scheme UNBOUND -destination 'platform=iOS Simulator,name=iPhone 17' -only-testing:UNBOUNDTests/<SuiteName> -quiet 2>&1 | tail -20`
