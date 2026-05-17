@@ -1826,35 +1826,27 @@ struct UnboundHomeView: View {
         let userId = services.auth.currentUserId ?? "anonymous"
         services.badges.bind(userId: userId)
 
-        await SkillProgressService.shared.load(userId: userId)
-        await RankDecayService.shared.evaluateOnForeground(userId: userId)
+        async let skillLoad: Void = SkillProgressService.shared.load(userId: userId)
+        async let rankDecay: Void = RankDecayService.shared.evaluateOnForeground(userId: userId)
+        async let plateausResult: [PlateauedExercise] = {
+            let states = await ProgressionStateStore.shared.fetchAll(userId: userId)
+            return await PlateauDetector.shared.detect(userId: userId, states: states)
+        }()
+        async let profileProgram: (UserProfile?, TrainingProgram?) = loadProfileAndProgram(userId)
+        async let recentLogs: [WorkoutLog] = fetchRecentLogsSafe(userId: userId, limit: 40)
+        async let ranks: (SubRank, SkillTier) = loadRanks(userId)
+        async let travel: TravelOverride? = TravelOverrideStore.shared.activeOverride(for: userId)
+        async let coach: CoachNote? = CoachNotesService.shared.todaysNote(userId: userId)
 
-        let progressionStates = await ProgressionStateStore.shared.fetchAll(userId: userId)
-        plateaus = await PlateauDetector.shared.detect(userId: userId, states: progressionStates)
-        await refreshCalibrationState()
+        _ = await skillLoad
+        _ = await rankDecay
+        plateaus = await plateausResult
 
-        do {
-            let fetched: UserProfile = try await services.user.fetchProfile(userId: userId)
-            profile = fetched
-
-            if let programId = fetched.currentProgramId,
-               let existing: TrainingProgram = try? await services.database.read(
-                collection: "programs", documentId: programId
-               ) {
-                program = existing
-            } else {
-                let generated = await ProgramGenerationService.shared.generateFromOnboarding(
-                    userId: userId,
-                    targetFrequency: fetched.targetFrequency,
-                    equipment: Set(fetched.equipment ?? []),
-                    experience: fetched.experience,
-                    sessionLength: fetched.sessionLength,
-                    exerciseStyles: [],
-                    targetAreas: Set(fetched.targetAreas ?? [])
-                )
-                program = generated
-            }
-        } catch {
+        let (fetchedProfile, loadedProgram) = await profileProgram
+        if let fetchedProfile {
+            profile = fetchedProfile
+            program = loadedProgram
+        } else {
             profile = UserProfile(
                 id: userId, email: nil, displayName: nil,
                 createdAt: Date(), onboardingCompleted: true, totalScans: 0,
@@ -1863,21 +1855,23 @@ struct UnboundHomeView: View {
             )
         }
 
-        await refreshSessionXP()
-        await refreshRanksAndStats()
-        await refreshLastLog()
-        await refreshWeeklyRhythm()
-        await refreshTravelOverride()
-        await refreshCoachNote()
+        applyRecentLogs(await recentLogs)
 
+        let (r, t) = await ranks
+        aggregateRank = r
+        aggregateTier = t
+        activeTravelOverride = await travel
+        coachNote = await coach
+
+        // Cheap synchronous reads — keep last, same values as before.
+        sessionXP = services.sessionXP.record(userId: userId)
+        calibrationSkipRatio = services.calibration.skipRatio(userId: userId)
         attributeProfile = services.attribute.profile(userId: userId)
 
-        // Load scan cadence for ScanDueCard
         let history = (try? ScanCheckpointStore.shared.history(userId: userId)) ?? []
         lastScanAt = history.last?.createdAt
         scanCadence = ScanCadenceState.compute(lastScanAt: lastScanAt, now: .now)
 
-        // Load trials state
         trialsState = services.trials.state(userId: userId)
 
         isLoading = false
@@ -1887,6 +1881,52 @@ struct UnboundHomeView: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             startAmbientAnimations()
         }
+    }
+
+    private func loadProfileAndProgram(_ userId: String) async -> (UserProfile?, TrainingProgram?) {
+        do {
+            let fetched: UserProfile = try await services.user.fetchProfile(userId: userId)
+            if let programId = fetched.currentProgramId {
+                if let existing: TrainingProgram = try? await services.database.read(
+                    collection: "programs", documentId: programId) {
+                    return (fetched, existing)
+                }
+                // programId present but read failed — do NOT kick a multi-second
+                // Claude generate on a transient blip (that was the old stuck
+                // regenerate loop). Surface no program; next load retries.
+                return (fetched, nil)
+            }
+            // Genuine first run: no program id yet.
+            let generated = await ProgramGenerationService.shared.generateFromOnboarding(
+                userId: userId,
+                targetFrequency: fetched.targetFrequency,
+                equipment: Set(fetched.equipment ?? []),
+                experience: fetched.experience,
+                sessionLength: fetched.sessionLength,
+                exerciseStyles: [],
+                targetAreas: Set(fetched.targetAreas ?? [])
+            )
+            return (fetched, generated)
+        } catch {
+            return (nil, nil)
+        }
+    }
+
+    private func loadRanks(_ userId: String) async -> (SubRank, SkillTier) {
+        async let r = services.rank.aggregateRank(userId: userId)
+        async let t = services.rank.aggregateTier(userId: userId)
+        return (await r, await t)
+    }
+
+    private func fetchRecentLogsSafe(userId: String, limit: Int) async -> [WorkoutLog] {
+        (try? await services.workoutLog.fetchRecentLogs(userId: userId, limit: limit)) ?? []
+    }
+
+    @MainActor
+    private func applyRecentLogs(_ logs: [WorkoutLog]) {
+        lastLog = HomeLoadDerivations.lastLog(logs)
+        hasLoggedAnyWorkout = HomeLoadDerivations.hasLogged(logs)
+        weekSessionDays = HomeLoadDerivations.weekSessionDays(logs.map(\.startedAt))
     }
 
     @MainActor
@@ -1912,20 +1952,7 @@ struct UnboundHomeView: View {
     private func refreshWeeklyRhythm() async {
         let userId = services.auth.currentUserId ?? "anonymous"
         let logs = (try? await services.workoutLog.fetchRecentLogs(userId: userId, limit: 14)) ?? []
-        var cal = Calendar.current
-        cal.firstWeekday = 2 // Monday
-        let components = cal.dateComponents([.yearForWeekOfYear, .weekOfYear], from: Date())
-        guard let weekStart = cal.date(from: components) else {
-            weekSessionDays = []
-            return
-        }
-        var days: Set<Int> = []
-        for log in logs where log.startedAt >= weekStart {
-            let weekday = cal.component(.weekday, from: log.startedAt)
-            let monIndex = ((weekday + 5) % 7) + 1
-            days.insert(monIndex)
-        }
-        weekSessionDays = days
+        weekSessionDays = HomeLoadDerivations.weekSessionDays(logs.map(\.startedAt))
     }
 
     @MainActor
