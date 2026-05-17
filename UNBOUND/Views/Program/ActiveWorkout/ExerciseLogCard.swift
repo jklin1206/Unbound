@@ -2,32 +2,71 @@ import SwiftUI
 
 struct ExerciseLogCard: View {
     let name: String
+    let plannedSets: Int
+    let plannedReps: String
+    let targetRPE: Int?
+    let restSeconds: Int
+    let muscleGroups: [MuscleGroup]
+    let formCues: String?
+    let substitution: String?
     let isWarmupCurrent: Bool
     let sets: [ActiveWorkoutSession.ActiveSet]
+    let isExpanded: Bool
+    let onToggleExpand: () -> Void
     let onIntent: (OverflowIntent) -> Void
     let onEditWeight: (Int) -> Void
     let onEditReps: (Int) -> Void
-    let onLog: (Int) -> Void
     let onPickRPE: (Int) -> Void
+    let onConfirmAsPlanned: (Int) -> Void
     let onAddSet: () -> Void
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                Text(name)
-                    .font(Font.unbound.titleM)
-                    .foregroundStyle(Color.unbound.textPrimary)
+            HStack(spacing: 10) {
+                Button(action: onToggleExpand) {
+                    HStack(spacing: 8) {
+                        Text(name)
+                            .font(Font.unbound.titleM)
+                            .foregroundStyle(Color.unbound.textPrimary)
+                            .multilineTextAlignment(.leading)
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(Color.unbound.textTertiary)
+                            .rotationEffect(.degrees(isExpanded ? 180 : 0))
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
                 Spacer()
                 ExerciseOverflowMenu(isWarmup: isWarmupCurrent, onIntent: onIntent)
             }
-            .padding(.bottom, 4)
+
+            Text(targetCaption)
+                .font(Font.unbound.captionS)
+                .foregroundStyle(Color.unbound.textTertiary)
+                .padding(.bottom, isExpanded ? 0 : 6)
+
+            if isExpanded {
+                Divider().overlay(Color.unbound.borderSubtle).padding(.vertical, 10)
+                ExerciseDetailSections(
+                    muscleGroups: muscleGroups,
+                    sets: plannedSets,
+                    reps: plannedReps,
+                    restSeconds: restSeconds,
+                    formCues: formCues,
+                    substitution: substitution
+                )
+                .padding(.bottom, 14)
+            }
 
             HStack(spacing: 8) {
                 Text("SET").frame(width: 20, alignment: .leading)
                 Text("WEIGHT").frame(maxWidth: .infinity)
                 Text("REPS").frame(maxWidth: .infinity)
                 Text("RPE").frame(width: 44)
-                Spacer().frame(width: 40)        // ✓ column, unlabeled
+                Spacer().frame(width: 40)
             }
             .font(Font.unbound.captionS)
             .tracking(1.2)
@@ -39,11 +78,14 @@ struct ExerciseLogCard: View {
                     weightKg: set.weightKg,
                     reps: set.reps,
                     rpe: set.rpe,
+                    suggestedWeightKg: set.suggestedWeightKg,
+                    suggestedReps: set.suggestedReps,
+                    suggestedRPE: set.suggestedRPE,
                     logged: set.logged,
                     onEditWeight: { onEditWeight(idx) },
                     onEditReps: { onEditReps(idx) },
                     onPickRPE: { onPickRPE(idx) },
-                    onLog: { onLog(idx) }
+                    onConfirmAsPlanned: { onConfirmAsPlanned(idx) }
                 )
                 if idx < sets.count - 1 {
                     Divider().overlay(Color.unbound.borderSubtle)
@@ -60,6 +102,20 @@ struct ExerciseLogCard: View {
         }
         .padding(18)
         .background(RoundedRectangle(cornerRadius: 20).fill(Color.unbound.surface))
-        .overlay(RoundedRectangle(cornerRadius: 20).strokeBorder(Color.unbound.border, lineWidth: 1))
+        .overlay(RoundedRectangle(cornerRadius: 20)
+            .strokeBorder(Color.unbound.border, lineWidth: 1))
+        .animation(reduceMotion ? nil : .spring(response: 0.34, dampingFraction: 0.85),
+                   value: isExpanded)
+    }
+
+    private var targetCaption: String {
+        var parts = ["Target · \(plannedSets) × \(plannedReps)"]
+        if let r = targetRPE { parts.append("RPE \(r)") }
+        parts.append("rest \(Self.mmss(restSeconds))")
+        return parts.joined(separator: " · ")
+    }
+
+    private static func mmss(_ s: Int) -> String {
+        "\(s / 60):" + String(format: "%02d", s % 60)
     }
 }
