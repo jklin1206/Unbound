@@ -103,13 +103,18 @@ struct ProgramOverviewView: View {
             let vm = ProgramViewModel(services: services)
             self.viewModel = vm
             guard let userId = services.auth.currentUserId else { return }
+
+            // History + travel don't depend on the profile — run them
+            // concurrently with the profile→program chain instead of after it.
+            async let historyDone: Void = refreshHistory()
+            async let travelDone: Void = refreshTravelOverride()
+
             do {
                 let profile: UserProfile = try await services.user.fetchProfile(userId: userId)
                 if let programId = profile.currentProgramId {
                     await vm.loadProgram(programId: programId)
                 } else {
-                    // Onboarding is done but currentProgramId isn't saved yet
-                    // (DB write may have failed). Generate and save now.
+                    // Onboarding done but currentProgramId not saved yet.
                     vm.state = .loading
                     let generated = await ProgramGenerationService.shared.generateFromOnboarding(
                         userId: userId,
@@ -124,13 +129,13 @@ struct ProgramOverviewView: View {
                     vm.state = .loaded(generated)
                 }
             } catch {}
-            await refreshHistory()
-            await refreshTravelOverride()
+
+            _ = await historyDone
+            _ = await travelDone
 
             // Prefetch today's session for every active goal so tapping
-            // TRAIN from the TODAY'S TRAINING section is instant. Fire each
-            // in its own task — failures fall back gracefully when user
-            // actually opens the session view.
+            // TRAIN is instant. Each in its own detached task; failures fall
+            // back gracefully when the session view actually opens.
             for goalId in skillProgress.activeGoalIds {
                 Task.detached { @MainActor in
                     await RPESessionService.shared.prefetch(
