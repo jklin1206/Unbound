@@ -19,7 +19,6 @@ import Foundation
 final class ScanComparisonService: @unchecked Sendable {
     static let shared = ScanComparisonService()
 
-    private let gemini = GeminiClient.shared
     private let database = DatabaseService.shared
     private let logger = LoggingService.shared
 
@@ -64,17 +63,22 @@ final class ScanComparisonService: @unchecked Sendable {
 
         let llm: ScanComparisonLLMOutput
         do {
-            llm = try await gemini.generateStructured(
+            llm = try await ClaudeClient.shared.sendStructuredWithImages(
                 ScanComparisonLLMOutput.self,
-                systemInstruction: Self.systemPrompt,
+                model: .sonnet46,
+                system: Self.systemPrompt,
                 userText: Self.userPrompt,
                 jpegImages: [baselineJPEG, comparisonJPEG],
-                responseSchema: schema,
-                maxOutputTokens: 1024,
+                tool: ClaudeClient.Tool(
+                    name: "scan_comparison",
+                    description: "Return the structured scan comparison delta.",
+                    inputSchema: schema
+                ),
+                maxTokens: 1024,
                 temperature: 0.3
             )
         } catch {
-            logger.log("ScanComparison: Gemini failed: \(error)", level: .warning,
+            logger.log("ScanComparison: Claude failed: \(error)", level: .warning,
                        context: ["userId": userId])
             return nil
         }
