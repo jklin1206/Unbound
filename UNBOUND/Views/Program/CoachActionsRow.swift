@@ -672,13 +672,17 @@ private struct TravelAdjustSheet: View {
 
         do {
             let schema = try JSONValue.fromJSONString(schemaJSON)
-            let result: TravelPlanLLM = try await GeminiClient.shared.generateStructured(
+            let result: TravelPlanLLM = try await ClaudeClient.shared.sendStructured(
                 TravelPlanLLM.self,
-                systemInstruction: systemPrompt,
+                model: .haiku45,
+                system: systemPrompt,
                 userText: userPrompt,
-                jpegImages: [],
-                responseSchema: schema,
-                maxOutputTokens: 1024,
+                tool: ClaudeClient.Tool(
+                    name: "travel_plan",
+                    description: "Return the structured equipment-constrained travel plan.",
+                    inputSchema: schema
+                ),
+                maxTokens: 1024,
                 temperature: 0.45
             )
             generatedPlan = TravelPlan(
