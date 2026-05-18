@@ -55,5 +55,3 @@ UNBOUND.xcodeproj/project.xcworkspace/xcshareddata/
 # Superpowers workspace (local only)
 .superpowers/
 
-# Secrets — never commit
-UNBOUND/Services/Secrets/Secrets.swift
