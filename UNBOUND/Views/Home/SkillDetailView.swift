@@ -7,7 +7,7 @@ import SwiftUI
 //   2. Animated hero — crossfade between two silhouette frames (when frame 2
 //      asset exists), violet glow behind
 //   3. Title block (centered)
-//   4. Progress strip — thin XP bar + 1-5 dots
+//   4. Progress strip — thin XP bar
 //   5. Next Beat card — current target criterion
 //   6. Form section — bullets + optional "DON'T" miss
 //   7. Requirements (only when locked)
@@ -30,7 +30,7 @@ struct SkillDetailView: View {
     @State private var isRankPathExpanded: Bool = false
     @State private var recentExerciseHistory: [ExerciseLogEntry] = []
     @State private var readinessHistoryLoaded: Bool = false
-    @State private var selectedGuideTab: SkillGuideTab = .standard
+    @State private var selectedGuideTab: SkillGuideTab = .form
 
     // MARK: - Body
 
@@ -57,10 +57,6 @@ struct SkillDetailView: View {
                     .padding(.horizontal, 20)
 
                 skillGuideSection
-                    .padding(.top, 28)
-                    .padding(.horizontal, 20)
-
-                formSection
                     .padding(.top, 28)
                     .padding(.horizontal, 20)
 
@@ -308,7 +304,7 @@ struct SkillDetailView: View {
             guard sp.xpToNextLevel > 0 else { return 0 }
             return max(0, min(1, Double(sp.xpInLevel) / Double(sp.xpToNextLevel)))
         }()
-        return VStack(spacing: 14) {
+        return VStack(spacing: 0) {
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     Capsule()
@@ -319,30 +315,7 @@ struct SkillDetailView: View {
                 }
             }
             .frame(height: 4)
-
-            HStack(spacing: 14) {
-                Spacer(minLength: 0)
-                ForEach(1...5, id: \.self) { level in
-                    levelDot(level: level, current: sp.currentLevel)
-                }
-                Spacer(minLength: 0)
-            }
         }
-    }
-
-    @ViewBuilder
-    private func levelDot(level: Int, current: Int) -> some View {
-        let isActive = level == current
-        let isCompleted = level < current
-        let size: CGFloat = isActive ? 14 : 10
-        ZStack {
-            if isCompleted || isActive {
-                Circle().fill(Color.unbound.accent)
-            } else {
-                Circle().strokeBorder(Color.unbound.border, lineWidth: 1)
-            }
-        }
-        .frame(width: size, height: size)
     }
 
     private func criterionSummary(_ criterion: TierCriterion) -> String {
@@ -737,12 +710,12 @@ struct SkillDetailView: View {
 
                 Group {
                     switch selectedGuideTab {
-                    case .standard:
-                        guideStandardCard(guide)
-                    case .cues:
-                        guideCueQueue(guide.cueQueue)
+                    case .form:
+                        formSection
                     case .assist:
                         guideAssistanceSection(guide.assistance)
+                    case .tips:
+                        guideTipsSection(guide.tips)
                     case .fixes:
                         guideMistakeSection(guide.mistakes)
                     }
@@ -791,88 +764,6 @@ struct SkillDetailView: View {
         )
     }
 
-    private func guideStandardCard(_ guide: SkillGuide) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 8) {
-                Image(systemName: "checkmark.seal.fill")
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(Color.unbound.accent)
-                Text("Standard")
-                    .font(Font.unbound.captionS.weight(.heavy))
-                    .tracking(1.3)
-                    .foregroundStyle(Color.unbound.accent)
-                Spacer(minLength: 0)
-            }
-
-            Text(guide.standard)
-                .font(Font.unbound.bodyM)
-                .foregroundStyle(Color.unbound.textPrimary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            if let note = guide.scoringNote {
-                Text(note)
-                    .font(Font.unbound.bodyS)
-                    .foregroundStyle(Color.unbound.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color.unbound.surface)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(Color.unbound.border, lineWidth: 1)
-        )
-    }
-
-    private func guideCueQueue(_ cues: [SkillGuideCue]) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Cue Queue")
-                .font(Font.unbound.captionS.weight(.heavy))
-                .tracking(1.2)
-                .foregroundStyle(Color.unbound.textTertiary)
-
-            VStack(spacing: 8) {
-                ForEach(Array(cues.enumerated()), id: \.element.phase) { index, cue in
-                    HStack(alignment: .top, spacing: 12) {
-                        ZStack {
-                            Circle()
-                                .fill(Color.unbound.accent.opacity(0.16))
-                                .frame(width: 30, height: 30)
-                            Text("\(index + 1)")
-                                .font(.system(size: 12, weight: .heavy, design: .rounded))
-                                .foregroundStyle(Color.unbound.accent)
-                        }
-
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(cue.phase)
-                                .font(Font.unbound.bodyS.weight(.heavy))
-                                .foregroundStyle(Color.unbound.textPrimary)
-                            Text(cue.cue)
-                                .font(Font.unbound.bodyS)
-                                .foregroundStyle(Color.unbound.textSecondary)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-
-                        Spacer(minLength: 0)
-                    }
-                    .padding(12)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .fill(Color.unbound.surface)
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
-                    )
-                }
-            }
-        }
-    }
-
     private func guideAssistanceSection(_ options: [SkillGuideAssistance]) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Regressions & Assistance")
@@ -902,6 +793,46 @@ struct SkillDetailView: View {
                         Spacer(minLength: 0)
                     }
                     .padding(12)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(Color.unbound.surface)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
+                    )
+                }
+            }
+        }
+    }
+
+    private func guideTipsSection(_ tips: [SkillGuideTip]) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Technique Notes")
+                .font(Font.unbound.captionS.weight(.heavy))
+                .tracking(1.2)
+                .foregroundStyle(Color.unbound.textTertiary)
+
+            VStack(spacing: 8) {
+                ForEach(tips, id: \.title) { tip in
+                    VStack(alignment: .leading, spacing: 7) {
+                        HStack(spacing: 8) {
+                            Image(systemName: tip.icon)
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundStyle(Color.unbound.accent)
+                                .frame(width: 22)
+                            Text(tip.title)
+                                .font(Font.unbound.bodyS.weight(.heavy))
+                                .foregroundStyle(Color.unbound.textPrimary)
+                        }
+
+                        Text(tip.detail)
+                            .font(Font.unbound.bodyS)
+                            .foregroundStyle(Color.unbound.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(12)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .background(
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
                             .fill(Color.unbound.surface)
@@ -1028,15 +959,6 @@ struct SkillDetailView: View {
 
     private var formSection: some View {
         VStack(alignment: .leading, spacing: 18) {
-            HStack(alignment: .firstTextBaseline) {
-                sectionHeader("Form Breakdown")
-                Spacer()
-                Text("\(slideshowPhases.count) STEPS")
-                    .font(Font.unbound.captionS.weight(.heavy))
-                    .tracking(1.4)
-                    .foregroundStyle(Color.unbound.textTertiary)
-            }
-
             if !slideshowPhases.isEmpty {
                 FormPhaseSlideshow(
                     phases: slideshowPhases,
@@ -1045,27 +967,6 @@ struct SkillDetailView: View {
             } else {
                 // Fallback: numbered cue list when no per-phase silhouettes exist yet.
                 fallbackStepsList
-            }
-
-            if let miss = node.commonMistakes.first {
-                HStack(alignment: .top, spacing: 12) {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(Color.unbound.alert)
-                        .frame(width: 28, height: 28)
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("DON'T")
-                            .font(Font.unbound.captionS.weight(.heavy))
-                            .tracking(1.6)
-                            .foregroundStyle(Color.unbound.alert)
-                        Text(miss)
-                            .font(Font.unbound.bodyM)
-                            .foregroundStyle(Color.unbound.textPrimary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    Spacer(minLength: 0)
-                }
-                .padding(.top, 4)
             }
         }
     }
@@ -1386,18 +1287,19 @@ struct SkillDetailView: View {
 private struct SkillGuide {
     let standard: String
     let scoringNote: String?
-    let cueQueue: [SkillGuideCue]
     let assistance: [SkillGuideAssistance]
+    var tips: [SkillGuideTip] = []
     let mistakes: [SkillGuideMistake]
-}
-
-private struct SkillGuideCue {
-    let phase: String
-    let cue: String
 }
 
 private struct SkillGuideAssistance {
     let name: String
+    let detail: String
+    let icon: String
+}
+
+private struct SkillGuideTip {
+    let title: String
     let detail: String
     let icon: String
 }
@@ -1408,25 +1310,25 @@ private struct SkillGuideMistake {
 }
 
 private enum SkillGuideTab: CaseIterable {
-    case standard
-    case cues
+    case form
     case assist
+    case tips
     case fixes
 
     var label: String {
         switch self {
-        case .standard: return "Standard"
-        case .cues: return "Cues"
+        case .form: return "Form"
         case .assist: return "Assist"
+        case .tips: return "Tips"
         case .fixes: return "Fixes"
         }
     }
 
     var icon: String {
         switch self {
-        case .standard: return "checkmark.seal.fill"
-        case .cues: return "list.number"
+        case .form: return "rectangle.stack.fill"
         case .assist: return "figure.strengthtraining.functional"
+        case .tips: return "lightbulb.fill"
         case .fixes: return "wrench.and.screwdriver.fill"
         }
     }
@@ -1439,12 +1341,6 @@ private enum SkillGuideLibrary {
             return SkillGuide(
                 standard: "A clean bar muscle-up starts from an active hang, pulls high enough for the chest to travel over the bar, turns both elbows through together, then finishes in a stable straight-arm support.",
                 scoringNote: "This regular muscle-up allows controlled hip drive. Zero-hip-drive reps belong to the later strict muscle-up node.",
-                cueQueue: [
-                    SkillGuideCue(phase: "Set", cue: "Active shoulders, ribs down, bar close, legs quiet."),
-                    SkillGuideCue(phase: "Pull", cue: "Pull toward the lower chest with elbows driving down and back."),
-                    SkillGuideCue(phase: "Turnover", cue: "Chest moves over hands before you press; elbows arrive together."),
-                    SkillGuideCue(phase: "Lockout", cue: "Press tall above the bar with shoulders down and hips close.")
-                ],
                 assistance: [
                     SkillGuideAssistance(
                         name: "Banded Muscle-Up",
@@ -1460,6 +1356,23 @@ private enum SkillGuideLibrary {
                         name: "Explosive Chest-to-Bar",
                         detail: "Build the pull height before full attempts. Low pulls create rushed, messy catches.",
                         icon: "arrow.up.forward"
+                    )
+                ],
+                tips: [
+                    SkillGuideTip(
+                        title: "False grip helps the turnover",
+                        detail: "A high wrist position means the hand is already partly ready for the straight-bar dip. It matters more as the rep gets stricter.",
+                        icon: "hand.raised.fill"
+                    ),
+                    SkillGuideTip(
+                        title: "Legs create timing",
+                        detail: "Use one connected hollow-to-arch rhythm. The legs should create hip drive, not a bicycle kick or one-sided throw.",
+                        icon: "figure.run"
+                    ),
+                    SkillGuideTip(
+                        title: "Pull around the bar",
+                        detail: "A muscle-up pull is not a normal pull-up. Pull high, keep the bar close, and let the chest travel forward over the hands.",
+                        icon: "arrow.up.and.forward"
                     )
                 ],
                 mistakes: [

@@ -3,17 +3,17 @@ import SwiftUI
 // MARK: - SkillGraphView
 //
 // Landing screen for the Skill Map. A vertical scroll of rich cluster
-// cards — one per display tree. 6 cards total:
+// cards — one per display tree. 7 cards total:
 //   • Pull
 //   • Push
 //   • Legs
 //   • Core & Levers
-//   • Handbalance (UMBRELLA — Handstand / HSPU / One-Arm)
+//   • Handstand
+//   • Planche
 //   • Endurance
 //
 // Tap behaviour:
 //   • 1:1 display tree → opens ClusterStaircaseView for its cluster
-//   • Umbrella (Handbalance) → opens HandbalanceSubclusterPicker
 //   • Locked display tree → opens LockedClusterInfoSheet
 //
 // The "SKILLS TO CHASE" keystone hero row from the previous grid layout
@@ -86,7 +86,7 @@ struct SkillGraphView: View {
                 .tracking(2.2)
                 .foregroundStyle(Color.unbound.textSecondary)
             Spacer()
-            Text("\(graph.nodes.count) skills · 6 trees")
+            Text("\(graph.nodes.count) skills · 7 trees")
                 .font(Font.unbound.monoS)
                 .foregroundStyle(Color.unbound.textTertiary)
         }

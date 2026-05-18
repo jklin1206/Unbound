@@ -209,9 +209,8 @@ enum SkillSubChapterMap {
         "cl.full-back-lever":      "Back Lever",
 
         // ──────────────────────────────────────────────────────────────
-        // HANDBALANCE — three sub-clusters; each gets its own chapters.
+        // HANDSTAND — inversion balance, press entries, and one-arm work.
         // ──────────────────────────────────────────────────────────────
-        // hs — Handstand
         "hs.wall-plank":           "Wall Path",
         "hs.wall-handstand-30":    "Wall Path",
         "hs.headstand":            "Wall Path",
@@ -222,12 +221,6 @@ enum SkillSubChapterMap {
         "hs.tuck-press":           "Freestanding",
         "hs.straddle-press":       "Freestanding",
         "hs.press-to-handstand":   "Freestanding",
-
-        "hs.crow-pose":            "Hand Poses",
-        "hs.crane-pose":           "Hand Poses",
-        "hs.flying-crow":          "Hand Poses",
-        "hs.elbow-lever":          "Hand Poses",
-        "hs.one-arm-elbow-lever":  "Hand Poses",
 
         // hspu — Handstand Push-Up cluster collapsed into Push tree (cal.handstand-pushup).
         // No remaining nodes ship in `.handstandPushup`; cluster kept in the enum for legacy compat.
@@ -240,6 +233,11 @@ enum SkillSubChapterMap {
         // ──────────────────────────────────────────────────────────────
         // PLANCHE (pl)
         // ──────────────────────────────────────────────────────────────
+        "hs.crow-pose":             "Foundation",
+        "hs.crane-pose":            "Arm Balance",
+        "hs.flying-crow":           "Arm Balance",
+        "hs.elbow-lever":           "Arm Balance",
+        "hs.one-arm-elbow-lever":   "Arm Balance",
         "pl.tuck-planche":          "Tuck Path",
         "pl.bent-arm-planche":      "Tuck Path",
         "pl.half-lay-planche":      "Float",
@@ -1201,7 +1199,7 @@ extension SkillGraph {
 
         // ────────────────────────────────────────────────────────────────
         // HANDSTAND (hs) — wrists, wall holds, freestanding, walks
-        // Tree 1 of the split former "Handbalance" cluster.
+        // Handstand now owns the inversion path directly on the map.
         // ────────────────────────────────────────────────────────────────
 
         .simple(
@@ -1316,7 +1314,7 @@ extension SkillGraph {
         .simple(
             id: "oah.one-arm-handstand-5s",
             title: "One-Arm Handstand",
-            cluster: .oneArmHandstand, tier: 6, type: .hold,
+            cluster: .handstand, tier: 6, type: .hold,
             target: .hold(exercise: "one-arm handstand", seconds: 5),
             prereqs: [PrerequisiteGroup("hs.wall-supported-oah")],
             isKeystone: true,
@@ -1349,7 +1347,7 @@ extension SkillGraph {
         .simple(
             id: "oah.full-one-arm-handstand",
             title: "Full One-Arm Handstand",
-            cluster: .oneArmHandstand, tier: 7, type: .hold,
+            cluster: .handstand, tier: 7, type: .hold,
             target: .hold(exercise: "full one arm handstand", seconds: 5),
             prereqs: [PrerequisiteGroup("oah.one-arm-handstand-5s")],
             isMythic: true,
@@ -3303,9 +3301,9 @@ extension SkillGraph {
         .simple(
             id: "hs.crow-pose",
             title: "Crow Pose",
-            cluster: .handstand, tier: 3, type: .hold,
+            cluster: .planche, tier: 2, type: .hold,
             target: .hold(exercise: "crow pose", seconds: 15),
-            prereqs: [PrerequisiteGroup("hs.headstand")],
+            prereqs: [PrerequisiteGroup("hs.wall-plank")],
             primary: [.shoulders, .arms, .core],
             subtitle: "Knees on the triceps. Balance on the hands.",
             description: "15-second crow pose — squat, plant hands, rest knees on the backs of the triceps, shift weight forward until feet leave the floor.",
@@ -3320,7 +3318,7 @@ extension SkillGraph {
                 "Keeping weight over the feet — won't float",
                 "Tipping forward onto the head — yes, put a pillow down"
             ],
-            timeline: "1-4 weeks from headstand.",
+            timeline: "1-4 weeks from wall plank.",
             rank: .d,
             levels: [
                 SkillLevel(level: 1, target: .hold(seconds: 5), criterion: "Hold crow pose for 5s, clean form", xpReward: 50),
@@ -3333,7 +3331,7 @@ extension SkillGraph {
         .simple(
             id: "hs.crane-pose",
             title: "Crane Pose",
-            cluster: .handstand, tier: 4, type: .hold,
+            cluster: .planche, tier: 3, type: .hold,
             target: .hold(exercise: "crane pose", seconds: 10),
             prereqs: [PrerequisiteGroup("hs.crow-pose")],
             primary: [.shoulders, .arms, .core],
@@ -3363,7 +3361,7 @@ extension SkillGraph {
         .simple(
             id: "hs.flying-crow",
             title: "Flying Crow Pose",
-            cluster: .handstand, tier: 4, type: .hold,
+            cluster: .planche, tier: 3, type: .hold,
             target: .hold(exercise: "flying crow", seconds: 5),
             prereqs: [PrerequisiteGroup("hs.crow-pose")],
             primary: [.shoulders, .arms, .core],
@@ -3393,9 +3391,9 @@ extension SkillGraph {
         .simple(
             id: "hs.elbow-lever",
             title: "Elbow Lever",
-            cluster: .handstand, tier: 3, type: .hold,
+            cluster: .planche, tier: 3, type: .hold,
             target: .hold(exercise: "elbow lever", seconds: 10),
-            prereqs: [PrerequisiteGroup("hs.headstand")],
+            prereqs: [PrerequisiteGroup("hs.crow-pose")],
             primary: [.shoulders, .core, .arms],
             subtitle: "Body horizontal, elbows into the hips.",
             description: "10-second elbow lever — hands plant on the floor, elbows drive into the ribs or hip crease, body extends horizontal. Parlor trick that builds serious core.",
@@ -3410,7 +3408,7 @@ extension SkillGraph {
                 "Legs sagging below horizontal",
                 "Bent knees to cheat the lever"
             ],
-            timeline: "2-8 weeks from headstand.",
+            timeline: "2-8 weeks from crow pose.",
             rank: .d,
             levels: [
                 SkillLevel(level: 1, target: .hold(seconds: 5), criterion: "Hold elbow lever for 5s, clean form", xpReward: 50),
@@ -3423,7 +3421,7 @@ extension SkillGraph {
         .simple(
             id: "hs.one-arm-elbow-lever",
             title: "One-Arm Elbow Lever",
-            cluster: .handstand, tier: 4, type: .hold,
+            cluster: .planche, tier: 4, type: .hold,
             target: .hold(exercise: "one-arm elbow lever", seconds: 5),
             prereqs: [PrerequisiteGroup("hs.elbow-lever")],
             primary: [.shoulders, .core, .arms],
@@ -3581,14 +3579,14 @@ extension SkillGraph {
             title: "Half-Lay Planche",
             cluster: .planche, tier: 6, type: .hold,
             target: .hold(exercise: "half-lay planche", seconds: 3),
-            prereqs: [PrerequisiteGroup("pl.tuck-planche")],
+            prereqs: [PrerequisiteGroup("pl.straddle-planche")],
             equipment: [.parallettes],
             primary: [.shoulders, .core],
             subtitle: "Half-straddle. Half-closed.",
-            description: "3-second half-lay planche — legs narrower than full straddle but wider than closed. The intermediate between tuck and full planche.",
+            description: "3-second half-lay planche — straddle planche with legs narrowed toward the full position. The bridge between straddle and full planche.",
             formCues: [
-                "Start from rock-solid tuck planche",
-                "Extend legs halfway between tuck and straddle",
+                "Start from rock-solid straddle planche",
+                "Close the legs halfway toward parallel",
                 "Hips stay at shoulder height",
                 "Toes pointed, legs squeeze even at narrower angle"
             ],
@@ -3597,7 +3595,7 @@ extension SkillGraph {
                 "Hip drop as the lever tightens",
                 "Banana back"
             ],
-            timeline: "6-18 months from tuck planche.",
+            timeline: "6-18 months from straddle planche.",
             rank: .a,
             levels: [
                 SkillLevel(level: 1, target: .hold(seconds: 2), criterion: "Hold half-lay planche for 2s, clean form", xpReward: 50),
@@ -4433,11 +4431,11 @@ extension SkillGraph {
         .simple(
             id: "hs.wall-plank",
             title: "Wall Plank",
-            cluster: .handstand, tier: 1, type: .hold,
+            cluster: .planche, tier: 1, type: .hold,
             target: .hold(exercise: "wall plank", seconds: 30),
             primary: [.shoulders, .core], secondary: [.arms],
-            subtitle: "Handstand starts horizontal.",
-            description: "Plank position with feet walked up the wall until the body is vertical — a pseudo-handstand with the wall doing the balance work. 30 seconds. The starting point for every handstand progression.",
+            subtitle: "Straight-arm strength starts here.",
+            description: "Plank position with feet walked up the wall until shoulders stack over wrists. 30 seconds. The shared root for handstand exposure and the planche arm-balance path.",
             formCues: [
                 "Hands shoulder-width, fingers spread",
                 "Walk feet UP the wall until hips over shoulders",

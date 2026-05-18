@@ -11,6 +11,7 @@ struct FormPhase: Identifiable, Hashable {
     let id: String              // unique within a skill (e.g. "phase1")
     let title: String           // short label, e.g. "DEAD HANG"
     let cues: [String]          // 2–4 short cue lines
+    var instruction: String? = nil // longer "how to do it" text for this slide
     let assetName: String?      // imageset name in Assets.xcassets, nil → fallback glyph
     let fallbackSymbol: String  // SF Symbol if asset is missing
 }
@@ -28,16 +29,15 @@ struct FormPhaseSlideshow: View {
     @State private var index: Int = 0
 
     var body: some View {
-        VStack(spacing: 14) {
+        VStack(spacing: 12) {
             TabView(selection: $index) {
                 ForEach(Array(phases.enumerated()), id: \.element.id) { i, phase in
                     phaseCard(phase: phase, number: i + 1, total: phases.count)
                         .tag(i)
-                        .padding(.horizontal, 4)
                 }
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
-            .frame(height: 420)
+            .frame(height: 500)
 
             pageDots
         }
@@ -45,79 +45,65 @@ struct FormPhaseSlideshow: View {
 
     @ViewBuilder
     private func phaseCard(phase: FormPhase, number: Int, total: Int) -> some View {
-        VStack(spacing: 16) {
-            // Hero silhouette for this phase.
-            ZStack {
-                Circle()
-                    .fill(Color.unbound.accent.opacity(0.18))
-                    .frame(width: 180, height: 180)
-                    .blur(radius: 38)
+        let usesGeneratedPanel = phase.assetName?.contains("_phase") == true
 
-                Group {
-                    if let asset = phase.assetName, UIImage(named: asset) != nil {
-                        Image(asset)
-                            .resizable()
-                            .interpolation(.high)
-                            .aspectRatio(contentMode: .fit)
-                    } else {
-                        Image(systemName: phase.fallbackSymbol)
-                            .font(.system(size: 100, weight: .regular))
-                            .foregroundStyle(Color.unbound.accent)
-                    }
-                }
-                .frame(width: 200, height: 200)
-                .shadow(color: Color.unbound.accent.opacity(0.45), radius: 22)
+        VStack(spacing: 12) {
+            if let asset = phase.assetName, UIImage(named: asset) != nil {
+                Image(asset)
+                    .resizable()
+                    .interpolation(.high)
+                    .aspectRatio(contentMode: .fit)
+                    .frame(maxWidth: .infinity)
+                    .clipShape(RoundedRectangle(cornerRadius: usesGeneratedPanel ? 0 : 14, style: .continuous))
+            } else {
+                fallbackPhaseArt(phase: phase)
             }
-            .frame(width: 220, height: 220)
 
-            // Step badge + title.
-            HStack(spacing: 10) {
-                ZStack {
-                    Circle()
-                        .fill(Color.unbound.accent)
-                        .frame(width: 26, height: 26)
-                    Text("\(number)")
-                        .font(.system(size: 12, weight: .heavy, design: .monospaced))
-                        .foregroundStyle(Color.unbound.bg)
+            HStack(alignment: .top, spacing: 10) {
+                Text("\(number)")
+                    .font(.system(size: 13, weight: .heavy, design: .monospaced))
+                    .foregroundStyle(Color.unbound.bg)
+                    .frame(width: 24, height: 24)
+                    .background(Circle().fill(Color.unbound.accent))
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(phase.title.uppercased())
+                        .font(Font.unbound.captionS.weight(.heavy))
+                        .tracking(1.2)
+                        .foregroundStyle(Color.unbound.accent)
+
+                    Text(phase.instruction ?? phase.cues.prefix(3).joined(separator: " • "))
+                        .font(Font.unbound.bodyS)
+                        .foregroundStyle(Color.unbound.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
-                Text(phase.title.uppercased())
-                    .font(.system(.title3).weight(.bold))
-                    .foregroundStyle(Color.unbound.textPrimary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
+
                 Spacer(minLength: 0)
-                Text("\(number) / \(total)")
+
+                Text("\(number)/\(total)")
                     .font(Font.unbound.monoS.weight(.bold))
                     .foregroundStyle(Color.unbound.textTertiary)
             }
-
-            // Cue bullets.
-            VStack(alignment: .leading, spacing: 8) {
-                ForEach(phase.cues.prefix(4), id: \.self) { cue in
-                    HStack(alignment: .top, spacing: 10) {
-                        Circle()
-                            .fill(Color.unbound.accent)
-                            .frame(width: 6, height: 6)
-                            .padding(.top, 7)
-                        Text(cue)
-                            .font(Font.unbound.bodyM)
-                            .foregroundStyle(Color.unbound.textPrimary)
-                            .fixedSize(horizontal: false, vertical: true)
-                        Spacer(minLength: 0)
-                    }
-                }
-            }
+            .padding(.horizontal, 4)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(18)
-        .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(Color.unbound.surface)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .strokeBorder(Color.unbound.border, lineWidth: 1)
-        )
+        .frame(maxWidth: .infinity, alignment: .top)
+    }
+
+    private func fallbackPhaseArt(phase: FormPhase) -> some View {
+        ZStack {
+            Circle()
+                .fill(Color.unbound.accent.opacity(0.18))
+                .frame(width: 180, height: 180)
+                .blur(radius: 38)
+
+            Image(systemName: phase.fallbackSymbol)
+                .font(.system(size: 100, weight: .regular))
+                .foregroundStyle(Color.unbound.accent)
+                .frame(width: 200, height: 200)
+                .shadow(color: Color.unbound.accent.opacity(0.45), radius: 22)
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: 240)
     }
 
     private var pageDots: some View {
@@ -154,46 +140,50 @@ enum FormPhaseLibrary {
             return [
                 FormPhase(
                     id: "phase1",
-                    title: "Set",
+                    title: "Grip",
                     cues: [
-                        "Start from an active hang",
-                        "Ribs down, legs quiet",
-                        "Keep the bar close from the first pull"
+                        "Knuckles sit high over the bar",
+                        "Start in an active hang",
+                        "Ribs down, legs together"
                     ],
-                    assetName: "pp_muscle-up",
+                    instruction: "Use a slightly false or high wrist grip if you can hold it: knuckles sit more on top of the bar so the wrist is already ready for the dip. Start in an active hang with shoulders engaged, ribs down, legs together, and eyes forward.",
+                    assetName: "pp_muscle-up_phase1",
                     fallbackSymbol: "figure.strengthtraining.functional"
                 ),
                 FormPhase(
                     id: "phase2",
-                    title: "High Pull",
+                    title: "Swing",
                     cues: [
-                        "Pull toward the lower chest",
-                        "Elbows drive down and back",
-                        "Do not start pressing from a low pull"
+                        "Move hollow to arch under control",
+                        "Keep the body long",
+                        "Use hip drive, not a knee kick"
                     ],
-                    assetName: "pp_muscle-up_f2",
+                    instruction: "Move through a controlled hollow-to-arch swing. Legs stay long and together. The legs help by creating rhythm and hip drive, not by bicycling, knee-tucking, or kicking one side over the bar.",
+                    assetName: "pp_muscle-up_phase2",
                     fallbackSymbol: "figure.strengthtraining.functional"
                 ),
                 FormPhase(
                     id: "phase3",
-                    title: "Turnover",
+                    title: "Pull",
                     cues: [
-                        "Chest travels over the bar",
-                        "Wrists roll around the bar",
-                        "Both elbows arrive together"
+                        "Pull the bar toward low chest",
+                        "Drive elbows down and back",
+                        "Begin moving around the bar"
                     ],
-                    assetName: "pp_muscle-up_f2",
+                    instruction: "Pull explosively toward the lower chest or upper stomach while keeping the bar close. Think elbows down and back first, then chest forward. A low pull forces the transition to become a fight instead of a path.",
+                    assetName: "pp_muscle-up_phase3",
                     fallbackSymbol: "arrow.triangle.branch"
                 ),
                 FormPhase(
                     id: "phase4",
-                    title: "Support",
+                    title: "Turnover",
                     cues: [
-                        "Press to straight arms",
-                        "Shoulders down, torso tall",
-                        "Finish stable before lowering"
+                        "Chest passes over the hands",
+                        "Both elbows roll through together",
+                        "Press to a stable lockout"
                     ],
-                    assetName: "pp_muscle-up",
+                    instruction: "At the top of the pull, lean the chest over the hands and roll both wrists forward. Both elbows should pass through together into the bottom of a straight-bar dip, then press down until the elbows lock and the top position is stable.",
+                    assetName: "pp_muscle-up_phase4",
                     fallbackSymbol: "figure.strengthtraining.functional"
                 ),
             ]

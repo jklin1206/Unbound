@@ -4,11 +4,9 @@ import Foundation
 //
 // The 7 top-level trees shown on the Skill Map landing screen.
 //
-// Most display trees map 1:1 to a `SkillCluster`. Handbalance is the lone
-// UMBRELLA — it groups the three sub-clusters (.handstand, .handstandPushup,
-// .oneArmHandstand) into one landing card. The per-cluster staircase views
-// still operate on sub-clusters individually; the umbrella is only a display
-// grouping so the landing screen shows a stable set of seven trees.
+// Display trees map 1:1 to the primary training tree the user opens. The
+// handstand path now owns its balance work directly instead of routing through
+// a separate Handbalance umbrella.
 //
 // Adding a new display tree: append a case + wire it up in
 // `clusters`, `displayName`, `glyph`, `tagline`, `chapterSubtitle`. The
@@ -19,7 +17,7 @@ enum SkillDisplayTree: String, CaseIterable, Identifiable, Sendable {
     case push
     case legs
     case coreLevers
-    case handbalance  // UMBRELLA: handstand + HSPU + one-arm handstand
+    case handstand
     case planche
     case endurance
 
@@ -27,15 +25,14 @@ enum SkillDisplayTree: String, CaseIterable, Identifiable, Sendable {
 
     /// The SkillCluster(s) a display tree contains. Landing-screen
     /// aggregates (progress, keystone preview, active-now chip) sum across
-    /// these. Ordered — for the umbrella this dictates stage priority
-    /// (handstand first, then HSPU, then one-arm).
+    /// these.
     var clusters: [SkillCluster] {
         switch self {
         case .pull:        return [.pullingPower]
         case .push:        return [.calisthenicControl]
         case .legs:        return [.legDominance]
         case .coreLevers:  return [.coreLever]
-        case .handbalance: return [.handstand, .handstandPushup, .oneArmHandstand]
+        case .handstand:   return [.handstand]
         case .planche:     return [.planche]
         case .endurance:   return [.conditioning]
         }
@@ -47,7 +44,7 @@ enum SkillDisplayTree: String, CaseIterable, Identifiable, Sendable {
         case .push:        return "Push"
         case .legs:        return "Legs"
         case .coreLevers:  return "Core & Levers"
-        case .handbalance: return "Handbalance"
+        case .handstand:   return "Handstand"
         case .planche:     return "Planche"
         case .endurance:   return "Endurance"
         }
@@ -59,7 +56,7 @@ enum SkillDisplayTree: String, CaseIterable, Identifiable, Sendable {
         case .push:        return "Dip → HSPU · pressing strength"
         case .legs:        return "Pistol · shrimp · Nordic"
         case .coreLevers:  return "Hollow · L-sit · front lever"
-        case .handbalance: return "Balance upside down"
+        case .handstand:   return "Wall → freestanding → one arm"
         case .planche:     return "Tuck → straddle → full planche"
         case .endurance:   return "Carries · hangs · grip"
         }
@@ -74,7 +71,7 @@ enum SkillDisplayTree: String, CaseIterable, Identifiable, Sendable {
         case .push:        return "The Press"
         case .legs:        return "The Pillar"
         case .coreLevers:  return "The Spine"
-        case .handbalance: return "The Inversion"
+        case .handstand:   return "The Inversion"
         case .planche:     return "The Float"
         case .endurance:   return "The Long Road"
         }
@@ -87,14 +84,13 @@ enum SkillDisplayTree: String, CaseIterable, Identifiable, Sendable {
         case .push:        return "figure.strengthtraining.functional"
         case .legs:        return "figure.walk"
         case .coreLevers:  return "figure.core.training"
-        case .handbalance: return "figure.gymnastics"
+        case .handstand:   return "figure.gymnastics"
         case .planche:     return "figure.highintensity.intervaltraining"
         case .endurance:   return "flame.fill"
         }
     }
 
-    /// True when this display tree groups multiple clusters (i.e. the user
-    /// has to pick which sub-staircase to drill into).
+    /// True when this display tree groups multiple clusters.
     var isUmbrella: Bool { clusters.count > 1 }
 }
 

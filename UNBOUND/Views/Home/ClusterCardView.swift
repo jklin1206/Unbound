@@ -10,9 +10,8 @@ import SwiftUI
 //   • Farthest achievement: completed node title + rank chip
 //   • Locked state: 40% opacity, dashed border, REQUIRES caption
 //
-// Tap handling is owned by the parent view. For umbrella display trees
-// (Handbalance) the parent opens a sub-cluster picker; for 1:1 trees it
-// drills directly into the staircase.
+// Tap handling is owned by the parent view. Display trees drill directly
+// into their staircase.
 
 struct ClusterCardView: View {
     let tree: SkillDisplayTree

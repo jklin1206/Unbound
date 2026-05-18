@@ -7,13 +7,11 @@ import Foundation
 //
 // Phase 2 (program-redesign) taxonomy:
 //   • Heavy Lifting removed — lifting lives in scan + program layer.
-//   • Handbalance tombstone removed — Handbalance is now an UMBRELLA on
-//     the landing screen that groups the three sub-clusters
-//     (.handstand, .handstandPushup, .oneArmHandstand). The umbrella is
-//     a display grouping only — see DisplayTree in SkillDisplayTree.swift.
+//   • Handbalance removed as a separate landing concept. Handstand owns the
+//     inversion path directly; planche owns the arm-balance-to-planche chain.
 //
-// Landing-screen trees (7): Pull, Push, Legs, Core & Levers, Handbalance
-// (umbrella), Planche, Endurance. See `SkillDisplayTree` for the grouping.
+// Landing-screen trees (7): Pull, Push, Legs, Core & Levers, Handstand,
+// Planche, Endurance. See `SkillDisplayTree` for the grouping.
 
 enum SkillCluster: String, Codable, CaseIterable, Sendable, Identifiable {
     case legDominance       = "leg_dominance"
