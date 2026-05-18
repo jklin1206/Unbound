@@ -17,7 +17,6 @@ final class CoachNotesService {
     static let shared = CoachNotesService()
 
     private let database: DatabaseServiceProtocol
-    private let gemini: GeminiClient
     private let user: UserServiceProtocol
     private let workoutLog: WorkoutLogServiceProtocol
     private let sessionXP: SessionXPServiceProtocol
@@ -27,13 +26,11 @@ final class CoachNotesService {
 
     private init(
         database: DatabaseServiceProtocol = DatabaseService.shared,
-        gemini: GeminiClient = GeminiClient.shared,
         user: UserServiceProtocol = UserService.shared,
         workoutLog: WorkoutLogServiceProtocol = WorkoutLogService.shared,
         sessionXP: SessionXPServiceProtocol = SessionXPService.shared
     ) {
         self.database = database
-        self.gemini = gemini
         self.user = user
         self.workoutLog = workoutLog
         self.sessionXP = sessionXP
@@ -89,13 +86,17 @@ final class CoachNotesService {
 
         do {
             let schema = try JSONValue.fromJSONString(schemaJSON)
-            let out: CoachNoteLLM = try await gemini.generateStructured(
+            let out: CoachNoteLLM = try await ClaudeClient.shared.sendStructured(
                 CoachNoteLLM.self,
-                systemInstruction: systemPrompt,
+                model: .haiku45,
+                system: systemPrompt,
                 userText: userPrompt,
-                jpegImages: [],
-                responseSchema: schema,
-                maxOutputTokens: 128,
+                tool: ClaudeClient.Tool(
+                    name: "coach_note",
+                    description: "Return today's one-sentence coach note.",
+                    inputSchema: schema
+                ),
+                maxTokens: 128,
                 temperature: 0.55
             )
             let trimmed = out.text.trimmingCharacters(in: .whitespacesAndNewlines)
