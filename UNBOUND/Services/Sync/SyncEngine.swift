@@ -40,15 +40,12 @@ final class SyncEngine {
                 outbox.ack([entry.id])
             } catch {
                 outbox.recordFailure(entry.id)
-                // Re-read the updated attempt count after recordFailure
-                let updatedAttempt = outbox.peekBatch(limit: 50)
+                let attempts = outbox.peekBatch(limit: outbox.pendingCount)
                     .first { $0.id == entry.id }?.attempt ?? maxAttempts
-                if updatedAttempt >= maxAttempts {
+                if attempts >= maxAttempts {
                     logger.log("Outbox entry deadlettered: \(entry.collection)/\(entry.docId): \(error)",
                                level: .error, context: ["docId": entry.docId])
                     outbox.moveToDeadletter(entry.id)
-                } else {
-                    break
                 }
             }
         }

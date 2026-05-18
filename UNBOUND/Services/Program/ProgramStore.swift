@@ -80,7 +80,7 @@ final class ProgramStore {
                 payloadJSON: json, enqueuedAt: Date(), attempt: 0))
         }
         if let patch = try? JSONSerialization.data(withJSONObject:
-            ["id": userId, "currentProgramId": program.id]) {
+            ["id": userId, "current_program_id": program.id]) {
             outbox.enqueue(OutboxEntry(id: UUID(), userId: userId,
                 collection: "users", docId: userId, op: .upsert,
                 payloadJSON: patch, enqueuedAt: Date(), attempt: 0))

@@ -32,9 +32,38 @@ final class SupabaseRemoteSync: RemoteSync, @unchecked Sendable {
     private let supabase = SupabaseDatabase.shared
     private init() {}
 
+    /// Supabase tables are snake_case. The outbox stores documents with the
+    /// app's camelCase keys (from the local JSON store). Supabase-swift's
+    /// key strategy only rewrites synthesized struct CodingKeys, not the
+    /// dictionary keys we push via JSONElement — so convert here.
+    private func snakeCasedJSON(_ data: Data) -> Data {
+        func toSnake(_ s: String) -> String {
+            var out = ""
+            for ch in s {
+                if ch.isUppercase { out += "_"; out += ch.lowercased() }
+                else { out.append(ch) }
+            }
+            return out
+        }
+        func walk(_ value: Any) -> Any {
+            if let dict = value as? [String: Any] {
+                var result = [String: Any]()
+                for (k, v) in dict { result[toSnake(k)] = walk(v) }
+                return result
+            }
+            if let arr = value as? [Any] { return arr.map(walk) }
+            return value
+        }
+        guard let obj = try? JSONSerialization.jsonObject(with: data),
+              let out = try? JSONSerialization.data(withJSONObject: walk(obj))
+        else { return data }
+        return out
+    }
+
     func upsert(collection: String, docId: String, json: Data) async throws {
         guard let table = SyncCollectionMap.table(for: collection) else { return }
-        let obj = try JSONDecoder().decode(JSONElement.self, from: json)
+        let snake = snakeCasedJSON(json)
+        let obj = try JSONDecoder().decode(JSONElement.self, from: snake)
         _ = try await supabase.upsert(obj, into: table)
     }
 

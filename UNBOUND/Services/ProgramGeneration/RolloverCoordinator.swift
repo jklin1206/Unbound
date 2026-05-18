@@ -39,13 +39,16 @@ final class RolloverCoordinator {
         isRolling = true
         defer { isRolling = false }
         guard let profile = try? await services.user.fetchProfile(userId: userId) else { return }
+        let prevBlockNum = (await ProgramBlockStore.shared.latestBlock(userId: userId))?.blockNumber ?? 0
         do {
             let newProgram = try await BlockRolloverService.performRollover(
                 userId: userId, profile: profile, analysis: nil, scan: nil)
+            let newBlockNum = (await ProgramBlockStore.shared.latestBlock(userId: userId))?.blockNumber ?? 0
+            guard newBlockNum > prevBlockNum else { return }
             await ProgramStore.shared.save(newProgram, userId: userId)
         } catch {
             LoggingService.shared.log("Rollover failed: \(error)",
-                                      level: .error, context: [String: Any]())
+                                      level: .error, context: [:])
         }
     }
 }
