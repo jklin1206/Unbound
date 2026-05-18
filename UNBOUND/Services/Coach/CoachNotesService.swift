@@ -2,12 +2,12 @@ import Foundation
 
 // MARK: - CoachNotesService
 //
-// Generates one `CoachNote` per user per calendar day. Hits Gemini once
+// Generates one `CoachNote` per user per calendar day. Hits Claude once
 // on first home-appear of a new day; subsequent same-day calls hit the
 // cached row in `coach_notes`. Deterministic id (`userId:yyyy-MM-dd`)
 // makes the dedup trivial.
 //
-// Context fed to Gemini is a tight summary of recent training signal
+// Context fed to Claude is a tight summary of recent training signal
 // (session count last 14 days, streak, plateaus, rank letter, archetype).
 // Intentionally narrow — the note is a single-line mentor check-in, not
 // a deep program analysis.
@@ -37,7 +37,7 @@ final class CoachNotesService {
     }
 
     /// Returns today's note — hits cache if already generated today, else
-    /// asks Gemini. Returns nil on any failure so callers can hide the
+    /// asks Claude. Returns nil on any failure so callers can hide the
     /// card gracefully.
     func todaysNote(userId: String) async -> CoachNote? {
         let todayKey = CoachNote.dayKey(for: Date())

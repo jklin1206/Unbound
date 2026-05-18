@@ -29,7 +29,7 @@ struct Step_ScanAnalyzing: View {
         TimelineView(.animation(minimumInterval: 1.0 / 60.0)) { ctx in
             let elapsed = ctx.date.timeIntervalSince(startTime)
             let fraction = min(1.0, elapsed / duration)
-            // Hold at 99% while waiting for Gemini after animation completes
+            // Hold at 99% while waiting for the LLM after animation completes
             let percent = Int(fraction * 100)
 
             ZStack {

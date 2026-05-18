@@ -4,7 +4,7 @@ import Foundation
 //
 // Compares two `ScanSession`s — typically the onboarding scan and the first
 // rescan ~30 days later — and produces a structured `ScanDeltaReport` via
-// Gemini. The report is persisted locally (and best-effort to Supabase) so
+// Claude. The report is persisted locally (and best-effort to Supabase) so
 // `PTContextBuilder` can surface it to the coach on every message.
 //
 // Reality check: in the current codebase, `ScanSession.photos` is empty
@@ -14,7 +14,7 @@ import Foundation
 // up the closest-in-time `ProgressPhoto` for that user with `source: .scan`.
 //
 // Never throws to the caller. Returns nil if either photo is missing or
-// Gemini fails — the coach simply skips the delta section in that case.
+// the LLM call fails — the coach simply skips the delta section in that case.
 
 final class ScanComparisonService: @unchecked Sendable {
     static let shared = ScanComparisonService()
@@ -286,7 +286,7 @@ final class ScanComparisonService: @unchecked Sendable {
     }
 }
 
-// MARK: - Gemini IO
+// MARK: - Claude IO
 
 private struct ScanComparisonLLMOutput: Decodable {
     let shoulders: BodyPartDelta

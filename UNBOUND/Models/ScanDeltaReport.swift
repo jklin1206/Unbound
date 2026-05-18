@@ -3,11 +3,11 @@ import Foundation
 // MARK: - ScanDeltaReport
 //
 // Visual delta between two body scans (typically the onboarding scan and a
-// rescan ~30 days later). Produced by `ScanComparisonService` via Gemini.
+// rescan ~30 days later). Produced by `ScanComparisonService` via Claude.
 // Injected into the coach's PT context so the coach can reference real,
 // scored visible progress instead of guessing.
 //
-// Scores are 1-10 integers, Gemini-judged. `delta = after - before`.
+// Scores are 1-10 integers, Claude-judged. `delta = after - before`.
 //
 // `laggingAreas` is INTERNAL (used to seed Block 2 generation + coach-only
 // prompts). Per `project_unbound_scans_never_show_setbacks`, lagging copy
@@ -28,7 +28,7 @@ struct ScanDeltaReport: Codable, Identifiable, Equatable {
     let comparisonScanId: String   // rescan id
     let createdAt: Date
 
-    // Per-body-part before/after, Gemini-scored 1-10.
+    // Per-body-part before/after, Claude-scored 1-10.
     let shoulders: BodyPartDelta
     let chest: BodyPartDelta
     let arms: BodyPartDelta

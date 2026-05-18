@@ -2,7 +2,7 @@ import Foundation
 
 // MARK: - TravelOverride
 //
-// A Gemini-generated training plan that replaces the user's normal
+// A Claude-generated training plan that replaces the user's normal
 // `TrainingProgram.days` for a bounded window (typically 3–14 days).
 // Persisted in the `travel_overrides` collection and consumed by
 // `TrainingProgram.effectiveDay(for:)` + home / Program tab lookups so
@@ -17,7 +17,7 @@ struct TravelOverride: Codable, Identifiable, Sendable {
     let userId: String
     let startDate: Date
     let endDate: Date           // Inclusive — last day of travel
-    let summary: String         // Coach-voice one-liner from Gemini
+    let summary: String         // Coach-voice one-liner from Claude
     let days: [TravelDay]
     let createdAt: Date
 

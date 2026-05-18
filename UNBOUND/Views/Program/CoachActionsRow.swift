@@ -8,7 +8,7 @@ import SwiftUI
 //
 //   SWAP   — pick an exercise in today's session, swap to an alternative
 //   DELOAD — confirm, executor applies a planned deload
-//   TRAVEL — Gemini-generated travel plan based on duration + equipment
+//   TRAVEL — Claude-generated travel plan based on duration + equipment
 //   SHORT  — today's session gets trimmed to compound lifts only
 //
 // Visually: horizontal row of chamfered pills, violet accent on SWAP /

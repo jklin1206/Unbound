@@ -236,7 +236,7 @@ final class OnboardingFlowViewModel {
     /// insight card in that case.
     var scanInsights: BodyScanInsights? = nil
 
-    /// Gemini AI aesthetic scores from the onboarding photo. Populated
+    /// AI aesthetic scores from the onboarding photo. Populated
     /// concurrently during the 6s analyzing screen — usually ready by
     /// Derived rank — computed post-scan. In Day 1.5 stub this is keyed off
     /// the user's chosen archetype + commitment. V1.1 swaps in real vision AI.

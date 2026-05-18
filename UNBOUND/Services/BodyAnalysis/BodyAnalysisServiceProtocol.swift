@@ -1,7 +1,7 @@
 import Foundation
 
 /// Body Analysis is now strictly flavor copy generation.
-/// The OLD grading pipeline (Gemini-based scoring, gap analysis, proportion analysis)
+/// The OLD grading pipeline (LLM-based scoring, gap analysis, proportion analysis)
 /// is removed per the "AI never grades the body" rule.
 @MainActor
 protocol BodyAnalysisServiceProtocol {

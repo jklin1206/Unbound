@@ -32,7 +32,7 @@ struct Step_ScanReview: View {
             }
             .padding(.top, 4)
         }
-        // No Gemini body rating — AI never grades the body (scan-redesign-v2).
+        // No AI body rating — AI never grades the body (scan-redesign-v2).
     }
 
     // MARK: Photo card — big, centered, premium

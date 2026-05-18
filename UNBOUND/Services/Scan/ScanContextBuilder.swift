@@ -3,7 +3,7 @@ import UIKit
 
 // MARK: - ScanContextBuilder
 //
-// Assembles the `ScanContext` payload that gets fed to Gemini on a
+// Assembles the `ScanContext` payload that gets fed to Claude on a
 // bi-weekly scan. Pulls the user's profile (biometrics, archetype,
 // focus areas), the last 14 days of training, any stalled lifts, and
 // (if within 60 days) the previous scan photo for comparison.
@@ -63,7 +63,7 @@ final class ScanContextBuilder {
         let (sessionCount, volume) = aggregateVolume(from: recent)
 
         // Stalled lifts — PlateauDetector returns exercises with 3+
-        // stagnant sessions. Useful training context for Gemini to know
+        // stagnant sessions. Useful training context for Claude to know
         // what's NOT moving.
         let progressionStates = await progressionStore.fetchAll(userId: userId)
         let stalls = await plateauDetector.detect(userId: userId, states: progressionStates)
@@ -142,7 +142,7 @@ final class ScanContextBuilder {
 
     /// Maps `ExerciseCatalog.MuscleGroup` (12 coarse tags) to our
     /// `MuscleHeatGroup` taxonomy (12 visual buckets). `.arms` lands on
-    /// `.biceps` for simplicity — the front-visible signal Gemini cares
+    /// `.biceps` for simplicity — the front-visible signal Claude cares
     /// about is more biceps-weighted than triceps-weighted at the body
     /// map scale. `.neck` is dropped (no heatmap slot).
     private func heatGroup(for group: MuscleGroup) -> MuscleHeatGroup? {

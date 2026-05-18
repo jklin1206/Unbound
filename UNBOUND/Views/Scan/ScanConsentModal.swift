@@ -3,7 +3,7 @@ import SwiftUI
 // MARK: - ScanConsentModal
 //
 // Shown ONCE, the first time a user attempts a bi-weekly scan. Explains
-// that the photo goes to Google's Gemini for coach-style analysis. User
+// that the photo goes to Anthropic's Claude for coach-style analysis. User
 // accepts → persisted in @AppStorage("unbound.scanConsentGranted"). No
 // re-prompt on subsequent scans or failure retries.
 
@@ -33,7 +33,7 @@ struct ScanConsentModal: View {
                         .tracking(1.8)
                         .foregroundStyle(Color.unbound.accent)
 
-                    Text("Your scan photo is sent to Google's Gemini for a 3-sentence coach read.")
+                    Text("Your scan photo is sent to Anthropic's Claude for a 3-sentence coach read.")
                         .font(Font.unbound.titleM)
                         .tracking(0.3)
                         .foregroundStyle(Color.unbound.textPrimary)

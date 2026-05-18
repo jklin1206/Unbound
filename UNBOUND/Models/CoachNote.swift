@@ -3,7 +3,7 @@ import Foundation
 // MARK: - CoachNote
 //
 // One-per-day AI-generated insight surfaced on Home as a small card.
-// Bounded to a single Gemini call per user per calendar day — the
+// Bounded to a single Claude call per user per calendar day — the
 // service caches to avoid regenerating on every home appear.
 
 struct CoachNote: Codable, Identifiable, Sendable, Equatable {
