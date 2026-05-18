@@ -57,7 +57,8 @@ final class ClaudeClient: @unchecked Sendable {
             system: system,
             messages: [Message(role: "user", content: [.text(userText)])],
             tools: nil,
-            toolChoice: nil
+            toolChoice: nil,
+            temperature: nil
         )
         let response = try await sendWithRetry(body: body)
         for block in response.content {
@@ -72,14 +73,16 @@ final class ClaudeClient: @unchecked Sendable {
         system: String,
         userText: String,
         tool: Tool,
-        maxTokens: Int = 4096
+        maxTokens: Int = 4096,
+        temperature: Double? = nil
     ) async throws -> T {
         try await sendStructuredInternal(
             model: model,
             system: system,
             userBlocks: [.text(userText)],
             tool: tool,
-            maxTokens: maxTokens
+            maxTokens: maxTokens,
+            temperature: temperature
         )
     }
 
@@ -90,7 +93,8 @@ final class ClaudeClient: @unchecked Sendable {
         userText: String,
         jpegImages: [Data],
         tool: Tool,
-        maxTokens: Int = 4096
+        maxTokens: Int = 4096,
+        temperature: Double? = nil
     ) async throws -> T {
         var blocks: [ContentBlock] = jpegImages.map {
             .image(base64: $0.base64EncodedString(), mediaType: "image/jpeg")
@@ -101,7 +105,8 @@ final class ClaudeClient: @unchecked Sendable {
             system: system,
             userBlocks: blocks,
             tool: tool,
-            maxTokens: maxTokens
+            maxTokens: maxTokens,
+            temperature: temperature
         )
     }
 
@@ -112,7 +117,8 @@ final class ClaudeClient: @unchecked Sendable {
         system: String,
         userBlocks: [ContentBlock],
         tool: Tool,
-        maxTokens: Int
+        maxTokens: Int,
+        temperature: Double?
     ) async throws -> T {
         let body = RequestBody(
             model: model.rawValue,
@@ -120,7 +126,8 @@ final class ClaudeClient: @unchecked Sendable {
             system: system,
             messages: [Message(role: "user", content: userBlocks)],
             tools: [tool],
-            toolChoice: ToolChoice(type: "tool", name: tool.name)
+            toolChoice: ToolChoice(type: "tool", name: tool.name),
+            temperature: temperature
         )
         let response = try await sendWithRetry(body: body)
         for block in response.content {
@@ -204,9 +211,10 @@ extension ClaudeClient {
         let messages: [Message]
         let tools: [Tool]?
         let toolChoice: ToolChoice?
+        let temperature: Double?
 
         enum CodingKeys: String, CodingKey {
-            case model, system, messages, tools
+            case model, system, messages, tools, temperature
             case maxTokens = "max_tokens"
             case toolChoice = "tool_choice"
         }
