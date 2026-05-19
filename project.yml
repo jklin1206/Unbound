@@ -12,6 +12,7 @@ settings:
     DEVELOPMENT_TEAM: ""
     CODE_SIGN_STYLE: Automatic
     INFOPLIST_KEY_NSCameraUsageDescription: "UNBOUND needs camera access to take your body scan photos"
+    INFOPLIST_KEY_NSPhotoLibraryUsageDescription: "UNBOUND needs photo library access to set your profile picture"
     INFOPLIST_KEY_UILaunchScreen_Generation: true
     INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
     INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown"
