@@ -23,6 +23,8 @@ import SwiftUI
 struct UnboundHomeView: View {
     @EnvironmentObject var services: ServiceContainer
 
+    @ObservedObject private var photoStore = ProfilePhotoStore.shared
+
     // Profile + program
     @State private var profile: UserProfile?
     @State private var program: TrainingProgram?
@@ -1371,7 +1373,7 @@ struct UnboundHomeView: View {
                 CosmeticAvatar(
                     tier: aggregateRank.title,
                     size: 44,
-                    image: nil,
+                    image: photoStore.image(userId: services.auth.currentUserId ?? ""),
                     letterFallback: letter
                 )
 
