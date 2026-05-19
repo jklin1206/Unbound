@@ -1,4 +1,5 @@
 import SwiftUI
+import PhotosUI
 
 // MARK: - ProfileView
 //
@@ -43,6 +44,12 @@ struct ProfileView: View {
     @State private var showScanCaptureFlow = false
     @State private var showCadenceConfirmation = false
 
+    @ObservedObject private var photoStore = ProfilePhotoStore.shared
+    @State private var showPhotoOptions = false
+    @State private var showCamera = false
+    @State private var pickedItem: PhotosPickerItem?
+    private var photoUserId: String { services.auth.currentUserId ?? "" }
+
     @AppStorage("unbound.gains") private var gains: Int = 0
     private let xpPerLevel: Int = 250
 
@@ -70,7 +77,6 @@ struct ProfileView: View {
                         }
                         ProfileTrialHistorySection(trialsState: trialsState)
                             .padding(.horizontal, 0)
-                        heatmapPlaceholder
                         PhotoCalendarView().environmentObject(services)
                         badgesCard
                         settingsLink
@@ -94,6 +100,37 @@ struct ProfileView: View {
             Button("Cancel", role: .cancel) { }
         } message: {
             Text("\(scanCadence.daysUntilNext) days until next recommended scan window.")
+        }
+        .confirmationDialog("Profile picture",
+                            isPresented: $showPhotoOptions,
+                            titleVisibility: .visible) {
+            if UIImagePickerController.isSourceTypeAvailable(.camera) {
+                Button("Take Photo") { showCamera = true }
+            }
+            PhotosPicker("Choose from Library",
+                         selection: $pickedItem, matching: .images)
+            if photoStore.image(userId: photoUserId) != nil {
+                Button("Remove Photo", role: .destructive) {
+                    photoStore.remove(userId: photoUserId)
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        }
+        .fullScreenCover(isPresented: $showCamera) {
+            CameraPicker { image in
+                photoStore.set(image, userId: photoUserId)
+            }
+            .ignoresSafeArea()
+        }
+        .onChange(of: pickedItem) { _, item in
+            guard let item else { return }
+            Task {
+                if let data = try? await item.loadTransferable(type: Data.self),
+                   let img = UIImage(data: data) {
+                    photoStore.set(img, userId: photoUserId)
+                }
+                pickedItem = nil
+            }
         }
         .fullScreenCover(isPresented: $showScanCaptureFlow, onDismiss: {
             let userId = services.auth.currentUserId ?? "anonymous"
@@ -209,12 +246,18 @@ struct ProfileView: View {
             }
 
             HStack(alignment: .center, spacing: 16) {
-                CosmeticAvatar(
-                    tier: aggregateRank.title,
-                    size: 104,
-                    image: nil, // future: user-uploaded profile photo
-                    letterFallback: initial
-                )
+                Button {
+                    showPhotoOptions = true
+                } label: {
+                    CosmeticAvatar(
+                        tier: aggregateRank.title,
+                        size: 104,
+                        image: photoStore.image(userId: photoUserId),
+                        letterFallback: initial
+                    )
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Profile picture. Tap to change.")
 
                 VStack(alignment: .leading, spacing: 7) {
                     Text(displayName.uppercased())
@@ -317,62 +360,6 @@ struct ProfileView: View {
         let longest = sessionXP?.longestStreak ?? 0
         if longest == 0 { return "NO STREAK YET" }
         return "BEST \(longest)-DAY STREAK"
-    }
-
-    // MARK: - Heatmap placeholder
-    //
-    // Per design memory: heatmap slot kept, render dropped. The full
-    // muscle-group heatmap will land alongside the per-skill rank
-    // migration. For now this card holds the slot so users see where
-    // it'll live and the profile doesn't feel hollow.
-
-    private var heatmapPlaceholder: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .firstTextBaseline) {
-                Text("MUSCLE HEATMAP")
-                    .font(Font.unbound.captionS.weight(.heavy))
-                    .tracking(1.8)
-                    .foregroundStyle(Color.unbound.textSecondary)
-                Spacer()
-                Text("COMING SOON")
-                    .font(Font.unbound.captionS.weight(.heavy))
-                    .tracking(1.4)
-                    .foregroundStyle(Color.unbound.accent)
-            }
-
-            HStack(spacing: 12) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(Color.unbound.surfaceElevated)
-                    Image(systemName: "figure.strengthtraining.traditional")
-                        .font(.system(size: 28, weight: .regular))
-                        .foregroundStyle(Color.unbound.accent.opacity(0.65))
-                }
-                .frame(width: 64, height: 64)
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Per-muscle progression")
-                        .font(Font.unbound.bodyMStrong)
-                        .foregroundStyle(Color.unbound.textPrimary)
-                    Text("Track Chest · Lats · Quads · Glutes · Core through every PR and skill mastered. Lights up as you train.")
-                        .font(Font.unbound.captionS)
-                        .foregroundStyle(Color.unbound.textTertiary)
-                        .lineLimit(3)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                Spacer(minLength: 0)
-            }
-        }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(Color.unbound.surface)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .strokeBorder(Color.unbound.border, lineWidth: 1)
-        )
     }
 
     // MARK: - Badges card
