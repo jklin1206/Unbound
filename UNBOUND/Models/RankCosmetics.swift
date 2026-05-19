@@ -94,9 +94,11 @@ struct CosmeticAvatar: View {
                     .aspectRatio(contentMode: .fill)
                     .clipShape(Circle())
             } else {
-                Text(letterFallback.uppercased().prefix(1))
-                    .font(.system(size: size * 0.34, weight: .heavy, design: .rounded))
-                    .foregroundStyle(Color.unbound.textPrimary)
+                Circle()
+                    .fill(Color.unbound.accent)
+                Image(systemName: "person.fill")
+                    .font(.system(size: size * 0.34, weight: .semibold))
+                    .foregroundStyle(Color.white.opacity(0.55))
             }
         }
     }
