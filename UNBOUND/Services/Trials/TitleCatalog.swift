@@ -26,16 +26,16 @@ enum TitleCatalog {
         case (.axis(.explosiveness), .bronze):   return "Explosiveness Initiate"
         case (.axis(.explosiveness), .silver):   return "Explosiveness Striker"
         case (.axis(.explosiveness), .gold):     return "Explosiveness Ascendant"
-        // Card-kind Titles
-        case (.cardKind(.aligned), .bronze):     return "Specialist Initiate"
-        case (.cardKind(.aligned), .silver):     return "Specialist Master"
-        case (.cardKind(.aligned), .gold):       return "Specialist Ascendant"
-        case (.cardKind(.growth), .bronze):      return "Wanderer Initiate"
-        case (.cardKind(.growth), .silver):      return "Wanderer Pathfinder"
-        case (.cardKind(.growth), .gold):        return "Wanderer Ascendant"
-        case (.cardKind(.prestige), .bronze):    return "Striver Initiate"
-        case (.cardKind(.prestige), .silver):    return "Striver Conqueror"
-        case (.cardKind(.prestige), .gold):      return "Striver Ascendant"
+        // Weekly Vow kind Titles
+        case (.cardKind(.ember), .bronze):       return "Ember Keeper"
+        case (.cardKind(.ember), .silver):       return "Ember Warden"
+        case (.cardKind(.ember), .gold):         return "Ember Ascendant"
+        case (.cardKind(.overdrive), .bronze):   return "Overdrive Spark"
+        case (.cardKind(.overdrive), .silver):   return "Overdrive Engine"
+        case (.cardKind(.overdrive), .gold):     return "Overdrive Ascendant"
+        case (.cardKind(.apex), .bronze):        return "Apex Striver"
+        case (.cardKind(.apex), .silver):        return "Apex Conqueror"
+        case (.cardKind(.apex), .gold):          return "Apex Ascendant"
         }
     }
 
@@ -47,7 +47,7 @@ enum TitleCatalog {
                 result.append(TitleID(path: .axis(axis), tier: tier))
             }
         }
-        for kind in TrialCardKind.allCases {
+        for kind in WeeklyVowKind.allCases {
             for tier in TitleID.Tier.allCases {
                 result.append(TitleID(path: .cardKind(kind), tier: tier))
             }

@@ -1,25 +1,37 @@
 import XCTest
 @testable import UNBOUND
 
-final class TrialCardKindTests: XCTestCase {
+final class WeeklyVowKindTests: XCTestCase {
     func testAllCases() {
-        XCTAssertEqual(TrialCardKind.allCases.count, 3)
-        XCTAssertTrue(TrialCardKind.allCases.contains(.aligned))
-        XCTAssertTrue(TrialCardKind.allCases.contains(.growth))
-        XCTAssertTrue(TrialCardKind.allCases.contains(.prestige))
+        XCTAssertEqual(WeeklyVowKind.allCases.count, 3)
+        XCTAssertTrue(WeeklyVowKind.allCases.contains(.ember))
+        XCTAssertTrue(WeeklyVowKind.allCases.contains(.overdrive))
+        XCTAssertTrue(WeeklyVowKind.allCases.contains(.apex))
     }
 
     func testRawValuesStable() {
-        XCTAssertEqual(TrialCardKind.aligned.rawValue, "aligned")
-        XCTAssertEqual(TrialCardKind.growth.rawValue, "growth")
-        XCTAssertEqual(TrialCardKind.prestige.rawValue, "prestige")
+        XCTAssertEqual(WeeklyVowKind.ember.rawValue, "ember")
+        XCTAssertEqual(WeeklyVowKind.overdrive.rawValue, "overdrive")
+        XCTAssertEqual(WeeklyVowKind.apex.rawValue, "apex")
     }
 
     func testCodableRoundtrip() throws {
-        for kind in TrialCardKind.allCases {
+        for kind in WeeklyVowKind.allCases {
             let data = try JSONEncoder().encode(kind)
-            let decoded = try JSONDecoder().decode(TrialCardKind.self, from: data)
+            let decoded = try JSONDecoder().decode(WeeklyVowKind.self, from: data)
             XCTAssertEqual(decoded, kind)
         }
+    }
+
+    func testLegacyTrialKindRawValuesDecode() throws {
+        XCTAssertEqual(try JSONDecoder().decode(WeeklyVowKind.self, from: Data(#""aligned""#.utf8)), .ember)
+        XCTAssertEqual(try JSONDecoder().decode(WeeklyVowKind.self, from: Data(#""growth""#.utf8)), .overdrive)
+        XCTAssertEqual(try JSONDecoder().decode(WeeklyVowKind.self, from: Data(#""prestige""#.utf8)), .apex)
+    }
+
+    func testCompatibilityAliases() {
+        XCTAssertEqual(TrialCardKind.aligned, .ember)
+        XCTAssertEqual(TrialCardKind.growth, .overdrive)
+        XCTAssertEqual(TrialCardKind.prestige, .apex)
     }
 }

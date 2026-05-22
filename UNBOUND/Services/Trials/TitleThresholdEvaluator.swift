@@ -1,7 +1,7 @@
 // UNBOUND/Services/Trials/TitleThresholdEvaluator.swift
 import Foundation
 
-/// Pure helper: compare two TrialsState snapshots and return any TitleIDs
+/// Pure helper: compare two WeeklyVowsState snapshots and return any TitleIDs
 /// whose 3 / 7 / 15 thresholds were crossed.
 enum TitleThresholdEvaluator {
 
@@ -12,7 +12,7 @@ enum TitleThresholdEvaluator {
         (15, .gold)
     ]
 
-    static func crossings(prior: TrialsState, current: TrialsState) -> [TitleID] {
+    static func crossings(prior: WeeklyVowsState, current: WeeklyVowsState) -> [TitleID] {
         var result: [TitleID] = []
 
         // Axis paths
@@ -24,8 +24,8 @@ enum TitleThresholdEvaluator {
             }
         }
 
-        // Card-kind paths
-        for kind in TrialCardKind.allCases {
+        // Weekly Vow kind paths
+        for kind in WeeklyVowKind.allCases {
             let before = prior.completionsByCardKind[kind] ?? 0
             let after = current.completionsByCardKind[kind] ?? 0
             for (threshold, tier) in thresholds where before < threshold && after >= threshold {

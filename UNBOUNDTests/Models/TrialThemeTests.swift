@@ -1,24 +1,24 @@
 import XCTest
 @testable import UNBOUND
 
-final class TrialThemeTests: XCTestCase {
+final class WeeklyVowThemeTests: XCTestCase {
     func testAxisRoundtrip() throws {
-        let theme: TrialTheme = .axis(.power)
+        let theme: WeeklyVowTheme = .axis(.power)
         let data = try JSONEncoder().encode(theme)
-        let decoded = try JSONDecoder().decode(TrialTheme.self, from: data)
+        let decoded = try JSONDecoder().decode(WeeklyVowTheme.self, from: data)
         XCTAssertEqual(decoded, theme)
     }
 
     func testWildcardRoundtrip() throws {
-        let theme: TrialTheme = .wildcard
+        let theme: WeeklyVowTheme = .wildcard
         let data = try JSONEncoder().encode(theme)
-        let decoded = try JSONDecoder().decode(TrialTheme.self, from: data)
+        let decoded = try JSONDecoder().decode(WeeklyVowTheme.self, from: data)
         XCTAssertEqual(decoded, theme)
     }
 
     func testEquality() {
-        XCTAssertEqual(TrialTheme.axis(.power), TrialTheme.axis(.power))
-        XCTAssertNotEqual(TrialTheme.axis(.power), TrialTheme.axis(.endurance))
-        XCTAssertNotEqual(TrialTheme.axis(.power), TrialTheme.wildcard)
+        XCTAssertEqual(WeeklyVowTheme.axis(.power), WeeklyVowTheme.axis(.power))
+        XCTAssertNotEqual(WeeklyVowTheme.axis(.power), WeeklyVowTheme.axis(.endurance))
+        XCTAssertNotEqual(WeeklyVowTheme.axis(.power), WeeklyVowTheme.wildcard)
     }
 }

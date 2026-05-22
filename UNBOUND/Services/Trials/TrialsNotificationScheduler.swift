@@ -3,18 +3,25 @@ import Foundation
 import UserNotifications
 
 /// Schedules 3 local notifications per week per user (Monday picker reminder,
-/// Saturday capstone unlock, Sunday window-closing reminder). Notifications
+/// Saturday proof unlock, Sunday window-closing reminder). Notifications
 /// are accelerants, not gates — system works without permission.
 @MainActor
-enum TrialsNotificationScheduler {
+enum WeeklyVowsNotificationScheduler {
 
-    private static let mondayId = "unbound.trial.monday-picker"
-    private static let saturdayId = "unbound.trial.saturday-unlock"
-    private static let sundayId = "unbound.trial.sunday-closing"
+    private static let mondayId = "unbound.weekly-vow.monday-picker"
+    private static let saturdayId = "unbound.weekly-vow.saturday-unlock"
+    private static let sundayId = "unbound.weekly-vow.sunday-closing"
+    private static let legacyIds = [
+        "unbound.trial.monday-picker",
+        "unbound.trial.saturday-unlock",
+        "unbound.trial.sunday-closing"
+    ]
 
     /// Request permission + reschedule notifications for the given week.
     /// Idempotent. Safe to call on every ensureCurrentWeek.
     static func reschedule(for userId: String, weekStart: Date) async {
+        guard UserDefaults.standard.bool(forKey: "onboardingCompleted") else { return }
+
         let center = UNUserNotificationCenter.current()
         let settings = await center.notificationSettings()
         guard settings.authorizationStatus != .denied else { return }
@@ -23,29 +30,29 @@ enum TrialsNotificationScheduler {
         }
 
         // Clear prior schedule.
-        center.removePendingNotificationRequests(withIdentifiers: [mondayId, saturdayId, sundayId])
+        center.removePendingNotificationRequests(withIdentifiers: [mondayId, saturdayId, sundayId] + legacyIds)
 
         // Monday 09:00 — picker reminder
         await schedule(
             id: mondayId,
-            title: "This week's trials are ready",
-            body: "Choose your direction.",
+            title: "This week's vows are ready",
+            body: "Choose Ember, Overdrive, or Apex.",
             on: weekStart.addingTimeInterval(9 * 3600)
         )
 
-        // Saturday 08:00 — capstone unlock
+        // Saturday 08:00 — proof unlock
         await schedule(
             id: saturdayId,
-            title: "Capstone unlocked",
-            body: "Today's the day.",
+            title: "Vow proof unlocked",
+            body: "Finish strong when you're ready.",
             on: weekStart.addingTimeInterval(5 * 86_400 + 8 * 3600)
         )
 
         // Sunday 18:00 — closing reminder
         await schedule(
             id: sundayId,
-            title: "Capstone window closes in 6 hours",
-            body: "Last chance.",
+            title: "Vow window closes in 6 hours",
+            body: "Last chance to finish this week's vow.",
             on: weekStart.addingTimeInterval(6 * 86_400 + 18 * 3600)
         )
     }
@@ -53,7 +60,7 @@ enum TrialsNotificationScheduler {
     /// Cancel all 3 notifications. Called from skipThisWeek path.
     static func cancelAll() {
         UNUserNotificationCenter.current().removePendingNotificationRequests(
-            withIdentifiers: [mondayId, saturdayId, sundayId]
+            withIdentifiers: [mondayId, saturdayId, sundayId] + legacyIds
         )
     }
 
@@ -75,3 +82,5 @@ enum TrialsNotificationScheduler {
         try? await UNUserNotificationCenter.current().add(request)
     }
 }
+
+typealias TrialsNotificationScheduler = WeeklyVowsNotificationScheduler

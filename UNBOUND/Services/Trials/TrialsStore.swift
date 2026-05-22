@@ -1,30 +1,38 @@
 // UNBOUND/Services/Trials/TrialsStore.swift
 import Foundation
 
-/// UserDefaults-backed persistence for TrialsState. One entry per userId.
-/// Mirrors the existing UserSkillTierStore pattern from sub-project #4.
-final class TrialsStore {
+/// UserDefaults-backed persistence for WeeklyVowsState. One entry per userId.
+final class WeeklyVowsStore {
 
-    static let shared = TrialsStore()
+    static let shared = WeeklyVowsStore()
 
     private let defaults: UserDefaults
-    private let keyPrefix = "unbound.trialsState."
+    private let keyPrefix = "unbound.weeklyVowsState."
+    private let legacyKeyPrefix = "unbound.trialsState."
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
     }
 
-    func load(userId: String) -> TrialsState {
-        guard let data = defaults.data(forKey: keyPrefix + userId),
-              let state = try? JSONDecoder().decode(TrialsState.self, from: data)
-        else {
-            return .empty
+    func load(userId: String) -> WeeklyVowsState {
+        if let data = defaults.data(forKey: keyPrefix + userId),
+           let state = try? JSONDecoder().decode(WeeklyVowsState.self, from: data) {
+            return state
         }
-        return state
+
+        if let legacyData = defaults.data(forKey: legacyKeyPrefix + userId),
+           let legacyState = try? JSONDecoder().decode(WeeklyVowsState.self, from: legacyData) {
+            save(legacyState, userId: userId)
+            return legacyState
+        }
+
+        return .empty
     }
 
-    func save(_ state: TrialsState, userId: String) {
+    func save(_ state: WeeklyVowsState, userId: String) {
         guard let data = try? JSONEncoder().encode(state) else { return }
         defaults.set(data, forKey: keyPrefix + userId)
     }
 }
+
+typealias TrialsStore = WeeklyVowsStore

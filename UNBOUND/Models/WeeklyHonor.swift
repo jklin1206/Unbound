@@ -16,7 +16,7 @@ struct WeeklyHonor: Codable, Identifiable, Equatable, Sendable {
         case comebackArc
         case earlyBird
         case nightGrinder
-        case trialFinisher
+        case vowFinisher
         case supportBuff
 
         var displayName: String {
@@ -28,7 +28,7 @@ struct WeeklyHonor: Codable, Identifiable, Equatable, Sendable {
             case .comebackArc: return "Comeback Arc"
             case .earlyBird: return "Early Bird"
             case .nightGrinder: return "Night Grinder"
-            case .trialFinisher: return "Trial Finisher"
+            case .vowFinisher: return "Vow Finisher"
             case .supportBuff: return "Support Buff"
             }
         }
@@ -42,7 +42,7 @@ struct WeeklyHonor: Codable, Identifiable, Equatable, Sendable {
             case .comebackArc: return "Returned after 7+ days then logged 3+"
             case .earlyBird: return "Most pre-7am workouts"
             case .nightGrinder: return "Most post-9pm workouts"
-            case .trialFinisher: return "Completed a Trial capstone"
+            case .vowFinisher: return "Completed a Weekly Vow"
             case .supportBuff: return "Most linked-session participation"
             }
         }
@@ -56,9 +56,32 @@ struct WeeklyHonor: Codable, Identifiable, Equatable, Sendable {
             case .comebackArc: return "arrow.uturn.up"
             case .earlyBird: return "sunrise.fill"
             case .nightGrinder: return "moon.stars.fill"
-            case .trialFinisher: return "checkmark.seal.fill"
+            case .vowFinisher: return "checkmark.seal.fill"
             case .supportBuff: return "figure.2"
             }
         }
+
+        init(from decoder: Decoder) throws {
+            let rawValue = try decoder.singleValueContainer().decode(String.self)
+            switch rawValue {
+            case "trialFinisher":
+                self = .vowFinisher
+            default:
+                guard let kind = Kind(rawValue: rawValue) else {
+                    throw DecodingError.dataCorrupted(
+                        .init(codingPath: decoder.codingPath, debugDescription: "Unknown weekly honor kind: \(rawValue)")
+                    )
+                }
+                self = kind
+            }
+        }
+
+        func encode(to encoder: Encoder) throws {
+            var container = encoder.singleValueContainer()
+            try container.encode(rawValue)
+        }
+
+        // Temporary adapter for old call sites and persisted rows.
+        static var trialFinisher: Kind { .vowFinisher }
     }
 }

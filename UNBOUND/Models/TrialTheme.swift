@@ -1,16 +1,16 @@
 import Foundation
 import SwiftUI
 
-/// The axis or wildcard flavor that defines a trial.
-enum TrialTheme: Codable, Hashable, Sendable {
+/// The axis or wildcard flavor that defines a weekly vow.
+enum WeeklyVowTheme: Codable, Hashable, Sendable {
     case axis(AttributeKey)
     case wildcard
 }
 
 // MARK: - UI helpers
 
-extension TrialTheme {
-    /// Accent color used for trial cards and in-session chips.
+extension WeeklyVowTheme {
+    /// Accent color used for vow cards and in-session chips.
     var tintColor: Color {
         switch self {
         case .axis(let key):
@@ -35,3 +35,5 @@ extension TrialTheme {
         }
     }
 }
+
+typealias TrialTheme = WeeklyVowTheme

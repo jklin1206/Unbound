@@ -2,14 +2,14 @@
 import XCTest
 @testable import UNBOUND
 
-final class TrialsStoreTests: XCTestCase {
+final class WeeklyVowsStoreTests: XCTestCase {
 
     private var suiteName: String!
     private var defaults: UserDefaults!
 
     override func setUp() {
         super.setUp()
-        suiteName = "TrialsStoreTests-\(UUID().uuidString)"
+        suiteName = "WeeklyVowsStoreTests-\(UUID().uuidString)"
         defaults = UserDefaults(suiteName: suiteName)!
     }
     override func tearDown() {
@@ -18,13 +18,13 @@ final class TrialsStoreTests: XCTestCase {
     }
 
     func testMissingUserReturnsEmpty() {
-        let store = TrialsStore(defaults: defaults)
+        let store = WeeklyVowsStore(defaults: defaults)
         XCTAssertEqual(store.load(userId: "u-1"), .empty)
     }
 
     func testSaveLoadRoundtrip() {
-        let store = TrialsStore(defaults: defaults)
-        var state = TrialsState.empty
+        let store = WeeklyVowsStore(defaults: defaults)
+        var state = WeeklyVowsState.empty
         state.completionsByAxis[.power] = 5
         state.unlockedTitles = [TitleID(path: .axis(.power), tier: .bronze)]
         state.skippedCurrentWeek = true
@@ -34,10 +34,10 @@ final class TrialsStoreTests: XCTestCase {
     }
 
     func testMultipleUsersIsolated() {
-        let store = TrialsStore(defaults: defaults)
-        var stateA = TrialsState.empty
+        let store = WeeklyVowsStore(defaults: defaults)
+        var stateA = WeeklyVowsState.empty
         stateA.completionsByAxis[.power] = 3
-        var stateB = TrialsState.empty
+        var stateB = WeeklyVowsState.empty
         stateB.completionsByAxis[.power] = 10
 
         store.save(stateA, userId: "u-1")
@@ -45,5 +45,42 @@ final class TrialsStoreTests: XCTestCase {
 
         XCTAssertEqual(store.load(userId: "u-1"), stateA)
         XCTAssertEqual(store.load(userId: "u-2"), stateB)
+    }
+
+    func testLegacyTrialsStateMigratesToWeeklyVowsKey() throws {
+        let userId = "u-legacy"
+        let store = WeeklyVowsStore(defaults: defaults)
+        var state = WeeklyVowsState.empty
+        let card = WeeklyVowCard(
+            id: "trial-W20-aligned",
+            kind: .ember,
+            theme: .axis(.power),
+            displayName: "Power Focus",
+            blurb: "Legacy saved card",
+            capstone: WeeklyVowProof(displayName: "Top Set", description: "Legacy proof", evaluation: .manualClaim)
+        )
+        state.currentWeekStart = Date(timeIntervalSince1970: 1_700_000_000)
+        state.currentWeekCards = [card]
+        state.currentVow = WeeklyVow(
+            id: card.id,
+            userId: userId,
+            weekStart: state.currentWeekStart!,
+            chosenCard: card,
+            capstoneState: .pending,
+            completedAt: nil
+        )
+        state.completionsByCardKind[.ember] = 2
+
+        let encoded = try JSONEncoder().encode(state)
+        let legacyJSON = String(decoding: encoded, as: UTF8.self)
+            .replacingOccurrences(of: "\"ember\"", with: "\"aligned\"")
+        defaults.set(Data(legacyJSON.utf8), forKey: "unbound.trialsState.\(userId)")
+
+        let loaded = store.load(userId: userId)
+
+        XCTAssertEqual(loaded.currentWeekCards.first?.kind, .ember)
+        XCTAssertEqual(loaded.currentVow?.chosenCard.kind, .ember)
+        XCTAssertEqual(loaded.completionsByCardKind[.ember], 2)
+        XCTAssertNotNil(defaults.data(forKey: "unbound.weeklyVowsState.\(userId)"))
     }
 }

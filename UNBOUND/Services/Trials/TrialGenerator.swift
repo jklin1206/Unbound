@@ -2,111 +2,114 @@
 import Foundation
 
 /// Pure card generator. Inputs: user's AttributeProfile, recent log
-/// history, week-start Date, ISO week number. Output: 3 TrialCards.
+/// history, week-start Date, ISO week number. Output: 3 WeeklyVowCards.
 ///
-/// Deterministic given identical inputs. Aligned = profile.dominant.
-/// Growth = profile.weakest. Prestige cycles per weekNumber.
+/// Deterministic given identical inputs. Ember = recovery-safe low-day work.
+/// Overdrive = after-workout finisher. Apex cycles per weekNumber.
 @MainActor
-enum TrialGenerator {
+enum WeeklyVowGenerator {
 
     static func cards(
         profile: AttributeProfile,
         history: [WorkoutLog],
         weekStart: Date,
         weekNumber: Int
-    ) -> [TrialCard] {
-        let alignedAxis = profile.dominant
-        let growthAxis = profile.weakest
+    ) -> [WeeklyVowCard] {
+        let emberAxis = profile.weakest
+        let overdriveAxis = profile.dominant
 
         return [
-            makeAlignedCard(axis: alignedAxis, weekNumber: weekNumber, history: history),
-            makeGrowthCard(axis: growthAxis, weekNumber: weekNumber),
-            makePrestigeCard(weekNumber: weekNumber, history: history)
+            makeEmberCard(axis: emberAxis, weekNumber: weekNumber),
+            makeOverdriveCard(axis: overdriveAxis, weekNumber: weekNumber, history: history),
+            makeApexCard(weekNumber: weekNumber, history: history)
         ]
     }
 
-    private static func makeAlignedCard(
+    private static func makeEmberCard(
+        axis: AttributeKey,
+        weekNumber: Int
+    ) -> WeeklyVowCard {
+        WeeklyVowCard(
+            id: "weekly-vow-W\(weekNumber)-ember",
+            kind: .ember,
+            theme: .axis(axis),
+            displayName: "Ember · \(axis.displayName) Reset",
+            blurb: "Keep the streak warm with recovery-safe work for your \(axis.displayName.lowercased()) axis.",
+            capstone: WeeklyVowProof(
+                displayName: "Low-Day Proof",
+                description: "Complete 8-12 minutes of easy \(axis.displayName.lowercased()) work at RPE 3-5.",
+                evaluation: .liveTimer(seconds: 8 * 60, exerciseName: "\(axis.displayName.lowercased()) reset")
+            ),
+            prescription: WeeklyVowPrescription(
+                placement: .recoveryDay,
+                minMinutes: 8,
+                maxMinutes: 12,
+                minRPE: 3,
+                maxRPE: 5
+            )
+        )
+    }
+
+    private static func makeOverdriveCard(
         axis: AttributeKey,
         weekNumber: Int,
         history: [WorkoutLog]
-    ) -> TrialCard {
+    ) -> WeeklyVowCard {
         var capstone = CapstoneCatalog.perAxis[axis]!
-        // Dynamic scaling for the .power capstone — bake the user's recent
-        // best × 1.05 in kg.
+        // Dynamic scaling for the .power proof: bake the user's recent
+        // best x 1.05 in kg.
         if axis == .power, case .autoFromLog = capstone.evaluation {
             let target = scaledWeightTarget(history: history)
-            capstone = TrialCapstone(
+            capstone = WeeklyVowProof(
                 displayName: capstone.displayName,
-                description: "Hit a working set of \(Int(target))kg or higher this weekend on a Power-axis exercise.",
+                description: "After a workout, hit a working set of \(Int(target))kg or higher on a Power-axis exercise.",
                 evaluation: .autoFromLog(.weightKg(target))
             )
         }
-        let bronzeTitle = TitleCatalog.displayName(for: TitleID(path: .axis(axis), tier: .bronze))
-        return TrialCard(
-            id: "trial-W\(weekNumber)-aligned",
-            kind: .aligned,
+
+        return WeeklyVowCard(
+            id: "weekly-vow-W\(weekNumber)-overdrive",
+            kind: .overdrive,
             theme: .axis(axis),
-            displayName: alignedDisplayName(for: axis),
-            blurb: "Lean into your \(axis.rawValue). This week's training will count toward the \(bronzeTitle) path.",
-            capstone: capstone
+            displayName: "Overdrive · \(axis.displayName) Finisher",
+            blurb: "Attach a sharp finisher after training and push your \(axis.displayName.lowercased()) output.",
+            capstone: capstone,
+            prescription: WeeklyVowPrescription(
+                placement: .afterWorkout,
+                minMinutes: 6,
+                maxMinutes: 12,
+                minRPE: 7,
+                maxRPE: 8
+            )
         )
     }
 
-    private static func makeGrowthCard(axis: AttributeKey, weekNumber: Int) -> TrialCard {
-        let capstone = CapstoneCatalog.perAxis[axis]!
-        return TrialCard(
-            id: "trial-W\(weekNumber)-growth",
-            kind: .growth,
-            theme: .axis(axis),
-            displayName: growthDisplayName(for: axis),
-            blurb: "Push your \(axis.rawValue) — your weakest axis right now. Time to round it out.",
-            capstone: capstone
-        )
-    }
-
-    private static func makePrestigeCard(weekNumber: Int, history: [WorkoutLog]) -> TrialCard {
+    private static func makeApexCard(weekNumber: Int, history: [WorkoutLog]) -> WeeklyVowCard {
         var capstone = PrestigeCapstoneCatalog.capstone(for: weekNumber)
-        // Dynamic scaling for the 1-rep PR prestige capstone.
+        // Dynamic scaling for the 1-rep PR Apex proof.
         if capstone.displayName == "1-Rep PR Attempt" {
             let target = scaledWeightTarget(history: history)
-            capstone = TrialCapstone(
+            capstone = WeeklyVowProof(
                 displayName: capstone.displayName,
                 description: "Hit a 1-rep PR of \(Int(target))kg or higher on bench, squat, deadlift, or overhead press.",
                 evaluation: .autoFromLog(.weightKg(target))
             )
         }
-        return TrialCard(
-            id: "trial-W\(weekNumber)-prestige",
-            kind: .prestige,
+        return WeeklyVowCard(
+            id: "weekly-vow-W\(weekNumber)-apex",
+            kind: .apex,
             theme: .wildcard,
-            displayName: "Prestige · \(capstone.displayName)",
-            blurb: "A stretch challenge. Reach for it.",
-            capstone: capstone
+            displayName: "Apex · \(capstone.displayName)",
+            blurb: "Set aside a focused weekend session and chase a bigger proof.",
+            capstone: capstone,
+            prescription: WeeklyVowPrescription(
+                placement: .dedicatedSession,
+                minMinutes: 20,
+                maxMinutes: 45,
+                minRPE: 8,
+                maxRPE: 9
+            )
         )
-    }
-
-    // MARK: display-name authoring
-
-    private static func alignedDisplayName(for axis: AttributeKey) -> String {
-        switch axis {
-        case .power:          return "Power Focus"
-        case .agility:        return "Agility Focus"
-        case .control:        return "Control Focus"
-        case .endurance:      return "Endurance Focus"
-        case .mobility:       return "Mobility Focus"
-        case .explosiveness:  return "Explosiveness Focus"
-        }
-    }
-
-    private static func growthDisplayName(for axis: AttributeKey) -> String {
-        switch axis {
-        case .power:          return "Power Push"
-        case .agility:        return "Agility Push"
-        case .control:        return "Control Push"
-        case .endurance:      return "Endurance Push"
-        case .mobility:       return "Mobility Push"
-        case .explosiveness:  return "Explosiveness Push"
-        }
     }
 
     // MARK: dynamic scaling
@@ -127,3 +130,5 @@ enum TrialGenerator {
         return (raw / 5.0).rounded() * 5.0
     }
 }
+
+typealias TrialGenerator = WeeklyVowGenerator

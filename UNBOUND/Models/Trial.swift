@@ -1,19 +1,27 @@
 import Foundation
 
-/// The user's committed trial for the current week.
-struct Trial: Codable, Identifiable, Equatable, Sendable {
-    let id: String              // matches the chosen TrialCard.id
+/// The user's committed Weekly Vow for the current week.
+struct WeeklyVow: Codable, Identifiable, Equatable, Sendable {
+    let id: String              // matches the chosen WeeklyVowCard.id
     let userId: String
     let weekStart: Date         // Monday 00:00 local
-    let chosenCard: TrialCard
-    var capstoneState: CapstoneState
+    let chosenCard: WeeklyVowCard
+    var capstoneState: WeeklyVowState
     var completedAt: Date?
+
+    var vowState: WeeklyVowState {
+        get { capstoneState }
+        set { capstoneState = newValue }
+    }
 }
 
-/// State machine for the trial's capstone lifecycle.
-enum CapstoneState: String, Codable, Sendable {
-    case pending        // Trial active, Mon–Fri. Capstone not yet attemptable.
-    case windowOpen     // Saturday 00:00 → Sunday 23:59 local. Capstone available.
-    case completed      // Capstone done. Counters incremented.
+/// State machine for the weekly vow lifecycle.
+enum WeeklyVowState: String, Codable, Sendable {
+    case pending        // Vow active, proof window not yet open.
+    case windowOpen     // Vow proof is available.
+    case completed      // Vow done. Counters incremented.
     case missed         // Sunday 23:59 passed without completion.
 }
+
+typealias Trial = WeeklyVow
+typealias CapstoneState = WeeklyVowState

@@ -27,4 +27,10 @@ final class WeeklyHonorTests: XCTestCase {
     func testAllNineKindsPresent() {
         XCTAssertEqual(WeeklyHonor.Kind.allCases.count, 9)
     }
+
+    func testLegacyTrialFinisherDecodesAsVowFinisher() throws {
+        let decoded = try JSONDecoder().decode(WeeklyHonor.Kind.self, from: Data(#""trialFinisher""#.utf8))
+        XCTAssertEqual(decoded, .vowFinisher)
+        XCTAssertEqual(decoded.displayName, "Vow Finisher")
+    }
 }
