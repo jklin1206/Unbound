@@ -4,8 +4,8 @@ import Foundation
 //
 // Aggregates everything a user earned from a single training event —
 // a logged set, a finished session, or a one-shot achievement. The
-// `RewardCelebrationView` renders one card per non-nil/non-empty
-// component so the surface scales with what was actually earned:
+// Callers adapt this into the shared workout reward sequence. Each
+// non-nil/non-empty component becomes a beat or receipt line:
 //
 //  - Quiet event (XP only)             → single card
 //  - Set with PR                       → 2 cards
@@ -41,6 +41,12 @@ struct RewardSummary: Equatable {
     /// rank-up's skill if not set explicitly.
     var skillTitle: String? = nil
 
+    /// Unified progression receipt emitted by `TrainingCompletionService`.
+    /// This is the first user-visible bridge for the migration spine:
+    /// movement AP, attribute XP, level XP, body-map novelty, and skill XP
+    /// all converge here after a finished training event.
+    var progression: ProgressionReceipt? = nil
+
     /// True when there is at least one celebration-worthy item to show.
     /// Callers should skip presenting the sheet if false.
     var hasContent: Bool {
@@ -49,6 +55,7 @@ struct RewardSummary: Equatable {
         if rankUp != nil { return true }
         if !badgeUnlocks.isEmpty { return true }
         if firstSet != nil { return true }
+        if progression?.hasContent == true { return true }
         return false
     }
 
@@ -57,6 +64,102 @@ struct RewardSummary: Equatable {
     var deservesCinematic: Bool {
         rankUp?.toTier.deservesCinematic ?? false
     }
+}
+
+// MARK: - ProgressionReceipt
+
+struct ProgressionReceipt: Equatable {
+    var totalMovementAP: Double = 0
+    var totalAttributeXP: Double = 0
+    var overallLevelXPGained: Double = 0
+    var overallLevelBefore: Int = 0
+    var overallLevelAfter: Int = 0
+    var overallLevelProgressBefore: Double = 0
+    var overallLevelProgressAfter: Double = 0
+    var noveltyMultiplier: Double = 1.0
+    var skillXPGained: Int = 0
+    var movementLines: [ProgressionMovementLine] = []
+    var attributeLines: [ProgressionAttributeLine] = []
+    var bodyRegionLines: [ProgressionBodyRegionLine] = []
+
+    var hasContent: Bool {
+        if totalMovementAP > 0 { return true }
+        if totalAttributeXP > 0 { return true }
+        if overallLevelXPGained > 0 { return true }
+        if skillXPGained > 0 { return true }
+        if noveltyMultiplier > 1.001 { return true }
+        if !movementLines.isEmpty || !attributeLines.isEmpty || !bodyRegionLines.isEmpty { return true }
+        return false
+    }
+
+    var didOverallLevelUp: Bool {
+        overallLevelAfter > overallLevelBefore
+    }
+}
+
+struct ProgressionMovementLine: Identifiable, Equatable {
+    let id: String
+    let name: String
+    let apGained: Double
+    var totalAPBefore: Double = 0
+    var totalAPAfter: Double = 0
+
+    private var checkpointSize: Double { 100 }
+
+    var checkpointBefore: Int {
+        Int(floor(totalAPBefore / checkpointSize))
+    }
+
+    var checkpointAfter: Int {
+        Int(floor(totalAPAfter / checkpointSize))
+    }
+
+    var progressBefore: Double {
+        guard totalAPBefore > 0 else { return 0 }
+        return (totalAPBefore - Double(checkpointBefore) * checkpointSize) / checkpointSize
+    }
+
+    var progressAfter: Double {
+        guard totalAPAfter > 0 else { return min(1, max(0, apGained / checkpointSize)) }
+        return (totalAPAfter - Double(checkpointAfter) * checkpointSize) / checkpointSize
+    }
+
+    var apIntoCurrentCheckpoint: Double {
+        max(0, totalAPAfter - Double(checkpointAfter) * checkpointSize)
+    }
+
+    var apNeededForCurrentCheckpoint: Double { checkpointSize }
+
+    var apRemainingToCheckpoint: Double {
+        max(0, checkpointSize - apIntoCurrentCheckpoint)
+    }
+
+    var didAdvanceCheckpoint: Bool {
+        checkpointAfter > checkpointBefore
+    }
+}
+
+struct ProgressionAttributeLine: Identifiable, Equatable {
+    var id: String { key.rawValue }
+
+    let key: AttributeKey
+    let xpGained: Double
+    let levelBefore: Int
+    let levelAfter: Int
+    var progressBefore: Double = 0
+    var progressAfter: Double = 0
+    let tierAfter: RankTitle
+
+    var didLevelUp: Bool {
+        levelAfter > levelBefore
+    }
+}
+
+struct ProgressionBodyRegionLine: Identifiable, Equatable {
+    var id: String { name }
+
+    let name: String
+    let loadAdded: Double
 }
 
 // MARK: - PersonalRecord
@@ -127,4 +230,13 @@ struct BadgeUnlock: Equatable {
     let title: String
     let subtitle: String?
     let assetName: String       // imageset name in Assets.xcassets/BadgeArt
+    let rankTier: RankTitle?
+
+    init(id: String, title: String, subtitle: String?, assetName: String, rankTier: RankTitle? = nil) {
+        self.id = id
+        self.title = title
+        self.subtitle = subtitle
+        self.assetName = assetName
+        self.rankTier = rankTier
+    }
 }
