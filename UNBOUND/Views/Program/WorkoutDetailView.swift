@@ -9,11 +9,13 @@ struct WorkoutDetailView: View {
     /// mutations route through it so they persist back to the program doc.
     var programViewModel: ProgramViewModel? = nil
 
-    @State private var showLogging = false
+    @State private var showWorkoutReady = false
     @State private var isEditing = false
     @State private var swapTargetExerciseId: String?
     @State private var swapAlternatives: [CatalogExercise] = []
     @State private var swapPreferences: [ExercisePreference] = []
+    @State private var swapTrainingStyle: TrainingStyle = .default
+    @State private var swapEquipment: [Equipment] = [.bodyweight]
 
     /// Live exercises — read from the viewModel when present so swaps and
     /// sets/reps edits show up immediately. Falls back to the static
@@ -66,7 +68,7 @@ struct WorkoutDetailView: View {
 
                     if !isEditing {
                         GradientButton(title: "Log Workout", action: {
-                            showLogging = true
+                            showWorkoutReady = true
                         })
                         .padding(.top, 8)
                     }
@@ -97,13 +99,9 @@ struct WorkoutDetailView: View {
                 }
             }
         }
-        .fullScreenCover(isPresented: $showLogging) {
-            ActiveWorkoutContainerView(
-                workout: liveWorkout,
-                programId: programId,
-                dayNumber: dayNumber,
-                services: services
-            )
+        .sheet(isPresented: $showWorkoutReady) {
+            WorkoutReadyView(draft: readyDraft)
+                .environmentObject(services)
         }
         .sheet(item: Binding(
             get: { swapTargetExerciseId.map(SwapTarget.init(id:)) },
@@ -120,6 +118,19 @@ struct WorkoutDetailView: View {
         .task {
             if canEdit, let userId = services.auth.currentUserId {
                 swapPreferences = (try? await services.exercisePreference.fetchPreferences(userId: userId)) ?? []
+                if let profile = try? await services.user.fetchProfile(userId: userId) {
+                    let equipment: [Equipment]
+                    if let profileEquipment = profile.equipment, !profileEquipment.isEmpty {
+                        equipment = profileEquipment
+                    } else {
+                        equipment = programEquipmentFallback
+                    }
+                    swapEquipment = equipment
+                    swapTrainingStyle = profile.trainingStyleOverride ?? inferredTrainingStyle(for: equipment)
+                } else {
+                    swapEquipment = programEquipmentFallback
+                    swapTrainingStyle = inferredTrainingStyle(for: swapEquipment)
+                }
             }
         }
     }
@@ -133,25 +144,72 @@ struct WorkoutDetailView: View {
         return copy
     }
 
+    private var readyDraft: TrainingSessionDraft {
+        let userId = services.auth.currentUserId ?? "anonymous"
+        return DailyWorkoutResolver.programDraft(
+            from: liveWorkout,
+            userId: userId,
+            programId: programId.isEmpty ? nil : programId,
+            dayNumber: dayNumber
+        )
+    }
+
     private struct SwapTarget: Identifiable {
         let id: String
     }
 
     private func presentSwap(for exerciseId: String) {
         let current = liveMainExercises.first(where: { $0.id == exerciseId })?.name ?? ""
-        let prefsByKey = Dictionary(uniqueKeysWithValues: swapPreferences.map { ($0.exerciseName.lowercased(), $0) })
-        let alts = ExerciseCatalog.alternatives(to: current).filter { alt in
-            prefsByKey[alt.name.lowercased()]?.status != .avoid
-        }
+        let prefsByKey = ExercisePreferenceLookup.index(swapPreferences)
+        let excludedNames = Set(swapPreferences.filter { $0.status == .avoid }.flatMap { [$0.exerciseName, $0.displayName] })
+        let alts = MovementCatalog.catalogAlternatives(
+            to: current,
+            style: swapTrainingStyle,
+            userEquipment: swapEquipment,
+            excludedNames: excludedNames
+        )
+        .filter { preferenceStatus(for: $0, prefsByKey: prefsByKey) != .avoid }
         .sorted { a, b in
-            let aAvail = prefsByKey[a.name.lowercased()]?.status == .available
-            let bAvail = prefsByKey[b.name.lowercased()]?.status == .available
+            let aAvail = preferenceStatus(for: a, prefsByKey: prefsByKey) == .available
+            let bAvail = preferenceStatus(for: b, prefsByKey: prefsByKey) == .available
             if aAvail != bAvail { return aAvail && !bAvail }
             return a.displayName < b.displayName
         }
         swapAlternatives = alts
         swapTargetExerciseId = exerciseId
         UnboundHaptics.medium()
+    }
+
+    private var programEquipmentFallback: [Equipment] {
+        guard let requiredEquipment = programViewModel?.program?.requiredEquipment else {
+            return [.bodyweight]
+        }
+
+        let equipment = requiredEquipment.compactMap { value in
+            Equipment(rawValue: value)
+                ?? Equipment.allCases.first { $0.displayName.caseInsensitiveCompare(value) == .orderedSame }
+        }
+        return equipment.isEmpty ? [.bodyweight] : equipment
+    }
+
+    private func inferredTrainingStyle(for equipment: [Equipment]) -> TrainingStyle {
+        if equipment.count == 1, equipment.contains(.bodyweight) {
+            return .bodyweight
+        }
+        if equipment.contains(.machines), !equipment.contains(.fullGym) {
+            return .machines
+        }
+        if equipment.contains(.barbell) || equipment.contains(.dumbbells) || equipment.contains(.homeWeights) {
+            return equipment.contains(.machines) ? .hybrid : .freeWeights
+        }
+        return .hybrid
+    }
+
+    private func preferenceStatus(
+        for exercise: CatalogExercise,
+        prefsByKey: [String: ExercisePreference]
+    ) -> ExercisePreferenceStatus? {
+        ExercisePreferenceLookup.keys(for: exercise).compactMap { prefsByKey[$0]?.status }.first
     }
 
     private func applySwap(exerciseId: String, replacement: CatalogExercise) async {
@@ -245,6 +303,19 @@ private struct ExerciseRow: View {
     let exercise: Exercise
     @State private var isExpanded = false
 
+    private var movementDefinition: MovementDefinition? {
+        MovementCatalog.canonicalExercise(named: exercise.name)
+    }
+
+    private var displayName: String {
+        movementDefinition?.displayName ?? exercise.name
+    }
+
+    private var displayMuscleGroups: [MuscleGroup] {
+        let groups = movementDefinition?.muscleGroups ?? []
+        return groups.isEmpty ? exercise.muscleGroups : groups
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Button {
@@ -254,7 +325,7 @@ private struct ExerciseRow: View {
             } label: {
                 HStack(spacing: 12) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(exercise.name)
+                        Text(displayName)
                             .font(.bodyMedium(15))
                             .foregroundColor(.theme.textPrimary)
                             .multilineTextAlignment(.leading)
@@ -270,12 +341,19 @@ private struct ExerciseRow: View {
                                     .foregroundColor(.theme.textMuted)
                             }
                         }
+
+                        if let movementDefinition {
+                            Text(compactMetadata(for: movementDefinition))
+                                .font(.caption(11))
+                                .foregroundColor(.theme.textMuted)
+                                .lineLimit(2)
+                        }
                     }
 
                     Spacer()
 
                     HStack(spacing: 4) {
-                        ForEach(exercise.muscleGroups.prefix(2), id: \.self) { group in
+                        ForEach(displayMuscleGroups.prefix(2), id: \.self) { group in
                             Text(group.displayName)
                                 .font(.caption(11))
                                 .foregroundColor(.theme.primary)
@@ -308,6 +386,10 @@ private struct ExerciseRow: View {
     private var expandedContent: some View {
         VStack(alignment: .leading, spacing: 8) {
             Divider().background(Color.theme.surfaceLight)
+
+            if let movementDefinition {
+                movementMetadata(movementDefinition)
+            }
 
             if let rpe = exercise.rpe {
                 HStack(spacing: 6) {
@@ -350,6 +432,31 @@ private struct ExerciseRow: View {
             }
         }
     }
+
+    private func compactMetadata(for definition: MovementDefinition) -> String {
+        [
+            definition.movementSlot.displayName,
+            definition.rankTemplate.displayName,
+            definition.loggerMode.displayName
+        ].joined(separator: " · ")
+    }
+
+    private func movementMetadata(_ definition: MovementDefinition) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Movement")
+                .font(.caption(12))
+                .foregroundColor(.theme.textMuted)
+            Text([
+                definition.movementSlot.displayName,
+                definition.rankTemplate.displayName,
+                definition.loggerMode.displayName,
+                ExerciseLibrary.equipmentLabels(for: definition).joined(separator: " · ")
+            ].filter { !$0.isEmpty }.joined(separator: " · "))
+                .font(.bodyText(13))
+                .foregroundColor(.theme.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
 }
 
 // MARK: - Editable Row
@@ -367,6 +474,19 @@ private struct EditableExerciseRow: View {
     @State private var setsValue: Int
     @State private var repsValue: String
     @FocusState private var repsFocused: Bool
+
+    private var movementDefinition: MovementDefinition? {
+        MovementCatalog.canonicalExercise(named: exercise.name)
+    }
+
+    private var displayName: String {
+        movementDefinition?.displayName ?? exercise.name
+    }
+
+    private var displayMuscleGroups: [MuscleGroup] {
+        let groups = movementDefinition?.muscleGroups ?? []
+        return groups.isEmpty ? exercise.muscleGroups : groups
+    }
 
     init(
         exercise: Exercise,
@@ -386,13 +506,19 @@ private struct EditableExerciseRow: View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .top, spacing: 12) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(exercise.name)
+                    Text(displayName)
                         .font(.bodyMedium(15))
                         .foregroundColor(.theme.textPrimary)
                         .multilineTextAlignment(.leading)
-                    Text(exercise.muscleGroups.prefix(2).map(\.displayName).joined(separator: " · "))
+                    Text(displayMuscleGroups.prefix(2).map(\.displayName).joined(separator: " · "))
                         .font(.caption(12))
                         .foregroundColor(.theme.textMuted)
+                    if let movementDefinition {
+                        Text(editMetadata(for: movementDefinition))
+                            .font(.caption(11))
+                            .foregroundColor(.theme.textMuted)
+                            .lineLimit(2)
+                    }
                 }
                 Spacer()
                 Button {
@@ -509,5 +635,16 @@ private struct EditableExerciseRow: View {
                 .background(Circle().fill(Color.theme.primary.opacity(0.14)))
         }
         .buttonStyle(.plain)
+    }
+
+    private func editMetadata(for definition: MovementDefinition) -> String {
+        [
+            definition.movementSlot.displayName,
+            definition.rankTemplate.displayName,
+            definition.loggerMode.displayName,
+            ExerciseLibrary.equipmentLabels(for: definition).prefix(2).joined(separator: " · ")
+        ]
+        .filter { !$0.isEmpty }
+        .joined(separator: " · ")
     }
 }

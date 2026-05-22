@@ -81,7 +81,7 @@ struct ExerciseSwapSheet: View {
     }
 
     private var createNewRow: some View {
-        Button {
+        return Button {
             UnboundHaptics.medium()
             onCreateCustom?()
             dismiss()
@@ -120,11 +120,13 @@ struct ExerciseSwapSheet: View {
     }
 
     private func swapRow(_ alt: CatalogExercise) -> some View {
-        Button {
+        let metadata = MovementCatalog.canonicalExercise(named: alt.name).map { swapMetadata(for: $0) }
+
+        return Button(action: {
             UnboundHaptics.medium()
             onSelect(alt)
             dismiss()
-        } label: {
+        }, label: {
             HStack(spacing: 12) {
                 Image(systemName: "arrow.left.arrow.right")
                     .font(.system(size: 16, weight: .semibold))
@@ -137,10 +139,10 @@ struct ExerciseSwapSheet: View {
                     Text(alt.displayName)
                         .font(Font.unbound.bodyLStrong)
                         .foregroundStyle(Color.unbound.textPrimary)
-                    Text(alt.muscleGroups.map(\.rawValue).joined(separator: " · "))
+                    Text(metadata ?? alt.muscleGroups.map(\.displayName).joined(separator: " · "))
                         .font(Font.unbound.captionS)
                         .foregroundStyle(Color.unbound.textSecondary)
-                        .lineLimit(1)
+                        .lineLimit(2)
                 }
                 Spacer()
                 Image(systemName: "chevron.right")
@@ -157,7 +159,19 @@ struct ExerciseSwapSheet: View {
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .strokeBorder(Color.unbound.border, lineWidth: 1)
             )
-        }
+        })
         .buttonStyle(.plain)
+    }
+
+    private func swapMetadata(for definition: MovementDefinition) -> String {
+        let equipment = ExerciseLibrary.equipmentLabels(for: definition).prefix(2).joined(separator: " · ")
+        return [
+            definition.movementSlot.displayName,
+            definition.rankTemplate.displayName,
+            definition.loggerMode.displayName,
+            equipment
+        ]
+        .filter { !$0.isEmpty }
+        .joined(separator: " · ")
     }
 }

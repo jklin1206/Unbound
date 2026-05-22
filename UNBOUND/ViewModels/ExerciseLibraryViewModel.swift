@@ -17,7 +17,13 @@ final class ExerciseLibraryViewModel: ObservableObject {
         let groups = ExerciseLibrary.grouped()
         return groups.compactMap { (title, items) in
             let filtered = items.filter { item in
-                let matchesSearch = searchText.isEmpty || item.name.localizedCaseInsensitiveContains(searchText)
+                let searchSource = [
+                    item.name,
+                    item.canonicalName,
+                    item.metadataSummary,
+                    item.equipmentSummary
+                ].joined(separator: " ")
+                let matchesSearch = searchText.isEmpty || searchSource.localizedCaseInsensitiveContains(searchText)
                 let matchesCategory = selectedCategory == nil || item.category == selectedCategory
                 return matchesSearch && matchesCategory
             }
@@ -25,16 +31,20 @@ final class ExerciseLibraryViewModel: ObservableObject {
         }
     }
 
-    var availableCount: Int { preferences.values.filter { $0.status == .available }.count }
-    var substituteCount: Int { preferences.values.filter { $0.status == .substitute }.count }
-    var avoidCount: Int { preferences.values.filter { $0.status == .avoid }.count }
+    var availableCount: Int { uniquePreferences.filter { $0.status == .available }.count }
+    var substituteCount: Int { uniquePreferences.filter { $0.status == .substitute }.count }
+    var avoidCount: Int { uniquePreferences.filter { $0.status == .avoid }.count }
+
+    private var uniquePreferences: [ExercisePreference] {
+        Dictionary(grouping: preferences.values, by: \.id).compactMap { $0.value.first }
+    }
 
     func loadPreferences() async {
         guard let userId = services.auth.currentUserId else { return }
         state = .loading
         do {
             let prefs = try await services.exercisePreference.fetchPreferences(userId: userId)
-            preferences = Dictionary(uniqueKeysWithValues: prefs.map { ($0.exerciseName, $0) })
+            preferences = ExercisePreferenceLookup.index(prefs)
             state = .loaded(())
         } catch {
             state = .error(.databaseReadFailed(underlying: error))
@@ -44,31 +54,45 @@ final class ExerciseLibraryViewModel: ObservableObject {
 
     func setPreference(for item: ExerciseLibraryItem, status: ExercisePreferenceStatus?) async {
         guard let userId = services.auth.currentUserId else { return }
+        let key = item.preferenceKey
 
         if let status {
             let pref = ExercisePreference(
-                id: item.normalizedName,
+                id: "\(userId):\(key)",
                 userId: userId,
-                exerciseName: item.normalizedName,
+                exerciseName: key,
                 displayName: item.name,
                 status: status,
                 muscleGroups: item.muscleGroups,
-                substitutePreference: nil,
+                substitutePreference: status == .substitute
+                    ? MovementCatalog.catalogAlternatives(to: item.name).first?.name
+                    : nil,
                 notes: nil,
                 updatedAt: Date()
             )
             try? await services.exercisePreference.setPreference(pref)
-            preferences[item.normalizedName] = pref
+            for lookupKey in item.preferenceLookupKeys {
+                preferences[lookupKey] = pref
+            }
             services.analytics.track(.exercisePreferenceSet(exerciseName: item.name, status: status.rawValue))
         } else {
-            if let existing = preferences[item.normalizedName] {
-                try? await services.exercisePreference.deletePreference(id: existing.id)
-                preferences.removeValue(forKey: item.normalizedName)
+            let ids = Set(
+                item.preferenceLookupKeys.compactMap { preferences[$0]?.id } + ["\(userId):\(item.preferenceKey)"]
+            )
+            for id in ids {
+                try? await services.exercisePreference.deletePreference(id: id)
+            }
+            for lookupKey in item.preferenceLookupKeys {
+                preferences.removeValue(forKey: lookupKey)
             }
         }
     }
 
     func statusFor(_ item: ExerciseLibraryItem) -> ExercisePreferenceStatus? {
-        preferences[item.normalizedName]?.status
+        preferenceFor(item)?.status
+    }
+
+    private func preferenceFor(_ item: ExerciseLibraryItem) -> ExercisePreference? {
+        item.preferenceLookupKeys.compactMap { preferences[$0] }.first
     }
 }

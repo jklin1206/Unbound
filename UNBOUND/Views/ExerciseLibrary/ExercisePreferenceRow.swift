@@ -18,10 +18,17 @@ struct ExercisePreferenceRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 12) {
-                Text(item.name)
-                    .font(.bodyMedium(15))
-                    .foregroundColor(.theme.textPrimary)
-                    .multilineTextAlignment(.leading)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(item.name)
+                        .font(.bodyMedium(15))
+                        .foregroundColor(.theme.textPrimary)
+                        .multilineTextAlignment(.leading)
+
+                    Text(item.metadataSummary)
+                        .font(.caption(11))
+                        .foregroundColor(.theme.textMuted)
+                        .lineLimit(2)
+                }
 
                 Spacer()
 
@@ -30,7 +37,18 @@ struct ExercisePreferenceRow: View {
 
             if !item.muscleGroups.isEmpty {
                 HStack(spacing: 4) {
-                    ForEach(item.muscleGroups.prefix(3), id: \.self) { group in
+                    if !item.equipmentSummary.isEmpty {
+                        Text(item.equipmentSummary)
+                            .font(.caption(11))
+                            .foregroundColor(.theme.warning)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color.theme.warning.opacity(0.12))
+                            .clipShape(Capsule())
+                            .lineLimit(1)
+                    }
+
+                    ForEach(item.muscleGroups.prefix(2), id: \.self) { group in
                         Text(group.displayName)
                             .font(.caption(11))
                             .foregroundColor(.theme.primary)

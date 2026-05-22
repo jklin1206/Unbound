@@ -4,8 +4,8 @@ import SwiftUI
 //
 // Session orchestrator for the new grid-based logging surface.
 // Owns the ActiveWorkoutSession, autosaves drafts, hosts WorkoutLogGridView
-// + RestTimerPill overlay, and on COMPLETE assembles + saves the WorkoutLog
-// via the unchanged saveLog path.
+// + RestTimerPill overlay, and on COMPLETE assembles + saves unified
+// PerformanceLog data before showing the post-workout reward sequence.
 
 struct ActiveWorkoutContainerView: View {
     @StateObject private var session: ActiveWorkoutSession
@@ -26,8 +26,9 @@ struct ActiveWorkoutContainerView: View {
     @State private var notesEditingText: String = ""
     @State private var showNotesSheet = false
 
-    // Reward state — mirrors WorkoutLoggingView's exact pattern
-    @State private var rewardSummary: RewardSummary? = nil
+    // Reward state
+    @State private var rewardSequence: WorkoutRewardSequenceSummary? = nil
+    @State private var isFinishingRewardSequence = false
 
     // Grid cell editor state
     @State private var editing: EditTarget? = nil
@@ -41,9 +42,12 @@ struct ActiveWorkoutContainerView: View {
     private let restClock = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     @Environment(\.dismiss) private var dismiss
+    @AppStorage(WeightPlatePolicy.unitDefaultsKey) private var weightUnitRaw = TrainingWeightUnit.localeDefault.rawValue
+    @AppStorage(WeightPlatePolicy.microloadingDefaultsKey) private var microloadingEnabled = false
 
     private let services: ServiceContainer
     private let draftStore: WorkoutDraftStore
+    private let onFinished: (() -> Void)?
 
     // MARK: - Private types
 
@@ -59,11 +63,6 @@ struct ActiveWorkoutContainerView: View {
         var id: Int { index }
     }
 
-    private struct WorkoutRewardPresentation: Identifiable {
-        let id = UUID()
-        let summary: RewardSummary
-    }
-
     // MARK: - Init
 
     init(
@@ -71,14 +70,27 @@ struct ActiveWorkoutContainerView: View {
         programId: String,
         dayNumber: Int,
         services: ServiceContainer,
-        resuming: ActiveWorkoutSession? = nil
+        resuming: ActiveWorkoutSession? = nil,
+        onFinished: (() -> Void)? = nil
     ) {
         self.services = services
         self.draftStore = WorkoutDraftStore()
+        self.onFinished = onFinished
         _session = StateObject(
             wrappedValue: resuming
                 ?? ActiveWorkoutSession(workout: workout, programId: programId, dayNumber: dayNumber)
         )
+    }
+
+    init(
+        draft: TrainingSessionDraft,
+        services: ServiceContainer,
+        onFinished: (() -> Void)? = nil
+    ) {
+        self.services = services
+        self.draftStore = WorkoutDraftStore()
+        self.onFinished = onFinished
+        _session = StateObject(wrappedValue: ActiveWorkoutSession(trainingDraft: draft))
     }
 
     // MARK: - Body
@@ -101,16 +113,10 @@ struct ActiveWorkoutContainerView: View {
                 onAddSet: { ei in
                     session.addSet(toExerciseIndex: ei)
                     try? draftStore.save(session)
-                },
-                onComplete: { showCompleteConfirm = true }
+                }
             )
 
-            RestTimerPill(
-                model: restTimer,
-                onAddThirty: { restTimer.addThirty() },
-                onDismiss: { restTimer.dismiss() }
-            )
-            .padding(.bottom, 16)
+            completionFooter
         }
         .overlay(alignment: .topLeading) {
             Button {
@@ -144,7 +150,10 @@ struct ActiveWorkoutContainerView: View {
             isPresented: $showExitConfirm,
             titleVisibility: .visible
         ) {
-            Button("Save & finish") { Task { await complete() } }
+            Button("Save & finish") {
+                showExitConfirm = false
+                Task { await complete() }
+            }
             Button("Leave (keeps progress)", role: .destructive) { dismiss() }
             Button("Keep training", role: .cancel) {}
         } message: {
@@ -163,7 +172,10 @@ struct ActiveWorkoutContainerView: View {
             isPresented: $showCompleteConfirm,
             titleVisibility: .visible
         ) {
-            Button("Finish workout", role: .destructive) { Task { await complete() } }
+            Button("Finish workout", role: .destructive) {
+                showCompleteConfirm = false
+                Task { await complete() }
+            }
             Button("Keep training", role: .cancel) {}
         }
         // Grid cell editor sheet
@@ -238,27 +250,64 @@ struct ActiveWorkoutContainerView: View {
                 }
             )
         }
-        // Reward sheet — reproduces WorkoutLoggingView's exact pattern:
-        // RewardCelebrationView(summary:) with .presentationDetents([.medium,.large])
-        .sheet(item: Binding(
-            get: { rewardSummary.map(WorkoutRewardPresentation.init(summary:)) },
-            set: { rewardSummary = $0?.summary }
-        )) { item in
-            RewardCelebrationView(summary: item.summary) {
-                // Dismiss the fullScreenCover; the reward sheet tears down
-                // with it. Do NOT also nil rewardSummary here — that is the
-                // competing-mutation race that left the session stuck.
-                dismiss()
+        .fullScreenCover(item: $rewardSequence) { summary in
+            WorkoutRewardSequenceView(summary: summary) {
+                finishRewardSequence()
             }
-            .presentationDetents([.medium, .large])
-            .presentationDragIndicator(.visible)
+            .interactiveDismissDisabled(true)
         }
     }
 
     // MARK: - Computed helpers
 
-    private var totalWorkingSets: Int {
-        session.exercises.filter { !$0.skipped }.reduce(0) { $0 + $1.sets.filter { !$0.isWarmup }.count }
+    private var totalLoggedWorkingSets: Int {
+        session.exercises.filter { !$0.skipped }.reduce(0) {
+            $0 + $1.sets.filter { !$0.isWarmup && $0.logged }.count
+        }
+    }
+
+    private var completionFooter: some View {
+        VStack(spacing: 10) {
+            RestTimerPill(
+                model: restTimer,
+                onAddThirty: { restTimer.addThirty() },
+                onDismiss: { restTimer.dismiss() }
+            )
+
+            Button(action: requestComplete) {
+                HStack(spacing: 10) {
+                    if saving {
+                        ProgressView()
+                            .tint(Color.unbound.bg)
+                    }
+                    Text(saving ? "SAVING SESSION" : "COMPLETE SESSION")
+                        .font(Font.unbound.bodyLStrong)
+                        .tracking(2)
+                }
+                .foregroundStyle(Color.unbound.bg)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 18)
+                .background(RoundedRectangle(cornerRadius: 18)
+                    .fill(saving ? Color.unbound.textSecondary : Color.unbound.accent))
+                .shadow(color: Color.black.opacity(0.24), radius: 18, x: 0, y: 10)
+            }
+            .buttonStyle(.plain)
+            .disabled(saving)
+            .accessibilityIdentifier("workout.complete")
+            .accessibilityLabel(saving ? "Saving session" : "Complete session")
+        }
+        .padding(.horizontal, 16)
+        .padding(.bottom, 16)
+        .background(
+            LinearGradient(
+                colors: [Color.unbound.bg.opacity(0), Color.unbound.bg.opacity(0.96)],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .frame(height: 142)
+            .allowsHitTesting(false),
+            alignment: .bottom
+        )
     }
 
     // MARK: - Rest timer
@@ -288,9 +337,23 @@ struct ActiveWorkoutContainerView: View {
                     setIndex: si,
                     priorEntries: priorEntries,
                     workingWeightKg: workingWeightKg) {
-                    session.exercises[ei].sets[si].suggestedWeightKg = g.weightKg
+                    session.exercises[ei].sets[si].suggestedWeightKg = g.weightKg.map {
+                        WeightPlatePolicy.snappedSuggestionKilograms(
+                            $0,
+                            unit: weightUnit,
+                            microloadingEnabled: microloadingEnabled
+                        )
+                    }
                 }
             }
+        }
+    }
+
+    private func requestComplete() {
+        if session.hasUnloggedWorkingSets {
+            showCompleteConfirm = true
+        } else {
+            Task { await complete() }
         }
     }
 
@@ -336,7 +399,7 @@ struct ActiveWorkoutContainerView: View {
 
         case .swapExercise:
             guard session.exercises.indices.contains(ei) else { return }
-            swapAlternatives = ExerciseCatalog.alternatives(to: session.exercises[ei].name)
+            swapAlternatives = MovementCatalog.catalogAlternatives(to: session.exercises[ei].name)
             swapExerciseIndex = ei
             return // draft save happens in swap onSelect closure
         }
@@ -368,6 +431,10 @@ struct ActiveWorkoutContainerView: View {
         applySuggestedWeights()
     }
 
+    private var weightUnit: TrainingWeightUnit {
+        TrainingWeightUnit(rawValue: weightUnitRaw) ?? .localeDefault
+    }
+
     // MARK: - Save + reward
 
     private func complete() async {
@@ -378,31 +445,81 @@ struct ActiveWorkoutContainerView: View {
             return
         }
         saving = true
-        let log = session.assembleWorkoutLog(userId: uid)
+        let performanceLog = session.assemblePerformanceLog(userId: uid)
         do {
-            try await services.workoutLog.saveLog(log)
+            let completionResult = try await TrainingCompletionService.shared.complete(performanceLog, services: services)
+            _ = services.trials.recordCompletedVowWork(
+                performanceLog: performanceLog,
+                completionResult: completionResult
+            )
+            let rankTrialResult = OverallRankTrialRunner.shared.recordCompletedAttempt(
+                performanceLog: performanceLog,
+                completionResult: completionResult
+            )
             HapticManager.notification(.success)
+            restTimer.stop()
             draftStore.clear()
 
-            // Reward summary construction is unchanged (sub-project B wires
-            // richer content here later). The dismiss/sheet race is the fix:
-            // set rewardSummary ONLY when there is content to show, else
-            // dismiss directly. Never mutate the sheet item AND dismiss the
-            // fullScreenCover in the same tick — SwiftUI drops one and the
-            // session gets stuck open.
-            var summary = RewardSummary()
-            summary.skillTitle = session.plannedWorkoutName
-            summary.xpGained = max(10, totalWorkingSets * 5)
-            if summary.hasContent {
-                rewardSummary = summary   // reward sheet dismisses the cover on close
+            let summary = makeRewardSequenceSummary(
+                performanceLog: performanceLog,
+                completionResult: completionResult,
+                rankTrialResult: rankTrialResult
+            )
+            if totalLoggedWorkingSets > 0 || summary.progression?.hasContent == true {
+                saving = false
+                rewardSequence = summary
             } else {
-                dismiss()
+                saving = false
+                finishDismiss()
             }
         } catch {
             HapticManager.notification(.error)
             saving = false
             saveError = true   // surface it + offer Retry / Leave — never trap
         }
+    }
+
+    private func finishDismiss() {
+        if let onFinished {
+            onFinished()
+        } else {
+            dismiss()
+        }
+    }
+
+    private func finishRewardSequence() {
+        guard !isFinishingRewardSequence else { return }
+        isFinishingRewardSequence = true
+        rewardSequence = nil
+        finishDismiss()
+    }
+
+    private func makeRewardSequenceSummary(
+        performanceLog: PerformanceLog,
+        completionResult: TrainingCompletionResult,
+        rankTrialResult: OverallRankTrialRunResult?
+    ) -> WorkoutRewardSequenceSummary {
+        let loggedSets = session.exercises
+            .filter { !$0.skipped }
+            .flatMap(\.sets)
+            .filter { !$0.isWarmup && $0.logged }
+        let workSets = loggedSets.count
+        let rewardSummary: RewardSummary? = {
+            guard let rankUp = rankTrialResult?.rankUp else { return nil }
+            var summary = RewardSummary()
+            summary.rankUp = rankUp
+            summary.skillTitle = rankUp.skillTitle
+            summary.progression = completionResult.progressionReceipt
+            return summary
+        }()
+
+        return WorkoutRewardSequenceSummary.trainingReceipt(
+            performanceLog: performanceLog,
+            completionResult: completionResult,
+            rewardSummary: rewardSummary,
+            fallbackXP: workSets * 12,
+            sourceName: session.source.rawValue.capitalized
+        )
     }
 }
 
@@ -419,6 +536,8 @@ private struct EditorSheet: View {
 
     @State private var value: Double
     @Environment(\.dismiss) private var dismiss
+    @AppStorage(WeightPlatePolicy.unitDefaultsKey) private var weightUnitRaw = TrainingWeightUnit.localeDefault.rawValue
+    @AppStorage(WeightPlatePolicy.microloadingDefaultsKey) private var microloadingEnabled = false
 
     init(session: ActiveWorkoutSession,
          ei: Int,
@@ -433,17 +552,32 @@ private struct EditorSheet: View {
 
         let initial: Double
         if isWeight {
-            initial = session.exercises.indices.contains(ei)
+            let unit = WeightPlatePolicy.currentUnit
+            let kilograms = session.exercises.indices.contains(ei)
                 && session.exercises[ei].sets.indices.contains(si)
                 ? (session.exercises[ei].sets[si].weightKg
-                   ?? session.exercises[ei].sets[si].suggestedWeightKg ?? 0)
-                : 0
+                   ?? session.exercises[ei].sets[si].suggestedWeightKg)
+                : nil
+            initial = kilograms.map { WeightPlatePolicy.editingValue(fromKilograms: $0, unit: unit) } ?? 0
         } else {
-            initial = session.exercises.indices.contains(ei)
-                && session.exercises[ei].sets.indices.contains(si)
-                ? Double(session.exercises[ei].sets[si].reps
-                         ?? session.exercises[ei].sets[si].suggestedReps ?? 0)
-                : 0
+            if session.exercises.indices.contains(ei),
+               session.exercises[ei].sets.indices.contains(si) {
+                let set = session.exercises[ei].sets[si]
+                switch session.exercises[ei].metricKind {
+                case .reps:
+                    initial = Double(set.reps ?? set.suggestedReps ?? 0)
+                case .holdSeconds:
+                    initial = Double(set.holdSeconds ?? set.suggestedHoldSeconds ?? 0)
+                case .durationSeconds:
+                    initial = Double(set.durationSeconds ?? set.suggestedDurationSeconds ?? 0)
+                case .distanceMeters:
+                    initial = Double(set.distanceMeters ?? set.suggestedDistanceMeters ?? 0)
+                case .calories:
+                    initial = Double(set.calories ?? set.suggestedCalories ?? 0)
+                }
+            } else {
+                initial = 0
+            }
         }
         _value = State(initialValue: initial)
     }
@@ -455,10 +589,10 @@ private struct EditorSheet: View {
                 VStack(spacing: 32) {
                     Spacer()
                     StepperControl(
-                        label: isWeight ? "Weight" : "Reps",
+                        label: label,
                         value: $value,
-                        step: isWeight ? 2.5 : 1,
-                        unit: isWeight ? "kg" : nil,
+                        step: isWeight ? weightStep : 1,
+                        unit: unit,
                         allowsDecimal: isWeight
                     )
                     Spacer()
@@ -483,6 +617,47 @@ private struct EditorSheet: View {
         .presentationBackground(Color.unbound.bg)
     }
 
+    private var isHoldMetric: Bool {
+        session.exercises.indices.contains(ei)
+            && (session.exercises[ei].blockKind == .carry
+                || session.exercises[ei].metricKind == .holdSeconds
+                || session.exercises[ei].metricKind == .durationSeconds)
+    }
+
+    private var label: String {
+        if isWeight { return isHoldMetric ? "Load" : "Weight" }
+        guard session.exercises.indices.contains(ei) else { return "Value" }
+        switch session.exercises[ei].metricKind {
+        case .reps: return "Reps"
+        case .holdSeconds: return "Hold"
+        case .durationSeconds: return "Time"
+        case .distanceMeters: return "Distance"
+        case .calories: return "Calories"
+        }
+    }
+
+    private var unit: String? {
+        if isWeight { return weightUnit.shortLabel }
+        guard session.exercises.indices.contains(ei) else { return nil }
+        switch session.exercises[ei].metricKind {
+        case .reps: return nil
+        case .holdSeconds, .durationSeconds: return "sec"
+        case .distanceMeters: return "m"
+        case .calories: return "cal"
+        }
+    }
+
+    private var weightUnit: TrainingWeightUnit {
+        TrainingWeightUnit(rawValue: weightUnitRaw) ?? .localeDefault
+    }
+
+    private var weightStep: Double {
+        WeightPlatePolicy.loadIncrement(
+            unit: weightUnit,
+            microloadingEnabled: microloadingEnabled
+        )
+    }
+
     private func commit() {
         guard session.exercises.indices.contains(ei),
               session.exercises[ei].sets.indices.contains(si) else {
@@ -490,9 +665,23 @@ private struct EditorSheet: View {
             return
         }
         if isWeight {
-            session.exercises[ei].sets[si].weightKg = value > 0 ? value : nil
+            session.exercises[ei].sets[si].weightKg = value > 0
+                ? WeightPlatePolicy.kilograms(fromDisplayValue: value, unit: weightUnit)
+                : nil
         } else {
-            session.exercises[ei].sets[si].reps = Int(value) > 0 ? Int(value) : nil
+            let intValue = Int(value)
+            switch session.exercises[ei].metricKind {
+            case .reps:
+                session.exercises[ei].sets[si].reps = intValue > 0 ? intValue : nil
+            case .holdSeconds:
+                session.exercises[ei].sets[si].holdSeconds = intValue > 0 ? intValue : nil
+            case .durationSeconds:
+                session.exercises[ei].sets[si].durationSeconds = intValue > 0 ? intValue : nil
+            case .distanceMeters:
+                session.exercises[ei].sets[si].distanceMeters = intValue > 0 ? intValue : nil
+            case .calories:
+                session.exercises[ei].sets[si].calories = intValue > 0 ? intValue : nil
+            }
         }
         // Keep .logged unchanged — do not clear it.
         onCommitted()

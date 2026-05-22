@@ -14,6 +14,7 @@ import SwiftUI
 struct ExercisePreferencesView: View {
     @EnvironmentObject var services: ServiceContainer
     @State private var preferences: [String: ExercisePreferenceStatus] = [:]  // key: exercise name
+    @State private var preferenceRecords: [String: ExercisePreference] = [:]
     @State private var customExercises: [CustomExercise] = []
     @State private var showingBuilder = false
     @State private var isLoading = true
@@ -140,13 +141,11 @@ struct ExercisePreferencesView: View {
     private func load() async {
         do {
             let prefs = try await services.exercisePreference.fetchPreferences(userId: userId)
-            var map: [String: ExercisePreferenceStatus] = [:]
-            for p in prefs {
-                map[p.exerciseName.lowercased()] = p.status
-            }
-            preferences = map
+            preferenceRecords = ExercisePreferenceLookup.index(prefs)
+            preferences = preferenceRecords.mapValues { $0.status }
         } catch {
             preferences = [:]
+            preferenceRecords = [:]
         }
         customExercises = await services.customExercise.all(userId: userId)
         isLoading = false
@@ -154,35 +153,52 @@ struct ExercisePreferencesView: View {
 
     private func setStatus(_ status: ExercisePreferenceStatus?, for exercise: CatalogExercise) {
         UnboundHaptics.medium()
-        let key = exercise.name
+        let definition = MovementCatalog.canonicalExercise(named: exercise.name)
+        let key = definition?.canonicalExerciseName ?? exercise.name
+        let displayName = definition?.displayName ?? exercise.displayName
+        let muscleGroups = definition?.muscleGroups ?? exercise.muscleGroups
+        let lookupKeys = ExercisePreferenceLookup.keys(for: exercise)
 
         if let status {
-            preferences[key] = status
+            for lookupKey in lookupKeys {
+                preferences[lookupKey] = status
+            }
+            let pref = ExercisePreference(
+                id: "\(userId):\(key)",
+                userId: userId,
+                exerciseName: key,
+                displayName: displayName,
+                status: status,
+                muscleGroups: muscleGroups,
+                substitutePreference: status == .substitute
+                    ? MovementCatalog.catalogAlternatives(to: displayName).first?.name ?? exercise.defaultSubstitute
+                    : nil,
+                notes: nil,
+                updatedAt: Date()
+            )
+            for lookupKey in lookupKeys {
+                preferenceRecords[lookupKey] = pref
+            }
             Task {
-                let pref = ExercisePreference(
-                    id: "\(userId):\(key)",
-                    userId: userId,
-                    exerciseName: key,
-                    displayName: exercise.displayName,
-                    status: status,
-                    muscleGroups: exercise.muscleGroups,
-                    substitutePreference: status == .substitute ? exercise.defaultSubstitute : nil,
-                    notes: nil,
-                    updatedAt: Date()
-                )
                 try? await services.exercisePreference.setPreference(pref)
             }
         } else {
-            preferences[key] = nil
+            let ids = Set(lookupKeys.compactMap { preferenceRecords[$0]?.id } + ["\(userId):\(key)"])
+            for lookupKey in lookupKeys {
+                preferences[lookupKey] = nil
+                preferenceRecords[lookupKey] = nil
+            }
             Task {
-                try? await services.exercisePreference.deletePreference(id: "\(userId):\(key)")
+                for id in ids {
+                    try? await services.exercisePreference.deletePreference(id: id)
+                }
             }
         }
     }
 
     /// Cycle order: nil → available → substitute → avoid → nil
     private func cycle(_ exercise: CatalogExercise) {
-        let current = preferences[exercise.name]
+        let current = preferenceStatus(for: exercise)
         let next: ExercisePreferenceStatus?
         switch current {
         case nil:           next = .available
@@ -193,12 +209,20 @@ struct ExercisePreferencesView: View {
         setStatus(next, for: exercise)
     }
 
+    private func preferenceStatus(for exercise: CatalogExercise) -> ExercisePreferenceStatus? {
+        ExercisePreferenceLookup.keys(for: exercise).compactMap { preferences[$0] }.first
+    }
+
+    private func preferenceStatus(for definition: MovementDefinition) -> ExercisePreferenceStatus? {
+        ExercisePreferenceLookup.keys(for: definition).compactMap { preferences[$0] }.first
+    }
+
     // MARK: Header + legend
 
     private var header: some View {
-        let total = ExerciseCatalog.allExercises.count
-        let categorized = preferences.count
-        let avoided = preferences.values.filter { $0 == .avoid }.count
+        let total = MovementCatalog.legacyExercises.count
+        let categorized = MovementCatalog.legacyExercises.filter { preferenceStatus(for: $0) != nil }.count
+        let avoided = MovementCatalog.legacyExercises.filter { preferenceStatus(for: $0) == .avoid }.count
 
         return VStack(alignment: .leading, spacing: 8) {
             Text("Tell us what you like.")
@@ -259,7 +283,7 @@ struct ExercisePreferencesView: View {
     // MARK: Section per pattern
 
     private func patternSection(_ pattern: MovementPattern) -> some View {
-        let exercises = ExerciseCatalog.exercisesByPattern[pattern] ?? []
+        let exercises = MovementCatalog.catalogExercises(for: pattern)
         return VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 10) {
                 Image(systemName: pattern.icon)
@@ -281,11 +305,21 @@ struct ExercisePreferencesView: View {
     }
 
     private func exerciseRow(_ exercise: CatalogExercise) -> some View {
-        let status = preferences[exercise.name]
+        let status = preferenceStatus(for: exercise)
+        let metadata = exerciseMetadata(for: exercise)
         return HStack(spacing: 12) {
-            Text(exercise.displayName)
-                .font(Font.unbound.bodyM)
-                .foregroundStyle(Color.unbound.textPrimary)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(exercise.displayName)
+                    .font(Font.unbound.bodyM)
+                    .foregroundStyle(Color.unbound.textPrimary)
+
+                if let metadata {
+                    Text(metadata)
+                        .font(Font.unbound.captionS)
+                        .foregroundStyle(Color.unbound.textSecondary)
+                        .lineLimit(2)
+                }
+            }
 
             Spacer()
 
@@ -306,6 +340,19 @@ struct ExercisePreferencesView: View {
         )
         .contentShape(RoundedRectangle(cornerRadius: 14))
         .onTapGesture { cycle(exercise) }
+    }
+
+    private func exerciseMetadata(for exercise: CatalogExercise) -> String? {
+        guard let definition = MovementCatalog.canonicalExercise(named: exercise.name) else { return nil }
+        let equipment = ExerciseLibrary.equipmentLabels(for: definition).prefix(2).joined(separator: " · ")
+        return [
+            definition.movementSlot.displayName,
+            definition.rankTemplate.displayName,
+            definition.loggerMode.displayName,
+            equipment
+        ]
+        .filter { !$0.isEmpty }
+        .joined(separator: " · ")
     }
 
     private func statusPill(status: ExercisePreferenceStatus?) -> some View {
