@@ -25,6 +25,7 @@ struct WorkoutRewardSequenceView: View {
         case attributes
         case collection
         case progression
+        case weeklyVow
         case final
     }
 
@@ -49,6 +50,10 @@ struct WorkoutRewardSequenceView: View {
 
         if summary.progression?.hasContent == true {
             beats.append(.progression)
+        }
+
+        if summary.weeklyVowCallout != nil {
+            beats.append(.weeklyVow)
         }
 
         beats.append(.final)
@@ -163,6 +168,7 @@ struct WorkoutRewardSequenceView: View {
         if let advance = summary.liftProgress.first(where: \.didAdvanceTier) { return advance.toTier.rewardTint }
         if let pr = summary.personalRecords.first { return pr.family.tint }
         if let attribute = summary.attributeDeltas.first(where: \.didAdvanceTier) { return attribute.tint }
+        if let vow = summary.weeklyVowCallout { return vow.theme.tintColor }
         return Color.rewardBlue
     }
 
@@ -185,6 +191,8 @@ struct WorkoutRewardSequenceView: View {
             if let progression = summary.progression {
                 progressionBeat(progression)
             }
+        case .weeklyVow:
+            weeklyVowBeat
         case .final:
             finalYield
         }
@@ -499,6 +507,65 @@ struct WorkoutRewardSequenceView: View {
         }
     }
 
+    @ViewBuilder
+    private var weeklyVowBeat: some View {
+        if let callout = summary.weeklyVowCallout {
+            let tint = callout.theme.tintColor
+            RewardPanel(tint: tint, active: currentBeatKind == .weeklyVow) {
+                VStack(alignment: .leading, spacing: 18) {
+                    beatHeader(kicker: "WEEKLY VOW BONUS", title: callout.title.uppercased(), tint: tint)
+
+                    HStack(spacing: 14) {
+                        ZStack {
+                            Circle()
+                                .fill(tint.opacity(0.18))
+                                .frame(width: 66, height: 66)
+                            Circle()
+                                .stroke(tint.opacity(0.72), lineWidth: 1.5)
+                                .frame(width: 66, height: 66)
+                            Image(systemName: "checkmark.seal.fill")
+                                .font(.system(size: 30, weight: .black))
+                                .foregroundStyle(tint)
+                                .shadow(color: tint.opacity(0.45), radius: 14)
+                        }
+
+                        VStack(alignment: .leading, spacing: 5) {
+                            Text(callout.subtitle.uppercased())
+                                .font(Font.unbound.bodyMStrong)
+                                .foregroundStyle(Color.unbound.textPrimary)
+                                .lineLimit(2)
+                                .minimumScaleFactor(0.78)
+                            Text(callout.shareSubtitle.uppercased())
+                                .font(Font.unbound.captionS.weight(.semibold))
+                                .tracking(1.0)
+                                .foregroundStyle(Color.unbound.textTertiary)
+                                .lineLimit(2)
+                                .minimumScaleFactor(0.72)
+                        }
+                    }
+
+                    VStack(spacing: 10) {
+                        rewardLine(label: "Proof", value: callout.proofName, tint: tint)
+                        rewardLine(label: "Receipt", value: callout.receiptLine, tint: Color.rewardBlue)
+                    }
+
+                    HStack(spacing: 8) {
+                        Image(systemName: "square.and.arrow.up")
+                            .font(.system(size: 13, weight: .bold))
+                        Text("SHARE CARD READY")
+                            .font(Font.unbound.captionS.weight(.heavy))
+                            .tracking(1.8)
+                    }
+                    .foregroundStyle(tint)
+                    .padding(.horizontal, 12)
+                    .frame(height: 32)
+                    .background(Capsule().fill(tint.opacity(0.12)))
+                    .overlay(Capsule().stroke(tint.opacity(0.42), lineWidth: 1))
+                }
+            }
+        }
+    }
+
     private var arcBeat: some View {
         RewardPanel(tint: summary.arcProgress.didCompleteArc ? Color.unbound.impact : Color.unbound.rankGold, active: currentBeatKind == .collection) {
             VStack(alignment: .leading, spacing: 14) {
@@ -539,13 +606,17 @@ struct WorkoutRewardSequenceView: View {
                 let skillXP = summary.progression?.skillXPGained ?? 0
                 let primaryXPValue = summary.xp.total > 0 ? "+\(summary.xp.total)" : "+\(skillXP)"
                 let primaryXPLabel = summary.xp.total > 0 ? "LV XP" : "SKILL XP"
+                let featCount = summary.personalRecords.count + summary.badges.count + (summary.weeklyVowCallout == nil ? 0 : 1)
+                let featLabel = summary.weeklyVowCallout == nil ? "FEATS" : "VOW"
                 HStack(spacing: 20) {
                     yieldToken(value: primaryXPValue, label: primaryXPLabel, tint: Color.rewardBlue)
                     yieldToken(value: "\(summary.liftProgress.filter(\.didAdvanceTier).count)", label: "RANK UPS", tint: dominantLiftTint)
-                    yieldToken(value: "\(summary.personalRecords.count + summary.badges.count)", label: "FEATS", tint: Color.unbound.impact)
+                    yieldToken(value: "\(featCount)", label: featLabel, tint: summary.weeklyVowCallout?.theme.tintColor ?? Color.unbound.impact)
                 }
 
-                if let badge = summary.badges.first {
+                if let callout = summary.weeklyVowCallout {
+                    weeklyVowShareChip(callout)
+                } else if let badge = summary.badges.first {
                     RewardBadgeAsset(unlock: badge, tint: badge.rankTier?.rewardTint ?? Color.unbound.impact)
                         .frame(width: 76, height: 76)
                         .shadow(color: (badge.rankTier?.rewardTint ?? Color.unbound.impact).opacity(0.45), radius: 18)
@@ -658,7 +729,7 @@ struct WorkoutRewardSequenceView: View {
         case .xp:
             animatedXP = 0
             UnboundHaptics.heavy()
-        case .rankReveal, .attributes, .collection, .progression:
+        case .rankReveal, .attributes, .collection, .progression, .weeklyVow:
             UnboundHaptics.medium()
         case .sessionComplete, .final:
             UnboundHaptics.soft()
@@ -791,6 +862,28 @@ struct WorkoutRewardSequenceView: View {
 
     private func formatReceiptNumber(_ value: Double) -> String {
         "\(Int(value.rounded()))"
+    }
+
+    private func weeklyVowShareChip(_ callout: WeeklyVowRewardCallout) -> some View {
+        let tint = callout.theme.tintColor
+        return HStack(spacing: 10) {
+            Image(systemName: "checkmark.seal.fill")
+                .font(.system(size: 17, weight: .black))
+            VStack(alignment: .leading, spacing: 2) {
+                Text(callout.shareTitle.uppercased())
+                    .font(Font.unbound.captionS.weight(.heavy))
+                    .tracking(1.5)
+                Text(callout.receiptLine.uppercased())
+                    .font(Font.unbound.captionS)
+                    .tracking(1.2)
+                    .foregroundStyle(Color.unbound.textTertiary)
+            }
+        }
+        .foregroundStyle(tint)
+        .padding(.horizontal, 14)
+        .frame(height: 52)
+        .background(Capsule().fill(tint.opacity(0.12)))
+        .overlay(Capsule().stroke(tint.opacity(0.42), lineWidth: 1))
     }
 
     private func yieldToken(value: String, label: String, tint: Color) -> some View {

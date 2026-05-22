@@ -25,6 +25,31 @@ final class MovementResolverTests: XCTestCase {
         XCTAssertTrue(resolved.variationTags.contains(.negative))
     }
 
+    func testLegacyDisplayCanonicalAndUnderscoreNamesResolveToCatalogMovements() {
+        let benchDisplay = MovementResolver.resolve("Barbell Bench Press")
+        let benchCanonical = MovementResolver.resolve("bench press")
+        let benchLegacy = MovementResolver.resolve("bench_press")
+
+        XCTAssertEqual(benchDisplay.movementId, "exercise.bench-press")
+        XCTAssertEqual(benchCanonical.movementId, benchDisplay.movementId)
+        XCTAssertEqual(benchLegacy.movementId, benchDisplay.movementId)
+        XCTAssertEqual(benchLegacy.canonicalExerciseName, "bench press")
+
+        let pulldownDisplay = MovementResolver.resolve("Lat Pulldown (Neutral)")
+        let pulldownLegacy = MovementResolver.resolve("lat_pulldown_neutral")
+
+        XCTAssertEqual(pulldownDisplay.movementId, "exercise.lat-pulldown-neutral")
+        XCTAssertEqual(pulldownLegacy.movementId, pulldownDisplay.movementId)
+        XCTAssertEqual(pulldownLegacy.rankStandardMovementId, "exercise.lat-pulldown")
+
+        let cableRowShortName = MovementResolver.resolve("cable row")
+        let cableRowLegacy = MovementResolver.resolve("cable_row_seated")
+
+        XCTAssertEqual(cableRowShortName.movementId, "exercise.cable-row-seated")
+        XCTAssertEqual(cableRowLegacy.movementId, cableRowShortName.movementId)
+        XCTAssertEqual(cableRowShortName.movementSlot, .horizontalPull)
+    }
+
     func testWallHandstandSixtySecondsResolvesToSkillHoldWork() {
         let resolved = MovementResolver.resolve("Wall Handstand 60s")
 
@@ -464,13 +489,13 @@ final class MovementResolverTests: XCTestCase {
         let straightBarDipDefinition = MovementCatalog.definition(for: "exercise.straight-bar-dip")
         XCTAssertEqual(straightBarDipDefinition?.skillAssociations.contains("pp.muscle-up"), true)
 
-        let closeGripPulldown = ExerciseCatalog.exercise(named: "close grip lat pulldown")
+        let closeGripPulldown = MovementCatalog.catalogExercise(named: "close grip lat pulldown")
         XCTAssertEqual(closeGripPulldown?.defaultSubstitute, "lat pulldown")
 
-        let singleLegCurl = ExerciseCatalog.exercise(named: "single-leg curl")
+        let singleLegCurl = MovementCatalog.catalogExercise(named: "single-leg curl")
         XCTAssertEqual(singleLegCurl?.defaultSubstitute, "leg curl (lying)")
 
-        let reverseGripPulldown = ExerciseCatalog.exercise(named: "reverse grip lat pulldown")
+        let reverseGripPulldown = MovementCatalog.catalogExercise(named: "reverse grip lat pulldown")
         XCTAssertEqual(reverseGripPulldown?.defaultSubstitute, "lat pulldown")
 
         let horizontalRows = [

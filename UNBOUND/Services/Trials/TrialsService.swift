@@ -134,10 +134,8 @@ final class WeeklyVowsService: WeeklyVowsServiceProtocol {
     func recordCompletedVowWork(
         performanceLog: PerformanceLog,
         completionResult: TrainingCompletionResult
-    ) -> WeeklyVow? {
-        let acceptedByCompletionService = completionResult.savedPerformanceLogId == performanceLog.id
-            || completionResult.wasAlreadyCompleted
-        guard acceptedByCompletionService else { return nil }
+    ) -> WeeklyVowCompletionReceipt? {
+        guard completionResult.savedPerformanceLogId == performanceLog.id else { return nil }
         guard WeeklyVowTrainingRoute.hasCompletedWork(performanceLog) else { return nil }
         guard let vowId = WeeklyVowTrainingRoute.vowId(from: performanceLog.programId) else { return nil }
 
@@ -148,7 +146,10 @@ final class WeeklyVowsService: WeeklyVowsServiceProtocol {
         else { return nil }
 
         completeVow(userId: performanceLog.userId, at: performanceLog.completedAt)
-        return store.load(userId: performanceLog.userId).currentVow
+        guard let completedVow = store.load(userId: performanceLog.userId).currentVow,
+              completedVow.capstoneState == .completed
+        else { return nil }
+        return WeeklyVowCompletionReceipt(vow: completedVow, performanceLog: performanceLog)
     }
 
     // MARK: - Complete vow

@@ -448,7 +448,7 @@ struct ActiveWorkoutContainerView: View {
         let performanceLog = session.assemblePerformanceLog(userId: uid)
         do {
             let completionResult = try await TrainingCompletionService.shared.complete(performanceLog, services: services)
-            _ = services.trials.recordCompletedVowWork(
+            let weeklyVowReceipt = services.trials.recordCompletedVowWork(
                 performanceLog: performanceLog,
                 completionResult: completionResult
             )
@@ -463,9 +463,10 @@ struct ActiveWorkoutContainerView: View {
             let summary = makeRewardSequenceSummary(
                 performanceLog: performanceLog,
                 completionResult: completionResult,
-                rankTrialResult: rankTrialResult
+                rankTrialResult: rankTrialResult,
+                weeklyVowReceipt: weeklyVowReceipt
             )
-            if totalLoggedWorkingSets > 0 || summary.progression?.hasContent == true {
+            if totalLoggedWorkingSets > 0 || summary.progression?.hasContent == true || summary.weeklyVowCallout != nil {
                 saving = false
                 rewardSequence = summary
             } else {
@@ -497,7 +498,8 @@ struct ActiveWorkoutContainerView: View {
     private func makeRewardSequenceSummary(
         performanceLog: PerformanceLog,
         completionResult: TrainingCompletionResult,
-        rankTrialResult: OverallRankTrialRunResult?
+        rankTrialResult: OverallRankTrialRunResult?,
+        weeklyVowReceipt: WeeklyVowCompletionReceipt?
     ) -> WorkoutRewardSequenceSummary {
         let loggedSets = session.exercises
             .filter { !$0.skipped }
@@ -518,7 +520,8 @@ struct ActiveWorkoutContainerView: View {
             completionResult: completionResult,
             rewardSummary: rewardSummary,
             fallbackXP: workSets * 12,
-            sourceName: session.source.rawValue.capitalized
+            sourceName: weeklyVowReceipt == nil ? session.source.rawValue.capitalized : "Weekly Vow",
+            weeklyVowCallout: weeklyVowReceipt?.callout
         )
     }
 }

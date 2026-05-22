@@ -32,9 +32,14 @@ struct WorkoutRewardSequenceSummary: Identifiable {
     var arcProgress: ArcProgressReward
     var cosmeticUnlock: CosmeticUnlockReward?
     var progression: ProgressionReceipt? = nil
+    var weeklyVowCallout: WeeklyVowRewardCallout? = nil
 
     var hasShareableMoment: Bool {
-        !personalRecords.isEmpty || !badges.isEmpty || liftProgress.contains(where: \.didAdvanceTier) || arcProgress.didCompleteArc
+        weeklyVowCallout != nil
+            || !personalRecords.isEmpty
+            || !badges.isEmpty
+            || liftProgress.contains(where: \.didAdvanceTier)
+            || arcProgress.didCompleteArc
     }
 }
 
@@ -197,6 +202,21 @@ struct CosmeticUnlockReward {
     var tint: Color
 }
 
+struct WeeklyVowRewardCallout: Identifiable, Equatable, Sendable {
+    let id: String
+    var vowId: String
+    var performanceLogId: String
+    var cardKind: WeeklyVowKind
+    var theme: WeeklyVowTheme
+    var title: String
+    var subtitle: String
+    var proofName: String
+    var receiptLine: String
+    var shareTitle: String
+    var shareSubtitle: String
+    var completedAt: Date
+}
+
 extension AttributeKey {
     var rewardTint: Color {
         switch self {
@@ -216,7 +236,8 @@ extension WorkoutRewardSequenceSummary {
         completionResult: TrainingCompletionResult? = nil,
         rewardSummary: RewardSummary? = nil,
         fallbackXP: Int = 0,
-        sourceName: String? = nil
+        sourceName: String? = nil,
+        weeklyVowCallout: WeeklyVowRewardCallout? = nil
     ) -> WorkoutRewardSequenceSummary {
         let allSets = performanceLog.blocks.flatMap(\.exercises).flatMap(\.sets)
         let metricOnlyBlocks = performanceLog.blocks.filter { block in
@@ -295,7 +316,8 @@ extension WorkoutRewardSequenceSummary {
                 bonusXP: 0
             ),
             cosmeticUnlock: nil,
-            progression: progression
+            progression: progression,
+            weeklyVowCallout: weeklyVowCallout
         )
     }
 

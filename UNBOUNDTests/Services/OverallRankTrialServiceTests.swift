@@ -104,6 +104,85 @@ final class OverallRankTrialServiceTests: XCTestCase {
         XCTAssertEqual(readiness.definition?.displayName, "The Calibration")
     }
 
+    func testApprenticeReadinessTargetsHonedAndLocksWhenForgeRequirementsAreMissing() {
+        let definition = OverallRankTrialDefinitions.forge
+        let readiness = TrialReadinessService.shared.evaluate(
+            OverallRankTrialReadinessInput(
+                userId: "u1",
+                currentRank: .apprentice,
+                overallLevel: definition.minOverallLevel - 1,
+                movementProgress: [:],
+                skillTiers: [:],
+                attributeProfile: AttributeProfile.empty(userId: "u1", at: Date(timeIntervalSince1970: 0)),
+                equipment: [.bodyweight]
+            )
+        )
+
+        XCTAssertEqual(readiness.status, .locked)
+        XCTAssertEqual(readiness.currentRank, .apprentice)
+        XCTAssertEqual(readiness.targetRank, .honed)
+        XCTAssertEqual(readiness.definition?.id, definition.id)
+        XCTAssertTrue(readiness.missingRequirements.contains { $0.kind == .overallLevel })
+        XCTAssertTrue(readiness.missingRequirements.contains { $0.kind == .movement })
+        XCTAssertTrue(readiness.missingRequirements.contains { $0.kind == .skill })
+        XCTAssertTrue(readiness.missingRequirements.contains { $0.kind == .attributes })
+        XCTAssertTrue(readiness.missingRequirements.contains { $0.kind == .equipment })
+    }
+
+    func testApprenticeReadinessBecomesReadyForForgeWhenRequirementsAreMet() {
+        let definition = OverallRankTrialDefinitions.forge
+        let readiness = TrialReadinessService.shared.evaluate(
+            OverallRankTrialReadinessInput(
+                userId: "u1",
+                currentRank: .apprentice,
+                overallLevel: definition.minOverallLevel,
+                movementProgress: movementProgress(for: definition),
+                skillTiers: skillTiers(for: definition),
+                attributeProfile: attributeProfile(score: definition.topAttributeFloor),
+                equipment: [.bodyweight, .kettlebell, .openSpace, .pullupBar]
+            )
+        )
+
+        XCTAssertEqual(readiness.status, .ready)
+        XCTAssertEqual(readiness.currentRank, .apprentice)
+        XCTAssertEqual(readiness.targetRank, .honed)
+        XCTAssertTrue(readiness.missingRequirements.isEmpty)
+        XCTAssertEqual(readiness.definition?.displayName, "The Forge")
+    }
+
+    func testForgeReadinessReportsFailedAfterMissedAttemptWhenRequirementsRemainMet() {
+        let definition = OverallRankTrialDefinitions.forge
+        let attempt = OverallRankTrialAttempt(
+            id: "forge-log-1",
+            userId: "u1",
+            definitionId: definition.id,
+            targetRank: definition.targetRank,
+            startedAt: Date(timeIntervalSince1970: 100),
+            completedAt: Date(timeIntervalSince1970: 1_000),
+            performanceLogId: "forge-log-1",
+            passed: false,
+            movementAPGained: 0,
+            overallLevelXPGained: 0
+        )
+
+        let readiness = TrialReadinessService.shared.evaluate(
+            OverallRankTrialReadinessInput(
+                userId: "u1",
+                currentRank: .apprentice,
+                overallLevel: definition.minOverallLevel,
+                movementProgress: movementProgress(for: definition),
+                skillTiers: skillTiers(for: definition),
+                attributeProfile: attributeProfile(score: definition.topAttributeFloor),
+                equipment: [.bodyweight, .kettlebell, .openSpace, .pullupBar],
+                attempts: [attempt]
+            )
+        )
+
+        XCTAssertEqual(readiness.status, .failed)
+        XCTAssertEqual(readiness.latestAttempt?.id, attempt.id)
+        XCTAssertTrue(readiness.isReady)
+    }
+
     func testTrialRunnerDraftMapsToValidPerformanceLogBlocks() {
         let definition = OverallRankTrialDefinitions.foundationProof
         let draft = OverallRankTrialRunner.shared.draft(
@@ -154,6 +233,38 @@ final class OverallRankTrialServiceTests: XCTestCase {
         XCTAssertEqual(draft.estimatedMinutes, 20)
         XCTAssertEqual(draft.blocks.flatMap(\.prescriptions).map(\.sets), [14, 14, 14])
         XCTAssertEqual(passingLog.blocks.flatMap(\.exercises).map { $0.sets.count }, [14, 14, 14])
+        XCTAssertTrue(OverallRankTrialRunner.shared.evaluatePerformance(passingLog, against: definition))
+        XCTAssertFalse(OverallRankTrialRunner.shared.evaluatePerformance(failingLog, against: definition))
+    }
+
+    func testForgeDraftMapsToThreeRoundChipperPerformanceStandards() {
+        let definition = OverallRankTrialDefinitions.forge
+        let draft = OverallRankTrialRunner.shared.draft(
+            for: definition,
+            userId: "u1",
+            date: Date(timeIntervalSince1970: 100)
+        )
+        let passingLog = OverallRankTrialRunner.shared.performanceLog(
+            from: draft,
+            userId: "u1",
+            startedAt: Date(timeIntervalSince1970: 100),
+            completedAt: Date(timeIntervalSince1970: 2_000),
+            passing: true
+        )
+        let failingLog = OverallRankTrialRunner.shared.performanceLog(
+            from: draft,
+            userId: "u1",
+            startedAt: Date(timeIntervalSince1970: 100),
+            completedAt: Date(timeIntervalSince1970: 2_000),
+            passing: false
+        )
+
+        XCTAssertEqual(draft.title, "The Forge")
+        XCTAssertEqual(draft.estimatedMinutes, 35)
+        XCTAssertEqual(draft.blocks.map(\.kind), [.cardio, .strength, .bodyweight])
+        XCTAssertEqual(draft.blocks.first?.cardioType, .run)
+        XCTAssertEqual(draft.blocks.flatMap(\.prescriptions).map(\.sets), [3, 3, 3, 3])
+        XCTAssertEqual(passingLog.blocks.flatMap(\.exercises).map { $0.sets.count }, [3, 3, 3, 3])
         XCTAssertTrue(OverallRankTrialRunner.shared.evaluatePerformance(passingLog, against: definition))
         XCTAssertFalse(OverallRankTrialRunner.shared.evaluatePerformance(failingLog, against: definition))
     }
@@ -322,6 +433,126 @@ final class OverallRankTrialServiceTests: XCTestCase {
         XCTAssertEqual(progress.attempts.count, 1)
     }
 
+    func testFailedForgeLogsAttemptAndReceiptButDoesNotAdvancePastApprentice() async throws {
+        store.save(
+            OverallRankTrialProgress(highestPassedRank: .apprentice, attempts: []),
+            userId: "u1"
+        )
+        let database = MockDatabaseService()
+        let services = makeServices(database: database)
+        let definition = OverallRankTrialDefinitions.forge
+        let draft = OverallRankTrialRunner.shared.draft(
+            for: definition,
+            userId: "u1",
+            date: Date(timeIntervalSince1970: 100)
+        )
+        let log = OverallRankTrialRunner.shared.performanceLog(
+            from: draft,
+            userId: "u1",
+            startedAt: Date(timeIntervalSince1970: 100),
+            completedAt: Date(timeIntervalSince1970: 2_000),
+            passing: false
+        )
+
+        let completed = try await OverallRankTrialRunner.shared.complete(
+            performanceLog: log,
+            services: services,
+            store: store
+        )
+        let result = try XCTUnwrap(completed)
+        let savedLog: PerformanceLog = try await database.read(collection: "performanceLogs", documentId: log.id)
+        let completionRecord: TrainingCompletionRecord = try await database.read(
+            collection: "training_completion_records",
+            documentId: log.id
+        )
+
+        XCTAssertEqual(savedLog.id, log.id)
+        XCTAssertEqual(completionRecord.performanceLogId, log.id)
+        XCTAssertEqual(result.definition.id, definition.id)
+        XCTAssertFalse(result.attempt.passed)
+        XCTAssertFalse(result.didAdvanceRank)
+        XCTAssertEqual(store.load(userId: "u1").currentRank, .apprentice)
+        XCTAssertEqual(store.load(userId: "u1").attempts.count, 1)
+    }
+
+    func testPassedForgeAdvancesToHoned() async throws {
+        store.save(
+            OverallRankTrialProgress(highestPassedRank: .apprentice, attempts: []),
+            userId: "u1"
+        )
+        let database = MockDatabaseService()
+        let services = makeServices(database: database)
+        let definition = OverallRankTrialDefinitions.forge
+        let draft = OverallRankTrialRunner.shared.draft(
+            for: definition,
+            userId: "u1",
+            date: Date(timeIntervalSince1970: 100)
+        )
+        let log = OverallRankTrialRunner.shared.performanceLog(
+            from: draft,
+            userId: "u1",
+            startedAt: Date(timeIntervalSince1970: 100),
+            completedAt: Date(timeIntervalSince1970: 2_000),
+            passing: true
+        )
+
+        let completed = try await OverallRankTrialRunner.shared.complete(
+            performanceLog: log,
+            services: services,
+            store: store
+        )
+        let result = try XCTUnwrap(completed)
+
+        XCTAssertEqual(result.definition.id, definition.id)
+        XCTAssertTrue(result.attempt.passed)
+        XCTAssertTrue(result.didAdvanceRank)
+        XCTAssertEqual(result.progress.currentRank, .honed)
+        XCTAssertEqual(store.load(userId: "u1").currentRank, .honed)
+    }
+
+    func testDuplicateForgePerformanceLogDoesNotCreateSecondAttemptOrAdvanceAgain() async throws {
+        store.save(
+            OverallRankTrialProgress(highestPassedRank: .apprentice, attempts: []),
+            userId: "u1"
+        )
+        let database = MockDatabaseService()
+        let services = makeServices(database: database)
+        let definition = OverallRankTrialDefinitions.forge
+        let draft = OverallRankTrialRunner.shared.draft(
+            for: definition,
+            userId: "u1",
+            date: Date(timeIntervalSince1970: 100)
+        )
+        let log = OverallRankTrialRunner.shared.performanceLog(
+            from: draft,
+            userId: "u1",
+            startedAt: Date(timeIntervalSince1970: 100),
+            completedAt: Date(timeIntervalSince1970: 2_000),
+            passing: true
+        )
+
+        let firstCompleted = try await OverallRankTrialRunner.shared.complete(
+            performanceLog: log,
+            services: services,
+            store: store
+        )
+        let secondCompleted = try await OverallRankTrialRunner.shared.complete(
+            performanceLog: log,
+            services: services,
+            store: store
+        )
+        let first = try XCTUnwrap(firstCompleted)
+        let second = try XCTUnwrap(secondCompleted)
+        let progress = store.load(userId: "u1")
+
+        XCTAssertTrue(first.didAdvanceRank)
+        XCTAssertTrue(second.wasDuplicate)
+        XCTAssertFalse(second.didAdvanceRank)
+        XCTAssertNil(second.completionResult)
+        XCTAssertEqual(progress.currentRank, .honed)
+        XCTAssertEqual(progress.attempts.count, 1)
+    }
+
     private func movementProgress(
         for definition: OverallRankTrialDefinition
     ) -> [String: MovementProgressState] {
@@ -337,6 +568,14 @@ final class OverallRankTrialServiceTests: XCTestCase {
                     updatedAt: Date(timeIntervalSince1970: 0)
                 )
             )
+        })
+    }
+
+    private func skillTiers(
+        for definition: OverallRankTrialDefinition
+    ) -> [String: SkillTier] {
+        Dictionary(uniqueKeysWithValues: definition.skillStandards.map { standard in
+            (standard.skillId, standard.minimumTier)
         })
     }
 

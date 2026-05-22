@@ -643,4 +643,144 @@ final class TrainingSessionAdapterTests: XCTestCase {
         XCTAssertEqual(log.blocks.first?.exercises[0].sets[0].reps, nil)
         XCTAssertEqual(log.blocks.first?.exercises[1].sets[0].calories, 20)
     }
+
+    @MainActor
+    func testDraftCompletionPropagatesProgramMetadataAndOnlyCompletedSets() {
+        let draft = TrainingSessionDraft(
+            id: "draft-program-progress",
+            userId: "u1",
+            source: .program,
+            title: "Progress Guard",
+            estimatedMinutes: 30,
+            programId: "program-42",
+            dayNumber: 6,
+            blocks: [
+                TrainingBlock(
+                    kind: .strength,
+                    title: "Strength",
+                    prescriptions: [
+                        TrainingBlockPrescription(
+                            exerciseName: "Push-up",
+                            sets: 2,
+                            target: .reps(8),
+                            restSeconds: 90
+                        )
+                    ]
+                )
+            ]
+        )
+
+        let session = ActiveWorkoutSession(trainingDraft: draft)
+        session.exercises[0].sets[0].reps = 8
+        session.exercises[0].sets[0].logged = true
+
+        let performanceLog = session.assemblePerformanceLog(userId: "u1")
+        let performanceExercise = performanceLog.blocks.first?.exercises.first
+        let workoutLog = TrainingSessionAdapters.workoutLog(from: performanceLog)
+
+        XCTAssertEqual(performanceLog.programId, "program-42")
+        XCTAssertEqual(performanceLog.dayNumber, 6)
+        XCTAssertEqual(performanceExercise?.sets.map(\.setNumber), [1])
+        XCTAssertEqual(performanceExercise?.sets.first?.reps, 8)
+        XCTAssertEqual(workoutLog?.programId, "program-42")
+        XCTAssertEqual(workoutLog?.dayNumber, 6)
+        XCTAssertEqual(workoutLog?.exerciseEntries.first?.sets.count, 1)
+        XCTAssertEqual(workoutLog?.exerciseEntries.first?.sets.first?.reps, 8)
+    }
+
+    func testCompatibleWorkoutLogRequiresCompletedSetButKeepsSkippedContextWhenWorkExists() {
+        let startedAt = Date(timeIntervalSince1970: 100)
+        let completedAt = Date(timeIntervalSince1970: 700)
+        let performanceLog = PerformanceLog(
+            id: "perf-partial",
+            userId: "u1",
+            source: .program,
+            title: "Partial",
+            startedAt: startedAt,
+            completedAt: completedAt,
+            programId: "program-42",
+            dayNumber: 2,
+            blocks: [
+                PerformanceBlock(
+                    kind: .strength,
+                    title: "Partial",
+                    exercises: [
+                        PerformanceExercise(
+                            name: "Push-up",
+                            plannedSets: 2,
+                            plannedTarget: "8 reps",
+                            sets: [PerformanceSet(setNumber: 1, reps: 8)]
+                        ),
+                        PerformanceExercise(
+                            name: "Pull-up",
+                            plannedSets: 2,
+                            plannedTarget: "5 reps",
+                            sets: []
+                        ),
+                        PerformanceExercise(
+                            name: "Bodyweight Squat",
+                            plannedSets: 2,
+                            plannedTarget: "10 reps",
+                            sets: [],
+                            skipped: true
+                        )
+                    ]
+                )
+            ]
+        )
+
+        let workoutLog = TrainingSessionAdapters.workoutLog(from: performanceLog)
+        XCTAssertEqual(workoutLog?.exerciseEntries.map(\.exerciseName), ["Push-up", "Bodyweight Squat"])
+        XCTAssertEqual(workoutLog?.exerciseEntries.first?.sets.first?.reps, 8)
+        XCTAssertEqual(workoutLog?.exerciseEntries.last?.sets.count, 0)
+        XCTAssertEqual(workoutLog?.exerciseEntries.last?.skipped, true)
+
+        var incomplete = performanceLog
+        incomplete.blocks[0].exercises[0].sets = []
+        XCTAssertNil(TrainingSessionAdapters.workoutLog(from: incomplete))
+    }
+
+    func testSessionLogsRequireCompletedSkillSets() {
+        let log = PerformanceLog(
+            id: "perf-skill-partial",
+            userId: "u1",
+            source: .skill,
+            title: "Handstand",
+            startedAt: Date(timeIntervalSince1970: 100),
+            completedAt: Date(timeIntervalSince1970: 700),
+            blocks: [
+                PerformanceBlock(
+                    id: "skill-block",
+                    kind: .skill,
+                    title: "Handstand",
+                    skillId: "hs.wall-handstand-30",
+                    exercises: [
+                        PerformanceExercise(
+                            name: "Wall Handstand Hold",
+                            plannedSets: 1,
+                            plannedTarget: "30s",
+                            sets: []
+                        ),
+                        PerformanceExercise(
+                            name: "Wall Walk",
+                            plannedSets: 1,
+                            plannedTarget: "4 reps",
+                            sets: [PerformanceSet(setNumber: 1, reps: 4)]
+                        )
+                    ],
+                    durationSeconds: 600
+                )
+            ]
+        )
+
+        let sessionLogs = TrainingSessionAdapters.sessionLogs(from: log, xpAwarded: 15)
+        XCTAssertEqual(sessionLogs.count, 1)
+        XCTAssertEqual(sessionLogs[0].exercises.map(\.name), ["Wall Walk"])
+        XCTAssertEqual(sessionLogs[0].exercises[0].sets[0].reps, 4)
+        XCTAssertEqual(sessionLogs[0].xpAwarded, 15)
+
+        var incomplete = log
+        incomplete.blocks[0].exercises[1].sets = []
+        XCTAssertTrue(TrainingSessionAdapters.sessionLogs(from: incomplete).isEmpty)
+    }
 }

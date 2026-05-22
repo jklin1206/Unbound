@@ -74,6 +74,18 @@ struct OverallRankTrialPerformanceStandard: Codable, Equatable, Sendable {
         case .calories: return .calories(minimumValue)
         }
     }
+
+    var blockKind: TrainingBlockKind {
+        MovementCatalog.definition(for: movementId)?.blockKind ?? (metric == .holdSeconds ? .skill : .bodyweight)
+    }
+
+    var skillId: String? {
+        MovementCatalog.definition(for: movementId)?.skillId
+    }
+
+    var cardioType: CardioType? {
+        MovementCatalog.definition(for: movementId)?.cardioType
+    }
 }
 
 struct OverallRankTrialDefinition: Identifiable, Codable, Equatable, Sendable {
@@ -91,18 +103,26 @@ struct OverallRankTrialDefinition: Identifiable, Codable, Equatable, Sendable {
     let performanceStandards: [OverallRankTrialPerformanceStandard]
 
     func makeDraft(userId: String, date: Date = Date()) -> TrainingSessionDraft {
-        let prescriptions = performanceStandards.map { standard in
-            TrainingBlockPrescription(
+        var groupedPrescriptions: [(TrainingBlockKind, [(OverallRankTrialPerformanceStandard, TrainingBlockPrescription)])] = []
+        for standard in performanceStandards {
+            let movement = MovementCatalog.definition(for: standard.movementId)
+            let prescription = TrainingBlockPrescription(
                 exerciseName: standard.displayName,
                 movementId: standard.movementId,
-                rankStandardMovementId: standard.movementId,
+                rankStandardMovementId: movement?.rankStandardMovementId ?? standard.movementId,
                 sets: standard.plannedSets,
                 target: standard.target,
                 restSeconds: standard.restSeconds,
-                muscleGroups: MovementCatalog.definition(for: standard.movementId)?.muscleGroups ?? [],
+                muscleGroups: movement?.muscleGroups ?? [],
                 rpe: 8,
                 notes: "Overall Rank trial standard"
             )
+            let kind = standard.blockKind
+            if let index = groupedPrescriptions.firstIndex(where: { $0.0 == kind }) {
+                groupedPrescriptions[index].1.append((standard, prescription))
+            } else {
+                groupedPrescriptions.append((kind, [(standard, prescription)]))
+            }
         }
 
         return TrainingSessionDraft(
@@ -112,30 +132,86 @@ struct OverallRankTrialDefinition: Identifiable, Codable, Equatable, Sendable {
             date: date,
             estimatedMinutes: estimatedMinutes,
             programId: id,
-            blocks: [
+            blocks: groupedPrescriptions.map { kind, items in
                 TrainingBlock(
-                    kind: .bodyweight,
-                    title: "Rank Gate",
-                    subtitle: subtitle,
-                    prescriptions: prescriptions.filter { prescription in
-                        prescription.target.metricKind != .holdSeconds
-                    }
-                ),
-                TrainingBlock(
-                    kind: .skill,
-                    title: "Skill Standard",
-                    subtitle: "Clean hold proof",
-                    skillId: "hs.wall-handstand-30",
-                    prescriptions: prescriptions.filter { prescription in
-                        prescription.target.metricKind == .holdSeconds
-                    }
+                    kind: kind,
+                    title: blockTitle(for: kind),
+                    subtitle: blockSubtitle(for: kind),
+                    skillId: kind == .skill ? items.compactMap { $0.0.skillId }.first : nil,
+                    cardioType: kind == .cardio ? items.compactMap { $0.0.cardioType }.first : nil,
+                    prescriptions: items.map { $0.1 }
                 )
-            ].filter { !$0.prescriptions.isEmpty }
+            }
         )
+    }
+
+    private func blockTitle(for kind: TrainingBlockKind) -> String {
+        switch kind {
+        case .cardio: return "Engine Standard"
+        case .carry: return "Carry Standard"
+        case .skill: return "Skill Standard"
+        default: return "Rank Gate"
+        }
+    }
+
+    private func blockSubtitle(for kind: TrainingBlockKind) -> String {
+        switch kind {
+        case .cardio: return "Conditioning proof"
+        case .carry: return "Loaded control proof"
+        case .skill: return "Clean hold proof"
+        default: return subtitle
+        }
     }
 }
 
 enum OverallRankTrialDefinitions {
+    private static func movementStandard(
+        _ movementId: String,
+        minimumAP: Double,
+        displayName: String? = nil
+    ) -> OverallRankTrialMovementStandard {
+        OverallRankTrialMovementStandard(
+            rankStandardMovementId: movementId,
+            displayName: displayName ?? MovementCatalog.definition(for: movementId)?.displayName ?? movementId,
+            minimumAP: minimumAP
+        )
+    }
+
+    private static func skillStandard(
+        _ skillId: String,
+        minimumTier: SkillTier,
+        displayName: String? = nil
+    ) -> OverallRankTrialSkillStandard {
+        OverallRankTrialSkillStandard(
+            skillId: skillId,
+            displayName: displayName
+                ?? MovementCatalog.definition(for: "skill.\(skillId)")?.displayName
+                ?? SkillGraph.shared.node(id: skillId)?.title
+                ?? skillId,
+            minimumTier: minimumTier
+        )
+    }
+
+    private static func performanceStandard(
+        _ movementId: String,
+        metric: TrainingMetricKind,
+        minimumValue: Int,
+        minimumQualifyingSets: Int = 1,
+        plannedSets: Int? = nil,
+        restSeconds: Int? = nil,
+        displayName: String? = nil
+    ) -> OverallRankTrialPerformanceStandard {
+        OverallRankTrialPerformanceStandard(
+            movementId: movementId,
+            displayName: displayName ?? MovementCatalog.definition(for: movementId)?.displayName ?? movementId,
+            metric: metric,
+            minimumValue: minimumValue,
+            minimumQualifyingSets: minimumQualifyingSets,
+            plannedSets: plannedSets,
+            restSeconds: restSeconds
+        )
+    }
+
     static let foundationProof = OverallRankTrialDefinition(
         id: "overall-rank-trial-novice-foundation-proof",
         targetRank: .novice,
@@ -247,9 +323,66 @@ enum OverallRankTrialDefinitions {
         ]
     )
 
+    static let forge = OverallRankTrialDefinition(
+        id: "overall-rank-trial-honed-forge",
+        targetRank: .honed,
+        displayName: "The Forge",
+        subtitle: "Apprentice to Honed rank gate",
+        estimatedMinutes: 35,
+        minOverallLevel: 15,
+        topAttributeCount: 1,
+        topAttributeFloor: 58,
+        requiredEquipment: [.bodyweight, .kettlebell, .openSpace, .pullupBar],
+        movementStandards: [
+            movementStandard("exercise.pullup", minimumAP: 160, displayName: "Pull-Up"),
+            movementStandard("exercise.kettlebell-swing", minimumAP: 140)
+        ],
+        skillStandards: [
+            skillStandard("pp.pullup", minimumTier: .honed)
+        ],
+        performanceStandards: [
+            performanceStandard(
+                "cardio.run",
+                metric: .distanceMeters,
+                minimumValue: 400,
+                minimumQualifyingSets: 3,
+                plannedSets: 3,
+                restSeconds: 45,
+                displayName: "400m Run"
+            ),
+            performanceStandard(
+                "exercise.kettlebell-swing",
+                metric: .reps,
+                minimumValue: 21,
+                minimumQualifyingSets: 3,
+                plannedSets: 3,
+                restSeconds: 45
+            ),
+            performanceStandard(
+                "exercise.pushup",
+                metric: .reps,
+                minimumValue: 21,
+                minimumQualifyingSets: 3,
+                plannedSets: 3,
+                restSeconds: 45,
+                displayName: "Push-Up"
+            ),
+            performanceStandard(
+                "exercise.pullup",
+                metric: .reps,
+                minimumValue: 8,
+                minimumQualifyingSets: 3,
+                plannedSets: 3,
+                restSeconds: 60,
+                displayName: "Pull-Up"
+            )
+        ]
+    )
+
     static let all: [OverallRankTrialDefinition] = [
         foundationProof,
-        calibration
+        calibration,
+        forge
     ]
 
     static func definition(id: String) -> OverallRankTrialDefinition? {
@@ -262,6 +395,8 @@ enum OverallRankTrialDefinitions {
             return foundationProof
         case .novice:
             return calibration
+        case .apprentice:
+            return forge
         default:
             return nil
         }
@@ -323,7 +458,7 @@ final class OverallRankTrialStore {
 
     func record(_ attempt: OverallRankTrialAttempt, userId: String) -> OverallRankTrialRecordResult {
         var progress = load(userId: userId)
-        if let existing = progress.attempts.first(where: { $0.id == attempt.id }) {
+        if let existing = progress.attempts.first(where: { $0.id == attempt.id || $0.performanceLogId == attempt.performanceLogId }) {
             return OverallRankTrialRecordResult(
                 progress: progress,
                 attempt: existing,
@@ -498,11 +633,11 @@ final class TrialReadinessService {
     }
 
     private func movementEquipment(from equipment: [Equipment]) -> Set<MovementEquipment> {
-        var result: Set<MovementEquipment> = [.bodyweight]
+        var result: Set<MovementEquipment> = [.bodyweight, .openSpace]
         for item in equipment {
             switch item {
             case .fullGym:
-                result.formUnion([.barbell, .dumbbell, .kettlebell, .cable, .machine, .bench, .pullupBar, .bodyweight])
+                result.formUnion([.barbell, .dumbbell, .kettlebell, .cable, .machine, .bench, .pullupBar, .bodyweight, .openSpace])
             case .machines:
                 result.formUnion([.cable, .machine, .bodyweight])
             case .barbell:

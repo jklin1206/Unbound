@@ -193,10 +193,43 @@ final class WeeklyVowsServiceTests: XCTestCase {
         let completed = service.recordCompletedVowWork(performanceLog: log, completionResult: unsavedResult)
         await fulfillment(of: [exp], timeout: 1.0)
 
-        XCTAssertEqual(completed?.capstoneState, .completed)
+        XCTAssertEqual(completed?.vow.capstoneState, .completed)
         XCTAssertEqual(service.state(userId: "u-1").currentVow?.completedAt, log.completedAt)
         XCTAssertEqual(service.state(userId: "u-1").completionsByCardKind[.overdrive], 1)
         XCTAssertEqual(service.state(userId: "u-1").completionsByAxis[.power], 1)
+    }
+
+    func testRecordCompletedVowWorkReturnsReceiptBasedVowBonusForMatchingSavedLog() async {
+        seedAttribute()
+        await service.ensureCurrentWeek(userId: "u-1")
+        let overdrive = service.state(userId: "u-1").currentWeekCards.first(where: { $0.kind == .overdrive })!
+        service.pickVowCard(overdrive, userId: "u-1")
+
+        let draft = try! XCTUnwrap(service.trainingDraftForCurrentVow(userId: "u-1", date: .now))
+        let log = makePerformanceLog(from: draft)
+        var result = TrainingCompletionResult()
+        result.savedPerformanceLogId = log.id
+
+        let receipt = service.recordCompletedVowWork(performanceLog: log, completionResult: result)
+
+        let unwrapped = try! XCTUnwrap(receipt)
+        XCTAssertEqual(unwrapped.vow.id, overdrive.id)
+        XCTAssertEqual(unwrapped.vow.capstoneState, .completed)
+        XCTAssertEqual(unwrapped.performanceLogId, log.id)
+        XCTAssertEqual(unwrapped.callout.vowId, overdrive.id)
+        XCTAssertEqual(unwrapped.callout.performanceLogId, log.id)
+        XCTAssertEqual(unwrapped.callout.cardKind, .overdrive)
+        XCTAssertEqual(unwrapped.callout.title, "Overdrive Vow Sealed")
+        XCTAssertEqual(unwrapped.callout.proofName, overdrive.capstone.displayName)
+
+        let summary = WorkoutRewardSequenceSummary.trainingReceipt(
+            performanceLog: log,
+            completionResult: result,
+            sourceName: "Weekly Vow",
+            weeklyVowCallout: unwrapped.callout
+        )
+        XCTAssertEqual(summary.weeklyVowCallout, unwrapped.callout)
+        XCTAssertTrue(summary.hasShareableMoment)
     }
 
     func testRecordCompletedVowWorkIgnoresUnrelatedPerformanceLog() async {
@@ -214,6 +247,29 @@ final class WeeklyVowsServiceTests: XCTestCase {
         XCTAssertNil(service.recordCompletedVowWork(performanceLog: unrelated, completionResult: result))
         XCTAssertEqual(service.state(userId: "u-1").currentVow?.capstoneState, .pending)
         XCTAssertNil(service.state(userId: "u-1").completionsByCardKind[.overdrive])
+    }
+
+    func testRecordCompletedVowWorkDoesNotDuplicateCompletionOrBonusForSameReceipt() async {
+        seedAttribute()
+        await service.ensureCurrentWeek(userId: "u-1")
+        let overdrive = service.state(userId: "u-1").currentWeekCards.first(where: { $0.kind == .overdrive })!
+        service.pickVowCard(overdrive, userId: "u-1")
+
+        let draft = try! XCTUnwrap(service.trainingDraftForCurrentVow(userId: "u-1", date: .now))
+        let log = makePerformanceLog(from: draft)
+        var result = TrainingCompletionResult()
+        result.savedPerformanceLogId = log.id
+
+        let first = service.recordCompletedVowWork(performanceLog: log, completionResult: result)
+        var duplicateResult = result
+        duplicateResult.wasAlreadyCompleted = true
+        let duplicate = service.recordCompletedVowWork(performanceLog: log, completionResult: duplicateResult)
+
+        XCTAssertNotNil(first)
+        XCTAssertNil(duplicate)
+        XCTAssertEqual(service.state(userId: "u-1").currentVow?.capstoneState, .completed)
+        XCTAssertEqual(service.state(userId: "u-1").completionsByCardKind[.overdrive], 1)
+        XCTAssertEqual(service.state(userId: "u-1").completionsByAxis[.power], 1)
     }
 
     // MARK: - evaluateVowProofFromLog + checkVowWindow

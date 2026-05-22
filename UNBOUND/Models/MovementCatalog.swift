@@ -1039,9 +1039,24 @@ enum MovementCatalog {
     private static func equipment(for exercise: CatalogExercise) -> [MovementEquipment] {
         let name = normalized(exercise.displayName + " " + exercise.name)
         var equipment: Set<MovementEquipment> = []
+        let isDumbbellVariant = name.contains("dumbbell")
+        let isKettlebellVariant = name.contains("kettlebell")
+        let isMachineVariant = name.contains("machine")
+            || name.contains("smith")
+            || name.contains("cable")
+            || name.contains("plate loaded")
+            || name.contains("hammer strength")
 
         if name.contains("smith") { equipment.insert(.smithMachine) }
-        if name.contains("barbell") || name.contains("safety bar") || name.contains("deadlift") || name.contains("back squat") || name.contains("front squat") || name.contains("bench press") || name.contains("overhead press") || name.contains("good morning") || name.contains("hip thrust") || name.contains("landmine") || name.contains("t bar row") { equipment.insert(.barbell) }
+        if name.contains("barbell") || name.contains("safety bar") || name.contains("back squat") || name.contains("front squat") || name.contains("good morning") || name.contains("landmine") || name.contains("t bar row") {
+            equipment.insert(.barbell)
+        }
+        if !isDumbbellVariant,
+           !isKettlebellVariant,
+           !isMachineVariant,
+           name.contains("deadlift") || name.contains("bench press") || name.contains("overhead press") || name.contains("hip thrust") {
+            equipment.insert(.barbell)
+        }
         if name.contains("dumbbell") || name.contains("arnold press") || name.contains("goblet") || name.contains("hammer curl") || name.contains("lateral raise") || name.contains("fly") { equipment.insert(.dumbbell) }
         if name.contains("kettlebell") { equipment.insert(.kettlebell) }
         if name.contains("cable") || name.contains("pulldown") || name.contains("pushdown") || name.contains("face pull") || name.contains("pallof") { equipment.insert(.cable) }
@@ -1258,6 +1273,8 @@ enum MovementCatalog {
             aliases += ["pike push-up", "pike push ups", "pike hold"]
         case "inverted row":
             aliases += ["australian row", "ring row", "bodyweight row"]
+        case "cable row (seated)":
+            aliases += ["cable row", "seated row", "seated cable row"]
         case "hanging knee raise":
             aliases += ["captain chair knee raise", "captain's chair knee raise"]
         case "hanging leg raise":
@@ -1465,7 +1482,7 @@ enum MovementCatalog {
         switch criterion {
         case .reps(_, let exerciseName):
             return [exerciseName]
-        case .exerciseBodyweightRatio(_, let exerciseName):
+        case .exerciseBodyweightRatio(_, exerciseName: let exerciseName):
             return [exerciseName]
         case .variant(let name):
             return [name]

@@ -88,6 +88,13 @@ final class TrainingCompletionService {
         _ performanceLog: PerformanceLog,
         services: ServiceContainer
     ) async -> TrainingCompletionResult {
+        if let existing: TrainingCompletionRecord = try? await services.database.read(
+            collection: "training_completion_records",
+            documentId: performanceLog.id
+        ) {
+            return TrainingCompletionResult(record: existing, wasAlreadyCompleted: true)
+        }
+
         var result = TrainingCompletionResult()
 
         try? await services.database.create(
@@ -99,6 +106,22 @@ final class TrainingCompletionService {
 
         let progression = await progressionResult(from: performanceLog, services: services)
         result.mergeProgression(from: progression)
+
+        let record = TrainingCompletionRecord(result: result, performanceLog: performanceLog)
+        do {
+            try await services.database.create(
+                record,
+                collection: "training_completion_records",
+                documentId: record.id
+            )
+        } catch {
+            LoggingService.shared.log(
+                "TrainingCompletionService failed to write legacy completion receipt: \(error)",
+                level: .warning,
+                context: ["performanceLogId": performanceLog.id]
+            )
+        }
+
         return result
     }
 

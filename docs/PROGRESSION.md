@@ -1304,6 +1304,7 @@ overall_rank = highest_trial_passed_tier
 ## 18. Outstanding implementation notes
 
 - Execution roadmap lives at `docs/superpowers/handoff/2026-05-21-unified-workout-progression-migration-roadmap.md`.
+- 2026-05-22 Overall Rank trial lane: service definitions cover Foundation Proof, The Calibration, and V1 The Forge. The runner still routes attempts through `TrainingSessionDraft` -> `PerformanceLog` -> `TrainingCompletionService`, then records pass/fail rank-gate attempts idempotently by performance log id. Focused service tests cover The Forge readiness, locked, failed, passed, and duplicate-log paths; simulator UI proof remains pending.
 
 - Functional migration order:
   1. **Unified completion receipt** — every completion route emits AP, attribute XP, Overall LV XP, skill XP when relevant, rank-ups, PRs, and badge unlocks through one receipt shape.

@@ -26,10 +26,11 @@ final class TrainingSessionDraftStore {
     }
 
     func saveRecent(_ draft: TrainingSessionDraft, limit: Int = 10) {
+        let cappedLimit = max(0, limit)
         var recent = loadRecent().filter { $0.id != draft.id }
         recent.insert(draft, at: 0)
-        if recent.count > limit {
-            recent = Array(recent.prefix(limit))
+        if recent.count > cappedLimit {
+            recent = Array(recent.prefix(cappedLimit))
         }
 
         do {

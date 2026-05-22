@@ -1,6 +1,39 @@
 // UNBOUND/Services/Trials/TrialsServiceProtocol.swift
 import Foundation
 
+struct WeeklyVowCompletionReceipt: Equatable, Sendable {
+    let vow: WeeklyVow
+    let performanceLogId: String
+    let completedAt: Date
+    let callout: WeeklyVowRewardCallout
+
+    init(vow: WeeklyVow, performanceLog: PerformanceLog) {
+        self.vow = vow
+        self.performanceLogId = performanceLog.id
+        self.completedAt = performanceLog.completedAt
+        self.callout = WeeklyVowRewardCallout(
+            id: "weekly-vow-\(vow.id)-\(performanceLog.id)",
+            vowId: vow.id,
+            performanceLogId: performanceLog.id,
+            cardKind: vow.chosenCard.kind,
+            theme: vow.chosenCard.theme,
+            title: "\(vow.chosenCard.kind.displayName) Vow Sealed",
+            subtitle: vow.chosenCard.displayName,
+            proofName: vow.chosenCard.capstone.displayName,
+            receiptLine: "Receipt \(Self.shortReceiptId(performanceLog.id))",
+            shareTitle: "Weekly Vow Complete",
+            shareSubtitle: "\(vow.chosenCard.kind.displayName) - \(vow.chosenCard.capstone.displayName)",
+            completedAt: performanceLog.completedAt
+        )
+    }
+
+    private static func shortReceiptId(_ id: String) -> String {
+        let trimmed = id.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return "SAVED" }
+        return String(trimmed.prefix(8)).uppercased()
+    }
+}
+
 @MainActor
 protocol WeeklyVowsServiceProtocol: AnyObject {
     /// If currentWeekStart is stale or absent, roll the week and generate
@@ -32,7 +65,7 @@ protocol WeeklyVowsServiceProtocol: AnyObject {
     func recordCompletedVowWork(
         performanceLog: PerformanceLog,
         completionResult: TrainingCompletionResult
-    ) -> WeeklyVow?
+    ) -> WeeklyVowCompletionReceipt?
 
     /// Re-evaluate the active proof against new log history. Only acts
     /// when capstoneState == .windowOpen and evaluation == .autoFromLog.

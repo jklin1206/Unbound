@@ -14,8 +14,8 @@ final class ExerciseEquipmentClassifierTests: XCTestCase {
     }
 
     func testDumbbellMovements() {
-        XCTAssertEqual(ExerciseEquipmentClassifier.classify("dumbbell press"), .dumbbell)
-        XCTAssertEqual(ExerciseEquipmentClassifier.classify("db row"), .dumbbell)
+        XCTAssertEqual(ExerciseEquipmentClassifier.classify("Dumbbell Bench Press"), .dumbbell)
+        XCTAssertEqual(ExerciseEquipmentClassifier.classify("Dumbbell Row"), .dumbbell)
         XCTAssertEqual(ExerciseEquipmentClassifier.classify("goblet squat"), .dumbbell)
     }
 
@@ -32,25 +32,29 @@ final class ExerciseEquipmentClassifierTests: XCTestCase {
         XCTAssertEqual(ExerciseEquipmentClassifier.classify("push-up"), .bodyweight)
         XCTAssertEqual(ExerciseEquipmentClassifier.classify("dip"), .bodyweight)
         XCTAssertEqual(ExerciseEquipmentClassifier.classify("pistol squat"), .bodyweight)
-        XCTAssertEqual(ExerciseEquipmentClassifier.classify("handstand pushup"), .bodyweight)
+        XCTAssertEqual(ExerciseEquipmentClassifier.classify("wall handstand pushup"), .bodyweight)
         XCTAssertEqual(ExerciseEquipmentClassifier.classify("bodyweight squat"), .bodyweight)
     }
 
-    func testUnknownDefaultsToDumbbell() {
-        // Anything that doesn't match a keyword should default to the
-        // middle-ground category (dumbbell) — safest assumption.
-        XCTAssertEqual(ExerciseEquipmentClassifier.classify("face pull"), .dumbbell)
+    func testCatalogMovementsUseMovementCatalogEquipment() {
+        XCTAssertEqual(ExerciseEquipmentClassifier.classify("face pull"), .machine)
+
+        let facePull = MovementCatalog.canonicalExercise(named: "face pull")
+        XCTAssertEqual(facePull?.equipment.contains(.cable), true)
+        XCTAssertEqual(facePull?.movementSlot, .verticalPush)
+    }
+
+    func testUnknownCustomNamesDefaultToDumbbellCompatibility() {
+        XCTAssertEqual(ExerciseEquipmentClassifier.classify("custom tempo press"), .dumbbell)
     }
 
     // MARK: - User-equipment compatibility
-    // Equipment enum at this point in the codebase has 4 cases:
-    // .fullGym, .homeWeights, .bodyweight, .bands
 
     func testBodyweightStyleRejectsNonBodyweight() {
         // Bodyweight-style users must never be prescribed barbell/machine work
         // even if their equipment chips would technically allow it.
         XCTAssertTrue(ExerciseEquipmentClassifier.isCompatible(
-            exerciseName: "pullup",
+            exerciseName: "push-up",
             style: .bodyweight,
             userEquipment: [.bodyweight]
         ))
@@ -83,7 +87,7 @@ final class ExerciseEquipmentClassifierTests: XCTestCase {
             userEquipment: [.fullGym]
         ))
         XCTAssertTrue(ExerciseEquipmentClassifier.isCompatible(
-            exerciseName: "dumbbell press",
+            exerciseName: "Dumbbell Bench Press",
             style: .hybrid,
             userEquipment: [.fullGym]
         ))
@@ -97,7 +101,7 @@ final class ExerciseEquipmentClassifierTests: XCTestCase {
             userEquipment: [.homeWeights]
         ))
         XCTAssertTrue(ExerciseEquipmentClassifier.isCompatible(
-            exerciseName: "dumbbell press",
+            exerciseName: "Dumbbell Bench Press",
             style: .freeWeights,
             userEquipment: [.homeWeights]
         ))
@@ -116,7 +120,7 @@ final class ExerciseEquipmentClassifierTests: XCTestCase {
 
     func testBodyweightOnlyUserRejectsBarbellAndMachine() {
         XCTAssertTrue(ExerciseEquipmentClassifier.isCompatible(
-            exerciseName: "pullup",
+            exerciseName: "push-up",
             style: .bodyweight,
             userEquipment: [.bodyweight]
         ))
@@ -132,13 +136,13 @@ final class ExerciseEquipmentClassifierTests: XCTestCase {
         ))
     }
 
-    func testBandsUserAcceptsBodyweightAndDumbbellAccessoriesButNotBarbellOrMachine() {
-        XCTAssertTrue(ExerciseEquipmentClassifier.isCompatible(
+    func testBandsUserRejectsCatalogMovementsThatRequireStationsOrWeights() {
+        XCTAssertFalse(ExerciseEquipmentClassifier.isCompatible(
             exerciseName: "pullup",
             style: .hybrid,
             userEquipment: [.bands]
         ))
-        XCTAssertTrue(ExerciseEquipmentClassifier.isCompatible(
+        XCTAssertFalse(ExerciseEquipmentClassifier.isCompatible(
             exerciseName: "face pull",
             style: .hybrid,
             userEquipment: [.bands]
@@ -163,10 +167,10 @@ final class ExerciseEquipmentClassifierTests: XCTestCase {
             userEquipment: [.barbell]
         ))
         XCTAssertFalse(ExerciseEquipmentClassifier.isCompatible(
-            exerciseName: "dumbbell press", style: .freeWeights,
+            exerciseName: "Dumbbell Bench Press", style: .freeWeights,
             userEquipment: [.barbell]
         ))
-        XCTAssertTrue(ExerciseEquipmentClassifier.isCompatible(
+        XCTAssertFalse(ExerciseEquipmentClassifier.isCompatible(
             exerciseName: "pullup", style: .freeWeights,
             userEquipment: [.barbell]
         ))
@@ -185,7 +189,7 @@ final class ExerciseEquipmentClassifierTests: XCTestCase {
 
     func testBenchAndDumbbellsCombination() {
         XCTAssertTrue(ExerciseEquipmentClassifier.isCompatible(
-            exerciseName: "dumbbell press", style: .freeWeights,
+            exerciseName: "Dumbbell Bench Press", style: .freeWeights,
             userEquipment: [.dumbbells, .bench]
         ))
         XCTAssertFalse(ExerciseEquipmentClassifier.isCompatible(
@@ -203,5 +207,34 @@ final class ExerciseEquipmentClassifierTests: XCTestCase {
             exerciseName: "back squat", style: .bodyweight,
             userEquipment: [.pullupBar, .bodyweight]
         ))
+    }
+
+    func testCompatibilityFacadeMatchesMovementCatalogForSavedNameForms() {
+        let names = [
+            "Lat Pulldown (Neutral)",
+            "lat_pulldown_neutral",
+            "cable row",
+            "cable_row_seated"
+        ]
+
+        for name in names {
+            guard let definition = MovementCatalog.canonicalExercise(named: name) else {
+                return XCTFail("Expected \(name) to resolve through MovementCatalog.")
+            }
+
+            XCTAssertEqual(
+                ExerciseEquipmentClassifier.isCompatible(
+                    exerciseName: name,
+                    style: .machines,
+                    userEquipment: [.machines]
+                ),
+                MovementCatalog.isProgramCompatible(
+                    definition,
+                    style: .machines,
+                    userEquipment: [.machines]
+                ),
+                "\(name) should delegate compatibility to MovementCatalog."
+            )
+        }
     }
 }

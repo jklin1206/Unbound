@@ -139,18 +139,21 @@ enum TrainingSessionAdapters {
     }
 
     static func workoutLog(from log: PerformanceLog) -> WorkoutLog? {
-        let entries = log.blocks
+        let entries: [ExerciseLogEntry] = log.blocks
             .filter { $0.kind == .strength || $0.kind == .bodyweight || $0.kind == .custom || $0.kind == .skill || $0.kind == .carry }
             .flatMap { block in
-                block.exercises.map { exercise in
-                    ExerciseLogEntry(
+                block.exercises.compactMap { exercise in
+                    let completedSets = exercise.sets.filter(\.hasCompletedTrainingMetric)
+                    guard !completedSets.isEmpty || exercise.skipped else { return nil }
+
+                    return ExerciseLogEntry(
                         id: exercise.id,
                         exerciseName: exercise.name,
                         movementId: exercise.movementId,
                         rankStandardMovementId: exercise.rankStandardMovementId,
                         plannedSets: exercise.plannedSets,
                         plannedReps: exercise.plannedTarget,
-                        sets: exercise.sets.map { set in
+                        sets: completedSets.map { set in
                             SetLog(
                                 id: set.id,
                                 setNumber: set.setNumber,
@@ -166,7 +169,7 @@ enum TrainingSessionAdapters {
                 }
             }
 
-        guard !entries.isEmpty else { return nil }
+        guard entries.contains(where: { !$0.sets.isEmpty }) else { return nil }
 
         return WorkoutLog(
             id: log.id,
@@ -186,17 +189,20 @@ enum TrainingSessionAdapters {
     static func sessionLogs(from log: PerformanceLog, xpAwarded: Int = 25) -> [SessionLog] {
         log.blocks.compactMap { block in
             guard block.kind == .skill, let skillId = block.skillId else { return nil }
-            let exercises = block.exercises.map { exercise in
-                LoggedExercise(
+            let exercises = block.exercises.compactMap { exercise -> LoggedExercise? in
+                let completedSets = exercise.sets.compactMap { set -> LoggedSet? in
+                    guard set.hasCompletedSkillSessionMetric else { return nil }
+                    return LoggedSet(
+                        reps: set.reps ?? 0,
+                        holdSeconds: set.holdSeconds,
+                        weightKg: set.weightKg,
+                        rpe: set.rpe
+                    )
+                }
+                guard !completedSets.isEmpty else { return nil }
+                return LoggedExercise(
                     name: exercise.name,
-                    sets: exercise.sets.map { set in
-                        LoggedSet(
-                            reps: set.reps ?? 0,
-                            holdSeconds: set.holdSeconds,
-                            weightKg: set.weightKg,
-                            rpe: set.rpe
-                        )
-                    }
+                    sets: completedSets
                 )
             }
             guard !exercises.isEmpty else { return nil }
@@ -703,6 +709,24 @@ enum TrainingSessionAdapters {
                 notes: set.notes
             )
         }
+    }
+}
+
+private extension PerformanceSet {
+    var hasCompletedTrainingMetric: Bool {
+        positive(reps)
+            || positive(holdSeconds)
+            || positive(durationSeconds)
+            || positive(distanceMeters)
+            || positive(calories)
+    }
+
+    var hasCompletedSkillSessionMetric: Bool {
+        positive(reps) || positive(holdSeconds)
+    }
+
+    private func positive(_ value: Int?) -> Bool {
+        (value ?? 0) > 0
     }
 }
 
