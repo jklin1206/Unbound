@@ -17,6 +17,8 @@ struct WorkoutLog: Codable, Identifiable, Hashable {
 struct ExerciseLogEntry: Codable, Identifiable, Hashable {
     let id: String
     var exerciseName: String
+    var movementId: String? = nil
+    var rankStandardMovementId: String? = nil
     var plannedSets: Int
     var plannedReps: String
     var sets: [SetLog]
