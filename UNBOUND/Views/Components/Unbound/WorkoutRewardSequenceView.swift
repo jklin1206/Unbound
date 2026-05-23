@@ -545,14 +545,19 @@ struct WorkoutRewardSequenceView: View {
                     }
 
                     VStack(spacing: 10) {
+                        if let bonus = callout.completionBonus {
+                            rewardLine(label: "Vow Bonus", value: "+\(bonus.overallLevelXP) LV XP", tint: Color.rewardBlue)
+                            rewardLine(label: "Badge", value: bonus.badgeProgress.displayText, tint: tint)
+                            rewardLine(label: "Cosmetic", value: bonus.cosmeticProgress.displayText, tint: tint)
+                        }
                         rewardLine(label: "Proof", value: callout.proofName, tint: tint)
                         rewardLine(label: "Receipt", value: callout.receiptLine, tint: Color.rewardBlue)
                     }
 
                     HStack(spacing: 8) {
-                        Image(systemName: "square.and.arrow.up")
+                        Image(systemName: callout.completionBonus?.shareCard == nil ? "checkmark.seal.fill" : "square.and.arrow.up")
                             .font(.system(size: 13, weight: .bold))
-                        Text("SHARE CARD READY")
+                        Text(callout.completionBonus?.shareCard == nil ? "RECEIPT SAVED" : "SHARE CARD READY")
                             .font(Font.unbound.captionS.weight(.heavy))
                             .tracking(1.8)
                     }
@@ -866,11 +871,12 @@ struct WorkoutRewardSequenceView: View {
 
     private func weeklyVowShareChip(_ callout: WeeklyVowRewardCallout) -> some View {
         let tint = callout.theme.tintColor
+        let chipTitle = callout.completionBonus?.shareCard?.title ?? callout.shareTitle
         return HStack(spacing: 10) {
             Image(systemName: "checkmark.seal.fill")
                 .font(.system(size: 17, weight: .black))
             VStack(alignment: .leading, spacing: 2) {
-                Text(callout.shareTitle.uppercased())
+                Text(chipTitle.uppercased())
                     .font(Font.unbound.captionS.weight(.heavy))
                     .tracking(1.5)
                 Text(callout.receiptLine.uppercased())

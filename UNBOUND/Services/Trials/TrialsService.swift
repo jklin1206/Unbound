@@ -140,24 +140,58 @@ final class WeeklyVowsService: WeeklyVowsServiceProtocol {
         guard let vowId = WeeklyVowTrainingRoute.vowId(from: performanceLog.programId) else { return nil }
 
         let state = store.load(userId: performanceLog.userId)
+        guard !state.weeklyVowCompletionLedger.contains(where: { $0.performanceLogId == performanceLog.id }) else {
+            return nil
+        }
         guard let vow = state.currentVow,
               vow.id == vowId,
               vow.capstoneState != .completed
         else { return nil }
 
-        completeVow(userId: performanceLog.userId, at: performanceLog.completedAt)
-        guard let completedVow = store.load(userId: performanceLog.userId).currentVow,
-              completedVow.capstoneState == .completed
-        else { return nil }
-        return WeeklyVowCompletionReceipt(vow: completedVow, performanceLog: performanceLog)
+        let completionCountAfter = (state.completionsByCardKind[vow.chosenCard.kind] ?? 0) + 1
+        let bonus = WeeklyVowCompletionBonusCatalog.bonus(
+            for: vow,
+            performanceLog: performanceLog,
+            completionCountAfter: completionCountAfter
+        )
+        let ledgerEntry = WeeklyVowCompletionLedgerEntry(
+            vowId: vow.id,
+            performanceLogId: performanceLog.id,
+            completedAt: performanceLog.completedAt,
+            bonus: bonus
+        )
+
+        guard let completedVow = completeVow(
+            userId: performanceLog.userId,
+            at: performanceLog.completedAt,
+            ledgerEntry: ledgerEntry
+        ) else { return nil }
+        return WeeklyVowCompletionReceipt(
+            vow: completedVow,
+            performanceLog: performanceLog,
+            completionBonus: bonus
+        )
     }
 
     // MARK: - Complete vow
 
     func completeVow(userId: String, at date: Date) {
+        _ = completeVow(userId: userId, at: date, ledgerEntry: nil)
+    }
+
+    @discardableResult
+    private func completeVow(
+        userId: String,
+        at date: Date,
+        ledgerEntry: WeeklyVowCompletionLedgerEntry?
+    ) -> WeeklyVow? {
         var state = store.load(userId: userId)
-        guard var vow = state.currentVow else { return }
-        guard vow.capstoneState != .completed else { return }
+        guard var vow = state.currentVow else { return nil }
+        guard vow.capstoneState != .completed else { return nil }
+        if let ledgerEntry,
+           state.weeklyVowCompletionLedger.contains(where: { $0.performanceLogId == ledgerEntry.performanceLogId }) {
+            return nil
+        }
 
         let prior = state
 
@@ -178,6 +212,12 @@ final class WeeklyVowsService: WeeklyVowsServiceProtocol {
                 state.unlockedTitles.append(titleId)
             }
         }
+        if let ledgerEntry {
+            state.weeklyVowCompletionLedger.append(ledgerEntry)
+            if state.weeklyVowCompletionLedger.count > 100 {
+                state.weeklyVowCompletionLedger.removeFirst(state.weeklyVowCompletionLedger.count - 100)
+            }
+        }
 
         store.save(state, userId: userId)
 
@@ -186,6 +226,7 @@ final class WeeklyVowsService: WeeklyVowsServiceProtocol {
         }
         NotificationCenter.default.post(name: .weeklyVowCompleted, object: vow)
         NotificationCenter.default.post(name: .trialCompleted, object: vow)
+        return vow
     }
 
     // MARK: - evaluateVowProofFromLog + checkVowWindow
@@ -281,6 +322,52 @@ private enum WeeklyVowTrainingRoute {
                 || (set.calories ?? 0) > 0
                 || (set.weightKg ?? 0) > 0
         }
+    }
+}
+
+private enum WeeklyVowCompletionBonusCatalog {
+    static func bonus(
+        for vow: WeeklyVow,
+        performanceLog: PerformanceLog,
+        completionCountAfter: Int
+    ) -> WeeklyVowCompletionBonus {
+        let kind = vow.chosenCard.kind
+        let badgeTarget = 3
+        let cosmeticTarget = 5
+        let badgeProgress = min(badgeTarget, ((completionCountAfter - 1) % badgeTarget) + 1)
+        let cosmeticProgress = min(cosmeticTarget, ((completionCountAfter - 1) % cosmeticTarget) + 1)
+        let shareCard: WeeklyVowShareCardDescriptor?
+
+        if kind == .apex {
+            shareCard = WeeklyVowShareCardDescriptor(
+                id: "apex-vow-share-\(vow.id)-\(performanceLog.id)",
+                title: "Apex Vow Cleared",
+                subtitle: "\(vow.chosenCard.displayName) - \(vow.chosenCard.capstone.displayName)",
+                metadata: [
+                    "vowId": vow.id,
+                    "performanceLogId": performanceLog.id,
+                    "cardKind": kind.vowIdComponent,
+                    "completedAt": ISO8601DateFormatter().string(from: performanceLog.completedAt)
+                ]
+            )
+        } else {
+            shareCard = nil
+        }
+
+        return WeeklyVowCompletionBonus(
+            overallLevelXP: kind.completionBonusOverallLevelXP,
+            badgeProgress: WeeklyVowProgressDescriptor(
+                title: "\(kind.displayName) I",
+                current: badgeProgress,
+                target: badgeTarget
+            ),
+            cosmeticProgress: WeeklyVowProgressDescriptor(
+                title: "\(kind.displayName) Finish",
+                current: cosmeticProgress,
+                target: cosmeticTarget
+            ),
+            shareCard: shareCard
+        )
     }
 }
 

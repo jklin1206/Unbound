@@ -6,11 +6,17 @@ struct WeeklyVowCompletionReceipt: Equatable, Sendable {
     let performanceLogId: String
     let completedAt: Date
     let callout: WeeklyVowRewardCallout
+    let completionBonus: WeeklyVowCompletionBonus
 
-    init(vow: WeeklyVow, performanceLog: PerformanceLog) {
+    init(
+        vow: WeeklyVow,
+        performanceLog: PerformanceLog,
+        completionBonus: WeeklyVowCompletionBonus
+    ) {
         self.vow = vow
         self.performanceLogId = performanceLog.id
         self.completedAt = performanceLog.completedAt
+        self.completionBonus = completionBonus
         self.callout = WeeklyVowRewardCallout(
             id: "weekly-vow-\(vow.id)-\(performanceLog.id)",
             vowId: vow.id,
@@ -23,7 +29,8 @@ struct WeeklyVowCompletionReceipt: Equatable, Sendable {
             receiptLine: "Receipt \(Self.shortReceiptId(performanceLog.id))",
             shareTitle: "Weekly Vow Complete",
             shareSubtitle: "\(vow.chosenCard.kind.displayName) - \(vow.chosenCard.capstone.displayName)",
-            completedAt: performanceLog.completedAt
+            completedAt: performanceLog.completedAt,
+            completionBonus: completionBonus
         )
     }
 

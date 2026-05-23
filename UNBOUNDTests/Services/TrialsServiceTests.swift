@@ -221,6 +221,13 @@ final class WeeklyVowsServiceTests: XCTestCase {
         XCTAssertEqual(unwrapped.callout.cardKind, .overdrive)
         XCTAssertEqual(unwrapped.callout.title, "Overdrive Vow Sealed")
         XCTAssertEqual(unwrapped.callout.proofName, overdrive.capstone.displayName)
+        XCTAssertEqual(unwrapped.callout.completionBonus, unwrapped.completionBonus)
+        XCTAssertEqual(unwrapped.completionBonus.overallLevelXP, 120)
+        XCTAssertEqual(unwrapped.completionBonus.badgeProgress.displayText, "Overdrive I 1/3")
+        XCTAssertEqual(unwrapped.completionBonus.cosmeticProgress.displayText, "Overdrive Finish 1/5")
+        XCTAssertNil(unwrapped.completionBonus.shareCard)
+        XCTAssertEqual(service.state(userId: "u-1").weeklyVowCompletionLedger.count, 1)
+        XCTAssertEqual(service.state(userId: "u-1").weeklyVowCompletionLedger.first?.performanceLogId, log.id)
 
         let summary = WorkoutRewardSequenceSummary.trainingReceipt(
             performanceLog: log,
@@ -229,6 +236,37 @@ final class WeeklyVowsServiceTests: XCTestCase {
             weeklyVowCallout: unwrapped.callout
         )
         XCTAssertEqual(summary.weeklyVowCallout, unwrapped.callout)
+        XCTAssertFalse(summary.hasShareableMoment)
+        XCTAssertTrue(summary.attributeDeltas.isEmpty)
+    }
+
+    func testRecordCompletedApexVowCarriesShareCardMetadataOnlyAfterSavedLog() async {
+        seedAttribute()
+        await service.ensureCurrentWeek(userId: "u-1")
+        let apex = service.state(userId: "u-1").currentWeekCards.first(where: { $0.kind == .apex })!
+        service.pickVowCard(apex, userId: "u-1")
+
+        let draft = try! XCTUnwrap(service.trainingDraftForCurrentVow(userId: "u-1", date: .now))
+        let log = makePerformanceLog(from: draft)
+        var result = TrainingCompletionResult()
+
+        XCTAssertNil(service.recordCompletedVowWork(performanceLog: log, completionResult: result))
+
+        result.savedPerformanceLogId = log.id
+        let receipt = service.recordCompletedVowWork(performanceLog: log, completionResult: result)
+
+        let unwrapped = try! XCTUnwrap(receipt)
+        let shareCard = try! XCTUnwrap(unwrapped.completionBonus.shareCard)
+        XCTAssertEqual(unwrapped.completionBonus.overallLevelXP, 240)
+        XCTAssertEqual(shareCard.metadata["performanceLogId"], log.id)
+        XCTAssertEqual(shareCard.metadata["cardKind"], "apex")
+
+        let summary = WorkoutRewardSequenceSummary.trainingReceipt(
+            performanceLog: log,
+            completionResult: result,
+            sourceName: "Weekly Vow",
+            weeklyVowCallout: unwrapped.callout
+        )
         XCTAssertTrue(summary.hasShareableMoment)
     }
 
@@ -247,6 +285,23 @@ final class WeeklyVowsServiceTests: XCTestCase {
         XCTAssertNil(service.recordCompletedVowWork(performanceLog: unrelated, completionResult: result))
         XCTAssertEqual(service.state(userId: "u-1").currentVow?.capstoneState, .pending)
         XCTAssertNil(service.state(userId: "u-1").completionsByCardKind[.overdrive])
+        XCTAssertTrue(service.state(userId: "u-1").weeklyVowCompletionLedger.isEmpty)
+    }
+
+    func testRecordCompletedVowWorkIgnoresSavedLogWithoutActualCompletedWork() async {
+        seedAttribute()
+        await service.ensureCurrentWeek(userId: "u-1")
+        let overdrive = service.state(userId: "u-1").currentWeekCards.first(where: { $0.kind == .overdrive })!
+        service.pickVowCard(overdrive, userId: "u-1")
+
+        let draft = try! XCTUnwrap(service.trainingDraftForCurrentVow(userId: "u-1", date: .now))
+        let log = makeEmptyPerformanceLog(from: draft)
+        var result = TrainingCompletionResult()
+        result.savedPerformanceLogId = log.id
+
+        XCTAssertNil(service.recordCompletedVowWork(performanceLog: log, completionResult: result))
+        XCTAssertEqual(service.state(userId: "u-1").currentVow?.capstoneState, .pending)
+        XCTAssertTrue(service.state(userId: "u-1").weeklyVowCompletionLedger.isEmpty)
     }
 
     func testRecordCompletedVowWorkDoesNotDuplicateCompletionOrBonusForSameReceipt() async {
@@ -270,6 +325,8 @@ final class WeeklyVowsServiceTests: XCTestCase {
         XCTAssertEqual(service.state(userId: "u-1").currentVow?.capstoneState, .completed)
         XCTAssertEqual(service.state(userId: "u-1").completionsByCardKind[.overdrive], 1)
         XCTAssertEqual(service.state(userId: "u-1").completionsByAxis[.power], 1)
+        XCTAssertEqual(service.state(userId: "u-1").weeklyVowCompletionLedger.count, 1)
+        XCTAssertEqual(service.state(userId: "u-1").weeklyVowCompletionLedger.first?.bonus.overallLevelXP, 120)
     }
 
     // MARK: - evaluateVowProofFromLog + checkVowWindow
@@ -400,6 +457,41 @@ final class WeeklyVowsServiceTests: XCTestCase {
                                     rpe: prescription.rpe
                                 )
                             ]
+                        )
+                    ]
+                )
+            ]
+        )
+    }
+
+    private func makeEmptyPerformanceLog(from draft: TrainingSessionDraft) -> PerformanceLog {
+        let block = draft.blocks[0]
+        let prescription = block.prescriptions[0]
+        let completedAt = Date(timeIntervalSince1970: 1_700_000_600)
+        return PerformanceLog(
+            id: "weekly-vow-empty-log-\(UUID().uuidString)",
+            userId: draft.userId,
+            draftId: draft.id,
+            source: draft.source,
+            title: draft.title,
+            startedAt: completedAt.addingTimeInterval(-600),
+            completedAt: completedAt,
+            programId: draft.programId,
+            dayNumber: draft.dayNumber,
+            blocks: [
+                PerformanceBlock(
+                    kind: block.kind,
+                    title: block.title,
+                    skillId: block.skillId,
+                    exercises: [
+                        PerformanceExercise(
+                            id: prescription.id,
+                            name: prescription.exerciseName,
+                            movementId: prescription.movementId,
+                            rankStandardMovementId: prescription.rankStandardMovementId,
+                            plannedSets: prescription.sets,
+                            plannedTarget: prescription.target.displayText,
+                            sets: []
                         )
                     ]
                 )

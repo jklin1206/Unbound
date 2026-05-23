@@ -1,5 +1,14 @@
 import Foundation
 
+struct WeeklyVowCompletionLedgerEntry: Codable, Equatable, Identifiable, Sendable {
+    var id: String { performanceLogId }
+
+    let vowId: String
+    let performanceLogId: String
+    let completedAt: Date
+    let bonus: WeeklyVowCompletionBonus
+}
+
 /// Persisted Weekly Vows state per user. Lives in WeeklyVowsStore.
 struct WeeklyVowsState: Codable, Equatable, Sendable {
     /// Monday 00:00 of the active vow week. nil before first generation.
@@ -18,6 +27,8 @@ struct WeeklyVowsState: Codable, Equatable, Sendable {
     var equippedTitle: TitleID?
     /// User explicitly skipped the current week's pick. Prevents modal re-presentation.
     var skippedCurrentWeek: Bool
+    /// Saved PerformanceLogs that have already consumed the one-time Vow bonus.
+    var weeklyVowCompletionLedger: [WeeklyVowCompletionLedgerEntry]
 
     var currentVow: WeeklyVow? {
         get { currentTrial }
@@ -37,8 +48,59 @@ struct WeeklyVowsState: Codable, Equatable, Sendable {
         completionsByCardKind: [:],
         unlockedTitles: [],
         equippedTitle: nil,
-        skippedCurrentWeek: false
+        skippedCurrentWeek: false,
+        weeklyVowCompletionLedger: []
     )
+
+    init(
+        currentWeekStart: Date?,
+        currentWeekCards: [WeeklyVowCard],
+        currentTrial: WeeklyVow?,
+        completionsByAxis: [AttributeKey: Int],
+        completionsByCardKind: [WeeklyVowKind: Int],
+        unlockedTitles: [TitleID],
+        equippedTitle: TitleID?,
+        skippedCurrentWeek: Bool,
+        weeklyVowCompletionLedger: [WeeklyVowCompletionLedgerEntry] = []
+    ) {
+        self.currentWeekStart = currentWeekStart
+        self.currentWeekCards = currentWeekCards
+        self.currentTrial = currentTrial
+        self.completionsByAxis = completionsByAxis
+        self.completionsByCardKind = completionsByCardKind
+        self.unlockedTitles = unlockedTitles
+        self.equippedTitle = equippedTitle
+        self.skippedCurrentWeek = skippedCurrentWeek
+        self.weeklyVowCompletionLedger = weeklyVowCompletionLedger
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case currentWeekStart
+        case currentWeekCards
+        case currentTrial
+        case completionsByAxis
+        case completionsByCardKind
+        case unlockedTitles
+        case equippedTitle
+        case skippedCurrentWeek
+        case weeklyVowCompletionLedger
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        currentWeekStart = try container.decodeIfPresent(Date.self, forKey: .currentWeekStart)
+        currentWeekCards = try container.decodeIfPresent([WeeklyVowCard].self, forKey: .currentWeekCards) ?? []
+        currentTrial = try container.decodeIfPresent(WeeklyVow.self, forKey: .currentTrial)
+        completionsByAxis = try container.decodeIfPresent([AttributeKey: Int].self, forKey: .completionsByAxis) ?? [:]
+        completionsByCardKind = try container.decodeIfPresent([WeeklyVowKind: Int].self, forKey: .completionsByCardKind) ?? [:]
+        unlockedTitles = try container.decodeIfPresent([TitleID].self, forKey: .unlockedTitles) ?? []
+        equippedTitle = try container.decodeIfPresent(TitleID.self, forKey: .equippedTitle)
+        skippedCurrentWeek = try container.decodeIfPresent(Bool.self, forKey: .skippedCurrentWeek) ?? false
+        weeklyVowCompletionLedger = try container.decodeIfPresent(
+            [WeeklyVowCompletionLedgerEntry].self,
+            forKey: .weeklyVowCompletionLedger
+        ) ?? []
+    }
 }
 
 typealias TrialsState = WeeklyVowsState

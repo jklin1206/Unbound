@@ -54,6 +54,18 @@ extension WeeklyVowKind {
     static var aligned: WeeklyVowKind { .ember }
     static var growth: WeeklyVowKind { .overdrive }
     static var prestige: WeeklyVowKind { .apex }
+
+    var completionBonusOverallLevelXP: Int {
+        switch self {
+        case .ember: return 60
+        case .overdrive: return 120
+        case .apex: return 240
+        }
+    }
+
+    var vowIdComponent: String {
+        rawValue
+    }
 }
 
 typealias TrialCardKind = WeeklyVowKind

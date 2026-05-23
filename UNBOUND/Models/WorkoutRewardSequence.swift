@@ -35,7 +35,7 @@ struct WorkoutRewardSequenceSummary: Identifiable {
     var weeklyVowCallout: WeeklyVowRewardCallout? = nil
 
     var hasShareableMoment: Bool {
-        weeklyVowCallout != nil
+        weeklyVowCallout?.completionBonus?.shareCard != nil
             || !personalRecords.isEmpty
             || !badges.isEmpty
             || liftProgress.contains(where: \.didAdvanceTier)
@@ -202,6 +202,30 @@ struct CosmeticUnlockReward {
     var tint: Color
 }
 
+struct WeeklyVowCompletionBonus: Codable, Equatable, Sendable {
+    var overallLevelXP: Int
+    var badgeProgress: WeeklyVowProgressDescriptor
+    var cosmeticProgress: WeeklyVowProgressDescriptor
+    var shareCard: WeeklyVowShareCardDescriptor?
+}
+
+struct WeeklyVowProgressDescriptor: Codable, Equatable, Sendable {
+    var title: String
+    var current: Int
+    var target: Int
+
+    var displayText: String {
+        "\(title) \(current)/\(target)"
+    }
+}
+
+struct WeeklyVowShareCardDescriptor: Codable, Equatable, Sendable {
+    var id: String
+    var title: String
+    var subtitle: String
+    var metadata: [String: String]
+}
+
 struct WeeklyVowRewardCallout: Identifiable, Equatable, Sendable {
     let id: String
     var vowId: String
@@ -215,6 +239,7 @@ struct WeeklyVowRewardCallout: Identifiable, Equatable, Sendable {
     var shareTitle: String
     var shareSubtitle: String
     var completedAt: Date
+    var completionBonus: WeeklyVowCompletionBonus? = nil
 }
 
 extension AttributeKey {

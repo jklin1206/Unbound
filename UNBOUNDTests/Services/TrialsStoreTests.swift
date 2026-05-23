@@ -28,6 +28,19 @@ final class WeeklyVowsStoreTests: XCTestCase {
         state.completionsByAxis[.power] = 5
         state.unlockedTitles = [TitleID(path: .axis(.power), tier: .bronze)]
         state.skippedCurrentWeek = true
+        state.weeklyVowCompletionLedger = [
+            WeeklyVowCompletionLedgerEntry(
+                vowId: "weekly-vow-W5-overdrive",
+                performanceLogId: "perf-1",
+                completedAt: Date(timeIntervalSince1970: 1_700_000_000),
+                bonus: WeeklyVowCompletionBonus(
+                    overallLevelXP: 120,
+                    badgeProgress: WeeklyVowProgressDescriptor(title: "Overdrive I", current: 1, target: 3),
+                    cosmeticProgress: WeeklyVowProgressDescriptor(title: "Overdrive Finish", current: 1, target: 5),
+                    shareCard: nil
+                )
+            )
+        ]
 
         store.save(state, userId: "u-1")
         XCTAssertEqual(store.load(userId: "u-1"), state)
