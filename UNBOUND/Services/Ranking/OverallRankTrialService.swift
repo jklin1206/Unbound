@@ -379,10 +379,77 @@ enum OverallRankTrialDefinitions {
         ]
     )
 
+    static let reckoning = OverallRankTrialDefinition(
+        id: "overall-rank-trial-forged-reckoning",
+        targetRank: .forged,
+        displayName: "The Reckoning",
+        subtitle: "Honed to Forged rank gate",
+        estimatedMinutes: 42,
+        minOverallLevel: 22,
+        topAttributeCount: 2,
+        topAttributeFloor: 68,
+        requiredEquipment: [.bodyweight, .kettlebell, .openSpace, .pullupBar],
+        movementStandards: [
+            movementStandard("exercise.pullup", minimumAP: 240, displayName: "Pull-Up"),
+            movementStandard("exercise.kettlebell-swing", minimumAP: 220),
+            movementStandard("carry.farmer-carry", minimumAP: 180)
+        ],
+        skillStandards: [
+            skillStandard("pp.pullup", minimumTier: .forged),
+            skillStandard("co.bw-farmer-carry", minimumTier: .forged, displayName: "Farmer Carry")
+        ],
+        performanceStandards: [
+            performanceStandard(
+                "cardio.run",
+                metric: .distanceMeters,
+                minimumValue: 800,
+                plannedSets: 1,
+                restSeconds: 60,
+                displayName: "800m Run"
+            ),
+            performanceStandard(
+                "exercise.kettlebell-swing",
+                metric: .reps,
+                minimumValue: 30,
+                minimumQualifyingSets: 2,
+                plannedSets: 2,
+                restSeconds: 60
+            ),
+            performanceStandard(
+                "exercise.pullup",
+                metric: .reps,
+                minimumValue: 10,
+                minimumQualifyingSets: 2,
+                plannedSets: 2,
+                restSeconds: 75,
+                displayName: "Pull-Up"
+            ),
+            performanceStandard(
+                "exercise.pushup",
+                metric: .reps,
+                minimumValue: 30,
+                minimumQualifyingSets: 2,
+                plannedSets: 2,
+                restSeconds: 60,
+                displayName: "Push-Up"
+            ),
+            performanceStandard(
+                "carry.farmer-carry",
+                metric: .distanceMeters,
+                minimumValue: 60,
+                minimumQualifyingSets: 2,
+                plannedSets: 2,
+                restSeconds: 60,
+                displayName: "Farmer Carry"
+            )
+        ]
+    )
+
     static let all: [OverallRankTrialDefinition] = [
         foundationProof,
         calibration,
-        forge
+        forge,
+        reckoning
     ]
 
     static func definition(id: String) -> OverallRankTrialDefinition? {
@@ -397,8 +464,26 @@ enum OverallRankTrialDefinitions {
             return calibration
         case .apprentice:
             return forge
+        case .honed:
+            return reckoning
         default:
             return nil
+        }
+    }
+}
+
+private extension RankTitle {
+    var overallRankTrialOrder: Int {
+        switch self {
+        case .initiate: return 0
+        case .novice: return 1
+        case .apprentice: return 2
+        case .honed: return 3
+        case .forged: return 4
+        case .veteran: return 5
+        case .vessel: return 6
+        case .unbound: return 7
+        case .ascendant: return 8
         }
     }
 }
@@ -472,9 +557,9 @@ final class OverallRankTrialStore {
         progress.attempts = Array(progress.attempts.suffix(50))
 
         var didAdvanceRank = false
-        if attempt.passed, attempt.targetRank.ordinal > progress.highestPassedRank.ordinal {
+        if attempt.passed, attempt.targetRank.overallRankTrialOrder > progress.highestPassedRank.overallRankTrialOrder {
             progress.highestPassedRank = attempt.targetRank
-            didAdvanceRank = progress.highestPassedRank.ordinal > previousRank.ordinal
+            didAdvanceRank = progress.highestPassedRank.overallRankTrialOrder > previousRank.overallRankTrialOrder
         }
 
         save(progress, userId: userId)
