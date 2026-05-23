@@ -8,10 +8,20 @@ struct SetLogGridRow: View {
     let setNumber: Int
     let weightKg: Double?
     let reps: Int?
+    let holdSeconds: Int?
+    let durationSeconds: Int?
+    let distanceMeters: Int?
+    let calories: Int?
     let rpe: Int?
     let suggestedWeightKg: Double?
     let suggestedReps: Int?
+    let suggestedHoldSeconds: Int?
+    let suggestedDurationSeconds: Int?
+    let suggestedDistanceMeters: Int?
+    let suggestedCalories: Int?
     let suggestedRPE: Int?
+    let metricKind: TrainingMetricKind
+    let tracksHold: Bool
     let logged: Bool
     let onEditWeight: () -> Void
     let onEditReps: () -> Void
@@ -19,6 +29,7 @@ struct SetLogGridRow: View {
     let onConfirmAsPlanned: () -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @AppStorage(WeightPlatePolicy.unitDefaultsKey) private var weightUnitRaw = TrainingWeightUnit.localeDefault.rawValue
 
     var body: some View {
         HStack(spacing: 8) {
@@ -27,11 +38,11 @@ struct SetLogGridRow: View {
                 .foregroundStyle(Color.unbound.textTertiary)
                 .frame(width: 20, alignment: .leading)
 
-            cell(actual: weightKg.map(Self.fmt),
-                 suggested: suggestedWeightKg.map(Self.fmt),
+            cell(actual: weightKg.map(formatLoggedWeight),
+                 suggested: suggestedWeightKg.map(formatLoggedWeight),
                  action: onEditWeight)
-            cell(actual: reps.map(String.init),
-                 suggested: suggestedReps.map(String.init),
+            cell(actual: metricActual,
+                 suggested: metricSuggested,
                  action: onEditReps)
 
             Button(action: onPickRPE) {
@@ -55,6 +66,36 @@ struct SetLogGridRow: View {
                    value: logged)
     }
 
+    private var metricActual: String? {
+        switch metricKind {
+        case .reps:
+            return reps.map(String.init)
+        case .holdSeconds:
+            return holdSeconds.map { "\($0)s" }
+        case .durationSeconds:
+            return durationSeconds.map(Self.time)
+        case .distanceMeters:
+            return distanceMeters.map { "\($0)m" }
+        case .calories:
+            return calories.map { "\($0)" }
+        }
+    }
+
+    private var metricSuggested: String? {
+        switch metricKind {
+        case .reps:
+            return suggestedReps.map(String.init)
+        case .holdSeconds:
+            return suggestedHoldSeconds.map { "\($0)s" }
+        case .durationSeconds:
+            return suggestedDurationSeconds.map(Self.time)
+        case .distanceMeters:
+            return suggestedDistanceMeters.map { "\($0)m" }
+        case .calories:
+            return suggestedCalories.map { "\($0)" }
+        }
+    }
+
     @ViewBuilder private var confirmControl: some View {
         if logged {
             ZStack {
@@ -66,12 +107,16 @@ struct SetLogGridRow: View {
             .accessibilityLabel("Set \(setNumber) logged")
         } else {
             Button(action: onConfirmAsPlanned) {
-                Circle()
-                    .strokeBorder(Color.unbound.textTertiary, lineWidth: 1.5)
-                    .frame(width: 30, height: 30)
-                    .contentShape(Circle())
+                ZStack {
+                    Circle()
+                        .strokeBorder(Color.unbound.textTertiary, lineWidth: 1.5)
+                        .frame(width: 30, height: 30)
+                }
+                .frame(width: 40, height: 44)
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .accessibilityIdentifier("set\(setNumber).confirm")
             .accessibilityLabel("Log set \(setNumber) as planned")
         }
     }
@@ -104,8 +149,15 @@ struct SetLogGridRow: View {
         return Color.unbound.textTertiary   // dim suggestion or em-dash
     }
 
-    private static func fmt(_ v: Double) -> String {
-        v.truncatingRemainder(dividingBy: 1) == 0
-            ? String(Int(v)) : String(format: "%.1f", v)
+    private var weightUnit: TrainingWeightUnit {
+        TrainingWeightUnit(rawValue: weightUnitRaw) ?? .localeDefault
+    }
+
+    private func formatLoggedWeight(_ kilograms: Double) -> String {
+        WeightPlatePolicy.formatLoggedWeight(kilograms, unit: weightUnit)
+    }
+
+    private static func time(_ seconds: Int) -> String {
+        "\(seconds / 60):" + String(format: "%02d", seconds % 60)
     }
 }

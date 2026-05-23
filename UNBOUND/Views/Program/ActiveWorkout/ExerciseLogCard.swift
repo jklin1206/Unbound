@@ -9,6 +9,9 @@ struct ExerciseLogCard: View {
     let muscleGroups: [MuscleGroup]
     let formCues: String?
     let substitution: String?
+    var blockKind: TrainingBlockKind = .strength
+    var metricKind: TrainingMetricKind = .reps
+    var tracksHold: Bool = false
     let isWarmupCurrent: Bool
     let sets: [ActiveWorkoutSession.ActiveSet]
     let isExpanded: Bool
@@ -21,6 +24,7 @@ struct ExerciseLogCard: View {
     let onAddSet: () -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @AppStorage(WeightPlatePolicy.unitDefaultsKey) private var weightUnitRaw = TrainingWeightUnit.localeDefault.rawValue
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -63,8 +67,8 @@ struct ExerciseLogCard: View {
 
             HStack(spacing: 8) {
                 Text("SET").frame(width: 20, alignment: .leading)
-                Text("WEIGHT").frame(maxWidth: .infinity)
-                Text("REPS").frame(maxWidth: .infinity)
+                Text(weightHeader).frame(maxWidth: .infinity)
+                Text(metricHeader).frame(maxWidth: .infinity)
                 Text("RPE").frame(width: 44)
                 Spacer().frame(width: 40)
             }
@@ -77,10 +81,20 @@ struct ExerciseLogCard: View {
                     setNumber: idx + 1,
                     weightKg: set.weightKg,
                     reps: set.reps,
+                    holdSeconds: set.holdSeconds,
+                    durationSeconds: set.durationSeconds,
+                    distanceMeters: set.distanceMeters,
+                    calories: set.calories,
                     rpe: set.rpe,
                     suggestedWeightKg: set.suggestedWeightKg,
                     suggestedReps: set.suggestedReps,
+                    suggestedHoldSeconds: set.suggestedHoldSeconds,
+                    suggestedDurationSeconds: set.suggestedDurationSeconds,
+                    suggestedDistanceMeters: set.suggestedDistanceMeters,
+                    suggestedCalories: set.suggestedCalories,
                     suggestedRPE: set.suggestedRPE,
+                    metricKind: metricKind,
+                    tracksHold: tracksHold,
                     logged: set.logged,
                     onEditWeight: { onEditWeight(idx) },
                     onEditReps: { onEditReps(idx) },
@@ -109,10 +123,33 @@ struct ExerciseLogCard: View {
     }
 
     private var targetCaption: String {
-        var parts = ["Target · \(plannedSets) × \(plannedReps)"]
+        let prefix: String
+        switch blockKind {
+        case .skill: prefix = "Skill"
+        case .cardio: prefix = "Cardio"
+        case .carry: prefix = "Carry"
+        case .routine: prefix = "Routine"
+        case .strength, .bodyweight, .custom: prefix = "Target"
+        }
+        var parts = ["\(prefix) · \(plannedSets) × \(plannedReps)"]
         if let r = targetRPE { parts.append("RPE \(r)") }
         parts.append("rest \(Self.mmss(restSeconds))")
         return parts.joined(separator: " · ")
+    }
+
+    private var metricHeader: String {
+        switch metricKind {
+        case .reps: return "REPS"
+        case .holdSeconds: return "HOLD"
+        case .durationSeconds: return "TIME"
+        case .distanceMeters: return "DIST"
+        case .calories: return "CAL"
+        }
+    }
+
+    private var weightHeader: String {
+        let unit = TrainingWeightUnit(rawValue: weightUnitRaw) ?? .localeDefault
+        return (blockKind == .carry || tracksHold ? "LOAD" : "WEIGHT") + " " + unit.shortLabel.uppercased()
     }
 
     private static func mmss(_ s: Int) -> String {
