@@ -157,6 +157,40 @@ final class TrainingCompletionIntegrationGuardrailTests: XCTestCase {
         XCTAssertEqual(progress.processedSourceLogIds, [log.id])
     }
 
+    func testLegacyProgressionCompatibleWorkoutHistoryAvoidsDirectSaveCascade() async throws {
+        let services = ServiceContainer.mock
+        let performanceLog = completedBenchLog(id: "perf-legacy-compatible-history")
+        let compatibleLog = try XCTUnwrap(TrainingSessionAdapters.workoutLog(from: performanceLog))
+
+        let first = await TrainingCompletionService.shared.recordProgressionForLegacyWorkout(
+            performanceLog,
+            compatibleWorkoutLog: compatibleLog,
+            services: services
+        )
+        let second = await TrainingCompletionService.shared.recordProgressionForLegacyWorkout(
+            performanceLog,
+            compatibleWorkoutLog: compatibleLog,
+            services: services
+        )
+
+        let workoutLog = try XCTUnwrap(services.workoutLog as? MockWorkoutLogService)
+        let database = try XCTUnwrap(services.database as? MockDatabaseService)
+        let record: TrainingCompletionRecord = try await database.read(
+            collection: "training_completion_records",
+            documentId: performanceLog.id
+        )
+
+        XCTAssertFalse(first.wasAlreadyCompleted)
+        XCTAssertEqual(first.savedWorkoutLogId, compatibleLog.id)
+        XCTAssertEqual(workoutLog.logs.map(\.id), [compatibleLog.id])
+        XCTAssertEqual(workoutLog.saveLogCallCount, 0)
+        XCTAssertEqual(workoutLog.compatibleHistorySaveCallCount, 1)
+        XCTAssertEqual(record.workoutLogId, compatibleLog.id)
+        XCTAssertTrue(second.wasAlreadyCompleted)
+        XCTAssertEqual(second.savedWorkoutLogId, compatibleLog.id)
+        XCTAssertEqual(workoutLog.compatibleHistorySaveCallCount, 1)
+    }
+
     func testCompletionWithNoCompletedSetsWritesNoRewardBridgesButRecordsReceipt() async throws {
         let services = ServiceContainer.mock
         let log = PerformanceLog(

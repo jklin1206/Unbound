@@ -175,6 +175,90 @@ final class WeeklyVowsServiceTests: XCTestCase {
         XCTAssertGreaterThan(unwrapped.estimatedMinutes, 0)
     }
 
+    func testTrainingDraftPrescriptionsCarryMovementCatalogMetadataAndVowCopy() async {
+        seedAttribute()
+        await service.ensureCurrentWeek(userId: "u-1")
+
+        for card in service.state(userId: "u-1").currentWeekCards {
+            let vow = WeeklyVow(
+                id: card.id,
+                userId: "u-1",
+                weekStart: service.state(userId: "u-1").currentWeekStart!,
+                chosenCard: card,
+                capstoneState: .pending,
+                completedAt: nil
+            )
+            let draft = service.trainingDraft(for: vow, date: Date(timeIntervalSince1970: 1_700_000_000))
+            let prescriptions = draft.blocks.flatMap(\.prescriptions)
+
+            XCTAssertFalse(prescriptions.isEmpty)
+            assertNoLegacyWeeklyCopy(
+                [draft.title] +
+                draft.blocks.flatMap { [$0.title, $0.subtitle ?? "", $0.notes ?? ""] } +
+                prescriptions.flatMap { [$0.exerciseName, $0.notes ?? ""] }
+            )
+
+            for prescription in prescriptions {
+                let movementId = try! XCTUnwrap(prescription.movementId)
+                let definition = try! XCTUnwrap(MovementCatalog.definition(for: movementId))
+
+                XCTAssertEqual(prescription.rankStandardMovementId, definition.rankStandardMovementId)
+                XCTAssertEqual(prescription.exerciseName, definition.displayName)
+                XCTAssertEqual(prescription.muscleGroups, definition.muscleGroups)
+                XCTAssertFalse(movementId.hasPrefix("unresolved."))
+
+                if definition.role == .canonicalExercise {
+                    XCTAssertTrue(
+                        MovementCatalog.isProgramCompatible(definition, style: .hybrid, userEquipment: [.fullGym]),
+                        "\(definition.displayName) should remain full-gym compatible."
+                    )
+                }
+            }
+        }
+    }
+
+    func testExplosivenessOverdriveUsesSameSlotCatalogFallbackForBoxJumpIntent() {
+        let card = WeeklyVowCard(
+            id: "weekly-vow-W5-overdrive",
+            kind: .overdrive,
+            theme: .axis(.explosiveness),
+            displayName: "Overdrive · Explosiveness Finisher",
+            blurb: "Attach a sharp finisher after training and push your explosiveness output.",
+            capstone: WeeklyVowProof(
+                displayName: "Output Proof",
+                description: "8 max-effort box jumps.",
+                evaluation: .autoFromLog(.reps(8, exerciseName: "box jump"))
+            ),
+            prescription: WeeklyVowPrescription(
+                placement: .afterWorkout,
+                minMinutes: 6,
+                maxMinutes: 12,
+                minRPE: 7,
+                maxRPE: 8
+            )
+        )
+        let vow = WeeklyVow(
+            id: card.id,
+            userId: "u-1",
+            weekStart: Date(timeIntervalSince1970: 1_700_000_000),
+            chosenCard: card,
+            capstoneState: .pending,
+            completedAt: nil
+        )
+
+        let draft = service.trainingDraft(for: vow, date: Date(timeIntervalSince1970: 1_700_000_000))
+        let prescription = try! XCTUnwrap(draft.blocks.flatMap(\.prescriptions).first)
+        let movementId = try! XCTUnwrap(prescription.movementId)
+        let definition = try! XCTUnwrap(MovementCatalog.definition(for: movementId))
+
+        XCTAssertEqual(definition.id, "exercise.jump-squat")
+        XCTAssertEqual(definition.movementSlot, .squat)
+        XCTAssertEqual(prescription.rankStandardMovementId, definition.rankStandardMovementId)
+        XCTAssertEqual(prescription.rpe, 7)
+        XCTAssertEqual(draft.estimatedMinutes, 9)
+        XCTAssertTrue(MovementCatalog.isProgramCompatible(definition, style: .hybrid, userEquipment: [.bodyweight]))
+    }
+
     func testRecordCompletedVowWorkWaitsForSavedPerformanceLog() async {
         seedAttribute()
         await service.ensureCurrentWeek(userId: "u-1")
@@ -224,6 +308,13 @@ final class WeeklyVowsServiceTests: XCTestCase {
         XCTAssertEqual(unwrapped.callout.shareSubtitle, "Overdrive Vow - \(overdrive.capstone.displayName)")
         XCTAssertEqual(unwrapped.callout.proofName, overdrive.capstone.displayName)
         XCTAssertEqual(unwrapped.callout.completionBonus, unwrapped.completionBonus)
+        assertNoLegacyWeeklyCopy([
+            unwrapped.callout.title,
+            unwrapped.callout.subtitle,
+            unwrapped.callout.proofName,
+            unwrapped.callout.shareTitle,
+            unwrapped.callout.shareSubtitle
+        ])
         XCTAssertEqual(unwrapped.completionBonus.overallLevelXP, 120)
         XCTAssertEqual(unwrapped.completionBonus.badgeProgress.displayText, "Overdrive Vow I 1/3")
         XCTAssertEqual(unwrapped.completionBonus.cosmeticProgress.displayText, "Overdrive Vow Finish 1/5")
@@ -265,6 +356,13 @@ final class WeeklyVowsServiceTests: XCTestCase {
         XCTAssertEqual(shareCard.subtitle, "Apex Vow - \(apex.capstone.displayName)")
         XCTAssertEqual(shareCard.metadata["performanceLogId"], log.id)
         XCTAssertEqual(shareCard.metadata["cardKind"], "apex")
+        assertNoLegacyWeeklyCopy([
+            unwrapped.callout.title,
+            unwrapped.callout.shareTitle,
+            unwrapped.callout.shareSubtitle,
+            shareCard.title,
+            shareCard.subtitle
+        ])
 
         let summary = WorkoutRewardSequenceSummary.trainingReceipt(
             performanceLog: log,
@@ -273,6 +371,30 @@ final class WeeklyVowsServiceTests: XCTestCase {
             weeklyVowCallout: unwrapped.callout
         )
         XCTAssertTrue(summary.hasShareableMoment)
+    }
+
+    func testRecordCompletedApexVowRequiresRealSavedWorkBeforeShareCard() async {
+        seedAttribute()
+        await service.ensureCurrentWeek(userId: "u-1")
+        let apex = service.state(userId: "u-1").currentWeekCards.first(where: { $0.kind == .apex })!
+        service.pickVowCard(apex, userId: "u-1")
+
+        let draft = try! XCTUnwrap(service.trainingDraftForCurrentVow(userId: "u-1", date: .now))
+        let emptyLog = makeEmptyPerformanceLog(from: draft)
+        var result = TrainingCompletionResult()
+        result.savedPerformanceLogId = emptyLog.id
+
+        XCTAssertNil(service.recordCompletedVowWork(performanceLog: emptyLog, completionResult: result))
+        XCTAssertEqual(service.state(userId: "u-1").currentVow?.capstoneState, .pending)
+        XCTAssertTrue(service.state(userId: "u-1").weeklyVowCompletionLedger.isEmpty)
+
+        let summary = WorkoutRewardSequenceSummary.trainingReceipt(
+            performanceLog: emptyLog,
+            completionResult: result,
+            sourceName: "Weekly Vow",
+            weeklyVowCallout: nil
+        )
+        XCTAssertFalse(summary.hasShareableMoment)
     }
 
     func testRecordCompletedVowWorkIgnoresUnrelatedPerformanceLog() async {
@@ -332,6 +454,7 @@ final class WeeklyVowsServiceTests: XCTestCase {
         XCTAssertEqual(service.state(userId: "u-1").completionsByAxis[.power], 1)
         XCTAssertEqual(service.state(userId: "u-1").weeklyVowCompletionLedger.count, 1)
         XCTAssertEqual(service.state(userId: "u-1").weeklyVowCompletionLedger.first?.bonus.overallLevelXP, 120)
+        XCTAssertEqual(service.state(userId: "u-1").weeklyVowCompletionLedger.first?.bonus, first?.completionBonus)
     }
 
     // MARK: - evaluateVowProofFromLog + checkVowWindow
@@ -502,5 +625,16 @@ final class WeeklyVowsServiceTests: XCTestCase {
                 )
             ]
         )
+    }
+
+    private func assertNoLegacyWeeklyCopy(
+        _ copy: [String],
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        for text in copy {
+            XCTAssertFalse(text.localizedCaseInsensitiveContains("trial"), "Unexpected legacy copy: \(text)", file: file, line: line)
+            XCTAssertFalse(text.localizedCaseInsensitiveContains("challenge"), "Unexpected legacy copy: \(text)", file: file, line: line)
+        }
     }
 }

@@ -114,17 +114,22 @@ final class ProgramAwareLoggingTests: XCTestCase {
         let database = try XCTUnwrap(services.database as? MockDatabaseService)
 
         XCTAssertNil(preview.savedPerformanceLogId)
+        XCTAssertNil(viewModel.lastCompletionResult?.savedPerformanceLogId)
         XCTAssertGreaterThan(preview.totalMovementAP, 0)
         XCTAssertEqual(summary.workoutName, "Push Day")
         XCTAssertEqual(summary.workSets, 1)
         XCTAssertNotNil(summary.progression)
         XCTAssertTrue(workoutLog.logs.isEmpty)
+        XCTAssertEqual(workoutLog.saveLogCallCount, 0)
+        XCTAssertEqual(workoutLog.compatibleHistorySaveCallCount, 0)
         XCTAssertFalse(database.store.keys.contains { $0.hasPrefix("performanceLogs/") })
         XCTAssertFalse(database.store.keys.contains { $0.hasPrefix("training_completion_records/") })
 
         await viewModel.flushPendingCompletionEffects()
 
         XCTAssertEqual(workoutLog.logs.count, 1)
+        XCTAssertEqual(workoutLog.saveLogCallCount, 0)
+        XCTAssertEqual(workoutLog.compatibleHistorySaveCallCount, 1)
         let savedLog = try XCTUnwrap(workoutLog.logs.first)
         let record: TrainingCompletionRecord = try await database.read(
             collection: "training_completion_records",
@@ -136,12 +141,16 @@ final class ProgramAwareLoggingTests: XCTestCase {
         )
 
         XCTAssertEqual(record.performanceLogId, savedLog.id)
+        XCTAssertEqual(record.workoutLogId, savedLog.id)
         XCTAssertEqual(record.userId, "mock-user-123")
         XCTAssertEqual(performanceLog.id, savedLog.id)
         XCTAssertEqual(performanceLog.title, "Push Day")
+        XCTAssertEqual(viewModel.lastCompletionResult?.savedWorkoutLogId, savedLog.id)
 
         await viewModel.flushPendingCompletionEffects()
         XCTAssertEqual(workoutLog.logs.count, 1)
+        XCTAssertEqual(workoutLog.saveLogCallCount, 0)
+        XCTAssertEqual(workoutLog.compatibleHistorySaveCallCount, 1)
     }
 
     func test_activeSet_decodesLegacyJSON_withoutSuggestionKeys() throws {

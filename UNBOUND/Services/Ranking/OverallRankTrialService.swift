@@ -536,12 +536,257 @@ enum OverallRankTrialDefinitions {
         ]
     )
 
+    static let crucible = OverallRankTrialDefinition(
+        id: "overall-rank-trial-vessel-crucible",
+        targetRank: .vessel,
+        displayName: "The Crucible",
+        subtitle: "Veteran to Vessel rank gate",
+        estimatedMinutes: 58,
+        minOverallLevel: 55,
+        topAttributeCount: 4,
+        topAttributeFloor: 84,
+        requiredEquipment: [
+            .bodyweight,
+            .pullupBar,
+            .dumbbell,
+            .kettlebell,
+            .openSpace,
+            .box,
+            .cardioMachine
+        ],
+        movementStandards: [
+            movementStandard("cardio.row", minimumAP: 360, displayName: "Row"),
+            movementStandard("exercise.weighted-pullup", minimumAP: 340, displayName: "Weighted Pull-Up"),
+            movementStandard("exercise.pistol-squat", minimumAP: 300),
+            movementStandard("carry.farmer-carry", minimumAP: 340)
+        ],
+        skillStandards: [
+            skillStandard("pp.weighted-pullup", minimumTier: .vessel),
+            skillStandard("ld.pistol-squat", minimumTier: .vessel),
+            skillStandard("hs.freestanding-hs-30", minimumTier: .vessel),
+            skillStandard("co.1.5x-farmer-carry", minimumTier: .vessel, displayName: "1.5x Farmer Carry")
+        ],
+        performanceStandards: [
+            performanceStandard(
+                "cardio.row",
+                metric: .distanceMeters,
+                minimumValue: 500,
+                minimumQualifyingSets: 2,
+                plannedSets: 2,
+                restSeconds: 60,
+                displayName: "500m Row"
+            ),
+            performanceStandard(
+                "exercise.weighted-pullup",
+                metric: .reps,
+                minimumValue: 5,
+                minimumQualifyingSets: 2,
+                plannedSets: 2,
+                restSeconds: 120,
+                displayName: "Weighted Pull-Up"
+            ),
+            performanceStandard(
+                "exercise.pistol-squat",
+                metric: .reps,
+                minimumValue: 6,
+                minimumQualifyingSets: 2,
+                plannedSets: 2,
+                restSeconds: 90,
+                displayName: "Pistol Squat"
+            ),
+            performanceStandard(
+                "carry.farmer-carry",
+                metric: .distanceMeters,
+                minimumValue: 80,
+                minimumQualifyingSets: 2,
+                plannedSets: 2,
+                restSeconds: 75,
+                displayName: "Farmer Carry"
+            ),
+            performanceStandard(
+                "skill.hs.freestanding-hs-30",
+                metric: .holdSeconds,
+                minimumValue: 30,
+                plannedSets: 1,
+                restSeconds: 120,
+                displayName: "Freestanding Handstand"
+            )
+        ]
+    )
+
+    static let threshold = OverallRankTrialDefinition(
+        id: "overall-rank-trial-unbound-threshold",
+        targetRank: .unbound,
+        displayName: "The Threshold",
+        subtitle: "Vessel to Unbound rank gate",
+        estimatedMinutes: 65,
+        minOverallLevel: 72,
+        topAttributeCount: 5,
+        topAttributeFloor: 90,
+        requiredEquipment: [
+            .bodyweight,
+            .pullupBar,
+            .openSpace,
+            .sled,
+            .cardioMachine,
+            .box
+        ],
+        movementStandards: [
+            movementStandard("cardio.run", minimumAP: 460, displayName: "Run"),
+            movementStandard("exercise.muscle-up", minimumAP: 420, displayName: "Muscle-Up"),
+            movementStandard("carry.sled-push", minimumAP: 400),
+            movementStandard("skill.cl.straddle-front-lever", minimumAP: 360, displayName: "Straddle Front Lever"),
+            movementStandard("exercise.nordic-curl", minimumAP: 360, displayName: "Nordic Curl")
+        ],
+        skillStandards: [
+            skillStandard("pp.muscle-up", minimumTier: .unbound),
+            skillStandard("cl.straddle-front-lever", minimumTier: .unbound),
+            skillStandard("ld.nordic-curl", minimumTier: .unbound),
+            skillStandard("co.sled-push", minimumTier: .unbound, displayName: "Sled Push")
+        ],
+        performanceStandards: [
+            performanceStandard(
+                "cardio.run",
+                metric: .distanceMeters,
+                minimumValue: 1_600,
+                plannedSets: 1,
+                restSeconds: 60,
+                displayName: "1 Mile Run"
+            ),
+            performanceStandard(
+                "exercise.muscle-up",
+                metric: .reps,
+                minimumValue: 5,
+                minimumQualifyingSets: 2,
+                plannedSets: 2,
+                restSeconds: 150,
+                displayName: "Muscle-Up"
+            ),
+            performanceStandard(
+                "carry.sled-push",
+                metric: .distanceMeters,
+                minimumValue: 60,
+                minimumQualifyingSets: 2,
+                plannedSets: 2,
+                restSeconds: 90,
+                displayName: "Sled Push"
+            ),
+            performanceStandard(
+                "skill.cl.straddle-front-lever",
+                metric: .holdSeconds,
+                minimumValue: 8,
+                minimumQualifyingSets: 2,
+                plannedSets: 2,
+                restSeconds: 120,
+                displayName: "Straddle Front Lever"
+            ),
+            performanceStandard(
+                "exercise.nordic-curl",
+                metric: .reps,
+                minimumValue: 5,
+                minimumQualifyingSets: 2,
+                plannedSets: 2,
+                restSeconds: 120,
+                displayName: "Nordic Curl"
+            )
+        ]
+    )
+
+    static let ascension = OverallRankTrialDefinition(
+        id: "overall-rank-trial-ascendant-ascension",
+        targetRank: .ascendant,
+        displayName: "The Ascension",
+        subtitle: "Unbound to Ascendant rank gate",
+        estimatedMinutes: 75,
+        minOverallLevel: 90,
+        topAttributeCount: 6,
+        topAttributeFloor: 95,
+        requiredEquipment: [
+            .bodyweight,
+            .pullupBar,
+            .dumbbell,
+            .kettlebell,
+            .openSpace
+        ],
+        movementStandards: [
+            movementStandard("cardio.run", minimumAP: 560, displayName: "Run"),
+            movementStandard("exercise.weighted-pullup", minimumAP: 520, displayName: "Weighted Pull-Up"),
+            movementStandard("exercise.muscle-up", minimumAP: 520, displayName: "Muscle-Up"),
+            movementStandard("skill.pl.full-planche", minimumAP: 480, displayName: "Full Planche"),
+            movementStandard("skill.oah.one-arm-handstand-5s", minimumAP: 480, displayName: "One-Arm Handstand"),
+            movementStandard("carry.farmer-carry", minimumAP: 500)
+        ],
+        skillStandards: [
+            skillStandard("pp.strict-muscle-up", minimumTier: .ascendant),
+            skillStandard("pl.full-planche", minimumTier: .ascendant),
+            skillStandard("oah.one-arm-handstand-5s", minimumTier: .ascendant),
+            skillStandard("co.2x-farmer-carry", minimumTier: .ascendant, displayName: "2x Farmer Carry")
+        ],
+        performanceStandards: [
+            performanceStandard(
+                "cardio.run",
+                metric: .distanceMeters,
+                minimumValue: 5_000,
+                plannedSets: 1,
+                restSeconds: 60,
+                displayName: "5k Run"
+            ),
+            performanceStandard(
+                "exercise.weighted-pullup",
+                metric: .reps,
+                minimumValue: 3,
+                minimumQualifyingSets: 3,
+                plannedSets: 3,
+                restSeconds: 150,
+                displayName: "Weighted Pull-Up"
+            ),
+            performanceStandard(
+                "exercise.muscle-up",
+                metric: .reps,
+                minimumValue: 8,
+                plannedSets: 1,
+                restSeconds: 150,
+                displayName: "Muscle-Up"
+            ),
+            performanceStandard(
+                "skill.pl.full-planche",
+                metric: .holdSeconds,
+                minimumValue: 5,
+                minimumQualifyingSets: 2,
+                plannedSets: 2,
+                restSeconds: 180,
+                displayName: "Full Planche"
+            ),
+            performanceStandard(
+                "skill.oah.one-arm-handstand-5s",
+                metric: .holdSeconds,
+                minimumValue: 5,
+                minimumQualifyingSets: 2,
+                plannedSets: 2,
+                restSeconds: 180,
+                displayName: "One-Arm Handstand"
+            ),
+            performanceStandard(
+                "carry.farmer-carry",
+                metric: .distanceMeters,
+                minimumValue: 100,
+                minimumQualifyingSets: 2,
+                plannedSets: 2,
+                restSeconds: 90,
+                displayName: "Farmer Carry"
+            )
+        ]
+    )
+
     static let all: [OverallRankTrialDefinition] = [
         foundationProof,
         calibration,
         forge,
         reckoning,
-        gauntlet
+        gauntlet,
+        crucible,
+        threshold,
+        ascension
     ]
 
     static func definition(id: String) -> OverallRankTrialDefinition? {
@@ -560,6 +805,12 @@ enum OverallRankTrialDefinitions {
             return reckoning
         case .forged:
             return gauntlet
+        case .veteran:
+            return crucible
+        case .vessel:
+            return threshold
+        case .unbound:
+            return ascension
         default:
             return nil
         }
@@ -671,6 +922,25 @@ struct OverallRankTrialRecordResult: Equatable, Sendable {
     let attempt: OverallRankTrialAttempt
     let didAdvanceRank: Bool
     let wasDuplicate: Bool
+}
+
+enum OverallRankTrialRunCalloutKind: String, Codable, Equatable, Sendable {
+    case duplicateAttempt
+    case comebackPass
+}
+
+struct OverallRankTrialRunCallout: Identifiable, Codable, Equatable, Sendable {
+    let id: String
+    let kind: OverallRankTrialRunCalloutKind
+    let title: String
+    let message: String
+
+    init(kind: OverallRankTrialRunCalloutKind, title: String, message: String) {
+        self.id = kind.rawValue
+        self.kind = kind
+        self.title = title
+        self.message = message
+    }
 }
 
 struct OverallRankTrialReadinessInput: Equatable, Sendable {
@@ -934,6 +1204,7 @@ struct OverallRankTrialRunResult: Sendable {
     let completionResult: TrainingCompletionResult?
     let didAdvanceRank: Bool
     let wasDuplicate: Bool
+    let callouts: [OverallRankTrialRunCallout]
 
     var rankUp: RankUp? {
         guard didAdvanceRank else { return nil }
@@ -975,7 +1246,14 @@ final class OverallRankTrialRunner {
                 progress: existing,
                 completionResult: nil,
                 didAdvanceRank: false,
-                wasDuplicate: true
+                wasDuplicate: true,
+                callouts: callouts(
+                    for: duplicate,
+                    definition: definition,
+                    previousProgress: existing,
+                    didAdvanceRank: false,
+                    wasDuplicate: true
+                )
             )
         }
 
@@ -994,6 +1272,7 @@ final class OverallRankTrialRunner {
         store: OverallRankTrialStore = .shared
     ) -> OverallRankTrialRunResult? {
         guard let definition = definition(for: performanceLog) else { return nil }
+        let previousProgress = store.load(userId: performanceLog.userId)
         let passed = evaluatePerformance(performanceLog, against: definition)
         let attempt = OverallRankTrialAttempt(
             id: performanceLog.id,
@@ -1026,8 +1305,49 @@ final class OverallRankTrialRunner {
             progress: record.progress,
             completionResult: completionResult,
             didAdvanceRank: record.didAdvanceRank,
-            wasDuplicate: record.wasDuplicate
+            wasDuplicate: record.wasDuplicate,
+            callouts: callouts(
+                for: record.attempt,
+                definition: definition,
+                previousProgress: previousProgress,
+                didAdvanceRank: record.didAdvanceRank,
+                wasDuplicate: record.wasDuplicate
+            )
         )
+    }
+
+    private func callouts(
+        for attempt: OverallRankTrialAttempt,
+        definition: OverallRankTrialDefinition,
+        previousProgress: OverallRankTrialProgress,
+        didAdvanceRank: Bool,
+        wasDuplicate: Bool
+    ) -> [OverallRankTrialRunCallout] {
+        if wasDuplicate {
+            return [
+                OverallRankTrialRunCallout(
+                    kind: .duplicateAttempt,
+                    title: "Attempt already counted",
+                    message: "\(definition.displayName) was already recorded, so rank progress stayed at \(previousProgress.currentRank.displayName)."
+                )
+            ]
+        }
+
+        guard attempt.passed, didAdvanceRank else { return [] }
+
+        let priorAttempts = previousProgress.attempts.filter { $0.definitionId == definition.id }
+        let priorFailureCount = priorAttempts.filter { !$0.passed }.count
+        let hadPriorPass = priorAttempts.contains { $0.passed }
+        guard priorFailureCount > 0, !hadPriorPass else { return [] }
+
+        let attemptNoun = priorFailureCount == 1 ? "attempt" : "attempts"
+        return [
+            OverallRankTrialRunCallout(
+                kind: .comebackPass,
+                title: "Comeback clear",
+                message: "Cleared \(definition.displayName) after \(priorFailureCount) failed \(attemptNoun)."
+            )
+        ]
     }
 
     func evaluatePerformance(

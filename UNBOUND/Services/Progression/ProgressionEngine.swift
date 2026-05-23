@@ -244,12 +244,13 @@ final class ProgressionEngine {
     }
 
     private func progressionIdentity(for entry: ExerciseLogEntry) -> ProgressionIdentity {
-        let resolved = MovementResolver.resolve(entry.exerciseName)
-        let exactDefinition = progressionDefinition(for: entry.movementId)
-            ?? progressionDefinition(for: resolved.movementId)
-        let standardDefinition = progressionDefinition(for: entry.rankStandardMovementId)
-            ?? exactDefinition.flatMap { MovementCatalog.rankStandard(for: $0) }
-            ?? progressionDefinition(for: resolved.rankStandardMovementId)
+        let resolved = MovementCatalog.resolvedTrainingMovement(
+            name: entry.exerciseName,
+            movementId: entry.movementId,
+            rankStandardMovementId: entry.rankStandardMovementId
+        )
+        let exactDefinition = resolved?.exact
+        let standardDefinition = resolved?.standard
 
         let familyUnlockDefinition = [
             exactDefinition,
@@ -271,11 +272,6 @@ final class ProgressionEngine {
             displayName: entry.exerciseName,
             familyUnlockDefinition: nil
         )
-    }
-
-    private func progressionDefinition(for movementId: String?) -> MovementDefinition? {
-        guard let movementId else { return nil }
-        return MovementCatalog.definition(for: movementId)
     }
 
     private func normalize(_ name: String) -> String {

@@ -86,6 +86,7 @@ final class TrainingCompletionService {
     @discardableResult
     func recordProgressionForLegacyWorkout(
         _ performanceLog: PerformanceLog,
+        compatibleWorkoutLog: WorkoutLog? = nil,
         services: ServiceContainer
     ) async -> TrainingCompletionResult {
         if let existing: TrainingCompletionRecord = try? await services.database.read(
@@ -106,6 +107,23 @@ final class TrainingCompletionService {
 
         let progression = await progressionResult(from: performanceLog, services: services)
         result.mergeProgression(from: progression)
+
+        if let compatibleWorkoutLog {
+            do {
+                try await saveCompatibleWorkoutLog(
+                    compatibleWorkoutLog,
+                    performanceLogId: performanceLog.id,
+                    services: services
+                )
+                result.savedWorkoutLogId = compatibleWorkoutLog.id
+            } catch {
+                LoggingService.shared.log(
+                    "TrainingCompletionService failed to write legacy-compatible WorkoutLog: \(error)",
+                    level: .warning,
+                    context: ["performanceLogId": performanceLog.id, "workoutLogId": compatibleWorkoutLog.id]
+                )
+            }
+        }
 
         let record = TrainingCompletionRecord(result: result, performanceLog: performanceLog)
         do {
@@ -283,17 +301,27 @@ final class TrainingCompletionService {
         performanceLogId: String,
         services: ServiceContainer
     ) async throws {
-        guard !(services.workoutLog is DirectCompatibleWorkoutLogWritePreferred) else {
-            try await services.database.create(workoutLog, collection: "workoutLogs", documentId: workoutLog.id)
+        if let compatibilityWriter = services.workoutLog as? WorkoutLogCompatibilityHistoryWriting {
+            try await compatibilityWriter.saveCompatibleHistoryLog(workoutLog)
             LoggingService.shared.log(
-                "TrainingCompletionService wrote compatible WorkoutLog directly for unified completion",
+                "TrainingCompletionService wrote compatible WorkoutLog through quarantined history writer",
                 level: .info,
                 context: ["performanceLogId": performanceLogId, "workoutLogId": workoutLog.id]
             )
             return
         }
 
-        try await services.workoutLog.saveLog(workoutLog)
+        // MIGRATION(Phase 9): unified completion must never fall back to
+        // WorkoutLogServiceProtocol.saveLog(_:). That method still owns the
+        // old side-effect cascade for legacy callers, so compatible history is
+        // quarantined to a direct database write when a dedicated writer is
+        // unavailable.
+        try await services.database.create(workoutLog, collection: "workoutLogs", documentId: workoutLog.id)
+        LoggingService.shared.log(
+            "TrainingCompletionService wrote compatible WorkoutLog through database quarantine",
+            level: .warning,
+            context: ["performanceLogId": performanceLogId, "workoutLogId": workoutLog.id]
+        )
     }
 
     private func runWithTimeout<T: Sendable>(
@@ -325,11 +353,6 @@ final class TrainingCompletionService {
         }
     }
 }
-
-protocol DirectCompatibleWorkoutLogWritePreferred {}
-
-extension SupabaseWorkoutLogService: DirectCompatibleWorkoutLogWritePreferred {}
-extension WorkoutLogService: DirectCompatibleWorkoutLogWritePreferred {}
 
 private struct TrainingCompletionTimeout: Error, LocalizedError {
     let step: String

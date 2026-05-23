@@ -8,10 +8,9 @@ import UIKit
 // focus areas), the last 14 days of training, any stalled lifts, and
 // (if within 60 days) the previous scan photo for comparison.
 //
-// Critically: volume-per-muscle-group comes from actual logged sets
-// joined against `ExerciseCatalog.exercise(named:).muscleGroups`, not
-// from LiftRank. Per plan, we want direct training signal, not a
-// strength proxy.
+// Critically: volume-per-muscle-group comes from actual logged sets joined
+// against `MovementCatalog` muscle groups, not from LiftRank. Per plan, we
+// want direct training signal, not a strength proxy.
 
 @MainActor
 final class ScanContextBuilder {
@@ -117,8 +116,8 @@ final class ScanContextBuilder {
 
     // MARK: - Volume aggregation
 
-    /// Walks every logged working set in the window, joins the exercise
-    /// name to `CatalogExercise.muscleGroups`, and rolls the contributions
+    /// Walks every logged working set in the window, joins the exercise name
+    /// to `MovementDefinition.muscleGroups`, and rolls the contributions
     /// into `MuscleHeatGroup` buckets. Returns (sessionCount, map).
     private func aggregateVolume(from logs: [WorkoutLog]) -> (Int, [String: Int]) {
         var counts: [MuscleHeatGroup: Int] = [:]
@@ -126,10 +125,18 @@ final class ScanContextBuilder {
             for entry in log.exerciseEntries where !entry.skipped {
                 let workingSets = entry.sets.filter { !$0.isWarmup }.count
                 guard workingSets > 0,
-                      let catalog = ExerciseCatalog.exercise(named: entry.exerciseName) else {
+                      let movement = MovementCatalog.resolvedTrainingMovement(
+                        name: entry.exerciseName,
+                        movementId: entry.movementId,
+                        rankStandardMovementId: entry.rankStandardMovementId
+                      ) else {
                     continue
                 }
-                for group in catalog.muscleGroups.compactMap({ heatGroup(for: $0) }) {
+
+                let muscleGroups = movement.exact.muscleGroups.isEmpty
+                    ? (movement.standard?.muscleGroups ?? [])
+                    : movement.exact.muscleGroups
+                for group in muscleGroups.compactMap({ heatGroup(for: $0) }) {
                     counts[group, default: 0] += workingSets
                 }
             }
@@ -141,10 +148,10 @@ final class ScanContextBuilder {
     }
 
     /// Maps `ExerciseCatalog.MuscleGroup` (12 coarse tags) to our
-    /// `MuscleHeatGroup` taxonomy (12 visual buckets). `.arms` lands on
+    /// `MuscleHeatGroup` taxonomy (12 coarse buckets). `.arms` lands on
     /// `.biceps` for simplicity — the front-visible signal Claude cares
     /// about is more biceps-weighted than triceps-weighted at the body
-    /// map scale. `.neck` is dropped (no heatmap slot).
+    /// map scale. `.neck` is dropped (not in the taxonomy).
     private func heatGroup(for group: MuscleGroup) -> MuscleHeatGroup? {
         switch group {
         case .chest:     return .chest

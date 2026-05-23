@@ -21,8 +21,10 @@ enum MovementAPCalculator {
                 if let cardioType = block.cardioType,
                    let definition = MovementCatalog.definition(for: "cardio.\(cardioType.rawValue)") {
                     ids.insert(definition.rankStandardMovementId)
-                } else if let definition = MovementResolver.resolve(block.title).definition {
-                    ids.insert(definition.rankStandardMovementId)
+                } else if let resolved = MovementCatalog.resolvedTrainingMovement(name: block.title),
+                          let standard = resolved.standard,
+                          standard.rankable {
+                    ids.insert(standard.id)
                 }
             }
         }
@@ -157,7 +159,7 @@ enum MovementAPCalculator {
         if let cardioType = block.cardioType {
             movement = MovementCatalog.definition(for: "cardio.\(cardioType.rawValue)")
         } else {
-            movement = MovementResolver.resolve(block.title).definition
+            movement = MovementCatalog.resolvedTrainingMovement(name: block.title)?.exact
         }
 
         guard let exact = movement,
@@ -306,16 +308,17 @@ enum MovementAPCalculator {
         movementId: String?,
         rankStandardMovementId: String?
     ) -> (exact: MovementDefinition, standard: MovementDefinition)? {
-        let resolved = MovementResolver.resolve(name)
-        let exact = movementId.flatMap(MovementCatalog.definition(for:))
-            ?? MovementCatalog.definition(for: resolved.movementId)
-        guard let exact, exact.rankable else { return nil }
-
-        let standardId = rankStandardMovementId ?? exact.rankStandardMovementId
-        guard let standard = MovementCatalog.definition(for: standardId), standard.rankable else {
+        guard let resolved = MovementCatalog.resolvedTrainingMovement(
+            name: name,
+            movementId: movementId,
+            rankStandardMovementId: rankStandardMovementId
+        ),
+              resolved.exact.rankable,
+              let standard = resolved.standard,
+              standard.rankable else {
             return nil
         }
-        return (exact, standard)
+        return (resolved.exact, standard)
     }
 }
 

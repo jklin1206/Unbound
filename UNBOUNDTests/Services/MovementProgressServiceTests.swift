@@ -1,4 +1,5 @@
 import XCTest
+import UIKit
 @testable import UNBOUND
 
 @MainActor
@@ -35,6 +36,28 @@ final class MovementProgressServiceTests: XCTestCase {
         XCTAssertEqual(gains[0].standardDisplayName, "Lat Pulldown (Bar)")
         XCTAssertGreaterThan(gains[0].rawAP, 0)
         XCTAssertEqual(gains[0].rawAP, floor(gains[0].rawAP))
+    }
+
+    func testWorkoutLogAPCanonicalizesSavedMovementIdsAndKeepsLegacyNamesWorking() async throws {
+        let idBacked = workoutLog(
+            id: "workout-id-backed-pulldown",
+            exerciseName: "Saved Pulldown Label",
+            movementId: "exercise.lat-pulldown-neutral",
+            rankStandardMovementId: "exercise.lat-pulldown-neutral"
+        )
+        let legacyName = workoutLog(
+            id: "workout-legacy-pulldown",
+            exerciseName: "lat_pulldown_neutral"
+        )
+
+        let idBackedGain = try XCTUnwrap(MovementAPCalculator.gains(from: idBacked).first)
+        let legacyGain = try XCTUnwrap(MovementAPCalculator.gains(from: legacyName).first)
+
+        XCTAssertEqual(idBackedGain.movementId, "exercise.lat-pulldown-neutral")
+        XCTAssertEqual(idBackedGain.rankStandardMovementId, "exercise.lat-pulldown")
+        XCTAssertEqual(idBackedGain.standardDisplayName, "Lat Pulldown (Bar)")
+        XCTAssertEqual(legacyGain.movementId, "exercise.lat-pulldown-neutral")
+        XCTAssertEqual(legacyGain.rankStandardMovementId, "exercise.lat-pulldown")
     }
 
     func testPersistedProgressAggregatesVariantsByRankStandard() async throws {
@@ -271,12 +294,12 @@ final class MovementProgressServiceTests: XCTestCase {
         XCTAssertEqual(second.savedWorkoutLogId, first.savedWorkoutLogId)
     }
 
-    func testTrainingCompletionDirectWritesCompatibleWorkoutLogWhenLegacyBridgeIsProductionLike() async throws {
+    func testTrainingCompletionQuarantinesCompatibleWorkoutLogWhenWriterIsMissing() async throws {
         let database = MockDatabaseService()
-        let workoutLog = DirectWritePreferredWorkoutLogService()
+        let workoutLog = SaveLogOnlyWorkoutLogService()
         let services = makeServices(database: database, workoutLog: workoutLog)
         let log = PerformanceLog(
-            id: "perf-direct-compatible-write",
+            id: "perf-quarantined-compatible-write",
             userId: "mock-user-123",
             source: .program,
             title: "Push",
@@ -303,6 +326,7 @@ final class MovementProgressServiceTests: XCTestCase {
         let saved: WorkoutLog = try await database.read(collection: "workoutLogs", documentId: savedWorkoutLogId)
 
         XCTAssertEqual(workoutLog.saveCount, 0)
+        XCTAssertTrue(workoutLog.logs.isEmpty)
         XCTAssertEqual(saved.id, savedWorkoutLogId)
         XCTAssertEqual(saved.plannedWorkoutName, "Push")
         XCTAssertEqual(saved.exerciseEntries.first?.exerciseName, "Bench Press")
@@ -493,6 +517,53 @@ final class MovementProgressServiceTests: XCTestCase {
         XCTAssertEqual(profile.processedSourceLogIds, ["perf-body-1", "perf-body-2"])
     }
 
+    func testScanContextBuilderUsesCatalogIdsAndLegacyNamesForVolume() async throws {
+        let workoutLog = MockWorkoutLogService()
+        let builder = ScanContextBuilder(
+            user: ScanContextUserService(),
+            workoutLog: workoutLog,
+            database: MockDatabaseService()
+        )
+        let log = WorkoutLog(
+            id: "scan-catalog-volume",
+            userId: "u1",
+            programId: "program-catalog-regression",
+            dayNumber: 1,
+            plannedWorkoutName: "Push",
+            startedAt: Date(),
+            completedAt: Date(),
+            exerciseEntries: [
+                ExerciseLogEntry(
+                    id: "scan-id-backed",
+                    exerciseName: "Saved Press Machine Label",
+                    movementId: "exercise.plate-loaded-chest-press",
+                    rankStandardMovementId: "exercise.plate-loaded-chest-press",
+                    plannedSets: 1,
+                    plannedReps: "8",
+                    sets: [SetLog(id: "scan-set-1", setNumber: 1, weightKg: 60, reps: 8, rpe: 8, isWarmup: false)],
+                    skipped: false,
+                    notes: nil
+                ),
+                ExerciseLogEntry(
+                    id: "scan-legacy-name",
+                    exerciseName: "bench_press",
+                    plannedSets: 1,
+                    plannedReps: "8",
+                    sets: [SetLog(id: "scan-set-2", setNumber: 1, weightKg: 80, reps: 8, rpe: 8, isWarmup: false)],
+                    skipped: false,
+                    notes: nil
+                )
+            ]
+        )
+        try await workoutLog.saveLog(log)
+
+        let maybeContext = await builder.build(userId: "u1", currentImage: onePixelImage())
+        let context = try XCTUnwrap(maybeContext)
+
+        XCTAssertEqual(context.sessionCount, 1)
+        XCTAssertEqual(context.setsByMuscleGroup[MuscleHeatGroup.chest.rawValue], 2)
+    }
+
     private func benchGain(sourceLogId: String, rawAP: Double) -> MovementAPGain {
         MovementAPGain(
             userId: "u1",
@@ -509,6 +580,52 @@ final class MovementProgressServiceTests: XCTestCase {
             estimatedOneRepMaxKg: 116.6,
             occurredAt: Date(timeIntervalSince1970: 200)
         )
+    }
+
+    private func workoutLog(
+        id: String,
+        exerciseName: String,
+        movementId: String? = nil,
+        rankStandardMovementId: String? = nil
+    ) -> WorkoutLog {
+        WorkoutLog(
+            id: id,
+            userId: "u1",
+            programId: "program-catalog-regression",
+            dayNumber: 1,
+            plannedWorkoutName: "Pull",
+            startedAt: Date(timeIntervalSince1970: 100),
+            completedAt: Date(timeIntervalSince1970: 200),
+            exerciseEntries: [
+                ExerciseLogEntry(
+                    id: "entry-\(id)",
+                    exerciseName: exerciseName,
+                    movementId: movementId,
+                    rankStandardMovementId: rankStandardMovementId,
+                    plannedSets: 1,
+                    plannedReps: "10",
+                    sets: [
+                        SetLog(
+                            id: "set-\(id)",
+                            setNumber: 1,
+                            weightKg: 70,
+                            reps: 10,
+                            rpe: 8,
+                            isWarmup: false
+                        )
+                    ],
+                    skipped: false,
+                    notes: nil
+                )
+            ]
+        )
+    }
+
+    private func onePixelImage() -> UIImage {
+        UIGraphicsImageRenderer(size: CGSize(width: 1, height: 1)).image { context in
+            UIColor.white.setFill()
+            context.fill(CGRect(x: 0, y: 0, width: 1, height: 1))
+        }
     }
 
     private func makeServices(
@@ -545,7 +662,32 @@ final class MovementProgressServiceTests: XCTestCase {
     }
 }
 
-private final class DirectWritePreferredWorkoutLogService: WorkoutLogServiceProtocol, DirectCompatibleWorkoutLogWritePreferred, @unchecked Sendable {
+private final class ScanContextUserService: UserServiceProtocol, @unchecked Sendable {
+    func createUserIfNeeded(userId: String, email: String?) async throws -> UserProfile {
+        profile(userId: userId)
+    }
+
+    func fetchProfile(userId: String) async throws -> UserProfile {
+        profile(userId: userId)
+    }
+
+    func updateProfile(userId: String, fields: [String: Any]) async throws {}
+
+    func deleteUserData(userId: String) async throws {}
+
+    private func profile(userId: String) -> UserProfile {
+        UserProfile(
+            id: userId,
+            email: nil,
+            displayName: nil,
+            createdAt: Date(timeIntervalSince1970: 0),
+            onboardingCompleted: true,
+            totalScans: 0
+        )
+    }
+}
+
+private final class SaveLogOnlyWorkoutLogService: WorkoutLogServiceProtocol, @unchecked Sendable {
     var saveCount = 0
     var logs: [WorkoutLog] = []
 

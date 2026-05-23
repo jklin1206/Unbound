@@ -44,12 +44,12 @@ Screens can be redesigned after this is true. Until then, functionality wins.
 | Active workout logger | Stable for reps + skill + carry path | Sticky completion footer, empty-completion guard, one-set completion, reward sequence, and return are proven. A mixed program session with strength + scheduled skill + carry now reaches one unified receipt. |
 | Skill-only logging | Stable reward path | Skill Detail -> Start Session -> log set -> Finish -> reward sequence -> Continue is simulator-proven with skill XP through the unified service. Skill Detail -> Train -> Log a Set -> Quick Log -> reward sequence -> Continue is also simulator-proven. |
 | Custom workouts | Early | Simple recent draft builder exists; not yet a trusted main workflow. |
-| Movement catalog | Partial / caller migration underway | Rich `MovementCatalog` exists. Final-state validation tests pass, and program slots, bodyweight progression picks, draft metadata hydration, default logger metrics, exercise preferences, library, swap, and detail surfaces now read from it. Broader caller replacement is still pending. |
+| Movement catalog | Core flows migrated / shim cleanup remains | Rich `MovementCatalog` exists. Program generation, substitutions, draft/log metadata, AP/rank progression, attributes/body-map, scan volume, Weekly Vow prescriptions, and Overall Rank trials now resolve through catalog IDs and standards. `ExerciseCatalog` remains as a compatibility/raw-source shim. |
 | Progression math | Solid foundation | Whole AP/XP, attribute levels, Overall LV curve, novelty floor are implemented and tested. |
 | Reward callouts | Early | PRs/badges counted. Future callouts need standardization. Feats should not become a separate data-model layer. |
-| Weekly Vows | Unified completion route implemented | Weekly `Trial*` code now presents as Weekly Vows with temporary compatibility adapters. Active Weekly Vows build real `TrainingSessionDraft`s, launch through Workout Ready, complete through `PerformanceLog` -> `TrainingCompletionService`, and mark the Vow complete only after saved work. |
-| Trial readiness / runner | V1+ implemented / simulator-proven | `Foundation Proof` gates Initiate -> Novice and `The Calibration` gates Novice -> Apprentice through Trial Readiness, `TrainingSessionDraft` -> `PerformanceLog` -> `TrainingCompletionService`, reward receipt, and rank advance only on pass. |
-| Cleanup | Not done | Legacy direct-save/logging paths still exist during migration. |
+| Weekly Vows | Catalog-backed unified route implemented | Weekly `Trial*` code now presents as Weekly Vows with temporary compatibility adapters. Active Weekly Vows build catalog-backed `TrainingSessionDraft`s, launch through Workout Ready, complete through `PerformanceLog` -> `TrainingCompletionService`, and mark the Vow complete only after saved real work. |
+| Trial readiness / runner | Full V1 ladder service-tested | Overall Rank gates now cover Initiate -> Ascendant through Trial Readiness, `TrainingSessionDraft` -> `PerformanceLog` -> `TrainingCompletionService`, reward receipt, duplicate protection, comeback callout data, and rank advance only on pass. |
+| Cleanup | In progress / guardrailed | Migrated compatible history writes bypass old `saveLog` cascades. Legacy direct-save paths still exist temporarily for old callers and are marked/quarantined. |
 
 ## Active Goal — Finish The Progression Migration
 
@@ -78,7 +78,7 @@ This goal is complete when the Definition of Done demo at the bottom of this roa
 - [x] Prove that removing today's scheduled skill block does not unpin the active skill goal.
 - [x] Prove the manual skill path: Skill Detail -> Add to Program -> next eligible Program day -> Workout Ready.
 - [x] Fix the known Program `BEGIN SESSION` CTA overlap on small simulator screens.
-- [ ] Continue MovementCatalog migration until program generation, substitutions, logging, AP, ranks, attributes, body map, and trials read from one source.
+- [x] Continue MovementCatalog migration until program generation, substitutions, logging, AP, ranks, attributes, body map, and trials read from one source.
 - [x] Rename/migrate the weekly `Trial*` system into Weekly Vows: Ember, Overdrive, Apex.
 - [x] Build Trial Readiness as the Overall Rank gate, separate from Weekly Vows.
 - [x] Build the Overall Rank trial runner through `TrainingSessionDraft` -> `PerformanceLog` -> `TrainingCompletionService`.
@@ -87,7 +87,7 @@ This goal is complete when the Definition of Done demo at the bottom of this roa
 
 ### Immediate Success Target
 
-Completed 2026-05-22: **Workout Ready edit/save depth plus the manual skill Add-to-Program proof**, followed by two three-agent MovementCatalog / Weekly Vows / Overall Rank Trial integration slices. The next highest-return lane is finishing remaining MovementCatalog/rank/trial caller migration, adding Vow-specific bonus/share-card polish on top of the now-unified Vow route, then legacy cleanup.
+Completed 2026-05-22: **Workout Ready edit/save depth plus the manual skill Add-to-Program proof**, followed by two three-agent MovementCatalog / Weekly Vows / Overall Rank Trial integration slices. Completed 2026-05-23: core MovementCatalog caller migration for the progression spine, catalog-backed Weekly Vow prescriptions, full Overall Rank ladder coverage, Daily Resolver V1 modifiers, and Phase 9 compatibility-history guardrails. The next highest-return lane is final demo proof plus cancel/failure/retry routes, UI surfacing for new trial callout data, and eventual `ExerciseCatalog` shim cleanup.
 
 ## Phase 0 — Freeze The Contract
 
@@ -429,14 +429,23 @@ Tests:
 Exit criteria:
 - Program generation, substitutions, logging, AP, ranks, attributes, body map, and trials all read movement metadata from one source.
 
-Current status: **Partial, high leverage, with core callers moving.** Validation tests pass for current policy and final-state query surfaces. Program generation, draft/log metadata, default logger metrics, exercise preferences, library, swap, and detail surfaces now use `MovementCatalog`; remaining work is deeper progression/rank/trial caller replacement and compatibility cleanup.
+Current status: **Core progression spine migrated; compatibility cleanup remains.** Validation tests pass for current policy and final-state query surfaces. Program generation, substitutions, draft/log metadata, default logger metrics, exercise preferences, library, swap, detail surfaces, AP/rank progression, attributes/body-map, scan volume, Weekly Vow prescriptions, and Overall Rank trials now use `MovementCatalog` metadata. Remaining work is removing or shrinking `ExerciseCatalog` once all compatibility users are gone.
 
 2026-05-22 Agent A MovementCatalog caller migration goal/status:
 - Goal for `codex/progression-movementcatalog-migration`: migrate callers from legacy `ExerciseCatalog` / ad hoc exercise metadata to `MovementCatalog` without touching Weekly Vows, Overall Rank trials, or UI redesign.
 - Completed in this slice: `DeterministicProgramGenerator` now filters day templates by `MovementCatalog.movementSlot`, so pull days cannot leak push-slot movements through broad shared tags like arms; `LocalProgramGenerator` calisthenics progression picks now read progression family/tier/display/substitution metadata from `MovementCatalog` instead of calling `ExerciseCatalog` directly; `TrainingSessionAdapters` hydrates draft prescriptions with catalog movement id, rank-standard id, and catalog muscle groups; `ActiveWorkoutSession` uses `MovementCatalog.defaultMetric` for nonspecific AMRAP logger rows.
 - Test coverage added: pull template slot safety, variant draft metadata hydration, AMRAP hold logger defaults, AP gain rank-standard preservation, attribute contribution, and body-region metadata survival.
 - Agent A second pass: exercise preferences, exercise library, workout detail, exercise detail, and swap sheet surfaces now show MovementCatalog display names, slots, logger modes, rank templates, equipment, and muscle metadata. Saved display names, canonical names, and legacy underscore names resolve through shared preference lookup compatibility. Swap alternatives stay same-slot and program-compatible.
-- Still remaining: legacy progression/rank fallback callers, Weekly Vow prescription selection, trial-readiness callers that can read more directly from MovementCatalog standards, and eventual quarantine/deletion of `ExerciseCatalog` after all compatibility users are gone.
+- Previously remaining caller groups are now covered for the progression spine: legacy progression/rank fallback resolution, Weekly Vow prescription selection, trial-readiness standards, and scan/body-volume aggregation all route through `MovementCatalog`. Still remaining: eventual quarantine/deletion of `ExerciseCatalog` after compatibility users and tests no longer need the raw legacy list.
+
+2026-05-23 coordinator MovementCatalog bridge:
+- Added catalog-backed conditioning skill target definitions for the carry/sled standards used by Overall Rank trials (`co.bw-farmer-carry`, `co.1.5x-farmer-carry`, `co.2x-farmer-carry`, and `co.sled-push`). `SkillGraph.shared` still hides conditioning nodes from the visible V1 skill tree, but trial readiness can now resolve those standards through `MovementCatalog` instead of raw strings.
+- Focused proof included `OverallRankTrialServiceTests`, which now asserts every trial movement, performance standard, and skill standard resolves through MovementCatalog.
+
+2026-05-23 MovementCatalog final caller pass:
+- Added `MovementCatalog.resolvedTrainingMovement(...)` as the shared resolver for saved `movementId`, saved `rankStandardMovementId`, canonical names, and legacy underscore/display names. Variant IDs now canonicalize to their rank standard before AP/rank progression state is seeded.
+- `MovementAPCalculator`, `ProgressionEngine`, and `ScanContextBuilder` now prefer saved catalog IDs and fallback to catalog name resolution, so AP gains, working-weight progression, body-map/scan muscle volume, and legacy history all agree on the same exact movement + rank-standard pair.
+- Focused coverage proves saved variant IDs, bad variant standard IDs, and legacy names still resolve to the canonical standard; scan-volume aggregation uses `MovementCatalog` muscle metadata instead of `ExerciseCatalog`.
 
 ## Phase 6 — Unified Receipt + Reward Callouts
 
@@ -510,7 +519,7 @@ Tests:
 Exit criteria:
 - A user can opt into a weekly event without thinking it affects Overall Rank Trial eligibility.
 
-Current status: **Unified Vow completion route implemented and simulator-tested.** Vow-specific bonus/cosmetic/share-card progress remains follow-up polish on top of the saved training receipt.
+Current status: **Catalog-backed unified Vow route implemented and simulator-tested.** Weekly Vow drafts now carry `MovementCatalog` movement IDs, rank-standard IDs, display names, and muscle metadata; saved-work gating, one-time bonus ledger behavior, badge/cosmetic progress, and Apex share-card metadata are service-tested. Remaining follow-up is richer user-state scaling and final share-card UI/artifact polish.
 
 2026-05-22 Agent B / `codex/progression-weekly-vows` goal: migrate the weekly `Trial*` / challenge concept into **Weekly Vows** with Ember, Overdrive, and Apex as the user-facing choices. Preserve old saved weekly state through temporary adapters while reserving "Trial" for Overall Rank gates.
 
@@ -544,6 +553,11 @@ Temporary adapters to track during this branch:
 - Focused result bundle: `/Users/jlin/Library/Developer/XcodeBuildMCP/workspaces/toji-aa3a04fb00a4/result-bundles/test_sim_2026-05-22T20-14-10-542Z_pid81496_b6e7368f.xcresult`
 - UI proof build/run succeeded: `/Users/jlin/Library/Developer/XcodeBuildMCP/workspaces/toji-aa3a04fb00a4/logs/build_run_sim_2026-05-22T20-10-58-858Z_pid81496_e62979bc.log`
 
+2026-05-23 Weekly Vow catalog-prescription pass:
+- Weekly Vow training prescriptions now resolve through `MovementCatalog`, carrying `movementId`, `rankStandardMovementId`, catalog display name, and muscle groups into `TrainingSessionDraft` prescriptions.
+- Added safe catalog fallbacks for legacy proof names such as `box jump` while preserving Vow intent, same-slot behavior, and Ember/Overdrive/Apex RPE/duration envelopes.
+- Added focused tests for catalog metadata in Vow drafts, Vow-only copy, saved-work share-card gating, and one-time bonus ledger behavior.
+
 ## Phase 7 — Trial Readiness + Overall Rank Gate
 
 **Goal:** Overall rank becomes earned through named trials, not an aggregate score.
@@ -573,7 +587,7 @@ Tests:
 Exit criteria:
 - Overall rank is no longer a passive computed label. It is earned by passing the named workout.
 
-Current status: **V1+ implemented and simulator-proven for two meaningful Overall Rank trials.** Broader rank ladder coverage, richer path/equipment variants, comeback/badge callouts, and cleanup of any passive aggregate-rank surfaces remain.
+Current status: **V1 ladder implemented and simulator-tested through Ascendant.** Overall Rank trials now cover every transition from Initiate -> Ascendant with MovementCatalog-backed readiness, draft mapping, pass/fail logging, duplicate protection, and rank advance only on pass. Comeback and duplicate attempt callout data are service-tested; richer UI surfacing, badge activation, path/equipment variants, and cleanup of any passive aggregate-rank surfaces remain.
 
 2026-05-22 Agent C / `codex/progression-overall-rank-trials` completion notes:
 - Added `OverallRankTrialService.swift` with the pure `TrialReadinessService`, V1 `Foundation Proof` definition, persisted attempt state, and `OverallRankTrialRunner`.
@@ -618,6 +632,17 @@ Current status: **V1+ implemented and simulator-proven for two meaningful Overal
 - Full suite result bundle: `/Users/jlin/Library/Developer/XcodeBuildMCP/workspaces/toji-aa3a04fb00a4/result-bundles/test_sim_2026-05-22T20-18-25-617Z_pid85954_e1be58c9.xcresult`
 - Full suite log: `/Users/jlin/Library/Developer/XcodeBuildMCP/workspaces/toji-aa3a04fb00a4/logs/test_sim_2026-05-22T20-18-25-616Z_pid85954_5383312d.log`
 
+2026-05-23 upper-rank trial pass:
+- Added the remaining upper Overall Rank gates: `The Crucible` (Veteran -> Vessel), `The Threshold` (Vessel -> Unbound), and `The Ascension` (Unbound -> Ascendant).
+- Each upper trial includes Overall LV, top-attribute floor, equipment, movement AP, skill tier, draft mapping, pass/fail, duplicate-attempt, and catalog-backed definition coverage.
+- Focused XcodeBuildMCP simulator test pass on iPhone 17: `OverallRankTrialServiceTests` passed 31/31.
+- Result bundle: `/Users/jlin/Library/Developer/XcodeBuildMCP/workspaces/toji-aa3a04fb00a4/result-bundles/test_sim_2026-05-23T04-05-27-328Z_pid85954_f8e597a7.xcresult`
+
+2026-05-23 Overall Rank trial callout pass:
+- Added `OverallRankTrialRunCallout` result data for duplicate attempts and comeback clears. Duplicate attempts now report that the attempt was already counted; passing after prior failed attempts reports a comeback clear.
+- Rank semantics are unchanged: failed attempts record history without advancing, passed named trials advance the target rank once, and duplicate performance log IDs do not advance again.
+- Focused coverage added for comeback-pass callouts and duplicate-callout assertions.
+
 ## Phase 8 — Program Modifiers + Daily Resolver
 
 **Goal:** Monthly programs are stable plans, but the daily workout adapts through deterministic modifiers.
@@ -646,7 +671,20 @@ Tests:
 Exit criteria:
 - The app can adjust today's workout without calling AI for normal cases.
 
-Current status: **Early partial.**
+Current status: **Partial.** Scheduled-skill tapering is proven, and deterministic V1 daily modifiers now cover equipment/travel substitutions, deload volume reduction, trial-prep injections, and avoided-movement swaps.
+
+2026-05-23 Daily Resolver modifier pass:
+- Added `DailyWorkoutModifierContext` so `DailyWorkoutResolver.programDraft(...)` can adapt today's draft without regenerating the monthly plan.
+- Implemented same-slot MovementCatalog substitutions for equipment limits and avoided movements, deload set/RPE reduction with notes, and missing trial-prep movement injection.
+- Existing scheduled-skill tapering remains intact.
+- Focused XcodeBuildMCP simulator test pass on iPhone 17: `DailyWorkoutResolverTests` passed 9/9.
+- Result bundle: `/Users/jlin/Library/Developer/XcodeBuildMCP/workspaces/toji-aa3a04fb00a4/result-bundles/test_sim_2026-05-23T04-03-36-326Z_pid85954_81007de0.xcresult`
+- Integrated focused XcodeBuildMCP simulator proof passed 74/74 on iPhone 17 across `DailyWorkoutResolverTests`, `OverallRankTrialServiceTests`, `MovementResolverTests`, `ProgramAwareLoggingTests`, and `TrainingSessionDraftStoreTests`.
+- Integrated result bundle: `/Users/jlin/Library/Developer/XcodeBuildMCP/workspaces/toji-aa3a04fb00a4/result-bundles/test_sim_2026-05-23T04-07-38-901Z_pid85954_0241e8fd.xcresult`
+- Completion adapter guardrail proof also passed 29/29 across `MovementProgressServiceTests` and `TrainingSessionAdapterTests`.
+- Completion guardrail result bundle: `/Users/jlin/Library/Developer/XcodeBuildMCP/workspaces/toji-aa3a04fb00a4/result-bundles/test_sim_2026-05-23T04-08-26-121Z_pid85954_15f2f22d.xcresult`
+- Four-agent integrated progression migration proof passed 131/131 on iPhone 17 across `MovementResolverTests`, `MovementProgressServiceTests`, `ProgressionEngineBehaviorTests`, `WeeklyVowGeneratorTests`, `WeeklyVowsServiceTests`, `OverallRankTrialServiceTests`, `ProgramAwareLoggingTests`, `TrainingCompletionIntegrationGuardrailTests`, and `DailyWorkoutResolverTests`.
+- Integrated result bundle: `/Users/jlin/Library/Developer/XcodeBuildMCP/workspaces/toji-aa3a04fb00a4/result-bundles/test_sim_2026-05-23T04-55-56-360Z_pid85954_f3cddb3b.xcresult`
 
 ## Phase 9 — Data Migration + Dead-Code Cleanup
 
@@ -673,7 +711,24 @@ Tests:
 Exit criteria:
 - No hidden old pipeline can award XP/AP differently from the new pipeline.
 
-Current status: **Not done.**
+Current status: **Partial, with migrated-route guardrails in place.** Phase 9 audit/update landed 2026-05-23. Migrated routes and compatibility history writes no longer fall back to legacy `WorkoutLogServiceProtocol.saveLog(_)`; old direct cascades remain only for true legacy callers.
+
+Audit table:
+
+| Hit area | Classification | 2026-05-23 result |
+| --- | --- | --- |
+| `TrainingCompletionService.complete`, `previewProgression`, `recordProgressionForLegacyWorkout` | canonical unified route | `recordProgressionForLegacyWorkout` can now attach a compatible `WorkoutLog` through the quarantined writer and stores `workoutLogId` on the completion receipt. If no compatibility writer exists, `TrainingCompletionService` writes the history row directly through the database instead of calling legacy `saveLog`. |
+| `WorkoutLoggingViewModel.saveLog` | legacy Program receipt-preview route | Preview remains side-effect-free; flush no longer calls `services.workoutLog.saveLog(log)`. |
+| `WorkoutLoggingViewModel.flushPendingCompletionEffects` | old direct side-effect path | Redirected to `TrainingCompletionService.recordProgressionForLegacyWorkout(..., compatibleWorkoutLog:)` so AP, LV XP, body-map, attribute, rank/trial, and reward writes stay in the unified service. |
+| `WorkoutLogService.saveLog`, `SupabaseWorkoutLogService.saveLog` | legacy direct cascade that must remain temporarily | Quarantined with `MIGRATION(Phase 9)` comments; not used by the legacy Program flush after this update. |
+| `WorkoutLogCompatibilityHistoryWriting` and `saveCompatibleHistoryLog(_:)` | compatibility history write | Added as side-effect-free `WorkoutLog` persistence for old readers/history while replacement routes finish proving out. |
+| `TrainingSessionAdapters.workoutLog/sessionLogs`, `RewardComputer`, skill RPE/AI history queries, scan/coach/PT context, rank decay, trials history providers | compatibility/read-only history/rendering | No deletion; these remain read/adapt paths and should not award progression directly. |
+| `MockWorkoutLogService`, `ProgramAwareLoggingTests`, `TrainingSessionDraftStoreTests`, `MovementProgressServiceTests`, `TrainingSessionAdapterTests` | test/mock only | Mock now separates direct-save calls from compatibility-history calls; guardrail tests assert legacy flush/history does not invoke the direct cascade. |
+
+Deletion/quarantine result:
+- Redirected one old side-effect path: legacy Program logger flush now writes compatible history through `saveCompatibleHistoryLog(_:)` and awards only through `TrainingCompletionService`.
+- Removed the last migrated-route fallback to `WorkoutLogServiceProtocol.saveLog(_)`; compatible history is now writer-backed or direct database-backed only.
+- Quarantined remaining direct `WorkoutLogService.saveLog` cascades with explicit `MIGRATION(Phase 9)` markers instead of deleting them while other old callers may still exist.
 
 ## Phase 10 — UX Redesign After The Spine Is Stable
 

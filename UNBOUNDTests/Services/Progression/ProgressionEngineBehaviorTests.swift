@@ -119,7 +119,41 @@ final class ProgressionEngineBehaviorTests: XCTestCase {
         XCTAssertEqual(state?.displayName, "Lat Pulldown (Bar)")
     }
 
-    private func neutralLatPulldownLog(id: String, userId: String, at date: Date) -> WorkoutLog {
+    @MainActor
+    func testSavedVariantRankStandardIdSeedsCanonicalProgressionState() async {
+        let userId = "variant-standard-\(UUID().uuidString)"
+        let log = neutralLatPulldownLog(
+            id: "neutral-pulldown-saved-\(UUID().uuidString)",
+            userId: userId,
+            at: Date(timeIntervalSince1970: 2_000),
+            exerciseName: "Saved Pulldown Label",
+            movementId: "exercise.lat-pulldown-neutral",
+            rankStandardMovementId: "exercise.lat-pulldown-neutral"
+        )
+
+        await ProgressionEngine.shared.ingest(log: log, mode: .advance)
+
+        let canonicalState: ProgressionState? = try? await DatabaseService.shared.read(
+            collection: "progression_states",
+            documentId: "\(userId):lat pulldown"
+        )
+        let variantState: ProgressionState? = try? await DatabaseService.shared.read(
+            collection: "progression_states",
+            documentId: "\(userId):lat pulldown neutral"
+        )
+
+        XCTAssertEqual(canonicalState?.displayName, "Lat Pulldown (Bar)")
+        XCTAssertNil(variantState)
+    }
+
+    private func neutralLatPulldownLog(
+        id: String,
+        userId: String,
+        at date: Date,
+        exerciseName: String = "Lat Pulldown (Neutral)",
+        movementId: String = "exercise.lat-pulldown-neutral",
+        rankStandardMovementId: String = "exercise.lat-pulldown"
+    ) -> WorkoutLog {
         WorkoutLog(
             id: id,
             userId: userId,
@@ -131,9 +165,9 @@ final class ProgressionEngineBehaviorTests: XCTestCase {
             exerciseEntries: [
                 ExerciseLogEntry(
                     id: "entry-\(id)",
-                    exerciseName: "Lat Pulldown (Neutral)",
-                    movementId: "exercise.lat-pulldown-neutral",
-                    rankStandardMovementId: "exercise.lat-pulldown",
+                    exerciseName: exerciseName,
+                    movementId: movementId,
+                    rankStandardMovementId: rankStandardMovementId,
                     plannedSets: 1,
                     plannedReps: "10",
                     sets: [

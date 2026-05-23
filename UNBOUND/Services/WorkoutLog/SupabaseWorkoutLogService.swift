@@ -10,7 +10,7 @@ import Foundation
 // profile loader. The previous ad-hoc "try Supabase / catch any error /
 // fall back to local" logic is removed — the outbox is the single sync path.
 
-final class SupabaseWorkoutLogService: WorkoutLogServiceProtocol, @unchecked Sendable {
+final class SupabaseWorkoutLogService: WorkoutLogServiceProtocol, WorkoutLogCompatibilityHistoryWriting, @unchecked Sendable {
     static let shared = SupabaseWorkoutLogService()
 
     private let db = SyncedDatabase.shared
@@ -22,8 +22,20 @@ final class SupabaseWorkoutLogService: WorkoutLogServiceProtocol, @unchecked Sen
     // MARK: - saveLog
 
     func saveLog(_ log: WorkoutLog) async throws {
+        // MIGRATION(Phase 9): legacy direct save still runs old post-save
+        // side effects. New completion routes must call TrainingCompletionService
+        // and saveCompatibleHistoryLog(_:) for WorkoutLog compatibility.
         // Local-authoritative write + outbox enqueue (offline-safe).
         try await db.create(log, collection: "workoutLogs", documentId: log.id)
+
+        guard log.hasCompletedWorkingSet else {
+            logger.log(
+                "Workout logged without completed working sets; skipped progression side effects",
+                level: .info,
+                context: ["dayNumber": log.dayNumber]
+            )
+            return
+        }
 
         // --- Side-effects: identical chain to WorkoutLogService.saveLog() ---
         try await workingWeight.updateFromLog(log, userId: log.userId)
@@ -52,6 +64,12 @@ final class SupabaseWorkoutLogService: WorkoutLogServiceProtocol, @unchecked Sen
         }
 
         logger.log("Workout logged: \(log.plannedWorkoutName)", level: .info, context: ["dayNumber": log.dayNumber])
+    }
+
+    func saveCompatibleHistoryLog(_ log: WorkoutLog) async throws {
+        // MIGRATION(Phase 9): compatibility-only history write. It keeps old
+        // history/rendering paths alive without re-running legacy awards.
+        try await db.create(log, collection: "workoutLogs", documentId: log.id)
     }
 
     // MARK: - updateLog
@@ -93,5 +111,13 @@ final class SupabaseWorkoutLogService: WorkoutLogServiceProtocol, @unchecked Sen
     /// cloud sync is handled by the outbox / restore path elsewhere).
     private func loadProfile(userId: String) async -> UserProfile? {
         try? await DatabaseService.shared.read(collection: "users", documentId: userId)
+    }
+}
+
+extension WorkoutLog {
+    var hasCompletedWorkingSet: Bool {
+        exerciseEntries.contains { entry in
+            !entry.skipped && entry.sets.contains { !$0.isWarmup && $0.reps > 0 }
+        }
     }
 }

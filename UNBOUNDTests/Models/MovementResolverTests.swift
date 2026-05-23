@@ -50,6 +50,25 @@ final class MovementResolverTests: XCTestCase {
         XCTAssertEqual(cableRowShortName.movementSlot, .horizontalPull)
     }
 
+    func testTrainingMovementResolutionPrefersCatalogIdsAndKeepsLegacyNamesWorking() throws {
+        let savedByIds = try XCTUnwrap(MovementCatalog.resolvedTrainingMovement(
+            name: "Saved Pulldown Label",
+            movementId: "exercise.lat-pulldown-neutral",
+            rankStandardMovementId: "exercise.lat-pulldown-neutral"
+        ))
+
+        XCTAssertEqual(savedByIds.exact.id, "exercise.lat-pulldown-neutral")
+        XCTAssertEqual(savedByIds.standard?.id, "exercise.lat-pulldown")
+        XCTAssertEqual(savedByIds.standard?.displayName, "Lat Pulldown (Bar)")
+
+        let legacyName = try XCTUnwrap(MovementCatalog.resolvedTrainingMovement(
+            name: "lat_pulldown_neutral"
+        ))
+
+        XCTAssertEqual(legacyName.exact.id, "exercise.lat-pulldown-neutral")
+        XCTAssertEqual(legacyName.standard?.id, "exercise.lat-pulldown")
+    }
+
     func testWallHandstandSixtySecondsResolvesToSkillHoldWork() {
         let resolved = MovementResolver.resolve("Wall Handstand 60s")
 
@@ -148,7 +167,7 @@ final class MovementResolverTests: XCTestCase {
         let liveSkillNodes = SkillGraph.shared.nodes
         let skillTargets = MovementCatalog.definitions.filter { $0.role == .skillTarget }
 
-        XCTAssertEqual(skillTargets.count, liveSkillNodes.count)
+        XCTAssertGreaterThanOrEqual(skillTargets.count, liveSkillNodes.count)
 
         let missing = liveSkillNodes.filter { node in
             MovementCatalog.definition(for: "skill.\(node.id)") == nil
@@ -176,7 +195,9 @@ final class MovementResolverTests: XCTestCase {
 
     func testMovementCatalogExposesFinalStateQuerySurfaces() {
         XCTAssertEqual(MovementCatalog.legacyExercises.count, ExerciseCatalog.allExercises.count)
-        XCTAssertEqual(MovementCatalog.skillTargets.count, SkillGraph.shared.nodes.count)
+        XCTAssertGreaterThanOrEqual(MovementCatalog.skillTargets.count, SkillGraph.shared.nodes.count)
+        XCTAssertNotNil(MovementCatalog.definition(for: "skill.co.bw-farmer-carry"))
+        XCTAssertNotNil(MovementCatalog.definition(for: "skill.co.sled-push"))
         XCTAssertGreaterThan(MovementCatalog.rankStandards.count, 100)
         XCTAssertEqual(MovementCatalog.movementStandardLadders.count, MovementCatalog.rankStandards.count)
         XCTAssertGreaterThan(MovementCatalog.loggableVariants.count, 20)

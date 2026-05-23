@@ -75,6 +75,32 @@ final class WeeklyVowGeneratorTests: XCTestCase {
         XCTAssertEqual(ember.prescription?.maxRPE, 5)
     }
 
+    func testPrescriptionsKeepKindSpecificDurationAndRPEIntent() {
+        let profile = makeProfile(powerValue: 70, controlValue: 30)
+        let cards = WeeklyVowGenerator.cards(profile: profile, history: [], weekStart: .now, weekNumber: 5)
+        let ember = cards.first(where: { $0.kind == .ember })!
+        let overdrive = cards.first(where: { $0.kind == .overdrive })!
+        let apex = cards.first(where: { $0.kind == .apex })!
+
+        XCTAssertEqual(ember.prescription?.placement, .recoveryDay)
+        XCTAssertEqual(ember.prescription?.minMinutes, 8)
+        XCTAssertEqual(ember.prescription?.maxMinutes, 12)
+        XCTAssertEqual(ember.prescription?.minRPE, 3)
+        XCTAssertEqual(ember.prescription?.maxRPE, 5)
+
+        XCTAssertEqual(overdrive.prescription?.placement, .afterWorkout)
+        XCTAssertEqual(overdrive.prescription?.minMinutes, 6)
+        XCTAssertEqual(overdrive.prescription?.maxMinutes, 12)
+        XCTAssertEqual(overdrive.prescription?.minRPE, 7)
+        XCTAssertEqual(overdrive.prescription?.maxRPE, 8)
+
+        XCTAssertEqual(apex.prescription?.placement, .dedicatedSession)
+        XCTAssertEqual(apex.prescription?.minMinutes, 20)
+        XCTAssertEqual(apex.prescription?.maxMinutes, 45)
+        XCTAssertEqual(apex.prescription?.minRPE, 8)
+        XCTAssertEqual(apex.prescription?.maxRPE, 9)
+    }
+
     func testGeneratedUserFacingCopyDoesNotUseTrialOrChallenge() {
         let profile = makeProfile(powerValue: 70, controlValue: 30)
         let cards = WeeklyVowGenerator.cards(profile: profile, history: [], weekStart: .now, weekNumber: 5)

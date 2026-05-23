@@ -1,6 +1,6 @@
 import Foundation
 
-final class WorkoutLogService: WorkoutLogServiceProtocol, @unchecked Sendable {
+final class WorkoutLogService: WorkoutLogServiceProtocol, WorkoutLogCompatibilityHistoryWriting, @unchecked Sendable {
     static let shared = WorkoutLogService()
     private let database = DatabaseService.shared
     private let workingWeight = WorkingWeightService.shared
@@ -9,6 +9,10 @@ final class WorkoutLogService: WorkoutLogServiceProtocol, @unchecked Sendable {
     private init() {}
 
     func saveLog(_ log: WorkoutLog) async throws {
+        // MIGRATION(Phase 9): legacy direct save still owns the historical
+        // cascade for old callers. New completion routes must use
+        // TrainingCompletionService plus saveCompatibleHistoryLog(_:) so AP,
+        // XP, rank, trials, and reward writes are not double-awarded here.
         try await database.create(log, collection: "workoutLogs", documentId: log.id)
         // Auto-update working weights from this log
         try await workingWeight.updateFromLog(log, userId: log.userId)
@@ -94,6 +98,12 @@ final class WorkoutLogService: WorkoutLogServiceProtocol, @unchecked Sendable {
         await SquadPresenceService.shared.clearPresence(userId: log.userId)
 
         logger.log("Workout logged: \(log.plannedWorkoutName)", level: .info, context: ["dayNumber": log.dayNumber])
+    }
+
+    func saveCompatibleHistoryLog(_ log: WorkoutLog) async throws {
+        // MIGRATION(Phase 9): compatibility-only history write. This preserves
+        // old WorkoutLog readers without running the legacy progression cascade.
+        try await database.create(log, collection: "workoutLogs", documentId: log.id)
     }
 
     func updateLog(_ log: WorkoutLog) async throws {

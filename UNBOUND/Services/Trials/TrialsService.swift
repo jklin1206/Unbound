@@ -454,7 +454,7 @@ private enum WeeklyVowTrainingBuilder {
         case .bodyweightRatio(let target):
             return [
                 makePrescription(
-                    exerciseName: "Weighted Pull-Up",
+                    exerciseName: "weighted pullup",
                     sets: sets(for: card, fallback: 4),
                     target: .reps(1),
                     restSeconds: restSeconds(for: card, fallback: 180),
@@ -565,7 +565,7 @@ private enum WeeklyVowTrainingBuilder {
         case .explosiveness:
             return [
                 makePrescription(
-                    exerciseName: easy ? "Jumping Squat" : "Box Jump",
+                    exerciseName: easy ? "jump squat" : "box jump",
                     sets: easy ? 3 : 5,
                     target: easy ? .reps(5) : .reps(3),
                     restSeconds: easy ? 75 : 120,
@@ -593,14 +593,53 @@ private enum WeeklyVowTrainingBuilder {
         rpe: Int?,
         notes: String? = nil
     ) -> TrainingBlockPrescription {
-        TrainingBlockPrescription(
-            exerciseName: exerciseName,
+        let definition = catalogDefinition(named: exerciseName)
+        return TrainingBlockPrescription(
+            exerciseName: definition?.displayName ?? exerciseName,
+            movementId: definition?.id,
+            rankStandardMovementId: definition?.rankStandardMovementId,
             sets: max(1, sets),
             target: target,
             restSeconds: max(0, restSeconds),
+            muscleGroups: definition?.muscleGroups ?? [],
             rpe: rpe,
             notes: notes
         )
+    }
+
+    private static func catalogDefinition(named exerciseName: String) -> MovementDefinition? {
+        let normalized = MovementCatalog.normalized(exerciseName)
+        let candidates = [
+            catalogFallbackName(for: normalized),
+            exerciseName
+        ].compactMap { $0 }
+
+        for candidate in candidates {
+            let resolved = MovementResolver.resolve(candidate)
+            guard let definition = MovementCatalog.definition(for: resolved.movementId),
+                  !definition.id.hasPrefix("unresolved.")
+            else { continue }
+            return definition
+        }
+
+        return nil
+    }
+
+    private static func catalogFallbackName(for normalizedName: String) -> String? {
+        // Keep Vow proof intent trainable when legacy proof names have no
+        // first-class catalog row yet.
+        switch normalizedName {
+        case "box jump", "jumping squat":
+            return "jump squat"
+        case "weighted pull up":
+            return "weighted pullup"
+        case "deep squat":
+            return "bodyweight squat"
+        case "mobility flow":
+            return "hip flexor stretch"
+        default:
+            return nil
+        }
     }
 
     private static func estimatedMinutes(

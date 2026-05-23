@@ -228,27 +228,26 @@ final class WorkoutLoggingViewModel: ObservableObject {
         pendingPerformanceLog = nil
 
         // MIGRATION(Phase 9): the unified receipt/progression write is canonical.
-        // The legacy save remains quarantined here so history/old readers survive
-        // while replacement UI routes finish proving out.
-        async let progressionResult = TrainingCompletionService.shared.recordProgressionForLegacyWorkout(
+        // Compatible WorkoutLog history is written through a side-effect-free
+        // quarantine writer so the old save cascade cannot double-award.
+        let completionResult = await TrainingCompletionService.shared.recordProgressionForLegacyWorkout(
             performanceLog,
+            compatibleWorkoutLog: log,
             services: services
         )
-        async let legacySave: Void = services.workoutLog.saveLog(log)
+        lastCompletionResult = completionResult
 
-        _ = await progressionResult
-        do {
-            try await legacySave
+        if completionResult.savedWorkoutLogId != nil {
             services.analytics.track(.workoutLoggingCompleted(
                 programId: programId,
                 dayNumber: dayNumber,
                 durationMinutes: durationMinutes,
                 totalSets: totalSets
             ))
-        } catch {
+        } else {
             services.logging.log(
-                "Legacy workout save failed after completion receipt: \(error)",
-                level: .error,
+                "Legacy compatible workout history was not saved after completion receipt",
+                level: .warning,
                 context: ["programId": programId, "dayNumber": dayNumber]
             )
         }
