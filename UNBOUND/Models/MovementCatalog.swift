@@ -400,6 +400,10 @@ enum MovementCatalog {
         definitions.filter { $0.role == .canonicalExercise }
     }
 
+    static var catalogExercises: [CatalogExercise] {
+        legacyExercises.compactMap(catalogExercise(for:))
+    }
+
     static func canonicalExercise(named rawName: String) -> MovementDefinition? {
         let resolved = MovementResolver.resolve(rawName)
         guard let definition = definition(for: resolved.movementId),
@@ -1482,7 +1486,7 @@ enum MovementCatalog {
         switch criterion {
         case .reps(_, let exerciseName):
             return [exerciseName]
-        case .exerciseBodyweightRatio(_, exerciseName: let exerciseName):
+        case .exerciseBodyweightRatio(_, let exerciseName):
             return [exerciseName]
         case .variant(let name):
             return [name]

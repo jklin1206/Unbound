@@ -238,9 +238,8 @@ final class ProgressionEngine {
         displayName: String,
         at: Date
     ) async {
-        guard let catalogEntry = ExerciseCatalog.allExercises.first(where: {
-            $0.name == exerciseKey || $0.displayName.lowercased() == exerciseKey
-        }),
+        guard let catalogEntry = MovementCatalog.catalogExercise(named: displayName)
+            ?? MovementCatalog.catalogExercise(named: exerciseKey),
               let family = catalogEntry.progressionFamily,
               let tier = catalogEntry.progressionTier else {
             return
@@ -258,7 +257,7 @@ final class ProgressionEngine {
 
         guard tier == current.unlockedTier else { return }
 
-        let familyExercises = ExerciseCatalog.progressionFamily(family)
+        let familyExercises = MovementCatalog.catalogProgressionFamily(family)
         let maxTier = familyExercises.compactMap(\.progressionTier).max() ?? tier
         let nextTier = min(tier + 1, maxTier)
         guard nextTier > current.unlockedTier else { return }

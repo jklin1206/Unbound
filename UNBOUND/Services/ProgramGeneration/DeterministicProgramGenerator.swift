@@ -163,7 +163,7 @@ enum DeterministicProgramGenerator {
         input: ProgramGeneratorInput,
         bias: [MuscleGroup: Int]
     ) -> Workout {
-        let allCatalog = ExerciseCatalog.allExercises
+        let allCatalog = MovementCatalog.catalogExercises
 
         // Filter down to what this user can actually do with their equipment
         // + training style. Keyword-based (see ExerciseEquipmentClassifier).

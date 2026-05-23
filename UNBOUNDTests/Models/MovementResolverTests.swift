@@ -176,6 +176,7 @@ final class MovementResolverTests: XCTestCase {
 
     func testMovementCatalogExposesFinalStateQuerySurfaces() {
         XCTAssertEqual(MovementCatalog.legacyExercises.count, ExerciseCatalog.allExercises.count)
+        XCTAssertEqual(MovementCatalog.catalogExercises.count, MovementCatalog.legacyExercises.count)
         XCTAssertEqual(MovementCatalog.skillTargets.count, SkillGraph.shared.nodes.count)
         XCTAssertGreaterThan(MovementCatalog.rankStandards.count, 100)
         XCTAssertEqual(MovementCatalog.movementStandardLadders.count, MovementCatalog.rankStandards.count)
@@ -201,6 +202,14 @@ final class MovementResolverTests: XCTestCase {
         XCTAssertEqual(
             MovementCatalog.catalogExercise(named: "Barbell Bench Press")?.name,
             "bench press"
+        )
+        XCTAssertEqual(
+            MovementCatalog.catalogExercise(named: "Band-Assisted Pull-Up")?.progressionTier,
+            1
+        )
+        XCTAssertEqual(
+            MovementCatalog.catalogProgressionFamily("pull").first?.name,
+            "negative pullup"
         )
     }
 

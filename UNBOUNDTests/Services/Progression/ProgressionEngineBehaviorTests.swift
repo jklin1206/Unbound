@@ -67,4 +67,71 @@ final class ProgressionEngineBehaviorTests: XCTestCase {
         )
         XCTAssertEqual(state?.targetRPE, 0, "Silent feedback mode should seed targetRPE=0")
     }
+
+    @MainActor
+    func testTierUnlockResolvesLegacySavedExerciseNamesThroughMovementCatalog() async {
+        let userId = "legacy-tier-\(UUID().uuidString)"
+        let startedAt = Date()
+        await ProgressionStateStore.shared.saveFamilyState(ProgressionFamilyState(
+            userId: userId,
+            family: "pull",
+            unlockedTier: 1,
+            currentTier: 1,
+            updatedAt: startedAt
+        ))
+
+        let firstLog = makeSingleExerciseLog(
+            userId: userId,
+            exerciseName: "Band-Assisted Pull-Up",
+            reps: 12,
+            startedAt: startedAt
+        )
+        let secondLog = makeSingleExerciseLog(
+            userId: userId,
+            exerciseName: "Band-Assisted Pull-Up",
+            reps: 12,
+            startedAt: startedAt.addingTimeInterval(86_400)
+        )
+
+        await ProgressionEngine.shared.ingest(log: firstLog, mode: .advance, feedbackMode: .silent)
+        await ProgressionEngine.shared.ingest(log: secondLog, mode: .advance, feedbackMode: .silent)
+
+        let familyState = await ProgressionStateStore.shared.familyState(userId: userId, family: "pull")
+        XCTAssertEqual(familyState?.unlockedTier, 2)
+    }
+
+    private func makeSingleExerciseLog(
+        userId: String,
+        exerciseName: String,
+        reps: Int,
+        startedAt: Date
+    ) -> WorkoutLog {
+        let entry = ExerciseLogEntry(
+            id: "entry-\(UUID().uuidString)",
+            exerciseName: exerciseName,
+            plannedSets: 1,
+            plannedReps: "\(reps)",
+            sets: [SetLog(
+                id: "set-\(UUID().uuidString)",
+                setNumber: 1,
+                weightKg: 0,
+                reps: reps,
+                rpe: nil,
+                isWarmup: false
+            )],
+            skipped: false,
+            notes: nil
+        )
+
+        return WorkoutLog(
+            id: "log-\(UUID().uuidString)",
+            userId: userId,
+            programId: "p-1",
+            dayNumber: 1,
+            plannedWorkoutName: "Test",
+            startedAt: startedAt,
+            completedAt: startedAt.addingTimeInterval(1_800),
+            exerciseEntries: [entry]
+        )
+    }
 }

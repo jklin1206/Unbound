@@ -17,6 +17,17 @@ protocol AttributeServiceProtocol: AnyObject {
     @discardableResult
     func ingest(session: WorkoutLog, userId: String) async -> AttributeProfile
 
+    /// Apply canonical AP-derived attribute XP from a completed performance
+    /// log. This is the migration path defined in PROGRESSION.md: movement AP
+    /// fans into permanent attribute XP through each movement's vector.
+    @discardableResult
+    func ingest(
+        movementAPGains gains: [MovementAPGain],
+        userId: String,
+        at date: Date,
+        noveltyMultiplier: Double
+    ) async -> AttributeAPIngestResult
+
     /// Apply onboarding seed. Each selected key gets peak=current=15.
     func applySeed(_ seeded: Set<AttributeKey>, userId: String)
 
@@ -88,12 +99,51 @@ final class AttributeService: AttributeServiceProtocol {
         return profile
     }
 
+    @discardableResult
+    func ingest(
+        movementAPGains gains: [MovementAPGain],
+        userId: String,
+        at date: Date,
+        noveltyMultiplier: Double = 1.0
+    ) async -> AttributeAPIngestResult {
+        guard !gains.isEmpty else { return AttributeAPIngestResult() }
+
+        var profile = AttributeDrift.project(profile(userId: userId), to: date)
+        let beforeShape = profile.buildIdentity.shape
+        let xpDeltas = AttributeIngest.xpDeltas(
+            for: gains,
+            catalog: catalog,
+            noveltyMultiplier: noveltyMultiplier
+        )
+        guard !xpDeltas.isEmpty else { return AttributeAPIngestResult() }
+
+        let applied = AttributeIngest.applyXPDeltas(&profile, xpDeltas: xpDeltas, at: date)
+        profile.computedAt = date
+        store.save(profile)
+
+        for event in applied.rankUpEvents {
+            NotificationCenter.default.post(name: .attributeRankUp, object: event)
+        }
+
+        let afterShape = profile.buildIdentity.shape
+        if beforeShape == .balancedAthlete && afterShape != .balancedAthlete {
+            _ = await BadgeService.shared.evaluate(
+                trigger: .firstBuildIdentityResolved(profile.buildIdentity)
+            )
+        }
+
+        return AttributeAPIngestResult(
+            rewards: applied.rewards,
+            rankUpEvents: applied.rankUpEvents
+        )
+    }
+
     func applySeed(_ seeded: Set<AttributeKey>, userId: String) {
         guard !seeded.isEmpty else { return }
         var profile = profile(userId: userId)
         let now = Date()
         for key in seeded {
-            profile.set(key, AttributeValue(peak: 15, current: 15, lastContributionAt: now))
+            profile.set(key, AttributeValue(peak: 15, current: 15, xp: 0, lastContributionAt: now))
         }
         profile.computedAt = now
         store.save(profile)
@@ -140,6 +190,7 @@ final class AttributeService: AttributeServiceProtocol {
         var prof = profile(userId: userId)
         var value = prof.value(for: axis)
         let beforeSubRank = value.subRank
+        value.xp += AttributeLevelCurve.xpAwarded(forScoreDelta: amount)
         value.current = min(value.current + amount, 100)
         value.peak = max(value.peak, value.current)
         value.lastContributionAt = now
@@ -183,6 +234,25 @@ final class MockAttributeService: AttributeServiceProtocol {
         ingested.append(session)
         return profile(userId: userId)
     }
+    @discardableResult
+    func ingest(
+        movementAPGains gains: [MovementAPGain],
+        userId: String,
+        at date: Date,
+        noveltyMultiplier: Double = 1.0
+    ) async -> AttributeAPIngestResult {
+        guard !gains.isEmpty else { return AttributeAPIngestResult() }
+        var prof = profileByUser[userId] ?? .empty(userId: userId, at: date)
+        let xpDeltas = AttributeIngest.xpDeltas(
+            for: gains,
+            catalog: AttributeCatalog.shared,
+            noveltyMultiplier: noveltyMultiplier
+        )
+        let applied = AttributeIngest.applyXPDeltas(&prof, xpDeltas: xpDeltas, at: date)
+        prof.computedAt = date
+        profileByUser[userId] = prof
+        return AttributeAPIngestResult(rewards: applied.rewards, rankUpEvents: applied.rankUpEvents)
+    }
     func applySeed(_ seeded: Set<AttributeKey>, userId: String) {
         seededFor[userId] = seeded
     }
@@ -197,6 +267,7 @@ final class MockAttributeService: AttributeServiceProtocol {
     func applyBoost(axis: AttributeKey, amount: Double, userId: String) {
         var prof = profileByUser[userId] ?? .empty(userId: userId, at: .now)
         var value = prof.value(for: axis)
+        value.xp += AttributeLevelCurve.xpAwarded(forScoreDelta: amount)
         value.current = min(value.current + amount, 100)
         value.peak = max(value.peak, value.current)
         value.lastContributionAt = Date()

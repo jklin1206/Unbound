@@ -968,10 +968,10 @@ enum LocalProgramGenerator {
 
         guard calisthenicsBias else { return customTemplates + base }
 
-        let pushFamily = ExerciseCatalog.progressionFamily("push")
-        let pullFamily = ExerciseCatalog.progressionFamily("pull")
-        let legsFamily = ExerciseCatalog.progressionFamily("legs-single")
-        let coreFamily = ExerciseCatalog.progressionFamily("core-lever")
+        let pushFamily = MovementCatalog.catalogProgressionFamily("push")
+        let pullFamily = MovementCatalog.catalogProgressionFamily("pull")
+        let legsFamily = MovementCatalog.catalogProgressionFamily("legs-single")
+        let coreFamily = MovementCatalog.catalogProgressionFamily("core-lever")
 
         let pushTier = familyTiers["push"] ?? 0
         let pullTier = familyTiers["pull"] ?? 0
