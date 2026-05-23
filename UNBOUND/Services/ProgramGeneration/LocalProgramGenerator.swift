@@ -70,9 +70,11 @@ enum LocalProgramGenerator {
 
         // Index preferences + progression state by canonical exercise key
         // (lowercased exercise name) so per-exercise lookups are O(1).
-        let prefsByKey = Dictionary(
-            uniqueKeysWithValues: preferences.map { ($0.exerciseName.lowercased(), $0) }
-        )
+        var prefsByKey: [String: ExercisePreference] = [:]
+        for preference in preferences {
+            prefsByKey[MovementCatalog.normalized(preference.exerciseName)] = preference
+            prefsByKey[MovementCatalog.normalized(preference.displayName)] = preference
+        }
         var statesByKey = Dictionary(
             uniqueKeysWithValues: progressionStates.map { ($0.exerciseKey, $0) }
         )
@@ -526,8 +528,9 @@ enum LocalProgramGenerator {
         // User preferences: drop anything marked `.avoid`, swap anything
         // marked `.substitute` for the user's preferred substitute.
         pool = pool.compactMap { template -> ExerciseTemplate? in
-            let key = template.name.lowercased()
-            guard let pref = prefsByKey[key] else { return template }
+            let key = MovementCatalog.normalized(template.canonicalName ?? template.name)
+            let displayKey = MovementCatalog.normalized(template.name)
+            guard let pref = prefsByKey[key] ?? prefsByKey[displayKey] else { return template }
             switch pref.status {
             case .avoid:
                 return nil
@@ -584,14 +587,15 @@ enum LocalProgramGenerator {
             // If ProgressionEngine has already tracked weight for this
             // exercise, surface it in the note so the user sees their
             // current working weight on the session screen.
-            let stateKey = template.name.lowercased()
+            let stateKey = (template.canonicalName ?? template.name).lowercased()
             let seededNote: String? = {
                 if let state = statesByKey[stateKey], state.currentWorkingWeightKg > 0 {
-                    let w = String(format: "%g", state.currentWorkingWeightKg)
+                    let unit = WeightPlatePolicy.currentUnit
+                    let w = WeightPlatePolicy.formatSuggestionWeight(state.currentWorkingWeightKg, unit: unit)
                     let base = template.notes ?? ""
                     return base.isEmpty
-                        ? "Current working weight: \(w) kg"
-                        : "\(base) · Current working: \(w) kg"
+                        ? "Current working weight: \(w) \(unit.shortLabel)"
+                        : "\(base) · Current working: \(w) \(unit.shortLabel)"
                 }
                 return template.notes
             }()
@@ -795,6 +799,7 @@ enum LocalProgramGenerator {
         let requiredEquipment: [Equipment]
         let notes: String?
         let substitution: String?
+        var canonicalName: String? = nil
     }
 
     private static func exercisePool(
@@ -810,11 +815,18 @@ enum LocalProgramGenerator {
             || exerciseStyles.contains(.calisthenics)
             || (equipment.count == 1 && equipment.contains(.bodyweight))
 
-        let all = bundledExercisePool(
+        let catalogTemplates = movementCatalogExercisePool(
+            for: focus,
+            buildIdentity: buildIdentity,
+            equipment: equipment,
+            exerciseStyles: exerciseStyles,
+            familyTiers: familyTiers
+        )
+        let all = dedupedTemplates(catalogTemplates + bundledExercisePool(
             calisthenicsBias: calisthenicsBias,
             familyTiers: familyTiers,
             customExercises: customExercises
-        )
+        ))
         var filtered = all.filter { template in
             guard template.focus == focus || matches(template: template, focus: focus) else { return false }
             if template.requiredEquipment.contains(.bodyweight) { return true }
@@ -839,6 +851,147 @@ enum LocalProgramGenerator {
         }
 
         return filtered
+    }
+
+    private static func movementCatalogExercisePool(
+        for focus: SessionFocus,
+        buildIdentity: BuildIdentity,
+        equipment: [Equipment],
+        exerciseStyles: Set<ExerciseStyle>,
+        familyTiers: [String: Int]
+    ) -> [ExerciseTemplate] {
+        let style = inferredTrainingStyle(
+            buildIdentity: buildIdentity,
+            equipment: equipment,
+            exerciseStyles: exerciseStyles
+        )
+        let shouldGateProgressions = style == .bodyweight || buildIdentity.programTemplateKey == "control"
+
+        return MovementCatalog.programDefinitions(style: style, userEquipment: equipment)
+            .filter { definition in
+                guard shouldGateProgressions else { return true }
+                guard let family = definition.progressionFamily,
+                      let tier = definition.progressionTier
+                else { return true }
+                return tier <= (familyTiers[family] ?? 0)
+            }
+            .compactMap { definition in
+                guard let template = exerciseTemplate(from: definition) else { return nil }
+                return template.focus == focus || matches(template: template, focus: focus) ? template : nil
+            }
+    }
+
+    private static func inferredTrainingStyle(
+        buildIdentity: BuildIdentity,
+        equipment: [Equipment],
+        exerciseStyles: Set<ExerciseStyle>
+    ) -> TrainingStyle {
+        if buildIdentity.programTemplateKey == "control"
+            || exerciseStyles.contains(.calisthenics)
+            || (equipment.count == 1 && equipment.contains(.bodyweight)) {
+            return .bodyweight
+        }
+        if exerciseStyles.contains(.machines) {
+            return .machines
+        }
+        if exerciseStyles.contains(.compoundLifts) {
+            return .freeWeights
+        }
+        return .hybrid
+    }
+
+    private static func exerciseTemplate(from definition: MovementDefinition) -> ExerciseTemplate? {
+        guard let canonicalName = definition.canonicalExerciseName else { return nil }
+        return ExerciseTemplate(
+            name: definition.displayName,
+            muscleGroups: definition.muscleGroups,
+            focus: focus(for: definition.movementSlot),
+            requiredEquipment: localEquipment(for: definition.equipment),
+            notes: coachingNote(for: definition),
+            substitution: MovementCatalog.catalogAlternatives(to: definition.displayName).first?.displayName,
+            canonicalName: canonicalName
+        )
+    }
+
+    private static func coachingNote(for definition: MovementDefinition) -> String {
+        switch definition.movementSlot {
+        case .squat:
+            return "Brace before each rep. Control depth, keep knees tracking, drive through the whole foot."
+        case .hinge:
+            return "Hips move first. Keep the spine quiet, load the hamstrings, and finish tall."
+        case .horizontalPush:
+            return "Set the shoulders, control the descent, then press without losing your rib position."
+        case .verticalPush:
+            return "Lock the ribs down. Press to a clean overhead line and control the lower."
+        case .horizontalPull:
+            return "Row with the back, not momentum. Pause briefly with shoulder blades pulled together."
+        case .verticalPull:
+            return "Start from control, pull elbows down, and avoid swinging through the hard reps."
+        case .arms:
+            return "Keep the upper arm stable. Own the squeeze and the negative instead of chasing load."
+        case .core:
+            return definition.loggerMode == .hold
+                ? "Quality seconds only. Keep ribs down, pelvis locked, and stop before shape breaks."
+                : "Move slowly enough that your trunk stays locked through every rep."
+        case .calves:
+            return "Use full range. Pause at the top and bottom so the ankle does real work."
+        case .carry:
+            return "Walk tall with quiet ribs and level shoulders. Grip hard without rushing the distance."
+        case .cardio, .mobility, .routine, .skill:
+            return "Keep the effort clean and repeatable. Quality beats forcing the prescription."
+        }
+    }
+
+    private static func focus(for slot: MovementSlot) -> SessionFocus {
+        switch slot {
+        case .squat, .hinge, .calves:
+            return .legs
+        case .horizontalPush, .verticalPush:
+            return .push
+        case .horizontalPull, .verticalPull:
+            return .pull
+        case .arms:
+            return .push
+        case .core, .carry:
+            return .corePower
+        case .cardio, .mobility, .routine, .skill:
+            return .fullBody
+        }
+    }
+
+    private static func localEquipment(for movementEquipment: [MovementEquipment]) -> [Equipment] {
+        var equipment: Set<Equipment> = [.fullGym]
+        for item in movementEquipment {
+            switch item {
+            case .bodyweight, .openSpace, .box:
+                equipment.insert(.bodyweight)
+            case .barbell:
+                equipment.insert(.barbell)
+            case .smithMachine:
+                equipment.insert(.machines)
+            case .dumbbell, .kettlebell:
+                equipment.insert(.dumbbells)
+            case .cable, .machine, .cardioMachine, .sled:
+                equipment.insert(.machines)
+            case .pullupBar, .dipStation, .rings:
+                equipment.insert(.pullupBar)
+            case .bench:
+                equipment.insert(.bench)
+            case .band, .mobilityTool:
+                equipment.insert(.bands)
+            }
+        }
+        return equipment.isEmpty ? [.bodyweight] : Array(equipment)
+    }
+
+    private static func dedupedTemplates(_ templates: [ExerciseTemplate]) -> [ExerciseTemplate] {
+        var seen: Set<String> = []
+        return templates.filter { template in
+            let key = MovementCatalog.normalized(template.canonicalName ?? template.name)
+            guard !seen.contains(key) else { return false }
+            seen.insert(key)
+            return true
+        }
     }
 
     private static func matches(template: ExerciseTemplate, focus: SessionFocus) -> Bool {
@@ -968,21 +1121,16 @@ enum LocalProgramGenerator {
 
         guard calisthenicsBias else { return customTemplates + base }
 
-        let pushFamily = ExerciseCatalog.progressionFamily("push")
-        let pullFamily = ExerciseCatalog.progressionFamily("pull")
-        let legsFamily = ExerciseCatalog.progressionFamily("legs-single")
-        let coreFamily = ExerciseCatalog.progressionFamily("core-lever")
-
         let pushTier = familyTiers["push"] ?? 0
         let pullTier = familyTiers["pull"] ?? 0
         let legsTier = familyTiers["legs-single"] ?? 0
         let coreTier = familyTiers["core-lever"] ?? 0
 
         let calisthenicsExtras: [ExerciseTemplate] = [
-            catalogTemplate(from: pushFamily, maxTier: pushTier, focus: .push),
-            catalogTemplate(from: pullFamily, maxTier: pullTier, focus: .pull),
-            catalogTemplate(from: legsFamily, maxTier: legsTier, focus: .legs),
-            catalogTemplate(from: coreFamily, maxTier: coreTier, focus: .corePower)
+            movementCatalogTemplate(family: "push", maxTier: pushTier, focus: .push),
+            movementCatalogTemplate(family: "pull", maxTier: pullTier, focus: .pull),
+            movementCatalogTemplate(family: "legs-single", maxTier: legsTier, focus: .legs),
+            movementCatalogTemplate(family: "core-lever", maxTier: coreTier, focus: .corePower)
         ].compactMap { $0 }
 
         return customTemplates + calisthenicsExtras + base
@@ -1025,12 +1173,22 @@ enum LocalProgramGenerator {
         }
     }
 
-    private static func catalogTemplate(
-        from family: [CatalogExercise],
+    private static func movementCatalogTemplate(
+        family: String,
         maxTier: Int,
         focus: SessionFocus
     ) -> ExerciseTemplate? {
-        let candidates = family.filter { ($0.progressionTier ?? 0) <= maxTier }
+        let candidates = MovementCatalog.legacyExercises
+            .filter { definition in
+                definition.progressionFamily == family
+                    && (definition.progressionTier ?? 0) <= maxTier
+            }
+            .sorted { lhs, rhs in
+                if (lhs.progressionTier ?? 0) != (rhs.progressionTier ?? 0) {
+                    return (lhs.progressionTier ?? 0) < (rhs.progressionTier ?? 0)
+                }
+                return lhs.displayName < rhs.displayName
+            }
         guard let pick = candidates.last else { return nil }
         return ExerciseTemplate(
             name: pick.displayName,
@@ -1038,7 +1196,12 @@ enum LocalProgramGenerator {
             focus: focus,
             requiredEquipment: [.bodyweight],
             notes: "Bodyweight progression · \(pick.displayName). Own this tier before the next unlock.",
-            substitution: pick.defaultSubstitute
+            substitution: MovementCatalog.programAlternatives(
+                to: pick.displayName,
+                style: .bodyweight,
+                userEquipment: [.bodyweight]
+            ).first?.displayName,
+            canonicalName: pick.canonicalExerciseName
         )
     }
 

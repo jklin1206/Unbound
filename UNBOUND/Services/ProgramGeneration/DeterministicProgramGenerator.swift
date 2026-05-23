@@ -27,6 +27,7 @@ struct ProgramGeneratorInput {
     let age: Int
     let sex: BiologicalSex
     let blockStartDate: Date
+    var exercisePreferences: [ExercisePreference] = []
 }
 
 /// Task 2.5 — turns a `ProgramGeneratorInput` into a fully-formed 14-day
@@ -163,17 +164,7 @@ enum DeterministicProgramGenerator {
         input: ProgramGeneratorInput,
         bias: [MuscleGroup: Int]
     ) -> Workout {
-        let allCatalog = ExerciseCatalog.allExercises
-
-        // Filter down to what this user can actually do with their equipment
-        // + training style. Keyword-based (see ExerciseEquipmentClassifier).
-        let compatibleCatalog = allCatalog.filter {
-            ExerciseEquipmentClassifier.isCompatible(
-                exerciseName: $0.name,
-                style: input.trainingStyle,
-                userEquipment: input.equipment
-            )
-        }
+        let compatibleCatalog = movementPool(input: input)
 
         // Which muscle groups does this template emphasize? weakPoint days
         // pull from the biased set; everything else uses the template's own
@@ -185,10 +176,14 @@ enum DeterministicProgramGenerator {
             templateGroups = Set(template.muscleGroups)
         }
 
-        // First pass — exercises that hit at least one target group.
-        var eligiblePool = compatibleCatalog.filter { entry in
-            !Set(entry.muscleGroups).intersection(templateGroups).isEmpty
-        }
+        // First pass: use MovementCatalog's programming slot when the day has
+        // a clear movement intent. This prevents broad tags like "arms" from
+        // leaking push movements into pull slots.
+        var eligiblePool = eligibleDefinitions(
+            from: compatibleCatalog,
+            for: template,
+            templateGroups: templateGroups
+        )
 
         // Fallback: if nothing matched (e.g. weakPoint with an empty bias),
         // accept any compatible entry — the MVP bar is a non-empty pool.
@@ -196,26 +191,21 @@ enum DeterministicProgramGenerator {
             eligiblePool = compatibleCatalog
         }
 
-        func klass(_ e: CatalogExercise) -> ExerciseClassification {
-            ExerciseClassification.classify(exerciseKey: e.name)
-        }
-
-        let compounds = eligiblePool.filter {
-            let c = klass($0); return c == .upperCompound || c == .lowerCompound
-        }
-        let accessories = eligiblePool.filter {
-            let c = klass($0); return c == .accessory || c == .bodyweightSkill
-        }
+        let compounds = eligiblePool.filter(isPrimaryMovement)
+        let accessories = eligiblePool.filter { !isPrimaryMovement($0) }
 
         // Compounds: prefer the biased pick first, then the next available
         // different entry. If compounds is empty (very possible in a pure
         // bodyweight catalog subset), skip — accessories carry the workout.
-        var primaries: [CatalogExercise] = []
-        if let first = WeakPointBiaser.pickBiased(
-            candidates: compounds,
-            biasedGroups: bias,
-            biasedGroupsFor: { $0.muscleGroups }
-        ) {
+        var primaries: [MovementDefinition] = []
+        let firstPrimary = bias.isEmpty
+            ? compounds.first
+            : WeakPointBiaser.pickBiased(
+                candidates: compounds,
+                biasedGroups: bias,
+                biasedGroupsFor: { $0.muscleGroups }
+            )
+        if let first = firstPrimary {
             primaries.append(first)
             if let second = compounds.first(where: { $0 != first }) {
                 primaries.append(second)
@@ -242,7 +232,7 @@ enum DeterministicProgramGenerator {
             picked = Array(eligiblePool.prefix(3))
         }
 
-        let mainExercises = picked.map { toExercise(catalog: $0, input: input) }
+        let mainExercises = uniqueDefinitions(picked).map { toExercise(definition: $0, input: input) }
 
         return Workout(
             name: template.displayLabel,
@@ -256,8 +246,151 @@ enum DeterministicProgramGenerator {
         )
     }
 
-    private static func toExercise(catalog: CatalogExercise, input: ProgramGeneratorInput) -> Exercise {
-        let key = catalog.name.lowercased()
+    private static func movementPool(input: ProgramGeneratorInput) -> [MovementDefinition] {
+        let prefsByKey = preferenceMap(input.exercisePreferences)
+        let avoidedNames = Set(input.exercisePreferences.flatMap { pref -> [String] in
+            guard pref.status == .avoid else { return [] }
+            return [pref.exerciseName, pref.displayName]
+        })
+
+        let definitions = MovementCatalog.programDefinitions(
+            style: input.trainingStyle,
+            userEquipment: input.equipment
+        )
+        let resolved = definitions.compactMap {
+            applyPreference(
+                to: $0,
+                prefsByKey: prefsByKey,
+                avoidedNames: avoidedNames,
+                input: input
+            )
+        }
+        return uniqueDefinitions(resolved)
+    }
+
+    private static func applyPreference(
+        to definition: MovementDefinition,
+        prefsByKey: [String: ExercisePreference],
+        avoidedNames: Set<String>,
+        input: ProgramGeneratorInput
+    ) -> MovementDefinition? {
+        guard let pref = preference(for: definition, prefsByKey: prefsByKey) else {
+            return definition
+        }
+
+        switch pref.status {
+        case .available:
+            return definition
+        case .avoid:
+            return nil
+        case .substitute:
+            if let substituteName = pref.substitutePreference,
+               let substitute = MovementCatalog.canonicalExercise(named: substituteName),
+               substitute.movementSlot == definition.movementSlot,
+               MovementCatalog.isProgramCompatible(
+                   substitute,
+                   style: input.trainingStyle,
+                   userEquipment: input.equipment
+               ),
+               !isAvoided(substitute, prefsByKey: prefsByKey) {
+                return substitute
+            }
+
+            return MovementCatalog.programAlternatives(
+                to: definition.displayName,
+                style: input.trainingStyle,
+                userEquipment: input.equipment,
+                excludedNames: avoidedNames
+            ).first { !isAvoided($0, prefsByKey: prefsByKey) }
+        }
+    }
+
+    private static func preferenceMap(_ preferences: [ExercisePreference]) -> [String: ExercisePreference] {
+        var map: [String: ExercisePreference] = [:]
+        for pref in preferences {
+            map[MovementCatalog.normalized(pref.exerciseName)] = pref
+            map[MovementCatalog.normalized(pref.displayName)] = pref
+        }
+        return map
+    }
+
+    private static func preference(
+        for definition: MovementDefinition,
+        prefsByKey: [String: ExercisePreference]
+    ) -> ExercisePreference? {
+        if let canonical = definition.canonicalExerciseName,
+           let pref = prefsByKey[MovementCatalog.normalized(canonical)] {
+            return pref
+        }
+        return prefsByKey[MovementCatalog.normalized(definition.displayName)]
+    }
+
+    private static func isAvoided(
+        _ definition: MovementDefinition,
+        prefsByKey: [String: ExercisePreference]
+    ) -> Bool {
+        preference(for: definition, prefsByKey: prefsByKey)?.status == .avoid
+    }
+
+    private static func isPrimaryMovement(_ definition: MovementDefinition) -> Bool {
+        switch definition.movementSlot {
+        case .squat, .hinge, .horizontalPush, .verticalPush, .horizontalPull, .verticalPull:
+            return definition.muscleGroups.count > 1
+        case .arms, .core, .calves, .carry, .cardio, .mobility, .routine, .skill:
+            return false
+        }
+    }
+
+    private static func eligibleDefinitions(
+        from catalog: [MovementDefinition],
+        for template: DayTemplate,
+        templateGroups: Set<MuscleGroup>
+    ) -> [MovementDefinition] {
+        if let slots = programSlots(for: template) {
+            let slotMatches = catalog.filter { slots.contains($0.movementSlot) }
+            if !slotMatches.isEmpty {
+                return slotMatches
+            }
+        }
+
+        return catalog.filter { definition in
+            !Set(definition.muscleGroups).intersection(templateGroups).isEmpty
+        }
+    }
+
+    private static func programSlots(for template: DayTemplate) -> Set<MovementSlot>? {
+        switch template {
+        case .push:
+            return [.horizontalPush, .verticalPush]
+        case .pull:
+            return [.horizontalPull, .verticalPull]
+        case .legs:
+            return [.squat, .hinge, .calves]
+        case .upper:
+            return [.horizontalPush, .verticalPush, .horizontalPull, .verticalPull, .arms]
+        case .lower:
+            return [.squat, .hinge, .calves, .core]
+        case .skill:
+            return [.skill, .core, .horizontalPush, .verticalPush, .horizontalPull, .verticalPull]
+        case .fullBody, .weakPoint:
+            return nil
+        case .rest:
+            return []
+        }
+    }
+
+    private static func uniqueDefinitions(_ definitions: [MovementDefinition]) -> [MovementDefinition] {
+        var seen: Set<String> = []
+        return definitions.filter { definition in
+            let key = definition.canonicalExerciseName ?? definition.id
+            guard !seen.contains(key) else { return false }
+            seen.insert(key)
+            return true
+        }
+    }
+
+    private static func toExercise(definition: MovementDefinition, input: ProgramGeneratorInput) -> Exercise {
+        let key = (definition.canonicalExerciseName ?? definition.displayName).lowercased()
         let state = input.progressionStates[key]
         let sets = 3
         let reps: String
@@ -267,16 +400,25 @@ enum DeterministicProgramGenerator {
             reps = "8-12"
         }
         let rpeDefault = input.trainingFeedbackMode.defaultTargetRPE
+        let substitute = MovementCatalog.catalogDefaultSubstitute(
+            for: definition.displayName,
+            style: input.trainingStyle,
+            userEquipment: input.equipment,
+            excludedNames: Set(input.exercisePreferences.compactMap {
+                $0.status == .avoid ? $0.exerciseName : nil
+            })
+        )
+
         return Exercise(
             id: UUID().uuidString,
-            name: catalog.displayName,
-            muscleGroups: catalog.muscleGroups,
+            name: definition.displayName,
+            muscleGroups: definition.muscleGroups,
             sets: sets,
             reps: reps,
             restSeconds: 90,
             rpe: rpeDefault > 0 ? rpeDefault : nil,
             notes: nil,
-            substitution: catalog.defaultSubstitute
+            substitution: substitute?.displayName
         )
     }
 

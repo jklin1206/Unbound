@@ -86,17 +86,113 @@ final class DeterministicProgramGeneratorTests: XCTestCase {
         }
     }
 
+    func testGeneratedExercisesRespectStructuredEquipmentCompatibility() throws {
+        let input = makeInput(
+            frequency: .four,
+            trainingDays: [.monday, .tuesday, .thursday, .friday],
+            buildIdentity: BuildIdentity(primary: nil, secondary: nil, shape: .balancedAthlete),
+            trainingStyle: .machines,
+            equipment: [.machines]
+        )
+
+        let program = try DeterministicProgramGenerator.generate(input: input)
+        let exercises = program.days.compactMap(\.workout).flatMap(\.mainExercises)
+        XCTAssertFalse(exercises.isEmpty)
+        XCTAssertTrue(exercises.allSatisfy { exercise in
+            guard let definition = MovementCatalog.canonicalExercise(named: exercise.name) else { return false }
+            return MovementCatalog.isProgramCompatible(definition, style: .machines, userEquipment: [.machines])
+        })
+        XCTAssertFalse(exercises.contains { $0.name.localizedCaseInsensitiveContains("Barbell") })
+    }
+
+    func testPullTemplateOnlyUsesPullMovementSlots() throws {
+        let input = makeInput(
+            frequency: .five,
+            trainingDays: [.monday, .tuesday, .wednesday, .thursday, .friday],
+            buildIdentity: BuildIdentity(primary: .power, secondary: nil, shape: .balancedAthlete),
+            trainingStyle: .freeWeights,
+            equipment: [.fullGym]
+        )
+
+        let program = try DeterministicProgramGenerator.generate(input: input)
+        let pullExercises = program.days
+            .filter { $0.label == "Pull" }
+            .compactMap(\.workout)
+            .flatMap(\.mainExercises)
+
+        XCTAssertFalse(pullExercises.isEmpty)
+        for exercise in pullExercises {
+            guard let definition = MovementCatalog.canonicalExercise(named: exercise.name) else {
+                return XCTFail("Expected \(exercise.name) to resolve through MovementCatalog.")
+            }
+            XCTAssertTrue(
+                [.horizontalPull, .verticalPull].contains(definition.movementSlot),
+                "\(exercise.name) should stay in a pull slot, got \(definition.movementSlot)."
+            )
+        }
+    }
+
+    func testGeneratedExercisesHonorAvoidAndSubstitutePreferences() throws {
+        var input = makeInput(
+            frequency: .five,
+            trainingDays: [.monday, .tuesday, .wednesday, .thursday, .friday],
+            buildIdentity: BuildIdentity(primary: .power, secondary: nil, shape: .specialist),
+            trainingStyle: .freeWeights,
+            equipment: [.fullGym]
+        )
+
+        let baseline = try DeterministicProgramGenerator.generate(input: input)
+        let baselineNames = baseline.days.compactMap(\.workout).flatMap(\.mainExercises).map(\.name)
+        guard let originalName = baselineNames.first(where: {
+            MovementCatalog.canonicalExercise(named: $0)?.movementSlot == .horizontalPush
+        }),
+        let original = MovementCatalog.canonicalExercise(named: originalName),
+        let replacement = MovementCatalog.programAlternatives(
+            to: originalName,
+            style: .freeWeights,
+            userEquipment: [.fullGym]
+        ).first
+        else {
+            return XCTFail("Expected a substitutable horizontal-push movement in the generated program.")
+        }
+
+        input.exercisePreferences = [
+            ExercisePreference(
+                id: "u-1:\(original.canonicalExerciseName ?? original.displayName)",
+                userId: "u-1",
+                exerciseName: original.canonicalExerciseName ?? original.displayName,
+                displayName: original.displayName,
+                status: .substitute,
+                muscleGroups: original.muscleGroups,
+                substitutePreference: replacement.canonicalExerciseName ?? replacement.displayName,
+                notes: nil,
+                updatedAt: Date(timeIntervalSince1970: 1_700_000_000)
+            )
+        ]
+
+        let program = try DeterministicProgramGenerator.generate(input: input)
+        let names = program.days.compactMap(\.workout).flatMap(\.mainExercises).map(\.name)
+        XCTAssertFalse(names.contains(original.displayName))
+        XCTAssertTrue(names.contains(replacement.displayName))
+    }
+
     // MARK: — helper
 
     // MIGRATION: was archetype: .shredded — now control specialist (equivalent calisthenic identity)
-    private func makeInput(frequency: TargetFrequency, trainingDays: Set<Weekday>) -> ProgramGeneratorInput {
+    private func makeInput(
+        frequency: TargetFrequency,
+        trainingDays: Set<Weekday>,
+        buildIdentity: BuildIdentity = BuildIdentity(primary: .control, secondary: nil, shape: .specialist),
+        trainingStyle: TrainingStyle = .bodyweight,
+        equipment: [Equipment] = [.bodyweight]
+    ) -> ProgramGeneratorInput {
         ProgramGeneratorInput(
             userId: "u-1",
             scanId: "s-1",
             analysisId: "a-1",
-            buildIdentity: BuildIdentity(primary: .control, secondary: nil, shape: .specialist),
-            trainingStyle: .bodyweight,
-            equipment: [.bodyweight],
+            buildIdentity: buildIdentity,
+            trainingStyle: trainingStyle,
+            equipment: equipment,
             targetFrequency: frequency,
             trainingDays: trainingDays,
             experience: .current,
