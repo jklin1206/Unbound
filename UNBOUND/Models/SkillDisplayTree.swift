@@ -2,7 +2,7 @@ import Foundation
 
 // MARK: - SkillDisplayTree
 //
-// The 7 top-level trees shown on the Skill Map landing screen.
+// The top-level trees shown on the Skill Map landing screen.
 //
 // Display trees map 1:1 to the primary training tree the user opens. The
 // handstand path now owns its balance work directly instead of routing through
@@ -19,7 +19,6 @@ enum SkillDisplayTree: String, CaseIterable, Identifiable, Sendable {
     case coreLevers
     case handstand
     case planche
-    case endurance
 
     var id: String { rawValue }
 
@@ -34,7 +33,6 @@ enum SkillDisplayTree: String, CaseIterable, Identifiable, Sendable {
         case .coreLevers:  return [.coreLever]
         case .handstand:   return [.handstand]
         case .planche:     return [.planche]
-        case .endurance:   return [.conditioning]
         }
     }
 
@@ -43,10 +41,9 @@ enum SkillDisplayTree: String, CaseIterable, Identifiable, Sendable {
         case .pull:        return "Pull"
         case .push:        return "Push"
         case .legs:        return "Legs"
-        case .coreLevers:  return "Core & Levers"
+        case .coreLevers:  return "Core"
         case .handstand:   return "Handstand"
         case .planche:     return "Planche"
-        case .endurance:   return "Endurance"
         }
     }
 
@@ -55,10 +52,9 @@ enum SkillDisplayTree: String, CaseIterable, Identifiable, Sendable {
         case .pull:        return "Pull-up → muscle-up"
         case .push:        return "Dip → HSPU · pressing strength"
         case .legs:        return "Pistol · shrimp · Nordic"
-        case .coreLevers:  return "Hollow · L-sit · front lever"
+        case .coreLevers:  return "Hollow · L-sit · dragon flag"
         case .handstand:   return "Wall → freestanding → one arm"
         case .planche:     return "Tuck → straddle → full planche"
-        case .endurance:   return "Carries · hangs · grip"
         }
     }
 
@@ -73,7 +69,6 @@ enum SkillDisplayTree: String, CaseIterable, Identifiable, Sendable {
         case .coreLevers:  return "The Spine"
         case .handstand:   return "The Inversion"
         case .planche:     return "The Float"
-        case .endurance:   return "The Long Road"
         }
     }
 
@@ -86,7 +81,6 @@ enum SkillDisplayTree: String, CaseIterable, Identifiable, Sendable {
         case .coreLevers:  return "figure.core.training"
         case .handstand:   return "figure.gymnastics"
         case .planche:     return "figure.highintensity.intervaltraining"
-        case .endurance:   return "flame.fill"
         }
     }
 

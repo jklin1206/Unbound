@@ -23,6 +23,8 @@ struct ExerciseLibraryItem: Identifiable {
     let rankTemplate: MovementRankTemplate
     let loggerMode: MovementLoggerMode
     let movementSlot: MovementSlot
+    let rankStandardMovementId: String
+    let isRankable: Bool
 
     init(
         id: String,
@@ -34,7 +36,9 @@ struct ExerciseLibraryItem: Identifiable {
         isCompound: Bool,
         rankTemplate: MovementRankTemplate = .unranked,
         loggerMode: MovementLoggerMode = .strengthSets,
-        movementSlot: MovementSlot = .routine
+        movementSlot: MovementSlot = .routine,
+        rankStandardMovementId: String? = nil,
+        isRankable: Bool = false
     ) {
         self.id = id
         self.name = name
@@ -46,6 +50,8 @@ struct ExerciseLibraryItem: Identifiable {
         self.rankTemplate = rankTemplate
         self.loggerMode = loggerMode
         self.movementSlot = movementSlot
+        self.rankStandardMovementId = rankStandardMovementId ?? id
+        self.isRankable = isRankable
     }
 
     init(definition: MovementDefinition) {
@@ -60,7 +66,9 @@ struct ExerciseLibraryItem: Identifiable {
             isCompound: ExerciseLibrary.isCompound(definition),
             rankTemplate: definition.rankTemplate,
             loggerMode: definition.loggerMode,
-            movementSlot: definition.movementSlot
+            movementSlot: definition.movementSlot,
+            rankStandardMovementId: definition.rankStandardMovementId,
+            isRankable: definition.rankable && definition.rankTemplate != .unranked
         )
     }
 
@@ -162,7 +170,7 @@ enum ExerciseLibrary {
         return labels.isEmpty ? ["Bodyweight"] : labels
     }
 
-    private static func slotOrder(_ slot: MovementSlot) -> Int {
+    static func slotOrder(_ slot: MovementSlot) -> Int {
         switch slot {
         case .squat: return 0
         case .hinge: return 1
@@ -217,7 +225,7 @@ enum ExercisePreferenceLookup {
         MovementCatalog.normalized(value)
     }
 
-    private static func keys(
+    static func keys(
         for rawName: String,
         displayName: String?,
         movementId: String?

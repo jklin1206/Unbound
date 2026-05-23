@@ -22,7 +22,7 @@ fileprivate enum ConceptCluster: CaseIterable, Hashable {
         case .legDominance:       return "Leg Dominance"
         case .pullingPower:       return "Pulling Power"
         case .calisthenicControl: return "Calisthenic Control"
-        case .coreLever:          return "Core & Lever"
+        case .coreLever:          return "Core"
         case .conditioning:       return "Conditioning"
         }
     }
@@ -75,7 +75,7 @@ fileprivate struct ConceptKeystone: Identifiable {
         .init(title: "2× Deadlift",            clusterName: "Heavy Lifting",       progressPct: 0.78, glyph: "dumbbell.fill",                achieved: false),
         .init(title: "Pistol Squat",           clusterName: "Leg Dominance",       progressPct: 0.20, glyph: "figure.walk",                  achieved: false),
         .init(title: "Freestanding Handstand", clusterName: "Calisthenic Control", progressPct: 0.35, glyph: "figure.flexibility",           achieved: false),
-        .init(title: "Dragon Flag",            clusterName: "Core & Lever",        progressPct: 0.10, glyph: "figure.core.training",         achieved: false),
+        .init(title: "Dragon Flag",            clusterName: "Core",                progressPct: 0.10, glyph: "figure.core.training",         achieved: false),
         .init(title: "1.5× BW Farmer Carry",    clusterName: "Conditioning",        progressPct: 0.40, glyph: "flame.fill",                   achieved: false)
     ]
 }

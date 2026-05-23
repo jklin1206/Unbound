@@ -325,7 +325,7 @@ struct SkillTree: Codable, Sendable {
             .calisthenicControl,
             .handstand, .handstandPushup, .oneArmHandstand,
             .planche,
-            .coreLever, .conditioning
+            .coreLever
         ]
         var positioned: [SkillNode] = []
         for (idx, cluster) in columnOrder.enumerated() {

@@ -1,0 +1,1948 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset='utf-8'>
+  <meta name='viewport' content='width=device-width,initial-scale=1'>
+  <title>UNBOUND Movement Library v1 Review</title>
+  <style>
+    :root{color-scheme:dark;--bg:#070a0e;--panel:#101821;--panel2:#0c1219;--ink:#effaff;--muted:#93a9b3;--line:#22313c;--cyan:#39d7e8;--warn:#ffe0a3;--good:#bff8ca}
+    body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+    main{max-width:1320px;margin:0 auto;padding:34px 20px 70px}
+    h1{font-size:42px;margin:0 0 8px}h2{margin:34px 0 12px;color:#d8f8ff}p{color:var(--muted);line-height:1.5;max-width:980px}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin:20px 0}
+    .card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px}.num{font-size:30px;font-weight:850;color:var(--cyan)}.label,.small{font-size:12px;color:var(--muted)}
+    .note{border:1px solid var(--warn);background:#261f10;color:#fff1bf;border-radius:8px;padding:12px 14px;margin:18px 0;font-size:14px;line-height:1.45}
+    .pill{display:inline-block;padding:3px 8px;border:1px solid var(--line);border-radius:999px;margin:2px;background:var(--panel2);font-size:12px}.good{color:var(--good)}.warn{color:var(--warn)}
+    details{border:1px solid var(--line);border-radius:8px;margin:12px 0;background:rgba(16,24,33,.6)}summary{cursor:pointer;padding:14px 16px;font-weight:800;color:var(--cyan)}details>div{padding:0 14px 14px}
+    table{width:100%;border-collapse:collapse;font-size:12.5px}th,td{border-bottom:1px solid var(--line);padding:8px;text-align:left;vertical-align:top}th{position:sticky;top:0;background:#0b1118;color:#d8f8ff}
+  </style>
+</head>
+<body>
+<main>
+  <h1>UNBOUND Movement Library Final-State Review</h1>
+  <p>This page describes the target migration: one Movement Catalog becomes the app source of truth. The old ExerciseCatalog is treated as temporary gym seed data until every caller reads MovementDefinition records directly.</p>
+  <div class='note'><strong>Final-state rule:</strong> the app should not have a separate canonical exercise library competing with a movement catalog. There is one catalog of trainable movement definitions. Some are ranked standards, some are loggable variants, some are skill drills, some are cardio/carry/mobility/routine entries.</div>
+
+  <div class='grid'><div class='card'><div class='num'>177</div><div class='label'>loggable gym exercises</div></div><div class='card'><div class='num'>150</div><div class='label'>ranked standards</div></div><div class='card'><div class='num'>27</div><div class='label'>loggable variants</div></div><div class='card'><div class='num'>150</div><div class='label'>standalone standards</div></div><div class='card'><div class='num'>125</div><div class='label'>generated skill targets</div></div><div class='card'><div class='num'>58</div><div class='label'>skill-associated loggable exercises</div></div><div class='card'><div class='num'>14</div><div class='label'>body-map regions covered</div></div></div>
+
+  <h2>Target Architecture</h2>
+  <p>Everything that can appear in a workout, count toward a rank, substitute for another movement, feed stats, or connect to a skill should be represented as a MovementDefinition.</p>
+  <table><thead><tr><th>Concern</th><th>MovementDefinition Owns</th></tr></thead><tbody><tr><td><strong>Identity</strong></td><td>id, displayName, aliases, role</td></tr><tr><td><strong>Ranking</strong></td><td>rankable, rankTemplate, rankStandardMovementId, variantOfMovementId, AP/rank criteria</td></tr><tr><td><strong>Logging</strong></td><td>blockKind, loggerMode, defaultMetric</td></tr><tr><td><strong>Programming</strong></td><td>movementSlot, equipment, substitutionGroup, progressionFamily, progressionTier</td></tr><tr><td><strong>Rewards</strong></td><td>attributeWeights, skillAssociations</td></tr><tr><td><strong>Safety</strong></td><td>contraindicationTags</td></tr><tr><td><strong>Domain Links</strong></td><td>canonicalExerciseName during migration, skillId, cardioType, routine IDs</td></tr></tbody></table>
+
+  <h2>Migration Map</h2>
+  <p>This is how the current split collapses into one source of truth without breaking existing program generation and logging code all at once.</p>
+  <table><thead><tr><th>Layer</th><th>Final State</th><th>Current State</th><th>Migration Action</th></tr></thead><tbody><tr><td><strong>MovementDefinition</strong></td><td>Single data shape for every trainable thing: gym standard, loggable variant, skill drill, cardio, carry, mobility, routine.</td><td>Exists in MovementCatalog, wrapping ExerciseCatalog seed data and hand-authored non-gym entries.</td><td>Keep and expand. This becomes the app contract.</td></tr><tr><td><strong>MovementCatalog</strong></td><td>The source of truth used by program generation, workout builder, logging, substitutions, AP/ranks, trials, and skill links.</td><td>New layer with executable metadata, resolver, variant roll-ups, generated skill targets, and cardio/carry/mobility/skill drill definitions.</td><td>Promote to primary API. Add typed query surfaces: rankStandards, loggableMovements, variants, skillTargets, skillDrills, cardio, carry, mobility.</td></tr><tr><td><strong>ExerciseCatalog</strong></td><td>No longer a competing canonical library. Either deleted or reduced to a compatibility shim backed by MovementCatalog.</td><td>Old gym exercise source with names, muscles, substitutions, progression families.</td><td>Migrate fields into MovementDefinition, then replace callers. Keep only while old program/preferences code depends on it.</td></tr><tr><td><strong>AttributeContributions</strong></td><td>Movement stat weights are owned by MovementDefinition or a movement metadata resource keyed by movementId.</td><td>Separate JSON keyed by exercise name.</td><td>Migrate to movementId keys so variants can inherit or override base stat weights deliberately.</td></tr><tr><td><strong>Skill Trees</strong></td><td>Skill standards and drills become MovementDefinitions with skillId, rank criteria, prerequisites, and program slots.</td><td>Every live skill node now has a generated skill-target movement. Supplemental drills remain hand-authored where they are practice variations.</td><td>Next pass: expand each skill target into dedicated drill/progression movements while keeping unlock proof in TierCriterion.</td></tr><tr><td><strong>Logs + Completion</strong></td><td>Every completed block stores movementId plus rankStandardMovementId. AP/rank checks use the standard; history preserves the exact variant.</td><td>MovementResolver now returns rankStandardMovementId, but old logs still use exerciseName paths in places.</td><td>Migrate new completion pipeline and adapters to carry both IDs.</td></tr></tbody></table>
+
+  <h2>Skill Unlock Boundary</h2>
+  <p>The Movement Catalog supports skill training, but it does not replace the skill tree. Unlocks and rank proofs stay owned by the 9-rank skill criteria.</p>
+  <table><thead><tr><th>Policy</th><th>Meaning</th></tr></thead><tbody><tr><td><strong>Skill tree owns unlocks</strong></td><td>MovementCatalog may link training inputs to a skill, but it must not change prerequisites, rank criteria, or unlock gates.</td></tr><tr><td><strong>Movement links are credit/context</strong></td><td>skillAssociations are for recommendations, session context, and possible AP/support credit. They are not proof of a skill rank by themselves.</td></tr><tr><td><strong>Skill proof stays strict</strong></td><td>Rank unlocks must read the 9-rank SkillTier/TierCriterion data: reps, hold seconds, quality, side, load, or compound criteria.</td></tr><tr><td><strong>Variants roll up only within movement standards</strong></td><td>A lat pulldown variant can roll into Lat Pulldown. It cannot unlock Pull-Up unless the skill criterion explicitly accepts it.</td></tr><tr><td><strong>Skill targets are not AP standards</strong></td><td>Generated skill movements are training/logging targets. They do not own exercise AP ladders; their rank proof remains the skill's TierCriterion table.</td></tr><tr><td><strong>Program resolver obeys gates</strong></td><td>Adding a skill goal can schedule prerequisites and drills, but locked skills remain locked until their skill-tree criteria are proven.</td></tr></tbody></table>
+
+  <h2>Catalog Surfaces</h2>
+  <div class='grid'>
+    <div class='card'><div class='num'>MovementCatalog.all</div><div class='label'>Every trainable definition across gym, skills, cardio, carry, mobility, and routines</div></div>
+    <div class='card'><div class='num'>rankStandards</div><div class='label'>Base standards that own AP/rank ladders</div></div>
+    <div class='card'><div class='num'>loggableMovements</div><div class='label'>Everything selectable in a workout builder or logger</div></div>
+    <div class='card'><div class='num'>loggableVariants</div><div class='label'>Selectable movements that roll up to a base standard</div></div>
+    <div class='card'><div class='num'>skillTargets</div><div class='label'>One generated movement per live skill-tree node</div></div>
+    <div class='card'><div class='num'>skillDrills</div><div class='label'>Supplemental practice variations that point back to a skill target</div></div>
+    <div class='card'><div class='num'>legacyExercises</div><div class='label'>Temporary compatibility view for old ExerciseCatalog callers</div></div>
+  </div>
+
+  <h2>Canonical Policy</h2>
+  <p>A movement can be selectable/loggable without owning its own rank ladder. Grip, handle, machine-brand, angle, and single-arm versions usually roll into a base standard. A movement stays separate when the pattern changes enough that the standard should change.</p>
+
+  <h2>AP / Rank Standard Ladders</h2>
+  <p>AP is earned per logged set, but movement rank still requires proving the explicit standard. Every ranked movement standard exposes all nine tiers. Loggable variants inherit the base standard's ladder.</p>
+  <table><thead><tr><th>Template</th><th>Initiate</th><th>Novice</th><th>Apprentice</th><th>Forged</th><th>Veteran</th><th>Honed</th><th>Vessel</th><th>Unbound</th><th>Ascendant</th></tr></thead><tbody><tr><td><strong>Free Weight Strength</strong></td><td>0.25x BW x 5</td><td>0.5x BW x 5</td><td>0.75x BW x 5</td><td>1x BW x 5</td><td>1.25x BW x 3</td><td>1.5x BW x 3</td><td>1.75x BW x 2</td><td>2x BW x 1</td><td>2.25x BW x 1</td></tr><tr><td><strong>Machine / Cable Strength</strong></td><td>0.3x BW x 10</td><td>0.45x BW x 10</td><td>0.6x BW x 8</td><td>0.8x BW x 8</td><td>1x BW x 6</td><td>1.2x BW x 6</td><td>1.45x BW x 5</td><td>1.7x BW x 3</td><td>2x BW x 3</td></tr><tr><td><strong>Bodyweight Reps</strong></td><td>1 clean rep</td><td>3 clean reps</td><td>6 clean reps</td><td>10 clean reps</td><td>15 clean reps</td><td>20 clean reps</td><td>25 clean reps</td><td>30 clean reps</td><td>40 clean reps</td></tr><tr><td><strong>Weighted Bodyweight</strong></td><td>+0.05x BW x 5</td><td>+0.1x BW x 5</td><td>+0.15x BW x 5</td><td>+0.25x BW x 5</td><td>+0.35x BW x 3</td><td>+0.5x BW x 3</td><td>+0.75x BW x 2</td><td>+1x BW x 1</td><td>+1.25x BW x 1</td></tr><tr><td><strong>Hold / Control</strong></td><td>10s clean hold</td><td>20s clean hold</td><td>30s clean hold</td><td>45s clean hold</td><td>60s clean hold</td><td>75s clean hold</td><td>90s clean hold</td><td>120s clean hold</td><td>180s clean hold</td></tr></tbody></table>
+
+  <h2>Ranked Standards</h2>
+  <p>These are the actual standards that should get AP/ranks. Variants shown inside each row can still appear in workouts and logs, but their results roll up to the base standard.</p>
+  <div class='grid'><div class='card'><div class='num'>38</div><div class='label'>Bodyweight Reps</div></div><div class='card'><div class='num'>52</div><div class='label'>Free Weight Strength</div></div><div class='card'><div class='num'>9</div><div class='label'>Hold / Control</div></div><div class='card'><div class='num'>50</div><div class='label'>Machine / Cable Strength</div></div><div class='card'><div class='num'>1</div><div class='label'>Weighted Bodyweight</div></div></div>
+
+  <h2>Loggable Exercises</h2>
+  <p>This is the broader selectable library for workouts and substitutions. These counts are allowed to be larger than ranked standards.</p>
+  <div class='grid'><div class='card'><div class='num'>38</div><div class='label'>Bodyweight Reps</div></div><div class='card'><div class='num'>54</div><div class='label'>Free Weight Strength</div></div><div class='card'><div class='num'>9</div><div class='label'>Hold / Control</div></div><div class='card'><div class='num'>75</div><div class='label'>Machine / Cable Strength</div></div><div class='card'><div class='num'>1</div><div class='label'>Weighted Bodyweight</div></div></div>
+
+  <h2>Program Slot Standards</h2>
+  <div class='grid'><div class='card'><div class='num'>19</div><div class='label'>Arms</div></div><div class='card'><div class='num'>4</div><div class='label'>Calves</div></div><div class='card'><div class='num'>19</div><div class='label'>Core</div></div><div class='card'><div class='num'>21</div><div class='label'>Hinge / Posterior</div></div><div class='card'><div class='num'>11</div><div class='label'>Horizontal Pull</div></div><div class='card'><div class='num'>18</div><div class='label'>Horizontal Push</div></div><div class='card'><div class='num'>25</div><div class='label'>Squat / Quad</div></div><div class='card'><div class='num'>15</div><div class='label'>Vertical Pull</div></div><div class='card'><div class='num'>18</div><div class='label'>Vertical Push</div></div></div>
+
+  <h2>Full Ranked Standard Map</h2>
+  <details open><summary>Bodyweight Reps · 38 ranked standards</summary><div><table><thead><tr><th>Ranked Standard</th><th>Slot</th><th>Template</th><th>Targets</th><th>Body Map</th><th>Equipment</th><th>Top Stats</th><th>Loggable Variants</th><th>Skills</th><th>Flags</th></tr></thead><tbody><tr>
+    <td><strong>Dip (Tricep)</strong><div class='small'>dip · exercise.dip</div></td>
+    <td>Arms</td>
+    <td>Bodyweight Reps<div class='small'>Bodyweight set logger · Intermediate</div></td>
+    <td><span class='pill '>Arms</span><span class='pill '>Chest</span><span class='pill '>Shoulders</span></td>
+    <td><span class='pill '>Biceps</span><span class='pill '>Chest</span><span class='pill '>Shoulders</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Bodyweight</span><span class='pill '>Dip Station</span></td>
+    <td>Power 71% / Control 29%</td>
+    <td><span class='small'>None</span></td>
+    <td><span class='pill good'>pp.muscle-up</span></td>
+    <td><span class='pill warn'>shoulder-sensitive</span></td>
+  </tr><tr>
+    <td><strong>Straight Bar Dip</strong><div class='small'>straight bar dip · exercise.straight-bar-dip</div></td>
+    <td>Arms</td>
+    <td>Bodyweight Reps<div class='small'>Bodyweight set logger · Elite</div></td>
+    <td><span class='pill '>Chest</span><span class='pill '>Arms</span><span class='pill '>Shoulders</span></td>
+    <td><span class='pill '>Biceps</span><span class='pill '>Chest</span><span class='pill '>Shoulders</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Bodyweight</span><span class='pill '>Dip Station</span></td>
+    <td>Control 74% / Power 26%</td>
+    <td><span class='small'>None</span></td>
+    <td><span class='pill good'>pp.muscle-up</span></td>
+    <td><span class='pill warn'>shoulder-sensitive</span></td>
+  </tr><tr>
+    <td><strong>Ab Wheel</strong><div class='small'>ab wheel · exercise.ab-wheel</div></td>
+    <td>Core</td>
+    <td>Bodyweight Reps<div class='small'>Bodyweight set logger · Beginner</div></td>
+    <td><span class='pill '>Core</span></td>
+    <td><span class='pill '>Abs</span><span class='pill '>Lower Back</span><span class='pill '>Obliques</span></td>
+    <td><span class='pill '>Bodyweight</span></td>
+    <td>Control 79% / Power 21%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Captain's Chair Knee Raise</strong><div class='small'>captains chair knee raise · exercise.captains-chair-knee-raise</div></td>
+    <td>Core</td>
+    <td>Bodyweight Reps<div class='small'>Bodyweight set logger · Beginner</div></td>
+    <td><span class='pill '>Core</span></td>
+    <td><span class='pill '>Abs</span><span class='pill '>Lower Back</span><span class='pill '>Obliques</span></td>
+    <td><span class='pill '>Bodyweight</span><span class='pill '>Machine</span></td>
+    <td>Control 70% / Endurance 20% / Power 10%</td>
+    <td><span class='small'>None</span></td>
+    <td><span class='pill good'>cl.hollow-body-30</span></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Captain's Chair Leg Raise</strong><div class='small'>captains chair leg raise · exercise.captains-chair-leg-raise</div></td>
+    <td>Core</td>
+    <td>Bodyweight Reps<div class='small'>Bodyweight set logger · Beginner</div></td>
+    <td><span class='pill '>Core</span></td>
+    <td><span class='pill '>Abs</span><span class='pill '>Lower Back</span><span class='pill '>Obliques</span></td>
+    <td><span class='pill '>Bodyweight</span><span class='pill '>Machine</span></td>
+    <td>Control 70% / Endurance 20% / Power 10%</td>
+    <td><span class='small'>None</span></td>
+    <td><span class='pill good'>cl.hollow-body-30</span></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Decline Sit-Up</strong><div class='small'>decline situp · exercise.decline-situp</div></td>
+    <td>Core</td>
+    <td>Bodyweight Reps<div class='small'>Bodyweight set logger · Beginner</div></td>
+    <td><span class='pill '>Core</span></td>
+    <td><span class='pill '>Abs</span><span class='pill '>Lower Back</span><span class='pill '>Obliques</span></td>
+    <td><span class='pill '>Bench</span><span class='pill '>Bodyweight</span></td>
+    <td>Control 70% / Endurance 20% / Power 10%</td>
+    <td><span class='small'>None</span></td>
+    <td><span class='pill good'>cl.hollow-body-30</span></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Hollow Rock</strong><div class='small'>hollow rock · exercise.hollow-rock</div></td>
+    <td>Core</td>
+    <td>Bodyweight Reps<div class='small'>Bodyweight set logger · Beginner</div></td>
+    <td><span class='pill '>Core</span></td>
+    <td><span class='pill '>Abs</span><span class='pill '>Lower Back</span><span class='pill '>Obliques</span></td>
+    <td><span class='pill '>Bodyweight</span></td>
+    <td>Control 73% / Endurance 27%</td>
+    <td><span class='small'>None</span></td>
+    <td><span class='pill good'>cl.hollow-body-30</span></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Roman Chair Sit-Up</strong><div class='small'>roman chair situp · exercise.roman-chair-situp</div></td>
+    <td>Core</td>
+    <td>Bodyweight Reps<div class='small'>Bodyweight set logger · Beginner</div></td>
+    <td><span class='pill '>Core</span></td>
+    <td><span class='pill '>Abs</span><span class='pill '>Lower Back</span><span class='pill '>Obliques</span></td>
+    <td><span class='pill '>Bodyweight</span></td>
+    <td>Control 70% / Endurance 20% / Power 10%</td>
+    <td><span class='small'>None</span></td>
+    <td><span class='pill good'>cl.hollow-body-30</span></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Nordic Curl</strong><div class='small'>nordic curl · exercise.nordic-curl</div></td>
+    <td>Hinge / Posterior</td>
+    <td>Bodyweight Reps<div class='small'>Bodyweight set logger · Advanced</div></td>
+    <td><span class='pill '>Legs</span><span class='pill '>Glutes</span></td>
+    <td><span class='pill '>Biceps</span><span class='pill '>Glutes</span><span class='pill '>Hamstrings</span><span class='pill '>Lower Back</span><span class='pill '>Quads</span></td>
+    <td><span class='pill '>Bodyweight</span></td>
+    <td>Control 75% / Power 25%</td>
+    <td><span class='small'>None</span></td>
+    <td><span class='pill good'>ld.nordic-curl</span></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Inverted Row</strong><div class='small'>inverted row · exercise.inverted-row</div></td>
+    <td>Horizontal Pull</td>
+    <td>Bodyweight Reps<div class='small'>Bodyweight set logger · Beginner</div></td>
+    <td><span class='pill '>Back</span><span class='pill '>Lats</span><span class='pill '>Arms</span></td>
+    <td><span class='pill '>Biceps</span><span class='pill '>Forearms</span><span class='pill '>Lats</span><span class='pill '>Lower Back</span><span class='pill '>Traps</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Bodyweight</span></td>
+    <td>Control 75% / Endurance 25%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td><span class='pill warn'>low-back-sensitive</span></td>
+  </tr><tr>
+    <td><strong>Archer Pushup</strong><div class='small'>archer pushup · exercise.archer-pushup</div></td>
+    <td>Horizontal Push</td>
+    <td>Bodyweight Reps<div class='small'>Bodyweight set logger · Advanced</div></td>
+    <td><span class='pill '>Chest</span><span class='pill '>Shoulders</span><span class='pill '>Arms</span><span class='pill '>Core</span></td>
+    <td><span class='pill '>Abs</span><span class='pill '>Biceps</span><span class='pill '>Chest</span><span class='pill '>Lower Back</span><span class='pill '>Obliques</span><span class='pill '>Shoulders</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Bodyweight</span></td>
+    <td>Control 79% / Power 21%</td>
+    <td><span class='small'>None</span></td>
+    <td><span class='pill good'>cal.pushup</span></td>
+    <td><span class='pill warn'>wrist-sensitive</span></td>
+  </tr><tr>
+    <td><strong>Decline Pushup</strong><div class='small'>decline pushup · exercise.decline-pushup</div></td>
+    <td>Horizontal Push</td>
+    <td>Bodyweight Reps<div class='small'>Bodyweight set logger · Intermediate</div></td>
+    <td><span class='pill '>Chest</span><span class='pill '>Shoulders</span><span class='pill '>Arms</span></td>
+    <td><span class='pill '>Biceps</span><span class='pill '>Chest</span><span class='pill '>Shoulders</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Bench</span><span class='pill '>Bodyweight</span></td>
+    <td>Power 75% / Control 25%</td>
+    <td><span class='small'>None</span></td>
+    <td><span class='pill good'>cal.pushup</span></td>
+    <td><span class='pill warn'>wrist-sensitive</span></td>
+  </tr><tr>
+    <td><strong>Diamond Pushup</strong><div class='small'>diamond pushup · exercise.diamond-pushup</div></td>
+    <td>Horizontal Push</td>
+    <td>Bodyweight Reps<div class='small'>Bodyweight set logger · Intermediate</div></td>
+    <td><span class='pill '>Chest</span><span class='pill '>Arms</span><span class='pill '>Core</span></td>
+    <td><span class='pill '>Abs</span><span class='pill '>Biceps</span><span class='pill '>Chest</span><span class='pill '>Lower Back</span><span class='pill '>Obliques</span><span class='pill '>Shoulders</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Bodyweight</span></td>
+    <td>Power 74% / Control 26%</td>
+    <td><span class='small'>None</span></td>
+    <td><span class='pill good'>cal.pushup</span></td>
+    <td><span class='pill warn'>wrist-sensitive</span></td>
+  </tr><tr>
+    <td><strong>Incline Pushup</strong><div class='small'>incline pushup · exercise.incline-pushup</div></td>
+    <td>Horizontal Push</td>
+    <td>Bodyweight Reps<div class='small'>Bodyweight set logger · Beginner</div></td>
+    <td><span class='pill '>Chest</span><span class='pill '>Shoulders</span><span class='pill '>Arms</span><span class='pill '>Core</span></td>
+    <td><span class='pill '>Abs</span><span class='pill '>Biceps</span><span class='pill '>Chest</span><span class='pill '>Lower Back</span><span class='pill '>Obliques</span><span class='pill '>Shoulders</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Bench</span><span class='pill '>Bodyweight</span></td>
+    <td>Endurance 74% / Control 26%</td>
+    <td><span class='small'>None</span></td>
+    <td><span class='pill good'>cal.pushup</span></td>
+    <td><span class='pill warn'>wrist-sensitive</span></td>
+  </tr><tr>
+    <td><strong>Pseudo-Planche Pushup</strong><div class='small'>pseudo planche pushup · exercise.pseudo-planche-pushup</div></td>
+    <td>Horizontal Push</td>
+    <td>Bodyweight Reps<div class='small'>Bodyweight set logger · Intermediate</div></td>
+    <td><span class='pill '>Chest</span><span class='pill '>Shoulders</span><span class='pill '>Arms</span><span class='pill '>Core</span></td>
+    <td><span class='pill '>Abs</span><span class='pill '>Biceps</span><span class='pill '>Chest</span><span class='pill '>Lower Back</span><span class='pill '>Obliques</span><span class='pill '>Shoulders</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Bodyweight</span></td>
+    <td>Control 75% / Power 25%</td>
+    <td><span class='small'>None</span></td>
+    <td><span class='pill good'>cal.pushup</span></td>
+    <td><span class='pill warn'>wrist-sensitive</span></td>
+  </tr><tr>
+    <td><strong>Pushup</strong><div class='small'>pushup · exercise.pushup</div></td>
+    <td>Horizontal Push</td>
+    <td>Bodyweight Reps<div class='small'>Bodyweight set logger · Beginner</div></td>
+    <td><span class='pill '>Chest</span><span class='pill '>Shoulders</span><span class='pill '>Arms</span><span class='pill '>Core</span></td>
+    <td><span class='pill '>Abs</span><span class='pill '>Biceps</span><span class='pill '>Chest</span><span class='pill '>Lower Back</span><span class='pill '>Obliques</span><span class='pill '>Shoulders</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Bodyweight</span></td>
+    <td>Endurance 75% / Power 25%</td>
+    <td><span class='small'>None</span></td>
+    <td><span class='pill good'>cal.pushup</span></td>
+    <td><span class='pill warn'>wrist-sensitive</span></td>
+  </tr><tr>
+    <td><strong>Bodyweight Squat</strong><div class='small'>bodyweight squat · exercise.bodyweight-squat</div></td>
+    <td>Squat / Quad</td>
+    <td>Bodyweight Reps<div class='small'>Bodyweight set logger · Beginner</div></td>
+    <td><span class='pill '>Legs</span><span class='pill '>Glutes</span><span class='pill '>Core</span></td>
+    <td><span class='pill '>Abs</span><span class='pill '>Glutes</span><span class='pill '>Hamstrings</span><span class='pill '>Lower Back</span><span class='pill '>Obliques</span><span class='pill '>Quads</span></td>
+    <td><span class='pill '>Bodyweight</span></td>
+    <td>Mobility 76% / Endurance 24%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td><span class='pill warn'>knee-sensitive</span></td>
+  </tr><tr>
+    <td><strong>Cossack Squat</strong><div class='small'>cossack squat · exercise.cossack-squat</div></td>
+    <td>Squat / Quad</td>
+    <td>Bodyweight Reps<div class='small'>Bodyweight set logger · Beginner</div></td>
+    <td><span class='pill '>Legs</span><span class='pill '>Glutes</span><span class='pill '>Core</span></td>
+    <td><span class='pill '>Abs</span><span class='pill '>Glutes</span><span class='pill '>Hamstrings</span><span class='pill '>Lower Back</span><span class='pill '>Obliques</span><span class='pill '>Quads</span></td>
+    <td><span class='pill '>Bodyweight</span></td>
+    <td>Mobility 50% / Control 30% / Power 20%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td><span class='pill warn'>knee-sensitive</span></td>
+  </tr><tr>
+    <td><strong>Jump Squat</strong><div class='small'>jump squat · exercise.jump-squat</div></td>
+    <td>Squat / Quad</td>
+    <td>Bodyweight Reps<div class='small'>Bodyweight set logger · Intermediate</div></td>
+    <td><span class='pill '>Legs</span><span class='pill '>Glutes</span><span class='pill '>Core</span></td>
+    <td><span class='pill '>Abs</span><span class='pill '>Glutes</span><span class='pill '>Hamstrings</span><span class='pill '>Lower Back</span><span class='pill '>Obliques</span><span class='pill '>Quads</span></td>
+    <td><span class='pill '>Bodyweight</span></td>
+    <td>Explosiveness 100%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td><span class='pill warn'>knee-sensitive</span></td>
+  </tr><tr>
+    <td><strong>Pistol Squat</strong><div class='small'>pistol squat · exercise.pistol-squat</div></td>
+    <td>Squat / Quad</td>
+    <td>Bodyweight Reps<div class='small'>Bodyweight set logger · Advanced</div></td>
+    <td><span class='pill '>Legs</span><span class='pill '>Glutes</span><span class='pill '>Core</span></td>
+    <td><span class='pill '>Abs</span><span class='pill '>Glutes</span><span class='pill '>Hamstrings</span><span class='pill '>Lower Back</span><span class='pill '>Obliques</span><span class='pill '>Quads</span></td>
+    <td><span class='pill '>Bodyweight</span></td>
+    <td>Control 80% / Power 20%</td>
+    <td><span class='small'>None</span></td>
+    <td><span class='pill good'>ld.pistol-squat</span></td>
+    <td><span class='pill warn'>knee-sensitive</span></td>
+  </tr><tr>
+    <td><strong>Pistol Squat (Assisted)</strong><div class='small'>assisted pistol squat · exercise.assisted-pistol-squat</div></td>
+    <td>Squat / Quad</td>
+    <td>Bodyweight Reps<div class='small'>Bodyweight set logger · Intermediate</div></td>
+    <td><span class='pill '>Legs</span><span class='pill '>Glutes</span><span class='pill '>Core</span></td>
+    <td><span class='pill '>Abs</span><span class='pill '>Glutes</span><span class='pill '>Hamstrings</span><span class='pill '>Lower Back</span><span class='pill '>Obliques</span><span class='pill '>Quads</span></td>
+    <td><span class='pill '>Bodyweight</span></td>
+    <td>Control 74% / Mobility 26%</td>
+    <td><span class='small'>None</span></td>
+    <td><span class='pill good'>ld.pistol-squat</span></td>
+    <td><span class='pill warn'>knee-sensitive</span></td>
+  </tr><tr>
+    <td><strong>Shrimp Squat</strong><div class='small'>shrimp squat · exercise.shrimp-squat</div></td>
+    <td>Squat / Quad</td>
+    <td>Bodyweight Reps<div class='small'>Bodyweight set logger · Advanced</div></td>
+    <td><span class='pill '>Legs</span><span class='pill '>Glutes</span><span class='pill '>Core</span></td>
+    <td><span class='pill '>Abs</span><span class='pill '>Glutes</span><span class='pill '>Hamstrings</span><span class='pill '>Lower Back</span><span class='pill '>Obliques</span><span class='pill '>Quads</span></td>
+    <td><span class='pill '>Bodyweight</span></td>
+    <td>Control 80% / Power 20%</td>
+    <td><span class='small'>None</span></td>
+    <td><span class='pill good'>ld.pistol-squat</span></td>
+    <td><span class='pill warn'>knee-sensitive</span></td>
+  </tr><tr>
+    <td><strong>Shrimp Squat (Assisted)</strong><div class='small'>assisted shrimp squat · exercise.assisted-shrimp-squat</div></td>
+    <td>Squat / Quad</td>
+    <td>Bodyweight Reps<div class='small'>Bodyweight set logger · Intermediate</div></td>
+    <td><span class='pill '>Legs</span><span class='pill '>Glutes</span><span class='pill '>Core</span></td>
+    <td><span class='pill '>Abs</span><span class='pill '>Glutes</span><span class='pill '>Hamstrings</span><span class='pill '>Lower Back</span><span class='pill '>Obliques</span><span class='pill '>Quads</span></td>
+    <td><span class='pill '>Bodyweight</span></td>
+    <td>Control 77% / Mobility 23%</td>
+    <td><span class='small'>None</span></td>
+    <td><span class='pill good'>ld.pistol-squat</span></td>
+    <td><span class='pill warn'>knee-sensitive</span></td>
+  </tr><tr>
+    <td><strong>Step Up</strong><div class='small'>step up · exercise.step-up</div></td>
+    <td>Squat / Quad</td>
+    <td>Bodyweight Reps<div class='small'>Bodyweight set logger · Beginner</div></td>
+    <td><span class='pill '>Legs</span><span class='pill '>Glutes</span></td>
+    <td><span class='pill '>Glutes</span><span class='pill '>Hamstrings</span><span class='pill '>Quads</span></td>
+    <td><span class='pill '>Bodyweight</span><span class='pill '>Box</span></td>
+    <td>Agility 75% / Power 25%</td>
+    <td><span class='small'>None</span></td>
+    <td><span class='pill good'>ld.pistol-squat</span></td>
+    <td><span class='pill warn'>knee-sensitive</span></td>
+  </tr><tr>
+    <td><strong>Walking Lunge</strong><div class='small'>walking lunge · exercise.walking-lunge</div></td>
+    <td>Squat / Quad</td>
+    <td>Bodyweight Reps<div class='small'>Bodyweight set logger · Beginner</div></td>
+    <td><span class='pill '>Legs</span><span class='pill '>Glutes</span></td>
+    <td><span class='pill '>Glutes</span><span class='pill '>Hamstrings</span><span class='pill '>Quads</span></td>
+    <td><span class='pill '>Bodyweight</span></td>
+    <td>Agility 77% / Endurance 23%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td><span class='pill warn'>knee-sensitive</span></td>
+  </tr><tr>
+    <td><strong>Assisted Pull-Up (Band)</strong><div class='small'>assisted pullup (band) · exercise.assisted-pullup-band</div></td>
+    <td>Vertical Pull</td>
+    <td>Bodyweight Reps<div class='small'>Bodyweight set logger · Beginner</div></td>
+    <td><span class='pill '>Back</span><span class='pill '>Lats</span><span class='pill '>Arms</span></td>
+    <td><span class='pill '>Biceps</span><span class='pill '>Forearms</span><span class='pill '>Lats</span><span class='pill '>Lower Back</span><span class='pill '>Traps</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Band</span><span class='pill '>Bodyweight</span><span class='pill '>Pull-Up Bar</span></td>
+    <td>Control 75% / Power 25%</td>
+    <td><span class='small'>None</span></td>
+    <td><span class='pill good'>pp.pullup</span><span class='pill good'>pp.strict-pullup</span></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Assisted Pull-Up Machine</strong><div class='small'>assisted pullup machine · exercise.assisted-pullup-machine</div></td>
+    <td>Vertical Pull</td>
+    <td>Bodyweight Reps<div class='small'>Bodyweight set logger · Intermediate</div></td>
+    <td><span class='pill '>Back</span><span class='pill '>Lats</span><span class='pill '>Arms</span></td>
+    <td><span class='pill '>Biceps</span><span class='pill '>Forearms</span><span class='pill '>Lats</span><span class='pill '>Lower Back</span><span class='pill '>Traps</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Bodyweight</span><span class='pill '>Machine</span><span class='pill '>Pull-Up Bar</span></td>
+    <td>Power 55% / Endurance 30% / Control 15%</td>
+    <td><span class='small'>None</span></td>
+    <td><span class='pill good'>pp.pullup</span><span class='pill good'>pp.strict-pullup</span></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Assisted Turnover Freeze</strong><div class='small'>assisted turnover freeze · exercise.assisted-turnover-freeze</div></td>
+    <td>Vertical Pull</td>
+    <td>Bodyweight Reps<div class='small'>Bodyweight set logger · Elite</div></td>
+    <td><span class='pill '>Back</span><span class='pill '>Lats</span><span class='pill '>Arms</span><span class='pill '>Chest</span><span class='pill '>Core</span></td>
+    <td><span class='pill '>Abs</span><span class='pill '>Biceps</span><span class='pill '>Chest</span><span class='pill '>Lats</span><span class='pill '>Lower Back</span><span class='pill '>Obliques</span><span class='pill '>Traps</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Bodyweight</span></td>
+    <td>Control 100%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Banded Muscle-Up</strong><div class='small'>banded muscle-up · exercise.banded-muscle-up</div></td>
+    <td>Vertical Pull</td>
+    <td>Bodyweight Reps<div class='small'>Bodyweight set logger · Elite</div></td>
+    <td><span class='pill '>Back</span><span class='pill '>Lats</span><span class='pill '>Arms</span><span class='pill '>Chest</span><span class='pill '>Core</span></td>
+    <td><span class='pill '>Abs</span><span class='pill '>Biceps</span><span class='pill '>Chest</span><span class='pill '>Lats</span><span class='pill '>Lower Back</span><span class='pill '>Obliques</span><span class='pill '>Traps</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Band</span><span class='pill '>Bodyweight</span></td>
+    <td>Control 79% / Explosiveness 21%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Chest-to-Bar Pullup</strong><div class='small'>chest-to-bar pullup · exercise.chest-to-bar-pullup</div></td>
+    <td>Vertical Pull</td>
+    <td>Bodyweight Reps<div class='small'>Bodyweight set logger · Intermediate</div></td>
+    <td><span class='pill '>Back</span><span class='pill '>Lats</span><span class='pill '>Arms</span></td>
+    <td><span class='pill '>Biceps</span><span class='pill '>Forearms</span><span class='pill '>Lats</span><span class='pill '>Lower Back</span><span class='pill '>Traps</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Bodyweight</span><span class='pill '>Pull-Up Bar</span></td>
+    <td>Power 74% / Control 26%</td>
+    <td><span class='small'>None</span></td>
+    <td><span class='pill good'>pp.pullup</span><span class='pill good'>pp.strict-pullup</span></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Chin-Up</strong><div class='small'>chin-up · exercise.chin-up</div></td>
+    <td>Vertical Pull</td>
+    <td>Bodyweight Reps<div class='small'>Bodyweight set logger · Intermediate</div></td>
+    <td><span class='pill '>Back</span><span class='pill '>Lats</span><span class='pill '>Arms</span></td>
+    <td><span class='pill '>Biceps</span><span class='pill '>Forearms</span><span class='pill '>Lats</span><span class='pill '>Lower Back</span><span class='pill '>Traps</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Bodyweight</span><span class='pill '>Pull-Up Bar</span></td>
+    <td>Power 75% / Control 25%</td>
+    <td><span class='small'>None</span></td>
+    <td><span class='pill good'>pp.pullup</span><span class='pill good'>pp.strict-pullup</span></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Low-Bar Muscle-Up Transition</strong><div class='small'>low-bar muscle-up transition · exercise.low-bar-muscle-up-transition</div></td>
+    <td>Vertical Pull</td>
+    <td>Bodyweight Reps<div class='small'>Bodyweight set logger · Elite</div></td>
+    <td><span class='pill '>Back</span><span class='pill '>Lats</span><span class='pill '>Arms</span><span class='pill '>Chest</span><span class='pill '>Core</span></td>
+    <td><span class='pill '>Abs</span><span class='pill '>Biceps</span><span class='pill '>Chest</span><span class='pill '>Lats</span><span class='pill '>Lower Back</span><span class='pill '>Obliques</span><span class='pill '>Traps</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Bodyweight</span></td>
+    <td>Control 100%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Muscle-Up</strong><div class='small'>muscle-up · exercise.muscle-up</div></td>
+    <td>Vertical Pull</td>
+    <td>Bodyweight Reps<div class='small'>Bodyweight set logger · Elite</div></td>
+    <td><span class='pill '>Back</span><span class='pill '>Lats</span><span class='pill '>Arms</span><span class='pill '>Chest</span></td>
+    <td><span class='pill '>Biceps</span><span class='pill '>Chest</span><span class='pill '>Lats</span><span class='pill '>Lower Back</span><span class='pill '>Traps</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Bodyweight</span></td>
+    <td>Control 77% / Explosiveness 23%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Negative Pull-Up</strong><div class='small'>negative pullup · exercise.negative-pullup</div></td>
+    <td>Vertical Pull</td>
+    <td>Bodyweight Reps<div class='small'>Bodyweight set logger · Beginner</div></td>
+    <td><span class='pill '>Back</span><span class='pill '>Lats</span><span class='pill '>Arms</span></td>
+    <td><span class='pill '>Biceps</span><span class='pill '>Forearms</span><span class='pill '>Lats</span><span class='pill '>Lower Back</span><span class='pill '>Traps</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Bodyweight</span><span class='pill '>Pull-Up Bar</span></td>
+    <td>Control 77% / Power 23%</td>
+    <td><span class='small'>None</span></td>
+    <td><span class='pill good'>pp.pullup</span><span class='pill good'>pp.strict-pullup</span></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Pull-Up (Bodyweight)</strong><div class='small'>pullup · exercise.pullup</div></td>
+    <td>Vertical Pull</td>
+    <td>Bodyweight Reps<div class='small'>Bodyweight set logger · Intermediate</div></td>
+    <td><span class='pill '>Back</span><span class='pill '>Lats</span><span class='pill '>Arms</span></td>
+    <td><span class='pill '>Biceps</span><span class='pill '>Forearms</span><span class='pill '>Lats</span><span class='pill '>Lower Back</span><span class='pill '>Traps</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Bodyweight</span><span class='pill '>Pull-Up Bar</span></td>
+    <td>Power 73% / Control 27%</td>
+    <td><span class='small'>None</span></td>
+    <td><span class='pill good'>pp.pullup</span><span class='pill good'>pp.strict-pullup</span></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Wide-Grip Pull-Up</strong><div class='small'>wide grip pullup · exercise.wide-grip-pullup</div></td>
+    <td>Vertical Pull</td>
+    <td>Bodyweight Reps<div class='small'>Bodyweight set logger · Advanced</div></td>
+    <td><span class='pill '>Back</span><span class='pill '>Lats</span><span class='pill '>Arms</span></td>
+    <td><span class='pill '>Biceps</span><span class='pill '>Forearms</span><span class='pill '>Lats</span><span class='pill '>Lower Back</span><span class='pill '>Traps</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Bodyweight</span><span class='pill '>Pull-Up Bar</span></td>
+    <td>Power 76% / Control 24%</td>
+    <td><span class='small'>None</span></td>
+    <td><span class='pill good'>pp.pullup</span><span class='pill good'>pp.strict-pullup</span></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Pike Pushup</strong><div class='small'>pike pushup · exercise.pike-pushup</div></td>
+    <td>Vertical Push</td>
+    <td>Bodyweight Reps<div class='small'>Bodyweight set logger · Beginner</div></td>
+    <td><span class='pill '>Shoulders</span><span class='pill '>Arms</span><span class='pill '>Core</span></td>
+    <td><span class='pill '>Abs</span><span class='pill '>Biceps</span><span class='pill '>Chest</span><span class='pill '>Lower Back</span><span class='pill '>Obliques</span><span class='pill '>Shoulders</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Bodyweight</span></td>
+    <td>Control 73% / Power 27%</td>
+    <td><span class='small'>None</span></td>
+    <td><span class='pill good'>cal.handstand-pushup</span><span class='pill good'>cal.pushup</span><span class='pill good'>hs.wall-handstand-30</span></td>
+    <td><span class='pill warn'>wrist-sensitive</span></td>
+  </tr><tr>
+    <td><strong>Wall Handstand Pushup</strong><div class='small'>wall handstand pushup · exercise.wall-handstand-pushup</div></td>
+    <td>Vertical Push</td>
+    <td>Bodyweight Reps<div class='small'>Bodyweight set logger · Beginner</div></td>
+    <td><span class='pill '>Shoulders</span><span class='pill '>Arms</span><span class='pill '>Core</span></td>
+    <td><span class='pill '>Abs</span><span class='pill '>Biceps</span><span class='pill '>Chest</span><span class='pill '>Lower Back</span><span class='pill '>Obliques</span><span class='pill '>Shoulders</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Bodyweight</span></td>
+    <td>Control 77% / Power 23%</td>
+    <td><span class='small'>None</span></td>
+    <td><span class='pill good'>cal.handstand-pushup</span><span class='pill good'>cal.pushup</span><span class='pill good'>hs.wall-handstand-30</span></td>
+    <td><span class='pill warn'>shoulder-sensitive</span><span class='pill warn'>wrist-sensitive</span></td>
+  </tr></tbody></table></div></details><details ><summary>Free Weight Strength · 52 ranked standards</summary><div><table><thead><tr><th>Ranked Standard</th><th>Slot</th><th>Template</th><th>Targets</th><th>Body Map</th><th>Equipment</th><th>Top Stats</th><th>Loggable Variants</th><th>Skills</th><th>Flags</th></tr></thead><tbody><tr>
+    <td><strong>Barbell Curl</strong><div class='small'>barbell curl · exercise.barbell-curl</div></td>
+    <td>Arms</td>
+    <td>Free Weight Strength<div class='small'>Strength set logger · Intermediate</div></td>
+    <td><span class='pill '>Arms</span></td>
+    <td><span class='pill '>Biceps</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Barbell</span></td>
+    <td>Power 72% / Endurance 28%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Close Grip Bench</strong><div class='small'>close grip bench press · exercise.close-grip-bench-press</div></td>
+    <td>Arms</td>
+    <td>Free Weight Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Arms</span><span class='pill '>Chest</span></td>
+    <td><span class='pill '>Biceps</span><span class='pill '>Chest</span><span class='pill '>Shoulders</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Barbell</span><span class='pill '>Bench</span></td>
+    <td>Power 81% / Endurance 19%</td>
+    <td><span class='small'>None</span></td>
+    <td><span class='pill good'>cal.pushup</span></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Concentration Curl</strong><div class='small'>concentration curl · exercise.concentration-curl</div></td>
+    <td>Arms</td>
+    <td>Free Weight Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Arms</span></td>
+    <td><span class='pill '>Biceps</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Bodyweight</span></td>
+    <td>Endurance 45% / Power 30% / Control 25%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Dumbbell Curl</strong><div class='small'>dumbbell curl · exercise.dumbbell-curl</div></td>
+    <td>Arms</td>
+    <td>Free Weight Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Arms</span></td>
+    <td><span class='pill '>Biceps</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Dumbbell</span></td>
+    <td>Power 71% / Endurance 29%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>EZ-Bar Curl</strong><div class='small'>ez bar curl · exercise.ez-bar-curl</div></td>
+    <td>Arms</td>
+    <td>Free Weight Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Arms</span></td>
+    <td><span class='pill '>Biceps</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Bodyweight</span></td>
+    <td>Endurance 45% / Power 30% / Control 25%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Hammer Curl</strong><div class='small'>hammer curl · exercise.hammer-curl</div></td>
+    <td>Arms</td>
+    <td>Free Weight Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Arms</span><span class='pill '>Forearms</span></td>
+    <td><span class='pill '>Biceps</span><span class='pill '>Forearms</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Dumbbell</span></td>
+    <td>Power 72% / Endurance 28%</td>
+    <td><span class='pill '>Rope Hammer Curl</span></td>
+    <td></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Incline Dumbbell Curl</strong><div class='small'>incline dumbbell curl · exercise.incline-dumbbell-curl</div></td>
+    <td>Arms</td>
+    <td>Free Weight Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Arms</span></td>
+    <td><span class='pill '>Biceps</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Bench</span><span class='pill '>Dumbbell</span></td>
+    <td>Mobility 72% / Power 28%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Skull Crushers</strong><div class='small'>skull crushers · exercise.skull-crushers</div></td>
+    <td>Arms</td>
+    <td>Free Weight Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Arms</span></td>
+    <td><span class='pill '>Biceps</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Bodyweight</span></td>
+    <td>Power 72% / Control 28%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Spider Curl</strong><div class='small'>spider curl · exercise.spider-curl</div></td>
+    <td>Arms</td>
+    <td>Free Weight Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Arms</span></td>
+    <td><span class='pill '>Biceps</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Bodyweight</span></td>
+    <td>Endurance 45% / Power 30% / Control 25%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Donkey Calf Raise</strong><div class='small'>donkey calf raise · exercise.donkey-calf-raise</div></td>
+    <td>Calves</td>
+    <td>Free Weight Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Calves</span></td>
+    <td><span class='pill '>Abs</span><span class='pill '>Calves</span></td>
+    <td><span class='pill '>Bodyweight</span></td>
+    <td>Endurance 55% / Control 25% / Power 20%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Seated Calf Raise</strong><div class='small'>seated calf raise · exercise.seated-calf-raise</div></td>
+    <td>Calves</td>
+    <td>Free Weight Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Calves</span></td>
+    <td><span class='pill '>Abs</span><span class='pill '>Calves</span></td>
+    <td><span class='pill '>Bodyweight</span></td>
+    <td>Endurance 74% / Power 26%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Standing Calf Raise</strong><div class='small'>standing calf raise · exercise.standing-calf-raise</div></td>
+    <td>Calves</td>
+    <td>Free Weight Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Calves</span></td>
+    <td><span class='pill '>Abs</span><span class='pill '>Calves</span><span class='pill '>Glutes</span><span class='pill '>Quads</span></td>
+    <td><span class='pill '>Bodyweight</span><span class='pill '>Machine</span><span class='pill '>Smith Machine</span></td>
+    <td>Endurance 74% / Power 26%</td>
+    <td><span class='pill '>Leg Press Calf Raise</span><span class='pill '>Smith Machine Calf Raise</span></td>
+    <td></td>
+    <td><span class='pill warn'>knee-sensitive</span></td>
+  </tr><tr>
+    <td><strong>Tibialis Raise</strong><div class='small'>tibialis raise · exercise.tibialis-raise</div></td>
+    <td>Calves</td>
+    <td>Free Weight Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Calves</span></td>
+    <td><span class='pill '>Abs</span><span class='pill '>Calves</span></td>
+    <td><span class='pill '>Bodyweight</span></td>
+    <td>Endurance 50% / Power 30% / Control 20%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Landmine Rotation</strong><div class='small'>landmine rotation · exercise.landmine-rotation</div></td>
+    <td>Core</td>
+    <td>Free Weight Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Core</span><span class='pill '>Shoulders</span></td>
+    <td><span class='pill '>Abs</span><span class='pill '>Lower Back</span><span class='pill '>Obliques</span><span class='pill '>Shoulders</span></td>
+    <td><span class='pill '>Barbell</span></td>
+    <td>Agility 70% / Control 30%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Back Extension</strong><div class='small'>back extension · exercise.back-extension</div></td>
+    <td>Hinge / Posterior</td>
+    <td>Free Weight Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Glutes</span><span class='pill '>Back</span><span class='pill '>Legs</span></td>
+    <td><span class='pill '>Glutes</span><span class='pill '>Hamstrings</span><span class='pill '>Lats</span><span class='pill '>Lower Back</span><span class='pill '>Quads</span><span class='pill '>Traps</span></td>
+    <td><span class='pill '>Bodyweight</span></td>
+    <td>Power 70% / Control 15% / Mobility 15%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td><span class='pill warn'>low-back-sensitive</span></td>
+  </tr><tr>
+    <td><strong>Conventional Deadlift</strong><div class='small'>deadlift · exercise.deadlift</div></td>
+    <td>Hinge / Posterior</td>
+    <td>Free Weight Strength<div class='small'>Strength set logger · Intermediate</div></td>
+    <td><span class='pill '>Back</span><span class='pill '>Legs</span><span class='pill '>Glutes</span><span class='pill '>Forearms</span></td>
+    <td><span class='pill '>Forearms</span><span class='pill '>Glutes</span><span class='pill '>Hamstrings</span><span class='pill '>Lats</span><span class='pill '>Lower Back</span><span class='pill '>Quads</span><span class='pill '>Traps</span></td>
+    <td><span class='pill '>Barbell</span></td>
+    <td>Power 100%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td><span class='pill warn'>low-back-sensitive</span></td>
+  </tr><tr>
+    <td><strong>Dumbbell Romanian Deadlift</strong><div class='small'>dumbbell romanian deadlift · exercise.dumbbell-romanian-deadlift</div></td>
+    <td>Hinge / Posterior</td>
+    <td>Free Weight Strength<div class='small'>Strength set logger · Intermediate</div></td>
+    <td><span class='pill '>Legs</span><span class='pill '>Glutes</span><span class='pill '>Back</span></td>
+    <td><span class='pill '>Glutes</span><span class='pill '>Hamstrings</span><span class='pill '>Lats</span><span class='pill '>Lower Back</span><span class='pill '>Quads</span><span class='pill '>Traps</span></td>
+    <td><span class='pill '>Barbell</span><span class='pill '>Dumbbell</span></td>
+    <td>Power 70% / Control 15% / Mobility 15%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td><span class='pill warn'>low-back-sensitive</span></td>
+  </tr><tr>
+    <td><strong>Glute Bridge</strong><div class='small'>glute bridge · exercise.glute-bridge</div></td>
+    <td>Hinge / Posterior</td>
+    <td>Free Weight Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Glutes</span><span class='pill '>Core</span></td>
+    <td><span class='pill '>Abs</span><span class='pill '>Glutes</span><span class='pill '>Hamstrings</span><span class='pill '>Lower Back</span><span class='pill '>Obliques</span></td>
+    <td><span class='pill '>Bodyweight</span></td>
+    <td>Power 74% / Endurance 26%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Good Morning</strong><div class='small'>good morning · exercise.good-morning</div></td>
+    <td>Hinge / Posterior</td>
+    <td>Free Weight Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Back</span><span class='pill '>Legs</span><span class='pill '>Glutes</span></td>
+    <td><span class='pill '>Glutes</span><span class='pill '>Hamstrings</span><span class='pill '>Lats</span><span class='pill '>Lower Back</span><span class='pill '>Quads</span><span class='pill '>Traps</span></td>
+    <td><span class='pill '>Barbell</span></td>
+    <td>Power 67% / Mobility 33%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td><span class='pill warn'>low-back-sensitive</span></td>
+  </tr><tr>
+    <td><strong>Hip Thrust</strong><div class='small'>hip thrust · exercise.hip-thrust</div></td>
+    <td>Hinge / Posterior</td>
+    <td>Free Weight Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Glutes</span><span class='pill '>Legs</span></td>
+    <td><span class='pill '>Glutes</span><span class='pill '>Hamstrings</span><span class='pill '>Quads</span></td>
+    <td><span class='pill '>Barbell</span></td>
+    <td>Power 81% / Endurance 19%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Kettlebell Swing</strong><div class='small'>kettlebell swing · exercise.kettlebell-swing</div></td>
+    <td>Hinge / Posterior</td>
+    <td>Free Weight Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Glutes</span><span class='pill '>Back</span><span class='pill '>Core</span></td>
+    <td><span class='pill '>Abs</span><span class='pill '>Glutes</span><span class='pill '>Hamstrings</span><span class='pill '>Lats</span><span class='pill '>Lower Back</span><span class='pill '>Obliques</span><span class='pill '>Traps</span></td>
+    <td><span class='pill '>Kettlebell</span></td>
+    <td>Explosiveness 79% / Endurance 21%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Romanian Deadlift</strong><div class='small'>romanian deadlift · exercise.romanian-deadlift</div></td>
+    <td>Hinge / Posterior</td>
+    <td>Free Weight Strength<div class='small'>Strength set logger · Intermediate</div></td>
+    <td><span class='pill '>Legs</span><span class='pill '>Glutes</span><span class='pill '>Back</span></td>
+    <td><span class='pill '>Glutes</span><span class='pill '>Hamstrings</span><span class='pill '>Lats</span><span class='pill '>Lower Back</span><span class='pill '>Quads</span><span class='pill '>Traps</span></td>
+    <td><span class='pill '>Barbell</span></td>
+    <td>Power 76% / Mobility 24%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td><span class='pill warn'>low-back-sensitive</span></td>
+  </tr><tr>
+    <td><strong>Single-Leg RDL</strong><div class='small'>single-leg rdl · exercise.single-leg-rdl</div></td>
+    <td>Hinge / Posterior</td>
+    <td>Free Weight Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Legs</span><span class='pill '>Glutes</span></td>
+    <td><span class='pill '>Glutes</span><span class='pill '>Hamstrings</span><span class='pill '>Lower Back</span><span class='pill '>Quads</span></td>
+    <td><span class='pill '>Bodyweight</span></td>
+    <td>Control 76% / Mobility 24%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Trap Bar Deadlift</strong><div class='small'>trap bar deadlift · exercise.trap-bar-deadlift</div></td>
+    <td>Hinge / Posterior</td>
+    <td>Free Weight Strength<div class='small'>Strength set logger · Intermediate</div></td>
+    <td><span class='pill '>Back</span><span class='pill '>Legs</span><span class='pill '>Glutes</span></td>
+    <td><span class='pill '>Glutes</span><span class='pill '>Hamstrings</span><span class='pill '>Lats</span><span class='pill '>Lower Back</span><span class='pill '>Quads</span><span class='pill '>Traps</span></td>
+    <td><span class='pill '>Barbell</span></td>
+    <td>Power 100%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td><span class='pill warn'>low-back-sensitive</span></td>
+  </tr><tr>
+    <td><strong>Barbell Bent-Over Row</strong><div class='small'>bent-over row · exercise.bent-over-row</div></td>
+    <td>Horizontal Pull</td>
+    <td>Free Weight Strength<div class='small'>Strength set logger · Intermediate</div></td>
+    <td><span class='pill '>Back</span><span class='pill '>Lats</span><span class='pill '>Arms</span></td>
+    <td><span class='pill '>Biceps</span><span class='pill '>Forearms</span><span class='pill '>Lats</span><span class='pill '>Lower Back</span><span class='pill '>Traps</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Barbell</span></td>
+    <td>Power 81% / Control 19%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td><span class='pill warn'>low-back-sensitive</span></td>
+  </tr><tr>
+    <td><strong>Chest Supported Row</strong><div class='small'>chest supported row · exercise.chest-supported-row</div></td>
+    <td>Horizontal Pull</td>
+    <td>Free Weight Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Back</span><span class='pill '>Lats</span><span class='pill '>Arms</span></td>
+    <td><span class='pill '>Biceps</span><span class='pill '>Forearms</span><span class='pill '>Lats</span><span class='pill '>Lower Back</span><span class='pill '>Traps</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Bench</span></td>
+    <td>Power 75% / Endurance 25%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td><span class='pill warn'>low-back-sensitive</span></td>
+  </tr><tr>
+    <td><strong>Dumbbell Row</strong><div class='small'>dumbbell row · exercise.dumbbell-row</div></td>
+    <td>Horizontal Pull</td>
+    <td>Free Weight Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Back</span><span class='pill '>Lats</span><span class='pill '>Arms</span></td>
+    <td><span class='pill '>Biceps</span><span class='pill '>Forearms</span><span class='pill '>Lats</span><span class='pill '>Lower Back</span><span class='pill '>Traps</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Dumbbell</span></td>
+    <td>Power 80% / Control 20%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td><span class='pill warn'>low-back-sensitive</span></td>
+  </tr><tr>
+    <td><strong>Landmine Row</strong><div class='small'>landmine row · exercise.landmine-row</div></td>
+    <td>Horizontal Pull</td>
+    <td>Free Weight Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Back</span><span class='pill '>Lats</span><span class='pill '>Arms</span></td>
+    <td><span class='pill '>Biceps</span><span class='pill '>Forearms</span><span class='pill '>Lats</span><span class='pill '>Lower Back</span><span class='pill '>Traps</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Barbell</span></td>
+    <td>Power 70% / Control 20% / Endurance 10%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td><span class='pill warn'>low-back-sensitive</span></td>
+  </tr><tr>
+    <td><strong>Meadows Row</strong><div class='small'>meadows row · exercise.meadows-row</div></td>
+    <td>Horizontal Pull</td>
+    <td>Free Weight Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Back</span><span class='pill '>Lats</span><span class='pill '>Arms</span></td>
+    <td><span class='pill '>Biceps</span><span class='pill '>Forearms</span><span class='pill '>Lats</span><span class='pill '>Lower Back</span><span class='pill '>Traps</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Bodyweight</span></td>
+    <td>Power 80% / Control 20%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td><span class='pill warn'>low-back-sensitive</span></td>
+  </tr><tr>
+    <td><strong>Pendlay Row</strong><div class='small'>pendlay row · exercise.pendlay-row</div></td>
+    <td>Horizontal Pull</td>
+    <td>Free Weight Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Back</span><span class='pill '>Lats</span><span class='pill '>Arms</span></td>
+    <td><span class='pill '>Biceps</span><span class='pill '>Forearms</span><span class='pill '>Lats</span><span class='pill '>Lower Back</span><span class='pill '>Traps</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Bodyweight</span></td>
+    <td>Power 82% / Explosiveness 18%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td><span class='pill warn'>low-back-sensitive</span></td>
+  </tr><tr>
+    <td><strong>T-Bar Row</strong><div class='small'>t-bar row · exercise.t-bar-row</div></td>
+    <td>Horizontal Pull</td>
+    <td>Free Weight Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Back</span><span class='pill '>Lats</span><span class='pill '>Arms</span></td>
+    <td><span class='pill '>Biceps</span><span class='pill '>Forearms</span><span class='pill '>Lats</span><span class='pill '>Lower Back</span><span class='pill '>Traps</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Barbell</span></td>
+    <td>Power 70% / Control 20% / Endurance 10%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td><span class='pill warn'>low-back-sensitive</span></td>
+  </tr><tr>
+    <td><strong>Barbell Bench Press</strong><div class='small'>bench press · exercise.bench-press</div></td>
+    <td>Horizontal Push</td>
+    <td>Free Weight Strength<div class='small'>Strength set logger · Intermediate</div></td>
+    <td><span class='pill '>Chest</span><span class='pill '>Shoulders</span><span class='pill '>Arms</span></td>
+    <td><span class='pill '>Biceps</span><span class='pill '>Chest</span><span class='pill '>Shoulders</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Barbell</span><span class='pill '>Bench</span></td>
+    <td>Power 100%</td>
+    <td><span class='small'>None</span></td>
+    <td><span class='pill good'>cal.pushup</span></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Decline Press</strong><div class='small'>decline bench press · exercise.decline-bench-press</div></td>
+    <td>Horizontal Push</td>
+    <td>Free Weight Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Chest</span><span class='pill '>Arms</span></td>
+    <td><span class='pill '>Biceps</span><span class='pill '>Chest</span><span class='pill '>Shoulders</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Barbell</span><span class='pill '>Bench</span></td>
+    <td>Power 100%</td>
+    <td><span class='small'>None</span></td>
+    <td><span class='pill good'>cal.pushup</span></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Dumbbell Bench Press</strong><div class='small'>dumbbell bench press · exercise.dumbbell-bench-press</div></td>
+    <td>Horizontal Push</td>
+    <td>Free Weight Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Chest</span><span class='pill '>Shoulders</span><span class='pill '>Arms</span></td>
+    <td><span class='pill '>Biceps</span><span class='pill '>Chest</span><span class='pill '>Shoulders</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Barbell</span><span class='pill '>Bench</span><span class='pill '>Dumbbell</span></td>
+    <td>Power 81% / Control 19%</td>
+    <td><span class='small'>None</span></td>
+    <td><span class='pill good'>cal.pushup</span></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Dumbbell Fly</strong><div class='small'>dumbbell fly · exercise.dumbbell-fly</div></td>
+    <td>Horizontal Push</td>
+    <td>Free Weight Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Chest</span></td>
+    <td><span class='pill '>Chest</span><span class='pill '>Shoulders</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Dumbbell</span></td>
+    <td>Control 74% / Mobility 26%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Incline Barbell Press</strong><div class='small'>incline bench press · exercise.incline-bench-press</div></td>
+    <td>Horizontal Push</td>
+    <td>Free Weight Strength<div class='small'>Strength set logger · Intermediate</div></td>
+    <td><span class='pill '>Chest</span><span class='pill '>Shoulders</span><span class='pill '>Arms</span></td>
+    <td><span class='pill '>Biceps</span><span class='pill '>Chest</span><span class='pill '>Shoulders</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Barbell</span><span class='pill '>Bench</span></td>
+    <td>Power 100%</td>
+    <td><span class='small'>None</span></td>
+    <td><span class='pill good'>cal.pushup</span></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Incline Dumbbell Press</strong><div class='small'>incline dumbbell press · exercise.incline-dumbbell-press</div></td>
+    <td>Horizontal Push</td>
+    <td>Free Weight Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Chest</span><span class='pill '>Shoulders</span><span class='pill '>Arms</span></td>
+    <td><span class='pill '>Biceps</span><span class='pill '>Chest</span><span class='pill '>Shoulders</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Bench</span><span class='pill '>Dumbbell</span></td>
+    <td>Power 81% / Control 19%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Barbell Back Squat</strong><div class='small'>back squat · exercise.back-squat</div></td>
+    <td>Squat / Quad</td>
+    <td>Free Weight Strength<div class='small'>Strength set logger · Intermediate</div></td>
+    <td><span class='pill '>Legs</span><span class='pill '>Glutes</span><span class='pill '>Core</span></td>
+    <td><span class='pill '>Abs</span><span class='pill '>Glutes</span><span class='pill '>Hamstrings</span><span class='pill '>Lower Back</span><span class='pill '>Obliques</span><span class='pill '>Quads</span></td>
+    <td><span class='pill '>Barbell</span></td>
+    <td>Power 100%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td><span class='pill warn'>knee-sensitive</span></td>
+  </tr><tr>
+    <td><strong>Barbell Front Squat</strong><div class='small'>front squat · exercise.front-squat</div></td>
+    <td>Squat / Quad</td>
+    <td>Free Weight Strength<div class='small'>Strength set logger · Intermediate</div></td>
+    <td><span class='pill '>Legs</span><span class='pill '>Glutes</span><span class='pill '>Core</span></td>
+    <td><span class='pill '>Abs</span><span class='pill '>Glutes</span><span class='pill '>Hamstrings</span><span class='pill '>Lower Back</span><span class='pill '>Obliques</span><span class='pill '>Quads</span></td>
+    <td><span class='pill '>Barbell</span></td>
+    <td>Power 77% / Mobility 23%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td><span class='pill warn'>knee-sensitive</span></td>
+  </tr><tr>
+    <td><strong>Belt Squat</strong><div class='small'>belt squat · exercise.belt-squat</div></td>
+    <td>Squat / Quad</td>
+    <td>Free Weight Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Legs</span><span class='pill '>Glutes</span><span class='pill '>Core</span></td>
+    <td><span class='pill '>Abs</span><span class='pill '>Glutes</span><span class='pill '>Hamstrings</span><span class='pill '>Lower Back</span><span class='pill '>Obliques</span><span class='pill '>Quads</span></td>
+    <td><span class='pill '>Bodyweight</span></td>
+    <td>Power 70% / Control 15% / Mobility 15%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td><span class='pill warn'>knee-sensitive</span></td>
+  </tr><tr>
+    <td><strong>Bulgarian Split Squat</strong><div class='small'>bulgarian split squat · exercise.bulgarian-split-squat</div></td>
+    <td>Squat / Quad</td>
+    <td>Free Weight Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Legs</span><span class='pill '>Glutes</span></td>
+    <td><span class='pill '>Glutes</span><span class='pill '>Hamstrings</span><span class='pill '>Quads</span></td>
+    <td><span class='pill '>Bodyweight</span></td>
+    <td>Power 71% / Agility 29%</td>
+    <td><span class='small'>None</span></td>
+    <td><span class='pill good'>ld.pistol-squat</span></td>
+    <td><span class='pill warn'>knee-sensitive</span></td>
+  </tr><tr>
+    <td><strong>Dumbbell Step Up</strong><div class='small'>dumbbell step up · exercise.dumbbell-step-up</div></td>
+    <td>Squat / Quad</td>
+    <td>Free Weight Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Legs</span><span class='pill '>Glutes</span></td>
+    <td><span class='pill '>Glutes</span><span class='pill '>Hamstrings</span><span class='pill '>Quads</span></td>
+    <td><span class='pill '>Box</span><span class='pill '>Dumbbell</span></td>
+    <td>Power 50% / Control 30% / Endurance 20%</td>
+    <td><span class='small'>None</span></td>
+    <td><span class='pill good'>ld.pistol-squat</span></td>
+    <td><span class='pill warn'>knee-sensitive</span></td>
+  </tr><tr>
+    <td><strong>Goblet Squat</strong><div class='small'>goblet squat · exercise.goblet-squat</div></td>
+    <td>Squat / Quad</td>
+    <td>Free Weight Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Legs</span><span class='pill '>Glutes</span><span class='pill '>Core</span></td>
+    <td><span class='pill '>Abs</span><span class='pill '>Glutes</span><span class='pill '>Hamstrings</span><span class='pill '>Lower Back</span><span class='pill '>Obliques</span><span class='pill '>Quads</span></td>
+    <td><span class='pill '>Dumbbell</span></td>
+    <td>Power 65% / Mobility 25% / Control 10%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td><span class='pill warn'>knee-sensitive</span></td>
+  </tr><tr>
+    <td><strong>Safety Bar Squat</strong><div class='small'>safety bar squat · exercise.safety-bar-squat</div></td>
+    <td>Squat / Quad</td>
+    <td>Free Weight Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Legs</span><span class='pill '>Glutes</span><span class='pill '>Back</span></td>
+    <td><span class='pill '>Glutes</span><span class='pill '>Hamstrings</span><span class='pill '>Lats</span><span class='pill '>Lower Back</span><span class='pill '>Quads</span><span class='pill '>Traps</span></td>
+    <td><span class='pill '>Barbell</span></td>
+    <td>Power 100%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td><span class='pill warn'>knee-sensitive</span></td>
+  </tr><tr>
+    <td><strong>Arnold Press</strong><div class='small'>arnold press · exercise.arnold-press</div></td>
+    <td>Vertical Push</td>
+    <td>Free Weight Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Shoulders</span><span class='pill '>Arms</span></td>
+    <td><span class='pill '>Biceps</span><span class='pill '>Shoulders</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Dumbbell</span></td>
+    <td>Control 74% / Mobility 26%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Barbell OHP</strong><div class='small'>overhead press · exercise.overhead-press</div></td>
+    <td>Vertical Push</td>
+    <td>Free Weight Strength<div class='small'>Strength set logger · Intermediate</div></td>
+    <td><span class='pill '>Shoulders</span><span class='pill '>Arms</span><span class='pill '>Core</span></td>
+    <td><span class='pill '>Abs</span><span class='pill '>Biceps</span><span class='pill '>Lower Back</span><span class='pill '>Obliques</span><span class='pill '>Shoulders</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Barbell</span></td>
+    <td>Power 100%</td>
+    <td><span class='small'>None</span></td>
+    <td><span class='pill good'>cal.handstand-pushup</span><span class='pill good'>hs.wall-handstand-30</span></td>
+    <td><span class='pill warn'>shoulder-sensitive</span></td>
+  </tr><tr>
+    <td><strong>Dumbbell Front Raise</strong><div class='small'>dumbbell front raise · exercise.dumbbell-front-raise</div></td>
+    <td>Vertical Push</td>
+    <td>Free Weight Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Shoulders</span></td>
+    <td><span class='pill '>Abs</span><span class='pill '>Shoulders</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Dumbbell</span></td>
+    <td>Power 50% / Control 30% / Endurance 20%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Dumbbell OHP</strong><div class='small'>dumbbell overhead press · exercise.dumbbell-overhead-press</div></td>
+    <td>Vertical Push</td>
+    <td>Free Weight Strength<div class='small'>Strength set logger · Intermediate</div></td>
+    <td><span class='pill '>Shoulders</span><span class='pill '>Arms</span></td>
+    <td><span class='pill '>Biceps</span><span class='pill '>Shoulders</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Barbell</span><span class='pill '>Dumbbell</span></td>
+    <td>Power 81% / Control 19%</td>
+    <td><span class='small'>None</span></td>
+    <td><span class='pill good'>cal.handstand-pushup</span><span class='pill good'>hs.wall-handstand-30</span></td>
+    <td><span class='pill warn'>shoulder-sensitive</span></td>
+  </tr><tr>
+    <td><strong>Landmine Press</strong><div class='small'>landmine press · exercise.landmine-press</div></td>
+    <td>Vertical Push</td>
+    <td>Free Weight Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Shoulders</span><span class='pill '>Chest</span><span class='pill '>Core</span></td>
+    <td><span class='pill '>Abs</span><span class='pill '>Chest</span><span class='pill '>Lower Back</span><span class='pill '>Obliques</span><span class='pill '>Shoulders</span></td>
+    <td><span class='pill '>Barbell</span></td>
+    <td>Power 75% / Control 25%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Lateral Raise (DB)</strong><div class='small'>lateral raise (db) · exercise.lateral-raise-db</div></td>
+    <td>Vertical Push</td>
+    <td>Free Weight Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Shoulders</span></td>
+    <td><span class='pill '>Abs</span><span class='pill '>Shoulders</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Dumbbell</span></td>
+    <td>Endurance 75% / Control 25%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Rear Delt Fly (DB)</strong><div class='small'>rear delt fly (db) · exercise.rear-delt-fly-db</div></td>
+    <td>Vertical Push</td>
+    <td>Free Weight Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Shoulders</span><span class='pill '>Back</span></td>
+    <td><span class='pill '>Chest</span><span class='pill '>Lats</span><span class='pill '>Lower Back</span><span class='pill '>Shoulders</span><span class='pill '>Traps</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Dumbbell</span></td>
+    <td>Control 74% / Endurance 26%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Upright Row</strong><div class='small'>upright row · exercise.upright-row</div></td>
+    <td>Vertical Push</td>
+    <td>Free Weight Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Shoulders</span><span class='pill '>Traps</span><span class='pill '>Arms</span></td>
+    <td><span class='pill '>Biceps</span><span class='pill '>Forearms</span><span class='pill '>Lats</span><span class='pill '>Shoulders</span><span class='pill '>Traps</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Bodyweight</span></td>
+    <td>Power 70% / Control 20% / Endurance 10%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td><span class='pill warn'>low-back-sensitive</span><span class='pill warn'>shoulder-sensitive</span></td>
+  </tr></tbody></table></div></details><details open><summary>Hold / Control · 9 ranked standards</summary><div><table><thead><tr><th>Ranked Standard</th><th>Slot</th><th>Template</th><th>Targets</th><th>Body Map</th><th>Equipment</th><th>Top Stats</th><th>Loggable Variants</th><th>Skills</th><th>Flags</th></tr></thead><tbody><tr>
+    <td><strong>Advanced Tuck Front Lever</strong><div class='small'>advanced tuck front lever · exercise.advanced-tuck-front-lever</div></td>
+    <td>Core</td>
+    <td>Hold / Control<div class='small'>Hold timer · Advanced</div></td>
+    <td><span class='pill '>Core</span><span class='pill '>Lats</span><span class='pill '>Back</span></td>
+    <td><span class='pill '>Abs</span><span class='pill '>Lats</span><span class='pill '>Lower Back</span><span class='pill '>Obliques</span><span class='pill '>Traps</span></td>
+    <td><span class='pill '>Bodyweight</span></td>
+    <td>Control 77% / Power 23%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Dragon Flag</strong><div class='small'>dragon flag · exercise.dragon-flag</div></td>
+    <td>Core</td>
+    <td>Hold / Control<div class='small'>Hold timer · Advanced</div></td>
+    <td><span class='pill '>Core</span></td>
+    <td><span class='pill '>Abs</span><span class='pill '>Lower Back</span><span class='pill '>Obliques</span></td>
+    <td><span class='pill '>Bodyweight</span></td>
+    <td>Control 77% / Power 23%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Hanging Knee Raise</strong><div class='small'>hanging knee raise · exercise.hanging-knee-raise</div></td>
+    <td>Core</td>
+    <td>Hold / Control<div class='small'>Hold timer · Beginner</div></td>
+    <td><span class='pill '>Core</span></td>
+    <td><span class='pill '>Abs</span><span class='pill '>Lower Back</span><span class='pill '>Obliques</span></td>
+    <td><span class='pill '>Bodyweight</span><span class='pill '>Pull-Up Bar</span></td>
+    <td>Control 75% / Endurance 25%</td>
+    <td><span class='small'>None</span></td>
+    <td><span class='pill good'>cl.hollow-body-30</span></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Hanging Leg Raise</strong><div class='small'>hanging leg raise · exercise.hanging-leg-raise</div></td>
+    <td>Core</td>
+    <td>Hold / Control<div class='small'>Hold timer · Beginner</div></td>
+    <td><span class='pill '>Core</span></td>
+    <td><span class='pill '>Abs</span><span class='pill '>Lower Back</span><span class='pill '>Obliques</span></td>
+    <td><span class='pill '>Bodyweight</span><span class='pill '>Pull-Up Bar</span></td>
+    <td>Control 81% / Power 19%</td>
+    <td><span class='small'>None</span></td>
+    <td><span class='pill good'>cl.hollow-body-30</span></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Hollow Hold</strong><div class='small'>hollow hold · exercise.hollow-hold</div></td>
+    <td>Core</td>
+    <td>Hold / Control<div class='small'>Hold timer · Beginner</div></td>
+    <td><span class='pill '>Core</span></td>
+    <td><span class='pill '>Abs</span><span class='pill '>Lower Back</span><span class='pill '>Obliques</span></td>
+    <td><span class='pill '>Bodyweight</span></td>
+    <td>Control 79% / Endurance 21%</td>
+    <td><span class='small'>None</span></td>
+    <td><span class='pill good'>cl.hollow-body-30</span></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>L-Sit</strong><div class='small'>l-sit · exercise.l-sit</div></td>
+    <td>Core</td>
+    <td>Hold / Control<div class='small'>Hold timer · Intermediate</div></td>
+    <td><span class='pill '>Core</span><span class='pill '>Shoulders</span><span class='pill '>Arms</span></td>
+    <td><span class='pill '>Abs</span><span class='pill '>Biceps</span><span class='pill '>Lower Back</span><span class='pill '>Obliques</span><span class='pill '>Shoulders</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Bodyweight</span></td>
+    <td>Control 80% / Power 20%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>L-Sit (Tucked)</strong><div class='small'>l-sit (tucked) · exercise.l-sit-tucked</div></td>
+    <td>Core</td>
+    <td>Hold / Control<div class='small'>Hold timer · Beginner</div></td>
+    <td><span class='pill '>Core</span><span class='pill '>Shoulders</span><span class='pill '>Arms</span></td>
+    <td><span class='pill '>Abs</span><span class='pill '>Biceps</span><span class='pill '>Lower Back</span><span class='pill '>Obliques</span><span class='pill '>Shoulders</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Bodyweight</span></td>
+    <td>Control 83% / Power 17%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Plank</strong><div class='small'>plank · exercise.plank</div></td>
+    <td>Core</td>
+    <td>Hold / Control<div class='small'>Hold timer · Beginner</div></td>
+    <td><span class='pill '>Core</span></td>
+    <td><span class='pill '>Abs</span><span class='pill '>Lower Back</span><span class='pill '>Obliques</span></td>
+    <td><span class='pill '>Bodyweight</span></td>
+    <td>Control 74% / Endurance 26%</td>
+    <td><span class='small'>None</span></td>
+    <td><span class='pill good'>cl.hollow-body-30</span></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Tuck Front Lever</strong><div class='small'>tuck front lever · exercise.tuck-front-lever</div></td>
+    <td>Core</td>
+    <td>Hold / Control<div class='small'>Hold timer · Intermediate</div></td>
+    <td><span class='pill '>Core</span><span class='pill '>Lats</span><span class='pill '>Back</span></td>
+    <td><span class='pill '>Abs</span><span class='pill '>Lats</span><span class='pill '>Lower Back</span><span class='pill '>Obliques</span><span class='pill '>Traps</span></td>
+    <td><span class='pill '>Bodyweight</span></td>
+    <td>Control 80% / Power 20%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td></td>
+  </tr></tbody></table></div></details><details open><summary>Machine / Cable Strength · 50 ranked standards</summary><div><table><thead><tr><th>Ranked Standard</th><th>Slot</th><th>Template</th><th>Targets</th><th>Body Map</th><th>Equipment</th><th>Top Stats</th><th>Loggable Variants</th><th>Skills</th><th>Flags</th></tr></thead><tbody><tr>
+    <td><strong>Assisted Dip Machine</strong><div class='small'>assisted dip machine · exercise.assisted-dip-machine</div></td>
+    <td>Arms</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger · Intermediate</div></td>
+    <td><span class='pill '>Arms</span><span class='pill '>Chest</span><span class='pill '>Shoulders</span></td>
+    <td><span class='pill '>Biceps</span><span class='pill '>Chest</span><span class='pill '>Shoulders</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Dip Station</span><span class='pill '>Machine</span></td>
+    <td>Endurance 55% / Control 25% / Power 20%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td><span class='pill warn'>shoulder-sensitive</span></td>
+  </tr><tr>
+    <td><strong>Cable Curl</strong><div class='small'>cable curl · exercise.cable-curl</div></td>
+    <td>Arms</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Arms</span></td>
+    <td><span class='pill '>Biceps</span><span class='pill '>Forearms</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Cable</span></td>
+    <td>Endurance 74% / Control 26%</td>
+    <td><span class='pill '>Rope Cable Curl</span></td>
+    <td></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Dip Machine</strong><div class='small'>dip machine · exercise.dip-machine</div></td>
+    <td>Arms</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger · Intermediate</div></td>
+    <td><span class='pill '>Arms</span><span class='pill '>Chest</span><span class='pill '>Shoulders</span></td>
+    <td><span class='pill '>Biceps</span><span class='pill '>Chest</span><span class='pill '>Shoulders</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Dip Station</span><span class='pill '>Machine</span></td>
+    <td>Endurance 55% / Control 25% / Power 20%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td><span class='pill warn'>shoulder-sensitive</span></td>
+  </tr><tr>
+    <td><strong>Machine Biceps Curl</strong><div class='small'>machine biceps curl · exercise.machine-biceps-curl</div></td>
+    <td>Arms</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Arms</span></td>
+    <td><span class='pill '>Biceps</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Machine</span></td>
+    <td>Endurance 55% / Control 25% / Power 20%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Machine Triceps Extension</strong><div class='small'>machine triceps extension · exercise.machine-triceps-extension</div></td>
+    <td>Arms</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Arms</span></td>
+    <td><span class='pill '>Biceps</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Machine</span></td>
+    <td>Endurance 55% / Control 25% / Power 20%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Overhead Tricep Ext (Cable)</strong><div class='small'>overhead tricep extension · exercise.overhead-tricep-extension</div></td>
+    <td>Arms</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Arms</span></td>
+    <td><span class='pill '>Biceps</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Bodyweight</span><span class='pill '>Cable</span></td>
+    <td>Mobility 72% / Power 28%</td>
+    <td><span class='pill '>Rope Overhead Tricep Extension</span></td>
+    <td></td>
+    <td><span class='pill warn'>shoulder-sensitive</span></td>
+  </tr><tr>
+    <td><strong>Preacher Curl (Machine)</strong><div class='small'>preacher curl · exercise.preacher-curl</div></td>
+    <td>Arms</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Arms</span></td>
+    <td><span class='pill '>Biceps</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Machine</span></td>
+    <td>Control 72% / Endurance 28%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Tricep Pushdown (Cable)</strong><div class='small'>tricep pushdown · exercise.tricep-pushdown</div></td>
+    <td>Arms</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Arms</span></td>
+    <td><span class='pill '>Biceps</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Cable</span></td>
+    <td>Endurance 74% / Control 26%</td>
+    <td><span class='pill '>Rope Tricep Pushdown</span><span class='pill '>Straight-Bar Tricep Pushdown</span></td>
+    <td></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Cable Crunch</strong><div class='small'>cable crunch · exercise.cable-crunch</div></td>
+    <td>Core</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Core</span></td>
+    <td><span class='pill '>Abs</span><span class='pill '>Lower Back</span><span class='pill '>Obliques</span></td>
+    <td><span class='pill '>Cable</span></td>
+    <td>Control 74% / Endurance 26%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Machine Crunch</strong><div class='small'>machine crunch · exercise.machine-crunch</div></td>
+    <td>Core</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Core</span></td>
+    <td><span class='pill '>Abs</span><span class='pill '>Lower Back</span><span class='pill '>Obliques</span></td>
+    <td><span class='pill '>Machine</span></td>
+    <td>Control 60% / Endurance 30% / Power 10%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Pallof Press</strong><div class='small'>pallof press · exercise.pallof-press</div></td>
+    <td>Core</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Core</span></td>
+    <td><span class='pill '>Abs</span><span class='pill '>Lower Back</span><span class='pill '>Obliques</span></td>
+    <td><span class='pill '>Cable</span></td>
+    <td>Control 82% / Endurance 18%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Cable Glute Kickback</strong><div class='small'>cable glute kickback · exercise.cable-glute-kickback</div></td>
+    <td>Hinge / Posterior</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Glutes</span><span class='pill '>Legs</span></td>
+    <td><span class='pill '>Glutes</span><span class='pill '>Hamstrings</span><span class='pill '>Quads</span></td>
+    <td><span class='pill '>Cable</span></td>
+    <td>Power 55% / Endurance 30% / Control 15%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Cable Hip Abduction</strong><div class='small'>cable hip abduction · exercise.cable-hip-abduction</div></td>
+    <td>Hinge / Posterior</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Glutes</span></td>
+    <td><span class='pill '>Glutes</span></td>
+    <td><span class='pill '>Cable</span></td>
+    <td>Power 55% / Endurance 30% / Control 15%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Cable Pull Through</strong><div class='small'>cable pull through · exercise.cable-pull-through</div></td>
+    <td>Hinge / Posterior</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Glutes</span><span class='pill '>Back</span></td>
+    <td><span class='pill '>Glutes</span><span class='pill '>Hamstrings</span><span class='pill '>Lats</span><span class='pill '>Lower Back</span><span class='pill '>Traps</span></td>
+    <td><span class='pill '>Cable</span></td>
+    <td>Power 74% / Endurance 26%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Glute-Ham Raise</strong><div class='small'>glute ham raise · exercise.glute-ham-raise</div></td>
+    <td>Hinge / Posterior</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Legs</span><span class='pill '>Glutes</span><span class='pill '>Back</span></td>
+    <td><span class='pill '>Abs</span><span class='pill '>Glutes</span><span class='pill '>Hamstrings</span><span class='pill '>Lats</span><span class='pill '>Lower Back</span><span class='pill '>Quads</span><span class='pill '>Traps</span></td>
+    <td><span class='pill '>Machine</span></td>
+    <td>Control 75% / Power 25%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Hip Abductor Machine</strong><div class='small'>hip abductor machine · exercise.hip-abductor-machine</div></td>
+    <td>Hinge / Posterior</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Glutes</span></td>
+    <td><span class='pill '>Glutes</span><span class='pill '>Hamstrings</span></td>
+    <td><span class='pill '>Machine</span></td>
+    <td>Power 55% / Endurance 30% / Control 15%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Leg Curl (Lying)</strong><div class='small'>leg curl (lying) · exercise.leg-curl-lying</div></td>
+    <td>Hinge / Posterior</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Legs</span></td>
+    <td><span class='pill '>Biceps</span><span class='pill '>Glutes</span><span class='pill '>Hamstrings</span><span class='pill '>Lower Back</span><span class='pill '>Quads</span></td>
+    <td><span class='pill '>Machine</span></td>
+    <td>Endurance 75% / Power 25%</td>
+    <td><span class='pill '>Leg Curl (Seated)</span><span class='pill '>Single-Leg Curl</span></td>
+    <td><span class='pill good'>ld.nordic-curl</span></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Machine Glute Kickback</strong><div class='small'>machine glute kickback · exercise.machine-glute-kickback</div></td>
+    <td>Hinge / Posterior</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Glutes</span><span class='pill '>Legs</span></td>
+    <td><span class='pill '>Glutes</span><span class='pill '>Hamstrings</span><span class='pill '>Quads</span></td>
+    <td><span class='pill '>Machine</span></td>
+    <td>Power 55% / Endurance 30% / Control 15%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Reverse Hyper</strong><div class='small'>reverse hyper · exercise.reverse-hyper</div></td>
+    <td>Hinge / Posterior</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Glutes</span><span class='pill '>Back</span><span class='pill '>Legs</span></td>
+    <td><span class='pill '>Glutes</span><span class='pill '>Hamstrings</span><span class='pill '>Lats</span><span class='pill '>Lower Back</span><span class='pill '>Quads</span><span class='pill '>Traps</span></td>
+    <td><span class='pill '>Machine</span></td>
+    <td>Power 70% / Control 15% / Mobility 15%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Smith Machine Hip Thrust</strong><div class='small'>smith machine hip thrust · exercise.smith-machine-hip-thrust</div></td>
+    <td>Hinge / Posterior</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Glutes</span><span class='pill '>Legs</span></td>
+    <td><span class='pill '>Glutes</span><span class='pill '>Hamstrings</span><span class='pill '>Quads</span></td>
+    <td><span class='pill '>Barbell</span><span class='pill '>Machine</span><span class='pill '>Smith Machine</span></td>
+    <td>Power 55% / Endurance 30% / Control 15%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Smith Machine Romanian Deadlift</strong><div class='small'>smith machine romanian deadlift · exercise.smith-machine-romanian-deadlift</div></td>
+    <td>Hinge / Posterior</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger · Intermediate</div></td>
+    <td><span class='pill '>Legs</span><span class='pill '>Glutes</span><span class='pill '>Back</span></td>
+    <td><span class='pill '>Glutes</span><span class='pill '>Hamstrings</span><span class='pill '>Lats</span><span class='pill '>Lower Back</span><span class='pill '>Quads</span><span class='pill '>Traps</span></td>
+    <td><span class='pill '>Barbell</span><span class='pill '>Machine</span><span class='pill '>Smith Machine</span></td>
+    <td>Power 55% / Endurance 30% / Control 15%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td><span class='pill warn'>low-back-sensitive</span></td>
+  </tr><tr>
+    <td><strong>Cable Row (Seated)</strong><div class='small'>cable row (seated) · exercise.cable-row-seated</div></td>
+    <td>Horizontal Pull</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Back</span><span class='pill '>Lats</span><span class='pill '>Arms</span></td>
+    <td><span class='pill '>Biceps</span><span class='pill '>Forearms</span><span class='pill '>Lats</span><span class='pill '>Lower Back</span><span class='pill '>Traps</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Cable</span></td>
+    <td>Power 74% / Endurance 26%</td>
+    <td><span class='pill '>Single-Arm Cable Row</span><span class='pill '>Wide-Grip Cable Row</span></td>
+    <td></td>
+    <td><span class='pill warn'>low-back-sensitive</span></td>
+  </tr><tr>
+    <td><strong>Hammer Strength High Row</strong><div class='small'>hammer strength high row · exercise.hammer-strength-high-row</div></td>
+    <td>Horizontal Pull</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Back</span><span class='pill '>Lats</span><span class='pill '>Arms</span></td>
+    <td><span class='pill '>Biceps</span><span class='pill '>Forearms</span><span class='pill '>Lats</span><span class='pill '>Lower Back</span><span class='pill '>Traps</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Machine</span></td>
+    <td>Power 55% / Endurance 30% / Control 15%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td><span class='pill warn'>low-back-sensitive</span></td>
+  </tr><tr>
+    <td><strong>Machine Row</strong><div class='small'>machine row · exercise.machine-row</div></td>
+    <td>Horizontal Pull</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Back</span><span class='pill '>Lats</span><span class='pill '>Arms</span></td>
+    <td><span class='pill '>Biceps</span><span class='pill '>Forearms</span><span class='pill '>Lats</span><span class='pill '>Lower Back</span><span class='pill '>Traps</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Bench</span><span class='pill '>Machine</span></td>
+    <td>Power 74% / Endurance 26%</td>
+    <td><span class='pill '>Hammer Strength Low Row</span><span class='pill '>Hammer Strength Row</span><span class='pill '>Machine Chest Supported Row</span><span class='pill '>Plate Loaded Row</span></td>
+    <td></td>
+    <td><span class='pill warn'>low-back-sensitive</span></td>
+  </tr><tr>
+    <td><strong>Cable Fly</strong><div class='small'>cable fly · exercise.cable-fly</div></td>
+    <td>Horizontal Push</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Chest</span></td>
+    <td><span class='pill '>Chest</span><span class='pill '>Shoulders</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Cable</span><span class='pill '>Dumbbell</span></td>
+    <td>Control 74% / Endurance 26%</td>
+    <td><span class='pill '>High-to-Low Cable Fly</span><span class='pill '>Low-to-High Cable Fly</span></td>
+    <td></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Machine Chest Press</strong><div class='small'>machine chest press · exercise.machine-chest-press</div></td>
+    <td>Horizontal Push</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Chest</span><span class='pill '>Shoulders</span><span class='pill '>Arms</span></td>
+    <td><span class='pill '>Biceps</span><span class='pill '>Chest</span><span class='pill '>Shoulders</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Machine</span></td>
+    <td>Power 75% / Endurance 25%</td>
+    <td><span class='pill '>Converging Chest Press</span><span class='pill '>Hammer Strength Chest Press</span><span class='pill '>Plate Loaded Chest Press</span></td>
+    <td><span class='pill good'>cal.pushup</span></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Machine Incline Chest Press</strong><div class='small'>machine incline chest press · exercise.machine-incline-chest-press</div></td>
+    <td>Horizontal Push</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Chest</span><span class='pill '>Shoulders</span><span class='pill '>Arms</span></td>
+    <td><span class='pill '>Biceps</span><span class='pill '>Chest</span><span class='pill '>Shoulders</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Bench</span><span class='pill '>Machine</span></td>
+    <td>Power 55% / Endurance 30% / Control 15%</td>
+    <td><span class='small'>None</span></td>
+    <td><span class='pill good'>cal.pushup</span></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Pec Dec (Machine)</strong><div class='small'>pec dec · exercise.pec-dec</div></td>
+    <td>Horizontal Push</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Chest</span></td>
+    <td><span class='pill '>Chest</span><span class='pill '>Shoulders</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Machine</span></td>
+    <td>Control 75% / Endurance 25%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Smith Machine Bench Press</strong><div class='small'>smith machine bench press · exercise.smith-machine-bench-press</div></td>
+    <td>Horizontal Push</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Chest</span><span class='pill '>Shoulders</span><span class='pill '>Arms</span></td>
+    <td><span class='pill '>Biceps</span><span class='pill '>Chest</span><span class='pill '>Shoulders</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Barbell</span><span class='pill '>Bench</span><span class='pill '>Machine</span><span class='pill '>Smith Machine</span></td>
+    <td>Power 55% / Endurance 30% / Control 15%</td>
+    <td><span class='small'>None</span></td>
+    <td><span class='pill good'>cal.pushup</span></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Smith Machine Incline Press</strong><div class='small'>smith machine incline press · exercise.smith-machine-incline-press</div></td>
+    <td>Horizontal Push</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Chest</span><span class='pill '>Shoulders</span><span class='pill '>Arms</span></td>
+    <td><span class='pill '>Biceps</span><span class='pill '>Chest</span><span class='pill '>Shoulders</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Bench</span><span class='pill '>Machine</span><span class='pill '>Smith Machine</span></td>
+    <td>Power 55% / Endurance 30% / Control 15%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Hack Squat (Machine)</strong><div class='small'>hack squat · exercise.hack-squat</div></td>
+    <td>Squat / Quad</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Legs</span><span class='pill '>Glutes</span></td>
+    <td><span class='pill '>Glutes</span><span class='pill '>Hamstrings</span><span class='pill '>Quads</span></td>
+    <td><span class='pill '>Machine</span></td>
+    <td>Power 77% / Endurance 23%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td><span class='pill warn'>knee-sensitive</span></td>
+  </tr><tr>
+    <td><strong>Hip Adductor Machine</strong><div class='small'>hip adductor machine · exercise.hip-adductor-machine</div></td>
+    <td>Squat / Quad</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Legs</span><span class='pill '>Glutes</span></td>
+    <td><span class='pill '>Glutes</span><span class='pill '>Hamstrings</span><span class='pill '>Quads</span></td>
+    <td><span class='pill '>Machine</span></td>
+    <td>Power 55% / Endurance 30% / Control 15%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Leg Extension</strong><div class='small'>leg extension · exercise.leg-extension</div></td>
+    <td>Squat / Quad</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Legs</span></td>
+    <td><span class='pill '>Glutes</span><span class='pill '>Hamstrings</span><span class='pill '>Quads</span></td>
+    <td><span class='pill '>Machine</span></td>
+    <td>Power 55% / Endurance 30% / Control 15%</td>
+    <td><span class='pill '>Single-Leg Extension</span></td>
+    <td></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Leg Press</strong><div class='small'>leg press · exercise.leg-press</div></td>
+    <td>Squat / Quad</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Legs</span><span class='pill '>Glutes</span></td>
+    <td><span class='pill '>Glutes</span><span class='pill '>Hamstrings</span><span class='pill '>Quads</span></td>
+    <td><span class='pill '>Machine</span></td>
+    <td>Power 77% / Endurance 23%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td><span class='pill warn'>knee-sensitive</span></td>
+  </tr><tr>
+    <td><strong>Pendulum Squat</strong><div class='small'>pendulum squat · exercise.pendulum-squat</div></td>
+    <td>Squat / Quad</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Legs</span><span class='pill '>Glutes</span></td>
+    <td><span class='pill '>Glutes</span><span class='pill '>Hamstrings</span><span class='pill '>Quads</span></td>
+    <td><span class='pill '>Machine</span></td>
+    <td>Power 70% / Control 15% / Mobility 15%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td><span class='pill warn'>knee-sensitive</span></td>
+  </tr><tr>
+    <td><strong>Smith Machine Reverse Lunge</strong><div class='small'>smith machine reverse lunge · exercise.smith-machine-reverse-lunge</div></td>
+    <td>Squat / Quad</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Legs</span><span class='pill '>Glutes</span></td>
+    <td><span class='pill '>Glutes</span><span class='pill '>Hamstrings</span><span class='pill '>Quads</span></td>
+    <td><span class='pill '>Machine</span><span class='pill '>Smith Machine</span></td>
+    <td>Power 55% / Endurance 30% / Control 15%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td><span class='pill warn'>knee-sensitive</span></td>
+  </tr><tr>
+    <td><strong>Smith Machine Split Squat</strong><div class='small'>smith machine split squat · exercise.smith-machine-split-squat</div></td>
+    <td>Squat / Quad</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Legs</span><span class='pill '>Glutes</span></td>
+    <td><span class='pill '>Glutes</span><span class='pill '>Hamstrings</span><span class='pill '>Quads</span></td>
+    <td><span class='pill '>Machine</span><span class='pill '>Smith Machine</span></td>
+    <td>Power 55% / Endurance 30% / Control 15%</td>
+    <td><span class='small'>None</span></td>
+    <td><span class='pill good'>ld.pistol-squat</span></td>
+    <td><span class='pill warn'>knee-sensitive</span></td>
+  </tr><tr>
+    <td><strong>Smith Machine Squat</strong><div class='small'>smith machine squat · exercise.smith-machine-squat</div></td>
+    <td>Squat / Quad</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Legs</span><span class='pill '>Glutes</span></td>
+    <td><span class='pill '>Glutes</span><span class='pill '>Hamstrings</span><span class='pill '>Quads</span></td>
+    <td><span class='pill '>Machine</span><span class='pill '>Smith Machine</span></td>
+    <td>Power 55% / Endurance 30% / Control 15%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td><span class='pill warn'>knee-sensitive</span></td>
+  </tr><tr>
+    <td><strong>V-Squat Machine</strong><div class='small'>v-squat machine · exercise.v-squat-machine</div></td>
+    <td>Squat / Quad</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Legs</span><span class='pill '>Glutes</span></td>
+    <td><span class='pill '>Glutes</span><span class='pill '>Hamstrings</span><span class='pill '>Quads</span></td>
+    <td><span class='pill '>Machine</span></td>
+    <td>Power 55% / Endurance 30% / Control 15%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td><span class='pill warn'>knee-sensitive</span></td>
+  </tr><tr>
+    <td><strong>Lat Pulldown (Bar)</strong><div class='small'>lat pulldown · exercise.lat-pulldown</div></td>
+    <td>Vertical Pull</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Back</span><span class='pill '>Lats</span><span class='pill '>Arms</span></td>
+    <td><span class='pill '>Biceps</span><span class='pill '>Forearms</span><span class='pill '>Lats</span><span class='pill '>Lower Back</span><span class='pill '>Traps</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Cable</span></td>
+    <td>Power 74% / Endurance 26%</td>
+    <td><span class='pill '>Close-Grip Lat Pulldown</span><span class='pill '>Lat Pulldown (Neutral)</span><span class='pill '>Reverse-Grip Lat Pulldown</span><span class='pill '>Single-Arm Pulldown</span><span class='pill '>Wide-Grip Lat Pulldown</span></td>
+    <td><span class='pill good'>pp.pullup</span><span class='pill good'>pp.strict-pullup</span></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Machine Pullover</strong><div class='small'>machine pullover · exercise.machine-pullover</div></td>
+    <td>Vertical Pull</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Lats</span><span class='pill '>Back</span></td>
+    <td><span class='pill '>Biceps</span><span class='pill '>Forearms</span><span class='pill '>Lats</span><span class='pill '>Lower Back</span><span class='pill '>Traps</span></td>
+    <td><span class='pill '>Machine</span></td>
+    <td>Power 55% / Endurance 30% / Control 15%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td><span class='pill warn'>shoulder-sensitive</span></td>
+  </tr><tr>
+    <td><strong>Straight-Arm Pulldown</strong><div class='small'>straight arm pulldown · exercise.straight-arm-pulldown</div></td>
+    <td>Vertical Pull</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Lats</span></td>
+    <td><span class='pill '>Biceps</span><span class='pill '>Forearms</span><span class='pill '>Lats</span><span class='pill '>Traps</span></td>
+    <td><span class='pill '>Cable</span></td>
+    <td>Control 75% / Endurance 25%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Cable Front Raise</strong><div class='small'>cable front raise · exercise.cable-front-raise</div></td>
+    <td>Vertical Push</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Shoulders</span></td>
+    <td><span class='pill '>Abs</span><span class='pill '>Shoulders</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Cable</span></td>
+    <td>Control 50% / Endurance 30% / Power 20%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Cable Y Raise</strong><div class='small'>cable y raise · exercise.cable-y-raise</div></td>
+    <td>Vertical Push</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Shoulders</span><span class='pill '>Traps</span></td>
+    <td><span class='pill '>Abs</span><span class='pill '>Shoulders</span><span class='pill '>Traps</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Cable</span></td>
+    <td>Control 50% / Endurance 30% / Power 20%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Face Pull (Cable)</strong><div class='small'>face pull · exercise.face-pull</div></td>
+    <td>Vertical Push</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Shoulders</span><span class='pill '>Back</span><span class='pill '>Traps</span></td>
+    <td><span class='pill '>Biceps</span><span class='pill '>Forearms</span><span class='pill '>Lats</span><span class='pill '>Lower Back</span><span class='pill '>Shoulders</span><span class='pill '>Traps</span></td>
+    <td><span class='pill '>Cable</span></td>
+    <td>Mobility 71% / Control 29%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Lateral Raise (Cable)</strong><div class='small'>lateral raise (cable) · exercise.lateral-raise-cable</div></td>
+    <td>Vertical Push</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Shoulders</span></td>
+    <td><span class='pill '>Abs</span><span class='pill '>Shoulders</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Cable</span><span class='pill '>Dumbbell</span></td>
+    <td>Endurance 75% / Control 25%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Machine Lateral Raise</strong><div class='small'>machine lateral raise · exercise.machine-lateral-raise</div></td>
+    <td>Vertical Push</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Shoulders</span></td>
+    <td><span class='pill '>Abs</span><span class='pill '>Shoulders</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Dumbbell</span><span class='pill '>Machine</span></td>
+    <td>Control 50% / Endurance 30% / Power 20%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Rear Delt Fly (Machine)</strong><div class='small'>rear delt fly (machine) · exercise.rear-delt-fly-machine</div></td>
+    <td>Vertical Push</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Shoulders</span><span class='pill '>Back</span></td>
+    <td><span class='pill '>Chest</span><span class='pill '>Lats</span><span class='pill '>Lower Back</span><span class='pill '>Shoulders</span><span class='pill '>Traps</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Dumbbell</span><span class='pill '>Machine</span></td>
+    <td>Endurance 79% / Control 21%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Seated Machine Press</strong><div class='small'>seated machine press · exercise.seated-machine-press</div></td>
+    <td>Vertical Push</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Shoulders</span><span class='pill '>Arms</span></td>
+    <td><span class='pill '>Biceps</span><span class='pill '>Shoulders</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Machine</span></td>
+    <td>Power 75% / Endurance 25%</td>
+    <td><span class='pill '>Plate Loaded Shoulder Press</span></td>
+    <td></td>
+    <td></td>
+  </tr><tr>
+    <td><strong>Smith Machine Shoulder Press</strong><div class='small'>smith machine shoulder press · exercise.smith-machine-shoulder-press</div></td>
+    <td>Vertical Push</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger · Beginner</div></td>
+    <td><span class='pill '>Shoulders</span><span class='pill '>Arms</span></td>
+    <td><span class='pill '>Biceps</span><span class='pill '>Shoulders</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Machine</span><span class='pill '>Smith Machine</span></td>
+    <td>Control 50% / Endurance 30% / Power 20%</td>
+    <td><span class='small'>None</span></td>
+    <td></td>
+    <td></td>
+  </tr></tbody></table></div></details><details open><summary>Weighted Bodyweight · 1 ranked standards</summary><div><table><thead><tr><th>Ranked Standard</th><th>Slot</th><th>Template</th><th>Targets</th><th>Body Map</th><th>Equipment</th><th>Top Stats</th><th>Loggable Variants</th><th>Skills</th><th>Flags</th></tr></thead><tbody><tr>
+    <td><strong>Weighted Pull-Up (5kg)</strong><div class='small'>weighted pullup · exercise.weighted-pullup</div></td>
+    <td>Vertical Pull</td>
+    <td>Weighted Bodyweight<div class='small'>Bodyweight set logger · Advanced</div></td>
+    <td><span class='pill '>Back</span><span class='pill '>Lats</span><span class='pill '>Arms</span></td>
+    <td><span class='pill '>Biceps</span><span class='pill '>Forearms</span><span class='pill '>Lats</span><span class='pill '>Lower Back</span><span class='pill '>Traps</span><span class='pill '>Triceps</span></td>
+    <td><span class='pill '>Bodyweight</span><span class='pill '>Pull-Up Bar</span></td>
+    <td>Power 80% / Control 20%</td>
+    <td><span class='small'>None</span></td>
+    <td><span class='pill good'>pp.pullup</span><span class='pill good'>pp.strict-pullup</span></td>
+    <td></td>
+  </tr></tbody></table></div></details>
+
+  <h2>Variant Roll-Up Data</h2>
+  <p>These are not deleted. They remain loggable, but the rank standard points at the base movement.</p>
+  <details open><summary>All loggable variants · 27</summary><div><table><thead><tr><th>Loggable Variant</th><th>Rolls Into</th><th>Slot</th><th>Logger</th><th>Equipment</th><th>Targets</th><th>Default Sub</th></tr></thead><tbody><tr>
+    <td><strong>Rope Cable Curl</strong><div class='small'>rope cable curl · exercise.rope-cable-curl</div></td>
+    <td>Cable Curl</td>
+    <td>Arms</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger</div></td>
+    <td><span class='pill '>Cable</span></td>
+    <td><span class='pill '>Arms</span><span class='pill '>Forearms</span></td>
+    <td>cable curl</td>
+  </tr><tr>
+    <td><strong>High-to-Low Cable Fly</strong><div class='small'>high-to-low cable fly · exercise.high-to-low-cable-fly</div></td>
+    <td>Cable Fly</td>
+    <td>Horizontal Push</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger</div></td>
+    <td><span class='pill '>Cable</span><span class='pill '>Dumbbell</span></td>
+    <td><span class='pill '>Chest</span></td>
+    <td>cable fly</td>
+  </tr><tr>
+    <td><strong>Low-to-High Cable Fly</strong><div class='small'>low-to-high cable fly · exercise.low-to-high-cable-fly</div></td>
+    <td>Cable Fly</td>
+    <td>Horizontal Push</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger</div></td>
+    <td><span class='pill '>Cable</span><span class='pill '>Dumbbell</span></td>
+    <td><span class='pill '>Chest</span><span class='pill '>Shoulders</span></td>
+    <td>cable fly</td>
+  </tr><tr>
+    <td><strong>Single-Arm Cable Row</strong><div class='small'>single-arm cable row · exercise.single-arm-cable-row</div></td>
+    <td>Cable Row (Seated)</td>
+    <td>Horizontal Pull</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger</div></td>
+    <td><span class='pill '>Cable</span></td>
+    <td><span class='pill '>Back</span><span class='pill '>Lats</span><span class='pill '>Arms</span></td>
+    <td>cable row (seated)</td>
+  </tr><tr>
+    <td><strong>Wide-Grip Cable Row</strong><div class='small'>wide grip cable row · exercise.wide-grip-cable-row</div></td>
+    <td>Cable Row (Seated)</td>
+    <td>Horizontal Pull</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger</div></td>
+    <td><span class='pill '>Cable</span></td>
+    <td><span class='pill '>Back</span><span class='pill '>Lats</span><span class='pill '>Arms</span></td>
+    <td>cable row (seated)</td>
+  </tr><tr>
+    <td><strong>Rope Hammer Curl</strong><div class='small'>rope hammer curl · exercise.rope-hammer-curl</div></td>
+    <td>Hammer Curl</td>
+    <td>Arms</td>
+    <td>Free Weight Strength<div class='small'>Strength set logger</div></td>
+    <td><span class='pill '>Dumbbell</span></td>
+    <td><span class='pill '>Arms</span><span class='pill '>Forearms</span></td>
+    <td>hammer curl</td>
+  </tr><tr>
+    <td><strong>Close-Grip Lat Pulldown</strong><div class='small'>close grip lat pulldown · exercise.close-grip-lat-pulldown</div></td>
+    <td>Lat Pulldown (Bar)</td>
+    <td>Vertical Pull</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger</div></td>
+    <td><span class='pill '>Cable</span></td>
+    <td><span class='pill '>Back</span><span class='pill '>Lats</span><span class='pill '>Arms</span></td>
+    <td>lat pulldown</td>
+  </tr><tr>
+    <td><strong>Lat Pulldown (Neutral)</strong><div class='small'>lat pulldown (neutral) · exercise.lat-pulldown-neutral</div></td>
+    <td>Lat Pulldown (Bar)</td>
+    <td>Vertical Pull</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger</div></td>
+    <td><span class='pill '>Cable</span></td>
+    <td><span class='pill '>Back</span><span class='pill '>Lats</span><span class='pill '>Arms</span></td>
+    <td>lat pulldown</td>
+  </tr><tr>
+    <td><strong>Reverse-Grip Lat Pulldown</strong><div class='small'>reverse grip lat pulldown · exercise.reverse-grip-lat-pulldown</div></td>
+    <td>Lat Pulldown (Bar)</td>
+    <td>Vertical Pull</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger</div></td>
+    <td><span class='pill '>Cable</span></td>
+    <td><span class='pill '>Back</span><span class='pill '>Lats</span><span class='pill '>Arms</span></td>
+    <td>lat pulldown</td>
+  </tr><tr>
+    <td><strong>Single-Arm Pulldown</strong><div class='small'>single arm pulldown · exercise.single-arm-pulldown</div></td>
+    <td>Lat Pulldown (Bar)</td>
+    <td>Vertical Pull</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger</div></td>
+    <td><span class='pill '>Cable</span></td>
+    <td><span class='pill '>Back</span><span class='pill '>Lats</span><span class='pill '>Arms</span></td>
+    <td>lat pulldown</td>
+  </tr><tr>
+    <td><strong>Wide-Grip Lat Pulldown</strong><div class='small'>wide grip lat pulldown · exercise.wide-grip-lat-pulldown</div></td>
+    <td>Lat Pulldown (Bar)</td>
+    <td>Vertical Pull</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger</div></td>
+    <td><span class='pill '>Cable</span></td>
+    <td><span class='pill '>Back</span><span class='pill '>Lats</span><span class='pill '>Arms</span></td>
+    <td>lat pulldown</td>
+  </tr><tr>
+    <td><strong>Leg Curl (Seated)</strong><div class='small'>leg curl (seated) · exercise.leg-curl-seated</div></td>
+    <td>Leg Curl (Lying)</td>
+    <td>Hinge / Posterior</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger</div></td>
+    <td><span class='pill '>Machine</span></td>
+    <td><span class='pill '>Legs</span></td>
+    <td>leg curl (lying)</td>
+  </tr><tr>
+    <td><strong>Single-Leg Curl</strong><div class='small'>single-leg curl · exercise.single-leg-curl</div></td>
+    <td>Leg Curl (Lying)</td>
+    <td>Hinge / Posterior</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger</div></td>
+    <td><span class='pill '>Machine</span></td>
+    <td><span class='pill '>Legs</span></td>
+    <td>leg curl (lying)</td>
+  </tr><tr>
+    <td><strong>Single-Leg Extension</strong><div class='small'>single-leg extension · exercise.single-leg-extension</div></td>
+    <td>Leg Extension</td>
+    <td>Squat / Quad</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger</div></td>
+    <td><span class='pill '>Machine</span></td>
+    <td><span class='pill '>Legs</span></td>
+    <td>leg extension</td>
+  </tr><tr>
+    <td><strong>Converging Chest Press</strong><div class='small'>converging chest press · exercise.converging-chest-press</div></td>
+    <td>Machine Chest Press</td>
+    <td>Horizontal Push</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger</div></td>
+    <td><span class='pill '>Machine</span></td>
+    <td><span class='pill '>Chest</span><span class='pill '>Shoulders</span><span class='pill '>Arms</span></td>
+    <td>machine chest press</td>
+  </tr><tr>
+    <td><strong>Hammer Strength Chest Press</strong><div class='small'>hammer strength chest press · exercise.hammer-strength-chest-press</div></td>
+    <td>Machine Chest Press</td>
+    <td>Horizontal Push</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger</div></td>
+    <td><span class='pill '>Machine</span></td>
+    <td><span class='pill '>Chest</span><span class='pill '>Shoulders</span><span class='pill '>Arms</span></td>
+    <td>machine chest press</td>
+  </tr><tr>
+    <td><strong>Plate Loaded Chest Press</strong><div class='small'>plate loaded chest press · exercise.plate-loaded-chest-press</div></td>
+    <td>Machine Chest Press</td>
+    <td>Horizontal Push</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger</div></td>
+    <td><span class='pill '>Machine</span></td>
+    <td><span class='pill '>Chest</span><span class='pill '>Shoulders</span><span class='pill '>Arms</span></td>
+    <td>machine chest press</td>
+  </tr><tr>
+    <td><strong>Hammer Strength Low Row</strong><div class='small'>hammer strength low row · exercise.hammer-strength-low-row</div></td>
+    <td>Machine Row</td>
+    <td>Horizontal Pull</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger</div></td>
+    <td><span class='pill '>Machine</span></td>
+    <td><span class='pill '>Back</span><span class='pill '>Lats</span><span class='pill '>Arms</span></td>
+    <td>machine row</td>
+  </tr><tr>
+    <td><strong>Hammer Strength Row</strong><div class='small'>hammer strength row · exercise.hammer-strength-row</div></td>
+    <td>Machine Row</td>
+    <td>Horizontal Pull</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger</div></td>
+    <td><span class='pill '>Machine</span></td>
+    <td><span class='pill '>Back</span><span class='pill '>Lats</span><span class='pill '>Arms</span></td>
+    <td>machine row</td>
+  </tr><tr>
+    <td><strong>Machine Chest Supported Row</strong><div class='small'>machine chest supported row · exercise.machine-chest-supported-row</div></td>
+    <td>Machine Row</td>
+    <td>Horizontal Pull</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger</div></td>
+    <td><span class='pill '>Bench</span><span class='pill '>Machine</span></td>
+    <td><span class='pill '>Back</span><span class='pill '>Lats</span><span class='pill '>Arms</span></td>
+    <td>chest supported row</td>
+  </tr><tr>
+    <td><strong>Plate Loaded Row</strong><div class='small'>plate loaded row · exercise.plate-loaded-row</div></td>
+    <td>Machine Row</td>
+    <td>Horizontal Pull</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger</div></td>
+    <td><span class='pill '>Machine</span></td>
+    <td><span class='pill '>Back</span><span class='pill '>Lats</span><span class='pill '>Arms</span></td>
+    <td>machine row</td>
+  </tr><tr>
+    <td><strong>Rope Overhead Tricep Extension</strong><div class='small'>rope overhead tricep extension · exercise.rope-overhead-tricep-extension</div></td>
+    <td>Overhead Tricep Ext (Cable)</td>
+    <td>Arms</td>
+    <td>Free Weight Strength<div class='small'>Strength set logger</div></td>
+    <td><span class='pill '>Bodyweight</span></td>
+    <td><span class='pill '>Arms</span></td>
+    <td>overhead tricep extension</td>
+  </tr><tr>
+    <td><strong>Plate Loaded Shoulder Press</strong><div class='small'>plate loaded shoulder press · exercise.plate-loaded-shoulder-press</div></td>
+    <td>Seated Machine Press</td>
+    <td>Vertical Push</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger</div></td>
+    <td><span class='pill '>Machine</span></td>
+    <td><span class='pill '>Shoulders</span><span class='pill '>Arms</span></td>
+    <td>seated machine press</td>
+  </tr><tr>
+    <td><strong>Leg Press Calf Raise</strong><div class='small'>leg press calf raise · exercise.leg-press-calf-raise</div></td>
+    <td>Standing Calf Raise</td>
+    <td>Calves</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger</div></td>
+    <td><span class='pill '>Machine</span></td>
+    <td><span class='pill '>Calves</span></td>
+    <td>standing calf raise</td>
+  </tr><tr>
+    <td><strong>Smith Machine Calf Raise</strong><div class='small'>smith machine calf raise · exercise.smith-machine-calf-raise</div></td>
+    <td>Standing Calf Raise</td>
+    <td>Calves</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger</div></td>
+    <td><span class='pill '>Machine</span><span class='pill '>Smith Machine</span></td>
+    <td><span class='pill '>Calves</span></td>
+    <td>standing calf raise</td>
+  </tr><tr>
+    <td><strong>Rope Tricep Pushdown</strong><div class='small'>rope tricep pushdown · exercise.rope-tricep-pushdown</div></td>
+    <td>Tricep Pushdown (Cable)</td>
+    <td>Arms</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger</div></td>
+    <td><span class='pill '>Cable</span></td>
+    <td><span class='pill '>Arms</span></td>
+    <td>tricep pushdown</td>
+  </tr><tr>
+    <td><strong>Straight-Bar Tricep Pushdown</strong><div class='small'>straight bar tricep pushdown · exercise.straight-bar-tricep-pushdown</div></td>
+    <td>Tricep Pushdown (Cable)</td>
+    <td>Arms</td>
+    <td>Machine / Cable Strength<div class='small'>Strength set logger</div></td>
+    <td><span class='pill '>Cable</span></td>
+    <td><span class='pill '>Arms</span></td>
+    <td>tricep pushdown</td>
+  </tr></tbody></table></div></details>
+
+  <h2>Skill Links</h2>
+  <p>Skill targets come directly from the live skill tree. Gym/library movements can still feed skill context, but only the skill tree's prerequisites and 9-rank criteria can unlock or advance a skill.</p>
+  <details open><summary>Generated skill targets · 125</summary><div><table><thead><tr><th>Skill Target</th><th>Skill ID</th><th>Cluster</th><th>Tier</th><th>Type</th><th>Target</th><th>Prereqs</th></tr></thead><tbody><tr><td><strong>Incline Push-Up</strong><div class='small'>skill.cal.incline-pushup</div></td><td><span class='pill good'>cal.incline-pushup</span></td><td>calisthenicControl</td><td>1</td><td>skill</td><td>.reps(exercise: &quot;incline pushup&quot;, count: 10)</td><td><span class='small'>Entry</span></td></tr><tr><td><strong>Bench Dip</strong><div class='small'>skill.cal.bench-dip</div></td><td><span class='pill good'>cal.bench-dip</span></td><td>calisthenicControl</td><td>2</td><td>skill</td><td>.reps(exercise: &quot;bench dip&quot;, count: 10)</td><td><span class='pill '>cal.incline-pushup</span></td></tr><tr><td><strong>Decline Push-Up</strong><div class='small'>skill.cal.decline-pushup</div></td><td><span class='pill good'>cal.decline-pushup</span></td><td>calisthenicControl</td><td>2</td><td>skill</td><td>.reps(exercise: &quot;decline pushup&quot;, count: 10)</td><td><span class='pill '>cal.pushup</span></td></tr><tr><td><strong>Push-Up</strong><div class='small'>skill.cal.pushup</div></td><td><span class='pill good'>cal.pushup</span></td><td>calisthenicControl</td><td>2</td><td>skill</td><td>.reps(exercise: &quot;pushup&quot;, count: 10)</td><td><span class='pill '>cal.incline-pushup</span></td></tr><tr><td><strong>Diamond Push-Up</strong><div class='small'>skill.cal.diamond-pushup</div></td><td><span class='pill good'>cal.diamond-pushup</span></td><td>calisthenicControl</td><td>3</td><td>skill</td><td>.reps(exercise: &quot;diamond pushup&quot;, count: 10)</td><td><span class='pill '>cal.pushup</span></td></tr><tr><td><strong>Dip</strong><div class='small'>skill.cal.5-dips</div></td><td><span class='pill good'>cal.5-dips</span></td><td>calisthenicControl</td><td>3</td><td>skill</td><td>.reps(exercise: &quot;dip&quot;, count: 5)</td><td><span class='pill '>cal.bench-dip</span></td></tr><tr><td><strong>Explosive Push-Up</strong><div class='small'>skill.cal.explosive-pushup</div></td><td><span class='pill good'>cal.explosive-pushup</span></td><td>calisthenicControl</td><td>3</td><td>skill</td><td>.reps(exercise: &quot;explosive pushup&quot;, count: 5)</td><td><span class='pill '>cal.decline-pushup</span></td></tr><tr><td><strong>Archer Push-Up</strong><div class='small'>skill.cal.archer-pushup</div></td><td><span class='pill good'>cal.archer-pushup</span></td><td>calisthenicControl</td><td>4</td><td>skill</td><td>.reps(exercise: &quot;archer pushup&quot;, count: 3)</td><td><span class='pill '>cal.decline-pushup</span></td></tr><tr><td><strong>Clapping Push-Up</strong><div class='small'>skill.cal.clapping-pushup</div></td><td><span class='pill good'>cal.clapping-pushup</span></td><td>calisthenicControl</td><td>4</td><td>skill</td><td>.reps(exercise: &quot;clapping pushup&quot;, count: 3)</td><td><span class='pill '>cal.explosive-pushup</span></td></tr><tr><td><strong>Pike Push-Up</strong><div class='small'>skill.cal.pike-pushup</div></td><td><span class='pill good'>cal.pike-pushup</span></td><td>calisthenicControl</td><td>4</td><td>skill</td><td>.reps(exercise: &quot;pike pushup&quot;, count: 10)</td><td><span class='pill '>cal.diamond-pushup</span></td></tr><tr><td><strong>Pseudo-Planche Push-Up</strong><div class='small'>skill.cal.pseudo-planche-pushup</div></td><td><span class='pill good'>cal.pseudo-planche-pushup</span></td><td>calisthenicControl</td><td>4</td><td>skill</td><td>.reps(exercise: &quot;pseudo-planche pushup&quot;, count: 5)</td><td><span class='pill '>cal.decline-pushup</span></td></tr><tr><td><strong>Ring Dip</strong><div class='small'>skill.cal.ring-dip</div></td><td><span class='pill good'>cal.ring-dip</span></td><td>calisthenicControl</td><td>4</td><td>skill</td><td>.reps(exercise: &quot;ring dip&quot;, count: 5)</td><td><span class='pill '>cal.5-dips</span></td></tr><tr><td><strong>Sphinx Push-Up</strong><div class='small'>skill.cal.sphinx-pushup</div></td><td><span class='pill good'>cal.sphinx-pushup</span></td><td>calisthenicControl</td><td>4</td><td>skill</td><td>.reps(exercise: &quot;sphinx pushup&quot;, count: 8)</td><td><span class='pill '>cal.pike-pushup</span></td></tr><tr><td><strong>Elevated Pike Push-Up</strong><div class='small'>skill.cal.elevated-pike-pushup</div></td><td><span class='pill good'>cal.elevated-pike-pushup</span></td><td>calisthenicControl</td><td>5</td><td>skill</td><td>.reps(exercise: &quot;elevated pike pushup&quot;, count: 10)</td><td><span class='pill '>cal.pike-pushup</span></td></tr><tr><td><strong>Floating Pike Push-Up</strong><div class='small'>skill.cal.floating-pike-pushup</div></td><td><span class='pill good'>cal.floating-pike-pushup</span></td><td>calisthenicControl</td><td>5</td><td>skill</td><td>.reps(exercise: &quot;floating pike pushup&quot;, count: 3)</td><td><span class='pill '>cal.elevated-pike-pushup</span></td></tr><tr><td><strong>One-Arm Push-Up</strong><div class='small'>skill.cal.one-arm-pushup</div></td><td><span class='pill good'>cal.one-arm-pushup</span></td><td>calisthenicControl</td><td>5</td><td>skill</td><td>.reps(exercise: &quot;one-arm pushup&quot;, count: 1)</td><td><span class='pill '>cal.archer-pushup</span></td></tr><tr><td><strong>Tuck Planche Push-Up</strong><div class='small'>skill.cal.tuck-planche-pushup</div></td><td><span class='pill good'>cal.tuck-planche-pushup</span></td><td>calisthenicControl</td><td>5</td><td>skill</td><td>.reps(exercise: &quot;tuck planche pushup&quot;, count: 3)</td><td><span class='pill '>cal.pseudo-planche-pushup</span></td></tr><tr><td><strong>Bent Arm Press</strong><div class='small'>skill.cal.bent-arm-press</div></td><td><span class='pill good'>cal.bent-arm-press</span></td><td>calisthenicControl</td><td>6</td><td>skill</td><td>.reps(exercise: &quot;bent arm press&quot;, count: 3)</td><td><span class='pill '>cal.floating-pike-pushup</span></td></tr><tr><td><strong>Handstand Push-Up</strong><div class='small'>skill.cal.handstand-pushup</div></td><td><span class='pill good'>cal.handstand-pushup</span></td><td>calisthenicControl</td><td>6</td><td>skill</td><td>.reps(exercise: &quot;handstand pushup&quot;, count: 1)</td><td><span class='pill '>cal.elevated-pike-pushup</span></td></tr><tr><td><strong>Ninety-Degree Push-Up</strong><div class='small'>skill.cal.ninety-degree-pushup</div></td><td><span class='pill good'>cal.ninety-degree-pushup</span></td><td>calisthenicControl</td><td>6</td><td>skill</td><td>.reps(exercise: &quot;90 degree pushup&quot;, count: 1)</td><td><span class='pill '>cal.handstand-pushup</span></td></tr><tr><td><strong>Clapping Handstand Push-Up</strong><div class='small'>skill.cal.clapping-handstand-pushup</div></td><td><span class='pill good'>cal.clapping-handstand-pushup</span></td><td>calisthenicControl</td><td>7</td><td>skill</td><td>.reps(exercise: &quot;clapping handstand pushup&quot;, count: 1)</td><td><span class='pill '>cal.ninety-degree-pushup</span></td></tr><tr><td><strong>Triple Clap Push-Up</strong><div class='small'>skill.cal.triple-clap-pushup</div></td><td><span class='pill good'>cal.triple-clap-pushup</span></td><td>calisthenicControl</td><td>7</td><td>skill</td><td>.reps(exercise: &quot;triple clap pushup&quot;, count: 1)</td><td><span class='pill '>cal.clapping-pushup</span></td></tr><tr><td><strong>Plank</strong><div class='small'>skill.cal.plank-30</div></td><td><span class='pill good'>cal.plank-30</span></td><td>coreLever</td><td>1</td><td>hold</td><td>.hold(exercise: &quot;plank&quot;, seconds: 30)</td><td><span class='small'>Entry</span></td></tr><tr><td><strong>Bird Dog Plank</strong><div class='small'>skill.cl.bird-dog-plank</div></td><td><span class='pill good'>cl.bird-dog-plank</span></td><td>coreLever</td><td>2</td><td>hold</td><td>.hold(exercise: &quot;bird dog plank&quot;, seconds: 30)</td><td><span class='pill '>cal.plank-30</span></td></tr><tr><td><strong>Crunch</strong><div class='small'>skill.cl.crunch</div></td><td><span class='pill good'>cl.crunch</span></td><td>coreLever</td><td>2</td><td>skill</td><td>.reps(exercise: &quot;crunch&quot;, count: 20)</td><td><span class='pill '>cal.plank-30</span></td></tr><tr><td><strong>Hollow Body</strong><div class='small'>skill.cl.hollow-body-30</div></td><td><span class='pill good'>cl.hollow-body-30</span></td><td>coreLever</td><td>2</td><td>hold</td><td>.hold(exercise: &quot;hollow body hold&quot;, seconds: 30)</td><td><span class='pill '>cal.plank-30</span></td></tr><tr><td><strong>Reverse Crunch</strong><div class='small'>skill.cl.reverse-crunch</div></td><td><span class='pill good'>cl.reverse-crunch</span></td><td>coreLever</td><td>2</td><td>skill</td><td>.reps(exercise: &quot;reverse crunch&quot;, count: 15)</td><td><span class='pill '>cl.crunch</span></td></tr><tr><td><strong>Extended Plank</strong><div class='small'>skill.cl.extended-plank</div></td><td><span class='pill good'>cl.extended-plank</span></td><td>coreLever</td><td>3</td><td>hold</td><td>.hold(exercise: &quot;extended plank&quot;, seconds: 15)</td><td><span class='pill '>cl.bird-dog-plank</span></td></tr><tr><td><strong>Hanging Leg Raise</strong><div class='small'>skill.cl.hanging-leg-raise</div></td><td><span class='pill good'>cl.hanging-leg-raise</span></td><td>coreLever</td><td>3</td><td>skill</td><td>.reps(exercise: &quot;hanging leg raise&quot;, count: 10)</td><td><span class='pill '>cl.hanging-knee-raise</span></td></tr><tr><td><strong>Knee Raise</strong><div class='small'>skill.cl.knee-raise</div></td><td><span class='pill good'>cl.knee-raise</span></td><td>coreLever</td><td>3</td><td>skill</td><td>.reps(exercise: &quot;knee raise&quot;, count: 12)</td><td><span class='pill '>cl.hollow-body-30</span></td></tr><tr><td><strong>Levitation Crunch</strong><div class='small'>skill.cl.levitation-crunch</div></td><td><span class='pill good'>cl.levitation-crunch</span></td><td>coreLever</td><td>3</td><td>skill</td><td>.reps(exercise: &quot;levitation crunch&quot;, count: 8)</td><td><span class='pill '>cl.crunch</span></td></tr><tr><td><strong>Toes-to-Bar</strong><div class='small'>skill.cl.toes-to-bar</div></td><td><span class='pill good'>cl.toes-to-bar</span></td><td>coreLever</td><td>3</td><td>skill</td><td>.reps(exercise: &quot;toes to bar&quot;, count: 5)</td><td><span class='pill '>cl.hanging-leg-raise</span></td></tr><tr><td><strong>Decline Sit-Up</strong><div class='small'>skill.cl.decline-situp</div></td><td><span class='pill good'>cl.decline-situp</span></td><td>coreLever</td><td>4</td><td>skill</td><td>.reps(exercise: &quot;decline sit-up&quot;, count: 15)</td><td><span class='pill '>cl.levitation-crunch</span></td></tr><tr><td><strong>Dragon Flag Hip Raise</strong><div class='small'>skill.cl.dragon-flag-hip-raise</div></td><td><span class='pill good'>cl.dragon-flag-hip-raise</span></td><td>coreLever</td><td>4</td><td>skill</td><td>.reps(exercise: &quot;dragon flag hip raise&quot;, count: 8)</td><td><span class='pill '>cl.reverse-crunch</span></td></tr><tr><td><strong>Kneeling Ab Rollout</strong><div class='small'>skill.cl.knee-ab-rollout</div></td><td><span class='pill good'>cl.knee-ab-rollout</span></td><td>coreLever</td><td>4</td><td>skill</td><td>.reps(exercise: &quot;ab wheel kneeling&quot;, count: 8)</td><td><span class='pill '>cl.extended-plank</span></td></tr><tr><td><strong>L-Sit</strong><div class='small'>skill.cal.l-sit-10</div></td><td><span class='pill good'>cal.l-sit-10</span></td><td>coreLever</td><td>4</td><td>hold</td><td>.hold(exercise: &quot;l-sit&quot;, seconds: 10)</td><td><span class='pill '>cl.knee-raise</span></td></tr><tr><td><strong>Leg Raise</strong><div class='small'>skill.cl.leg-raise</div></td><td><span class='pill good'>cl.leg-raise</span></td><td>coreLever</td><td>4</td><td>skill</td><td>.reps(exercise: &quot;leg raise&quot;, count: 12)</td><td><span class='pill '>cl.knee-raise</span></td></tr><tr><td><strong>Dragon Flag</strong><div class='small'>skill.cl.dragon-flag</div></td><td><span class='pill good'>cl.dragon-flag</span></td><td>coreLever</td><td>5</td><td>skill</td><td>.reps(exercise: &quot;dragon flag&quot;, count: 5)</td><td><span class='pill '>cl.dragon-flag-hip-raise</span></td></tr><tr><td><strong>Hanging Knee Raise</strong><div class='small'>skill.cl.hanging-knee-raise</div></td><td><span class='pill good'>cl.hanging-knee-raise</span></td><td>coreLever</td><td>5</td><td>skill</td><td>.reps(exercise: &quot;hanging knee raise&quot;, count: 10)</td><td><span class='pill '>cl.leg-raise</span></td></tr><tr><td><strong>Inverted Sit-Up</strong><div class='small'>skill.cl.inverted-situp</div></td><td><span class='pill good'>cl.inverted-situp</span></td><td>coreLever</td><td>5</td><td>skill</td><td>.reps(exercise: &quot;inverted sit-up&quot;, count: 5)</td><td><span class='pill '>cl.decline-situp</span></td></tr><tr><td><strong>Semi Straddle L-Sit</strong><div class='small'>skill.cl.semi-straddle-l-sit</div></td><td><span class='pill good'>cl.semi-straddle-l-sit</span></td><td>coreLever</td><td>5</td><td>hold</td><td>.hold(exercise: &quot;semi straddle l-sit&quot;, seconds: 10)</td><td><span class='pill '>cal.l-sit-10</span></td></tr><tr><td><strong>Standing Ab Rollout</strong><div class='small'>skill.cl.standing-ab-rollout</div></td><td><span class='pill good'>cl.standing-ab-rollout</span></td><td>coreLever</td><td>5</td><td>skill</td><td>.reps(exercise: &quot;standing ab rollout&quot;, count: 5)</td><td><span class='pill '>cl.knee-ab-rollout</span></td></tr><tr><td><strong>Superman Plank</strong><div class='small'>skill.cl.superman-plank</div></td><td><span class='pill good'>cl.superman-plank</span></td><td>coreLever</td><td>5</td><td>hold</td><td>.hold(exercise: &quot;superman plank&quot;, seconds: 15)</td><td><span class='pill '>cl.extended-plank</span></td></tr><tr><td><strong>V-Sit</strong><div class='small'>skill.cl.v-sit</div></td><td><span class='pill good'>cl.v-sit</span></td><td>coreLever</td><td>5</td><td>hold</td><td>.hold(exercise: &quot;v-sit&quot;, seconds: 10)</td><td><span class='pill '>cal.l-sit-10</span></td></tr><tr><td><strong>Straddle L-Sit</strong><div class='small'>skill.cl.straddle-l-sit</div></td><td><span class='pill good'>cl.straddle-l-sit</span></td><td>coreLever</td><td>6</td><td>hold</td><td>.hold(exercise: &quot;straddle l-sit&quot;, seconds: 10)</td><td><span class='pill '>cl.semi-straddle-l-sit</span></td></tr><tr><td><strong>Vertical L-Sit</strong><div class='small'>skill.cl.vertical-l-sit</div></td><td><span class='pill good'>cl.vertical-l-sit</span></td><td>coreLever</td><td>6</td><td>hold</td><td>.hold(exercise: &quot;vertical l-sit&quot;, seconds: 5)</td><td><span class='pill '>cl.v-sit</span></td></tr><tr><td><strong>Wall Plank</strong><div class='small'>skill.hs.wall-plank</div></td><td><span class='pill good'>hs.wall-plank</span></td><td>handstand</td><td>1</td><td>hold</td><td>.hold(exercise: &quot;wall plank&quot;, seconds: 30)</td><td><span class='small'>Entry</span></td></tr><tr><td><strong>Headstand</strong><div class='small'>skill.hs.headstand</div></td><td><span class='pill good'>hs.headstand</span></td><td>handstand</td><td>2</td><td>hold</td><td>.hold(exercise: &quot;headstand&quot;, seconds: 30)</td><td><span class='pill '>hs.wall-plank</span></td></tr><tr><td><strong>Wall Handstand</strong><div class='small'>skill.hs.wall-handstand-30</div></td><td><span class='pill good'>hs.wall-handstand-30</span></td><td>handstand</td><td>2</td><td>hold</td><td>.hold(exercise: &quot;wall handstand&quot;, seconds: 30)</td><td><span class='pill '>hs.wall-plank</span></td></tr><tr><td><strong>Handstand</strong><div class='small'>skill.hs.freestanding-hs-30</div></td><td><span class='pill good'>hs.freestanding-hs-30</span></td><td>handstand</td><td>3</td><td>hold</td><td>.hold(exercise: &quot;freestanding handstand&quot;, seconds: 30)</td><td><span class='pill '>hs.wall-handstand-30</span></td></tr><tr><td><strong>Tuck Handstand</strong><div class='small'>skill.hs.tuck-handstand</div></td><td><span class='pill good'>hs.tuck-handstand</span></td><td>handstand</td><td>3</td><td>hold</td><td>.hold(exercise: &quot;tuck handstand&quot;, seconds: 5)</td><td><span class='pill '>hs.wall-handstand-30</span></td></tr><tr><td><strong>Tuck Press to Handstand</strong><div class='small'>skill.hs.tuck-press</div></td><td><span class='pill good'>hs.tuck-press</span></td><td>handstand</td><td>5</td><td>skill</td><td>.reps(exercise: &quot;tuck press&quot;, count: 3)</td><td><span class='pill '>hs.tuck-handstand</span></td></tr><tr><td><strong>Wall Supported One-Arm Handstand</strong><div class='small'>skill.hs.wall-supported-oah</div></td><td><span class='pill good'>hs.wall-supported-oah</span></td><td>handstand</td><td>5</td><td>hold</td><td>.hold(exercise: &quot;wall-supported one-arm handstand&quot;, seconds: 5)</td><td><span class='pill '>hs.freestanding-hs-30</span></td></tr><tr><td><strong>Straddle Press to Handstand</strong><div class='small'>skill.hs.straddle-press</div></td><td><span class='pill good'>hs.straddle-press</span></td><td>handstand</td><td>6</td><td>skill</td><td>.reps(exercise: &quot;straddle press&quot;, count: 3)</td><td><span class='pill '>hs.tuck-press</span></td></tr><tr><td><strong>Press to Handstand</strong><div class='small'>skill.hs.press-to-handstand</div></td><td><span class='pill good'>hs.press-to-handstand</span></td><td>handstand</td><td>7</td><td>skill</td><td>.reps(exercise: &quot;press to handstand&quot;, count: 1)</td><td><span class='pill '>hs.straddle-press</span></td></tr><tr><td><strong>Half Squat</strong><div class='small'>skill.ld.goblet-20</div></td><td><span class='pill good'>ld.goblet-20</span></td><td>legDominance</td><td>1</td><td>skill</td><td>.reps(exercise: &quot;half squat&quot;, count: 15)</td><td><span class='small'>Entry</span></td></tr><tr><td><strong>Glute Bridge</strong><div class='small'>skill.ld.glute-bridge</div></td><td><span class='pill good'>ld.glute-bridge</span></td><td>legDominance</td><td>2</td><td>skill</td><td>.reps(exercise: &quot;glute bridge&quot;, count: 15)</td><td><span class='pill '>ld.goblet-20</span></td></tr><tr><td><strong>Split Squat</strong><div class='small'>skill.ld.split-squat</div></td><td><span class='pill good'>ld.split-squat</span></td><td>legDominance</td><td>2</td><td>skill</td><td>.reps(exercise: &quot;split squat&quot;, count: 10)</td><td><span class='pill '>ld.goblet-20</span></td></tr><tr><td><strong>Step Up</strong><div class='small'>skill.ld.step-up</div></td><td><span class='pill good'>ld.step-up</span></td><td>legDominance</td><td>2</td><td>skill</td><td>.reps(exercise: &quot;step up&quot;, count: 15)</td><td><span class='pill '>ld.goblet-20</span></td></tr><tr><td><strong>Bulgarian Split Squat</strong><div class='small'>skill.ld.bulgarian-split-squat</div></td><td><span class='pill good'>ld.bulgarian-split-squat</span></td><td>legDominance</td><td>3</td><td>skill</td><td>.reps(exercise: &quot;bulgarian split squat&quot;, count: 10)</td><td><span class='pill '>ld.split-squat</span></td></tr><tr><td><strong>Calf Raise</strong><div class='small'>skill.ld.calf-raise</div></td><td><span class='pill good'>ld.calf-raise</span></td><td>legDominance</td><td>3</td><td>skill</td><td>.reps(exercise: &quot;calf raise&quot;, count: 20)</td><td><span class='pill '>ld.step-up</span></td></tr><tr><td><strong>Deep Squat</strong><div class='small'>skill.ld.deep-squat</div></td><td><span class='pill good'>ld.deep-squat</span></td><td>legDominance</td><td>3</td><td>hold</td><td>.hold(exercise: &quot;deep squat&quot;, seconds: 60)</td><td><span class='pill '>ld.step-up</span></td></tr><tr><td><strong>Single-Leg Glute Bridge</strong><div class='small'>skill.ld.single-leg-glute-bridge</div></td><td><span class='pill good'>ld.single-leg-glute-bridge</span></td><td>legDominance</td><td>3</td><td>skill</td><td>.reps(exercise: &quot;single-leg glute bridge&quot;, count: 10)</td><td><span class='pill '>ld.glute-bridge</span></td></tr><tr><td><strong>Weighted Split Squat</strong><div class='small'>skill.ld.weighted-split-squat</div></td><td><span class='pill good'>ld.weighted-split-squat</span></td><td>legDominance</td><td>3</td><td>strength</td><td>.reps(exercise: &quot;weighted split squat&quot;, count: 8, load: &quot;0.25x bw&quot;)</td><td><span class='pill '>ld.split-squat</span></td></tr><tr><td><strong>Box Jump</strong><div class='small'>skill.ld.box-jump</div></td><td><span class='pill good'>ld.box-jump</span></td><td>legDominance</td><td>4</td><td>skill</td><td>.reps(exercise: &quot;box jump&quot;, count: 5)</td><td><span class='pill '>ld.jumping-squat</span></td></tr><tr><td><strong>Jumping Squat</strong><div class='small'>skill.ld.jumping-squat</div></td><td><span class='pill good'>ld.jumping-squat</span></td><td>legDominance</td><td>4</td><td>skill</td><td>.reps(exercise: &quot;jumping squat&quot;, count: 10)</td><td><span class='pill '>ld.deep-squat</span></td></tr><tr><td><strong>Leg Extensions</strong><div class='small'>skill.ld.leg-extensions</div></td><td><span class='pill good'>ld.leg-extensions</span></td><td>legDominance</td><td>4</td><td>skill</td><td>.reps(exercise: &quot;leg extensions&quot;, count: 15)</td><td><span class='pill '>ld.deep-squat</span></td></tr><tr><td><strong>Leg Kickback</strong><div class='small'>skill.ld.flying-kickback</div></td><td><span class='pill good'>ld.flying-kickback</span></td><td>legDominance</td><td>4</td><td>skill</td><td>.reps(exercise: &quot;leg kickback&quot;, count: 12)</td><td><span class='pill '>ld.single-leg-glute-bridge</span></td></tr><tr><td><strong>Nordic Hip Hinge</strong><div class='small'>skill.ld.nordic-hip-hinge</div></td><td><span class='pill good'>ld.nordic-hip-hinge</span></td><td>legDominance</td><td>4</td><td>skill</td><td>.reps(exercise: &quot;nordic hip hinge&quot;, count: 8)</td><td><span class='pill '>ld.single-leg-glute-bridge</span></td></tr><tr><td><strong>Pistol Squat</strong><div class='small'>skill.ld.pistol-squat</div></td><td><span class='pill good'>ld.pistol-squat</span></td><td>legDominance</td><td>4</td><td>skill</td><td>.reps(exercise: &quot;pistol squat&quot;, count: 5)</td><td><span class='pill '>ld.deep-squat</span></td></tr><tr><td><strong>Shrimp Squat</strong><div class='small'>skill.ld.shrimp-squat</div></td><td><span class='pill good'>ld.shrimp-squat</span></td><td>legDominance</td><td>4</td><td>skill</td><td>.reps(exercise: &quot;shrimp squat&quot;, count: 3)</td><td><span class='pill '>ld.bulgarian-split-squat</span></td></tr><tr><td><strong>Weighted Bulgarian Split Squat</strong><div class='small'>skill.ld.weighted-bss</div></td><td><span class='pill good'>ld.weighted-bss</span></td><td>legDominance</td><td>4</td><td>strength</td><td>.weightMultiplier(exercise: &quot;weighted bss&quot;, multiplier: 0.5)</td><td><span class='pill '>ld.bulgarian-split-squat</span></td></tr><tr><td><strong>Weighted Single-Leg Calf Raise</strong><div class='small'>skill.ld.weighted-sl-calf</div></td><td><span class='pill good'>ld.weighted-sl-calf</span></td><td>legDominance</td><td>4</td><td>strength</td><td>.reps(exercise: &quot;single-leg calf raise&quot;, count: 10, load: &quot;0.5x bw&quot;)</td><td><span class='pill '>ld.calf-raise</span></td></tr><tr><td><strong>Advanced Nordic Hip Hinge</strong><div class='small'>skill.ld.advancing-nordic-curl</div></td><td><span class='pill good'>ld.advancing-nordic-curl</span></td><td>legDominance</td><td>5</td><td>skill</td><td>.reps(exercise: &quot;advanced nordic hip hinge&quot;, count: 5)</td><td><span class='pill '>ld.nordic-hip-hinge</span></td></tr><tr><td><strong>Fire Hydrant</strong><div class='small'>skill.ld.fire-hydrant</div></td><td><span class='pill good'>ld.fire-hydrant</span></td><td>legDominance</td><td>5</td><td>skill</td><td>.reps(exercise: &quot;fire hydrant&quot;, count: 15)</td><td><span class='pill '>ld.flying-kickback</span></td></tr><tr><td><strong>Floor to Ceiling Squat</strong><div class='small'>skill.ld.floor-to-ceiling-squat</div></td><td><span class='pill good'>ld.floor-to-ceiling-squat</span></td><td>legDominance</td><td>5</td><td>skill</td><td>.reps(exercise: &quot;floor to ceiling squat&quot;, count: 1)</td><td><span class='pill '>ld.jumping-squat</span></td></tr><tr><td><strong>Sissy Squat</strong><div class='small'>skill.ld.sissy-squat</div></td><td><span class='pill good'>ld.sissy-squat</span></td><td>legDominance</td><td>5</td><td>skill</td><td>.reps(exercise: &quot;sissy squat&quot;, count: 8)</td><td><span class='pill '>ld.leg-extensions</span></td></tr><tr><td><strong>Weighted Pistol</strong><div class='small'>skill.ld.weighted-pistol</div></td><td><span class='pill good'>ld.weighted-pistol</span></td><td>legDominance</td><td>5</td><td>strength</td><td>.reps(exercise: &quot;weighted pistol&quot;, count: 3, load: &quot;0.5x bw&quot;)</td><td><span class='pill '>ld.pistol-squat</span></td></tr><tr><td><strong>Nordic Curl</strong><div class='small'>skill.ld.nordic-curl</div></td><td><span class='pill good'>ld.nordic-curl</span></td><td>legDominance</td><td>6</td><td>skill</td><td>.reps(exercise: &quot;nordic curl&quot;, count: 3)</td><td><span class='pill '>ld.advancing-nordic-curl</span></td></tr><tr><td><strong>One-Arm Handstand</strong><div class='small'>skill.oah.one-arm-handstand-5s</div></td><td><span class='pill good'>oah.one-arm-handstand-5s</span></td><td>oneArmHandstand</td><td>6</td><td>hold</td><td>.hold(exercise: &quot;one-arm handstand&quot;, seconds: 5)</td><td><span class='pill '>hs.wall-supported-oah</span></td></tr><tr><td><strong>Full One-Arm Handstand</strong><div class='small'>skill.oah.full-one-arm-handstand</div></td><td><span class='pill good'>oah.full-one-arm-handstand</span></td><td>oneArmHandstand</td><td>7</td><td>hold</td><td>.hold(exercise: &quot;full one arm handstand&quot;, seconds: 5)</td><td><span class='pill '>oah.one-arm-handstand-5s</span></td></tr><tr><td><strong>Crow Pose</strong><div class='small'>skill.hs.crow-pose</div></td><td><span class='pill good'>hs.crow-pose</span></td><td>planche</td><td>2</td><td>hold</td><td>.hold(exercise: &quot;crow pose&quot;, seconds: 15)</td><td><span class='pill '>hs.wall-plank</span></td></tr><tr><td><strong>Crane Pose</strong><div class='small'>skill.hs.crane-pose</div></td><td><span class='pill good'>hs.crane-pose</span></td><td>planche</td><td>3</td><td>hold</td><td>.hold(exercise: &quot;crane pose&quot;, seconds: 10)</td><td><span class='pill '>hs.crow-pose</span></td></tr><tr><td><strong>Elbow Lever</strong><div class='small'>skill.hs.elbow-lever</div></td><td><span class='pill good'>hs.elbow-lever</span></td><td>planche</td><td>3</td><td>hold</td><td>.hold(exercise: &quot;elbow lever&quot;, seconds: 10)</td><td><span class='pill '>hs.crow-pose</span></td></tr><tr><td><strong>Flying Crow Pose</strong><div class='small'>skill.hs.flying-crow</div></td><td><span class='pill good'>hs.flying-crow</span></td><td>planche</td><td>3</td><td>hold</td><td>.hold(exercise: &quot;flying crow&quot;, seconds: 5)</td><td><span class='pill '>hs.crow-pose</span></td></tr><tr><td><strong>Bent Arm Planche</strong><div class='small'>skill.pl.bent-arm-planche</div></td><td><span class='pill good'>pl.bent-arm-planche</span></td><td>planche</td><td>4</td><td>hold</td><td>.hold(exercise: &quot;bent arm planche&quot;, seconds: 3)</td><td><span class='pill '>hs.elbow-lever</span></td></tr><tr><td><strong>One-Arm Elbow Lever</strong><div class='small'>skill.hs.one-arm-elbow-lever</div></td><td><span class='pill good'>hs.one-arm-elbow-lever</span></td><td>planche</td><td>4</td><td>hold</td><td>.hold(exercise: &quot;one-arm elbow lever&quot;, seconds: 5)</td><td><span class='pill '>hs.elbow-lever</span></td></tr><tr><td><strong>Tuck Planche</strong><div class='small'>skill.pl.tuck-planche</div></td><td><span class='pill good'>pl.tuck-planche</span></td><td>planche</td><td>5</td><td>hold</td><td>.hold(exercise: &quot;tuck planche&quot;, seconds: 5)</td><td><span class='pill '>hs.crane-pose</span></td></tr><tr><td><strong>Half-Lay Planche</strong><div class='small'>skill.pl.half-lay-planche</div></td><td><span class='pill good'>pl.half-lay-planche</span></td><td>planche</td><td>6</td><td>hold</td><td>.hold(exercise: &quot;half-lay planche&quot;, seconds: 3)</td><td><span class='pill '>pl.straddle-planche</span></td></tr><tr><td><strong>Straddle Planche</strong><div class='small'>skill.pl.straddle-planche</div></td><td><span class='pill good'>pl.straddle-planche</span></td><td>planche</td><td>6</td><td>hold</td><td>.hold(exercise: &quot;straddle planche&quot;, seconds: 5)</td><td><span class='pill '>pl.tuck-planche</span></td></tr><tr><td><strong>Full Planche</strong><div class='small'>skill.pl.full-planche</div></td><td><span class='pill good'>pl.full-planche</span></td><td>planche</td><td>7</td><td>hold</td><td>.hold(exercise: &quot;full planche&quot;, seconds: 5)</td><td><span class='pill '>pl.half-lay-planche</span></td></tr><tr><td><strong>Incline Row</strong><div class='small'>skill.pp.incline-row</div></td><td><span class='pill good'>pp.incline-row</span></td><td>pullingPower</td><td>1</td><td>skill</td><td>.reps(exercise: &quot;incline row&quot;, count: 12)</td><td><span class='small'>Entry</span></td></tr><tr><td><strong>Dead Hang</strong><div class='small'>skill.pp.dead-hang</div></td><td><span class='pill good'>pp.dead-hang</span></td><td>pullingPower</td><td>2</td><td>hold</td><td>.hold(exercise: &quot;dead hang&quot;, seconds: 30)</td><td><span class='pill '>pp.incline-row</span></td></tr><tr><td><strong>Pull-Up</strong><div class='small'>skill.pp.pullup</div></td><td><span class='pill good'>pp.pullup</span></td><td>pullingPower</td><td>2</td><td>skill</td><td>.reps(exercise: &quot;pullup&quot;, count: 5)</td><td><span class='pill '>pp.dead-hang</span></td></tr><tr><td><strong>Chin-Up</strong><div class='small'>skill.pp.chin-up</div></td><td><span class='pill good'>pp.chin-up</span></td><td>pullingPower</td><td>3</td><td>skill</td><td>.reps(exercise: &quot;chin-up&quot;, count: 5)</td><td><span class='pill '>pp.dead-hang</span></td></tr><tr><td><strong>Decline Row</strong><div class='small'>skill.pp.decline-row</div></td><td><span class='pill good'>pp.decline-row</span></td><td>pullingPower</td><td>3</td><td>skill</td><td>.reps(exercise: &quot;decline row&quot;, count: 10)</td><td><span class='pill '>pp.row</span></td></tr><tr><td><strong>German Hang</strong><div class='small'>skill.cl.german-hang</div></td><td><span class='pill good'>cl.german-hang</span></td><td>pullingPower</td><td>3</td><td>hold</td><td>.hold(exercise: &quot;german hang&quot;, seconds: 10)</td><td><span class='pill '>cl.tuck-front-lever</span></td></tr><tr><td><strong>Row</strong><div class='small'>skill.pp.row</div></td><td><span class='pill good'>pp.row</span></td><td>pullingPower</td><td>3</td><td>skill</td><td>.reps(exercise: &quot;inverted row&quot;, count: 10)</td><td><span class='pill '>pp.incline-row</span></td></tr><tr><td><strong>One-Arm Row</strong><div class='small'>skill.pp.one-arm-row</div></td><td><span class='pill good'>pp.one-arm-row</span></td><td>pullingPower</td><td>4</td><td>skill</td><td>.reps(exercise: &quot;one arm row&quot;, count: 5)</td><td><span class='pill '>pp.decline-row</span></td></tr><tr><td><strong>Skin the Cat</strong><div class='small'>skill.cl.skin-the-cat</div></td><td><span class='pill good'>cl.skin-the-cat</span></td><td>pullingPower</td><td>4</td><td>skill</td><td>.reps(exercise: &quot;skin the cat&quot;, count: 3)</td><td><span class='pill '>cl.german-hang</span></td></tr><tr><td><strong>Strict Chin-Up</strong><div class='small'>skill.pp.strict-chin-up</div></td><td><span class='pill good'>pp.strict-chin-up</span></td><td>pullingPower</td><td>4</td><td>skill</td><td>.reps(exercise: &quot;chin-up&quot;, count: 8)</td><td><span class='pill '>pp.chin-up</span></td></tr><tr><td><strong>Strict Pull-Up</strong><div class='small'>skill.pp.strict-pullup</div></td><td><span class='pill good'>pp.strict-pullup</span></td><td>pullingPower</td><td>4</td><td>skill</td><td>.reps(exercise: &quot;strict pullup&quot;, count: 5)</td><td><span class='pill '>pp.pullup</span></td></tr><tr><td><strong>Tuck Front Lever</strong><div class='small'>skill.cl.tuck-front-lever</div></td><td><span class='pill good'>cl.tuck-front-lever</span></td><td>pullingPower</td><td>4</td><td>hold</td><td>.hold(exercise: &quot;tuck front lever&quot;, seconds: 10)</td><td><span class='pill '>pp.decline-row</span></td></tr><tr><td><strong>Tuck Row</strong><div class='small'>skill.pp.tuck-row</div></td><td><span class='pill good'>pp.tuck-row</span></td><td>pullingPower</td><td>4</td><td>skill</td><td>.reps(exercise: &quot;tuck row&quot;, count: 8)</td><td><span class='pill '>pp.decline-row</span></td></tr><tr><td><strong>Explosive Pull-Up</strong><div class='small'>skill.pp.explosive-pullup</div></td><td><span class='pill good'>pp.explosive-pullup</span></td><td>pullingPower</td><td>5</td><td>skill</td><td>.reps(exercise: &quot;explosive pullup&quot;, count: 3)</td><td><span class='pill '>pp.strict-pullup</span></td></tr><tr><td><strong>Full Back Lever</strong><div class='small'>skill.cl.full-back-lever</div></td><td><span class='pill good'>cl.full-back-lever</span></td><td>pullingPower</td><td>5</td><td>hold</td><td>.hold(exercise: &quot;back lever&quot;, seconds: 5)</td><td><span class='pill '>cl.straddle-back-lever</span></td></tr><tr><td><strong>L-Sit Chin-Up</strong><div class='small'>skill.pp.l-sit-chin-up</div></td><td><span class='pill good'>pp.l-sit-chin-up</span></td><td>pullingPower</td><td>5</td><td>skill</td><td>.reps(exercise: &quot;l-sit chin-up&quot;, count: 5)</td><td><span class='pill '>pp.strict-chin-up</span><span class='pill '>cal.l-sit-10</span></td></tr><tr><td><strong>Straddle Back Lever</strong><div class='small'>skill.cl.straddle-back-lever</div></td><td><span class='pill good'>cl.straddle-back-lever</span></td><td>pullingPower</td><td>5</td><td>hold</td><td>.hold(exercise: &quot;straddle back lever&quot;, seconds: 5)</td><td><span class='pill '>cl.skin-the-cat</span></td></tr><tr><td><strong>Straddle Front Lever</strong><div class='small'>skill.cl.straddle-front-lever</div></td><td><span class='pill good'>cl.straddle-front-lever</span></td><td>pullingPower</td><td>5</td><td>hold</td><td>.hold(exercise: &quot;straddle front lever&quot;, seconds: 5)</td><td><span class='pill '>cl.tuck-front-lever</span></td></tr><tr><td><strong>Straddle Row</strong><div class='small'>skill.pp.straddle-row</div></td><td><span class='pill good'>pp.straddle-row</span></td><td>pullingPower</td><td>5</td><td>skill</td><td>.reps(exercise: &quot;straddle row&quot;, count: 5)</td><td><span class='pill '>pp.tuck-row</span></td></tr><tr><td><strong>Tuck Front Lever Pull-Up</strong><div class='small'>skill.pp.tuck-front-lever-pullup</div></td><td><span class='pill good'>pp.tuck-front-lever-pullup</span></td><td>pullingPower</td><td>5</td><td>skill</td><td>.reps(exercise: &quot;tuck front lever pullup&quot;, count: 3)</td><td><span class='pill '>pp.one-arm-row</span></td></tr><tr><td><strong>Weighted Chin-Up</strong><div class='small'>skill.pp.weighted-chin-up</div></td><td><span class='pill good'>pp.weighted-chin-up</span></td><td>pullingPower</td><td>5</td><td>strength</td><td>.weightMultiplier(exercise: &quot;weighted chin-up&quot;, multiplier: 0.5)</td><td><span class='pill '>pp.strict-chin-up</span></td></tr><tr><td><strong>Weighted Pull-Up</strong><div class='small'>skill.pp.weighted-pullup</div></td><td><span class='pill good'>pp.weighted-pullup</span></td><td>pullingPower</td><td>5</td><td>strength</td><td>.weightMultiplier(exercise: &quot;weighted pullup&quot;, multiplier: 0.5)</td><td><span class='pill '>pp.strict-pullup</span></td></tr><tr><td><strong>Wide Pull-Up</strong><div class='small'>skill.pp.wide-pullup</div></td><td><span class='pill good'>pp.wide-pullup</span></td><td>pullingPower</td><td>5</td><td>skill</td><td>.reps(exercise: &quot;wide pullup&quot;, count: 5)</td><td><span class='pill '>pp.strict-pullup</span></td></tr><tr><td><strong>360-Degree Pulls</strong><div class='small'>skill.cl.three-sixty-pulls</div></td><td><span class='pill good'>cl.three-sixty-pulls</span></td><td>pullingPower</td><td>6</td><td>skill</td><td>.reps(exercise: &quot;360-degree pulls&quot;, count: 1)</td><td><span class='pill '>cl.skin-the-cat</span></td></tr><tr><td><strong>Archer Pull-Up</strong><div class='small'>skill.pp.archer-pullup</div></td><td><span class='pill good'>pp.archer-pullup</span></td><td>pullingPower</td><td>6</td><td>skill</td><td>.reps(exercise: &quot;archer pullup&quot;, count: 3)</td><td><span class='pill '>pp.weighted-pullup</span></td></tr><tr><td><strong>Clapping Pull-Up</strong><div class='small'>skill.pp.clapping-pullup</div></td><td><span class='pill good'>pp.clapping-pullup</span></td><td>pullingPower</td><td>6</td><td>skill</td><td>.reps(exercise: &quot;clapping pullup&quot;, count: 1)</td><td><span class='pill '>pp.explosive-pullup</span></td></tr><tr><td><strong>Full Front Lever</strong><div class='small'>skill.cl.full-front-lever</div></td><td><span class='pill good'>cl.full-front-lever</span></td><td>pullingPower</td><td>6</td><td>hold</td><td>.hold(exercise: &quot;front lever&quot;, seconds: 5)</td><td><span class='pill '>cl.straddle-front-lever</span></td></tr><tr><td><strong>Muscle-Up</strong><div class='small'>skill.pp.muscle-up</div></td><td><span class='pill good'>pp.muscle-up</span></td><td>pullingPower</td><td>6</td><td>skill</td><td>.reps(exercise: &quot;muscle-up&quot;, count: 1)</td><td><span class='pill '>pp.explosive-pullup</span></td></tr><tr><td><strong>Heighted Chin-Up</strong><div class='small'>skill.pp.heighted-chin-up</div></td><td><span class='pill good'>pp.heighted-chin-up</span></td><td>pullingPower</td><td>7</td><td>skill</td><td>.reps(exercise: &quot;heighted chin-up&quot;, count: 3)</td><td><span class='pill '>pp.weighted-chin-up</span></td></tr><tr><td><strong>One-Arm Pull-Up Negative</strong><div class='small'>skill.pp.oap-negative</div></td><td><span class='pill good'>pp.oap-negative</span></td><td>pullingPower</td><td>7</td><td>skill</td><td>.reps(exercise: &quot;one-arm pullup negative&quot;, count: 3)</td><td><span class='pill '>pp.archer-pullup</span></td></tr><tr><td><strong>Ring Muscle-Up</strong><div class='small'>skill.pp.ring-muscle-up</div></td><td><span class='pill good'>pp.ring-muscle-up</span></td><td>pullingPower</td><td>7</td><td>skill</td><td>.reps(exercise: &quot;ring muscle-up&quot;, count: 1)</td><td><span class='pill '>pp.muscle-up</span></td></tr><tr><td><strong>One-Arm Chin-Up</strong><div class='small'>skill.pp.one-arm-chin-up</div></td><td><span class='pill good'>pp.one-arm-chin-up</span></td><td>pullingPower</td><td>8</td><td>skill</td><td>.reps(exercise: &quot;one-arm chin-up&quot;, count: 1)</td><td><span class='pill '>pp.heighted-chin-up</span></td></tr><tr><td><strong>One-Arm Pull-Up</strong><div class='small'>skill.pp.one-arm-pullup</div></td><td><span class='pill good'>pp.one-arm-pullup</span></td><td>pullingPower</td><td>8</td><td>skill</td><td>.reps(exercise: &quot;one-arm pullup&quot;, count: 1)</td><td><span class='pill '>pp.oap-negative</span></td></tr><tr><td><strong>Strict Muscle-Up</strong><div class='small'>skill.pp.strict-muscle-up</div></td><td><span class='pill good'>pp.strict-muscle-up</span></td><td>pullingPower</td><td>8</td><td>skill</td><td>.reps(exercise: &quot;strict muscle-up&quot;, count: 1)</td><td><span class='pill '>pp.ring-muscle-up</span></td></tr></tbody></table></div></details>
+  <details ><summary>Skill-associated gym movements · 58</summary><div><table><thead><tr><th>Movement</th><th>Linked Skills</th><th>Rank Standard</th><th>Template</th><th>Slot</th></tr></thead><tbody><tr><td><strong>Pike Pushup</strong><div class='small'>pike pushup</div></td><td><span class='pill good'>cal.handstand-pushup</span><span class='pill good'>cal.pushup</span><span class='pill good'>hs.wall-handstand-30</span></td><td>exercise.pike-pushup</td><td>Bodyweight Reps</td><td>Vertical Push</td></tr><tr><td><strong>Wall Handstand Pushup</strong><div class='small'>wall handstand pushup</div></td><td><span class='pill good'>cal.handstand-pushup</span><span class='pill good'>cal.pushup</span><span class='pill good'>hs.wall-handstand-30</span></td><td>exercise.wall-handstand-pushup</td><td>Bodyweight Reps</td><td>Vertical Push</td></tr><tr><td><strong>Barbell OHP</strong><div class='small'>overhead press</div></td><td><span class='pill good'>cal.handstand-pushup</span><span class='pill good'>hs.wall-handstand-30</span></td><td>exercise.overhead-press</td><td>Free Weight Strength</td><td>Vertical Push</td></tr><tr><td><strong>Dumbbell OHP</strong><div class='small'>dumbbell overhead press</div></td><td><span class='pill good'>cal.handstand-pushup</span><span class='pill good'>hs.wall-handstand-30</span></td><td>exercise.dumbbell-overhead-press</td><td>Free Weight Strength</td><td>Vertical Push</td></tr><tr><td><strong>Archer Pushup</strong><div class='small'>archer pushup</div></td><td><span class='pill good'>cal.pushup</span></td><td>exercise.archer-pushup</td><td>Bodyweight Reps</td><td>Horizontal Push</td></tr><tr><td><strong>Barbell Bench Press</strong><div class='small'>bench press</div></td><td><span class='pill good'>cal.pushup</span></td><td>exercise.bench-press</td><td>Free Weight Strength</td><td>Horizontal Push</td></tr><tr><td><strong>Close Grip Bench</strong><div class='small'>close grip bench press</div></td><td><span class='pill good'>cal.pushup</span></td><td>exercise.close-grip-bench-press</td><td>Free Weight Strength</td><td>Arms</td></tr><tr><td><strong>Converging Chest Press</strong><div class='small'>converging chest press</div></td><td><span class='pill good'>cal.pushup</span></td><td>exercise.machine-chest-press</td><td>Machine / Cable Strength</td><td>Horizontal Push</td></tr><tr><td><strong>Decline Press</strong><div class='small'>decline bench press</div></td><td><span class='pill good'>cal.pushup</span></td><td>exercise.decline-bench-press</td><td>Free Weight Strength</td><td>Horizontal Push</td></tr><tr><td><strong>Decline Pushup</strong><div class='small'>decline pushup</div></td><td><span class='pill good'>cal.pushup</span></td><td>exercise.decline-pushup</td><td>Bodyweight Reps</td><td>Horizontal Push</td></tr><tr><td><strong>Diamond Pushup</strong><div class='small'>diamond pushup</div></td><td><span class='pill good'>cal.pushup</span></td><td>exercise.diamond-pushup</td><td>Bodyweight Reps</td><td>Horizontal Push</td></tr><tr><td><strong>Dumbbell Bench Press</strong><div class='small'>dumbbell bench press</div></td><td><span class='pill good'>cal.pushup</span></td><td>exercise.dumbbell-bench-press</td><td>Free Weight Strength</td><td>Horizontal Push</td></tr><tr><td><strong>Hammer Strength Chest Press</strong><div class='small'>hammer strength chest press</div></td><td><span class='pill good'>cal.pushup</span></td><td>exercise.machine-chest-press</td><td>Machine / Cable Strength</td><td>Horizontal Push</td></tr><tr><td><strong>Incline Barbell Press</strong><div class='small'>incline bench press</div></td><td><span class='pill good'>cal.pushup</span></td><td>exercise.incline-bench-press</td><td>Free Weight Strength</td><td>Horizontal Push</td></tr><tr><td><strong>Incline Pushup</strong><div class='small'>incline pushup</div></td><td><span class='pill good'>cal.pushup</span></td><td>exercise.incline-pushup</td><td>Bodyweight Reps</td><td>Horizontal Push</td></tr><tr><td><strong>Machine Chest Press</strong><div class='small'>machine chest press</div></td><td><span class='pill good'>cal.pushup</span></td><td>exercise.machine-chest-press</td><td>Machine / Cable Strength</td><td>Horizontal Push</td></tr><tr><td><strong>Machine Incline Chest Press</strong><div class='small'>machine incline chest press</div></td><td><span class='pill good'>cal.pushup</span></td><td>exercise.machine-incline-chest-press</td><td>Machine / Cable Strength</td><td>Horizontal Push</td></tr><tr><td><strong>Plate Loaded Chest Press</strong><div class='small'>plate loaded chest press</div></td><td><span class='pill good'>cal.pushup</span></td><td>exercise.machine-chest-press</td><td>Machine / Cable Strength</td><td>Horizontal Push</td></tr><tr><td><strong>Pseudo-Planche Pushup</strong><div class='small'>pseudo planche pushup</div></td><td><span class='pill good'>cal.pushup</span></td><td>exercise.pseudo-planche-pushup</td><td>Bodyweight Reps</td><td>Horizontal Push</td></tr><tr><td><strong>Pushup</strong><div class='small'>pushup</div></td><td><span class='pill good'>cal.pushup</span></td><td>exercise.pushup</td><td>Bodyweight Reps</td><td>Horizontal Push</td></tr><tr><td><strong>Smith Machine Bench Press</strong><div class='small'>smith machine bench press</div></td><td><span class='pill good'>cal.pushup</span></td><td>exercise.smith-machine-bench-press</td><td>Machine / Cable Strength</td><td>Horizontal Push</td></tr><tr><td><strong>Captain's Chair Knee Raise</strong><div class='small'>captains chair knee raise</div></td><td><span class='pill good'>cl.hollow-body-30</span></td><td>exercise.captains-chair-knee-raise</td><td>Bodyweight Reps</td><td>Core</td></tr><tr><td><strong>Captain's Chair Leg Raise</strong><div class='small'>captains chair leg raise</div></td><td><span class='pill good'>cl.hollow-body-30</span></td><td>exercise.captains-chair-leg-raise</td><td>Bodyweight Reps</td><td>Core</td></tr><tr><td><strong>Decline Sit-Up</strong><div class='small'>decline situp</div></td><td><span class='pill good'>cl.hollow-body-30</span></td><td>exercise.decline-situp</td><td>Bodyweight Reps</td><td>Core</td></tr><tr><td><strong>Hanging Knee Raise</strong><div class='small'>hanging knee raise</div></td><td><span class='pill good'>cl.hollow-body-30</span></td><td>exercise.hanging-knee-raise</td><td>Hold / Control</td><td>Core</td></tr><tr><td><strong>Hanging Leg Raise</strong><div class='small'>hanging leg raise</div></td><td><span class='pill good'>cl.hollow-body-30</span></td><td>exercise.hanging-leg-raise</td><td>Hold / Control</td><td>Core</td></tr><tr><td><strong>Hollow Hold</strong><div class='small'>hollow hold</div></td><td><span class='pill good'>cl.hollow-body-30</span></td><td>exercise.hollow-hold</td><td>Hold / Control</td><td>Core</td></tr><tr><td><strong>Hollow Rock</strong><div class='small'>hollow rock</div></td><td><span class='pill good'>cl.hollow-body-30</span></td><td>exercise.hollow-rock</td><td>Bodyweight Reps</td><td>Core</td></tr><tr><td><strong>Plank</strong><div class='small'>plank</div></td><td><span class='pill good'>cl.hollow-body-30</span></td><td>exercise.plank</td><td>Hold / Control</td><td>Core</td></tr><tr><td><strong>Roman Chair Sit-Up</strong><div class='small'>roman chair situp</div></td><td><span class='pill good'>cl.hollow-body-30</span></td><td>exercise.roman-chair-situp</td><td>Bodyweight Reps</td><td>Core</td></tr><tr><td><strong>Leg Curl (Lying)</strong><div class='small'>leg curl (lying)</div></td><td><span class='pill good'>ld.nordic-curl</span></td><td>exercise.leg-curl-lying</td><td>Machine / Cable Strength</td><td>Hinge / Posterior</td></tr><tr><td><strong>Leg Curl (Seated)</strong><div class='small'>leg curl (seated)</div></td><td><span class='pill good'>ld.nordic-curl</span></td><td>exercise.leg-curl-lying</td><td>Machine / Cable Strength</td><td>Hinge / Posterior</td></tr><tr><td><strong>Nordic Curl</strong><div class='small'>nordic curl</div></td><td><span class='pill good'>ld.nordic-curl</span></td><td>exercise.nordic-curl</td><td>Bodyweight Reps</td><td>Hinge / Posterior</td></tr><tr><td><strong>Single-Leg Curl</strong><div class='small'>single-leg curl</div></td><td><span class='pill good'>ld.nordic-curl</span></td><td>exercise.leg-curl-lying</td><td>Machine / Cable Strength</td><td>Hinge / Posterior</td></tr><tr><td><strong>Bulgarian Split Squat</strong><div class='small'>bulgarian split squat</div></td><td><span class='pill good'>ld.pistol-squat</span></td><td>exercise.bulgarian-split-squat</td><td>Free Weight Strength</td><td>Squat / Quad</td></tr><tr><td><strong>Dumbbell Step Up</strong><div class='small'>dumbbell step up</div></td><td><span class='pill good'>ld.pistol-squat</span></td><td>exercise.dumbbell-step-up</td><td>Free Weight Strength</td><td>Squat / Quad</td></tr><tr><td><strong>Pistol Squat</strong><div class='small'>pistol squat</div></td><td><span class='pill good'>ld.pistol-squat</span></td><td>exercise.pistol-squat</td><td>Bodyweight Reps</td><td>Squat / Quad</td></tr><tr><td><strong>Pistol Squat (Assisted)</strong><div class='small'>assisted pistol squat</div></td><td><span class='pill good'>ld.pistol-squat</span></td><td>exercise.assisted-pistol-squat</td><td>Bodyweight Reps</td><td>Squat / Quad</td></tr><tr><td><strong>Shrimp Squat</strong><div class='small'>shrimp squat</div></td><td><span class='pill good'>ld.pistol-squat</span></td><td>exercise.shrimp-squat</td><td>Bodyweight Reps</td><td>Squat / Quad</td></tr><tr><td><strong>Shrimp Squat (Assisted)</strong><div class='small'>assisted shrimp squat</div></td><td><span class='pill good'>ld.pistol-squat</span></td><td>exercise.assisted-shrimp-squat</td><td>Bodyweight Reps</td><td>Squat / Quad</td></tr><tr><td><strong>Smith Machine Split Squat</strong><div class='small'>smith machine split squat</div></td><td><span class='pill good'>ld.pistol-squat</span></td><td>exercise.smith-machine-split-squat</td><td>Machine / Cable Strength</td><td>Squat / Quad</td></tr><tr><td><strong>Step Up</strong><div class='small'>step up</div></td><td><span class='pill good'>ld.pistol-squat</span></td><td>exercise.step-up</td><td>Bodyweight Reps</td><td>Squat / Quad</td></tr><tr><td><strong>Dip (Tricep)</strong><div class='small'>dip</div></td><td><span class='pill good'>pp.muscle-up</span></td><td>exercise.dip</td><td>Bodyweight Reps</td><td>Arms</td></tr><tr><td><strong>Straight Bar Dip</strong><div class='small'>straight bar dip</div></td><td><span class='pill good'>pp.muscle-up</span></td><td>exercise.straight-bar-dip</td><td>Bodyweight Reps</td><td>Arms</td></tr><tr><td><strong>Assisted Pull-Up (Band)</strong><div class='small'>assisted pullup (band)</div></td><td><span class='pill good'>pp.pullup</span><span class='pill good'>pp.strict-pullup</span></td><td>exercise.assisted-pullup-band</td><td>Bodyweight Reps</td><td>Vertical Pull</td></tr><tr><td><strong>Assisted Pull-Up Machine</strong><div class='small'>assisted pullup machine</div></td><td><span class='pill good'>pp.pullup</span><span class='pill good'>pp.strict-pullup</span></td><td>exercise.assisted-pullup-machine</td><td>Bodyweight Reps</td><td>Vertical Pull</td></tr><tr><td><strong>Chest-to-Bar Pullup</strong><div class='small'>chest-to-bar pullup</div></td><td><span class='pill good'>pp.pullup</span><span class='pill good'>pp.strict-pullup</span></td><td>exercise.chest-to-bar-pullup</td><td>Bodyweight Reps</td><td>Vertical Pull</td></tr><tr><td><strong>Chin-Up</strong><div class='small'>chin-up</div></td><td><span class='pill good'>pp.pullup</span><span class='pill good'>pp.strict-pullup</span></td><td>exercise.chin-up</td><td>Bodyweight Reps</td><td>Vertical Pull</td></tr><tr><td><strong>Close-Grip Lat Pulldown</strong><div class='small'>close grip lat pulldown</div></td><td><span class='pill good'>pp.pullup</span><span class='pill good'>pp.strict-pullup</span></td><td>exercise.lat-pulldown</td><td>Machine / Cable Strength</td><td>Vertical Pull</td></tr><tr><td><strong>Lat Pulldown (Bar)</strong><div class='small'>lat pulldown</div></td><td><span class='pill good'>pp.pullup</span><span class='pill good'>pp.strict-pullup</span></td><td>exercise.lat-pulldown</td><td>Machine / Cable Strength</td><td>Vertical Pull</td></tr><tr><td><strong>Lat Pulldown (Neutral)</strong><div class='small'>lat pulldown (neutral)</div></td><td><span class='pill good'>pp.pullup</span><span class='pill good'>pp.strict-pullup</span></td><td>exercise.lat-pulldown</td><td>Machine / Cable Strength</td><td>Vertical Pull</td></tr><tr><td><strong>Negative Pull-Up</strong><div class='small'>negative pullup</div></td><td><span class='pill good'>pp.pullup</span><span class='pill good'>pp.strict-pullup</span></td><td>exercise.negative-pullup</td><td>Bodyweight Reps</td><td>Vertical Pull</td></tr><tr><td><strong>Pull-Up (Bodyweight)</strong><div class='small'>pullup</div></td><td><span class='pill good'>pp.pullup</span><span class='pill good'>pp.strict-pullup</span></td><td>exercise.pullup</td><td>Bodyweight Reps</td><td>Vertical Pull</td></tr><tr><td><strong>Reverse-Grip Lat Pulldown</strong><div class='small'>reverse grip lat pulldown</div></td><td><span class='pill good'>pp.pullup</span><span class='pill good'>pp.strict-pullup</span></td><td>exercise.lat-pulldown</td><td>Machine / Cable Strength</td><td>Vertical Pull</td></tr><tr><td><strong>Single-Arm Pulldown</strong><div class='small'>single arm pulldown</div></td><td><span class='pill good'>pp.pullup</span><span class='pill good'>pp.strict-pullup</span></td><td>exercise.lat-pulldown</td><td>Machine / Cable Strength</td><td>Vertical Pull</td></tr><tr><td><strong>Weighted Pull-Up (5kg)</strong><div class='small'>weighted pullup</div></td><td><span class='pill good'>pp.pullup</span><span class='pill good'>pp.strict-pullup</span></td><td>exercise.weighted-pullup</td><td>Weighted Bodyweight</td><td>Vertical Pull</td></tr><tr><td><strong>Wide-Grip Lat Pulldown</strong><div class='small'>wide grip lat pulldown</div></td><td><span class='pill good'>pp.pullup</span><span class='pill good'>pp.strict-pullup</span></td><td>exercise.lat-pulldown</td><td>Machine / Cable Strength</td><td>Vertical Pull</td></tr><tr><td><strong>Wide-Grip Pull-Up</strong><div class='small'>wide grip pullup</div></td><td><span class='pill good'>pp.pullup</span><span class='pill good'>pp.strict-pullup</span></td><td>exercise.wide-grip-pullup</td><td>Bodyweight Reps</td><td>Vertical Pull</td></tr></tbody></table></div></details>
+</main>
+</body>
+</html>

@@ -25,6 +25,36 @@ final class ProgramAwareStreakPolicyTests: XCTestCase {
         XCTAssertFalse(decision.broken)
     }
 
+    func test_sameCalendarDayDoesNotExtendOrBreak() {
+        let decision = ProgramAwareStreakPolicy.shouldExtendStreak(
+            from: date("2026-05-04"),
+            to: date("2026-05-04"),
+            currentStreak: 5,
+            resetWindowDays: 14,
+            activeProgram: nil,
+            calendar: calendar
+        )
+
+        XCTAssertEqual(decision.streak, 5)
+        XCTAssertFalse(decision.extended)
+        XCTAssertFalse(decision.broken)
+    }
+
+    func test_outOfOrderSessionDoesNotExtendOrBreak() {
+        let decision = ProgramAwareStreakPolicy.shouldExtendStreak(
+            from: date("2026-05-06"),
+            to: date("2026-05-04"),
+            currentStreak: 5,
+            resetWindowDays: 14,
+            activeProgram: nil,
+            calendar: calendar
+        )
+
+        XCTAssertEqual(decision.streak, 5)
+        XCTAssertFalse(decision.extended)
+        XCTAssertFalse(decision.broken)
+    }
+
     func test_longerGapExtendsWhenSkippedProgramDaysAreRecovery() {
         let program = makeProgram(pattern: [.train, .rest, .rest, .train])
 
@@ -57,6 +87,38 @@ final class ProgramAwareStreakPolicyTests: XCTestCase {
         XCTAssertEqual(decision.streak, 1)
         XCTAssertFalse(decision.extended)
         XCTAssertTrue(decision.broken)
+    }
+
+    func test_longerGapBreaksWithoutProgramRecoveryContext() {
+        let decision = ProgramAwareStreakPolicy.shouldExtendStreak(
+            from: date("2026-05-04"),
+            to: date("2026-05-07"),
+            currentStreak: 5,
+            resetWindowDays: 14,
+            activeProgram: nil,
+            calendar: calendar
+        )
+
+        XCTAssertEqual(decision.streak, 1)
+        XCTAssertFalse(decision.extended)
+        XCTAssertTrue(decision.broken)
+    }
+
+    func test_recoveryWindowCanWrapAcrossProgramCycle() {
+        let program = makeProgram(pattern: [.train, .rest, .rest])
+
+        let decision = ProgramAwareStreakPolicy.shouldExtendStreak(
+            from: date("2026-05-04"),
+            to: date("2026-05-07"),
+            currentStreak: 5,
+            resetWindowDays: 14,
+            activeProgram: program,
+            calendar: calendar
+        )
+
+        XCTAssertEqual(decision.streak, 6)
+        XCTAssertTrue(decision.extended)
+        XCTAssertFalse(decision.broken)
     }
 
     func test_gapBeyondResetWindowBreaksEvenIfSkippedDaysAreRecovery() {

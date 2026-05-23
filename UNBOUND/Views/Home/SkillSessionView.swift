@@ -8,12 +8,13 @@ import SwiftUI
 // are collapsed by default and only revealed if the user wants them — so
 // the session feels like one cluster of work, not three sections.
 //
-// Sticky bottom: FINISH SESSION → writes a SessionLog and credits XP
-// proportional to completion fraction.
+// Sticky bottom: FINISH SESSION → emits PerformanceLog through the unified
+// completion service, which preserves SessionLog compatibility during migration.
 
 struct SkillSessionView: View {
     let skillId: String
     let skillTitle: String
+    let draft: TrainingSessionDraft
 
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var services: ServiceContainer
@@ -33,9 +34,11 @@ struct SkillSessionView: View {
     @State private var activeRest: RestCombatState? = nil
 
     @State private var isDiscardAlertPresented: Bool = false
+    @State private var isFinishing: Bool = false
+    @State private var finishErrorMessage: String? = nil
 
-    // Reward celebration shown when finish() detects a PR/rank-up/badge.
-    @State private var rewardSummary: RewardSummary? = nil
+    // Program-style reward sequence shown after every completed skill session.
+    @State private var rewardSequence: WorkoutRewardSequenceSummary? = nil
 
     // Helper-section disclosure
     @State private var isAccessoriesExpanded: Bool = false
@@ -47,6 +50,24 @@ struct SkillSessionView: View {
     @State private var aiSession: AISession? = nil
     @State private var isLoadingSession: Bool = true
     @State private var loadError: String? = nil
+
+    init(skillId: String, skillTitle: String) {
+        self.skillId = skillId
+        self.skillTitle = skillTitle
+        self.draft = TrainingSessionAdapters.draft(
+            forSkillId: skillId,
+            title: skillTitle,
+            userId: AuthService.shared.currentUserId ?? "anonymous",
+            plan: SkillTrainingPlanLibrary.plan(for: skillId)
+        )
+    }
+
+    init(draft: TrainingSessionDraft) {
+        let block = draft.blocks.first(where: { $0.kind == .skill })
+        self.skillId = block?.skillId ?? draft.blocks.first?.skillId ?? draft.id
+        self.skillTitle = block?.title ?? draft.title
+        self.draft = draft
+    }
 
     // MARK: Computed
 
@@ -75,6 +96,19 @@ struct SkillSessionView: View {
     // MARK: - Body
 
     var body: some View {
+        Group {
+            if let rewardSequence {
+                WorkoutRewardSequenceView(summary: rewardSequence) {
+                    self.rewardSequence = nil
+                    dismiss()
+                }
+            } else {
+                sessionBody
+            }
+        }
+    }
+
+    private var sessionBody: some View {
         ZStack {
             Color.unbound.bg.ignoresSafeArea()
 
@@ -162,6 +196,15 @@ struct SkillSessionView: View {
         } message: {
             Text("You've logged \(loggedCount) set\(loggedCount == 1 ? "" : "s"). They won't be saved.")
         }
+        .alert("Couldn't save session", isPresented: Binding(
+            get: { finishErrorMessage != nil },
+            set: { if !$0 { finishErrorMessage = nil } }
+        )) {
+            Button("Retry") { Task { await finish() } }
+            Button("Keep training", role: .cancel) {}
+        } message: {
+            Text(finishErrorMessage ?? "Your session is still here. Try again when the connection is stable.")
+        }
         .fullScreenCover(item: $activeSlot) { slot in
             SetLoggerSheet(
                 prescription: prescription(for: slot.prescriptionId),
@@ -199,23 +242,6 @@ struct SkillSessionView: View {
             .presentationDetents([.medium])
             .presentationDragIndicator(.visible)
         }
-        .sheet(item: Binding(
-            get: { rewardSummary.map { SessionCelebration(summary: $0) } },
-            set: { rewardSummary = $0?.summary }
-        )) { item in
-            RewardCelebrationView(summary: item.summary) {
-                rewardSummary = nil
-                dismiss()
-            }
-            .presentationDetents([.medium, .large])
-            .presentationDragIndicator(.visible)
-            .presentationBackground(Color.unbound.bg)
-        }
-    }
-
-    private struct SessionCelebration: Identifiable {
-        let id = UUID()
-        let summary: RewardSummary
     }
 
     // MARK: - Header
@@ -586,6 +612,8 @@ struct SkillSessionView: View {
         let title: String
         if !canFinish {
             title = "Log a set to finish"
+        } else if isFinishing {
+            title = "Saving session"
         } else if loggedCount == totalSlots && totalSlots > 0 {
             title = "Finish session"
         } else {
@@ -594,15 +622,19 @@ struct SkillSessionView: View {
         return UnboundButton(
             title: title,
             icon: "checkmark.seal.fill",
-            isEnabled: canFinish
+            isEnabled: canFinish && !isFinishing
         ) {
             Task { await finish() }
         }
+        .accessibilityIdentifier("skillSession.finish")
     }
 
     // MARK: - Finish flow
 
     private func finish() async {
+        guard !isFinishing else { return }
+        isFinishing = true
+        finishErrorMessage = nil
         stopTimer()
 
         let now = Date()
@@ -629,16 +661,6 @@ struct SkillSessionView: View {
         // XP: 25 × completion fraction. Cap at 25, floor at 1 if anything logged.
         let xp = computeXP()
 
-        let log = SessionLog(
-            id: UUID().uuidString,
-            userId: userId,
-            skillId: skillId,
-            createdAt: now,
-            durationSeconds: duration,
-            exercises: loggedExercises,
-            xpAwarded: xp
-        )
-
         // Snapshot before write. Look up the canonical node so we have
         // the intrinsic SkillRank + hold-based detection without
         // requiring callers to thread it in.
@@ -661,19 +683,38 @@ struct SkillSessionView: View {
             badgeService: services.badges
         )
 
-        // Persist the SessionLog.
-        try? await services.database.create(log, collection: "sessionLogs", documentId: log.id)
+        let performanceLog = TrainingSessionAdapters.performanceLogForSkillSession(
+            id: UUID().uuidString,
+            userId: userId,
+            skillId: skillId,
+            skillTitle: skillTitle,
+            startedAt: sessionStart,
+            completedAt: now,
+            durationSeconds: duration,
+            exercises: loggedExercises
+        )
 
-        // Credit XP to skill progression.
-        if xp > 0 {
-            await SkillProgressService.shared.awardSessionXP(forNodeId: skillId, xpAmount: xp)
+        let completionResult: TrainingCompletionResult
+        do {
+            completionResult = try await TrainingCompletionService.shared.complete(
+                performanceLog,
+                services: services,
+                skillXPAwarded: xp
+            )
+        } catch {
+            isFinishing = false
+            finishErrorMessage = error.localizedDescription
+            HapticManager.notification(.error)
+            return
         }
+
+        let compatibleLog = TrainingSessionAdapters.sessionLogs(from: performanceLog, xpAwarded: xp).first
 
         // Fire badge evaluation — sessionLogged trigger expects a
         // WorkoutLog (legacy). For now, fire setCompleted for the
         // best set in the session — that's what the catalog evaluators
         // actually consume.
-        let bestSet = RewardComputer.bestSet(from: log, isHoldBased: isHoldBased)
+        let bestSet = compatibleLog.flatMap { RewardComputer.bestSet(from: $0, isHoldBased: isHoldBased) }
         var unlocked: [Badge] = []
         if let bs = bestSet {
             let triggerKey = isHoldBased ? "\(skillId).hold" : skillId
@@ -687,24 +728,27 @@ struct SkillSessionView: View {
         let postLevel = SkillProgressService.shared.currentSkillProgress(for: skillId).currentLevel
         let postState = SkillProgressService.shared.nodeStates[skillId] ?? preState
 
-        let summary = await RewardComputer.shared.after(
+        var summary = await RewardComputer.shared.after(
             snapshot: preSnapshot,
             skillTitle: skillTitle,
             bestSet: bestSet ?? LoggedSet(reps: 0, holdSeconds: nil, weightKg: nil, rpe: nil),
             skillRankAfter: skillRank,
             nodeStateAfter: postState,
             currentLevelAfter: postLevel,
-            xpGained: xp,
+            xpGained: completionResult.skillXPGained,
             unlockedBadges: unlocked
         )
+        summary.progression = completionResult.progressionReceipt
 
         UnboundHaptics.medium()
 
-        if summary.hasContent {
-            rewardSummary = summary
-        } else {
-            dismiss()
-        }
+        rewardSequence = WorkoutRewardSequenceSummary.trainingReceipt(
+            performanceLog: performanceLog,
+            completionResult: completionResult,
+            rewardSummary: summary,
+            fallbackXP: xp,
+            sourceName: "Skill Session"
+        )
     }
 
     private func computeXP() -> Int {
@@ -1131,6 +1175,7 @@ private struct SetLoggerSheet: View {
                     )
                     onSave(logged)
                 }
+                .accessibilityIdentifier("skillSession.logSet")
 
                 Button {
                     stopTimer()

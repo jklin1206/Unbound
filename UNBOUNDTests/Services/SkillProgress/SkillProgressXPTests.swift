@@ -195,4 +195,33 @@ final class SkillProgressXPTests: XCTestCase {
         let sp = svc.currentSkillProgress(for: "nonexistent.node.id")
         XCTAssertEqual(sp, SkillProgress.starter)
     }
+
+    // MARK: - Unlock gating
+
+    func test_lockedPrerequisiteNodeIsViewableButNotTrainable() async {
+        let (svc, _) = await makeService()
+
+        XCTAssertTrue(svc.isNodeTrainable(nodeId: "hs.wall-plank"))
+        XCTAssertFalse(svc.isNodeTrainable(nodeId: "hs.wall-handstand-30"))
+    }
+
+    func test_lockedNodeCannotReceiveXPOrBecomeActiveGoal() async {
+        let lockedNodeId = "hs.wall-handstand-30"
+        let (svc, _) = await makeService()
+
+        await svc.awardSessionXP(forNodeId: lockedNodeId, xpAmount: 500)
+        XCTAssertEqual(svc.currentSkillProgress(for: lockedNodeId), .starter)
+        XCTAssertNotEqual(svc.nodeStates[lockedNodeId], .achieved)
+
+        await svc.toggleActiveGoal(nodeId: lockedNodeId)
+        XCTAssertFalse(svc.activeGoalIds.contains(lockedNodeId))
+    }
+
+    func test_rootNodeCanBecomeActiveGoal() async {
+        let (svc, _) = await makeService()
+
+        await svc.toggleActiveGoal(nodeId: realNodeId)
+
+        XCTAssertTrue(svc.activeGoalIds.contains(realNodeId))
+    }
 }

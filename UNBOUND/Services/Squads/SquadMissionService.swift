@@ -73,7 +73,7 @@ final class SquadMissionService: SquadMissionServiceProtocol {
         let weekIso = Self.currentWeekIso()
         let memberCount: Int
         do {
-            memberCount = try await backend.fetchMembers(squadId: squadId).count
+            memberCount = max(1, try await backend.fetchMembers(squadId: squadId).count)
         } catch {
             memberCount = 4  // safe fallback
         }

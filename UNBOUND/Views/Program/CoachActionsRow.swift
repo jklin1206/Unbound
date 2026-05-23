@@ -2,17 +2,16 @@ import SwiftUI
 
 // MARK: - CoachActionsRow
 //
-// Four structured action chips that replace free-form coach chat for
-// program adjustments. Each chip opens a tight, purpose-built flow that
+// Structured action chips for program adjustments.
+// Each chip opens a tight, purpose-built flow that
 // feeds `CoachActionExecutor` (or sets a session flag for SHORT).
 //
-//   SWAP   — pick an exercise in today's session, swap to an alternative
 //   DELOAD — confirm, executor applies a planned deload
 //   TRAVEL — Claude-generated travel plan based on duration + equipment
 //   SHORT  — today's session gets trimmed to compound lifts only
 //
-// Visually: horizontal row of chamfered pills, violet accent on SWAP /
-// DELOAD / TRAVEL (program edits) and cyan on SHORT (session-only).
+// Exercise swaps live in SessionEditorView so the main Program surface does
+// not expose two competing edit entry points.
 
 struct CoachActionsRow: View {
     let program: TrainingProgram?
@@ -22,14 +21,12 @@ struct CoachActionsRow: View {
     @State private var sheet: Sheet?
 
     enum Sheet: Identifiable {
-        case swap
         case deload
         case travel
         case shortSession
 
         var id: String {
             switch self {
-            case .swap:         return "swap"
             case .deload:       return "deload"
             case .travel:       return "travel"
             case .shortSession: return "short"
@@ -40,10 +37,10 @@ struct CoachActionsRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 6) {
-                Image(systemName: "sparkles")
+                Image(systemName: "slider.horizontal.3")
                     .font(.system(size: 11, weight: .bold))
                     .foregroundStyle(Color.unbound.accent)
-                Text("COACH ACTIONS")
+                Text("PLAN ADJUSTMENTS")
                     .font(Font.unbound.captionS.weight(.bold))
                     .tracking(1.6)
                     .foregroundStyle(Color.unbound.textTertiary)
@@ -51,13 +48,6 @@ struct CoachActionsRow: View {
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
-                    chip(
-                        title: "SWAP",
-                        subtitle: "exercise",
-                        icon: "arrow.left.arrow.right",
-                        tint: Color.unbound.accent,
-                        action: { sheet = .swap }
-                    )
                     chip(
                         title: "DELOAD",
                         subtitle: "next week",
@@ -84,14 +74,6 @@ struct CoachActionsRow: View {
         }
         .sheet(item: $sheet) { kind in
             switch kind {
-            case .swap:
-                if let day = todayDay {
-                    SwapExercisePickerSheet(day: day, services: services) {
-                        sheet = nil
-                    }
-                } else {
-                    unavailableSheet(title: "NO SESSION TODAY", subtitle: "Swap lands on a scheduled workout day.")
-                }
             case .deload:
                 DeloadConfirmSheet(services: services) { sheet = nil }
             case .travel:
@@ -275,17 +257,12 @@ private struct SwapExercisePickerSheet: View {
     }
 
     private func alternativesFor(name: String) -> [CatalogExercise] {
-        // Simple: return all catalog exercises sharing at least one muscle
-        // group with the picked one, excluding the picked itself. Filtered
+        // Return movement-catalog substitutions in the same slot, filtered
         // by any AVOID preferences the user has set.
-        guard let current = ExerciseCatalog.exercise(named: name) else { return [] }
+        guard MovementCatalog.canonicalExercise(named: name) != nil else { return [] }
         let avoided = Set(preferences.filter { $0.status == .avoid }.map(\.exerciseName))
-        return ExerciseCatalog.allExercises
-            .filter { other in
-                guard other.name != current.name,
-                      !avoided.contains(other.name) else { return false }
-                return !Set(other.muscleGroups).intersection(current.muscleGroups).isEmpty
-            }
+        return MovementCatalog.catalogAlternatives(to: name)
+            .filter { !avoided.contains($0.name) }
     }
 
     @MainActor

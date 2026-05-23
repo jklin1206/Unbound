@@ -27,10 +27,16 @@ struct Step_ScanLive: View {
         case unavailable
     }
 
+    private var isPreviewMode: Bool {
+        ProcessInfo.processInfo.arguments.contains("-ScanLivePreview")
+    }
+
     var body: some View {
         ZStack {
             // Camera or fallback
-            if sessionStatus == .running {
+            if sessionStatus == .running && isPreviewMode {
+                previewEntryBackground
+            } else if sessionStatus == .running {
                 ScanCameraPreview(service: services.imageCapture)
                     .ignoresSafeArea()
             } else {
@@ -61,6 +67,7 @@ struct Step_ScanLive: View {
             // Chrome
             VStack(spacing: 0) {
                 topChrome
+                entryHeader
                 Spacer()
 
                 if sessionStatus == .running {
@@ -86,6 +93,11 @@ struct Step_ScanLive: View {
     // MARK: - Camera lifecycle
 
     private func startCamera() async {
+        if isPreviewMode {
+            sessionStatus = .running
+            return
+        }
+
         let granted = await services.imageCapture.requestPermission()
         guard granted else {
             sessionStatus = .denied
@@ -125,29 +137,44 @@ struct Step_ScanLive: View {
         .padding(.top, 8)
     }
 
-    // MARK: - Instruction block
+    // MARK: - Entry header
 
-    private var instructionBlock: some View {
+    private var entryHeader: some View {
         VStack(spacing: 8) {
             HStack(spacing: 8) {
-                Image(systemName: "lock.shield.fill")
-                    .font(.system(size: 11, weight: .semibold))
-                Text("STAYS ON YOUR DEVICE")
-                    .font(Font.unbound.captionS)
-                    .tracking(1.6)
+                Image(systemName: "hexagon.fill")
+                    .font(.system(size: 10, weight: .black))
+                Text("DAY ZERO ENTRY")
+                    .font(Font.unbound.monoS)
+                    .tracking(2.0)
             }
             .foregroundStyle(Color.unbound.accent)
 
-            Text("Fill the frame. Tap to snap.")
+            Text("Step into Day Zero")
                 .font(Font.unbound.titleL)
                 .foregroundStyle(Color.unbound.textPrimary)
                 .multilineTextAlignment(.center)
+                .lineLimit(2)
+                .minimumScaleFactor(0.84)
+
+            Text("One frame now. Proof in 30 days.")
+                .font(Font.unbound.bodyS)
+                .foregroundStyle(Color.unbound.textSecondary)
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+                .minimumScaleFactor(0.88)
         }
+        .padding(.horizontal, 24)
+        .padding(.top, 28)
         .padding(.bottom, 18)
-        .padding(.horizontal, 20)
+        .frame(maxWidth: .infinity)
         .background(
             LinearGradient(
-                colors: [Color.clear, Color.unbound.bg.opacity(0.7)],
+                colors: [
+                    Color.unbound.bg.opacity(0.82),
+                    Color.unbound.bg.opacity(0.46),
+                    Color.clear
+                ],
                 startPoint: .top,
                 endPoint: .bottom
             )
@@ -155,24 +182,151 @@ struct Step_ScanLive: View {
         )
     }
 
-    // MARK: - Capture button
+    private var previewEntryBackground: some View {
+        ZStack {
+            Color.unbound.bg.ignoresSafeArea()
 
-    private var captureButton: some View {
-        Button(action: capture) {
-            ZStack {
-                Circle()
-                    .strokeBorder(Color.unbound.textPrimary, lineWidth: 3)
-                    .frame(width: 84, height: 84)
+            AnimeBackdrop(variant: .godRay, intensity: 0.84)
+                .ignoresSafeArea()
 
-                Circle()
-                    .fill(Color.unbound.textPrimary)
-                    .frame(width: 70, height: 70)
-                    .scaleEffect(isCapturing ? 0.82 : 1.0)
-                    .animation(.spring(response: 0.28, dampingFraction: 0.72), value: isCapturing)
+            TechGridBackground(opacity: 0.14)
+                .ignoresSafeArea()
+
+            VStack(spacing: 18) {
+                Spacer().frame(height: 214)
+
+                ZStack {
+                    RoundedRectangle(cornerRadius: 28, style: .continuous)
+                        .stroke(Color.unbound.accent.opacity(0.5), lineWidth: 1.5)
+                        .frame(width: 238, height: 372)
+                        .shadow(color: Color.unbound.accent.opacity(0.2), radius: 22)
+
+                    RoundedRectangle(cornerRadius: 28, style: .continuous)
+                        .fill(Color.black.opacity(0.14))
+                        .frame(width: 238, height: 372)
+
+                    SilhouetteView(
+                        rimLight: .impact,
+                        chromaticAberration: 0.24,
+                        breathe: true,
+                        scale: 0.68,
+                        asset: .dormant
+                    )
+                    .frame(width: 190, height: 330)
+                    .opacity(0.82)
+
+                    VStack {
+                        HStack {
+                            cornerMark(rotation: 0)
+                            Spacer()
+                            cornerMark(rotation: 90)
+                        }
+                        Spacer()
+                        HStack {
+                            cornerMark(rotation: 270)
+                            Spacer()
+                            cornerMark(rotation: 180)
+                        }
+                    }
+                    .frame(width: 222, height: 356)
+                }
+
+                Spacer()
             }
         }
-        .buttonStyle(.plain)
-        .disabled(isCapturing)
+    }
+
+    private func cornerMark(rotation: Double) -> some View {
+        Path { path in
+            path.move(to: CGPoint(x: 0, y: 22))
+            path.addLine(to: CGPoint(x: 0, y: 0))
+            path.addLine(to: CGPoint(x: 22, y: 0))
+        }
+        .stroke(Color.unbound.accent.opacity(0.82), style: StrokeStyle(lineWidth: 2.2, lineCap: .round, lineJoin: .round))
+        .frame(width: 22, height: 22)
+        .rotationEffect(.degrees(rotation))
+    }
+
+    // MARK: - Instruction block
+
+    private var instructionBlock: some View {
+        VStack(spacing: 10) {
+            HStack(spacing: 8) {
+                Image(systemName: "flame.fill")
+                    .font(.system(size: 11, weight: .semibold))
+                Text("MONTH ONE STARTS HERE")
+                    .font(Font.unbound.captionS)
+                    .tracking(1.6)
+            }
+            .foregroundStyle(Color.unbound.accent)
+
+            Text("Set the before.")
+                .font(Font.unbound.titleM)
+                .foregroundStyle(Color.unbound.textPrimary)
+                .multilineTextAlignment(.center)
+
+            Text("This is the first page of the climb.")
+                .font(Font.unbound.captionS)
+                .foregroundStyle(Color.unbound.textSecondary)
+                .multilineTextAlignment(.center)
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 16)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(Color.unbound.bg.opacity(0.62))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .strokeBorder(Color.unbound.accent.opacity(0.24), lineWidth: 1)
+                )
+                .shadow(color: Color.unbound.accent.opacity(0.16), radius: 18)
+        )
+        .padding(.horizontal, 20)
+        .padding(.bottom, 8)
+    }
+
+    private var captureButton: some View {
+        VStack(spacing: 12) {
+            Button(action: capture) {
+                ZStack {
+                    Circle()
+                        .strokeBorder(Color.unbound.accent.opacity(0.5), lineWidth: 2)
+                        .frame(width: 104, height: 104)
+                        .shadow(color: Color.unbound.accent.opacity(0.42), radius: 18)
+
+                    Circle()
+                        .strokeBorder(Color.unbound.textPrimary.opacity(0.88), lineWidth: 3)
+                        .frame(width: 84, height: 84)
+
+                    Circle()
+                        .fill(
+                            RadialGradient(
+                                colors: [
+                                    Color.unbound.textPrimary,
+                                    Color.unbound.accent.opacity(0.9)
+                                ],
+                                center: .center,
+                                startRadius: 8,
+                                endRadius: 40
+                            )
+                        )
+                        .frame(width: 68, height: 68)
+                        .scaleEffect(isCapturing ? 0.82 : 1.0)
+                        .animation(.spring(response: 0.28, dampingFraction: 0.72), value: isCapturing)
+
+                    Image(systemName: "viewfinder")
+                        .font(.system(size: 22, weight: .black))
+                        .foregroundStyle(Color.unbound.bg.opacity(0.82))
+                }
+            }
+            .buttonStyle(.plain)
+            .disabled(isCapturing)
+
+            Text("BEGIN")
+                .font(Font.unbound.monoS)
+                .tracking(1.8)
+                .foregroundStyle(Color.unbound.textPrimary)
+        }
     }
 
     // MARK: - Capture

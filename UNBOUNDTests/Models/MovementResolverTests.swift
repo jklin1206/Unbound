@@ -255,6 +255,211 @@ final class MovementResolverTests: XCTestCase {
         })
     }
 
+    func testExerciseLibrarySearchFiltersSwapAlternativesByNameMuscleEquipmentAndSlot() {
+        let rowAlternatives = MovementCatalog.catalogAlternatives(to: "Machine Row")
+
+        let dumbbellMatches = ExerciseLibrarySearch.filteredAlternatives(
+            rowAlternatives,
+            searchText: "dumbbell"
+        )
+        XCTAssertFalse(dumbbellMatches.isEmpty)
+        XCTAssertTrue(dumbbellMatches.allSatisfy { alternative in
+            MovementCatalog.canonicalExercise(named: alternative.name)?.equipment.contains(.dumbbell) == true
+        })
+
+        let backMatches = ExerciseLibrarySearch.filteredAlternatives(
+            rowAlternatives,
+            searchText: "back",
+            selectedSlot: .horizontalPull
+        )
+        XCTAssertFalse(backMatches.isEmpty)
+        XCTAssertTrue(backMatches.allSatisfy { alternative in
+            MovementCatalog.canonicalExercise(named: alternative.name)?.movementSlot == .horizontalPull
+        })
+
+        let noMatches = ExerciseLibrarySearch.filteredAlternatives(
+            rowAlternatives,
+            searchText: "quadriceps",
+            selectedSlot: .horizontalPull
+        )
+        XCTAssertTrue(noMatches.isEmpty)
+    }
+
+    func testExerciseLibrarySearchRanksRecentsAndPreferences() throws {
+        let rowAlternatives = MovementCatalog.catalogAlternatives(to: "Machine Row")
+        let availablePreference = ExercisePreference(
+            id: "user:dumbbell-row",
+            userId: "user",
+            exerciseName: "Dumbbell Row",
+            displayName: "Dumbbell Row",
+            status: .available,
+            muscleGroups: [.back, .lats],
+            substitutePreference: nil,
+            notes: nil,
+            updatedAt: Date()
+        )
+        let avoidPreference = ExercisePreference(
+            id: "user:barbell-row",
+            userId: "user",
+            exerciseName: "Barbell Bent-Over Row",
+            displayName: "Barbell Bent-Over Row",
+            status: .avoid,
+            muscleGroups: [.back, .lats],
+            substitutePreference: nil,
+            notes: nil,
+            updatedAt: Date()
+        )
+        let statusesByKey = ExercisePreferenceLookup.index([availablePreference, avoidPreference])
+            .mapValues(\.status)
+
+        let ranked = ExerciseLibrarySearch.filteredAlternatives(
+            rowAlternatives,
+            searchText: "",
+            recentExerciseNames: Set(ExercisePreferenceLookup.keys(for: try XCTUnwrap(
+                MovementCatalog.catalogExercise(named: "Cable Row (Seated)")
+            ))),
+            preferenceStatusesByKey: statusesByKey
+        )
+
+        XCTAssertEqual(ranked.first?.displayName, "Dumbbell Row")
+        XCTAssertLessThan(
+            try XCTUnwrap(ranked.firstIndex { $0.displayName == "Barbell Bent-Over Row" }),
+            ranked.count
+        )
+        XCTAssertGreaterThan(
+            try XCTUnwrap(ranked.firstIndex { $0.displayName == "Barbell Bent-Over Row" }),
+            try XCTUnwrap(ranked.firstIndex { $0.displayName == "Cable Row (Seated)" })
+        )
+
+        let availableSignals = ExerciseLibrarySearch.signals(
+            for: try XCTUnwrap(MovementCatalog.catalogExercise(named: "Dumbbell Row")),
+            preferenceStatusesByKey: statusesByKey
+        )
+        XCTAssertEqual(availableSignals.preferenceStatus, .available)
+        XCTAssertTrue(availableSignals.badges.contains("Favorite"))
+
+        let favoritesOnly = ExerciseLibrarySearch.filteredAlternatives(
+            rowAlternatives,
+            searchText: "",
+            contextFilter: .favorites,
+            preferenceStatusesByKey: statusesByKey
+        )
+        XCTAssertEqual(favoritesOnly.map(\.displayName), ["Dumbbell Row"])
+
+        let availableOnly = ExerciseLibrarySearch.filteredAlternatives(
+            rowAlternatives,
+            searchText: "",
+            contextFilter: .available,
+            preferenceStatusesByKey: statusesByKey
+        )
+        XCTAssertEqual(availableOnly.map(\.displayName), ["Dumbbell Row"])
+
+        let recentSignals = ExerciseLibrarySearch.signals(
+            for: try XCTUnwrap(MovementCatalog.catalogExercise(named: "Cable Row (Seated)")),
+            recentExerciseNames: Set(ExercisePreferenceLookup.keys(for: try XCTUnwrap(
+                MovementCatalog.catalogExercise(named: "Cable Row (Seated)")
+            )))
+        )
+        XCTAssertTrue(recentSignals.isRecent)
+
+        let recentOnly = ExerciseLibrarySearch.filteredAlternatives(
+            rowAlternatives,
+            searchText: "",
+            contextFilter: .recent,
+            recentExerciseNames: Set(ExercisePreferenceLookup.keys(for: try XCTUnwrap(
+                MovementCatalog.catalogExercise(named: "Cable Row (Seated)")
+            )))
+        )
+        XCTAssertEqual(recentOnly.map(\.displayName), ["Cable Row (Seated)"])
+    }
+
+    func testExerciseLibrarySearchSurfacesCompatibilityState() throws {
+        let rowAlternatives = MovementCatalog.catalogAlternatives(to: "Machine Row")
+        let barbellRow = try XCTUnwrap(MovementCatalog.catalogExercise(named: "Barbell Bent-Over Row"))
+        let bodyweightRow = try XCTUnwrap(MovementCatalog.catalogExercise(named: "Inverted Row"))
+        let avoidPreference = ExercisePreference(
+            id: "user:barbell-row",
+            userId: "user",
+            exerciseName: "Barbell Bent-Over Row",
+            displayName: "Barbell Bent-Over Row",
+            status: .avoid,
+            muscleGroups: [.back, .lats],
+            substitutePreference: nil,
+            notes: nil,
+            updatedAt: Date()
+        )
+        let statusesByKey = ExercisePreferenceLookup.index([avoidPreference]).mapValues(\.status)
+
+        let unavailable = ExerciseLibrarySearch.compatibilityState(
+            for: barbellRow,
+            preferredSlot: .horizontalPull,
+            availableEquipment: [.bodyweight],
+            preferenceStatusesByKey: [:]
+        )
+        XCTAssertEqual(unavailable.level, .unavailable)
+        XCTAssertFalse(unavailable.isSelectable)
+        XCTAssertEqual(unavailable.badgeTitle, "Unavailable")
+
+        let avoided = ExerciseLibrarySearch.compatibilityState(
+            for: barbellRow,
+            preferredSlot: .horizontalPull,
+            availableEquipment: [.fullGym],
+            preferenceStatusesByKey: statusesByKey
+        )
+        XCTAssertEqual(avoided.level, .avoided)
+        XCTAssertFalse(avoided.isSelectable)
+
+        let compatible = ExerciseLibrarySearch.compatibilityState(
+            for: bodyweightRow,
+            preferredSlot: .horizontalPull,
+            availableEquipment: [.bodyweight],
+            preferenceStatusesByKey: [:]
+        )
+        XCTAssertEqual(compatible.level, .compatible)
+        XCTAssertTrue(compatible.isSelectable)
+
+        let ranked = ExerciseLibrarySearch.filteredAlternatives(
+            rowAlternatives,
+            searchText: "",
+            selectedSlot: .horizontalPull,
+            preferenceStatusesByKey: statusesByKey,
+            availableEquipment: [.bodyweight]
+        )
+        XCTAssertLessThan(
+            try XCTUnwrap(ranked.firstIndex { $0.displayName == bodyweightRow.displayName }),
+            try XCTUnwrap(ranked.firstIndex { $0.displayName == barbellRow.displayName })
+        )
+    }
+
+    func testEveryExerciseLibraryItemHasSearchableProgramMetadataAndResolvableCatalogExercise() {
+        let issues = ExerciseLibrary.all.compactMap { item -> String? in
+            guard let definition = MovementCatalog.definition(for: item.id) else {
+                return "\(item.name) missing definition"
+            }
+            guard MovementCatalog.catalogExercise(for: definition) != nil else {
+                return "\(item.name) missing catalog exercise"
+            }
+            guard !item.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                return "\(item.id) empty display name"
+            }
+            guard item.movementSlot != .routine, item.movementSlot != .skill else {
+                return "\(item.name) has non-exercise slot \(item.movementSlot)"
+            }
+            guard !item.metadataSummary.isEmpty else {
+                return "\(item.name) missing metadata"
+            }
+            guard !item.equipmentSummary.isEmpty else {
+                return "\(item.name) missing equipment"
+            }
+            return nil
+        }
+
+        XCTAssertTrue(
+            issues.isEmpty,
+            "Exercise library items must be searchable and resolvable:\n\(issues.joined(separator: "\n"))"
+        )
+    }
+
     func testExercisePreferenceLookupKeepsSavedNameCompatibility() {
         let displayNamePreference = ExercisePreference(
             id: "user:Barbell Bench Press",

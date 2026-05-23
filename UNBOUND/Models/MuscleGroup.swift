@@ -1,6 +1,6 @@
 import Foundation
 
-enum MuscleGroup: String, Codable, CaseIterable {
+enum MuscleGroup: String, Codable, CaseIterable, Sendable {
     case chest, back, shoulders, arms, forearms, legs, glutes, core, traps, neck, lats, calves
 
     var displayName: String {

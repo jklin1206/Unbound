@@ -1,6 +1,6 @@
 // UNBOUND/Models/SkillTreeContent/Tiers/PpSkillTiers.swift
 //
-// Tier criteria for every skill with prefix `pp.` (33 skills).
+// Tier criteria for every skill with prefix `pp.` (38 skills).
 // Pull/chin/muscle-up/row family. See CalSkillTiers.swift for the pattern.
 //
 // Hold-type skills (pp.dead-hang-30):
@@ -9,9 +9,8 @@
 //   dead-hang pattern.
 //
 // Weighted skills (weighted-pullup-0.25, weighted-pullup-0.5, weighted-chin-up):
-//   Uses .compound([.variant(name), .bodyweightRatio(r)]) so the exercise
-//   variant is confirmed before the weight ratio is checked. A lone
-//   .bodyweightRatio would false-positive on any heavy lift.
+//   Uses .exerciseBodyweightRatio(r, exerciseName: name) so the load ratio
+//   is measured only from the intended weighted exercise.
 //
 // One-arm pullup: a once-in-a-decade move. Initiate already demands strong
 //   prerequisites (archer pullup base); Ascendant compounds the OAP rep
@@ -26,8 +25,8 @@ import Foundation
 #if DEBUG
 private let _ppCountCheck: Int = {
     assert(
-        PpSkillTiers.table.count == 33,
-        "pp cluster should have 33 entries, has \(PpSkillTiers.table.count)"
+        PpSkillTiers.table.count == 38,
+        "pp cluster should have 38 entries, has \(PpSkillTiers.table.count)"
     )
     for (id, tiers) in PpSkillTiers.table {
         assert(tiers.count == 9, "\(id) needs 9 tiers, has \(tiers.count)")
@@ -48,6 +47,19 @@ enum PpSkillTiers {
         // SetLog. Lower tiers confirm any dead hang training. Upper tiers
         // compound with pullup volume to confirm grip + pulling strength.
         "pp.dead-hang-30": [
+            .initiate:   .variant("dead hang"),
+            .novice:     .variant("dead hang"),
+            .apprentice: .variant("dead hang"),
+            .forged:     .compound([.variant("dead hang"), .reps(3,  exerciseName: "pullup")]),
+            .veteran:    .compound([.variant("dead hang"), .reps(5,  exerciseName: "pullup")]),
+            .honed:      .compound([.variant("dead hang"), .reps(8,  exerciseName: "pullup")]),
+            .vessel:     .compound([.variant("dead hang"), .reps(10, exerciseName: "pullup")]),
+            .unbound:    .compound([.variant("dead hang"), .reps(12, exerciseName: "pullup")]),
+            .ascendant:  .compound([.variant("dead hang"), .reps(15, exerciseName: "pullup")]),
+        ],
+
+        // pp.dead-hang — live pull-tree ID for the same grip gate.
+        "pp.dead-hang": [
             .initiate:   .variant("dead hang"),
             .novice:     .variant("dead hang"),
             .apprentice: .variant("dead hang"),
@@ -175,28 +187,42 @@ enum PpSkillTiers {
         // Ladder climbs from first logged rep → 1.0× bodyweight.
         "pp.weighted-pullup-0.25": [
             .initiate:   .variant("weighted pullup"),
-            .novice:     .compound([.variant("weighted pullup"), .bodyweightRatio(0.10)]),
-            .apprentice: .compound([.variant("weighted pullup"), .bodyweightRatio(0.15)]),
-            .forged:     .compound([.variant("weighted pullup"), .bodyweightRatio(0.25)]),
-            .veteran:    .compound([.variant("weighted pullup"), .bodyweightRatio(0.35)]),
-            .honed:      .compound([.variant("weighted pullup"), .bodyweightRatio(0.50)]),
-            .vessel:     .compound([.variant("weighted pullup"), .bodyweightRatio(0.65)]),
-            .unbound:    .compound([.variant("weighted pullup"), .bodyweightRatio(0.80)]),
-            .ascendant:  .compound([.variant("weighted pullup"), .bodyweightRatio(1.00)]),
+            .novice:     .exerciseBodyweightRatio(0.10, exerciseName: "weighted pullup"),
+            .apprentice: .exerciseBodyweightRatio(0.15, exerciseName: "weighted pullup"),
+            .forged:     .exerciseBodyweightRatio(0.25, exerciseName: "weighted pullup"),
+            .veteran:    .exerciseBodyweightRatio(0.35, exerciseName: "weighted pullup"),
+            .honed:      .exerciseBodyweightRatio(0.50, exerciseName: "weighted pullup"),
+            .vessel:     .exerciseBodyweightRatio(0.65, exerciseName: "weighted pullup"),
+            .unbound:    .exerciseBodyweightRatio(0.80, exerciseName: "weighted pullup"),
+            .ascendant:  .exerciseBodyweightRatio(1.00, exerciseName: "weighted pullup"),
         ],
 
         // pp.weighted-pullup-0.5 — Heavy Pull-Up (0.5× bw).
         // Prereq: weighted-pullup-0.25. Ladder starts at 0.25× and climbs to 1.25×.
         "pp.weighted-pullup-0.5": [
-            .initiate:   .compound([.variant("weighted pullup"), .bodyweightRatio(0.10)]),
-            .novice:     .compound([.variant("weighted pullup"), .bodyweightRatio(0.20)]),
-            .apprentice: .compound([.variant("weighted pullup"), .bodyweightRatio(0.35)]),
-            .forged:     .compound([.variant("weighted pullup"), .bodyweightRatio(0.50)]),
-            .veteran:    .compound([.variant("weighted pullup"), .bodyweightRatio(0.65)]),
-            .honed:      .compound([.variant("weighted pullup"), .bodyweightRatio(0.80)]),
-            .vessel:     .compound([.variant("weighted pullup"), .bodyweightRatio(0.90)]),
-            .unbound:    .compound([.variant("weighted pullup"), .bodyweightRatio(1.00)]),
-            .ascendant:  .compound([.variant("weighted pullup"), .bodyweightRatio(1.25)]),
+            .initiate:   .exerciseBodyweightRatio(0.10, exerciseName: "weighted pullup"),
+            .novice:     .exerciseBodyweightRatio(0.20, exerciseName: "weighted pullup"),
+            .apprentice: .exerciseBodyweightRatio(0.35, exerciseName: "weighted pullup"),
+            .forged:     .exerciseBodyweightRatio(0.50, exerciseName: "weighted pullup"),
+            .veteran:    .exerciseBodyweightRatio(0.65, exerciseName: "weighted pullup"),
+            .honed:      .exerciseBodyweightRatio(0.80, exerciseName: "weighted pullup"),
+            .vessel:     .exerciseBodyweightRatio(0.90, exerciseName: "weighted pullup"),
+            .unbound:    .exerciseBodyweightRatio(1.00, exerciseName: "weighted pullup"),
+            .ascendant:  .exerciseBodyweightRatio(1.25, exerciseName: "weighted pullup"),
+        ],
+
+        // pp.weighted-pullup — live tree ID. Starts at the first logged weighted
+        // pull and uses exercise-scoped load ratio to avoid unrelated heavy lifts.
+        "pp.weighted-pullup": [
+            .initiate:   .variant("weighted pullup"),
+            .novice:     .exerciseBodyweightRatio(0.10, exerciseName: "weighted pullup"),
+            .apprentice: .exerciseBodyweightRatio(0.20, exerciseName: "weighted pullup"),
+            .forged:     .exerciseBodyweightRatio(0.35, exerciseName: "weighted pullup"),
+            .veteran:    .exerciseBodyweightRatio(0.50, exerciseName: "weighted pullup"),
+            .honed:      .exerciseBodyweightRatio(0.65, exerciseName: "weighted pullup"),
+            .vessel:     .exerciseBodyweightRatio(0.80, exerciseName: "weighted pullup"),
+            .unbound:    .exerciseBodyweightRatio(1.00, exerciseName: "weighted pullup"),
+            .ascendant:  .exerciseBodyweightRatio(1.25, exerciseName: "weighted pullup"),
         ],
 
         // pp.typewriter-pullup — Typewriter Pull-Up. 3-rep anchor = Forged.
@@ -240,8 +266,8 @@ enum PpSkillTiers {
             .veteran:    .reps(4,  exerciseName: "one-arm pullup"),
             .honed:      .reps(5,  exerciseName: "one-arm pullup"),
             .vessel:     .reps(6,  exerciseName: "one-arm pullup"),
-            .unbound:    .compound([.reps(8, exerciseName: "one-arm pullup"), .compound([.variant("weighted pullup"), .bodyweightRatio(0.5)])]),
-            .ascendant:  .compound([.reps(10, exerciseName: "one-arm pullup"), .compound([.variant("weighted pullup"), .bodyweightRatio(0.75)])]),
+            .unbound:    .compound([.reps(8, exerciseName: "one-arm pullup"), .exerciseBodyweightRatio(0.5, exerciseName: "weighted pullup")]),
+            .ascendant:  .compound([.reps(10, exerciseName: "one-arm pullup"), .exerciseBodyweightRatio(0.75, exerciseName: "weighted pullup")]),
         ],
 
         // MARK: - Crossover
@@ -371,14 +397,14 @@ enum PpSkillTiers {
         // Ladder climbs from first logged rep → 1.0× bodyweight.
         "pp.weighted-chin-up": [
             .initiate:   .variant("weighted chin-up"),
-            .novice:     .compound([.variant("weighted chin-up"), .bodyweightRatio(0.10)]),
-            .apprentice: .compound([.variant("weighted chin-up"), .bodyweightRatio(0.15)]),
-            .forged:     .compound([.variant("weighted chin-up"), .bodyweightRatio(0.25)]),
-            .veteran:    .compound([.variant("weighted chin-up"), .bodyweightRatio(0.35)]),
-            .honed:      .compound([.variant("weighted chin-up"), .bodyweightRatio(0.50)]),
-            .vessel:     .compound([.variant("weighted chin-up"), .bodyweightRatio(0.65)]),
-            .unbound:    .compound([.variant("weighted chin-up"), .bodyweightRatio(0.80)]),
-            .ascendant:  .compound([.variant("weighted chin-up"), .bodyweightRatio(1.00)]),
+            .novice:     .exerciseBodyweightRatio(0.10, exerciseName: "weighted chin-up"),
+            .apprentice: .exerciseBodyweightRatio(0.15, exerciseName: "weighted chin-up"),
+            .forged:     .exerciseBodyweightRatio(0.25, exerciseName: "weighted chin-up"),
+            .veteran:    .exerciseBodyweightRatio(0.35, exerciseName: "weighted chin-up"),
+            .honed:      .exerciseBodyweightRatio(0.50, exerciseName: "weighted chin-up"),
+            .vessel:     .exerciseBodyweightRatio(0.65, exerciseName: "weighted chin-up"),
+            .unbound:    .exerciseBodyweightRatio(0.80, exerciseName: "weighted chin-up"),
+            .ascendant:  .exerciseBodyweightRatio(1.00, exerciseName: "weighted chin-up"),
         ],
 
         // pp.l-sit-chin-up — L-Sit Chin-Up. anchor: 3 reps = Forged.
@@ -462,6 +488,19 @@ enum PpSkillTiers {
             .ascendant:  .reps(40, exerciseName: "incline row"),
         ],
 
+        // pp.row — Row. anchor: 10 reps = Forged.
+        "pp.row": [
+            .initiate:   .reps(3,  exerciseName: "inverted row"),
+            .novice:     .reps(5,  exerciseName: "inverted row"),
+            .apprentice: .reps(8,  exerciseName: "inverted row"),
+            .forged:     .reps(10, exerciseName: "inverted row"),
+            .veteran:    .reps(12, exerciseName: "inverted row"),
+            .honed:      .reps(15, exerciseName: "inverted row"),
+            .vessel:     .reps(20, exerciseName: "inverted row"),
+            .unbound:    .reps(25, exerciseName: "inverted row"),
+            .ascendant:  .reps(30, exerciseName: "inverted row"),
+        ],
+
         // pp.decline-row — Decline Row. anchor: 10 reps = Forged.
         "pp.decline-row": [
             .initiate:   .reps(3,  exerciseName: "decline row"),
@@ -500,6 +539,46 @@ enum PpSkillTiers {
             .vessel:     .reps(11, exerciseName: "straddle row"),
             .unbound:    .reps(13, exerciseName: "straddle row"),
             .ascendant:  .reps(15, exerciseName: "straddle row"),
+        ],
+
+        // pp.strict-pullup — live tree ID for strict pull-up volume.
+        "pp.strict-pullup": [
+            .initiate:   .reps(1,  exerciseName: "pullup"),
+            .novice:     .reps(3,  exerciseName: "pullup"),
+            .apprentice: .reps(5,  exerciseName: "pullup"),
+            .forged:     .reps(8,  exerciseName: "pullup"),
+            .veteran:    .reps(10, exerciseName: "pullup"),
+            .honed:      .reps(12, exerciseName: "pullup"),
+            .vessel:     .reps(15, exerciseName: "pullup"),
+            .unbound:    .reps(18, exerciseName: "pullup"),
+            .ascendant:  .reps(20, exerciseName: "pullup"),
+        ],
+
+        // pp.one-arm-row — unilateral row bridge before lever rows.
+        "pp.one-arm-row": [
+            .initiate:   .reps(3,  exerciseName: "one-arm row"),
+            .novice:     .reps(5,  exerciseName: "one-arm row"),
+            .apprentice: .reps(8,  exerciseName: "one-arm row"),
+            .forged:     .reps(10, exerciseName: "one-arm row"),
+            .veteran:    .reps(12, exerciseName: "one-arm row"),
+            .honed:      .reps(15, exerciseName: "one-arm row"),
+            .vessel:     .compound([.reps(15, exerciseName: "one-arm row"), .reps(5, exerciseName: "tuck row")]),
+            .unbound:    .compound([.reps(20, exerciseName: "one-arm row"), .reps(8, exerciseName: "tuck row")]),
+            .ascendant:  .compound([.reps(25, exerciseName: "one-arm row"), .reps(5, exerciseName: "straddle row")]),
+        ],
+
+        // pp.tuck-front-lever-pullup — lever row/pull bridge. The target is
+        // harder than tuck rows, so upper ranks require straddle-row strength too.
+        "pp.tuck-front-lever-pullup": [
+            .initiate:   .reps(3, exerciseName: "tuck row"),
+            .novice:     .reps(5, exerciseName: "tuck row"),
+            .apprentice: .reps(8, exerciseName: "tuck row"),
+            .forged:     .reps(3, exerciseName: "tuck front lever pullup"),
+            .veteran:    .reps(5, exerciseName: "tuck front lever pullup"),
+            .honed:      .reps(7, exerciseName: "tuck front lever pullup"),
+            .vessel:     .compound([.reps(7, exerciseName: "tuck front lever pullup"), .reps(5, exerciseName: "straddle row")]),
+            .unbound:    .compound([.reps(10, exerciseName: "tuck front lever pullup"), .reps(8, exerciseName: "straddle row")]),
+            .ascendant:  .compound([.reps(12, exerciseName: "tuck front lever pullup"), .variant("front lever")]),
         ],
     ]
 }

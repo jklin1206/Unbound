@@ -38,4 +38,48 @@ final class RoutineCompletionRecordTests: XCTestCase {
             primaryMetric: .steps(done: 9, total: 9), spAwarded: 120)
         XCTAssertEqual(try roundTrip(r), r)
     }
+
+    func testPerformanceEntriesRoundTripAndDefaultToEmptyForOldRecords() throws {
+        let r = RoutineCompletionRecord(
+            id: "4",
+            routineId: "saitama-protocol",
+            completedAt: Date(timeIntervalSince1970: 1_700_001_500),
+            elapsedSeconds: 1800,
+            primaryMetric: .repCount(total: 300, bursts: [100, 100, 100]),
+            spAwarded: 200,
+            performanceEntries: [
+                RoutinePerformanceEntry(
+                    id: "push",
+                    stepId: 0,
+                    source: .repTarget,
+                    name: "Push-ups",
+                    reps: 100,
+                    bursts: [40, 30, 30]
+                ),
+                RoutinePerformanceEntry(
+                    id: "run",
+                    stepId: 3,
+                    source: .instruction,
+                    name: "10 km run — any pace, no stopping",
+                    distanceMeters: 10_000
+                )
+            ]
+        )
+
+        XCTAssertEqual(try roundTrip(r), r)
+
+        let legacyJSON = """
+        {
+          "id": "legacy",
+          "routineId": "100-pushup",
+          "completedAt": 1700001500,
+          "elapsedSeconds": 900,
+          "primaryMetric": { "repCount": { "total": 100, "bursts": [40, 30, 30] } },
+          "spAwarded": 50
+        }
+        """.data(using: .utf8)!
+
+        let legacy = try JSONDecoder().decode(RoutineCompletionRecord.self, from: legacyJSON)
+        XCTAssertEqual(legacy.performanceEntries, [])
+    }
 }

@@ -35,24 +35,24 @@ enum WeeklyVowsNotificationScheduler {
         // Monday 09:00 — picker reminder
         await schedule(
             id: mondayId,
-            title: "This week's vows are ready",
-            body: "Choose Ember, Overdrive, or Apex.",
+            title: "This week's Binding Vows are ready",
+            body: "Choose Low, Limit, or Apex Binding.",
             on: weekStart.addingTimeInterval(9 * 3600)
         )
 
         // Saturday 08:00 — proof unlock
         await schedule(
             id: saturdayId,
-            title: "Vow proof unlocked",
-            body: "Finish strong when you're ready.",
+            title: "Binding Vow proof unlocked",
+            body: "Seal it clean when you're ready.",
             on: weekStart.addingTimeInterval(5 * 86_400 + 8 * 3600)
         )
 
         // Sunday 18:00 — closing reminder
         await schedule(
             id: sundayId,
-            title: "Vow window closes in 6 hours",
-            body: "Last chance to finish this week's vow.",
+            title: "Binding Vow window closes in 6 hours",
+            body: "Last chance to seal this week's vow.",
             on: weekStart.addingTimeInterval(6 * 86_400 + 18 * 3600)
         )
     }

@@ -18,6 +18,7 @@ struct Step17_Diet: View {
         ) {
             HUDSlider(
                 value: $flow.dietQuality,
+                steps: HUDSlider.fivePointStoredSteps,
                 descriptors: HUDSlider.dietDescriptors,
                 leftAnchor: "Poor",
                 rightAnchor: "Excellent"

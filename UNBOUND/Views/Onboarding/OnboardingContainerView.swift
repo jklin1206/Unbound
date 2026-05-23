@@ -29,30 +29,74 @@ struct OnboardingContainerView: View {
                     Color.unbound.bg
                         .ignoresSafeArea()
                         .onAppear {
-                            flow = OnboardingFlowViewModel(userService: services.user)
+                            let nextFlow = OnboardingFlowViewModel(userService: services.user)
+                            #if DEBUG
+                            nextFlow.applyDebugLaunchStepIfPresent()
+                            #endif
+                            flow = nextFlow
                         }
                 }
             }
 
             #if DEBUG
-            devSkipButton
-                .padding(.top, 54)
-                .padding(.trailing, 16)
+            if shouldShowDevControls {
+                VStack(alignment: .trailing, spacing: 8) {
+                    if let flow {
+                        devJumpMenu(flow: flow)
+                    }
+                    devSkipButton
+                }
+                    .padding(.top, 54)
+                    .padding(.trailing, 16)
+            }
             #endif
         }
     }
 
     // MARK: - Dev skip (DEBUG only)
     //
-    // Grants full entitlement (dev unlock flag), marks calibration done, and
-    // fires onComplete so the user lands directly on Home with every feature
-    // — Coach included — immediately available. Useful for UI iteration.
+    // Grants full entitlement (dev unlock flag) and fires onComplete so the
+    // user lands directly on Home with every feature — Coach included —
+    // immediately available. Useful for UI iteration.
     #if DEBUG
+    private var shouldShowDevControls: Bool {
+        !ProcessInfo.processInfo.arguments.contains("-HideOnboardingDevControls")
+    }
+
+    @ViewBuilder
+    private func devJumpMenu(flow: OnboardingFlowViewModel) -> some View {
+        Menu {
+            ForEach(OnboardingStep.allCases) { step in
+                Button(step.debugDisplayName) {
+                    flow.seedDebugAnswers()
+                    flow.jump(to: step)
+                }
+            }
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "rectangle.stack.fill")
+                    .font(.system(size: 10, weight: .bold))
+                Text("DEV · JUMP")
+                    .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                    .tracking(1.4)
+            }
+            .foregroundStyle(Color.unbound.accent)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(
+                Capsule().fill(Color.unbound.bg.opacity(0.85))
+            )
+            .overlay(
+                Capsule().strokeBorder(Color.unbound.accent.opacity(0.5), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
     @ViewBuilder
     private var devSkipButton: some View {
         Button {
             DevFlags.shared.unlockAllFeatures = true
-            UserDefaults.standard.set(true, forKey: "unbound.calibration.completed")
             let gen = UIImpactFeedbackGenerator(style: .heavy)
             gen.impactOccurred()
             onComplete()
@@ -93,12 +137,16 @@ private struct OnboardingRouter: View {
 
             Group {
                 switch flow.currentStep {
-                case .arc01Opening:
-                    Step_Arc01_Opening(onBegin: advance)
+                case .problemFrame:
+                    Step_ProblemFrame(onContinue: advance)
                         .transition(.opacity)
 
-                case .arc02Problem:
-                    Step_Arc02_Problem(onContinue: advance)
+                case .restartLoop:
+                    Step_RestartLoop(onContinue: advance)
+                        .transition(screenTransition)
+
+                case .arc01Opening:
+                    Step_Arc01_Opening(onBegin: advance)
                         .transition(.opacity)
 
                 case .arc03Path:
@@ -267,8 +315,8 @@ private struct OnboardingRouter: View {
                     Step28_Trajectory(flow: flow, progress: flow.progress, onBack: back, onContinue: advance)
                         .transition(screenTransition)
 
-                case .skillTreePreview:
-                    Step_SkillTreePreview(flow: flow, progress: flow.progress, onBack: back, onContinue: advance)
+                case .obstacleFix:
+                    Step_ObstacleFix(flow: flow, progress: flow.progress, onBack: back, onContinue: advance)
                         .transition(screenTransition)
 
                 case .chapterPath:
@@ -298,10 +346,6 @@ private struct OnboardingRouter: View {
                 case .planReady:
                     Step_PlanReady(flow: flow, progress: flow.progress, onBack: back, onContinue: advance)
                         .transition(screenTransition)
-
-                case .rpeTeach:
-                    RPEOnboardingStep(onContinue: advance)
-                        .transition(.opacity)
 
                 case .paywall:
                     Step_Paywall(flow: flow, onUnlock: onComplete)
@@ -351,58 +395,129 @@ private struct Step_ResultsSnapshot: View {
     let onBack: () -> Void
     let onContinue: () -> Void
 
-    private var baselineRank: String { flow.derivedRank }
-    private var projectedRank90: String { advanceRank(flow.derivedRank, by: 2) }
     private var focusZone: String {
         flow.targetAreas.first?.displayName ?? "Full Body"
+    }
+    private var frequencyLabel: String {
+        flow.targetFrequency?.displayName ?? "4 days / week"
+    }
+    private var sessionLabel: String {
+        flow.sessionLength?.displayName ?? "45 minutes"
+    }
+    private var equipmentLabel: String {
+        if flow.equipment.contains(.fullGym) { return "Full gym" }
+        if flow.equipment.contains(.bodyweight), flow.equipment.count == 1 { return "Bodyweight" }
+        if flow.equipment.isEmpty { return "Equipment open" }
+        return "Mixed equipment"
+    }
+    private var boostedAttributes: [AttributeKey] {
+        AttributeKey.allCases.filter { flow.seededAttributes.contains($0) }
+    }
+    private var starterLevels: [AttributeKey: Int] {
+        AttributeKey.allCases.reduce(into: [:]) { result, key in
+            result[key] = flow.seededAttributes.contains(key) ? 3 : 1
+        }
+    }
+    private var starterTiers: [AttributeKey: RankTitle] {
+        AttributeKey.allCases.reduce(into: [:]) { result, key in
+            result[key] = .initiate
+        }
+    }
+    private var starterHex: [AttributeKey: Double] {
+        starterLevels.reduce(into: [:]) { result, entry in
+            result[entry.key] = flow.seededAttributes.contains(entry.key) ? 24 : 8
+        }
     }
 
     var body: some View {
         OnboardingScaffold(
-            title: "Your baseline is mapped.",
-            subtitle: "This is your current profile before protocol execution.",
+            title: "Your starting point is set.",
+            subtitle: "Day Zero is marked. The climb starts from here.",
             progress: progress,
-            primaryTitle: "See how we fix it",
+            primaryTitle: "Start my arc",
             primaryIcon: "arrow.right",
             hudStep: .resultsSnapshot,
             onBack: onBack,
             onPrimary: onContinue
         ) {
-            VStack(spacing: 12) {
-                UnboundCard {
-                    VStack(alignment: .leading, spacing: 12) {
-                        HStack(spacing: 8) {
-                            Text("RESULTS SNAPSHOT")
-                                .font(.system(size: 10, weight: .black, design: .monospaced))
-                                .tracking(1.1)
-                                .foregroundStyle(Color.unbound.accent)
-                            Spacer(minLength: 0)
-                            Text("PRE-PROTOCOL")
-                                .font(.system(size: 9, weight: .bold, design: .monospaced))
-                                .foregroundStyle(Color.unbound.textSecondary)
+            VStack(spacing: 14) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    Color.unbound.surface.opacity(0.18),
+                                    Color.unbound.accent.opacity(0.08),
+                                    Color.unbound.surface.opacity(0.08)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+
+                    TechGridBackground(opacity: 0.12)
+                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+                    VStack(spacing: 14) {
+                        HStack(alignment: .top) {
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("ENTRY MAP")
+                                    .font(.system(size: 10, weight: .black, design: .monospaced))
+                                    .tracking(1.4)
+                                    .foregroundStyle(Color.unbound.accent)
+                                Text("INITIATE")
+                                    .font(.system(size: 34, weight: .black, design: .rounded))
+                                    .foregroundStyle(Color.unbound.textPrimary)
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.72)
+                                    .fixedSize(horizontal: true, vertical: false)
+                                Text("This is the first mark. Everything above it has to be earned.")
+                                    .font(Font.unbound.bodyS)
+                                    .foregroundStyle(Color.unbound.textSecondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+
+                            Spacer(minLength: 10)
+
+                            TierBadge(tier: .initiate)
+                                .frame(width: 92, height: 92)
+                                .shadow(color: Color.unbound.accent.opacity(0.26), radius: 18)
                         }
 
-                        HStack(alignment: .center, spacing: 14) {
-                            OnboardingGeneratedArt(
-                                candidateAssets: ["onboarding_results_snapshot_hero", "body_unbound_front"],
-                                fallbackSymbol: "figure.strengthtraining.functional",
-                                tint: Color.unbound.accent
-                            )
-                            .frame(width: 112, height: 190)
-
-                            VStack(alignment: .leading, spacing: 9) {
-                                snapshotPill(label: "CURRENT RANK", value: baselineRank, tint: rankTint(baselineRank))
-                                snapshotPill(label: "FOCUS ZONE", value: focusZone.uppercased(), tint: Color.unbound.warnOrange)
-                                snapshotPill(label: "90-DAY POTENTIAL", value: projectedRank90, tint: rankTint(projectedRank90))
+                        HStack(alignment: .center, spacing: 16) {
+                            ZStack {
+                                Circle()
+                                    .fill(Color.unbound.accent.opacity(0.10))
+                                    .frame(width: 118, height: 118)
+                                    .blur(radius: 18)
+                                AttributeHex(
+                                    current: starterHex,
+                                    peak: nil,
+                                    levels: starterLevels,
+                                    tiers: starterTiers,
+                                    showLabels: true,
+                                    radius: 48
+                                )
                             }
-                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .frame(width: 118, height: 118)
+
+                            VStack(spacing: 9) {
+                                mapMetric(label: "OVERALL LV", value: "LV 0", tint: Color.unbound.accent)
+                                mapMetric(label: "FOCUS", value: focusZone.uppercased(), tint: Color.unbound.warnOrange)
+                                mapMetric(label: "STARTER BOOST", value: boostLabel, tint: Color.unbound.rankGreen)
+                            }
+                            .frame(maxWidth: .infinity)
                         }
                     }
+                    .padding(16)
                 }
+                .frame(maxWidth: .infinity)
 
-                HStack(spacing: 8) {
-                    miniTag(icon: "flame.fill", text: "\(flow.targetFrequency?.displayName ?? "4 days / week") target")
-                    miniTag(icon: "timer", text: flow.sessionLength?.displayName ?? "45 minutes")
+                VStack(spacing: 8) {
+                    signalRow(icon: "calendar", label: "Training rhythm", value: "\(frequencyLabel) · \(sessionLabel)")
+                    signalRow(icon: "dumbbell.fill", label: "Available tools", value: equipmentLabel)
+                    signalRow(icon: "hexagon.fill", label: "First spark", value: "A tiny mark on the hex. Enough to begin.")
+                    signalRow(icon: "flag.checkered", label: "Next gate", value: "Show up. Clear the wall. Climb.")
                 }
 
                 infoCallout
@@ -410,13 +525,18 @@ private struct Step_ResultsSnapshot: View {
         }
     }
 
+    private var boostLabel: String {
+        let codes = boostedAttributes.prefix(2).map(\.shortCode)
+        return codes.isEmpty ? "NONE YET" : codes.joined(separator: " + ")
+    }
+
     private var infoCallout: some View {
         HStack(alignment: .top, spacing: 8) {
-            Image(systemName: "bolt.fill")
+            Image(systemName: "scope")
                 .font(.system(size: 12, weight: .bold))
                 .foregroundStyle(Color.unbound.accent)
                 .padding(.top, 1)
-            Text("Most users at this baseline fail because their training isn't mapped to their exact profile. Yours is.")
+            Text("The blank parts are the point. Your first sessions start turning this into something real.")
                 .font(Font.unbound.bodyS)
                 .foregroundStyle(Color.unbound.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -432,66 +552,59 @@ private struct Step_ResultsSnapshot: View {
         )
     }
 
-    private func snapshotPill(label: String, value: String, tint: Color) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
+    private func mapMetric(label: String, value: String, tint: Color) -> some View {
+        VStack(alignment: .leading, spacing: 5) {
             Text(label)
                 .font(.system(size: 9, weight: .bold, design: .monospaced))
                 .tracking(0.8)
                 .foregroundStyle(Color.unbound.textTertiary)
             Text(value)
-                .font(Font.unbound.monoM.weight(.bold))
+                .font(.system(size: 15, weight: .black, design: .monospaced))
                 .foregroundStyle(tint)
                 .lineLimit(1)
                 .minimumScaleFactor(0.75)
         }
         .padding(.horizontal, 10)
-        .padding(.vertical, 8)
+        .padding(.vertical, 9)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
                 .fill(tint.opacity(0.10))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
                 .strokeBorder(tint.opacity(0.30), lineWidth: 1)
         )
     }
 
-    private func miniTag(icon: String, text: String) -> some View {
+    private func signalRow(icon: String, label: String, value: String) -> some View {
         HStack(spacing: 6) {
             Image(systemName: icon)
-                .font(.system(size: 11, weight: .semibold))
+                .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(Color.unbound.accent)
-            Text(text.uppercased())
-                .font(.system(size: 9, weight: .bold, design: .monospaced))
-                .tracking(0.7)
+                .frame(width: 18)
+            Text(label.uppercased())
+                .font(.system(size: 9, weight: .black, design: .monospaced))
+                .tracking(0.8)
+                .foregroundStyle(Color.unbound.textTertiary)
+                .frame(width: 92, alignment: .leading)
+            Text(value)
+                .font(Font.unbound.bodyS)
                 .foregroundStyle(Color.unbound.textSecondary)
+                .lineLimit(2)
+                .minimumScaleFactor(0.82)
+            Spacer(minLength: 0)
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 6)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 9)
         .background(
-            Capsule().fill(Color.unbound.surface.opacity(0.9))
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                .fill(Color.unbound.surface.opacity(0.72))
         )
         .overlay(
-            Capsule().strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                .strokeBorder(Color.unbound.borderSubtle.opacity(0.85), lineWidth: 1)
         )
-    }
-
-    private func advanceRank(_ rank: String, by amount: Int) -> String {
-        let ladder = ["E", "D", "C", "B", "A", "S"]
-        guard let idx = ladder.firstIndex(of: rank.uppercased()) else { return "B" }
-        return ladder[min(ladder.count - 1, idx + amount)]
-    }
-
-    private func rankTint(_ rank: String) -> Color {
-        switch rank.uppercased() {
-        case "S": return Color.unbound.rankGold
-        case "A": return Color.unbound.accent
-        case "B": return Color.unbound.rankGreen
-        case "C": return Color.unbound.rankAmber
-        case "D": return Color.unbound.rankOrange
-        default: return Color.unbound.rankRed
-        }
     }
 }
 
@@ -511,15 +624,15 @@ private struct Step_PlanReady: View {
 
     private var planTitle: String {
         // TODO(Phase 17): wire to BuildIdentity once archetype is fully removed
-        "UNBOUND PROTOCOL"
+        "ARC 1"
     }
 
     var body: some View {
         OnboardingScaffold(
-            title: "Your custom plan is ready.",
-            subtitle: "Built from your profile, scan, and commitment inputs.",
+            title: "Your first arc is ready.",
+            subtitle: "The next version of you has a starting line.",
             progress: progress,
-            primaryTitle: "Unlock my plan",
+            primaryTitle: "Unlock my arc",
             primaryIcon: "lock.open.fill",
             hudStep: .planReady,
             onBack: onBack,
@@ -529,7 +642,7 @@ private struct Step_PlanReady: View {
                 UnboundCard {
                     VStack(alignment: .leading, spacing: 12) {
                         HStack(spacing: 8) {
-                            Text("PLAN READY")
+                            Text("ARC READY")
                                 .font(.system(size: 10, weight: .black, design: .monospaced))
                                 .tracking(1.1)
                                 .foregroundStyle(Color.unbound.accent)
@@ -581,7 +694,7 @@ private struct Step_PlanReady: View {
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(Color.unbound.accent)
                         .padding(.top, 1)
-                    Text("You can start today. The paywall unlocks the full protocol, weekly progression, and coach guidance.")
+                    Text("You can start today. Unlock the full arc, weekly climb, and guidance that keeps you moving.")
                         .font(Font.unbound.bodyS)
                         .foregroundStyle(Color.unbound.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)

@@ -112,7 +112,8 @@ struct WorkoutDetailView: View {
                 alternatives: swapAlternatives,
                 onSelect: { alt in
                     Task { await applySwap(exerciseId: target.id, replacement: alt) }
-                }
+                },
+                availableEquipment: swapEquipment
             )
         }
         .task {

@@ -14,7 +14,7 @@ protocol SkinServiceProtocol: AnyObject {
     /// Switch the active skin. Throws if not unlocked.
     func setCurrent(_ skin: SkillTreeSkin) throws
 
-    /// Recompute unlock state from the user's peak lift rank.
+    /// Recompute unlock state from the user's aggregate named skill tier.
     /// Returns the skins that flipped from locked → unlocked this call.
     @discardableResult
     func evaluateUnlocks(userId: String) async -> [SkillTreeSkin]
@@ -54,6 +54,8 @@ final class SkinService: SkinServiceProtocol, ObservableObject {
         let stored = UserDefaults.standard.stringArray(forKey: unlockedKey) ?? []
         var unlocked = stored.compactMap(SkillTreeSkin.init(rawValue:))
         if !unlocked.contains(.violet) { unlocked.insert(.violet, at: 0) }
+        if !unlocked.contains(.graphite) { unlocked.append(.graphite) }
+        if !unlocked.contains(current) { unlocked.append(current) }
         self.unlockedSkins = unlocked
     }
 
@@ -69,12 +71,11 @@ final class SkinService: SkinServiceProtocol, ObservableObject {
 
     @discardableResult
     func evaluateUnlocks(userId: String) async -> [SkillTreeSkin] {
-        // LiftRank.peakRank removed in rank-cleanup-v1; use aggregate rank as proxy.
-        let peak = await RankService.shared.aggregateRank(userId: userId)
+        let aggregateTier = await RankService.shared.aggregateTier(userId: userId)
 
         var newlyUnlocked: [SkillTreeSkin] = []
         for skin in SkillTreeSkin.allCases {
-            if let req = skin.unlockRequirement, peak < req { continue }
+            if let req = skin.unlockRequirement, aggregateTier < req { continue }
             if !unlockedSkins.contains(skin) {
                 unlockedSkins.append(skin)
                 newlyUnlocked.append(skin)
@@ -95,6 +96,14 @@ final class SkinService: SkinServiceProtocol, ObservableObject {
     private func persistUnlocked() {
         UserDefaults.standard.set(unlockedSkins.map(\.rawValue), forKey: unlockedKey)
     }
+
+    #if DEBUG
+    func debugUnlockAllSkins(select skin: SkillTreeSkin = .ascendant) {
+        unlockedSkins = SkillTreeSkin.allCases
+        persistUnlocked()
+        try? setCurrent(skin)
+    }
+    #endif
 }
 
 // MARK: - MockSkinService
@@ -102,7 +111,7 @@ final class SkinService: SkinServiceProtocol, ObservableObject {
 @MainActor
 final class MockSkinService: SkinServiceProtocol, ObservableObject {
     @Published private(set) var currentSkin: SkillTreeSkin = .violet
-    @Published private(set) var unlockedSkins: [SkillTreeSkin] = [.violet]
+    @Published private(set) var unlockedSkins: [SkillTreeSkin] = [.violet, .graphite]
 
     func setCurrent(_ skin: SkillTreeSkin) throws {
         guard unlockedSkins.contains(skin) else { throw SkinServiceError.skinLocked(skin) }

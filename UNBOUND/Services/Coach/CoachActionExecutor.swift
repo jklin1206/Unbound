@@ -44,14 +44,18 @@ final class CoachActionExecutor: ObservableObject {
         case .swapExercise(let from, let to, _):
             // Persist as a substitute preference — future program generation
             // + live sessions will pick up the new exercise.
+            let fromDefinition = MovementCatalog.canonicalExercise(named: from)
+            let toDefinition = MovementCatalog.canonicalExercise(named: to)
+            let exerciseKey = fromDefinition?.canonicalExerciseName ?? MovementCatalog.normalized(from)
+            let substituteKey = toDefinition?.canonicalExerciseName ?? MovementCatalog.normalized(to)
             let pref = ExercisePreference(
-                id: "\(userId):\(from.lowercased())",
+                id: "\(userId):\(exerciseKey)",
                 userId: userId,
-                exerciseName: from.lowercased(),
-                displayName: from.capitalized,
+                exerciseName: exerciseKey,
+                displayName: fromDefinition?.displayName ?? from,
                 status: .substitute,
-                muscleGroups: [],
-                substitutePreference: to.lowercased(),
+                muscleGroups: fromDefinition?.muscleGroups ?? [],
+                substitutePreference: substituteKey,
                 notes: "Set by coach",
                 updatedAt: Date()
             )

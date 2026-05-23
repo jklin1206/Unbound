@@ -23,6 +23,7 @@ struct AttributeRankUpEvent: Equatable, Sendable {
 extension Notification.Name {
     static let attributeRankUp = Notification.Name("unbound.attributeRankUp")
     static let requestNavigateToProfileTab = Notification.Name("unbound.requestNavigateToProfileTab")
+    static let requestNavigateToProgramTab = Notification.Name("unbound.requestNavigateToProgramTab")
     static let trialCapstoneCompleted = Notification.Name("unbound.trialCapstoneCompleted")
     static let trialExpired = Notification.Name("unbound.trialExpired")
     // Squad notification names

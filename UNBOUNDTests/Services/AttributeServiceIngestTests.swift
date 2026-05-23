@@ -5,8 +5,11 @@ import XCTest
 final class AttributeServiceIngestTests: XCTestCase {
     private let t0 = Date(timeIntervalSince1970: 1_700_000_000)
 
-    private func stubCatalog(_ entries: [String: AttributeContribution]) -> AttributeCatalogProtocol {
-        StubAttributeCatalog(byName: entries)
+    private func stubCatalog(
+        _ entries: [String: AttributeContribution],
+        movements: [String: AttributeContribution] = [:]
+    ) -> AttributeCatalogProtocol {
+        StubAttributeCatalog(byName: entries, byMovement: movements)
     }
 
     func testSingleHeavySquatSessionMovesPowerDominantly() {
@@ -61,10 +64,15 @@ final class AttributeServiceIngestTests: XCTestCase {
 
     func testApplyDeltasClampsCurrentAt100() {
         var p = AttributeProfile.empty(userId: "u", at: t0)
-        p.set(.power, AttributeValue(peak: 95, current: 95, lastContributionAt: t0))
+        p.set(.power, AttributeValue(peak: 95, current: 95, xp: 100, lastContributionAt: t0))
         _ = AttributeIngest.applyDeltas(&p, deltas: [.power: 50], at: t0)
         XCTAssertEqual(p.value(for: .power).current, 100, accuracy: 0.001)
         XCTAssertEqual(p.value(for: .power).peak,    100, accuracy: 0.001)
+        XCTAssertEqual(
+            p.value(for: .power).xp,
+            100 + AttributeLevelCurve.xpAwarded(forScoreDelta: 50),
+            accuracy: 0.001
+        )
     }
 
     func testApplyDeltasEmitsTierEventOnCrossingApprenticeToForged() {
@@ -127,16 +135,145 @@ final class AttributeServiceIngestTests: XCTestCase {
                 "Skipped exercise must not contribute on axis \(key)")
         }
     }
+
+    func testMovementIdContributionWinsOverFallbackExerciseName() {
+        let catalog = stubCatalog(
+            [
+                "Lat Pulldown (Neutral)": AttributeContribution(weights: [.endurance: 1.0])
+            ],
+            movements: [
+                "exercise.lat-pulldown-neutral": AttributeContribution(weights: [.power: 1.0])
+            ]
+        )
+        let log = WorkoutLog(
+            id: "w4", userId: "u", programId: "p", dayNumber: 1,
+            plannedWorkoutName: "Pull",
+            startedAt: t0, completedAt: t0.addingTimeInterval(30 * 60),
+            exerciseEntries: [
+                ExerciseLogEntry(
+                    id: "e1",
+                    exerciseName: "Lat Pulldown (Neutral)",
+                    movementId: "exercise.lat-pulldown-neutral",
+                    rankStandardMovementId: "exercise.lat-pulldown",
+                    plannedSets: 3,
+                    plannedReps: "10",
+                    sets: [SetLog(id: "s1", setNumber: 1, weightKg: 70, reps: 10, rpe: 8, isWarmup: false)],
+                    skipped: false,
+                    notes: nil
+                )
+            ],
+            overallNotes: nil, overallRPE: 8, durationMinutes: 30
+        )
+
+        let deltas = AttributeIngest.deltas(for: log, catalog: catalog)
+
+        XCTAssertGreaterThan(deltas[.power] ?? 0, 0)
+        XCTAssertEqual(deltas[.endurance] ?? 0, 0, accuracy: 0.001)
+    }
+
+    func testMovementAPFansIntoPermanentAttributeXP() {
+        let catalog = stubCatalog(
+            [:],
+            movements: [
+                "exercise.bench-press": AttributeContribution(weights: [.power: 0.75, .control: 0.25])
+            ]
+        )
+        let gain = MovementAPGain(
+            userId: "u",
+            sourceLogId: "perf-1",
+            sourceExerciseId: "e1",
+            movementId: "exercise.bench-press",
+            rankStandardMovementId: "exercise.bench-press",
+            movementDisplayName: "Bench Press",
+            standardDisplayName: "Bench Press",
+            rankTemplate: .barbellStrength,
+            rawAP: 120,
+            reps: 5,
+            loadKg: 100,
+            estimatedOneRepMaxKg: 116.7,
+            occurredAt: t0
+        )
+
+        let xpDeltas = AttributeIngest.xpDeltas(for: [gain], catalog: catalog)
+        XCTAssertEqual(xpDeltas[.power] ?? 0, 90, accuracy: 0.001)
+        XCTAssertEqual(xpDeltas[.control] ?? 0, 30, accuracy: 0.001)
+        XCTAssertEqual(xpDeltas[.endurance] ?? 0, 0, accuracy: 0.001)
+
+        var profile = AttributeProfile.empty(userId: "u", at: t0)
+        let applied = AttributeIngest.applyXPDeltas(&profile, xpDeltas: xpDeltas, at: t0)
+
+        XCTAssertEqual(profile.value(for: .power).xp, 90, accuracy: 0.001)
+        XCTAssertEqual(profile.value(for: .control).xp, 30, accuracy: 0.001)
+        XCTAssertEqual(profile.value(for: .power).current, 90 / AttributeLevelCurve.legacyScoreXPScale, accuracy: 0.001)
+        XCTAssertEqual(applied.rewards.count, 2)
+        XCTAssertTrue(applied.rewards.contains { $0.key == .power && $0.xpGained == 90 })
+    }
+
+    func testMovementAPFanoutUsesWholeDisplayedXPAndReconcilesRounding() {
+        let catalog = stubCatalog(
+            [:],
+            movements: [
+                "exercise.mixed": AttributeContribution(weights: [.power: 1, .control: 1, .endurance: 1])
+            ]
+        )
+        let gain = MovementAPGain(
+            userId: "u",
+            sourceLogId: "perf-integer",
+            sourceExerciseId: "e1",
+            movementId: "exercise.mixed",
+            rankStandardMovementId: "exercise.mixed",
+            movementDisplayName: "Mixed Lift",
+            standardDisplayName: "Mixed Lift",
+            rankTemplate: .barbellStrength,
+            rawAP: 10,
+            reps: 5,
+            loadKg: 100,
+            estimatedOneRepMaxKg: 116.7,
+            occurredAt: t0
+        )
+
+        let xpDeltas = AttributeIngest.xpDeltas(
+            for: [gain],
+            catalog: catalog,
+            noveltyMultiplier: 0.5
+        )
+        let totalXP = xpDeltas.values.reduce(0, +)
+
+        XCTAssertEqual(totalXP, 10, accuracy: 0.001)
+        XCTAssertTrue(xpDeltas.values.allSatisfy { $0 == floor($0) })
+        XCTAssertEqual(xpDeltas.values.sorted(), [3, 3, 4])
+    }
 }
 
 // Test helper
 final class StubAttributeCatalog: AttributeCatalogProtocol {
     var byName: [String: AttributeContribution]
-    init(byName: [String: AttributeContribution]) { self.byName = byName }
+    var byMovement: [String: AttributeContribution]
+
+    init(byName: [String: AttributeContribution], byMovement: [String: AttributeContribution] = [:]) {
+        self.byName = byName
+        self.byMovement = byMovement
+    }
+
     func contribution(forExerciseName name: String) -> AttributeContribution {
         byName[name] ?? .zero
     }
+
     func contribution(forSkillNodeId id: String) -> AttributeContribution {
         byName[id] ?? .zero
+    }
+
+    func contribution(
+        forMovementId movementId: String?,
+        rankStandardMovementId: String?,
+        fallbackExerciseName name: String
+    ) -> AttributeContribution {
+        if let movementId, let contribution = byMovement[movementId] {
+            return contribution
+        }
+        if let rankStandardMovementId, let contribution = byMovement[rankStandardMovementId] {
+            return contribution
+        }
+        return contribution(forExerciseName: name)
     }
 }

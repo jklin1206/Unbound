@@ -70,7 +70,7 @@ struct Step_Arc01_Opening: View {
                 if phase == .dormant {
                     ctaButton
                         .padding(.horizontal, 20)
-                        .padding(.bottom, 12)
+                        .padding(.bottom, 42)
                         .transition(.opacity.combined(with: .offset(y: 60)))
                 }
             }
@@ -138,34 +138,66 @@ struct Step_Arc01_Opening: View {
             let wave = (sin(t * 1.4) + 1.0) / 2.0
 
             ZStack {
-                RoundedRectangle(cornerRadius: 18)
-                    .stroke(Color.unbound.accent.opacity(0.55 * (1.0 - wave)), lineWidth: 2)
+                Capsule()
+                    .stroke(Color.unbound.accent.opacity(0.42 * (1.0 - wave)), lineWidth: 2)
                     .scaleEffect(1.0 + 0.12 * wave)
-                    .blur(radius: 2)
+                    .blur(radius: 3)
 
-                RoundedRectangle(cornerRadius: 18)
+                Capsule()
                     .stroke(Color.unbound.accent.opacity(0.3 * (1.0 - wave * 0.8)), lineWidth: 1)
                     .scaleEffect(1.0 + 0.22 * wave)
-                    .blur(radius: 6)
+                    .blur(radius: 8)
 
-                UnboundButton(title: "BEGIN YOUR ARC", action: awaken)
-                    .scaleEffect(buttonPulse ? 1.02 : 1.0)
-                    .shadow(color: Color.unbound.accent.opacity(0.35 + 0.45 * pulse),
-                            radius: 18 + 14 * pulse, y: 0)
-                    .shadow(color: Color.unbound.impact.opacity(0.2 + 0.3 * pulse),
-                            radius: 44 + 20 * pulse, y: 0)
+                Button(action: awaken) {
+                    HStack(spacing: 12) {
+                        Text("BEGIN YOUR ARC")
+                            .font(Font.unbound.bodyMStrong)
+                            .tracking(2.2)
+                        Image(systemName: "arrow.right")
+                            .font(.system(size: 16, weight: .black))
+                    }
+                    .foregroundStyle(Color.unbound.textPrimary)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 58)
+                    .background(
+                        Capsule()
+                            .fill(
+                                LinearGradient(
+                                    colors: [
+                                        Color.black.opacity(0.86),
+                                        Color.unbound.accent.opacity(0.12),
+                                        Color.black.opacity(0.88)
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                    )
+                    .overlay(
+                        Capsule()
+                            .strokeBorder(Color.unbound.accent.opacity(0.78), lineWidth: 1.5)
+                    )
+                    .overlay(alignment: .top) {
+                        Capsule()
+                            .fill(Color.white.opacity(0.08))
+                            .frame(height: 1)
+                            .padding(.horizontal, 28)
+                    }
+                }
+                .buttonStyle(.plain)
+                .scaleEffect(buttonPulse ? 1.018 : 1.0)
+                .shadow(color: Color.unbound.accent.opacity(0.32 + 0.42 * pulse),
+                        radius: 18 + 14 * pulse, y: 0)
+                .shadow(color: Color.unbound.impact.opacity(0.18 + 0.28 * pulse),
+                        radius: 42 + 18 * pulse, y: 0)
             }
         }
+        .frame(height: 82)
     }
 
     private var titleBlock: some View {
         VStack(spacing: 10) {
-            Text("UNBOUND")
-                .font(Font.unbound.displayXL)
-                .foregroundStyle(Color.unbound.textPrimary)
-                .tracking(4)
-                .shadow(color: .black.opacity(0.9), radius: 18, y: 4)
-                .animeGlow(color: Color.unbound.accent, radius: 22, intensity: 0.85)
+            auraText("UNBOUND", font: Font.unbound.displayXL, tracking: 4)
 
             Text("BREAK THE RESTRICTION")
                 .font(Font.unbound.bodyM)
@@ -173,9 +205,30 @@ struct Step_Arc01_Opening: View {
                 .tracking(3.2)
                 .textCase(.uppercase)
                 .shadow(color: .black.opacity(0.9), radius: 10)
+                .shadow(color: Color.unbound.accent.opacity(0.7), radius: 12)
         }
         .frame(maxHeight: .infinity, alignment: .top)
         .padding(.top, 72)
+    }
+
+    private func auraText(_ text: String, font: Font, tracking: CGFloat) -> some View {
+        ZStack {
+            Text(text)
+                .font(font)
+                .tracking(tracking)
+                .foregroundStyle(Color.unbound.accent.opacity(0.95))
+                .blur(radius: 1.4)
+                .scaleEffect(x: 1.018, y: 1.06)
+                .shadow(color: Color.unbound.impact.opacity(0.85), radius: 22)
+
+            Text(text)
+                .font(font)
+                .tracking(tracking)
+                .foregroundStyle(Color.unbound.textPrimary)
+                .shadow(color: .black.opacity(0.95), radius: 18, y: 4)
+                .shadow(color: Color.unbound.accent.opacity(0.85), radius: 18)
+                .shadow(color: Color.unbound.impact.opacity(0.48), radius: 34)
+        }
     }
 
     private func awaken() {

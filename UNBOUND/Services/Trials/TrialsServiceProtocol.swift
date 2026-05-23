@@ -23,12 +23,12 @@ struct WeeklyVowCompletionReceipt: Equatable, Sendable {
             performanceLogId: performanceLog.id,
             cardKind: vow.chosenCard.kind,
             theme: vow.chosenCard.theme,
-            title: "\(vow.chosenCard.kind.displayName) Vow Sealed",
+            title: "\(vow.chosenCard.displayName) Sealed",
             subtitle: vow.chosenCard.displayName,
             proofName: vow.chosenCard.capstone.displayName,
             receiptLine: "Receipt \(Self.shortReceiptId(performanceLog.id))",
-            shareTitle: "Weekly Vow Complete",
-            shareSubtitle: "\(vow.chosenCard.kind.displayName) Vow - \(vow.chosenCard.capstone.displayName)",
+            shareTitle: "Binding Vow Sealed",
+            shareSubtitle: "\(vow.chosenCard.displayName) - \(vow.chosenCard.capstone.displayName)",
             completedAt: performanceLog.completedAt,
             completionBonus: completionBonus
         )

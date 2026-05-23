@@ -103,12 +103,21 @@ final class FriendChallengeService: FriendChallengeServiceProtocol {
             started_at: iso.string(from: now),
             expires_at: iso.string(from: expires)
         )
-        let rows: [ChallengeRow] = try await db
-            .from("friend_challenges")
-            .insert(insert)
-            .select()
-            .execute()
-            .value
+        let rows: [ChallengeRow]
+        do {
+            rows = try await db
+                .from("friend_challenges")
+                .insert(insert)
+                .select()
+                .execute()
+                .value
+        } catch {
+            logger.log(
+                "FriendChallengeService.createChallenge backend error: \(error)",
+                level: .warning
+            )
+            throw SquadError.backendUnavailable
+        }
         guard let row = rows.first, let model = row.toModel() else {
             throw SquadError.backendUnavailable
         }

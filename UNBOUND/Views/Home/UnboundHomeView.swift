@@ -51,6 +51,7 @@ struct UnboundHomeView: View {
 
     // Modal state
     @State private var showingSession = false
+    @State private var completedPresentedWorkout = false
     @State private var showingCalibrationWorkout = false
     // navigateToCoach removed — replaced by CoachModesStrip
     @State private var showingGainsToast = false
@@ -73,9 +74,6 @@ struct UnboundHomeView: View {
     // Photo/Scan capture flow presentation
     @State private var captureMode: PhotoCaptureFlow.Mode?
 
-    // Coach note (daily AI insight, bounded to 1 call/user/day)
-    @State private var coachNote: CoachNote?
-
     // Travel override (user hit the TRAVEL coach action)
     @State private var activeTravelOverride: TravelOverride?
 
@@ -84,7 +82,7 @@ struct UnboundHomeView: View {
     @State private var lastScanAt: Date? = nil
     @State private var showScanCaptureFlow = false
 
-    // Trials
+    // Weekly Vows
     @State private var trialsState: TrialsState = .empty
     @State private var showTrialPicker = false
 
@@ -105,8 +103,7 @@ struct UnboundHomeView: View {
                         topBar
                         homeBriefing
                         trainingConsole
-                        modesStrip
-                        dailyQuestBand
+                        homeMomentumCard
                         contextualStack
                         HomeBuildChipCard(profile: attributeProfile) {
                             NotificationCenter.default.post(name: .requestNavigateToProfileTab, object: nil)
@@ -161,14 +158,22 @@ struct UnboundHomeView: View {
             CalibrationWorkoutView(onComplete: { calibrationSkipRatio = 0 })
                 .environmentObject(services)
         }
-        .fullScreenCover(isPresented: $showingSession, onDismiss: onSessionComplete) {
+        .fullScreenCover(isPresented: $showingSession, onDismiss: {
+            guard completedPresentedWorkout else { return }
+            completedPresentedWorkout = false
+            onSessionComplete()
+        }) {
             if let workout = todayProgramDay?.workout, let program {
                 NavigationStack {
                     WorkoutLoggingView(
                         workout: workout,
                         programId: program.id,
                         dayNumber: todayProgramDay?.dayNumber ?? 1,
-                        services: services
+                        services: services,
+                        onFinished: {
+                            completedPresentedWorkout = true
+                            showingSession = false
+                        }
                     )
                 }
             }
@@ -215,17 +220,17 @@ struct UnboundHomeView: View {
                 cards: trialsState.currentWeekCards,
                 onPick: { card in
                     guard let userId = services.auth.currentUserId else { return }
-                    services.trials.pickCard(card, userId: userId)
+                    services.trials.pickVowCard(card, userId: userId)
                     trialsState = services.trials.state(userId: userId)
                 }
             )
         }
-        .onReceive(NotificationCenter.default.publisher(for: .trialCompleted)) { _ in
+        .onReceive(NotificationCenter.default.publisher(for: .weeklyVowCompleted)) { _ in
             if let userId = services.auth.currentUserId {
                 trialsState = services.trials.state(userId: userId)
             }
         }
-        .onReceive(NotificationCenter.default.publisher(for: .trialWeekRolled)) { _ in
+        .onReceive(NotificationCenter.default.publisher(for: .weeklyVowWeekRolled)) { _ in
             if let userId = services.auth.currentUserId {
                 trialsState = services.trials.state(userId: userId)
             }
@@ -291,8 +296,8 @@ struct UnboundHomeView: View {
             Text(briefingCopy)
                 .font(Font.unbound.bodyM)
                 .foregroundStyle(Color.unbound.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-                .lineSpacing(2)
+                .lineLimit(1)
+                .minimumScaleFactor(0.68)
                 .frame(maxWidth: 330, alignment: .leading)
         }
         .padding(.top, 2)
@@ -306,7 +311,7 @@ struct UnboundHomeView: View {
         let isRest = day?.isRestDay ?? false
         let canStart = workout != nil && !isRest
         let tint = protocolTint(canStart: canStart, isRest: isRest)
-        let title = workout?.name ?? (isRest ? "Recovery Protocol" : "Coach Protocol")
+        let title = workout?.name ?? (isRest ? "Recovery Protocol" : "Plan Session")
         let minutes = workout?.estimatedMinutes ?? (isRest ? 18 : 30)
         let focus = workout?.targetMuscleGroups.first?.displayName.uppercased() ?? (isRest ? "RECOVERY" : "CUSTOM")
 
@@ -328,8 +333,8 @@ struct UnboundHomeView: View {
                         Text(title)
                             .font(.system(size: 33, weight: .black))
                             .foregroundStyle(Color.unbound.textPrimary)
-                            .lineLimit(2)
-                            .minimumScaleFactor(0.72)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.58)
 
                         HStack(spacing: 8) {
                             Text(programDayLabel)
@@ -358,13 +363,15 @@ struct UnboundHomeView: View {
                         showingSession = true
                     } else if isRest {
                         captureMode = .photo
+                    } else {
+                        NotificationCenter.default.post(name: .requestNavigateToProgramTab, object: nil)
                     }
                 } label: {
                     HStack(spacing: 11) {
                         Text(protocolPrimaryLabel(canStart: canStart, isRest: isRest).uppercased())
                             .font(Font.unbound.bodyMStrong)
                             .tracking(1.4)
-                        Image(systemName: canStart ? "arrow.right" : "camera.fill")
+                        Image(systemName: canStart ? "arrow.right" : (isRest ? "camera.fill" : "calendar.badge.plus"))
                             .font(.system(size: 13, weight: .bold))
                     }
                     .foregroundStyle(Color.unbound.textPrimary)
@@ -385,12 +392,6 @@ struct UnboundHomeView: View {
                 consoleDivider
 
                 consoleExercisePlan(workout: workout)
-
-                coachCueAnnotation
-
-                consoleDivider
-
-                weekPath
             }
             .padding(18)
         }
@@ -440,7 +441,7 @@ struct UnboundHomeView: View {
                 }
             }
             .frame(width: 5, height: 58)
-            Text("\(xpInLevel)/\(xpPerLevel) SP")
+            Text("\(xpInLevel)/\(xpPerLevel) XP")
                 .font(.system(size: 9, weight: .bold, design: .monospaced))
                 .foregroundStyle(Color.unbound.textTertiary)
                 .monospacedDigit()
@@ -481,83 +482,92 @@ struct UnboundHomeView: View {
         }
     }
 
-    private var coachCueAnnotation: some View {
-        HStack(alignment: .top, spacing: 10) {
-            Rectangle()
-                .fill(Color.unbound.accent.opacity(0.85))
-                .frame(width: 2)
-                .padding(.vertical, 3)
-
-            VStack(alignment: .leading, spacing: 3) {
-                Text("COACH CUE")
-                    .font(.system(size: 9, weight: .bold))
-                    .tracking(1.6)
-                    .foregroundStyle(Color.unbound.accent)
-                Text(coachCueText)
-                    .font(Font.unbound.bodyS)
-                    .foregroundStyle(Color.unbound.textPrimary)
-                    .lineLimit(2)
-                    .lineSpacing(2)
-            }
-            Spacer(minLength: 0)
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
-        .background(
-            RoundedRectangle(cornerRadius: 13, style: .continuous)
-                .fill(Color.white.opacity(0.045))
-        )
-    }
-
     private var weekPath: some View {
-        let labels = ["M", "T", "W", "T", "F", "S", "S"]
         let todayIndex = ((Calendar.current.component(.weekday, from: Date()) + 5) % 7) + 1
+        let currentStreak = sessionXP?.currentStreak ?? streakDays
+        let completedCount = weekSessionDays.count
 
-        return VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                HStack(spacing: 7) {
-                    Image(systemName: "flame.fill")
-                        .font(.system(size: 11, weight: .bold))
+        return HStack(alignment: .center, spacing: 16) {
+            ZStack(alignment: .leading) {
+                StreakSlashShape()
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color.unbound.ember.opacity(0.36),
+                                Color.unbound.ember.opacity(0.08)
+                            ],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .frame(width: 108, height: 62)
+                    .offset(x: -12)
+
+                HStack(alignment: .firstTextBaseline, spacing: 7) {
+                    Text("\(currentStreak)")
+                        .font(.system(size: 42, weight: .black, design: .rounded))
+                        .foregroundStyle(Color.unbound.textPrimary)
+                        .monospacedDigit()
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.68)
+                    Text(currentStreak == 1 ? "DAY" : "DAYS")
+                        .font(.system(size: 11, weight: .heavy, design: .monospaced))
+                        .tracking(1.4)
                         .foregroundStyle(Color.unbound.ember)
-                    Text("\(sessionXP?.currentStreak ?? streakDays) DAY STREAK")
-                        .font(Font.unbound.captionS.weight(.bold))
-                        .tracking(1.5)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.76)
+                }
+                .layoutPriority(1)
+            }
+
+            VStack(alignment: .leading, spacing: 9) {
+                HStack(spacing: 8) {
+                    Text("IGNITION")
+                        .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                        .tracking(1.7)
+                        .foregroundStyle(Color.unbound.textTertiary)
+                        .lineLimit(1)
+                    Text("\(completedCount)/7")
+                        .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                        .tracking(1.0)
                         .foregroundStyle(Color.unbound.ember)
                         .monospacedDigit()
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.82)
                 }
-                Spacer()
-                Text("WEEK PATH \(weekSessionDays.count)/7")
-                    .font(Font.unbound.monoS.weight(.semibold))
-                    .foregroundStyle(Color.unbound.textSecondary)
-                    .monospacedDigit()
-            }
 
-            HStack(spacing: 0) {
-                ForEach(0..<7, id: \.self) { index in
-                    VStack(spacing: 7) {
-                        ZStack {
-                            if index < 6 {
-                                Rectangle()
-                                    .fill(Color.white.opacity(0.08))
-                                    .frame(height: 1)
-                                    .offset(x: 18)
-                            }
-                            Circle()
-                                .fill(weekPathColor(index: index, todayIndex: todayIndex))
-                                .frame(width: (index + 1) == todayIndex ? 13 : 10, height: (index + 1) == todayIndex ? 13 : 10)
-                                .overlay(
-                                    Circle()
-                                        .strokeBorder((index + 1) == todayIndex ? Color.white.opacity(0.45) : Color.clear, lineWidth: 1)
-                                )
-                        }
-                        Text(labels[index])
-                            .font(.system(size: 9, weight: .bold))
-                            .foregroundStyle(Color.unbound.textTertiary)
+                HStack(alignment: .bottom, spacing: 5) {
+                    ForEach(0..<7, id: \.self) { index in
+                        weekHeatSlash(
+                            hasSession: weekSessionDays.contains(index + 1),
+                            isToday: (index + 1) == todayIndex
+                        )
                     }
-                    .frame(maxWidth: .infinity)
                 }
+                .frame(height: 34, alignment: .bottom)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .padding(.vertical, 2)
+    }
+
+    private func weekHeatSlash(hasSession: Bool, isToday: Bool) -> some View {
+        let fill = hasSession
+            ? Color.unbound.rankGreen
+            : (isToday ? Color.unbound.ember : Color.white.opacity(0.11))
+        let height: CGFloat = hasSession ? 32 : (isToday ? 26 : 16)
+
+        return StreakSlashShape()
+            .fill(fill)
+            .frame(width: 13)
+            .frame(height: height)
+            .overlay(
+                StreakSlashShape()
+                    .stroke(Color.white.opacity(hasSession || isToday ? 0.24 : 0.07), lineWidth: 0.7)
+            )
+            .shadow(color: fill.opacity(hasSession || isToday ? 0.30 : 0), radius: 7, y: 2)
+            .animation(.spring(response: 0.28, dampingFraction: 0.82), value: hasSession)
+            .animation(.spring(response: 0.28, dampingFraction: 0.82), value: isToday)
     }
 
     private var consoleDivider: some View {
@@ -600,14 +610,17 @@ struct UnboundHomeView: View {
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(Color.unbound.surface)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
-        )
+        .background(Color.unbound.surface.opacity(0.42))
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill(Color.unbound.borderSubtle.opacity(0.65))
+                .frame(height: 0.5)
+        }
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(Color.unbound.borderSubtle.opacity(0.45))
+                .frame(height: 0.5)
+        }
     }
 
     private var rankMomentumCard: some View {
@@ -694,80 +707,6 @@ struct UnboundHomeView: View {
         )
     }
 
-    private var weeklyCoachBento: some View {
-        HStack(alignment: .top, spacing: 12) {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Text("WEEK")
-                        .font(Font.unbound.captionS.weight(.bold))
-                        .tracking(1.7)
-                        .foregroundStyle(Color.unbound.textTertiary)
-                    Spacer()
-                    Text("\(weekSessionDays.count)/7")
-                        .font(Font.unbound.monoS.weight(.semibold))
-                        .foregroundStyle(Color.unbound.ember)
-                        .monospacedDigit()
-                }
-                compactWeekGlyphs
-            }
-            .padding(14)
-            .frame(maxWidth: .infinity, minHeight: 112, alignment: .topLeading)
-            .background(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(Color.unbound.surface)
-            )
-
-            VStack(alignment: .leading, spacing: 9) {
-                HStack(spacing: 7) {
-                    Image(systemName: "sparkles")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(Color.unbound.accent)
-                    Text("COACH")
-                        .font(Font.unbound.captionS.weight(.bold))
-                        .tracking(1.7)
-                        .foregroundStyle(Color.unbound.textTertiary)
-                }
-                Text(coachNote?.text ?? "Keep the first lift crisp. If bar speed drops, trim one accessory set.")
-                    .font(Font.unbound.bodyS)
-                    .foregroundStyle(Color.unbound.textPrimary)
-                    .lineLimit(4)
-                    .lineSpacing(2)
-                    .minimumScaleFactor(0.86)
-            }
-            .padding(14)
-            .frame(maxWidth: .infinity, minHeight: 112, alignment: .topLeading)
-            .background(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(Color.unbound.surface)
-            )
-        }
-        .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .strokeBorder(Color.unbound.borderSubtle.opacity(0.45), lineWidth: 1)
-                .allowsHitTesting(false)
-        )
-    }
-
-    private var compactWeekGlyphs: some View {
-        let labels = ["M", "T", "W", "T", "F", "S", "S"]
-        let todayIndex = ((Calendar.current.component(.weekday, from: Date()) + 5) % 7) + 1
-        return HStack(spacing: 5) {
-            ForEach(0..<7, id: \.self) { index in
-                VStack(spacing: 7) {
-                    Text(labels[index])
-                        .font(.system(size: 8, weight: .bold))
-                        .foregroundStyle(Color.unbound.textTertiary)
-                    Capsule()
-                        .fill(weekSessionDays.contains(index + 1) ? Color.unbound.ember : ((index + 1) == todayIndex ? Color.unbound.accent : Color.unbound.borderSubtle))
-                        .frame(width: 12, height: weekSessionDays.contains(index + 1) ? 28 : ((index + 1) == todayIndex ? 18 : 10))
-                        .shadow(color: weekSessionDays.contains(index + 1) ? Color.unbound.ember.opacity(0.28) : .clear, radius: 6)
-                }
-                .frame(maxWidth: .infinity)
-            }
-        }
-        .frame(height: 54, alignment: .bottom)
-    }
-
     private var dailyQuestBand: some View {
         let categoryColor = questColor
 
@@ -798,10 +737,12 @@ struct UnboundHomeView: View {
 
                 Spacer(minLength: 0)
 
-                Text("+\(dailyQuest.spReward)")
+                Text("+\(dailyQuest.spReward) LV XP")
                     .font(Font.unbound.monoS.weight(.bold))
                     .foregroundStyle(categoryColor)
                     .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.70)
             }
             .padding(14)
             .frame(maxWidth: .infinity)
@@ -818,7 +759,7 @@ struct UnboundHomeView: View {
     }
 
     private func protocolTint(canStart: Bool, isRest: Bool) -> Color {
-        canStart ? Color.unbound.accent : (isRest ? Color.unbound.coachCyan : Color.unbound.warnOrange)
+        canStart ? Color.unbound.accent : (isRest ? Color.unbound.coachCyan : Color.unbound.ember)
     }
 
     private var todayStatusValue: String {
@@ -838,35 +779,6 @@ struct UnboundHomeView: View {
         return "Travel day"
     }
 
-    private var coachCueText: String {
-        if let note = coachNote?.text, !note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return note
-        }
-        // Trial-aware cue: surface the first aligned exercise when a trial is active
-        if let trial = trialsState.currentTrial,
-           trial.capstoneState == .pending || trial.capstoneState == .windowOpen,
-           let workout = todayProgramDay?.workout,
-           let alignedExercise = workout.mainExercises.first(where: { isAlignedExercise($0) }) {
-            let motivation = trial.chosenCard.kind == .prestige
-                ? "Stretch the envelope."
-                : "This is your trial axis — push +1 RPE on your top set."
-            return "Trial: push +1 RPE on \(alignedExercise.name). \(motivation)"
-        }
-        if let first = todayProgramDay?.workout?.mainExercises.first {
-            return "Keep the first lift crisp: \(first.name). Stop one rep before form breaks."
-        }
-        if todayProgramDay?.isRestDay == true {
-            return "Recovery protects the block. Keep movement easy and log a photo check-in."
-        }
-        return "Build a useful session from your current program before you train."
-    }
-
-    private func weekPathColor(index: Int, todayIndex: Int) -> Color {
-        if weekSessionDays.contains(index + 1) { return Color.unbound.rankGreen }
-        if (index + 1) == todayIndex { return Color.unbound.ember }
-        return Color.white.opacity(0.16)
-    }
-
     private func protocolHeroSubtitle(workout: Workout?, isRest: Bool) -> String {
         if let workout {
             return "\(workout.mainExercises.count) main lifts calibrated for today's block. Start clean, log every top set."
@@ -874,12 +786,12 @@ struct UnboundHomeView: View {
         if isRest {
             return "Recovery is scheduled. Bank the day with a photo check-in or low-intensity work."
         }
-        return "No session is queued. Coach can build a practical session from your current program."
+        return "No session is queued. Build today's work from Program or start with a quick action below."
     }
 
     private func protocolPrimaryLabel(canStart: Bool, isRest: Bool) -> String {
         if canStart { return "Begin Session" }
-        return isRest ? "Log Check-In" : "Ask Coach"
+        return isRest ? "Log Check-In" : "Plan Session"
     }
 
     private func protocolMetaTile(label: String, value: String, tint: Color) -> some View {
@@ -932,10 +844,10 @@ struct UnboundHomeView: View {
 
             Spacer(minLength: 0)
 
-            // Trial-aligned indicator (shown before RPE chip when active)
+            // Vow-aligned indicator (shown before RPE chip when active)
             if trialAligned {
                 HStack(spacing: 4) {
-                    Text("TRIAL")
+                    Text("BIND")
                         .font(.system(size: 8, weight: .heavy, design: .monospaced))
                         .tracking(1.0)
                         .foregroundStyle(trialTint)
@@ -962,7 +874,7 @@ struct UnboundHomeView: View {
     }
 
     /// Returns true if the exercise name contributes to any axis that the
-    /// current trial's theme targets. No trial = always false.
+    /// current vow's theme targets. No vow = always false.
     private func isAlignedExercise(_ exercise: Exercise) -> Bool {
         guard let trial = trialsState.currentTrial,
               trial.capstoneState != .missed,
@@ -997,10 +909,10 @@ struct UnboundHomeView: View {
             if isRest {
                 return "Keep the day useful with a photo check-in, light movement, or mobility."
             }
-            return "Ask coach to rebuild today's work from your current program."
+            return "Open Program to rebuild today's work from your current plan."
         }()
-        let primaryLabel = canStart ? "Begin Session" : (isRest ? "Log Check-In" : "Ask Coach")
-        let primaryIcon = canStart ? "arrow.right" : (isRest ? "camera.fill" : "message.fill")
+        let primaryLabel = canStart ? "Begin Session" : (isRest ? "Log Check-In" : "Plan Session")
+        let primaryIcon = canStart ? "arrow.right" : (isRest ? "camera.fill" : "calendar.badge.plus")
 
         return VStack(alignment: .leading, spacing: 18) {
             HStack(alignment: .center, spacing: 10) {
@@ -1016,14 +928,14 @@ struct UnboundHomeView: View {
                 Text(title)
                     .font(.system(size: 28, weight: .black))
                     .foregroundStyle(Color.unbound.textPrimary)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.76)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.58)
 
                 Text(subtitle)
                     .font(Font.unbound.bodyM)
                     .foregroundStyle(Color.unbound.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .lineSpacing(2)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.68)
             }
 
             if let workout {
@@ -1151,13 +1063,14 @@ struct UnboundHomeView: View {
             .frame(width: 34, height: 34)
 
             VStack(alignment: .leading, spacing: 3) {
-                Text(isRest ? "Recovery still counts" : "Coach can patch the gap")
+                Text(isRest ? "Recovery still counts" : "Build a useful session")
                     .font(Font.unbound.bodyMStrong)
                     .foregroundStyle(Color.unbound.textPrimary)
                 Text(isRest ? "Photo, walk, mobility, or stretch." : "Generate a useful session from your current state.")
                     .font(Font.unbound.captionS)
                     .foregroundStyle(Color.unbound.textSecondary)
-                    .lineLimit(2)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
             }
 
             Spacer(minLength: 0)
@@ -1263,7 +1176,7 @@ struct UnboundHomeView: View {
             HStack(spacing: 0) {
                 railMetric(label: "WEEK", value: "\(weekSessionDays.count)/7", detail: "sessions", tint: Color.unbound.ember)
                 verticalRailDivider
-                railMetric(label: "SP", value: "\(gains)", detail: "banked", tint: Color.unbound.textPrimary)
+                railMetric(label: "LV XP", value: "\(gains)", detail: "banked", tint: Color.unbound.textPrimary)
             }
         }
         .padding(.vertical, 4)
@@ -1332,7 +1245,7 @@ struct UnboundHomeView: View {
                 return "\(workout.name) is ready. \(workout.mainExercises.count) main lifts, about \(workout.estimatedMinutes) minutes."
             }
         }
-        return "No session is queued. Use the rail below to decide whether to train, scan, or recalibrate."
+        return "No session is queued. Open Program to plan today's work or use a quick action below."
     }
 
     private var readinessValue: String {
@@ -1620,6 +1533,112 @@ struct UnboundHomeView: View {
         }
     }
 
+    // MARK: - Momentum + quick actions
+
+    private var homeMomentumCard: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            weekPath
+
+            HStack(spacing: 0) {
+                homeCommandButton(
+                    title: "Quest",
+                    subtitle: "+\(dailyQuest.spReward) LV XP",
+                    icon: "bolt.fill",
+                    tint: questColor
+                ) {
+                    activeRoutine = SideQuestLibrary.pushProtocol
+                    showRoutinePlayer = true
+                }
+
+                commandDivider
+
+                homeCommandButton(
+                    title: shouldShowScanEligibility ? "Scan" : "Photo",
+                    subtitle: shouldShowScanEligibility ? "+25 LV XP" : "+5 LV XP",
+                    icon: shouldShowScanEligibility ? "sparkle.magnifyingglass" : "camera.fill",
+                    tint: shouldShowScanEligibility ? Color.unbound.accent : Color.unbound.ember
+                ) {
+                    captureMode = shouldShowScanEligibility ? .scan : .photo
+                }
+
+                commandDivider
+
+                homeCommandButton(
+                    title: "Program",
+                    subtitle: "Plan",
+                    icon: "calendar.badge.plus",
+                    tint: Color.unbound.textSecondary
+                ) {
+                    NotificationCenter.default.post(name: .requestNavigateToProgramTab, object: nil)
+                }
+            }
+            .frame(height: 54)
+            .overlay(alignment: .top) {
+                Rectangle()
+                    .fill(Color.unbound.borderSubtle.opacity(0.55))
+                    .frame(height: 0.5)
+            }
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.unbound.surface.opacity(0.42))
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill(Color.unbound.borderSubtle.opacity(0.65))
+                .frame(height: 0.5)
+        }
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(Color.unbound.borderSubtle.opacity(0.45))
+                .frame(height: 0.5)
+        }
+    }
+
+    private var commandDivider: some View {
+        Rectangle()
+            .fill(Color.unbound.borderSubtle.opacity(0.65))
+            .frame(width: 0.5, height: 30)
+            .padding(.horizontal, 8)
+    }
+
+    private func homeCommandButton(
+        title: String,
+        subtitle: String,
+        icon: String,
+        tint: Color,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button {
+            UnboundHaptics.medium()
+            action()
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: icon)
+                    .font(.system(size: 13, weight: .black))
+                    .foregroundStyle(tint)
+                    .frame(width: 16, height: 16)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title.uppercased())
+                        .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                        .tracking(1.0)
+                        .foregroundStyle(Color.unbound.textPrimary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.78)
+                    Text(subtitle.uppercased())
+                        .font(.system(size: 9, weight: .bold, design: .monospaced))
+                        .tracking(0.8)
+                        .foregroundStyle(tint)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.72)
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
     // MARK: - Contextual stack
 
     @ViewBuilder
@@ -1634,15 +1653,7 @@ struct UnboundHomeView: View {
                 }
             }
 
-            if scanCadence.isUnlocked || lastScanAt == nil {
-                ScanDueCard(
-                    cadenceState: scanCadence,
-                    isFirstScan: lastScanAt == nil,
-                    onTap: { showScanCaptureFlow = true }
-                )
-            }
-
-            // ── Trial status card ──────────────────────────────────
+            // ── Weekly Vow status card ─────────────────────────────
             if let activeTrial = trialsState.currentTrial,
                activeTrial.capstoneState != .missed {
                 ActiveTrialCard(trial: activeTrial)
@@ -1650,10 +1661,6 @@ struct UnboundHomeView: View {
                 TrialPickerPromptCard {
                     showTrialPicker = true
                 }
-            }
-
-            if shouldShowScanCTA {
-                scanCTACard
             }
         }
     }
@@ -1671,8 +1678,8 @@ struct UnboundHomeView: View {
         let isScanDue = shouldShowScanEligibility
         let title = isScanDue ? "Bi-weekly scan due" : "Lock in today's photo"
         let subtitle = isScanDue
-            ? "3-sentence coach read · +25 SP"
-            : "Keep the arc honest · +5 SP"
+            ? "3-sentence coach read · +25 LV XP"
+            : "Keep the arc honest · +5 LV XP"
         let icon = isScanDue ? "sparkle.magnifyingglass" : "camera.fill"
 
         return Button {
@@ -1716,48 +1723,6 @@ struct UnboundHomeView: View {
     // MARK: - Stats grid
 
 
-    // MARK: - Coach note card
-    //
-    // One AI-generated insight per day. Surfaced on home in a compact
-    // card above Today's Mission. Generated once per calendar day via
-    // `CoachNotesService` — subsequent appearances hit the cache.
-
-    private func coachNoteCard(note: CoachNote) -> some View {
-        HStack(alignment: .top, spacing: 12) {
-            ZStack {
-                Circle()
-                    .fill(Color.unbound.accent.opacity(0.15))
-                Image(systemName: "sparkles")
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(Color.unbound.accent)
-            }
-            .frame(width: 26, height: 26)
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text("COACH · TODAY")
-                    .font(Font.unbound.captionS.weight(.bold))
-                    .tracking(1.6)
-                    .foregroundStyle(Color.unbound.accent)
-                Text(note.text)
-                    .font(Font.unbound.bodyS)
-                    .foregroundStyle(Color.unbound.textPrimary)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .lineSpacing(2)
-            }
-            Spacer(minLength: 0)
-        }
-        .padding(14)
-        .frame(maxWidth: .infinity)
-        .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color.unbound.surface)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .strokeBorder(Color.unbound.accent.opacity(0.25), lineWidth: 1)
-        )
-    }
-
     // MARK: - Last session recap (inline, no card)
 
     @ViewBuilder
@@ -1777,7 +1742,7 @@ struct UnboundHomeView: View {
                     .foregroundStyle(Color.unbound.textSecondary)
                 Spacer()
                 if lastGainsAwarded > 0 {
-                    Text("+\(lastGainsAwarded) SP")
+                    Text("+\(lastGainsAwarded) LV XP")
                         .font(Font.unbound.monoS)
                         .foregroundStyle(Color.unbound.accent)
                         .monospacedDigit()
@@ -1798,7 +1763,7 @@ struct UnboundHomeView: View {
                 .font(.system(size: 18, weight: .semibold))
                 .foregroundStyle(Color.unbound.accent)
             VStack(alignment: .leading, spacing: 2) {
-                Text("+\(lastGainsAwarded) SP")
+                Text("+\(lastGainsAwarded) LV XP")
                     .font(Font.unbound.bodyLStrong)
                     .foregroundStyle(Color.unbound.textPrimary)
                 Text("Session logged. Streak: \(streakDays) day\(streakDays == 1 ? "" : "s").")
@@ -1863,7 +1828,6 @@ struct UnboundHomeView: View {
         async let profileProgram: (UserProfile?, TrainingProgram?) = loadProfileAndProgram(userId)
         async let recentLogs: [WorkoutLog] = fetchRecentLogsSafe(userId: userId, limit: 40)
         async let travel: TravelOverride? = TravelOverrideStore.shared.activeOverride(for: userId)
-        async let coach: CoachNote? = CoachNotesService.shared.todaysNote(userId: userId)
 
         _ = await skillLoad
         _ = await rankDecay
@@ -1877,7 +1841,6 @@ struct UnboundHomeView: View {
 
         applyRecentLogs(await recentLogs)
         activeTravelOverride = await travel
-        coachNote = await coach
 
         let history = (try? ScanCheckpointStore.shared.history(userId: userId)) ?? []
         lastScanAt = history.last?.createdAt
@@ -1957,12 +1920,6 @@ struct UnboundHomeView: View {
     }
 
     @MainActor
-    private func refreshCoachNote() async {
-        let userId = services.auth.currentUserId ?? "anonymous"
-        coachNote = await CoachNotesService.shared.todaysNote(userId: userId)
-    }
-
-    @MainActor
     private func refreshWeeklyRhythm() async {
         let userId = services.auth.currentUserId ?? "anonymous"
         let logs = (try? await services.workoutLog.fetchRecentLogs(userId: userId, limit: 14)) ?? []
@@ -1997,7 +1954,6 @@ struct UnboundHomeView: View {
         let lastDay = Calendar.current.startOfDay(
             for: Date(timeIntervalSince1970: lastSessionTimestamp)
         ).timeIntervalSince1970
-        let oneDay: TimeInterval = 24 * 3600
 
         if today == lastDay { return }
 
@@ -2005,11 +1961,14 @@ struct UnboundHomeView: View {
         gains += earned
         lastGainsAwarded = earned
 
-        if today - lastDay <= oneDay * 2 {
-            streakDays += 1
-        } else {
-            streakDays = 1
-        }
+        let streakDecision = ProgramAwareStreakPolicy.shouldExtendStreak(
+            from: Date(timeIntervalSince1970: lastDay),
+            to: Date(),
+            currentStreak: streakDays,
+            resetWindowDays: 14,
+            activeProgram: program
+        )
+        streakDays = streakDecision.streak
         lastSessionTimestamp = Date().timeIntervalSince1970
 
         RankDecayService.shared.clearRecalibration()
@@ -2162,7 +2121,7 @@ struct UnboundHomeView: View {
                     .tracking(1.2)
                     .foregroundStyle(Color.unbound.textTertiary)
                 Spacer()
-                Text("+\(dailyQuest.spReward) SP")
+                Text("+\(dailyQuest.spReward) LV XP")
                     .font(Font.unbound.monoS.weight(.bold))
                     .foregroundStyle(categoryColor)
                     .monospacedDigit()
@@ -2346,6 +2305,19 @@ private struct DiagonalAccentShape: Shape {
         path.move(to: CGPoint(x: rect.width * 0.38, y: rect.minY))
         path.addLine(to: CGPoint(x: rect.maxX, y: rect.minY))
         path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
+        path.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
+        path.closeSubpath()
+        return path
+    }
+}
+
+private struct StreakSlashShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        let lean = rect.width * 0.42
+        path.move(to: CGPoint(x: rect.minX + lean, y: rect.minY))
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.minY))
+        path.addLine(to: CGPoint(x: rect.maxX - lean, y: rect.maxY))
         path.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
         path.closeSubpath()
         return path

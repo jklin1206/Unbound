@@ -61,10 +61,14 @@ struct StepperControl: View {
     }
 
     private var display: String {
-        allowsDecimal
-            ? (value.truncatingRemainder(dividingBy: 1) == 0
-                ? String(Int(value)) : String(format: "%.1f", value))
-            : String(Int(value))
+        guard allowsDecimal else { return String(Int(value)) }
+        if abs(value - value.rounded()) < 0.005 {
+            return String(format: "%.0f", value)
+        }
+        if abs((value * 10).rounded() - value * 10) < 0.005 {
+            return String(format: "%.1f", value)
+        }
+        return String(format: "%.2f", value)
     }
 
     private func commit() {

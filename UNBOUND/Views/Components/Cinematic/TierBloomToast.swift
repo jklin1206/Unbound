@@ -139,19 +139,7 @@ struct TierBloomToast: View {
     }
 
     private var tint: Color {
-        switch advance.to {
-        case .initiate:   return Color.unbound.textTertiary
-        case .novice:     return Color.unbound.rankOrange
-        case .apprentice: return Color.unbound.rankAmber
-        case .forged:     return Color.unbound.rankGreen
-        case .veteran:    return Color.unbound.accent.opacity(0.85)
-        case .honed:      return Color.unbound.accent
-        // Flagship tiers below should never reach TierBloomToast — listed for
-        // compiler completeness. RankUpCinematic handles these.
-        case .vessel:     return Color.unbound.accent
-        case .unbound:    return Color.unbound.accent
-        case .ascendant:  return Color.unbound.rankGold
-        }
+        advance.to.rewardTint
     }
 }
 

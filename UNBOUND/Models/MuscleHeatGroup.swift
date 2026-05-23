@@ -2,14 +2,11 @@ import Foundation
 
 // MARK: - MuscleHeatGroup
 //
-// Coarser muscle partition driven by the anatomical-lineart heatmap
-// (Resources/BodyMap/heatmap_front.png + heatmap_back.png). Labels mirror
-// the `regions.json` shipped with the pipeline — see muscle-heat-map/README.
-//
-// Parallel to the older `BodyRegion` enum: BodyRegion is 14-way and
-// drives lift→rank contribution logic; MuscleHeatGroup is 12-way and
-// drives the home-hub visual. A `BodyRegion.heatGroup` mapping folds
-// lats+lowerBack→back and abs+obliques→core.
+// Coarse 12-way muscle partition. The canonical training-signal taxonomy:
+// `ScanContextBuilder` buckets recent training volume into these groups and
+// `ScanContext` keys its 14-day signal map by `MuscleHeatGroup.rawValue`,
+// which the rescan/program-generation pipeline consumes. The rawValues are
+// part of that contract — keep them stable.
 
 enum MuscleHeatGroup: String, CaseIterable, Codable, Sendable, Hashable, Identifiable {
     var id: String { rawValue }
@@ -36,49 +33,5 @@ enum MuscleHeatGroup: String, CaseIterable, Codable, Sendable, Hashable, Identif
         case .glutes:     return "Glutes"
         case .calves:     return "Calves"
         }
-    }
-}
-
-// MARK: - BodyRegion bridge
-
-extension BodyRegion {
-    /// Which heatmap group this detailed region rolls up into. Multiple
-    /// BodyRegions can share a heatGroup — the heatmap aggregator picks
-    /// the max rank across the contributors.
-    var heatGroup: MuscleHeatGroup {
-        switch self {
-        case .chest:      return .chest
-        case .shoulders:  return .shoulders
-        case .biceps:     return .biceps
-        case .triceps:    return .triceps
-        case .forearms:   return .forearms
-        case .traps:      return .traps
-        case .lats:       return .back
-        case .lowerBack:  return .back
-        case .abs:        return .core
-        case .obliques:   return .core
-        case .quads:      return .legs
-        case .hamstrings: return .hamstrings
-        case .glutes:     return .glutes
-        case .calves:     return .calves
-        }
-    }
-}
-
-extension MuscleHeatGroup {
-    /// Roll up a per-BodyRegion rank map into the 12-group heatmap space,
-    /// taking the max ordinal rank where multiple regions contribute.
-    static func aggregate(
-        from regionRanks: [BodyRegion: SubRank]
-    ) -> [MuscleHeatGroup: SubRank] {
-        var result: [MuscleHeatGroup: SubRank] = [:]
-        for (region, rank) in regionRanks {
-            let group = region.heatGroup
-            if let existing = result[group], existing.ordinal >= rank.ordinal {
-                continue
-            }
-            result[group] = rank
-        }
-        return result
     }
 }

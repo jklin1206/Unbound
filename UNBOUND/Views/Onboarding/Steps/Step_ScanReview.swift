@@ -16,10 +16,10 @@ struct Step_ScanReview: View {
 
     var body: some View {
         OnboardingScaffold(
-            title: "Lock it in?",
-            subtitle: "Day zero. We'll read your frame and tune your focus areas — then you can rescan anytime to see it move.",
+            title: "Day Zero locked?",
+            subtitle: "This is the before. In 30 days, you get the first real proof of the climb.",
             progress: progress,
-            primaryTitle: "Lock in day zero",
+            primaryTitle: "Enter the arc",
             primaryIcon: "flame.fill",
             primaryEnabled: flow.capturedPhotos[.front] != nil,
             hudStep: .scanReview,
@@ -64,7 +64,7 @@ struct Step_ScanReview: View {
                 HStack(spacing: 8) {
                     Image(systemName: "arrow.counterclockwise")
                         .font(.system(size: 13, weight: .semibold))
-                    Text("Retake photo")
+                    Text("Retake Day Zero")
                         .font(Font.unbound.bodyMStrong)
                 }
                 .foregroundStyle(Color.unbound.textSecondary)

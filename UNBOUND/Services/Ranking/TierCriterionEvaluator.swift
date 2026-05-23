@@ -6,10 +6,9 @@ import Foundation
 /// Exercise-name comparisons are case-insensitive and trim whitespace.
 /// Warmup sets are excluded from all calculations.
 ///
-/// NOTE on .seconds: this codebase tracks holds by named-by-duration
-/// exercises (e.g. "plank-30", "plank-60"), not by a seconds field on
-/// SetLog. The .seconds branch always returns false. Hold-based tier
-/// criteria should use .variant("plank-30") instead.
+/// NOTE on .seconds: this evaluator still only receives WorkoutLog entries,
+/// not SessionLog holdSeconds. The .seconds branch remains false until rank
+/// evaluation ingests the skill-session log stream.
 enum TierCriterionEvaluator {
 
     static func satisfied(
@@ -28,14 +27,20 @@ enum TierCriterionEvaluator {
         case .weightKg(let target):
             return bestWeight(in: history) >= target
 
+        case .exerciseWeightKg(let target, let exerciseName):
+            return bestWeight(for: exerciseName, in: history) >= target
+
         case .bodyweightRatio(let target):
             guard bodyweightKg > 0 else { return false }
             return (bestWeight(in: history) / bodyweightKg) >= target
 
+        case .exerciseBodyweightRatio(let target, let exerciseName):
+            guard bodyweightKg > 0 else { return false }
+            return (bestWeight(for: exerciseName, in: history) / bodyweightKg) >= target
+
         case .variant(let name):
-            let normalized = name.lowercased().trimmingCharacters(in: .whitespaces)
             return history.contains { entry in
-                entry.exerciseName.lowercased().trimmingCharacters(in: .whitespaces) == normalized
+                MovementProofMatcher.entry(entry, satisfies: name)
             }
 
         case .compound(let subs):
@@ -49,9 +54,8 @@ enum TierCriterionEvaluator {
         exerciseName: String,
         in history: [ExerciseLogEntry]
     ) -> [ExerciseLogEntry] {
-        let normalized = exerciseName.lowercased().trimmingCharacters(in: .whitespaces)
         return history.filter {
-            $0.exerciseName.lowercased().trimmingCharacters(in: .whitespaces) == normalized
+            MovementProofMatcher.entry($0, satisfies: exerciseName)
         }
     }
 
@@ -60,6 +64,14 @@ enum TierCriterionEvaluator {
             .flatMap { $0.sets }
             .filter { !$0.isWarmup }
             .map { $0.reps }
+            .max() ?? 0
+    }
+
+    private static func bestWeight(for exerciseName: String, in history: [ExerciseLogEntry]) -> Double {
+        matchingEntries(exerciseName: exerciseName, in: history)
+            .flatMap { $0.sets }
+            .filter { !$0.isWarmup }
+            .compactMap { $0.weightKg }
             .max() ?? 0
     }
 

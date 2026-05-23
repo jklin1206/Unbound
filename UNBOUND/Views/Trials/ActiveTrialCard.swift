@@ -2,7 +2,7 @@ import SwiftUI
 
 // MARK: - ActiveTrialCard
 //
-// Shows the current active Weekly Vow in the Home contextualStack.
+// Shows the current active Binding Vow in the Home contextualStack.
 
 struct ActiveTrialCard: View {
     let trial: Trial
@@ -36,7 +36,7 @@ struct ActiveTrialCard: View {
         .buttonStyle(.plain)
         .disabled(!canLaunchTraining)
         .accessibilityIdentifier("weeklyVow.activeCard.startTraining")
-        .accessibilityLabel("Start weekly vow training")
+        .accessibilityLabel("Start binding vow training")
         .fullScreenCover(item: $trainingDraft) { draft in
             WorkoutReadyView(draft: draft)
                 .environmentObject(services)
@@ -70,7 +70,7 @@ struct ActiveTrialCard: View {
                     .minimumScaleFactor(0.72)
 
                 HStack(spacing: 7) {
-                    Text("VOW PROOF")
+                    Text("PROOF")
                         .font(.system(size: 9, weight: .heavy, design: .monospaced))
                         .tracking(1.2)
                         .foregroundStyle(Color.unbound.textTertiary)
@@ -229,8 +229,8 @@ private struct TrialActiveCutShape: Shape {
                     id: "weekly-vow-W20-ember",
                     kind: .ember,
                     theme: .axis(.power),
-                    displayName: "Ember - Power Reset",
-                    blurb: "Keep the streak warm with recovery-safe work.",
+                    displayName: "Iron Rule Vow",
+                    blurb: "Accept a low-day Binding Vow.",
                     capstone: TrialCapstone(displayName: "Low-Day Proof", description: "Complete easy power work.", evaluation: .manualClaim)
                 ),
                 capstoneState: .windowOpen

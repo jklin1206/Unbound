@@ -31,6 +31,8 @@ struct RoutinePlayerView: View {
     // repTarget transient state
     @State private var burstEntry = 10
     @State private var bursts: [Int] = []
+    @State private var performanceEntries: [RoutinePerformanceEntry] = []
+    @State private var capturedStepIds: Set<Int> = []
 
     private let clock = Timer.publish(every: 1, on: .main, in: .common)
         .autoconnect()
@@ -68,7 +70,12 @@ struct RoutinePlayerView: View {
             }
         }
         .navigationBarHidden(true)
-        .onAppear { startedAt = Date(); prepare(run.first) }
+        .onAppear {
+            startedAt = Date()
+            performanceEntries = []
+            capturedStepIds = []
+            prepare(run.first)
+        }
         .onReceive(clock) { _ in tick() }
         .sheet(isPresented: $showNotes) { notesSheet }
     }
@@ -109,14 +116,11 @@ struct RoutinePlayerView: View {
     private var progressRail: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Text("\(routine.category.label) · \(routine.title.uppercased())")
-                    .font(.system(size: 9, weight: .heavy, design: .monospaced))
-                    .tracking(1.6).foregroundStyle(accent)
-                Spacer()
                 Text(current?.roundLabel
                      ?? "STEP \(min(index + 1, run.count)) OF \(run.count)")
                     .font(.system(size: 9, weight: .heavy, design: .monospaced))
                     .tracking(1.4).foregroundStyle(Color.unbound.textTertiary)
+                Spacer()
             }
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
@@ -316,7 +320,7 @@ struct RoutinePlayerView: View {
                 Divider().frame(height: 32).background(Color.unbound.border)
                 completeStat(historyLabel, "HISTORY")
                 Divider().frame(height: 32).background(Color.unbound.border)
-                completeStat("+\(routine.spReward)", "SP")
+                completeStat("+\(routine.spReward)", "LV XP")
             }
             .padding(16)
             .background(RoundedRectangle(cornerRadius: 14, style: .continuous)
@@ -346,6 +350,7 @@ struct RoutinePlayerView: View {
                 .shadow(color: accent.opacity(0.5), radius: 14, y: 2)
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier("routine.primary.\(MovementCatalog.slug(title))")
     }
 
     private func secondaryButton(_ title: String,
@@ -360,6 +365,7 @@ struct RoutinePlayerView: View {
                     .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1))
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier("routine.secondary.\(MovementCatalog.slug(title))")
     }
 
     private func stepperBtn(_ icon: String,
@@ -372,6 +378,7 @@ struct RoutinePlayerView: View {
                 .overlay(Circle().strokeBorder(Color.unbound.borderSubtle, lineWidth: 1))
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier("routine.stepper.\(icon)")
     }
 
     private func completeStat(_ v: String, _ l: String) -> some View {
@@ -426,6 +433,7 @@ struct RoutinePlayerView: View {
         switch step.kind {
         case .timed:
             if secondsRemaining <= 1 {
+                secondsRemaining = 0
                 UnboundHaptics.success(); advance()
             } else {
                 secondsRemaining -= 1
@@ -438,6 +446,7 @@ struct RoutinePlayerView: View {
                 } else if intervalRound + 1 <= rounds {
                     intervalRound += 1; intervalSegment = 0
                 } else {
+                    secondsRemaining = 0
                     UnboundHaptics.success(); advance(); return
                 }
                 secondsRemaining = segs[intervalSegment].seconds
@@ -452,6 +461,7 @@ struct RoutinePlayerView: View {
     }
 
     private func advance() {
+        captureCurrentStep()
         if isLast {
             withAnimation { isComplete = true }
             UnboundHaptics.success()
@@ -462,15 +472,11 @@ struct RoutinePlayerView: View {
     }
 
     private func buildRecord() -> RoutineCompletionRecord {
-        var allBursts: [Int] = []
-        var hasRep = false
-        for s in run {
-            if case .repTarget = s.kind { hasRep = true }
+        let allBursts = performanceEntries.flatMap(\.bursts).filter { $0 > 0 }
+        let hasRep = !allBursts.isEmpty || run.contains {
+            if case .repTarget = $0.kind { return true }
+            return false
         }
-        // bursts only captured for the last repTarget interacted with; the
-        // 20-routine set has at most one *interacted* repTarget surfaced at a
-        // time, and multi-repTarget routines sum totals (per spec rule).
-        if hasRep { allBursts = bursts }
 
         let metric: RoutineMetric
         if hasRep {
@@ -485,7 +491,107 @@ struct RoutinePlayerView: View {
             completedAt: Date(),
             elapsedSeconds: elapsedSeconds,
             primaryMetric: metric,
-            spAwarded: routine.spReward)
+            spAwarded: routine.spReward,
+            performanceEntries: performanceEntries)
+    }
+
+    private func captureCurrentStep() {
+        guard let step = current, !capturedStepIds.contains(step.id) else { return }
+        capturedStepIds.insert(step.id)
+
+        switch step.kind {
+        case .instruction(let text, _):
+            performanceEntries.append(
+                RoutinePerformanceEntry(
+                    stepId: step.id,
+                    source: .instruction,
+                    name: text
+                )
+            )
+
+        case .timed(let label, let seconds, let style):
+            guard style == .work else { return }
+            let actualSeconds = capturedTimedSeconds(targetSeconds: seconds)
+            guard actualSeconds > 0 else { return }
+            performanceEntries.append(timedEntry(stepId: step.id, name: label, seconds: actualSeconds, source: .timed))
+
+        case .interval(let label, let rounds, let segments):
+            let workSeconds = capturedIntervalWorkSeconds(rounds: rounds, segments: segments)
+            guard workSeconds > 0 else { return }
+            performanceEntries.append(
+                RoutinePerformanceEntry(
+                    stepId: step.id,
+                    source: .interval,
+                    name: label,
+                    durationSeconds: workSeconds
+                )
+            )
+
+        case .repTarget(let name, _, _):
+            let cleanBursts = bursts.filter { $0 > 0 }
+            guard !cleanBursts.isEmpty else { return }
+            performanceEntries.append(
+                RoutinePerformanceEntry(
+                    stepId: step.id,
+                    source: .repTarget,
+                    name: name,
+                    reps: cleanBursts.reduce(0, +),
+                    bursts: cleanBursts
+                )
+            )
+
+        case .note, .circuit:
+            break
+        }
+    }
+
+    private func capturedTimedSeconds(targetSeconds: Int) -> Int {
+        let remaining = max(0, min(secondsRemaining, targetSeconds))
+        if remaining == 0 { return targetSeconds }
+        return max(0, targetSeconds - remaining)
+    }
+
+    private func capturedIntervalWorkSeconds(rounds: Int, segments: [IntervalSegment]) -> Int {
+        guard rounds > 0, !segments.isEmpty else { return 0 }
+        var total = 0
+
+        for round in 1...rounds {
+            for segmentIndex in segments.indices {
+                let segment = segments[segmentIndex]
+                guard !Self.isRestLike(segment.label) else { continue }
+
+                if round < intervalRound || (round == intervalRound && segmentIndex < intervalSegment) {
+                    total += segment.seconds
+                } else if round == intervalRound && segmentIndex == intervalSegment {
+                    let remaining = max(0, min(secondsRemaining, segment.seconds))
+                    total += max(0, segment.seconds - remaining)
+                }
+            }
+        }
+
+        let plannedWork = rounds * segments
+            .filter { !Self.isRestLike($0.label) }
+            .reduce(0) { $0 + $1.seconds }
+        return secondsRemaining == 0 ? plannedWork : total
+    }
+
+    private func timedEntry(
+        stepId: Int,
+        name: String,
+        seconds: Int,
+        source: RoutinePerformanceEntrySource
+    ) -> RoutinePerformanceEntry {
+        let resolved = MovementResolver.resolve(name)
+        let metric = MovementCatalog.definition(for: resolved.movementId)?.defaultMetric
+        if metric == .holdSeconds {
+            return RoutinePerformanceEntry(stepId: stepId, source: source, name: name, holdSeconds: seconds)
+        }
+        return RoutinePerformanceEntry(stepId: stepId, source: source, name: name, durationSeconds: seconds)
+    }
+
+    private static func isRestLike(_ label: String) -> Bool {
+        let lower = label.lowercased()
+        return lower.contains("rest") || lower.contains("recover") || lower.contains("cool-down")
     }
 
     /// Timer-dominant ⇔ the single longest timed/interval block ≥ 50% of

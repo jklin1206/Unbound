@@ -132,6 +132,134 @@ final class DailyWorkoutResolverTests: XCTestCase {
         XCTAssertFalse(draft.blocks.first(where: { $0.kind == .skill })?.prescriptions.isEmpty ?? true)
     }
 
+    func testEquipmentModifierSubstitutesSameSlotCompatibleMovement() {
+        let workout = Workout(
+            name: "Travel Push",
+            targetMuscleGroups: [.chest],
+            warmup: [],
+            mainExercises: [
+                exercise("bench press", sets: 4)
+            ],
+            cooldown: [],
+            estimatedMinutes: 35,
+            notes: nil,
+            blockType: nil
+        )
+
+        let draft = DailyWorkoutResolver.programDraft(
+            from: workout,
+            userId: "u1",
+            programId: "p1",
+            dayNumber: 1,
+            scheduledSkillIds: [],
+            modifierContext: DailyWorkoutModifierContext(
+                availableEquipment: [.dumbbells, .bench]
+            )
+        )
+
+        let prescription = draft.blocks.first(where: { $0.kind == .strength })?.prescriptions.first
+        XCTAssertEqual(prescription?.exerciseName, "Dumbbell Bench Press")
+        XCTAssertEqual(prescription?.sets, 4)
+        XCTAssertTrue(prescription?.notes?.contains("today's modifiers") == true)
+        XCTAssertEqual(prescription.flatMap { MovementCatalog.definition(for: $0.movementId ?? "") }?.movementSlot, .horizontalPush)
+        XCTAssertEqual(prescription.flatMap { MovementCatalog.definition(for: $0.rankStandardMovementId ?? "") }?.movementSlot, .horizontalPush)
+    }
+
+    func testDeloadModifierReducesVolumeWithoutDroppingExercise() {
+        let workout = Workout(
+            name: "Deload Pull",
+            targetMuscleGroups: [.back],
+            warmup: [],
+            mainExercises: [
+                exercise("lat pulldown", sets: 4),
+                exercise("cable row (seated)", sets: 3)
+            ],
+            cooldown: [],
+            estimatedMinutes: 45,
+            notes: nil,
+            blockType: nil
+        )
+
+        let draft = DailyWorkoutResolver.programDraft(
+            from: workout,
+            userId: "u1",
+            programId: "p1",
+            dayNumber: 2,
+            scheduledSkillIds: [],
+            modifierContext: DailyWorkoutModifierContext(deloadFactor: 0.5)
+        )
+
+        let strength = draft.blocks.first { $0.kind == .strength }
+        XCTAssertEqual(strength?.prescriptions.first { $0.exerciseName == "lat pulldown" }?.sets, 2)
+        XCTAssertEqual(strength?.prescriptions.first { $0.exerciseName == "cable row (seated)" }?.sets, 1)
+        XCTAssertTrue(strength?.prescriptions.allSatisfy { $0.notes?.contains("Deload modifier") == true } == true)
+    }
+
+    func testAvoidedMovementModifierSwapsCompatibleAlternative() {
+        let workout = Workout(
+            name: "Avoided Push",
+            targetMuscleGroups: [.chest],
+            warmup: [],
+            mainExercises: [
+                exercise("bench press", sets: 3)
+            ],
+            cooldown: [],
+            estimatedMinutes: 35,
+            notes: nil,
+            blockType: nil
+        )
+
+        let draft = DailyWorkoutResolver.programDraft(
+            from: workout,
+            userId: "u1",
+            programId: "p1",
+            dayNumber: 1,
+            scheduledSkillIds: [],
+            modifierContext: DailyWorkoutModifierContext(
+                availableEquipment: [.fullGym],
+                avoidedMovementIds: ["exercise.bench-press"]
+            )
+        )
+
+        let prescription = draft.blocks.first(where: { $0.kind == .strength })?.prescriptions.first
+        XCTAssertNotEqual(prescription?.exerciseName, "bench press")
+        XCTAssertEqual(prescription.flatMap { MovementCatalog.definition(for: $0.movementId ?? "") }?.movementSlot, .horizontalPush)
+        XCTAssertEqual(prescription.flatMap { MovementCatalog.definition(for: $0.rankStandardMovementId ?? "") }?.movementSlot, .horizontalPush)
+        XCTAssertTrue(prescription?.notes?.contains("today's modifiers") == true)
+    }
+
+    func testTrialPrepModifierAddsMissingRequirementBlock() {
+        let workout = Workout(
+            name: "Base Day",
+            targetMuscleGroups: [.legs],
+            warmup: [],
+            mainExercises: [
+                exercise("goblet squat", sets: 3)
+            ],
+            cooldown: [],
+            estimatedMinutes: 30,
+            notes: nil,
+            blockType: nil
+        )
+
+        let draft = DailyWorkoutResolver.programDraft(
+            from: workout,
+            userId: "u1",
+            programId: "p1",
+            dayNumber: 4,
+            scheduledSkillIds: [],
+            modifierContext: DailyWorkoutModifierContext(
+                trialPrepMovementIds: ["exercise.pushup"]
+            )
+        )
+
+        let strength = draft.blocks.first { $0.kind == .strength }
+        XCTAssertEqual(strength?.prescriptions.count, 2)
+        XCTAssertEqual(strength?.prescriptions.last?.exerciseName, "pushup")
+        XCTAssertEqual(strength?.prescriptions.last?.sets, 2)
+        XCTAssertTrue(strength?.prescriptions.last?.notes?.contains("Trial prep") == true)
+    }
+
     private func exercise(_ name: String, sets: Int, reps: String = "8-10") -> Exercise {
         Exercise(
             id: UUID().uuidString,

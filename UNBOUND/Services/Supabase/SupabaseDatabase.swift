@@ -4,7 +4,7 @@ import Supabase
 // MARK: - SupabaseDatabase
 //
 // Typed wrapper around UnboundSupabase.client for Postgres table operations.
-// New Phase 2 code (ProgressionState, CoachMessage, etc.) reads/writes
+// New Phase 2 code (ProgressionState, plan actions, etc.) reads/writes
 // through this. Legacy local-JSON DatabaseService stays in place and gets
 // migrated to cloud after Sign in with Apple lands in P2a.3.
 //

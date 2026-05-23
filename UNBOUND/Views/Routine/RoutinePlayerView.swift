@@ -9,7 +9,7 @@ import SwiftUI
 //               rep stepper, LOG SET button, next-up preview.
 // Rest stage:   full-screen rest timer with a draining circular ring,
 //               skip and +30s affordances.
-// Complete:     summary card with total time + sets + SP awarded.
+// Complete:     summary card with total time + sets + LV XP awarded.
 
 struct SideQuestPlayerView: View {
     let routine: SideQuest
@@ -156,7 +156,7 @@ struct SideQuestPlayerView: View {
 
             Spacer()
 
-            Text("\(routine.spReward) SP")
+            Text("\(routine.spReward) LV XP")
                 .font(Font.unbound.captionS.weight(.bold))
                 .tracking(1.4)
                 .foregroundStyle(categoryColor)
@@ -175,15 +175,11 @@ struct SideQuestPlayerView: View {
     private var exerciseProgressBar: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Text("\(routine.category.label) · \(routine.title.uppercased())")
-                    .font(.system(size: 9, weight: .heavy, design: .monospaced))
-                    .tracking(1.6)
-                    .foregroundStyle(categoryColor)
-                Spacer()
                 Text("\(exerciseIndex + 1) OF \(routine.exercises.count)")
                     .font(.system(size: 9, weight: .heavy, design: .monospaced))
                     .tracking(1.4)
                     .foregroundStyle(Color.unbound.textTertiary)
+                Spacer()
             }
 
             GeometryReader { geo in
@@ -580,7 +576,7 @@ struct SideQuestPlayerView: View {
                     Divider()
                         .frame(height: 32)
                         .background(Color.unbound.border)
-                    statPill(value: "+\(routine.spReward)", label: "SP")
+                    statPill(value: "+\(routine.spReward)", label: "LV XP")
                 }
                 .padding(16)
                 .background(

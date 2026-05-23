@@ -44,6 +44,7 @@ struct ClusterStaircaseView: View {
     @State private var showFullTree: Bool = false
     @State private var activePulse: CGFloat = 1.0
     @State private var treeLayout: ComputedTreeLayout?
+    @StateObject private var skinService = SkinService.shared
 
     private let minZoom: CGFloat = 0.45
     private let maxZoom: CGFloat = 1.5
@@ -98,6 +99,9 @@ struct ClusterStaircaseView: View {
                     if treeLayout == nil {
                         treeLayout = buildLayout()
                     }
+                }
+                .onReceive(NotificationCenter.default.publisher(for: .skinChanged)) { _ in
+                    treeLayout = buildLayout()
                 }
             }
         }
@@ -157,7 +161,7 @@ struct ClusterStaircaseView: View {
                     .foregroundStyle(Color.unbound.textSecondary)
                 Text(headerSubtitle)
                     .font(Font.unbound.captionS.italic())
-                    .foregroundStyle(Color.unbound.accent.opacity(0.85))
+                    .foregroundStyle(skinService.currentSkin.primaryColor.opacity(0.85))
                     .lineLimit(1)
             }
             Spacer()
@@ -216,7 +220,7 @@ struct ClusterStaircaseView: View {
                 HStack(spacing: 6) {
                     Image(systemName: "shield.lefthalf.filled")
                         .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(Color.unbound.accent)
+                        .foregroundStyle(skinService.currentSkin.primaryColor)
                     Text("KEYSTONE —")
                         .font(Font.unbound.captionS.weight(.heavy))
                         .tracking(1.4)
@@ -246,7 +250,7 @@ struct ClusterStaircaseView: View {
             ZStack(alignment: .leading) {
                 Capsule().fill(Color.unbound.surfaceElevated)
                 Capsule()
-                    .fill(Color.unbound.accent)
+                    .fill(skinService.currentSkin.nodeGradient)
                     .frame(width: max(0, geo.size.width * CGFloat(max(0, min(1, fraction)))))
             }
         }
@@ -609,10 +613,12 @@ struct ClusterStaircaseView: View {
             initialOffset: layout.initialOffset
         ) {
             ZStack(alignment: .topLeading) {
+                cosmeticTreeBackground(width: layout.contentWidth, height: layout.treeHeight)
+
                 // Rank-band background stripes — radar-faint tint per tier.
                 ForEach(layout.bandRegions.bands, id: \.rank) { region in
                     Rectangle()
-                        .fill(bandTint(for: region.rank))
+                        .fill(skinService.currentSkin.bandTint(for: region.rank))
                         .frame(
                             width: layout.contentWidth,
                             height: max(0, region.bottom - region.top)
@@ -661,8 +667,6 @@ struct ClusterStaircaseView: View {
                     }
                 }
 
-                rankBandTrack(bands: layout.rankBands, height: layout.treeHeight)
-                    .allowsHitTesting(false)
             }
             .frame(width: layout.contentWidth, height: layout.treeHeight, alignment: .topLeading)
         }
@@ -670,8 +674,38 @@ struct ClusterStaircaseView: View {
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .strokeBorder(Color.unbound.border.opacity(0.65), lineWidth: 1)
+                .strokeBorder(skinService.currentSkin.primaryColor.opacity(0.32), lineWidth: 1)
         )
+    }
+
+    private func cosmeticTreeBackground(width: CGFloat, height: CGFloat) -> some View {
+        ZStack {
+            Color.unbound.bg
+            if UIImage(named: skinService.currentSkin.backgroundAssetName) != nil {
+                Image(skinService.currentSkin.backgroundAssetName)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: width, height: height)
+                    .clipped()
+                    .saturation(1.08)
+                    .contrast(1.08)
+                    .opacity(0.82)
+            }
+            Rectangle()
+                .fill(skinService.currentSkin.mapBackground)
+                .blendMode(.screen)
+            LinearGradient(
+                stops: [
+                    .init(color: Color.unbound.bg.opacity(0.10), location: 0.0),
+                    .init(color: Color.unbound.bg.opacity(0.18), location: 0.45),
+                    .init(color: Color.unbound.bg.opacity(0.58), location: 1.0),
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        }
+        .frame(width: width, height: height)
+        .allowsHitTesting(false)
     }
 
     /// Renders the ghost rails + primary rails into a single UIImage sized
@@ -858,17 +892,6 @@ struct ClusterStaircaseView: View {
     /// Faint per-rank background tint. Opacity ramps up from E→A, with
     /// S switching to impact orange for the flame/mythic band. Values
     /// tuned to sit just above perception — like a radar sweep.
-    private func bandTint(for rank: SkillRank) -> Color {
-        switch rank {
-        case .e: return Color.unbound.accent.opacity(0.01)
-        case .d: return Color.unbound.accent.opacity(0.02)
-        case .c: return Color.unbound.accent.opacity(0.035)
-        case .b: return Color.unbound.accent.opacity(0.05)
-        case .a: return Color.unbound.accent.opacity(0.07)
-        case .s: return Color.unbound.impact.opacity(0.06)
-        }
-    }
-
     /// Vertical rank-tier track rendered at the left edge of the tree
     /// viewport. Just the hex badges per rank — all 6 render, absent ranks
     /// appear dimmed in neutral grey so the user can see the full tier
@@ -977,20 +1000,21 @@ struct ClusterStaircaseView: View {
     }
 
     private func activeHex(node: SkillNode, state: NodeState, size: CGFloat) -> some View {
-        ZStack {
+        let skin = skinService.currentSkin
+        return ZStack {
             Hexagon()
-                .fill(Color.unbound.accent.opacity(0.22))
+                .fill(skin.nodeFill(state: state, faded: false))
                 .frame(width: size, height: size)
             Hexagon()
-                .strokeBorder(Color.unbound.accent, lineWidth: 2)
+                .strokeBorder(skin.primaryColor, lineWidth: 2)
                 .frame(width: size, height: size)
             Hexagon()
-                .strokeBorder(Color.unbound.accent.opacity(0.7), lineWidth: 1)
+                .strokeBorder(skin.impactColor.opacity(0.7), lineWidth: 1)
                 .frame(width: size + 16, height: size + 16)
             glyph(for: node, state: state, fontSize: 36)
         }
         .scaleEffect(activePulse)
-        .shadow(color: Color.unbound.accent.opacity(0.55), radius: 20)
+        .shadow(color: skin.primaryColor.opacity(0.55), radius: 20)
         .contentShape(Rectangle())
         .onTapGesture {
             UnboundHaptics.medium()
@@ -999,29 +1023,30 @@ struct ClusterStaircaseView: View {
     }
 
     private func keystoneHex(node: SkillNode, state: NodeState, size: CGFloat) -> some View {
-        ZStack {
+        let skin = skinService.currentSkin
+        return ZStack {
             Hexagon()
                 .fill(keystoneFill(state: state))
                 .frame(width: size, height: size)
             Hexagon()
-                .strokeBorder(Color.unbound.accent, lineWidth: 2)
+                .strokeBorder(skin.primaryColor, lineWidth: 2)
                 .frame(width: size, height: size)
             Hexagon()
                 .strokeBorder(
                     state == .locked
-                        ? Color.unbound.accent.opacity(0.4)
-                        : Color.unbound.accent.opacity(0.85),
+                        ? skin.primaryColor.opacity(0.4)
+                        : skin.impactColor.opacity(0.85),
                     lineWidth: 1
                 )
                 .frame(width: size + 18, height: size + 18)
             Image(systemName: state == .locked ? "crown" : "crown.fill")
                 .font(.system(size: 44, weight: .semibold))
-                .foregroundStyle(Color.unbound.accent)
+                .foregroundStyle(skin.primaryColor)
         }
         .shadow(
             color: state == .locked
-                ? Color.unbound.accent.opacity(0.3)
-                : Color.unbound.accent.opacity(0.55),
+                ? skin.primaryColor.opacity(0.3)
+                : skin.impactColor.opacity(0.55),
             radius: 16
         )
         .contentShape(Rectangle())
@@ -1076,7 +1101,7 @@ struct ClusterStaircaseView: View {
             Text("\(beatsAway) \(beatsAway == 1 ? "BEAT" : "BEATS") AWAY")
                 .font(.system(size: 10, weight: .heavy, design: .monospaced))
                 .tracking(2.0)
-                .foregroundStyle(Color.unbound.accent)
+                .foregroundStyle(skinService.currentSkin.primaryColor)
                 .padding(.horizontal, 6)
                 .padding(.vertical, 1)
                 .background(Color.unbound.bg)
@@ -1085,12 +1110,7 @@ struct ClusterStaircaseView: View {
     }
 
     private func keystoneFill(state: NodeState) -> Color {
-        switch state {
-        case .locked:     return Color.unbound.surface
-        case .attempting: return Color.unbound.accent.opacity(0.16)
-        case .achieved:   return Color.unbound.accent.opacity(0.22)
-        case .mastered:   return Color.unbound.impact.opacity(0.22)
-        }
+        skinService.currentSkin.nodeFill(state: state, faded: false)
     }
 
     // MARK: - Rails
@@ -1123,7 +1143,7 @@ struct ClusterStaircaseView: View {
                     toSize: toSize,
                     fromReached: isUnlockedState(nodeStates[parentId] ?? .locked),
                     toReached: isUnlockedState(nodeStates[childId] ?? .locked),
-                    tint: Color.unbound.accent
+                    tint: skinService.currentSkin.primaryColor
                 )
             } else {
                 guard parentPt.y < childPt.y else { continue }
@@ -1135,7 +1155,7 @@ struct ClusterStaircaseView: View {
                     toSize: toSize,
                     fromReached: isUnlockedState(nodeStates[parentId] ?? .locked),
                     toReached: isUnlockedState(nodeStates[childId] ?? .locked),
-                    tint: Color.unbound.accent
+                    tint: skinService.currentSkin.primaryColor
                 )
             }
         }
@@ -1384,7 +1404,7 @@ struct ClusterStaircaseView: View {
                     toSize: toSize,
                     fromReached: isUnlockedState(nodeStates[parentId] ?? .locked),
                     toReached: isUnlockedState(nodeStates[childId] ?? .locked),
-                    tint: Color.unbound.accent
+                    tint: skinService.currentSkin.primaryColor
                 )
             } else {
                 guard parentPt.y < childPt.y else { continue }
@@ -1396,7 +1416,7 @@ struct ClusterStaircaseView: View {
                     toSize: toSize,
                     fromReached: isUnlockedState(nodeStates[parentId] ?? .locked),
                     toReached: isUnlockedState(nodeStates[childId] ?? .locked),
-                    tint: Color.unbound.accent
+                    tint: skinService.currentSkin.primaryColor
                 )
             }
         }
@@ -1636,7 +1656,7 @@ struct ClusterStaircaseView: View {
                             toSize: size,
                             fromReached: isUnlockedState(nodeStates[a.id] ?? .locked),
                             toReached: isUnlockedState(nodeStates[b.id] ?? .locked),
-                            tint: Color.unbound.impact
+                            tint: skinService.currentSkin.impactColor
                         )
                     }
                 }
@@ -1664,15 +1684,15 @@ struct ClusterStaircaseView: View {
                     .fill(fillColor(state: state, faded: false))
                     .frame(width: size, height: size)
                 Hexagon()
-                    .strokeBorder(Color.unbound.impact, lineWidth: 1.5)
+                    .strokeBorder(skinService.currentSkin.impactColor, lineWidth: 1.5)
                     .frame(width: size, height: size)
                 Hexagon()
-                    .strokeBorder(Color.unbound.impact, lineWidth: 1.5)
+                    .strokeBorder(skinService.currentSkin.impactColor, lineWidth: 1.5)
                     .frame(width: size + 14, height: size + 14)
                     .opacity(state == .locked ? 0.45 : 0.9)
                 glyph(for: node, state: state, fontSize: 24)
             }
-            .shadow(color: Color.unbound.impact.opacity(0.5), radius: state == .locked ? 0 : 10)
+            .shadow(color: skinService.currentSkin.impactColor.opacity(0.5), radius: state == .locked ? 0 : 10)
 
             Text(node.title)
                 .font(Font.unbound.captionS.weight(.semibold))
@@ -1686,7 +1706,7 @@ struct ClusterStaircaseView: View {
             Text("MYTHIC")
                 .font(.system(size: 9, weight: .heavy, design: .monospaced))
                 .tracking(1.8)
-                .foregroundStyle(Color.unbound.impact)
+                .foregroundStyle(skinService.currentSkin.impactColor)
         }
         .frame(width: max(108, size + 14))
         .contentShape(Rectangle())
@@ -1699,27 +1719,11 @@ struct ClusterStaircaseView: View {
     // MARK: - Hex styling helpers
 
     private func fillColor(state: NodeState, faded: Bool) -> Color {
-        switch state {
-        case .locked:
-            return Color.unbound.surface
-        case .attempting:
-            return Color.unbound.accent.opacity(0.14)
-        case .achieved:
-            return Color.unbound.accent.opacity(faded ? 0.1 : 0.18)
-        case .mastered:
-            return Color.unbound.impact.opacity(faded ? 0.14 : 0.22)
-        }
+        skinService.currentSkin.nodeFill(state: state, faded: faded)
     }
 
     private func borderColor(node: SkillNode, state: NodeState, faded: Bool) -> Color {
-        if node.isMythic && state == .locked { return Color.unbound.impact.opacity(0.5) }
-        switch state {
-        case .locked:
-            return faded ? Color.unbound.border.opacity(0.7) : Color.unbound.border
-        case .attempting: return Color.unbound.accent
-        case .achieved:   return Color.unbound.accent.opacity(faded ? 0.7 : 1.0)
-        case .mastered:   return Color.unbound.impact
-        }
+        skinService.currentSkin.nodeBorder(state: state, faded: faded, mythic: node.isMythic)
     }
 
     private func strokeWidth(state: NodeState) -> CGFloat {
@@ -1732,13 +1736,7 @@ struct ClusterStaircaseView: View {
     }
 
     private func glowColor(state: NodeState, faded: Bool) -> Color {
-        if state == .locked { return .clear }
-        switch state {
-        case .attempting: return Color.unbound.accent.opacity(0.4)
-        case .achieved:   return Color.unbound.accent.opacity(faded ? 0.25 : 0.45)
-        case .mastered:   return Color.unbound.impact.opacity(0.55)
-        case .locked:     return .clear
-        }
+        skinService.currentSkin.nodeGlow(state: state, faded: faded)
     }
 
     @ViewBuilder
@@ -1750,14 +1748,14 @@ struct ClusterStaircaseView: View {
                 .foregroundStyle(Color.unbound.textTertiary)
         case .attempting:
             skillIcon(for: node, size: fontSize * 2.4, fallback: node.glyph,
-                      tint: Color.unbound.accent)
+                      tint: skinService.currentSkin.primaryColor)
         case .achieved:
             skillIcon(for: node, size: fontSize * 2.4,
                       fallback: node.isKeystone ? "crown.fill" : "checkmark",
-                      tint: Color.unbound.accent)
+                      tint: skinService.currentSkin.primaryColor)
         case .mastered:
             skillIcon(for: node, size: fontSize * 2.4, fallback: "crown.fill",
-                      tint: Color.unbound.impact)
+                      tint: skinService.currentSkin.impactColor)
         }
     }
 

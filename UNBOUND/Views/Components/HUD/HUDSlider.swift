@@ -3,8 +3,11 @@ import SwiftUI
 struct HUDSlider: View {
     @Binding var value: Int
     var range: ClosedRange<Int> = 1...10
-    /// Semantic labels for each value in the range. Length must equal `range.count`.
-    /// Index 0 maps to `range.lowerBound`. e.g. for 1...10 you pass 10 strings.
+    /// Optional discrete stored values. Use this when the model still wants
+    /// coarse-grained 1...10 inputs but onboarding should only show a few stops.
+    var steps: [Int]? = nil
+    /// Semantic labels for each visible stop. With `steps`, length should match
+    /// `steps.count`; otherwise it should match `range.count`.
     var descriptors: [String]
     /// Short bottom-row framing for the endpoints. Optional — renders under the track dimmed.
     var leftAnchor: String? = nil
@@ -40,10 +43,10 @@ struct HUDSlider: View {
                         .frame(width: max(handleX, 2), height: trackHeight)
                         .shadow(color: Color.unbound.accent.opacity(0.5), radius: 6)
 
-                    ForEach(range, id: \.self) { tick in
+                    ForEach(Array(tickValues.enumerated()), id: \.element) { index, tick in
                         let tickFraction = fractionFor(tick)
                         let tickX = CGFloat(tickFraction) * totalWidth
-                        let isFilled = tick <= value
+                        let isFilled = index <= currentStepIndex
                         Circle()
                             .fill(isFilled ? Color.unbound.textPrimary : Color.unbound.textTertiary)
                             .frame(width: dotSize, height: dotSize)
@@ -104,7 +107,7 @@ struct HUDSlider: View {
                 .animation(.spring(response: 0.3, dampingFraction: 0.8), value: value)
                 .multilineTextAlignment(.center)
 
-            Text("\(value) / \(range.upperBound)")
+            Text("\(currentStepIndex + 1) / \(tickValues.count)")
                 .font(Font.unbound.monoS)
                 .tracking(2)
                 .foregroundStyle(Color.unbound.textTertiary)
@@ -116,28 +119,70 @@ struct HUDSlider: View {
     }
 
     private var currentDescriptor: String {
-        let idx = value - range.lowerBound
+        let idx = currentStepIndex
         guard idx >= 0 && idx < descriptors.count else { return "" }
         return descriptors[idx]
     }
 
     private func progress() -> Double {
-        fractionFor(value)
+        fractionFor(tickValues[currentStepIndex])
     }
 
     private func fractionFor(_ tick: Int) -> Double {
+        let values = tickValues
+        guard steps != nil else {
+            let span = Double(range.upperBound - range.lowerBound)
+            guard span > 0 else { return 0 }
+            return Double(tick - range.lowerBound) / span
+        }
+        let span = Double(max(values.count - 1, 1))
+        guard let idx = values.firstIndex(of: tick) else { return 0 }
+        guard span > 0 else { return 0 }
+        return Double(idx) / span
+    }
+
+    private var tickValues: [Int] {
+        steps ?? Array(range)
+    }
+
+    private var currentStepIndex: Int {
+        let values = tickValues
+        guard let first = values.first else { return 0 }
+        var bestIndex = 0
+        var bestDistance = abs(value - first)
+        for (index, candidate) in values.enumerated() {
+            let distance = abs(value - candidate)
+            if distance < bestDistance {
+                bestIndex = index
+                bestDistance = distance
+            }
+        }
+        return bestIndex
+    }
+
+    private func storedValue(forStepIndex index: Int) -> Int {
+        let values = tickValues
+        guard !values.isEmpty else { return value }
+        return values[max(0, min(values.count - 1, index))]
+    }
+
+    private func stepIndex(for fraction: Double) -> Int {
+        let span = Double(max(tickValues.count - 1, 1))
+        return Int((fraction * span).rounded())
+    }
+
+    private func legacyValue(for fraction: Double) -> Int {
         let span = Double(range.upperBound - range.lowerBound)
         guard span > 0 else { return 0 }
-        return Double(tick - range.lowerBound) / span
+        let raw = Double(range.lowerBound) + fraction * span
+        return Int(raw.rounded())
     }
 
     private func updateValue(from x: CGFloat, totalWidth: CGFloat) {
         guard totalWidth > 0 else { return }
         let clampedX = max(0, min(totalWidth, x))
         let fraction = Double(clampedX / totalWidth)
-        let span = Double(range.upperBound - range.lowerBound)
-        let raw = Double(range.lowerBound) + fraction * span
-        let snapped = Int(raw.rounded())
+        let snapped = steps == nil ? legacyValue(for: fraction) : storedValue(forStepIndex: stepIndex(for: fraction))
         let clamped = max(range.lowerBound, min(range.upperBound, snapped))
         if clamped != value {
             value = clamped
@@ -152,25 +197,19 @@ struct HUDSlider: View {
 // Curated descriptor sets per domain — callers use these as single source of truth.
 extension HUDSlider {
     static let sleepDescriptors = [
-        "Wrecked", "Rough", "Poor", "Patchy",
-        "Mixed", "Okay", "Solid", "Rested",
-        "Deep", "Peak"
+        "Wrecked", "Rough", "Okay", "Rested", "Peak"
     ]
     static let stressDescriptors = [
-        "Calm", "Loose", "Steady", "Mild",
-        "Tight", "Wound up", "Strained", "Under pressure",
-        "Maxed out", "Burned out"
+        "Calm", "Manageable", "Tense", "Pressed", "Burned out"
     ]
     static let dietDescriptors = [
-        "Chaos", "Inconsistent", "Sloppy", "Uneven",
-        "Mixed", "Decent", "Clean", "Locked in",
-        "Dialed", "Peak fuel"
+        "Chaos", "Inconsistent", "Decent", "Clean", "Locked in"
     ]
     static let commitmentDescriptors = [
-        "Curious", "Browsing", "Testing", "Warming up",
-        "Showing up", "In the door", "Locked in", "Serious",
-        "No excuses", "All in"
+        "Curious", "Testing", "Showing up", "Serious", "All in"
     ]
+
+    static let fivePointStoredSteps = [2, 4, 6, 8, 10]
 }
 
 #Preview("HUDSlider") {

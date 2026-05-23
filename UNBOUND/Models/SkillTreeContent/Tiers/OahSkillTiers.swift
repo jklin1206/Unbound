@@ -16,13 +16,10 @@
 //   a free OAH. Ascendant requires freestanding HSPU volume + a wall-supported
 //   one-arm hold still active.
 //
-// oah.one-arm-hspu (rep-type):
-//   Lower tiers cascade through freestanding HSPU (both standard and deficit)
-//   and the wall-supported OAH — you must own all sub-components before the
-//   first one-arm HSPU is attempted. Mid tiers confirm the single rep.
-//   Upper tiers escalate via compound of one-arm hspu + freestanding hspu
-//   volume. Ascendant is the most elite criterion in the entire app:
-//   one-arm hspu × 3 reps + freestanding hspu × 10 reps.
+// oah.full-one-arm-handstand (hold-type):
+//   The active mythic terminal for one-arm handbalancing. It extends the
+//   5-second one-arm standard into longer, cleaner holds with wall-supported
+//   one-arm work and freestanding HSPU volume used as stability proof.
 
 import Foundation
 
@@ -65,26 +62,22 @@ enum OahSkillTiers {
             .ascendant:  .compound([.variant("one-arm handstand"), .variant("wall-supported one-arm handstand"), .reps(10, exerciseName: "freestanding hspu")]),
         ],
 
-        // MARK: - One-Arm HSPU
+        // MARK: - Full One-Arm Handstand
 
-        // oah.one-arm-hspu — One-Arm HSPU; anchor: 1 rep = Veteran.
-        // Rep-type. The most elite criterion in the entire app. Lower tiers
-        // require the full freestanding HSPU chain — both standard and deficit
-        // reps — plus wall-supported one-arm handstand to confirm unilateral
-        // balance. Forged = the first clean one-arm HSPU rep. Upper tiers
-        // compound with freestanding HSPU volume to confirm the bilateral
-        // base remains deeply owned. Ascendant = 3 one-arm HSPUs + 10
-        // freestanding HSPUs: a genuinely world-class pressing standard.
-        "oah.one-arm-hspu": [
-            .initiate:   .compound([.variant("freestanding handstand"), .reps(5, exerciseName: "freestanding hspu")]),
-            .novice:     .compound([.variant("wall-supported one-arm handstand"), .reps(7, exerciseName: "freestanding hspu")]),
-            .apprentice: .compound([.variant("wall-supported one-arm handstand"), .reps(3, exerciseName: "deficit freestanding hspu")]),
-            .forged:     .reps(1, exerciseName: "one-arm hspu"),
-            .veteran:    .compound([.reps(1, exerciseName: "one-arm hspu"), .reps(5, exerciseName: "freestanding hspu")]),
-            .honed:      .compound([.reps(2, exerciseName: "one-arm hspu"), .reps(7, exerciseName: "freestanding hspu")]),
-            .vessel:     .compound([.reps(2, exerciseName: "one-arm hspu"), .reps(10, exerciseName: "freestanding hspu")]),
-            .unbound:    .compound([.reps(3, exerciseName: "one-arm hspu"), .reps(7, exerciseName: "freestanding hspu")]),
-            .ascendant:  .compound([.reps(3, exerciseName: "one-arm hspu"), .reps(10, exerciseName: "freestanding hspu")]),
+        // oah.full-one-arm-handstand — Full One-Arm Handstand; hold target: 5+ s.
+        // Hold-type. Active mythic terminal. Lower tiers confirm the standard
+        // one-arm hold and wall-supported one-arm control. Upper tiers extend
+        // duration while preserving the bilateral pressing base.
+        "oah.full-one-arm-handstand": [
+            .initiate:   .compound([.variant("one-arm handstand"), .variant("wall-supported one-arm handstand")]),
+            .novice:     .compound([.variant("one-arm handstand"), .reps(3, exerciseName: "freestanding hspu")]),
+            .apprentice: .compound([.variant("one-arm handstand"), .reps(5, exerciseName: "freestanding hspu")]),
+            .forged:     .compound([.variant("full one arm handstand"), .reps(5, exerciseName: "freestanding hspu")]),
+            .veteran:    .compound([.variant("full one arm handstand"), .reps(7, exerciseName: "freestanding hspu")]),
+            .honed:      .compound([.variant("full one arm handstand"), .reps(10, exerciseName: "freestanding hspu")]),
+            .vessel:     .compound([.variant("full one arm handstand"), .variant("wall-supported one-arm handstand"), .reps(10, exerciseName: "freestanding hspu")]),
+            .unbound:    .compound([.variant("full one arm handstand"), .reps(12, exerciseName: "freestanding hspu")]),
+            .ascendant:  .compound([.variant("full one arm handstand"), .variant("one-arm handstand"), .reps(15, exerciseName: "freestanding hspu")]),
         ],
     ]
 }

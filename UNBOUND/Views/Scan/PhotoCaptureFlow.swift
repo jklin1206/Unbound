@@ -6,16 +6,16 @@ import UIKit
 // Presented as a fullScreenCover from Home / Profile. Enum-driven:
 //
 //   .photo — daily ritual. Tap → camera → review → confirm → save
-//            ProgressPhoto(source: .manual) → +5 SP (deduped per day) →
+//            ProgressPhoto(source: .manual) → +5 LV XP (deduped per day) →
 //            dismiss with toast.
 //
 //   .scan  — monthly checkpoint. Consent gate (first time only)
 //            → camera → tap shutter → review → confirm → analyzing cinematic
-//            → ScanPayoffView → RETURN HOME → +25 SP + ProgressPhoto(source: .scan).
+//            → ScanPayoffView → RETURN HOME → +25 LV XP + ProgressPhoto(source: .scan).
 //            Build Identity comes from training data, not photo analysis.
 //            No alignment gating — open camera, tap shutter, done.
 //
-// On scan failure: degrades silently to photo path (+5 SP) and does NOT
+// On scan failure: degrades silently to photo path (+5 LV XP) and does NOT
 // advance the scan timer — user can retry immediately.
 
 struct PhotoCaptureFlow: View {
@@ -134,7 +134,7 @@ struct PhotoCaptureFlow: View {
     }
 
     private var introLabel: String {
-        mode == .scan ? "BI-WEEKLY SCAN · +25 SP" : "DAILY PHOTO · +5 SP"
+        mode == .scan ? "BI-WEEKLY SCAN · +25 LV XP" : "DAILY PHOTO · +5 LV XP"
     }
     private var introTitle: String {
         mode == .scan ? "Lock in your body read." : "Lock in today's photo."
@@ -456,7 +456,7 @@ struct PhotoCaptureFlow: View {
     }
 
     /// Scan failed or context couldn't be built. Treat as a photo instead:
-    /// award the daily +5 SP, do NOT advance the 14-day scan timer.
+    /// award the daily +5 LV XP, do NOT advance the 14-day scan timer.
     @MainActor
     private func degradeToPhoto() async {
         let userId = services.auth.currentUserId ?? "anonymous"

@@ -4,10 +4,10 @@ import SwiftUI
 //
 // Profile section that shows:
 //   - Equipped title (if any)
-//   - This week's active trial (if any)
-//   - Lifetime completion counters from TrialsState
+//   - This week's active vow (if any)
+//   - Lifetime completion counters from WeeklyVowsState
 //
-// NOTE: Full multi-week history is not persisted in v1 (TrialsState only
+// NOTE: Full multi-week history is not persisted in v1 (WeeklyVowsState only
 // holds the current week). This section surfaces what we have.
 
 struct ProfileTrialHistorySection: View {
@@ -46,7 +46,7 @@ struct ProfileTrialHistorySection: View {
             Image(systemName: "flag.2.crossed.fill")
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(Color.unbound.accent)
-            Text("TRIALS")
+            Text("BINDING VOWS")
                 .font(.system(size: 10, weight: .heavy, design: .monospaced))
                 .tracking(1.8)
                 .foregroundStyle(Color.unbound.textTertiary)
@@ -102,18 +102,18 @@ struct ProfileTrialHistorySection: View {
 
     private var completionStats: some View {
         let totalCompletions = trialsState.completionsByCardKind.values.reduce(0, +)
-        let alignedCount = trialsState.completionsByCardKind[.aligned] ?? 0
-        let growthCount = trialsState.completionsByCardKind[.growth] ?? 0
-        let prestigeCount = trialsState.completionsByCardKind[.prestige] ?? 0
+        let emberCount = trialsState.completionsByCardKind[.ember] ?? 0
+        let overdriveCount = trialsState.completionsByCardKind[.overdrive] ?? 0
+        let apexCount = trialsState.completionsByCardKind[.apex] ?? 0
 
         return HStack(spacing: 0) {
             statCell(value: "\(totalCompletions)", label: "COMPLETED")
             statDivider
-            statCell(value: "\(alignedCount)", label: "ALIGNED")
+            statCell(value: "\(emberCount)", label: "LOW")
             statDivider
-            statCell(value: "\(growthCount)", label: "GROWTH")
+            statCell(value: "\(overdriveCount)", label: "LIMIT")
             statDivider
-            statCell(value: "\(prestigeCount)", label: "PRESTIGE")
+            statCell(value: "\(apexCount)", label: "APEX")
         }
         .padding(.vertical, 4)
         .background(
@@ -206,7 +206,7 @@ extension CapstoneState {
     fileprivate var label: String {
         switch self {
         case .pending:    return "ACTIVE"
-        case .windowOpen: return "CAPSTONE OPEN"
+        case .windowOpen: return "PROOF READY"
         case .completed:  return "COMPLETE"
         case .missed:     return "MISSED"
         }
@@ -222,21 +222,21 @@ extension CapstoneState {
             currentWeekStart: Date(),
             currentWeekCards: [],
             currentTrial: Trial(
-                id: "trial-W20-aligned",
+                id: "weekly-vow-W20-ember",
                 userId: "preview",
                 weekStart: Date(),
                 chosenCard: TrialCard(
-                    id: "trial-W20-aligned",
-                    kind: .aligned,
+                    id: "weekly-vow-W20-ember",
+                    kind: .ember,
                     theme: .axis(.power),
-                    displayName: "Power Focus",
-                    blurb: "Heavy compound work this week.",
-                    capstone: TrialCapstone(displayName: "Top-Set PR", description: "Hit a PR.", evaluation: .manualClaim)
+                    displayName: "Iron Rule Vow",
+                    blurb: "Accept a low-day Binding Vow.",
+                    capstone: TrialCapstone(displayName: "Low-Day Proof", description: "Complete easy power work.", evaluation: .manualClaim)
                 ),
                 capstoneState: .windowOpen
             ),
             completionsByAxis: [.power: 3, .mobility: 1],
-            completionsByCardKind: [.aligned: 3, .growth: 1, .prestige: 0],
+            completionsByCardKind: [.ember: 3, .overdrive: 1, .apex: 0],
             unlockedTitles: [],
             equippedTitle: nil,
             skippedCurrentWeek: false

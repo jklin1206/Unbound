@@ -13,7 +13,7 @@ import Foundation
 //   3. Caller calls `after(snapshot:...)` with the just-logged set
 //      and the post-write context — service derives PR / rank-up /
 //      badge unlocks / first-set and returns a summary
-//   4. Caller presents `RewardCelebrationView` if `summary.hasContent`
+//   4. Caller adapts the summary into `WorkoutRewardSequenceView`
 //
 // Snapshot is pure data so it captures cleanly across async boundaries.
 

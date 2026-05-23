@@ -126,7 +126,7 @@ final class RankService: RankServiceProtocol {
         entry: ExerciseLogEntry,
         bodyweightKg: Double
     ) -> SubRank? {
-        let key = entry.exerciseName.trimmingCharacters(in: .whitespaces).lowercased()
+        let key = rankExerciseKey(for: entry)
         let workingSets = entry.sets.filter { !$0.isWarmup }
         guard !workingSets.isEmpty else { return nil }
 
@@ -151,7 +151,8 @@ final class RankService: RankServiceProtocol {
         }
 
         // Bodyweight rep lifts: map peak reps onto an E..S ladder.
-        if let subRank = bodyweightRepRank(exerciseKey: key, entries: workingSets) {
+        if !isRegressionOnlyBodyweightKey(key),
+           let subRank = bodyweightRepRank(exerciseKey: key, entries: workingSets) {
             return subRank
         }
 
@@ -176,7 +177,7 @@ final class RankService: RankServiceProtocol {
         for entry in log.exerciseEntries where !entry.skipped {
             guard let candidate = computeLiftRank(entry: entry, bodyweightKg: bodyweightKg) else { continue }
 
-            let key = entry.exerciseName.trimmingCharacters(in: .whitespaces).lowercased()
+            let key = rankExerciseKey(for: entry)
 
             let existing = sessionRanks[key] ?? .eMinus
             if candidate > existing {
@@ -293,6 +294,41 @@ final class RankService: RankServiceProtocol {
             }
         }
         return .sPlus
+    }
+
+    private func rankExerciseKey(for entry: ExerciseLogEntry) -> String {
+        if let key = canonicalMovementExerciseKey(for: entry.rankStandardMovementId) {
+            return key
+        }
+        if let key = canonicalMovementExerciseKey(for: entry.movementId) {
+            return key
+        }
+
+        let resolved = MovementResolver.resolve(entry.exerciseName)
+        if let key = canonicalMovementExerciseKey(for: resolved.rankStandardMovementId) {
+            return key
+        }
+        return normalizedKey(entry.exerciseName)
+    }
+
+    private func canonicalMovementExerciseKey(for movementId: String?) -> String? {
+        guard let movementId, let definition = MovementCatalog.definition(for: movementId) else {
+            return nil
+        }
+        if let canonical = definition.canonicalExerciseName {
+            return normalizedKey(canonical)
+        }
+        return normalizedKey(definition.displayName)
+    }
+
+    private func normalizedKey(_ value: String) -> String {
+        value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    }
+
+    private func isRegressionOnlyBodyweightKey(_ key: String) -> Bool {
+        let normalized = MovementCatalog.normalized(key)
+        return ["assisted", "band", "banded", "machine", "negative", "jumping", "eccentric", "partial"]
+            .contains { normalized.contains($0) }
     }
 }
 

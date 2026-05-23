@@ -29,9 +29,13 @@ struct ProgramOverviewView: View {
     @State private var selectedDay: ProgramDay?
     @State private var showPaywall = false
     @State private var showRationale = false
+    @State private var workoutReadyDraft: TrainingSessionDraft?
+    @State private var activeWorkoutDraft: TrainingSessionDraft?
+    @State private var sessionEditorDraft: TrainingSessionDraft?
+    @State private var weeklyVowsState: WeeklyVowsState = .empty
+    @State private var showWeeklyVowPicker = false
 
-    // Active-goal session launcher state.
-    @State private var activeSession: ActiveSessionLaunch?
+    // Active-goal detail launcher state.
     @State private var pushedSkillNode: SkillNode?
 
     // V3 — day-strip preview + schedule editor sheets.
@@ -56,16 +60,19 @@ struct ProgramOverviewView: View {
     // Routines view state
     @State private var selectedRoutine: RoutineDef?
     @State private var activeRoutinePlayer: RoutineDef?
-    @State private var completedRoutineReward: RoutineRewardPayload?
     @State private var selectedChallengeId: String = "100-pushup"
     @State private var selectedRoutineIdsByCategory: [RoutineCategory: String] = [:]
     @State private var travelingRoutine: RoutineDef?
     @State private var routineTravelProgress: CGFloat = 0
+    #if DEBUG
+    @State private var debugOpenedRoutine = false
+    #endif
 
     // Block rollover (Chunk 3): block-complete CTA + optional rescan + share.
     @State private var isGeneratingNextBlock: Bool = false
     @State private var showRescanFlow: Bool = false
     @State private var rolloverDeltaReport: ScanDeltaReport?
+    @State private var rolloverProposal: BlockRolloverService.ProgramBlockProposal?
     @State private var showProgressReveal: Bool = false
     @State private var nextBlockNumberPreview: Int = 2
     @State private var currentBlockNumberPreview: Int = 1
@@ -105,70 +112,11 @@ struct ProgramOverviewView: View {
         }
         .navigationBarHidden(true)
         .task {
-            let vm = ProgramViewModel(services: services)
-            self.viewModel = vm
-            guard let userId = services.auth.currentUserId else { return }
+            await loadProgramSurface()
 
-            // History + travel don't depend on the profile — run concurrently.
-            async let historyDone: Void = refreshHistory()
-            async let travelDone: Void = refreshTravelOverride()
-
-            // Instant: paint today's program from the local store — zero
-            // network before the screen appears.
-            let store = ProgramStore.shared
-            let cached = store.loadLocal(userId: userId)
-            if let cached {
-                vm.program = cached
-                vm.state = .loaded(cached)
-                await vm.loadTrackingData()
-            }
-
-            // Background: learn the authoritative programId; reconcile only
-            // if a new program (rollover) superseded the cache, or load/
-            // generate when there was no cache (first run).
-            do {
-                let profile: UserProfile = try await services.user.fetchProfile(userId: userId)
-                if let programId = profile.currentProgramId {
-                    if cached == nil {
-                        await vm.loadProgram(programId: programId)
-                    } else {
-                        await store.revalidate(userId: userId, expectedProgramId: programId)
-                        if let refreshed = store.program, refreshed.id != cached?.id {
-                            vm.program = refreshed
-                            vm.state = .loaded(refreshed)
-                            await vm.loadTrackingData()
-                        }
-                    }
-                } else if cached == nil {
-                    vm.state = .loading
-                    let generated = await ProgramGenerationService.shared.generateFromOnboarding(
-                        userId: userId,
-                        targetFrequency: profile.targetFrequency,
-                        equipment: Set(profile.equipment ?? []),
-                        experience: profile.experience,
-                        sessionLength: profile.sessionLength,
-                        exerciseStyles: [],
-                        targetAreas: Set(profile.targetAreas ?? [])
-                    )
-                    vm.program = generated
-                    vm.state = .loaded(generated)
-                    store.adopt(generated, userId: userId)
-                }
-            } catch {}
-
-            _ = await historyDone
-            _ = await travelDone
-
-            // Prefetch today's session for every active goal so tapping
-            // TRAIN is instant. Each in its own detached task.
-            for goalId in skillProgress.activeGoalIds {
-                Task.detached { @MainActor in
-                    await RPESessionService.shared.prefetch(
-                        skillId: goalId,
-                        userId: userId
-                    )
-                }
-            }
+            #if DEBUG
+            openRoutineForProofIfRequested()
+            #endif
         }
         .sheet(isPresented: $showPaywall) {
             PaywallPlaceholderView()
@@ -179,6 +127,45 @@ struct ProgramOverviewView: View {
                 WhyThisProgramView(rationale: rationale, onDismiss: { showRationale = false })
                     .presentationDragIndicator(.visible)
             }
+        }
+        .sheet(isPresented: $showWeeklyVowPicker) {
+            TrialPickerSheet(
+                cards: weeklyVowsState.currentWeekCards,
+                onPick: { card in
+                    guard let userId = services.auth.currentUserId else { return }
+                    services.trials.pickVowCard(card, userId: userId)
+                    weeklyVowsState = services.trials.state(userId: userId)
+                }
+            )
+            .environmentObject(services)
+        }
+        .fullScreenCover(item: $workoutReadyDraft) { draft in
+            WorkoutReadyView(draft: draft)
+                .environmentObject(services)
+        }
+        .fullScreenCover(item: $activeWorkoutDraft) { draft in
+            ActiveWorkoutContainerView(draft: draft, services: services) {
+                Task { await refreshHistory() }
+            }
+            .environmentObject(services)
+        }
+        .fullScreenCover(item: $sessionEditorDraft) { draft in
+            SessionEditorView(draft: draft) { editedDraft in
+                sessionEditorDraft = nil
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.22) {
+                    activeWorkoutDraft = editedDraft
+                }
+            }
+            .environmentObject(services)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .weeklyVowPicked)) { _ in
+            refreshWeeklyVowState()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .weeklyVowCompleted)) { _ in
+            refreshWeeklyVowState()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .weeklyVowWeekRolled)) { _ in
+            refreshWeeklyVowState()
         }
         .navigationDestination(item: $selectedDay) { day in
             DayDetailView(
@@ -194,22 +181,11 @@ struct ProgramOverviewView: View {
             WorkoutLogSummaryView(log: log)
         }
         .fullScreenCover(item: $activeRoutinePlayer) { routine in
-            RoutinePlayerView(routine: routine) { record in
-                completeRoutine(routine, record: record)
+            RoutineCompletionFlow(routine: routine) {
+                activeRoutinePlayer = nil
+                Task { await refreshHistory() }
             }
             .environmentObject(services)
-        }
-        .sheet(item: $completedRoutineReward) { reward in
-            RoutineCompletionRewardView(reward: reward) {
-                completedRoutineReward = nil
-            }
-            .presentationDetents([.medium, .large])
-            .presentationDragIndicator(.visible)
-        }
-        .sheet(item: $activeSession) { session in
-            SkillSessionView(skillId: session.skillId, skillTitle: session.skillTitle)
-                .presentationDetents([.large])
-                .presentationDragIndicator(.visible)
         }
         .fullScreenCover(item: $pushedSkillNode) { node in
             NavigationStack {
@@ -229,10 +205,7 @@ struct ProgramOverviewView: View {
                 },
                 onTrainSkill: { node in
                     previewDay = nil
-                    activeSession = ActiveSessionLaunch(
-                        skillId: node.id,
-                        skillTitle: node.title
-                    )
+                    launchSkillReadyDraft(node)
                 }
             )
             .presentationDetents([.medium, .large])
@@ -257,6 +230,101 @@ struct ProgramOverviewView: View {
         }
     }
 
+    @MainActor
+    private func loadProgramSurface() async {
+        let vm = ProgramViewModel(services: services)
+        self.viewModel = vm
+
+        #if DEBUG
+        if let override = ProgramSurfaceProofOverride.fromLaunchArguments() {
+            vm.state = override.loadingState
+            return
+        }
+        #endif
+
+        guard let userId = services.auth.currentUserId else { return }
+        await loadWeeklyVowState(userId: userId)
+
+        // History + travel don't depend on the profile — run concurrently.
+        async let historyDone: Void = refreshHistory()
+        async let travelDone: Void = refreshTravelOverride()
+
+        // Instant: paint today's program from the local store — zero
+        // network before the screen appears.
+        let store = ProgramStore.shared
+        let cached = store.loadLocal(userId: userId)
+        if let cached {
+            vm.program = cached
+            vm.state = .loaded(cached)
+            await vm.loadTrackingData()
+        }
+
+        // Background: learn the authoritative programId; reconcile only
+        // if a new program (rollover) superseded the cache, or load/
+        // generate when there was no cache (first run).
+        do {
+            let profile: UserProfile = try await services.user.fetchProfile(userId: userId)
+            if let programId = profile.currentProgramId {
+                if cached == nil {
+                    await vm.loadProgram(programId: programId)
+                } else {
+                    await store.revalidate(userId: userId, expectedProgramId: programId)
+                    if let refreshed = store.program, refreshed.id != cached?.id {
+                        vm.program = refreshed
+                        vm.state = .loaded(refreshed)
+                        await vm.loadTrackingData()
+                    }
+                }
+            } else if cached == nil {
+                vm.state = .loading
+                let generated = await ProgramGenerationService.shared.generateFromOnboarding(
+                    userId: userId,
+                    targetFrequency: profile.targetFrequency,
+                    equipment: Set(profile.equipment ?? []),
+                    experience: profile.experience,
+                    sessionLength: profile.sessionLength,
+                    exerciseStyles: [],
+                    targetAreas: Set(profile.targetAreas ?? [])
+                )
+                vm.program = generated
+                vm.state = .loaded(generated)
+                store.adopt(generated, userId: userId)
+            }
+        } catch {
+            if cached == nil {
+                vm.state = .error(.databaseReadFailed(underlying: error))
+            }
+        }
+
+        _ = await historyDone
+        _ = await travelDone
+
+        // Prefetch today's session for every active goal so tapping
+        // TRAIN is instant. Each in its own detached task.
+        for goalId in skillProgress.activeGoalIds {
+            Task.detached { @MainActor in
+                await RPESessionService.shared.prefetch(
+                    skillId: goalId,
+                    userId: userId
+                )
+            }
+        }
+    }
+
+    @MainActor
+    private func loadWeeklyVowState(userId: String) async {
+        await services.trials.ensureCurrentWeek(userId: userId)
+        services.trials.checkVowWindow(userId: userId, now: Date())
+        weeklyVowsState = services.trials.state(userId: userId)
+    }
+
+    @MainActor
+    private func refreshWeeklyVowState() {
+        guard let userId = services.auth.currentUserId else { return }
+        services.trials.checkVowWindow(userId: userId, now: Date())
+        weeklyVowsState = services.trials.state(userId: userId)
+    }
+
     // MARK: - V3 day-preview wrapper
     //
     // Sheet(item:) needs Identifiable but Date isn't, so wrap it.
@@ -273,12 +341,6 @@ struct ProgramOverviewView: View {
     // computed live from `SkillProgressService.canTrain` so the row
     // flips from "Ready" → "Trained today" without a refresh.
 
-    private struct ActiveSessionLaunch: Identifiable, Hashable {
-        let skillId: String
-        let skillTitle: String
-        var id: String { skillId }
-    }
-
     private var todaysTrainingSection: some View {
         let scheduler = ProgramScheduler.shared
         let skillIds = scheduler.todaysSkillSessions()
@@ -287,7 +349,7 @@ struct ProgramOverviewView: View {
         let todayCat = scheduler.category(for: Date())
         let week = scheduler.weeklyOverview()
 
-        return VStack(alignment: .leading, spacing: 12) {
+        return VStack(alignment: .leading, spacing: 8) {
             // Header — 2-line: "MONDAY · PULL DAY" + count summary, plus
             // an EDIT SCHEDULE pill on the right (V3).
             HStack(alignment: .top, spacing: 10) {
@@ -571,10 +633,7 @@ struct ProgramOverviewView: View {
 
                 Button {
                     UnboundHaptics.medium()
-                    activeSession = ActiveSessionLaunch(
-                        skillId: node.id,
-                        skillTitle: node.title
-                    )
+                    launchSkillReadyDraft(node)
                 } label: {
                     HStack(spacing: 4) {
                         Text(buttonLabel)
@@ -624,6 +683,17 @@ struct ProgramOverviewView: View {
             Spacer()
             Button {
                 UnboundHaptics.soft()
+                workoutReadyDraft = emptyCustomWorkoutDraft()
+            } label: {
+                Image(systemName: "plus.square.on.square")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(Color.unbound.textSecondary)
+                    .frame(width: 34, height: 34)
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("program.customWorkout")
+            Button {
+                UnboundHaptics.soft()
                 if viewModel?.program?.rationale != nil { showRationale = true }
             } label: {
                 Image(systemName: "info.circle")
@@ -636,6 +706,60 @@ struct ProgramOverviewView: View {
         .padding(.horizontal, 20)
         .padding(.top, 12)
         .padding(.bottom, 4)
+    }
+
+    private func emptyCustomWorkoutDraft() -> TrainingSessionDraft {
+        TrainingSessionDraft(
+            userId: services.auth.currentUserId ?? "local",
+            source: .custom,
+            title: "Custom Workout",
+            date: Date(),
+            estimatedMinutes: 10,
+            blocks: []
+        )
+    }
+
+    private func launchSkillReadyDraft(_ node: SkillNode) {
+        let userId = services.auth.currentUserId ?? "local"
+        workoutReadyDraft = DailyWorkoutResolver.skillOnlyDraft(skillId: node.id, userId: userId)
+    }
+
+    private func launchWorkoutReady(for day: ProgramDay, date: Date) {
+        guard let workout = day.workout else {
+            selectedDay = day
+            return
+        }
+
+        workoutReadyDraft = programDraft(from: workout, day: day, date: date)
+    }
+
+    private func launchSessionEditor(for day: ProgramDay, date: Date) {
+        guard let workout = day.workout else {
+            selectedDay = day
+            return
+        }
+
+        sessionEditorDraft = programDraft(from: workout, day: day, date: date)
+    }
+
+    private func launchActiveWorkout(for day: ProgramDay, date: Date) {
+        guard let workout = day.workout else {
+            selectedDay = day
+            return
+        }
+
+        activeWorkoutDraft = programDraft(from: workout, day: day, date: date)
+    }
+
+    private func programDraft(from workout: Workout, day: ProgramDay, date: Date) -> TrainingSessionDraft {
+        let userId = services.auth.currentUserId ?? "local"
+        return DailyWorkoutResolver.programDraft(
+            from: workout,
+            userId: userId,
+            programId: viewModel?.program?.id,
+            dayNumber: day.dayNumber,
+            date: date
+        )
     }
 
     // MARK: - Tab selector
@@ -684,18 +808,28 @@ struct ProgramOverviewView: View {
     @ViewBuilder
     private var programTab: some View {
         if let vm = viewModel {
-            switch vm.state {
-            case .idle:
+            let surfaceState = ProgramSurfaceState.resolve(
+                state: vm.state,
+                selectedDate: selectedDayDate
+            )
+            switch surfaceState.kind {
+            case .noProgram:
                 noProgramState
             case .loading:
                 ProgressView().tint(Color.unbound.accent).frame(maxHeight: .infinity)
-            case .error(let error):
-                errorState(error)
-            case .loaded(let program):
-                if BlockRolloverScheduler.shouldRollover(program: program) {
+            case .loadError:
+                errorState(vm.state.errorValue)
+            case .blockComplete:
+                if let program = vm.state.value {
                     blockCompleteState(program: program)
                 } else {
+                    errorState(nil)
+                }
+            case .restDay, .trainingDay, .missingDay:
+                if let program = vm.state.value {
                     programBody(program)
+                } else {
+                    noProgramState
                 }
             }
         } else {
@@ -729,6 +863,10 @@ struct ProgramOverviewView: View {
 
                 if let delta = rolloverDeltaReport {
                     blockCompleteProgressTeaser(delta: delta, nextBlock: nextBlock)
+                }
+
+                if let proposal = rolloverProposal {
+                    blockProposalCard(proposal)
                 }
 
                 blockCompleteActions(
@@ -851,6 +989,75 @@ struct ProgramOverviewView: View {
         .buttonStyle(.plain)
     }
 
+    private func blockProposalCard(_ proposal: BlockRolloverService.ProgramBlockProposal) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 8) {
+                Image(systemName: "doc.text.magnifyingglass")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(Color.unbound.accent)
+                Text("NEXT BLOCK PROPOSAL")
+                    .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                    .tracking(1.8)
+                    .foregroundStyle(Color.unbound.accent)
+                Spacer()
+                Text("BLOCK \(proposal.nextBlockNumber)")
+                    .font(Font.unbound.monoS.weight(.bold))
+                    .foregroundStyle(Color.unbound.textTertiary)
+            }
+
+            VStack(alignment: .leading, spacing: 10) {
+                ForEach(Array(proposal.lines.prefix(4).enumerated()), id: \.offset) { _, line in
+                    HStack(alignment: .top, spacing: 9) {
+                        Image(systemName: proposalIcon(for: line.kind))
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(proposalColor(for: line.kind))
+                            .frame(width: 16)
+                            .padding(.top, 2)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(line.title)
+                                .font(Font.unbound.captionS.weight(.bold))
+                                .tracking(0.5)
+                                .foregroundStyle(Color.unbound.textPrimary)
+                                .lineLimit(2)
+                            Text(line.detail)
+                                .font(Font.unbound.captionS)
+                                .foregroundStyle(Color.unbound.textSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                }
+            }
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(Color.unbound.surface)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
+        )
+    }
+
+    private func proposalIcon(for kind: BlockRolloverService.ProgramBlockProposal.Line.Kind) -> String {
+        switch kind {
+        case .scan: return "camera.metering.center.weighted"
+        case .focus: return "scope"
+        case .carryForward: return "arrow.forward.circle"
+        case .rotation: return "arrow.triangle.2.circlepath"
+        case .rescan: return "camera.viewfinder"
+        }
+    }
+
+    private func proposalColor(for kind: BlockRolloverService.ProgramBlockProposal.Line.Kind) -> Color {
+        switch kind {
+        case .scan, .focus: return Color.unbound.accent
+        case .rotation, .rescan: return Color.unbound.warnOrange
+        case .carryForward: return Color.unbound.textSecondary
+        }
+    }
+
     private func blockCompleteActions(program: TrainingProgram, nextBlock: Int) -> some View {
         VStack(spacing: 12) {
             Button {
@@ -934,6 +1141,11 @@ struct ProgramOverviewView: View {
             self.currentBlockNumberPreview = resolvedCurrent
             self.nextBlockNumberPreview = resolvedNext
             self.rolloverDeltaReport = delta
+            self.rolloverProposal = BlockRolloverService.proposal(
+                currentBlockNumber: resolvedCurrent,
+                previousBlock: latest,
+                latestDeltaReport: delta
+            )
         }
     }
 
@@ -951,10 +1163,17 @@ struct ProgramOverviewView: View {
 
         do {
             let profile: UserProfile = try await services.user.fetchProfile(userId: userId)
+            let previousBlock = await ProgramBlockStore.shared.latestBlock(userId: userId)
+            let proposal = rolloverProposal ?? BlockRolloverService.proposal(
+                currentBlockNumber: currentBlockNumberPreview,
+                previousBlock: previousBlock,
+                latestDeltaReport: rolloverDeltaReport
+            )
+            let proposalAnalysis = BlockRolloverService.analysis(from: proposal, userId: userId)
             let newProgram = try await BlockRolloverService.performRollover(
                 userId: userId,
                 profile: profile,
-                analysis: nil,
+                analysis: proposalAnalysis,
                 scan: nil
             )
             vm.program = newProgram
@@ -1074,21 +1293,25 @@ struct ProgramOverviewView: View {
                     .padding(.bottom, 12)
                 }
 
-                if ProgramScheduler.shared.hasActiveGoals() {
+                dayCard(program: program)
+                weeklyVowProgramSurface
+                if let proposal = rolloverProposal, proposal.scanDeltaReport != nil {
+                    midBlockRescanProposalCard(proposal)
+                }
+                weekStrip(program: program)
+                if !ProgramScheduler.shared.todaysSkillSessions().isEmpty {
                     todaysTrainingSection
                 }
-                programHeader(program)
-                weekStrip(program: program)
-                dayCard(program: program)
                 CoachActionsRow(
                     program: program,
                     todayDay: programDay(for: Date(), in: program)
                 )
                 .environmentObject(services)
+                programHeader(program)
                 if !services.entitlement.isEntitled {
                     subscriptionBanner
                 }
-                Spacer().frame(height: 28)
+                Spacer().frame(height: 118)
             }
             .padding(.horizontal, 20)
             .padding(.top, 8)
@@ -1106,6 +1329,137 @@ struct ProgramOverviewView: View {
                 )
             }
         }
+        .task(id: program.id) {
+            await loadBlockRolloverContext(program: program)
+        }
+    }
+
+    @ViewBuilder
+    private var weeklyVowProgramSurface: some View {
+        if let vow = weeklyVowsState.currentVow,
+           vow.capstoneState != .missed {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 8) {
+                    Image(systemName: "flame.fill")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(vow.chosenCard.theme.tintColor)
+                    Text("PROGRAM ADD-ON")
+                        .font(Font.unbound.monoS.weight(.bold))
+                        .tracking(1.4)
+                        .foregroundStyle(Color.unbound.textTertiary)
+                    Spacer()
+                    Text(vow.chosenCard.prescription?.summary.uppercased() ?? "BINDING")
+                        .font(Font.unbound.monoS.weight(.bold))
+                        .foregroundStyle(vow.chosenCard.theme.tintColor)
+                }
+                ActiveTrialCard(trial: vow)
+                    .environmentObject(services)
+            }
+            .padding(.top, 2)
+        } else if !weeklyVowsState.skippedCurrentWeek,
+                  !weeklyVowsState.currentWeekCards.isEmpty {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 8) {
+                    Image(systemName: "flame.fill")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(Color.unbound.accent)
+                    Text("PROGRAM ADD-ON")
+                        .font(Font.unbound.monoS.weight(.bold))
+                        .tracking(1.4)
+                        .foregroundStyle(Color.unbound.textTertiary)
+                    Spacer()
+                }
+                TrialPickerPromptCard {
+                    showWeeklyVowPicker = true
+                }
+            }
+            .padding(.top, 2)
+        }
+    }
+
+    private func midBlockRescanProposalCard(_ proposal: BlockRolloverService.ProgramBlockProposal) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 8) {
+                Image(systemName: "camera.viewfinder")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(Color.unbound.accent)
+                Text("NEXT BLOCK INPUT")
+                    .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                    .tracking(1.8)
+                    .foregroundStyle(Color.unbound.accent)
+                Spacer()
+                Text("BLOCK \(proposal.nextBlockNumber)")
+                    .font(Font.unbound.monoS.weight(.bold))
+                    .foregroundStyle(Color.unbound.textTertiary)
+            }
+
+            Text(proposal.midBlockPatchPolicy.detail)
+                .font(Font.unbound.captionS)
+                .foregroundStyle(Color.unbound.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            VStack(alignment: .leading, spacing: 9) {
+                ForEach(Array(proposal.lines.prefix(3).enumerated()), id: \.offset) { _, line in
+                    HStack(alignment: .top, spacing: 9) {
+                        Image(systemName: proposalIcon(for: line.kind))
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(proposalColor(for: line.kind))
+                            .frame(width: 16)
+                            .padding(.top, 2)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(line.title)
+                                .font(Font.unbound.captionS.weight(.bold))
+                                .tracking(0.5)
+                                .foregroundStyle(Color.unbound.textPrimary)
+                                .lineLimit(2)
+                            Text(line.detail)
+                                .font(Font.unbound.captionS)
+                                .foregroundStyle(Color.unbound.textSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                }
+            }
+
+            Button {
+                UnboundHaptics.soft()
+                showRescanFlow = true
+            } label: {
+                HStack(spacing: 7) {
+                    Image(systemName: "camera.fill")
+                        .font(.system(size: 11, weight: .bold))
+                    Text("RESCAN")
+                        .font(Font.unbound.captionS.weight(.heavy))
+                        .tracking(1.2)
+                    Spacer()
+                    Text("optional")
+                        .font(Font.unbound.monoS)
+                        .foregroundStyle(Color.unbound.textTertiary)
+                }
+                .foregroundStyle(Color.unbound.textPrimary)
+                .padding(.horizontal, 12)
+                .frame(height: 36)
+                .background(
+                    Capsule()
+                        .fill(Color.unbound.accent.opacity(0.16))
+                )
+                .overlay(
+                    Capsule()
+                        .strokeBorder(Color.unbound.accent.opacity(0.35), lineWidth: 1)
+                )
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(Color.unbound.surface)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(Color.unbound.accent.opacity(0.26), lineWidth: 1)
+        )
     }
 
     private func programHeader(_ program: TrainingProgram) -> some View {
@@ -1287,102 +1641,282 @@ struct ProgramOverviewView: View {
         let isToday = cal.isDateInToday(selectedDayDate)
         let isPast = selectedDayDate < cal.startOfDay(for: Date()) && !isToday
 
-        return VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 8) {
-                Text(isToday ? "TODAY" : dayHeaderLabel(for: selectedDayDate).uppercased())
-                    .font(Font.unbound.captionS.weight(.bold))
-                    .tracking(1.8)
-                    .foregroundStyle(isToday ? Color.unbound.accent : Color.unbound.textTertiary)
-                Text("·")
-                    .font(Font.unbound.captionS)
-                    .foregroundStyle(Color.unbound.textTertiary)
-                Text(longDateLabel(for: selectedDayDate).uppercased())
-                    .font(Font.unbound.captionS)
-                    .tracking(1.2)
-                    .foregroundStyle(Color.unbound.textTertiary)
-                Spacer()
-                if isPast, let d = day, viewModel?.isCompleted(dayNumber: d.dayNumber) == true {
-                    Text("COMPLETED")
-                        .font(Font.unbound.captionS.weight(.bold))
-                        .tracking(1.4)
-                        .foregroundStyle(Color.unbound.success)
+        return VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .top, spacing: 12) {
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(isToday ? "TODAY COMMAND" : dayHeaderLabel(for: selectedDayDate).uppercased())
+                        .font(Font.unbound.captionS.weight(.heavy))
+                        .tracking(1.8)
+                        .foregroundStyle(isToday ? Color.unbound.coachCyan : Color.unbound.textTertiary)
+                    Text(cardTitle(for: day))
+                        .font(Font.unbound.titleL)
+                        .foregroundStyle(Color.unbound.textPrimary)
+                        .lineLimit(2)
+                    Text(longDateLabel(for: selectedDayDate).uppercased())
+                        .font(Font.unbound.monoS)
+                        .tracking(0.4)
+                        .foregroundStyle(Color.unbound.textSecondary)
                 }
+                Spacer(minLength: 10)
+                dayStatusBadge(day: day, isToday: isToday, isPast: isPast)
             }
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text(cardTitle(for: day))
-                    .font(Font.unbound.titleM)
-                    .tracking(0.4)
-                    .foregroundStyle(Color.unbound.textPrimary)
-                Text(cardSubtitle(for: day))
-                    .font(Font.unbound.monoS)
-                    .tracking(0.4)
-                    .foregroundStyle(Color.unbound.textSecondary)
+            HStack(spacing: 8) {
+                todayStatPill(value: exerciseCountLabel(for: day), label: "EXERCISES")
+                todayStatPill(value: durationLabel(for: day), label: "TIME")
+                todayStatPill(value: day?.isRestDay == true ? "REC" : "LIVE", label: day?.isRestDay == true ? "MODE" : "READY")
             }
 
             if let day, !day.isRestDay, let workout = day.workout {
+                modifierSummary(for: day, workout: workout)
                 exerciseList(workout: workout)
             }
 
-            Button {
-                UnboundHaptics.medium()
-                if !services.entitlement.isEntitled {
-                    showPaywall = true
-                    return
+            HStack(spacing: 10) {
+                Button {
+                    UnboundHaptics.medium()
+                    if !services.entitlement.isEntitled {
+                        showPaywall = true
+                        return
+                    }
+                    if let day {
+                        if isToday, !day.isRestDay, day.workout != nil {
+                            launchActiveWorkout(for: day, date: selectedDayDate)
+                        } else {
+                            selectedDay = day
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 10) {
+                        Text(ctaLabel(for: day, isToday: isToday))
+                            .font(Font.unbound.bodyMStrong)
+                            .tracking(1.6)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.78)
+                            .allowsTightening(true)
+                        Image(systemName: "arrow.right")
+                            .font(.system(size: 13, weight: .bold))
+                            .accessibilityHidden(true)
+                    }
+                    .foregroundStyle(Color.unbound.textPrimary)
+                    .padding(.horizontal, 12)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 46)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(Color.unbound.accent)
+                    )
+                    .shadow(color: Color.unbound.accent.opacity(0.35), radius: 10, y: 2)
                 }
-                if let day { selectedDay = day }
-            } label: {
-                HStack(spacing: 10) {
-                    Text(ctaLabel(for: day, isToday: isToday))
-                        .font(Font.unbound.bodyMStrong)
-                        .tracking(1.6)
-                    Image(systemName: "arrow.right")
-                        .font(.system(size: 13, weight: .bold))
+                .buttonStyle(.plain)
+                .disabled(day == nil)
+                .accessibilityIdentifier("program.startSession")
+
+                if let day, isToday, !day.isRestDay, day.workout != nil {
+                    Button {
+                        UnboundHaptics.soft()
+                        if !services.entitlement.isEntitled {
+                            showPaywall = true
+                            return
+                        }
+                        launchSessionEditor(for: day, date: selectedDayDate)
+                    } label: {
+                        Text("EDIT")
+                            .font(Font.unbound.captionS.weight(.bold))
+                            .tracking(1.4)
+                            .foregroundStyle(Color.unbound.textSecondary)
+                            .frame(width: 74, height: 46)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .fill(Color.unbound.surfaceElevated)
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
+                            )
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("program.editSession")
                 }
-                .foregroundStyle(Color.unbound.textPrimary)
-                .frame(maxWidth: .infinity)
-                .frame(height: 46)
-                .background(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(Color.unbound.accent)
-                )
-                .shadow(color: Color.unbound.accent.opacity(0.35), radius: 10, y: 2)
             }
-            .buttonStyle(.plain)
-            .disabled(day == nil)
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             ZStack {
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
                     .fill(Color.unbound.surface)
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
                     .fill(
                         LinearGradient(
-                            colors: [Color.unbound.accent.opacity(isToday ? 0.10 : 0.04), .clear],
+                            colors: [
+                                Color.unbound.coachCyan.opacity(isToday ? 0.18 : 0.06),
+                                Color.unbound.accent.opacity(isToday ? 0.12 : 0.04),
+                                Color.clear
+                            ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
                     )
+                VStack {
+                    Rectangle()
+                        .fill(Color.unbound.coachCyan.opacity(isToday ? 0.86 : 0.2))
+                        .frame(height: 3)
+                    Spacer()
+                }
+                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
             }
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(Color.unbound.accent.opacity(isToday ? 0.35 : 0.15), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(Color.unbound.coachCyan.opacity(isToday ? 0.42 : 0.15), lineWidth: 1)
         )
     }
 
+    @ViewBuilder
+    private func dayStatusBadge(day: ProgramDay?, isToday: Bool, isPast: Bool) -> some View {
+        if isPast, let d = day, viewModel?.isCompleted(dayNumber: d.dayNumber) == true {
+            statusBadge("DONE", icon: "checkmark", tint: Color.unbound.success)
+        } else if day?.isRestDay == true {
+            statusBadge("REST", icon: "moon.zzz.fill", tint: Color.unbound.textSecondary)
+        } else if isToday {
+            statusBadge("START", icon: "bolt.fill", tint: Color.unbound.coachCyan)
+        } else {
+            statusBadge("PLAN", icon: "calendar", tint: Color.unbound.textSecondary)
+        }
+    }
+
+    private func statusBadge(_ title: String, icon: String, tint: Color) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.system(size: 11, weight: .bold))
+            Text(title)
+                .font(Font.unbound.captionS.weight(.heavy))
+                .tracking(1.1)
+        }
+        .foregroundStyle(tint)
+        .padding(.horizontal, 10)
+        .frame(height: 30)
+        .background(Capsule().fill(tint.opacity(0.13)))
+        .overlay(Capsule().strokeBorder(tint.opacity(0.28), lineWidth: 1))
+    }
+
+    private func todayStatPill(value: String, label: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(value)
+                .font(Font.unbound.monoM.weight(.bold))
+                .foregroundStyle(Color.unbound.textPrimary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+            Text(label)
+                .font(Font.unbound.captionS.weight(.bold))
+                .tracking(0.9)
+                .foregroundStyle(Color.unbound.textTertiary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 9)
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(Color.unbound.bg.opacity(0.78))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
+        )
+    }
+
+    private func exerciseCountLabel(for day: ProgramDay?) -> String {
+        guard let day, !day.isRestDay, let workout = day.workout else { return "0" }
+        return "\(workout.mainExercises.count)"
+    }
+
+    private func durationLabel(for day: ProgramDay?) -> String {
+        guard let day, !day.isRestDay, let workout = day.workout else { return "REC" }
+        return "~\(workout.estimatedMinutes)M"
+    }
+
+    @ViewBuilder
+    private func modifierSummary(for day: ProgramDay, workout: Workout) -> some View {
+        let summary = programModifierSummary(for: day, workout: workout)
+        if !summary.isEmpty {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("WHY THIS SESSION CHANGED")
+                    .font(Font.unbound.monoS.weight(.bold))
+                    .foregroundStyle(Color.unbound.textTertiary)
+                ForEach(Array(summary.visibleLines.enumerated()), id: \.offset) { _, line in
+                    HStack(alignment: .top, spacing: 8) {
+                        Image(systemName: line.iconName)
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(color(for: line.colorRole))
+                            .padding(.top, 2)
+                            .frame(width: 14)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(line.title)
+                                .font(Font.unbound.captionS.weight(.bold))
+                                .tracking(0.6)
+                                .foregroundStyle(Color.unbound.textPrimary)
+                                .lineLimit(1)
+                            Text(line.detail)
+                                .font(Font.unbound.captionS)
+                                .tracking(0.3)
+                                .foregroundStyle(Color.unbound.textSecondary)
+                                .lineLimit(2)
+                        }
+                        Spacer(minLength: 0)
+                    }
+                }
+                if summary.overflowCount > 0 {
+                    Text("+\(summary.overflowCount) more modifier\(summary.overflowCount == 1 ? "" : "s")")
+                        .font(Font.unbound.captionS.weight(.bold))
+                        .tracking(0.5)
+                        .foregroundStyle(Color.unbound.textTertiary)
+                        .padding(.leading, 22)
+                }
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 9)
+            .background(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(Color.unbound.bg.opacity(0.72))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
+            )
+        }
+    }
+
+    private func programModifierSummary(for day: ProgramDay, workout: Workout) -> ProgramModifierSummary {
+        let draft = programDraft(from: workout, day: day, date: selectedDayDate)
+        return ProgramModifierSummary.summarize(
+            draft: draft,
+            isTravelDay: activeTravelOverride?.day(for: selectedDayDate) != nil
+        )
+    }
+
+    private func color(for role: ProgramModifierColorRole) -> Color {
+        switch role {
+        case .accent:
+            return Color.unbound.accent
+        case .warning:
+            return Color.unbound.warnOrange
+        case .neutral:
+            return Color.unbound.textSecondary
+        }
+    }
+
     private func exerciseList(workout: Workout) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 7) {
             ForEach(Array(workout.mainExercises.prefix(5).enumerated()), id: \.offset) { _, ex in
                 HStack(spacing: 8) {
-                    Circle()
-                        .fill(Color.unbound.accent.opacity(0.5))
-                        .frame(width: 4, height: 4)
+                    Image(systemName: "circle.hexagongrid.fill")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundStyle(Color.unbound.coachCyan.opacity(0.86))
+                        .frame(width: 14)
                     Text(ex.name.uppercased())
-                        .font(Font.unbound.captionS)
-                        .tracking(0.6)
+                        .font(Font.unbound.captionS.weight(.bold))
+                        .tracking(0.7)
                         .foregroundStyle(Color.unbound.textPrimary)
                         .lineLimit(1)
                     Spacer()
@@ -1391,6 +1925,12 @@ struct ProgramOverviewView: View {
                         .foregroundStyle(Color.unbound.textTertiary)
                         .monospacedDigit()
                 }
+                .padding(.horizontal, 10)
+                .frame(height: 28)
+                .background(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(Color.unbound.bg.opacity(0.54))
+                )
             }
             if workout.mainExercises.count > 5 {
                 Text("+\(workout.mainExercises.count - 5) more")
@@ -1400,7 +1940,7 @@ struct ProgramOverviewView: View {
                     .padding(.leading, 12)
             }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 2)
     }
 
     // MARK: - ROUTINES tab
@@ -1408,7 +1948,7 @@ struct ProgramOverviewView: View {
     private var routinesTab: some View {
         ScrollView(.vertical, showsIndicators: false) {
             VStack(alignment: .leading, spacing: 22) {
-                Text("Pick a side mission when the main plan is not the move. Each routine earns SP.")
+                Text("Pick a side mission when the main plan is not the move. Each routine earns LV XP.")
                     .font(Font.unbound.captionS)
                     .foregroundStyle(Color.unbound.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -1459,25 +1999,6 @@ struct ProgramOverviewView: View {
             .frame(height: 356)
 
             RoutineChallengeDots(challenges: challenges, selectedId: selectedChallengeId)
-
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 10) {
-                    ForEach(challenges) { routine in
-                        Button {
-                            withAnimation(.spring(response: 0.34, dampingFraction: 0.82)) {
-                                selectedChallengeId = routine.id
-                            }
-                        } label: {
-                            RoutineChallengePill(
-                                routine: routine,
-                                isSelected: selectedChallengeId == routine.id
-                            )
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .padding(.vertical, 2)
-            }
         }
     }
 
@@ -1499,40 +2020,43 @@ struct ProgramOverviewView: View {
         }
     }
 
-    private func completeRoutine(_ routine: RoutineDef, record: RoutineCompletionRecord) {
-        let didAward = RoutineHistoryStore.shared.complete(routine)
-        RoutineHistoryStore.shared.record(record)
-        activeRoutinePlayer = nil
+    #if DEBUG
+    private func openRoutineForProofIfRequested() {
+        guard ProcessInfo.processInfo.arguments.contains("--unbound-open-routine"),
+              !debugOpenedRoutine
+        else { return }
 
-        let setsValue: Int
-        let totalValue: Int
-        switch record.primaryMetric {
-        case .repCount(let total, let bursts):
-            setsValue = total
-            totalValue = max(total, bursts.reduce(0, +))
-        case .steps(let done, let total):
-            setsValue = done
-            totalValue = total
-        case .time:
-            setsValue = 0
-            totalValue = 0
+        debugOpenedRoutine = true
+        selectedTab = .routines
+
+        let requestedId = Self.launchArgumentValue(for: "--unbound-open-routine")
+        let routine = requestedId
+            .flatMap { id in RoutineLibrary.placeholderRoutines.first { $0.id == id } }
+            ?? RoutineLibrary.placeholderRoutines.first { $0.category == .challenge }
+            ?? RoutineLibrary.placeholderRoutines.first
+
+        guard let routine else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+            beginRoutineTravel(routine)
         }
-
-        completedRoutineReward = RoutineRewardPayload(
-            title: routine.title,
-            category: routine.category,
-            elapsedSeconds: record.elapsedSeconds,
-            completedSets: setsValue,
-            totalSets: totalValue,
-            spAwarded: routine.spReward,
-            wasAlreadyCleared: !didAward
-        )
-        Task { await refreshHistory() }
     }
+
+    private static func launchArgumentValue(for key: String) -> String? {
+        let arguments = ProcessInfo.processInfo.arguments
+        for (index, argument) in arguments.enumerated() {
+            if argument == key, arguments.indices.contains(index + 1) {
+                return arguments[index + 1]
+            }
+            if argument.hasPrefix("\(key)=") {
+                return String(argument.dropFirst(key.count + 1))
+            }
+        }
+        return nil
+    }
+    #endif
 
     private func routineSection(category: RoutineCategory) -> some View {
         let items = RoutineLibrary.placeholderRoutines.filter { $0.category == category }
-        let selectedId = selectedRoutineIdsByCategory[category] ?? items.first?.id ?? ""
         let selection = Binding<String>(
             get: { selectedRoutineIdsByCategory[category] ?? items.first?.id ?? "" },
             set: { selectedRoutineIdsByCategory[category] = $0 }
@@ -1567,7 +2091,7 @@ struct ProgramOverviewView: View {
             .tabViewStyle(.page(indexDisplayMode: .never))
             .frame(height: 356)
 
-            RoutineChallengeDots(challenges: items, selectedId: selectedId)
+            RoutineChallengeDots(challenges: items, selectedId: selection.wrappedValue)
         }
     }
 
@@ -1588,7 +2112,7 @@ struct ProgramOverviewView: View {
                         .foregroundStyle(Color.unbound.textSecondary)
                 }
                 Spacer()
-                Text("+\(routine.spReward) SP")
+                Text("+\(routine.spReward) LV XP")
                     .font(Font.unbound.monoS.weight(.bold))
                     .foregroundStyle(routine.category.color)
                     .monospacedDigit()
@@ -2045,16 +2569,35 @@ struct ProgramOverviewView: View {
         .buttonStyle(.plain)
     }
 
-    private func errorState(_ error: Error) -> some View {
+    private func errorState(_ error: Error?) -> some View {
         VStack(spacing: 14) {
             Image(systemName: "exclamationmark.triangle.fill")
                 .font(.system(size: 28))
                 .foregroundStyle(Color.unbound.alert)
-            Text(error.localizedDescription)
+            Text(error?.localizedDescription ?? "Program unavailable.")
                 .font(Font.unbound.bodyS)
                 .foregroundStyle(Color.unbound.textSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 24)
+            Button {
+                Task { await loadProgramSurface() }
+            } label: {
+                Label("Retry", systemImage: "arrow.clockwise")
+                    .font(Font.unbound.bodyS.weight(.bold))
+                    .foregroundStyle(Color.unbound.textPrimary)
+                    .padding(.horizontal, 16)
+                    .frame(height: 42)
+                    .background(
+                        Capsule()
+                            .fill(Color.unbound.accent.opacity(0.22))
+                    )
+                    .overlay(
+                        Capsule()
+                            .strokeBorder(Color.unbound.accent.opacity(0.45), lineWidth: 1)
+                    )
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("program.retry")
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -2115,7 +2658,7 @@ private struct RoutineChallengeCard: View {
             VStack(alignment: .leading, spacing: 14) {
                 HStack(spacing: 8) {
                     metricPill(value: routine.durationLabel, label: "TIME")
-                    metricPill(value: "+\(routine.spReward)", label: "SP")
+                    metricPill(value: "+\(routine.spReward)", label: "LV XP")
                     metricPill(value: "\(routine.steps.count)", label: "STEPS")
                 }
 
@@ -2127,7 +2670,7 @@ private struct RoutineChallengeCard: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
 
                     HStack(spacing: 6) {
-                        Text(canComplete ? "ENTER" : "DONE")
+                        Text(canComplete ? "READY" : "OPEN")
                             .font(Font.unbound.captionS.weight(.heavy))
                             .tracking(1.4)
                         Image(systemName: canComplete ? "arrow.right" : "checkmark.seal.fill")
@@ -2256,30 +2799,6 @@ private struct RoutineChallengeDots: View {
     }
 }
 
-private struct RoutineChallengePill: View {
-    let routine: RoutineDef
-    let isSelected: Bool
-
-    var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: routine.category.systemImage)
-                .font(.system(size: 11, weight: .bold))
-            Text(routine.title.uppercased())
-                .font(Font.unbound.captionS.weight(.heavy))
-                .tracking(1.0)
-                .lineLimit(1)
-        }
-        .foregroundStyle(isSelected ? Color.unbound.bg : Color.unbound.textSecondary)
-        .padding(.horizontal, 12)
-        .padding(.vertical, 9)
-        .background(Capsule().fill(isSelected ? routine.category.color : Color.unbound.surface))
-        .overlay(
-            Capsule()
-                .strokeBorder(isSelected ? Color.clear : Color.unbound.border, lineWidth: 1)
-        )
-    }
-}
-
 private struct RoutineTravelOverlay: View {
     let routine: RoutineDef
     let progress: CGFloat
@@ -2303,11 +2822,6 @@ private struct RoutineTravelOverlay: View {
                         .scaleEffect(1 + progress * 0.12)
                 }
 
-                Text(routine.title.uppercased())
-                    .font(Font.unbound.titleM)
-                    .tracking(1.2)
-                    .foregroundStyle(Color.unbound.textPrimary)
-                    .multilineTextAlignment(.center)
                 Text("ENTERING MISSION")
                     .font(Font.unbound.monoS.weight(.heavy))
                     .tracking(2.0)
@@ -2330,131 +2844,370 @@ private extension RoutineDef {
     var coverAssetName: String { "routine_challenge_\(id)" }
 }
 
-private struct RoutineRewardPayload: Identifiable, Hashable {
-    let id = UUID()
-    let title: String
-    let category: RoutineCategory
-    let elapsedSeconds: Int
-    let completedSets: Int
-    let totalSets: Int
-    let spAwarded: Int
-    let wasAlreadyCleared: Bool
+private struct RoutineCompletionFlow: View {
+    let routine: RoutineDef
+    let onFinished: () -> Void
 
-    var elapsedLabel: String {
-        let minutes = elapsedSeconds / 60
-        let seconds = elapsedSeconds % 60
-        return String(format: "%02d:%02d", minutes, seconds)
+    @EnvironmentObject private var services: ServiceContainer
+    @State private var hasStarted = false
+    @State private var rewardSequence: WorkoutRewardSequenceSummary?
+    @State private var isCompleting = false
+
+    var body: some View {
+        ZStack {
+            if hasStarted {
+                RoutinePlayerView(routine: routine) { record in
+                    beginCompletion(record)
+                }
+                .environmentObject(services)
+                .opacity(rewardSequence == nil ? 1 : 0)
+                .allowsHitTesting(rewardSequence == nil && !isCompleting)
+                .transition(.opacity)
+            } else {
+                RoutineReadyFace(
+                    routine: routine,
+                    onClose: {
+                        UnboundHaptics.soft()
+                        onFinished()
+                    },
+                    onStart: {
+                        withAnimation(.easeInOut(duration: 0.22)) {
+                            hasStarted = true
+                        }
+                    }
+                )
+                .transition(.opacity.combined(with: .scale(scale: 0.98)))
+            }
+
+            if isCompleting {
+                completionOverlay
+            }
+
+            if let rewardSequence {
+                WorkoutRewardSequenceView(summary: rewardSequence) {
+                    UnboundHaptics.medium()
+                    onFinished()
+                }
+                .interactiveDismissDisabled(true)
+                .transition(.opacity.combined(with: .scale(scale: 0.98)))
+            }
+        }
+        .animation(.easeInOut(duration: 0.22), value: rewardSequence != nil)
+        .animation(.easeInOut(duration: 0.22), value: hasStarted)
+    }
+
+    private var completionOverlay: some View {
+        ZStack {
+            Color.unbound.bg.opacity(0.72)
+                .ignoresSafeArea()
+
+            VStack(spacing: 12) {
+                ProgressView()
+                    .tint(routine.category.color)
+                    .scaleEffect(1.12)
+                Text("LOCKING IN")
+                    .font(Font.unbound.captionS.weight(.heavy))
+                    .tracking(2.0)
+                    .foregroundStyle(routine.category.color)
+            }
+            .padding(.horizontal, 24)
+            .padding(.vertical, 18)
+            .background(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(Color.unbound.surface)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .strokeBorder(routine.category.color.opacity(0.32), lineWidth: 1)
+            )
+        }
+        .accessibilityIdentifier("routine.completing")
+    }
+
+    private func beginCompletion(_ record: RoutineCompletionRecord) {
+        guard !isCompleting, rewardSequence == nil else { return }
+        isCompleting = true
+        Task { await complete(record) }
+    }
+
+    @MainActor
+    private func complete(_ record: RoutineCompletionRecord) async {
+        let didAward = RoutineHistoryStore.shared.complete(routine)
+        RoutineHistoryStore.shared.record(record)
+
+        let userId = services.auth.currentUserId ?? "anonymous"
+        let performanceLog = TrainingSessionAdapters.performanceLogForRoutine(
+            routine,
+            record: record,
+            userId: userId
+        )
+
+        let completionResult: TrainingCompletionResult
+        do {
+            completionResult = try await TrainingCompletionService.shared.complete(
+                performanceLog,
+                services: services
+            )
+        } catch {
+            LoggingService.shared.log(
+                "Routine unified completion failed; using progression preview: \(error)",
+                level: .warning,
+                context: ["routineId": routine.id, "recordId": record.id]
+            )
+            completionResult = TrainingCompletionService.shared.previewProgression(
+                for: performanceLog,
+                services: services
+            )
+        }
+
+        var rewardSummary = RewardSummary()
+        rewardSummary.xpGained = didAward ? routine.spReward : 0
+        rewardSummary.progression = completionResult.progressionReceipt
+
+        UnboundHaptics.success()
+        isCompleting = false
+        rewardSequence = WorkoutRewardSequenceSummary.trainingReceipt(
+            performanceLog: performanceLog,
+            completionResult: completionResult,
+            rewardSummary: rewardSummary,
+            fallbackXP: didAward ? routine.spReward : 0,
+            sourceName: routine.category.label
+        )
     }
 }
 
-private struct RoutineCompletionRewardView: View {
-    let reward: RoutineRewardPayload
-    let onDismiss: () -> Void
+private struct RoutineReadyFace: View {
+    let routine: RoutineDef
+    let onClose: () -> Void
+    let onStart: () -> Void
 
-    @State private var appeared = false
+    private var canEarnLevelXP: Bool {
+        RoutineHistoryStore.shared.canComplete(routineId: routine.id)
+    }
+
+    private var runCount: Int {
+        RoutineRun.build(routine.steps).run.count
+    }
 
     var body: some View {
         ZStack {
             Color.unbound.bg.ignoresSafeArea()
-            RadialGradient(
-                colors: [reward.category.color.opacity(0.28), Color.unbound.bg.opacity(0)],
-                center: .top,
-                startRadius: 20,
-                endRadius: 480
-            )
-            .ignoresSafeArea()
-            .opacity(appeared ? 1 : 0)
 
-            VStack(spacing: 18) {
-                Spacer(minLength: 24)
+            VStack(spacing: 0) {
+                topBar
 
-                ZStack {
-                    Circle()
-                        .fill(reward.category.color.opacity(0.16))
-                        .frame(width: 126, height: 126)
-                    Circle()
-                        .stroke(reward.category.color.opacity(0.45), lineWidth: 1)
-                        .frame(width: 126, height: 126)
-                    Image(systemName: reward.wasAlreadyCleared ? "checkmark.seal.fill" : "sparkles")
-                        .font(.system(size: 46, weight: .black))
-                        .foregroundStyle(reward.category.color)
+                ScrollView(.vertical, showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 18) {
+                        hero
+                        routineStats
+                        stepPreview
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 8)
+                    .padding(.bottom, 112)
                 }
-                .scaleEffect(appeared ? 1 : 0.72)
-                .shadow(color: reward.category.color.opacity(0.55), radius: 22)
+            }
+        }
+        .safeAreaInset(edge: .bottom) {
+            startDock
+        }
+    }
 
-                VStack(spacing: 7) {
-                    Text(reward.wasAlreadyCleared ? "MISSION RECORDED" : "MISSION COMPLETE")
-                        .font(Font.unbound.captionS.weight(.heavy))
-                        .tracking(2.0)
-                        .foregroundStyle(reward.category.color)
-                    Text(reward.title.uppercased())
-                        .font(Font.unbound.displayM)
-                        .tracking(0.4)
-                        .foregroundStyle(Color.unbound.textPrimary)
-                        .multilineTextAlignment(.center)
-                        .lineLimit(3)
-                        .minimumScaleFactor(0.72)
-                }
-
-                HStack(spacing: 0) {
-                    rewardStat(value: reward.elapsedLabel, label: "TIME")
-                    divider
-                    rewardStat(value: "\(reward.completedSets)/\(reward.totalSets)", label: "SETS")
-                    divider
-                    rewardStat(value: reward.wasAlreadyCleared ? "BANKED" : "+\(reward.spAwarded)", label: "SP")
-                }
-                .padding(16)
-                .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Color.unbound.surface))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .strokeBorder(reward.category.color.opacity(0.32), lineWidth: 1)
-                )
-                .padding(.horizontal, 24)
-
-                Text(reward.wasAlreadyCleared ? "Daily reward cooldown is active. The work still counts." : "Stats collected. Reward locked into your run.")
-                    .font(Font.unbound.bodyM)
+    private var topBar: some View {
+        HStack {
+            Button(action: onClose) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 13, weight: .bold))
                     .foregroundStyle(Color.unbound.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 34)
+                    .frame(width: 38, height: 38)
+                    .background(Circle().fill(Color.unbound.surface))
+                    .overlay(Circle().strokeBorder(Color.unbound.borderSubtle, lineWidth: 1))
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("routine.ready.close")
 
-                Spacer(minLength: 24)
+            Spacer()
 
-                UnboundButton(title: "CONTINUE", icon: "arrow.right") {
-                    UnboundHaptics.medium()
-                    onDismiss()
+            Text("ROUTINE READY")
+                .font(Font.unbound.captionS.weight(.heavy))
+                .tracking(2.0)
+                .foregroundStyle(routine.category.color)
+
+            Spacer()
+
+            Color.clear.frame(width: 38, height: 38)
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 16)
+        .padding(.bottom, 10)
+    }
+
+    private var hero: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 8) {
+                Image(systemName: routine.category.systemImage)
+                    .font(.system(size: 13, weight: .semibold))
+                Text(routine.category.label.uppercased())
+                    .font(Font.unbound.captionS.weight(.bold))
+                    .tracking(1.5)
+                Spacer()
+                Text(canEarnLevelXP ? "+\(routine.spReward) LV XP" : "XP CLAIMED")
+                    .font(Font.unbound.monoS.weight(.heavy))
+                    .foregroundStyle(canEarnLevelXP ? routine.category.color : Color.unbound.textTertiary)
+            }
+            .foregroundStyle(routine.category.color)
+
+            Text(routine.title.uppercased())
+                .font(Font.unbound.displayM)
+                .tracking(0.4)
+                .foregroundStyle(Color.unbound.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Text(routine.subtitle)
+                .font(Font.unbound.bodyM)
+                .foregroundStyle(Color.unbound.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(18)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color.unbound.surface)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .strokeBorder(routine.category.color.opacity(0.28), lineWidth: 1)
+        )
+    }
+
+    private var routineStats: some View {
+        HStack(spacing: 10) {
+            statPill(value: routine.durationLabel, label: "TIME", icon: "clock")
+            statPill(value: "\(runCount)", label: "STEPS", icon: "list.bullet")
+            statPill(value: canEarnLevelXP ? "+\(routine.spReward)" : "0", label: "LV XP", icon: "sparkles")
+        }
+    }
+
+    private var stepPreview: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("MISSION PLAN")
+                .font(Font.unbound.captionS.weight(.heavy))
+                .tracking(1.7)
+                .foregroundStyle(Color.unbound.textTertiary)
+
+            VStack(alignment: .leading, spacing: 0) {
+                ForEach(Array(routine.steps.prefix(6).enumerated()), id: \.offset) { index, step in
+                    HStack(alignment: .top, spacing: 12) {
+                        Text("\(index + 1)")
+                            .font(Font.unbound.monoS.weight(.heavy))
+                            .foregroundStyle(routine.category.color)
+                            .frame(width: 20, alignment: .trailing)
+                            .padding(.top, 1)
+
+                        Text(routineStepPreview(step))
+                            .font(Font.unbound.bodyS)
+                            .foregroundStyle(Color.unbound.textPrimary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(.vertical, 11)
+
+                    if index < min(routine.steps.count, 6) - 1 {
+                        Divider()
+                            .background(Color.unbound.borderSubtle)
+                            .padding(.leading, 32)
+                    }
                 }
-                .padding(.horizontal, 24)
-                .padding(.bottom, 20)
+
+                if routine.steps.count > 6 {
+                    Text("+\(routine.steps.count - 6) more steps")
+                        .font(Font.unbound.captionS.weight(.bold))
+                        .foregroundStyle(Color.unbound.textTertiary)
+                        .padding(.top, 12)
+                        .padding(.leading, 32)
+                }
             }
-        }
-        .onAppear {
-            withAnimation(.spring(response: 0.54, dampingFraction: 0.78)) {
-                appeared = true
-            }
-            UnboundHaptics.success()
+            .padding(14)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(Color.unbound.surface)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
+            )
         }
     }
 
-    private var divider: some View {
-        Rectangle()
-            .fill(Color.unbound.border)
-            .frame(width: 1, height: 34)
+    private var startDock: some View {
+        VStack(spacing: 8) {
+            Button {
+                UnboundHaptics.heavy()
+                onStart()
+            } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: "play.fill")
+                        .font(.system(size: 13, weight: .bold))
+                    Text("START ROUTINE")
+                        .font(Font.unbound.bodyMStrong)
+                        .tracking(1.6)
+                }
+                .foregroundStyle(Color.unbound.textPrimary)
+                .frame(maxWidth: .infinity)
+                .frame(height: 54)
+                .background(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .fill(routine.category.color)
+                )
+                .shadow(color: routine.category.color.opacity(0.42), radius: 14, y: 2)
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("routine.ready.start")
+
+            Text(canEarnLevelXP ? "Completion uses the shared rewards screen." : "You can repeat it, but LV XP is already claimed today.")
+                .font(Font.unbound.captionS)
+                .foregroundStyle(Color.unbound.textTertiary)
+                .multilineTextAlignment(.center)
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 12)
+        .padding(.bottom, 10)
+        .background(
+            Color.unbound.bg
+                .opacity(0.96)
+                .ignoresSafeArea()
+        )
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill(Color.unbound.borderSubtle)
+                .frame(height: 1)
+        }
     }
 
-    private func rewardStat(value: String, label: String) -> some View {
-        VStack(spacing: 3) {
+    private func statPill(value: String, label: String, icon: String) -> some View {
+        VStack(alignment: .leading, spacing: 7) {
+            Image(systemName: icon)
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(routine.category.color)
             Text(value)
-                .font(Font.unbound.monoL)
+                .font(Font.unbound.monoS.weight(.bold))
                 .foregroundStyle(Color.unbound.textPrimary)
                 .lineLimit(1)
-                .minimumScaleFactor(0.65)
-                .monospacedDigit()
+                .minimumScaleFactor(0.75)
             Text(label)
                 .font(.system(size: 8, weight: .heavy, design: .monospaced))
-                .tracking(1.5)
+                .tracking(1.1)
                 .foregroundStyle(Color.unbound.textTertiary)
         }
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color.unbound.surface)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
+        )
     }
 }
 
@@ -2486,7 +3239,7 @@ private struct RoutinePreviewSheet: View {
                                 .foregroundStyle(Color.unbound.textTertiary)
                             Text("·")
                                 .foregroundStyle(Color.unbound.textTertiary)
-                            Text("+\(routine.spReward) SP")
+                            Text("+\(routine.spReward) LV XP")
                                 .font(Font.unbound.monoM.weight(.bold))
                                 .foregroundStyle(routine.category.color)
                         }
@@ -2543,9 +3296,9 @@ private struct RoutinePreviewSheet: View {
 
                     let canComplete = RoutineHistoryStore.shared.canComplete(routineId: routine.id)
                     let label: String = {
-                        if didComplete { return "+\(routine.spReward) SP LOCKED IN" }
+                        if didComplete { return "+\(routine.spReward) LV XP LOCKED IN" }
                         if !canComplete { return "DONE TODAY · COME BACK TOMORROW" }
-                        return "MARK COMPLETE · +\(routine.spReward) SP"
+                        return "COMPLETE FEAT · +\(routine.spReward) LV XP"
                     }()
                     let icon: String = {
                         if didComplete || !canComplete { return "checkmark.seal.fill" }

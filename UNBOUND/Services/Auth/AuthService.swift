@@ -20,6 +20,9 @@ import Supabase
 
 private let cachedUserIdKey = "unbound.supabase.cachedUserId"
 private let legacyLocalUserIdKey = "unbound.localUserId"
+#if DEBUG
+private let debugUserIdOverrideKey = "unbound.debugUserIdOverride"
+#endif
 
 final class AuthService: NSObject, AuthServiceProtocol, @unchecked Sendable {
     static let shared = AuthService()
@@ -34,7 +37,12 @@ final class AuthService: NSObject, AuthServiceProtocol, @unchecked Sendable {
     // MARK: Protocol surface
 
     var currentUserId: String? {
-        UserDefaults.standard.string(forKey: cachedUserIdKey)
+        #if DEBUG
+        if let debugUserId = UserDefaults.standard.string(forKey: debugUserIdOverrideKey) {
+            return debugUserId
+        }
+        #endif
+        return UserDefaults.standard.string(forKey: cachedUserIdKey)
             ?? UserDefaults.standard.string(forKey: legacyLocalUserIdKey)
     }
 
@@ -45,12 +53,19 @@ final class AuthService: NSObject, AuthServiceProtocol, @unchecked Sendable {
     }
 
     private override init() {
-        self.authStateSubject = CurrentValueSubject<String?, Never>(
-            UserDefaults.standard.string(forKey: cachedUserIdKey)
-                ?? UserDefaults.standard.string(forKey: legacyLocalUserIdKey)
-        )
+        self.authStateSubject = CurrentValueSubject<String?, Never>(Self.initialUserId())
         super.init()
         startAuthStateListener()
+    }
+
+    private static func initialUserId() -> String? {
+        #if DEBUG
+        if let debugUserId = UserDefaults.standard.string(forKey: debugUserIdOverrideKey) {
+            return debugUserId
+        }
+        #endif
+        return UserDefaults.standard.string(forKey: cachedUserIdKey)
+            ?? UserDefaults.standard.string(forKey: legacyLocalUserIdKey)
     }
 
     // MARK: Sign in with Apple
@@ -107,6 +122,9 @@ final class AuthService: NSObject, AuthServiceProtocol, @unchecked Sendable {
     func signOut() throws {
         Task { try? await UnboundSupabase.client.auth.signOut() }
         Task { @MainActor in ProgramStore.shared.clear() }
+        #if DEBUG
+        UserDefaults.standard.removeObject(forKey: debugUserIdOverrideKey)
+        #endif
         UserDefaults.standard.removeObject(forKey: cachedUserIdKey)
         UserDefaults.standard.removeObject(forKey: legacyLocalUserIdKey)
         authStateSubject.send(nil)
@@ -133,6 +151,7 @@ final class AuthService: NSObject, AuthServiceProtocol, @unchecked Sendable {
     #if DEBUG
     func activateDevUser(id uid: String) {
         UserDefaults.standard.removeObject(forKey: cachedUserIdKey)
+        UserDefaults.standard.set(uid, forKey: debugUserIdOverrideKey)
         UserDefaults.standard.set(uid, forKey: legacyLocalUserIdKey)
         authStateSubject.send(uid)
         logger.log("Activated debug user \(uid)", level: .info)

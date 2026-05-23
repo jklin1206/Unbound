@@ -2,6 +2,7 @@ import SwiftUI
 
 struct WorkoutLogSummaryView: View {
     let log: WorkoutLog
+    @AppStorage(WeightPlatePolicy.unitDefaultsKey) private var weightUnitRaw = TrainingWeightUnit.localeDefault.rawValue
 
     private var totalWorkSets: Int {
         log.exerciseEntries
@@ -117,9 +118,7 @@ struct WorkoutLogSummaryView: View {
                 volumeCell(value: "\(totalReps)", label: "Reps")
                 Divider().frame(height: 36).background(Color.theme.surfaceLight)
                 volumeCell(
-                    value: estimatedTonnage >= 1000
-                        ? String(format: "%.1ft", estimatedTonnage / 1000)
-                        : String(format: "%.0fkg", estimatedTonnage),
+                    value: formattedTonnage,
                     label: "Tonnage"
                 )
                 if let rpe = log.overallRPE {
@@ -222,7 +221,7 @@ struct WorkoutLogSummaryView: View {
                 .frame(width: 42, alignment: .leading)
 
             if let weight = set.weightKg {
-                Text("\(String(format: "%.1f", weight))kg")
+                Text("\(WeightPlatePolicy.formatLoggedWeight(weight, unit: weightUnit))\(weightUnit.shortLabel)")
                     .font(.bodyMedium(14))
                     .foregroundColor(.theme.textPrimary)
             } else {
@@ -250,6 +249,18 @@ struct WorkoutLogSummaryView: View {
                     .clipShape(Capsule())
             }
         }
+    }
+
+    private var weightUnit: TrainingWeightUnit {
+        TrainingWeightUnit(rawValue: weightUnitRaw) ?? .localeDefault
+    }
+
+    private var formattedTonnage: String {
+        let value = weightUnit.displayValue(fromKilograms: estimatedTonnage)
+        if value >= 1000 {
+            return "\(WeightPlatePolicy.formatDisplayValue(value / 1000))k \(weightUnit.shortLabel)"
+        }
+        return "\(WeightPlatePolicy.formatDisplayValue(value)) \(weightUnit.shortLabel)"
     }
 
     // MARK: - Session Notes Card

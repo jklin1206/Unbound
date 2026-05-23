@@ -341,8 +341,8 @@ private enum WeeklyVowCompletionBonusCatalog {
         if kind == .apex {
             shareCard = WeeklyVowShareCardDescriptor(
                 id: "apex-vow-share-\(vow.id)-\(performanceLog.id)",
-                title: "Apex Vow Cleared",
-                subtitle: "Apex Vow - \(vow.chosenCard.capstone.displayName)",
+                title: "\(vow.chosenCard.displayName) Cleared",
+                subtitle: "Binding Vow - \(vow.chosenCard.capstone.displayName)",
                 metadata: [
                     "vowId": vow.id,
                     "performanceLogId": performanceLog.id,
@@ -357,12 +357,12 @@ private enum WeeklyVowCompletionBonusCatalog {
         return WeeklyVowCompletionBonus(
             overallLevelXP: kind.completionBonusOverallLevelXP,
             badgeProgress: WeeklyVowProgressDescriptor(
-                title: "\(kind.displayName) Vow I",
+                title: "\(kind.displayName) I",
                 current: badgeProgress,
                 target: badgeTarget
             ),
             cosmeticProgress: WeeklyVowProgressDescriptor(
-                title: "\(kind.displayName) Vow Finish",
+                title: "\(kind.displayName) Seal",
                 current: cosmeticProgress,
                 target: cosmeticTarget
             ),
@@ -388,7 +388,7 @@ private enum WeeklyVowTrainingBuilder {
             id: "weekly-vow-draft-\(vow.id)",
             userId: vow.userId,
             source: .custom,
-            title: "Weekly Vow - \(card.displayName)",
+            title: "Binding Vow - \(card.displayName)",
             date: date,
             estimatedMinutes: estimatedMinutes(for: card, prescriptions: prescriptions),
             programId: WeeklyVowTrainingRoute.programId(for: vow),
@@ -416,16 +416,16 @@ private enum WeeklyVowTrainingBuilder {
     ) -> [TrainingBlockPrescription] {
         switch criterion {
         case .reps(let count, let exerciseName):
-            return [
-                makePrescription(
-                    exerciseName: exerciseName,
-                    sets: sets(for: card, fallback: 3),
-                    target: .reps(max(1, count)),
-                    restSeconds: restSeconds(for: card, fallback: 120),
-                    rpe: rpe(for: card),
-                    notes: "Log clean reps that satisfy the vow proof."
-                )
-            ]
+            let primary = makePrescription(
+                exerciseName: exerciseName,
+                sets: sets(for: card, fallback: 3),
+                target: .reps(max(1, count)),
+                restSeconds: restSeconds(for: card, fallback: 120),
+                rpe: rpe(for: card),
+                notes: "Log clean reps that satisfy the vow proof."
+            )
+            guard card.kind == .apex else { return [primary] }
+            return ([primary] + apexSupport(for: exerciseName, card: card)).prefixArray(4)
 
         case .seconds(let seconds):
             return [
@@ -450,6 +450,18 @@ private enum WeeklyVowTrainingBuilder {
                     notes: "Build toward \(Int(target.rounded()))kg or higher."
                 )
             ]
+
+        case .exerciseWeightKg(let target, let exerciseName):
+            let primary = makePrescription(
+                exerciseName: exerciseName,
+                sets: sets(for: card, fallback: 4),
+                target: .reps(1),
+                restSeconds: restSeconds(for: card, fallback: 180),
+                rpe: rpe(for: card),
+                notes: "Build toward \(Int(target.rounded()))kg or higher on this lift."
+            )
+            guard card.kind == .apex else { return [primary] }
+            return ([primary] + apexSupport(for: exerciseName, card: card)).prefixArray(4)
 
         case .bodyweightRatio(let target):
             return [
@@ -476,16 +488,16 @@ private enum WeeklyVowTrainingBuilder {
             ]
 
         case .variant(let name):
-            return [
-                makePrescription(
-                    exerciseName: displayExerciseName(name),
-                    sets: sets(for: card, fallback: 3),
-                    target: .amrap,
-                    restSeconds: restSeconds(for: card, fallback: 120),
-                    rpe: rpe(for: card),
-                    notes: "Log the named movement variant for this vow."
-                )
-            ]
+            let primary = makePrescription(
+                exerciseName: displayExerciseName(name),
+                sets: sets(for: card, fallback: 3),
+                target: .amrap,
+                restSeconds: restSeconds(for: card, fallback: 120),
+                rpe: rpe(for: card),
+                notes: "Log the named movement variant for this vow."
+            )
+            guard card.kind == .apex else { return [primary] }
+            return ([primary] + apexSupport(for: name, card: card)).prefixArray(4)
 
         case .compound(let criteria):
             let compound = criteria.flatMap { prescriptions(for: $0, card: card) }
@@ -500,89 +512,120 @@ private enum WeeklyVowTrainingBuilder {
         let easy = card.kind == .ember
         switch axis {
         case .power:
-            return [
-                makePrescription(
-                    exerciseName: easy ? "Push-Up" : "Bench Press",
-                    sets: easy ? 2 : 4,
-                    target: easy ? .repsRange(6, 10) : .repsRange(3, 5),
-                    restSeconds: easy ? 60 : 150,
-                    rpe: rpe(for: card),
-                    notes: easy ? "Recovery-safe pressing volume." : "Heavy, crisp power work."
-                )
-            ]
+            return easy
+                ? [
+                    makePrescription(exerciseName: "Pushup", sets: 2, target: .repsRange(6, 10), restSeconds: 60, rpe: rpe(for: card), notes: "Easy pressing volume; leave plenty in reserve."),
+                    makePrescription(exerciseName: "Plank", sets: 2, target: .holdSeconds(25), restSeconds: 45, rpe: rpe(for: card), notes: "Brace and keep the shoulders packed.")
+                ]
+                : [
+                    makePrescription(exerciseName: "Bench Press", sets: 3, target: .repsRange(3, 5), restSeconds: 150, rpe: rpe(for: card), notes: "Crisp reps; stop before form slows."),
+                    makePrescription(exerciseName: "Farmer Carry", sets: 3, target: .distanceMeters(30), restSeconds: 90, rpe: rpe(for: card), notes: "Heavy walk, tall posture, no rushing.")
+                ]
         case .agility:
-            return [
-                makePrescription(
-                    exerciseName: easy ? "Walking Lunge" : "Bulgarian Split Squat",
-                    sets: easy ? 2 : 3,
-                    target: easy ? .repsRange(8, 10) : .repsRange(6, 8),
-                    restSeconds: easy ? 60 : 90,
-                    rpe: rpe(for: card),
-                    notes: "Move smoothly and keep balance."
-                )
-            ]
+            return easy
+                ? [
+                    makePrescription(exerciseName: "Walking Lunge", sets: 2, target: .repsRange(8, 10), restSeconds: 60, rpe: rpe(for: card), notes: "Smooth steps, quiet feet, clean balance."),
+                    makePrescription(exerciseName: "Thoracic Rotation", sets: 2, target: .timedSeconds(45), restSeconds: 15, rpe: rpe(for: card), notes: "Own the range before speed.")
+                ]
+                : [
+                    makePrescription(exerciseName: "Bulgarian Split Squat", sets: 3, target: .repsRange(6, 8), restSeconds: 90, rpe: rpe(for: card), notes: "Stable reps without knee collapse."),
+                    makePrescription(exerciseName: "Jump Squat", sets: 3, target: .reps(5), restSeconds: 75, rpe: rpe(for: card), notes: "Land soft and reset each rep.")
+                ]
         case .control:
             return [
-                makePrescription(
-                    exerciseName: "Plank",
-                    sets: easy ? 2 : 3,
-                    target: .holdSeconds(easy ? 30 : 45),
-                    restSeconds: easy ? 45 : 75,
-                    rpe: rpe(for: card),
-                    notes: "Brace hard without losing position."
-                )
+                makePrescription(exerciseName: easy ? "Plank" : "L-Sit (Tucked)", sets: easy ? 2 : 3, target: .holdSeconds(easy ? 30 : 20), restSeconds: easy ? 45 : 75, rpe: rpe(for: card), notes: "No position drift; stop before shape breaks."),
+                makePrescription(exerciseName: "Hollow Hold", sets: easy ? 2 : 3, target: .holdSeconds(easy ? 20 : 30), restSeconds: easy ? 45 : 60, rpe: rpe(for: card), notes: "Ribs down, low back quiet.")
             ]
         case .endurance:
-            return [
-                makePrescription(
-                    exerciseName: easy ? "Walk" : "Run",
-                    sets: 1,
-                    target: .timedSeconds(easy ? 8 * 60 : 10 * 60),
-                    restSeconds: 0,
-                    rpe: rpe(for: card),
-                    notes: easy ? "Easy nasal pace." : "Sustained effort without sprinting."
-                )
-            ]
+            return easy
+                ? [
+                    makePrescription(exerciseName: "Walk", sets: 1, target: .timedSeconds(8 * 60), restSeconds: 0, rpe: rpe(for: card), notes: "Easy nasal pace."),
+                    makePrescription(exerciseName: "Hip Flexor Stretch", sets: 2, target: .timedSeconds(40), restSeconds: 15, rpe: rpe(for: card), notes: "Open the stride without forcing range.")
+                ]
+                : [
+                    makePrescription(exerciseName: "Run", sets: 1, target: .timedSeconds(10 * 60), restSeconds: 0, rpe: rpe(for: card), notes: "Sustained effort without sprinting."),
+                    makePrescription(exerciseName: "Farmer Carry", sets: 2, target: .distanceMeters(40), restSeconds: 75, rpe: rpe(for: card), notes: "Finish with steady loaded breathing.")
+                ]
         case .mobility:
             return [
-                makePrescription(
-                    exerciseName: "Hip Flexor Stretch",
-                    sets: easy ? 2 : 3,
-                    target: .timedSeconds(easy ? 45 : 60),
-                    restSeconds: 15,
-                    rpe: rpe(for: card),
-                    notes: "Stay in pain-free range."
-                ),
-                makePrescription(
-                    exerciseName: "Thoracic Rotation",
-                    sets: easy ? 2 : 3,
-                    target: .timedSeconds(easy ? 45 : 60),
-                    restSeconds: 15,
-                    rpe: rpe(for: card),
-                    notes: "Slow reps, full breath."
-                )
+                makePrescription(exerciseName: "Hip Flexor Stretch", sets: easy ? 2 : 3, target: .timedSeconds(easy ? 45 : 60), restSeconds: 15, rpe: rpe(for: card), notes: "Stay in pain-free range."),
+                makePrescription(exerciseName: "Thoracic Rotation", sets: easy ? 2 : 3, target: .timedSeconds(easy ? 45 : 60), restSeconds: 15, rpe: rpe(for: card), notes: "Slow reps, full breath."),
+                makePrescription(exerciseName: easy ? "Hamstring Fold" : "Frog Stretch", sets: easy ? 1 : 2, target: .timedSeconds(easy ? 45 : 60), restSeconds: 15, rpe: rpe(for: card), notes: "Long exhale into the end range.")
             ]
         case .explosiveness:
-            return [
-                makePrescription(
-                    exerciseName: easy ? "jump squat" : "box jump",
-                    sets: easy ? 3 : 5,
-                    target: easy ? .reps(5) : .reps(3),
-                    restSeconds: easy ? 75 : 120,
-                    rpe: rpe(for: card),
-                    notes: "Every rep should be sharp."
-                )
-            ]
+            return easy
+                ? [
+                    makePrescription(exerciseName: "Jump Squat", sets: 3, target: .reps(4), restSeconds: 75, rpe: rpe(for: card), notes: "Low volume, every rep sharp."),
+                    makePrescription(exerciseName: "Walk", sets: 1, target: .timedSeconds(3 * 60), restSeconds: 0, rpe: rpe(for: card), notes: "Flush out between power exposures.")
+                ]
+                : [
+                    makePrescription(exerciseName: "Jump Squat", sets: 4, target: .reps(3), restSeconds: 105, rpe: rpe(for: card), notes: "Reset completely between sets."),
+                    makePrescription(exerciseName: "Kettlebell Swing", sets: 3, target: .repsRange(8, 10), restSeconds: 90, rpe: rpe(for: card), notes: "Hips snap, arms stay quiet.")
+                ]
         }
     }
 
     private static func apexCircuit(card: WeeklyVowCard) -> [TrainingBlockPrescription] {
-        [
-            makePrescription(exerciseName: "Push-Up", sets: 3, target: .repsRange(8, 12), restSeconds: 45, rpe: rpe(for: card)),
-            makePrescription(exerciseName: "Inverted Row", sets: 3, target: .repsRange(6, 10), restSeconds: 45, rpe: rpe(for: card)),
-            makePrescription(exerciseName: "Goblet Squat", sets: 3, target: .repsRange(8, 12), restSeconds: 45, rpe: rpe(for: card)),
-            makePrescription(exerciseName: "Plank", sets: 3, target: .holdSeconds(40), restSeconds: 45, rpe: rpe(for: card))
-        ]
+        switch card.capstone.displayName {
+        case "Broad Jump Distance":
+            return [
+                makePrescription(exerciseName: "Jump Squat", sets: 5, target: .reps(3), restSeconds: 105, rpe: rpe(for: card), notes: "Max intent; reset fully each set."),
+                makePrescription(exerciseName: "Walking Lunge", sets: 3, target: .repsRange(10, 12), restSeconds: 75, rpe: rpe(for: card), notes: "Build the landing positions."),
+                makePrescription(exerciseName: "Farmer Carry", sets: 3, target: .distanceMeters(30), restSeconds: 90, rpe: rpe(for: card), notes: "Rigid trunk under fatigue.")
+            ]
+        case "L-Sit Hold":
+            return [
+                makePrescription(exerciseName: "L-Sit (Tucked)", sets: 4, target: .holdSeconds(15), restSeconds: 75, rpe: rpe(for: card), notes: "Accumulate perfect holds before the proof."),
+                makePrescription(exerciseName: "Hollow Hold", sets: 3, target: .holdSeconds(30), restSeconds: 60, rpe: rpe(for: card), notes: "Keep ribs down."),
+                makePrescription(exerciseName: "Dip", sets: 3, target: .repsRange(5, 8), restSeconds: 90, rpe: rpe(for: card), notes: "Shoulders packed and elbows controlled.")
+            ]
+        case "5K Sub-25":
+            return [
+                makePrescription(exerciseName: "Run", sets: 1, target: .distanceMeters(5_000), restSeconds: 0, rpe: rpe(for: card), notes: "Log the 5K attempt as one continuous effort."),
+                makePrescription(exerciseName: "Hip Flexor Stretch", sets: 2, target: .timedSeconds(45), restSeconds: 15, rpe: 4, notes: "Cooldown and restore stride length.")
+            ]
+        default:
+            return [
+                makePrescription(exerciseName: "Pushup", sets: 3, target: .repsRange(8, 12), restSeconds: 45, rpe: rpe(for: card)),
+                makePrescription(exerciseName: "Inverted Row", sets: 3, target: .repsRange(6, 10), restSeconds: 45, rpe: rpe(for: card)),
+                makePrescription(exerciseName: "Goblet Squat", sets: 3, target: .repsRange(8, 12), restSeconds: 45, rpe: rpe(for: card)),
+                makePrescription(exerciseName: "Plank", sets: 3, target: .holdSeconds(40), restSeconds: 45, rpe: rpe(for: card))
+            ]
+        }
+    }
+
+    private static func apexSupport(
+        for proofExerciseName: String,
+        card: WeeklyVowCard
+    ) -> [TrainingBlockPrescription] {
+        switch MovementCatalog.normalized(proofExerciseName) {
+        case let name where name.contains("pullup") || name.contains("pull up"):
+            return [
+                makePrescription(exerciseName: "Inverted Row", sets: 3, target: .repsRange(8, 12), restSeconds: 60, rpe: rpe(for: card), notes: "Build pulling volume without burning the proof set."),
+                makePrescription(exerciseName: "Hollow Hold", sets: 3, target: .holdSeconds(25), restSeconds: 45, rpe: rpe(for: card), notes: "Keep the trunk locked for strict reps.")
+            ]
+        case let name where name.contains("muscle up"):
+            return [
+                makePrescription(exerciseName: "Pull-Up", sets: 3, target: .repsRange(3, 5), restSeconds: 105, rpe: rpe(for: card), notes: "Strict pull height, no kip."),
+                makePrescription(exerciseName: "Dip", sets: 3, target: .repsRange(4, 6), restSeconds: 90, rpe: rpe(for: card), notes: "Own the press-out position."),
+                makePrescription(exerciseName: "Hollow Hold", sets: 2, target: .holdSeconds(30), restSeconds: 45, rpe: rpe(for: card), notes: "Keep the body line quiet.")
+            ]
+        case let name where name.contains("bench") || name.contains("squat") || name.contains("deadlift") || name.contains("press"):
+            return [
+                makePrescription(exerciseName: "Farmer Carry", sets: 3, target: .distanceMeters(30), restSeconds: 90, rpe: rpe(for: card), notes: "Heavy brace after the top set."),
+                makePrescription(exerciseName: "Hip Flexor Stretch", sets: 2, target: .timedSeconds(45), restSeconds: 15, rpe: 4, notes: "Bring the system back down.")
+            ]
+        case let name where name.contains("run"):
+            return [
+                makePrescription(exerciseName: "Hip Flexor Stretch", sets: 2, target: .timedSeconds(45), restSeconds: 15, rpe: 4, notes: "Cooldown and restore stride length."),
+                makePrescription(exerciseName: "Thoracic Rotation", sets: 2, target: .timedSeconds(45), restSeconds: 15, rpe: 4, notes: "Easy breathing, no forcing.")
+            ]
+        default:
+            return [
+                makePrescription(exerciseName: "Goblet Squat", sets: 3, target: .repsRange(8, 12), restSeconds: 60, rpe: rpe(for: card)),
+                makePrescription(exerciseName: "Plank", sets: 3, target: .holdSeconds(35), restSeconds: 45, rpe: rpe(for: card))
+            ]
+        }
     }
 
     private static func makePrescription(
@@ -633,7 +676,11 @@ private enum WeeklyVowTrainingBuilder {
             return "jump squat"
         case "weighted pull up":
             return "weighted pullup"
-        case "deep squat":
+        case "strict muscle up":
+            return "muscle-up"
+        case "run 5k", "5k run", "5k sub 25":
+            return "run"
+        case "deep squat", "deep squat hold":
             return "bodyweight squat"
         case "mobility flow":
             return "hip flexor stretch"
@@ -673,11 +720,11 @@ private enum WeeklyVowTrainingBuilder {
     private static func blockTitle(for card: WeeklyVowCard) -> String {
         switch card.kind {
         case .ember:
-            return "Ember Vow Work"
+            return "Low Binding Work"
         case .overdrive:
-            return "Overdrive Vow Work"
+            return "Limit Binding Work"
         case .apex:
-            return "Apex Vow Circuit"
+            return "Apex Binding Circuit"
         }
     }
 
@@ -724,6 +771,10 @@ private enum WeeklyVowTrainingBuilder {
 private extension Array {
     var nilIfEmpty: [Element]? {
         isEmpty ? nil : self
+    }
+
+    func prefixArray(_ maxLength: Int) -> [Element] {
+        Array(prefix(maxLength))
     }
 }
 

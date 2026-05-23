@@ -3,14 +3,13 @@ import SwiftUI
 // MARK: - SkillGraphView
 //
 // Landing screen for the Skill Map. A vertical scroll of rich cluster
-// cards — one per display tree. 7 cards total:
+// cards — one per display tree:
 //   • Pull
 //   • Push
 //   • Legs
-//   • Core & Levers
+//   • Core
 //   • Handstand
 //   • Planche
-//   • Endurance
 //
 // Tap behaviour:
 //   • 1:1 display tree → opens ClusterStaircaseView for its cluster
@@ -86,7 +85,7 @@ struct SkillGraphView: View {
                 .tracking(2.2)
                 .foregroundStyle(Color.unbound.textSecondary)
             Spacer()
-            Text("\(graph.nodes.count) skills · 7 trees")
+            Text("\(graph.nodes.count) skills · \(SkillDisplayTree.allCases.count) trees")
                 .font(Font.unbound.monoS)
                 .foregroundStyle(Color.unbound.textTertiary)
         }

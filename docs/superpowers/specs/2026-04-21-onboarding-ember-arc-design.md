@@ -13,11 +13,17 @@
 - Structure speaks in chapters, stages, seals, embers — visually and in labels.
 - Headlines and subs speak plainly to the user. No narrator voice. No "young warrior." No "your journey begins."
 - Anime-literate users catch the motifs. Everyone else sees a tight premium app.
+- "Break the restriction" means "start your fitness arc / become the version you want to train into." It is not a mandate to diagnose literal weak links, limiters, restrictions, or flaws in the user.
+- The opening should invite the user into the arc first. Assessment, rank, protocol, and proof come after the cold open as the tutorial/mechanic layer.
+- Avoid making "the loop", "weak link", "limiter", or "what is holding you back" the core pain point. The simpler pain point is: normal fitness feels random and unearned; UNBOUND makes training feel like a real arc with visible progress.
 
 **Cringe tests** (never ship):
 - "Awaken your true potential"
 - "The path of the strong calls"
 - Named anime characters (Toji, Itadori, Todo, Saitama) — legal/IP risk, internal shorthand only.
+- "We found your weak link"
+- "Your limiter is holding you back"
+- "System detected your failure loop"
 
 **Tone reference** (keep):
 - `CHAPTER II · THE MAPPING` — label does the work, no narration.

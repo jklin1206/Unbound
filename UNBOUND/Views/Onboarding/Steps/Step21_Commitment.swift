@@ -19,6 +19,7 @@ struct Step21_Commitment: View {
             VStack(alignment: .leading, spacing: 24) {
                 HUDSlider(
                     value: $flow.commitment,
+                    steps: HUDSlider.fivePointStoredSteps,
                     descriptors: HUDSlider.commitmentDescriptors,
                     leftAnchor: "Curious",
                     rightAnchor: "All in"

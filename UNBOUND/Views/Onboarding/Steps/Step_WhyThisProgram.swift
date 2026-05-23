@@ -8,8 +8,8 @@ struct Step_WhyThisProgram: View {
 
     var body: some View {
         OnboardingScaffold(
-            title: "Protocol lock confirmed.",
-            subtitle: "Your answers mapped to concrete training decisions. Review the build logic below.",
+            title: "Your path is locked.",
+            subtitle: "The first stretch is clear. Now it becomes yours.",
             progress: progress,
             primaryTitle: "This is mine",
             primaryEnabled: true,

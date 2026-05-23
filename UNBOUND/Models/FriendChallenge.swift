@@ -29,7 +29,7 @@ struct FriendChallenge: Codable, Identifiable, Equatable, Sendable {
             switch self {
             case .mostSessions: return "Most Sessions"
             case .noMissedDays: return "No Missed Days"
-            case .firstToFinishTrial: return "First to Finish Trial"
+            case .firstToFinishTrial: return "First Binding Vow"
             case .mostAlignedSessions: return "Most Aligned"
             case .earlyRiser: return "Early Riser (8am)"
             case .proteinGoal: return "Protein Goal"
@@ -40,7 +40,7 @@ struct FriendChallenge: Codable, Identifiable, Equatable, Sendable {
             switch self {
             case .mostSessions: return "Most workout sessions this week."
             case .noMissedDays: return "Longest consecutive day streak."
-            case .firstToFinishTrial: return "First to clear a trial capstone."
+            case .firstToFinishTrial: return "First to seal a Binding Vow."
             case .mostAlignedSessions: return "Most aligned-axis sessions."
             case .earlyRiser: return "Most workouts before 8 AM."
             case .proteinGoal: return "Most days hitting protein target."

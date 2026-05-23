@@ -1,6 +1,6 @@
 // UNBOUND/Models/SkillTreeContent/Tiers/ClSkillTiers.swift
 //
-// Tier criteria for every skill with prefix `cl.` (32 skills).
+// Tier criteria for every skill with prefix `cl.` (37 skills).
 // Core / lever family. See CalSkillTiers.swift for the established pattern.
 //
 // Hold-type skills (hollow body, planks, l-sit, v-sit, levers, etc.):
@@ -21,8 +21,8 @@ import Foundation
 #if DEBUG
 private let _clCountCheck: Int = {
     assert(
-        ClSkillTiers.table.count == 32,
-        "cl cluster should have 32 entries, has \(ClSkillTiers.table.count)"
+        ClSkillTiers.table.count == 37,
+        "cl cluster should have 37 entries, has \(ClSkillTiers.table.count)"
     )
     for (id, tiers) in ClSkillTiers.table {
         assert(tiers.count == 9, "\(id) needs 9 tiers, has \(tiers.count)")
@@ -110,10 +110,49 @@ enum ClSkillTiers {
             .ascendant:  .reps(25, exerciseName: "toes to bar"),
         ],
 
+        // cl.knee-raise — floor/parallel-bar knee raise entry before hanging work.
+        "cl.knee-raise": [
+            .initiate:   .reps(5,  exerciseName: "knee raise"),
+            .novice:     .reps(8,  exerciseName: "knee raise"),
+            .apprentice: .reps(12, exerciseName: "knee raise"),
+            .forged:     .reps(15, exerciseName: "knee raise"),
+            .veteran:    .reps(20, exerciseName: "knee raise"),
+            .honed:      .reps(25, exerciseName: "knee raise"),
+            .vessel:     .compound([.reps(25, exerciseName: "knee raise"), .reps(8, exerciseName: "hanging knee raise")]),
+            .unbound:    .compound([.reps(30, exerciseName: "knee raise"), .reps(12, exerciseName: "hanging knee raise")]),
+            .ascendant:  .compound([.reps(40, exerciseName: "knee raise"), .reps(15, exerciseName: "hanging knee raise")]),
+        ],
+
+        // cl.leg-raise — straight-leg ground/parallel-bar raise.
+        "cl.leg-raise": [
+            .initiate:   .reps(3,  exerciseName: "leg raise"),
+            .novice:     .reps(5,  exerciseName: "leg raise"),
+            .apprentice: .reps(8,  exerciseName: "leg raise"),
+            .forged:     .reps(12, exerciseName: "leg raise"),
+            .veteran:    .reps(15, exerciseName: "leg raise"),
+            .honed:      .reps(20, exerciseName: "leg raise"),
+            .vessel:     .compound([.reps(20, exerciseName: "leg raise"), .reps(5, exerciseName: "hanging leg raise")]),
+            .unbound:    .compound([.reps(25, exerciseName: "leg raise"), .reps(8, exerciseName: "hanging leg raise")]),
+            .ascendant:  .compound([.reps(30, exerciseName: "leg raise"), .reps(10, exerciseName: "hanging leg raise")]),
+        ],
+
         // MARK: - Wheel & Flag
 
         // cl.ab-wheel — standing ab wheel rollout; anchor: 5 reps = Forged
         "cl.ab-wheel": [
+            .initiate:   .reps(1,  exerciseName: "ab wheel standing"),
+            .novice:     .reps(2,  exerciseName: "ab wheel standing"),
+            .apprentice: .reps(3,  exerciseName: "ab wheel standing"),
+            .forged:     .reps(5,  exerciseName: "ab wheel standing"),
+            .veteran:    .reps(8,  exerciseName: "ab wheel standing"),
+            .honed:      .reps(12, exerciseName: "ab wheel standing"),
+            .vessel:     .reps(15, exerciseName: "ab wheel standing"),
+            .unbound:    .reps(20, exerciseName: "ab wheel standing"),
+            .ascendant:  .reps(25, exerciseName: "ab wheel standing"),
+        ],
+
+        // cl.standing-ab-rollout — live tree ID for the standing ab-wheel rollout.
+        "cl.standing-ab-rollout": [
             .initiate:   .reps(1,  exerciseName: "ab wheel standing"),
             .novice:     .reps(2,  exerciseName: "ab wheel standing"),
             .apprentice: .reps(3,  exerciseName: "ab wheel standing"),
@@ -490,6 +529,32 @@ enum ClSkillTiers {
             .vessel:     .compound([.variant("straddle l-sit"), .reps(12, exerciseName: "hanging leg raise")]),
             .unbound:    .compound([.variant("straddle l-sit"), .reps(15, exerciseName: "hanging leg raise")]),
             .ascendant:  .compound([.variant("straddle l-sit"), .reps(20, exerciseName: "hanging leg raise")]),
+        ],
+
+        // cl.semi-straddle-l-sit — bridge between L-sit and straddle L-sit.
+        "cl.semi-straddle-l-sit": [
+            .initiate:   .variant("l-sit"),
+            .novice:     .compound([.variant("l-sit"), .reps(5, exerciseName: "leg raise")]),
+            .apprentice: .compound([.variant("l-sit"), .reps(10, exerciseName: "leg raise")]),
+            .forged:     .variant("semi-straddle l-sit"),
+            .veteran:    .compound([.variant("semi-straddle l-sit"), .reps(5, exerciseName: "hanging leg raise")]),
+            .honed:      .compound([.variant("semi-straddle l-sit"), .reps(8, exerciseName: "hanging leg raise")]),
+            .vessel:     .compound([.variant("semi-straddle l-sit"), .variant("straddle l-sit")]),
+            .unbound:    .compound([.variant("semi-straddle l-sit"), .reps(12, exerciseName: "hanging leg raise")]),
+            .ascendant:  .compound([.variant("semi-straddle l-sit"), .reps(15, exerciseName: "toes to bar")]),
+        ],
+
+        // cl.vertical-l-sit — highest compression L-sit family member.
+        "cl.vertical-l-sit": [
+            .initiate:   .variant("straddle l-sit"),
+            .novice:     .compound([.variant("straddle l-sit"), .reps(5, exerciseName: "hanging leg raise")]),
+            .apprentice: .variant("v-sit"),
+            .forged:     .variant("vertical l-sit"),
+            .veteran:    .compound([.variant("vertical l-sit"), .reps(5, exerciseName: "toes to bar")]),
+            .honed:      .compound([.variant("vertical l-sit"), .reps(8, exerciseName: "toes to bar")]),
+            .vessel:     .compound([.variant("vertical l-sit"), .reps(12, exerciseName: "toes to bar")]),
+            .unbound:    .compound([.variant("vertical l-sit"), .reps(15, exerciseName: "toes to bar")]),
+            .ascendant:  .compound([.variant("vertical l-sit"), .reps(20, exerciseName: "toes to bar")]),
         ],
 
         // MARK: - Dragon Flag Hip Raise

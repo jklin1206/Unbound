@@ -10,7 +10,37 @@ final class AttributeProfileTests: XCTestCase {
         for key in AttributeKey.allCases {
             XCTAssertEqual(p.value(for: key).peak, 0)
             XCTAssertEqual(p.value(for: key).current, 0)
+            XCTAssertEqual(p.value(for: key).xp, 0)
+            XCTAssertEqual(p.level(for: key), 0)
         }
+    }
+
+    func testAttributeLevelUsesConcaveXPCurve() {
+        let levelFourXP = AttributeLevelCurve.xpRequired(forLevel: 4)
+        let value = AttributeValue(peak: 0, current: 0, xp: levelFourXP, lastContributionAt: t0)
+        let justBelow = AttributeValue(peak: 0, current: 0, xp: levelFourXP - 0.1, lastContributionAt: t0)
+
+        XCTAssertEqual(value.level, 4)
+        XCTAssertEqual(justBelow.level, 3)
+    }
+
+    func testAttributeLevelCostCapsAfterSoftCap() {
+        let level100XP = AttributeLevelCurve.xpRequired(forLevel: 100)
+        let level101XP = AttributeLevelCurve.xpRequired(forLevel: 101)
+        let level500XP = AttributeLevelCurve.xpRequired(forLevel: 500)
+        let level501XP = AttributeLevelCurve.xpRequired(forLevel: 501)
+
+        XCTAssertEqual(level101XP - level100XP, AttributeLevelCurve.cappedXPPerLevel, accuracy: 0.001)
+        XCTAssertEqual(level501XP - level500XP, AttributeLevelCurve.cappedXPPerLevel, accuracy: 0.001)
+        XCTAssertEqual(AttributeLevelCurve.level(forXP: level500XP), 500)
+        XCTAssertEqual(AttributeLevelCurve.level(forXP: level500XP - 0.1), 499)
+    }
+
+    func testLegacyAttributeValuesBackfillXPFromPeakScore() {
+        let value = AttributeValue(peak: 72, current: 60, lastContributionAt: t0)
+
+        XCTAssertEqual(value.xp, AttributeLevelCurve.legacyXP(forScore: 72), accuracy: 0.001)
+        XCTAssertEqual(value.level, AttributeLevelCurve.level(forXP: value.xp))
     }
 
     func testDominantIsAxisWithHighestPeak() {

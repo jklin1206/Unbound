@@ -1,0 +1,21 @@
+[
+  {
+    "id": "f9bb17b4-aa5d-4c7e-b658-1f460ba3e29b",
+    "status": "completed",
+    "display_name": "GPT Image 2",
+    "job_set_type": "imagegen_2_0",
+    "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3Am37d6qxSQ2zttmtLTANcq9W7j/hf_20260518_231321_f9bb17b4-aa5d-4c7e-b658-1f460ba3e29b.png",
+    "created_at": 1779146001.051277,
+    "params": {
+      "width": 2048,
+      "height": 2048,
+      "prompt": "Create a square 2x4 asset sheet of eight transparent-feeling ornamental RPG/anime UI progress bar FRAMES only for a fitness app called UNBOUND. IMPORTANT: empty frames only, no filled progress, no glowing liquid, no text, no letters, no numbers, no characters. Each cell contains one centered horizontal progress bar frame, dark graphite/bone-white metal linework on near-black, with subtle colored edge accents. Style: premium anime RPG status screen, dark fantasy training arc, brutalist Japanese minimalism, not sci-fi battery, not cyberpunk. Frames should be long rounded/chamfered capsules with carved corners, small sigil notches, katana-cut details, clean enough for mobile UI. Eight frames: XP frame with cold blue accent, press/strength with ember accent, pull/back with steel blue accent, legs with red-orange accent, core/control with green accent, mobility with teal accent, explosive with magenta-violet accent, rare/tier-change with white-violet accent. High contrast, crisp, app UI ready, generous dark padding around each frame.",
+      "medias": [],
+      "aspect_ratio": "1:1",
+      "quality": "high",
+      "resolution": "2k",
+      "model": "videotape-alpha",
+      "reference_elements": []
+    }
+  }
+]

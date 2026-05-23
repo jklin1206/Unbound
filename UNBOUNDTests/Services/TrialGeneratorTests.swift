@@ -122,6 +122,53 @@ final class WeeklyVowGeneratorTests: XCTestCase {
         }
     }
 
+    func testGeneratedCardsUseBindingVowLanguageAndImpactNames() {
+        let profile = makeProfile(powerValue: 70, controlValue: 30)
+        let cards = WeeklyVowGenerator.cards(profile: profile, history: [], weekStart: .now, weekNumber: 5)
+
+        XCTAssertTrue(cards.allSatisfy { $0.displayName.hasSuffix("Vow") })
+        XCTAssertTrue(cards.allSatisfy { $0.blurb.localizedCaseInsensitiveContains("Binding Vow") })
+        XCTAssertFalse(cards.map(\.displayName).contains { name in
+            name.localizedCaseInsensitiveContains("Ember")
+                || name.localizedCaseInsensitiveContains("Overdrive")
+        })
+    }
+
+    func testPowerOverdriveProofNamesTheLiftItScaledFrom() {
+        let profile = makeProfile(powerValue: 70, controlValue: 30)
+        let history = [
+            makeWorkoutLog(exerciseName: "bench press", weightKg: 80),
+            makeWorkoutLog(exerciseName: "hip flexor stretch", weightKg: 120)
+        ]
+
+        let cards = WeeklyVowGenerator.cards(profile: profile, history: history, weekStart: .now, weekNumber: 5)
+        let overdrive = cards.first(where: { $0.kind == .overdrive })!
+
+        guard case .autoFromLog(.exerciseWeightKg(let target, let exerciseName)) = overdrive.capstone.evaluation else {
+            return XCTFail("Expected an exercise-specific weight proof.")
+        }
+
+        XCTAssertEqual(exerciseName, "bench press")
+        XCTAssertEqual(target, 85)
+        XCTAssertTrue(overdrive.capstone.description.contains("Barbell Bench Press"))
+    }
+
+    func testApexWeightProofUsesExerciseSpecificTarget() {
+        let profile = makeProfile(powerValue: 70, controlValue: 30)
+        let history = [makeWorkoutLog(exerciseName: "deadlift", weightKg: 120)]
+
+        let cards = WeeklyVowGenerator.cards(profile: profile, history: history, weekStart: .now, weekNumber: 2)
+        let apex = cards.first(where: { $0.kind == .apex })!
+
+        guard case .autoFromLog(.exerciseWeightKg(let target, let exerciseName)) = apex.capstone.evaluation else {
+            return XCTFail("Expected an exercise-specific Apex proof.")
+        }
+
+        XCTAssertEqual(apex.capstone.displayName, "1-Rep PR Attempt")
+        XCTAssertEqual(exerciseName, "deadlift")
+        XCTAssertEqual(target, 125)
+    }
+
     // MARK: helpers
 
     private func makeProfile(powerValue: Double, controlValue: Double) -> AttributeProfile {
@@ -137,5 +184,40 @@ final class WeeklyVowGeneratorTests: XCTestCase {
             profile.set(axis, AttributeValue(peak: value, current: value, lastContributionAt: .now))
         }
         return profile
+    }
+
+    private func makeWorkoutLog(exerciseName: String, weightKg: Double) -> WorkoutLog {
+        WorkoutLog(
+            id: UUID().uuidString,
+            userId: "u-1",
+            programId: "program",
+            dayNumber: 1,
+            plannedWorkoutName: "Lift",
+            startedAt: Date(timeIntervalSince1970: 1_700_000_000),
+            completedAt: Date(timeIntervalSince1970: 1_700_000_600),
+            exerciseEntries: [
+                ExerciseLogEntry(
+                    id: UUID().uuidString,
+                    exerciseName: exerciseName,
+                    plannedSets: 1,
+                    plannedReps: "1",
+                    sets: [
+                        SetLog(
+                            id: UUID().uuidString,
+                            setNumber: 1,
+                            weightKg: weightKg,
+                            reps: 1,
+                            rpe: nil,
+                            isWarmup: false
+                        )
+                    ],
+                    skipped: false,
+                    notes: nil
+                )
+            ],
+            overallNotes: nil,
+            overallRPE: nil,
+            durationMinutes: 45
+        )
     }
 }

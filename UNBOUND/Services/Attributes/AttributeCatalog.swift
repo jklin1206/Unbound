@@ -43,6 +43,48 @@ final class AttributeCatalog: AttributeCatalogProtocol {
     func contribution(forSkillNodeId id: String) -> AttributeContribution {
         bySkillNode[id] ?? .zero
     }
+
+    func contribution(
+        forMovementId movementId: String?,
+        rankStandardMovementId: String?,
+        fallbackExerciseName name: String
+    ) -> AttributeContribution {
+        if let exact = movementContribution(for: movementId), !exact.weights.isEmpty {
+            return exact
+        }
+        if let standard = movementContribution(for: rankStandardMovementId), !standard.weights.isEmpty {
+            return standard
+        }
+
+        let fallback = contribution(forExerciseName: name)
+        if !fallback.weights.isEmpty {
+            return fallback
+        }
+
+        let resolved = MovementResolver.resolve(name)
+        if let exact = movementContribution(for: resolved.movementId), !exact.weights.isEmpty {
+            return exact
+        }
+        return movementContribution(for: resolved.rankStandardMovementId) ?? .zero
+    }
+
+    private func movementContribution(for movementId: String?) -> AttributeContribution? {
+        guard let movementId, let definition = MovementCatalog.definition(for: movementId) else {
+            return nil
+        }
+        if !definition.attributeWeights.isEmpty {
+            return AttributeContribution(weights: definition.attributeWeights)
+        }
+        if let canonical = definition.canonicalExerciseName {
+            let fallback = contribution(forExerciseName: canonical)
+            if !fallback.weights.isEmpty { return fallback }
+        }
+        if let skillId = definition.skillId {
+            let fallback = contribution(forSkillNodeId: skillId)
+            if !fallback.weights.isEmpty { return fallback }
+        }
+        return nil
+    }
 }
 
 // MARK: - JSON shapes

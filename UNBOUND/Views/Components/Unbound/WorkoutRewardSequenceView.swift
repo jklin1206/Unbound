@@ -513,7 +513,7 @@ struct WorkoutRewardSequenceView: View {
             let tint = callout.theme.tintColor
             RewardPanel(tint: tint, active: currentBeatKind == .weeklyVow) {
                 VStack(alignment: .leading, spacing: 18) {
-                    beatHeader(kicker: "WEEKLY VOW BONUS", title: callout.title.uppercased(), tint: tint)
+                    beatHeader(kicker: "BINDING VOW BONUS", title: callout.title.uppercased(), tint: tint)
 
                     HStack(spacing: 14) {
                         ZStack {
@@ -546,9 +546,9 @@ struct WorkoutRewardSequenceView: View {
 
                     VStack(spacing: 10) {
                         if let bonus = callout.completionBonus {
-                            rewardLine(label: "Vow Bonus", value: "+\(bonus.overallLevelXP) LV XP", tint: Color.rewardBlue)
-                            rewardLine(label: "Vow Badge", value: bonus.badgeProgress.displayText, tint: tint)
-                            rewardLine(label: "Vow Cosmetic", value: bonus.cosmeticProgress.displayText, tint: tint)
+                            rewardLine(label: "Binding Bonus", value: "+\(bonus.overallLevelXP) LV XP", tint: Color.rewardBlue)
+                            rewardLine(label: "Binding Badge", value: bonus.badgeProgress.displayText, tint: tint)
+                            rewardLine(label: "Binding Cosmetic", value: bonus.cosmeticProgress.displayText, tint: tint)
                         }
                         rewardLine(label: "Proof", value: callout.proofName, tint: tint)
                         rewardLine(label: "Receipt", value: callout.receiptLine, tint: Color.rewardBlue)
@@ -612,7 +612,7 @@ struct WorkoutRewardSequenceView: View {
                 let primaryXPValue = summary.xp.total > 0 ? "+\(summary.xp.total)" : "+\(skillXP)"
                 let primaryXPLabel = summary.xp.total > 0 ? "LV XP" : "SKILL XP"
                 let featCount = summary.personalRecords.count + summary.badges.count + (summary.weeklyVowCallout == nil ? 0 : 1)
-                let featLabel = summary.weeklyVowCallout == nil ? "FEATS" : "VOW"
+                let featLabel = summary.weeklyVowCallout == nil ? "FEATS" : "BIND"
                 HStack(spacing: 20) {
                     yieldToken(value: primaryXPValue, label: primaryXPLabel, tint: Color.rewardBlue)
                     yieldToken(value: "\(summary.liftProgress.filter(\.didAdvanceTier).count)", label: "RANK UPS", tint: dominantLiftTint)

@@ -222,8 +222,8 @@ final class WeeklyVowsServiceTests: XCTestCase {
             id: "weekly-vow-W5-overdrive",
             kind: .overdrive,
             theme: .axis(.explosiveness),
-            displayName: "Overdrive · Explosiveness Finisher",
-            blurb: "Attach a sharp finisher after training and push your explosiveness output.",
+            displayName: "One Strike Vow",
+            blurb: "Accept a redline Binding Vow after training.",
             capstone: WeeklyVowProof(
                 displayName: "Output Proof",
                 description: "8 max-effort box jumps.",
@@ -257,6 +257,83 @@ final class WeeklyVowsServiceTests: XCTestCase {
         XCTAssertEqual(prescription.rpe, 7)
         XCTAssertEqual(draft.estimatedMinutes, 9)
         XCTAssertTrue(MovementCatalog.isProgramCompatible(definition, style: .hybrid, userEquipment: [.bodyweight]))
+    }
+
+    func testAxisVowDraftsUseCatalogBackedMultiMovementTemplates() {
+        for axis in AttributeKey.allCases {
+            for kind in [WeeklyVowKind.ember, .overdrive] {
+                let card = makeAxisCard(kind: kind, axis: axis)
+                let vow = WeeklyVow(
+                    id: card.id,
+                    userId: "u-1",
+                    weekStart: Date(timeIntervalSince1970: 1_700_000_000),
+                    chosenCard: card,
+                    capstoneState: .pending,
+                    completedAt: nil
+                )
+
+                let draft = service.trainingDraft(for: vow, date: Date(timeIntervalSince1970: 1_700_000_000))
+                let prescriptions = draft.blocks.flatMap(\.prescriptions)
+
+                XCTAssertGreaterThanOrEqual(prescriptions.count, 2, "\(kind.displayName) \(axis.displayName) should not collapse into one generic movement.")
+                XCTAssertLessThanOrEqual(draft.estimatedMinutes, card.prescription?.maxMinutes ?? 60)
+                assertNoLegacyWeeklyCopy(
+                    [draft.title] +
+                    draft.blocks.flatMap { [$0.title, $0.subtitle ?? "", $0.notes ?? ""] } +
+                    prescriptions.flatMap { [$0.exerciseName, $0.notes ?? ""] }
+                )
+
+                for prescription in prescriptions {
+                    let movementId = try! XCTUnwrap(prescription.movementId)
+                    let definition = try! XCTUnwrap(MovementCatalog.definition(for: movementId))
+                    XCTAssertFalse(definition.id.hasPrefix("unresolved."))
+                    XCTAssertEqual(prescription.exerciseName, definition.displayName)
+                }
+            }
+        }
+    }
+
+    func testApexDraftsFollowTheRotatingProofInsteadOfOneGenericCircuit() {
+        var signatures: Set<String> = []
+
+        for proof in PrestigeCapstoneCatalog.rotation {
+            let card = WeeklyVowCard(
+                id: "weekly-vow-test-apex-\(proof.displayName)",
+                kind: .apex,
+                theme: .wildcard,
+                displayName: "\(proof.displayName) Vow",
+                blurb: "Accept a weekend Binding Vow.",
+                capstone: proof,
+                prescription: WeeklyVowPrescription(
+                    placement: .dedicatedSession,
+                    minMinutes: 20,
+                    maxMinutes: 45,
+                    minRPE: 8,
+                    maxRPE: 9
+                )
+            )
+            let vow = WeeklyVow(
+                id: card.id,
+                userId: "u-1",
+                weekStart: Date(timeIntervalSince1970: 1_700_000_000),
+                chosenCard: card,
+                capstoneState: .pending,
+                completedAt: nil
+            )
+
+            let draft = service.trainingDraft(for: vow, date: Date(timeIntervalSince1970: 1_700_000_000))
+            let prescriptions = draft.blocks.flatMap(\.prescriptions)
+            let signature = prescriptions.map(\.exerciseName).joined(separator: "|")
+            signatures.insert(signature)
+
+            XCTAssertFalse(prescriptions.isEmpty)
+            for prescription in prescriptions {
+                let movementId = try! XCTUnwrap(prescription.movementId)
+                XCTAssertNotNil(MovementCatalog.definition(for: movementId), "Missing catalog definition for \(prescription.exerciseName)")
+            }
+        }
+
+        XCTAssertGreaterThanOrEqual(signatures.count, 4)
     }
 
     func testRecordCompletedVowWorkWaitsForSavedPerformanceLog() async {
@@ -303,9 +380,9 @@ final class WeeklyVowsServiceTests: XCTestCase {
         XCTAssertEqual(unwrapped.callout.vowId, overdrive.id)
         XCTAssertEqual(unwrapped.callout.performanceLogId, log.id)
         XCTAssertEqual(unwrapped.callout.cardKind, .overdrive)
-        XCTAssertEqual(unwrapped.callout.title, "Overdrive Vow Sealed")
-        XCTAssertEqual(unwrapped.callout.shareTitle, "Weekly Vow Complete")
-        XCTAssertEqual(unwrapped.callout.shareSubtitle, "Overdrive Vow - \(overdrive.capstone.displayName)")
+        XCTAssertEqual(unwrapped.callout.title, "\(overdrive.displayName) Sealed")
+        XCTAssertEqual(unwrapped.callout.shareTitle, "Binding Vow Sealed")
+        XCTAssertEqual(unwrapped.callout.shareSubtitle, "\(overdrive.displayName) - \(overdrive.capstone.displayName)")
         XCTAssertEqual(unwrapped.callout.proofName, overdrive.capstone.displayName)
         XCTAssertEqual(unwrapped.callout.completionBonus, unwrapped.completionBonus)
         assertNoLegacyWeeklyCopy([
@@ -316,8 +393,8 @@ final class WeeklyVowsServiceTests: XCTestCase {
             unwrapped.callout.shareSubtitle
         ])
         XCTAssertEqual(unwrapped.completionBonus.overallLevelXP, 120)
-        XCTAssertEqual(unwrapped.completionBonus.badgeProgress.displayText, "Overdrive Vow I 1/3")
-        XCTAssertEqual(unwrapped.completionBonus.cosmeticProgress.displayText, "Overdrive Vow Finish 1/5")
+        XCTAssertEqual(unwrapped.completionBonus.badgeProgress.displayText, "Limit Binding I 1/3")
+        XCTAssertEqual(unwrapped.completionBonus.cosmeticProgress.displayText, "Limit Binding Seal 1/5")
         XCTAssertNil(unwrapped.completionBonus.shareCard)
         XCTAssertEqual(service.state(userId: "u-1").weeklyVowCompletionLedger.count, 1)
         XCTAssertEqual(service.state(userId: "u-1").weeklyVowCompletionLedger.first?.performanceLogId, log.id)
@@ -325,7 +402,7 @@ final class WeeklyVowsServiceTests: XCTestCase {
         let summary = WorkoutRewardSequenceSummary.trainingReceipt(
             performanceLog: log,
             completionResult: result,
-            sourceName: "Weekly Vow",
+            sourceName: "Binding Vow",
             weeklyVowCallout: unwrapped.callout
         )
         XCTAssertEqual(summary.weeklyVowCallout, unwrapped.callout)
@@ -351,9 +428,9 @@ final class WeeklyVowsServiceTests: XCTestCase {
         let unwrapped = try! XCTUnwrap(receipt)
         let shareCard = try! XCTUnwrap(unwrapped.completionBonus.shareCard)
         XCTAssertEqual(unwrapped.completionBonus.overallLevelXP, 240)
-        XCTAssertEqual(unwrapped.callout.shareSubtitle, "Apex Vow - \(apex.capstone.displayName)")
-        XCTAssertEqual(shareCard.title, "Apex Vow Cleared")
-        XCTAssertEqual(shareCard.subtitle, "Apex Vow - \(apex.capstone.displayName)")
+        XCTAssertEqual(unwrapped.callout.shareSubtitle, "\(apex.displayName) - \(apex.capstone.displayName)")
+        XCTAssertEqual(shareCard.title, "\(apex.displayName) Cleared")
+        XCTAssertEqual(shareCard.subtitle, "Binding Vow - \(apex.capstone.displayName)")
         XCTAssertEqual(shareCard.metadata["performanceLogId"], log.id)
         XCTAssertEqual(shareCard.metadata["cardKind"], "apex")
         assertNoLegacyWeeklyCopy([
@@ -367,7 +444,7 @@ final class WeeklyVowsServiceTests: XCTestCase {
         let summary = WorkoutRewardSequenceSummary.trainingReceipt(
             performanceLog: log,
             completionResult: result,
-            sourceName: "Weekly Vow",
+            sourceName: "Binding Vow",
             weeklyVowCallout: unwrapped.callout
         )
         XCTAssertTrue(summary.hasShareableMoment)
@@ -391,7 +468,7 @@ final class WeeklyVowsServiceTests: XCTestCase {
         let summary = WorkoutRewardSequenceSummary.trainingReceipt(
             performanceLog: emptyLog,
             completionResult: result,
-            sourceName: "Weekly Vow",
+            sourceName: "Binding Vow",
             weeklyVowCallout: nil
         )
         XCTAssertFalse(summary.hasShareableMoment)
@@ -624,6 +701,28 @@ final class WeeklyVowsServiceTests: XCTestCase {
                     ]
                 )
             ]
+        )
+    }
+
+    private func makeAxisCard(kind: WeeklyVowKind, axis: AttributeKey) -> WeeklyVowCard {
+        WeeklyVowCard(
+            id: "weekly-vow-test-\(kind.rawValue)-\(axis.rawValue)",
+            kind: kind,
+            theme: .axis(axis),
+            displayName: "\(kind.displayName) · \(axis.displayName)",
+            blurb: "A focused vow for \(axis.displayName.lowercased()).",
+            capstone: WeeklyVowProof(
+                displayName: "Proof",
+                description: "Complete the vow work.",
+                evaluation: .manualClaim
+            ),
+            prescription: WeeklyVowPrescription(
+                placement: kind == .ember ? .recoveryDay : .afterWorkout,
+                minMinutes: kind == .ember ? 8 : 6,
+                maxMinutes: kind == .ember ? 12 : 12,
+                minRPE: kind == .ember ? 3 : 7,
+                maxRPE: kind == .ember ? 5 : 8
+            )
         )
     }
 

@@ -53,7 +53,7 @@ struct UnboundColors {
     let success = Color.unboundHex("22C55E")          // sparingly — streak kept, rescan complete
 
     // Category accents — tinted interactive cards to break monochrome.
-    // Muscle heatmap uses a red-green ramp (universal fitness language);
+    // Rank displays use a red-green ramp (universal fitness language);
     // tile accents color-code category (coach/communication, warn/attention).
     let coachCyan = Color.unboundHex("06B6D4")        // communication tiles (coach bubble, chat)
     let warnOrange = Color.unboundHex("F97316")       // attention tiles (needs work, weakness)

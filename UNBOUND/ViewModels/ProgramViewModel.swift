@@ -56,9 +56,12 @@ final class ProgramViewModel {
         guard let userId = services.auth.currentUserId, let program else { return }
         do {
             let logs = try await services.workoutLog.fetchLogs(userId: userId, programId: program.id)
-            workoutLogs = Dictionary(uniqueKeysWithValues: logs.compactMap { log in
-                (log.dayNumber, log)
-            })
+            workoutLogs = logs.reduce(into: [Int: WorkoutLog]()) { result, log in
+                if let existing = result[log.dayNumber], existing.startedAt > log.startedAt {
+                    return
+                }
+                result[log.dayNumber] = log
+            }
         } catch {
             // Non-critical, don't block UI
         }

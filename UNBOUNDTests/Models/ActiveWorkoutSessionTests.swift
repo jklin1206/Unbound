@@ -59,6 +59,32 @@ final class ActiveWorkoutSessionTests: XCTestCase {
         s.removeLastSetFromCurrentExercise()
         XCTAssertEqual(s.exercises[0].sets.count, 2)
     }
+    func test_progressSummaryCountsRemainingWorkingSets() {
+        let s = ActiveWorkoutSession(workout: workout(), programId: "p", dayNumber: 1)
+        XCTAssertEqual(s.progressSummary.loggedWorkingSets, 0)
+        XCTAssertEqual(s.progressSummary.totalWorkingSets, 3)
+        XCTAssertEqual(s.progressSummary.remainingWorkingSets, 3)
+        XCTAssertEqual(s.progressSummary.footerText, "0/3 work sets logged · 3 sets left")
+
+        s.exercises[0].sets[0].isWarmup = true
+        s.confirmAsPlanned(exerciseIndex: 0, setIndex: 1)
+        s.exercises[1].skipped = true
+
+        XCTAssertEqual(s.progressSummary.loggedWorkingSets, 1)
+        XCTAssertEqual(s.progressSummary.totalWorkingSets, 1)
+        XCTAssertTrue(s.progressSummary.isComplete)
+        XCTAssertEqual(s.progressSummary.footerText, "Ready to finish")
+    }
+    func test_confirmAsPlannedAdvancesCurrentSetCursor() {
+        let s = ActiveWorkoutSession(workout: workout(), programId: "p", dayNumber: 1)
+        s.confirmAsPlanned(exerciseIndex: 0, setIndex: 0)
+        XCTAssertEqual(s.currentExerciseIndex, 0)
+        XCTAssertEqual(s.currentSetIndex, 1)
+
+        s.confirmAsPlanned(exerciseIndex: 0, setIndex: 1)
+        XCTAssertEqual(s.currentExerciseIndex, 1)
+        XCTAssertEqual(s.currentSetIndex, 0)
+    }
     func test_skipCurrentExercise_marksAndJumps() {
         let s = ActiveWorkoutSession(workout: workout(), programId: "p", dayNumber: 1)
         s.skipCurrentExercise()

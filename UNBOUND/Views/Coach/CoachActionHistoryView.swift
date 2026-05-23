@@ -13,10 +13,10 @@ struct CoachActionHistoryView: View {
                     Image(systemName: "sparkles")
                         .font(.system(size: 30, weight: .regular))
                         .foregroundStyle(Color.unbound.textTertiary)
-                    Text("No coach actions yet")
+                    Text("No plan changes yet")
                         .font(Font.unbound.titleS)
                         .foregroundStyle(Color.unbound.textPrimary)
-                    Text("When the coach makes adjustments, they'll show here.")
+                    Text("When plan modifiers adjust training, they will show here.")
                         .font(Font.unbound.bodyS)
                         .foregroundStyle(Color.unbound.textSecondary)
                         .multilineTextAlignment(.center)
@@ -38,7 +38,7 @@ struct CoachActionHistoryView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .principal) {
-                Text("COACH ACTIONS")
+                Text("PLAN CHANGES")
                     .font(Font.unbound.captionS)
                     .tracking(2.0)
                     .foregroundStyle(Color.unbound.textSecondary)

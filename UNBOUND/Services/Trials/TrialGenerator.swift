@@ -4,8 +4,9 @@ import Foundation
 /// Pure card generator. Inputs: user's AttributeProfile, recent log
 /// history, week-start Date, ISO week number. Output: 3 WeeklyVowCards.
 ///
-/// Deterministic given identical inputs. Ember = recovery-safe low-day work.
-/// Overdrive = after-workout finisher. Apex cycles per weekNumber.
+/// Deterministic given identical inputs. Low Binding = recovery-safe low-day
+/// work. Limit Binding = after-workout finisher. Apex Binding cycles per
+/// weekNumber.
 @MainActor
 enum WeeklyVowGenerator {
 
@@ -33,8 +34,8 @@ enum WeeklyVowGenerator {
             id: "weekly-vow-W\(weekNumber)-ember",
             kind: .ember,
             theme: .axis(axis),
-            displayName: "Ember · \(axis.displayName) Reset",
-            blurb: "Keep the streak warm with recovery-safe work for your \(axis.displayName.lowercased()) axis.",
+            displayName: lowBindingName(for: axis),
+            blurb: "Accept a low-day Binding Vow: protect recovery, sharpen \(axis.displayName.lowercased()), and keep the week alive without forcing a PR.",
             capstone: WeeklyVowProof(
                 displayName: "Low-Day Proof",
                 description: "Complete 8-12 minutes of easy \(axis.displayName.lowercased()) work at RPE 3-5.",
@@ -59,11 +60,13 @@ enum WeeklyVowGenerator {
         // Dynamic scaling for the .power proof: bake the user's recent
         // best x 1.05 in kg.
         if axis == .power, case .autoFromLog = capstone.evaluation {
-            let target = scaledWeightTarget(history: history)
+            let target = scaledWeightTarget(history: history, fallbackExerciseName: "bench press")
             capstone = WeeklyVowProof(
                 displayName: capstone.displayName,
-                description: "After a workout, hit a working set of \(Int(target))kg or higher on a Power-axis exercise.",
-                evaluation: .autoFromLog(.weightKg(target))
+                description: "After a workout, hit \(Int(target.weightKg))kg or higher on \(target.displayName).",
+                evaluation: .autoFromLog(
+                    .exerciseWeightKg(target.weightKg, exerciseName: target.exerciseName)
+                )
             )
         }
 
@@ -71,8 +74,8 @@ enum WeeklyVowGenerator {
             id: "weekly-vow-W\(weekNumber)-overdrive",
             kind: .overdrive,
             theme: .axis(axis),
-            displayName: "Overdrive · \(axis.displayName) Finisher",
-            blurb: "Attach a sharp finisher after training and push your \(axis.displayName.lowercased()) output.",
+            displayName: limitBindingName(for: axis),
+            blurb: "Accept a redline Binding Vow after training: pay a short finisher cost and push your \(axis.displayName.lowercased()) output.",
             capstone: capstone,
             prescription: WeeklyVowPrescription(
                 placement: .afterWorkout,
@@ -88,19 +91,21 @@ enum WeeklyVowGenerator {
         var capstone = PrestigeCapstoneCatalog.capstone(for: weekNumber)
         // Dynamic scaling for the 1-rep PR Apex proof.
         if capstone.displayName == "1-Rep PR Attempt" {
-            let target = scaledWeightTarget(history: history)
+            let target = scaledWeightTarget(history: history, fallbackExerciseName: "deadlift")
             capstone = WeeklyVowProof(
                 displayName: capstone.displayName,
-                description: "Hit a 1-rep PR of \(Int(target))kg or higher on bench, squat, deadlift, or overhead press.",
-                evaluation: .autoFromLog(.weightKg(target))
+                description: "Hit a 1-rep PR of \(Int(target.weightKg))kg or higher on \(target.displayName).",
+                evaluation: .autoFromLog(
+                    .exerciseWeightKg(target.weightKg, exerciseName: target.exerciseName)
+                )
             )
         }
         return WeeklyVowCard(
             id: "weekly-vow-W\(weekNumber)-apex",
             kind: .apex,
             theme: .wildcard,
-            displayName: "Apex · \(capstone.displayName)",
-            blurb: "Set aside a focused weekend session and chase a bigger proof.",
+            displayName: apexBindingName(for: capstone),
+            blurb: "Accept a weekend Binding Vow: one focused proof, no clutter, seal it clean.",
             capstone: capstone,
             prescription: WeeklyVowPrescription(
                 placement: .dedicatedSession,
@@ -112,21 +117,100 @@ enum WeeklyVowGenerator {
         )
     }
 
+    // MARK: binding vow naming
+
+    private static func lowBindingName(for axis: AttributeKey) -> String {
+        switch axis {
+        case .power: return "Iron Rule Vow"
+        case .agility: return "Quiet Step Vow"
+        case .control: return "Still Heart Vow"
+        case .endurance: return "Last Breath Vow"
+        case .mobility: return "Open Gate Vow"
+        case .explosiveness: return "First Spark Vow"
+        }
+    }
+
+    private static func limitBindingName(for axis: AttributeKey) -> String {
+        switch axis {
+        case .power: return "Limit Break Vow"
+        case .agility: return "Flash Step Vow"
+        case .control: return "Hollow Core Vow"
+        case .endurance: return "Redline Vow"
+        case .mobility: return "Flow State Vow"
+        case .explosiveness: return "One Strike Vow"
+        }
+    }
+
+    private static func apexBindingName(for capstone: WeeklyVowProof) -> String {
+        switch capstone.displayName {
+        case "Max Pull-Up AMRAP": return "No Retreat Vow"
+        case "Broad Jump Distance": return "Heaven Step Vow"
+        case "1-Rep PR Attempt": return "Final Set Vow"
+        case "Strict Muscle-Up": return "Ascension Vow"
+        case "L-Sit Hold": return "Stillness Vow"
+        case "5K Sub-25": return "Blood Pace Vow"
+        default: return "Final Proof Vow"
+        }
+    }
+
     // MARK: dynamic scaling
 
-    /// Compute a weight target = user's recent best across all logged
-    /// non-warmup sets × 1.05, rounded to nearest 5kg. Falls back to 40kg
-    /// for new users.
-    private static func scaledWeightTarget(history: [WorkoutLog]) -> Double {
-        let bestWeight = history
-            .flatMap { $0.exerciseEntries }
-            .flatMap { $0.sets }
-            .filter { !$0.isWarmup }
-            .compactMap { $0.weightKg }
-            .max() ?? 0
+    private struct WeightTarget {
+        let exerciseName: String
+        let displayName: String
+        let weightKg: Double
+    }
 
-        let baseline: Double = 40
-        let raw = max(bestWeight, baseline) * 1.05
+    /// Compute a lift-specific target = recent best on the selected
+    /// strength movement × 1.05, rounded to nearest 5kg. This keeps the
+    /// proof and the generated workout pointed at the same movement instead
+    /// of letting an unrelated heavy log satisfy a vow.
+    private static func scaledWeightTarget(
+        history: [WorkoutLog],
+        fallbackExerciseName: String
+    ) -> WeightTarget {
+        let candidates = history
+            .flatMap { $0.exerciseEntries }
+            .compactMap(weightCandidate)
+
+        if let best = candidates.max(by: { $0.weightKg < $1.weightKg }) {
+            return WeightTarget(
+                exerciseName: best.exerciseName,
+                displayName: best.displayName,
+                weightKg: roundedTarget(from: best.weightKg)
+            )
+        }
+
+        let fallbackDefinition = MovementCatalog.canonicalExercise(named: fallbackExerciseName)
+        return WeightTarget(
+            exerciseName: fallbackDefinition?.canonicalExerciseName ?? fallbackExerciseName,
+            displayName: fallbackDefinition?.displayName ?? fallbackExerciseName.capitalized,
+            weightKg: roundedTarget(from: 40)
+        )
+    }
+
+    private static func weightCandidate(from entry: ExerciseLogEntry) -> WeightTarget? {
+        guard let bestWeight = entry.sets
+            .filter({ !$0.isWarmup })
+            .compactMap(\.weightKg)
+            .max()
+        else { return nil }
+
+        let resolved = MovementResolver.resolve(entry.exerciseName)
+        guard let definition = MovementCatalog.definition(for: resolved.movementId),
+              !definition.id.hasPrefix("unresolved."),
+              (definition.attributeWeights[.power] ?? 0) >= 0.20
+        else { return nil }
+
+        return WeightTarget(
+            exerciseName: definition.canonicalExerciseName ?? entry.exerciseName,
+            displayName: definition.displayName,
+            weightKg: bestWeight
+        )
+    }
+
+    private static func roundedTarget(from bestWeight: Double) -> Double {
+        let raw = max(bestWeight, 40) * 1.05
         return (raw / 5.0).rounded() * 5.0
     }
 }

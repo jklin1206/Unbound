@@ -23,6 +23,7 @@ struct RewardCelebrationView: View {
     let onDismiss: () -> Void
 
     @State private var hasAppeared: Bool = false
+    @State private var dismissRequested: Bool = false
 
     var body: some View {
         ZStack {
@@ -50,6 +51,10 @@ struct RewardCelebrationView: View {
                         }
                         ForEach(summary.badgeUnlocks, id: \.id) { unlock in
                             badgeCard(unlock)
+                                .transition(.opacity.combined(with: .move(edge: .bottom)))
+                        }
+                        if let progression = summary.progression, progression.hasContent {
+                            progressionCard(progression)
                                 .transition(.opacity.combined(with: .move(edge: .bottom)))
                         }
                         if summary.xpGained > 0 {
@@ -82,10 +87,26 @@ struct RewardCelebrationView: View {
                     }
                     .buttonStyle(.plain)
 
-                    UnboundButton(title: "Continue", icon: "arrow.right") {
+                    Button {
+                        guard !dismissRequested else { return }
+                        dismissRequested = true
                         UnboundHaptics.medium()
                         onDismiss()
+                    } label: {
+                        HStack(spacing: 8) {
+                            Text(dismissRequested ? "Continuing" : "Continue")
+                            Image(systemName: dismissRequested ? "checkmark" : "arrow.right")
+                        }
+                        .font(Font.unbound.bodyMStrong)
+                        .foregroundStyle(Color.unbound.textPrimary)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 50)
+                        .background(
+                            Capsule().fill(Color.unbound.accent)
+                        )
                     }
+                    .buttonStyle(.plain)
+                    .disabled(dismissRequested)
                 }
                 .padding(.horizontal, 24)
                 .padding(.bottom, 18)
@@ -341,6 +362,139 @@ struct RewardCelebrationView: View {
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(highlightCard(tinted: false))
+    }
+
+    private func progressionCard(_ receipt: ProgressionReceipt) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(Color.unbound.success.opacity(0.16))
+                        .frame(width: 44, height: 44)
+                    Image(systemName: "chart.line.uptrend.xyaxis")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundStyle(Color.unbound.success)
+                }
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("PROGRESSION RECEIPT")
+                        .font(Font.unbound.captionS.weight(.heavy))
+                        .tracking(1.4)
+                        .foregroundStyle(Color.unbound.success)
+                    Text(receipt.didOverallLevelUp ? "Overall LV advanced" : "Work banked")
+                        .font(Font.unbound.bodyMStrong)
+                        .foregroundStyle(Color.unbound.textPrimary)
+                }
+
+                Spacer(minLength: 0)
+
+                Text("LV \(receipt.overallLevelAfter)")
+                    .font(.system(size: 14, weight: .heavy, design: .monospaced))
+                    .foregroundStyle(Color.unbound.textPrimary)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Capsule().fill(Color.unbound.surfaceElevated))
+                    .overlay(Capsule().strokeBorder(Color.unbound.border, lineWidth: 1))
+            }
+
+            VStack(spacing: 8) {
+                if receipt.totalMovementAP > 0 {
+                    progressionRow("Movement AP", "+\(formatNumber(receipt.totalMovementAP)) AP")
+                }
+                if receipt.totalAttributeXP > 0 {
+                    progressionRow("Attribute XP", "+\(formatNumber(receipt.totalAttributeXP)) XP")
+                }
+                if receipt.overallLevelXPGained > 0 {
+                    progressionRow("Overall LV XP", "+\(formatNumber(receipt.overallLevelXPGained)) XP")
+                }
+                if receipt.skillXPGained > 0 {
+                    progressionRow("Skill XP", "+\(receipt.skillXPGained) XP")
+                }
+                if receipt.noveltyMultiplier > 1.001 {
+                    progressionRow("Body novelty", "\(String(format: "%.2f", receipt.noveltyMultiplier))x")
+                }
+            }
+
+            if !receipt.movementLines.isEmpty {
+                progressionDivider()
+                VStack(spacing: 7) {
+                    ForEach(receipt.movementLines) { line in
+                        progressionDetailRow(
+                            title: line.name,
+                            value: "+\(formatNumber(line.apGained)) AP"
+                        )
+                    }
+                }
+            }
+
+            if !receipt.attributeLines.isEmpty {
+                progressionDivider()
+                VStack(spacing: 7) {
+                    ForEach(receipt.attributeLines) { line in
+                        let levelText = line.didLevelUp
+                            ? "LV \(line.levelBefore) → \(line.levelAfter)"
+                            : "LV \(line.levelAfter)"
+                        progressionDetailRow(
+                            title: "\(line.key.shortCode) · \(levelText)",
+                            value: "+\(formatNumber(line.xpGained)) XP"
+                        )
+                    }
+                }
+            }
+
+            if !receipt.bodyRegionLines.isEmpty {
+                progressionDivider()
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("BODY REGIONS")
+                        .font(Font.unbound.captionS.weight(.heavy))
+                        .tracking(1.1)
+                        .foregroundStyle(Color.unbound.textTertiary)
+                    Text(receipt.bodyRegionLines.map(\.name).joined(separator: " · "))
+                        .font(Font.unbound.captionS.weight(.semibold))
+                        .foregroundStyle(Color.unbound.textSecondary)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(highlightCard(tinted: false))
+    }
+
+    private func progressionRow(_ title: String, _ value: String) -> some View {
+        HStack(spacing: 10) {
+            Text(title)
+                .font(Font.unbound.captionS.weight(.semibold))
+                .foregroundStyle(Color.unbound.textTertiary)
+            Spacer(minLength: 8)
+            Text(value)
+                .font(.system(size: 13, weight: .heavy, design: .monospaced))
+                .foregroundStyle(Color.unbound.textPrimary)
+        }
+    }
+
+    private func progressionDetailRow(title: String, value: String) -> some View {
+        HStack(spacing: 10) {
+            Text(title)
+                .font(Font.unbound.captionS.weight(.semibold))
+                .foregroundStyle(Color.unbound.textSecondary)
+                .lineLimit(1)
+            Spacer(minLength: 8)
+            Text(value)
+                .font(.system(size: 12, weight: .heavy, design: .monospaced))
+                .foregroundStyle(Color.unbound.success)
+        }
+    }
+
+    private func progressionDivider() -> some View {
+        Rectangle()
+            .fill(Color.unbound.borderSubtle)
+            .frame(height: 1)
+    }
+
+    private func formatNumber(_ value: Double) -> String {
+        "\(Int(value.rounded()))"
     }
 
     @ViewBuilder

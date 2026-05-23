@@ -19,6 +19,7 @@
 // AASA deployment is a marketing-site concern (not in this PR).
 // The app side: entitlement + onContinueUserActivity handler below.
 import SwiftUI
+import UIKit
 
 #if DEBUG
 // Hot-reload for SwiftUI iteration. Save any .swift file and the
@@ -85,39 +86,38 @@ struct RootView: View {
     // Reacts to UserDefaults changes — flipping this key from Settings
     // immediately re-routes the app back into onboarding.
     @AppStorage("onboardingCompleted") private var hasCompletedOnboarding: Bool = false
-    @AppStorage("unbound.calibration.completed") private var hasCompletedCalibration: Bool = false
+
+    init() {
+        #if DEBUG
+        let args = ProcessInfo.processInfo.arguments
+        if args.contains("-OnboardingStep") || args.contains("--onboarding-step") {
+            UserDefaults.standard.set(false, forKey: "onboardingCompleted")
+        }
+        #endif
+    }
 
     var body: some View {
         Group {
             if isCheckingAuth {
-                ZStack {
-                    Color.unbound.bg.ignoresSafeArea()
-                    ProgressView()
-                        .tint(Color.unbound.accent)
-                }
+                AppLaunchLoadingView()
             } else if !hasCompletedOnboarding {
                 OnboardingContainerView(onComplete: {
                     hasCompletedOnboarding = true
                 })
             } else if !isAuthenticated {
                 AuthContainerView()
-            } else if !hasCompletedCalibration {
-                CalibrationContainerView(onComplete: {
-                    hasCompletedCalibration = true
-                })
             } else {
                 // Entitlement gating now lives inline on premium features
                 // (Coach, Program, Report "unlock" CTA). The app root always
-                // lands on Home once onboarding + calibration are complete —
-                // the onboarding paywall step is the primary funnel, and
-                // per-feature paywalls handle subsequent conversion.
+                // lands on Home once onboarding is complete. Calibration will
+                // return as an optional program-side flow when that system is
+                // redesigned around the first week instead of the questionnaire.
                 HomeTabView()
             }
         }
         .task {
             #if DEBUG
-            // Dev-only: skip the sign-in gate by auto-provisioning an anonymous local UUID.
-            AuthService.shared.autoProvisionIfNeeded()
+            await DevBuildBootstrapper.ensureReady()
             #endif
 
             for await userId in services.auth.authStatePublisher.values {
@@ -164,4 +164,144 @@ struct RootView: View {
             }
         }
     }
+}
+
+private struct AppLaunchLoadingView: View {
+    @State private var glow = false
+
+    var body: some View {
+        ZStack {
+            launchBackground
+
+            VStack(spacing: 20) {
+                Spacer(minLength: 0)
+                    .frame(maxHeight: .infinity)
+
+                logoMark
+
+                Text("UNBOUND")
+                    .font(Font.unbound.displayXL)
+                    .foregroundStyle(Color.unbound.textPrimary)
+                    .tracking(4)
+                    .shadow(color: Color.unbound.accent.opacity(glow ? 0.65 : 0.25), radius: glow ? 28 : 14)
+
+                Spacer(minLength: 0)
+                    .frame(maxHeight: 220)
+            }
+            .padding(.horizontal, 34)
+        }
+        .onAppear {
+            withAnimation(.easeInOut(duration: 1.45).repeatForever(autoreverses: true)) {
+                glow = true
+            }
+        }
+    }
+
+    private var launchBackground: some View {
+        ZStack {
+            LinearGradient(
+                colors: [
+                    Color(red: 0.025, green: 0.024, blue: 0.034),
+                    Color(red: 0.055, green: 0.043, blue: 0.083),
+                    Color.black
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+
+            RadialGradient(
+                colors: [
+                    Color.unbound.accent.opacity(glow ? 0.28 : 0.16),
+                    Color.unbound.accent.opacity(0.05),
+                    Color.clear
+                ],
+                center: .center,
+                startRadius: 24,
+                endRadius: 360
+            )
+
+            RadialGradient(
+                colors: [
+                    Color.unbound.ember.opacity(glow ? 0.16 : 0.08),
+                    Color.clear
+                ],
+                center: UnitPoint(x: 0.22, y: 0.72),
+                startRadius: 10,
+                endRadius: 280
+            )
+
+            launchSigil
+                .opacity(glow ? 0.72 : 0.46)
+
+            LinearGradient(
+                colors: [
+                    Color.black.opacity(0.62),
+                    Color.clear,
+                    Color.black.opacity(0.72)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        }
+        .ignoresSafeArea()
+    }
+
+    private var launchSigil: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 36, style: .continuous)
+                .stroke(Color.unbound.accent.opacity(0.22), lineWidth: 1)
+                .frame(width: 250, height: 250)
+                .rotationEffect(.degrees(45))
+                .blur(radius: 0.2)
+
+            RoundedRectangle(cornerRadius: 30, style: .continuous)
+                .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                .frame(width: 176, height: 176)
+                .rotationEffect(.degrees(45))
+
+            Capsule()
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color.clear,
+                            Color.unbound.accent.opacity(0.45),
+                            Color.unbound.ember.opacity(0.2),
+                            Color.clear
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .frame(width: 2, height: 430)
+                .rotationEffect(.degrees(-34))
+                .blur(radius: 0.4)
+        }
+        .offset(y: -10)
+        .shadow(color: Color.unbound.accent.opacity(glow ? 0.24 : 0.12), radius: 40)
+    }
+
+    private var logoMark: some View {
+        Group {
+            if let image = Self.logoImage {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFit()
+            } else {
+                Image(systemName: "link")
+                    .resizable()
+                    .scaledToFit()
+                    .foregroundStyle(Color.unbound.textPrimary)
+            }
+        }
+        .frame(width: 146, height: 146)
+        .shadow(color: Color.unbound.accent.opacity(glow ? 0.55 : 0.28), radius: glow ? 30 : 16)
+        .shadow(color: Color.unbound.ember.opacity(glow ? 0.22 : 0.08), radius: glow ? 46 : 22)
+    }
+
+    private static let logoImage: UIImage? = {
+        guard let url = Bundle.main.url(forResource: "logo", withExtension: "png") else {
+            return nil
+        }
+        return UIImage(contentsOfFile: url.path)
+    }()
 }

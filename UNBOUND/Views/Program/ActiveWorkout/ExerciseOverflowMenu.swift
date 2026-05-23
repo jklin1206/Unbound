@@ -21,9 +21,6 @@ struct ExerciseOverflowMenu: View {
                 Label(isWarmup ? "Unmark warmup" : "Mark as warmup",
                       systemImage: "flame")
             }
-            Button { onIntent(.addSet) } label: {
-                Label("Add set", systemImage: "plus.circle")
-            }
             Button { onIntent(.removeSet) } label: {
                 Label("Remove last set", systemImage: "minus.circle")
             }

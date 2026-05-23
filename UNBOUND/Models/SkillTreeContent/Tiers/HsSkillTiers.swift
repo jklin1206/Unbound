@@ -6,10 +6,9 @@
 //
 // Hold-type skills (wrist-conditioning, wall-plank, wall-handstand,
 // headstand, tuck-handstand, freestanding variants, arm balances, elbow levers):
-//   .variant("exercise-name") is used for lower tiers since holds are logged
-//   as named exercises. Upper tiers compound with a pressing strength marker
-//   (handstand pushup or pushup reps) to confirm the strength base underlying
-//   the hold.
+//   .variant("exercise-name") is used where hold duration is not available to
+//   the WorkoutLog tier evaluator. Upper tiers compound with later balance or
+//   press variants from the same handstand/control family.
 //
 // Freestanding hold cascade: wall-plank → wall-handstand → headstand →
 //   tuck-handstand → freestanding-hs-10 → freestanding-hs-30 → freestanding-hs-60.
@@ -17,8 +16,8 @@
 //   confirming true press strength rather than just kicking up.
 //
 // Press skills (tuck-press, straddle-press, press-to-handstand):
-//   Compound upper tiers with handstand pushup counts — pressing overhead
-//   strength is the limiting factor for these moves.
+//   Progress by their own press variants and rep standards. Handstand push-up
+//   progress belongs in HspuSkillTiers, not this handstand/control table.
 //
 // Arm balance cascade (crow → crane → flying-crow, frog → elbow-lever →
 //   one-arm-elbow-lever): each level compounds with the prior-tier variant
@@ -68,49 +67,47 @@ enum HsSkillTiers {
         ],
 
         // hs.wall-plank — Wall Plank (feet on wall, body inverted at ~45°).
-        // Hold-type. Gateway to wall handstand. Upper tiers compound with
-        // handstand pushup to confirm overhead pressing base.
+        // Hold-type. Gateway to wall handstand. This should remain a
+        // shoulder-line / inverted brace standard, not secretly become HSPU.
         "hs.wall-plank": [
-            .initiate:   .variant("wall plank"),
-            .novice:     .variant("wall plank"),
-            .apprentice: .variant("wall plank"),
-            .forged:     .compound([.variant("wall plank"), .reps(3, exerciseName: "handstand pushup")]),
-            .veteran:    .compound([.variant("wall plank"), .reps(5, exerciseName: "handstand pushup")]),
-            .honed:      .compound([.variant("wall plank"), .reps(8, exerciseName: "handstand pushup")]),
-            .vessel:     .compound([.variant("wall plank"), .reps(12, exerciseName: "handstand pushup")]),
-            .unbound:    .compound([.variant("wall plank"), .reps(16, exerciseName: "handstand pushup")]),
-            .ascendant:  .compound([.variant("wall plank"), .reps(20, exerciseName: "handstand pushup")]),
+            .initiate:   .reps(10, exerciseName: "wall plank"),
+            .novice:     .reps(20, exerciseName: "wall plank"),
+            .apprentice: .reps(30, exerciseName: "wall plank"),
+            .forged:     .reps(45, exerciseName: "wall plank"),
+            .veteran:    .reps(60, exerciseName: "wall plank"),
+            .honed:      .reps(75, exerciseName: "wall plank"),
+            .vessel:     .reps(90, exerciseName: "wall plank"),
+            .unbound:    .reps(120, exerciseName: "wall plank"),
+            .ascendant:  .reps(150, exerciseName: "wall plank"),
         ],
 
         // hs.wall-handstand-30 — Wall Handstand hold target: 30 s.
-        // Hold-type. Lower tiers: variant confirms any wall handstand log.
-        // Upper tiers compound with handstand pushup reps — inverted pressing
-        // strength is the direct strength limiter for hold duration.
+        // Hold-type. Keep this as a handstand-line standard. HSPU belongs in
+        // the HSPU branch, not as a requirement for holding a wall handstand.
         "hs.wall-handstand-30": [
-            .initiate:   .variant("wall handstand"),
-            .novice:     .variant("wall handstand"),
-            .apprentice: .variant("wall handstand"),
-            .forged:     .compound([.variant("wall handstand"), .reps(3, exerciseName: "handstand pushup")]),
-            .veteran:    .compound([.variant("wall handstand"), .reps(5, exerciseName: "handstand pushup")]),
-            .honed:      .compound([.variant("wall handstand"), .reps(8, exerciseName: "handstand pushup")]),
-            .vessel:     .compound([.variant("wall handstand"), .reps(12, exerciseName: "handstand pushup")]),
-            .unbound:    .compound([.variant("wall handstand"), .reps(16, exerciseName: "handstand pushup")]),
-            .ascendant:  .compound([.variant("wall handstand"), .reps(20, exerciseName: "handstand pushup")]),
+            .initiate:   .reps(10, exerciseName: "wall handstand"),
+            .novice:     .reps(20, exerciseName: "wall handstand"),
+            .apprentice: .reps(30, exerciseName: "wall handstand"),
+            .forged:     .reps(45, exerciseName: "wall handstand"),
+            .veteran:    .reps(60, exerciseName: "wall handstand"),
+            .honed:      .reps(90, exerciseName: "wall handstand"),
+            .vessel:     .reps(120, exerciseName: "wall handstand"),
+            .unbound:    .reps(150, exerciseName: "wall handstand"),
+            .ascendant:  .reps(180, exerciseName: "wall handstand"),
         ],
 
         // hs.wall-handstand-60 — Wall Handstand Hold target: 60 s.
-        // Prereq: hs.wall-handstand-30. Starts from compound entry. Upper tiers
-        // compound with higher HSPU counts for the longer hold demand.
+        // Prereq: hs.wall-handstand-30. Longer hold standard only.
         "hs.wall-handstand-60": [
-            .initiate:   .variant("wall handstand"),
-            .novice:     .compound([.variant("wall handstand"), .reps(3, exerciseName: "handstand pushup")]),
-            .apprentice: .compound([.variant("wall handstand"), .reps(5, exerciseName: "handstand pushup")]),
-            .forged:     .compound([.variant("wall handstand"), .reps(8, exerciseName: "handstand pushup")]),
-            .veteran:    .compound([.variant("wall handstand"), .reps(10, exerciseName: "handstand pushup")]),
-            .honed:      .compound([.variant("wall handstand"), .reps(12, exerciseName: "handstand pushup")]),
-            .vessel:     .compound([.variant("wall handstand"), .reps(15, exerciseName: "handstand pushup")]),
-            .unbound:    .compound([.variant("wall handstand"), .reps(18, exerciseName: "handstand pushup")]),
-            .ascendant:  .compound([.variant("wall handstand"), .reps(22, exerciseName: "handstand pushup")]),
+            .initiate:   .reps(20, exerciseName: "wall handstand"),
+            .novice:     .reps(30, exerciseName: "wall handstand"),
+            .apprentice: .reps(45, exerciseName: "wall handstand"),
+            .forged:     .reps(60, exerciseName: "wall handstand"),
+            .veteran:    .reps(90, exerciseName: "wall handstand"),
+            .honed:      .reps(120, exerciseName: "wall handstand"),
+            .vessel:     .reps(150, exerciseName: "wall handstand"),
+            .unbound:    .reps(180, exerciseName: "wall handstand"),
+            .ascendant:  .reps(240, exerciseName: "wall handstand"),
         ],
 
         // MARK: - Headstand & Tuck Bridge
@@ -118,17 +115,17 @@ enum HsSkillTiers {
         // hs.headstand — Headstand hold target: 30 s.
         // Hold-type. Bridge between wall work and freestanding. Lower tiers
         // confirm headstand training. Upper tiers compound with wall handstand
-        // to confirm the full inverted strength base.
+        // to confirm the full inverted balance base.
         "hs.headstand": [
             .initiate:   .variant("headstand"),
             .novice:     .variant("headstand"),
             .apprentice: .variant("headstand"),
             .forged:     .compound([.variant("headstand"), .variant("wall handstand")]),
-            .veteran:    .compound([.variant("headstand"), .reps(3, exerciseName: "handstand pushup")]),
-            .honed:      .compound([.variant("headstand"), .reps(5, exerciseName: "handstand pushup")]),
-            .vessel:     .compound([.variant("headstand"), .reps(8, exerciseName: "handstand pushup")]),
-            .unbound:    .compound([.variant("headstand"), .reps(12, exerciseName: "handstand pushup")]),
-            .ascendant:  .compound([.variant("headstand"), .reps(16, exerciseName: "handstand pushup")]),
+            .veteran:    .compound([.variant("headstand"), .variant("tuck handstand")]),
+            .honed:      .compound([.variant("headstand"), .variant("freestanding handstand")]),
+            .vessel:     .compound([.variant("headstand"), .reps(1, exerciseName: "tuck press")]),
+            .unbound:    .compound([.variant("headstand"), .reps(3, exerciseName: "tuck press")]),
+            .ascendant:  .compound([.variant("headstand"), .reps(1, exerciseName: "straddle press")]),
         ],
 
         // hs.tuck-handstand — Tuck Handstand hold target: 5 s.
@@ -140,11 +137,11 @@ enum HsSkillTiers {
             .novice:     .variant("tuck handstand"),
             .apprentice: .variant("tuck handstand"),
             .forged:     .compound([.variant("tuck handstand"), .variant("freestanding handstand")]),
-            .veteran:    .compound([.variant("tuck handstand"), .reps(5, exerciseName: "handstand pushup")]),
-            .honed:      .compound([.variant("tuck handstand"), .reps(8, exerciseName: "handstand pushup")]),
-            .vessel:     .compound([.variant("tuck handstand"), .reps(12, exerciseName: "handstand pushup")]),
-            .unbound:    .compound([.variant("tuck handstand"), .reps(16, exerciseName: "handstand pushup")]),
-            .ascendant:  .compound([.variant("tuck handstand"), .reps(20, exerciseName: "handstand pushup")]),
+            .veteran:    .compound([.variant("tuck handstand"), .reps(1, exerciseName: "tuck press")]),
+            .honed:      .compound([.variant("tuck handstand"), .reps(3, exerciseName: "tuck press")]),
+            .vessel:     .compound([.variant("tuck handstand"), .reps(1, exerciseName: "straddle press")]),
+            .unbound:    .compound([.variant("tuck handstand"), .reps(3, exerciseName: "straddle press")]),
+            .ascendant:  .compound([.variant("tuck handstand"), .reps(1, exerciseName: "press to handstand")]),
         ],
 
         // MARK: - Freestanding Handstand Progression
@@ -157,8 +154,8 @@ enum HsSkillTiers {
             .initiate:   .variant("freestanding handstand"),
             .novice:     .variant("freestanding handstand"),
             .apprentice: .variant("freestanding handstand"),
-            .forged:     .compound([.variant("freestanding handstand"), .reps(3, exerciseName: "handstand pushup")]),
-            .veteran:    .compound([.variant("freestanding handstand"), .reps(5, exerciseName: "handstand pushup")]),
+            .forged:     .compound([.variant("freestanding handstand"), .variant("tuck handstand")]),
+            .veteran:    .compound([.variant("freestanding handstand"), .variant("handstand walk")]),
             .honed:      .compound([.variant("freestanding handstand"), .variant("tuck press")]),
             .vessel:     .compound([.variant("freestanding handstand"), .reps(1, exerciseName: "tuck press")]),
             .unbound:    .compound([.variant("freestanding handstand"), .reps(3, exerciseName: "tuck press")]),
@@ -170,8 +167,8 @@ enum HsSkillTiers {
         // Upper tiers cascade through tuck press → straddle press.
         "hs.freestanding-hs-30": [
             .initiate:   .variant("freestanding handstand"),
-            .novice:     .compound([.variant("freestanding handstand"), .reps(3, exerciseName: "handstand pushup")]),
-            .apprentice: .compound([.variant("freestanding handstand"), .reps(5, exerciseName: "handstand pushup")]),
+            .novice:     .compound([.variant("freestanding handstand"), .variant("handstand walk")]),
+            .apprentice: .compound([.variant("freestanding handstand"), .variant("tuck press")]),
             .forged:     .compound([.variant("freestanding handstand"), .reps(3, exerciseName: "tuck press")]),
             .veteran:    .compound([.variant("freestanding handstand"), .reps(5, exerciseName: "tuck press")]),
             .honed:      .compound([.variant("freestanding handstand"), .reps(3, exerciseName: "straddle press")]),
@@ -185,7 +182,7 @@ enum HsSkillTiers {
         // Top tiers require the clean press-to-handstand.
         "hs.freestanding-hs-60": [
             .initiate:   .variant("freestanding handstand"),
-            .novice:     .compound([.variant("freestanding handstand"), .reps(5, exerciseName: "handstand pushup")]),
+            .novice:     .compound([.variant("freestanding handstand"), .variant("handstand walk")]),
             .apprentice: .compound([.variant("freestanding handstand"), .reps(3, exerciseName: "tuck press")]),
             .forged:     .compound([.variant("freestanding handstand"), .reps(5, exerciseName: "tuck press")]),
             .veteran:    .compound([.variant("freestanding handstand"), .reps(3, exerciseName: "straddle press")]),
@@ -217,19 +214,18 @@ enum HsSkillTiers {
         // MARK: - Press Ladder
 
         // hs.tuck-press — Tuck Press to Handstand; anchor: 3 reps = Forged.
-        // Rep-type. Lower tiers confirm entry. Upper tiers compound with
-        // handstand pushup volume — inverted pressing strength is the direct
-        // limiter for pressing into and out of the tuck shape.
+        // Rep-type. Progresses by tuck press volume, then bridges into
+        // straddle press and full press-to-handstand.
         "hs.tuck-press": [
             .initiate:   .reps(1, exerciseName: "tuck press"),
             .novice:     .reps(2, exerciseName: "tuck press"),
             .apprentice: .reps(3, exerciseName: "tuck press"),
             .forged:     .reps(5, exerciseName: "tuck press"),
             .veteran:    .reps(7, exerciseName: "tuck press"),
-            .honed:      .compound([.reps(7, exerciseName: "tuck press"), .reps(8, exerciseName: "handstand pushup")]),
-            .vessel:     .compound([.reps(10, exerciseName: "tuck press"), .reps(10, exerciseName: "handstand pushup")]),
-            .unbound:    .compound([.reps(12, exerciseName: "tuck press"), .reps(12, exerciseName: "handstand pushup")]),
-            .ascendant:  .compound([.reps(15, exerciseName: "tuck press"), .reps(15, exerciseName: "handstand pushup")]),
+            .honed:      .reps(10, exerciseName: "tuck press"),
+            .vessel:     .compound([.reps(10, exerciseName: "tuck press"), .reps(1, exerciseName: "straddle press")]),
+            .unbound:    .compound([.reps(12, exerciseName: "tuck press"), .reps(3, exerciseName: "straddle press")]),
+            .ascendant:  .compound([.reps(15, exerciseName: "tuck press"), .reps(1, exerciseName: "press to handstand")]),
         ],
 
         // hs.straddle-press — Straddle Press to Handstand; anchor: 3 reps = Forged.
@@ -242,7 +238,7 @@ enum HsSkillTiers {
             .apprentice: .reps(3, exerciseName: "straddle press"),
             .forged:     .reps(5, exerciseName: "straddle press"),
             .veteran:    .reps(7, exerciseName: "straddle press"),
-            .honed:      .compound([.reps(7, exerciseName: "straddle press"), .reps(8, exerciseName: "handstand pushup")]),
+            .honed:      .reps(10, exerciseName: "straddle press"),
             .vessel:     .compound([.reps(10, exerciseName: "straddle press"), .reps(1, exerciseName: "press to handstand")]),
             .unbound:    .compound([.reps(12, exerciseName: "straddle press"), .reps(3, exerciseName: "press to handstand")]),
             .ascendant:  .compound([.reps(15, exerciseName: "straddle press"), .reps(5, exerciseName: "press to handstand")]),
@@ -250,8 +246,7 @@ enum HsSkillTiers {
 
         // hs.press-to-handstand — Press to Handstand (straight legs); anchor: 1 rep = Forged.
         // Rep-type. Elite move. Lower tiers cascade through tuck press and straddle
-        // press as proof of compression base. Upper tiers compound with higher
-        // rep counts and handstand pushup volume.
+        // press as proof of compression base. Upper tiers use press volume only.
         "hs.press-to-handstand": [
             .initiate:   .reps(1, exerciseName: "tuck press"),
             .novice:     .reps(3, exerciseName: "tuck press"),
@@ -259,9 +254,9 @@ enum HsSkillTiers {
             .forged:     .reps(1, exerciseName: "press to handstand"),
             .veteran:    .reps(2, exerciseName: "press to handstand"),
             .honed:      .reps(3, exerciseName: "press to handstand"),
-            .vessel:     .compound([.reps(5, exerciseName: "press to handstand"), .reps(10, exerciseName: "handstand pushup")]),
-            .unbound:    .compound([.reps(7, exerciseName: "press to handstand"), .reps(12, exerciseName: "handstand pushup")]),
-            .ascendant:  .compound([.reps(10, exerciseName: "press to handstand"), .reps(15, exerciseName: "handstand pushup")]),
+            .vessel:     .reps(5, exerciseName: "press to handstand"),
+            .unbound:    .reps(7, exerciseName: "press to handstand"),
+            .ascendant:  .reps(10, exerciseName: "press to handstand"),
         ],
 
         // MARK: - Arm Balances
@@ -277,7 +272,7 @@ enum HsSkillTiers {
             .forged:     .compound([.variant("frog pose"), .reps(10, exerciseName: "pushup")]),
             .veteran:    .compound([.variant("frog pose"), .reps(20, exerciseName: "pushup")]),
             .honed:      .compound([.variant("frog pose"), .variant("crow pose")]),
-            .vessel:     .compound([.variant("frog pose"), .reps(5, exerciseName: "pushup")]),
+            .vessel:     .compound([.variant("frog pose"), .variant("crane pose")]),
             .unbound:    .compound([.variant("frog pose"), .variant("crane pose")]),
             .ascendant:  .compound([.variant("frog pose"), .variant("flying crow")]),
         ],
@@ -292,8 +287,8 @@ enum HsSkillTiers {
             .forged:     .compound([.variant("crow pose"), .reps(10, exerciseName: "pushup")]),
             .veteran:    .compound([.variant("crow pose"), .reps(20, exerciseName: "pushup")]),
             .honed:      .compound([.variant("crow pose"), .variant("crane pose")]),
-            .vessel:     .compound([.variant("crow pose"), .reps(3, exerciseName: "handstand pushup")]),
-            .unbound:    .compound([.variant("crow pose"), .reps(5, exerciseName: "handstand pushup")]),
+            .vessel:     .compound([.variant("crow pose"), .variant("crane pose")]),
+            .unbound:    .compound([.variant("crow pose"), .variant("flying crow")]),
             .ascendant:  .compound([.variant("crow pose"), .variant("flying crow")]),
         ],
 
@@ -304,9 +299,9 @@ enum HsSkillTiers {
             .initiate:   .variant("crow pose"),
             .novice:     .compound([.variant("crow pose"), .reps(10, exerciseName: "pushup")]),
             .apprentice: .variant("crane pose"),
-            .forged:     .compound([.variant("crane pose"), .reps(5, exerciseName: "handstand pushup")]),
-            .veteran:    .compound([.variant("crane pose"), .reps(8, exerciseName: "handstand pushup")]),
-            .honed:      .compound([.variant("crane pose"), .reps(10, exerciseName: "handstand pushup")]),
+            .forged:     .compound([.variant("crane pose"), .variant("crow pose")]),
+            .veteran:    .compound([.variant("crane pose"), .variant("flying crow")]),
+            .honed:      .compound([.variant("crane pose"), .variant("flying crow")]),
             .vessel:     .compound([.variant("crane pose"), .variant("flying crow")]),
             .unbound:    .compound([.variant("crane pose"), .reps(3, exerciseName: "tuck press")]),
             .ascendant:  .compound([.variant("crane pose"), .reps(5, exerciseName: "tuck press")]),
@@ -320,9 +315,9 @@ enum HsSkillTiers {
             .initiate:   .variant("crow pose"),
             .novice:     .variant("crane pose"),
             .apprentice: .variant("flying crow"),
-            .forged:     .compound([.variant("flying crow"), .reps(5, exerciseName: "handstand pushup")]),
-            .veteran:    .compound([.variant("flying crow"), .reps(8, exerciseName: "handstand pushup")]),
-            .honed:      .compound([.variant("flying crow"), .reps(10, exerciseName: "handstand pushup")]),
+            .forged:     .compound([.variant("flying crow"), .variant("crane pose")]),
+            .veteran:    .compound([.variant("flying crow"), .variant("freestanding handstand")]),
+            .honed:      .compound([.variant("flying crow"), .variant("freestanding handstand")]),
             .vessel:     .compound([.variant("flying crow"), .variant("freestanding handstand")]),
             .unbound:    .compound([.variant("flying crow"), .reps(3, exerciseName: "tuck press")]),
             .ascendant:  .compound([.variant("flying crow"), .reps(5, exerciseName: "tuck press")]),
@@ -341,8 +336,8 @@ enum HsSkillTiers {
             .forged:     .compound([.variant("elbow lever"), .reps(10, exerciseName: "pushup")]),
             .veteran:    .compound([.variant("elbow lever"), .reps(20, exerciseName: "pushup")]),
             .honed:      .compound([.variant("elbow lever"), .variant("freestanding handstand")]),
-            .vessel:     .compound([.variant("elbow lever"), .reps(5, exerciseName: "handstand pushup")]),
-            .unbound:    .compound([.variant("elbow lever"), .reps(8, exerciseName: "handstand pushup")]),
+            .vessel:     .compound([.variant("elbow lever"), .variant("one-arm elbow lever")]),
+            .unbound:    .compound([.variant("elbow lever"), .variant("one-arm elbow lever")]),
             .ascendant:  .compound([.variant("elbow lever"), .variant("one-arm elbow lever")]),
         ],
 
@@ -354,9 +349,9 @@ enum HsSkillTiers {
             .initiate:   .variant("elbow lever"),
             .novice:     .compound([.variant("elbow lever"), .reps(10, exerciseName: "pushup")]),
             .apprentice: .variant("one-arm elbow lever"),
-            .forged:     .compound([.variant("one-arm elbow lever"), .reps(5, exerciseName: "handstand pushup")]),
-            .veteran:    .compound([.variant("one-arm elbow lever"), .reps(8, exerciseName: "handstand pushup")]),
-            .honed:      .compound([.variant("one-arm elbow lever"), .reps(10, exerciseName: "handstand pushup")]),
+            .forged:     .compound([.variant("one-arm elbow lever"), .variant("elbow lever")]),
+            .veteran:    .compound([.variant("one-arm elbow lever"), .variant("freestanding handstand")]),
+            .honed:      .compound([.variant("one-arm elbow lever"), .variant("freestanding handstand")]),
             .vessel:     .compound([.variant("one-arm elbow lever"), .variant("freestanding handstand")]),
             .unbound:    .compound([.variant("one-arm elbow lever"), .reps(3, exerciseName: "tuck press")]),
             .ascendant:  .compound([.variant("one-arm elbow lever"), .reps(5, exerciseName: "tuck press")]),
@@ -370,11 +365,11 @@ enum HsSkillTiers {
         // one-arm elbow lever — wrist/shoulder unilateral strength confirmation.
         "hs.wall-supported-oah": [
             .initiate:   .variant("wall handstand"),
-            .novice:     .compound([.variant("wall handstand"), .reps(8, exerciseName: "handstand pushup")]),
+            .novice:     .compound([.variant("wall handstand"), .variant("freestanding handstand")]),
             .apprentice: .variant("wall-supported one-arm handstand"),
-            .forged:     .compound([.variant("wall-supported one-arm handstand"), .reps(5, exerciseName: "handstand pushup")]),
-            .veteran:    .compound([.variant("wall-supported one-arm handstand"), .reps(8, exerciseName: "handstand pushup")]),
-            .honed:      .compound([.variant("wall-supported one-arm handstand"), .reps(10, exerciseName: "handstand pushup")]),
+            .forged:     .compound([.variant("wall-supported one-arm handstand"), .variant("wall handstand")]),
+            .veteran:    .compound([.variant("wall-supported one-arm handstand"), .variant("freestanding handstand")]),
+            .honed:      .compound([.variant("wall-supported one-arm handstand"), .variant("freestanding handstand")]),
             .vessel:     .compound([.variant("wall-supported one-arm handstand"), .variant("freestanding handstand")]),
             .unbound:    .compound([.variant("wall-supported one-arm handstand"), .variant("one-arm elbow lever")]),
             .ascendant:  .compound([.variant("wall-supported one-arm handstand"), .reps(3, exerciseName: "press to handstand")]),

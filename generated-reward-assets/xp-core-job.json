@@ -1,0 +1,21 @@
+[
+  {
+    "id": "a06207c6-b7a9-43b3-8019-a5cf18eeff95",
+    "status": "completed",
+    "display_name": "GPT Image 2",
+    "job_set_type": "imagegen_2_0",
+    "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3Am37d6qxSQ2zttmtLTANcq9W7j/hf_20260518_220420_a06207c6-b7a9-43b3-8019-a5cf18eeff95.png",
+    "created_at": 1779141860.936101,
+    "params": {
+      "width": 2048,
+      "height": 1360,
+      "prompt": "Create a single premium mobile app UI asset: a horizontal sci-fi XP core progress bar frame for UNBOUND. Aspect ratio 3:1. Style: brutalist Japanese minimalism, cold black graphite metal, cyan/blue internal energy, segmented capsule with precise tick marks, subtle teal glow, high contrast, no words, no numbers, no logos, no characters. Centered on near-black background. The bar should look like a custom game reward module, not a generic web progress bar. Crisp edges, app UI ready, plenty of dark padding, 2D/3D hybrid, restrained but powerful.",
+      "medias": [],
+      "aspect_ratio": "3:2",
+      "quality": "high",
+      "resolution": "2k",
+      "model": "videotape-alpha",
+      "reference_elements": []
+    }
+  }
+]

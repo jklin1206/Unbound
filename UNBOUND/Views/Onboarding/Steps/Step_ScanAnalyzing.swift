@@ -25,6 +25,10 @@ struct Step_ScanAnalyzing: View {
     @State private var insightsService = LocalBodyInsightsService()
     @State private var analysisTask: Task<Void, Never>? = nil
 
+    private var holdsForPreview: Bool {
+        ProcessInfo.processInfo.arguments.contains("-HoldScanAnalyzing")
+    }
+
     var body: some View {
         TimelineView(.animation(minimumInterval: 1.0 / 60.0)) { ctx in
             let elapsed = ctx.date.timeIntervalSince(startTime)
@@ -130,6 +134,7 @@ struct Step_ScanAnalyzing: View {
                 }
             }
             .onChange(of: fraction) { _, new in
+                guard !holdsForPreview else { return }
                 if new >= 1.0 && !animationDone {
                     animationDone = true
                     complete()
@@ -279,16 +284,12 @@ private struct HudReadouts: View {
     let percent: Int
     let elapsed: TimeInterval
 
-    // Status strings describe what's *actually* happening during these 6s.
-    // On-device Vision reads the user's body pose keypoints (real) and
-    // computes shoulder-to-hip ratio (real). The protocol compilation
-    // step weaves those ratios into the focus-area priorities from the
-    // questionnaire. Nothing aspirational — every line here is true.
+    // Status strings keep this beat in "starting the arc" language.
     private let statusStrings = [
-        "LOCKING YOUR DAY ZERO",
-        "READING YOUR FRAME",
-        "MEASURING SHOULDER-TO-HIP",
-        "TUNING YOUR FOCUS AREAS",
+        "SAVING DAY ZERO",
+        "SETTING THE STARTING LINE",
+        "COMPILING YOUR ARC",
+        "ARMING MONTH ONE",
         "BUILDING YOUR PROTOCOL"
     ]
 

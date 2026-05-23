@@ -15,4 +15,9 @@ enum LoadingState<T> {
         if case .loaded(let value) = self { return value }
         return nil
     }
+
+    var errorValue: AppError? {
+        if case .error(let error) = self { return error }
+        return nil
+    }
 }

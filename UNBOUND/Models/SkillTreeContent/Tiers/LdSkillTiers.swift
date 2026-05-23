@@ -1,6 +1,6 @@
 // UNBOUND/Models/SkillTreeContent/Tiers/LdSkillTiers.swift
 //
-// Tier criteria for every skill with prefix `ld.` (31 skills).
+// Tier criteria for every skill with prefix `ld.` (34 skills).
 // Lower body / legs / glutes / pistol family. See CalSkillTiers for pattern.
 //
 // Progression chains encoded here:
@@ -23,17 +23,16 @@
 //
 // Loaded skills (bw-front-squat, weighted-pistol, weighted-sl-calf, weighted-bss):
 //   Lower tiers use .variant to confirm any logged session.
-//   Upper tiers use .compound([.variant(name), .bodyweightRatio(r)]) so the
-//   exercise is confirmed before the ratio gate fires — prevents false-positives
-//   from unrelated heavy lifts. Pattern from CalSkillTiers cal.weighted-dip.
+//   Upper tiers use .exerciseBodyweightRatio(r, exerciseName: name) so
+//   unrelated heavy lifts cannot satisfy the ratio gate. Pattern from CalSkillTiers cal.weighted-dip.
 
 import Foundation
 
 #if DEBUG
 private let _ldCountCheck: Int = {
     assert(
-        LdSkillTiers.table.count == 31,
-        "ld cluster should have 31 entries, has \(LdSkillTiers.table.count)"
+        LdSkillTiers.table.count == 34,
+        "ld cluster should have 34 entries, has \(LdSkillTiers.table.count)"
     )
     for (id, tiers) in LdSkillTiers.table {
         assert(tiers.count == 9, "\(id) needs 9 tiers, has \(tiers.count)")
@@ -64,17 +63,17 @@ enum LdSkillTiers {
         ],
 
         // ld.goblet-20 — goblet squat with load (0.5× bw); lower tiers confirm
-        // any goblet squat session; upper tiers add bodyweightRatio gate.
+        // any goblet squat session; upper tiers add an exercise-scoped bodyweight-ratio gate.
         "ld.goblet-20": [
             .initiate:   .variant("goblet squat"),
-            .novice:     .compound([.variant("goblet squat"), .bodyweightRatio(0.10)]),
-            .apprentice: .compound([.variant("goblet squat"), .bodyweightRatio(0.20)]),
-            .forged:     .compound([.variant("goblet squat"), .bodyweightRatio(0.30)]),
-            .veteran:    .compound([.variant("goblet squat"), .bodyweightRatio(0.40)]),
-            .honed:      .compound([.variant("goblet squat"), .bodyweightRatio(0.50)]),
-            .vessel:     .compound([.variant("goblet squat"), .bodyweightRatio(0.65)]),
-            .unbound:    .compound([.variant("goblet squat"), .bodyweightRatio(0.80)]),
-            .ascendant:  .compound([.variant("goblet squat"), .bodyweightRatio(1.00)]),
+            .novice:     .exerciseBodyweightRatio(0.10, exerciseName: "goblet squat"),
+            .apprentice: .exerciseBodyweightRatio(0.20, exerciseName: "goblet squat"),
+            .forged:     .exerciseBodyweightRatio(0.30, exerciseName: "goblet squat"),
+            .veteran:    .exerciseBodyweightRatio(0.40, exerciseName: "goblet squat"),
+            .honed:      .exerciseBodyweightRatio(0.50, exerciseName: "goblet squat"),
+            .vessel:     .exerciseBodyweightRatio(0.65, exerciseName: "goblet squat"),
+            .unbound:    .exerciseBodyweightRatio(0.80, exerciseName: "goblet squat"),
+            .ascendant:  .exerciseBodyweightRatio(1.00, exerciseName: "goblet squat"),
         ],
 
         // ld.tempo-squat — controlled eccentric squat; anchor: 10 reps = Forged
@@ -91,17 +90,17 @@ enum LdSkillTiers {
         ],
 
         // ld.bw-front-squat — front squat at bodyweight; lower tiers confirm
-        // any front squat. Upper tiers add bodyweightRatio gate (1.0×+ loads).
+        // any front squat. Upper tiers add an exercise-scoped bodyweight-ratio gate (1.0×+ loads).
         "ld.bw-front-squat": [
             .initiate:   .variant("front squat"),
-            .novice:     .compound([.variant("front squat"), .bodyweightRatio(0.30)]),
-            .apprentice: .compound([.variant("front squat"), .bodyweightRatio(0.50)]),
-            .forged:     .compound([.variant("front squat"), .bodyweightRatio(0.75)]),
-            .veteran:    .compound([.variant("front squat"), .bodyweightRatio(1.00)]),
-            .honed:      .compound([.variant("front squat"), .bodyweightRatio(1.25)]),
-            .vessel:     .compound([.variant("front squat"), .bodyweightRatio(1.50)]),
-            .unbound:    .compound([.variant("front squat"), .bodyweightRatio(1.75)]),
-            .ascendant:  .compound([.variant("front squat"), .bodyweightRatio(2.00)]),
+            .novice:     .exerciseBodyweightRatio(0.30, exerciseName: "front squat"),
+            .apprentice: .exerciseBodyweightRatio(0.50, exerciseName: "front squat"),
+            .forged:     .exerciseBodyweightRatio(0.75, exerciseName: "front squat"),
+            .veteran:    .exerciseBodyweightRatio(1.00, exerciseName: "front squat"),
+            .honed:      .exerciseBodyweightRatio(1.25, exerciseName: "front squat"),
+            .vessel:     .exerciseBodyweightRatio(1.50, exerciseName: "front squat"),
+            .unbound:    .exerciseBodyweightRatio(1.75, exerciseName: "front squat"),
+            .ascendant:  .exerciseBodyweightRatio(2.00, exerciseName: "front squat"),
         ],
 
         // ld.jumping-squat — plyometric squat; anchor: 10 reps = Forged
@@ -172,17 +171,17 @@ enum LdSkillTiers {
         ],
 
         // ld.weighted-pistol — loaded pistol at 0.5× bw; lower tiers confirm any
-        // weighted pistol. Upper tiers gate on bodyweightRatio.
+        // weighted pistol. Upper tiers gate on exercise-scoped bodyweight ratio.
         "ld.weighted-pistol": [
             .initiate:   .variant("weighted pistol"),
-            .novice:     .compound([.variant("weighted pistol"), .bodyweightRatio(0.10)]),
-            .apprentice: .compound([.variant("weighted pistol"), .bodyweightRatio(0.20)]),
-            .forged:     .compound([.variant("weighted pistol"), .bodyweightRatio(0.35)]),
-            .veteran:    .compound([.variant("weighted pistol"), .bodyweightRatio(0.50)]),
-            .honed:      .compound([.variant("weighted pistol"), .bodyweightRatio(0.65)]),
-            .vessel:     .compound([.variant("weighted pistol"), .bodyweightRatio(0.80)]),
-            .unbound:    .compound([.variant("weighted pistol"), .bodyweightRatio(1.00)]),
-            .ascendant:  .compound([.variant("weighted pistol"), .bodyweightRatio(1.25)]),
+            .novice:     .exerciseBodyweightRatio(0.10, exerciseName: "weighted pistol"),
+            .apprentice: .exerciseBodyweightRatio(0.20, exerciseName: "weighted pistol"),
+            .forged:     .exerciseBodyweightRatio(0.35, exerciseName: "weighted pistol"),
+            .veteran:    .exerciseBodyweightRatio(0.50, exerciseName: "weighted pistol"),
+            .honed:      .exerciseBodyweightRatio(0.65, exerciseName: "weighted pistol"),
+            .vessel:     .exerciseBodyweightRatio(0.80, exerciseName: "weighted pistol"),
+            .unbound:    .exerciseBodyweightRatio(1.00, exerciseName: "weighted pistol"),
+            .ascendant:  .exerciseBodyweightRatio(1.25, exerciseName: "weighted pistol"),
         ],
 
         // ld.heighted-pistol — elevated/deficit pistol squat; anchor: 3 reps = Forged
@@ -226,6 +225,19 @@ enum LdSkillTiers {
 
         // MARK: - Bulgarian Split Squat Ladder
 
+        // ld.split-squat — baseline unilateral squat before rear-foot elevation.
+        "ld.split-squat": [
+            .initiate:   .reps(5,  exerciseName: "split squat"),
+            .novice:     .reps(8,  exerciseName: "split squat"),
+            .apprentice: .reps(10, exerciseName: "split squat"),
+            .forged:     .reps(15, exerciseName: "split squat"),
+            .veteran:    .reps(20, exerciseName: "split squat"),
+            .honed:      .reps(25, exerciseName: "split squat"),
+            .vessel:     .compound([.reps(25, exerciseName: "split squat"), .reps(8, exerciseName: "bulgarian split squat")]),
+            .unbound:    .compound([.reps(30, exerciseName: "split squat"), .reps(12, exerciseName: "bulgarian split squat")]),
+            .ascendant:  .compound([.reps(40, exerciseName: "split squat"), .reps(15, exerciseName: "bulgarian split squat")]),
+        ],
+
         // ld.bulgarian-split-squat — rear-foot-elevated split squat; anchor: 10 reps = Forged
         "ld.bulgarian-split-squat": [
             .initiate:   .reps(3,  exerciseName: "bulgarian split squat"),
@@ -253,17 +265,31 @@ enum LdSkillTiers {
         ],
 
         // ld.weighted-bss — weighted bulgarian split squat (0.5× bw); lower tiers
-        // confirm any weighted bss session. Upper tiers gate on bodyweightRatio.
+        // confirm any weighted bss session. Upper tiers gate on exercise-scoped bodyweight ratio.
         "ld.weighted-bss": [
             .initiate:   .variant("weighted bss"),
-            .novice:     .compound([.variant("weighted bss"), .bodyweightRatio(0.15)]),
-            .apprentice: .compound([.variant("weighted bss"), .bodyweightRatio(0.30)]),
-            .forged:     .compound([.variant("weighted bss"), .bodyweightRatio(0.50)]),
-            .veteran:    .compound([.variant("weighted bss"), .bodyweightRatio(0.70)]),
-            .honed:      .compound([.variant("weighted bss"), .bodyweightRatio(0.90)]),
-            .vessel:     .compound([.variant("weighted bss"), .bodyweightRatio(1.10)]),
-            .unbound:    .compound([.variant("weighted bss"), .bodyweightRatio(1.30)]),
-            .ascendant:  .compound([.variant("weighted bss"), .bodyweightRatio(1.60)]),
+            .novice:     .exerciseBodyweightRatio(0.15, exerciseName: "weighted bss"),
+            .apprentice: .exerciseBodyweightRatio(0.30, exerciseName: "weighted bss"),
+            .forged:     .exerciseBodyweightRatio(0.50, exerciseName: "weighted bss"),
+            .veteran:    .exerciseBodyweightRatio(0.70, exerciseName: "weighted bss"),
+            .honed:      .exerciseBodyweightRatio(0.90, exerciseName: "weighted bss"),
+            .vessel:     .exerciseBodyweightRatio(1.10, exerciseName: "weighted bss"),
+            .unbound:    .exerciseBodyweightRatio(1.30, exerciseName: "weighted bss"),
+            .ascendant:  .exerciseBodyweightRatio(1.60, exerciseName: "weighted bss"),
+        ],
+
+        // ld.weighted-split-squat — live tree ID for loaded split-squat work.
+        // Lower tiers confirm the pattern; upper tiers gate load by bodyweight ratio.
+        "ld.weighted-split-squat": [
+            .initiate:   .variant("weighted split squat"),
+            .novice:     .exerciseBodyweightRatio(0.10, exerciseName: "weighted split squat"),
+            .apprentice: .exerciseBodyweightRatio(0.20, exerciseName: "weighted split squat"),
+            .forged:     .exerciseBodyweightRatio(0.35, exerciseName: "weighted split squat"),
+            .veteran:    .exerciseBodyweightRatio(0.50, exerciseName: "weighted split squat"),
+            .honed:      .exerciseBodyweightRatio(0.65, exerciseName: "weighted split squat"),
+            .vessel:     .exerciseBodyweightRatio(0.80, exerciseName: "weighted split squat"),
+            .unbound:    .exerciseBodyweightRatio(1.00, exerciseName: "weighted split squat"),
+            .ascendant:  .exerciseBodyweightRatio(1.25, exerciseName: "weighted split squat"),
         ],
 
         // MARK: - Hamstring Chain
@@ -380,17 +406,17 @@ enum LdSkillTiers {
         ],
 
         // ld.weighted-sl-calf — weighted single-leg calf raise (0.5× bw); lower
-        // tiers confirm any single-leg calf raise. Upper tiers gate on bodyweightRatio.
+        // tiers confirm any single-leg calf raise. Upper tiers gate on exercise-scoped bodyweight ratio.
         "ld.weighted-sl-calf": [
             .initiate:   .variant("single-leg calf raise"),
-            .novice:     .compound([.variant("single-leg calf raise"), .bodyweightRatio(0.10)]),
-            .apprentice: .compound([.variant("single-leg calf raise"), .bodyweightRatio(0.20)]),
-            .forged:     .compound([.variant("single-leg calf raise"), .bodyweightRatio(0.35)]),
-            .veteran:    .compound([.variant("single-leg calf raise"), .bodyweightRatio(0.50)]),
-            .honed:      .compound([.variant("single-leg calf raise"), .bodyweightRatio(0.70)]),
-            .vessel:     .compound([.variant("single-leg calf raise"), .bodyweightRatio(0.90)]),
-            .unbound:    .compound([.variant("single-leg calf raise"), .bodyweightRatio(1.10)]),
-            .ascendant:  .compound([.variant("single-leg calf raise"), .bodyweightRatio(1.40)]),
+            .novice:     .exerciseBodyweightRatio(0.10, exerciseName: "single-leg calf raise"),
+            .apprentice: .exerciseBodyweightRatio(0.20, exerciseName: "single-leg calf raise"),
+            .forged:     .exerciseBodyweightRatio(0.35, exerciseName: "single-leg calf raise"),
+            .veteran:    .exerciseBodyweightRatio(0.50, exerciseName: "single-leg calf raise"),
+            .honed:      .exerciseBodyweightRatio(0.70, exerciseName: "single-leg calf raise"),
+            .vessel:     .exerciseBodyweightRatio(0.90, exerciseName: "single-leg calf raise"),
+            .unbound:    .exerciseBodyweightRatio(1.10, exerciseName: "single-leg calf raise"),
+            .ascendant:  .exerciseBodyweightRatio(1.40, exerciseName: "single-leg calf raise"),
         ],
 
         // MARK: - Solo Skills
@@ -461,6 +487,19 @@ enum LdSkillTiers {
             .vessel:     .compound([.variant("deep squat"), .reps(25, exerciseName: "goblet squat")]),
             .unbound:    .compound([.variant("deep squat"), .reps(30, exerciseName: "goblet squat")]),
             .ascendant:  .compound([.variant("deep squat"), .reps(40, exerciseName: "goblet squat")]),
+        ],
+
+        // ld.leg-extensions — quad isolation support for the sissy/quad path.
+        "ld.leg-extensions": [
+            .initiate:   .reps(8,  exerciseName: "leg extension"),
+            .novice:     .reps(10, exerciseName: "leg extension"),
+            .apprentice: .reps(12, exerciseName: "leg extension"),
+            .forged:     .reps(15, exerciseName: "leg extension"),
+            .veteran:    .reps(20, exerciseName: "leg extension"),
+            .honed:      .reps(25, exerciseName: "leg extension"),
+            .vessel:     .compound([.reps(25, exerciseName: "leg extension"), .reps(5, exerciseName: "sissy squat")]),
+            .unbound:    .compound([.reps(30, exerciseName: "leg extension"), .reps(8, exerciseName: "sissy squat")]),
+            .ascendant:  .compound([.reps(40, exerciseName: "leg extension"), .reps(10, exerciseName: "sissy squat")]),
         ],
 
         // ld.sissy-squat — quad-dominant extreme knee flexion; anchor: 8 reps = Forged

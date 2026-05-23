@@ -4,7 +4,7 @@ import Foundation
 //
 // Generates a TravelOverride (bodyweight/minimal-equipment plan) for a
 // user-specified number of days. Called directly from TravelModeSheet —
-// no chat involved. One call, one result, saved to TravelOverrideStore.
+// one button press, one result, saved to TravelOverrideStore.
 
 @MainActor
 final class TravelPlanService {

@@ -10,8 +10,9 @@ import Foundation
 //   • Handbalance removed as a separate landing concept. Handstand owns the
 //     inversion path directly; planche owns the arm-balance-to-planche chain.
 //
-// Landing-screen trees (7): Pull, Push, Legs, Core & Levers, Handstand,
-// Planche, Endurance. See `SkillDisplayTree` for the grouping.
+// Landing-screen trees: Pull, Push, Legs, Core, Handstand, Planche.
+// Conditioning content remains available to workout/routine systems, but is
+// not currently exposed as a skill-tree branch.
 
 enum SkillCluster: String, Codable, CaseIterable, Sendable, Identifiable {
     case legDominance       = "leg_dominance"
@@ -50,7 +51,7 @@ enum SkillCluster: String, Codable, CaseIterable, Sendable, Identifiable {
         case .handstandPushup:    return "Handstand Pushup"
         case .oneArmHandstand:    return "One-Arm Handstand"
         case .planche:            return "Planche"
-        case .coreLever:          return "Core & Levers"
+        case .coreLever:          return "Core"
         case .conditioning:       return "Endurance"
         }
     }
@@ -64,7 +65,7 @@ enum SkillCluster: String, Codable, CaseIterable, Sendable, Identifiable {
         case .handstandPushup:    return "Press your bodyweight overhead"
         case .oneArmHandstand:    return "The final balance — one hand"
         case .planche:            return "Tuck → straddle → full planche"
-        case .coreLever:          return "Hollow · L-sit · levers"
+        case .coreLever:          return "Hollow · L-sit · dragon flag"
         case .conditioning:       return "Carries · hangs · grip"
         }
     }

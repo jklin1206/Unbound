@@ -1,8 +1,7 @@
 import SwiftUI
 
-/// Onboarding "try the app" RPE sandbox: a real 3-set Bench Press logged with
-/// the production ExerciseLogCard, teaching the real 6–10 RPE scale via the
-/// production RPEPickerSheet.
+/// Onboarding product-loop demo: log a real set with the production
+/// ExerciseLogCard, rate effort, then show how progress moves.
 struct RPEOnboardingStep: View {
     let onContinue: () -> Void
 
@@ -35,12 +34,13 @@ struct RPEOnboardingStep: View {
     var body: some View {
         VStack(spacing: 24) {
             VStack(spacing: 10) {
-                Text("TRY IT — RPE")
-                    .font(Font.unbound.captionS).tracking(2)
-                    .foregroundStyle(Color.unbound.textTertiary)
+                Text("TRY THE LOOP")
+                    .font(Font.unbound.captionS)
+                    .tracking(2)
+                    .foregroundStyle(Color.unbound.accent)
                 Text(allLogged
-                     ? "That's RPE — how many reps you had left. 10 = none, 8 = ~2, 6 = 4+. We use it to adjust your weights."
-                     : "Log these 3 sets (tap the ✓). Then tap RPE and pick how hard it felt — it's how many reps you had left in the tank.")
+                     ? "Progress moved. In the full protocol, every logged set feeds your rank, stats, next unlock, and next session."
+                     : "Tap the checkmark to log a set. Then tap RPE and rate how hard it felt. This is how UNBOUND adapts without making you guess.")
                     .font(Font.unbound.bodyM)
                     .foregroundStyle(Color.unbound.textSecondary)
                     .multilineTextAlignment(.center)
@@ -62,6 +62,8 @@ struct RPEOnboardingStep: View {
                     isWarmupCurrent: false,
                     sets: ex.sets,
                     isExpanded: isExpanded,
+                    isCurrent: true,
+                    currentSetIndex: demo.currentSetIndex,
                     onToggleExpand: { isExpanded.toggle() },
                     onIntent: { _ in },
                     onEditWeight: { si in editing = EditCell(si: si, isWeight: true) },
@@ -74,6 +76,12 @@ struct RPEOnboardingStep: View {
                     onAddSet: {}
                 )
                 .padding(.horizontal, 16)
+            }
+
+            if hasLogged {
+                demoRewardCard
+                    .padding(.horizontal, 16)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
             }
 
             Spacer()
@@ -92,14 +100,21 @@ struct RPEOnboardingStep: View {
             .padding(.bottom, 24)
         }
         .background(Color.unbound.bg.ignoresSafeArea())
+        .animation(.spring(response: 0.42, dampingFraction: 0.82), value: hasLogged)
         .sheet(item: $editing) { cell in
             OnboardingSetEditor(
                 isWeight: cell.isWeight,
                 initial: cell.isWeight
-                    ? (demo.exercises[0].sets[cell.si].weightKg ?? 0)
+                    ? (demo.exercises[0].sets[cell.si].weightKg.map {
+                        WeightPlatePolicy.editingValue(fromKilograms: $0)
+                    } ?? 0)
                     : Double(demo.exercises[0].sets[cell.si].reps ?? 0),
                 onSave: { v in
-                    if cell.isWeight { demo.exercises[0].sets[cell.si].weightKg = v > 0 ? v : nil }
+                    if cell.isWeight {
+                        demo.exercises[0].sets[cell.si].weightKg = v > 0
+                            ? WeightPlatePolicy.kilograms(fromDisplayValue: v)
+                            : nil
+                    }
                     else { demo.exercises[0].sets[cell.si].reps = v > 0 ? Int(v) : nil }
                 }
             )
@@ -113,6 +128,34 @@ struct RPEOnboardingStep: View {
             .presentationDetents([.height(420)])
         }
     }
+
+    private var demoRewardCard: some View {
+        UnboundCard {
+            HStack(spacing: 14) {
+                ZStack {
+                    HUDHexagon()
+                        .fill(Color.unbound.accent.opacity(0.16))
+                    HUDHexagon()
+                        .stroke(Color.unbound.accent.opacity(0.7), lineWidth: 1.4)
+                    Image(systemName: "arrow.up.right")
+                        .font(.system(size: 16, weight: .black))
+                        .foregroundStyle(Color.unbound.accent)
+                }
+                .frame(width: 48, height: 44)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("+12 XP · POWER +1")
+                        .font(Font.unbound.bodyLStrong)
+                        .foregroundStyle(Color.unbound.textPrimary)
+                    Text("First unlock progress: 8%")
+                        .font(Font.unbound.bodyS)
+                        .foregroundStyle(Color.unbound.textSecondary)
+                }
+
+                Spacer(minLength: 0)
+            }
+        }
+    }
 }
 
 private struct OnboardingSetEditor: View {
@@ -121,6 +164,8 @@ private struct OnboardingSetEditor: View {
     let onSave: (Double) -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var value: Double
+    @AppStorage(WeightPlatePolicy.unitDefaultsKey) private var weightUnitRaw = TrainingWeightUnit.localeDefault.rawValue
+    @AppStorage(WeightPlatePolicy.microloadingDefaultsKey) private var microloadingEnabled = false
 
     init(isWeight: Bool, initial: Double, onSave: @escaping (Double) -> Void) {
         self.isWeight = isWeight; self.initial = initial; self.onSave = onSave
@@ -130,7 +175,8 @@ private struct OnboardingSetEditor: View {
     var body: some View {
         VStack(spacing: 28) {
             StepperControl(label: isWeight ? "Weight" : "Reps", value: $value,
-                           step: isWeight ? 2.5 : 1, unit: isWeight ? "kg" : nil,
+                           step: isWeight ? weightStep : 1,
+                           unit: isWeight ? weightUnit.shortLabel : nil,
                            allowsDecimal: isWeight)
             Button { onSave(value); dismiss() } label: {
                 Text("DONE")
@@ -144,5 +190,16 @@ private struct OnboardingSetEditor: View {
         }
         .padding(24)
         .background(Color.unbound.bg.ignoresSafeArea())
+    }
+
+    private var weightUnit: TrainingWeightUnit {
+        TrainingWeightUnit(rawValue: weightUnitRaw) ?? .localeDefault
+    }
+
+    private var weightStep: Double {
+        WeightPlatePolicy.loadIncrement(
+            unit: weightUnit,
+            microloadingEnabled: microloadingEnabled
+        )
     }
 }

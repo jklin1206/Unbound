@@ -197,6 +197,32 @@ final class ProgramScheduler {
         return skillIds(forCategory: cat)
     }
 
+    /// First date whose program category can host the given skill. This is
+    /// the bridge from Skill Detail's "Add to Program" action to the Program
+    /// tab's next eligible Workout Ready draft.
+    func nextEligibleDate(
+        forSkillId skillId: String,
+        from startDate: Date = Date(),
+        daysToSearch: Int = 14
+    ) -> Date? {
+        guard daysToSearch > 0,
+              let node = SkillGraph.shared.node(id: skillId)
+        else { return nil }
+
+        let targetCategory = category(for: node.cluster)
+        guard targetCategory != .rest else { return nil }
+
+        let calendar = Calendar(identifier: .iso8601)
+        let start = calendar.startOfDay(for: startDate)
+        for offset in 0..<daysToSearch {
+            guard let candidate = calendar.date(byAdding: .day, value: offset, to: start) else { continue }
+            if category(for: candidate) == targetCategory {
+                return candidate
+            }
+        }
+        return nil
+    }
+
     /// Returns the upcoming N days' (date, category, skillCount) tuples.
     /// Used by the 7-day horizontal strip.
     func weeklyOverview(days: Int = 7) -> [(date: Date, category: DayCategory, count: Int)] {

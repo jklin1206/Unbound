@@ -1,0 +1,21 @@
+[
+  {
+    "id": "de335df5-b40e-4fe9-a1ef-00d35dbfae07",
+    "status": "completed",
+    "display_name": "GPT Image 2",
+    "job_set_type": "imagegen_2_0",
+    "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3Am37d6qxSQ2zttmtLTANcq9W7j/hf_20260518_230914_de335df5-b40e-4fe9-a1ef-00d35dbfae07.png",
+    "created_at": 1779145754.351025,
+    "params": {
+      "width": 2048,
+      "height": 1360,
+      "prompt": "Create a transparent-background mobile UI asset: only the empty outer frame and rails for a horizontal sci-fi XP progress bar, no fill, no glowing blocks inside. Aspect ratio 4:1. Style: brutalist Japanese minimalism, dark graphite metal, thin cyan edge lights, segmented tick marks, hollow center where SwiftUI fill will go. No words, no numbers, no logos, no characters. The asset must be an overlay frame, with transparent center and transparent outside, crisp app UI ready, high contrast edges.",
+      "medias": [],
+      "aspect_ratio": "3:2",
+      "quality": "high",
+      "resolution": "2k",
+      "model": "videotape-alpha",
+      "reference_elements": []
+    }
+  }
+]

@@ -23,6 +23,7 @@ struct SetLogGridRow: View {
     let metricKind: TrainingMetricKind
     let tracksHold: Bool
     let logged: Bool
+    let isCurrent: Bool
     let onEditWeight: () -> Void
     let onEditReps: () -> Void
     let onPickRPE: () -> Void
@@ -33,10 +34,17 @@ struct SetLogGridRow: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            Text("\(setNumber)")
-                .font(Font.unbound.monoS)
-                .foregroundStyle(Color.unbound.textTertiary)
-                .frame(width: 20, alignment: .leading)
+            ZStack {
+                if isCurrent {
+                    Circle()
+                        .fill(Color.unbound.coachCyan.opacity(0.20))
+                        .frame(width: 26, height: 26)
+                }
+                Text("\(setNumber)")
+                    .font(Font.unbound.monoS.weight(isCurrent ? .bold : .regular))
+                    .foregroundStyle(isCurrent ? Color.unbound.coachCyan : Color.unbound.textTertiary)
+            }
+            .frame(width: 26, alignment: .leading)
 
             cell(actual: weightKg.map(formatLoggedWeight),
                  suggested: suggestedWeightKg.map(formatLoggedWeight),
@@ -54,13 +62,22 @@ struct SetLogGridRow: View {
                     .frame(width: 44)
                     .padding(.vertical, 10)
                     .background(RoundedRectangle(cornerRadius: 10)
-                        .fill(Color.unbound.surfaceElevated))
+                        .fill(isCurrent ? Color.unbound.bg.opacity(0.84) : Color.unbound.surfaceElevated))
             }
             .buttonStyle(.plain)
 
             confirmControl.frame(width: 40)
         }
         .padding(.vertical, 8)
+        .padding(.horizontal, isCurrent ? 8 : 0)
+        .background {
+            if isCurrent {
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(Color.unbound.coachCyan.opacity(0.09))
+                    .overlay(RoundedRectangle(cornerRadius: 14)
+                        .strokeBorder(Color.unbound.coachCyan.opacity(0.26), lineWidth: 1))
+            }
+        }
         .animation(reduceMotion ? nil
                    : .spring(response: 0.3, dampingFraction: 0.65),
                    value: logged)
@@ -99,7 +116,7 @@ struct SetLogGridRow: View {
     @ViewBuilder private var confirmControl: some View {
         if logged {
             ZStack {
-                Circle().fill(Color.unbound.accent).frame(width: 30, height: 30)
+                Circle().fill(Color.unbound.success).frame(width: 30, height: 30)
                 Image(systemName: "checkmark")
                     .font(.system(size: 14, weight: .bold))
                     .foregroundStyle(Color.unbound.bg)
@@ -109,8 +126,13 @@ struct SetLogGridRow: View {
             Button(action: onConfirmAsPlanned) {
                 ZStack {
                     Circle()
-                        .strokeBorder(Color.unbound.textTertiary, lineWidth: 1.5)
+                        .strokeBorder(isCurrent ? Color.unbound.coachCyan : Color.unbound.textTertiary, lineWidth: isCurrent ? 2 : 1.5)
                         .frame(width: 30, height: 30)
+                    if isCurrent {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(Color.unbound.coachCyan)
+                    }
                 }
                 .frame(width: 40, height: 44)
                 .contentShape(Rectangle())
@@ -131,7 +153,7 @@ struct SetLogGridRow: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 10)
                 .background(RoundedRectangle(cornerRadius: 10)
-                    .fill(Color.unbound.surfaceElevated))
+                    .fill(isCurrent ? Color.unbound.bg.opacity(0.84) : Color.unbound.surfaceElevated))
         }
         .buttonStyle(.plain)
     }

@@ -4,13 +4,13 @@ import Foundation
 
 @MainActor
 protocol PhotoXPServiceProtocol: AnyObject {
-    /// Awards +5 SP the first time a user captures a photo on a given
+    /// Awards +5 LV XP the first time a user captures a photo on a given
     /// calendar day. No-ops (returns false) on subsequent same-day captures
-    /// to prevent farming. Returns true when SP was awarded.
+    /// to prevent farming. Returns true when LV XP was awarded.
     @discardableResult
     func awardDailyPhoto(userId: String) -> Bool
 
-    /// Awards +25 SP for a completed bi-weekly scan. No dedup — the
+    /// Awards +25 LV XP for a completed bi-weekly scan. No dedup — the
     /// 14-day eligibility gate lives in the UI layer.
     func awardScan(userId: String)
 }
@@ -27,8 +27,8 @@ final class PhotoXPService: PhotoXPServiceProtocol {
 
     // Awards. Keep these inline so the plan numbers (5 / 25) live right
     // next to where they're granted — no separate constants file to stale.
-    private let dailyPhotoSP = 5
-    private let scanSP = 25
+    private let dailyPhotoLevelXP = 5
+    private let scanLevelXP = 25
 
     private init() {}
 
@@ -39,12 +39,12 @@ final class PhotoXPService: PhotoXPServiceProtocol {
         if defaults.string(forKey: key) == today { return false }
 
         defaults.set(today, forKey: key)
-        bumpGains(by: dailyPhotoSP)
+        bumpGains(by: dailyPhotoLevelXP)
         return true
     }
 
     func awardScan(userId: String) {
-        bumpGains(by: scanSP)
+        bumpGains(by: scanLevelXP)
     }
 
     // MARK: Helpers

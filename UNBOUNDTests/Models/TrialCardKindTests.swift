@@ -15,6 +15,12 @@ final class WeeklyVowKindTests: XCTestCase {
         XCTAssertEqual(WeeklyVowKind.apex.rawValue, "apex")
     }
 
+    func testDisplayNamesUseBindingVowLanguage() {
+        XCTAssertEqual(WeeklyVowKind.ember.displayName, "Low Binding")
+        XCTAssertEqual(WeeklyVowKind.overdrive.displayName, "Limit Binding")
+        XCTAssertEqual(WeeklyVowKind.apex.displayName, "Apex Binding")
+    }
+
     func testCodableRoundtrip() throws {
         for kind in WeeklyVowKind.allCases {
             let data = try JSONEncoder().encode(kind)

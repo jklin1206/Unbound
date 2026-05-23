@@ -131,7 +131,7 @@ private struct HonorCard: View {
     let honors: [WeeklyHonor] = [
         WeeklyHonor(id: UUID(), squadId: squadId, weekIso: "2026-W20", kind: .mostConsistent, recipientUserId: userId1, awardedAt: .now),
         WeeklyHonor(id: UUID(), squadId: squadId, weekIso: "2026-W20", kind: .ironWill, recipientUserId: userId2, awardedAt: .now),
-        WeeklyHonor(id: UUID(), squadId: squadId, weekIso: "2026-W20", kind: .trialFinisher, recipientUserId: userId3, awardedAt: .now),
+        WeeklyHonor(id: UUID(), squadId: squadId, weekIso: "2026-W20", kind: .vowFinisher, recipientUserId: userId3, awardedAt: .now),
     ]
 
     WeeklyHonorsStrip(honors: honors, roster: roster)

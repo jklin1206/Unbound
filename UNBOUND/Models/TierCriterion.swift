@@ -13,6 +13,8 @@ indirect enum TierCriterion: Codable, Hashable, Sendable {
     case seconds(Int)
     /// Best working-set absolute weight in kg ≥ w.
     case weightKg(Double)
+    /// Best working-set absolute weight in kg for `exerciseName` ≥ w.
+    case exerciseWeightKg(Double, exerciseName: String)
     /// Best working-set weight ÷ bodyweightKg ≥ r.
     case bodyweightRatio(Double)
     /// Best working-set weight for `exerciseName` ÷ bodyweightKg ≥ r.

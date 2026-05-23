@@ -1,7 +1,7 @@
 import Foundation
 
 /// Local-first routine completion store. The 24h-cooldown + `unbound.gains`
-/// SP bump are copied byte-for-byte from the legacy `RoutineCompletionStore`
+/// LV XP bump are copied byte-for-byte from the legacy `RoutineCompletionStore`
 /// (same UserDefaults keys) so call sites swap with zero behavior change.
 /// The records list is persisted as JSON to Application Support; cooldown +
 /// gains stay in UserDefaults to guarantee parity.

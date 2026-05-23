@@ -44,7 +44,7 @@ enum MuscleMassCategory: String, Codable {
     case low, belowAverage, average, aboveAverage, high
 }
 
-struct FocusArea: Codable {
+struct FocusArea: Codable, Equatable {
     let muscleGroup: MuscleGroup
     let priority: Int
     let rationale: String

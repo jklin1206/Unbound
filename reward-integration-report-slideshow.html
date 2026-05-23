@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>UNBOUND Reward Integration Report</title>
+  <style>
+    :root {
+      --bg: #05070b;
+      --panel: rgba(10, 16, 25, 0.78);
+      --text: #f2f6ff;
+      --muted: #8f9aac;
+      --cyan: #1b9cff;
+      --teal: #2ee6bd;
+      --ember: #ff6a2a;
+      --line: rgba(120, 170, 220, 0.28);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; overflow: hidden; }
+    body {
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 50% 22%, rgba(27,156,255,.22), transparent 30%),
+        radial-gradient(circle at 78% 70%, rgba(255,106,42,.14), transparent 34%),
+        linear-gradient(145deg, #020308, #07101b 55%, #030407);
+    }
+
+    .deck {
+      height: 100vh;
+      width: 100vw;
+      position: relative;
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      display: none;
+      place-items: center;
+      padding: 56px;
+    }
+    .slide.active { display: grid; }
+
+    .card {
+      width: min(1120px, 94vw);
+      min-height: min(680px, 78vh);
+      padding: 54px 60px;
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(9, 14, 24, .84), rgba(4, 7, 12, .68));
+      box-shadow: 0 28px 90px rgba(0,0,0,.55), 0 0 70px rgba(27,156,255,.08);
+      position: relative;
+      overflow: hidden;
+    }
+    .card:before, .card:after {
+      content: "";
+      position: absolute;
+      left: 34px;
+      right: 34px;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+      opacity: .75;
+    }
+    .card:before { top: 24px; }
+    .card:after { bottom: 24px; }
+
+    .kicker {
+      color: var(--cyan);
+      font-size: 12px;
+      letter-spacing: .28em;
+      font-weight: 900;
+      text-transform: uppercase;
+      margin-bottom: 18px;
+    }
+    h1, h2 {
+      margin: 0 0 24px;
+      line-height: .95;
+      letter-spacing: -0.055em;
+      text-transform: uppercase;
+    }
+    h1 { font-size: clamp(54px, 8vw, 108px); }
+    h2 { font-size: clamp(42px, 5.6vw, 72px); }
+    h3 {
+      margin: 28px 0 12px;
+      color: var(--teal);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      font-size: 18px;
+    }
+    p, li {
+      color: var(--muted);
+      font-size: clamp(19px, 2vw, 26px);
+      line-height: 1.45;
+    }
+    ul, ol { margin: 20px 0 0; padding-left: 30px; }
+    li { margin: 12px 0; }
+    strong { color: var(--text); }
+    code {
+      color: #d7ebff;
+      background: rgba(27,156,255,.12);
+      border: 1px solid rgba(27,156,255,.22);
+      padding: .08em .34em;
+      border-radius: 6px;
+      font-size: .88em;
+    }
+    pre {
+      white-space: pre-wrap;
+      font-size: 18px;
+      line-height: 1.42;
+      color: #d7ebff;
+      background: rgba(0,0,0,.34);
+      border: 1px solid rgba(27,156,255,.22);
+      padding: 20px;
+      border-radius: 14px;
+    }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 28px;
+      align-items: start;
+    }
+    .mini {
+      padding: 22px;
+      border: 1px solid rgba(255,255,255,.1);
+      background: rgba(255,255,255,.035);
+    }
+    .mini b {
+      color: var(--text);
+      display: block;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+    .mini p { margin: 0; font-size: 20px; }
+
+    .nav {
+      position: fixed;
+      left: 28px;
+      right: 28px;
+      bottom: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      pointer-events: none;
+    }
+    .controls { display: flex; gap: 10px; pointer-events: auto; }
+    button {
+      appearance: none;
+      border: 1px solid rgba(120,170,220,.35);
+      background: rgba(5,10,18,.72);
+      color: var(--text);
+      padding: 11px 16px;
+      border-radius: 999px;
+      font-weight: 800;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+    button:hover { border-color: var(--cyan); box-shadow: 0 0 22px rgba(27,156,255,.2); }
+    .counter {
+      color: var(--muted);
+      font-size: 13px;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+    }
+    .progress {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--cyan), var(--teal));
+      width: 0%;
+      transition: width .25s ease;
+    }
+    .accent { color: var(--ember); }
+
+    @media (max-width: 780px) {
+      .slide { padding: 24px; }
+      .card { padding: 42px 28px; min-height: 76vh; }
+      .two-col { grid-template-columns: 1fr; }
+      p, li { font-size: 18px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="progress" id="progress"></div>
+  <main class="deck">
+    <section class="slide active"><div class="card">
+      <div class="kicker">UNBOUND / Reward System Review</div>
+      <h1>Reward Integration Report</h1>
+      <p>A slide-format breakdown of what the current unified workout system is doing, where rewards should attach, and how to integrate the cinematic sequence cleanly.</p>
+      <p><strong>Use arrow keys</strong> or the buttons below.</p>
+    </div></section>
+
+    <section class="slide"><div class="card">
+      <div class="kicker">Finding 01</div>
+      <h2>The workout system is now unified</h2>
+      <ul>
+        <li><code>TrainingSessionDraft</code> is the planned session source.</li>
+        <li><code>TrainingBlock</code> carries strength, bodyweight, skill, cardio, carry, routine, custom.</li>
+        <li><code>ActiveWorkoutSession</code> is the live logging model.</li>
+        <li><code>PerformanceLog</code> is the richer completed-session record.</li>
+      </ul>
+    </div></section>
+
+    <section class="slide"><div class="card">
+      <div class="kicker">Finding 02</div>
+      <h2>The reward code is still split-brained</h2>
+      <ul>
+        <li>The premium <code>WorkoutRewardSequenceView</code> exists.</li>
+        <li>But <code>WorkoutLoggingViewModel.makeRewardSequenceSummary()</code> still fabricates some reward data.</li>
+        <li>The newer <code>ActiveWorkoutContainerView</code> still presents the older <code>RewardCelebrationView</code>.</li>
+      </ul>
+      <p><strong>Conclusion:</strong> the visuals are ahead of the data integration.</p>
+    </div></section>
+
+    <section class="slide"><div class="card">
+      <div class="kicker">Source of Truth</div>
+      <h2>Real reward data already exists</h2>
+      <div class="two-col">
+        <div class="mini"><b>Skill Tree</b><p><code>SkillGraph.shared</code><br><code>SkillNode.tierCriteria</code></p></div>
+        <div class="mini"><b>Skill XP</b><p><code>SkillProgressService</code><br><code>UserSkillProgress</code></p></div>
+        <div class="mini"><b>Lift Standards</b><p><code>LiftTierCriteria.table</code></p></div>
+        <div class="mini"><b>Attributes / Badges</b><p><code>AttributeService</code><br><code>BadgeService</code></p></div>
+      </div>
+    </div></section>
+
+    <section class="slide"><div class="card">
+      <div class="kicker">Critical Point</div>
+      <h2>Rewards should attach to <span class="accent">PerformanceLog</span></h2>
+      <p><code>PerformanceLog</code> preserves the exact context rewards need:</p>
+      <ul>
+        <li>Block type: skill, strength, bodyweight, custom, carry, routine.</li>
+        <li><code>skillId</code> for skill-tree work.</li>
+        <li>Actual reps, weight, hold seconds, RPE, skipped state.</li>
+        <li>Session source: program, skill, custom, routine.</li>
+      </ul>
+    </div></section>
+
+    <section class="slide"><div class="card">
+      <div class="kicker">Integration Plan</div>
+      <h2>Add one resolver service</h2>
+      <pre><code>WorkoutRewardSequenceResolver
+
+snapshotBeforeCompletion(performanceLog, userId)
+resolveAfterCompletion(snapshot, performanceLog, userId)
+  → WorkoutRewardSequenceSummary</code></pre>
+      <p>This keeps reward logic out of the SwiftUI view and out of the old logging view model.</p>
+    </div></section>
+
+    <section class="slide"><div class="card">
+      <div class="kicker">Flow</div>
+      <h2>Exact completion sequence</h2>
+      <ol>
+        <li>Assemble <code>PerformanceLog</code>.</li>
+        <li>Capture reward snapshot before save.</li>
+        <li>Call <code>TrainingCompletionService.complete(...)</code>.</li>
+        <li>Let existing services update progression, skills, attributes, badges.</li>
+        <li>Resolve after-save diff into <code>WorkoutRewardSequenceSummary</code>.</li>
+        <li>Present <code>WorkoutRewardSequenceView</code>.</li>
+      </ol>
+    </div></section>
+
+    <section class="slide"><div class="card">
+      <div class="kicker">Exercise Classification</div>
+      <h2>Reward each type honestly</h2>
+      <div class="two-col">
+        <div class="mini"><b>Skill block</b><p>Use <code>skillId</code> + <code>SkillNode.tierCriteria</code>. Copy: Skill Progress / Skill Advanced.</p></div>
+        <div class="mini"><b>Ranked lift</b><p>Use <code>LiftTierCriteria.table</code>. Copy: Rank Progress / Promotion.</p></div>
+        <div class="mini"><b>Custom exercise</b><p>No fake rank. Use PRs and history. Copy: New Best / Rep PR / Load PR.</p></div>
+        <div class="mini"><b>Attributes</b><p>Diff real AttributeService state before vs after.</p></div>
+      </div>
+    </div></section>
+
+    <section class="slide"><div class="card">
+      <div class="kicker">Standards</div>
+      <h2>No hardcoded reward thresholds</h2>
+      <ul>
+        <li>Skill standards come from <code>SkillNode.tierCriteria</code>.</li>
+        <li>Lift standards come from <code>LiftTierCriteria.table</code>.</li>
+        <li>The reward UI receives only resolved progress and tier changes.</li>
+      </ul>
+      <p>If standards change later, current progress recomputes from the new source of truth.</p>
+    </div></section>
+
+    <section class="slide"><div class="card">
+      <div class="kicker">Model Cleanup</div>
+      <h2>Broaden lift rewards</h2>
+      <p><code>LiftProgressReward</code> is too narrow now. Use a general progression reward:</p>
+      <pre><code>ProgressionRewardSource:
+  skill(skillId)
+  liftStandard(exerciseName)
+  customExercise(exerciseName)</code></pre>
+      <p>The page can say <strong>Progression Reveal</strong>, while each reward uses accurate language.</p>
+    </div></section>
+
+    <section class="slide"><div class="card">
+      <div class="kicker">Implementation Order</div>
+      <h2>Smallest safe path</h2>
+      <ol>
+        <li>Create <code>WorkoutRewardSnapshot</code>.</li>
+        <li>Create <code>WorkoutRewardSequenceResolver</code>.</li>
+        <li>Add criterion progress helpers.</li>
+        <li>Wire <code>ActiveWorkoutContainerView.complete()</code>.</li>
+        <li>Swap old reward sheet for full-screen cinematic sequence.</li>
+        <li>Keep preview samples only for visual iteration.</li>
+      </ol>
+    </div></section>
+
+    <section class="slide"><div class="card">
+      <div class="kicker">Bottom Line</div>
+      <h2>Yes — it is easier now</h2>
+      <p>The unified workout model already carries the context. The missing piece is a resolver that diffs real progression state before and after completion, then feeds the existing cinematic reward UI.</p>
+      <p><strong>Do not make the reward screen decide standards.</strong> Make it display resolved rewards.</p>
+    </div></section>
+  </main>
+
+  <div class="nav">
+    <div class="controls">
+      <button id="prev">Prev</button>
+      <button id="next">Next</button>
+    </div>
+    <div class="counter" id="counter"></div>
+  </div>
+
+  <script>
+    const slides = Array.from(document.querySelectorAll('.slide'));
+    const counter = document.getElementById('counter');
+    const progress = document.getElementById('progress');
+    let index = 0;
+
+    function render() {
+      slides.forEach((s, i) => s.classList.toggle('active', i === index));
+      counter.textContent = `Slide ${index + 1} / ${slides.length}`;
+      progress.style.width = `${((index + 1) / slides.length) * 100}%`;
+    }
+    function next() { index = Math.min(slides.length - 1, index + 1); render(); }
+    function prev() { index = Math.max(0, index - 1); render(); }
+
+    document.getElementById('next').addEventListener('click', next);
+    document.getElementById('prev').addEventListener('click', prev);
+    window.addEventListener('keydown', (e) => {
+      if (['ArrowRight', ' ', 'PageDown'].includes(e.key)) next();
+      if (['ArrowLeft', 'PageUp'].includes(e.key)) prev();
+    });
+    render();
+  </script>
+</body>
+</html>

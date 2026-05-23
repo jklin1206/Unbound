@@ -80,24 +80,25 @@ final class SessionXPService: SessionXPServiceProtocol {
 
         current.totalSessions += 1
 
-        // Streak logic. Consecutive calendar days extend the streak. > 2
-        // calendar days without a session breaks it (per spec — gives a
-        // 48h grace window so users don't lose streaks for a single rest
-        // day). The streakResetDays fallback (default 14) is a hard cap.
+        // Streak logic. Consecutive calendar days extend the streak. The
+        // base 48h grace window protects a single missed day, and longer
+        // gaps only survive when every skipped program day is recovery.
         let cal = Calendar.current
-        let today = cal.startOfDay(for: date)
         let streakReset = max(2, defaults.integer(forKey: streakResetKey))
 
         let (newStreak, extended, broken): (Int, Bool, Bool) = {
             guard let last = current.lastSessionDate else {
                 return (1, true, false)
             }
-            let lastDay = cal.startOfDay(for: last)
-            if lastDay == today { return (max(current.currentStreak, 1), false, false) }
-            let diff = cal.dateComponents([.day], from: lastDay, to: today).day ?? 0
-            if diff <= 2 { return (current.currentStreak + 1, true, false) }
-            if diff > streakReset { return (1, false, true) }
-            return (1, false, true)
+            let decision = ProgramAwareStreakPolicy.shouldExtendStreak(
+                from: last,
+                to: date,
+                currentStreak: current.currentStreak,
+                resetWindowDays: streakReset,
+                activeProgram: ProgramStore.shared.program,
+                calendar: cal
+            )
+            return (decision.streak, decision.extended, decision.broken)
         }()
 
         current.currentStreak = newStreak

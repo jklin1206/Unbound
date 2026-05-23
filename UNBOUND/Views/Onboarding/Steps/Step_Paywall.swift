@@ -79,10 +79,10 @@ struct Step_Paywall: View {
 
     private var benefits: some View {
         VStack(alignment: .leading, spacing: 12) {
-            benefitRow("Your adaptive protocol — three arcs, tailored to you")
+            benefitRow("Three arcs built around where you start")
             benefitRow("Full skill tree: muscle-up, front lever, the whole ladder")
-            benefitRow("Rescan anytime — watch the arc move")
-            benefitRow("Daily sessions, streaks, and Gains logged forever")
+            benefitRow("Monthly milestones that show how far you've climbed")
+            benefitRow("Daily sessions, streaks, and gains you keep")
         }
         .padding(18)
         .background(

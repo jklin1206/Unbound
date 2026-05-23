@@ -26,16 +26,16 @@ enum TitleCatalog {
         case (.axis(.explosiveness), .bronze):   return "Explosiveness Initiate"
         case (.axis(.explosiveness), .silver):   return "Explosiveness Striker"
         case (.axis(.explosiveness), .gold):     return "Explosiveness Ascendant"
-        // Weekly Vow kind Titles
-        case (.cardKind(.ember), .bronze):       return "Ember Keeper"
-        case (.cardKind(.ember), .silver):       return "Ember Warden"
-        case (.cardKind(.ember), .gold):         return "Ember Ascendant"
-        case (.cardKind(.overdrive), .bronze):   return "Overdrive Spark"
-        case (.cardKind(.overdrive), .silver):   return "Overdrive Engine"
-        case (.cardKind(.overdrive), .gold):     return "Overdrive Ascendant"
-        case (.cardKind(.apex), .bronze):        return "Apex Striver"
-        case (.cardKind(.apex), .silver):        return "Apex Conqueror"
-        case (.cardKind(.apex), .gold):          return "Apex Ascendant"
+        // Binding Vow kind Titles
+        case (.cardKind(.ember), .bronze):       return "Quiet Oathkeeper"
+        case (.cardKind(.ember), .silver):       return "Open Gate Warden"
+        case (.cardKind(.ember), .gold):         return "Still Heart Ascendant"
+        case (.cardKind(.overdrive), .bronze):   return "Limit Break Spark"
+        case (.cardKind(.overdrive), .silver):   return "Redline Vessel"
+        case (.cardKind(.overdrive), .gold):     return "Heavenbreaker"
+        case (.cardKind(.apex), .bronze):        return "No-Retreat Striver"
+        case (.cardKind(.apex), .silver):        return "Final Set Conqueror"
+        case (.cardKind(.apex), .gold):          return "Ascension Bound"
         }
     }
 

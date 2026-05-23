@@ -267,12 +267,27 @@ struct ActiveWorkoutContainerView: View {
     }
 
     private var completionFooter: some View {
-        VStack(spacing: 10) {
+        let progress = session.progressSummary
+        return VStack(spacing: 10) {
             RestTimerPill(
                 model: restTimer,
                 onAddThirty: { restTimer.addThirty() },
                 onDismiss: { restTimer.dismiss() }
             )
+
+            HStack(spacing: 8) {
+                Image(systemName: progress.isComplete ? "checkmark.circle.fill" : "circle.dashed")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(progress.isComplete ? Color.unbound.accent : Color.unbound.textTertiary)
+                Text(progress.footerText.uppercased())
+                    .font(Font.unbound.captionS.weight(.bold))
+                    .tracking(1.1)
+                    .foregroundStyle(Color.unbound.textSecondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.78)
+                Spacer()
+            }
+            .padding(.horizontal, 4)
 
             Button(action: requestComplete) {
                 HStack(spacing: 10) {
@@ -280,7 +295,7 @@ struct ActiveWorkoutContainerView: View {
                         ProgressView()
                             .tint(Color.unbound.bg)
                     }
-                    Text(saving ? "SAVING SESSION" : "COMPLETE SESSION")
+                    Text(saving ? "SAVING SESSION" : (progress.isComplete ? "FINISH SESSION" : "COMPLETE SESSION"))
                         .font(Font.unbound.bodyLStrong)
                         .tracking(2)
                 }
@@ -297,17 +312,19 @@ struct ActiveWorkoutContainerView: View {
             .accessibilityLabel(saving ? "Saving session" : "Complete session")
         }
         .padding(.horizontal, 16)
+        .padding(.top, 14)
         .padding(.bottom, 16)
-        .background(
+        .background(Color.unbound.bg.opacity(0.96))
+        .overlay(alignment: .top) {
             LinearGradient(
                 colors: [Color.unbound.bg.opacity(0), Color.unbound.bg.opacity(0.96)],
                 startPoint: .top,
                 endPoint: .bottom
             )
-            .frame(height: 142)
-            .allowsHitTesting(false),
-            alignment: .bottom
-        )
+            .frame(height: 42)
+            .offset(y: -42)
+            .allowsHitTesting(false)
+        }
     }
 
     // MARK: - Rest timer
@@ -520,7 +537,7 @@ struct ActiveWorkoutContainerView: View {
             completionResult: completionResult,
             rewardSummary: rewardSummary,
             fallbackXP: workSets * 12,
-            sourceName: weeklyVowReceipt == nil ? session.source.rawValue.capitalized : "Weekly Vow",
+            sourceName: weeklyVowReceipt == nil ? session.source.rawValue.capitalized : "Binding Vow",
             weeklyVowCallout: weeklyVowReceipt?.callout
         )
     }

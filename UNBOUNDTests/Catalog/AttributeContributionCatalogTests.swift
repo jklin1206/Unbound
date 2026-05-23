@@ -27,11 +27,38 @@ final class AttributeContributionCatalogTests: XCTestCase {
             XCTFail("AttributeContributions.json failed to load from Bundle.main")
             return
         }
-        XCTAssertGreaterThan(exercises.count, 50, "AttributeContributions.json should have ~58 entries")
+        XCTAssertGreaterThan(exercises.count, 150, "AttributeContributions.json should cover the full gym exercise catalog")
         for (key, weights) in exercises {
             let sum = weights.values.reduce(0.0, +)
             XCTAssertEqual(sum, 1.0, accuracy: 0.01, "Exercise '\(key)' sum=\(sum)")
         }
+    }
+
+    func testEveryExerciseCatalogEntryHasAttributeVector() {
+        guard let exercises = loadExercises() else {
+            XCTFail("AttributeContributions.json failed to load from Bundle.main")
+            return
+        }
+
+        let catalogKeys = Set(ExerciseCatalog.allExercises.map(\.name))
+        let contributionKeys = Set(exercises.keys)
+        let missing = catalogKeys.subtracting(contributionKeys).sorted()
+        let stale = contributionKeys.subtracting(catalogKeys).sorted()
+
+        XCTAssertTrue(missing.isEmpty, "Missing AttributeContributions entries:\n\(missing.joined(separator: "\n"))")
+        XCTAssertTrue(stale.isEmpty, "Stale AttributeContributions entries not present in ExerciseCatalog:\n\(stale.joined(separator: "\n"))")
+    }
+
+    func testEveryCatalogSubstitutionResolvesToCatalogEntry() {
+        let catalogKeys = Set(ExerciseCatalog.allExercises.map(\.name))
+        let missing = ExerciseCatalog.allExercises.compactMap { exercise -> String? in
+            guard let substitute = exercise.defaultSubstitute,
+                  !catalogKeys.contains(substitute)
+            else { return nil }
+            return "\(exercise.name) -> \(substitute)"
+        }
+
+        XCTAssertTrue(missing.isEmpty, "Default substitutes must point to canonical ExerciseCatalog names:\n\(missing.joined(separator: "\n"))")
     }
 
     func testEveryAttributeKeyAppearsInAtLeastOneVector() {

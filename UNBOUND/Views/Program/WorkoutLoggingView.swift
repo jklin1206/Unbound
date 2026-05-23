@@ -16,15 +16,30 @@ struct WorkoutLoggingView: View {
     @State private var swapAlternatives: [CatalogExercise] = []
     @State private var swapPreferences: [ExercisePreference] = []
     @State private var showingCustomBuilder = false
-    @State private var rewardSummary: RewardSummary?
+    @State private var rewardSequence: WorkoutRewardSequenceSummary?
+    @State private var completionEffectsTask: Task<Void, Never>?
+    @State private var isCompletingSession = false
+    @State private var isFinishingRewardSequence = false
     @State private var shortModeApplied = false
     @AppStorage("unbound.shortSessionDate") private var shortSessionDate: Double = 0
+    @AppStorage(WeightPlatePolicy.unitDefaultsKey) private var weightUnitRaw = TrainingWeightUnit.localeDefault.rawValue
     private let servicesRef: ServiceContainer
+    private let isPresented: Binding<Bool>?
+    private let onFinished: (() -> Void)?
 
     private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
-    init(workout: Workout, programId: String, dayNumber: Int, services: ServiceContainer) {
+    init(
+        workout: Workout,
+        programId: String,
+        dayNumber: Int,
+        services: ServiceContainer,
+        isPresented: Binding<Bool>? = nil,
+        onFinished: (() -> Void)? = nil
+    ) {
         self.servicesRef = services
+        self.isPresented = isPresented
+        self.onFinished = onFinished
         _viewModel = StateObject(wrappedValue: WorkoutLoggingViewModel(
             workout: workout,
             programId: programId,
@@ -91,27 +106,17 @@ struct WorkoutLoggingView: View {
             CustomExerciseBuilderView()
                 .environmentObject(servicesRef)
         }
-        .sheet(item: Binding(
-            get: { rewardSummary.map(WorkoutRewardPresentation.init(summary:)) },
-            set: { rewardSummary = $0?.summary }
-        )) { item in
-            RewardCelebrationView(summary: item.summary) {
-                rewardSummary = nil
-                dismiss()
+        .fullScreenCover(item: $rewardSequence) { item in
+            WorkoutRewardSequenceView(summary: item) {
+                finishRewardSequence()
             }
-            .presentationDetents([.medium, .large])
-            .presentationDragIndicator(.visible)
+            .interactiveDismissDisabled(true)
         }
     }
 
     private struct SwapContext: Identifiable {
         let index: Int
         var id: Int { index }
-    }
-
-    private struct WorkoutRewardPresentation: Identifiable {
-        let id = UUID()
-        let summary: RewardSummary
     }
 
     private func presentSwap(at index: Int) {
@@ -317,7 +322,7 @@ struct WorkoutLoggingView: View {
                 HStack(spacing: 8) {
                     if !entry.lastWeight.isEmpty {
                         calloutChip(
-                            text: "LAST · \(entry.lastWeight)KG × \(entry.lastReps)",
+                            text: "LAST · \(entry.lastWeight)\(weightUnit.shortLabel.uppercased()) × \(entry.lastReps)",
                             color: Color.unbound.textSecondary,
                             fill: Color.unbound.bg
                         )
@@ -337,7 +342,7 @@ struct WorkoutLoggingView: View {
                 // Column headers for the set table
                 HStack(spacing: 10) {
                     columnHeader("SET", width: 26)
-                    columnHeader("WEIGHT", width: 60)
+                    columnHeader("WEIGHT \(weightUnit.shortLabel.uppercased())", width: 60)
                     columnHeader("REPS", width: 46)
                     columnHeader("RPE", width: nil)
                     Spacer(minLength: 0)
@@ -426,6 +431,10 @@ struct WorkoutLoggingView: View {
             .tracking(1.4)
             .foregroundStyle(Color.unbound.textTertiary)
             .frame(width: width, alignment: width == nil ? .leading : .center)
+    }
+
+    private var weightUnit: TrainingWeightUnit {
+        TrainingWeightUnit(rawValue: weightUnitRaw) ?? .localeDefault
     }
 
     private func calloutChip(text: String, color: Color, fill: Color) -> some View {
@@ -541,16 +550,19 @@ struct WorkoutLoggingView: View {
 
             Button {
                 UnboundHaptics.medium()
+                guard !isCompletingSession else { return }
+                isCompletingSession = true
                 Task {
-                    let didSave = await viewModel.saveLog()
-                    guard didSave else { return }
-                    var summary = RewardSummary()
-                    summary.skillTitle = viewModel.workout.name
-                    summary.xpGained = max(10, viewModel.totalSets * 5)
-                    rewardSummary = summary
-                    if !summary.hasContent {
-                        dismiss()
+                    guard let completionResult = await viewModel.saveLog() else {
+                        isCompletingSession = false
+                        return
                     }
+                    guard let summary = viewModel.trainingReceiptSummary(for: completionResult) else {
+                        isCompletingSession = false
+                        return
+                    }
+                    rewardSequence = summary
+                    startCompletionEffectsFlush()
                 }
             } label: {
                 HStack(spacing: 10) {
@@ -574,11 +586,40 @@ struct WorkoutLoggingView: View {
                 .shadow(color: Color.unbound.accent.opacity(0.45), radius: 14, y: 2)
             }
             .buttonStyle(.plain)
-            .disabled(viewModel.isSaving)
+            .disabled(viewModel.isSaving || isCompletingSession)
             .padding(.horizontal, 16)
             .padding(.top, 12)
             .padding(.bottom, 16)
         }
         .background(Color.unbound.bg)
+    }
+
+    private func startCompletionEffectsFlush() {
+        guard completionEffectsTask == nil else { return }
+        completionEffectsTask = Task {
+            await viewModel.flushPendingCompletionEffects()
+        }
+    }
+
+    private func finishRewardSequence() {
+        guard !isFinishingRewardSequence else { return }
+        isFinishingRewardSequence = true
+        startCompletionEffectsFlush()
+        let task = completionEffectsTask
+
+        Task {
+            await task?.value
+            await MainActor.run {
+                rewardSequence = nil
+                completionEffectsTask = nil
+                if let onFinished {
+                    onFinished()
+                } else if let isPresented {
+                    isPresented.wrappedValue = false
+                } else {
+                    dismiss()
+                }
+            }
+        }
     }
 }

@@ -134,6 +134,7 @@ final class ProgramGenerationService: ProgramGenerationServiceProtocol, @uncheck
         } else {
             let calibrations = await CalibrationService.shared.fetchAll(userId: userId)
             let rank = await resolveArchetypeRank(userId: userId)
+            let preferences = (try? await ExercisePreferenceService.shared.fetchPreferences(userId: userId)) ?? []
             let fallback = LocalProgramGenerator.generate(
                 buildIdentity: buildIdentity,
                 targetFrequency: targetFrequency,
@@ -153,7 +154,7 @@ final class ProgramGenerationService: ProgramGenerationServiceProtocol, @uncheck
                 gender: gender,
                 heightCm: heightCm,
                 weightKg: weightKg,
-                preferences: [],
+                preferences: preferences,
                 progressionStates: [],
                 familyStates: [],
                 customExercises: [],
@@ -274,6 +275,7 @@ final class ProgramGenerationService: ProgramGenerationServiceProtocol, @uncheck
     ) async -> TrainingProgram {
         let calibrations = await CalibrationService.shared.fetchAll(userId: userProfile.id)
         let rank = await resolveArchetypeRank(userId: userProfile.id)
+        let preferences = (try? await ExercisePreferenceService.shared.fetchPreferences(userId: userProfile.id)) ?? []
         return LocalProgramGenerator.generate(
             buildIdentity: buildIdentity,
             targetFrequency: userProfile.targetFrequency,
@@ -293,7 +295,7 @@ final class ProgramGenerationService: ProgramGenerationServiceProtocol, @uncheck
             gender: userProfile.gender ?? .unspecified,
             heightCm: userProfile.heightCm ?? 0,
             weightKg: userProfile.weightKg ?? 0,
-            preferences: [],
+            preferences: preferences,
             progressionStates: [],
             familyStates: [],
             customExercises: [],

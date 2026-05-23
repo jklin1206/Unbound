@@ -9,7 +9,7 @@ import SwiftUI
 //   1. Theme tag (axis name or WILDCARD) + kind badge
 //   2. Display name (big title)
 //   3. Blurb (narrative subtitle)
-//   4. Vow prescription pills
+//   4. Binding prescription pills
 //   5. Proof hint footer
 
 struct TrialCardView: View {
@@ -56,7 +56,7 @@ struct TrialCardView: View {
 
             Spacer().frame(height: 24)
 
-            // ── Vow prescription pills ───────────────────────────────
+            // ── Binding prescription pills ───────────────────────────
             vowPrescription
 
             Spacer(minLength: 20)
@@ -130,7 +130,7 @@ struct TrialCardView: View {
     private var vowPrescription: some View {
         if let prescription = card.prescription {
             VStack(alignment: .leading, spacing: 6) {
-                Text("VOW")
+                Text("BINDING")
                     .font(.system(size: 9, weight: .bold))
                     .tracking(1.5)
                     .foregroundStyle(Color.unbound.textTertiary)
@@ -164,7 +164,7 @@ struct TrialCardView: View {
                 .foregroundStyle(tint.opacity(0.8))
 
             VStack(alignment: .leading, spacing: 3) {
-                Text("VOW PROOF")
+                Text("PROOF")
                     .font(.system(size: 9, weight: .bold))
                     .tracking(1.6)
                     .foregroundStyle(Color.unbound.textTertiary)
@@ -189,8 +189,8 @@ struct TrialCardView: View {
             id: "weekly-vow-W20-ember",
             kind: .ember,
             theme: .axis(.power),
-            displayName: "Ember · Power Reset",
-            blurb: "Keep the streak warm with recovery-safe work.",
+            displayName: "Iron Rule Vow",
+            blurb: "Accept a low-day Binding Vow.",
             capstone: TrialCapstone(
                 displayName: "Low-Day Proof",
                 description: "Complete easy power work at RPE 3-5.",
@@ -215,8 +215,8 @@ struct TrialCardView: View {
             id: "weekly-vow-W20-apex",
             kind: .apex,
             theme: .wildcard,
-            displayName: "Apex · Open Circuit",
-            blurb: "Set aside a focused weekend session.",
+            displayName: "No Retreat Vow",
+            blurb: "Accept a weekend Binding Vow.",
             capstone: TrialCapstone(
                 displayName: "Circuit Finisher",
                 description: "Complete a 20-minute AMRAP with at least 4 movements.",

@@ -10,14 +10,13 @@
 //   correlated and pull-ups are the best auto-evaluable proxy.
 //
 // Farmer carry ladder (bw → 1.5x → 2x):
-//   Each rank steps up .bodyweightRatio in a .compound with .variant("farmer
-//   carry") so that a lone heavy deadlift can't accidentally satisfy the ratio
-//   check without carry-specific logging.
+//   Each rank steps up .exerciseBodyweightRatio for "farmer carry" so a
+//   heavy unrelated lift cannot satisfy the ratio check.
 //
 // Sled push:
-//   Same carry-variant + bodyweightRatio compound pattern as farmer carries.
+//   Same exercise-scoped bodyweight-ratio pattern as farmer carries.
 //   The sled push node uses .carry in SkillTreeContent; we proxy via
-//   .bodyweightRatio here because sled load scales exactly like carry load.
+//   .exerciseBodyweightRatio here because sled load scales exactly like carry load.
 //
 // Cardio sprints (row, runs, assault bike):
 //   .variant(name) for entry tiers proves activity. Upper tiers compound with
@@ -57,60 +56,60 @@ enum CoSkillTiers {
         "co.bw-farmer-carry": [
             .initiate:   .variant("farmer carry"),
             .novice:     .variant("farmer carry"),
-            .apprentice: .compound([.variant("farmer carry"), .bodyweightRatio(0.25)]),
-            .forged:     .compound([.variant("farmer carry"), .bodyweightRatio(0.50)]),
-            .veteran:    .compound([.variant("farmer carry"), .bodyweightRatio(0.65)]),
-            .honed:      .compound([.variant("farmer carry"), .bodyweightRatio(0.75)]),
-            .vessel:     .compound([.variant("farmer carry"), .bodyweightRatio(0.85)]),
-            .unbound:    .compound([.variant("farmer carry"), .bodyweightRatio(0.90)]),
-            .ascendant:  .compound([.variant("farmer carry"), .bodyweightRatio(1.00)]),
+            .apprentice: .exerciseBodyweightRatio(0.25, exerciseName: "farmer carry"),
+            .forged:     .exerciseBodyweightRatio(0.50, exerciseName: "farmer carry"),
+            .veteran:    .exerciseBodyweightRatio(0.65, exerciseName: "farmer carry"),
+            .honed:      .exerciseBodyweightRatio(0.75, exerciseName: "farmer carry"),
+            .vessel:     .exerciseBodyweightRatio(0.85, exerciseName: "farmer carry"),
+            .unbound:    .exerciseBodyweightRatio(0.90, exerciseName: "farmer carry"),
+            .ascendant:  .exerciseBodyweightRatio(1.00, exerciseName: "farmer carry"),
         ],
 
         // co.1.5x-farmer-carry — Heavy Farmer Carry at 1.5× bodyweight for 60 s.
         // Prereq: co.bw-farmer-carry. Lower tiers start from bw carry compound
         // to confirm the prerequisite base; upper tiers push toward the 1.5x mark.
         "co.1.5x-farmer-carry": [
-            .initiate:   .compound([.variant("farmer carry"), .bodyweightRatio(0.75)]),
-            .novice:     .compound([.variant("farmer carry"), .bodyweightRatio(0.85)]),
-            .apprentice: .compound([.variant("farmer carry"), .bodyweightRatio(1.00)]),
-            .forged:     .compound([.variant("farmer carry"), .bodyweightRatio(1.10)]),
-            .veteran:    .compound([.variant("farmer carry"), .bodyweightRatio(1.20)]),
-            .honed:      .compound([.variant("farmer carry"), .bodyweightRatio(1.30)]),
-            .vessel:     .compound([.variant("farmer carry"), .bodyweightRatio(1.35)]),
-            .unbound:    .compound([.variant("farmer carry"), .bodyweightRatio(1.40)]),
-            .ascendant:  .compound([.variant("farmer carry"), .bodyweightRatio(1.50)]),
+            .initiate:   .exerciseBodyweightRatio(0.75, exerciseName: "farmer carry"),
+            .novice:     .exerciseBodyweightRatio(0.85, exerciseName: "farmer carry"),
+            .apprentice: .exerciseBodyweightRatio(1.00, exerciseName: "farmer carry"),
+            .forged:     .exerciseBodyweightRatio(1.10, exerciseName: "farmer carry"),
+            .veteran:    .exerciseBodyweightRatio(1.20, exerciseName: "farmer carry"),
+            .honed:      .exerciseBodyweightRatio(1.30, exerciseName: "farmer carry"),
+            .vessel:     .exerciseBodyweightRatio(1.35, exerciseName: "farmer carry"),
+            .unbound:    .exerciseBodyweightRatio(1.40, exerciseName: "farmer carry"),
+            .ascendant:  .exerciseBodyweightRatio(1.50, exerciseName: "farmer carry"),
         ],
 
         // co.2x-farmer-carry — Elite Farmer Carry at 2× bodyweight for 60 s.
         // Keystone node. Cascade through the 1.5x tier and push to 2x.
         "co.2x-farmer-carry": [
-            .initiate:   .compound([.variant("farmer carry"), .bodyweightRatio(1.00)]),
-            .novice:     .compound([.variant("farmer carry"), .bodyweightRatio(1.20)]),
-            .apprentice: .compound([.variant("farmer carry"), .bodyweightRatio(1.40)]),
-            .forged:     .compound([.variant("farmer carry"), .bodyweightRatio(1.50)]),
-            .veteran:    .compound([.variant("farmer carry"), .bodyweightRatio(1.60)]),
-            .honed:      .compound([.variant("farmer carry"), .bodyweightRatio(1.70)]),
-            .vessel:     .compound([.variant("farmer carry"), .bodyweightRatio(1.80)]),
-            .unbound:    .compound([.variant("farmer carry"), .bodyweightRatio(1.90)]),
-            .ascendant:  .compound([.variant("farmer carry"), .bodyweightRatio(2.00)]),
+            .initiate:   .exerciseBodyweightRatio(1.00, exerciseName: "farmer carry"),
+            .novice:     .exerciseBodyweightRatio(1.20, exerciseName: "farmer carry"),
+            .apprentice: .exerciseBodyweightRatio(1.40, exerciseName: "farmer carry"),
+            .forged:     .exerciseBodyweightRatio(1.50, exerciseName: "farmer carry"),
+            .veteran:    .exerciseBodyweightRatio(1.60, exerciseName: "farmer carry"),
+            .honed:      .exerciseBodyweightRatio(1.70, exerciseName: "farmer carry"),
+            .vessel:     .exerciseBodyweightRatio(1.80, exerciseName: "farmer carry"),
+            .unbound:    .exerciseBodyweightRatio(1.90, exerciseName: "farmer carry"),
+            .ascendant:  .exerciseBodyweightRatio(2.00, exerciseName: "farmer carry"),
         ],
 
         // MARK: - Loaded Carry: Sled Push
 
         // co.sled-push — Sled Push at 2× bodyweight for 30 s.
-        // Sled load scales like a carry; use .variant("sled push") + bodyweightRatio
+        // Sled load scales like a carry; use .exerciseBodyweightRatio("sled push")
         // compound. Entry tiers confirm sled work exists; upper tiers push toward
         // the 2x node target.
         "co.sled-push": [
             .initiate:   .variant("sled push"),
             .novice:     .variant("sled push"),
-            .apprentice: .compound([.variant("sled push"), .bodyweightRatio(0.50)]),
-            .forged:     .compound([.variant("sled push"), .bodyweightRatio(0.75)]),
-            .veteran:    .compound([.variant("sled push"), .bodyweightRatio(1.00)]),
-            .honed:      .compound([.variant("sled push"), .bodyweightRatio(1.25)]),
-            .vessel:     .compound([.variant("sled push"), .bodyweightRatio(1.50)]),
-            .unbound:    .compound([.variant("sled push"), .bodyweightRatio(1.75)]),
-            .ascendant:  .compound([.variant("sled push"), .bodyweightRatio(2.00)]),
+            .apprentice: .exerciseBodyweightRatio(0.50, exerciseName: "sled push"),
+            .forged:     .exerciseBodyweightRatio(0.75, exerciseName: "sled push"),
+            .veteran:    .exerciseBodyweightRatio(1.00, exerciseName: "sled push"),
+            .honed:      .exerciseBodyweightRatio(1.25, exerciseName: "sled push"),
+            .vessel:     .exerciseBodyweightRatio(1.50, exerciseName: "sled push"),
+            .unbound:    .exerciseBodyweightRatio(1.75, exerciseName: "sled push"),
+            .ascendant:  .exerciseBodyweightRatio(2.00, exerciseName: "sled push"),
         ],
 
         // MARK: - Grip Engine: Dead Hang

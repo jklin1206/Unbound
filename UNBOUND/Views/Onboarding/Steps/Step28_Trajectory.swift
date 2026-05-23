@@ -22,9 +22,9 @@ struct Step28_Trajectory: View {
     var body: some View {
         OnboardingScaffold(
             title: "Here's what changes.",
-            subtitle: "Your rank over 12 months — with UNBOUND vs. grinding alone.",
+            subtitle: "One path keeps repeating. One path starts climbing.",
             progress: progress,
-            primaryTitle: "See my protocol",
+            primaryTitle: "See my arc",
             hudStep: .trajectory,
             onBack: onBack,
             onPrimary: onContinue

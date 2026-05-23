@@ -31,6 +31,6 @@ final class WeeklyHonorTests: XCTestCase {
     func testLegacyTrialFinisherDecodesAsVowFinisher() throws {
         let decoded = try JSONDecoder().decode(WeeklyHonor.Kind.self, from: Data(#""trialFinisher""#.utf8))
         XCTAssertEqual(decoded, .vowFinisher)
-        XCTAssertEqual(decoded.displayName, "Vow Finisher")
+        XCTAssertEqual(decoded.displayName, "Binding Vow Finisher")
     }
 }

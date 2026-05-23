@@ -68,15 +68,15 @@ final class SquadActivityServiceTests: XCTestCase {
         )
     }
 
-    // Helper: build a minimal TrialCard for testing.
-    private func makeTrialCard() -> TrialCard {
-        TrialCard(
-            id: "trial-test-W01",
-            kind: .aligned,
+    // Helper: build a minimal WeeklyVowCard for testing.
+    private func makeWeeklyVowCard() -> WeeklyVowCard {
+        WeeklyVowCard(
+            id: "weekly-vow-test-W01",
+            kind: .overdrive,
             theme: .axis(.power),
-            displayName: "Power Focus",
-            blurb: "Push your power this week.",
-            capstone: TrialCapstone(
+            displayName: "Limit Break Vow",
+            blurb: "Accept a redline Binding Vow after training.",
+            capstone: WeeklyVowProof(
                 displayName: "Hit a new PR",
                 description: "Hit a new one-rep max this week.",
                 evaluation: .manualClaim
@@ -159,9 +159,9 @@ final class SquadActivityServiceTests: XCTestCase {
         XCTAssertEqual(result.first?.id, expected.id)
     }
 
-    // MARK: - Test 5: .trialCompleted notification triggers record
+    // MARK: - Test 5: .weeklyVowCompleted notification triggers record
 
-    func testTrialCompletedNotificationTriggersRecord() async throws {
+    func testWeeklyVowCompletedNotificationTriggersRecord() async throws {
         seedSquad()
         // Set auth userId to match our test userId.
         // MockAuthService.currentUserId is "mock-user-123" by default — we re-create
@@ -190,8 +190,8 @@ final class SquadActivityServiceTests: XCTestCase {
         )
         _ = svc // keep alive
 
-        let card = makeTrialCard()
-        let trial = Trial(
+        let card = makeWeeklyVowCard()
+        let vow = WeeklyVow(
             id: card.id,
             userId: customAuth.currentUserId ?? "mock-user-123",
             weekStart: Date(),
@@ -200,7 +200,46 @@ final class SquadActivityServiceTests: XCTestCase {
             completedAt: Date()
         )
 
-        NotificationCenter.default.post(name: .trialCompleted, object: trial)
+        NotificationCenter.default.post(name: .weeklyVowCompleted, object: vow)
+        try await Task.sleep(nanoseconds: 100_000_000)
+
+        XCTAssertEqual(backend.insertedEntries.count, 1)
+        XCTAssertEqual(backend.insertedEntries.first?.kind, .trialCompleted)
+    }
+
+    func testLegacyTrialCompletedNotificationStillTriggersRecord() async throws {
+        let customAuth = MockAuthService()
+        let customSquadService = MockSquadService()
+        let squad = Squad(
+            id: squadId, name: "Legacy Squad",
+            captainId: UUID(),
+            affinityAxis: nil, affinitySetAt: nil,
+            inviteCode: "LEGACY", maxSize: 8,
+            squadStreakWeeks: 0, createdAt: Date()
+        )
+        customSquadService.stubbedState = SquadState(
+            currentSquad: squad, roster: [],
+            activeRosterPresence: [], recentActivity: [],
+            unlockedSquadTitles: []
+        )
+
+        let backend = MockSquadActivityBackend()
+        let svc = SquadActivityService(
+            backend: backend, auth: customAuth, squadService: customSquadService
+        )
+        _ = svc
+
+        let card = makeWeeklyVowCard()
+        let vow = WeeklyVow(
+            id: card.id,
+            userId: customAuth.currentUserId ?? "mock-user-123",
+            weekStart: Date(),
+            chosenCard: card,
+            capstoneState: .completed,
+            completedAt: Date()
+        )
+
+        NotificationCenter.default.post(name: .trialCompleted, object: vow)
         try await Task.sleep(nanoseconds: 100_000_000)
 
         XCTAssertEqual(backend.insertedEntries.count, 1)

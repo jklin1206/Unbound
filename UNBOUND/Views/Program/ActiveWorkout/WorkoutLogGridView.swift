@@ -16,6 +16,7 @@ struct WorkoutLogGridView: View {
             VStack(spacing: 16) {
                 ForEach(Array(session.exercises.enumerated()), id: \.element.id) { ei, ex in
                     if !ex.skipped {
+                        let isCurrent = ei == session.currentExerciseIndex
                         ExerciseLogCard(
                             name: ex.name,
                             plannedSets: ex.plannedSets,
@@ -31,6 +32,8 @@ struct WorkoutLogGridView: View {
                             isWarmupCurrent: ex.sets.first?.isWarmup ?? false,
                             sets: ex.sets,
                             isExpanded: expanded.contains(ex.id),
+                            isCurrent: isCurrent,
+                            currentSetIndex: isCurrent ? session.currentSetIndex : nil,
                             onToggleExpand: {
                                 if expanded.contains(ex.id) { expanded.remove(ex.id) }
                                 else { expanded.insert(ex.id) }
@@ -45,7 +48,7 @@ struct WorkoutLogGridView: View {
                     }
                 }
 
-                Spacer().frame(height: 132)
+                Spacer().frame(height: 190)
             }
             .padding(16)
         }

@@ -121,4 +121,71 @@ final class BlockRolloverServiceTests: XCTestCase {
         XCTAssertTrue(resolution.exercisesToRotate.contains("barbell row"))
         XCTAssertFalse(resolution.exercisesToRotate.contains("face pull"))
     }
+
+    func testBlockProposalUsesScanDeltaAsNextBlockFocusWithoutMutatingCurrentBlock() {
+        let delta = makeDelta(
+            improvements: ["shoulders"],
+            laggingAreas: ["chest", "arms"],
+            recommendedFocus: "Add more pressing accessories"
+        )
+
+        let proposal = BlockRolloverService.proposal(
+            currentBlockNumber: 2,
+            previousBlock: nil,
+            latestDeltaReport: delta
+        )
+
+        XCTAssertEqual(proposal.nextBlockNumber, 3)
+        XCTAssertFalse(proposal.shouldPromptRescan)
+        XCTAssertEqual(proposal.midBlockPatchPolicy, .nextBlockOnly)
+        XCTAssertEqual(
+            proposal.midBlockPatchPolicy.detail,
+            "This scan can bias the next block, but it will not rewrite today's workout or the current split."
+        )
+        XCTAssertEqual(proposal.focusAreas.map(\.muscleGroup), [.chest, .arms])
+        XCTAssertEqual(proposal.focusAreas.map(\.priority), [1, 2])
+        XCTAssertTrue(proposal.lines.contains { $0.kind == .scan })
+        XCTAssertTrue(proposal.lines.contains { $0.kind == .focus })
+
+        let analysis = BlockRolloverService.analysis(from: proposal, userId: "u-1")
+        XCTAssertEqual(analysis?.scanId, "scan-after")
+        XCTAssertEqual(analysis?.focusAreas, proposal.focusAreas)
+    }
+
+    func testBlockProposalPromptsOptionalRescanWhenNoDeltaExists() {
+        let proposal = BlockRolloverService.proposal(
+            currentBlockNumber: 1,
+            previousBlock: nil,
+            latestDeltaReport: nil
+        )
+
+        XCTAssertTrue(proposal.shouldPromptRescan)
+        XCTAssertTrue(proposal.focusAreas.isEmpty)
+        XCTAssertNil(BlockRolloverService.analysis(from: proposal, userId: "u-1"))
+        XCTAssertEqual(proposal.lines.first?.kind, .rescan)
+    }
+
+    private func makeDelta(
+        improvements: [String],
+        laggingAreas: [String],
+        recommendedFocus: String
+    ) -> ScanDeltaReport {
+        ScanDeltaReport(
+            id: "delta-1",
+            userId: "u-1",
+            baselineScanId: "scan-before",
+            comparisonScanId: "scan-after",
+            createdAt: Date(timeIntervalSince1970: 100),
+            shoulders: BodyPartDelta(before: 4, after: 6),
+            chest: BodyPartDelta(before: 4, after: 5),
+            arms: BodyPartDelta(before: 3, after: 4),
+            core: BodyPartDelta(before: 5, after: 5),
+            legs: BodyPartDelta(before: 5, after: 5),
+            overall: BodyPartDelta(before: 4, after: 5),
+            narrative: "Visible progress with a clear next focus.",
+            improvements: improvements,
+            laggingAreas: laggingAreas,
+            recommendedFocus: recommendedFocus
+        )
+    }
 }

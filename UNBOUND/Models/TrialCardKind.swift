@@ -33,20 +33,20 @@ extension WeeklyVowKind: Codable {
 extension WeeklyVowKind {
     var displayName: String {
         switch self {
-        case .ember: return "Ember"
-        case .overdrive: return "Overdrive"
-        case .apex: return "Apex"
+        case .ember: return "Low Binding"
+        case .overdrive: return "Limit Binding"
+        case .apex: return "Apex Binding"
         }
     }
 
     var shortDescription: String {
         switch self {
         case .ember:
-            return "Recovery-safe low-day vow"
+            return "Low-day binding vow"
         case .overdrive:
-            return "After-workout finisher vow"
+            return "Redline finisher vow"
         case .apex:
-            return "Dedicated weekend event vow"
+            return "Dedicated event vow"
         }
     }
 

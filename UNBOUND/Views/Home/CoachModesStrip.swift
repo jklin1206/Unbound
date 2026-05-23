@@ -2,7 +2,7 @@ import SwiftUI
 
 // MARK: - CoachModesStrip
 //
-// Three contextual mode buttons on the home page. No open chat.
+// Three contextual mode buttons on the home page.
 // Each button opens a dedicated sheet that calls one AI service and
 // returns a structured result. Plateau button only appears when a
 // stall is detected by ProgressionEngine.

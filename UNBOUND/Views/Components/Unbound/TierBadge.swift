@@ -1,9 +1,6 @@
 import SwiftUI
 
-/// Pill-shaped chip rendering a SkillTier as text + brand-flavored backdrop.
-/// Bottom 4 tiers (Initiate–Forged): muted gray-violet, low-key.
-/// Top 5 tiers (Veteran–Ascendant): violet accent with glow intensity
-/// scaling on ordinal. Vessel/Unbound/Ascendant pop the most.
+/// Pill-shaped chip rendering a SkillTier as text + its canonical badge tint.
 ///
 /// Used on skill-tree node chips (per-skill rank) and the profile rank
 /// surface ("Ascendant Skills" list).
@@ -13,6 +10,7 @@ struct TierBadge: View {
 
     var body: some View {
         let glowIntensity = max(0, Double(tier.rawValue - SkillTier.veteran.rawValue)) * 0.25
+        let tint = tier.rewardTint
         HStack(spacing: compact ? 4 : 6) {
             Image(tier.assetName)
                 .resizable()
@@ -25,9 +23,9 @@ struct TierBadge: View {
         }
         .padding(.horizontal, compact ? 6 : 8)
         .padding(.vertical, compact ? 3 : 4)
-        .background(Capsule().fill(backgroundColor))
-        .overlay(Capsule().strokeBorder(strokeColor, lineWidth: 1))
-        .shadow(color: Color.unbound.accent.opacity(glowIntensity), radius: 6)
+        .background(Capsule().fill(tint.opacity(tier.rawValue >= SkillTier.veteran.rawValue ? 0.18 : 0.10)))
+        .overlay(Capsule().strokeBorder(tint.opacity(tier.rawValue >= SkillTier.veteran.rawValue ? 0.44 : 0.28), lineWidth: 1))
+        .shadow(color: tint.opacity(glowIntensity), radius: 6)
     }
 
     private var textColor: Color {
@@ -36,17 +34,6 @@ struct TierBadge: View {
             : Color.unbound.textSecondary
     }
 
-    private var backgroundColor: Color {
-        tier.rawValue >= SkillTier.veteran.rawValue
-            ? Color.unbound.accent.opacity(0.18)
-            : Color.unbound.surface
-    }
-
-    private var strokeColor: Color {
-        tier.rawValue >= SkillTier.veteran.rawValue
-            ? Color.unbound.accent.opacity(0.4)
-            : Color.unbound.border
-    }
 }
 
 #Preview("All Tiers") {

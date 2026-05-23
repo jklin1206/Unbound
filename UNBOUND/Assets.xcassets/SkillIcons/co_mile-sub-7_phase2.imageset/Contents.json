@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "idiom": "universal",
+      "filename": "co_mile-sub-7_phase2.png",
+      "scale": "1x"
+    },
+    {
+      "idiom": "universal",
+      "scale": "2x"
+    },
+    {
+      "idiom": "universal",
+      "scale": "3x"
+    }
+  ],
+  "info": {
+    "author": "xcode",
+    "version": 1
+  }
+}

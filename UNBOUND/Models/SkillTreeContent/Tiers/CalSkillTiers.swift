@@ -1,6 +1,6 @@
 // UNBOUND/Models/SkillTreeContent/Tiers/CalSkillTiers.swift
 //
-// Tier criteria for every skill with prefix `cal.` (27 skills).
+// Tier criteria for every skill with prefix `cal.` (34 skills).
 //
 // Each skill climbs from a quiet entry threshold (Initiate) to a Vessel/
 // Unbound moment that reads as elite for that specific move. Criteria are
@@ -13,7 +13,7 @@
 //   .compound to require both the base hold variant AND a related rep
 //   progression, confirming mastery of the underlying movement pattern.
 //
-// Weighted-dip: uses .compound([.variant("weighted dip"), .bodyweightRatio(r)])
+// Weighted-dip: uses .exerciseBodyweightRatio(r, exerciseName: "weighted dip")
 //   so the exercise variant is confirmed before the weight ratio is checked.
 //   .bodyweightRatio alone would match any heavy lift across all history.
 //
@@ -26,8 +26,8 @@ import Foundation
 #if DEBUG
 private let _calCountCheck: Int = {
     assert(
-        CalSkillTiers.table.count == 27,
-        "cal cluster should have 27 entries, has \(CalSkillTiers.table.count)"
+        CalSkillTiers.table.count == 34,
+        "cal cluster should have 34 entries, has \(CalSkillTiers.table.count)"
     )
     for (id, tiers) in CalSkillTiers.table {
         assert(tiers.count == 9, "\(id) needs 9 tiers, has \(tiers.count)")
@@ -248,14 +248,14 @@ enum CalSkillTiers {
         // on any heavy lift).
         "cal.weighted-dip": [
             .initiate:   .variant("weighted dip"),
-            .novice:     .compound([.variant("weighted dip"), .bodyweightRatio(0.10)]),
-            .apprentice: .compound([.variant("weighted dip"), .bodyweightRatio(0.15)]),
-            .forged:     .compound([.variant("weighted dip"), .bodyweightRatio(0.25)]),
-            .veteran:    .compound([.variant("weighted dip"), .bodyweightRatio(0.35)]),
-            .honed:      .compound([.variant("weighted dip"), .bodyweightRatio(0.50)]),
-            .vessel:     .compound([.variant("weighted dip"), .bodyweightRatio(0.65)]),
-            .unbound:    .compound([.variant("weighted dip"), .bodyweightRatio(0.80)]),
-            .ascendant:  .compound([.variant("weighted dip"), .bodyweightRatio(1.00)]),
+            .novice:     .exerciseBodyweightRatio(0.10, exerciseName: "weighted dip"),
+            .apprentice: .exerciseBodyweightRatio(0.15, exerciseName: "weighted dip"),
+            .forged:     .exerciseBodyweightRatio(0.25, exerciseName: "weighted dip"),
+            .veteran:    .exerciseBodyweightRatio(0.35, exerciseName: "weighted dip"),
+            .honed:      .exerciseBodyweightRatio(0.50, exerciseName: "weighted dip"),
+            .vessel:     .exerciseBodyweightRatio(0.65, exerciseName: "weighted dip"),
+            .unbound:    .exerciseBodyweightRatio(0.80, exerciseName: "weighted dip"),
+            .ascendant:  .exerciseBodyweightRatio(1.00, exerciseName: "weighted dip"),
         ],
 
         // cal.l-sit-dip — dip with compressed L-sit; anchor: 3 reps = Forged
@@ -423,6 +423,103 @@ enum CalSkillTiers {
             .vessel:     .reps(8, exerciseName: "bent arm press"),
             .unbound:    .reps(10, exerciseName: "bent arm press"),
             .ascendant:  .reps(12, exerciseName: "bent arm press"),
+        ],
+
+        // MARK: - Live Tree: Vertical Press / Lean Aliases
+
+        // cal.pike-pushup — live push-tree ID for the HSPU entry path.
+        // Anchor: 10 strict reps = Forged. Upper tiers ask for elevated pike
+        // work so the rank represents real overhead progress, not just volume.
+        "cal.pike-pushup": [
+            .initiate:   .reps(5,  exerciseName: "pushup"),
+            .novice:     .reps(8,  exerciseName: "pushup"),
+            .apprentice: .reps(5,  exerciseName: "pike pushup"),
+            .forged:     .reps(10, exerciseName: "pike pushup"),
+            .veteran:    .reps(15, exerciseName: "pike pushup"),
+            .honed:      .reps(20, exerciseName: "pike pushup"),
+            .vessel:     .compound([.reps(20, exerciseName: "pike pushup"), .reps(5, exerciseName: "elevated pike pushup")]),
+            .unbound:    .compound([.reps(25, exerciseName: "pike pushup"), .reps(8, exerciseName: "elevated pike pushup")]),
+            .ascendant:  .compound([.reps(30, exerciseName: "pike pushup"), .reps(10, exerciseName: "elevated pike pushup")]),
+        ],
+
+        // cal.elevated-pike-pushup — live ID for the feet-elevated pike bridge.
+        "cal.elevated-pike-pushup": [
+            .initiate:   .reps(5,  exerciseName: "pike pushup"),
+            .novice:     .reps(8,  exerciseName: "pike pushup"),
+            .apprentice: .reps(5,  exerciseName: "elevated pike pushup"),
+            .forged:     .reps(10, exerciseName: "elevated pike pushup"),
+            .veteran:    .reps(15, exerciseName: "elevated pike pushup"),
+            .honed:      .reps(20, exerciseName: "elevated pike pushup"),
+            .vessel:     .compound([.reps(20, exerciseName: "elevated pike pushup"), .reps(3, exerciseName: "wall hspu negative")]),
+            .unbound:    .compound([.reps(25, exerciseName: "elevated pike pushup"), .reps(5, exerciseName: "wall hspu negative")]),
+            .ascendant:  .compound([.reps(30, exerciseName: "elevated pike pushup"), .reps(1, exerciseName: "wall hspu")]),
+        ],
+
+        // cal.handstand-pushup — wall/freestanding HSPU volume under the push cluster.
+        "cal.handstand-pushup": [
+            .initiate:   .reps(3,  exerciseName: "wall hspu negative"),
+            .novice:     .reps(5,  exerciseName: "wall hspu negative"),
+            .apprentice: .reps(1,  exerciseName: "wall hspu"),
+            .forged:     .reps(3,  exerciseName: "wall hspu"),
+            .veteran:    .reps(5,  exerciseName: "wall hspu"),
+            .honed:      .reps(8,  exerciseName: "wall hspu"),
+            .vessel:     .compound([.reps(8, exerciseName: "wall hspu"), .reps(1, exerciseName: "deficit wall hspu")]),
+            .unbound:    .compound([.reps(10, exerciseName: "wall hspu"), .reps(3, exerciseName: "deficit wall hspu")]),
+            .ascendant:  .compound([.reps(12, exerciseName: "wall hspu"), .reps(1, exerciseName: "freestanding hspu")]),
+        ],
+
+        // cal.clapping-handstand-pushup — explosive HSPU peak. Cascades through
+        // stable wall HSPU and deficit strength before the clap variant counts.
+        "cal.clapping-handstand-pushup": [
+            .initiate:   .reps(3, exerciseName: "wall hspu"),
+            .novice:     .reps(5, exerciseName: "wall hspu"),
+            .apprentice: .reps(1, exerciseName: "deficit wall hspu"),
+            .forged:     .reps(1, exerciseName: "clapping handstand pushup"),
+            .veteran:    .reps(2, exerciseName: "clapping handstand pushup"),
+            .honed:      .reps(3, exerciseName: "clapping handstand pushup"),
+            .vessel:     .compound([.reps(3, exerciseName: "clapping handstand pushup"), .reps(3, exerciseName: "freestanding hspu")]),
+            .unbound:    .compound([.reps(5, exerciseName: "clapping handstand pushup"), .reps(5, exerciseName: "freestanding hspu")]),
+            .ascendant:  .compound([.reps(8, exerciseName: "clapping handstand pushup"), .reps(8, exerciseName: "freestanding hspu")]),
+        ],
+
+        // cal.pseudo-planche-pushup — live push-tree ID for the planche lean path.
+        "cal.pseudo-planche-pushup": [
+            .initiate:   .reps(5,  exerciseName: "pushup"),
+            .novice:     .reps(10, exerciseName: "pushup"),
+            .apprentice: .reps(5,  exerciseName: "pseudo-planche pushup"),
+            .forged:     .reps(10, exerciseName: "pseudo-planche pushup"),
+            .veteran:    .reps(15, exerciseName: "pseudo-planche pushup"),
+            .honed:      .reps(20, exerciseName: "pseudo-planche pushup"),
+            .vessel:     .compound([.reps(20, exerciseName: "pseudo-planche pushup"), .variant("tuck planche")]),
+            .unbound:    .compound([.reps(25, exerciseName: "pseudo-planche pushup"), .variant("tuck planche")]),
+            .ascendant:  .compound([.reps(30, exerciseName: "pseudo-planche pushup"), .reps(3, exerciseName: "tuck planche pushup")]),
+        ],
+
+        // cal.tuck-planche-pushup — dynamic tuck planche press.
+        "cal.tuck-planche-pushup": [
+            .initiate:   .variant("tuck planche"),
+            .novice:     .compound([.variant("tuck planche"), .reps(10, exerciseName: "pseudo-planche pushup")]),
+            .apprentice: .reps(1,  exerciseName: "tuck planche pushup"),
+            .forged:     .reps(3,  exerciseName: "tuck planche pushup"),
+            .veteran:    .reps(5,  exerciseName: "tuck planche pushup"),
+            .honed:      .reps(7,  exerciseName: "tuck planche pushup"),
+            .vessel:     .compound([.reps(7, exerciseName: "tuck planche pushup"), .variant("straddle planche")]),
+            .unbound:    .compound([.reps(10, exerciseName: "tuck planche pushup"), .variant("straddle planche")]),
+            .ascendant:  .compound([.reps(10, exerciseName: "tuck planche pushup"), .variant("full planche")]),
+        ],
+
+        // cal.ninety-degree-pushup — planche/HSPU crossover press. It should
+        // not unlock from plain pushup volume alone.
+        "cal.ninety-degree-pushup": [
+            .initiate:   .variant("tuck planche"),
+            .novice:     .compound([.variant("tuck planche"), .reps(5, exerciseName: "wall hspu")]),
+            .apprentice: .compound([.variant("straddle planche"), .reps(5, exerciseName: "wall hspu")]),
+            .forged:     .reps(1, exerciseName: "90-degree pushup"),
+            .veteran:    .reps(2, exerciseName: "90-degree pushup"),
+            .honed:      .reps(3, exerciseName: "90-degree pushup"),
+            .vessel:     .compound([.reps(3, exerciseName: "90-degree pushup"), .variant("full planche")]),
+            .unbound:    .compound([.reps(5, exerciseName: "90-degree pushup"), .reps(1, exerciseName: "freestanding hspu")]),
+            .ascendant:  .compound([.reps(8, exerciseName: "90-degree pushup"), .reps(3, exerciseName: "freestanding hspu")]),
         ],
     ]
 }

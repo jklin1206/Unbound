@@ -2,7 +2,7 @@ import SwiftUI
 
 // MARK: - TrialCapstoneToast
 //
-// Bottom-of-screen toast fired when `TrialsService` posts `.trialCompleted`.
+// Bottom-of-screen toast fired when the weekly vow service posts completion.
 // Visual style matches TierBloomToast — slide up + brief hold + fade out.
 //
 // Usage:
@@ -49,7 +49,7 @@ struct TrialCapstoneToast: View {
                     .tracking(1.4)
                     .foregroundStyle(Color.unbound.textTertiary)
                     .lineLimit(1)
-                Text("Trial Complete")
+                Text("Binding Sealed")
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(Color.unbound.textPrimary)
             }
@@ -144,7 +144,7 @@ private struct TrialCapstoneToastModifier: ViewModifier {
                     .zIndex(100)
             }
         }
-        .onReceive(NotificationCenter.default.publisher(for: .trialCompleted)) { note in
+        .onReceive(NotificationCenter.default.publisher(for: .weeklyVowCompleted)) { note in
             guard let trial = note.object as? Trial else { return }
             pendingTrial = trial
         }
@@ -152,8 +152,7 @@ private struct TrialCapstoneToastModifier: ViewModifier {
 }
 
 extension View {
-    /// Overlay a TrialCapstoneToast at the bottom of the view when a trial
-    /// capstone is completed. Listens for `.trialCompleted` notifications.
+    /// Overlay a TrialCapstoneToast at the bottom of the view when a vow is completed.
     func trialCapstoneToast() -> some View {
         modifier(TrialCapstoneToastModifier())
     }
@@ -161,21 +160,21 @@ extension View {
 
 // MARK: - Previews
 
-#Preview("Capstone complete — power") {
+#Preview("Vow complete — power") {
     ZStack {
         Color.unbound.bg.ignoresSafeArea()
         TrialCapstoneToast(
             trial: Trial(
-                id: "trial-W20-aligned",
+                id: "weekly-vow-W20-ember",
                 userId: "preview",
                 weekStart: Date(),
                 chosenCard: TrialCard(
-                    id: "trial-W20-aligned",
-                    kind: .aligned,
+                    id: "weekly-vow-W20-ember",
+                    kind: .ember,
                     theme: .axis(.power),
-                    displayName: "Power Focus",
-                    blurb: "Double down on heavy compound work.",
-                    capstone: TrialCapstone(displayName: "Top-Set PR", description: "Hit a PR.", evaluation: .manualClaim)
+                    displayName: "Iron Rule Vow",
+                    blurb: "Accept a low-day Binding Vow.",
+                    capstone: TrialCapstone(displayName: "Low-Day Proof", description: "Complete easy power work.", evaluation: .manualClaim)
                 ),
                 capstoneState: .completed
             ),

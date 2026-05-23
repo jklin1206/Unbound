@@ -4,30 +4,36 @@ import SwiftUI
 struct BuildAttributeCell: View {
     let key: AttributeKey
     let value: AttributeValue
+    var isSelected: Bool = false
+    var onTap: (() -> Void)? = nil
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        Button {
+            onTap?()
+        } label: {
+            content
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(key.displayName), level \(value.level), \(value.rankTitle.displayName)")
+    }
+
+    private var content: some View {
+        VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .firstTextBaseline) {
-                Text(key.shortCode)
-                    .font(.system(size: 10, weight: .bold, design: .monospaced))
-                    .tracking(1.5)
-                    .foregroundStyle(Color.unbound.textSecondary)
+                Text(key.displayName)
+                    .font(.system(size: 12, weight: .heavy, design: .monospaced))
+                    .tracking(0)
+                    .foregroundStyle(isSelected ? key.rewardTint : Color.unbound.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.68)
                 Spacer()
-                Text("\(Int(value.current.rounded()))")
-                    .font(.system(size: 20, weight: .heavy, design: .monospaced))
+                Text("LVL \(value.level)")
+                    .font(.system(size: 11, weight: .black, design: .monospaced))
+                    .tracking(0)
                     .foregroundStyle(Color.unbound.textPrimary)
+                    .monospacedDigit()
+                    .lineLimit(1)
             }
-            Rectangle()
-                .fill(Color.unbound.surface)
-                .frame(height: 3)
-                .overlay(alignment: .leading) {
-                    GeometryReader { geo in
-                        Rectangle()
-                            .fill(Color.unbound.accent)
-                            .frame(width: geo.size.width * CGFloat(value.current / 100))
-                    }
-                }
-                .clipShape(RoundedRectangle(cornerRadius: 2))
 
             HStack(spacing: 6) {
                 Image(value.rankTitle.assetName)
@@ -36,25 +42,19 @@ struct BuildAttributeCell: View {
                     .frame(width: 16, height: 16)
                 Text(value.rankTitle.displayName.uppercased())
                     .font(.system(size: 9, weight: .semibold, design: .monospaced))
-                    .tracking(1.5)
-                    .foregroundStyle(isHighTier ? Color.unbound.accent : Color.unbound.textSecondary)
+                    .tracking(0)
+                    .foregroundStyle(value.rankTitle.rewardTextTint)
+                    .lineLimit(1)
             }
         }
         .padding(10)
         .background(
             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(Color.unbound.bg)
+                .fill(isSelected ? key.rewardTint.opacity(0.13) : Color.unbound.bg.opacity(0.82))
         )
         .overlay(
             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .strokeBorder(Color.unbound.border.opacity(0.6), lineWidth: 1)
+                .strokeBorder(key.rewardTint.opacity(isSelected ? 0.68 : 0.24), lineWidth: 1)
         )
-    }
-
-    private var isHighTier: Bool {
-        switch value.rankTitle {
-        case .honed, .vessel, .unbound, .ascendant: return true
-        default: return false
-        }
     }
 }

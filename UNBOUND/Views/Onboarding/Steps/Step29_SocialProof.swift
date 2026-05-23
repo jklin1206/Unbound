@@ -2,90 +2,72 @@ import SwiftUI
 
 // MARK: - Step 29: Social proof gallery
 //
-// Three testimonial cards. Stacked vertically for readability on mobile.
+// Three beta logs. Kept intentionally bare so this feels like in-world proof,
+// not a generic testimonial carousel.
 
 struct Step29_SocialProof: View {
     var progress: Double
     let onBack: () -> Void
     let onContinue: () -> Void
-    @State private var selectedIndex: Int = 0
 
     private let testimonials: [Testimonial] = [
         Testimonial(
-            quote: "Rank E to B in 6 months. First time I've actually tracked real change instead of vibes.",
-            name: "Marcus",
-            age: "19",
+            quote: "I stopped negotiating with myself. I wanted to see the card move.",
+            name: "Kai",
+            role: "Beta Tester",
             rank: "B",
             rankStart: "E",
-            months: 6,
-            focus: "Upper Body"
+            months: 2,
+            sessions: 28,
+            streak: 14,
+            focus: "Rank Climb"
         ),
         Testimonial(
-            quote: "The scan showed me exactly what was holding me back. 90 days later my shoulders finally look like shoulders.",
-            name: "David",
-            age: "23",
+            quote: "Day Zero made the first week feel real. Every workout had a reason.",
+            name: "Mason",
+            role: "Beta Tester",
             rank: "C",
             rankStart: "E",
             months: 3,
-            focus: "Shoulders"
+            sessions: 36,
+            streak: 21,
+            focus: "Day Zero"
         ),
         Testimonial(
-            quote: "I don't look like the same kid. The plan just works when you follow it.",
-            name: "Jamal",
-            age: "17",
+            quote: "It felt like loading into a training arc. I actually wanted the next session.",
+            name: "Jalen",
+            role: "Beta Tester",
             rank: "C",
             rankStart: "E",
-            months: 4,
-            focus: "Full Frame"
+            months: 1,
+            sessions: 18,
+            streak: 9,
+            focus: "First Arc"
         )
     ]
 
     var body: some View {
         OnboardingScaffold(
-            title: "This works when you run the protocol.",
-            subtitle: "Same system you're about to enter. Real ranks. Real timelines.",
+            title: "They came back for the next session.",
+            subtitle: "Beta testers started at Day Zero and kept opening UNBOUND because the climb felt visible.",
             progress: progress,
             primaryTitle: "I'm in",
             hudStep: .socialProofGallery,
             onBack: onBack,
             onPrimary: onContinue
         ) {
-            VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 12) {
                 HStack(spacing: 8) {
-                    Text("SUCCESS LOG")
+                    Text("BETA LOG")
                         .font(.system(size: 10, weight: .black, design: .monospaced))
                         .tracking(1.2)
                         .foregroundStyle(Color.unbound.accent)
-                    Text("\(testimonials.count) CASES")
-                        .font(.system(size: 10, weight: .bold, design: .monospaced))
-                        .foregroundStyle(Color.unbound.textSecondary)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(
-                            Capsule().fill(Color.unbound.surface.opacity(0.9))
-                        )
-                        .overlay(
-                            Capsule().strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
-                        )
                 }
                 .padding(.bottom, 4)
 
-                TabView(selection: $selectedIndex) {
+                VStack(spacing: 0) {
                     ForEach(Array(testimonials.enumerated()), id: \.element.id) { index, t in
-                        testimonialCard(t)
-                            .tag(index)
-                            .padding(.horizontal, 2)
-                    }
-                }
-                .tabViewStyle(.page(indexDisplayMode: .never))
-                .frame(height: 320)
-
-                HStack(spacing: 6) {
-                    ForEach(testimonials.indices, id: \.self) { index in
-                        Capsule()
-                            .fill(index == selectedIndex ? Color.unbound.accent : Color.unbound.borderSubtle)
-                            .frame(width: index == selectedIndex ? 18 : 8, height: 4)
-                            .animation(.easeInOut(duration: 0.25), value: selectedIndex)
+                        betaLogRow(t, index: index + 1)
                     }
                 }
 
@@ -94,109 +76,99 @@ struct Step29_SocialProof: View {
         }
     }
 
-    private func testimonialCard(_ t: Testimonial) -> some View {
-        UnboundCard {
-            VStack(alignment: .leading, spacing: 14) {
-                HStack(spacing: 6) {
-                    ForEach(0..<5) { _ in
-                        Image(systemName: "star.fill")
-                            .font(.system(size: 11))
-                            .foregroundStyle(Color.unbound.accent)
-                    }
-                    Spacer(minLength: 0)
-                    Text("\(t.months) MO")
-                        .font(.system(size: 9, weight: .bold, design: .monospaced))
-                        .foregroundStyle(Color.unbound.textSecondary)
-                        .padding(.horizontal, 7)
-                        .padding(.vertical, 4)
-                        .background(
-                            Capsule().fill(Color.unbound.surfaceElevated.opacity(0.9))
-                        )
-                        .overlay(
-                            Capsule().strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
-                        )
-                }
-
-                Text("\"\(t.quote)\"")
-                    .font(Font.unbound.bodyM)
-                    .foregroundStyle(Color.unbound.textPrimary)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                HStack(spacing: 10) {
-                    Circle()
-                        .fill(Color.unbound.surfaceElevated)
-                        .overlay(
-                            Text(String(t.name.prefix(1)))
-                                .font(Font.unbound.bodyMStrong)
-                                .foregroundStyle(Color.unbound.textPrimary)
-                        )
-                        .frame(width: 32, height: 32)
-                    Text("\(t.name), \(t.age)")
-                        .font(Font.unbound.bodyS)
-                        .foregroundStyle(Color.unbound.textSecondary)
-                    Spacer()
-                    Text(t.focus.uppercased())
-                        .font(.system(size: 9, weight: .bold, design: .monospaced))
-                        .tracking(0.8)
-                        .foregroundStyle(Color.unbound.textTertiary)
-                }
-
-                Rectangle()
-                    .fill(Color.unbound.borderSubtle)
-                    .frame(height: 0.5)
-
-                HStack(spacing: 8) {
-                    progressPill(label: "START", value: t.rankStart, tint: Color.unbound.rankRed)
-                    Image(systemName: "arrow.right")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(Color.unbound.textTertiary)
-                    progressPill(label: "NOW", value: t.rank, tint: rankTint(for: t.rank))
-                    Spacer(minLength: 0)
-                }
-            }
-        }
-    }
-
     private var socialProofFooter: some View {
         HStack(spacing: 8) {
-            Image(systemName: "shield.fill")
+            Image(systemName: "flame.fill")
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(Color.unbound.accent)
-            Text("Your plan uses your scan + inputs, not generic templates.")
+            Text("Open the app. Finish the session. Watch the rank move.")
                 .font(Font.unbound.bodyS)
                 .foregroundStyle(Color.unbound.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(10)
-        .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color.unbound.surface.opacity(0.72))
-        )
+        .padding(.top, 6)
+    }
+
+    private func betaLogRow(_ t: Testimonial, index: Int) -> some View {
+        VStack(spacing: 0) {
+            HStack(alignment: .top, spacing: 14) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(String(format: "%02d", index))
+                        .font(.system(size: 11, weight: .black, design: .monospaced))
+                        .foregroundStyle(Color.unbound.accent)
+
+                    compactRankMove(t)
+                }
+                .frame(width: 86, alignment: .leading)
+
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Text(t.name)
+                            .font(Font.unbound.titleS)
+                            .foregroundStyle(Color.unbound.textPrimary)
+
+                        Text(t.role.uppercased())
+                            .font(.system(size: 8, weight: .black, design: .monospaced))
+                            .tracking(0.9)
+                            .foregroundStyle(Color.unbound.textTertiary)
+                    }
+
+                    Text("\"\(t.quote)\"")
+                        .font(Font.unbound.bodyM)
+                        .foregroundStyle(Color.unbound.textSecondary)
+                        .lineSpacing(1.5)
+                        .lineLimit(3)
+                        .minimumScaleFactor(0.88)
+
+                    HStack(spacing: 12) {
+                        microStat("\(t.sessions) sessions")
+                        microStat("\(t.streak)d streak")
+                        microStat("\(t.months) mo")
+                    }
+                }
+            }
+            .padding(.vertical, 17)
+
+            Rectangle()
+                .fill(Color.unbound.borderSubtle.opacity(0.72))
+                .frame(height: 1)
+        }
         .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
+            Rectangle()
+                .fill(Color.unbound.accent.opacity(0.34))
+                .frame(width: 2),
+            alignment: .leading
         )
     }
 
-    private func progressPill(label: String, value: String, tint: Color) -> some View {
-        HStack(spacing: 6) {
-            Text(label)
-                .font(.system(size: 9, weight: .bold, design: .monospaced))
+    private func compactRankMove(_ t: Testimonial) -> some View {
+        HStack(spacing: 5) {
+            rankMark(t.rankStart, tint: Color.unbound.textTertiary)
+            Image(systemName: "arrow.right")
+                .font(.system(size: 9, weight: .black))
                 .foregroundStyle(Color.unbound.textTertiary)
-            TierBadge(tier: RankTitle.legacyLetterFallback(value).asSkillTier, compact: true)
-                .frame(width: 26, height: 26)
+            rankMark(t.rank, tint: rankTint(for: t.rank))
+        }
+    }
+
+    private func rankMark(_ value: String, tint: Color) -> some View {
+        let tier = RankTitle.legacyLetterFallback(value).asSkillTier
+        return HStack(spacing: 4) {
+            Image(tier.assetName)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 18, height: 18)
             Text(value)
-                .font(Font.unbound.monoS.weight(.bold))
+                .font(.system(size: 13, weight: .black, design: .monospaced))
                 .foregroundStyle(tint)
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 6)
-        .background(
-            Capsule().fill(tint.opacity(0.12))
-        )
-        .overlay(
-            Capsule().strokeBorder(tint.opacity(0.34), lineWidth: 1)
-        )
+    }
+
+    private func microStat(_ value: String) -> some View {
+        Text(value.uppercased())
+            .font(.system(size: 8, weight: .black, design: .monospaced))
+            .tracking(0.8)
+            .foregroundStyle(Color.unbound.textTertiary)
     }
 
     private func rankTint(for letter: String) -> Color {
@@ -214,10 +186,12 @@ struct Step29_SocialProof: View {
         let id = UUID()
         let quote: String
         let name: String
-        let age: String
+        let role: String
         let rank: String
         let rankStart: String
         let months: Int
+        let sessions: Int
+        let streak: Int
         let focus: String
     }
 }

@@ -19,6 +19,7 @@ struct Step19_Stress: View {
             VStack(alignment: .leading, spacing: 24) {
                 HUDSlider(
                     value: $flow.stressLevel,
+                    steps: HUDSlider.fivePointStoredSteps,
                     descriptors: HUDSlider.stressDescriptors,
                     leftAnchor: "Calm",
                     rightAnchor: "Burned out"

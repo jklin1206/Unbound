@@ -2,6 +2,226 @@ import XCTest
 @testable import UNBOUND
 
 final class TrainingSessionAdapterTests: XCTestCase {
+    func testTrainingSessionEditSummaryClassifiesAddRemoveSwapAndReorder() {
+        let original = makeDraft(["Bench Press", "Overhead Press", "Pullup"])
+
+        var added = original
+        added.blocks[0].prescriptions.append(makePrescription("Dumbbell Row"))
+        var summary = TrainingSessionEditSummary.compare(original: original, edited: added)
+        XCTAssertEqual(summary.addedCount, 1)
+        XCTAssertEqual(summary.removedCount, 0)
+        XCTAssertEqual(summary.changedSlotCount, 0)
+        XCTAssertFalse(summary.reordered)
+        XCTAssertEqual(summary.headline, "1 edit staged")
+
+        var removed = original
+        removed.blocks[0].prescriptions.remove(at: 1)
+        summary = TrainingSessionEditSummary.compare(original: original, edited: removed)
+        XCTAssertEqual(summary.addedCount, 0)
+        XCTAssertEqual(summary.removedCount, 1)
+        XCTAssertEqual(summary.changedSlotCount, 0)
+
+        var swapped = original
+        swapped.blocks[0].prescriptions[1] = makePrescription("Seated Dumbbell Press")
+        summary = TrainingSessionEditSummary.compare(original: original, edited: swapped)
+        XCTAssertEqual(summary.addedCount, 0)
+        XCTAssertEqual(summary.removedCount, 0)
+        XCTAssertEqual(summary.changedSlotCount, 1)
+        XCTAssertFalse(summary.reordered)
+
+        var reordered = original
+        reordered.blocks[0].prescriptions.swapAt(0, 1)
+        summary = TrainingSessionEditSummary.compare(original: original, edited: reordered)
+        XCTAssertEqual(summary.addedCount, 0)
+        XCTAssertEqual(summary.removedCount, 0)
+        XCTAssertEqual(summary.changedSlotCount, 0)
+        XCTAssertTrue(summary.reordered)
+    }
+
+    func testTrainingSessionEditPersistenceModesAreExecutable() {
+        XCTAssertTrue(TrainingSessionEditPersistence.todayOnly.isImplemented)
+        XCTAssertTrue(TrainingSessionEditPersistence.recurringSubstitution.isImplemented)
+        XCTAssertTrue(TrainingSessionEditPersistence.equipmentPreference.isImplemented)
+        XCTAssertTrue(TrainingSessionEditPersistence.nextBlockBias.isImplemented)
+        XCTAssertEqual(TrainingSessionEditPersistence.todayOnly.displayName, "Today only")
+    }
+
+    func testTrainingSessionEditPreferenceBuilderCreatesRecurringAndAvailablePreferences() throws {
+        let original = makeDraft(["Bench Press", "Lat Pulldown"])
+        var edited = original
+        edited.blocks[0].prescriptions[0] = makePrescription("Dumbbell Bench Press")
+        edited.blocks[0].prescriptions[1] = makePrescription("Cable Row (Seated)")
+
+        let swaps = TrainingSessionEditPreferenceBuilder.swapEdits(original: original, edited: edited)
+        XCTAssertEqual(swaps.map(\.originalExerciseName), ["Bench Press", "Lat Pulldown"])
+        XCTAssertEqual(swaps.map(\.replacementExerciseName), ["Dumbbell Bench Press", "Cable Row (Seated)"])
+
+        let recurring = TrainingSessionEditPreferenceBuilder.preferences(
+            for: swaps,
+            mode: .recurringSubstitution,
+            userId: "u1",
+            updatedAt: Date(timeIntervalSince1970: 100)
+        )
+        XCTAssertEqual(recurring.count, 2)
+        let benchPreference = try XCTUnwrap(recurring.first { $0.displayName == "Barbell Bench Press" })
+        XCTAssertEqual(benchPreference.status, .substitute)
+        XCTAssertEqual(benchPreference.exerciseName, "bench press")
+        XCTAssertEqual(benchPreference.substitutePreference, "dumbbell bench press")
+
+        let available = TrainingSessionEditPreferenceBuilder.preferences(
+            for: swaps,
+            mode: .equipmentPreference,
+            userId: "u1",
+            updatedAt: Date(timeIntervalSince1970: 100)
+        )
+        XCTAssertEqual(available.count, 2)
+        XCTAssertTrue(available.allSatisfy { $0.status == .available && $0.substitutePreference == nil })
+        XCTAssertTrue(available.contains { $0.exerciseName == "dumbbell bench press" })
+        XCTAssertTrue(available.contains { $0.exerciseName == "cable row (seated)" })
+
+        let nextBlock = TrainingSessionEditPreferenceBuilder.preferences(
+            for: swaps,
+            mode: .nextBlockBias,
+            userId: "u1",
+            updatedAt: Date(timeIntervalSince1970: 100)
+        )
+        XCTAssertEqual(nextBlock.count, 2)
+        XCTAssertTrue(nextBlock.allSatisfy { $0.status == .substitute })
+        XCTAssertEqual(
+            nextBlock.first { $0.exerciseName == "bench press" }?.notes,
+            "Queued from Session Editor for the next block proposal."
+        )
+    }
+
+    func testTrainingSessionAdaptationSummaryExplainsResolvedDraftChanges() {
+        let draft = TrainingSessionDraft(
+            id: "draft-adaptation-summary",
+            userId: "u1",
+            source: .program,
+            title: "Adapted Upper",
+            estimatedMinutes: 45,
+            blocks: [
+                TrainingBlock(
+                    id: "skill-block",
+                    kind: .skill,
+                    title: "Handstand",
+                    skillId: "hs.wall-handstand-30",
+                    prescriptions: [
+                        TrainingBlockPrescription(
+                            exerciseName: "Wall Handstand Hold",
+                            sets: 2,
+                            target: .holdSeconds(30),
+                            restSeconds: 60
+                        )
+                    ]
+                ),
+                TrainingBlock(
+                    id: "main-block",
+                    kind: .strength,
+                    title: "Main Work",
+                    prescriptions: [
+                        TrainingBlockPrescription(
+                            exerciseName: "Dumbbell Bench Press",
+                            sets: 3,
+                            target: .repsRange(8, 10),
+                            restSeconds: 120,
+                            notes: "Adjusted for today's modifiers."
+                        ),
+                        TrainingBlockPrescription(
+                            exerciseName: "Lat Pulldown",
+                            sets: 2,
+                            target: .repsRange(8, 12),
+                            restSeconds: 90,
+                            notes: "Deload modifier applied. Volume tapered for scheduled skill work."
+                        ),
+                        TrainingBlockPrescription(
+                            exerciseName: "Pushup",
+                            sets: 2,
+                            target: .reps(8),
+                            restSeconds: 90,
+                            notes: "Trial prep modifier."
+                        )
+                    ]
+                )
+            ]
+        )
+
+        let lines = TrainingSessionAdaptationSummary.summarize(draft: draft, isTravelDay: true)
+
+        XCTAssertEqual(
+            lines.map(\.kind),
+            [.scheduledSkill, .travel, .substitution, .deload, .trialPrep, .skillTaper]
+        )
+        XCTAssertTrue(lines.allSatisfy { !$0.title.isEmpty && !$0.detail.isEmpty })
+    }
+
+    func testProgramModifierSummaryPrioritizesAndCapsVisibleLines() {
+        let draft = TrainingSessionDraft(
+            id: "draft-modifier-summary",
+            userId: "u1",
+            source: .program,
+            title: "Adapted Upper",
+            estimatedMinutes: 45,
+            blocks: [
+                TrainingBlock(
+                    id: "skill-block",
+                    kind: .skill,
+                    title: "Handstand",
+                    skillId: "hs.wall-handstand-30",
+                    prescriptions: [
+                        TrainingBlockPrescription(
+                            exerciseName: "Wall Handstand Hold",
+                            sets: 2,
+                            target: .holdSeconds(30),
+                            restSeconds: 60
+                        )
+                    ]
+                ),
+                TrainingBlock(
+                    id: "main-block",
+                    kind: .strength,
+                    title: "Main Work",
+                    prescriptions: [
+                        TrainingBlockPrescription(
+                            exerciseName: "Dumbbell Bench Press",
+                            sets: 3,
+                            target: .repsRange(8, 10),
+                            restSeconds: 120,
+                            notes: "Adjusted for today's modifiers."
+                        ),
+                        TrainingBlockPrescription(
+                            exerciseName: "Lat Pulldown",
+                            sets: 2,
+                            target: .repsRange(8, 12),
+                            restSeconds: 90,
+                            notes: "Deload modifier applied. Volume tapered for scheduled skill work."
+                        ),
+                        TrainingBlockPrescription(
+                            exerciseName: "Pushup",
+                            sets: 2,
+                            target: .reps(8),
+                            restSeconds: 90,
+                            notes: "Trial prep modifier."
+                        )
+                    ]
+                )
+            ]
+        )
+
+        let summary = ProgramModifierSummary.summarize(
+            draft: draft,
+            isTravelDay: true,
+            visibleLimit: 3
+        )
+
+        XCTAssertEqual(summary.lines.count, 6)
+        XCTAssertEqual(summary.visibleLines.count, 3)
+        XCTAssertEqual(summary.overflowCount, 3)
+        XCTAssertEqual(summary.visibleLines.map(\.kind), [.deload, .substitution, .travel])
+        XCTAssertEqual(summary.visibleLines.first?.iconName, "gauge.with.dots.needle.33percent")
+        XCTAssertEqual(summary.visibleLines.first?.colorRole, .neutral)
+    }
+
     func testProgramWorkoutMapsToDraftAndCompatibleWorkoutLog() {
         let workout = Workout(
             name: "Push Day",
@@ -782,5 +1002,34 @@ final class TrainingSessionAdapterTests: XCTestCase {
         var incomplete = log
         incomplete.blocks[0].exercises[1].sets = []
         XCTAssertTrue(TrainingSessionAdapters.sessionLogs(from: incomplete).isEmpty)
+    }
+
+    private func makeDraft(_ exerciseNames: [String]) -> TrainingSessionDraft {
+        TrainingSessionDraft(
+            id: "draft-edit-summary",
+            userId: "u1",
+            source: .program,
+            title: "Power Upper",
+            estimatedMinutes: 45,
+            blocks: [
+                TrainingBlock(
+                    id: "block-1",
+                    kind: .strength,
+                    title: "Power Upper",
+                    prescriptions: exerciseNames.map(makePrescription)
+                )
+            ]
+        )
+    }
+
+    private func makePrescription(_ exerciseName: String) -> TrainingBlockPrescription {
+        TrainingBlockPrescription(
+            exerciseName: exerciseName,
+            sets: 3,
+            target: .repsRange(6, 10),
+            restSeconds: 120,
+            muscleGroups: [.chest],
+            rpe: 8
+        )
     }
 }

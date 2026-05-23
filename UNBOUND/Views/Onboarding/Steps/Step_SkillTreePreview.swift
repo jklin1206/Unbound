@@ -30,7 +30,7 @@ struct Step_SkillTreePreview: View {
             subtitle: "This is the ladder. Real feats, earned rep by rep.",
             progress: progress,
             primaryTitle: "I'm ready",
-            hudStep: .skillTreePreview,
+            hudStep: .trajectory,
             onBack: onBack,
             onPrimary: onContinue
         ) {

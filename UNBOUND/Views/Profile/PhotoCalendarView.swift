@@ -3,9 +3,9 @@ import UIKit
 
 // MARK: - PhotoCalendarView
 //
-// Identity archive for the user's captured photos. The grid is still the
-// durable month index, but the surface now leads with proof, recent captures,
-// and explicit scan/check-in actions.
+// Identity log for the user's captured photos. The calendar owns the capture
+// action, promoting the same compact button into a scan when the milestone
+// window is open so profile does not need a separate scan row.
 //
 // Lives inside `ProfileView` as the "come back and see change" surface —
 // long-horizon comparison is user's own eyes scrolling back, not invented
@@ -22,7 +22,7 @@ struct PhotoCalendarView: View {
     @AppStorage("unbound.lastScanTimestamp") private var lastScanTimestamp: Double = 0
 
     var body: some View {
-        // Slim proof archive: month strip + calendar grid + capture CTA.
+        // Slim timeline log: month strip + calendar grid + one adaptive capture CTA.
         // Drops the 3-stat boxes (redundant with profile header) and the
         // horizontal recent strip (redundant with the calendar). Cells
         // remain tappable — that's the way to revisit a day's photo.
@@ -32,7 +32,6 @@ struct PhotoCalendarView: View {
                 weekdayLabels
                 calendarGrid
             }
-            archiveActions
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -46,10 +45,14 @@ struct PhotoCalendarView: View {
         )
         .task { await loadPhotos() }
         .sheet(item: $selectedPhoto) { photo in
-            PhotoPreviewSheet(photo: photo) {
-                Task { await deletePhoto(photo) }
-                selectedPhoto = nil
-            }
+            PhotoPreviewSheet(
+                photo: photo,
+                onSetProfilePhoto: { setProfilePhoto(photo) },
+                onDelete: {
+                    Task { await deletePhoto(photo) }
+                    selectedPhoto = nil
+                }
+            )
         }
         .fullScreenCover(item: $captureMode) { mode in
             PhotoCaptureFlow(mode: mode) { _ in
@@ -72,7 +75,7 @@ struct PhotoCalendarView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .firstTextBaseline) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("PROOF ARCHIVE")
+                    Text("PHOTO TIMELINE")
                         .font(Font.unbound.captionS.weight(.bold))
                         .tracking(1.8)
                         .foregroundStyle(Color.unbound.textTertiary)
@@ -83,6 +86,7 @@ struct PhotoCalendarView: View {
                 }
                 Spacer()
                 HStack(spacing: 6) {
+                    captureButton
                     monthButton(systemName: "chevron.left") {
                         shiftMonth(by: -1)
                     }
@@ -165,7 +169,7 @@ struct PhotoCalendarView: View {
                 .font(.system(size: 18, weight: .semibold))
                 .foregroundStyle(Color.unbound.textTertiary)
             VStack(alignment: .leading, spacing: 2) {
-                Text("NO PROOF YET")
+                Text("NO PHOTOS YET")
                     .font(Font.unbound.captionS.weight(.bold))
                     .tracking(1.1)
                     .foregroundStyle(Color.unbound.textSecondary)
@@ -343,74 +347,39 @@ struct PhotoCalendarView: View {
         .disabled(firstPhoto == nil)
     }
 
-    // MARK: - Archive actions
+    // MARK: - Capture action
 
-    private var archiveActions: some View {
-        HStack(spacing: 10) {
-            archiveAction(
-                title: "PHOTO CHECK-IN",
-                subtitle: "+5 SP",
-                systemName: "camera.fill",
-                isPrimary: false
-            ) {
-                captureMode = .photo
-            }
-            archiveAction(
-                title: "NEW SCAN",
-                subtitle: isScanEligible ? "+25 SP" : "UPDATE",
-                systemName: "sparkle.magnifyingglass",
-                isPrimary: true
-            ) {
-                captureMode = .scan
-            }
-        }
-    }
-
-    private func archiveAction(
-        title: String,
-        subtitle: String,
-        systemName: String,
-        isPrimary: Bool,
-        action: @escaping () -> Void
-    ) -> some View {
+    private var captureButton: some View {
         Button {
             UnboundHaptics.medium()
-            action()
+            captureMode = isScanEligible ? .scan : .photo
         } label: {
             HStack(spacing: 8) {
-                Image(systemName: systemName)
-                    .font(.system(size: 12, weight: .bold))
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(title)
-                        .font(.system(size: 10, weight: .black))
-                        .tracking(1.1)
-                    Text(subtitle)
-                        .font(.system(size: 9, weight: .bold, design: .monospaced))
-                        .tracking(0.8)
-                        .opacity(0.72)
-                }
-                Spacer(minLength: 0)
+                Image(systemName: isScanEligible ? "sparkle.magnifyingglass" : "camera.fill")
+                    .font(.system(size: 11, weight: .bold))
+                Text(isScanEligible ? "MONTHLY" : "CHECK IN")
+                    .font(.system(size: 9, weight: .black, design: .monospaced))
+                    .tracking(0.9)
             }
-            .foregroundStyle(isPrimary ? Color.unbound.textPrimary : Color.unbound.textSecondary)
-            .padding(.horizontal, 12)
-            .frame(maxWidth: .infinity)
-            .frame(height: 46)
+            .foregroundStyle(isScanEligible ? Color.unbound.textPrimary : Color.unbound.textSecondary)
+            .padding(.horizontal, 10)
+            .frame(height: 30)
             .background(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(isPrimary ? Color.unbound.accent : Color.unbound.bg.opacity(0.76))
+                Capsule()
+                    .fill(isScanEligible ? Color.unbound.accent : Color.unbound.bg.opacity(0.8))
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .strokeBorder(isPrimary ? Color.unbound.accent.opacity(0.65) : Color.unbound.borderSubtle, lineWidth: 1)
+                Capsule()
+                    .strokeBorder(isScanEligible ? Color.unbound.accent.opacity(0.65) : Color.unbound.borderSubtle, lineWidth: 1)
             )
-            .shadow(color: isPrimary ? Color.unbound.accent.opacity(0.25) : .clear, radius: 8, y: 2)
+            .shadow(color: isScanEligible ? Color.unbound.accent.opacity(0.2) : .clear, radius: 6, y: 2)
         }
         .buttonStyle(.plain)
     }
 
     private var isScanEligible: Bool {
         guard lastScanTimestamp > 0 else { return true }
-        return Date().timeIntervalSince1970 - lastScanTimestamp >= 14 * 24 * 3600
+        return Date().timeIntervalSince1970 - lastScanTimestamp >= 28 * 24 * 3600
     }
 
     // MARK: - Data
@@ -439,6 +408,14 @@ struct PhotoCalendarView: View {
         // loader. Gracefully nil if file is gone (reinstall, etc.).
         let url = URL(fileURLWithPath: photo.storageUrl)
         return UIImage(contentsOfFile: url.path)
+    }
+
+    @MainActor
+    private func setProfilePhoto(_ photo: ProgressPhoto) {
+        let userId = services.auth.currentUserId ?? "anonymous"
+        guard let image = UIImage(contentsOfFile: photo.storageUrl) else { return }
+        ProfilePhotoStore.shared.set(image, userId: userId)
+        UnboundHaptics.medium()
     }
 
     @MainActor
@@ -507,9 +484,11 @@ struct PhotoCalendarView: View {
 
 private struct PhotoPreviewSheet: View {
     let photo: ProgressPhoto
+    let onSetProfilePhoto: () -> Void
     let onDelete: () -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var showingDeleteConfirm = false
+    @State private var didSetProfilePhoto = false
 
     var body: some View {
         ZStack {
@@ -548,6 +527,32 @@ private struct PhotoPreviewSheet: View {
                         .scaledToFit()
                         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                         .padding(.horizontal, 16)
+
+                    Button {
+                        onSetProfilePhoto()
+                        didSetProfilePhoto = true
+                    } label: {
+                        HStack(spacing: 9) {
+                            Image(systemName: didSetProfilePhoto ? "checkmark.circle.fill" : "person.crop.circle.badge.checkmark")
+                                .font(.system(size: 14, weight: .bold))
+                            Text(didSetProfilePhoto ? "PROFILE PHOTO SET" : "SET AS PROFILE PHOTO")
+                                .font(.system(size: 11, weight: .black, design: .monospaced))
+                                .tracking(1.0)
+                        }
+                        .foregroundStyle(Color.unbound.textPrimary)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 46)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .fill(didSetProfilePhoto ? Color.unbound.rankGreen : Color.unbound.accent)
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .strokeBorder(Color.white.opacity(0.18), lineWidth: 1)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.horizontal, 16)
                 } else {
                     Rectangle()
                         .fill(Color.unbound.surface)

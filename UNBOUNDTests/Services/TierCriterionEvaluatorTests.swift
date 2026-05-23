@@ -79,6 +79,29 @@ final class TierCriterionEvaluatorTests: XCTestCase {
         ))
     }
 
+    // MARK: - .exerciseWeightKg
+
+    func testExerciseWeightKg_ignoresUnrelatedHeavyLift() {
+        let bench = makeEntry(exerciseName: "bench press", sets: [makeSet(weightKg: 80, reps: 1)])
+        let deadlift = makeEntry(exerciseName: "deadlift", sets: [makeSet(weightKg: 160, reps: 1)])
+
+        XCTAssertFalse(TierCriterionEvaluator.satisfied(
+            criterion: .exerciseWeightKg(85, exerciseName: "bench press"),
+            history: [bench, deadlift],
+            bodyweightKg: 70
+        ))
+    }
+
+    func testExerciseWeightKg_atOrAbovePasses() {
+        let entry = makeEntry(exerciseName: "Bench Press", sets: [makeSet(weightKg: 85, reps: 1)])
+
+        XCTAssertTrue(TierCriterionEvaluator.satisfied(
+            criterion: .exerciseWeightKg(85, exerciseName: "bench press"),
+            history: [entry],
+            bodyweightKg: 70
+        ))
+    }
+
     // MARK: - .bodyweightRatio
 
     func testBodyweightRatio_belowFails() {
@@ -98,6 +121,27 @@ final class TierCriterionEvaluatorTests: XCTestCase {
             criterion: .bodyweightRatio(1.5),
             history: [entry],
             bodyweightKg: 70
+        ))
+    }
+
+    // MARK: - .exerciseBodyweightRatio
+
+    func testExerciseBodyweightRatio_ignoresUnrelatedHeavyLift() {
+        let pull = makeEntry(exerciseName: "weighted pullup", sets: [makeSet(weightKg: 10, reps: 1)])
+        let squat = makeEntry(exerciseName: "back squat", sets: [makeSet(weightKg: 120, reps: 5)])
+        XCTAssertFalse(TierCriterionEvaluator.satisfied(
+            criterion: .exerciseBodyweightRatio(0.5, exerciseName: "weighted pullup"),
+            history: [pull, squat],
+            bodyweightKg: 80
+        ))
+    }
+
+    func testExerciseBodyweightRatio_atOrAbovePasses() {
+        let pull = makeEntry(exerciseName: "Weighted Pullup", sets: [makeSet(weightKg: 40, reps: 1)])
+        XCTAssertTrue(TierCriterionEvaluator.satisfied(
+            criterion: .exerciseBodyweightRatio(0.5, exerciseName: "weighted pullup"),
+            history: [pull],
+            bodyweightKg: 80
         ))
     }
 

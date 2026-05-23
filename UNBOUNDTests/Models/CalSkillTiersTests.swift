@@ -3,9 +3,9 @@ import XCTest
 
 final class CalSkillTiersTests: XCTestCase {
 
-    func testCalClusterHasAll27Skills() {
-        XCTAssertEqual(CalSkillTiers.table.count, 27,
-                       "Expected 27 cal skills, found \(CalSkillTiers.table.count)")
+    func testCalClusterHasAll34Skills() {
+        XCTAssertEqual(CalSkillTiers.table.count, 34,
+                       "Expected 34 cal skills, found \(CalSkillTiers.table.count)")
     }
 
     func testEveryCalSkillHasNineTiers() {

@@ -45,14 +45,16 @@ Rank-ups stay separate from callouts because rank-ups are larger tier events. XP
 
 ### Optional weekly event layer
 
-**Weekly Vows** are optional short-term commitments that give the user something exciting to opt into during the week. They are not Overall Rank Trials and must never use the word "Trial" in product copy.
+**Binding Vows** are optional short-term commitments that give the user something exciting to opt into during the week. They are not Overall Rank Trials and must never use the word "Trial" in product copy. Code still uses `WeeklyVow*` names for persistence and migration safety, but the product language is Binding Vow.
 
-Weekly Vows have three lanes:
-- **Ember** — recovery-safe rest-day work, 8-12 minutes, RPE 3-5.
-- **Overdrive** — short after-workout finisher, 6-12 minutes, RPE 7-8.
-- **Apex** — dedicated weekend event, 20-45 minutes, RPE 8-9.
+Binding Vows have three lanes:
+- **Low Binding** — recovery-safe rest-day work, 8-12 minutes, RPE 3-5.
+- **Limit Binding** — short after-workout finisher, 6-12 minutes, RPE 7-8.
+- **Apex Binding** — dedicated weekend event, 20-45 minutes, RPE 8-9.
 
-The work itself earns normal AP, attribute XP, body-map volume, skill XP when relevant, and LV XP through the same movement pipeline as every other workout. Completing the Vow can grant bonus Overall LV XP, badge progress, cosmetic progress, and a share card for Apex clears. Vows do **not** grant artificial attribute bonuses; attributes only come from the actual movements performed.
+Generated Vow names should feel like a signed anime-style commitment, not a generic fitness card. Examples: Iron Rule Vow, Flash Step Vow, Limit Break Vow, No Retreat Vow, Final Set Vow, Ascension Vow.
+
+The work itself earns normal AP, attribute XP, body-map volume, skill XP when relevant, and LV XP through the same movement pipeline as every other workout. Completing the Binding Vow can grant bonus Overall LV XP, badge progress, cosmetic progress, and a share card for Apex Binding clears. Vows do **not** grant artificial attribute bonuses; attributes only come from the actual movements performed.
 
 ### Diagnostic surfaces (no rank, no progression)
 
@@ -871,21 +873,21 @@ That list becomes the user's hero log. Trial completions generate share cards.
 
 ---
 
-## 12. Weekly Vows
+## 12. Binding Vows
 
 ### Definition
 
-Weekly Vows are optional weekly commitments. They exist to give users a cool, self-selected push without pretending every week should contain a PR test or rank-gate event.
+Binding Vows are optional weekly commitments. They exist to give users a cool, self-selected push without pretending every week should contain a PR test or rank-gate event.
 
-They are **not** Overall Rank Trials. Trials are rare tier gates. Vows are weekly spice: a small promise, a finisher, or a dedicated event that fits the user's current program and recovery.
+They are **not** Overall Rank Trials. Trials are rare tier gates. Binding Vows are weekly spice: a small promise, a finisher, or a dedicated event that fits the user's current program and recovery.
 
 ### The three lanes
 
 | Lane | Slot in the week | Feel | Duration | Intensity | Best for |
 |---|---|---|---|---|---|
-| **Ember** | Rest day / low day | Controlled, restorative, still intentional | 8-12 min | RPE 3-5 | Mobility, trunk, easy skill exposure, zone-2 flush |
-| **Overdrive** | After a normal workout | Short, sharp, earned | 6-12 min | RPE 7-8 | Density sets, carries, EMOMs, pump finishers, skill volume |
-| **Apex** | Dedicated weekend slot | Event-like, memorable, shareable | 20-45 min | RPE 8-9 | Hard mixed circuits, benchmark events, path-specific challenges |
+| **Low Binding** | Rest day / low day | Controlled, restorative, still intentional | 8-12 min | RPE 3-5 | Mobility, trunk, easy skill exposure, zone-2 flush |
+| **Limit Binding** | After a normal workout | Short, sharp, earned | 6-12 min | RPE 7-8 | Density sets, carries, EMOMs, pump finishers, skill volume |
+| **Apex Binding** | Dedicated weekend slot | Event-like, memorable, shareable | 20-45 min | RPE 8-9 | Hard mixed circuits, benchmark events, path-specific events |
 
 ### Scaling
 
@@ -899,38 +901,42 @@ Vows are scaled by deterministic app data first:
 - injury/limitation tags
 - what anatomical regions and attributes have already been hit this week
 
-AI can help author or refresh Vow templates later, but the runtime system should not require AI for basic safe scaling. The movement library metadata should carry enough information for substitutions and dose control.
+AI can help author or refresh Binding Vow templates later, but the runtime system should not require AI for basic safe scaling. The movement library metadata should carry enough information for substitutions and dose control.
+
+Current implementation note (2026-05-23): Binding Vows now generate real catalog-backed training drafts instead of one-off placeholder work. Low Binding and Limit Binding use multi-movement axis templates; Apex Binding drafts follow the rotating proof instead of always using the same generic circuit. Weight proofs are exercise-specific (`exerciseWeightKg`) so a vow that asks for a Bench Press proof cannot be satisfied by an unrelated heavy lift. Program surfaces the active or pickable Binding Vow as a compact **Program Add-On** under Today Command, and the active card launches the same routed workout path as Home.
+
+Current product-language note (2026-05-23): user-facing card names no longer use Ember / Overdrive prefixes. The generator emits anime-impact Binding Vow names by lane and proof, such as Iron Rule Vow, Limit Break Vow, No Retreat Vow, Final Set Vow, and Blood Pace Vow. Completion receipts say Binding Vow Sealed.
 
 ### Rewards
 
-The Vow's prescribed work earns normal rewards through the unified completion pipeline:
+The Binding Vow's prescribed work earns normal rewards through the unified completion pipeline:
 - movement / skill AP
 - attribute XP from the exercise vector
 - Overall LV XP
 - body-map saturation
 - PRs, rank-ups, and badges when they happen naturally
 
-Vow completion can add:
+Binding Vow completion can add:
 - bonus Overall LV XP
-- Vow badge progress
+- Binding badge progress
 - cosmetic progress
-- Apex share card
+- Apex Binding share card
 
-Vows should not give flat attribute XP just for completion. If an Overdrive finisher uses kettlebell swings, it earns POW / EXP / END because kettlebell swings carry that vector. The completion bonus belongs to Overall LV and collectibles, not fake attribute growth.
+Binding Vows should not give flat attribute XP just for completion. If a Limit Binding finisher uses kettlebell swings, it earns POW / EXP / END because kettlebell swings carry that vector. The completion bonus belongs to Overall LV and collectibles, not fake attribute growth.
 
 ### Example reward beats
 
 ```
-OVERDRIVE CLEARED — Final Round
+LIMIT BREAK VOW SEALED - Final Round
 Work earned: +84 AP
-Vow bonus: +120 LV XP
-Badge progress: Overdrive I · 2/3
+Binding bonus: +120 LV XP
+Badge progress: Limit Binding I · 2/3
 ```
 
 ```
-APEX CLEARED — Redline
+FINAL SET VOW SEALED - Redline
 Work earned: +310 AP
-Vow bonus: +500 LV XP
+Binding bonus: +500 LV XP
 Badge unlocked: Redline
 Share card ready
 ```
@@ -938,11 +944,12 @@ Share card ready
 ### Product language
 
 Use:
-- Weekly Vow
-- Ember
-- Overdrive
-- Apex
-- Vow cleared
+- Binding Vow
+- Low Binding
+- Limit Binding
+- Apex Binding
+- Vow sealed
+- anime-impact names like Limit Break Vow, No Retreat Vow, Final Set Vow
 
 Avoid:
 - weekly trial
@@ -1101,6 +1108,42 @@ If a user never trains legs, their AGI/EXP/POW lower-body contribution stays low
 
 ## 15. UI Surfaces
 
+### Program command center
+
+The Program tab must become the app's execution surface, not another dashboard.
+
+Goal: when the user taps Program, the first screen answers "what am I doing today?" and gives one fast path into the workout. Home may summarize today's work, but Program owns the detailed plan, edits, add-ons, adaptations, and block rollover.
+
+Design contract:
+
+- **Today first.** Show today's full session, estimated time, key exercises, and current modifiers before secondary cards.
+- **One-tap start.** A normal unchanged program day should launch the active workout directly; editing is a secondary path.
+- **Edit mode is explicit.** Add, remove, swap, reorder, and custom work belong in a dedicated session editor, not scattered across multiple preview sheets.
+- **Exercise library is searchable.** Large catalogs require search, filters, compatibility states, recent/favorite surfaces, and custom exercise creation.
+- **Add-ons are modifiers.** Binding Vows, skill goals, routines, trial prep, travel, and deloads append to or adjust the plan without overpowering the base program.
+- **Adaptation is explained.** The system shows concise reasons for applied changes and asks before meaningful base-plan changes.
+- **Rescan proposes, not surprises.** Mid-block scans save a checkpoint and inform future proposals; block-boundary scans can feed the next generated block. No silent current-plan rewrite.
+- **Edits have persistence choices.** A user edit can be today-only, a recurring substitution, a preference update, or a next-block bias; these cannot be treated as the same thing.
+- **Completion closes the loop.** Program starts the session, Active Workout records it, the unified receipt awards progression, and Program/Home reflect the result.
+
+Detailed redesign plan: `docs/superpowers/specs/2026-05-23-program-command-center-redesign.md`.
+
+Current implementation status (2026-05-23):
+
+- Program tab is today-first and the primary CTA starts the active workout directly from the resolved program draft.
+- Program now suppresses the skill-focus schedule card on days where no skill work is routed, so focus work behaves more like a modifier instead of a competing workout panel.
+- Program's visible `PLAN ADJUSTMENTS` row no longer includes an exercise `SWAP` chip; swapping belongs in the explicit Session Editor so the main command center stays focused on plan-level changes like deload, travel, and short-session adjustments.
+- EDIT opens `SessionEditorView`, a today-only editor that can remove, reorder, swap, add catalog exercises, and start the edited draft.
+- Session Editor now uses a lower-friction command layout: one sticky start bar, compact persistence chips, a short edit summary, direct tap-to-swap exercise rows, drag handles for reorder, and a secondary row menu only for remove. Today Only, Repeat Swap, Preference, and Next Block remain executable; Repeat Swap saves substitute preferences for future matching movements, Preference marks replacements available, and Next Block queues substitute intent for the next block proposal/generation path without rewriting the current block.
+- Program add/swap picking now runs through reusable `ProgramExerciseLibraryView`, with `ExerciseSwapSheet` preserved as a thin compatibility wrapper for existing call sites. The picker supports swap/add modes, search, movement-slot filters, explicit Favorites/Recent filters, match counts, no-results feedback, favorite/recent ranking, saved preference status badges, compatibility/unavailable states for avoid-list and equipment mismatches, and the custom exercise builder entry point.
+- Program adaptation explanations now come from a tested draft-level summary that can explain scheduled skill work, travel mode, substitutions, deloads, trial prep, and skill-overlap tapering on the Program card.
+- Program modifiers now use a reusable, tested `ProgramModifierSummary` model with deterministic priority, icon/color roles, visible-line capping, and overflow count instead of view-local ad hoc rows.
+- Program surface states now use a tested `ProgramSurfaceState` resolver for no program, loading, load error/retry, block complete, rest day, training day, and missing-day cases. Initial load failures without a local cache now surface a retryable Program error instead of falling through to a no-program prompt. DEBUG simulator proof can seed saved-program states with `--unbound-proof-program-state=training-day|rest-day|missing-day|block-complete` and non-program surfaces with `--unbound-proof-program-surface=no-program|loading|load-error` before opening Program.
+- Block rollover now builds a tested next-block proposal from the latest scan delta when available. The block-complete UI shows proposal reasons, and build-next-block passes scan-derived focus into rollover generation instead of silently ignoring it.
+- Mid-block rescan now has an explicit, tested next-block-only policy: when a scan delta exists, the Program card explains that the current block stays locked, scan reasons are visible, and the checkpoint is queued as next-block input.
+- Active Workout now has a tested sticky progress summary for logged/remaining work sets, a clearer finish-ready state, less duplicated exercise-menu chrome, current-exercise/current-set emphasis, compact non-current exercise rows, higher-contrast dark-mode current-set treatment, and cursor advancement after one-tap planned-set logging.
+- Program/rescan simulator sweep is green after the reusable Program exercise-library slice: 100 passed on iPhone 17. Program proof launches are green for training day, rest day, missing day, no program, load error, and block complete. The latest full simulator suite after the Session Editor and active workout color pass is green: 698 passed on iPhone 17 with no failures.
+
 ### Profile / character sheet (the headline)
 
 ```
@@ -1218,7 +1261,7 @@ attr_xp[a] += round/reconcile(awarded_AP × attribute_weight[a] × novelty_bonus
 # Overall LV XP gain (per set) — single global counter
 overall_lv_xp += round(awarded_AP × novelty_bonus)
 # (PR bonuses also stack into LV XP)
-# Weekly Vow completion bonuses can add Overall LV XP, but never artificial attribute XP.
+# Binding Vow completion bonuses can add Overall LV XP, but never artificial attribute XP.
 
 # Overall LV requirement
 if L <= 100: xp_required_for_lv[L] = lv_base × L^1.5
@@ -1287,7 +1330,7 @@ overall_rank = highest_trial_passed_tier
 6. **Trial workouts are distinct.** Each tier transition is its own moment with its own format. No two trials feel the same.
 7. **Earned is permanent.** Ranks, AP, attribute XP, and Overall LV never decay. Staleness is signaled via display layers (recent-vs-lifetime, stale flag, body map cold) but never strips earned progression.
 8. **The comeback path rewards.** Returning users get a boost via trial re-run, not a recovery climb. The system pulls returning users back in, never pushes them away.
-9. **Weekly Vows are optional spice, not rank gates.** They create weekly anticipation without stealing the word Trial or forcing PR testing.
+9. **Binding Vows are optional spice, not rank gates.** They create weekly anticipation without stealing the word Trial or forcing PR testing.
 
 ### Failure modes to refuse
 
@@ -1315,17 +1358,19 @@ overall_rank = highest_trial_passed_tier
 
 - Execution roadmap lives at `docs/superpowers/handoff/2026-05-21-unified-workout-progression-migration-roadmap.md`.
 - 2026-05-22 Overall Rank trial lane: service definitions cover Foundation Proof, The Calibration, and V1 The Forge. The runner still routes attempts through `TrainingSessionDraft` -> `PerformanceLog` -> `TrainingCompletionService`, then records pass/fail rank-gate attempts idempotently by performance log id. Focused service tests cover The Forge readiness, locked, failed, passed, and duplicate-log paths; simulator UI proof remains pending.
+- 2026-05-23 Binding Vows lane: generator now stamps exercise-specific weight proofs from recent power-movement history, training drafts use catalog-backed multi-movement templates for every Low/Limit Binding axis and proof-specific Apex Binding drafts, Program shows Binding Vow as a Today Command add-on, and user-facing card names use anime-impact vows like Limit Break Vow / Final Set Vow instead of Ember / Overdrive prefixes. Focused simulator proof passed 61 vow/proof tests, 43 Program/active-workout regression tests, and the full iPhone 17 simulator suite passed 707/707 after the Binding Vow naming pass. Build/run on iPhone 17 succeeded with Program screenshot proof showing Limit Break Vow on the Program tab.
 
 - Functional migration order:
   1. **Unified completion receipt** — every completion route emits AP, attribute XP, Overall LV XP, skill XP when relevant, rank-ups, PRs, and badge unlocks through one receipt shape.
   2. **Movement rank standards** — finish calibrated 9-tier standards for every ranked movement and ensure variants roll up only where declared.
   3. **Skill proof standards** — every skill node exposes the next unlock requirement clearly, with numeric proof requirements and prerequisite links.
   4. **Reward callouts + badges** — standardize PRs, badge unlocks, first standards, trial completions, comeback events, and consistency milestones without creating a separate Feats system.
-  5. **Weekly Vows migration** — rename current weekly trial/challenge surfaces into Ember / Overdrive / Apex, route completions through the same receipt, and reserve Trial for Overall Rank only.
+  5. **Binding Vows migration** — rename current weekly trial/challenge surfaces into Binding Vows, route completions through the same receipt, and reserve Trial for Overall Rank only.
   6. **Trial readiness** — derive the readiness card from movement ranks, skill ranks, attribute floors, and Overall LV gates.
   7. **Trial runner** — implement named trial sessions and pass/fail logging; overall rank only advances from passed trials.
   8. **Body map diagnostics** — wire anatomical saturation to novelty bonuses and coaching suggestions without creating body-part ranks.
   9. **Program adjustment hooks** — let skill goals, travel weeks, deloads, equipment limits, and trial prep adjust workouts through library metadata before using AI.
+  10. **Program command center redesign** — make Program the fast execution surface: today-first plan, one-tap start, explicit session editor, searchable exercise library, compact add-ons/modifiers, clear edit persistence choices, active workout simplification, and clear rescan-to-next-block behavior.
 
 - Skill-rank standards table is calibrated but tunable — first 6 months of telemetry should refine
 - Movement-rank standards are tunable per movement

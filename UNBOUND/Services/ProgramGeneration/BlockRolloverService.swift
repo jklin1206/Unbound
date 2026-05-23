@@ -17,6 +17,49 @@ enum BlockRolloverService {
         let exercisesToRotate: [String]
     }
 
+    struct ProgramBlockProposal: Equatable {
+        enum MidBlockPatchPolicy: Equatable {
+            case nextBlockOnly
+
+            var title: String {
+                switch self {
+                case .nextBlockOnly:
+                    return "Current block stays locked"
+                }
+            }
+
+            var detail: String {
+                switch self {
+                case .nextBlockOnly:
+                    return "This scan can bias the next block, but it will not rewrite today's workout or the current split."
+                }
+            }
+        }
+
+        struct Line: Equatable {
+            enum Kind: String {
+                case scan
+                case focus
+                case carryForward
+                case rotation
+                case rescan
+            }
+
+            let kind: Kind
+            let title: String
+            let detail: String
+        }
+
+        let currentBlockNumber: Int
+        let nextBlockNumber: Int
+        let focusAreas: [FocusArea]
+        let scanDeltaReport: ScanDeltaReport?
+        let resolution: Resolution
+        let shouldPromptRescan: Bool
+        let midBlockPatchPolicy: MidBlockPatchPolicy
+        let lines: [Line]
+    }
+
     // MARK: Pure resolution
 
     /// Given the previous block, new scan focus, and per-exercise history,
@@ -40,6 +83,156 @@ enum BlockRolloverService {
             accessoryBiasResult: biasResult,
             exercisesToRotate: toRotate
         )
+    }
+
+    static func proposal(
+        currentBlockNumber: Int,
+        previousBlock: ProgramBlock?,
+        latestDeltaReport: ScanDeltaReport?,
+        exerciseHistory: [String: ExerciseRefreshRule.ExerciseHistory] = [:],
+        cutModeActive: Bool = false
+    ) -> ProgramBlockProposal {
+        let focusAreas = focusAreas(from: latestDeltaReport)
+        let resolution = resolveRollover(
+            previousBlock: previousBlock,
+            newFocusAreas: focusAreas,
+            exerciseHistory: exerciseHistory,
+            cutModeActive: cutModeActive
+        )
+        let lines = proposalLines(
+            delta: latestDeltaReport,
+            focusAreas: focusAreas,
+            resolution: resolution
+        )
+
+        return ProgramBlockProposal(
+            currentBlockNumber: max(1, currentBlockNumber),
+            nextBlockNumber: max(1, currentBlockNumber) + 1,
+            focusAreas: focusAreas,
+            scanDeltaReport: latestDeltaReport,
+            resolution: resolution,
+            shouldPromptRescan: latestDeltaReport == nil,
+            midBlockPatchPolicy: .nextBlockOnly,
+            lines: lines
+        )
+    }
+
+    static func analysis(
+        from proposal: ProgramBlockProposal,
+        userId: String
+    ) -> BodyAnalysis? {
+        guard let delta = proposal.scanDeltaReport, !proposal.focusAreas.isEmpty else { return nil }
+        return BodyAnalysis(
+            id: "block-proposal-\(delta.id)",
+            scanId: delta.comparisonScanId,
+            userId: userId,
+            createdAt: delta.createdAt,
+            buildIdentitySnapshot: nil,
+            overallScore: delta.overall.after,
+            muscleAssessments: [],
+            proportions: ProportionData(
+                shoulderToWaistRatio: nil,
+                chestToWaistRatio: nil,
+                armToForearmRatio: nil,
+                upperToLowerBodyBalance: nil,
+                leftRightSymmetry: nil,
+                overallProportionScore: 0
+            ),
+            estimatedBodyFatPercentage: nil,
+            estimatedMuscleMassCategory: .average,
+            focusAreas: proposal.focusAreas,
+            summary: delta.narrative,
+            strengths: delta.improvements,
+            weaknesses: delta.laggingAreas
+        )
+    }
+
+    private static func focusAreas(from delta: ScanDeltaReport?) -> [FocusArea] {
+        guard let delta else { return [] }
+        let rawAreas = delta.laggingAreas.isEmpty ? [delta.recommendedFocus] : delta.laggingAreas
+        var seen = Set<MuscleGroup>()
+        return rawAreas.compactMap(muscleGroup(named:))
+            .prefix(2)
+            .enumerated()
+            .compactMap { index, muscleGroup in
+                guard seen.insert(muscleGroup).inserted else { return nil }
+                return FocusArea(
+                    muscleGroup: muscleGroup,
+                    priority: index + 1,
+                    rationale: "Monthly scan checkpoint",
+                    suggestedFocus: delta.recommendedFocus
+                )
+            }
+    }
+
+    private static func proposalLines(
+        delta: ScanDeltaReport?,
+        focusAreas: [FocusArea],
+        resolution: Resolution
+    ) -> [ProgramBlockProposal.Line] {
+        var lines: [ProgramBlockProposal.Line] = []
+
+        if let delta {
+            let improvement = delta.improvements.first?.capitalized
+            lines.append(
+                ProgramBlockProposal.Line(
+                    kind: .scan,
+                    title: "Scan checkpoint included",
+                    detail: improvement.map { "\($0) is trending up; the next block can use the latest checkpoint." }
+                        ?? "The next block can use the latest scan checkpoint without changing today's workout."
+                )
+            )
+        } else {
+            lines.append(
+                ProgramBlockProposal.Line(
+                    kind: .rescan,
+                    title: "Rescan optional",
+                    detail: "You can build the next block from training history now, or scan first for fresher bias."
+                )
+            )
+        }
+
+        if !focusAreas.isEmpty {
+            let names = focusAreas.map { $0.muscleGroup.displayName }.joined(separator: " + ")
+            lines.append(
+                ProgramBlockProposal.Line(
+                    kind: .focus,
+                    title: "Proposed focus: \(names)",
+                    detail: "This biases accessories in the next block only; the completed block stays intact."
+                )
+            )
+        } else if resolution.accessoryBiasResult.carriedForward {
+            lines.append(
+                ProgramBlockProposal.Line(
+                    kind: .carryForward,
+                    title: "Carrying current focus",
+                    detail: "No meaningful scan priority changed, so the next block keeps the current accessory bias."
+                )
+            )
+        }
+
+        if !resolution.exercisesToRotate.isEmpty {
+            lines.append(
+                ProgramBlockProposal.Line(
+                    kind: .rotation,
+                    title: "\(resolution.exercisesToRotate.count) stale exercise rotation\(resolution.exercisesToRotate.count == 1 ? "" : "s")",
+                    detail: "Repeated movements can rotate in the next block to keep progress fresh."
+                )
+            )
+        }
+
+        return lines
+    }
+
+    private static func muscleGroup(named raw: String) -> MuscleGroup? {
+        let normalized = raw
+            .lowercased()
+            .replacingOccurrences(of: "_", with: " ")
+            .replacingOccurrences(of: "-", with: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return MuscleGroup.allCases.first { group in
+            group.rawValue == normalized || group.displayName.lowercased() == normalized
+        }
     }
 
     // MARK: Full flow (integration)

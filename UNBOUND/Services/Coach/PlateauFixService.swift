@@ -4,7 +4,7 @@ import Foundation
 //
 // One-shot AI diagnosis for a stalled lift. Returns a structured result:
 // diagnosis sentence + 3-week prescription. No back-and-forth. Called
-// from PlateauFixSheet — result shown as a card, no chat box.
+// from PlateauFixSheet — result shown as a card.
 
 @MainActor
 final class PlateauFixService {

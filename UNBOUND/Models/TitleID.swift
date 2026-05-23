@@ -4,7 +4,7 @@ import Foundation
 struct TitleID: Codable, Hashable, Sendable {
     enum Path: Codable, Hashable, Sendable {
         case axis(AttributeKey)
-        case cardKind(TrialCardKind)
+        case cardKind(WeeklyVowKind)
     }
     enum Tier: String, Codable, CaseIterable, Sendable {
         case bronze
@@ -22,7 +22,7 @@ extension TitleID {
         let pathLabel: String
         switch path {
         case .axis(let key):      pathLabel = key.buildVocab
-        case .cardKind(let kind): pathLabel = kind.rawValue.capitalized
+        case .cardKind(let kind): pathLabel = kind.displayName
         }
         return "\(pathLabel) · \(tier.rawValue.capitalized)"
     }

@@ -16,6 +16,25 @@ enum RepRange {
 
 @MainActor
 final class ActiveWorkoutSession: ObservableObject {
+    struct ProgressSummary: Equatable, Sendable {
+        let loggedWorkingSets: Int
+        let totalWorkingSets: Int
+
+        var remainingWorkingSets: Int {
+            max(0, totalWorkingSets - loggedWorkingSets)
+        }
+
+        var isComplete: Bool {
+            remainingWorkingSets == 0
+        }
+
+        var footerText: String {
+            guard totalWorkingSets > 0 else { return "No work sets planned" }
+            if isComplete { return "Ready to finish" }
+            let setWord = remainingWorkingSets == 1 ? "set" : "sets"
+            return "\(loggedWorkingSets)/\(totalWorkingSets) work sets logged · \(remainingWorkingSets) \(setWord) left"
+        }
+    }
 
     struct ActiveSet: Identifiable, Codable, Sendable {
         let id: String
@@ -285,6 +304,18 @@ final class ActiveWorkoutSession: ObservableObject {
         }
     }
 
+    var progressSummary: ProgressSummary {
+        let workSets = exercises
+            .filter { !$0.skipped }
+            .flatMap(\.sets)
+            .filter { !$0.isWarmup }
+        let logged = workSets.filter(\.logged).count
+        return ProgressSummary(
+            loggedWorkingSets: logged,
+            totalWorkingSets: workSets.count
+        )
+    }
+
     func logCurrentSet(weightKg: Double?, reps: Int?) {
         guard exercises.indices.contains(currentExerciseIndex),
               exercises[currentExerciseIndex].sets.indices.contains(currentSetIndex) else { return }
@@ -316,6 +347,22 @@ final class ActiveWorkoutSession: ObservableObject {
         if next < exercises.count {
             currentExerciseIndex = next
             currentSetIndex = 0
+        }
+    }
+
+    private func advanceAfterLogging(exerciseIndex ei: Int, setIndex si: Int) {
+        guard currentExerciseIndex == ei, currentSetIndex == si else { return }
+
+        if let nextSet = exercises[ei].sets.indices.first(where: { $0 > si && !exercises[ei].sets[$0].logged }) {
+            currentSetIndex = nextSet
+            return
+        }
+
+        if let nextExercise = exercises.indices.first(where: { idx in
+            idx > ei && !exercises[idx].skipped && exercises[idx].sets.contains(where: { !$0.logged })
+        }) {
+            currentExerciseIndex = nextExercise
+            currentSetIndex = exercises[nextExercise].sets.firstIndex(where: { !$0.logged }) ?? 0
         }
     }
 
@@ -396,6 +443,7 @@ final class ActiveWorkoutSession: ObservableObject {
         exercises[ei].sets[si].calories = exercises[ei].sets[si].suggestedCalories
         exercises[ei].sets[si].rpe = exercises[ei].sets[si].suggestedRPE
         exercises[ei].sets[si].logged = true
+        advanceAfterLogging(exerciseIndex: ei, setIndex: si)
     }
 
     /// Implicit logging: a set is logged once weight AND reps are both set.
@@ -410,6 +458,7 @@ final class ActiveWorkoutSession: ObservableObject {
         if complete {
             objectWillChange.send()
             exercises[ei].sets[si].logged = true
+            advanceAfterLogging(exerciseIndex: ei, setIndex: si)
         }
         return complete && !was
     }

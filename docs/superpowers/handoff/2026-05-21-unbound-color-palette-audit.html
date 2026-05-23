@@ -1,0 +1,513 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>UNBOUND Color Palette Audit</title>
+  <style>
+    :root {
+      --bg: #050505;
+      --surface: #121212;
+      --surface-elevated: #1a1a1a;
+      --border: #262626;
+      --border-subtle: #1f1f1f;
+      --text-primary: #f5f5f4;
+      --text-secondary: #a3a3a3;
+      --text-tertiary: #525252;
+      --accent: #7c3aed;
+      --impact: #a855f7;
+      --ember: #f05a28;
+      --ember-glow: #ffb347;
+      --ember-deep: #8a1f0a;
+      --alert: #b91c1c;
+      --success: #22c55e;
+      --coach-cyan: #06b6d4;
+      --warn-orange: #f97316;
+      --rank-amber: #eab308;
+      --rank-gold: #ffc857;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 18% 12%, rgba(124, 58, 237, 0.12), transparent 32rem),
+        radial-gradient(circle at 82% 8%, rgba(240, 90, 40, 0.08), transparent 24rem),
+        var(--bg);
+      color: var(--text-primary);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      letter-spacing: 0;
+    }
+
+    main {
+      width: min(1180px, calc(100vw - 32px));
+      margin: 0 auto;
+      padding: 42px 0 64px;
+    }
+
+    h1, h2, h3, p { margin: 0; }
+    h1 {
+      font-size: clamp(34px, 6vw, 74px);
+      line-height: 0.92;
+      letter-spacing: 0;
+      max-width: 920px;
+    }
+    h2 {
+      font-size: 22px;
+      margin-bottom: 16px;
+    }
+    h3 {
+      font-size: 14px;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 10px;
+    }
+    p {
+      color: var(--text-secondary);
+      line-height: 1.55;
+      font-size: 15px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 24px;
+      align-items: end;
+      padding-bottom: 30px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .hero-copy {
+      display: grid;
+      gap: 18px;
+    }
+
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      padding: 0 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      background: rgba(18, 18, 18, 0.72);
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .pill.violet {
+      color: var(--text-primary);
+      border-color: rgba(124, 58, 237, 0.54);
+      background: rgba(124, 58, 237, 0.14);
+    }
+
+    .hero-panel {
+      min-height: 280px;
+      border: 1px solid var(--border);
+      background:
+        linear-gradient(145deg, rgba(26, 26, 26, 0.92), rgba(5, 5, 5, 0.92)),
+        var(--surface);
+      padding: 24px;
+      display: grid;
+      align-content: center;
+      gap: 16px;
+    }
+
+    .brand-demo {
+      position: relative;
+      height: 160px;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      background:
+        radial-gradient(circle, rgba(124, 58, 237, 0.22), transparent 44%),
+        linear-gradient(135deg, #0d0b12, #050505);
+      border: 1px solid var(--border-subtle);
+    }
+    .brand-demo::before,
+    .brand-demo::after {
+      content: "";
+      position: absolute;
+      width: 160px;
+      height: 160px;
+      border: 1px solid rgba(124, 58, 237, 0.28);
+      transform: rotate(45deg);
+    }
+    .brand-demo::after {
+      width: 108px;
+      height: 108px;
+      border-color: rgba(245, 245, 244, 0.10);
+    }
+    .mark {
+      position: relative;
+      z-index: 1;
+      font-size: 34px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-shadow: 0 0 34px rgba(124, 58, 237, 0.72);
+    }
+
+    section {
+      padding: 30px 0 0;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .swatch {
+      min-height: 152px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 14px;
+      display: grid;
+      align-content: space-between;
+      gap: 16px;
+    }
+    .sample {
+      height: 62px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: var(--color);
+    }
+    .token {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 800;
+    }
+    .hex {
+      color: var(--text-secondary);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-weight: 700;
+    }
+    .use {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      line-height: 1.35;
+    }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .panel {
+      border: 1px solid var(--border);
+      background: rgba(18, 18, 18, 0.88);
+      padding: 18px;
+    }
+
+    .bars {
+      display: grid;
+      gap: 12px;
+      margin-top: 16px;
+    }
+    .bar-row {
+      display: grid;
+      grid-template-columns: 92px 1fr 56px;
+      align-items: center;
+      gap: 12px;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+    .track {
+      height: 12px;
+      background: var(--surface-elevated);
+      border: 1px solid var(--border-subtle);
+      overflow: hidden;
+    }
+    .bar {
+      height: 100%;
+      background: var(--accent);
+      box-shadow: 0 0 18px rgba(124, 58, 237, 0.54);
+      width: var(--w);
+    }
+    .bar.impact { background: var(--impact); }
+    .bar.neutral { background: var(--text-tertiary); box-shadow: none; }
+
+    .mockups {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .phone {
+      min-height: 520px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      padding: 16px;
+      display: grid;
+      grid-template-rows: auto auto 1fr auto;
+      gap: 14px;
+    }
+    .phone.too-purple {
+      background:
+        radial-gradient(circle at 50% 8%, rgba(124, 58, 237, 0.34), transparent 19rem),
+        var(--bg);
+    }
+    .phone h3 { color: var(--text-primary); margin: 0; }
+    .caption { font-size: 12px; color: var(--text-tertiary); }
+    .hero-card {
+      min-height: 118px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      padding: 14px;
+      display: grid;
+      gap: 10px;
+    }
+    .hero-card.purple {
+      border-color: rgba(124, 58, 237, 0.48);
+      background:
+        radial-gradient(circle at 50% 0%, rgba(124, 58, 237, 0.28), transparent 72%),
+        var(--surface);
+    }
+    .button {
+      min-height: 42px;
+      display: grid;
+      place-items: center;
+      background: var(--accent);
+      color: white;
+      font-size: 13px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      box-shadow: 0 8px 30px rgba(124, 58, 237, 0.32);
+    }
+    .button.quiet {
+      background: var(--text-primary);
+      color: var(--bg);
+      box-shadow: none;
+    }
+    .list {
+      display: grid;
+      gap: 8px;
+    }
+    .row {
+      height: 54px;
+      border: 1px solid var(--border-subtle);
+      background: var(--surface);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 12px;
+      color: var(--text-secondary);
+      font-size: 13px;
+    }
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: var(--accent);
+      box-shadow: 0 0 14px rgba(124, 58, 237, 0.58);
+    }
+    .dot.neutral {
+      background: var(--text-tertiary);
+      box-shadow: none;
+    }
+    .dot.ember {
+      background: var(--ember);
+      box-shadow: 0 0 14px rgba(240, 90, 40, 0.36);
+    }
+    .tabbar {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      color: var(--text-tertiary);
+      font-size: 11px;
+      text-align: center;
+      border-top: 1px solid var(--border-subtle);
+      padding-top: 12px;
+    }
+    .active { color: var(--accent); }
+
+    .rules {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .rule {
+      padding: 16px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      min-height: 170px;
+    }
+    .rule strong {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+
+    @media (max-width: 900px) {
+      .hero, .two-col, .mockups, .rules { grid-template-columns: 1fr; }
+      .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 560px) {
+      main { width: min(100vw - 20px, 1180px); padding-top: 28px; }
+      .grid { grid-template-columns: 1fr; }
+      .bar-row { grid-template-columns: 74px 1fr 44px; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="hero">
+      <div class="hero-copy">
+        <div class="pill-row">
+          <span class="pill violet">UNBOUND palette</span>
+          <span class="pill">Current code tokens</span>
+          <span class="pill">Home / Skills / Program audit</span>
+        </div>
+        <h1>Violet should feel rare, not ambient.</h1>
+        <p>The app palette is mostly near-black, graphite, and bone white. The issue is not the token set itself. The issue is that Home, Skills, and Program use <strong style="color: var(--accent)">accent violet</strong> as the default state color too often, so the screens begin to read as purple-first instead of monochrome-first.</p>
+      </div>
+      <div class="hero-panel">
+        <h3>Brand Mood</h3>
+        <div class="brand-demo">
+          <div class="mark">UNBOUND</div>
+        </div>
+        <p>Clean direction: dark base, small violet signal, occasional ember warmth. No character background needed for system surfaces.</p>
+      </div>
+    </div>
+
+    <section>
+      <h2>Canonical Palette</h2>
+      <div class="grid">
+        <div class="swatch"><div class="sample" style="--color: var(--bg)"></div><div><div class="token"><span>bg</span><span class="hex">#050505</span></div><div class="use">Page background</div></div></div>
+        <div class="swatch"><div class="sample" style="--color: var(--surface)"></div><div><div class="token"><span>surface</span><span class="hex">#121212</span></div><div class="use">Cards and modals</div></div></div>
+        <div class="swatch"><div class="sample" style="--color: var(--surface-elevated)"></div><div><div class="token"><span>surfaceElevated</span><span class="hex">#1A1A1A</span></div><div class="use">Raised controls</div></div></div>
+        <div class="swatch"><div class="sample" style="--color: var(--border)"></div><div><div class="token"><span>border</span><span class="hex">#262626</span></div><div class="use">Default stroke</div></div></div>
+        <div class="swatch"><div class="sample" style="--color: var(--text-primary)"></div><div><div class="token"><span>textPrimary</span><span class="hex">#F5F5F4</span></div><div class="use">Main text</div></div></div>
+        <div class="swatch"><div class="sample" style="--color: var(--text-secondary)"></div><div><div class="token"><span>textSecondary</span><span class="hex">#A3A3A3</span></div><div class="use">Secondary text</div></div></div>
+        <div class="swatch"><div class="sample" style="--color: var(--text-tertiary)"></div><div><div class="token"><span>textTertiary</span><span class="hex">#525252</span></div><div class="use">Meta and disabled</div></div></div>
+        <div class="swatch"><div class="sample" style="--color: var(--accent)"></div><div><div class="token"><span>accent</span><span class="hex">#7C3AED</span></div><div class="use">Primary action signal only</div></div></div>
+        <div class="swatch"><div class="sample" style="--color: var(--impact)"></div><div><div class="token"><span>impact</span><span class="hex">#A855F7</span></div><div class="use">Rank-up and unlock moments</div></div></div>
+        <div class="swatch"><div class="sample" style="--color: var(--ember)"></div><div><div class="token"><span>ember</span><span class="hex">#F05A28</span></div><div class="use">Atmosphere and heat</div></div></div>
+        <div class="swatch"><div class="sample" style="--color: var(--coach-cyan)"></div><div><div class="token"><span>coachCyan</span><span class="hex">#06B6D4</span></div><div class="use">Coach / guidance / info</div></div></div>
+        <div class="swatch"><div class="sample" style="--color: var(--warn-orange)"></div><div><div class="token"><span>warnOrange</span><span class="hex">#F97316</span></div><div class="use">Attention / needs work</div></div></div>
+      </div>
+    </section>
+
+    <section>
+      <div class="two-col">
+        <div class="panel">
+          <h2>Violet Usage Audit</h2>
+          <p>Static scan of `Color.unbound.accent` and `Color.unbound.impact` in Home and Program Swift views. This is not pixel coverage, but it does show why the screens are drifting purple.</p>
+          <div class="bars">
+            <div class="bar-row"><span>Home accent</span><div class="track"><div class="bar" style="--w: 100%"></div></div><span>224</span></div>
+            <div class="bar-row"><span>Home impact</span><div class="track"><div class="bar impact" style="--w: 23%"></div></div><span>51</span></div>
+            <div class="bar-row"><span>Program accent</span><div class="track"><div class="bar" style="--w: 50%"></div></div><span>111</span></div>
+            <div class="bar-row"><span>Program impact</span><div class="track"><div class="bar neutral" style="--w: 1%"></div></div><span>0</span></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>Working Rule</h2>
+          <p>Keep the palette, rebalance the surfaces. Violet should mark active, selected, primary, unlocked, or high-emotion states. It should not be the default tint for every chip, line, card halo, row icon, progress pill, and decorative border.</p>
+          <div class="pill-row">
+            <span class="pill violet">Primary CTA</span>
+            <span class="pill violet">Selected state</span>
+            <span class="pill violet">Current rank</span>
+            <span class="pill">Default card</span>
+            <span class="pill">Inactive icon</span>
+            <span class="pill">Secondary chip</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Visual Comparison</h2>
+      <div class="mockups">
+        <div class="phone too-purple">
+          <div>
+            <h3>Current Feel</h3>
+            <p class="caption">Purple is used as ambient glow, chip fill, row accent, card border, and CTA.</p>
+          </div>
+          <div class="hero-card purple">
+            <strong>Today’s Arc</strong>
+            <p>Program ready. Skill target active.</p>
+            <div class="button">Start</div>
+          </div>
+          <div class="list">
+            <div class="row"><span>Handstand</span><span class="dot"></span></div>
+            <div class="row"><span>Pull-up</span><span class="dot"></span></div>
+            <div class="row"><span>Mobility</span><span class="dot"></span></div>
+            <div class="row"><span>Skill tree</span><span class="dot"></span></div>
+          </div>
+          <div class="tabbar"><span>Home</span><span class="active">Skills</span><span class="active">Plan</span><span>Profile</span></div>
+        </div>
+
+        <div class="phone">
+          <div>
+            <h3>Quiet Default</h3>
+            <p class="caption">Cards and rows go graphite. Violet marks the single decision point.</p>
+          </div>
+          <div class="hero-card">
+            <strong>Today’s Arc</strong>
+            <p>Program ready. Skill target active.</p>
+            <div class="button">Start</div>
+          </div>
+          <div class="list">
+            <div class="row"><span>Handstand</span><span class="dot neutral"></span></div>
+            <div class="row"><span>Pull-up</span><span class="dot neutral"></span></div>
+            <div class="row"><span>Mobility</span><span class="dot ember"></span></div>
+            <div class="row"><span>Skill tree</span><span class="dot neutral"></span></div>
+          </div>
+          <div class="tabbar"><span>Home</span><span class="active">Skills</span><span>Plan</span><span>Profile</span></div>
+        </div>
+
+        <div class="phone">
+          <div>
+            <h3>Alternative CTA</h3>
+            <p class="caption">Use bone-white CTAs for daily utility, reserve violet for special actions.</p>
+          </div>
+          <div class="hero-card">
+            <strong>Workout Ready</strong>
+            <p>Strength + handstand block queued.</p>
+            <div class="button quiet">Start</div>
+          </div>
+          <div class="list">
+            <div class="row"><span>Strength</span><span class="dot neutral"></span></div>
+            <div class="row"><span>Handstand</span><span class="dot"></span></div>
+            <div class="row"><span>Recovery</span><span class="dot ember"></span></div>
+            <div class="row"><span>Coach note</span><span class="dot" style="background: var(--coach-cyan); box-shadow: 0 0 14px rgba(6,182,212,.35)"></span></div>
+          </div>
+          <div class="tabbar"><span class="active">Home</span><span>Skills</span><span>Plan</span><span>Profile</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Proposed Screen Rules</h2>
+      <div class="rules">
+        <div class="rule">
+          <strong>Home</strong>
+          <p>Use violet for the primary start action, active streak/current-day marker, and one key number. Use graphite rows and neutral borders everywhere else. Ember can represent completed training heat.</p>
+        </div>
+        <div class="rule">
+          <strong>Skills</strong>
+          <p>Use violet only for current progression, active goal, selected tab, and unlock path. Locked/future nodes should be graphite. Mastered/mythic can use impact violet, but sparingly.</p>
+        </div>
+        <div class="rule">
+          <strong>Program</strong>
+          <p>Use violet for today/current block and the Start button. Exercise rows, swaps, weekly cards, and secondary coach actions should default to neutral, cyan, amber, or ember depending on meaning.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
