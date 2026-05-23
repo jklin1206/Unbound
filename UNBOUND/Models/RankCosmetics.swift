@@ -10,6 +10,8 @@ import UIKit
 //    profile photo. Wraps the avatar on Home + Profile screens.
 //  - Profile background — atmospheric texture rendered behind the
 //    Profile header card.
+//  - Profile color — rank-tinted wash layered over the Profile screen
+//    and header card.
 //
 // Asset names match the imagesets seeded under
 // `Assets.xcassets/Cosmetics/`. The mapping is intentionally a static
@@ -21,6 +23,10 @@ import UIKit
 // and views fall back to the existing plain ring / solid bg.
 
 enum RankCosmetics {
+    private static let highestKeyPrefix = "unbound.profileCosmetics.highest."
+    private static let frameKeyPrefix = "unbound.profileCosmetics.frame."
+    private static let backgroundKeyPrefix = "unbound.profileCosmetics.background."
+    private static let colorKeyPrefix = "unbound.profileCosmetics.color."
 
     /// Returns the frame asset name (in Assets.xcassets/Cosmetics) for
     /// the given tier, or nil if no frame is shipped for it.
@@ -45,6 +51,58 @@ enum RankCosmetics {
     static func equipped(highestRank: RankTitle?) -> RankTitle {
         highestRank ?? .initiate
     }
+
+    static func recordUnlockedTier(userId: String, currentTier: SkillTier) -> SkillTier {
+        let key = highestKeyPrefix + userId
+        let stored = UserDefaults.standard.integer(forKey: key)
+        let highest = max(stored, currentTier.rawValue)
+        UserDefaults.standard.set(highest, forKey: key)
+        return SkillTier(rawValue: highest) ?? currentTier
+    }
+
+    static func unlockedTiers(userId: String, currentTier: SkillTier) -> [SkillTier] {
+        let highest = recordUnlockedTier(userId: userId, currentTier: currentTier)
+        return SkillTier.allCases.filter { $0.rawValue <= highest.rawValue }
+    }
+
+    static func equippedFrameTier(userId: String, currentTier: SkillTier) -> RankTitle {
+        equippedTier(keyPrefix: frameKeyPrefix, userId: userId, currentTier: currentTier)
+    }
+
+    static func equippedBackgroundTier(userId: String, currentTier: SkillTier) -> RankTitle {
+        equippedTier(keyPrefix: backgroundKeyPrefix, userId: userId, currentTier: currentTier)
+    }
+
+    static func equippedProfileColorTier(userId: String, currentTier: SkillTier) -> RankTitle {
+        equippedTier(keyPrefix: colorKeyPrefix, userId: userId, currentTier: currentTier)
+    }
+
+    static func setEquippedFrameTier(_ tier: SkillTier, userId: String, currentTier: SkillTier) {
+        setEquippedTier(tier, keyPrefix: frameKeyPrefix, userId: userId, currentTier: currentTier)
+    }
+
+    static func setEquippedBackgroundTier(_ tier: SkillTier, userId: String, currentTier: SkillTier) {
+        setEquippedTier(tier, keyPrefix: backgroundKeyPrefix, userId: userId, currentTier: currentTier)
+    }
+
+    static func setEquippedProfileColorTier(_ tier: SkillTier, userId: String, currentTier: SkillTier) {
+        setEquippedTier(tier, keyPrefix: colorKeyPrefix, userId: userId, currentTier: currentTier)
+    }
+
+    private static func equippedTier(keyPrefix: String, userId: String, currentTier: SkillTier) -> RankTitle {
+        let unlocked = unlockedTiers(userId: userId, currentTier: currentTier)
+        let fallback = unlocked.last ?? currentTier
+        guard let raw = UserDefaults.standard.string(forKey: keyPrefix + userId),
+              let tier = SkillTier.allCases.first(where: { $0.rankTitle.rawValue == raw }),
+              unlocked.contains(tier)
+        else { return fallback.rankTitle }
+        return tier.rankTitle
+    }
+
+    private static func setEquippedTier(_ tier: SkillTier, keyPrefix: String, userId: String, currentTier: SkillTier) {
+        guard unlockedTiers(userId: userId, currentTier: currentTier).contains(tier) else { return }
+        UserDefaults.standard.set(tier.rankTitle.rawValue, forKey: keyPrefix + userId)
+    }
 }
 
 // MARK: - SwiftUI helpers
@@ -60,10 +118,10 @@ struct CosmeticAvatar: View {
 
     var body: some View {
         ZStack {
-            // Inner core — sized to fit INSIDE the frame's transparent
-            // center (the ring eats ~10% of canvas on each side).
+            // Inner core — sized to sit inside the transparent center while
+            // still letting large profile photos read loudly.
             innerCore
-                .frame(width: size * 0.72, height: size * 0.72)
+                .frame(width: size * 0.60, height: size * 0.60)
 
             // Cosmetic frame border, always-on. Frame asset is a
             // transparent ring so the inner core shows through cleanly.
@@ -71,7 +129,6 @@ struct CosmeticAvatar: View {
                 .frame(width: size, height: size)
         }
         .frame(width: size, height: size)
-        .clipped()
     }
 
     @ViewBuilder
@@ -163,31 +220,14 @@ private struct AvatarFrameRing: View {
                         .offset(y: -(ornamentRadius - 6))
                         .rotationEffect(.degrees(Double(i) * 45 + 22.5))
                 }
-                // Outer halo for Ascendant only.
-                if tier == .ascendant {
-                    Circle()
-                        .stroke(tint.opacity(0.18), lineWidth: 4)
-                        .blur(radius: 4)
-                }
             }
         }
-        .shadow(color: tint.opacity(glowOpacity), radius: glowRadius)
     }
 
     // MARK: Tier styling
 
     private var tint: Color {
-        switch tier {
-        case .initiate:   return Color.unbound.textSecondary
-        case .novice:     return Color(red: 0.95, green: 0.45, blue: 0.55)  // coral
-        case .apprentice: return Color(red: 0.95, green: 0.65, blue: 0.30)  // amber
-        case .forged:     return Color(red: 0.85, green: 0.55, blue: 0.30)  // copper
-        case .veteran:    return Color(red: 0.40, green: 0.80, blue: 0.65)  // teal
-        case .honed:      return Color.unbound.accent                       // violet brand
-        case .vessel:     return Color.unbound.accent
-        case .unbound:    return Color.unbound.accent
-        case .ascendant:  return Color(red: 0.95, green: 0.78, blue: 0.40)  // gold
-        }
+        tier.rewardTint
     }
 
     private var lineWidth: CGFloat {
@@ -214,23 +254,6 @@ private struct AvatarFrameRing: View {
         return 48
     }
 
-    private var glowOpacity: Double {
-        switch tier.ordinal {
-        case 1...4: return 0
-        case 5...6: return 0.25
-        case 7:     return 0.40
-        default:    return 0.55
-        }
-    }
-
-    private var glowRadius: CGFloat {
-        switch tier.ordinal {
-        case 1...4: return 0
-        case 5...6: return 6
-        case 7:     return 10
-        default:    return 14
-        }
-    }
 }
 
 /// Backdrop — soft top-of-screen image with a vertical fade. Wrapped in
@@ -238,30 +261,50 @@ private struct AvatarFrameRing: View {
 /// can never inflate parent layout.
 struct CosmeticBackdrop: View {
     let tier: RankTitle
+    var colorTier: RankTitle? = nil
     var maxHeight: CGFloat = 320
 
     var body: some View {
+        let washTier = colorTier ?? tier
+
         GeometryReader { geo in
             ZStack(alignment: .top) {
+                LinearGradient(
+                    colors: washTier.rewardGlowColors.map { $0.opacity(0.16) } + [.clear],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+
                 if let asset = RankCosmetics.profileBackgroundAsset(for: tier),
                    let ui = UIImage(named: asset) {
                     Image(uiImage: ui)
                         .resizable()
                         .aspectRatio(contentMode: .fill)
-                        .frame(width: geo.size.width, height: maxHeight)
+                        .frame(width: geo.size.width, height: maxHeight, alignment: .top)
                         .clipped()
+                        .saturation(1.12)
+                        .contrast(1.08)
                         .overlay(
                             LinearGradient(
                                 stops: [
-                                    .init(color: .clear, location: 0),
-                                    .init(color: Color.unbound.bg.opacity(0.7), location: 0.7),
-                                    .init(color: Color.unbound.bg, location: 1.0),
+                                    .init(color: Color.unbound.bg.opacity(0.06), location: 0),
+                                    .init(color: Color.unbound.bg.opacity(0.44), location: 0.68),
+                                    .init(color: Color.unbound.bg.opacity(0.96), location: 1.0),
                                 ],
                                 startPoint: .top,
                                 endPoint: .bottom
                             )
                         )
-                        .opacity(0.75)
+                        .overlay(
+                            RadialGradient(
+                                colors: washTier.rewardGlowColors.map { $0.opacity(0.18) } + [.clear],
+                                center: .topTrailing,
+                                startRadius: 12,
+                                endRadius: max(260, geo.size.width * 0.85)
+                            )
+                            .blendMode(.screen)
+                        )
+                        .opacity(0.88)
                 }
             }
             .frame(width: geo.size.width, height: maxHeight, alignment: .top)
