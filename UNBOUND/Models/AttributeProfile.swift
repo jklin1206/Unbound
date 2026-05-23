@@ -15,6 +15,18 @@ struct AttributeProfile: Codable, Sendable, Equatable {
         values[key] ?? AttributeValue.zero(at: computedAt)
     }
 
+    func level(for key: AttributeKey) -> Int {
+        value(for: key).level
+    }
+
+    var levels: [AttributeKey: Int] {
+        Dictionary(uniqueKeysWithValues: AttributeKey.allCases.map { ($0, level(for: $0)) })
+    }
+
+    var rankTitles: [AttributeKey: RankTitle] {
+        Dictionary(uniqueKeysWithValues: AttributeKey.allCases.map { ($0, value(for: $0).rankTitle) })
+    }
+
     mutating func set(_ key: AttributeKey, _ value: AttributeValue) {
         values[key] = value
     }
