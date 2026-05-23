@@ -216,9 +216,11 @@ final class SkillProgressService {
     /// - Parameters:
     ///   - nodeId: The node that earned XP from this session.
     ///   - xpAmount: XP to grant. Defaults to `25` (one verified session).
-    func awardSessionXP(forNodeId nodeId: String, xpAmount: Int = 25) async {
-        guard var p = progress else { return }
-        guard xpAmount > 0 else { return }
+    @discardableResult
+    func awardSessionXP(forNodeId nodeId: String, xpAmount: Int = 25) async -> Int {
+        guard var p = progress else { return 0 }
+        guard xpAmount > 0 else { return 0 }
+        guard isNodeTrainable(nodeId: nodeId) else { return 0 }
 
         // 1. Load or initialize progress for this node.
         var sp = p.skillProgress[nodeId] ?? .starter
@@ -226,13 +228,13 @@ final class SkillProgressService {
         // 2. Already capped at mastered → no-op.
         let existingState = p.nodeStates[nodeId] ?? .locked
         if existingState == .mastered && sp.currentLevel == 5 {
-            return
+            return 0
         }
 
         // 2b. Daily cap: one award per node per 24h. Prevents tap-to-grind.
         if let last = p.lastTrainedAt[nodeId],
            Date().timeIntervalSince(last) < 24 * 3600 {
-            return
+            return 0
         }
 
         // 3. Add the XP.
@@ -303,6 +305,8 @@ final class SkillProgressService {
             awardGains(event.gainsAwarded)
             pendingUnlock = event
         }
+
+        return xpAmount
     }
 
     /// True when the Train CTA is allowed to award XP. Gated by the
@@ -317,6 +321,16 @@ final class SkillProgressService {
     func nextTrainAvailable(nodeId: String) -> Date? {
         guard let last = progress?.lastTrainedAt[nodeId] else { return nil }
         return last.addingTimeInterval(24 * 3600)
+    }
+
+    /// True when a node is allowed to be trained directly. Locked skills are
+    /// still viewable as dossiers, but training/program actions require the
+    /// tier-aware unlock standards to be met.
+    func isNodeTrainable(nodeId: String) -> Bool {
+        guard let node = SkillGraph.shared.node(id: nodeId) else { return false }
+        guard let p = progress else { return node.prereqs.isEmpty }
+        guard SkillGraph.shared.isClusterUnlocked(node.cluster, nodeStates: p.nodeStates) else { return false }
+        return prereqsMet(for: node)
     }
 
     // MARK: - Bookmarks
@@ -357,6 +371,7 @@ final class SkillProgressService {
     /// anyway). Persists via the same path as bookmarks.
     func toggleActiveGoal(nodeId: String) async {
         guard var p = progress else { return }
+        guard isNodeTrainable(nodeId: nodeId) || p.activeGoalIds.contains(nodeId) else { return }
         let wasGoal = p.activeGoalIds.contains(nodeId)
         if wasGoal {
             p.activeGoalIds.remove(nodeId)
@@ -419,14 +434,24 @@ final class SkillProgressService {
     // MARK: Internal helpers
 
     /// OR-across-groups, AND-within-a-group. A node is unlocked if ANY
-    /// of its prereq groups has ALL node-ids achieved/mastered.
+    /// of its unlock-standard groups has ALL source skills at the required
+    /// tier. Baseline Forged unlocks accept legacy achieved/mastered state
+    /// while old progress saves migrate onto tier-backed standards.
     /// Entry nodes (no prereqs) are always considered gate-met.
     private func prereqsMet(for node: SkillNode) -> Bool {
         if node.prereqs.isEmpty { return true }
-        return node.prereqs.contains { group in
-            group.nodeIds.allSatisfy { id in
-                let state = progress?.state(for: id) ?? .locked
-                return state == .achieved || state == .mastered
+        guard let progress else { return false }
+
+        let tierState = UserSkillTierStore.shared.load(userId: progress.userId)
+        let groups = SkillUnlockStandards.groups(for: node, in: SkillGraph.shared)
+
+        return groups.contains { group in
+            group.requirements.allSatisfy { requirement in
+                SkillUnlockStandards.isSatisfied(
+                    requirement,
+                    nodeStates: progress.nodeStates,
+                    tierState: tierState
+                )
             }
         }
     }
@@ -444,10 +469,14 @@ final class SkillProgressService {
         for (id, state) in p.nodeStates where state == .attempting {
             guard let node = graph.node(id: id) else { continue }
             if !node.prereqs.isEmpty {
-                let met = node.prereqs.contains { group in
-                    group.nodeIds.allSatisfy { reqId in
-                        let s = p.state(for: reqId)
-                        return s == .achieved || s == .mastered
+                let tierState = UserSkillTierStore.shared.load(userId: p.userId)
+                let met = SkillUnlockStandards.groups(for: node, in: graph).contains { group in
+                    group.requirements.allSatisfy { requirement in
+                        SkillUnlockStandards.isSatisfied(
+                            requirement,
+                            nodeStates: p.nodeStates,
+                            tierState: tierState
+                        )
                     }
                 }
                 if !met { p.nodeStates[id] = .locked }
@@ -500,11 +529,9 @@ final class SkillProgressService {
         }
     }
 
-    /// Fuzzy match between a logged exercise name and a node's named exercise.
+    /// Strict movement-aware proof match between a logged exercise and a node target.
     private func matches(_ logged: String, _ required: String) -> Bool {
-        let l = logged.lowercased()
-        let r = required.lowercased()
-        return l == r || l.contains(r) || r.contains(l)
+        MovementProofMatcher.namesMatch(logged: logged, required: required)
     }
 
     // MARK: Progress fraction (best attempt vs target)
