@@ -8,7 +8,6 @@ struct WorkoutLogGridView: View {
     let onPickRPE: (Int, Int) -> Void
     let onConfirmAsPlanned: (Int, Int) -> Void
     let onAddSet: (Int) -> Void
-    let onComplete: () -> Void
 
     @State private var expanded: Set<String> = []
 
@@ -26,6 +25,9 @@ struct WorkoutLogGridView: View {
                             muscleGroups: ex.muscleGroups,
                             formCues: ex.formCues,
                             substitution: ex.substitution,
+                            blockKind: ex.blockKind,
+                            metricKind: ex.metricKind,
+                            tracksHold: ex.tracksHold,
                             isWarmupCurrent: ex.sets.first?.isWarmup ?? false,
                             sets: ex.sets,
                             isExpanded: expanded.contains(ex.id),
@@ -43,19 +45,7 @@ struct WorkoutLogGridView: View {
                     }
                 }
 
-                Button(action: onComplete) {
-                    Text("COMPLETE SESSION")
-                        .font(Font.unbound.bodyLStrong)
-                        .tracking(2)
-                        .foregroundStyle(Color.unbound.bg)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 18)
-                        .background(RoundedRectangle(cornerRadius: 18)
-                            .fill(Color.unbound.accent))
-                }
-                .buttonStyle(.plain)
-                .padding(.top, 8)
-                .padding(.bottom, 120)
+                Spacer().frame(height: 132)
             }
             .padding(16)
         }
