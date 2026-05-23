@@ -15,6 +15,8 @@ indirect enum TierCriterion: Codable, Hashable, Sendable {
     case weightKg(Double)
     /// Best working-set weight ÷ bodyweightKg ≥ r.
     case bodyweightRatio(Double)
+    /// Best working-set weight for `exerciseName` ÷ bodyweightKg ≥ r.
+    case exerciseBodyweightRatio(Double, exerciseName: String)
     /// Any logged set with exerciseName matching this variant (case-insensitive).
     case variant(String)
     /// All sub-criteria must pass.
