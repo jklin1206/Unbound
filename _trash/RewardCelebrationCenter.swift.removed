@@ -1,0 +1,98 @@
+import Foundation
+import Observation
+
+// MARK: - RewardCelebrationCenter
+//
+// Global pump for celebration moments that don't originate from the
+// user's current screen. Lift-rank advances fire from the legacy
+// `RankService` whenever a WorkoutLog is ingested — those events come
+// in over `Notification.Name.rankAdvanced` and need a presenter.
+//
+// This center holds a `pendingSummary` that views can observe via
+// `@Bindable`. The root tab container (or any persistent host view)
+// reads it and presents `RewardCelebrationView` when non-nil.
+//
+// One-at-a-time. If a second event arrives while a celebration is
+// on-screen, it queues; the view drains the queue on dismiss.
+
+@MainActor
+@Observable
+final class RewardCelebrationCenter {
+
+    static let shared = RewardCelebrationCenter()
+
+    /// Currently-presenting summary. Nil = nothing on screen.
+    private(set) var pendingSummary: RewardSummary? = nil
+
+    /// FIFO of summaries waiting for the screen to clear.
+    private var queue: [RewardSummary] = []
+
+    private var notificationToken: NSObjectProtocol?
+
+    private init() {
+        startObservingRankAdvances()
+    }
+
+    /// Public entry point — call from any reward emitter that doesn't
+    /// already present its own celebration view (e.g. lift-rank flow).
+    /// Skip from QuickLog / SkillSession because those present inline.
+    func enqueue(_ summary: RewardSummary) {
+        guard summary.hasContent else { return }
+        if pendingSummary == nil {
+            pendingSummary = summary
+        } else {
+            queue.append(summary)
+        }
+    }
+
+    /// View calls this when the celebration sheet dismisses. Pumps the
+    /// next queued summary (if any) onto the screen automatically.
+    func acknowledge() {
+        if !queue.isEmpty {
+            pendingSummary = queue.removeFirst()
+        } else {
+            pendingSummary = nil
+        }
+    }
+
+    // MARK: - Observers
+
+    private func startObservingRankAdvances() {
+        notificationToken = NotificationCenter.default.addObserver(
+            forName: .rankAdvanced,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            guard let event = notification.userInfo?["event"] as? RankAdvance else { return }
+            Task { @MainActor [weak self] in
+                self?.handleRankAdvance(event)
+            }
+        }
+    }
+
+    /// Translates a legacy `RankAdvance` into a `RewardSummary` and
+    /// queues it. The event already carries from/to SubRank — we map
+    /// to the 9-tier `RankTitle` ladder for consistent presentation
+    /// with the per-skill rank system.
+    private func handleRankAdvance(_ event: RankAdvance) {
+        var summary = RewardSummary()
+        summary.skillTitle = event.displayName
+        summary.rankUp = RankUp(
+            skillId: event.exerciseKey,
+            skillTitle: event.displayName,
+            fromTier: event.fromRank.title,
+            toTier: event.toRank.title
+        )
+        // No XP/PR/badge here — the upstream RankService.evaluate also
+        // fires BadgeService for badges, but those land via a separate
+        // event or via SkillProgress. For lift advances we just show
+        // the rank-up moment.
+        enqueue(summary)
+    }
+
+    deinit {
+        if let token = notificationToken {
+            NotificationCenter.default.removeObserver(token)
+        }
+    }
+}

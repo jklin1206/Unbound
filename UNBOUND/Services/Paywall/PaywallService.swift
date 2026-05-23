@@ -8,17 +8,33 @@ final class PaywallService: PaywallServiceProtocol, @unchecked Sendable {
 
     private init() {}
 
+    /// True when running with a placeholder Superwall key (dev/sim).
+    /// All Superwall.shared calls become no-ops to avoid triggering Apple Account modals.
+    private var isStubbed: Bool {
+        AppConstants.Superwall.apiKey.hasPrefix("PLACEHOLDER_")
+    }
+
     func configure() {
+        guard !isStubbed else {
+            logger.log("PaywallService.configure: skipping Superwall init (placeholder key)", level: .info)
+            return
+        }
         Superwall.configure(apiKey: AppConstants.Superwall.apiKey)
     }
 
     func setUserAttributes(_ attributes: [String: Any]) {
+        guard !isStubbed else { return }
         Superwall.shared.setUserAttributes(attributes.mapValues { "\($0)" })
     }
 
     @MainActor
     func triggerPaywall(placement: String) async -> PaywallResult {
         analytics.track(.paywallTriggered(placement: placement))
+
+        guard !isStubbed else {
+            analytics.track(.paywallDismissed(placement: placement))
+            return .dismissed
+        }
 
         do {
             let info = try await Superwall.shared.register(placement: placement)

@@ -2,13 +2,16 @@ import SwiftUI
 
 // MARK: - Step_ScanAnalyzing
 //
-// Cinematic post-scan analysis. Movie-forensic-scan vibe. 6s of sweep +
-// HUD readouts + crosshairs + status strings narrating analysis, then a
-// heavy haptic "complete" punch and advance to verdict.
+// Post-scan commitment beat. This screen does NOT do body-composition
+// analysis — the scan photo is just a day-zero marker. What's actually
+// happening during these 6s: we save the photo and compile the adaptive
+// protocol from the user's onboarding answers (archetype, focus areas,
+// experience, commitment, equipment). The copy is honest about that.
 //
-// Uses TimelineView to redraw every frame for smooth animation. Targeting
-// crosshairs jump between anatomical regions. BPM pulse line hums along
-// the bottom. Status string rotates through muscle groups.
+// The cinematic treatment (scan sweep, crosshairs, BPM pulse) is
+// atmosphere, not instrumentation. No fake "density: 58%" percentages
+// — anatomy labels only. Anything that implies measurement has been
+// pulled so we're not promising a product we don't ship.
 
 struct Step_ScanAnalyzing: View {
     @Bindable var flow: OnboardingFlowViewModel
@@ -16,13 +19,21 @@ struct Step_ScanAnalyzing: View {
 
     private let duration: Double = 6.0
     @State private var startTime: Date = .now
-    @State private var hasCompleted = false
+    @State private var animationDone = false   // animation reached 100%
+    @State private var hasCompleted = false    // onComplete() already called
     @State private var completionBloom = false
+    @State private var insightsService = LocalBodyInsightsService()
+    @State private var analysisTask: Task<Void, Never>? = nil
+
+    private var holdsForPreview: Bool {
+        ProcessInfo.processInfo.arguments.contains("-HoldScanAnalyzing")
+    }
 
     var body: some View {
         TimelineView(.animation(minimumInterval: 1.0 / 60.0)) { ctx in
             let elapsed = ctx.date.timeIntervalSince(startTime)
             let fraction = min(1.0, elapsed / duration)
+            // Hold at 99% while waiting for the LLM after animation completes
             let percent = Int(fraction * 100)
 
             ZStack {
@@ -80,8 +91,22 @@ struct Step_ScanAnalyzing: View {
                             RoundedRectangle(cornerRadius: 24, style: .continuous)
                         )
                         .padding(.horizontal, 40)
+                } else if let baseline = UIImage(named: "body_baseline") {
+                    // Fallback subject when the user has no scan photo yet
+                    // (dev skip / camera-denied path) — shows the baseline
+                    // starter silhouette getting "scanned" instead of a
+                    // raw SF Symbol.
+                    Image(uiImage: baseline)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(height: 420)
+                        .opacity(0.7)
+                        .overlay(
+                            Color.unbound.accent.opacity(0.12)
+                                .blendMode(.overlay)
+                        )
+                        .padding(.horizontal, 40)
                 } else {
-                    // Fallback silhouette
                     Image(systemName: "figure.stand")
                         .font(.system(size: 280, weight: .ultraLight))
                         .foregroundStyle(Color.unbound.textPrimary.opacity(0.22))
@@ -90,8 +115,8 @@ struct Step_ScanAnalyzing: View {
                 // Scan plane — sweeps top↔bottom
                 ScanPlane(fraction: fraction)
 
-                // Targeting crosshairs — jump every 400ms
-                TargetingCrosshairs(elapsed: elapsed)
+                // Pulsing corner reticles — atmosphere, no labels
+                ScanReticles(elapsed: elapsed)
 
                 // Corner HUD
                 HudReadouts(percent: percent, elapsed: elapsed)
@@ -109,24 +134,62 @@ struct Step_ScanAnalyzing: View {
                 }
             }
             .onChange(of: fraction) { _, new in
-                if new >= 1.0 && !hasCompleted {
-                    hasCompleted = true
-                    UnboundHaptics.heavy()
-                    withAnimation(.easeOut(duration: 0.35)) {
-                        completionBloom = true
-                    }
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
-                        onComplete()
-                    }
+                guard !holdsForPreview else { return }
+                if new >= 1.0 && !animationDone {
+                    animationDone = true
+                    complete()
                 }
             }
         }
         .toolbar(.hidden, for: .navigationBar)
         .onAppear {
             startTime = .now
+            runLocalBodyInsights()
+        }
+        .onDisappear {
+            analysisTask?.cancel()
         }
     }
+
+    private func complete() {
+        guard !hasCompleted else { return }
+        hasCompleted = true
+        UnboundHaptics.heavy()
+        withAnimation(.easeOut(duration: 0.35)) { completionBloom = true }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { onComplete() }
+    }
+
+    /// Kicks off on-device Vision analysis of the front scan photo. Runs
+    /// concurrent with the 6s cinematic — usually completes in under 1s,
+    /// so by the time the sweep finishes, `flow.scanInsights` is ready
+    /// for the Verdict screen. Silently no-ops when there's no photo
+    /// (dev-skip path) or when Vision can't find a usable body pose.
+    ///
+    /// Also commits the first ScanCheckpoint so onboarding produces a
+    /// persistent scan record (the same one the recurring scan flow produces).
+    private func runLocalBodyInsights() {
+        guard flow.scanInsights == nil else { return }
+        guard let photo = flow.capturedPhotos[.front] else { return }
+
+        analysisTask = Task { @MainActor in
+            let insights = await insightsService.analyze(image: photo)
+            guard !Task.isCancelled else { return }
+            flow.scanInsights = insights
+
+            // Commit the day-zero ScanCheckpoint. Fire-and-forget — failure
+            // is silent; the user still proceeds to Verdict.
+            if let jpeg = photo.jpegData(compressionQuality: 0.85) {
+                let userId = AuthService.shared.currentUserId ?? "anonymous"
+                _ = try? await ScanCheckpointService.shared.commit(
+                    userId: userId,
+                    photoData: jpeg
+                )
+            }
+        }
+    }
+
 }
+
 
 // MARK: - Scan plane
 
@@ -160,59 +223,58 @@ private struct ScanPlane: View {
     }
 }
 
-// MARK: - Targeting crosshairs + readouts
+// MARK: - Scan reticles (corner brackets, no labels)
 
-private struct TargetingCrosshairs: View {
+private struct ScanReticles: View {
     let elapsed: TimeInterval
 
-    private let regions: [(name: String, offset: CGSize)] = [
-        ("TRAPEZIUS",  .init(width: 0,    height: -180)),
-        ("DELTOIDS",   .init(width: 70,   height: -120)),
-        ("PECTORAL",   .init(width: 0,    height: -80)),
-        ("LATISSIMUS", .init(width: -70,  height: -40)),
-        ("CORE",       .init(width: 0,    height: 20)),
-        ("QUADRICEPS", .init(width: 30,   height: 100)),
-        ("CALVES",     .init(width: -30,  height: 170))
-    ]
+    var body: some View {
+        GeometryReader { geo in
+            let pulse = 0.55 + 0.15 * sin(elapsed * 3.0)
+            let color = Color.unbound.accent.opacity(pulse)
+            let arm: CGFloat = 18
+            let stroke: CGFloat = 1.5
+            let inset: CGFloat = 40
+
+            ZStack {
+                // Top-left
+                CornerBracket(arm: arm, stroke: stroke, color: color)
+                    .position(x: inset, y: inset + 60)
+
+                // Top-right
+                CornerBracket(arm: arm, stroke: stroke, color: color)
+                    .rotationEffect(.degrees(90))
+                    .position(x: geo.size.width - inset, y: inset + 60)
+
+                // Bottom-left
+                CornerBracket(arm: arm, stroke: stroke, color: color)
+                    .rotationEffect(.degrees(270))
+                    .position(x: inset, y: geo.size.height - inset - 60)
+
+                // Bottom-right
+                CornerBracket(arm: arm, stroke: stroke, color: color)
+                    .rotationEffect(.degrees(180))
+                    .position(x: geo.size.width - inset, y: geo.size.height - inset - 60)
+            }
+        }
+        .ignoresSafeArea()
+    }
+}
+
+private struct CornerBracket: View {
+    let arm: CGFloat
+    let stroke: CGFloat
+    let color: Color
 
     var body: some View {
-        let index = Int(elapsed / 0.45) % regions.count
-        let region = regions[index]
-        let score = 30 + (index * 11) % 60
-
-        ZStack {
-            // Crosshair reticle
-            Rectangle()
-                .strokeBorder(Color.unbound.accent, lineWidth: 1)
-                .frame(width: 42, height: 42)
-
-            // Readout tag
-            HStack(spacing: 6) {
-                Text(region.name)
-                    .font(Font.unbound.captionS.monospaced())
-                    .tracking(1.2)
-                    .foregroundStyle(Color.unbound.accent)
-                Text("·")
-                    .foregroundStyle(Color.unbound.textTertiary)
-                Text("\(score)%")
-                    .font(Font.unbound.captionS.monospaced())
-                    .foregroundStyle(Color.unbound.textPrimary)
-            }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(
-                RoundedRectangle(cornerRadius: 4, style: .continuous)
-                    .fill(Color.unbound.bg.opacity(0.85))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 4, style: .continuous)
-                    .strokeBorder(Color.unbound.accent.opacity(0.6), lineWidth: 0.5)
-            )
-            .offset(x: 56, y: -6)
+        Canvas { ctx, size in
+            var path = Path()
+            path.move(to: CGPoint(x: arm, y: 0))
+            path.addLine(to: CGPoint(x: 0, y: 0))
+            path.addLine(to: CGPoint(x: 0, y: arm))
+            ctx.stroke(path, with: .color(color), style: StrokeStyle(lineWidth: stroke, lineCap: .square))
         }
-        .offset(region.offset)
-        .transition(.opacity)
-        .id(index)
+        .frame(width: arm, height: arm)
     }
 }
 
@@ -222,12 +284,13 @@ private struct HudReadouts: View {
     let percent: Int
     let elapsed: TimeInterval
 
+    // Status strings keep this beat in "starting the arc" language.
     private let statusStrings = [
-        "MAPPING MUSCLE GROUPS",
-        "MEASURING SYMMETRY",
-        "CALCULATING DENSITY",
-        "SCORING POSTURE",
-        "COMPILING PROTOCOL"
+        "SAVING DAY ZERO",
+        "SETTING THE STARTING LINE",
+        "COMPILING YOUR ARC",
+        "ARMING MONTH ONE",
+        "BUILDING YOUR PROTOCOL"
     ]
 
     var body: some View {
@@ -237,21 +300,21 @@ private struct HudReadouts: View {
                     Text("\(percent)%")
                         .font(Font.unbound.monoL)
                         .foregroundStyle(Color.unbound.accent)
-                    Text("ANALYZING")
+                    Text("LOCKING IN")
                         .font(Font.unbound.captionS)
                         .tracking(1.4)
                         .foregroundStyle(Color.unbound.textSecondary)
                 }
                 Spacer()
                 VStack(alignment: .trailing, spacing: 4) {
-                    Text("BIOMETRIC")
+                    Text("DAY ZERO")
                         .font(Font.unbound.captionS)
                         .tracking(1.4)
                         .foregroundStyle(Color.unbound.textSecondary)
-                    Text("ANALYSIS")
+                    Text("COMMITTED")
                         .font(Font.unbound.captionS)
                         .tracking(1.4)
-                        .foregroundStyle(Color.unbound.textSecondary)
+                        .foregroundStyle(Color.unbound.ember)
                 }
             }
             .padding(.horizontal, 24)

@@ -60,14 +60,14 @@ struct Step_Paywall: View {
 
     private var header: some View {
         VStack(spacing: 12) {
-            RankBadge(letter: flow.derivedRank, size: .medium)
+            TierBadge(tier: RankTitle.legacyLetterFallback(flow.derivedRank).asSkillTier)
 
-            Text("Close the gap.")
+            Text("Start your arc.")
                 .font(Font.unbound.displayM)
                 .foregroundStyle(Color.unbound.textPrimary)
                 .multilineTextAlignment(.center)
 
-            Text("Unlock your adaptive protocol, scan tracking, and full exercise library.")
+            Text("Every rep tracked. Every node earned. Every milestone yours.")
                 .font(Font.unbound.bodyM)
                 .foregroundStyle(Color.unbound.textSecondary)
                 .multilineTextAlignment(.center)
@@ -79,10 +79,10 @@ struct Step_Paywall: View {
 
     private var benefits: some View {
         VStack(alignment: .leading, spacing: 12) {
-            benefitRow("Adaptive protocol that reacts to your logs")
-            benefitRow("Monthly rescans to measure real change")
-            benefitRow("Daily sessions, streaks, and Gains")
-            benefitRow("Full archetype training library")
+            benefitRow("Three arcs built around where you start")
+            benefitRow("Full skill tree: muscle-up, front lever, the whole ladder")
+            benefitRow("Monthly milestones that show how far you've climbed")
+            benefitRow("Daily sessions, streaks, and gains you keep")
         }
         .padding(18)
         .background(
@@ -178,8 +178,8 @@ struct Step_Paywall: View {
     private var ctaSection: some View {
         VStack(spacing: 8) {
             UnboundButton(
-                title: "Start 7-day free trial",
-                icon: "sparkles",
+                title: "Start the arc — 7 days free",
+                icon: "flame.fill",
                 action: purchase
             )
             Text("Cancel anytime. \(selectedPlan.billingAfterTrial) after trial.")

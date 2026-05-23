@@ -107,25 +107,59 @@ enum TargetFrequency: String, Codable, CaseIterable, Identifiable {
     }
 }
 
+extension TargetFrequency {
+    /// Integer count used for schedule planning (number of training days per week).
+    var numericCount: Int {
+        switch self {
+        case .three: return 3
+        case .four: return 4
+        case .five: return 5
+        case .six: return 6
+        }
+    }
+}
+
 // MARK: Equipment (Screen 14)
 
 enum Equipment: String, Codable, CaseIterable, Identifiable {
-    case fullGym, homeWeights, bodyweight, bands
+    case fullGym
+    case machines         // cables and machines (includes gym but without barbell)
+    case barbell          // barbell + rack
+    case dumbbells
+    case bench
+    case pullupBar
+    case bodyweight
+    case bands
+    // Legacy — kept for backward compat with pre-redesign stored profiles:
+    case homeWeights
+
     var id: String { rawValue }
+
     var displayName: String {
         switch self {
         case .fullGym: return "Full gym"
-        case .homeWeights: return "Home weights"
+        case .machines: return "Cables / machines"
+        case .barbell: return "Barbell + rack"
+        case .dumbbells: return "Dumbbells"
+        case .bench: return "Bench"
+        case .pullupBar: return "Pull-up bar"
         case .bodyweight: return "Bodyweight only"
         case .bands: return "Resistance bands"
+        case .homeWeights: return "Home weights"
         }
     }
+
     var icon: String {
         switch self {
         case .fullGym: return "dumbbell.fill"
-        case .homeWeights: return "house.fill"
-        case .bodyweight: return "figure.strengthtraining.functional"
+        case .machines: return "gearshape.fill"
+        case .barbell: return "figure.strengthtraining.traditional"
+        case .dumbbells: return "dumbbell"
+        case .bench: return "bed.double.fill"
+        case .pullupBar: return "figure.play"
+        case .bodyweight: return "figure.arms.open"
         case .bands: return "line.diagonal"
+        case .homeWeights: return "house.fill"
         }
     }
 }
@@ -358,6 +392,19 @@ enum WorkoutTime: String, Codable, CaseIterable, Identifiable {
         case .evening: return "sun.horizon"
         case .lateNight: return "moon.stars"
         case .varies: return "arrow.triangle.2.circlepath"
+        }
+    }
+
+    /// Hour (24h) to fire the workout reminder for this time preference.
+    var notificationHour: Int {
+        switch self {
+        case .earlyMorning: return 6
+        case .morning:      return 8
+        case .lunch:        return 12
+        case .afternoon:    return 15
+        case .evening:      return 18
+        case .lateNight:    return 21
+        case .varies:       return 8
         }
     }
 }

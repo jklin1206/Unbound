@@ -1,0 +1,419 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>UNBOUND Workout Flow Map</title>
+  <style>
+    :root {
+      --bg: #081012;
+      --panel: #0e1a1d;
+      --panel-2: #142327;
+      --text: #eaf4f2;
+      --muted: #9bb0ad;
+      --line: #274247;
+      --cyan: #19d5c0;
+      --gold: #f2b84b;
+      --red: #ff6f61;
+      --green: #73e09a;
+      --blue: #6aa7ff;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    .deck {
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: 1fr auto;
+    }
+
+    .slide {
+      display: none;
+      min-height: calc(100vh - 74px);
+      padding: 56px clamp(24px, 5vw, 72px);
+      align-content: center;
+    }
+
+    .slide.active { display: grid; }
+
+    .eyebrow {
+      color: var(--cyan);
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      font-size: 13px;
+      font-weight: 800;
+      margin-bottom: 14px;
+    }
+
+    h1, h2 {
+      margin: 0 0 18px;
+      letter-spacing: 0;
+      line-height: 1.02;
+    }
+
+    h1 { font-size: clamp(42px, 7vw, 84px); max-width: 1050px; }
+    h2 { font-size: clamp(32px, 5vw, 60px); max-width: 980px; }
+
+    p {
+      color: var(--muted);
+      font-size: clamp(17px, 1.8vw, 22px);
+      line-height: 1.55;
+      max-width: 940px;
+      margin: 0 0 22px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 16px;
+      margin-top: 26px;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 18px;
+      min-height: 118px;
+    }
+
+    .span-3 { grid-column: span 3; }
+    .span-4 { grid-column: span 4; }
+    .span-5 { grid-column: span 5; }
+    .span-6 { grid-column: span 6; }
+    .span-7 { grid-column: span 7; }
+    .span-8 { grid-column: span 8; }
+    .span-12 { grid-column: span 12; }
+
+    .card h3 {
+      margin: 0 0 8px;
+      font-size: 18px;
+      letter-spacing: 0;
+    }
+
+    .card p, .card li {
+      font-size: 15px;
+      line-height: 1.45;
+      color: var(--muted);
+      margin: 0;
+    }
+
+    ul {
+      margin: 10px 0 0;
+      padding-left: 18px;
+    }
+
+    li + li { margin-top: 7px; }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #10282b;
+      border: 1px solid #245157;
+      color: var(--cyan);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+      align-items: stretch;
+      margin-top: 28px;
+    }
+
+    .node {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+      min-height: 116px;
+      position: relative;
+    }
+
+    .node::after {
+      content: "→";
+      position: absolute;
+      right: -18px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--cyan);
+      font-weight: 900;
+    }
+
+    .node:last-child::after { content: ""; }
+    .node strong { display: block; font-size: 17px; margin-bottom: 8px; }
+    .node span { color: var(--muted); font-size: 14px; line-height: 1.4; display: block; }
+
+    .bad { border-color: rgba(255, 111, 97, .55); }
+    .good { border-color: rgba(115, 224, 154, .55); }
+    .warn { border-color: rgba(242, 184, 75, .65); }
+    .accent { color: var(--cyan); }
+    .gold { color: var(--gold); }
+    .red { color: var(--red); }
+    .green { color: var(--green); }
+
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 24px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+
+    th, td {
+      border-bottom: 1px solid var(--line);
+      padding: 13px 14px;
+      text-align: left;
+      vertical-align: top;
+      font-size: 14px;
+    }
+
+    th {
+      background: var(--panel-2);
+      color: var(--text);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    td { color: var(--muted); }
+    tr:last-child td { border-bottom: 0; }
+
+    .nav {
+      height: 74px;
+      border-top: 1px solid var(--line);
+      background: rgba(8, 16, 18, .92);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 0 clamp(18px, 5vw, 72px);
+    }
+
+    button {
+      background: var(--panel-2);
+      color: var(--text);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    button:hover { border-color: var(--cyan); }
+    .progress { color: var(--muted); font-size: 14px; }
+
+    code {
+      background: #0a1618;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 2px 5px;
+      color: var(--cyan);
+      font-size: .9em;
+    }
+
+    @media (max-width: 920px) {
+      .grid, .flow { grid-template-columns: 1fr; }
+      .span-3, .span-4, .span-5, .span-6, .span-7, .span-8, .span-12 { grid-column: span 1; }
+      .node::after { display: none; }
+      .slide { padding-top: 34px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="deck">
+    <section class="slide active">
+      <div>
+        <div class="eyebrow">UNBOUND Product Architecture</div>
+        <h1>The app needs one workout spine.</h1>
+        <p>A user can follow today’s program, train a skill on the spot, add skill work into the plan, run a routine, or build their own workout. All of those should feel different at the surface, but resolve into the same planning and logging system underneath.</p>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div>
+        <div class="eyebrow">All Entry Points</div>
+        <h2>Total ways a user can work out</h2>
+        <div class="grid">
+          <div class="card span-4 good"><span class="pill">Program</span><h3>Follow today’s generated workout</h3><p>Structured strength/hypertrophy day from <code>TrainingProgram → ProgramDay → Workout</code>. Saves as <code>WorkoutLog</code>.</p></div>
+          <div class="card span-4 warn"><span class="pill">Skills</span><h3>Start a guided skill session</h3><p>From skill detail or Program tab active goals. Uses <code>SkillSessionView</code>. Saves as <code>SessionLog</code>.</p></div>
+          <div class="card span-4 warn"><span class="pill">Skills</span><h3>Quick-log a skill set</h3><p>Fast reps/hold/load/RPE capture. Also saves as <code>SessionLog</code>, not <code>WorkoutLog</code>.</p></div>
+          <div class="card span-4 warn"><span class="pill">Program + Skills</span><h3>Add skill to “Today’s Training”</h3><p>Active goal scheduler routes skills into Program tab, but currently as separate session cards, not as blocks inside the main workout.</p></div>
+          <div class="card span-4 bad"><span class="pill">Custom</span><h3>Create a custom workout</h3><p>Custom exercises exist, but a full custom workout builder/launcher is not clearly unified as a first-class flow.</p></div>
+          <div class="card span-4 warn"><span class="pill">Routines</span><h3>Run routines/challenges</h3><p>Mobility, recovery, challenge flows use routine history, not the main workout log spine.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div>
+        <div class="eyebrow">Current Reality</div>
+        <h2>The app has multiple “training logs,” so progress splits.</h2>
+        <div class="flow">
+          <div class="node"><strong>Program Workout</strong><span>WorkoutLogging / ActiveWorkoutSession</span></div>
+          <div class="node"><strong>WorkoutLog</strong><span>Sets: reps, weight, RPE, warmup</span></div>
+          <div class="node"><strong>Side Effects</strong><span>Progression, attributes, badges, skill rank checks</span></div>
+          <div class="node"><strong>Rank Evaluator</strong><span>Reads WorkoutLog history only</span></div>
+          <div class="node good"><strong>Progress Updates</strong><span>Mostly works for rep/load skills</span></div>
+        </div>
+        <div class="flow">
+          <div class="node"><strong>Skill Session</strong><span>SkillSessionView or QuickLog</span></div>
+          <div class="node"><strong>SessionLog</strong><span>Has reps, holdSeconds, load, RPE</span></div>
+          <div class="node"><strong>Skill XP</strong><span>Awards XP and badges</span></div>
+          <div class="node bad"><strong>Rank Gap</strong><span>RankService does not read SessionLog</span></div>
+          <div class="node bad"><strong>Hold Gap</strong><span>Timed holds don’t validate ranks</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div>
+        <div class="eyebrow">End State</div>
+        <h2>Every path should create a Workout Ready Card.</h2>
+        <p>The user should always land on a clear session object: today’s planned training, edited training, skill-only training, routine training, or custom training. The app can call them different things, but internally they should all become a single session draft.</p>
+        <div class="flow">
+          <div class="node"><strong>Intent</strong><span>Program, skill, custom, routine, recovery</span></div>
+          <div class="node"><strong>Session Draft</strong><span>Blocks, exercises, metrics, skill links</span></div>
+          <div class="node"><strong>Workout Ready</strong><span>Start, edit, add block, remove block</span></div>
+          <div class="node"><strong>Unified Logger</strong><span>Reps, hold, distance, time, load, side</span></div>
+          <div class="node good"><strong>Unified Results</strong><span>XP, ranks, badges, progression, coach context</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div>
+        <div class="eyebrow">The Core Model</div>
+        <h2>One session draft, many block types.</h2>
+        <table class="table">
+          <thead><tr><th>Block type</th><th>Examples</th><th>Metrics needed</th><th>Can appear in program?</th></tr></thead>
+          <tbody>
+            <tr><td>Strength</td><td>Bench, squat, rows, dips</td><td>sets, reps, load, RPE, warmup</td><td>Yes</td></tr>
+            <tr><td>Skill</td><td>Handstand, muscle-up, front lever</td><td>reps, hold seconds, attempts, assisted variant, quality flags</td><td>Yes</td></tr>
+            <tr><td>Cardio</td><td>400m row, mile, 5K, assault bike</td><td>distance, calories, elapsed time, HR, RPE, machine</td><td>Yes</td></tr>
+            <tr><td>Carry / sled</td><td>Farmer carry, sled push</td><td>load, distance, duration, posture flag</td><td>Yes</td></tr>
+            <tr><td>Routine</td><td>Mobility flow, primer, cooldown</td><td>elapsed time, completion, optional steps</td><td>Yes, as warmup/cooldown/accessory</td></tr>
+            <tr><td>Custom</td><td>User-built lift or session</td><td>same metric schema; exercise can be user-defined</td><td>Yes</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div>
+        <div class="eyebrow">Skill Integration</div>
+        <h2>“Add to Program” should mean more than pinning a card.</h2>
+        <div class="grid">
+          <div class="card span-6 warn"><span class="pill">Current</span><h3>Active Goal</h3><p>Skill is pinned into Program tab’s “Today’s Training” via active goals. It launches a separate skill session.</p></div>
+          <div class="card span-6 good"><span class="pill">Target</span><h3>Program Block</h3><p>Skill becomes a scheduled block inside the day: warmup, primary skill, accessory skill, cooldown, or optional extra.</p></div>
+          <div class="card span-4"><h3>On the spot</h3><p>User taps Train from skill detail. App creates a skill-only session draft.</p></div>
+          <div class="card span-4"><h3>Planned</h3><p>User adds the skill to weekly plan. Scheduler places it on matching day types.</p></div>
+          <div class="card span-4"><h3>Embedded</h3><p>User edits today’s workout and inserts handstand work before pressing work.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div>
+        <div class="eyebrow">User Flow</div>
+        <h2>What the user should experience</h2>
+        <div class="grid">
+          <div class="card span-3"><span class="pill">1</span><h3>Open Program</h3><p>Today has one clear workout ready, with strength + skill blocks already blended when appropriate.</p></div>
+          <div class="card span-3"><span class="pill">2</span><h3>Adjust</h3><p>Add skill, swap exercise, shorten session, add custom movement, or save template.</p></div>
+          <div class="card span-3"><span class="pill">3</span><h3>Train</h3><p>Same logger handles reps, holds, attempts, distance/time, load, sides, and RPE.</p></div>
+          <div class="card span-3"><span class="pill">4</span><h3>Resolve</h3><p>One completion payload updates rank, XP, badges, progression, body attributes, coach memory, and history.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div>
+        <div class="eyebrow">Missing Components</div>
+        <h2>What needs to be incorporated</h2>
+        <div class="grid">
+          <div class="card span-6 bad"><h3>Unified session draft model</h3><p>A planning object that can represent program, skill, custom, cardio, carry, routine, or mixed workouts before they are logged.</p></div>
+          <div class="card span-6 bad"><h3>Unified performance log</h3><p>A completion object richer than <code>WorkoutLog</code>: reps, load, hold seconds, side, distance, duration, calories, attempts, quality.</p></div>
+          <div class="card span-6 warn"><h3>Workout builder</h3><p>User-created workouts need first-class build, edit, save, and start flows.</p></div>
+          <div class="card span-6 warn"><h3>Skill block insertion</h3><p>Skill training should be insertable into today’s workout and schedulable into future days.</p></div>
+          <div class="card span-6 warn"><h3>Scheduler rules</h3><p>Rules for when skill work is warmup, primary, accessory, or separate session.</p></div>
+          <div class="card span-6 warn"><h3>One completion pipeline</h3><p>Every completed session should feed the same reward, rank, XP, attributes, progression, and coach-context systems.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div>
+        <div class="eyebrow">Simple Implementation Order</div>
+        <h2>Build the spine before more rank details.</h2>
+        <table class="table">
+          <thead><tr><th>Phase</th><th>Build</th><th>Why</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>Define <code>TrainingSessionDraft</code> + <code>TrainingBlock</code></td><td>All workout paths can produce the same ready state.</td></tr>
+            <tr><td>2</td><td>Define <code>PerformanceLog</code> / richer set metrics</td><td>Ranks and progress need hold/cardio/carry/side data.</td></tr>
+            <tr><td>3</td><td>Convert program workout launcher to draft</td><td>Protect the main path first.</td></tr>
+            <tr><td>4</td><td>Convert skill session + quick-log to same completion pipeline</td><td>Skill training stops being a separate island.</td></tr>
+            <tr><td>5</td><td>Add skill blocks into program days</td><td>“Add to Program” becomes real scheduling, not just a card.</td></tr>
+            <tr><td>6</td><td>Add custom workout builder</td><td>Users can make their own sessions without bypassing progress.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div>
+        <div class="eyebrow">Decision</div>
+        <h2>The product rule</h2>
+        <p><span class="accent">Anything that feels like training must become a session draft.</span> Anything completed must become a unified performance log. Program, skill, custom, routine, and cardio are entry points, not separate progress systems.</p>
+        <div class="grid">
+          <div class="card span-4 good"><h3>Surface can vary</h3><p>Skill sessions can feel skill-specific. Program days can feel like workouts. Routines can feel guided.</p></div>
+          <div class="card span-4 good"><h3>Data should converge</h3><p>Underneath, all paths should resolve into shared blocks, metrics, and completion events.</p></div>
+          <div class="card span-4 good"><h3>Progress should be universal</h3><p>No matter where the user trains, the app should understand what improved.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <nav class="nav">
+      <button id="prev">← Prev</button>
+      <div class="progress"><span id="current">1</span> / <span id="total">10</span></div>
+      <button id="next">Next →</button>
+    </nav>
+  </main>
+
+  <script>
+    const slides = Array.from(document.querySelectorAll('.slide'));
+    const current = document.getElementById('current');
+    const total = document.getElementById('total');
+    let index = 0;
+    total.textContent = slides.length;
+
+    function show(nextIndex) {
+      slides[index].classList.remove('active');
+      index = (nextIndex + slides.length) % slides.length;
+      slides[index].classList.add('active');
+      current.textContent = index + 1;
+    }
+
+    document.getElementById('prev').addEventListener('click', () => show(index - 1));
+    document.getElementById('next').addEventListener('click', () => show(index + 1));
+    window.addEventListener('keydown', (event) => {
+      if (event.key === 'ArrowRight' || event.key === ' ') show(index + 1);
+      if (event.key === 'ArrowLeft') show(index - 1);
+    });
+  </script>
+</body>
+</html>

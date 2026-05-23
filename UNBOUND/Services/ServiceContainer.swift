@@ -26,23 +26,36 @@ final class ServiceContainer: ObservableObject {
     let sessionXP: any SessionXPServiceProtocol
     let badges: any BadgeServiceProtocol
     let programPhase: any ProgramPhaseEngineProtocol
+    let attribute: any AttributeServiceProtocol
+    let photoXP: any PhotoXPServiceProtocol
+    let userSkillTier: UserSkillTierStore
+    let liftTier: LiftTierService
+    let scanCheckpointStore: ScanCheckpointStore
+    let scanCheckpointService: ScanCheckpointService
+    let trials: any TrialsServiceProtocol
+    let squads: any SquadServiceProtocol
+    let squadActivity: any SquadActivityServiceProtocol
+    let squadPresence: any SquadPresenceServiceProtocol
+    let squadMission: any SquadMissionServiceProtocol
+    let squadHonors: any SquadHonorsServiceProtocol
+    let friendChallenge: any FriendChallengeServiceProtocol
 
     init() {
         self.logging = LoggingService.shared
         self.auth = AuthService.shared
-        self.database = DatabaseService.shared
+        self.database = SyncedDatabase.shared
         self.analytics = AnalyticsService.shared
         self.subscription = SubscriptionService.shared
         self.paywall = PaywallService.shared
         self.network = NetworkService.shared
         self.storage = StorageService.shared
-        self.user = UserService.shared
+        self.user = SupabaseUserService.shared
         self.bodyAnalysis = BodyAnalysisService.shared
         self.programGeneration = ProgramGenerationService.shared
         self.imageCapture = ImageCaptureService()
         self.exercisePreference = ExercisePreferenceService.shared
         self.customExercise = CustomExerciseStore.shared
-        self.workoutLog = WorkoutLogService.shared
+        self.workoutLog = SupabaseWorkoutLogService.shared
         self.workingWeight = WorkingWeightService.shared
         self.cardioLog = CardioLogService.shared
         self.calibration = CalibrationService.shared
@@ -52,6 +65,19 @@ final class ServiceContainer: ObservableObject {
         self.sessionXP = SessionXPService.shared
         self.badges = BadgeService.shared
         self.programPhase = ProgramPhaseEngine.shared
+        self.attribute = AttributeService.shared
+        self.photoXP = PhotoXPService.shared
+        self.userSkillTier = UserSkillTierStore.shared
+        self.liftTier = LiftTierService.shared
+        self.scanCheckpointStore = ScanCheckpointStore.shared
+        self.scanCheckpointService = ScanCheckpointService.shared
+        self.trials = TrialsService.shared
+        self.squads = SquadService.shared
+        self.squadActivity = SquadActivityService.shared
+        self.squadPresence = SquadPresenceService.shared
+        self.squadMission = SquadMissionService.shared
+        self.squadHonors = SquadHonorsService.shared
+        self.friendChallenge = FriendChallengeService.shared
     }
 
     init(
@@ -77,7 +103,9 @@ final class ServiceContainer: ObservableObject {
         skin: any SkinServiceProtocol,
         sessionXP: any SessionXPServiceProtocol,
         badges: any BadgeServiceProtocol,
-        programPhase: any ProgramPhaseEngineProtocol
+        programPhase: any ProgramPhaseEngineProtocol,
+        attribute: any AttributeServiceProtocol,
+        photoXP: any PhotoXPServiceProtocol
     ) {
         self.logging = LoggingService.shared
         self.auth = auth
@@ -103,6 +131,19 @@ final class ServiceContainer: ObservableObject {
         self.sessionXP = sessionXP
         self.badges = badges
         self.programPhase = programPhase
+        self.attribute = attribute
+        self.photoXP = photoXP
+        self.userSkillTier = UserSkillTierStore.shared
+        self.liftTier = LiftTierService.shared
+        self.scanCheckpointStore = ScanCheckpointStore.shared
+        self.scanCheckpointService = ScanCheckpointService.shared
+        self.trials = TrialsService.shared
+        self.squads = SquadService.shared
+        self.squadActivity = SquadActivityService.shared
+        self.squadPresence = SquadPresenceService.shared
+        self.squadMission = SquadMissionService.shared
+        self.squadHonors = SquadHonorsService.shared
+        self.friendChallenge = FriendChallengeService.shared
     }
 
     static var mock: ServiceContainer {
@@ -129,7 +170,9 @@ final class ServiceContainer: ObservableObject {
             skin: MockSkinService(),
             sessionXP: MockSessionXPService(),
             badges: MockBadgeService(),
-            programPhase: MockProgramPhaseEngine()
+            programPhase: MockProgramPhaseEngine(),
+            attribute: MockAttributeService(),
+            photoXP: MockPhotoXPService()
         )
     }
 }

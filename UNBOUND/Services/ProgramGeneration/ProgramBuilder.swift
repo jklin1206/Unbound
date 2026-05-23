@@ -11,7 +11,7 @@ enum ProgramBuilder {
         userId: String,
         scanId: String,
         analysisId: String,
-        archetype: Archetype
+        buildIdentity: BuildIdentity
     ) -> TrainingProgram {
         // Sort week template by dayOfWeek, pad/truncate to exactly 7.
         var sorted = output.weekTemplate.sorted { $0.dayOfWeek < $1.dayOfWeek }
@@ -49,7 +49,6 @@ enum ProgramBuilder {
             analysisId: analysisId,
             userId: userId,
             createdAt: Date(),
-            archetype: archetype,
             name: output.name,
             description: output.description,
             durationDays: 84,

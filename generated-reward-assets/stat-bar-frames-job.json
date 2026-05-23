@@ -1,0 +1,21 @@
+[
+  {
+    "id": "eb5c013f-b721-4b72-b802-0d89e3c07fb8",
+    "status": "completed",
+    "display_name": "GPT Image 2",
+    "job_set_type": "imagegen_2_0",
+    "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3Am37d6qxSQ2zttmtLTANcq9W7j/hf_20260519_001441_eb5c013f-b721-4b72-b802-0d89e3c07fb8.png",
+    "created_at": 1779149681.80719,
+    "params": {
+      "width": 2048,
+      "height": 2048,
+      "prompt": "Create a square 2x4 asset sheet of eight traditional anime RPG stat/progress bar FRAMES ONLY for a mobile fitness app called UNBOUND. IMPORTANT: each frame must read left-to-right like a stat bar: strong left origin cap, long simple horizontal track, clean right end cap. NO center crest, NO center ornament, NO filled progress, NO text, NO numbers, NO characters. Simplified and mobile-readable, not sci-fi, not cyberpunk, not battery. Dark graphite metal and bone-white linework on near-black, with very subtle colored edge accents. Style: dark fantasy anime RPG status screen, training arc UI, minimalist Japanese brutalism. Eight frames: XP blue, press ember, pull steel blue, legs red-orange, core green, mobility teal, explosive magenta-violet, rare white-violet. Each cell contains one bar frame centered with generous padding, simple shape language, crisp edges, suitable for overlaying a SwiftUI colored fill underneath.",
+      "medias": [],
+      "aspect_ratio": "1:1",
+      "quality": "high",
+      "resolution": "2k",
+      "model": "videotape-alpha",
+      "reference_elements": []
+    }
+  }
+]

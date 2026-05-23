@@ -1,9 +1,18 @@
 import Foundation
 
-final class MockWorkoutLogService: WorkoutLogServiceProtocol, @unchecked Sendable {
+final class MockWorkoutLogService: WorkoutLogServiceProtocol, WorkoutLogCompatibilityHistoryWriting, @unchecked Sendable {
     var logs: [WorkoutLog] = []
+    private(set) var saveLogCallCount = 0
+    private(set) var compatibleHistorySaveCallCount = 0
 
-    func saveLog(_ log: WorkoutLog) async throws { logs.append(log) }
+    func saveLog(_ log: WorkoutLog) async throws {
+        saveLogCallCount += 1
+        upsert(log)
+    }
+    func saveCompatibleHistoryLog(_ log: WorkoutLog) async throws {
+        compatibleHistorySaveCallCount += 1
+        upsert(log)
+    }
     func updateLog(_ log: WorkoutLog) async throws {
         logs.removeAll { $0.id == log.id }
         logs.append(log)
@@ -16,4 +25,9 @@ final class MockWorkoutLogService: WorkoutLogServiceProtocol, @unchecked Sendabl
         Array(logs.prefix(limit))
     }
     func deleteLog(id: String) async throws { logs.removeAll { $0.id == id } }
+
+    private func upsert(_ log: WorkoutLog) {
+        logs.removeAll { $0.id == log.id }
+        logs.append(log)
+    }
 }

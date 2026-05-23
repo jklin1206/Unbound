@@ -23,10 +23,15 @@ enum SilhouetteRimLight {
 }
 
 enum BodyAsset: String {
-    case frontMale = "body_front_male"
-    case backMale = "body_back_male"
-    /// Featureless, no-muscle-definition body used for Arc02 "dormant" state.
-    case dormant = "dormant_body"
+    case frontMale = "body_unbound_front"
+    case backMale = "body_unbound_back"
+    /// Neutral sealed body used for Arc02 "dormant" state — archetype-agnostic
+    /// baseline silhouette with a dim violet rim light.
+    case dormant = "body_baseline"
+    case archetypeVTaper = "archetype_vtaper"
+    case archetypeSleeper = "archetype_sleeper"
+    case archetypeShredded = "archetype_shredded"
+    case archetypeHeavyweight = "archetype_heavyweight"
 }
 
 struct SilhouetteView: View {
@@ -112,12 +117,42 @@ struct SilhouetteView: View {
     @ViewBuilder
     private var renderedBody: some View {
         if let asset {
-            Image(asset.rawValue)
-                .resizable()
-                .scaledToFit()
-                .frame(height: 520)
+            if let uiImage = Self.loadedAssets[asset.rawValue] {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(height: 520)
+            } else {
+                Image(asset.rawValue)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(height: 520)
+            }
         }
     }
+
+    /// Bridges loose PNG files in Resources/BodyMap/ to SwiftUI's `Image`, since
+    /// `Image("name")` only resolves asset-catalog entries. Cached to avoid
+    /// re-reading the file on every body rebuild.
+    private static let loadedAssets: [String: UIImage] = {
+        let names = [
+            BodyAsset.frontMale,
+            .backMale,
+            .dormant,
+            .archetypeVTaper,
+            .archetypeSleeper,
+            .archetypeShredded,
+            .archetypeHeavyweight
+        ].map(\.rawValue)
+        var out: [String: UIImage] = [:]
+        for name in names {
+            if let url = Bundle.main.url(forResource: name, withExtension: "png"),
+               let img = UIImage(contentsOfFile: url.path) {
+                out[name] = img
+            }
+        }
+        return out
+    }()
 
     private var symbolShape: some View {
         Image(systemName: "figure.stand")

@@ -1,0 +1,21 @@
+[
+  {
+    "id": "cbe3469a-b8f1-4eca-925d-5ff6462dfc57",
+    "status": "completed",
+    "display_name": "GPT Image 2",
+    "job_set_type": "imagegen_2_0",
+    "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3Am37d6qxSQ2zttmtLTANcq9W7j/hf_20260519_030909_cbe3469a-b8f1-4eca-925d-5ff6462dfc57.png",
+    "created_at": 1779160149.456629,
+    "params": {
+      "width": 2048,
+      "height": 2048,
+      "prompt": "Create a square 3x3 asset sheet of nine small modular UI ornaments for an anime RPG stat bar system for UNBOUND. Transparent-feeling objects on near-black background. No full bars, no text, no numbers, no characters. Each cell contains ONE centered small ornament, icon-sized, crisp, high contrast, dark graphite metal with bone-white edges and subtle colored accent. Style: premium anime RPG status screen, dark fantasy training arc, minimalist Japanese brutalism. Top row: three left origin cap sigils, blue shard, ember shard, green control shard. Middle row: three right endpoint gems, steel blue diamond, red-orange blade gem, teal crystal. Bottom row: three divider/tick ornaments, thin bone-white slash, violet fracture tick, gold arc tick. These must be modular overlays for SwiftUI bars, not complete frames. Keep silhouettes simple and readable at 32px.",
+      "medias": [],
+      "aspect_ratio": "1:1",
+      "quality": "high",
+      "resolution": "2k",
+      "model": "videotape-alpha",
+      "reference_elements": []
+    }
+  }
+]

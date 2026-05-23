@@ -1,0 +1,21 @@
+[
+  {
+    "id": "55f6fa60-b1a4-485e-91c9-65413811c7e4",
+    "status": "completed",
+    "display_name": "GPT Image 2",
+    "job_set_type": "imagegen_2_0",
+    "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3Am37d6qxSQ2zttmtLTANcq9W7j/hf_20260518_220043_55f6fa60-b1a4-485e-91c9-65413811c7e4.png",
+    "created_at": 1779141643.498477,
+    "params": {
+      "width": 2048,
+      "height": 2048,
+      "prompt": "Create a square 3x3 icon sheet of nine premium game UI tier sigils for a fitness app called UNBOUND. Style: brutalist Japanese minimalism, black graphite metal, cold bone-white linework, restrained colored energy accents. No characters, no bodies, no words, no letters, no numbers, no readable text. Each icon is a centered transparent-looking emblem on a dark near-black background, consistent geometry, hexagonal/shield/cut-metal forms, progressively more powerful from top-left to bottom-right. Tiers in order: Initiate bare wireframe, Novice single cut mark, Apprentice double cut mark, Forged heated ember edge, Veteran heavy amber frame, Honed clean chrome edge, Vessel violet fracture, Unbound broken chain motif, Ascendant white-violet crown bloom. Must be crisp, app-icon-ready, high contrast, 2D/3D hybrid, no clutter.",
+      "medias": [],
+      "aspect_ratio": "1:1",
+      "quality": "high",
+      "resolution": "2k",
+      "model": "videotape-alpha",
+      "reference_elements": []
+    }
+  }
+]

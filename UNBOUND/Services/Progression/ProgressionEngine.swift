@@ -11,9 +11,10 @@ import Foundation
 //     - Deload: 6
 //   • Add weight when the athlete hits the TOP of the rep range at target
 //     RPE for 2 consecutive sessions of the same exercise.
-//   • Upper-body compound: +2.5 kg. Lower-body compound: +5 kg.
+//   • Weight jumps use WeightPlatePolicy so lb/kg users see natural plate
+//     jumps instead of raw conversion artifacts.
 //   • Accessories: add reps before adding weight. Once max reps hit, then
-//     +2.5 kg + reset rep counter to bottom of range.
+//     bump by the user's current plate policy + reset rep counter.
 //   • Bodyweight skills: tracked by reps/time, not weight — handled by
 //     SkillProgressService. Engine still records sessions at target.
 //
@@ -36,12 +37,30 @@ final class ProgressionEngine {
     /// Ingest a freshly-saved WorkoutLog. For each distinct exercise in
     /// the log, update its ProgressionState per the rules. Called from
     /// `WorkoutLogService.saveLog` on success.
-    func ingest(log: WorkoutLog) async {
+    ///
+    /// - Parameters:
+    ///   - log: the WorkoutLog to ingest.
+    ///   - mode: `.advance` (default) performs weight bumps when criteria
+    ///     are met. `.preserve` (cut mode) records sessions and unlocks
+    ///     tiers but never bumps working weight — used while the user is
+    ///     on a cut to hold strength.
+    ///   - feedbackMode: optional user feedback preference. When provided
+    ///     on first-seen exercises, seeds the ProgressionState's targetRPE
+    ///     from `TrainingFeedbackMode.defaultTargetRPE`. `.silent` yields
+    ///     `targetRPE = 0`, which makes the engine's RPE check a no-op
+    ///     (reduces to pure rep-based progression).
+    func ingest(
+        log: WorkoutLog,
+        mode: ProgressionMode = .advance,
+        feedbackMode: TrainingFeedbackMode? = nil
+    ) async {
         for entry in log.exerciseEntries where !entry.skipped {
             await evaluate(
                 entry: entry,
                 userId: log.userId,
-                loggedAt: log.startedAt
+                loggedAt: log.startedAt,
+                mode: mode,
+                feedbackMode: feedbackMode
             )
         }
     }
@@ -51,16 +70,20 @@ final class ProgressionEngine {
     private func evaluate(
         entry: ExerciseLogEntry,
         userId: String,
-        loggedAt: Date
+        loggedAt: Date,
+        mode: ProgressionMode,
+        feedbackMode: TrainingFeedbackMode?
     ) async {
-        let key = normalize(entry.exerciseName)
+        let identity = progressionIdentity(for: entry)
+        let key = identity.exerciseKey
 
         // Load or seed state
         let state = await loadOrSeedState(
             userId: userId,
             exerciseKey: key,
-            displayName: entry.exerciseName,
-            entry: entry
+            displayName: identity.displayName,
+            entry: entry,
+            feedbackMode: feedbackMode
         )
 
         // Find the best working set for this exercise in the log —
@@ -95,17 +118,27 @@ final class ProgressionEngine {
                 userId: userId,
                 exerciseKey: next.exerciseKey,
                 displayName: next.displayName,
+                familyUnlockDefinition: identity.familyUnlockDefinition,
                 at: loggedAt
             )
         }
 
-        // Threshold hit — apply weight bump per classification
+        // Threshold hit — apply weight bump per classification.
+        // In `.preserve` (cut) mode, we still persist session state and
+        // allow tier unlocks, but we do NOT bump weights and do NOT fire
+        // the `.progressionAdvanced` toast.
         if next.consecutiveSessionsAtTarget >= 2 {
             let previousWeight = next.currentWorkingWeightKg
-            applyBump(to: &next)
+
+            if mode == .advance {
+                applyBump(to: &next)
+            }
+            // In .preserve mode, we persist state but do NOT bump weight.
+
             try? await database.create(next, collection: "progression_states", documentId: next.id)
 
-            if next.currentWorkingWeightKg > previousWeight {
+            if mode == .advance && next.currentWorkingWeightKg > previousWeight {
+                let unit = WeightPlatePolicy.currentUnit
                 let event = ProgressionAdvance(
                     userId: userId,
                     exerciseKey: next.exerciseKey,
@@ -121,7 +154,7 @@ final class ProgressionEngine {
                     userInfo: ["event": event]
                 )
                 logger.log(
-                    "Progression advanced: \(next.displayName) \(previousWeight)kg → \(next.currentWorkingWeightKg)kg",
+                    "Progression advanced: \(next.displayName) \(WeightPlatePolicy.formatLoggedWeight(previousWeight, unit: unit))\(unit.shortLabel) -> \(WeightPlatePolicy.formatLoggedWeight(next.currentWorkingWeightKg, unit: unit))\(unit.shortLabel)",
                     level: .info
                 )
             }
@@ -136,7 +169,8 @@ final class ProgressionEngine {
         userId: String,
         exerciseKey: String,
         displayName: String,
-        entry: ExerciseLogEntry
+        entry: ExerciseLogEntry,
+        feedbackMode: TrainingFeedbackMode?
     ) async -> ProgressionState {
         let id = "\(userId):\(exerciseKey)"
         if let existing: ProgressionState = try? await database.read(
@@ -148,11 +182,18 @@ final class ProgressionEngine {
         // First time we've seen this exercise — seed from the log's heaviest working set.
         let workingSets = entry.sets.filter { !$0.isWarmup }
         let seedWeight = workingSets.compactMap { $0.weightKg }.max() ?? 0
-        return ProgressionState.seed(
+        var seeded = ProgressionState.seed(
             userId: userId,
-            exercise: displayName,
+            exercise: exerciseKey,
             startingWeightKg: seedWeight
         )
+        seeded.displayName = displayName
+        // Override targetRPE from the user's feedback preference when provided.
+        // `.silent` → 0 (RPE check becomes a no-op; pure rep-based progression).
+        if let feedbackMode {
+            seeded.targetRPE = feedbackMode.defaultTargetRPE
+        }
+        return seeded
     }
 
     // MARK: Bump logic
@@ -162,7 +203,10 @@ final class ProgressionEngine {
 
         switch classification {
         case .upperCompound, .lowerCompound:
-            state.currentWorkingWeightKg += classification.weightBumpKg
+            state.currentWorkingWeightKg = WeightPlatePolicy.progressedWeightKilograms(
+                from: state.currentWorkingWeightKg,
+                classification: classification
+            )
             state.consecutiveSessionsAtTarget = 0
             state.lastBumpDate = Date()
 
@@ -174,7 +218,10 @@ final class ProgressionEngine {
                 state.targetRepMax = extendedMax
                 state.consecutiveSessionsAtTarget = 0
             } else {
-                state.currentWorkingWeightKg += classification.weightBumpKg
+                state.currentWorkingWeightKg = WeightPlatePolicy.progressedWeightKilograms(
+                    from: state.currentWorkingWeightKg,
+                    classification: classification
+                )
                 state.targetRepMax = classification.defaultRepRange(for: state.blockType).upperBound
                 state.consecutiveSessionsAtTarget = 0
                 state.lastBumpDate = Date()
@@ -190,8 +237,45 @@ final class ProgressionEngine {
 
     // MARK: Exercise name normalization
 
+    private struct ProgressionIdentity {
+        let exerciseKey: String
+        let displayName: String
+        let familyUnlockDefinition: MovementDefinition?
+    }
+
+    private func progressionIdentity(for entry: ExerciseLogEntry) -> ProgressionIdentity {
+        let resolved = MovementCatalog.resolvedTrainingMovement(
+            name: entry.exerciseName,
+            movementId: entry.movementId,
+            rankStandardMovementId: entry.rankStandardMovementId
+        )
+        let exactDefinition = resolved?.exact
+        let standardDefinition = resolved?.standard
+
+        let familyUnlockDefinition = [
+            exactDefinition,
+            standardDefinition
+        ].compactMap { $0 }.first {
+            $0.progressionFamily != nil && $0.progressionTier != nil
+        }
+
+        if let definition = standardDefinition ?? exactDefinition {
+            return ProgressionIdentity(
+                exerciseKey: normalize(definition.canonicalExerciseName ?? definition.displayName),
+                displayName: definition.displayName,
+                familyUnlockDefinition: familyUnlockDefinition
+            )
+        }
+
+        return ProgressionIdentity(
+            exerciseKey: normalize(entry.exerciseName),
+            displayName: entry.exerciseName,
+            familyUnlockDefinition: nil
+        )
+    }
+
     private func normalize(_ name: String) -> String {
-        name.trimmingCharacters(in: .whitespaces).lowercased()
+        name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
     }
 
     // MARK: Tier unlock (chunk 2B)
@@ -200,11 +284,12 @@ final class ProgressionEngine {
         userId: String,
         exerciseKey: String,
         displayName: String,
+        familyUnlockDefinition: MovementDefinition?,
         at: Date
     ) async {
-        guard let catalogEntry = ExerciseCatalog.allExercises.first(where: {
-            $0.name == exerciseKey || $0.displayName.lowercased() == exerciseKey
-        }),
+        guard let catalogEntry = familyUnlockDefinition
+                ?? MovementCatalog.canonicalExercise(named: displayName)
+                ?? MovementCatalog.canonicalExercise(named: exerciseKey),
               let family = catalogEntry.progressionFamily,
               let tier = catalogEntry.progressionTier else {
             return
@@ -222,7 +307,7 @@ final class ProgressionEngine {
 
         guard tier == current.unlockedTier else { return }
 
-        let familyExercises = ExerciseCatalog.progressionFamily(family)
+        let familyExercises = MovementCatalog.progressionDefinitions(family: family)
         let maxTier = familyExercises.compactMap(\.progressionTier).max() ?? tier
         let nextTier = min(tier + 1, maxTier)
         guard nextTier > current.unlockedTier else { return }

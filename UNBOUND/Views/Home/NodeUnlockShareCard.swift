@@ -18,7 +18,6 @@ import SwiftUI
 
 struct NodeUnlockShareCard: View {
     let event: NodeUnlockedEvent
-    let archetype: Archetype
 
     var body: some View {
         ZStack {
@@ -66,7 +65,7 @@ struct NodeUnlockShareCard: View {
                 Circle()
                     .fill(Color.unbound.accent)
                     .frame(width: 8, height: 8)
-                Text(archetype.shortName)
+                Text("SKILL TREE")
                     .font(.system(size: 22, weight: .semibold, design: .monospaced))
                     .tracking(4.0)
                     .foregroundStyle(Color.unbound.textSecondary)
@@ -199,8 +198,8 @@ struct NodeUnlockShareCard: View {
 enum NodeUnlockShareCardRenderer {
     /// Render a share card to UIImage at the card's natural 1080×1920.
     @MainActor
-    static func render(event: NodeUnlockedEvent, archetype: Archetype) -> UIImage? {
-        let card = NodeUnlockShareCard(event: event, archetype: archetype)
+    static func render(event: NodeUnlockedEvent) -> UIImage? {
+        let card = NodeUnlockShareCard(event: event)
             .environment(\.colorScheme, .dark)
         let renderer = ImageRenderer(content: card)
         renderer.scale = 2.0
@@ -211,8 +210,8 @@ enum NodeUnlockShareCardRenderer {
     /// Write the rendered card to a temp file and return its URL, so it
     /// can be passed to UIActivityViewController / ShareLink.
     @MainActor
-    static func renderToTempURL(event: NodeUnlockedEvent, archetype: Archetype) -> URL? {
-        guard let image = render(event: event, archetype: archetype),
+    static func renderToTempURL(event: NodeUnlockedEvent) -> URL? {
+        guard let image = render(event: event),
               let data = image.pngData() else { return nil }
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent("unbound-unlock-\(event.node.id)-\(Int(Date().timeIntervalSince1970)).png")
@@ -231,8 +230,7 @@ enum NodeUnlockShareCardRenderer {
             node: SkillGraph.shared.node(id: "pp.muscle-up")!,
             newState: .achieved,
             gainsAwarded: 200
-        ),
-        archetype: .vTaper
+        )
     )
     .scaleEffect(0.3)
 }
@@ -240,11 +238,10 @@ enum NodeUnlockShareCardRenderer {
 #Preview("Share card — mythic") {
     NodeUnlockShareCard(
         event: NodeUnlockedEvent(
-            node: SkillGraph.shared.node(id: "cal.maltese")!,
+            node: SkillGraph.shared.node(id: "pp.one-arm-pullup")!,
             newState: .achieved,
             gainsAwarded: 400
-        ),
-        archetype: .vTaper
+        )
     )
     .scaleEffect(0.3)
 }

@@ -4,7 +4,6 @@ struct ScanSession: Codable, Identifiable {
     let id: String
     let userId: String
     let createdAt: Date
-    var targetArchetype: Archetype
     var photos: [ScanPhoto]
     var analysisId: String?
     var programId: String?

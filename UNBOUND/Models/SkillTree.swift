@@ -121,6 +121,40 @@ struct SkillNode: Identifiable, Codable, Hashable, Sendable {
     // Legacy layout — Chunk 4 ships cluster-based positioning and drops this
     let position: NodeGridPosition
 
+    // MARK: - Phase 1a additions (skill-tree redesign)
+    //
+    // `rank` and `levels` are introduced so every node can carry an
+    // E/D/C/B/A/S difficulty tier and a 1-5 XP-gated ladder. Both default
+    // so existing content in SkillTreeContent.swift keeps compiling — the
+    // Phase 1c migration populates real values per node.
+
+    /// Difficulty tier shown on the node chip. Defaults to `.d`.
+    var rank: SkillRank = .d
+
+    /// Ordered 1-5 ladder. Empty until Phase 1c content migration.
+    var levels: [SkillLevel] = []
+
+    /// Phase 2h: named sub-chapter within the owning cluster's tree.
+    /// Nodes that share a sub-chapter render beneath a horizontal
+    /// chapter divider in ClusterStaircaseView. Mythic nodes stay
+    /// chapter-less — they render in the dedicated MYTHIC section.
+    /// `nil` means "no chapter grouping" (default so old call sites compile).
+    var subChapter: String? = nil
+
+    /// When true, the renderer places this node at the SAME y-coordinate
+    /// as its primary-parent prereq, offset horizontally — instead of one
+    /// row below. Used for "parallel" chain-connected siblings on the
+    /// same visual difficulty ring (e.g., Floating Pike Push-Up renders
+    /// at the same y as Elevated Pike Push-Up).
+    var isParallelToParent: Bool = false
+
+    // MARK: - Phase 4.2 additions (ascension tier)
+    //
+    // Per-skill 9-tier criteria. Stamped at graph-init time from the cluster
+    // authoring tables (CalSkillTiers, PpSkillTiers, …). Defaults to empty
+    // so all existing content compiles before Phase 4.2 populates it.
+    var tierCriteria: [SkillTier: TierCriterion] = [:]
+
     static func == (lhs: SkillNode, rhs: SkillNode) -> Bool { lhs.id == rhs.id }
     func hash(into hasher: inout Hasher) { hasher.combine(id) }
 
@@ -152,7 +186,12 @@ struct SkillNode: Identifiable, Codable, Hashable, Sendable {
         commonMistakes: [String] = [],
         timeline: String = "",
         glyph: String? = nil,
-        position: NodeGridPosition = .zero
+        position: NodeGridPosition = .zero,
+        rank: SkillRank = .d,
+        levels: [SkillLevel] = [],
+        subChapter: String? = nil,
+        isParallelToParent: Bool = false,
+        tierCriteria: [SkillTier: TierCriterion] = [:]
     ) -> SkillNode {
         SkillNode(
             id: id,
@@ -173,7 +212,12 @@ struct SkillNode: Identifiable, Codable, Hashable, Sendable {
             commonMistakes: commonMistakes,
             timelineEstimate: timeline,
             glyph: glyph ?? defaultGlyph(for: type, isMythic: isMythic),
-            position: position
+            position: position,
+            rank: rank,
+            levels: levels,
+            subChapter: subChapter,
+            isParallelToParent: isParallelToParent,
+            tierCriteria: tierCriteria
         )
     }
 
@@ -183,6 +227,29 @@ struct SkillNode: Identifiable, Codable, Hashable, Sendable {
         case .strength: return "dumbbell.fill"
         case .skill:    return "figure.strengthtraining.functional"
         case .hold:     return "figure.mind.and.body"
+        }
+    }
+}
+
+// MARK: - SkillNode helpers
+
+extension SkillNode {
+    /// True when this node deserves the "mythic / life pursuit" visual
+    /// treatment — S-rank OR the explicit `isMythic` flag. Drives the flame
+    /// rank chip and impact-coloured accents wherever rank is rendered.
+    /// Kept as a computed property so UI code reads it in one place.
+    var displaysMythic: Bool { rank == .s || isMythic }
+
+    /// True if at least ONE prerequisite group is fully satisfied by the given states,
+    /// or the node has no prereqs. Matches the canonical OR-of-AND semantics used in
+    /// `SkillTree.swift:246` and `SkillProgressService.swift:81–91`.
+    func prereqsSatisfied(given states: [String: NodeState]) -> Bool {
+        if prereqs.isEmpty { return true }
+        return prereqs.contains { group in
+            group.nodeIds.allSatisfy { id in
+                let s = states[id] ?? .locked
+                return s == .achieved || s == .mastered
+            }
         }
     }
 }
@@ -211,57 +278,58 @@ struct SkillGraph: Codable, Sendable {
     var entryNodes: [SkillNode] {
         nodes.filter { $0.prereqs.isEmpty }
     }
+
+    // MARK: - Cluster unlock gating
+    //
+    // Some clusters (e.g. HSPU, One-Arm Handstand) are staged behind the
+    // keystone(s) of a prerequisite cluster. Returns true when the cluster
+    // has no prereq or all keystones of its prereq cluster are achieved.
+    // If the required cluster has no keystones defined, the gate stays CLOSED
+    // — a cluster that requires a prereq with no achievable keystones remains
+    // locked until content is added. This preserves the intended progression
+    // chain even when a cluster's nodes are moved to another cluster.
+    func isClusterUnlocked(_ cluster: SkillCluster, nodeStates: [String: NodeState]) -> Bool {
+        guard let required = cluster.requiresClusterKeystone else { return true }
+        let keystones = self.nodes.filter { $0.cluster == required && $0.isKeystone }
+        guard !keystones.isEmpty else { return false }
+        return keystones.allSatisfy { ks in
+            let state = nodeStates[ks.id] ?? .locked
+            return state == .achieved || state == .mastered
+        }
+    }
 }
 
 // MARK: - SkillTree (legacy view-layer compatibility)
 //
 // The old UnboundSkillTreeTabView + SkillTreeView expect a `SkillTree`
 // with nodes + a single `bossNodeId` and `rowCount`. We synthesize that
-// from SkillGraph filtered to an archetype's spawn reach.
+// from the full SkillGraph (universal — same tree for everyone).
 //
 // Chunk 4 kills this. Until then it keeps the tree tab rendering.
 
 struct SkillTree: Codable, Sendable {
-    let archetype: Archetype
     let nodes: [SkillNode]
     let bossNodeId: String
 
-    var displayName: String { archetype.shortName }
     var rowCount: Int { (nodes.map(\.position.row).max() ?? 0) + 1 }
 
-    /// Legacy API — returns the per-archetype "reachable" slice of the
-    /// shared SkillGraph. Nodes are re-positioned column-by-cluster so
-    /// the old SkillTreeView lays them out coherently.
-    static func tree(for archetype: Archetype) -> SkillTree {
+    /// Universal tree — all nodes from SkillGraph, repositioned by cluster.
+    /// The skill tree is the same for everyone; identity comes from BuildIdentity,
+    /// not a filtered subset.
+    static var universal: SkillTree {
         let graph = SkillGraph.shared
-        let spawnIds = Set(ArchetypeSpawnPoints.nodeIds(for: archetype))
-
-        // Compute reachable set via fixed-point iteration on OR-groups.
-        var reachable: Set<String> = spawnIds
-        var changed = true
-        while changed {
-            changed = false
-            for node in graph.nodes where !reachable.contains(node.id) {
-                guard !node.prereqs.isEmpty else { continue }
-                let any = node.prereqs.contains { group in
-                    group.nodeIds.allSatisfy { reachable.contains($0) }
-                }
-                if any {
-                    reachable.insert(node.id)
-                    changed = true
-                }
-            }
-        }
 
         // Assign legacy positions: one column per cluster, rows stacked by tier.
         let columnOrder: [SkillCluster] = [
-            .heavyLifting, .pullingPower, .legDominance,
-            .calisthenicControl, .coreLever, .conditioning
+            .pullingPower, .legDominance,
+            .calisthenicControl,
+            .handstand, .handstandPushup, .oneArmHandstand,
+            .planche,
+            .coreLever
         ]
         var positioned: [SkillNode] = []
         for (idx, cluster) in columnOrder.enumerated() {
             let clusterNodes = graph.nodes(in: cluster)
-                .filter { reachable.contains($0.id) }
                 .sorted { $0.tier < $1.tier }
             for (row, n) in clusterNodes.enumerated() {
                 let repositioned = SkillNode(
@@ -277,7 +345,12 @@ struct SkillTree: Codable, Sendable {
                     commonMistakes: n.commonMistakes,
                     timelineEstimate: n.timelineEstimate,
                     glyph: n.glyph,
-                    position: NodeGridPosition(row: row, column: idx - columnOrder.count / 2)
+                    position: NodeGridPosition(row: row, column: idx - columnOrder.count / 2),
+                    rank: n.rank,
+                    levels: n.levels,
+                    subChapter: n.subChapter,
+                    isParallelToParent: n.isParallelToParent,
+                    tierCriteria: n.tierCriteria
                 )
                 positioned.append(repositioned)
             }
@@ -285,7 +358,6 @@ struct SkillTree: Codable, Sendable {
 
         let topKeystone = positioned.first(where: { $0.isKeystone && !$0.isMythic })
         return SkillTree(
-            archetype: archetype,
             nodes: positioned,
             bossNodeId: topKeystone?.id ?? ""
         )

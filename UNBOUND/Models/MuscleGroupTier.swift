@@ -31,14 +31,16 @@ enum MuscleGroupTier: String, CaseIterable, Codable, Sendable {
     }
 
     /// Human-readable descriptor shown in secondary UI.
+    /// Names intentionally past-tense / earned — each feels like an unlock, not a label.
+    /// "Unbound" at A-rank is a deliberate brand moment: the user literally becomes the app name.
     var caption: String {
         switch self {
-        case .e: return "Beginning"
-        case .d: return "Developing"
-        case .c: return "Competent"
-        case .b: return "Strong"
-        case .a: return "Advanced"
-        case .s: return "Elite"
+        case .e: return "Dormant"
+        case .d: return "Awakened"
+        case .c: return "Forged"
+        case .b: return "Sharpened"
+        case .a: return "Unbound"
+        case .s: return "Ascended"
         }
     }
 
@@ -59,4 +61,18 @@ enum MuscleGroupTier: String, CaseIterable, Codable, Sendable {
 
 extension Notification.Name {
     static let muscleGroupTierChanged = Notification.Name("unbound.muscleGroupTierChanged")
+}
+
+extension MuscleGroupTier {
+    /// Map to the nearest SkillTier for display via TierBadge.
+    var asSkillTier: SkillTier {
+        switch self {
+        case .e: return .initiate
+        case .d: return .apprentice
+        case .c: return .veteran
+        case .b: return .honed
+        case .a: return .unbound
+        case .s: return .ascendant
+        }
+    }
 }

@@ -14,7 +14,6 @@ import SwiftUI
 
 struct NodeUnlockedOverlay: View {
     let event: NodeUnlockedEvent
-    var archetype: Archetype = .vTaper   // for share card branding
     let onDismiss: () -> Void
 
     @State private var shareURL: URL?
@@ -195,8 +194,7 @@ struct NodeUnlockedOverlay: View {
         // Render off the main-render-loop tick to avoid jank.
         await Task.yield()
         let url = NodeUnlockShareCardRenderer.renderToTempURL(
-            event: event,
-            archetype: archetype
+            event: event
         )
         shareURL = url
         isPreparingShare = false
@@ -297,25 +295,22 @@ extension View {
     /// `pendingUnlock`. Put this on a top-level view (home, tree tab).
     @MainActor
     func nodeUnlockOverlay(
-        service: SkillProgressService? = nil,
-        archetype: Archetype = .vTaper
+        service: SkillProgressService? = nil
     ) -> some View {
         modifier(NodeUnlockedOverlayModifier(
-            service: service ?? SkillProgressService.shared,
-            archetype: archetype
+            service: service ?? SkillProgressService.shared
         ))
     }
 }
 
 private struct NodeUnlockedOverlayModifier: ViewModifier {
     @Bindable var service: SkillProgressService
-    let archetype: Archetype
 
     func body(content: Content) -> some View {
         content
             .overlay {
                 if let event = service.pendingUnlock {
-                    NodeUnlockedOverlay(event: event, archetype: archetype) {
+                    NodeUnlockedOverlay(event: event) {
                         withAnimation(.easeOut(duration: 0.35)) {
                             service.clearPendingUnlock()
                         }

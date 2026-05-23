@@ -16,8 +16,7 @@ import UIKit
 
 struct RankUpCinematic: View {
     let advance: RankAdvance
-    let archetypeDisplayName: String
-    let archetype: Archetype
+    let buildIdentity: BuildIdentity
     let onDismiss: () -> Void
 
     @State private var showFlash: Bool = false
@@ -152,8 +151,7 @@ struct RankUpCinematic: View {
             RankUpShareCard(
                 rank: advance.toRank,
                 exerciseDisplayName: advance.displayName,
-                archetypeDisplayName: archetypeDisplayName,
-                archetype: archetype,
+                buildIdentity: buildIdentity,
                 skin: SkinService.shared.currentSkin
             )
             .scaleEffect(0.18)
@@ -229,8 +227,7 @@ struct RankUpCinematic: View {
         guard let image = RankUpShareCardRenderer.render(
             rank: advance.toRank,
             exerciseDisplayName: advance.displayName,
-            archetypeDisplayName: archetypeDisplayName,
-            archetype: archetype
+            buildIdentity: buildIdentity
         ) else {
             onDismiss()
             return
@@ -263,6 +260,115 @@ private struct ShareSheet: UIViewControllerRepresentable {
     func updateUIViewController(_ controller: UIActivityViewController, context: Context) {}
 }
 
+// MARK: - TierCinematicView
+//
+// Full-screen cinematic for flagship SkillTier crossings (Vessel / Unbound /
+// Ascendant). Uses chain-motif hero art as a Ken Burns background.
+//
+// Beat timeline (~5s):
+//   0.0–0.6s: tier art fades/zooms in, content fades in at 0.3s delay
+//   0.6–5.0s: slow Ken Burns zoom continues (scale 1.0 → 1.15)
+//   5.0s: auto-dismiss (tappable to dismiss earlier)
+
+struct TierCinematicView: View {
+    let advance: SkillTierAdvance
+    let onDismiss: () -> Void
+
+    @State private var imageScale: CGFloat = 1.0
+    @State private var contentOpacity: Double = 0.0
+    @State private var dismissScheduled: Bool = false
+
+    var body: some View {
+        ZStack {
+            // Full-screen tier art with Ken Burns zoom
+            Image(assetName(for: advance.to))
+                .resizable()
+                .scaledToFill()
+                .scaleEffect(imageScale)
+                .clipped()
+                .ignoresSafeArea()
+                .overlay(Color.black.opacity(0.35))
+
+            // Content overlay
+            VStack(spacing: 24) {
+                Spacer()
+                Spacer()
+
+                Text(advance.to.displayName.uppercased())
+                    .font(.system(size: 56, weight: .black, design: .default))
+                    .tracking(4)
+                    .foregroundStyle(.white)
+                    .shadow(color: .black.opacity(0.6), radius: 8)
+
+                Rectangle()
+                    .fill(Color.unbound.accent)
+                    .frame(width: 60, height: 2)
+
+                Text(skillTitle.uppercased())
+                    .font(.system(size: 14, weight: .heavy, design: .monospaced))
+                    .tracking(3)
+                    .foregroundStyle(.white.opacity(0.85))
+
+                Spacer()
+
+                Button("TAP TO DISMISS") {
+                    dismiss()
+                }
+                .font(.system(size: 11, weight: .heavy, design: .monospaced))
+                .tracking(2)
+                .foregroundStyle(.white.opacity(0.55))
+                .padding(.bottom, 60)
+            }
+            .opacity(contentOpacity)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .contentShape(Rectangle())
+            .onTapGesture { dismiss() }
+        }
+        .background(Color.black)
+        .ignoresSafeArea()
+        .task {
+            // Ken Burns slow zoom-in over 5 seconds
+            withAnimation(.easeOut(duration: 5.0)) {
+                imageScale = 1.15
+            }
+            withAnimation(.easeIn(duration: 0.6).delay(0.3)) {
+                contentOpacity = 1.0
+            }
+            UnboundHaptics.heavy()
+
+            // Auto-dismiss after 5s if user hasn't tapped
+            DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
+                guard !dismissScheduled else { return }
+                dismissScheduled = true
+                onDismiss()
+            }
+        }
+    }
+
+    private var skillTitle: String {
+        SkillGraph.shared.nodes
+            .first(where: { $0.id == advance.skillId })?.title
+            ?? advance.skillId
+    }
+
+    private func dismiss() {
+        guard !dismissScheduled else { return }
+        dismissScheduled = true
+        onDismiss()
+    }
+
+    /// Maps a flagship SkillTier to its cinematic hero art asset name.
+    /// SkillTier.rawValue is Int, so we use a switch rather than string interpolation.
+    private func assetName(for tier: SkillTier) -> String {
+        switch tier {
+        case .vessel:    return "cinematic_vessel"
+        case .unbound:   return "cinematic_unbound"
+        case .ascendant: return "cinematic_ascendant"
+        default:         return "cinematic_vessel" // fallback — gate ensures never reached
+        }
+    }
+}
+
 // MARK: - Root-level presentation modifier
 //
 // Attach once at the top of your view hierarchy. Listens for
@@ -271,39 +377,55 @@ private struct ShareSheet: UIViewControllerRepresentable {
 
 struct RankUpCinematicPresenter: ViewModifier {
     @State private var pending: RankAdvance?
+    /// Pending flagship SkillTierAdvance (Vessel/Unbound/Ascendant). These
+    /// trigger the chain-shatter cinematic. Non-flagship advances use the
+    /// quiet TierBloomToast instead.
+    @State private var pendingTier: SkillTierAdvance?
     @EnvironmentObject private var services: ServiceContainer
-    @State private var archetypeName: String = "UNBOUND"
-    @State private var archetype: Archetype = .vTaper
+    @State private var buildIdentity: BuildIdentity = BuildIdentity(primary: nil, secondary: nil, shape: .balancedAthlete)
 
     func body(content: Content) -> some View {
         content
             .task {
-                await loadArchetype()
+                await loadBuildIdentity()
             }
             .onReceive(NotificationCenter.default.publisher(for: .rankAdvanced)) { note in
                 guard let event = note.userInfo?["event"] as? RankAdvance else { return }
                 pending = event
             }
+            .onReceive(NotificationCenter.default.publisher(for: .skillTierAdvanced)) { note in
+                guard let advance = note.object as? SkillTierAdvance else { return }
+                // Only Vessel/Unbound/Ascendant crossings trigger the full
+                // chain-shatter cinematic. Lower-tier advances use TierBloomToast.
+                guard advance.isFlagship else { return }
+                pendingTier = advance
+            }
+            // Attribute rank-ups (BuildIdentity axes) — unchanged path
             .fullScreenCover(item: Binding(
                 get: { pending },
                 set: { if $0 == nil { pending = nil } }
             )) { advance in
                 RankUpCinematic(
                     advance: advance,
-                    archetypeDisplayName: archetypeName,
-                    archetype: archetype,
+                    buildIdentity: buildIdentity,
                     onDismiss: { pending = nil }
+                )
+            }
+            // Flagship SkillTier crossings — TierCinematicView with hero art
+            .fullScreenCover(item: Binding(
+                get: { pendingTier },
+                set: { if $0 == nil { pendingTier = nil } }
+            )) { tierAdvance in
+                TierCinematicView(
+                    advance: tierAdvance,
+                    onDismiss: { pendingTier = nil }
                 )
             }
     }
 
-    private func loadArchetype() async {
+    private func loadBuildIdentity() async {
         let userId = services.auth.currentUserId ?? "anonymous"
-        if let profile: UserProfile = try? await services.user.fetchProfile(userId: userId),
-           let resolved = profile.preferredArchetype {
-            archetypeName = resolved.displayName
-            archetype = resolved
-        }
+        buildIdentity = services.attribute.snapshot(userId: userId, asOf: Date.now).buildIdentity
     }
 }
 

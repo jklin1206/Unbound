@@ -41,6 +41,7 @@ struct WeightBumpToastModifier: ViewModifier {
 
 struct WeightBumpToast: View {
     let event: ProgressionAdvance
+    @AppStorage(WeightPlatePolicy.unitDefaultsKey) private var weightUnitRaw = TrainingWeightUnit.localeDefault.rawValue
 
     var body: some View {
         HStack(spacing: 14) {
@@ -55,10 +56,10 @@ struct WeightBumpToast: View {
                     .foregroundStyle(Color.unbound.textPrimary)
                     .lineLimit(1)
                 HStack(spacing: 6) {
-                    Text(formattedWeight(event.newWeightKg) + " kg")
+                    Text(formattedWeight(event.newWeightKg) + " " + weightUnit.shortLabel)
                         .font(Font.unbound.monoS)
                         .foregroundStyle(Color.unbound.textPrimary)
-                    Text("+\(formattedWeight(event.incrementKg)) kg")
+                    Text("+\(formattedDelta(event.incrementKg)) \(weightUnit.shortLabel)")
                         .font(Font.unbound.captionS)
                         .foregroundStyle(Color.unbound.impact)
                         .padding(.horizontal, 6)
@@ -88,10 +89,16 @@ struct WeightBumpToast: View {
         .shadow(color: Color.unbound.impact.opacity(0.35), radius: 22, x: 0, y: 6)
     }
 
-    private func formattedWeight(_ value: Double) -> String {
-        value.truncatingRemainder(dividingBy: 1) == 0
-            ? String(format: "%.0f", value)
-            : String(format: "%.1f", value)
+    private var weightUnit: TrainingWeightUnit {
+        TrainingWeightUnit(rawValue: weightUnitRaw) ?? .localeDefault
+    }
+
+    private func formattedWeight(_ kilograms: Double) -> String {
+        WeightPlatePolicy.formatLoggedWeight(kilograms, unit: weightUnit)
+    }
+
+    private func formattedDelta(_ kilograms: Double) -> String {
+        WeightPlatePolicy.formatDeltaWeight(kilograms, unit: weightUnit)
     }
 }
 

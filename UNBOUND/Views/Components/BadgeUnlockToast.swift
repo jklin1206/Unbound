@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 // MARK: - BadgeUnlockToast
 //
@@ -92,10 +93,7 @@ struct BadgeUnlockPill: View {
 
     var body: some View {
         HStack(spacing: 14) {
-            Image(systemName: badge.iconSystemName)
-                .font(.system(size: 20, weight: .bold))
-                .foregroundStyle(badge.rarity.tint)
-                .shadow(color: badge.rarity.tint.opacity(0.6), radius: 6)
+            BadgeEmblemView(badge: badge, size: 38, isUnlocked: true)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("BADGE UNLOCKED · \(badge.displayName.uppercased())")
@@ -140,5 +138,233 @@ struct BadgeUnlockPill: View {
 extension View {
     func badgeUnlockToast() -> some View {
         modifier(BadgeUnlockToastModifier())
+    }
+}
+
+// MARK: - BadgeEmblemView
+
+struct BadgeEmblemView: View {
+    let badge: Badge
+    var size: CGFloat = 64
+    var isUnlocked: Bool? = nil
+
+    private var unlocked: Bool { isUnlocked ?? badge.isUnlocked }
+    private var tint: Color { unlocked ? badge.rarity.tint : Color.unbound.textTertiary }
+    private var family: BadgeEmblemFamily { BadgeEmblemFamily(id: badge.id) }
+    private var generatedAssetName: String { "badge_art_\(badge.id)" }
+
+    var body: some View {
+        Group {
+            if let image = UIImage(named: generatedAssetName) {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: size, height: size)
+                    .clipped()
+                    .overlay {
+                        if !unlocked {
+                            Color.unbound.bg.opacity(0.38)
+                            Image(systemName: "lock.fill")
+                                .font(.system(size: size * 0.16, weight: .bold))
+                                .foregroundStyle(Color.unbound.textTertiary)
+                                .offset(x: size * 0.27, y: size * 0.27)
+                        }
+                    }
+                    .saturation(unlocked ? 1 : 0.18)
+                    .opacity(unlocked ? 1 : 0.62)
+            } else {
+                fallbackEmblem
+            }
+        }
+        .frame(width: size, height: size)
+    }
+
+    private var fallbackEmblem: some View {
+        ZStack {
+            plate
+            linework
+            Image(systemName: badge.iconSystemName)
+                .font(.system(size: size * 0.34, weight: .black))
+                .foregroundStyle(tint)
+                .shadow(color: unlocked ? tint.opacity(0.38) : .clear, radius: size * 0.10)
+            if !unlocked {
+                ZStack {
+                    Color.unbound.bg.opacity(0.28)
+                    Image(systemName: "lock.fill")
+                        .font(.system(size: size * 0.16, weight: .bold))
+                        .foregroundStyle(Color.unbound.textTertiary)
+                        .offset(x: size * 0.27, y: size * 0.27)
+                }
+                .clipShape(RoundedRectangle(cornerRadius: size * 0.18, style: .continuous))
+            }
+        }
+        .frame(width: size, height: size)
+        .saturation(unlocked ? 1 : 0.18)
+        .opacity(unlocked ? 1 : 0.62)
+    }
+
+    @ViewBuilder
+    private var plate: some View {
+        switch family {
+        case .streak:
+            Circle()
+                .fill(plateFill)
+                .overlay(Circle().strokeBorder(tint.opacity(unlocked ? 0.62 : 0.28), lineWidth: 1.2))
+                .overlay(Circle().inset(by: size * 0.13).stroke(tint.opacity(0.22), lineWidth: 1))
+        case .rank:
+            Hexagon()
+                .fill(plateFill)
+                .overlay(Hexagon().stroke(tint.opacity(unlocked ? 0.70 : 0.32), lineWidth: 1.4))
+                .rotationEffect(.degrees(30))
+        case .skill:
+            BadgeShield()
+                .fill(plateFill)
+                .overlay(BadgeShield().stroke(tint.opacity(unlocked ? 0.68 : 0.30), lineWidth: 1.2))
+        case .strength:
+            Diamond()
+                .fill(plateFill)
+                .overlay(Diamond().stroke(tint.opacity(unlocked ? 0.68 : 0.30), lineWidth: 1.2))
+        case .proof:
+            RoundedRectangle(cornerRadius: size * 0.16, style: .continuous)
+                .fill(plateFill)
+                .overlay(
+                    RoundedRectangle(cornerRadius: size * 0.16, style: .continuous)
+                        .strokeBorder(tint.opacity(unlocked ? 0.62 : 0.28), lineWidth: 1.1)
+                )
+        case .session:
+            CutCornerPlate(cut: size * 0.18)
+                .fill(plateFill)
+                .overlay(CutCornerPlate(cut: size * 0.18).stroke(tint.opacity(unlocked ? 0.62 : 0.28), lineWidth: 1.1))
+        }
+    }
+
+    private var plateFill: LinearGradient {
+        LinearGradient(
+            colors: [
+                tint.opacity(unlocked ? 0.22 : 0.08),
+                Color.unbound.surface,
+                Color.unbound.bg.opacity(0.94)
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+
+    @ViewBuilder
+    private var linework: some View {
+        switch family {
+        case .streak:
+            ForEach(0..<3, id: \.self) { index in
+                ArcSegment(start: .degrees(Double(index) * 105 + 12), end: .degrees(Double(index) * 105 + 58))
+                    .stroke(tint.opacity(0.30), style: StrokeStyle(lineWidth: 1.2, lineCap: .round))
+                    .padding(size * 0.08)
+            }
+        case .rank, .strength:
+            Path { path in
+                path.move(to: CGPoint(x: size * 0.20, y: size * 0.50))
+                path.addLine(to: CGPoint(x: size * 0.80, y: size * 0.50))
+                path.move(to: CGPoint(x: size * 0.50, y: size * 0.20))
+                path.addLine(to: CGPoint(x: size * 0.50, y: size * 0.80))
+            }
+            .stroke(tint.opacity(0.16), lineWidth: 1)
+        case .skill:
+            VStack(spacing: size * 0.08) {
+                ForEach(0..<3, id: \.self) { index in
+                    Rectangle()
+                        .fill(tint.opacity(0.18))
+                        .frame(width: size * CGFloat(0.46 - Double(index) * 0.08), height: 1)
+                }
+            }
+            .offset(y: size * 0.18)
+        case .proof:
+            HStack(spacing: size * 0.08) {
+                ForEach(0..<3, id: \.self) { _ in
+                    Rectangle()
+                        .fill(tint.opacity(0.18))
+                        .frame(width: 1, height: size * 0.58)
+                }
+            }
+            .rotationEffect(.degrees(18))
+        case .session:
+            Path { path in
+                path.move(to: CGPoint(x: size * 0.16, y: size * 0.26))
+                path.addLine(to: CGPoint(x: size * 0.44, y: size * 0.26))
+                path.move(to: CGPoint(x: size * 0.56, y: size * 0.74))
+                path.addLine(to: CGPoint(x: size * 0.84, y: size * 0.74))
+            }
+            .stroke(tint.opacity(0.22), lineWidth: 1)
+        }
+    }
+}
+
+private enum BadgeEmblemFamily {
+    case streak, rank, skill, strength, proof, session
+
+    init(id: String) {
+        if id.contains("streak") { self = .streak }
+        else if id.contains("rank") || id.hasPrefix("rank_") { self = .rank }
+        else if id.contains("muscle") || id.contains("handstand") || id.contains("pull") || id.contains("dip") || id.contains("pistol") || id.contains("pushup") { self = .skill }
+        else if id.hasPrefix("bw_") || id.contains("deadlift") || id.contains("squat") || id.contains("bench") { self = .strength }
+        else if id.contains("scan") || id.contains("photo") || id.contains("proof") || id.contains("arc") { self = .proof }
+        else { self = .session }
+    }
+}
+
+private struct Diamond: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        path.move(to: CGPoint(x: rect.midX, y: rect.minY))
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.midY))
+        path.addLine(to: CGPoint(x: rect.midX, y: rect.maxY))
+        path.addLine(to: CGPoint(x: rect.minX, y: rect.midY))
+        path.closeSubpath()
+        return path
+    }
+}
+
+private struct BadgeShield: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        path.move(to: CGPoint(x: rect.midX, y: rect.minY))
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.minY + rect.height * 0.24))
+        path.addLine(to: CGPoint(x: rect.maxX - rect.width * 0.10, y: rect.maxY - rect.height * 0.18))
+        path.addLine(to: CGPoint(x: rect.midX, y: rect.maxY))
+        path.addLine(to: CGPoint(x: rect.minX + rect.width * 0.10, y: rect.maxY - rect.height * 0.18))
+        path.addLine(to: CGPoint(x: rect.minX, y: rect.minY + rect.height * 0.24))
+        path.closeSubpath()
+        return path
+    }
+}
+
+private struct CutCornerPlate: Shape {
+    let cut: CGFloat
+
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        path.move(to: CGPoint(x: rect.minX + cut, y: rect.minY))
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.minY))
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY - cut))
+        path.addLine(to: CGPoint(x: rect.maxX - cut, y: rect.maxY))
+        path.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
+        path.addLine(to: CGPoint(x: rect.minX, y: rect.minY + cut))
+        path.closeSubpath()
+        return path
+    }
+}
+
+private struct ArcSegment: Shape {
+    let start: Angle
+    let end: Angle
+
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        path.addArc(
+            center: CGPoint(x: rect.midX, y: rect.midY),
+            radius: min(rect.width, rect.height) / 2,
+            startAngle: start,
+            endAngle: end,
+            clockwise: false
+        )
+        return path
     }
 }

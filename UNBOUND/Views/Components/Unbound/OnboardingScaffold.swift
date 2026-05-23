@@ -39,49 +39,129 @@ struct OnboardingScaffold<Content: View>: View {
     private var defaultBody: some View {
         ZStack {
             Color.unbound.bg.ignoresSafeArea()
+            defaultAtmosphere
 
             VStack(spacing: 0) {
                 legacyTopBar
                     .padding(.horizontal, 20)
                     .padding(.top, 8)
-                    .padding(.bottom, 24)
+                    .padding(.bottom, 16)
 
                 ScrollView(.vertical, showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: 12) {
-                        if let title {
-                            Text(title)
-                                .font(Font.unbound.titleL)
-                                .foregroundStyle(Color.unbound.textPrimary)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                        if let subtitle {
-                            Text(subtitle)
-                                .font(Font.unbound.bodyM)
-                                .foregroundStyle(Color.unbound.textSecondary)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                        if title != nil || subtitle != nil {
-                            Spacer().frame(height: 12)
-                        }
+                    VStack(alignment: .leading, spacing: 18) {
+                        headerBlock
                         content()
                     }
                     .padding(.horizontal, 20)
-                    .padding(.bottom, 24)
+                    .padding(.bottom, 20)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
-                UnboundButton(
-                    title: primaryTitle,
-                    variant: .primary,
-                    icon: primaryIcon,
-                    isEnabled: primaryEnabled,
-                    action: onPrimary
-                )
-                .padding(.horizontal, 20)
-                .padding(.bottom, 12)
+                VStack(spacing: 0) {
+                    Rectangle()
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    Color.clear,
+                                    Color.unbound.bg.opacity(0.92),
+                                    Color.unbound.bg
+                                ],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                        .frame(height: 18)
+
+                    UnboundButton(
+                        title: primaryTitle,
+                        variant: .primary,
+                        icon: primaryIcon,
+                        isEnabled: primaryEnabled,
+                        action: onPrimary
+                    )
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 12)
+                    .background(Color.unbound.bg)
+                }
             }
         }
         .toolbar(.hidden, for: .navigationBar)
+    }
+
+    private var defaultAtmosphere: some View {
+        ZStack(alignment: .topTrailing) {
+            LinearGradient(
+                colors: [
+                    Color.unbound.surface.opacity(0.34),
+                    Color.unbound.bg.opacity(0.0),
+                    Color.unbound.bg
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+
+            Capsule()
+                .fill(Color.unbound.ember.opacity(0.18))
+                .frame(width: 118, height: 520)
+                .rotationEffect(.degrees(28))
+                .blur(radius: 48)
+                .offset(x: 78, y: -130)
+        }
+        .ignoresSafeArea()
+        .allowsHitTesting(false)
+    }
+
+    @ViewBuilder
+    private var headerBlock: some View {
+        if title != nil || subtitle != nil {
+            VStack(alignment: .leading, spacing: 10) {
+                if showsProgress {
+                    HStack(spacing: 8) {
+                        Text("CALIBRATION ARC")
+                            .font(Font.unbound.captionS.weight(.bold))
+                            .tracking(1.8)
+                            .foregroundStyle(Color.unbound.ember)
+
+                        Text("STEP \(progressStepLabel)")
+                            .font(.system(size: 10, weight: .bold, design: .monospaced))
+                            .tracking(0.8)
+                            .foregroundStyle(Color.unbound.textSecondary)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(
+                                Capsule().fill(Color.unbound.surface.opacity(0.9))
+                            )
+                            .overlay(
+                                Capsule().strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
+                            )
+                    }
+                }
+                if let title {
+                    Text(title)
+                        .font(Font.unbound.titleL)
+                        .foregroundStyle(Color.unbound.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .lineSpacing(1)
+                }
+                if let subtitle {
+                    Text(subtitle)
+                        .font(Font.unbound.bodyM)
+                        .foregroundStyle(Color.unbound.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .lineSpacing(2)
+                }
+            }
+            .padding(14)
+            .background(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(Color.unbound.surface.opacity(0.72))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
+            )
+            .padding(.bottom, 4)
+        }
     }
 
     private var legacyTopBar: some View {
@@ -91,21 +171,55 @@ struct OnboardingScaffold<Content: View>: View {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 17, weight: .semibold))
                         .foregroundStyle(Color.unbound.textSecondary)
-                        .frame(width: 36, height: 36)
+                        .frame(width: 44, height: 44)
+                        .background(
+                            Circle()
+                                .fill(Color.unbound.surface.opacity(0.72))
+                        )
+                        .overlay(
+                            Circle()
+                                .strokeBorder(Color.white.opacity(0.08), lineWidth: 1)
+                        )
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
             } else {
-                Color.clear.frame(width: 36, height: 36)
+                Color.clear.frame(width: 44, height: 44)
             }
 
             if showsProgress {
-                OnboardingProgressBar(progress: progress)
+                VStack(alignment: .leading, spacing: 7) {
+                    OnboardingProgressBar(progress: progress)
+                    HStack(spacing: 6) {
+                        Text("\(progressPercent)%")
+                            .font(Font.unbound.monoS)
+                            .foregroundStyle(Color.unbound.textSecondary)
+                            .monospacedDigit()
+                        Text("MAPPED")
+                            .font(Font.unbound.captionS.weight(.bold))
+                            .tracking(1.3)
+                            .foregroundStyle(Color.unbound.textTertiary)
+
+                        Spacer(minLength: 0)
+
+                        Text("\(progressStepLabel)")
+                            .font(.system(size: 10, weight: .bold, design: .monospaced))
+                            .foregroundStyle(Color.unbound.ember)
+                            .padding(.horizontal, 7)
+                            .padding(.vertical, 3)
+                            .background(
+                                Capsule().fill(Color.unbound.ember.opacity(0.13))
+                            )
+                            .overlay(
+                                Capsule().strokeBorder(Color.unbound.ember.opacity(0.35), lineWidth: 1)
+                            )
+                    }
+                }
             } else {
                 Spacer()
             }
 
-            Color.clear.frame(width: 36, height: 36)
+            Color.clear.frame(width: 44, height: 44)
         }
     }
 
@@ -198,6 +312,16 @@ struct OnboardingScaffold<Content: View>: View {
             }
         }
     }
+
+    private var progressPercent: Int {
+        Int((progress * 100).rounded())
+    }
+
+    private var progressStepLabel: String {
+        let raw = Int(ceil(progress * Double(OnboardingStep.total)))
+        let clamped = max(1, min(OnboardingStep.total, raw))
+        return "\(clamped)/\(OnboardingStep.total)"
+    }
 }
 
 #Preview("Legacy") {
@@ -227,7 +351,7 @@ struct OnboardingScaffold<Content: View>: View {
         title: "How often do you train now?",
         subtitle: nil,
         primaryEnabled: true,
-        hudStep: .currentFrequency,
+        hudStep: .targetFrequency,
         onBack: {},
         onPrimary: {}
     ) {

@@ -54,7 +54,11 @@ final class WorkingWeightService: WorkingWeightServiceProtocol, @unchecked Senda
             )
 
             try await database.create(workingWeight, collection: "workingWeights", documentId: workingWeight.id)
-            logger.log("Working weight updated: \(normalizedName) -> \(weight)kg", level: .info)
+            let unit = WeightPlatePolicy.currentUnit
+            logger.log(
+                "Working weight updated: \(normalizedName) -> \(WeightPlatePolicy.formatLoggedWeight(weight, unit: unit))\(unit.shortLabel)",
+                level: .info
+            )
         }
     }
 
@@ -68,12 +72,17 @@ final class WorkingWeightService: WorkingWeightServiceProtocol, @unchecked Senda
 
         // Check consecutive sessions at target for progression
         if weight.consecutiveSessionsAtTarget >= 2 {
-            let isCompound = ExerciseLibrary.all.first { $0.normalizedName == exerciseName }?.isCompound ?? false
-            let isLowerBody = ExerciseLibrary.all.first { $0.normalizedName == exerciseName }?
+            let definition = MovementCatalog.canonicalExercise(named: exerciseName)
+            let isCompound = definition.map(ExerciseLibrary.isCompound) ?? false
+            let isLowerBody = definition?
                 .muscleGroups.contains(where: { [.legs, .glutes].contains($0) }) ?? false
 
             if isCompound {
-                return .increaseWeight(amount: isLowerBody ? 5.0 : 2.5)
+                return .increaseWeight(
+                    amount: WeightPlatePolicy.progressionJumpKilograms(
+                        for: isLowerBody ? .lowerCompound : .upperCompound
+                    )
+                )
             } else {
                 return .increaseReps
             }

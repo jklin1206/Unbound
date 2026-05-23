@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 
 // MARK: - SubRank
 //
@@ -39,8 +40,29 @@ enum SubRank: String, Codable, CaseIterable, Sendable, Comparable {
         }
     }
 
-    /// Uppercase ladder label ("E-", "B+", "S").
+    /// Letter-grade label for this sub-rank ("E-", "B+", "S", etc.).
+    /// This is the primary display label used throughout the UI — e.g. rank
+    /// chips, skill nodes, share cards.  Always returns `letter + modifier`.
     var displayName: String { letter + modifier }
+
+    /// Human-readable title band ("Initiate", "Veteran", "Ascendant", etc.).
+    /// Use this for new surfaces that want the nine-tier title instead of the
+    /// letter-grade (e.g. Build hex phase 8+ UI).
+    var rankTitleName: String { title.displayName }
+
+    var title: RankTitle {
+        switch ordinal {
+        case 0...1: return .initiate
+        case 2...3: return .novice
+        case 4...5: return .apprentice
+        case 6...7: return .forged
+        case 8...9: return .veteran
+        case 10...11: return .honed
+        case 12...13: return .vessel
+        case 14...15: return .unbound
+        default: return .ascendant
+        }
+    }
 
     /// Letter portion only ("E", "B", "S"). Used for coarse UI / color bucketing.
     var letter: String {
@@ -100,6 +122,46 @@ enum SubRank: String, Codable, CaseIterable, Sendable, Comparable {
     }
 }
 
+enum RankTitle: String, Codable, CaseIterable, Sendable {
+    case initiate
+    case novice
+    case apprentice
+    case forged
+    case veteran
+    case honed
+    case vessel
+    case unbound
+    case ascendant
+
+    var displayName: String {
+        switch self {
+        case .initiate: return "Initiate"
+        case .novice: return "Novice"
+        case .apprentice: return "Apprentice"
+        case .forged: return "Forged"
+        case .veteran: return "Veteran"
+        case .honed: return "Honed"
+        case .vessel: return "Vessel"
+        case .unbound: return "Unbound"
+        case .ascendant: return "Ascendant"
+        }
+    }
+
+    var assetName: String { "rank_title_\(rawValue)" }
+
+    static func legacyLetterFallback(_ letter: String) -> RankTitle {
+        switch letter.uppercased().prefix(1) {
+        case "E": return .initiate
+        case "D": return .apprentice
+        case "C": return .veteran
+        case "B": return .honed
+        case "A": return .unbound
+        case "S": return .ascendant
+        default: return .initiate
+        }
+    }
+}
+
 // MARK: - Rank-up notification payload
 
 struct RankAdvance: Identifiable, Sendable {
@@ -134,4 +196,27 @@ struct RankAdvance: Identifiable, Sendable {
 
 extension Notification.Name {
     static let rankAdvanced = Notification.Name("unbound.rankAdvanced")
+}
+
+// MARK: - SubRank tint bridge
+//
+// Legacy letter ranks are still present in a few older Home surfaces while
+// the app migrates fully to named SkillTier badges. Keep their color output
+// tied to SkillTier so the same badge ladder is used everywhere.
+
+extension SubRank {
+    /// Steady-state tint used by rank displays.
+    var regionTint: Color {
+        asSkillTier.rewardTint
+    }
+
+    /// True when the rank should render with a holographic shimmer (S / S+ only).
+    var usesHolographicShimmer: Bool {
+        self == .s || self == .sPlus
+    }
+}
+
+extension Color {
+    /// Gold reserved for S-tier ranks.
+    static let unboundGold = Color(.sRGB, red: 1.0, green: 0.784, blue: 0.341, opacity: 1.0) // #FFC857
 }

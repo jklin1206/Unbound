@@ -16,11 +16,11 @@ struct Step_ScanReview: View {
 
     var body: some View {
         OnboardingScaffold(
-            title: "Looks good?",
-            subtitle: "We'll read your body composition from this. Retake if you want a better angle.",
+            title: "Day Zero locked?",
+            subtitle: "This is the before. In 30 days, you get the first real proof of the climb.",
             progress: progress,
-            primaryTitle: "Analyze my body",
-            primaryIcon: "sparkles",
+            primaryTitle: "Enter the arc",
+            primaryIcon: "flame.fill",
             primaryEnabled: flow.capturedPhotos[.front] != nil,
             hudStep: .scanReview,
             onBack: onBack,
@@ -32,6 +32,7 @@ struct Step_ScanReview: View {
             }
             .padding(.top, 4)
         }
+        // No AI body rating — AI never grades the body (scan-redesign-v2).
     }
 
     // MARK: Photo card — big, centered, premium
@@ -63,7 +64,7 @@ struct Step_ScanReview: View {
                 HStack(spacing: 8) {
                     Image(systemName: "arrow.counterclockwise")
                         .font(.system(size: 13, weight: .semibold))
-                    Text("Retake photo")
+                    Text("Retake Day Zero")
                         .font(Font.unbound.bodyMStrong)
                 }
                 .foregroundStyle(Color.unbound.textSecondary)

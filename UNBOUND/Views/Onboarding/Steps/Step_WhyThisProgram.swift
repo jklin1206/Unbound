@@ -8,8 +8,8 @@ struct Step_WhyThisProgram: View {
 
     var body: some View {
         OnboardingScaffold(
-            title: nil,
-            subtitle: nil,
+            title: "Your path is locked.",
+            subtitle: "The first stretch is clear. Now it becomes yours.",
             progress: progress,
             primaryTitle: "This is mine",
             primaryEnabled: true,
@@ -21,13 +21,14 @@ struct Step_WhyThisProgram: View {
             }
         ) {
             WhyThisProgramView(rationale: buildRationale())
-                .padding(.horizontal, -20)
+                .padding(.horizontal, -6)
+                .padding(.top, -6)
         }
     }
 
     private func buildRationale() -> ProgramRationale {
         LocalProgramGenerator.previewRationale(
-            archetype: flow.archetype ?? .vTaper,
+            buildIdentity: BuildIdentity(primary: nil, secondary: nil, shape: .balancedAthlete),
             targetFrequency: flow.targetFrequency,
             equipment: flow.equipment,
             experience: flow.experience,

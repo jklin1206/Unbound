@@ -13,6 +13,9 @@ struct LogCardioView: View {
     @State private var perceivedEffort: Int = 6
     @State private var notes: String = ""
     @State private var isSaving = false
+    @State private var rewardSequence: WorkoutRewardSequenceSummary?
+    @State private var showError = false
+    @State private var errorMessage = ""
 
     private let gridColumns = [
         GridItem(.flexible(), spacing: 10),
@@ -33,16 +36,13 @@ struct LogCardioView: View {
                         effortCard
                         optionalMetricsCard
                         notesCard
-                        UnboundButton(
-                            title: isSaving ? "Saving..." : "Log session",
-                            icon: "checkmark",
-                            action: save
-                        )
-                        .disabled(isSaving)
-                        Spacer().frame(height: 20)
+                        Spacer().frame(height: 96)
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, 8)
+                }
+                .safeAreaInset(edge: .bottom) {
+                    logSessionButton
                 }
             }
             .navigationTitle("Log cardio")
@@ -53,6 +53,42 @@ struct LogCardioView: View {
                         .foregroundStyle(Color.unbound.textSecondary)
                 }
             }
+        }
+        .fullScreenCover(item: $rewardSequence) { reward in
+            WorkoutRewardSequenceView(summary: reward) {
+                rewardSequence = nil
+                dismiss()
+            }
+            .interactiveDismissDisabled(true)
+        }
+        .alert("Cardio was not saved", isPresented: $showError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(errorMessage)
+        }
+    }
+
+    private var logSessionButton: some View {
+        VStack(spacing: 0) {
+            Rectangle()
+                .fill(
+                    LinearGradient(
+                        colors: [Color.unbound.bg.opacity(0), Color.unbound.bg],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .frame(height: 18)
+            UnboundButton(
+                title: isSaving ? "Saving..." : "Log session",
+                icon: "checkmark",
+                action: save
+            )
+            .disabled(isSaving)
+            .accessibilityIdentifier("cardio.logSession")
+            .padding(.horizontal, 20)
+            .padding(.bottom, 12)
+            .background(Color.unbound.bg)
         }
     }
 
@@ -95,6 +131,7 @@ struct LogCardioView: View {
             )
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier("cardio.type.\(kind.rawValue)")
     }
 
     private var durationCard: some View {
@@ -111,6 +148,7 @@ struct LogCardioView: View {
                         .background(Circle().fill(Color.unbound.surface))
                         .overlay(Circle().strokeBorder(Color.unbound.border, lineWidth: 1))
                 }
+                .accessibilityIdentifier("cardio.duration.decrease")
                 VStack {
                     Text("\(durationMinutes)")
                         .font(Font.unbound.titleL)
@@ -132,6 +170,7 @@ struct LogCardioView: View {
                         .background(Circle().fill(Color.unbound.surface))
                         .overlay(Circle().strokeBorder(Color.unbound.border, lineWidth: 1))
                 }
+                .accessibilityIdentifier("cardio.duration.increase")
             }
         }
     }
@@ -240,15 +279,52 @@ struct LogCardioView: View {
         Task {
             do {
                 try await services.cardioLog.log(session: session)
+                let performanceLog = TrainingSessionAdapters.performanceLogForCardioSession(session)
+                let completionResult: TrainingCompletionResult
+                do {
+                    completionResult = try await TrainingCompletionService.shared.complete(
+                        performanceLog,
+                        services: services
+                    )
+                } catch {
+                    LoggingService.shared.log(
+                        "Cardio unified completion failed; using progression preview: \(error)",
+                        level: .warning,
+                        context: ["cardioSessionId": session.id.uuidString]
+                    )
+                    completionResult = TrainingCompletionService.shared.previewProgression(
+                        for: performanceLog,
+                        services: services
+                    )
+                }
                 UnboundHaptics.success()
                 await MainActor.run {
                     isSaving = false
                     onLogged?(session)
-                    dismiss()
+                    rewardSequence = WorkoutRewardSequenceSummary.trainingReceipt(
+                        performanceLog: performanceLog,
+                        completionResult: completionResult,
+                        fallbackXP: cardioXP,
+                        sourceName: "Cardio"
+                    )
                 }
             } catch {
-                await MainActor.run { isSaving = false }
+                LoggingService.shared.log(
+                    "Cardio save failed: \(error)",
+                    level: .error,
+                    context: ["cardioType": session.type.rawValue]
+                )
+                await MainActor.run {
+                    isSaving = false
+                    errorMessage = "Try again in a moment. Nothing was awarded."
+                    showError = true
+                }
             }
         }
+    }
+
+    private var cardioXP: Int {
+        let effortFactor = Double(perceivedEffort) / 6.0
+        return max(5, Int((Double(durationMinutes) * type.intensityFactor * effortFactor).rounded()))
     }
 }

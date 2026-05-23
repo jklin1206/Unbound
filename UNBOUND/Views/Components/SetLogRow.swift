@@ -1,5 +1,12 @@
 import SwiftUI
 
+// MARK: - SetLogRow
+//
+// A single row inside a WorkoutLoggingView exercise card: set number
+// (tap to toggle warmup), weight input, reps input, RPE chip, optional
+// delete. Styled to match the UNBOUND palette so the in-gym logging
+// surface feels like the same app as the home dashboard.
+
 struct SetLogRow: View {
     let setNumber: Int
     @Binding var weightKg: String
@@ -9,45 +16,41 @@ struct SetLogRow: View {
     var onDelete: (() -> Void)?
 
     var body: some View {
-        HStack(spacing: 8) {
-            // Set number badge
-            Text(isWarmup ? "W" : "\(setNumber)")
-                .font(.caption(12))
-                .fontWeight(.bold)
-                .foregroundColor(isWarmup ? .theme.warning : .theme.textPrimary)
-                .frame(width: 24, height: 24)
-                .background(isWarmup ? Color.theme.warning.opacity(0.15) : Color.theme.surfaceLight)
-                .clipShape(Circle())
-                .onTapGesture {
-                    isWarmup.toggle()
-                    HapticManager.selection()
-                }
+        HStack(spacing: 10) {
+            // Set number / warmup toggle
+            Button {
+                isWarmup.toggle()
+                UnboundHaptics.soft()
+            } label: {
+                Text(isWarmup ? "W" : "\(setNumber)")
+                    .font(Font.unbound.monoS.weight(.bold))
+                    .foregroundStyle(
+                        isWarmup ? Color.unbound.warnOrange : Color.unbound.textPrimary
+                    )
+                    .frame(width: 26, height: 26)
+                    .background(
+                        Circle().fill(
+                            isWarmup
+                                ? Color.unbound.warnOrange.opacity(0.18)
+                                : Color.unbound.bg
+                        )
+                    )
+                    .overlay(
+                        Circle().strokeBorder(
+                            isWarmup
+                                ? Color.unbound.warnOrange.opacity(0.45)
+                                : Color.unbound.borderSubtle,
+                            lineWidth: 1
+                        )
+                    )
+            }
+            .buttonStyle(.plain)
 
             // Weight
-            HStack(spacing: 2) {
-                TextField("0", text: $weightKg)
-                    .keyboardType(.decimalPad)
-                    .frame(width: 50)
-                    .multilineTextAlignment(.center)
-                Text("kg")
-                    .font(.caption(11))
-                    .foregroundColor(.theme.textMuted)
-            }
-            .font(.bodyMedium(14))
-            .foregroundColor(.theme.textPrimary)
+            inputField(text: $weightKg, width: 60, keyboard: .decimalPad)
 
             // Reps
-            HStack(spacing: 2) {
-                TextField("0", text: $reps)
-                    .keyboardType(.numberPad)
-                    .frame(width: 36)
-                    .multilineTextAlignment(.center)
-                Text("reps")
-                    .font(.caption(11))
-                    .foregroundColor(.theme.textMuted)
-            }
-            .font(.bodyMedium(14))
-            .foregroundColor(.theme.textPrimary)
+            inputField(text: $reps, width: 46, keyboard: .numberPad)
 
             // RPE
             Menu {
@@ -56,25 +59,54 @@ struct SetLogRow: View {
                 }
                 Button("Clear") { rpe = nil }
             } label: {
-                Text(rpe.map { "RPE \($0)" } ?? "RPE")
-                    .font(.caption(12))
-                    .foregroundColor(rpe != nil ? .theme.primary : .theme.textMuted)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(Color.theme.surfaceLight)
-                    .clipShape(Capsule())
+                Text(rpe.map { "\($0)" } ?? "—")
+                    .font(Font.unbound.monoS.weight(.semibold))
+                    .foregroundStyle(
+                        rpe != nil ? Color.unbound.accent : Color.unbound.textTertiary
+                    )
+                    .monospacedDigit()
+                    .frame(minWidth: 36)
+                    .padding(.vertical, 6)
+                    .background(
+                        Capsule().fill(Color.unbound.bg)
+                    )
+                    .overlay(
+                        Capsule().strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
+                    )
             }
 
-            Spacer()
+            Spacer(minLength: 0)
 
             if let onDelete {
-                Button { onDelete() } label: {
-                    Image(systemName: "trash")
-                        .font(.caption(12))
-                        .foregroundColor(.theme.danger.opacity(0.6))
+                Button {
+                    UnboundHaptics.soft()
+                    onDelete()
+                } label: {
+                    Image(systemName: "minus.circle")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Color.unbound.textTertiary)
                 }
+                .buttonStyle(.plain)
             }
         }
         .padding(.vertical, 4)
+    }
+
+    private func inputField(text: Binding<String>, width: CGFloat, keyboard: UIKeyboardType) -> some View {
+        TextField("0", text: text)
+            .keyboardType(keyboard)
+            .multilineTextAlignment(.center)
+            .font(Font.unbound.monoM.weight(.semibold))
+            .foregroundStyle(Color.unbound.textPrimary)
+            .tint(Color.unbound.accent)
+            .frame(width: width, height: 32)
+            .background(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(Color.unbound.bg)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
+            )
     }
 }

@@ -13,22 +13,39 @@ final class SubscriptionService: NSObject, SubscriptionServiceProtocol, @uncheck
     private override init() { super.init() }
 
     func configure() {
+        let key = AppConstants.RevenueCat.apiKey
+        // Skip RevenueCat init when running with a placeholder key (dev/sim).
+        // Otherwise iOS triggers the Apple Account sign-in modal repeatedly
+        // when the SDK tries to validate receipts with a fake key.
+        guard !key.hasPrefix("PLACEHOLDER_") else {
+            logger.log("SubscriptionService.configure: skipping RevenueCat init (placeholder key)", level: .info)
+            return
+        }
         Purchases.logLevel = .debug
-        Purchases.configure(withAPIKey: AppConstants.RevenueCat.apiKey)
+        Purchases.configure(withAPIKey: key)
         Purchases.shared.delegate = self
     }
 
+    /// True when running with a placeholder RevenueCat key (dev/sim).
+    /// All Purchases.shared calls become no-ops to avoid triggering Apple Account modals.
+    private var isStubbed: Bool {
+        AppConstants.RevenueCat.apiKey.hasPrefix("PLACEHOLDER_")
+    }
+
     func login(userId: String) async throws {
+        guard !isStubbed else { return }
         let (customerInfo, _) = try await Purchases.shared.logIn(userId)
         updateStatus(from: customerInfo)
     }
 
     func logout() async throws {
+        guard !isStubbed else { statusSubject.send(false); return }
         _ = try await Purchases.shared.logOut()
         statusSubject.send(false)
     }
 
     func fetchOfferings() async throws -> [SubscriptionPackage] {
+        guard !isStubbed else { return [] }
         let offerings = try await Purchases.shared.offerings()
         guard let current = offerings.current else { return [] }
 
@@ -45,6 +62,7 @@ final class SubscriptionService: NSObject, SubscriptionServiceProtocol, @uncheck
     }
 
     func purchase(packageId: String) async throws -> Bool {
+        guard !isStubbed else { return false }
         let offerings = try await Purchases.shared.offerings()
         guard let pkg = offerings.current?.availablePackages.first(where: { $0.identifier == packageId }) else {
             throw AppError.subscriptionPurchaseFailed(underlying: NSError(domain: "RC", code: -1, userInfo: [NSLocalizedDescriptionKey: "Package not found"]))
@@ -55,6 +73,7 @@ final class SubscriptionService: NSObject, SubscriptionServiceProtocol, @uncheck
     }
 
     func restorePurchases() async throws -> Bool {
+        guard !isStubbed else { return false }
         let customerInfo = try await Purchases.shared.restorePurchases()
         updateStatus(from: customerInfo)
         return hasActiveSubscription

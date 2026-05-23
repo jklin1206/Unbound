@@ -18,13 +18,21 @@ struct Step14_Equipment: View {
             onPrimary: onContinue
         ) {
             HUDMultiSelectGroup(
-                options: Equipment.allCases,
+                options: visibleEquipment,
                 selection: $flow.equipment,
                 title: { $0.displayName },
-                icon: { $0.icon }
+                icon: { $0.icon },
+                umbrella: .fullGym,
+                umbrellaSubtitle: "Whole arsenal — nothing off the table."
             )
             .padding(.top, 4)
         }
+    }
+
+    /// Hide the legacy `.homeWeights` case from onboarding (kept on the enum
+    /// for backward compat with pre-redesign persisted profiles).
+    private var visibleEquipment: [Equipment] {
+        Equipment.allCases.filter { $0 != .homeWeights }
     }
 }
 

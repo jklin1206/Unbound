@@ -17,7 +17,6 @@ import SwiftUI
 final class RankDecayService {
     static let shared = RankDecayService()
     private let logger = LoggingService.shared
-    private let rankService: RankServiceProtocol = RankService.shared
 
     private let kIsRecalibrating = "unbound.isRecalibrating"
     private let kLastDecayAppliedAt = "unbound.lastDecayAppliedAt"
@@ -107,17 +106,9 @@ final class RankDecayService {
     }
 
     private func applyDecay(userId: String, steps: Int, now: Date) async {
-        let ranks = await rankService.fetchAll(userId: userId)
-        var changedCount = 0
-        for rank in ranks where rank.currentRank > .eMinus {
-            var next = rank
-            next.currentRank = rank.currentRank.decayed(by: steps)
-            // Peak never decays — this is the share-worthy ceiling.
-            await rankService.save(next)
-            changedCount += 1
-        }
-        if changedCount > 0 {
-            logger.log("Rank decay applied: \(changedCount) ranks decayed by \(steps) sub-rank(s)", level: .info)
-        }
+        // LiftRank decay pipeline removed (rank-cleanup-v1).
+        // Recalibrating banner still shows; per-lift decay is a no-op until
+        // SkillTier decay is implemented.
+        logger.log("RankDecayService.applyDecay: no-op (LiftRank pipeline removed)", level: .debug)
     }
 }

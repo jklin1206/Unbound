@@ -7,6 +7,9 @@ struct Step22_Name: View {
     let onContinue: () -> Void
 
     @FocusState private var isFieldFocused: Bool
+    // Local buffer — binds to TextField so only this view re-renders per keystroke.
+    // Synced back to flow on submit and focus-loss, not on every character.
+    @State private var localHandle: String = ""
 
     var body: some View {
         OnboardingScaffold(
@@ -14,16 +17,19 @@ struct Step22_Name: View {
             subtitle: "Shown on your profile and scan cards.",
             progress: progress,
             primaryTitle: "Continue",
-            primaryEnabled: !flow.displayHandle.trimmingCharacters(in: .whitespaces).isEmpty,
+            primaryEnabled: !localHandle.trimmingCharacters(in: .whitespaces).isEmpty,
             hudStep: .name,
             onBack: onBack,
-            onPrimary: onContinue
+            onPrimary: {
+                flow.displayHandle = localHandle
+                onContinue()
+            }
         ) {
             VStack(alignment: .leading, spacing: 14) {
                 Spacer().frame(height: 8)
 
                 HUDTextInput(
-                    text: $flow.displayHandle,
+                    text: $localHandle,
                     placeholder: "Your handle",
                     eyebrow: "HANDLE",
                     isFocused: $isFieldFocused
@@ -36,9 +42,13 @@ struct Step22_Name: View {
                     .padding(.horizontal, 4)
             }
             .onAppear {
+                localHandle = flow.displayHandle
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
                     isFieldFocused = true
                 }
+            }
+            .onChange(of: isFieldFocused) { _, focused in
+                if !focused { flow.displayHandle = localHandle }
             }
         }
     }

@@ -54,3 +54,7 @@ UNBOUND.xcodeproj/project.xcworkspace/xcshareddata/
 
 # Superpowers workspace (local only)
 .superpowers/
+
+# Local browser traces and content research scratch
+.playwright-mcp/
+.unbound-content-scout/

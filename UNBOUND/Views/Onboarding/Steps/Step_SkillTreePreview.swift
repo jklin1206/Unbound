@@ -22,18 +22,20 @@ struct Step_SkillTreePreview: View {
     @State private var hasAnimated = false
 
     var body: some View {
-        let tree = SkillTree.tree(for: flow.archetype ?? .vTaper)
+        // TODO(Phase 17): derive tree from seededAttributes BuildIdentity
+        let tree = SkillTree.universal
 
         OnboardingScaffold(
-            title: "Your path to \(tree.displayName).",
-            subtitle: "Concrete moves you can't do yet. Each unlock is earned, real, and yours.",
+            title: "You won't stay at E.",
+            subtitle: "This is the ladder. Real feats, earned rep by rep.",
             progress: progress,
-            primaryTitle: "Continue",
-            hudStep: .skillTreePreview,
+            primaryTitle: "I'm ready",
+            hudStep: .trajectory,
             onBack: onBack,
             onPrimary: onContinue
         ) {
             VStack(spacing: 18) {
+                hypeCard
                 howItWorksCard
                 legendRow
 
@@ -121,6 +123,60 @@ struct Step_SkillTreePreview: View {
             Text(label)
                 .font(Font.unbound.captionS)
                 .foregroundStyle(Color.unbound.textSecondary)
+        }
+    }
+
+    // MARK: Hype card — what the ladder actually unlocks
+    //
+    // Visceral preview of the peak moves *past* the beginner stuff. Anime
+    // fans read the list and their brain goes "wait, I could actually do
+    // that?" Concrete, earned, not vibes.
+
+    private var hypeCard: some View {
+        UnboundCard {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(spacing: 10) {
+                    Image(systemName: "flame.fill")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(Color.unbound.ember)
+                    Text("WHAT THIS UNLOCKS")
+                        .font(Font.unbound.captionS)
+                        .tracking(1.4)
+                        .foregroundStyle(Color.unbound.ember)
+                }
+
+                VStack(alignment: .leading, spacing: 10) {
+                    hypeFeat("Muscle-up", "The pull-up everyone wants")
+                    hypeFeat("Front lever", "Core, grip, and lats in one hold")
+                    hypeFeat("One-arm pushup", "Pure body control")
+                    hypeFeat("Pistol squat", "Legs that actually work as a unit")
+                    hypeFeat("Human flag", "The one that makes strangers stare")
+                }
+
+                Text("Each one is real. Each one is logged. Each one is yours.")
+                    .font(Font.unbound.bodyM)
+                    .foregroundStyle(Color.unbound.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, 4)
+            }
+        }
+    }
+
+    private func hypeFeat(_ name: String, _ detail: String) -> some View {
+        HStack(alignment: .center, spacing: 12) {
+            Image(systemName: "flame")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(Color.unbound.ember)
+                .frame(width: 18)
+            Text(name)
+                .font(Font.unbound.bodyMStrong)
+                .foregroundStyle(Color.unbound.textPrimary)
+            Text("·")
+                .foregroundStyle(Color.unbound.textTertiary)
+            Text(detail)
+                .font(Font.unbound.bodyS)
+                .foregroundStyle(Color.unbound.textSecondary)
+            Spacer()
         }
     }
 

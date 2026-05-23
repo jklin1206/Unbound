@@ -9,7 +9,8 @@ import Foundation
 enum ProgramGenerationPrompt {
 
     struct Inputs {
-        let archetype: Archetype
+        /// BuildIdentity derived from AttributeService.
+        let buildIdentity: BuildIdentity
         let targetFrequency: Int          // days/week actually wanted
         let equipment: [String]
         let experience: String
@@ -39,10 +40,15 @@ enum ProgramGenerationPrompt {
         lines.append("You are a world-class strength coach and program designer.")
         lines.append("Design a personalized 7-day training template for \(handle).")
         lines.append("")
-        lines.append("TARGET ARCHETYPE: \(inputs.archetype.displayName)")
-        lines.append("- Primary metric: \(inputs.archetype.primaryMetric)")
-        lines.append("- Priority muscles: \(inputs.archetype.priorityMuscleGroups.map(\.displayName).joined(separator: ", "))")
-        lines.append("- Reference builds: \(inputs.archetype.animeReferences.joined(separator: ", "))")
+        // Map BuildIdentity template key to human-readable program intent for the LLM.
+        lines.append("BUILD IDENTITY: \(inputs.buildIdentity.displayName)")
+        lines.append("- Primary axis: \(inputs.buildIdentity.primary?.displayName ?? "Balanced")")
+        lines.append("- Template key: \(inputs.buildIdentity.programTemplateKey)")
+        lines.append("- Tagline: \(inputs.buildIdentity.tagline)")
+        if let primary = inputs.buildIdentity.primary {
+            lines.append("- Emphasis lifts: \(primary.emphasisLifts.joined(separator: ", "))")
+            lines.append("- Training focus: \(primary.trainsCopy)")
+        }
         lines.append("")
         lines.append("USER PROFILE")
         if let age = inputs.age { lines.append("- Age: \(age)") }

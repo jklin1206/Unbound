@@ -80,21 +80,8 @@ private struct BadgeTile: View {
 
     var body: some View {
         VStack(spacing: 10) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(badge.isUnlocked ? badge.rarity.tint.opacity(0.15) : Color.unbound.surface)
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .strokeBorder(
-                        badge.isUnlocked ? badge.rarity.tint.opacity(0.65) : Color.unbound.border,
-                        lineWidth: 1
-                    )
-                Image(systemName: badge.iconSystemName)
-                    .font(.system(size: 32, weight: .bold))
-                    .foregroundStyle(badge.isUnlocked ? badge.rarity.tint : Color.unbound.textTertiary)
-                    .shadow(color: badge.isUnlocked ? badge.rarity.tint.opacity(0.5) : .clear, radius: 8)
-            }
-            .frame(height: 90)
-            .saturation(badge.isUnlocked ? 1.0 : 0.25)
+            BadgeEmblemView(badge: badge, size: 78)
+                .frame(height: 90)
 
             VStack(spacing: 2) {
                 Text(badge.displayName)
@@ -118,18 +105,7 @@ private struct BadgeDetailSheet: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             HStack(alignment: .center, spacing: 14) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .fill(badge.rarity.tint.opacity(0.18))
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .strokeBorder(badge.rarity.tint.opacity(0.7), lineWidth: 1)
-                    Image(systemName: badge.iconSystemName)
-                        .font(.system(size: 30, weight: .bold))
-                        .foregroundStyle(badge.rarity.tint)
-                        .shadow(color: badge.rarity.tint.opacity(0.6), radius: 8)
-                }
-                .frame(width: 76, height: 76)
-                .saturation(badge.isUnlocked ? 1.0 : 0.3)
+                BadgeEmblemView(badge: badge, size: 76)
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(badge.displayName)

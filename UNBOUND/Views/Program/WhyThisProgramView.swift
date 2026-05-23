@@ -36,16 +36,40 @@ struct WhyThisProgramView: View {
 
     private var hero: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("WHY THIS PROGRAM")
-                .font(Font.unbound.captionS)
-                .tracking(1.6)
-                .foregroundStyle(Color.unbound.accent)
+            HStack(spacing: 8) {
+                Text("WHY THIS PROGRAM")
+                    .font(Font.unbound.captionS.weight(.bold))
+                    .tracking(1.6)
+                    .foregroundStyle(Color.unbound.accent)
+
+                Text("\(rationale.decisions.count) DECISIONS")
+                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                    .tracking(0.9)
+                    .foregroundStyle(Color.unbound.textSecondary)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(
+                        Capsule().fill(Color.unbound.surface.opacity(0.9))
+                    )
+                    .overlay(
+                        Capsule().strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
+                    )
+            }
 
             Text(rationale.headline)
                 .font(Font.unbound.titleL)
                 .foregroundStyle(Color.unbound.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)
         }
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color.unbound.surface.opacity(0.72))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
+        )
         .opacity(appeared ? 1 : 0)
         .offset(y: appeared ? 0 : 12)
     }
@@ -62,7 +86,7 @@ struct WhyThisProgramView: View {
     private var decisionList: some View {
         VStack(spacing: 12) {
             ForEach(Array(rationale.decisions.enumerated()), id: \.element.id) { (idx, decision) in
-                DecisionCard(decision: decision)
+                DecisionCard(decision: decision, index: idx)
                     .opacity(appeared ? 1 : 0)
                     .offset(y: appeared ? 0 : 20)
                     .animation(
@@ -87,31 +111,50 @@ struct WhyThisProgramView: View {
 
 private struct DecisionCard: View {
     let decision: ProgramRationale.Decision
+    let index: Int
 
     var body: some View {
         UnboundCard {
-            HStack(alignment: .top, spacing: 14) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(Color.unbound.accent.opacity(0.12))
-                    Image(systemName: decision.iconSystemName)
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundStyle(Color.unbound.accent)
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(alignment: .center, spacing: 10) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(Color.unbound.accent.opacity(0.12))
+                        Image(systemName: decision.iconSystemName)
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundStyle(Color.unbound.accent)
+                    }
+                    .frame(width: 44, height: 44)
+
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("INPUT \(index + 1)")
+                            .font(.system(size: 9, weight: .bold, design: .monospaced))
+                            .tracking(1.0)
+                            .foregroundStyle(Color.unbound.textTertiary)
+
+                        Text(decision.inputSummary.uppercased())
+                            .font(Font.unbound.captionS.weight(.bold))
+                            .tracking(1.1)
+                            .foregroundStyle(Color.unbound.textSecondary)
+                            .lineLimit(2)
+                    }
+                    Spacer(minLength: 0)
                 }
-                .frame(width: 44, height: 44)
+
+                Rectangle()
+                    .fill(Color.unbound.borderSubtle)
+                    .frame(height: 0.5)
 
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(decision.inputSummary.uppercased())
-                        .font(Font.unbound.captionS)
-                        .tracking(1.2)
+                    Text("PROGRAM DECISION")
+                        .font(.system(size: 9, weight: .bold, design: .monospaced))
+                        .tracking(1.0)
                         .foregroundStyle(Color.unbound.textTertiary)
-
                     Text(decision.decisionApplied)
-                        .font(Font.unbound.bodyM)
+                        .font(Font.unbound.bodyMStrong)
                         .foregroundStyle(Color.unbound.textPrimary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                Spacer(minLength: 0)
             }
         }
     }

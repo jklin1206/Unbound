@@ -1,8 +1,12 @@
 import Foundation
+import Supabase
+
+protocol ClaudeTransport: Sendable {
+    func send(_ body: ClaudeClient.RequestBody) async throws -> (data: Data, status: Int)
+}
 
 // Anthropic Messages API client. Supports text and vision, with forced tool use
-// for reliable structured-JSON output. Used directly from iOS during validation;
-// keys will move server-side before App Store submission.
+// for reliable structured-JSON output. Proxied through anthropic_proxy Edge Function.
 
 final class ClaudeClient: @unchecked Sendable {
     static let shared = ClaudeClient()
@@ -31,16 +35,12 @@ final class ClaudeClient: @unchecked Sendable {
         }
     }
 
-    private let session: URLSession
     private let logger = LoggingService.shared
-    private let endpoint = URL(string: "https://api.anthropic.com/v1/messages")!
-    private let apiVersion = "2023-06-01"
     private let maxRetries = 3
+    private let transport: ClaudeTransport
 
-    private init() {
-        let config = URLSessionConfiguration.default
-        config.timeoutIntervalForRequest = 120
-        self.session = URLSession(configuration: config)
+    init(transport: ClaudeTransport = EdgeFunctionTransport()) {
+        self.transport = transport
     }
 
     // MARK: - Public
@@ -57,7 +57,8 @@ final class ClaudeClient: @unchecked Sendable {
             system: system,
             messages: [Message(role: "user", content: [.text(userText)])],
             tools: nil,
-            toolChoice: nil
+            toolChoice: nil,
+            temperature: nil
         )
         let response = try await sendWithRetry(body: body)
         for block in response.content {
@@ -72,14 +73,16 @@ final class ClaudeClient: @unchecked Sendable {
         system: String,
         userText: String,
         tool: Tool,
-        maxTokens: Int = 4096
+        maxTokens: Int = 4096,
+        temperature: Double? = nil
     ) async throws -> T {
         try await sendStructuredInternal(
             model: model,
             system: system,
             userBlocks: [.text(userText)],
             tool: tool,
-            maxTokens: maxTokens
+            maxTokens: maxTokens,
+            temperature: temperature
         )
     }
 
@@ -90,7 +93,8 @@ final class ClaudeClient: @unchecked Sendable {
         userText: String,
         jpegImages: [Data],
         tool: Tool,
-        maxTokens: Int = 4096
+        maxTokens: Int = 4096,
+        temperature: Double? = nil
     ) async throws -> T {
         var blocks: [ContentBlock] = jpegImages.map {
             .image(base64: $0.base64EncodedString(), mediaType: "image/jpeg")
@@ -101,7 +105,8 @@ final class ClaudeClient: @unchecked Sendable {
             system: system,
             userBlocks: blocks,
             tool: tool,
-            maxTokens: maxTokens
+            maxTokens: maxTokens,
+            temperature: temperature
         )
     }
 
@@ -112,7 +117,8 @@ final class ClaudeClient: @unchecked Sendable {
         system: String,
         userBlocks: [ContentBlock],
         tool: Tool,
-        maxTokens: Int
+        maxTokens: Int,
+        temperature: Double?
     ) async throws -> T {
         let body = RequestBody(
             model: model.rawValue,
@@ -120,7 +126,8 @@ final class ClaudeClient: @unchecked Sendable {
             system: system,
             messages: [Message(role: "user", content: userBlocks)],
             tools: [tool],
-            toolChoice: ToolChoice(type: "tool", name: tool.name)
+            toolChoice: ToolChoice(type: "tool", name: tool.name),
+            temperature: temperature
         )
         let response = try await sendWithRetry(body: body)
         for block in response.content {
@@ -159,20 +166,10 @@ final class ClaudeClient: @unchecked Sendable {
     }
 
     private func send(body: RequestBody) async throws -> ResponseBody {
-        var request = URLRequest(url: endpoint)
-        request.httpMethod = "POST"
-        request.setValue(Secrets.claudeAPIKey, forHTTPHeaderField: "x-api-key")
-        request.setValue(apiVersion, forHTTPHeaderField: "anthropic-version")
-        request.setValue("application/json", forHTTPHeaderField: "content-type")
-        request.httpBody = try JSONEncoder().encode(body)
-
-        let (data, urlResponse) = try await session.data(for: request)
-        guard let http = urlResponse as? HTTPURLResponse else {
-            throw ClaudeError.invalidResponse
-        }
-        guard (200...299).contains(http.statusCode) else {
+        let (data, status) = try await transport.send(body)
+        guard (200...299).contains(status) else {
             let message = String(data: data, encoding: .utf8) ?? ""
-            throw ClaudeError.apiError(status: http.statusCode, message: message)
+            throw ClaudeError.apiError(status: status, message: message)
         }
         return try JSONDecoder().decode(ResponseBody.self, from: data)
     }
@@ -204,9 +201,10 @@ extension ClaudeClient {
         let messages: [Message]
         let tools: [Tool]?
         let toolChoice: ToolChoice?
+        let temperature: Double?
 
         enum CodingKeys: String, CodingKey {
-            case model, system, messages, tools
+            case model, system, messages, tools, temperature
             case maxTokens = "max_tokens"
             case toolChoice = "tool_choice"
         }
@@ -280,6 +278,26 @@ extension ClaudeClient {
             default:
                 self = .unknown
             }
+        }
+    }
+}
+
+// Routes the one Anthropic call through the anthropic_proxy Edge Function.
+// supabase-swift attaches the user session JWT + apikey automatically.
+struct EdgeFunctionTransport: ClaudeTransport {
+    func send(_ body: ClaudeClient.RequestBody) async throws -> (data: Data, status: Int) {
+        do {
+            return try await UnboundSupabase.client.functions.invoke(
+                "anthropic_proxy",
+                options: FunctionInvokeOptions(body: body)
+            ) { data, response in (data, response.statusCode) }
+        } catch let error as FunctionsError {
+            if case .httpError(let code, let data) = error {
+                // Surface as a normal HTTP result so ClaudeClient's existing
+                // status handling + sendWithRetry policy applies (e.g. 429).
+                return (data, code)
+            }
+            throw error
         }
     }
 }

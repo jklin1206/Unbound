@@ -7,11 +7,11 @@ import SwiftUI
 // Mythic nodes get amplified visual treatment (outer ring / gold stroke).
 //
 // Layout: nodes positioned by tier (row = tier) and within-tier order
-// (column spread around center). Simple, predictable, no fancy
-// force-directed layout.
+// sorted barycentrically (by average column of prereqs in the prior
+// tier) to minimize edge crossings.
 //
-// Calisthenic Control has ~22 nodes and gets pan/zoom — all other
-// clusters fit in one viewport at standard node spacing.
+// Horizontal + vertical scroll is always available so dense clusters
+// scroll naturally rather than being clipped.
 
 struct ClusterDetailView: View {
     let cluster: SkillCluster
@@ -21,16 +21,9 @@ struct ClusterDetailView: View {
     var onNodeTap: (SkillNode) -> Void
 
     @Environment(\.dismiss) private var dismiss
-    @State private var scale: CGFloat = 1.0
-    @GestureState private var pinchScale: CGFloat = 1.0
 
     private var clusterNodes: [SkillNode] {
         graph.nodes(in: cluster)
-    }
-
-    /// Whether to enable pan+zoom. Only needed for dense clusters.
-    private var densePan: Bool {
-        clusterNodes.count > 14
     }
 
     var body: some View {
@@ -124,6 +117,7 @@ struct ClusterDetailView: View {
 
     private var graphCanvas: some View {
         let layout = computeLayout()
+        let tiers = computeEffectiveTiers()
         let width = layout.width
         let height = layout.height
 
@@ -134,6 +128,15 @@ struct ClusterDetailView: View {
                     guard let to = layout.positions[node.id] else { continue }
                     let allPrereqIds = node.prereqs.flatMap { $0.nodeIds }
                     for prereqId in allPrereqIds {
+                        guard let prereq = graph.node(id: prereqId) else { continue }
+                        // Only render descending edges — skip any edge where
+                        // prereq is at the same effective tier or higher than
+                        // the node. Use effective tier (computed from prereqs)
+                        // so edges always descend even when hand-assigned tiers
+                        // are inconsistent.
+                        let prereqTier = tiers[prereq.id] ?? prereq.tier
+                        let nodeTier = tiers[node.id] ?? node.tier
+                        guard prereqTier < nodeTier else { continue }
                         guard clusterNodes.contains(where: { $0.id == prereqId }),
                               let from = layout.positions[prereqId] else { continue }
                         var path = Path()
@@ -162,24 +165,11 @@ struct ClusterDetailView: View {
         }
         .frame(width: width, height: height)
 
-        if densePan {
-            return AnyView(
-                ScrollView([.horizontal, .vertical], showsIndicators: false) {
-                    canvas
-                        .scaleEffect(scale * pinchScale)
-                        .gesture(
-                            MagnificationGesture()
-                                .updating($pinchScale) { v, s, _ in s = v }
-                                .onEnded { v in
-                                    scale = max(0.6, min(1.6, scale * v))
-                                }
-                        )
-                }
-                .frame(height: 520)
-            )
-        } else {
-            return AnyView(canvas)
+        return ScrollView([.horizontal, .vertical], showsIndicators: false) {
+            canvas
+                .padding(.vertical, 20)
         }
+        .frame(maxHeight: 560)
     }
 
     // MARK: Cross-cluster callouts
@@ -252,17 +242,104 @@ struct ClusterDetailView: View {
         let height: CGFloat
     }
 
-    private func computeLayout() -> Layout {
-        let rowHeight: CGFloat = densePan ? 150 : 130
-        let colSpacing: CGFloat = densePan ? 110 : 130
-        let minTier = clusterNodes.map(\.tier).min() ?? 1
+    /// For each within-cluster node, compute its effective tier as depth from
+    /// the nearest root within this cluster. Root nodes (no within-cluster
+    /// prereqs) get effective tier 1. Cross-cluster prereqs are ignored — they
+    /// don't count toward depth inside THIS cluster.
+    ///
+    /// If the node has within-cluster prereqs, its effective tier is
+    /// `1 + max(effective tier of each within-cluster prereq)`.
+    ///
+    /// Cycle-safe: uses memoization + an "in-progress" marker to detect cycles.
+    /// If a cycle is detected, the involved nodes fall back to their
+    /// hand-assigned `tier` (graceful degradation).
+    private func computeEffectiveTiers() -> [String: Int] {
+        let nodeById = Dictionary(uniqueKeysWithValues: clusterNodes.map { ($0.id, $0) })
+        var cache: [String: Int] = [:]
+        var inProgress: Set<String> = []
 
-        // Group by tier
-        let byTier = Dictionary(grouping: clusterNodes, by: \.tier)
-            .mapValues { $0.sorted { $0.id < $1.id } }
+        func depth(_ id: String) -> Int {
+            if let cached = cache[id] { return cached }
+            guard let node = nodeById[id] else { return 1 }
+            if inProgress.contains(id) {
+                // Cycle — fall back to hand-assigned tier for this node.
+                return node.tier
+            }
+            inProgress.insert(id)
+            defer { inProgress.remove(id) }
+
+            let withinClusterPrereqIds = node.prereqs.flatMap { $0.nodeIds }
+                .filter { nodeById[$0] != nil }
+
+            let d: Int
+            if withinClusterPrereqIds.isEmpty {
+                d = 1   // root within this cluster
+            } else {
+                let maxPrereqDepth = withinClusterPrereqIds.map { depth($0) }.max() ?? 0
+                d = maxPrereqDepth + 1
+            }
+            cache[id] = d
+            return d
+        }
+
+        for node in clusterNodes {
+            _ = depth(node.id)
+        }
+        return cache
+    }
+
+    private func computeLayout() -> Layout {
+        // Pan+zoom is always on, so dense clusters just fit-to-width on appear.
+        // Use consistent spacing regardless of cluster size.
+        let dense = clusterNodes.count > 14
+        let rowHeight: CGFloat = dense ? 150 : 130
+        let colSpacing: CGFloat = dense ? 110 : 130
+        let effectiveTier = computeEffectiveTiers()
+        let minTier = clusterNodes.compactMap { effectiveTier[$0.id] }.min() ?? 1
+
+        // Group by effective tier (derived from prereq depth rather than the
+        // hand-assigned data field — guarantees every node renders below its
+        // within-cluster prereqs).
+        let byTier = Dictionary(grouping: clusterNodes, by: { effectiveTier[$0.id] ?? $0.tier })
 
         let sortedTiers = byTier.keys.sorted()
-        let maxColumns = byTier.values.map(\.count).max() ?? 1
+
+        // Barycentric within-tier ordering. For each tier (top down), sort its
+        // nodes by the average column position of their prereqs in the prior
+        // tier. Nodes with no prior-tier prereqs (root / cross-cluster only)
+        // get a center barycenter as a stable fallback.
+        var orderedByTier: [Int: [SkillNode]] = [:]
+        for (tierIdx, tier) in sortedTiers.enumerated() {
+            let nodes = byTier[tier] ?? []
+            if tierIdx == 0 {
+                // Root tier: stable alphabetical by id.
+                orderedByTier[tier] = nodes.sorted { $0.id < $1.id }
+                continue
+            }
+
+            let prevTier = sortedTiers[tierIdx - 1]
+            let prevOrdered = orderedByTier[prevTier] ?? []
+            let prevIndex: [String: Int] = Dictionary(
+                uniqueKeysWithValues: prevOrdered.enumerated().map { ($1.id, $0) }
+            )
+            let centerIdx = Double(max(1, prevOrdered.count)) / 2.0
+
+            let sorted = nodes.sorted { a, b in
+                func barycenter(_ node: SkillNode) -> Double {
+                    let prereqIds = node.prereqs.flatMap { $0.nodeIds }
+                    let idxs = prereqIds.compactMap { prevIndex[$0] }.map(Double.init)
+                    guard !idxs.isEmpty else { return centerIdx }
+                    return idxs.reduce(0, +) / Double(idxs.count)
+                }
+                let ba = barycenter(a)
+                let bb = barycenter(b)
+                if ba != bb { return ba < bb }
+                return a.id < b.id  // stable tiebreak
+            }
+            orderedByTier[tier] = sorted
+        }
+
+        let maxColumns = orderedByTier.values.map(\.count).max() ?? 1
         let width = max(320, CGFloat(maxColumns) * colSpacing + 80)
         let height = CGFloat(sortedTiers.count) * rowHeight + 60
         let centerX = width / 2
@@ -270,7 +347,7 @@ struct ClusterDetailView: View {
         var positions: [String: CGPoint] = [:]
         for tier in sortedTiers {
             let row = tier - minTier
-            let nodes = byTier[tier] ?? []
+            let nodes = orderedByTier[tier] ?? []
             let totalWidth = CGFloat(nodes.count - 1) * colSpacing
             let startX = centerX - totalWidth / 2
             for (idx, n) in nodes.enumerated() {

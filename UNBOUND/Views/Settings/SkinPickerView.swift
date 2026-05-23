@@ -3,7 +3,7 @@ import SwiftUI
 // MARK: - SkinPickerView
 //
 // Settings sub-screen. Lists every SkillTreeSkin with lock states + a
-// preview swatch. Tapping an unlocked skin switches SkinService.
+// live tree-map swatch. Tapping an unlocked skin switches SkinService.
 
 struct SkinPickerView: View {
     @StateObject private var skinService = SkinService.shared
@@ -26,7 +26,7 @@ struct SkinPickerView: View {
                 .padding(.top, 12)
             }
         }
-        .navigationTitle("Skill tree skin")
+        .navigationTitle("Skill tree cosmetics")
         .navigationBarTitleDisplayMode(.inline)
         .task {
             withAnimation(.easeInOut(duration: 4).repeatForever(autoreverses: true)) {
@@ -45,11 +45,11 @@ struct SkinPickerView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("COSMETICS")
+            Text("SKILL TREE COSMETICS")
                 .font(Font.unbound.monoS)
                 .tracking(1.8)
                 .foregroundStyle(Color.unbound.textTertiary)
-            Text("Skins change the look of your tree, rank chips, and share cards. They unlock as your arc rank climbs.")
+            Text("Cosmetics change the tree background, rank bands, hex glow, rails, chips, and share cards. They unlock as your named rank climbs.")
                 .font(Font.unbound.bodyS)
                 .foregroundStyle(Color.unbound.textSecondary)
         }
@@ -119,8 +119,39 @@ struct SkinPickerView: View {
 
     private func swatch(for skin: SkillTreeSkin) -> some View {
         ZStack {
+            if UIImage(named: skin.backgroundAssetName) != nil {
+                Image(skin.backgroundAssetName)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+            } else {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(skin.nodeGradient)
+            }
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(skin.nodeGradient)
+                .fill(skin.mapBackground)
+                .blendMode(.screen)
+            VStack(spacing: 6) {
+                ForEach(SkillRank.allCases, id: \.self) { rank in
+                    Capsule()
+                        .fill((rank.isAscendedTier ? skin.impactColor : skin.primaryColor).opacity(0.18 + Double(rank.difficultyOrder) * 0.05))
+                        .frame(height: 3)
+                }
+            }
+            .padding(.horizontal, 11)
+            .padding(.vertical, 10)
+            HStack(spacing: 8) {
+                Circle()
+                    .fill(skin.nodeFill(state: .achieved, faded: false))
+                    .frame(width: 12, height: 12)
+                    .overlay(Circle().strokeBorder(skin.primaryColor, lineWidth: 1))
+                Capsule()
+                    .fill(skin.primaryColor.opacity(0.75))
+                    .frame(width: 16, height: 2)
+                Circle()
+                    .fill(skin.nodeFill(state: .mastered, faded: false))
+                    .frame(width: 12, height: 12)
+                    .overlay(Circle().strokeBorder(skin.impactColor, lineWidth: 1))
+            }
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .strokeBorder(skin.primaryColor.opacity(pulse && skin == .holographic ? 0.8 : 0.45), lineWidth: 1.5)
             Image(systemName: "hexagon.fill")
@@ -128,6 +159,7 @@ struct SkinPickerView: View {
                 .foregroundStyle(skin.primaryColor)
                 .shadow(color: skin.impactColor.opacity(0.6), radius: 8)
         }
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 
     @ViewBuilder
@@ -144,7 +176,7 @@ struct SkinPickerView: View {
     }
 
     private var footer: some View {
-        Text("Gold and holographic skins are permanent once unlocked — even if your rank decays, the skin stays in your collection.")
+        Text("Unlocked cosmetics stay in your collection. Graphite is included as a lower-purple default for quieter maps.")
             .font(Font.unbound.captionS)
             .foregroundStyle(Color.unbound.textTertiary)
             .frame(maxWidth: .infinity, alignment: .leading)

@@ -12,6 +12,7 @@ settings:
     DEVELOPMENT_TEAM: ""
     CODE_SIGN_STYLE: Automatic
     INFOPLIST_KEY_NSCameraUsageDescription: "UNBOUND needs camera access to take your body scan photos"
+    INFOPLIST_KEY_NSPhotoLibraryUsageDescription: "UNBOUND needs photo library access to set your profile picture"
     INFOPLIST_KEY_UILaunchScreen_Generation: true
     INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
     INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown"
@@ -29,6 +30,14 @@ packages:
   Supabase:
     url: https://github.com/supabase-community/supabase-swift
     from: "2.0.0"
+  # Hot-reload for SwiftUI iteration. Debug-only; the linker keeps it
+  # out of release builds because the import is wrapped in #if DEBUG.
+  # Setup: install InjectionIII.app once and drag UNBOUND.xcodeproj
+  # onto its window. After that, save any .swift file and the simulator
+  # re-renders the affected views in ~1s with no rebuild.
+  HotReloading:
+    url: https://github.com/johnno1962/HotReloading
+    from: "2.0.0"
 
 targets:
   UNBOUND:
@@ -39,6 +48,7 @@ targets:
         excludes:
           - CloudFunctions/**
           - supabase/**
+          - Views/Components/Unbound/TierBloomToast.swift
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.unboundapp.ios
@@ -52,3 +62,18 @@ targets:
         product: SuperwallKit
       - package: Supabase
         product: Supabase
+      - package: HotReloading
+        product: HotReloading
+
+  UNBOUNDTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: UNBOUNDTests
+    dependencies:
+      - target: UNBOUND
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        BUNDLE_LOADER: "$(TEST_HOST)"
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/UNBOUND.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/UNBOUND"

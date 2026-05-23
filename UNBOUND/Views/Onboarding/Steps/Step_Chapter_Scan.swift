@@ -6,8 +6,8 @@ struct Step_Chapter_Scan: View {
     var body: some View {
         ChapterInterstitial(
             number: "CHAPTER III",
-            title: "THE SCAN",
-            message: "Your truth. One frame.",
+            title: "ARC ENTRY",
+            message: "Log your Day Zero. The climb starts here.",
             onContinue: onContinue
         )
     }

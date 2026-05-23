@@ -20,6 +20,9 @@ import Supabase
 
 private let cachedUserIdKey = "unbound.supabase.cachedUserId"
 private let legacyLocalUserIdKey = "unbound.localUserId"
+#if DEBUG
+private let debugUserIdOverrideKey = "unbound.debugUserIdOverride"
+#endif
 
 final class AuthService: NSObject, AuthServiceProtocol, @unchecked Sendable {
     static let shared = AuthService()
@@ -29,11 +32,17 @@ final class AuthService: NSObject, AuthServiceProtocol, @unchecked Sendable {
     private var currentNonce: String?
     private var appleSignInContinuation: CheckedContinuation<String, Error>?
     private var authStateListenerTask: Task<Void, Never>?
+    private var appleSignInController: ASAuthorizationController?
 
     // MARK: Protocol surface
 
     var currentUserId: String? {
-        UserDefaults.standard.string(forKey: cachedUserIdKey)
+        #if DEBUG
+        if let debugUserId = UserDefaults.standard.string(forKey: debugUserIdOverrideKey) {
+            return debugUserId
+        }
+        #endif
+        return UserDefaults.standard.string(forKey: cachedUserIdKey)
             ?? UserDefaults.standard.string(forKey: legacyLocalUserIdKey)
     }
 
@@ -44,12 +53,19 @@ final class AuthService: NSObject, AuthServiceProtocol, @unchecked Sendable {
     }
 
     private override init() {
-        self.authStateSubject = CurrentValueSubject<String?, Never>(
-            UserDefaults.standard.string(forKey: cachedUserIdKey)
-                ?? UserDefaults.standard.string(forKey: legacyLocalUserIdKey)
-        )
+        self.authStateSubject = CurrentValueSubject<String?, Never>(Self.initialUserId())
         super.init()
         startAuthStateListener()
+    }
+
+    private static func initialUserId() -> String? {
+        #if DEBUG
+        if let debugUserId = UserDefaults.standard.string(forKey: debugUserIdOverrideKey) {
+            return debugUserId
+        }
+        #endif
+        return UserDefaults.standard.string(forKey: cachedUserIdKey)
+            ?? UserDefaults.standard.string(forKey: legacyLocalUserIdKey)
     }
 
     // MARK: Sign in with Apple
@@ -67,6 +83,8 @@ final class AuthService: NSObject, AuthServiceProtocol, @unchecked Sendable {
 
             let controller = ASAuthorizationController(authorizationRequests: [request])
             controller.delegate = self
+            controller.presentationContextProvider = self
+            self.appleSignInController = controller
             controller.performRequests()
         }
     }
@@ -103,6 +121,10 @@ final class AuthService: NSObject, AuthServiceProtocol, @unchecked Sendable {
 
     func signOut() throws {
         Task { try? await UnboundSupabase.client.auth.signOut() }
+        Task { @MainActor in ProgramStore.shared.clear() }
+        #if DEBUG
+        UserDefaults.standard.removeObject(forKey: debugUserIdOverrideKey)
+        #endif
         UserDefaults.standard.removeObject(forKey: cachedUserIdKey)
         UserDefaults.standard.removeObject(forKey: legacyLocalUserIdKey)
         authStateSubject.send(nil)
@@ -125,6 +147,16 @@ final class AuthService: NSObject, AuthServiceProtocol, @unchecked Sendable {
         authStateSubject.send(uid)
         logger.log("Auto-provisioned anonymous user \(uid)", level: .info)
     }
+
+    #if DEBUG
+    func activateDevUser(id uid: String) {
+        UserDefaults.standard.removeObject(forKey: cachedUserIdKey)
+        UserDefaults.standard.set(uid, forKey: debugUserIdOverrideKey)
+        UserDefaults.standard.set(uid, forKey: legacyLocalUserIdKey)
+        authStateSubject.send(uid)
+        logger.log("Activated debug user \(uid)", level: .info)
+    }
+    #endif
 
     // MARK: Apple sign-in result handler
 
@@ -172,6 +204,7 @@ final class AuthService: NSObject, AuthServiceProtocol, @unchecked Sendable {
             appleSignInContinuation?.resume(throwing: AppError.authSignInFailed(underlying: error))
         }
         appleSignInContinuation = nil
+        appleSignInController = nil
     }
 
     // MARK: Auth state listener — keeps UserDefaults cache in sync with Supabase session
@@ -181,9 +214,20 @@ final class AuthService: NSObject, AuthServiceProtocol, @unchecked Sendable {
             guard let self else { return }
             for await (event, session) in UnboundSupabase.client.auth.authStateChanges {
                 switch event {
-                case .signedIn, .tokenRefreshed, .initialSession:
+                case .signedIn, .tokenRefreshed:
+                    // Fresh session by definition (sign-in just completed or a
+                    // refresh just succeeded) — safe to cache.
                     if let uid = session?.user.id.uuidString {
                         self.cacheUserId(uid)
+                    }
+                case .initialSession:
+                    // With emitLocalSessionAsInitialSession=true (see
+                    // SupabaseClient.swift), this fires with the locally stored
+                    // session even if it's expired. Only treat it as signed-in
+                    // when still valid; an expired local session must NOT opt
+                    // the user in — auto-refresh or explicit sign-in drives that.
+                    if let session, !session.isExpired {
+                        self.cacheUserId(session.user.id.uuidString)
                     }
                 case .signedOut, .userDeleted:
                     UserDefaults.standard.removeObject(forKey: cachedUserIdKey)
@@ -216,6 +260,18 @@ final class AuthService: NSObject, AuthServiceProtocol, @unchecked Sendable {
     }
 }
 
+// MARK: - ASAuthorizationControllerPresentationContextProviding
+
+extension AuthService: ASAuthorizationControllerPresentationContextProviding {
+    func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
+        UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap { $0.windows }
+            .first { $0.isKeyWindow }
+            ?? ASPresentationAnchor()
+    }
+}
+
 // MARK: - ASAuthorizationControllerDelegate
 
 extension AuthService: ASAuthorizationControllerDelegate {
@@ -242,5 +298,6 @@ extension AuthService: ASAuthorizationControllerDelegate {
         logger.log("Apple authorization failed: \(error)", level: .error)
         appleSignInContinuation?.resume(throwing: AppError.authSignInFailed(underlying: error))
         appleSignInContinuation = nil
+        appleSignInController = nil
     }
 }

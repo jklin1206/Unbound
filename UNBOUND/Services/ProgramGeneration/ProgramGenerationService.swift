@@ -20,10 +20,10 @@ final class ProgramGenerationService: ProgramGenerationServiceProtocol, @uncheck
             documentId: analysis.scanId
         )
 
-        let archetype = userProfile.preferredArchetype ?? analysis.targetArchetype
+        let buildIdentity = await AttributeService.shared.snapshot(userId: userProfile.id, asOf: Date()).buildIdentity
 
         let inputs = buildInputs(
-            archetype: archetype,
+            buildIdentity: buildIdentity,
             userProfile: userProfile,
             analysis: analysis
         )
@@ -35,22 +35,22 @@ final class ProgramGenerationService: ProgramGenerationServiceProtocol, @uncheck
                 userId: userProfile.id,
                 scanId: analysis.scanId,
                 analysisId: analysis.id,
-                archetype: archetype
+                buildIdentity: buildIdentity
             )
             logger.log("Program generated via Claude", level: .info, context: [
                 "programId": program.id,
-                "archetype": archetype.rawValue
+                "buildIdentity": buildIdentity.displayName
             ])
         } else {
             program = await localFallback(
                 userProfile: userProfile,
-                archetype: archetype,
+                buildIdentity: buildIdentity,
                 scanId: analysis.scanId,
                 analysisId: analysis.id
             )
             logger.log("Program generated via local fallback", level: .warning, context: [
                 "programId": program.id,
-                "archetype": archetype.rawValue
+                "buildIdentity": buildIdentity.displayName
             ])
         }
 
@@ -73,7 +73,6 @@ final class ProgramGenerationService: ProgramGenerationServiceProtocol, @uncheck
 
     func generateFromOnboarding(
         userId: String,
-        archetype: Archetype,
         targetFrequency: TargetFrequency?,
         equipment: Set<Equipment>,
         experience: Experience?,
@@ -92,8 +91,14 @@ final class ProgramGenerationService: ProgramGenerationServiceProtocol, @uncheck
         heightCm: Double = 0,
         weightKg: Double = 0
     ) async -> TrainingProgram {
+        // MIGRATION: derive BuildIdentity from AttributeService rather than relying
+        // on the archetype param. The archetype param is kept for external API
+        // compatibility (callers like UnboundHomeView still pass it) until Phase 2g
+        // removes it from the call sites.
+        let buildIdentity = await AttributeService.shared.snapshot(userId: userId, asOf: Date()).buildIdentity
+
         let inputs = ProgramGenerationPrompt.Inputs(
-            archetype: archetype,
+            buildIdentity: buildIdentity,
             targetFrequency: days(for: targetFrequency),
             equipment: equipment.map(\.rawValue),
             experience: experience?.rawValue ?? "unspecified",
@@ -123,14 +128,15 @@ final class ProgramGenerationService: ProgramGenerationServiceProtocol, @uncheck
                 userId: userId,
                 scanId: "",
                 analysisId: "",
-                archetype: archetype
+                buildIdentity: buildIdentity
             )
             logger.log("Onboarding program via Claude", level: .info, context: ["programId": program.id])
         } else {
             let calibrations = await CalibrationService.shared.fetchAll(userId: userId)
-            let rank = await resolveArchetypeRank(userId: userId, archetype: archetype)
+            let rank = await resolveArchetypeRank(userId: userId)
+            let preferences = (try? await ExercisePreferenceService.shared.fetchPreferences(userId: userId)) ?? []
             let fallback = LocalProgramGenerator.generate(
-                archetype: archetype,
+                buildIdentity: buildIdentity,
                 targetFrequency: targetFrequency,
                 equipment: equipment,
                 experience: experience,
@@ -148,7 +154,7 @@ final class ProgramGenerationService: ProgramGenerationServiceProtocol, @uncheck
                 gender: gender,
                 heightCm: heightCm,
                 weightKg: weightKg,
-                preferences: [],
+                preferences: preferences,
                 progressionStates: [],
                 familyStates: [],
                 customExercises: [],
@@ -160,12 +166,37 @@ final class ProgramGenerationService: ProgramGenerationServiceProtocol, @uncheck
             logger.log("Onboarding program via local fallback", level: .warning, context: ["programId": program.id])
         }
 
-        try? await database.create(program, collection: "programs", documentId: program.id)
-        try? await database.update(
-            ["currentProgramId": program.id],
-            collection: "users",
-            documentId: userId
-        )
+        // Persist on a DETACHED task so a torn-down caller cannot abort the
+        // writes. These two calls used to run inside the caller's task as
+        // `try? await …`; when the SwiftUI `.task` that kicked off generation
+        // is cancelled (RootView re-routes the moment sign-in flips
+        // `isAuthenticated`, or the user switches tabs), each `await` threw
+        // CancellationError, `try?` swallowed it, and the generated program
+        // was never saved — so `currentProgramId` never got set and the user
+        // was stuck forever on "No program yet" (regenerating + re-cancelling
+        // on every appearance). A detached task is independent of the caller's
+        // cancellation tree, so the program reliably lands in the DB and the
+        // next load short-circuits to it.
+        let db = database
+        let log = logger
+        let savedProgram = program
+        let savedUserId = userId
+        Task.detached(priority: .userInitiated) {
+            do {
+                try await db.create(savedProgram, collection: "programs", documentId: savedProgram.id)
+                try await db.update(
+                    ["currentProgramId": savedProgram.id],
+                    collection: "users",
+                    documentId: savedUserId
+                )
+            } catch {
+                log.log(
+                    "Onboarding program persist failed",
+                    level: .error,
+                    context: ["programId": savedProgram.id, "error": "\(error)"]
+                )
+            }
+        }
         return program
     }
 
@@ -191,7 +222,7 @@ final class ProgramGenerationService: ProgramGenerationServiceProtocol, @uncheck
     // MARK: - Input builders
 
     private func buildInputs(
-        archetype: Archetype,
+        buildIdentity: BuildIdentity,
         userProfile: UserProfile,
         analysis: BodyAnalysis
     ) -> ProgramGenerationPrompt.Inputs {
@@ -200,7 +231,7 @@ final class ProgramGenerationService: ProgramGenerationServiceProtocol, @uncheck
             .map { $0.muscleGroup.displayName }
 
         return ProgramGenerationPrompt.Inputs(
-            archetype: archetype,
+            buildIdentity: buildIdentity,
             targetFrequency: days(for: userProfile.targetFrequency),
             equipment: (userProfile.equipment ?? []).map(\.rawValue),
             experience: userProfile.experience?.rawValue ?? "unspecified",
@@ -238,14 +269,15 @@ final class ProgramGenerationService: ProgramGenerationServiceProtocol, @uncheck
 
     private func localFallback(
         userProfile: UserProfile,
-        archetype: Archetype,
+        buildIdentity: BuildIdentity,
         scanId: String,
         analysisId: String
     ) async -> TrainingProgram {
         let calibrations = await CalibrationService.shared.fetchAll(userId: userProfile.id)
-        let rank = await resolveArchetypeRank(userId: userProfile.id, archetype: archetype)
+        let rank = await resolveArchetypeRank(userId: userProfile.id)
+        let preferences = (try? await ExercisePreferenceService.shared.fetchPreferences(userId: userProfile.id)) ?? []
         return LocalProgramGenerator.generate(
-            archetype: archetype,
+            buildIdentity: buildIdentity,
             targetFrequency: userProfile.targetFrequency,
             equipment: Set(userProfile.equipment ?? []),
             experience: userProfile.experience,
@@ -263,7 +295,7 @@ final class ProgramGenerationService: ProgramGenerationServiceProtocol, @uncheck
             gender: userProfile.gender ?? .unspecified,
             heightCm: userProfile.heightCm ?? 0,
             weightKg: userProfile.weightKg ?? 0,
-            preferences: [],
+            preferences: preferences,
             progressionStates: [],
             familyStates: [],
             customExercises: [],
@@ -275,13 +307,13 @@ final class ProgramGenerationService: ProgramGenerationServiceProtocol, @uncheck
         )
     }
 
-    /// Resolve the user's current archetype aggregate rank. Runs on the
+    /// Resolve the user's current aggregate rank. Runs on the
     /// main actor (RankService is @MainActor) and funnels back here via
     /// structured concurrency.
-    private func resolveArchetypeRank(userId: String, archetype: Archetype) async -> SubRank {
+    private func resolveArchetypeRank(userId: String) async -> SubRank {
         await MainActor.run {
             Task { @MainActor in
-                await RankService.shared.archetypeRank(userId: userId, archetype: archetype)
+                await RankService.shared.aggregateRank(userId: userId)
             }
         }.value
     }

@@ -19,13 +19,114 @@ final class RankService: RankServiceProtocol {
 
     private init() {}
 
-    // MARK: Compute
+    // MARK: - SkillTier API (Phase 4.2+)
+
+    func computeTier(
+        skill: SkillNode,
+        history: [ExerciseLogEntry],
+        bodyweightKg: Double
+    ) -> SkillTier {
+        // Walk tiers from highest to lowest. First satisfied wins.
+        for tier in SkillTier.allCases.reversed() {
+            guard let criterion = skill.tierCriteria[tier] else { continue }
+            if TierCriterionEvaluator.satisfied(
+                criterion: criterion,
+                history: history,
+                bodyweightKg: bodyweightKg
+            ) {
+                return tier
+            }
+        }
+        return .initiate
+    }
+
+    // MARK: - Ascension Tier Evaluation
+
+    /// Evaluate tier crossings introduced by the new log.
+    /// Fetches full log history, recomputes each skill's tier via computeTier,
+    /// compares against prior UserSkillTierState, and returns the list of
+    /// SkillTierAdvance events. Persists updated state when any crossing occurred.
+    func evaluateTierCrossings(log: WorkoutLog, userId: String) async -> [SkillTierAdvance] {
+        let tierStore = UserSkillTierStore.shared
+        let priorState = tierStore.load(userId: userId)
+
+        // Fetch user profile for bodyweight — same pattern as saveLog / RankService.evaluate.
+        let profile: UserProfile? = try? await database.read(collection: "users", documentId: userId)
+        let bodyweightKg = profile?.weightKg ?? 70.0
+
+        // Fetch full log history ascending so cumulative tier criteria are correct.
+        let allLogs: [WorkoutLog]
+        do {
+            allLogs = try await database.query(
+                collection: "workoutLogs",
+                field: "userId",
+                isEqualTo: userId,
+                orderBy: "startedAt",
+                descending: false,
+                limit: nil
+            )
+        } catch {
+            logger.log("RankService.evaluateTierCrossings: failed to fetch logs: \(error)", level: .warning)
+            return []
+        }
+
+        // Flatten all entries across full history. computeTier + TierCriterionEvaluator
+        // handle per-exercise filtering internally via criterion exerciseName matching.
+        let allEntries = allLogs.flatMap { $0.exerciseEntries }
+
+        var newState = priorState
+        var advances: [SkillTierAdvance] = []
+
+        for node in SkillGraph.shared.nodes {
+            guard !node.tierCriteria.isEmpty else { continue }
+
+            let newTier = computeTier(skill: node, history: allEntries, bodyweightKg: bodyweightKg)
+            let priorTier = priorState.tier(for: node.id)
+
+            if newTier > priorTier {
+                advances.append(SkillTierAdvance(skillId: node.id, from: priorTier, to: newTier))
+                newState.perSkill[node.id] = newTier
+                newState.rankUpsEarned += newTier.rawValue - priorTier.rawValue
+                if newTier == .ascendant && !newState.ascendantSkills.contains(node.id) {
+                    newState.ascendantSkills.append(node.id)
+                }
+            }
+        }
+
+        if !advances.isEmpty {
+            tierStore.save(newState, userId: userId)
+        }
+
+        return advances
+    }
+
+    // MARK: - State + Aggregate Tier
+
+    /// Load the full UserSkillTierState for a user. Used by views that need
+    /// per-skill tier lookups without going through async evaluateTierCrossings.
+    func state(userId: String) -> UserSkillTierState {
+        UserSkillTierStore.shared.load(userId: userId)
+    }
+
+    /// Aggregate skill tier across all per-skill + per-lift states.
+    /// Returns the highest tier reached.
+    func aggregateTier(userId: String) async -> SkillTier {
+        let skillState = UserSkillTierStore.shared.load(userId: userId)
+        let skillTiers = Array(skillState.perSkill.values)
+        let liftTiers = ["bench press", "back squat", "deadlift", "overhead press"].map {
+            LiftTierService.shared.tier(lift: $0, userId: userId)
+        }
+        let all = skillTiers + liftTiers
+        return all.max() ?? .initiate
+    }
+
+    // MARK: - Legacy SubRank Compute
 
     func computeLiftRank(
         entry: ExerciseLogEntry,
         bodyweightKg: Double
     ) -> SubRank? {
-        let key = entry.exerciseName.trimmingCharacters(in: .whitespaces).lowercased()
+        let key = rankExerciseKey(for: entry)
         let workingSets = entry.sets.filter { !$0.isWarmup }
         guard !workingSets.isEmpty else { return nil }
 
@@ -50,7 +151,8 @@ final class RankService: RankServiceProtocol {
         }
 
         // Bodyweight rep lifts: map peak reps onto an E..S ladder.
-        if let subRank = bodyweightRepRank(exerciseKey: key, entries: workingSets) {
+        if !isRegressionOnlyBodyweightKey(key),
+           let subRank = bodyweightRepRank(exerciseKey: key, entries: workingSets) {
             return subRank
         }
 
@@ -62,6 +164,11 @@ final class RankService: RankServiceProtocol {
         return nil
     }
 
+    // In-memory session-scoped lift rank cache.
+    // LiftRank Firestore persistence removed in rank-cleanup-v1.
+    // evaluate() still fires .rankAdvanced so cinematic/badge triggers work.
+    private var sessionRanks: [String: SubRank] = [:]
+
     func evaluate(log: WorkoutLog, bodyweightKg: Double) async {
         guard bodyweightKg > 0 else {
             logger.log("RankService skipping evaluate — bodyweight unknown", level: .debug)
@@ -70,47 +177,20 @@ final class RankService: RankServiceProtocol {
         for entry in log.exerciseEntries where !entry.skipped {
             guard let candidate = computeLiftRank(entry: entry, bodyweightKg: bodyweightKg) else { continue }
 
-            let key = entry.exerciseName.trimmingCharacters(in: .whitespaces).lowercased()
-            let id = "\(log.userId):\(key)"
+            let key = rankExerciseKey(for: entry)
 
-            var existing: LiftRank? = try? await database.read(
-                collection: "lift_ranks",
-                documentId: id
-            )
-
-            if existing == nil {
-                existing = LiftRank(
-                    userId: log.userId,
-                    exerciseKey: key,
-                    displayName: entry.exerciseName,
-                    currentRank: candidate,
-                    peakRank: candidate,
-                    lastAdvanceAt: log.startedAt,
-                    lastActivityAt: log.startedAt
-                )
-                try? await database.create(existing!, collection: "lift_ranks", documentId: id)
-                continue
-            }
-
-            var next = existing!
-            next.lastActivityAt = log.startedAt
-
-            if candidate > next.currentRank {
-                let from = next.currentRank
-                next.currentRank = candidate
-                if candidate > next.peakRank { next.peakRank = candidate }
-                next.lastAdvanceAt = log.startedAt
-                try? await database.create(next, collection: "lift_ranks", documentId: id)
-
+            let existing = sessionRanks[key] ?? .eMinus
+            if candidate > existing {
                 let event = RankAdvance(
                     userId: log.userId,
                     exerciseKey: key,
                     displayName: entry.exerciseName,
-                    fromRank: from,
+                    fromRank: existing,
                     toRank: candidate,
                     at: log.startedAt,
                     userBodyweightKg: bodyweightKg
                 )
+                sessionRanks[key] = candidate
                 NotificationCenter.default.post(
                     name: .rankAdvanced,
                     object: nil,
@@ -118,66 +198,20 @@ final class RankService: RankServiceProtocol {
                 )
                 _ = await BadgeService.shared.evaluate(trigger: .rankAdvanced(event))
                 logger.log(
-                    "Rank advanced: \(entry.exerciseName) \(from.displayName) → \(candidate.displayName)",
+                    "Rank advanced: \(entry.exerciseName) \(existing.displayName) → \(candidate.displayName)",
                     level: .info
                 )
-            } else {
-                try? await database.create(next, collection: "lift_ranks", documentId: id)
             }
         }
     }
 
-    // MARK: Archetype aggregate
-    //
-    // Blend: when the user has < 2 barbell LiftRanks for the archetype's
-    // emphasis lifts, we blend in ProgressionFamilyState tiers so a
-    // bodyweight-only athlete isn't pinned at .eMinus.
-    //
-    //  - 2+ barbell ranks → straight average across emphasis lifts (missing
-    //    lifts score 0).
-    //  - 1 barbell rank  → 70% barbell / 30% family-tier average.
-    //  - 0 barbell ranks → 100% family-tier average (or .eMinus if no
-    //    family state exists yet).
+    // MARK: BuildIdentity aggregate
 
-    func archetypeRank(userId: String, archetype: Archetype) async -> SubRank {
-        let ranks = await fetchAll(userId: userId)
-        let byKey: [String: LiftRank] = Dictionary(uniqueKeysWithValues: ranks.map { ($0.exerciseKey, $0) })
-
-        let emphasis = archetype.emphasisLifts
-        guard !emphasis.isEmpty else { return .eMinus }
-
-        // Bodyweight-rep lifts aren't in StrengthStandards' barbell table, but
-        // they DO produce LiftRanks via the rep/hold ladder. Count any
-        // LiftRank that matches an emphasis slot as a "tracked" rank.
-        let tracked: [Double] = emphasis.compactMap { key in
-            byKey[key].map { Double($0.currentRank.ordinal) }
-        }
-
-        let familyMean = await familyTierOrdinalMean(userId: userId)
-
-        if tracked.count >= 2 {
-            let sumMissingZero = tracked.reduce(0.0, +)
-            let mean = sumMissingZero / Double(emphasis.count)
-            return SubRank.nearest(for: mean)
-        }
-
-        if tracked.count == 1, let familyMean {
-            let blended = 0.70 * tracked[0] + 0.30 * familyMean
-            return SubRank.nearest(for: blended)
-        }
-
-        if tracked.count == 1 {
-            // One barbell rank, no family state — honor the single rank but
-            // soften against 0 for the missing slots.
-            let mean = tracked[0] / Double(emphasis.count)
-            return SubRank.nearest(for: mean)
-        }
-
-        // Zero barbell ranks. Fall entirely to family-tier signal.
-        if let familyMean {
-            return SubRank.nearest(for: familyMean)
-        }
-        return .eMinus
+    /// Aggregate SubRank derived from family-tier progression states.
+    /// LiftRank-based aggregation removed in rank-cleanup-v1.
+    func aggregateRank(userId: String) async -> SubRank {
+        guard let mean = await familyTierOrdinalMean(userId: userId) else { return .eMinus }
+        return SubRank.nearest(for: mean)
     }
 
     /// Mean SubRank ordinal derived from family-tier state. Returns nil when
@@ -187,27 +221,6 @@ final class RankService: RankServiceProtocol {
         guard !states.isEmpty else { return nil }
         let ordinals = states.map { Double(StrengthStandards.subRank(forFamilyTier: $0.unlockedTier).ordinal) }
         return ordinals.reduce(0.0, +) / Double(ordinals.count)
-    }
-
-    func fetchAll(userId: String) async -> [LiftRank] {
-        do {
-            let ranks: [LiftRank] = try await database.query(
-                collection: "lift_ranks",
-                field: "userId",
-                isEqualTo: userId,
-                orderBy: "lastActivityAt",
-                descending: true,
-                limit: nil
-            )
-            return ranks
-        } catch {
-            logger.log("RankService fetchAll failed: \(error)", level: .warning)
-            return []
-        }
-    }
-
-    func save(_ rank: LiftRank) async {
-        try? await database.create(rank, collection: "lift_ranks", documentId: rank.id)
     }
 
     // MARK: Private helpers
@@ -282,21 +295,54 @@ final class RankService: RankServiceProtocol {
         }
         return .sPlus
     }
+
+    private func rankExerciseKey(for entry: ExerciseLogEntry) -> String {
+        if let key = canonicalMovementExerciseKey(for: entry.rankStandardMovementId) {
+            return key
+        }
+        if let key = canonicalMovementExerciseKey(for: entry.movementId) {
+            return key
+        }
+
+        let resolved = MovementResolver.resolve(entry.exerciseName)
+        if let key = canonicalMovementExerciseKey(for: resolved.rankStandardMovementId) {
+            return key
+        }
+        return normalizedKey(entry.exerciseName)
+    }
+
+    private func canonicalMovementExerciseKey(for movementId: String?) -> String? {
+        guard let movementId, let definition = MovementCatalog.definition(for: movementId) else {
+            return nil
+        }
+        if let canonical = definition.canonicalExerciseName {
+            return normalizedKey(canonical)
+        }
+        return normalizedKey(definition.displayName)
+    }
+
+    private func normalizedKey(_ value: String) -> String {
+        value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    }
+
+    private func isRegressionOnlyBodyweightKey(_ key: String) -> Bool {
+        let normalized = MovementCatalog.normalized(key)
+        return ["assisted", "band", "banded", "machine", "negative", "jumping", "eccentric", "partial"]
+            .contains { normalized.contains($0) }
+    }
 }
 
 // MARK: - MockRankService (tests + previews)
 
 @MainActor
 final class MockRankService: RankServiceProtocol {
-    var ranks: [LiftRank] = []
-    var archetypeRankOverride: SubRank = .c
+    var aggregateRankOverride: SubRank = .c
 
+    func computeTier(skill: SkillNode, history: [ExerciseLogEntry], bodyweightKg: Double) -> SkillTier { .initiate }
+    func evaluateTierCrossings(log: WorkoutLog, userId: String) async -> [SkillTierAdvance] { [] }
+    func state(userId: String) -> UserSkillTierState { .empty }
+    func aggregateTier(userId: String) async -> SkillTier { .initiate }
     func computeLiftRank(entry: ExerciseLogEntry, bodyweightKg: Double) -> SubRank? { .c }
     func evaluate(log: WorkoutLog, bodyweightKg: Double) async {}
-    func archetypeRank(userId: String, archetype: Archetype) async -> SubRank { archetypeRankOverride }
-    func fetchAll(userId: String) async -> [LiftRank] { ranks.filter { $0.userId == userId } }
-    func save(_ rank: LiftRank) async {
-        ranks.removeAll { $0.id == rank.id }
-        ranks.append(rank)
-    }
+    func aggregateRank(userId: String) async -> SubRank { aggregateRankOverride }
 }

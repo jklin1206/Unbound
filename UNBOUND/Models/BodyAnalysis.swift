@@ -1,16 +1,16 @@
 import Foundation
 
-// Scan is a visual record of progress toward the user's chosen archetype —
-// not a verdict. The old `archetypeMatchPercentage` was removed because a
-// numeric % match reads as judgment and is arbitrary; the user's chosen
-// archetype is what matters. Internally the LLM may still hint at drift, but
-// nothing user-facing surfaces a percentage.
+// Scan is a visual record of progress — not a verdict.
+// The old `archetypeMatchPercentage` was removed because a numeric % match
+// reads as judgment and is arbitrary. Internally the LLM may hint at drift,
+// but nothing user-facing surfaces a percentage.
 struct BodyAnalysis: Codable, Identifiable {
     let id: String
     let scanId: String
     let userId: String
     let createdAt: Date
-    let targetArchetype: Archetype
+    /// Snapshot of the user's BuildIdentity.displayName at scan time.
+    var buildIdentitySnapshot: String?
     var overallScore: Int
     var muscleAssessments: [MuscleGroupAssessment]
     var proportions: ProportionData
@@ -44,7 +44,7 @@ enum MuscleMassCategory: String, Codable {
     case low, belowAverage, average, aboveAverage, high
 }
 
-struct FocusArea: Codable {
+struct FocusArea: Codable, Equatable {
     let muscleGroup: MuscleGroup
     let priority: Int
     let rationale: String

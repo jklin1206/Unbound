@@ -1,6 +1,6 @@
 import Foundation
 
-final class WorkoutLogService: WorkoutLogServiceProtocol, @unchecked Sendable {
+final class WorkoutLogService: WorkoutLogServiceProtocol, WorkoutLogCompatibilityHistoryWriting, @unchecked Sendable {
     static let shared = WorkoutLogService()
     private let database = DatabaseService.shared
     private let workingWeight = WorkingWeightService.shared
@@ -9,22 +9,41 @@ final class WorkoutLogService: WorkoutLogServiceProtocol, @unchecked Sendable {
     private init() {}
 
     func saveLog(_ log: WorkoutLog) async throws {
+        // MIGRATION(Phase 9): legacy direct save still owns the historical
+        // cascade for old callers. New completion routes must use
+        // TrainingCompletionService plus saveCompatibleHistoryLog(_:) so AP,
+        // XP, rank, trials, and reward writes are not double-awarded here.
         try await database.create(log, collection: "workoutLogs", documentId: log.id)
         // Auto-update working weights from this log
         try await workingWeight.updateFromLog(log, userId: log.userId)
+
+        // Fetch the user's profile once so we can thread its
+        // cut-mode + feedback preferences into ProgressionEngine, and
+        // reuse it for skill-tree recompute below.
+        let profile: UserProfile? = try? await database.read(collection: "users", documentId: log.userId)
 
         // Hawks-style RPE progression. Evaluates each exercise in the log
         // against its ProgressionState, bumps weights when the
         // 2-consecutive-sessions-at-target-RPE rule fires, publishes
         // `.progressionAdvanced` for UI toasts.
-        await ProgressionEngine.shared.ingest(log: log)
+        //
+        // `.preserve` mode holds weights while the user is on a cut.
+        // Tier unlocks still fire regardless of mode. Feedback mode
+        // seeds new ProgressionState rows with the right targetRPE
+        // (`.silent` → 0 → pure rep-based progression).
+        let progressionMode: ProgressionMode = (profile?.cutMode.enabled == true) ? .preserve : .advance
+        let feedbackMode = profile?.trainingFeedbackMode
+        await ProgressionEngine.shared.ingest(
+            log: log,
+            mode: progressionMode,
+            feedbackMode: feedbackMode
+        )
 
-        // Recompute skill tree state. Reads user's archetype + bodyweight
+        // Recompute skill tree state. Reads user's bodyweight
         // from the UserProfile and evaluates every node against the logs.
-        if let profile: UserProfile = try? await database.read(collection: "users", documentId: log.userId) {
-            let archetype = profile.preferredArchetype ?? .vTaper
+        if let profile {
             let bw = profile.weightKg
-            await SkillProgressService.shared.recompute(after: log, for: archetype, userBodyweightKg: bw)
+            await SkillProgressService.shared.recompute(after: log, userBodyweightKg: bw)
 
             // SubRank system: detect sub-rank threshold crossings per lift
             // and post `.rankAdvanced` for the UI cinematic.
@@ -34,12 +53,57 @@ final class WorkoutLogService: WorkoutLogServiceProtocol, @unchecked Sendable {
 
             // After rank evaluation, check for skin unlocks and record
             // session XP + badge triggers.
-            _ = await SkinService.shared.evaluateUnlocks(userId: log.userId, archetype: archetype)
+            _ = await SkinService.shared.evaluateUnlocks(userId: log.userId)
             await SessionXPService.shared.recordSession(userId: log.userId, at: log.startedAt)
             _ = await BadgeService.shared.evaluate(trigger: .sessionLogged(log))
         }
 
+        // Attribute System: ingest this session to update the 6-axis hex.
+        // Fires .attributeRankUp notifications for any tier crossings.
+        await AttributeService.shared.ingest(session: log, userId: log.userId)
+
+        // Ascension Tier: evaluate tier crossings against new log + accumulated history.
+        // Fires .skillTierAdvanced for each crossing (skill or aggregate).
+        // Listeners decide: cinematic for top-3 tiers (Vessel/Unbound/Ascendant),
+        // TierBloomToast for lower crossings.
+        let advances = await RankService.shared.evaluateTierCrossings(log: log, userId: log.userId)
+        for advance in advances {
+            NotificationCenter.default.post(name: .skillTierAdvanced, object: advance)
+        }
+
+        // Trials: evaluate capstone progress from this log.
+        await TrialsService.shared.evaluateCapstoneFromLog(
+            userId: log.userId,
+            history: log.exerciseEntries,
+            bodyweightKg: profile?.weightKg ?? 70.0
+        )
+
+        // Squad presence: mark this user as in-workout for 3h.
+        let squadForPresence = await MainActor.run { SquadService.shared.state(userId: log.userId).currentSquad }
+        if let squad = squadForPresence {
+            await SquadPresenceService.shared.markInWorkout(userId: log.userId, squadId: squad.id)
+        }
+
+        // Squad Mission: increment progress against active mission.
+        await SquadMissionService.shared.recordProgress(log: log, userId: log.userId)
+
+        // Squad activity feed: record this log as an activity entry.
+        // (Only if user is in a squad.)
+        // TODO(squads-impl): SquadActivityService records aligned-axis sessions
+
+        // Friend Challenges: update progress on any active challenge involving this user.
+        await FriendChallengeService.shared.recordProgress(log: log, userId: log.userId)
+
+        // Clear squad presence — saveLog represents end-of-workout.
+        await SquadPresenceService.shared.clearPresence(userId: log.userId)
+
         logger.log("Workout logged: \(log.plannedWorkoutName)", level: .info, context: ["dayNumber": log.dayNumber])
+    }
+
+    func saveCompatibleHistoryLog(_ log: WorkoutLog) async throws {
+        // MIGRATION(Phase 9): compatibility-only history write. This preserves
+        // old WorkoutLog readers without running the legacy progression cascade.
+        try await database.create(log, collection: "workoutLogs", documentId: log.id)
     }
 
     func updateLog(_ log: WorkoutLog) async throws {

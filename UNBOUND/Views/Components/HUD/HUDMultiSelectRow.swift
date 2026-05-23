@@ -100,10 +100,36 @@ struct HUDMultiSelectGroup<T: Hashable & Identifiable>: View {
     let title: (T) -> String
     var subtitle: (T) -> String? = { _ in nil }
     var icon: (T) -> String? = { _ in nil }
+    /// If set, this option is promoted to the top as an umbrella row.
+    /// Tapping it selects every other option. Tapping any child deselects it.
+    var umbrella: T? = nil
+    /// Caption shown under the umbrella row (falls back to the normal subtitle).
+    var umbrellaSubtitle: String? = nil
+
+    private var children: [T] {
+        guard let umbrella else { return options }
+        return options.filter { $0 != umbrella }
+    }
+
+    private var umbrellaActive: Bool {
+        guard let umbrella else { return false }
+        return selection.contains(umbrella)
+    }
 
     var body: some View {
         VStack(spacing: 12) {
-            ForEach(Array(options.enumerated()), id: \.element) { idx, option in
+            if let umbrella {
+                HUDUmbrellaRow(
+                    title: title(umbrella),
+                    subtitle: umbrellaSubtitle ?? subtitle(umbrella),
+                    icon: icon(umbrella),
+                    isActive: umbrellaActive
+                ) {
+                    toggleUmbrella(umbrella)
+                }
+            }
+
+            ForEach(Array(children.enumerated()), id: \.element) { idx, option in
                 HUDMultiSelectRow(
                     index: idx + 1,
                     title: title(option),
@@ -111,14 +137,125 @@ struct HUDMultiSelectGroup<T: Hashable & Identifiable>: View {
                     icon: icon(option),
                     isSelected: selection.contains(option)
                 ) {
-                    if selection.contains(option) {
-                        selection.remove(option)
-                    } else {
-                        selection.insert(option)
-                    }
+                    toggleChild(option)
                 }
+                .opacity(umbrellaActive ? 0.55 : 1.0)
+                .animation(.easeInOut(duration: 0.2), value: umbrellaActive)
             }
         }
+    }
+
+    private func toggleUmbrella(_ umbrella: T) {
+        if selection.contains(umbrella) {
+            selection.removeAll()
+        } else {
+            selection = Set(options)
+        }
+    }
+
+    private func toggleChild(_ option: T) {
+        if let umbrella, selection.contains(umbrella) {
+            selection.remove(umbrella)
+        }
+        if selection.contains(option) {
+            selection.remove(option)
+        } else {
+            selection.insert(option)
+        }
+    }
+}
+
+// MARK: - Umbrella row
+
+/// Full-width emphasized row that sits above a multi-select group and implies
+/// "select everything below." Styling deliberately distinct from standard
+/// rows — taller, subtle ember accent when active — so users read it as a
+/// different kind of choice, not just another option.
+private struct HUDUmbrellaRow: View {
+    let title: String
+    let subtitle: String?
+    let icon: String?
+    let isActive: Bool
+    let onTap: () -> Void
+
+    @State private var pressScale: CGFloat = 1.0
+
+    var body: some View {
+        Button(action: handleTap) {
+            HStack(spacing: 18) {
+                if let icon {
+                    Image(systemName: icon)
+                        .font(.system(size: 22, weight: .medium))
+                        .foregroundStyle(isActive ? Color.unbound.ember : Color.unbound.textSecondary)
+                        .frame(width: 36)
+                }
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title)
+                        .font(Font.unbound.titleM)
+                        .foregroundStyle(Color.unbound.textPrimary)
+                    if let subtitle {
+                        Text(subtitle)
+                            .font(Font.unbound.bodyS)
+                            .foregroundStyle(Color.unbound.textSecondary)
+                            .lineLimit(2)
+                    }
+                }
+
+                Spacer(minLength: 8)
+
+                indicator
+            }
+            .padding(.horizontal, 18)
+            .padding(.vertical, 18)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(isActive ? Color.unbound.surfaceElevated : Color.unbound.surface)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .strokeBorder(
+                        isActive ? Color.unbound.ember : Color.unbound.border,
+                        lineWidth: isActive ? 1.5 : 1
+                    )
+            )
+            .shadow(
+                color: isActive ? Color.unbound.ember.opacity(0.35) : .clear,
+                radius: 16, x: 0, y: 0
+            )
+        }
+        .buttonStyle(.plain)
+        .scaleEffect(pressScale)
+    }
+
+    private var indicator: some View {
+        ZStack {
+            Circle()
+                .strokeBorder(
+                    isActive ? Color.unbound.ember : Color.unbound.border,
+                    lineWidth: 1.25
+                )
+                .frame(width: 26, height: 26)
+            if isActive {
+                Circle()
+                    .fill(Color.unbound.ember)
+                    .frame(width: 14, height: 14)
+            }
+        }
+    }
+
+    private func handleTap() {
+        UnboundHaptics.medium()
+        withAnimation(.easeOut(duration: 0.12)) {
+            pressScale = 0.98
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
+            withAnimation(.spring(response: 0.28, dampingFraction: 0.7)) {
+                pressScale = 1.0
+            }
+        }
+        onTap()
     }
 }
 

@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+APP_ID="com.unboundapp.ios"
+
+capture_step() {
+  local step="$1"
+  local slug="$2"
+  local title="$3"
+
+  xcrun simctl terminate booted "$APP_ID" >/dev/null 2>&1 || true
+  xcrun simctl launch booted "$APP_ID" -OnboardingStep "$step" -HideOnboardingDevControls >/dev/null
+  sleep 2
+  xcrun simctl io booted screenshot "$ROOT_DIR/swiftui-screenshots/${slug}.png" >/dev/null
+  node "$ROOT_DIR/update-manifest.mjs" "${slug}.png" "$title" "Clean launch: -OnboardingStep ${step}"
+  echo "Captured ${title}"
+}
+
+capture_step "arc01Opening" "01-opening" "01 Opening"
+capture_step "problemFrame" "02-pain-frame" "02 Pain Frame"
+capture_step "arc03Path" "03-rank-orbit" "03 Rank Orbit"
+capture_step "restartLoop" "04-build-preview" "04 Build Preview"
+capture_step "chapterMapping" "05-chapter-mapping" "05 Chapter Mapping"
+capture_step "goals" "06-goals" "06 Goals"
+capture_step "obstacles" "07-obstacles" "07 Obstacles"
+capture_step "targetAreas" "08-target-areas" "08 Target Areas"
+capture_step "name" "09-handle" "09 Handle"
+capture_step "motivation" "10-motivation" "10 Motivation"
+capture_step "age" "11-age" "11 Age"
+capture_step "gender" "12-gender" "12 Gender"
+capture_step "height" "13-height" "13 Height"
+capture_step "weight" "14-weight" "14 Weight"
+capture_step "experience" "15-experience" "15 Experience"
+capture_step "targetFrequency" "16-frequency" "16 Frequency"
+capture_step "trainingDays" "17-training-days" "17 Training Days"
+capture_step "workoutTime" "18-workout-time" "18 Workout Time"
+capture_step "equipment" "19-equipment" "19 Equipment"
+capture_step "exerciseStyle" "20-exercise-style" "20 Exercise Style"
+capture_step "buildSeed" "21-build-seed" "21 Build Seed"
+capture_step "sessionLength" "22-session-length" "22 Session Length"
+capture_step "resultsSnapshot" "23-entry-map" "23 Entry Map"
+capture_step "diet" "24-diet" "24 Diet"
+capture_step "sleep" "25-sleep" "25 Sleep"
+capture_step "stress" "26-stress" "26 Stress"
+capture_step "priorAttempts" "27-prior-attempts" "27 Prior Attempts"
+capture_step "commitment" "28-commitment" "28 Commitment"
+capture_step "notifications" "29-notifications" "29 Notifications"
+capture_step "chapterScan" "30-chapter-scan" "30 Chapter Scan"
+capture_step "scanLive" "31-arc-entry" "31 Arc Entry"
+capture_step "scanReview" "32-scan-review" "32 Scan Review"
+capture_step "scanAnalyzing" "33-scan-analyzing" "33 Scan Analyzing"
+capture_step "verdict" "34-verdict" "34 Verdict"
+capture_step "trajectory" "35-trajectory" "35 Trajectory"
+capture_step "obstacleFix" "36-obstacle-fix" "36 Obstacle Fix"
+capture_step "chapterPath" "37-chapter-path" "37 Chapter Path"
+capture_step "whyThisProgram" "38-path-locked" "38 Path Locked"
+capture_step "socialProofGallery" "39-social-proof" "39 Social Proof"
+capture_step "lifeChangeEnergy" "40-energy" "40 Energy"
+capture_step "lifeChangeStrength" "41-strength" "41 Strength"
+capture_step "lifeChangeConfidence" "42-confidence" "42 Confidence"
+capture_step "lifeChangeSleep" "43-sleep" "43 Sleep"
+capture_step "lifeChangeLooksFeel" "44-looks-feel" "44 Looks Feel"
+capture_step "commitDay30" "45-day-30" "45 Day 30"
+capture_step "commitDay90" "46-day-90" "46 Day 90"
+capture_step "commitToday" "47-commit-today" "47 Commit Today"
+capture_step "planReady" "48-arc-ready" "48 Arc Ready"
+capture_step "paywall" "49-paywall" "49 Paywall"

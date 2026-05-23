@@ -3,14 +3,9 @@ import AVFoundation
 
 // MARK: - Step_ScanLive
 //
-// Front-camera live preview + silhouette guide + auto-snap on alignment.
-// Replaces the old Step30_ScanPrep + Step_ScanCapture split — instructions
-// live ON the live preview so the user lines themselves up while reading.
-//
-// Auto-snap fires when `BodyAlignmentDetector` reports `.aligned` for ~1s.
-// Manual capture button is still present for users who want to override.
-// No skip button — if the camera fails (e.g. simulator), the fallback shows
-// a retry instead.
+// Front-camera live preview for the onboarding scan step.
+// Friction-free: open camera → see preview → tap shutter → done.
+// No alignment gating, no auto-snap, no gesture detection.
 
 struct Step_ScanLive: View {
     @Bindable var flow: OnboardingFlowViewModel
@@ -21,14 +16,9 @@ struct Step_ScanLive: View {
     @EnvironmentObject var services: ServiceContainer
 
     // Local state
-    @State private var detector = BodyAlignmentDetector()
     @State private var sessionStatus: SessionStatus = .starting
     @State private var isCapturing = false
     @State private var showsFlashOverlay = false
-    @State private var useAutoSnap: Bool = true
-    @State private var countdownSeconds: Int? = nil
-    @State private var countdownTask: Task<Void, Never>? = nil
-    @State private var alignedHoldStart: Date? = nil
 
     private enum SessionStatus: Equatable {
         case starting
@@ -37,10 +27,16 @@ struct Step_ScanLive: View {
         case unavailable
     }
 
+    private var isPreviewMode: Bool {
+        ProcessInfo.processInfo.arguments.contains("-ScanLivePreview")
+    }
+
     var body: some View {
         ZStack {
             // Camera or fallback
-            if sessionStatus == .running {
+            if sessionStatus == .running && isPreviewMode {
+                previewEntryBackground
+            } else if sessionStatus == .running {
                 ScanCameraPreview(service: services.imageCapture)
                     .ignoresSafeArea()
             } else {
@@ -61,19 +57,7 @@ struct Step_ScanLive: View {
             .ignoresSafeArea()
             .allowsHitTesting(false)
 
-            // Body alignment guide — frame + corners + HEAD/FEET labels
-            // matched to the detector's actual thresholds so lining up
-            // inside the rectangle satisfies auto-snap.
-            BodyAlignmentGuide(alignment: detector.alignment)
-                .allowsHitTesting(false)
-                .ignoresSafeArea()
-
-            // Countdown overlay — big number when auto-snap is firing
-            if let s = countdownSeconds {
-                countdownDisplay(seconds: s)
-            }
-
-            // Flash flash on capture
+            // Flash on capture
             if showsFlashOverlay {
                 Color.white.opacity(0.4)
                     .ignoresSafeArea()
@@ -83,13 +67,13 @@ struct Step_ScanLive: View {
             // Chrome
             VStack(spacing: 0) {
                 topChrome
+                entryHeader
                 Spacer()
 
                 if sessionStatus == .running {
                     instructionBlock
-                    captureModePill
                     captureButton
-                        .padding(.top, 12)
+                        .padding(.top, 20)
                         .padding(.bottom, 36)
                 } else {
                     fallbackPanel
@@ -102,20 +86,18 @@ struct Step_ScanLive: View {
             await startCamera()
         }
         .onDisappear {
-            countdownTask?.cancel()
-            countdownTask = nil
-            countdownSeconds = nil
-            services.imageCapture.attachVideoSampleHandler(nil)
             services.imageCapture.stopSession()
-        }
-        .onChange(of: detector.alignment) { _, new in
-            handleAlignmentChange(new)
         }
     }
 
     // MARK: - Camera lifecycle
 
     private func startCamera() async {
+        if isPreviewMode {
+            sessionStatus = .running
+            return
+        }
+
         let granted = await services.imageCapture.requestPermission()
         guard granted else {
             sessionStatus = .denied
@@ -123,7 +105,6 @@ struct Step_ScanLive: View {
         }
         do {
             try await services.imageCapture.startSession()
-            services.imageCapture.attachVideoSampleHandler(detector)
             sessionStatus = .running
         } catch {
             sessionStatus = .unavailable
@@ -132,7 +113,6 @@ struct Step_ScanLive: View {
 
     private func retryCamera() async {
         sessionStatus = .starting
-        detector.reset()
         await startCamera()
     }
 
@@ -157,42 +137,44 @@ struct Step_ScanLive: View {
         .padding(.top, 8)
     }
 
-    // MARK: - Instruction block
+    // MARK: - Entry header
 
-    private var instructionBlock: some View {
+    private var entryHeader: some View {
         VStack(spacing: 8) {
             HStack(spacing: 8) {
-                Image(systemName: "lock.shield.fill")
-                    .font(.system(size: 11, weight: .semibold))
-                Text("STAYS ON YOUR DEVICE")
-                    .font(Font.unbound.captionS)
-                    .tracking(1.6)
+                Image(systemName: "hexagon.fill")
+                    .font(.system(size: 10, weight: .black))
+                Text("DAY ZERO ENTRY")
+                    .font(Font.unbound.monoS)
+                    .tracking(2.0)
             }
             .foregroundStyle(Color.unbound.accent)
 
-            Text("Stand 6 ft back. Fill the frame.")
+            Text("Step into Day Zero")
                 .font(Font.unbound.titleL)
                 .foregroundStyle(Color.unbound.textPrimary)
                 .multilineTextAlignment(.center)
+                .lineLimit(2)
+                .minimumScaleFactor(0.84)
 
-            HStack(spacing: 8) {
-                Circle()
-                    .fill(statusColor)
-                    .frame(width: 8, height: 8)
-                    .shadow(color: statusColor.opacity(0.7), radius: 6)
-                Text(detector.alignment.statusLabel)
-                    .font(Font.unbound.monoS)
-                    .tracking(1.4)
-                    .foregroundStyle(Color.unbound.textPrimary)
-                    .contentTransition(.identity)
-            }
-            .padding(.top, 4)
+            Text("One frame now. Proof in 30 days.")
+                .font(Font.unbound.bodyS)
+                .foregroundStyle(Color.unbound.textSecondary)
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+                .minimumScaleFactor(0.88)
         }
+        .padding(.horizontal, 24)
+        .padding(.top, 28)
         .padding(.bottom, 18)
-        .padding(.horizontal, 20)
+        .frame(maxWidth: .infinity)
         .background(
             LinearGradient(
-                colors: [Color.clear, Color.unbound.bg.opacity(0.7)],
+                colors: [
+                    Color.unbound.bg.opacity(0.82),
+                    Color.unbound.bg.opacity(0.46),
+                    Color.clear
+                ],
                 startPoint: .top,
                 endPoint: .bottom
             )
@@ -200,155 +182,150 @@ struct Step_ScanLive: View {
         )
     }
 
-    private var statusColor: Color {
-        switch detector.alignment {
-        case .noBody, .outOfFrame: return Color.unbound.textTertiary
-        case .closeToAligned:      return Color.unbound.accent
-        case .aligned:             return Color.unbound.success
+    private var previewEntryBackground: some View {
+        ZStack {
+            Color.unbound.bg.ignoresSafeArea()
+
+            AnimeBackdrop(variant: .godRay, intensity: 0.84)
+                .ignoresSafeArea()
+
+            TechGridBackground(opacity: 0.14)
+                .ignoresSafeArea()
+
+            VStack(spacing: 18) {
+                Spacer().frame(height: 214)
+
+                ZStack {
+                    RoundedRectangle(cornerRadius: 28, style: .continuous)
+                        .stroke(Color.unbound.accent.opacity(0.5), lineWidth: 1.5)
+                        .frame(width: 238, height: 372)
+                        .shadow(color: Color.unbound.accent.opacity(0.2), radius: 22)
+
+                    RoundedRectangle(cornerRadius: 28, style: .continuous)
+                        .fill(Color.black.opacity(0.14))
+                        .frame(width: 238, height: 372)
+
+                    SilhouetteView(
+                        rimLight: .impact,
+                        chromaticAberration: 0.24,
+                        breathe: true,
+                        scale: 0.68,
+                        asset: .dormant
+                    )
+                    .frame(width: 190, height: 330)
+                    .opacity(0.82)
+
+                    VStack {
+                        HStack {
+                            cornerMark(rotation: 0)
+                            Spacer()
+                            cornerMark(rotation: 90)
+                        }
+                        Spacer()
+                        HStack {
+                            cornerMark(rotation: 270)
+                            Spacer()
+                            cornerMark(rotation: 180)
+                        }
+                    }
+                    .frame(width: 222, height: 356)
+                }
+
+                Spacer()
+            }
         }
     }
 
-    // MARK: - Auto-snap toggle
-
-    private var captureModePill: some View {
-        HStack(spacing: 0) {
-            modeSegment(label: "Auto-snap", icon: "wand.and.stars", active: useAutoSnap) {
-                useAutoSnap = true
-            }
-            modeSegment(label: "Manual", icon: "hand.tap.fill", active: !useAutoSnap) {
-                useAutoSnap = false
-                cancelCountdown()
-            }
+    private func cornerMark(rotation: Double) -> some View {
+        Path { path in
+            path.move(to: CGPoint(x: 0, y: 22))
+            path.addLine(to: CGPoint(x: 0, y: 0))
+            path.addLine(to: CGPoint(x: 22, y: 0))
         }
-        .padding(3)
-        .background(Capsule().fill(.ultraThinMaterial))
-        .overlay(Capsule().strokeBorder(Color.unbound.border.opacity(0.6), lineWidth: 1))
-        .opacity(countdownSeconds == nil ? 1 : 0)
+        .stroke(Color.unbound.accent.opacity(0.82), style: StrokeStyle(lineWidth: 2.2, lineCap: .round, lineJoin: .round))
+        .frame(width: 22, height: 22)
+        .rotationEffect(.degrees(rotation))
     }
 
-    @ViewBuilder
-    private func modeSegment(label: String, icon: String, active: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: {
-            UnboundHaptics.medium()
-            withAnimation(.spring(response: 0.28, dampingFraction: 0.78)) {
-                action()
-            }
-        }) {
-            HStack(spacing: 6) {
-                Image(systemName: icon)
+    // MARK: - Instruction block
+
+    private var instructionBlock: some View {
+        VStack(spacing: 10) {
+            HStack(spacing: 8) {
+                Image(systemName: "flame.fill")
                     .font(.system(size: 11, weight: .semibold))
-                Text(label)
-                    .font(Font.unbound.bodyS)
+                Text("MONTH ONE STARTS HERE")
+                    .font(Font.unbound.captionS)
+                    .tracking(1.6)
             }
-            .foregroundStyle(active ? Color.unbound.accent : Color.unbound.textSecondary)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 8)
-            .background(
-                Capsule().fill(active ? Color.unbound.accent.opacity(0.18) : Color.clear)
-            )
-            .overlay(
-                Capsule().strokeBorder(active ? Color.unbound.accent : Color.clear, lineWidth: 1)
-            )
-        }
-        .buttonStyle(.plain)
-    }
+            .foregroundStyle(Color.unbound.accent)
 
-    // MARK: - Capture button (manual override always available)
+            Text("Set the before.")
+                .font(Font.unbound.titleM)
+                .foregroundStyle(Color.unbound.textPrimary)
+                .multilineTextAlignment(.center)
+
+            Text("This is the first page of the climb.")
+                .font(Font.unbound.captionS)
+                .foregroundStyle(Color.unbound.textSecondary)
+                .multilineTextAlignment(.center)
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 16)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(Color.unbound.bg.opacity(0.62))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .strokeBorder(Color.unbound.accent.opacity(0.24), lineWidth: 1)
+                )
+                .shadow(color: Color.unbound.accent.opacity(0.16), radius: 18)
+        )
+        .padding(.horizontal, 20)
+        .padding(.bottom, 8)
+    }
 
     private var captureButton: some View {
-        Button(action: primaryAction) {
-            ZStack {
-                Circle()
-                    .strokeBorder(
-                        countdownSeconds != nil ? Color.unbound.accent : Color.unbound.textPrimary,
-                        lineWidth: 3
-                    )
-                    .frame(width: 84, height: 84)
-                    .shadow(
-                        color: countdownSeconds != nil ? Color.unbound.accent.opacity(0.6) : .clear,
-                        radius: 12, x: 0, y: 0
-                    )
-
-                if countdownSeconds != nil {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 22, weight: .bold))
-                        .foregroundStyle(Color.unbound.textPrimary)
-                        .frame(width: 70, height: 70)
-                        .background(Circle().fill(Color.unbound.accent))
-                } else {
+        VStack(spacing: 12) {
+            Button(action: capture) {
+                ZStack {
                     Circle()
-                        .fill(Color.unbound.textPrimary)
-                        .frame(width: 70, height: 70)
+                        .strokeBorder(Color.unbound.accent.opacity(0.5), lineWidth: 2)
+                        .frame(width: 104, height: 104)
+                        .shadow(color: Color.unbound.accent.opacity(0.42), radius: 18)
+
+                    Circle()
+                        .strokeBorder(Color.unbound.textPrimary.opacity(0.88), lineWidth: 3)
+                        .frame(width: 84, height: 84)
+
+                    Circle()
+                        .fill(
+                            RadialGradient(
+                                colors: [
+                                    Color.unbound.textPrimary,
+                                    Color.unbound.accent.opacity(0.9)
+                                ],
+                                center: .center,
+                                startRadius: 8,
+                                endRadius: 40
+                            )
+                        )
+                        .frame(width: 68, height: 68)
                         .scaleEffect(isCapturing ? 0.82 : 1.0)
                         .animation(.spring(response: 0.28, dampingFraction: 0.72), value: isCapturing)
+
+                    Image(systemName: "viewfinder")
+                        .font(.system(size: 22, weight: .black))
+                        .foregroundStyle(Color.unbound.bg.opacity(0.82))
                 }
             }
-        }
-        .buttonStyle(.plain)
-        .disabled(isCapturing)
-    }
+            .buttonStyle(.plain)
+            .disabled(isCapturing)
 
-    private func primaryAction() {
-        if countdownSeconds != nil {
-            cancelCountdown()
-        } else {
-            // Manual override always available, even in auto-snap mode.
-            startCountdown(from: 3)
-        }
-    }
-
-    // MARK: - Countdown
-
-    private func countdownDisplay(seconds: Int) -> some View {
-        Text("\(seconds)")
-            .font(.system(size: 220, weight: .black, design: .default))
-            .foregroundStyle(Color.unbound.textPrimary)
-            .shadow(color: Color.unbound.accent.opacity(0.6), radius: 30, x: 0, y: 0)
-            .contentTransition(.numericText(value: Double(seconds)))
-            .animation(.spring(response: 0.35, dampingFraction: 0.7), value: seconds)
-    }
-
-    private func startCountdown(from start: Int = 3) {
-        guard countdownTask == nil, !isCapturing else { return }
-        UnboundHaptics.heavy()
-
-        countdownTask = Task {
-            for sec in stride(from: start, through: 1, by: -1) {
-                if Task.isCancelled { break }
-                await MainActor.run {
-                    countdownSeconds = sec
-                    UnboundHaptics.tick()
-                }
-                try? await Task.sleep(nanoseconds: 1_000_000_000)
-            }
-            if !Task.isCancelled {
-                await MainActor.run {
-                    countdownSeconds = nil
-                    countdownTask = nil
-                    capture()
-                }
-            }
-        }
-    }
-
-    private func cancelCountdown() {
-        countdownTask?.cancel()
-        countdownTask = nil
-        countdownSeconds = nil
-        UnboundHaptics.medium()
-    }
-
-    // MARK: - Alignment-driven auto-snap
-
-    private func handleAlignmentChange(_ new: BodyAlignment) {
-        guard useAutoSnap, sessionStatus == .running else { return }
-        if new == .aligned, countdownTask == nil, !isCapturing {
-            // Tighter countdown for the auto path — the user has already been
-            // holding still for ~1s by the time we hit `.aligned`.
-            startCountdown(from: 3)
-        } else if new != .aligned, countdownTask != nil {
-            // Drift broke alignment mid-countdown — abort.
-            cancelCountdown()
+            Text("BEGIN")
+                .font(Font.unbound.monoS)
+                .tracking(1.8)
+                .foregroundStyle(Color.unbound.textPrimary)
         }
     }
 
@@ -357,7 +334,6 @@ struct Step_ScanLive: View {
     #if targetEnvironment(simulator)
     private func skipForSimulator() {
         UnboundHaptics.medium()
-        // Seed a placeholder UIImage so downstream (review/verdict) has a non-nil photo to render.
         let size = CGSize(width: 512, height: 768)
         let renderer = UIGraphicsImageRenderer(size: size)
         let placeholder = renderer.image { ctx in
@@ -516,7 +492,3 @@ struct Step_ScanLive: View {
         }
     }
 }
-
-// MARK: - SilhouetteGuide retired
-// Moved to Views/Components/Unbound/BodyAlignmentGuide.swift and renamed.
-// This file now only references the shared component.

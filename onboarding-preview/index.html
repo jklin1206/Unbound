@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>UNBOUND Onboarding Preview</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <main class="workspace">
+    <aside class="rail">
+      <div class="brand">
+        <div class="mark">U</div>
+        <div>
+          <h1>Onboarding</h1>
+          <p>Fast local preview</p>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <button id="prevBtn" type="button">Prev</button>
+        <button id="nextBtn" type="button">Next</button>
+      </div>
+
+      <label class="toggle">
+        <input id="gridToggle" type="checkbox" checked />
+        <span>Show all screens</span>
+      </label>
+
+      <label class="toggle">
+        <input id="actualToggle" type="checkbox" checked />
+        <span>Show SwiftUI screenshots</span>
+      </label>
+
+      <nav id="screenList" class="screen-list" aria-label="Onboarding screens"></nav>
+    </aside>
+
+    <section class="preview-area">
+      <div class="phone-shell">
+        <div class="phone">
+          <div class="statusbar">
+            <span>9:41</span>
+            <span>UNBOUND</span>
+          </div>
+          <article id="phoneScreen" class="screen"></article>
+        </div>
+      </div>
+
+      <section id="screenGrid" class="screen-grid" aria-label="All onboarding screens"></section>
+
+      <section id="actualSection" class="actual-section" aria-label="Actual SwiftUI screenshots">
+        <div class="section-heading">
+          <div>
+            <h2>Actual SwiftUI Screenshots</h2>
+            <p>Generated from the simulator after a build. Use this lane as the truth check.</p>
+          </div>
+          <button id="reloadActualBtn" type="button">Reload</button>
+        </div>
+        <div id="actualGrid" class="actual-grid"></div>
+      </section>
+    </section>
+  </main>
+
+  <script src="./swiftui-screenshots/screenshots-data.js"></script>
+  <script src="./script.js"></script>
+</body>
+</html>

@@ -16,6 +16,7 @@ final class PTContextBuilder {
         let logs = (try? await workoutLog.fetchRecentLogs(userId: userId, limit: 5)) ?? []
         let states = await progressionStore.fetchAll(userId: userId)
         let plateaus = await PlateauDetector.shared.detect(userId: userId, states: states)
+        let delta = await fetchLatestDeltaReport(userId: userId)
 
         var md = "# Athlete context (compact)\n\n"
         md += renderProfile(profile, full: false)
@@ -29,6 +30,9 @@ final class PTContextBuilder {
                 md += "- \(p.displayName): \(p.stalledSessions) stalled sessions at \(formatWeight(p.currentWeightKg))kg\n"
             }
         }
+        if let delta {
+            md += "\n" + renderDelta(delta)
+        }
         return md
     }
 
@@ -38,6 +42,7 @@ final class PTContextBuilder {
         let states = await progressionStore.fetchAll(userId: userId)
         let preferences = (try? await preferenceService.fetchPreferences(userId: userId)) ?? []
         let plateaus = await PlateauDetector.shared.detect(userId: userId, states: states)
+        let delta = await fetchLatestDeltaReport(userId: userId)
 
         var md = "# Athlete context (full)\n\n"
         md += renderProfile(profile, full: true)
@@ -58,7 +63,46 @@ final class PTContextBuilder {
                 md += "- \(p.displayName): \(p.stalledSessions) stalled sessions at \(formatWeight(p.currentWeightKg))kg\n"
             }
         }
+        if let delta {
+            md += "\n" + renderDelta(delta)
+        }
         return md
+    }
+
+    // MARK: - Body scan delta
+
+    /// Most recent `ScanDeltaReport` for this user from the local store, or
+    /// nil if no rescan has been compared yet.
+    private func fetchLatestDeltaReport(userId: String) async -> ScanDeltaReport? {
+        let reports: [ScanDeltaReport] = (try? await DatabaseService.shared.query(
+            collection: ScanComparisonService.localCollection,
+            field: "userId",
+            isEqualTo: userId,
+            orderBy: "createdAt",
+            descending: true,
+            limit: 1
+        )) ?? []
+        return reports.first
+    }
+
+    private func renderDelta(_ d: ScanDeltaReport) -> String {
+        var md = "## Body scan delta (latest)\n"
+        md += "- Overall: \(d.overall.before) → \(d.overall.after) (\(formatDelta(d.overall.delta)))\n"
+        if !d.improvements.isEmpty {
+            md += "- Improvements: \(d.improvements.joined(separator: ", "))\n"
+        }
+        if !d.laggingAreas.isEmpty {
+            md += "- Lagging: \(d.laggingAreas.joined(separator: ", "))\n"
+        }
+        md += "- Coach note: \"\(d.recommendedFocus)\"\n"
+        if !d.narrative.isEmpty {
+            md += "- Narrative: \(d.narrative)\n"
+        }
+        return md
+    }
+
+    private func formatDelta(_ n: Int) -> String {
+        n >= 0 ? "+\(n)" : "\(n)"
     }
 
     // MARK: Renderers
@@ -66,7 +110,7 @@ final class PTContextBuilder {
     private func renderProfile(_ profile: UserProfile?, full: Bool) -> String {
         guard let p = profile else { return "## Profile\n- (unknown)\n" }
         var md = "## Profile\n"
-        md += "- Archetype: \(p.preferredArchetype?.rawValue ?? "unset")\n"
+        // Build identity determined by AttributeService, not a legacy archetype field.
         if let f = p.targetFrequency { md += "- Target frequency: \(f.rawValue)\n" }
         if let e = p.experience { md += "- Experience: \(e.rawValue)\n" }
         if let w = p.weightKg { md += "- Bodyweight: \(formatWeight(w))kg\n" }

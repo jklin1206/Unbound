@@ -48,7 +48,14 @@ final class ImageCaptureService: NSObject, ImageCaptureServiceProtocol {
         let session = AVCaptureSession()
         session.sessionPreset = .photo
 
-        guard let camera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front) else {
+        // Prefer front ultra-wide (iPads with Center Stage) for a wider FOV.
+        // Falls back to standard wide-angle on iPhones and older iPads.
+        let frontCamera = AVCaptureDevice.DiscoverySession(
+            deviceTypes: [.builtInUltraWideCamera, .builtInWideAngleCamera],
+            mediaType: .video,
+            position: .front
+        ).devices.first
+        guard let camera = frontCamera else {
             throw AppError.cameraUnavailable
         }
 

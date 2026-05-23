@@ -10,7 +10,7 @@ struct Step23_Notifications: View {
     var body: some View {
         OnboardingScaffold(
             title: "Stay on track.",
-            subtitle: "Your protocol adapts to your daily check-ins. Notifications keep you in rhythm.",
+            subtitle: "A small nudge when it's time to keep the streak alive.",
             progress: progress,
             primaryTitle: flow.notificationsRequested ? "Continue" : "Enable notifications",
             hudStep: .notifications,
@@ -48,7 +48,7 @@ struct Step23_Notifications: View {
                 VStack(spacing: 12) {
                     hudBenefitRow(icon: "flame.fill", text: "Never break a streak")
                     hudBenefitRow(icon: "calendar", text: "Session reminders that work with your schedule")
-                    hudBenefitRow(icon: "chart.line.uptrend.xyaxis", text: "Rescan reminders every 30 days")
+                    hudBenefitRow(icon: "chart.line.uptrend.xyaxis", text: "Monthly moments to see what changed")
                 }
 
                 Spacer().frame(height: 8)

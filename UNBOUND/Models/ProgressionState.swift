@@ -147,12 +147,16 @@ enum ExerciseClassification: String, Codable {
 
         let upperCompoundKeywords = [
             "bench press", "bench", "overhead press", "ohp", "military press",
-            "weighted pullup", "weighted chin", "weighted dip"
+            "weighted pullup", "weighted chin", "weighted dip",
+            "chest press", "shoulder press", "plate loaded", "hammer strength",
+            "machine row", "t-bar row", "landmine row", "pulldown"
         ]
         let lowerCompoundKeywords = [
             "back squat", "front squat", "squat",
             "deadlift", "romanian deadlift", "rdl",
-            "clean", "snatch"
+            "clean", "snatch", "leg press", "hack squat", "pendulum squat",
+            "v-squat", "belt squat", "hip thrust", "back extension",
+            "reverse hyper"
         ]
         let bodyweightKeywords = [
             "pullup", "pull-up", "chin-up", "chinup",
@@ -173,17 +177,6 @@ enum ExerciseClassification: String, Codable {
             return .bodyweightSkill
         }
         return .accessory
-    }
-
-    /// Hawks' weight-bump increment per classification. Returned as kg.
-    /// `.accessory` returns 0 — accessories bump reps first before weight.
-    var weightBumpKg: Double {
-        switch self {
-        case .upperCompound:   return 2.5
-        case .lowerCompound:   return 5.0
-        case .bodyweightSkill: return 0.0    // tracked via reps/holds, not weight
-        case .accessory:       return 2.5    // only applies after reps maxed
-        }
     }
 
     /// Default rep range per block. Hypertrophy ranges tighten as we push

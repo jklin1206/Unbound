@@ -1,0 +1,21 @@
+[
+  {
+    "id": "50cc8480-0fab-470d-9256-8778c3f70eca",
+    "status": "completed",
+    "display_name": "GPT Image 2",
+    "job_set_type": "imagegen_2_0",
+    "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3Am37d6qxSQ2zttmtLTANcq9W7j/hf_20260518_220630_50cc8480-0fab-470d-9256-8778c3f70eca.png",
+    "created_at": 1779141990.129907,
+    "params": {
+      "width": 2048,
+      "height": 2048,
+      "prompt": "Create a square 2x3 sheet of six premium achievement badge emblems for the UNBOUND fitness app. No words, no letters, no numbers, no characters. Dark graphite metal emblems on near-black background, crisp app UI asset style, brutalist Japanese minimalism, 2D/3D hybrid, high contrast. Six badges: personal record target mark with ember edge, streak flame made of bone-white metal and small orange core, arc complete sealed gate with gold edge, consistency geometric loop with green/cyan edge, volume milestone stacked iron plates with blue glow, rare cosmetic unlock prism frame with chrome and subtle violet. Center each badge in its cell with generous padding, consistent emblem scale, no clutter.",
+      "medias": [],
+      "aspect_ratio": "1:1",
+      "quality": "high",
+      "resolution": "2k",
+      "model": "videotape-alpha",
+      "reference_elements": []
+    }
+  }
+]

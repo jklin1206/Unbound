@@ -18,6 +18,7 @@ struct Step18_Sleep: View {
         ) {
             HUDSlider(
                 value: $flow.sleepQuality,
+                steps: HUDSlider.fivePointStoredSteps,
                 descriptors: HUDSlider.sleepDescriptors,
                 leftAnchor: "Restless",
                 rightAnchor: "Restored"

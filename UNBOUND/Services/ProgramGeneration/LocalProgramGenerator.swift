@@ -5,8 +5,8 @@ import Foundation
 // Rule-based 12-week TrainingProgram generator that runs entirely on-device.
 // Replaces the remote network call in the legacy ProgramGenerationService.
 //
-// Inputs (from UserProfile + archetype):
-//   - archetype           → signature-lift emphasis
+// Inputs (from UserProfile + BuildIdentity):
+//   - buildIdentity       → signature-lift emphasis, split philosophy
 //   - targetFrequency     → sessions per week (3/4/5/6)
 //   - equipment           → exercise pool filtering
 //   - experience          → starting intensity + volume
@@ -15,19 +15,17 @@ import Foundation
 //   - targetAreas         → accessory-slot weighting
 //
 // Output: 12-week TrainingProgram (84 days, split into 3 Arcs of 4 weeks)
-// with sessions balanced by archetype signature movements.
+// with sessions balanced by BuildIdentity signature movements.
 //
-// Design: hand-tuned templates per archetype rather than a full programming
-// engine. Each archetype gets a "split philosophy" + signature-lift emphasis
-// per Arc (progression through the 12 weeks). Exercise selection respects
-// equipment availability; sets/reps respect experience level.
+// Phase 2e/2g: BuildIdentity is the canonical input. Internal branches switch on
+// buildIdentity.programTemplateKey (string) or buildIdentity.primary (AttributeKey?).
 
 enum LocalProgramGenerator {
 
     // MARK: Entry point
 
     static func generate(
-        archetype: Archetype,
+        buildIdentity: BuildIdentity,
         targetFrequency: TargetFrequency?,
         equipment: Set<Equipment>,
         experience: Experience?,
@@ -72,9 +70,11 @@ enum LocalProgramGenerator {
 
         // Index preferences + progression state by canonical exercise key
         // (lowercased exercise name) so per-exercise lookups are O(1).
-        let prefsByKey = Dictionary(
-            uniqueKeysWithValues: preferences.map { ($0.exerciseName.lowercased(), $0) }
-        )
+        var prefsByKey: [String: ExercisePreference] = [:]
+        for preference in preferences {
+            prefsByKey[MovementCatalog.normalized(preference.exerciseName)] = preference
+            prefsByKey[MovementCatalog.normalized(preference.displayName)] = preference
+        }
         var statesByKey = Dictionary(
             uniqueKeysWithValues: progressionStates.map { ($0.exerciseKey, $0) }
         )
@@ -129,7 +129,7 @@ enum LocalProgramGenerator {
                 let sessionIndex = trainingDayMap(daysPerWeek: daysPerWeek)
                     .firstIndex(of: dayInWeek) ?? 0
                 let workout = generateWorkout(
-                    archetype: archetype,
+                    buildIdentity: buildIdentity,
                     arcNumber: arcNumber,
                     weekInArc: weekInArc,
                     sessionIndex: sessionIndex,
@@ -164,7 +164,7 @@ enum LocalProgramGenerator {
         }
 
         let rationale = buildRationale(
-            archetype: archetype,
+            buildIdentity: buildIdentity,
             daysPerWeek: daysPerWeek,
             minutesPerSession: minutesPerSession,
             equipment: availableEquipment,
@@ -193,9 +193,8 @@ enum LocalProgramGenerator {
             analysisId: analysisId,
             userId: userId,
             createdAt: Date(),
-            archetype: archetype,
-            name: programName(for: archetype),
-            description: programDescription(for: archetype),
+            name: programName(for: buildIdentity),
+            description: programDescription(for: buildIdentity),
             durationDays: 84,
             days: days,
             nutritionPlan: defaultNutritionPlan(experience: experience),
@@ -214,7 +213,7 @@ enum LocalProgramGenerator {
     // matches what lands on Program Overview.
 
     static func previewRationale(
-        archetype: Archetype,
+        buildIdentity: BuildIdentity,
         targetFrequency: TargetFrequency?,
         equipment: Set<Equipment>,
         experience: Experience?,
@@ -241,7 +240,7 @@ enum LocalProgramGenerator {
         )
         let available = equipment.isEmpty ? [Equipment.bodyweight] : Array(equipment)
         return buildRationale(
-            archetype: archetype,
+            buildIdentity: buildIdentity,
             daysPerWeek: daysPerWeek,
             minutesPerSession: minutes,
             equipment: available,
@@ -300,7 +299,7 @@ enum LocalProgramGenerator {
     // MARK: Workout generation — archetype + arc progression
 
     private static func generateWorkout(
-        archetype: Archetype,
+        buildIdentity: BuildIdentity,
         arcNumber: Int,
         weekInArc: Int,
         sessionIndex: Int,
@@ -322,13 +321,13 @@ enum LocalProgramGenerator {
         forceDeload: Bool = false,
         blockForWeek: BlockType = .accumulation
     ) -> Workout {
-        let split = splitPattern(for: archetype, daysPerWeek: daysPerWeek)
+        let split = splitPattern(for: buildIdentity, daysPerWeek: daysPerWeek)
         let pattern = split[sessionIndex % split.count]
 
         let warmup = generateWarmup(pattern: pattern, equipment: equipment)
         let mainExercises = generateMain(
             pattern: pattern,
-            archetype: archetype,
+            buildIdentity: buildIdentity,
             arcNumber: arcNumber,
             weekInArc: weekInArc,
             equipment: equipment,
@@ -363,7 +362,7 @@ enum LocalProgramGenerator {
 
         let name = forceDeload
             ? "Deload · \(pattern.name)"
-            : sessionName(pattern: pattern, archetype: archetype, arcNumber: arcNumber)
+            : sessionName(pattern: pattern, buildIdentity: buildIdentity, arcNumber: arcNumber)
 
         return Workout(
             name: name,
@@ -389,8 +388,18 @@ enum LocalProgramGenerator {
         case push, pull, legs, fullBody, upper, lower, pullFocused, pushFocused, corePower
     }
 
-    private static func splitPattern(for archetype: Archetype, daysPerWeek: Int) -> [SessionPattern] {
-        // Archetype biases the split — V-TAPER does more pull, UNIT does more legs, etc.
+    // Split selection driven by BuildIdentity.programTemplateKey.
+    //
+    // Mapping of templateKey → split bucket:
+    //   "power" + .specialist  → heavy lower (barbell mass, squat-dominant)
+    //   "power" + other shape  → pull-dominant upper frame
+    //   "control"              → calisthenics, core, corePower-dominant
+    //   "endurance"/"agility"  → athletic, full-body rotational
+    //   "balanced"             → default full-body
+    //
+    // programTemplateKey is the primary discriminator;
+    // shape is a tiebreaker for "power".
+    private static func splitPattern(for buildIdentity: BuildIdentity, daysPerWeek: Int) -> [SessionPattern] {
         let basePullDay = SessionPattern(name: "Pull", muscleGroups: [.back, .lats, .arms, .forearms], focus: .pull)
         let basePushDay = SessionPattern(name: "Push", muscleGroups: [.chest, .shoulders, .arms], focus: .push)
         let baseLegsDay = SessionPattern(name: "Legs", muscleGroups: [.legs, .glutes, .calves], focus: .legs)
@@ -399,28 +408,58 @@ enum LocalProgramGenerator {
         let fullBodyDay = SessionPattern(name: "Full body", muscleGroups: [.chest, .back, .legs, .shoulders, .core], focus: .fullBody)
         let corePowerDay = SessionPattern(name: "Core + conditioning", muscleGroups: [.core, .shoulders, .back], focus: .corePower)
 
-        switch (archetype, daysPerWeek) {
-        case (.heavyDuty, 3): return [baseLowerDay, baseUpperDay, baseLowerDay]
-        case (.heavyDuty, 4): return [baseLowerDay, baseUpperDay, baseLowerDay, baseUpperDay]
-        case (.heavyDuty, 5): return [baseLegsDay, basePushDay, baseLegsDay, basePullDay, baseLowerDay]
-        case (.heavyDuty, 6): return [baseLegsDay, basePushDay, baseLegsDay, basePullDay, baseLegsDay, corePowerDay]
+        let key = buildIdentity.programTemplateKey
 
-        case (.leanCut, 3):  return [fullBodyDay, fullBodyDay, fullBodyDay]
-        case (.leanCut, 4):  return [baseUpperDay, baseLowerDay, baseUpperDay, baseLowerDay]
-        case (.leanCut, 5):  return [basePushDay, basePullDay, baseLegsDay, baseUpperDay, corePowerDay]
-        case (.leanCut, 6):  return [basePushDay, basePullDay, baseLegsDay, basePushDay, basePullDay, corePowerDay]
+        // "power" splits into two branches based on shape:
+        // - specialist/lean → heavy lower (squat-anchored, mass-dominant)
+        // - other shapes   → pull-dominant upper frame (back/shoulder emphasis)
+        let isPowerHeavy = (key == "power") &&
+            (buildIdentity.shape == .specialist || buildIdentity.shape == .lean)
+        let isPowerPull  = (key == "power") && !isPowerHeavy
 
-        case (.shredded, 3): return [corePowerDay, fullBodyDay, corePowerDay]
-        case (.shredded, 4): return [corePowerDay, baseUpperDay, corePowerDay, baseLowerDay]
-        case (.shredded, 5): return [corePowerDay, basePushDay, basePullDay, corePowerDay, baseLegsDay]
-        case (.shredded, 6): return [corePowerDay, basePushDay, basePullDay, corePowerDay, baseLegsDay, fullBodyDay]
+        switch (key, daysPerWeek) {
+        // power + heavy — squat-anchored lower body dominance
+        case _ where isPowerHeavy && daysPerWeek == 3:
+            return [baseLowerDay, baseUpperDay, baseLowerDay]
+        case _ where isPowerHeavy && daysPerWeek == 4:
+            return [baseLowerDay, baseUpperDay, baseLowerDay, baseUpperDay]
+        case _ where isPowerHeavy && daysPerWeek == 5:
+            return [baseLegsDay, basePushDay, baseLegsDay, basePullDay, baseLowerDay]
+        case _ where isPowerHeavy && daysPerWeek == 6:
+            return [baseLegsDay, basePushDay, baseLegsDay, basePullDay, baseLegsDay, corePowerDay]
 
-        case (.vTaper, 3):   return [basePullDay, baseLegsDay, SessionPattern(name: "Push + pull", muscleGroups: [.chest, .back, .shoulders], focus: .pullFocused)]
-        case (.vTaper, 4):   return [basePullDay, baseLegsDay, basePullDay, SessionPattern(name: "Shoulders + push", muscleGroups: [.shoulders, .chest, .arms], focus: .pushFocused)]
-        case (.vTaper, 5):   return [basePullDay, basePushDay, baseLegsDay, basePullDay, SessionPattern(name: "Shoulders + core", muscleGroups: [.shoulders, .core], focus: .pushFocused)]
-        case (.vTaper, 6):   return [basePullDay, basePushDay, baseLegsDay, basePullDay, basePushDay, corePowerDay]
+        // power + pull-dominant — wide frame, back/shoulder emphasis
+        case _ where isPowerPull && daysPerWeek == 3:
+            return [basePullDay, baseLegsDay, SessionPattern(name: "Push + pull", muscleGroups: [.chest, .back, .shoulders], focus: .pullFocused)]
+        case _ where isPowerPull && daysPerWeek == 4:
+            return [basePullDay, baseLegsDay, basePullDay, SessionPattern(name: "Shoulders + push", muscleGroups: [.shoulders, .chest, .arms], focus: .pushFocused)]
+        case _ where isPowerPull && daysPerWeek == 5:
+            return [basePullDay, basePushDay, baseLegsDay, basePullDay, SessionPattern(name: "Shoulders + core", muscleGroups: [.shoulders, .core], focus: .pushFocused)]
+        case _ where isPowerPull && daysPerWeek == 6:
+            return [basePullDay, basePushDay, baseLegsDay, basePullDay, basePushDay, corePowerDay]
 
-        default: return [fullBodyDay, fullBodyDay, fullBodyDay, fullBodyDay]
+        // control — calisthenics + core mastery
+        case ("control", 3): return [corePowerDay, fullBodyDay, corePowerDay]
+        case ("control", 4): return [corePowerDay, baseUpperDay, corePowerDay, baseLowerDay]
+        case ("control", 5): return [corePowerDay, basePushDay, basePullDay, corePowerDay, baseLegsDay]
+        case ("control", 6): return [corePowerDay, basePushDay, basePullDay, corePowerDay, baseLegsDay, fullBodyDay]
+
+        // endurance / agility / mobility / explosiveness — athletic rotational; all share the balanced split
+        case (_, 3) where ["endurance","agility","mobility","explosiveness"].contains(key):
+            return [fullBodyDay, fullBodyDay, fullBodyDay]
+        case (_, 4) where ["endurance","agility","mobility","explosiveness"].contains(key):
+            return [baseUpperDay, baseLowerDay, baseUpperDay, baseLowerDay]
+        case (_, 5) where ["endurance","agility","mobility","explosiveness"].contains(key):
+            return [basePushDay, basePullDay, baseLegsDay, baseUpperDay, corePowerDay]
+        case (_, 6) where ["endurance","agility","mobility","explosiveness"].contains(key):
+            return [basePushDay, basePullDay, baseLegsDay, basePushDay, basePullDay, corePowerDay]
+
+        // "balanced" + hybridAthlete — symmetric push/pull/legs
+        case (_, 3): return [fullBodyDay, fullBodyDay, fullBodyDay]
+        case (_, 4): return [baseUpperDay, baseLowerDay, baseUpperDay, baseLowerDay]
+        case (_, 5): return [basePushDay, basePullDay, baseLegsDay, baseUpperDay, corePowerDay]
+        case (_, 6): return [basePushDay, basePullDay, baseLegsDay, basePushDay, basePullDay, corePowerDay]
+        default:     return [fullBodyDay, fullBodyDay, fullBodyDay, fullBodyDay]
         }
     }
 
@@ -437,7 +476,7 @@ enum LocalProgramGenerator {
 
     private static func generateMain(
         pattern: SessionPattern,
-        archetype: Archetype,
+        buildIdentity: BuildIdentity,
         arcNumber: Int,
         weekInArc: Int,
         equipment: [Equipment],
@@ -479,7 +518,7 @@ enum LocalProgramGenerator {
         // Pool for this session pattern
         var pool = exercisePool(
             for: pattern.focus,
-            archetype: archetype,
+            buildIdentity: buildIdentity,
             equipment: equipment,
             exerciseStyles: exerciseStyles,
             familyTiers: familyTiers,
@@ -489,8 +528,9 @@ enum LocalProgramGenerator {
         // User preferences: drop anything marked `.avoid`, swap anything
         // marked `.substitute` for the user's preferred substitute.
         pool = pool.compactMap { template -> ExerciseTemplate? in
-            let key = template.name.lowercased()
-            guard let pref = prefsByKey[key] else { return template }
+            let key = MovementCatalog.normalized(template.canonicalName ?? template.name)
+            let displayKey = MovementCatalog.normalized(template.name)
+            guard let pref = prefsByKey[key] ?? prefsByKey[displayKey] else { return template }
             switch pref.status {
             case .avoid:
                 return nil
@@ -523,8 +563,8 @@ enum LocalProgramGenerator {
             return aScore > bScore
         }
 
-        // Ensure signature-lift first for this archetype
-        if let signatureIndex = pool.firstIndex(where: { isSignatureLift(exercise: $0, archetype: archetype) }) {
+        // Ensure signature-lift first for this buildIdentity
+        if let signatureIndex = pool.firstIndex(where: { isSignatureLift(exercise: $0, buildIdentity: buildIdentity) }) {
             let sig = pool.remove(at: signatureIndex)
             pool.insert(sig, at: 0)
         }
@@ -547,14 +587,15 @@ enum LocalProgramGenerator {
             // If ProgressionEngine has already tracked weight for this
             // exercise, surface it in the note so the user sees their
             // current working weight on the session screen.
-            let stateKey = template.name.lowercased()
+            let stateKey = (template.canonicalName ?? template.name).lowercased()
             let seededNote: String? = {
                 if let state = statesByKey[stateKey], state.currentWorkingWeightKg > 0 {
-                    let w = String(format: "%g", state.currentWorkingWeightKg)
+                    let unit = WeightPlatePolicy.currentUnit
+                    let w = WeightPlatePolicy.formatSuggestionWeight(state.currentWorkingWeightKg, unit: unit)
                     let base = template.notes ?? ""
                     return base.isEmpty
-                        ? "Current working weight: \(w) kg"
-                        : "\(base) · Current working: \(w) kg"
+                        ? "Current working weight: \(w) \(unit.shortLabel)"
+                        : "\(base) · Current working: \(w) \(unit.shortLabel)"
                 }
                 return template.notes
             }()
@@ -758,25 +799,34 @@ enum LocalProgramGenerator {
         let requiredEquipment: [Equipment]
         let notes: String?
         let substitution: String?
+        var canonicalName: String? = nil
     }
 
     private static func exercisePool(
         for focus: SessionFocus,
-        archetype: Archetype,
+        buildIdentity: BuildIdentity,
         equipment: [Equipment],
         exerciseStyles: Set<ExerciseStyle>,
         familyTiers: [String: Int] = [:],
         customExercises: [CustomExercise] = []
     ) -> [ExerciseTemplate] {
-        let calisthenicsBias = archetype == .shredded
+        // Calisthenics bias: control template key, explicit calisthenics style, or bodyweight-only
+        let calisthenicsBias = buildIdentity.programTemplateKey == "control"
             || exerciseStyles.contains(.calisthenics)
             || (equipment.count == 1 && equipment.contains(.bodyweight))
 
-        let all = bundledExercisePool(
+        let catalogTemplates = movementCatalogExercisePool(
+            for: focus,
+            buildIdentity: buildIdentity,
+            equipment: equipment,
+            exerciseStyles: exerciseStyles,
+            familyTiers: familyTiers
+        )
+        let all = dedupedTemplates(catalogTemplates + bundledExercisePool(
             calisthenicsBias: calisthenicsBias,
             familyTiers: familyTiers,
             customExercises: customExercises
-        )
+        ))
         var filtered = all.filter { template in
             guard template.focus == focus || matches(template: template, focus: focus) else { return false }
             if template.requiredEquipment.contains(.bodyweight) { return true }
@@ -803,6 +853,147 @@ enum LocalProgramGenerator {
         return filtered
     }
 
+    private static func movementCatalogExercisePool(
+        for focus: SessionFocus,
+        buildIdentity: BuildIdentity,
+        equipment: [Equipment],
+        exerciseStyles: Set<ExerciseStyle>,
+        familyTiers: [String: Int]
+    ) -> [ExerciseTemplate] {
+        let style = inferredTrainingStyle(
+            buildIdentity: buildIdentity,
+            equipment: equipment,
+            exerciseStyles: exerciseStyles
+        )
+        let shouldGateProgressions = style == .bodyweight || buildIdentity.programTemplateKey == "control"
+
+        return MovementCatalog.programDefinitions(style: style, userEquipment: equipment)
+            .filter { definition in
+                guard shouldGateProgressions else { return true }
+                guard let family = definition.progressionFamily,
+                      let tier = definition.progressionTier
+                else { return true }
+                return tier <= (familyTiers[family] ?? 0)
+            }
+            .compactMap { definition in
+                guard let template = exerciseTemplate(from: definition) else { return nil }
+                return template.focus == focus || matches(template: template, focus: focus) ? template : nil
+            }
+    }
+
+    private static func inferredTrainingStyle(
+        buildIdentity: BuildIdentity,
+        equipment: [Equipment],
+        exerciseStyles: Set<ExerciseStyle>
+    ) -> TrainingStyle {
+        if buildIdentity.programTemplateKey == "control"
+            || exerciseStyles.contains(.calisthenics)
+            || (equipment.count == 1 && equipment.contains(.bodyweight)) {
+            return .bodyweight
+        }
+        if exerciseStyles.contains(.machines) {
+            return .machines
+        }
+        if exerciseStyles.contains(.compoundLifts) {
+            return .freeWeights
+        }
+        return .hybrid
+    }
+
+    private static func exerciseTemplate(from definition: MovementDefinition) -> ExerciseTemplate? {
+        guard let canonicalName = definition.canonicalExerciseName else { return nil }
+        return ExerciseTemplate(
+            name: definition.displayName,
+            muscleGroups: definition.muscleGroups,
+            focus: focus(for: definition.movementSlot),
+            requiredEquipment: localEquipment(for: definition.equipment),
+            notes: coachingNote(for: definition),
+            substitution: MovementCatalog.catalogAlternatives(to: definition.displayName).first?.displayName,
+            canonicalName: canonicalName
+        )
+    }
+
+    private static func coachingNote(for definition: MovementDefinition) -> String {
+        switch definition.movementSlot {
+        case .squat:
+            return "Brace before each rep. Control depth, keep knees tracking, drive through the whole foot."
+        case .hinge:
+            return "Hips move first. Keep the spine quiet, load the hamstrings, and finish tall."
+        case .horizontalPush:
+            return "Set the shoulders, control the descent, then press without losing your rib position."
+        case .verticalPush:
+            return "Lock the ribs down. Press to a clean overhead line and control the lower."
+        case .horizontalPull:
+            return "Row with the back, not momentum. Pause briefly with shoulder blades pulled together."
+        case .verticalPull:
+            return "Start from control, pull elbows down, and avoid swinging through the hard reps."
+        case .arms:
+            return "Keep the upper arm stable. Own the squeeze and the negative instead of chasing load."
+        case .core:
+            return definition.loggerMode == .hold
+                ? "Quality seconds only. Keep ribs down, pelvis locked, and stop before shape breaks."
+                : "Move slowly enough that your trunk stays locked through every rep."
+        case .calves:
+            return "Use full range. Pause at the top and bottom so the ankle does real work."
+        case .carry:
+            return "Walk tall with quiet ribs and level shoulders. Grip hard without rushing the distance."
+        case .cardio, .mobility, .routine, .skill:
+            return "Keep the effort clean and repeatable. Quality beats forcing the prescription."
+        }
+    }
+
+    private static func focus(for slot: MovementSlot) -> SessionFocus {
+        switch slot {
+        case .squat, .hinge, .calves:
+            return .legs
+        case .horizontalPush, .verticalPush:
+            return .push
+        case .horizontalPull, .verticalPull:
+            return .pull
+        case .arms:
+            return .push
+        case .core, .carry:
+            return .corePower
+        case .cardio, .mobility, .routine, .skill:
+            return .fullBody
+        }
+    }
+
+    private static func localEquipment(for movementEquipment: [MovementEquipment]) -> [Equipment] {
+        var equipment: Set<Equipment> = [.fullGym]
+        for item in movementEquipment {
+            switch item {
+            case .bodyweight, .openSpace, .box:
+                equipment.insert(.bodyweight)
+            case .barbell:
+                equipment.insert(.barbell)
+            case .smithMachine:
+                equipment.insert(.machines)
+            case .dumbbell, .kettlebell:
+                equipment.insert(.dumbbells)
+            case .cable, .machine, .cardioMachine, .sled:
+                equipment.insert(.machines)
+            case .pullupBar, .dipStation, .rings:
+                equipment.insert(.pullupBar)
+            case .bench:
+                equipment.insert(.bench)
+            case .band, .mobilityTool:
+                equipment.insert(.bands)
+            }
+        }
+        return equipment.isEmpty ? [.bodyweight] : Array(equipment)
+    }
+
+    private static func dedupedTemplates(_ templates: [ExerciseTemplate]) -> [ExerciseTemplate] {
+        var seen: Set<String> = []
+        return templates.filter { template in
+            let key = MovementCatalog.normalized(template.canonicalName ?? template.name)
+            guard !seen.contains(key) else { return false }
+            seen.insert(key)
+            return true
+        }
+    }
+
     private static func matches(template: ExerciseTemplate, focus: SessionFocus) -> Bool {
         switch focus {
         case .upper:
@@ -822,12 +1013,34 @@ enum LocalProgramGenerator {
         }
     }
 
-    private static func isSignatureLift(exercise: ExerciseTemplate, archetype: Archetype) -> Bool {
-        switch archetype {
-        case .heavyDuty: return exercise.name.localizedCaseInsensitiveContains("squat") && !exercise.name.localizedCaseInsensitiveContains("goblet")
-        case .leanCut:   return exercise.name.localizedCaseInsensitiveContains("bench press")
-        case .shredded:  return exercise.name.localizedCaseInsensitiveContains("l-sit") || exercise.name.localizedCaseInsensitiveContains("dragon") || exercise.name.localizedCaseInsensitiveContains("plank")
-        case .vTaper:    return exercise.name.localizedCaseInsensitiveContains("pullup") || exercise.name.localizedCaseInsensitiveContains("pull-up")
+    // Signature-lift semantics keyed on programTemplateKey + shape:
+    //   power + heavy (specialist/lean) → squat (barbell mass, squat anchor)
+    //   power + pull  (non-specialist)  → pullup (pull-vertical emphasis)
+    //   control                         → l-sit / dragon flag / plank (calisthenics precision)
+    //   endurance/agility/others        → bench press (balanced athletic baseline)
+    //   balanced / hybridAthlete        → bench press (neutral compound)
+    private static func isSignatureLift(exercise: ExerciseTemplate, buildIdentity: BuildIdentity) -> Bool {
+        let key = buildIdentity.programTemplateKey
+        let isPowerHeavy = key == "power" &&
+            (buildIdentity.shape == .specialist || buildIdentity.shape == .lean)
+        let isPowerPull = key == "power" && !isPowerHeavy
+
+        if isPowerHeavy {
+            return exercise.name.localizedCaseInsensitiveContains("squat") &&
+                   !exercise.name.localizedCaseInsensitiveContains("goblet")
+        }
+        if isPowerPull {
+            return exercise.name.localizedCaseInsensitiveContains("pullup") ||
+                   exercise.name.localizedCaseInsensitiveContains("pull-up")
+        }
+        switch key {
+        case "control":
+            return exercise.name.localizedCaseInsensitiveContains("l-sit") ||
+                   exercise.name.localizedCaseInsensitiveContains("dragon") ||
+                   exercise.name.localizedCaseInsensitiveContains("plank")
+        default:
+            // endurance, agility, mobility, explosiveness, balanced — athletic baseline
+            return exercise.name.localizedCaseInsensitiveContains("bench press")
         }
     }
 
@@ -908,21 +1121,16 @@ enum LocalProgramGenerator {
 
         guard calisthenicsBias else { return customTemplates + base }
 
-        let pushFamily = ExerciseCatalog.progressionFamily("push")
-        let pullFamily = ExerciseCatalog.progressionFamily("pull")
-        let legsFamily = ExerciseCatalog.progressionFamily("legs-single")
-        let coreFamily = ExerciseCatalog.progressionFamily("core-lever")
-
         let pushTier = familyTiers["push"] ?? 0
         let pullTier = familyTiers["pull"] ?? 0
         let legsTier = familyTiers["legs-single"] ?? 0
         let coreTier = familyTiers["core-lever"] ?? 0
 
         let calisthenicsExtras: [ExerciseTemplate] = [
-            catalogTemplate(from: pushFamily, maxTier: pushTier, focus: .push),
-            catalogTemplate(from: pullFamily, maxTier: pullTier, focus: .pull),
-            catalogTemplate(from: legsFamily, maxTier: legsTier, focus: .legs),
-            catalogTemplate(from: coreFamily, maxTier: coreTier, focus: .corePower)
+            movementCatalogTemplate(family: "push", maxTier: pushTier, focus: .push),
+            movementCatalogTemplate(family: "pull", maxTier: pullTier, focus: .pull),
+            movementCatalogTemplate(family: "legs-single", maxTier: legsTier, focus: .legs),
+            movementCatalogTemplate(family: "core-lever", maxTier: coreTier, focus: .corePower)
         ].compactMap { $0 }
 
         return customTemplates + calisthenicsExtras + base
@@ -965,12 +1173,12 @@ enum LocalProgramGenerator {
         }
     }
 
-    private static func catalogTemplate(
-        from family: [CatalogExercise],
+    private static func movementCatalogTemplate(
+        family: String,
         maxTier: Int,
         focus: SessionFocus
     ) -> ExerciseTemplate? {
-        let candidates = family.filter { ($0.progressionTier ?? 0) <= maxTier }
+        let candidates = MovementCatalog.progressionDefinitions(family: family, maxTier: maxTier)
         guard let pick = candidates.last else { return nil }
         return ExerciseTemplate(
             name: pick.displayName,
@@ -978,7 +1186,12 @@ enum LocalProgramGenerator {
             focus: focus,
             requiredEquipment: [.bodyweight],
             notes: "Bodyweight progression · \(pick.displayName). Own this tier before the next unlock.",
-            substitution: pick.defaultSubstitute
+            substitution: MovementCatalog.programAlternatives(
+                to: pick.displayName,
+                style: .bodyweight,
+                userEquipment: [.bodyweight]
+            ).first?.displayName,
+            canonicalName: pick.canonicalExerciseName
         )
     }
 
@@ -1002,7 +1215,7 @@ enum LocalProgramGenerator {
 
     // MARK: Naming
 
-    private static func sessionName(pattern: SessionPattern, archetype: Archetype, arcNumber: Int) -> String {
+    private static func sessionName(pattern: SessionPattern, buildIdentity: BuildIdentity, arcNumber: Int) -> String {
         let arcPrefix: String
         switch arcNumber {
         case 1: arcPrefix = "Foundation"
@@ -1066,16 +1279,27 @@ enum LocalProgramGenerator {
 
     // MARK: Program naming
 
-    private static func programName(for archetype: Archetype) -> String {
-        "\(archetype.shortName) · Adaptive protocol"
+    // Program name/description keyed on BuildIdentity.
+    private static func programName(for buildIdentity: BuildIdentity) -> String {
+        "\(buildIdentity.displayName) · Adaptive protocol"
     }
 
-    private static func programDescription(for archetype: Archetype) -> String {
-        switch archetype {
-        case .heavyDuty: return "Mass-monster compounds. Squat, bench, deadlift, press — fill out the whole frame."
-        case .leanCut:   return "Balanced athlete. Push, pull, and squat proportionally."
-        case .shredded:  return "Core and calisthenics mastery. Move your own bodyweight like a weapon."
-        case .vTaper:    return "Pull progression to muscle-up. Build the shoulders and back that define the silhouette."
+    private static func programDescription(for buildIdentity: BuildIdentity) -> String {
+        switch buildIdentity.programTemplateKey {
+        case "power":
+            let isPowerHeavy = buildIdentity.shape == .specialist || buildIdentity.shape == .lean
+            return isPowerHeavy
+                ? "Mass-monster compounds. Squat, bench, deadlift, press — fill out the whole frame."
+                : "Pull progression to muscle-up. Build the shoulders and back that define the silhouette."
+        case "control":
+            return "Core and calisthenics mastery. Move your own bodyweight like a weapon."
+        case "endurance", "mobility":
+            return "Balanced athlete. Push, pull, and squat proportionally."
+        case "agility", "explosiveness":
+            return "Fast, functional, capable. Built like an athlete who never stops."
+        default:
+            // balanced, hybridAthlete
+            return "Even development across every axis. The athletic baseline everything else compounds on."
         }
     }
 
@@ -1108,7 +1332,7 @@ enum LocalProgramGenerator {
 
     // swiftlint:disable:next function_parameter_count
     private static func buildRationale(
-        archetype: Archetype,
+        buildIdentity: BuildIdentity,
         daysPerWeek: Int,
         minutesPerSession: Int,
         equipment: [Equipment],
@@ -1136,7 +1360,7 @@ enum LocalProgramGenerator {
             : "Built for you, \(trimmedHandle)."
 
         let summary = rationaleSummary(
-            archetype: archetype,
+            buildIdentity: buildIdentity,
             daysPerWeek: daysPerWeek,
             minutesPerSession: minutesPerSession,
             equipment: equipment,
@@ -1152,9 +1376,9 @@ enum LocalProgramGenerator {
 
         decisions.append(
             .init(
-                inputSummary: "The \(archetype.displayName.replacingOccurrences(of: "The ", with: "")) archetype",
-                decisionApplied: archetypeRationaleCopy(archetype: archetype, equipment: equipment, exerciseStyles: exerciseStyles),
-                iconSystemName: archetypeIcon(archetype)
+                inputSummary: "Build identity: \(buildIdentity.displayName)",
+                decisionApplied: buildIdentityRationaleCopy(buildIdentity: buildIdentity, equipment: equipment, exerciseStyles: exerciseStyles),
+                iconSystemName: buildIdentityIcon(buildIdentity)
             )
         )
 
@@ -1164,7 +1388,7 @@ enum LocalProgramGenerator {
                 decisionApplied: frequencyRationaleCopy(
                     daysPerWeek: daysPerWeek,
                     currentFrequency: currentFrequency,
-                    archetype: archetype
+                    buildIdentity: buildIdentity
                 ),
                 iconSystemName: "calendar"
             )
@@ -1298,7 +1522,7 @@ enum LocalProgramGenerator {
     }
 
     private static func rationaleSummary(
-        archetype: Archetype,
+        buildIdentity: BuildIdentity,
         daysPerWeek: Int,
         minutesPerSession: Int,
         equipment: [Equipment],
@@ -1335,45 +1559,57 @@ enum LocalProgramGenerator {
         } else if age >= 40 {
             suffix = " — scaled for longevity and long-term joint health at \(age)."
         } else {
-            suffix = " — built around the \(archetype.displayName.lowercased()) template."
+            // MIGRATION: replaced archetype.displayName with buildIdentity.displayName
+            suffix = " — built around the \(buildIdentity.displayName.lowercased()) template."
         }
         return (base.prefix(1).capitalized + base.dropFirst()) + suffix
     }
 
-    private static func archetypeRationaleCopy(
-        archetype: Archetype,
+    // MIGRATION: replaced archetypeRationaleCopy with buildIdentityRationaleCopy
+    private static func buildIdentityRationaleCopy(
+        buildIdentity: BuildIdentity,
         equipment: [Equipment],
         exerciseStyles: Set<ExerciseStyle>
     ) -> String {
-        switch archetype {
-        case .shredded:
+        let key = buildIdentity.programTemplateKey
+        let isPowerHeavy = key == "power" &&
+            (buildIdentity.shape == .specialist || buildIdentity.shape == .lean)
+        let isPowerPull = key == "power" && !isPowerHeavy
+
+        switch key {
+        case "control":
             let bodyweight = equipment == [.bodyweight] || exerciseStyles.contains(.calisthenics)
             return bodyweight
                 ? "Bodyweight-first progressions: pushup → pike → archer. Every lift has a ladder."
                 : "Calisthenics progressions with weighted options where your kit allows."
-        case .vTaper:
+        case _ where isPowerPull:
             return "Pull-vertical emphasis: progression toward the muscle-up; shoulders and back own the split."
-        case .heavyDuty:
+        case _ where isPowerHeavy:
             return "Squat-anchored lower body dominance; the frame gets bigger first."
-        case .leanCut:
+        case "endurance", "mobility", "agility", "explosiveness":
             return "Push/pull/squat in equal measure — the athletic baseline the whole flow rotates around."
+        default:
+            // balanced, hybridAthlete
+            return "Even split across all movement patterns — every axis develops in parallel."
         }
     }
 
     private static func frequencyRationaleCopy(
         daysPerWeek: Int,
         currentFrequency: Frequency?,
-        archetype: Archetype
+        buildIdentity: BuildIdentity
     ) -> String {
         if daysPerWeek <= 3 {
             return "Full-body rotation — every session hits everything so recovery stays on your side."
         }
         if daysPerWeek == 4 {
-            switch archetype {
-            case .heavyDuty: return "Upper / lower / upper / lower — volume without the CNS debt."
-            case .vTaper: return "Pull-heavy rotation: 2 pull days, 1 leg, 1 push-focused upper."
-            default: return "Upper / lower split — lets each zone recover while the other works."
-            }
+            let key = buildIdentity.programTemplateKey
+            let isPowerHeavy = key == "power" &&
+                (buildIdentity.shape == .specialist || buildIdentity.shape == .lean)
+            let isPowerPull = key == "power" && !isPowerHeavy
+            if isPowerHeavy { return "Upper / lower / upper / lower — volume without the CNS debt." }
+            if isPowerPull  { return "Pull-heavy rotation: 2 pull days, 1 leg, 1 push-focused upper." }
+            return "Upper / lower split — lets each zone recover while the other works."
         }
         if daysPerWeek >= 5 {
             return "Push / pull / legs with an extra accessory day — room for arms, calves, conditioning."
@@ -1398,12 +1634,21 @@ enum LocalProgramGenerator {
         }
     }
 
-    private static func archetypeIcon(_ archetype: Archetype) -> String {
-        switch archetype {
-        case .vTaper: return "figure.climbing"
-        case .heavyDuty: return "figure.strengthtraining.traditional"
-        case .shredded: return "figure.strengthtraining.functional"
-        case .leanCut: return "figure.run"
+    // MIGRATION: replaced archetypeIcon with buildIdentityIcon
+    private static func buildIdentityIcon(_ buildIdentity: BuildIdentity) -> String {
+        let key = buildIdentity.programTemplateKey
+        let isPowerHeavy = key == "power" &&
+            (buildIdentity.shape == .specialist || buildIdentity.shape == .lean)
+        let isPowerPull = key == "power" && !isPowerHeavy
+        if isPowerPull  { return "figure.climbing" }
+        if isPowerHeavy { return "figure.strengthtraining.traditional" }
+        switch key {
+        case "control":     return "figure.strengthtraining.functional"
+        case "endurance":   return "figure.run"
+        case "agility":     return "figure.run.circle"
+        case "mobility":    return "figure.flexibility"
+        case "explosiveness": return "bolt.fill"
+        default:            return "figure.mixed.cardio"  // balanced / hybridAthlete
         }
     }
 
@@ -1446,4 +1691,17 @@ enum LocalProgramGenerator {
             notes: "Sleep is the real supplement. Everything else compounds on top of it."
         )
     }
+}
+
+extension LocalProgramGenerator {
+
+    /// Clean entry point — delegates to the deterministic pipeline.
+    ///
+    /// Preferred for new code (Chunk 3 BlockRolloverService, future UI
+    /// integrations). The legacy wide-parameter `generate(buildIdentity:...)`
+    /// is the new canonical path; this delegates straight to DeterministicProgramGenerator.
+    static func generate(input: ProgramGeneratorInput) throws -> TrainingProgram {
+        return try DeterministicProgramGenerator.generate(input: input)
+    }
+
 }

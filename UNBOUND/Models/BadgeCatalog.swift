@@ -10,9 +10,9 @@ enum BadgeCatalog {
     static let all: [Badge] = [
         // MARK: Onboarding / first-touch
         Badge(
-            id: "archetype_chosen",
-            displayName: "Path Chosen",
-            description: "Picked your archetype — the arc begins.",
+            id: "first_build_identity_resolved",
+            displayName: "Build Emerges",
+            description: "Your training shaped a build — the arc begins.",
             iconSystemName: "hexagon.fill",
             rarity: .common,
             unlockedAt: nil
@@ -194,6 +194,32 @@ enum BadgeCatalog {
             displayName: "Three-Scan Arc",
             description: "Logged three body scans across weeks.",
             iconSystemName: "chart.line.uptrend.xyaxis",
+            rarity: .rare,
+            unlockedAt: nil
+        ),
+
+        // MARK: Photo ritual (daily capture + cadence)
+        Badge(
+            id: "first_photo",
+            displayName: "Day Zero",
+            description: "Captured your first progress photo.",
+            iconSystemName: "camera.fill",
+            rarity: .common,
+            unlockedAt: nil
+        ),
+        Badge(
+            id: "biweekly_scan",
+            displayName: "Two-Week Read",
+            description: "Two bi-weekly scans within 14 days of each other.",
+            iconSystemName: "sparkle.magnifyingglass",
+            rarity: .rare,
+            unlockedAt: nil
+        ),
+        Badge(
+            id: "monthly_arc",
+            displayName: "Monthly Arc",
+            description: "Four or more captures in a rolling 30-day window.",
+            iconSystemName: "calendar.badge.checkmark",
             rarity: .rare,
             unlockedAt: nil
         )

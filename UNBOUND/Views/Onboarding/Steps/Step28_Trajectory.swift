@@ -22,15 +22,16 @@ struct Step28_Trajectory: View {
     var body: some View {
         OnboardingScaffold(
             title: "Here's what changes.",
-            subtitle: "Your projected rank over the next 12 months — with UNBOUND vs. grinding alone.",
+            subtitle: "One path keeps repeating. One path starts climbing.",
             progress: progress,
-            primaryTitle: "Continue",
+            primaryTitle: "See my arc",
             hudStep: .trajectory,
             onBack: onBack,
             onPrimary: onContinue
         ) {
             VStack(alignment: .leading, spacing: 16) {
                 chartCard
+                sellCard
                 calloutCard
             }
         }
@@ -95,11 +96,15 @@ struct Step28_Trajectory: View {
                     }
                 }
                 .chartYAxis {
-                    AxisMarks(values: [0, 1, 2, 3, 4]) { value in
+                    AxisMarks(values: [0, 1, 2, 3, 4, 5]) { value in
                         AxisValueLabel {
                             Text(rankLetter(for: value.as(Int.self) ?? 0))
                                 .font(Font.unbound.captionS.monospaced())
-                                .foregroundStyle(Color.unbound.textTertiary)
+                                .foregroundStyle(
+                                    (value.as(Int.self) ?? 0) == 5
+                                        ? Color.unbound.ember
+                                        : Color.unbound.textTertiary
+                                )
                         }
                         AxisGridLine()
                             .foregroundStyle(Color.unbound.borderSubtle)
@@ -116,8 +121,8 @@ struct Step28_Trajectory: View {
                             .foregroundStyle(Color.unbound.borderSubtle)
                     }
                 }
-                .chartYScale(domain: 0...4.3)
-                .frame(height: 220)
+                .chartYScale(domain: 0...6.0)
+                .frame(height: 240)
 
                 legend
             }
@@ -180,6 +185,31 @@ struct Step28_Trajectory: View {
         return "Rank \(withEnd) with UNBOUND vs. Rank \(withoutEnd) without"
     }
 
+    // MARK: Sell card — why the line keeps climbing past S
+
+    /// The visual ceiling in most apps is "S rank" — a badge to collect and
+    /// then stare at. UNBOUND treats S as a milestone, not a cap. This card
+    /// is the verbal half of the uncapped graph.
+    private var sellCard: some View {
+        UnboundCard {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 10) {
+                    Image(systemName: "flame.fill")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(Color.unbound.ember)
+                    Text("WHY WE DON'T PLATEAU AT S")
+                        .font(Font.unbound.captionS)
+                        .tracking(1.4)
+                        .foregroundStyle(Color.unbound.ember)
+                }
+                Text("S is where most apps stop measuring. UNBOUND keeps tracking real feats — muscle-up, front lever, one-arm pushup — so the line keeps climbing long after the badge.")
+                    .font(Font.unbound.bodyM)
+                    .foregroundStyle(Color.unbound.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
     // MARK: Data
 
     private struct Point: Identifiable {
@@ -208,26 +238,28 @@ struct Step28_Trajectory: View {
         }
     }
 
-    /// With-UNBOUND end-state rank (0–4, maps E..A). Higher commitment +
-    /// higher target frequency = steeper climb.
+    /// With-UNBOUND end-state rank (0–5.5, maps E..S..unbound). The ceiling
+    /// is intentionally past S so the violet curve keeps climbing through
+    /// the badge — this is the "we don't cap you at S" moment of the graph.
+    /// Higher commitment + higher target frequency = steeper climb.
     private var commitmentSlope: Double {
-        let base = Double(flow.commitment) / 10.0 * 2.8
+        let base = Double(flow.commitment) / 10.0 * 3.6
         let freqBoost: Double = {
             switch flow.targetFrequency {
-            case .three: return 0.2
-            case .four: return 0.5
-            case .five: return 0.8
-            case .six: return 1.0
-            case nil: return 0.4
+            case .three: return 0.4
+            case .four: return 0.8
+            case .five: return 1.2
+            case .six: return 1.6
+            case nil: return 0.6
             }
         }()
-        return min(4.0, base + freqBoost)
+        return min(5.5, base + freqBoost)
     }
 
     /// Without-UNBOUND end-state. Capped low because grinding alone without
     /// structure plateaus fast regardless of motivation.
     private var withoutSlope: Double {
-        max(0.5, min(1.6, Double(flow.commitment) / 10.0 * 1.4))
+        max(0.5, min(1.8, Double(flow.commitment) / 10.0 * 1.5))
     }
 
     private func rankLetter(for value: Int) -> String {
@@ -237,7 +269,8 @@ struct Step28_Trajectory: View {
         case 2: return "C"
         case 3: return "B"
         case 4: return "A"
-        default: return "S"
+        case 5: return "S"
+        default: return "★"
         }
     }
 }

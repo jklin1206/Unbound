@@ -20,7 +20,9 @@ enum ProgressionSuggestion {
 
     var description: String {
         switch self {
-        case .increaseWeight(let amount): return "Try +\(String(format: "%.1f", amount))kg"
+        case .increaseWeight(let amount):
+            let unit = WeightPlatePolicy.currentUnit
+            return "Try +\(WeightPlatePolicy.formatDeltaWeight(amount, unit: unit))\(unit.shortLabel)"
         case .increaseReps: return "Add 1-2 reps before increasing weight"
         case .hold: return "Hold current weight"
         case .deload(let pct): return "Deload \(Int(pct))% — RPE too high"

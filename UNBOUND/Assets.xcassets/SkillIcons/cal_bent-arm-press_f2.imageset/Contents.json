@@ -1,0 +1,21 @@
+{
+  "images": [
+    {
+      "idiom": "universal",
+      "filename": "cal_bent-arm-press_f2.png",
+      "scale": "1x"
+    },
+    {
+      "idiom": "universal",
+      "scale": "2x"
+    },
+    {
+      "idiom": "universal",
+      "scale": "3x"
+    }
+  ],
+  "info": {
+    "author": "xcode",
+    "version": 1
+  }
+}

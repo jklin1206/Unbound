@@ -1,14 +1,14 @@
 import SwiftUI
 
 /// Wraps the scan flow for returning users.
-/// Pre-fills the archetype from the last scan and shows a comparison after analysis completes.
+/// Shows a comparison after analysis completes.
 struct RescanView: View {
     @EnvironmentObject var services: ServiceContainer
     let previousEntry: ProgressEntry
-    let previousArchetype: Archetype
 
     var body: some View {
-        ScanIntroView()
+        // ScanIntroView removed — scan is now accessed via ScanDueCard on Home / ProfileScanRow.
+        PhotoCaptureFlow(mode: .scan) { _ in }
             .environmentObject(services)
     }
 }
@@ -162,8 +162,7 @@ struct RescanComparisonView: View {
                 id: "1", userId: "u1", scanId: "s1", analysisId: "a1",
                 createdAt: Date(), overallScore: 72,
                 muscleScores: ["chest": 70, "back": 68, "arms": 75]
-            ),
-            previousArchetype: .vTaper
+            )
         )
         .environmentObject(ServiceContainer.mock)
     }
