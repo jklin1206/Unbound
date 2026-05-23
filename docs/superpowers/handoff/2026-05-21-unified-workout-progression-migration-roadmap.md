@@ -232,6 +232,14 @@ Current status: **In progress. Home, Program Workout Ready, Skill Session save p
 - Quick Log program-style progression receipt beat: `/var/folders/1p/5wt2_h6x6pd2lyqwmyf10_6c0000gn/T/screenshot_optimized_93270f13-a93f-4df7-abd6-6367f138b07b.jpg`
 
 2026-05-22 follow-up notes:
+- Progression integration coordinator pass completed on branch `codex/progression-overall-rank-trials`.
+- Committed the missing active-workout metric UI baseline so mixed loggers compile from committed source: `ExerciseLogCard` and `SetLogGridRow` now render block-aware `WEIGHT/LOAD`, `REPS/HOLD/TIME/DIST/CAL`, and suggestion values from `TrainingMetricKind`.
+- MovementCatalog caller migration advanced: deterministic and local program generation now use MovementCatalog program definitions, structured equipment compatibility, canonical exercise preferences, movement-slot filtering, and catalog substitutions; ProgressionEngine now resolves saved movement/rank-standard IDs through MovementCatalog and applies `WeightPlatePolicy` bumps.
+- Overall Rank Trial runner advanced beyond V1: added Honed -> Forged gate `The Reckoning`, including readiness, draft mapping, pass/fail attempt logging, and duplicate completion protection.
+- Weekly Vow polish integrated as a narrow slice: saved `PerformanceLog` gating now records a persistent completion ledger, prevents duplicate bonus consumption, adds Vow bonus metadata, and only exposes Apex share-card metadata after real saved work.
+- Focused simulator proof on iPhone 17 passed after the integrated slices: 98/98 across `MovementResolverTests`, `ExerciseEquipmentClassifierTests`, `ProgressionEngineBehaviorTests`, `DeterministicProgramGeneratorTests`, `OverallRankTrialServiceTests`, `WeeklyVowsServiceTests`, and `WeeklyVowsStoreTests`.
+- Combined result bundle: `/Users/jlin/Library/Developer/XcodeBuildMCP/workspaces/toji-aa3a04fb00a4/result-bundles/test_sim_2026-05-23T01-24-22-220Z_pid85954_8af81497.xcresult`
+- Remaining integration caution: the broad Weekly Vow worker branch still contains additional attribute/reward/model changes that were not cherry-picked; Profile/Settings also contain unrelated local redesign/dev-bootstrap edits and should be reconciled separately rather than overwritten by older agent UI hunks.
 - Replaced the brittle parent-level routine completion handoff with inline `RoutineCompletionFlow`: `RoutinePlayerView -> TrainingCompletionService -> WorkoutRewardSequenceView -> Program/Routines`.
 - Added DEBUG bootstrap coverage for `--unbound-open-routine` and `--unbound-open-cardio-log`, so simulator proof routes start from the real app shell instead of presenting over onboarding.
 - Removed the remaining old `WorkoutLoggingViewModel.makeRewardSequenceSummary()` helper; `WorkoutLoggingView` now asks the view model for a `trainingReceiptSummary(for:)` backed by `WorkoutRewardSequenceSummary.trainingReceipt(...)`.
