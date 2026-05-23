@@ -67,7 +67,7 @@ struct ProgressionLadderView: View {
     }
 
     private func familySection(key: String, title: String, icon: String) -> some View {
-        let exercises = ExerciseCatalog.progressionFamily(key)
+        let exercises = MovementCatalog.catalogProgressionFamily(key)
         let state = familyStates[key]
         let unlockedTier = state?.unlockedTier ?? 0
 

@@ -342,7 +342,7 @@ private enum WeeklyVowCompletionBonusCatalog {
             shareCard = WeeklyVowShareCardDescriptor(
                 id: "apex-vow-share-\(vow.id)-\(performanceLog.id)",
                 title: "Apex Vow Cleared",
-                subtitle: "\(vow.chosenCard.displayName) - \(vow.chosenCard.capstone.displayName)",
+                subtitle: "Apex Vow - \(vow.chosenCard.capstone.displayName)",
                 metadata: [
                     "vowId": vow.id,
                     "performanceLogId": performanceLog.id,
@@ -357,12 +357,12 @@ private enum WeeklyVowCompletionBonusCatalog {
         return WeeklyVowCompletionBonus(
             overallLevelXP: kind.completionBonusOverallLevelXP,
             badgeProgress: WeeklyVowProgressDescriptor(
-                title: "\(kind.displayName) I",
+                title: "\(kind.displayName) Vow I",
                 current: badgeProgress,
                 target: badgeTarget
             ),
             cosmeticProgress: WeeklyVowProgressDescriptor(
-                title: "\(kind.displayName) Finish",
+                title: "\(kind.displayName) Vow Finish",
                 current: cosmeticProgress,
                 target: cosmeticTarget
             ),

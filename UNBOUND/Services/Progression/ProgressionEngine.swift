@@ -118,6 +118,7 @@ final class ProgressionEngine {
                 userId: userId,
                 exerciseKey: next.exerciseKey,
                 displayName: next.displayName,
+                familyUnlockDefinition: identity.familyUnlockDefinition,
                 at: loggedAt
             )
         }
@@ -239,33 +240,36 @@ final class ProgressionEngine {
     private struct ProgressionIdentity {
         let exerciseKey: String
         let displayName: String
+        let familyUnlockDefinition: MovementDefinition?
     }
 
     private func progressionIdentity(for entry: ExerciseLogEntry) -> ProgressionIdentity {
-        if let definition = progressionDefinition(for: entry.rankStandardMovementId) {
-            return ProgressionIdentity(
-                exerciseKey: normalize(definition.canonicalExerciseName ?? definition.displayName),
-                displayName: definition.displayName
-            )
-        }
-        if let definition = progressionDefinition(for: entry.movementId) {
-            return ProgressionIdentity(
-                exerciseKey: normalize(definition.canonicalExerciseName ?? definition.displayName),
-                displayName: definition.displayName
-            )
+        let resolved = MovementResolver.resolve(entry.exerciseName)
+        let exactDefinition = progressionDefinition(for: entry.movementId)
+            ?? progressionDefinition(for: resolved.movementId)
+        let standardDefinition = progressionDefinition(for: entry.rankStandardMovementId)
+            ?? exactDefinition.flatMap { MovementCatalog.rankStandard(for: $0) }
+            ?? progressionDefinition(for: resolved.rankStandardMovementId)
+
+        let familyUnlockDefinition = [
+            exactDefinition,
+            standardDefinition
+        ].compactMap { $0 }.first {
+            $0.progressionFamily != nil && $0.progressionTier != nil
         }
 
-        let resolved = MovementResolver.resolve(entry.exerciseName)
-        if let definition = progressionDefinition(for: resolved.rankStandardMovementId) {
+        if let definition = standardDefinition ?? exactDefinition {
             return ProgressionIdentity(
                 exerciseKey: normalize(definition.canonicalExerciseName ?? definition.displayName),
-                displayName: definition.displayName
+                displayName: definition.displayName,
+                familyUnlockDefinition: familyUnlockDefinition
             )
         }
 
         return ProgressionIdentity(
             exerciseKey: normalize(entry.exerciseName),
-            displayName: entry.exerciseName
+            displayName: entry.exerciseName,
+            familyUnlockDefinition: nil
         )
     }
 
@@ -284,9 +288,11 @@ final class ProgressionEngine {
         userId: String,
         exerciseKey: String,
         displayName: String,
+        familyUnlockDefinition: MovementDefinition?,
         at: Date
     ) async {
-        guard let catalogEntry = MovementCatalog.canonicalExercise(named: displayName)
+        guard let catalogEntry = familyUnlockDefinition
+                ?? MovementCatalog.canonicalExercise(named: displayName)
                 ?? MovementCatalog.canonicalExercise(named: exerciseKey),
               let family = catalogEntry.progressionFamily,
               let tier = catalogEntry.progressionTier else {
@@ -305,9 +311,7 @@ final class ProgressionEngine {
 
         guard tier == current.unlockedTier else { return }
 
-        let familyExercises = MovementCatalog.legacyExercises
-            .filter { $0.progressionFamily == family }
-            .sorted { ($0.progressionTier ?? 0) < ($1.progressionTier ?? 0) }
+        let familyExercises = MovementCatalog.progressionDefinitions(family: family)
         let maxTier = familyExercises.compactMap(\.progressionTier).max() ?? tier
         let nextTier = min(tier + 1, maxTier)
         guard nextTier > current.unlockedTier else { return }

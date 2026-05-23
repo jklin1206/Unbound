@@ -445,11 +445,103 @@ enum OverallRankTrialDefinitions {
         ]
     )
 
+    static let gauntlet = OverallRankTrialDefinition(
+        id: "overall-rank-trial-veteran-gauntlet",
+        targetRank: .veteran,
+        displayName: "The Gauntlet",
+        subtitle: "Forged to Veteran rank gate",
+        estimatedMinutes: 50,
+        minOverallLevel: 40,
+        topAttributeCount: 3,
+        topAttributeFloor: 78,
+        requiredEquipment: [
+            .bodyweight,
+            .dumbbell,
+            .kettlebell,
+            .openSpace,
+            .sled,
+            .box
+        ],
+        movementStandards: [
+            movementStandard("cardio.run", minimumAP: 300, displayName: "Run"),
+            movementStandard("carry.farmer-carry", minimumAP: 260),
+            movementStandard("carry.sled-push", minimumAP: 220)
+        ],
+        skillStandards: [
+            skillStandard("co.bw-farmer-carry", minimumTier: .veteran, displayName: "Farmer Carry"),
+            skillStandard("ld.box-jump", minimumTier: .veteran)
+        ],
+        performanceStandards: [
+            performanceStandard(
+                "cardio.run",
+                metric: .distanceMeters,
+                minimumValue: 1_000,
+                plannedSets: 1,
+                restSeconds: 30,
+                displayName: "1km Run"
+            ),
+            performanceStandard(
+                "carry.sled-push",
+                metric: .distanceMeters,
+                minimumValue: 50,
+                plannedSets: 1,
+                restSeconds: 45,
+                displayName: "Sled Push"
+            ),
+            performanceStandard(
+                "exercise.kettlebell-swing",
+                metric: .reps,
+                minimumValue: 30,
+                plannedSets: 1,
+                restSeconds: 45
+            ),
+            performanceStandard(
+                "carry.sandbag-carry",
+                metric: .distanceMeters,
+                minimumValue: 50,
+                plannedSets: 1,
+                restSeconds: 45,
+                displayName: "Sandbag Carry"
+            ),
+            performanceStandard(
+                "exercise.walking-lunge",
+                metric: .reps,
+                minimumValue: 40,
+                plannedSets: 1,
+                restSeconds: 45
+            ),
+            performanceStandard(
+                "carry.farmer-carry",
+                metric: .distanceMeters,
+                minimumValue: 50,
+                plannedSets: 1,
+                restSeconds: 45
+            ),
+            performanceStandard(
+                "exercise.step-up",
+                metric: .reps,
+                minimumValue: 20,
+                plannedSets: 1,
+                restSeconds: 45,
+                displayName: "Box Step-Up"
+            ),
+            performanceStandard(
+                "skill.ld.box-jump",
+                metric: .reps,
+                minimumValue: 30,
+                plannedSets: 1,
+                restSeconds: 60,
+                displayName: "Box Jump"
+            )
+        ]
+    )
+
     static let all: [OverallRankTrialDefinition] = [
         foundationProof,
         calibration,
         forge,
-        reckoning
+        reckoning,
+        gauntlet
     ]
 
     static func definition(id: String) -> OverallRankTrialDefinition? {
@@ -466,6 +558,8 @@ enum OverallRankTrialDefinitions {
             return forge
         case .honed:
             return reckoning
+        case .forged:
+            return gauntlet
         default:
             return nil
         }
@@ -722,7 +816,20 @@ final class TrialReadinessService {
         for item in equipment {
             switch item {
             case .fullGym:
-                result.formUnion([.barbell, .dumbbell, .kettlebell, .cable, .machine, .bench, .pullupBar, .bodyweight, .openSpace])
+                result.formUnion([
+                    .barbell,
+                    .dumbbell,
+                    .kettlebell,
+                    .cable,
+                    .machine,
+                    .bench,
+                    .box,
+                    .sled,
+                    .cardioMachine,
+                    .pullupBar,
+                    .bodyweight,
+                    .openSpace
+                ])
             case .machines:
                 result.formUnion([.cable, .machine, .bodyweight])
             case .barbell:

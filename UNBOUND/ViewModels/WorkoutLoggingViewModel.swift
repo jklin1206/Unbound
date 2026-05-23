@@ -8,11 +8,17 @@ final class WorkoutLoggingViewModel: ObservableObject {
     @Published var isSaving = false
     @Published var startTime = Date()
     @Published var progressionSuggestions: [String: ProgressionSuggestion] = [:]
+    @Published private(set) var lastCompletionResult: TrainingCompletionResult?
 
     let workout: Workout
     let programId: String
     let dayNumber: Int
     private let services: ServiceContainer
+    // MIGRATION(Phase 9): this legacy Program logger is receipt-preview first.
+    // New AP/LV/attribute/body-map writes must stay in TrainingCompletionService;
+    // the WorkoutLog below is kept only as compatible history until this route is removed.
+    private var pendingLegacyLog: WorkoutLog?
+    private var pendingPerformanceLog: PerformanceLog?
 
     struct LoggableExercise: Identifiable {
         let id: String
@@ -62,12 +68,12 @@ final class WorkoutLoggingViewModel: ObservableObject {
         for (index, entry) in exerciseEntries.enumerated() {
             let normalized = entry.exercise.name.lowercased().replacingOccurrences(of: " ", with: "_")
             if let ww = try? await services.workingWeight.fetchWeight(userId: userId, exerciseName: normalized) {
-                exerciseEntries[index].lastWeight = String(format: "%.1f", ww.weightKg)
+                exerciseEntries[index].lastWeight = displayWeightString(fromKilograms: ww.weightKg)
                 exerciseEntries[index].lastReps = "\(ww.lastReps)"
                 // Pre-fill weight for all sets
                 for setIndex in exerciseEntries[index].sets.indices {
                     if exerciseEntries[index].sets[setIndex].weightKg.isEmpty {
-                        exerciseEntries[index].sets[setIndex].weightKg = String(format: "%.1f", ww.weightKg)
+                        exerciseEntries[index].sets[setIndex].weightKg = displayWeightString(fromKilograms: ww.weightKg)
                     }
                 }
             }
@@ -117,7 +123,7 @@ final class WorkoutLoggingViewModel: ObservableObject {
     func alternatives(for index: Int, preferences: [ExercisePreference]) -> [CatalogExercise] {
         guard exerciseEntries.indices.contains(index) else { return [] }
         let current = exerciseEntries[index].exercise.name
-        let alternatives = ExerciseCatalog.alternatives(to: current)
+        let alternatives = MovementCatalog.catalogAlternatives(to: current)
         let prefsByKey = Dictionary(uniqueKeysWithValues: preferences.map { ($0.exerciseName.lowercased(), $0) })
         return alternatives.filter { alt in
             let pref = prefsByKey[alt.name.lowercased()]
@@ -139,8 +145,27 @@ final class WorkoutLoggingViewModel: ObservableObject {
         exerciseEntries.filter { !$0.skipped }.flatMap(\.sets).filter { !$0.isWarmup }.count
     }
 
-    func saveLog() async -> Bool {
-        guard let userId = services.auth.currentUserId else { return false }
+    var estimatedVolumeKg: Double {
+        exerciseEntries
+            .filter { !$0.skipped }
+            .flatMap(\.sets)
+            .filter { !$0.isWarmup }
+            .reduce(0) { total, set in
+                total + ((kilograms(fromDisplayString: set.weightKg) ?? 0) * Double(Int(set.reps) ?? 0))
+            }
+    }
+
+    func trainingReceiptSummary(for completionResult: TrainingCompletionResult) -> WorkoutRewardSequenceSummary? {
+        guard let performanceLog = pendingPerformanceLog else { return nil }
+        return WorkoutRewardSequenceSummary.trainingReceipt(
+            performanceLog: performanceLog,
+            completionResult: completionResult,
+            sourceName: "Workout"
+        )
+    }
+
+    func saveLog() async -> TrainingCompletionResult? {
+        guard let userId = services.auth.currentUserId else { return nil }
         isSaving = true
 
         let entries = exerciseEntries.map { entry in
@@ -153,7 +178,7 @@ final class WorkoutLoggingViewModel: ObservableObject {
                     SetLog(
                         id: set.id,
                         setNumber: entry.sets.firstIndex(where: { $0.id == set.id }).map { $0 + 1 } ?? 1,
-                        weightKg: Double(set.weightKg),
+                        weightKg: kilograms(fromDisplayString: set.weightKg),
                         reps: Int(set.reps) ?? 0,
                         rpe: set.rpe,
                         isWarmup: set.isWarmup
@@ -177,20 +202,109 @@ final class WorkoutLoggingViewModel: ObservableObject {
             overallRPE: overallRPE,
             durationMinutes: durationMinutes
         )
+        let performanceLog = performanceLog(from: log)
 
-        do {
-            try await services.workoutLog.saveLog(log)
-            services.analytics.track(.workoutLoggingCompleted(
-                programId: programId, dayNumber: dayNumber,
-                durationMinutes: durationMinutes, totalSets: totalSets
-            ))
-            HapticManager.notification(.success)
-            isSaving = false
-            return true
-        } catch {
-            HapticManager.notification(.error)
-            isSaving = false
-            return false
+        let previewResult = TrainingCompletionService.shared.previewProgression(
+            for: performanceLog,
+            services: services
+        )
+        lastCompletionResult = previewResult
+
+        pendingLegacyLog = log
+        pendingPerformanceLog = performanceLog
+
+        HapticManager.notification(.success)
+        isSaving = false
+        return previewResult
+    }
+
+    func flushPendingCompletionEffects() async {
+        guard let log = pendingLegacyLog,
+              let performanceLog = pendingPerformanceLog else {
+            return
         }
+
+        pendingLegacyLog = nil
+        pendingPerformanceLog = nil
+
+        // MIGRATION(Phase 9): the unified receipt/progression write is canonical.
+        // The legacy save remains quarantined here so history/old readers survive
+        // while replacement UI routes finish proving out.
+        async let progressionResult = TrainingCompletionService.shared.recordProgressionForLegacyWorkout(
+            performanceLog,
+            services: services
+        )
+        async let legacySave: Void = services.workoutLog.saveLog(log)
+
+        _ = await progressionResult
+        do {
+            try await legacySave
+            services.analytics.track(.workoutLoggingCompleted(
+                programId: programId,
+                dayNumber: dayNumber,
+                durationMinutes: durationMinutes,
+                totalSets: totalSets
+            ))
+        } catch {
+            services.logging.log(
+                "Legacy workout save failed after completion receipt: \(error)",
+                level: .error,
+                context: ["programId": programId, "dayNumber": dayNumber]
+            )
+        }
+    }
+
+    private func performanceLog(from log: WorkoutLog) -> PerformanceLog {
+        PerformanceLog(
+            id: log.id,
+            userId: log.userId,
+            source: .program,
+            title: log.plannedWorkoutName,
+            startedAt: log.startedAt,
+            completedAt: log.completedAt ?? Date(),
+            programId: log.programId,
+            dayNumber: log.dayNumber,
+            blocks: [
+                PerformanceBlock(
+                    kind: .strength,
+                    title: log.plannedWorkoutName,
+                    exercises: log.exerciseEntries.map { entry in
+                        PerformanceExercise(
+                            id: entry.id,
+                            name: entry.exerciseName,
+                            movementId: entry.movementId,
+                            rankStandardMovementId: entry.rankStandardMovementId,
+                            plannedSets: entry.plannedSets,
+                            plannedTarget: entry.plannedReps,
+                            sets: entry.sets.map { set in
+                                PerformanceSet(
+                                    id: set.id,
+                                    setNumber: set.setNumber,
+                                    reps: set.reps,
+                                    weightKg: set.weightKg,
+                                    rpe: set.rpe,
+                                    isWarmup: set.isWarmup
+                                )
+                            },
+                            skipped: entry.skipped,
+                            notes: entry.notes
+                        )
+                    }
+                )
+            ],
+            overallRPE: log.overallRPE,
+            notes: log.overallNotes
+        )
+    }
+
+    private func displayWeightString(fromKilograms kilograms: Double) -> String {
+        WeightPlatePolicy.formatSuggestionWeight(kilograms, unit: WeightPlatePolicy.currentUnit)
+    }
+
+    private func kilograms(fromDisplayString string: String) -> Double? {
+        guard let value = Double(string.replacingOccurrences(of: ",", with: ".")) else {
+            return nil
+        }
+        return WeightPlatePolicy.kilograms(fromDisplayValue: value, unit: WeightPlatePolicy.currentUnit)
     }
 }

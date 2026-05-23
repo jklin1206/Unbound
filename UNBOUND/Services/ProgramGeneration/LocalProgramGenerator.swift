@@ -1178,17 +1178,7 @@ enum LocalProgramGenerator {
         maxTier: Int,
         focus: SessionFocus
     ) -> ExerciseTemplate? {
-        let candidates = MovementCatalog.legacyExercises
-            .filter { definition in
-                definition.progressionFamily == family
-                    && (definition.progressionTier ?? 0) <= maxTier
-            }
-            .sorted { lhs, rhs in
-                if (lhs.progressionTier ?? 0) != (rhs.progressionTier ?? 0) {
-                    return (lhs.progressionTier ?? 0) < (rhs.progressionTier ?? 0)
-                }
-                return lhs.displayName < rhs.displayName
-            }
+        let candidates = MovementCatalog.progressionDefinitions(family: family, maxTier: maxTier)
         guard let pick = candidates.last else { return nil }
         return ExerciseTemplate(
             name: pick.displayName,

@@ -74,6 +74,16 @@ training → raw AP → movement ranks + skill ranks + attribute XP + LV XP + bo
                               Pass → next overall rank tier
 ```
 
+### Implementation migration guardrail
+
+During the unified progression migration, all new AP, attribute XP, Overall LV XP, body-map, skill XP, rank, and reward writes must enter through:
+
+```text
+PerformanceLog -> TrainingCompletionService -> unified receipt/history side effects
+```
+
+Legacy `WorkoutLog` / `SessionLog` writers may remain only as compatibility or history adapters after the replacement route is proven. Do not add new progression math, rank evaluation, reward callouts, or trial/Vow effects to those direct-save paths. Quarantined legacy paths should carry explicit `MIGRATION(Phase 9)` markers plus a focused proof or audit note before they are deleted.
+
 ---
 
 ## 2. The 9-Tier Ladder

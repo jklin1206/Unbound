@@ -35,8 +35,8 @@ final class WeeklyVowsStoreTests: XCTestCase {
                 completedAt: Date(timeIntervalSince1970: 1_700_000_000),
                 bonus: WeeklyVowCompletionBonus(
                     overallLevelXP: 120,
-                    badgeProgress: WeeklyVowProgressDescriptor(title: "Overdrive I", current: 1, target: 3),
-                    cosmeticProgress: WeeklyVowProgressDescriptor(title: "Overdrive Finish", current: 1, target: 5),
+                    badgeProgress: WeeklyVowProgressDescriptor(title: "Overdrive Vow I", current: 1, target: 3),
+                    cosmeticProgress: WeeklyVowProgressDescriptor(title: "Overdrive Vow Finish", current: 1, target: 5),
                     shareCard: nil
                 )
             )

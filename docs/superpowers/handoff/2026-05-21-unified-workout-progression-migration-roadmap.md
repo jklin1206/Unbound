@@ -240,6 +240,14 @@ Current status: **In progress. Home, Program Workout Ready, Skill Session save p
 - Focused simulator proof on iPhone 17 passed after the integrated slices: 98/98 across `MovementResolverTests`, `ExerciseEquipmentClassifierTests`, `ProgressionEngineBehaviorTests`, `DeterministicProgramGeneratorTests`, `OverallRankTrialServiceTests`, `WeeklyVowsServiceTests`, and `WeeklyVowsStoreTests`.
 - Combined result bundle: `/Users/jlin/Library/Developer/XcodeBuildMCP/workspaces/toji-aa3a04fb00a4/result-bundles/test_sim_2026-05-23T01-24-22-220Z_pid85954_8af81497.xcresult`
 - Remaining integration caution: the broad Weekly Vow worker branch still contains additional attribute/reward/model changes that were not cherry-picked; Profile/Settings also contain unrelated local redesign/dev-bootstrap edits and should be reconciled separately rather than overwritten by older agent UI hunks.
+
+2026-05-23 four-agent split pass:
+- MovementCatalog cleanup added `progressionDefinitions(...)` as the canonical progression-family helper, moved local calisthenics picks and the progression ladder off direct `ExerciseCatalog` family reads, and made `ProgressionEngine` use exact logged MovementCatalog definitions for family unlocks even when AP/rank state rolls up to a rank-standard movement.
+- Overall Rank Trial coverage expanded with `The Gauntlet`, the Forged -> Veteran gate, including MovementCatalog-backed readiness, draft, pass/fail, and duplicate-attempt coverage.
+- Weekly Vow receipt polish now keeps share-card subtitles, badge progress, and cosmetic progress explicitly in Vow language.
+- Phase 9 guardrails now mark the legacy Program logger as a quarantined compatibility route and document that new AP/XP/LV/body-map/skill/rank/reward writes must enter through `PerformanceLog -> TrainingCompletionService`.
+- Combined XcodeBuildMCP focused simulator suite passed 114/114 on iPhone 17 across MovementCatalog, progression engine, deterministic generation, Overall Rank trials, Weekly Vows, and legacy Program logging guardrail tests.
+- Combined result bundle: `/Users/jlin/Library/Developer/XcodeBuildMCP/workspaces/toji-aa3a04fb00a4/result-bundles/test_sim_2026-05-23T02-01-36-785Z_pid85954_95290b8e.xcresult`
 - Replaced the brittle parent-level routine completion handoff with inline `RoutineCompletionFlow`: `RoutinePlayerView -> TrainingCompletionService -> WorkoutRewardSequenceView -> Program/Routines`.
 - Added DEBUG bootstrap coverage for `--unbound-open-routine` and `--unbound-open-cardio-log`, so simulator proof routes start from the real app shell instead of presenting over onboarding.
 - Removed the remaining old `WorkoutLoggingViewModel.makeRewardSequenceSummary()` helper; `WorkoutLoggingView` now asks the view model for a `trainingReceiptSummary(for:)` backed by `WorkoutRewardSequenceSummary.trainingReceipt(...)`.

@@ -547,8 +547,8 @@ struct WorkoutRewardSequenceView: View {
                     VStack(spacing: 10) {
                         if let bonus = callout.completionBonus {
                             rewardLine(label: "Vow Bonus", value: "+\(bonus.overallLevelXP) LV XP", tint: Color.rewardBlue)
-                            rewardLine(label: "Badge", value: bonus.badgeProgress.displayText, tint: tint)
-                            rewardLine(label: "Cosmetic", value: bonus.cosmeticProgress.displayText, tint: tint)
+                            rewardLine(label: "Vow Badge", value: bonus.badgeProgress.displayText, tint: tint)
+                            rewardLine(label: "Vow Cosmetic", value: bonus.cosmeticProgress.displayText, tint: tint)
                         }
                         rewardLine(label: "Proof", value: callout.proofName, tint: tint)
                         rewardLine(label: "Receipt", value: callout.receiptLine, tint: Color.rewardBlue)

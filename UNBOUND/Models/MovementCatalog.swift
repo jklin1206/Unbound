@@ -447,16 +447,29 @@ enum MovementCatalog {
     }
 
     static func catalogProgressionFamily(_ family: String) -> [CatalogExercise] {
-        legacyExercises
-            .filter { $0.progressionFamily == family }
-            .sorted { ($0.progressionTier ?? 0) < ($1.progressionTier ?? 0) }
+        progressionDefinitions(family: family)
             .compactMap(catalogExercise(for:))
     }
 
     static func catalogCalisthenicsPick(family: String, maxTier: Int = 0) -> CatalogExercise? {
-        catalogProgressionFamily(family)
-            .filter { ($0.progressionTier ?? 0) <= maxTier }
+        progressionDefinitions(family: family, maxTier: maxTier)
+            .compactMap(catalogExercise(for:))
             .last
+    }
+
+    static func progressionDefinitions(family: String, maxTier: Int? = nil) -> [MovementDefinition] {
+        legacyExercises
+            .filter { definition in
+                guard definition.progressionFamily == family else { return false }
+                guard let maxTier else { return true }
+                return (definition.progressionTier ?? 0) <= maxTier
+            }
+            .sorted { lhs, rhs in
+                let lhsTier = lhs.progressionTier ?? 0
+                let rhsTier = rhs.progressionTier ?? 0
+                if lhsTier != rhsTier { return lhsTier < rhsTier }
+                return lhs.displayName < rhs.displayName
+            }
     }
 
     static func catalogAlternatives(to rawName: String) -> [CatalogExercise] {
