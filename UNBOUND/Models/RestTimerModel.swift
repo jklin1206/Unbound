@@ -43,6 +43,12 @@ final class RestTimerModel: ObservableObject {
 
     func dismiss() { isVisible = false }
 
+    func stop() {
+        isActive = false
+        isVisible = false
+        notifier.cancelPending()
+    }
+
     private func fire() {
         isActive = false
         isVisible = false
