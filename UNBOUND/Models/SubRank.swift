@@ -122,7 +122,7 @@ enum SubRank: String, Codable, CaseIterable, Sendable, Comparable {
     }
 }
 
-enum RankTitle: String, CaseIterable, Sendable {
+enum RankTitle: String, Codable, CaseIterable, Sendable {
     case initiate
     case novice
     case apprentice
@@ -198,35 +198,16 @@ extension Notification.Name {
     static let rankAdvanced = Notification.Name("unbound.rankAdvanced")
 }
 
-// MARK: - SubRank tint ramp
+// MARK: - SubRank tint bridge
 //
-// Red → green → violet → gold heat ramp.
-//   E-, E, E+ → rankRed          (#B91C1C)   untrained / urgent
-//   D-, D, D+ → rankOrange       (#F97316)   weak
-//   C-, C, C+ → rankAmber        (#EAB308)   moderate
-//   B-, B, B+ → rankGreen        (#22C55E)   solid
-//   A-, A, A+ → accent / impact  (#7C3AED)   advanced (violet = brand)
-//   S-, S, S+ → rankGold         (#FFC857)   elite
+// Legacy letter ranks are still present in a few older Home surfaces while
+// the app migrates fully to named SkillTier badges. Keep their color output
+// tied to SkillTier so the same badge ladder is used everywhere.
 
 extension SubRank {
-    /// Steady-state tint used by heatmap and rank displays.
+    /// Steady-state tint used by rank displays.
     var regionTint: Color {
-        switch self.letter {
-        case "E":
-            return Color.unbound.rankRed
-        case "D":
-            return Color.unbound.rankOrange
-        case "C":
-            return Color.unbound.rankAmber
-        case "B":
-            return Color.unbound.rankGreen
-        case "A":
-            return self == .aMinus ? Color.unbound.accent : Color.unbound.impact
-        case "S":
-            return Color.unbound.rankGold
-        default:
-            return Color.unbound.rankRed
-        }
+        asSkillTier.rewardTint
     }
 
     /// True when the rank should render with a holographic shimmer (S / S+ only).
