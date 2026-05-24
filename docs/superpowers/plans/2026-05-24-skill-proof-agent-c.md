@@ -4,7 +4,7 @@
 
 **Goal:** Make skill blocks first-class members of every workout. Run the proof engine on every logged session forever. Support retroactive prerequisite clearing via explicit per-prereq metadata. Ship the sequential-beat reward UX for multi-rank-up moments.
 
-**Architecture:** Skills become a `ProgramBlock` variant (no more disconnected "fantasy layer"). Proof engine runs on every `WorkoutLog` regardless of source (generated, edited, Saved, custom, skill practice, vow, retest). Prereqs gain explicit family metadata so "higher proof" only clears compatibly-typed lower prereqs. The reward screen renders a sequential-beat animation that collapses into a tally.
+**Architecture:** Skills become a `WorkoutBlock` variant (no more disconnected "fantasy layer"). See the spec's Migration Note: `WorkoutBlock` is the new sub-workout type; the existing 14-day `ProgramBlock` struct is being renamed to `ProgramPhase`. Proof engine runs on every `WorkoutLog` regardless of source (generated, edited, Saved, custom, skill practice, vow, retest). Prereqs gain explicit family metadata so "higher proof" only clears compatibly-typed lower prereqs. The reward screen renders a sequential-beat animation that collapses into a tally.
 
 **Tech stack:** SwiftUI animation, XCTest. No new dependencies.
 
@@ -13,7 +13,7 @@
 ## Scope
 
 In:
-- Skill block as first-class `ProgramBlock` variant
+- Skill block as first-class `WorkoutBlock` variant (see Migration Note)
 - Skill block routing — primer / main / accessory / mobility
 - Region-load tagging on every skill block (feeds Agent A's `RegionFatigueBudget`)
 - Proof engine on every logged workout
@@ -33,18 +33,18 @@ Out:
 
 | File | Action | Notes |
 |---|---|---|
-| `UNBOUND/Models/ProgramBlock.swift` | Modify | Add `.skill(SkillBlockKind, SkillID, RegionLoad)` case |
+| `UNBOUND/Models/WorkoutBlock.swift` | Create | New enum (or struct-with-kind) for sub-workout sections with cases: warmup, main, accessory, cooldown, and `.skill(SkillBlockKind, SkillID, RegionLoad)`. Do not modify the existing 14-day `ProgramBlock` (being renamed to `ProgramPhase`). |
 | `UNBOUND/Models/SkillBlockKind.swift` | Create | enum: `primer`, `main`, `accessory`, `mobility` |
 | `UNBOUND/Models/SkillUnlockStandards.swift` | Modify | Add `directProofFamily`, `proofFamilyCovered`, `autoClearFromHigherProof`, `safetyRequired` to each prereq |
 | `UNBOUND/Models/ProofFamily.swift` | Create | enum: `reps`, `hold`, `mobility`, `form`, `eccentric`, `loaded`, `unilateral`, `tempo` |
-| `UNBOUND/Models/WorkoutRewardSequence.swift` | Modify | Add sequential-beat metadata: `beats: [RewardBeat]`, `tally: RewardTally`, `emblemIgnition: Bool` |
+| `UNBOUND/Models/WorkoutRewardSequence.swift` | Modify | Extend the existing `WorkoutRewardSequenceSummary` struct (already present in this file) with sequential-beat metadata: `beats: [RewardBeat]`, `tally: RewardTally`, `emblemIgnition: Bool`. Do not create a new `WorkoutRewardSequence` type. |
 | `UNBOUND/Models/RewardBeat.swift` | Create | One per cleared standard or unlock |
 | `UNBOUND/Services/SkillProgress/SkillBlockRouter.swift` | Create | Inserts skill blocks into workouts at the correct slot (primer→main→accessory→mobility) |
 | `UNBOUND/Services/SkillProgress/SkillBlockRegionTagger.swift` | Create | Maps each skill block to a `RegionLoad` for Agent A |
 | `UNBOUND/Services/Ranking/ProofEngine.swift` | Create or extend | Runs on every `WorkoutLog`; emits cleared standards, unlocks, multi-rank events |
 | `UNBOUND/Services/Ranking/PrereqClearer.swift` | Create | Family-aware retroactive clearing |
 | `UNBOUND/Services/Rewards/RewardPayloadBuilder.swift` | Create or extend | Bundles cleared standards into a sequential-beat sequence + tally |
-| `UNBOUND/Views/Program/WorkoutLogSummaryView.swift` | Modify | Render `WorkoutRewardSequence` with sequential-beat animation + summary card |
+| `UNBOUND/Views/Program/WorkoutLogSummaryView.swift` | Modify | Render `WorkoutRewardSequenceSummary` with sequential-beat animation + summary card |
 | `UNBOUND/UNBOUNDTests/SkillBlockRouterTests.swift` | Create | Block lands in the right slot regardless of base session structure |
 | `UNBOUND/UNBOUNDTests/SkillBlockRegionTaggerTests.swift` | Create | Pull skill → pull region load only; multi-region skills tagged correctly |
 | `UNBOUND/UNBOUNDTests/ProofEngineTests.swift` | Create | Every input source triggers proof; multi-rank emitted correctly |
@@ -117,7 +117,7 @@ Out:
 
 ### Task C4 — `SkillBlockRouter` + `SkillBlockRegionTagger`
 
-**Files:** Modify `ProgramBlock.swift` (add `.skill` case). Create `SkillBlockKind.swift`. Create `SkillBlockRouter.swift`. Create `SkillBlockRegionTagger.swift`.
+**Files:** Create `WorkoutBlock.swift` (new sub-workout block type with cases warmup, main, accessory, cooldown, and `.skill(SkillBlockKind, SkillID, RegionLoad)`; see Migration Note). Create `SkillBlockKind.swift`. Create `SkillBlockRouter.swift`. Create `SkillBlockRegionTagger.swift`.
 
 **Acceptance**
 - A `.skill` block carries `kind: SkillBlockKind`, `skillID`, `regionLoad: RegionLoad`.
@@ -138,7 +138,7 @@ Out:
 - Known skill → expected region map.
 - Multi-region skill (e.g., Muscle-Up → pull + shoulders + core) tagged correctly.
 
-**Commit:** `feat(skills): skill blocks as first-class ProgramBlock + region tagging`
+**Commit:** `feat(skills): skill blocks as first-class WorkoutBlock + region tagging`
 
 ### Task C5 — `RewardPayloadBuilder` + sequential-beat metadata
 
@@ -146,7 +146,7 @@ Out:
 
 **Acceptance**
 - Input: `ProofEngine` output for a single log.
-- Output: `WorkoutRewardSequence` with:
+- Output: extends existing `WorkoutRewardSequenceSummary` with:
   - `beats: [RewardBeat]` — one per cleared standard, ordered (lowest rank first → highest rank last so the final beat is the biggest)
   - `tally: RewardTally { standardsCleared: Int, unlocksGained: Int, ranksAdvanced: Int, attributesGained: [Attribute: Int], newBests: Int }`
   - `emblemIgnition: Bool` — `true` when rank advanced or first-time unlock
@@ -165,7 +165,7 @@ Out:
 **File:** Modify `WorkoutLogSummaryView.swift`.
 
 **Acceptance**
-- Renders `WorkoutRewardSequence` as:
+- Renders `WorkoutRewardSequenceSummary` as:
   - each `beat` flashes ~0.9s (configurable constant), with a subtle scale-in / scale-out
   - after the last beat, the summary card animates in showing the tally
   - one cinematic emblem ignition (only if `emblemIgnition == true`) plays as the summary card lands

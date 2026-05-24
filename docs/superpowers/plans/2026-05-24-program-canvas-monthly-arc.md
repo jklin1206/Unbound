@@ -3,6 +3,20 @@
 Date: 2026-05-24 (decisions locked 2026-05-24)
 Status: design spec — see Phase Plans index at bottom for executable agent plans.
 
+## Migration Note (read first)
+
+This spec supersedes the **April 20, 2026 locked decision** in `UNBOUND/Models/Program.swift` (`durationDays = 14   // Locked by program redesign 2026-04-20: blocks are 14 days.`). The cycle moves from 14-day phases to 28-day Arcs. Reconcile that comment as part of the implementation.
+
+To avoid name collisions during the migration, agree on the following naming convention before any agent touches code:
+
+- The **existing** 14-day `ProgramBlock` struct (with `accessoryBias`, `cutModeActive`, `scanId`, `biasRefreshedFromPrevious`) is renamed to **`ProgramPhase`** as part of this work. Update all references throughout the codebase.
+- The **new** "section within a workout" concept introduced by this spec (warmup / main / accessory / skill / mobility) is **`WorkoutBlock`** — not `ProgramBlock`. Any phase plan that refers to a new `ProgramBlock` means `WorkoutBlock`.
+- `WorkoutRewardSequenceSummary` (struct in `UNBOUND/Models/WorkoutRewardSequence.swift`) is the existing reward-payload type to extend. Do not create a new `WorkoutRewardSequence` type — any plan reference to "WorkoutRewardSequence" means the existing `WorkoutRewardSequenceSummary` struct.
+- `ProgramRationale` is an existing **struct** (`headline`, `summaryCopy`, `decisions: [Decision]`) — not an enum. Extend by adding fields to `Decision` (e.g., `regionScope`, `revertible`) and by adding new template entries — not by redeclaring as an enum.
+- `Workout` currently has `warmup / mainExercises / cooldown`. Introducing `WorkoutBlock` may require either refactoring `Workout` to use a unified `blocks: [WorkoutBlock]` array or adding a parallel field. Pick based on call-site cost; document the choice.
+
+Before touching anything, read: `Program.swift`, `ProgramBlock.swift`, `Workout.swift`, `WorkoutLog.swift`, `ProgramRationale.swift`, `WorkoutRewardSequence.swift`, `SkillUnlockStandards.swift`.
+
 ## Goal
 
 Make Program feel like a smart workout canvas with a strong default.

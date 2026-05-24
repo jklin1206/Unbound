@@ -34,8 +34,8 @@ Out (other agents):
 | File | Action | Notes |
 |---|---|---|
 | `UNBOUND/Models/Program.swift` | Modify | Add `Arc` association; `Wave` enum; `currentWave(asOf:)` helper |
-| `UNBOUND/Models/ProgramBlock.swift` | Modify | Add `sessionRole: SessionRole` |
-| `UNBOUND/Models/ProgramRationale.swift` | Modify | Extend reason enum with Wave 2 cases; add `regionScope: BodyRegion?`; add `revertible: Bool` |
+| `UNBOUND/Models/Program.swift` | Modify | Add `sessionRole: SessionRole` to `ProgramDay` (each scheduled day carries the role). Also rename existing 14-day `ProgramBlock` references to `ProgramPhase` per Migration Note. |
+| `UNBOUND/Models/ProgramRationale.swift` | Modify | `ProgramRationale` is a **struct**, not an enum. Extend its `Decision` items with Wave 2 reason categories; add `regionScope: BodyRegion?` and `revertible: Bool` fields to `Decision`; add new template strings — do not redeclare as an enum. |
 | `UNBOUND/Models/Arc.swift` | Create | `id`, `startDate`, `endDate (start+28d)`, `wave1Range`, `wave2Range`, `state`, `sourceArcID` (chain) |
 | `UNBOUND/Models/BodyRegion.swift` | Create | enum: `pull`, `push`, `legs`, `core`, `posterior`, `shoulders` |
 | `UNBOUND/Models/RegionLoad.swift` | Create | `[BodyRegion: Double]` budget + helpers |
@@ -61,7 +61,7 @@ Out (other agents):
 
 ### Task A1 — Domain models (Arc, Wave, BodyRegion, SessionRole, RegionLoad)
 
-**Files:** Create `Arc.swift`, `BodyRegion.swift`, `RegionLoad.swift`, `SessionRole.swift`. Modify `Program.swift`, `ProgramBlock.swift`.
+**Files:** Create `Arc.swift`, `BodyRegion.swift`, `RegionLoad.swift`, `SessionRole.swift`. Modify `Program.swift` (add `sessionRole` to `ProgramDay`; rename existing 14-day `ProgramBlock` → `ProgramPhase` per the spec's Migration Note).
 
 **Acceptance**
 - `Arc` has `id`, `startDate`, `endDate (start + 28 days)`, computed `wave1Range`, `wave2Range`, `state`, `sourceArcID?`.
@@ -69,7 +69,7 @@ Out (other agents):
 - `BodyRegion` is exhaustive enough to cover the 6 named regions and `case other(String)` escape hatch.
 - `SessionRole` includes every canonical split's roles + `.custom(String)` fallback.
 - `Program` references `Arc` (one-to-many over time; current Arc is the live one).
-- `ProgramBlock` carries `sessionRole`.
+- `ProgramDay` carries `sessionRole` (each scheduled day in the Arc).
 
 **Test (`ArcModelTests.swift`):** date math at start/end boundary, Wave 1/2 boundary at Day 14→15.
 
@@ -80,7 +80,7 @@ Out (other agents):
 **File:** Modify `ProgramRationale.swift`.
 
 **Acceptance**
-- Reason enum cases for every adjustment type: `loadLowered(BodyRegion?)`, `loadRaised(BodyRegion?)`, `repsChanged`, `setCountChanged`, `exerciseSwapped`, `accessoryRemoved(BodyRegion)`, `vowReplacingAccessory(BodyRegion)`, `skillBlockInserted(BodyRegion)`, `deloadApplied`, `missedPressureReduced`, `checkpointRecommendation`.
+- Reason categories for every adjustment type, added as `Decision` instances inside the existing `ProgramRationale` struct (not as enum cases): `loadLowered(BodyRegion?)`, `loadRaised(BodyRegion?)`, `repsChanged`, `setCountChanged`, `exerciseSwapped`, `accessoryRemoved(BodyRegion)`, `vowReplacingAccessory(BodyRegion)`, `skillBlockInserted(BodyRegion)`, `deloadApplied`, `missedPressureReduced`, `checkpointRecommendation`. Use a `ReasonCategory` enum embedded in `Decision`, or extend `Decision` with structured category fields — pick the smaller diff.
 - Each carries `revertible: Bool` (Wave 2 changes = true; Checkpoint commits = false).
 - Templated localized copy lives in a single `ProgramRationaleCopy.strings`-style table, not interleaved with logic.
 

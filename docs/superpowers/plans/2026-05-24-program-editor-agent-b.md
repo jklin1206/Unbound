@@ -68,7 +68,7 @@ Out:
 **Fields**
 - `id: UUID`
 - `title: String`
-- `blocks: [ProgramBlock]` (reusing Agent A's block model)
+- `blocks: [WorkoutBlock]` (the new sub-workout block type — see Migration Note in the spec; not the existing 14-day phase struct, which is being renamed to `ProgramPhase`)
 - `order: Int` (display ordering)
 - `targets: WorkoutTargets` (sets/reps/RPE per block — reuse existing type if present)
 - `preferredEquipment: Set<Equipment>`
