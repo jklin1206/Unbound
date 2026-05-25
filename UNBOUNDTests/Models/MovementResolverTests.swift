@@ -1,7 +1,26 @@
 import XCTest
+import UIKit
 @testable import UNBOUND
 
 final class MovementResolverTests: XCTestCase {
+    func testDemoExerciseVisualAssetsResolveFromCatalogDefinitions() throws {
+        let expectedAssets = [
+            "bench press": "exercise_visual_exercise_bench-press",
+            "back squat": "exercise_visual_exercise_back-squat",
+            "lat pulldown": "exercise_visual_exercise_lat-pulldown",
+            "leg curl (lying)": "exercise_visual_exercise_leg-curl-lying"
+        ]
+
+        for (exerciseName, assetName) in expectedAssets {
+            let resolved = MovementResolver.resolve(exerciseName)
+            let definition = try XCTUnwrap(MovementCatalog.definition(for: resolved.movementId))
+
+            XCTAssertEqual(ExerciseVisualAsset.assetName(for: definition), assetName)
+            XCTAssertEqual(ExerciseVisualAsset.existingAssetName(for: definition), assetName)
+            XCTAssertNotNil(UIImage(named: assetName), "\(assetName) should ship in Assets.xcassets")
+        }
+    }
+
     func testBandAssistedPullUpResolvesToAssistedVariantWithAssistedTag() {
         let resolved = MovementResolver.resolve("Band-Assisted Pull-Up")
 
