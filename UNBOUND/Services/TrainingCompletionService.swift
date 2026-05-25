@@ -50,6 +50,10 @@ final class TrainingCompletionService {
                 services: services
             )
             result.savedWorkoutLogId = workoutLog.id
+            result.proofEngineResult = ProofEngine.evaluate(
+                log: workoutLog,
+                source: WorkoutProofSource(performanceLog.source)
+            )
         }
 
         let sessionLogs = TrainingSessionAdapters.sessionLogs(from: performanceLog, xpAwarded: skillXPAwarded ?? 25)
@@ -116,6 +120,10 @@ final class TrainingCompletionService {
                     services: services
                 )
                 result.savedWorkoutLogId = compatibleWorkoutLog.id
+                result.proofEngineResult = ProofEngine.evaluate(
+                    log: compatibleWorkoutLog,
+                    source: WorkoutProofSource(performanceLog.source)
+                )
             } catch {
                 LoggingService.shared.log(
                     "TrainingCompletionService failed to write legacy-compatible WorkoutLog: \(error)",
@@ -181,11 +189,20 @@ final class TrainingCompletionService {
             catalog: AttributeCatalog.shared,
             noveltyMultiplier: noveltyMultiplier
         )
-        let attributeProgress = AttributeIngest.applyXPDeltas(
+        var attributeProgress = AttributeIngest.applyXPDeltas(
             &attributeProfile,
             xpDeltas: xpDeltas,
             at: performanceLog.completedAt
         )
+        if let vitalityXP = VitalityRewardPolicy.xp(for: performanceLog) {
+            let vitalityProgress = AttributeIngest.applyXPDeltas(
+                &attributeProfile,
+                xpDeltas: [.agility: vitalityXP],
+                at: performanceLog.completedAt
+            )
+            attributeProgress.rewards.append(contentsOf: vitalityProgress.rewards)
+            attributeProgress.rankUpEvents.append(contentsOf: vitalityProgress.rankUpEvents)
+        }
         result.attributeProfileBefore = attributeProfileBefore
         result.attributeProfileAfter = attributeProfile
         result.attributeRewards = attributeProgress.rewards
@@ -244,13 +261,24 @@ final class TrainingCompletionService {
             at: performanceLog.completedAt,
             noveltyMultiplier: bodyMapProgress.noveltyMultiplier
         )
+        var attributeRewards = attributeProgress.rewards
+        var attributeRankUpEventCount = attributeProgress.rankUpEvents.count
+        if let vitalityXP = VitalityRewardPolicy.xp(for: performanceLog) {
+            let vitalityProgress = await services.attribute.applyXPDeltas(
+                [.agility: vitalityXP],
+                userId: performanceLog.userId,
+                at: performanceLog.completedAt
+            )
+            attributeRewards.append(contentsOf: vitalityProgress.rewards)
+            attributeRankUpEventCount += vitalityProgress.rankUpEvents.count
+        }
         result.attributeProfileBefore = attributeProfileBefore
         result.attributeProfileAfter = services.attribute.snapshot(
             userId: performanceLog.userId,
             asOf: performanceLog.completedAt
         )
-        result.attributeRewards = attributeProgress.rewards
-        result.attributeRankUpEventCount = attributeProgress.rankUpEvents.count
+        result.attributeRewards = attributeRewards
+        result.attributeRankUpEventCount = attributeRankUpEventCount
 
         let overallLevelProgress = await OverallLevelService.shared.ingest(
             rawAP: movementProgress.totalAP,
@@ -354,6 +382,41 @@ final class TrainingCompletionService {
     }
 }
 
+private enum VitalityRewardPolicy {
+    static func xp(for performanceLog: PerformanceLog) -> Double? {
+        let text = searchableText(for: performanceLog)
+        if text.contains("vitality:rest-day") || text.contains("rest day recovery") {
+            return 8
+        }
+        if text.contains("deload") {
+            return 10
+        }
+        if text.contains("vitality:recovery-check-in")
+            || text.contains("recovery check-in")
+            || text.contains("active recovery") {
+            return 5
+        }
+        return nil
+    }
+
+    private static func searchableText(for performanceLog: PerformanceLog) -> String {
+        var parts: [String] = [
+            performanceLog.title,
+            performanceLog.notes ?? ""
+        ]
+        for block in performanceLog.blocks {
+            parts.append(block.title)
+            parts.append(block.notes ?? "")
+            for exercise in block.exercises {
+                parts.append(exercise.name)
+                parts.append(exercise.plannedTarget)
+                parts.append(exercise.notes ?? "")
+            }
+        }
+        return parts.joined(separator: " ").lowercased()
+    }
+}
+
 private struct TrainingCompletionTimeout: Error, LocalizedError {
     let step: String
     let seconds: TimeInterval
@@ -380,6 +443,7 @@ struct TrainingCompletionResult: Sendable {
     var overallLevelReward: OverallLevelReward?
     var overallLevelXPGained: Double = 0
     var skillXPGained: Int = 0
+    var proofEngineResult: ProofEngineResult?
 
     var totalMovementAP: Double {
         movementAPGains.reduce(0) { $0 + $1.rawAP }
@@ -410,6 +474,22 @@ struct TrainingCompletionResult: Sendable {
         bodyMapRegionRewards = other.bodyMapRegionRewards
         overallLevelReward = other.overallLevelReward
         overallLevelXPGained = other.overallLevelXPGained
+        proofEngineResult = other.proofEngineResult
+    }
+}
+
+private extension WorkoutProofSource {
+    init(_ source: TrainingSessionSource) {
+        switch source {
+        case .program:
+            self = .generated
+        case .skill:
+            self = .skillPractice
+        case .custom, .routine, .cardio:
+            self = .custom
+        case .overallRankTrial:
+            self = .retest
+        }
     }
 }
 

@@ -146,7 +146,7 @@ private struct FriendChallengeOutcomeToastModifier: ViewModifier {
     @State private var opponentName: String = "Opponent"
 
     private var currentUserId: UUID? {
-        services.auth.currentUserId.flatMap(UUID.init)
+        services.auth.currentUserId.flatMap(SquadUserIdentity.uuid(from:))
     }
 
     func body(content: Content) -> some View {

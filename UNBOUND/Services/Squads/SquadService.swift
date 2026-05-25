@@ -23,23 +23,49 @@ final class SquadService: SquadServiceProtocol {
 
     private let store: SquadStore
     private let backend: SquadBackendProtocol
+    private let localDirectory: LocalSquadDirectory
     private let auth: AuthServiceProtocol
     private let logger = LoggingService.shared
 
     init(
         store: SquadStore = .shared,
         backend: SquadBackendProtocol = SquadBackend.shared,
+        localDirectory: LocalSquadDirectory = .shared,
         auth: AuthServiceProtocol = AuthService.shared
     ) {
         self.store = store
         self.backend = backend
+        self.localDirectory = localDirectory
         self.auth = auth
     }
 
     // MARK: - T5.5 loadCurrentSquad
 
     func loadCurrentSquad(userId: String) async {
-        guard let userUUID = UUID(uuidString: userId) else { return }
+        if SquadUserIdentity.usesLocalOnlySquad(for: userId) {
+            guard let userUUID = SquadUserIdentity.uuid(from: userId) else {
+                store.save(.empty, userId: userId)
+                NotificationCenter.default.post(name: .squadStateChanged, object: nil)
+                return
+            }
+            if let local = localDirectory.squadForUser(userUUID) {
+                saveLocalState(squad: local.squad, roster: local.members, userId: userId)
+                return
+            }
+
+            let cached = store.load(userId: userId)
+            if let squad = cached.currentSquad {
+                let roster = normalizedLocalRoster(cached.roster, squad: squad, userUUID: userUUID)
+                localDirectory.adoptCachedSquad(squad, members: roster)
+                saveLocalState(squad: squad, roster: roster, userId: userId)
+                return
+            }
+
+            store.save(.empty, userId: userId)
+            NotificationCenter.default.post(name: .squadStateChanged, object: nil)
+            return
+        }
+        guard let userUUID = SquadUserIdentity.uuid(from: userId) else { return }
         do {
             guard let squadId = try await backend.fetchMySquadId(userId: userUUID) else {
                 // User is not in any squad — persist empty state.
@@ -71,7 +97,7 @@ final class SquadService: SquadServiceProtocol {
         guard !trimmed.isEmpty, trimmed.count <= 30 else {
             throw SquadError.invalidName
         }
-        guard let userUUID = UUID(uuidString: userId) else {
+        guard let userUUID = SquadUserIdentity.uuid(from: userId) else {
             throw SquadError.invalidName
         }
         let current = store.load(userId: userId)
@@ -79,14 +105,16 @@ final class SquadService: SquadServiceProtocol {
             throw SquadError.alreadyInSquad
         }
 
+        if SquadUserIdentity.usesLocalOnlySquad(for: userId) {
+            return try createLocalOnlySquad(name: trimmed, userId: userId, userUUID: userUUID)
+        }
+
         // Generate a unique 6-char A-Z0-9 invite code with up to 10 retries
         // on backend collision (UNIQUE constraint on invite_code column).
         var squad: Squad?
         var lastError: Error?
         for _ in 0..<10 {
-            let code = String((0..<6).map { _ in
-                "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".randomElement()!
-            })
+            let code = Self.makeInviteCode()
             do {
                 let s = try await backend.insertSquad(
                     id: UUID(),
@@ -116,10 +144,31 @@ final class SquadService: SquadServiceProtocol {
     // MARK: - T5.3 joinSquad
 
     func joinSquad(inviteCode: String, userId: String) async throws -> Squad {
-        guard let userUUID = UUID(uuidString: userId) else {
+        guard let userUUID = SquadUserIdentity.uuid(from: userId) else {
             throw SquadError.invalidInviteCode
         }
         let current = store.load(userId: userId)
+        if SquadUserIdentity.usesLocalOnlySquad(for: userId) {
+            if let local = localDirectory.squadForUser(userUUID) {
+                saveLocalState(squad: local.squad, roster: local.members, userId: userId)
+                if local.squad.inviteCode.uppercased() == inviteCode.uppercased() {
+                    return local.squad
+                }
+                throw SquadError.alreadyInSquad
+            }
+            if let squad = current.currentSquad {
+                let roster = normalizedLocalRoster(current.roster, squad: squad, userUUID: userUUID)
+                localDirectory.adoptCachedSquad(squad, members: roster)
+                saveLocalState(squad: squad, roster: roster, userId: userId)
+                if squad.inviteCode.uppercased() == inviteCode.uppercased() {
+                    return squad
+                }
+                throw SquadError.alreadyInSquad
+            }
+            let joined = try localDirectory.joinSquad(inviteCode: inviteCode, userUUID: userUUID)
+            saveLocalState(squad: joined.squad, roster: joined.members, userId: userId)
+            return joined.squad
+        }
         if current.currentSquad != nil {
             throw SquadError.alreadyInSquad
         }
@@ -143,11 +192,21 @@ final class SquadService: SquadServiceProtocol {
         // `leave_squad` Edge Function that wraps the whole sequence in a Postgres
         // transaction. Deferred to a future sub-project.
 
+        if SquadUserIdentity.usesLocalOnlySquad(for: userId) {
+            guard let userUUID = SquadUserIdentity.uuid(from: userId) else {
+                throw SquadError.notInSquad
+            }
+            _ = try localDirectory.leaveSquad(userUUID: userUUID)
+            store.save(.empty, userId: userId)
+            NotificationCenter.default.post(name: .squadStateChanged, object: nil)
+            return
+        }
+
         let current = store.load(userId: userId)
         guard let squad = current.currentSquad else {
             throw SquadError.notInSquad
         }
-        guard let userUUID = UUID(uuidString: userId) else {
+        guard let userUUID = SquadUserIdentity.uuid(from: userId) else {
             throw SquadError.notInSquad
         }
 
@@ -185,11 +244,15 @@ final class SquadService: SquadServiceProtocol {
         guard let squad = current.currentSquad else {
             throw SquadError.notInSquad
         }
-        guard let userUUID = UUID(uuidString: userId), squad.captainId == userUUID else {
+        guard let userUUID = SquadUserIdentity.uuid(from: userId), squad.captainId == userUUID else {
             throw SquadError.notCaptain
         }
         let setAt: Date? = axis == nil ? nil : Date()
-        try await backend.updateAffinity(squadId: squad.id, axis: axis, setAt: setAt)
+        if SquadUserIdentity.usesLocalOnlySquad(for: userId) {
+            localDirectory.updateAffinity(squadId: squad.id, axis: axis, setAt: setAt)
+        } else {
+            try await backend.updateAffinity(squadId: squad.id, axis: axis, setAt: setAt)
+        }
         // Update local cache.
         var s = store.load(userId: userId)
         if var sq = s.currentSquad {
@@ -244,5 +307,72 @@ final class SquadService: SquadServiceProtocol {
             out[axis] = 30 + share * 50
         }
         return out
+    }
+
+    private static func makeInviteCode() -> String {
+        String((0..<6).map { _ in
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".randomElement()!
+        })
+    }
+
+    private func createLocalOnlySquad(name: String, userId: String, userUUID: UUID) throws -> Squad {
+        var lastError: Error?
+        for _ in 0..<10 {
+            do {
+                let created = try localDirectory.createSquad(
+                    name: name,
+                    captainUUID: userUUID,
+                    inviteCode: Self.makeInviteCode()
+                )
+                saveLocalState(squad: created.squad, roster: created.members, userId: userId)
+                return created.squad
+            } catch SquadError.alreadyInSquad {
+                throw SquadError.alreadyInSquad
+            } catch {
+                lastError = error
+                continue
+            }
+        }
+        throw lastError ?? SquadError.backendUnavailable
+    }
+
+    private func saveLocalState(squad: Squad, roster: [SquadMember], userId: String) {
+        var state = store.load(userId: userId)
+        state.currentSquad = squad
+        state.roster = normalizedLocalRoster(
+            roster,
+            squad: squad,
+            userUUID: SquadUserIdentity.uuid(from: userId)
+        )
+        state.activeRosterPresence = []
+        state.recentActivity = []
+        store.save(state, userId: userId)
+        NotificationCenter.default.post(name: .squadStateChanged, object: nil)
+    }
+
+    private func normalizedLocalRoster(_ roster: [SquadMember], squad: Squad, userUUID: UUID?) -> [SquadMember] {
+        let seededRoster: [SquadMember]
+        if roster.isEmpty, let userUUID {
+            seededRoster = [
+                SquadMember(
+                    id: UUID(),
+                    squadId: squad.id,
+                    userId: userUUID,
+                    joinedAt: Date(),
+                    displayName: "You",
+                    equippedTitle: nil,
+                    buildIdentity: nil
+                )
+            ]
+        } else {
+            seededRoster = roster
+        }
+
+        return seededRoster.map { member in
+            guard member.userId == userUUID else { return member }
+            var copy = member
+            copy.displayName = "You"
+            return copy
+        }
     }
 }

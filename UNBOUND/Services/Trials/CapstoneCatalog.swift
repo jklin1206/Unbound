@@ -15,9 +15,9 @@ enum CapstoneCatalog {
             evaluation: .autoFromLog(.weightKg(0))
         ),
         .agility: WeeklyVowProof(
-            displayName: "Movement Flow",
-            description: "Move through a 3-minute mobility flow without stopping.",
-            evaluation: .liveTimer(seconds: 180, exerciseName: "mobility flow")
+            displayName: "Recovery Check-In",
+            description: "Complete a 3-minute recovery check-in without skipping the timer.",
+            evaluation: .liveTimer(seconds: 180, exerciseName: "recovery check-in")
         ),
         .control: WeeklyVowProof(
             displayName: "Hold Sequence",

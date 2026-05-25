@@ -41,6 +41,7 @@ struct UnboundHomeView: View {
     // Ranking + stats
     @State private var aggregateRank: SubRank = .eMinus
     @State private var aggregateTier: SkillTier = .initiate
+    @State private var overallRankTrialReadiness: OverallRankTrialReadiness?
 
     // Contextual triggers
     @State private var plateaus: [PlateauedExercise] = []
@@ -109,7 +110,7 @@ struct UnboundHomeView: View {
                             NotificationCenter.default.post(name: .requestNavigateToProfileTab, object: nil)
                         }
                         lastSessionRecap
-                        Spacer().frame(height: 28)
+                        Spacer().frame(height: 118)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 20)
@@ -314,11 +315,12 @@ struct UnboundHomeView: View {
         let title = workout?.name ?? (isRest ? "Recovery Protocol" : "Plan Session")
         let minutes = workout?.estimatedMinutes ?? (isRest ? 18 : 30)
         let focus = workout?.targetMuscleGroups.first?.displayName.uppercased() ?? (isRest ? "RECOVERY" : "CUSTOM")
+        let planValue = workout.map { "\($0.mainExercises.count) MOVES" } ?? (isRest ? "REST" : "OPEN")
 
         return ZStack(alignment: .topTrailing) {
             ProtocolHeroBackground(tint: tint)
 
-            VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: 16) {
                 HStack(alignment: .top, spacing: 14) {
                     VStack(alignment: .leading, spacing: 10) {
                         HStack(spacing: 8) {
@@ -336,25 +338,22 @@ struct UnboundHomeView: View {
                             .lineLimit(1)
                             .minimumScaleFactor(0.58)
 
-                        HStack(spacing: 8) {
-                            Text(programDayLabel)
-                            Text("·")
-                                .foregroundStyle(Color.unbound.textTertiary.opacity(0.55))
-                            Text("\(minutes) min")
-                            Text("·")
-                                .foregroundStyle(Color.unbound.textTertiary.opacity(0.55))
-                            Text("\(workout?.mainExercises.count ?? 0) movements")
-                        }
-                        .font(Font.unbound.monoS.weight(.semibold))
-                        .foregroundStyle(Color.unbound.textSecondary)
-                        .monospacedDigit()
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.70)
+                        Text(protocolHeroSubtitle(workout: workout, isRest: isRest))
+                            .font(Font.unbound.bodyM)
+                            .foregroundStyle(Color.unbound.textSecondary)
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.76)
                     }
 
                     Spacer(minLength: 0)
 
                     integratedRankRail
+                }
+
+                HStack(spacing: 8) {
+                    protocolMetaTile(label: "DAY", value: programDayLabel, tint: tint)
+                    protocolMetaTile(label: "TIME", value: "\(minutes)M", tint: tint)
+                    protocolMetaTile(label: "PLAN", value: planValue, tint: tint)
                 }
 
                 Button {
@@ -388,10 +387,6 @@ struct UnboundHomeView: View {
                     .shadow(color: tint.opacity(0.22), radius: 18, y: 8)
                 }
                 .buttonStyle(.plain)
-
-                consoleDivider
-
-                consoleExercisePlan(workout: workout)
             }
             .padding(18)
         }
@@ -449,37 +444,6 @@ struct UnboundHomeView: View {
                 .minimumScaleFactor(0.65)
         }
         .frame(width: 76, alignment: .trailing)
-    }
-
-    private func consoleExercisePlan(workout: Workout?) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack {
-                Text("SESSION PLAN")
-                    .font(Font.unbound.captionS.weight(.bold))
-                    .tracking(1.7)
-                    .foregroundStyle(Color.unbound.textTertiary)
-                Spacer()
-                Text(workout == nil ? "ADAPTIVE" : "\(workout?.mainExercises.count ?? 0) MOVES")
-                    .font(Font.unbound.monoS.weight(.semibold))
-                    .foregroundStyle(Color.unbound.textSecondary)
-                    .monospacedDigit()
-            }
-            .padding(.bottom, 6)
-
-            if let workout {
-                ForEach(Array(workout.mainExercises.prefix(3).enumerated()), id: \.offset) { index, exercise in
-                    premiumExerciseRow(index: index + 1, exercise: exercise)
-                    if index < min(2, workout.mainExercises.count - 1) {
-                        Rectangle()
-                            .fill(Color.white.opacity(0.07))
-                            .frame(height: 0.5)
-                            .padding(.leading, 38)
-                    }
-                }
-            } else {
-                protocolRecoveryRow(isRest: todayProgramDay?.isRestDay ?? false)
-            }
-        }
     }
 
     private var weekPath: some View {
@@ -568,59 +532,6 @@ struct UnboundHomeView: View {
             .shadow(color: fill.opacity(hasSession || isToday ? 0.30 : 0), radius: 7, y: 2)
             .animation(.spring(response: 0.28, dampingFraction: 0.82), value: hasSession)
             .animation(.spring(response: 0.28, dampingFraction: 0.82), value: isToday)
-    }
-
-    private var consoleDivider: some View {
-        Rectangle()
-            .fill(Color.white.opacity(0.07))
-            .frame(height: 0.5)
-    }
-
-    private var exercisePreviewCard: some View {
-        let workout = todayProgramDay?.workout
-
-        return VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("SESSION PLAN")
-                    .font(Font.unbound.captionS.weight(.bold))
-                    .tracking(1.8)
-                    .foregroundStyle(Color.unbound.textTertiary)
-                Spacer()
-                Text(workout == nil ? "ADAPTIVE" : "\(workout?.mainExercises.count ?? 0) MOVES")
-                    .font(Font.unbound.monoS.weight(.semibold))
-                    .foregroundStyle(Color.unbound.textSecondary)
-                    .monospacedDigit()
-            }
-
-            if let workout {
-                VStack(spacing: 0) {
-                    ForEach(Array(workout.mainExercises.prefix(4).enumerated()), id: \.offset) { index, exercise in
-                        premiumExerciseRow(index: index + 1, exercise: exercise)
-                        if index < min(3, workout.mainExercises.count - 1) {
-                            Rectangle()
-                                .fill(Color.unbound.borderSubtle)
-                                .frame(height: 0.5)
-                                .padding(.leading, 38)
-                        }
-                    }
-                }
-            } else {
-                protocolRecoveryRow(isRest: todayProgramDay?.isRestDay ?? false)
-            }
-        }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.unbound.surface.opacity(0.42))
-        .overlay(alignment: .top) {
-            Rectangle()
-                .fill(Color.unbound.borderSubtle.opacity(0.65))
-                .frame(height: 0.5)
-        }
-        .overlay(alignment: .bottom) {
-            Rectangle()
-                .fill(Color.unbound.borderSubtle.opacity(0.45))
-                .frame(height: 0.5)
-        }
     }
 
     private var rankMomentumCard: some View {
@@ -772,7 +683,7 @@ struct UnboundHomeView: View {
 
     private var programDayLabel: String {
         guard let day = todayProgramDay else { return "No program" }
-        let total = program?.days.count ?? 14
+        let total = program?.days.count ?? 28
         if day.dayNumber > 0 {
             return "Day \(day.dayNumber) / \(max(total, day.dayNumber))"
         }
@@ -781,12 +692,12 @@ struct UnboundHomeView: View {
 
     private func protocolHeroSubtitle(workout: Workout?, isRest: Bool) -> String {
         if let workout {
-            return "\(workout.mainExercises.count) main lifts calibrated for today's block. Start clean, log every top set."
+            return "\(workout.mainExercises.count) movements are queued. Start clean and log the sets that matter."
         }
         if isRest {
-            return "Recovery is scheduled. Bank the day with a photo check-in or low-intensity work."
+            return "Recovery is scheduled. Keep the check-in light and come back fresh."
         }
-        return "No session is queued. Build today's work from Program or start with a quick action below."
+        return "No session is queued. Pick today's work before you train."
     }
 
     private func protocolPrimaryLabel(canStart: Bool, isRest: Bool) -> String {
@@ -819,71 +730,6 @@ struct UnboundHomeView: View {
         )
     }
 
-    private func premiumExerciseRow(index: Int, exercise: Exercise) -> some View {
-        let trialAligned = isAlignedExercise(exercise)
-        let trialTint = trialsState.currentTrial?.chosenCard.theme.tintColor ?? Color.unbound.accent
-
-        return HStack(alignment: .center, spacing: 12) {
-            Text(String(format: "%02d", index))
-                .font(Font.unbound.monoS.weight(.bold))
-                .foregroundStyle(Color.unbound.textTertiary)
-                .frame(width: 26, alignment: .leading)
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(exercise.name)
-                    .font(Font.unbound.bodyMStrong)
-                    .foregroundStyle(Color.unbound.textPrimary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.76)
-                Text("\(exercise.sets) x \(exercise.reps) · \(exercise.restSeconds)s rest")
-                    .font(Font.unbound.captionS)
-                    .foregroundStyle(Color.unbound.textSecondary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.76)
-            }
-
-            Spacer(minLength: 0)
-
-            // Vow-aligned indicator (shown before RPE chip when active)
-            if trialAligned {
-                HStack(spacing: 4) {
-                    Text("BIND")
-                        .font(.system(size: 8, weight: .heavy, design: .monospaced))
-                        .tracking(1.0)
-                        .foregroundStyle(trialTint)
-                    Text("+1 RPE")
-                        .font(.system(size: 8, weight: .bold, design: .monospaced))
-                        .foregroundStyle(trialTint.opacity(0.8))
-                }
-                .padding(.horizontal, 7)
-                .padding(.vertical, 4)
-                .background(Capsule().fill(trialTint.opacity(0.14)))
-                .overlay(Capsule().strokeBorder(trialTint.opacity(0.28), lineWidth: 0.5))
-            }
-
-            if let rpe = exercise.rpe {
-                Text("RPE \(rpe)")
-                    .font(.system(size: 9, weight: .bold))
-                    .foregroundStyle(Color.unbound.accent)
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 4)
-                    .background(Capsule().fill(Color.unbound.accent.opacity(0.12)))
-            }
-        }
-        .padding(.vertical, 10)
-    }
-
-    /// Returns true if the exercise name contributes to any axis that the
-    /// current vow's theme targets. No vow = always false.
-    private func isAlignedExercise(_ exercise: Exercise) -> Bool {
-        guard let trial = trialsState.currentTrial,
-              trial.capstoneState != .missed,
-              trial.capstoneState != .completed else { return false }
-        guard case .axis(let targetAxis) = trial.chosenCard.theme else { return false }
-        let contribution = AttributeCatalog.shared.contribution(forExerciseName: exercise.name)
-        return contribution.weight(for: targetAxis) > 0.05
-    }
-
     private var questColor: Color {
         switch dailyQuest.category {
         case .cardio:   return Color.unbound.coachCyan
@@ -891,120 +737,6 @@ struct UnboundHomeView: View {
         case .activity: return Color.unbound.warnOrange
         case .circuit:  return Color.unbound.accent
         }
-    }
-
-    // MARK: - Today protocol
-
-    private var todayProtocolCard: some View {
-        let day = todayProgramDay
-        let workout = day?.workout
-        let isRest = day?.isRestDay ?? false
-        let canStart = workout != nil && !isRest
-        let tint = canStart ? Color.unbound.accent : (isRest ? Color.unbound.coachCyan : Color.unbound.warnOrange)
-        let title = workout?.name ?? (isRest ? "Recovery protocol" : "No protocol queued")
-        let subtitle: String = {
-            if let workout {
-                return "\(workout.mainExercises.count) main lifts · about \(workout.estimatedMinutes) min"
-            }
-            if isRest {
-                return "Keep the day useful with a photo check-in, light movement, or mobility."
-            }
-            return "Open Program to rebuild today's work from your current plan."
-        }()
-        let primaryLabel = canStart ? "Begin Session" : (isRest ? "Log Check-In" : "Plan Session")
-        let primaryIcon = canStart ? "arrow.right" : (isRest ? "camera.fill" : "calendar.badge.plus")
-
-        return VStack(alignment: .leading, spacing: 18) {
-            HStack(alignment: .center, spacing: 10) {
-                protocolStatusPill(label: "TODAY", value: readinessValue, tint: tint)
-                Spacer()
-                Text(shortDayString())
-                    .font(Font.unbound.monoS.weight(.semibold))
-                    .foregroundStyle(Color.unbound.textTertiary)
-                    .monospacedDigit()
-            }
-
-            VStack(alignment: .leading, spacing: 8) {
-                Text(title)
-                    .font(.system(size: 28, weight: .black))
-                    .foregroundStyle(Color.unbound.textPrimary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.58)
-
-                Text(subtitle)
-                    .font(Font.unbound.bodyM)
-                    .foregroundStyle(Color.unbound.textSecondary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.68)
-            }
-
-            if let workout {
-                VStack(spacing: 0) {
-                    ForEach(Array(workout.mainExercises.prefix(3).enumerated()), id: \.offset) { index, exercise in
-                        protocolExerciseRow(index: index + 1, exercise: exercise)
-                        if index < min(2, workout.mainExercises.count - 1) {
-                            Rectangle()
-                                .fill(Color.unbound.borderSubtle)
-                                .frame(height: 0.5)
-                                .padding(.leading, 34)
-                        }
-                    }
-                }
-                .padding(12)
-                .background(
-                    RoundedRectangle(cornerRadius: 13, style: .continuous)
-                        .fill(Color.unbound.bg.opacity(0.34))
-                )
-            } else {
-                protocolRecoveryRow(isRest: isRest)
-            }
-
-            Button {
-                UnboundHaptics.medium()
-                if canStart {
-                    showingSession = true
-                } else if isRest {
-                    captureMode = .photo
-                }
-            } label: {
-                HStack(spacing: 10) {
-                    Text(primaryLabel.uppercased())
-                        .font(Font.unbound.bodyMStrong)
-                        .tracking(1.4)
-                    Image(systemName: primaryIcon)
-                        .font(.system(size: 13, weight: .bold))
-                }
-                .foregroundStyle(Color.unbound.textPrimary)
-                .frame(maxWidth: .infinity)
-                .frame(height: 50)
-                .background(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(tint)
-                )
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-        }
-        .padding(18)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            ZStack {
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(Color.unbound.surface)
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: [tint.opacity(0.10), .clear],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-            }
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(tint.opacity(0.28), lineWidth: 1)
-        )
     }
 
     private func protocolStatusPill(label: String, value: String, tint: Color) -> some View {
@@ -1022,64 +754,6 @@ struct UnboundHomeView: View {
         .padding(.vertical, 6)
         .background(Capsule().fill(tint.opacity(0.12)))
         .overlay(Capsule().strokeBorder(tint.opacity(0.30), lineWidth: 1))
-    }
-
-    private func protocolExerciseRow(index: Int, exercise: Exercise) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 12) {
-            Text(String(format: "%02d", index))
-                .font(Font.unbound.monoS.weight(.semibold))
-                .foregroundStyle(Color.unbound.textTertiary)
-                .monospacedDigit()
-                .frame(width: 22, alignment: .leading)
-
-            VStack(alignment: .leading, spacing: 3) {
-                Text(exercise.name)
-                    .font(Font.unbound.bodyMStrong)
-                    .foregroundStyle(Color.unbound.textPrimary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.78)
-                Text("\(exercise.sets) SETS · \(exercise.reps) · \(exercise.restSeconds)S REST")
-                    .font(Font.unbound.captionS)
-                    .tracking(1.0)
-                    .foregroundStyle(Color.unbound.textTertiary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.76)
-            }
-
-            Spacer(minLength: 0)
-        }
-        .padding(.vertical, 8)
-    }
-
-    private func protocolRecoveryRow(isRest: Bool) -> some View {
-        HStack(spacing: 12) {
-            ZStack {
-                Circle()
-                    .fill((isRest ? Color.unbound.coachCyan : Color.unbound.warnOrange).opacity(0.15))
-                Image(systemName: isRest ? "figure.cooldown" : "wand.and.stars")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(isRest ? Color.unbound.coachCyan : Color.unbound.warnOrange)
-            }
-            .frame(width: 34, height: 34)
-
-            VStack(alignment: .leading, spacing: 3) {
-                Text(isRest ? "Recovery still counts" : "Build a useful session")
-                    .font(Font.unbound.bodyMStrong)
-                    .foregroundStyle(Color.unbound.textPrimary)
-                Text(isRest ? "Photo, walk, mobility, or stretch." : "Generate a useful session from your current state.")
-                    .font(Font.unbound.captionS)
-                    .foregroundStyle(Color.unbound.textSecondary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.72)
-            }
-
-            Spacer(minLength: 0)
-        }
-        .padding(12)
-        .background(
-            RoundedRectangle(cornerRadius: 13, style: .continuous)
-                .fill(Color.unbound.bg.opacity(0.34))
-        )
     }
 
     private var progressionSnapshot: some View {
@@ -1356,183 +1030,6 @@ struct UnboundHomeView: View {
         .shadow(color: fireOrange.opacity(0.25), radius: 8)
     }
 
-    // MARK: - Rank card
-
-    // MARK: - Today's Mission CTA
-
-    private var todayMissionCTA: some View {
-        let day = todayProgramDay
-        let isRest = day?.isRestDay ?? false
-        let title: String = {
-            if let day {
-                if day.isRestDay { return "REST DAY" }
-                if let workout = day.workout { return workout.name.uppercased() }
-            }
-            return "NO SESSION"
-        }()
-        let subtitle: String = {
-            if let day {
-                if day.isRestDay { return "Recovery is the work." }
-                if let workout = day.workout {
-                    return "\(workout.mainExercises.count) EXERCISES · ~\(workout.estimatedMinutes)M"
-                }
-            }
-            return "Plan your next move."
-        }()
-        let canStart = day?.workout != nil && !isRest
-
-        return VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Text("TODAY")
-                    .font(Font.unbound.captionS.weight(.bold))
-                    .tracking(1.8)
-                    .foregroundStyle(Color.unbound.accent)
-                Text("·")
-                    .font(Font.unbound.captionS)
-                    .foregroundStyle(Color.unbound.textTertiary)
-                Text(shortDayString())
-                    .font(Font.unbound.captionS)
-                    .tracking(1.2)
-                    .foregroundStyle(Color.unbound.textTertiary)
-                Spacer()
-            }
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title)
-                    .font(Font.unbound.titleM)
-                    .tracking(0.4)
-                    .foregroundStyle(Color.unbound.textPrimary)
-                Text(subtitle)
-                    .font(Font.unbound.monoS)
-                    .tracking(0.8)
-                    .foregroundStyle(Color.unbound.textSecondary)
-            }
-
-            Button {
-                guard canStart else { return }
-                UnboundHaptics.medium()
-                showingSession = true
-            } label: {
-                HStack(spacing: 10) {
-                    Text(canStart ? "BEGIN SESSION" : (isRest ? "TAKE THE REST" : "NOTHING PLANNED"))
-                        .font(Font.unbound.bodyMStrong)
-                        .tracking(1.6)
-                    if canStart {
-                        Image(systemName: "arrow.right")
-                            .font(.system(size: 14, weight: .bold))
-                    }
-                }
-                .foregroundStyle(canStart ? Color.unbound.textPrimary : Color.unbound.textTertiary)
-                .frame(maxWidth: .infinity)
-                .frame(height: 48)
-                .background(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(canStart ? Color.unbound.accent : Color.unbound.borderSubtle)
-                )
-                .shadow(
-                    color: canStart ? Color.unbound.accent.opacity(0.45) : .clear,
-                    radius: 14, y: 2
-                )
-            }
-            .buttonStyle(.plain)
-            .disabled(!canStart)
-        }
-        .padding(18)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            ZStack {
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(Color.unbound.surface)
-                // Soft violet wash — the mission card is the one module on
-                // home that carries the brand accent as ambient color.
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                Color.unbound.accent.opacity(0.08),
-                                Color.clear
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-            }
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(Color.unbound.accent.opacity(0.30), lineWidth: 1)
-        )
-    }
-
-    // MARK: - Weekly rhythm
-    //
-    // Seven-day strip showing which days had sessions this week. Light
-    // motion signal — "am I showing up?" without a full history chart.
-
-    private var weeklyRhythm: some View {
-        let labels = ["M", "T", "W", "T", "F", "S", "S"]
-        let todayIndex = ((Calendar.current.component(.weekday, from: Date()) + 5) % 7) + 1
-        return VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 8) {
-                Text("THIS WEEK")
-                    .font(Font.unbound.captionS)
-                    .tracking(1.8)
-                    .foregroundStyle(Color.unbound.textTertiary)
-                Spacer()
-                Text("\(weekSessionDays.count) / 7")
-                    .font(Font.unbound.monoS)
-                    .foregroundStyle(Color.unbound.textSecondary)
-                    .monospacedDigit()
-            }
-
-            HStack(spacing: 0) {
-                ForEach(0..<7, id: \.self) { i in
-                    VStack(spacing: 6) {
-                        Text(labels[i])
-                            .font(Font.unbound.captionS)
-                            .tracking(1.2)
-                            .foregroundStyle(Color.unbound.textTertiary)
-                        dayGlyph(
-                            hasSession: weekSessionDays.contains(i + 1),
-                            isToday: (i + 1) == todayIndex,
-                            isPast: (i + 1) < todayIndex
-                        )
-                    }
-                    .frame(maxWidth: .infinity)
-                }
-            }
-        }
-        .padding(14)
-        .frame(maxWidth: .infinity)
-        .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color.unbound.surface)
-        )
-    }
-
-    @ViewBuilder
-    private func dayGlyph(hasSession: Bool, isToday: Bool, isPast: Bool) -> some View {
-        if hasSession {
-            Image(systemName: "checkmark")
-                .font(.system(size: 11, weight: .bold))
-                .foregroundStyle(Color.unbound.accent)
-                .frame(width: 14, height: 14)
-        } else if isToday {
-            Circle()
-                .fill(Color.unbound.accent)
-                .frame(width: 8, height: 8)
-                .shadow(color: Color.unbound.accent.opacity(0.55), radius: 3)
-        } else if isPast {
-            Circle()
-                .fill(Color.unbound.borderSubtle)
-                .frame(width: 4, height: 4)
-        } else {
-            Circle()
-                .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
-                .frame(width: 8, height: 8)
-        }
-    }
-
     // MARK: - Momentum + quick actions
 
     private var homeMomentumCard: some View {
@@ -1653,6 +1150,11 @@ struct UnboundHomeView: View {
                 }
             }
 
+            if shouldShowRankGatePulse,
+               let overallRankTrialReadiness {
+                rankGatePulseCard(overallRankTrialReadiness)
+            }
+
             // ── Weekly Vow status card ─────────────────────────────
             if let activeTrial = trialsState.currentTrial,
                activeTrial.capstoneState != .missed {
@@ -1665,59 +1167,102 @@ struct UnboundHomeView: View {
         }
     }
 
-    private var modesStrip: some View {
-        CoachModesStrip(
-            plateaus: plateaus,
-            userId: services.auth.currentUserId ?? ""
-        ) { override in
-            activeTravelOverride = override
-        }
+    private var shouldShowRankGatePulse: Bool {
+        guard let readiness = overallRankTrialReadiness,
+              readiness.definition != nil
+        else { return false }
+        return readiness.isReady || readiness.missingRequirements.count <= 2
     }
 
-    private var scanCTACard: some View {
-        let isScanDue = shouldShowScanEligibility
-        let title = isScanDue ? "Bi-weekly scan due" : "Lock in today's photo"
-        let subtitle = isScanDue
-            ? "3-sentence coach read · +25 LV XP"
-            : "Keep the arc honest · +5 LV XP"
-        let icon = isScanDue ? "sparkle.magnifyingglass" : "camera.fill"
+    private func rankGatePulseCard(_ readiness: OverallRankTrialReadiness) -> some View {
+        let tint = rankGatePulseTint(readiness)
+        let target = readiness.targetRank?.displayName ?? "Rank"
+        let metCount = readiness.requirements.filter(\.isMet).count
+        let totalCount = max(1, readiness.requirements.count)
 
         return Button {
-            UnboundHaptics.medium()
-            captureMode = isScanDue ? .scan : .photo
+            UnboundHaptics.soft()
+            NotificationCenter.default.post(name: .requestNavigateToProfileRankGate, object: nil)
         } label: {
-            HStack(spacing: 14) {
-                Image(systemName: icon)
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(Color.unbound.accent)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(title)
+            HStack(spacing: 12) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(tint.opacity(0.14))
+                    Image(systemName: "seal.fill")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(tint)
+                }
+                .frame(width: 42, height: 42)
+
+                VStack(alignment: .leading, spacing: 5) {
+                    HStack(spacing: 7) {
+                        Text("NEXT GATE")
+                            .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                            .tracking(1.5)
+                            .foregroundStyle(Color.unbound.textTertiary)
+                        Text(rankGatePulseStatus(readiness))
+                            .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                            .tracking(1.0)
+                            .foregroundStyle(tint)
+                    }
+
+                    Text("\(target) · \(metCount)/\(totalCount) proofs")
                         .font(Font.unbound.bodyMStrong)
                         .foregroundStyle(Color.unbound.textPrimary)
-                    Text(subtitle)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.72)
+
+                    Text(rankGatePulseDetail(readiness))
                         .font(Font.unbound.captionS)
                         .foregroundStyle(Color.unbound.textSecondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.72)
                 }
-                Spacer()
+                .layoutPriority(1)
+
+                Spacer(minLength: 0)
+
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(.system(size: 11, weight: .bold))
                     .foregroundStyle(Color.unbound.textTertiary)
             }
             .padding(14)
-            .frame(maxWidth: .infinity)
+            .frame(maxWidth: .infinity, alignment: .leading)
             .background(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
                     .fill(Color.unbound.surface)
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .strokeBorder(
-                        isScanDue ? Color.unbound.accent.opacity(0.35) : Color.clear,
-                        lineWidth: 1
-                    )
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .strokeBorder(tint.opacity(0.26), lineWidth: 1)
             )
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier("home.rankGatePulse")
+    }
+
+    private func rankGatePulseStatus(_ readiness: OverallRankTrialReadiness) -> String {
+        if readiness.isReady { return "READY" }
+        let missing = readiness.missingRequirements.count
+        if missing == 1 { return "1 LEFT" }
+        return "\(missing) LEFT"
+    }
+
+    private func rankGatePulseDetail(_ readiness: OverallRankTrialReadiness) -> String {
+        if readiness.isReady {
+            return "Open Profile to run the gate when you want it."
+        }
+        if let closest = readiness.missingRequirements.first {
+            return "Closest: \(closest.label) \(closest.current)/\(closest.required)"
+        }
+        return "Open Profile for the full gate checklist."
+    }
+
+    private func rankGatePulseTint(_ readiness: OverallRankTrialReadiness) -> Color {
+        if readiness.isReady {
+            return readiness.targetRank?.rewardTextTint ?? Color.unbound.accent
+        }
+        return Color.unbound.rankGold
     }
 
     // MARK: - Stats grid
@@ -1845,6 +1390,10 @@ struct UnboundHomeView: View {
         let history = (try? ScanCheckpointStore.shared.history(userId: userId)) ?? []
         lastScanAt = history.last?.createdAt
         scanCadence = ScanCadenceState.compute(lastScanAt: lastScanAt, now: .now)
+        overallRankTrialReadiness = await TrialReadinessService.shared.readiness(
+            userId: userId,
+            services: services
+        )
     }
 
     /// Instant local program read (no network) for the Phase-1 paint.
@@ -1879,8 +1428,24 @@ struct UnboundHomeView: View {
                 equipment: Set(fetched.equipment ?? []),
                 experience: fetched.experience,
                 sessionLength: fetched.sessionLength,
-                exerciseStyles: [],
-                targetAreas: Set(fetched.targetAreas ?? [])
+                exerciseStyles: Set(fetched.exerciseStyles ?? []),
+                targetAreas: Set(fetched.targetAreas ?? []),
+                goals: Set(fetched.goals ?? []),
+                obstacles: Set(fetched.obstacles ?? []),
+                sleepQuality: fetched.sleepQuality ?? 5,
+                stressLevel: fetched.stressLevel ?? 5,
+                currentFrequency: fetched.currentFrequency,
+                commitment: fetched.commitment ?? 8,
+                displayHandle: fetched.displayHandle ?? fetched.displayName ?? "",
+                age: fetched.age ?? 0,
+                gender: fetched.gender ?? .unspecified,
+                heightCm: fetched.heightCm ?? 0,
+                weightKg: fetched.weightKg ?? 0,
+                trainingDays: fetched.trainingDays,
+                trainingStyleOverride: fetched.trainingStyleOverride,
+                trainingFeedbackMode: fetched.trainingFeedbackMode,
+                cutModeActive: fetched.cutMode.enabled,
+                biologicalSex: fetched.biologicalSex
             )
             store.adopt(generated, userId: userId)
             return (fetched, generated)

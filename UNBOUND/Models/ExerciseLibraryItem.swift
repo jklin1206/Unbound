@@ -6,6 +6,7 @@ enum ExerciseCategory: String, CaseIterable, Codable {
     case bodyweight
     case machine
     case cable
+    case mobility
 
     var displayName: String {
         rawValue.capitalized
@@ -99,7 +100,7 @@ struct ExerciseLibraryItem: Identifiable {
 
 enum ExerciseLibrary {
     static var all: [ExerciseLibraryItem] {
-        MovementCatalog.legacyExercises
+        (MovementCatalog.legacyExercises + MovementCatalog.mobilityMovements)
             .sorted { lhs, rhs in
                 if lhs.movementSlot != rhs.movementSlot {
                     return slotOrder(lhs.movementSlot) < slotOrder(rhs.movementSlot)
@@ -129,6 +130,9 @@ enum ExerciseLibrary {
     }
 
     static func category(for definition: MovementDefinition) -> ExerciseCategory {
+        if definition.movementSlot == .mobility {
+            return .mobility
+        }
         let equipment = Set(definition.equipment)
         if equipment.contains(.cable) {
             return .cable
@@ -158,8 +162,10 @@ enum ExerciseLibrary {
         switch definition.movementSlot {
         case .squat, .hinge, .horizontalPush, .verticalPush, .horizontalPull, .verticalPull, .carry:
             return true
-        case .arms, .core, .calves, .cardio, .mobility, .routine, .skill:
+        case .arms, .core, .calves, .cardio, .routine, .skill:
             return definition.muscleGroups.count > 1 && definition.rankTemplate != .machineStrength
+        case .mobility:
+            return false
         }
     }
 

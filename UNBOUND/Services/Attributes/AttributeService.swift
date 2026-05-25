@@ -28,6 +28,15 @@ protocol AttributeServiceProtocol: AnyObject {
         noveltyMultiplier: Double
     ) async -> AttributeAPIngestResult
 
+    /// Apply direct permanent attribute XP for non-movement rewards such as
+    /// recovery check-ins and rest-day completion.
+    @discardableResult
+    func applyXPDeltas(
+        _ xpDeltas: [AttributeKey: Double],
+        userId: String,
+        at date: Date
+    ) async -> AttributeAPIngestResult
+
     /// Apply onboarding seed. Each selected key gets peak=current=15.
     func applySeed(_ seeded: Set<AttributeKey>, userId: String)
 
@@ -118,6 +127,39 @@ final class AttributeService: AttributeServiceProtocol {
         guard !xpDeltas.isEmpty else { return AttributeAPIngestResult() }
 
         let applied = AttributeIngest.applyXPDeltas(&profile, xpDeltas: xpDeltas, at: date)
+        profile.computedAt = date
+        store.save(profile)
+
+        for event in applied.rankUpEvents {
+            NotificationCenter.default.post(name: .attributeRankUp, object: event)
+        }
+
+        let afterShape = profile.buildIdentity.shape
+        if beforeShape == .balancedAthlete && afterShape != .balancedAthlete {
+            _ = await BadgeService.shared.evaluate(
+                trigger: .firstBuildIdentityResolved(profile.buildIdentity)
+            )
+        }
+
+        return AttributeAPIngestResult(
+            rewards: applied.rewards,
+            rankUpEvents: applied.rankUpEvents
+        )
+    }
+
+    @discardableResult
+    func applyXPDeltas(
+        _ xpDeltas: [AttributeKey: Double],
+        userId: String,
+        at date: Date
+    ) async -> AttributeAPIngestResult {
+        guard !xpDeltas.isEmpty else { return AttributeAPIngestResult() }
+
+        var profile = AttributeDrift.project(profile(userId: userId), to: date)
+        let beforeShape = profile.buildIdentity.shape
+        let applied = AttributeIngest.applyXPDeltas(&profile, xpDeltas: xpDeltas, at: date)
+        guard !applied.rewards.isEmpty else { return AttributeAPIngestResult() }
+
         profile.computedAt = date
         store.save(profile)
 
@@ -248,6 +290,19 @@ final class MockAttributeService: AttributeServiceProtocol {
             catalog: AttributeCatalog.shared,
             noveltyMultiplier: noveltyMultiplier
         )
+        let applied = AttributeIngest.applyXPDeltas(&prof, xpDeltas: xpDeltas, at: date)
+        prof.computedAt = date
+        profileByUser[userId] = prof
+        return AttributeAPIngestResult(rewards: applied.rewards, rankUpEvents: applied.rankUpEvents)
+    }
+    @discardableResult
+    func applyXPDeltas(
+        _ xpDeltas: [AttributeKey: Double],
+        userId: String,
+        at date: Date
+    ) async -> AttributeAPIngestResult {
+        guard !xpDeltas.isEmpty else { return AttributeAPIngestResult() }
+        var prof = profileByUser[userId] ?? .empty(userId: userId, at: date)
         let applied = AttributeIngest.applyXPDeltas(&prof, xpDeltas: xpDeltas, at: date)
         prof.computedAt = date
         profileByUser[userId] = prof

@@ -17,7 +17,7 @@ struct FriendChallengeCreateSheet: View {
     @State private var error: String?
 
     private var currentUserId: UUID? {
-        services.auth.currentUserId.flatMap(UUID.init)
+        services.auth.currentUserId.flatMap(SquadUserIdentity.uuid(from:))
     }
     private var eligibleOpponents: [SquadMember] {
         guard let me = currentUserId else { return roster }

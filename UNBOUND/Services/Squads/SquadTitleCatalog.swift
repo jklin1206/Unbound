@@ -25,7 +25,7 @@ enum SquadTitleCatalog {
             let baseName: String
             switch id.axis {
             case .power:         baseName = "The Iron Crew"
-            case .agility:       baseName = "The Quick Crew"
+            case .agility:       baseName = "The Recovery Crew"
             case .control:       baseName = "The Focused Crew"
             case .endurance:     baseName = "The Long Haul Crew"
             case .mobility:      baseName = "The Loose Crew"
@@ -38,7 +38,7 @@ enum SquadTitleCatalog {
             let baseName: String
             switch id.axis {
             case .power:         baseName = "Power Pact"
-            case .agility:       baseName = "Agility Pact"
+            case .agility:       baseName = "Vitality Pact"
             case .control:       baseName = "Control Pact"
             case .endurance:     baseName = "Endurance Pact"
             case .mobility:      baseName = "Mobility Pact"

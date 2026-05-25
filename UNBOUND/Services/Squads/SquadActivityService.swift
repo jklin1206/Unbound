@@ -47,7 +47,7 @@ final class SquadActivityService: SquadActivityServiceProtocol {
         let entry = SquadActivityEntry(
             id: UUID(),
             squadId: squad.id,
-            userId: UUID(uuidString: userId) ?? UUID(),
+            userId: SquadUserIdentity.uuid(from: userId) ?? UUID(),
             kind: kind,
             payload: payload,
             createdAt: .now

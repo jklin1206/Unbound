@@ -14,8 +14,31 @@ struct SkillUnlockRequirement: Codable, Hashable, Sendable, Identifiable {
     let sourceSkillId: String
     let requiredTier: SkillTier
     let note: String
+    let directProofFamily: ProofFamily
+    let proofFamilyCovered: Set<ProofFamily>
+    let autoClearFromHigherProof: Bool
+    let safetyRequired: Bool
 
     var id: String { "\(sourceSkillId):\(requiredTier.rawValue)" }
+
+    init(
+        sourceSkillId: String,
+        requiredTier: SkillTier,
+        note: String,
+        directProofFamily: ProofFamily = .form,
+        proofFamilyCovered: Set<ProofFamily>? = nil,
+        autoClearFromHigherProof: Bool? = nil,
+        safetyRequired: Bool = false
+    ) {
+        self.sourceSkillId = sourceSkillId
+        self.requiredTier = requiredTier
+        self.note = note
+        self.directProofFamily = directProofFamily
+        self.proofFamilyCovered = proofFamilyCovered ?? [directProofFamily]
+        self.safetyRequired = safetyRequired
+        self.autoClearFromHigherProof = !safetyRequired
+            && (autoClearFromHigherProof ?? directProofFamily.allowsHigherProofAutoClear)
+    }
 }
 
 struct SkillUnlockRequirementGroup: Codable, Hashable, Sendable, Identifiable {
@@ -68,11 +91,18 @@ enum SkillUnlockStandards {
     static func requirement(from parentId: String, to child: SkillNode, in graph: SkillGraph) -> SkillUnlockRequirement {
         let tier = overrideTier(parentId: parentId, childId: child.id)
             ?? inferredTier(from: graph.node(id: parentId), to: child)
+        let source = graph.node(id: parentId)
+        let family = proofFamily(for: source, requiredTier: tier)
+        let requiresSafetyProof = safetyRequired(source: source, child: child)
 
         return SkillUnlockRequirement(
             sourceSkillId: parentId,
             requiredTier: tier,
-            note: note(for: tier, child: child)
+            note: note(for: tier, child: child),
+            directProofFamily: family,
+            proofFamilyCovered: [family],
+            autoClearFromHigherProof: family.allowsHigherProofAutoClear && !requiresSafetyProof,
+            safetyRequired: requiresSafetyProof
         )
     }
 
@@ -118,6 +148,38 @@ enum SkillUnlockStandards {
 
     private static func overrideTier(parentId: String, childId: String) -> SkillTier? {
         explicitEdgeTiers["\(parentId)->\(childId)"]
+    }
+
+    private static func proofFamily(for source: SkillNode?, requiredTier: SkillTier) -> ProofFamily {
+        guard let source else { return .form }
+        if let criterion = source.tierCriteria[requiredTier] {
+            return ProofFamily.inferred(from: criterion)
+        }
+        return ProofFamily.inferred(from: source.target)
+    }
+
+    private static func safetyRequired(source: SkillNode?, child: SkillNode) -> Bool {
+        guard let source else { return false }
+        if source.isMythic || child.isMythic { return true }
+
+        let joinedText = [
+            source.title,
+            child.title,
+            source.target.displayName,
+            child.target.displayName,
+            source.formCues.joined(separator: " "),
+            child.formCues.joined(separator: " ")
+        ]
+        .joined(separator: " ")
+        .lowercased()
+
+        return joinedText.contains("pain-free")
+            || joinedText.contains("pain free")
+            || joinedText.contains("mobility")
+            || joinedText.contains("wrist")
+            || joinedText.contains("shoulder")
+            || joinedText.contains("strict form")
+            || joinedText.contains("controlled")
     }
 
     private static let explicitEdgeTiers: [String: SkillTier] = [

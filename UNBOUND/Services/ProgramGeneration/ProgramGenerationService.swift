@@ -1,9 +1,10 @@
 import Foundation
 
-// Program generation is Claude-first with a local deterministic fallback.
-// Claude produces a 7-day weekly template + nutrition + recovery + rationale;
-// ProgramBuilder expands it to 84 days. If Claude fails for any reason, we
-// quietly use LocalProgramGenerator so the user never sees a broken flow.
+// Program generation is deterministic-first.
+// Claude remains an emergency fallback for malformed inputs or unexpected
+// generator errors, but the canonical path is local, auditable, and cheap:
+// first-time users start with Calibration Week, then normal 28-day Arcs
+// are built from scan/profile inputs plus stored progression state.
 
 final class ProgramGenerationService: ProgramGenerationServiceProtocol, @unchecked Sendable {
     static let shared = ProgramGenerationService()
@@ -22,36 +23,66 @@ final class ProgramGenerationService: ProgramGenerationServiceProtocol, @uncheck
 
         let buildIdentity = await AttributeService.shared.snapshot(userId: userProfile.id, asOf: Date()).buildIdentity
 
-        let inputs = buildInputs(
-            buildIdentity: buildIdentity,
-            userProfile: userProfile,
-            analysis: analysis
-        )
-
         let program: TrainingProgram
-        if let llm = try? await callClaude(inputs: inputs) {
-            program = ProgramBuilder.build(
-                from: llm,
+        do {
+            let input = await deterministicInput(
                 userId: userProfile.id,
-                scanId: analysis.scanId,
-                analysisId: analysis.id,
-                buildIdentity: buildIdentity
-            )
-            logger.log("Program generated via Claude", level: .info, context: [
-                "programId": program.id,
-                "buildIdentity": buildIdentity.displayName
-            ])
-        } else {
-            program = await localFallback(
-                userProfile: userProfile,
                 buildIdentity: buildIdentity,
+                targetFrequency: userProfile.targetFrequency,
+                trainingDays: userProfile.trainingDays,
+                equipment: Set(userProfile.equipment ?? []),
+                experience: userProfile.experience,
+                exerciseStyles: Set(userProfile.exerciseStyles ?? []),
+                focusAreas: analysis.focusAreas,
+                cutModeActive: userProfile.cutMode.enabled,
+                trainingFeedbackMode: userProfile.trainingFeedbackMode,
+                trainingStyleOverride: userProfile.trainingStyleOverride,
+                age: userProfile.age ?? 0,
+                gender: userProfile.gender ?? .unspecified,
+                biologicalSex: userProfile.biologicalSex,
+                heightCm: userProfile.heightCm ?? 0,
+                weightKg: userProfile.weightKg ?? 0,
                 scanId: analysis.scanId,
                 analysisId: analysis.id
             )
-            logger.log("Program generated via local fallback", level: .warning, context: [
+            program = try DeterministicProgramGenerator.generate(input: input)
+            logger.log("Program generated deterministically", level: .info, context: [
                 "programId": program.id,
-                "buildIdentity": buildIdentity.displayName
+                "buildIdentity": buildIdentity.displayName,
+                "calibration": "\(input.calibration.requiresLearningWeek)"
             ])
+        } catch {
+            let inputs = buildInputs(
+                buildIdentity: buildIdentity,
+                userProfile: userProfile,
+                analysis: analysis
+            )
+            if let llm = try? await callClaude(inputs: inputs) {
+                program = ProgramBuilder.build(
+                    from: llm,
+                    userId: userProfile.id,
+                    scanId: analysis.scanId,
+                    analysisId: analysis.id,
+                    buildIdentity: buildIdentity
+                )
+                logger.log("Program generated via Claude fallback", level: .warning, context: [
+                    "programId": program.id,
+                    "buildIdentity": buildIdentity.displayName,
+                    "deterministicError": "\(error)"
+                ])
+            } else {
+                program = await localFallback(
+                    userProfile: userProfile,
+                    buildIdentity: buildIdentity,
+                    scanId: analysis.scanId,
+                    analysisId: analysis.id
+                )
+                logger.log("Program generated via legacy local fallback", level: .error, context: [
+                    "programId": program.id,
+                    "buildIdentity": buildIdentity.displayName,
+                    "deterministicError": "\(error)"
+                ])
+            }
         }
 
         try? await database.create(program, collection: "programs", documentId: program.id)
@@ -89,7 +120,12 @@ final class ProgramGenerationService: ProgramGenerationServiceProtocol, @uncheck
         age: Int = 0,
         gender: Gender = .unspecified,
         heightCm: Double = 0,
-        weightKg: Double = 0
+        weightKg: Double = 0,
+        trainingDays: Set<Weekday>? = nil,
+        trainingStyleOverride: TrainingStyle? = nil,
+        trainingFeedbackMode: TrainingFeedbackMode? = nil,
+        cutModeActive: Bool = false,
+        biologicalSex: BiologicalSex? = nil
     ) async -> TrainingProgram {
         // MIGRATION: derive BuildIdentity from AttributeService rather than relying
         // on the archetype param. The archetype param is kept for external API
@@ -97,41 +133,34 @@ final class ProgramGenerationService: ProgramGenerationServiceProtocol, @uncheck
         // removes it from the call sites.
         let buildIdentity = await AttributeService.shared.snapshot(userId: userId, asOf: Date()).buildIdentity
 
-        let inputs = ProgramGenerationPrompt.Inputs(
-            buildIdentity: buildIdentity,
-            targetFrequency: days(for: targetFrequency),
-            equipment: equipment.map(\.rawValue),
-            experience: experience?.rawValue ?? "unspecified",
-            sessionLengthMinutes: sessionLength?.minutes ?? 60,
-            exerciseStyles: exerciseStyles.map(\.rawValue),
-            targetAreas: targetAreas.map(\.rawValue),
-            goals: goals.map(\.rawValue),
-            obstacles: obstacles.map(\.rawValue),
-            sleepQuality: sleepQuality,
-            stressLevel: stressLevel,
-            commitment: commitment,
-            displayHandle: displayHandle,
-            age: age > 0 ? age : nil,
-            gender: gender == .unspecified ? nil : gender.rawValue,
-            heightCm: heightCm > 0 ? heightCm : nil,
-            weightKg: weightKg > 0 ? weightKg : nil,
-            analysisSummary: nil,
-            focusAreas: [],
-            weaknesses: [],
-            strengths: []
-        )
-
         let program: TrainingProgram
-        if let llm = try? await callClaude(inputs: inputs) {
-            program = ProgramBuilder.build(
-                from: llm,
+        do {
+            let deterministic = await deterministicInput(
                 userId: userId,
-                scanId: "",
-                analysisId: "",
-                buildIdentity: buildIdentity
+                buildIdentity: buildIdentity,
+                targetFrequency: targetFrequency,
+                trainingDays: trainingDays,
+                equipment: equipment,
+                experience: experience,
+                exerciseStyles: exerciseStyles,
+                targetAreas: targetAreas,
+                cutModeActive: cutModeActive,
+                trainingFeedbackMode: trainingFeedbackMode,
+                trainingStyleOverride: trainingStyleOverride,
+                age: age,
+                gender: gender,
+                biologicalSex: biologicalSex,
+                heightCm: heightCm,
+                weightKg: weightKg,
+                scanId: nil,
+                analysisId: nil
             )
-            logger.log("Onboarding program via Claude", level: .info, context: ["programId": program.id])
-        } else {
+            program = try DeterministicProgramGenerator.generate(input: deterministic)
+            logger.log("Onboarding program via deterministic generator", level: .info, context: [
+                "programId": program.id,
+                "calibration": "\(deterministic.calibration.requiresLearningWeek)"
+            ])
+        } catch {
             let calibrations = await CalibrationService.shared.fetchAll(userId: userId)
             let rank = await resolveArchetypeRank(userId: userId)
             let preferences = (try? await ExercisePreferenceService.shared.fetchPreferences(userId: userId)) ?? []
@@ -163,7 +192,10 @@ final class ProgramGenerationService: ProgramGenerationServiceProtocol, @uncheck
                 userId: userId
             )
             program = fallback
-            logger.log("Onboarding program via local fallback", level: .warning, context: ["programId": program.id])
+            logger.log("Onboarding program via legacy local fallback", level: .error, context: [
+                "programId": program.id,
+                "deterministicError": "\(error)"
+            ])
         }
 
         // Persist on a DETACHED task so a torn-down caller cannot abort the
@@ -263,6 +295,245 @@ final class ProgramGenerationService: ProgramGenerationServiceProtocol, @uncheck
         case .six: return 6
         case .none: return 4
         }
+    }
+
+    // MARK: - Deterministic generation input
+
+    private func deterministicInput(
+        userId: String,
+        buildIdentity: BuildIdentity,
+        targetFrequency: TargetFrequency?,
+        trainingDays: Set<Weekday>?,
+        equipment: Set<Equipment>,
+        experience: Experience?,
+        exerciseStyles: Set<ExerciseStyle>,
+        targetAreas: Set<TargetArea> = [],
+        focusAreas: [FocusArea] = [],
+        cutModeActive: Bool,
+        trainingFeedbackMode: TrainingFeedbackMode?,
+        trainingStyleOverride: TrainingStyle?,
+        age: Int,
+        gender: Gender,
+        biologicalSex: BiologicalSex?,
+        heightCm: Double,
+        weightKg: Double,
+        scanId: String?,
+        analysisId: String?
+    ) async -> ProgramGeneratorInput {
+        async let calibrationTask = CalibrationService.shared.fetchAll(userId: userId)
+        async let progressionTask = ProgressionStateStore.shared.fetchAll(userId: userId)
+
+        let frequency = targetFrequency ?? .four
+        let resolvedExperience = experience ?? .never
+        let resolvedEquipment = equipment.isEmpty
+            ? [Equipment.bodyweight]
+            : Equipment.allCases.filter { equipment.contains($0) }
+        let resolvedTrainingDays = resolvedTrainingDays(
+            trainingDays,
+            frequency: frequency,
+            startDate: Date()
+        )
+        let resolvedStyle = trainingStyleOverride ?? inferredTrainingStyle(
+            buildIdentity: buildIdentity,
+            equipment: resolvedEquipment,
+            exerciseStyles: exerciseStyles
+        )
+        let resolvedFeedback = trainingFeedbackMode ?? TrainingFeedbackMode.default(for: resolvedExperience)
+        let resolvedSex = biologicalSex ?? biologicalSexFallback(from: gender) ?? .male
+        let resolvedFocus = focusAreas.isEmpty ? focusAreasFromTargets(targetAreas) : focusAreas
+
+        let calibrations = await calibrationTask
+        let progressions = await progressionTask
+        let preferences = (try? await ExercisePreferenceService.shared.fetchPreferences(userId: userId)) ?? []
+        let progressionStates = progressionStateMap(
+            userId: userId,
+            progressions: progressions,
+            calibrations: calibrations
+        )
+
+        return ProgramGeneratorInput(
+            userId: userId,
+            scanId: scanId,
+            analysisId: analysisId,
+            buildIdentity: buildIdentity,
+            trainingStyle: resolvedStyle,
+            equipment: resolvedEquipment,
+            targetFrequency: frequency,
+            trainingDays: resolvedTrainingDays,
+            experience: resolvedExperience,
+            focusAreas: resolvedFocus,
+            cutModeActive: cutModeActive,
+            trainingFeedbackMode: resolvedFeedback,
+            progressionStates: progressionStates,
+            previousBlock: nil,
+            weightKg: weightKg > 0 ? weightKg : 75,
+            heightCm: heightCm > 0 ? heightCm : 175,
+            age: age > 0 ? age : 30,
+            sex: resolvedSex,
+            blockStartDate: Date(),
+            exercisePreferences: preferences,
+            calibration: calibrationInput(
+                calibrations: calibrations,
+                progressionStates: Array(progressionStates.values)
+            )
+        )
+    }
+
+    private func progressionStateMap(
+        userId: String,
+        progressions: [ProgressionState],
+        calibrations: [CalibrationBaseline]
+    ) -> [String: ProgressionState] {
+        var map: [String: ProgressionState] = [:]
+        for state in progressions {
+            map[MovementCatalog.normalized(state.exerciseKey)] = state
+        }
+
+        for baseline in calibrations where isUsableCalibrationBaseline(baseline) && baseline.kind == .weight {
+            let key = MovementCatalog.normalized(baseline.exerciseKey)
+            guard map[key] == nil,
+                  let kg = baseline.weightInKg,
+                  kg > 0
+            else { continue }
+            map[key] = ProgressionState.seed(
+                userId: userId,
+                exercise: baseline.displayName,
+                startingWeightKg: kg
+            )
+        }
+        return map
+    }
+
+    private func calibrationInput(
+        calibrations: [CalibrationBaseline],
+        progressionStates: [ProgressionState]
+    ) -> ProgramCalibrationInput {
+        let knownFromBaselines = calibrations
+            .filter(isUsableCalibrationBaseline)
+            .map(\.exerciseKey)
+        let knownFromProgression = progressionStates.map(\.exerciseKey)
+        let knownKeys = Set(knownFromBaselines + knownFromProgression)
+
+        if knownKeys.count >= 2 {
+            return .standardReady(knownExerciseKeys: knownKeys)
+        }
+        return .learningWeek(knownExerciseKeys: knownKeys)
+    }
+
+    private func isUsableCalibrationBaseline(_ baseline: CalibrationBaseline) -> Bool {
+        guard baseline.isKnown else { return false }
+        switch baseline.kind {
+        case .weight:
+            return (baseline.weightInKg ?? 0) > 0
+        case .reps:
+            return baseline.value > 0
+        }
+    }
+
+    private func inferredTrainingStyle(
+        buildIdentity: BuildIdentity,
+        equipment: [Equipment],
+        exerciseStyles: Set<ExerciseStyle>
+    ) -> TrainingStyle {
+        if buildIdentity.programTemplateKey == "control"
+            || exerciseStyles.contains(.calisthenics)
+            || (equipment.count == 1 && equipment.contains(.bodyweight)) {
+            return .bodyweight
+        }
+        if exerciseStyles.contains(.machines) || equipment.contains(.machines) {
+            return .machines
+        }
+        if exerciseStyles.contains(.compoundLifts)
+            || equipment.contains(.barbell)
+            || equipment.contains(.dumbbells)
+            || equipment.contains(.bench) {
+            return .freeWeights
+        }
+        return .hybrid
+    }
+
+    private func resolvedTrainingDays(
+        _ selectedDays: Set<Weekday>?,
+        frequency: TargetFrequency,
+        startDate: Date
+    ) -> Set<Weekday> {
+        let targetCount = frequency.numericCount
+        let selected = Weekday.allCases.filter { selectedDays?.contains($0) == true }
+        if selected.count == targetCount {
+            return Set(selected)
+        }
+
+        var resolved = Array(selected.prefix(targetCount))
+        for day in defaultTrainingDays(frequency: frequency, startDate: startDate) where resolved.count < targetCount {
+            if !resolved.contains(day) {
+                resolved.append(day)
+            }
+        }
+        return Set(resolved)
+    }
+
+    private func defaultTrainingDays(
+        frequency: TargetFrequency,
+        startDate: Date
+    ) -> [Weekday] {
+        let start = Weekday(from: startDate) ?? .monday
+        let ordered = orderedWeekdays(startingWith: start)
+        let indexes: [Int]
+        switch frequency {
+        case .three:
+            indexes = [0, 2, 4]
+        case .four:
+            indexes = [0, 2, 4, 6]
+        case .five:
+            indexes = [0, 1, 2, 4, 6]
+        case .six:
+            indexes = [0, 1, 2, 3, 4, 5]
+        }
+        return indexes.map { ordered[$0] }
+    }
+
+    private func orderedWeekdays(startingWith first: Weekday) -> [Weekday] {
+        guard let startIndex = Weekday.allCases.firstIndex(of: first) else {
+            return Weekday.allCases
+        }
+        return Array(Weekday.allCases[startIndex...]) + Array(Weekday.allCases[..<startIndex])
+    }
+
+    private func biologicalSexFallback(from gender: Gender) -> BiologicalSex? {
+        switch gender {
+        case .male:
+            return .male
+        case .female:
+            return .female
+        case .unspecified:
+            return nil
+        }
+    }
+
+    private func focusAreasFromTargets(_ targetAreas: Set<TargetArea>) -> [FocusArea] {
+        TargetArea.allCases
+            .filter { targetAreas.contains($0) }
+            .compactMap { target -> MuscleGroup? in
+                switch target {
+                case .chest: return .chest
+                case .back: return .back
+                case .shoulders: return .shoulders
+                case .arms: return .arms
+                case .core: return .core
+                case .legs: return .legs
+                case .glutes: return .glutes
+                case .fullBody: return nil
+                }
+            }
+            .enumerated()
+            .map { index, muscle in
+                FocusArea(
+                    muscleGroup: muscle,
+                    priority: index + 1,
+                    rationale: "Selected during onboarding",
+                    suggestedFocus: "Bias accessory volume toward \(muscle.displayName.lowercased())"
+                )
+            }
     }
 
     // MARK: - Local fallback

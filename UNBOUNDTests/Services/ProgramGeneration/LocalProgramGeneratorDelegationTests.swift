@@ -7,7 +7,7 @@ import XCTest
 final class LocalProgramGeneratorDelegationTests: XCTestCase {
 
     /// The new entry point delegates to DeterministicProgramGenerator — same
-    /// input should produce an equivalent 14-day program.
+    /// input should produce an equivalent 28-day Arc.
     func testNewEntryPointDelegatesToDeterministic() throws {
         // MIGRATION: was archetype: .shredded — now control specialist (equivalent)
         let buildIdentity = BuildIdentity(primary: .control, secondary: nil, shape: .specialist)

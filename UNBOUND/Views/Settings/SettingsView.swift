@@ -597,7 +597,7 @@ private struct DevPlayerToolsView: View {
         case .power: return "bolt.fill"
         case .explosiveness: return "hare.fill"
         case .control: return "scope"
-        case .agility: return "figure.run"
+        case .agility: return "heart.fill"
         case .mobility: return "figure.flexibility"
         case .endurance: return "infinity"
         }

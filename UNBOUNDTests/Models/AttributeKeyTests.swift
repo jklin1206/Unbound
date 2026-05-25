@@ -7,12 +7,12 @@ final class AttributeKeyTests: XCTestCase {
     }
 
     func testShortCodesAreThreeLetterUppercase() {
-        let expected = ["POW", "AGI", "CTL", "END", "MOB", "EXP"]
+        let expected = ["POW", "VIT", "CTL", "END", "MOB", "EXP"]
         XCTAssertEqual(AttributeKey.allCases.map(\.shortCode), expected)
     }
 
     func testDisplayNamesAreTitleCased() {
-        let expected = ["Power", "Agility", "Control", "Endurance", "Mobility", "Explosiveness"]
+        let expected = ["Power", "Vitality", "Control", "Endurance", "Mobility", "Explosiveness"]
         XCTAssertEqual(AttributeKey.allCases.map(\.displayName), expected)
     }
 

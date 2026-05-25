@@ -256,7 +256,7 @@ private struct AttributeInfoSheet: View {
         case .power:
             return "Raw force output. This rises when heavy strength work improves."
         case .agility:
-            return "How quickly you can change direction, coordinate steps, and move through space."
+            return "Recovery health. Rest days, deloads, and recovery check-ins feed this."
         case .control:
             return "Body control under tension. Skill work, tempo reps, and clean positions feed this."
         case .endurance:

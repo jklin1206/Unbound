@@ -1,73 +1,64 @@
 // UNBOUND/Views/Squads/SquadDetailView.swift
-//
-// 11-section squad detail view.
-// Sections: Header, Mission, AggregateBuild, Affinity, Streak, Roster,
-//           WeeklyHonors, ActivityFeed, SquadTitles, FriendChallenges, Footer.
 import SwiftUI
 
 struct SquadDetailView: View {
     @EnvironmentObject var services: ServiceContainer
     @State private var state: SquadState = .empty
-    @State private var showAffinityPicker = false
     @State private var showInviteSheet = false
     @State private var memberDetailTarget: SquadMember?
     @State private var showLeaveConfirm = false
     @State private var leaveError: String?
-
-    // New sections (Phases 9-14)
-    @State private var currentMission: SquadMission? = nil
-    @State private var weeklyHonors: [WeeklyHonor] = []
-    @State private var activeChallenges: [FriendChallenge] = []
+    @State private var showChat = false
     @State private var showChallengeCreate = false
+    @State private var activeChallenges: [FriendChallenge] = []
+    @State private var messages: [SquadMessage] = []
+    @State private var memberProfiles: [UUID: UserProfile] = [:]
 
     private var currentUserId: UUID? {
-        services.auth.currentUserId.flatMap(UUID.init)
+        services.auth.currentUserId.flatMap(SquadUserIdentity.uuid(from:))
     }
 
     var body: some View {
-        ScrollView {
-            LazyVStack(spacing: 16) {
-                if let squad = state.currentSquad {
-                    // 1. Header card
-                    headerCard(squad: squad)
-                    // 2. Squad Mission card (NEW)
-                    if let mission = currentMission {
-                        SquadMissionCard(mission: mission)
+        ZStack(alignment: .top) {
+            Color.unbound.bg.ignoresSafeArea()
+            squadBackdrop
+
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 22) {
+                    if let squad = state.currentSquad {
+                        headerCard(squad: squad)
+                        crewStreakBadge(squad: squad)
+                        crewSection
+                        challengesSection
+                        recentSection
+                        footerSection
+                    } else {
+                        emptyStateView
                     }
-                    // 3. Aggregate Build hex
-                    aggregateBuildCard
-                    // 4. Affinity card
-                    affinityCard(squad: squad)
-                    // 5. Squad streak row
-                    streakRow(squad: squad)
-                    // 6. Roster grid
-                    rosterGrid
-                    // 7. Weekly Honors strip (NEW)
-                    WeeklyHonorsStrip(honors: weeklyHonors, roster: state.roster)
-                    // 8. Activity feed
-                    activityFeedSection
-                    // 9. Squad Titles
-                    squadTitlesRow
-                    // 10. Friend Challenges (NEW)
-                    friendChallengesSection
-                    // 11. Footer — Leave button
-                    footerSection
-                } else {
-                    emptyStateView
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 20)
+                .padding(.top, 8)
+                .padding(.bottom, 118)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 20)
         }
-        .background(Color.unbound.bg.ignoresSafeArea())
         .navigationTitle("Squad")
         .navigationBarTitleDisplayMode(.inline)
-        .sheet(isPresented: $showAffinityPicker) {
-            AffinityPickerSheet(currentAxis: state.currentSquad?.affinityAxis)
-        }
         .sheet(item: $memberDetailTarget) { member in
             NavigationStack {
                 SquadMemberDetailView(member: member, roster: state.roster)
+            }
+        }
+        .sheet(isPresented: $showChat) {
+            if let squad = state.currentSquad {
+                NavigationStack {
+                    SquadChatView(
+                        squad: squad,
+                        roster: state.roster,
+                        initialMessages: messages,
+                        currentUserId: currentUserId
+                    )
+                }
             }
         }
         .sheet(isPresented: $showChallengeCreate) {
@@ -77,6 +68,21 @@ struct SquadDetailView: View {
                     roster: state.roster,
                     onCreated: { challenge in
                         activeChallenges.append(challenge)
+                        messages.insert(
+                            SquadMessage(
+                                id: UUID(),
+                                squadId: squad.id,
+                                authorUserId: currentUserId,
+                                kind: .challengeEvent(.init(
+                                    title: "Co-op challenge created",
+                                    detail: "\(displayName(for: challenge.challengerId)) invited \(displayName(for: challenge.challengedId))",
+                                    challengeId: challenge.id
+                                )),
+                                reactions: [],
+                                createdAt: Date()
+                            ),
+                            at: 0
+                        )
                     }
                 )
             }
@@ -87,7 +93,6 @@ struct SquadDetailView: View {
         .onDisappear {
             Task { await services.squadPresence.unsubscribeFromSquadPresence() }
         }
-        // Core squad state changes
         .onReceive(NotificationCenter.default.publisher(for: .squadStateChanged)) { _ in
             Task { await refreshState() }
         }
@@ -97,29 +102,9 @@ struct SquadDetailView: View {
         .onReceive(NotificationCenter.default.publisher(for: .squadActivityRecorded)) { _ in
             Task { await refreshState() }
         }
-        // New section refresh triggers
-        .onReceive(NotificationCenter.default.publisher(for: .squadMissionCompleted)) { _ in
-            Task {
-                if let squad = state.currentSquad {
-                    currentMission = await services.squadMission.currentMission(squadId: squad.id)
-                }
-            }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .weeklyHonorReceived)) { _ in
-            Task {
-                if let squad = state.currentSquad {
-                    weeklyHonors = await services.squadHonors.currentHonors(squadId: squad.id)
-                }
-            }
-        }
         .onReceive(NotificationCenter.default.publisher(for: .friendChallengeExpired)) { _ in
-            Task {
-                if let me = currentUserId {
-                    activeChallenges = await services.friendChallenge.activeChallenges(userId: me)
-                }
-            }
+            Task { await refreshChallenges() }
         }
-        .friendChallengeOutcomeToast()
         .confirmationDialog("Leave this squad?", isPresented: $showLeaveConfirm, titleVisibility: .visible) {
             Button("Leave Squad", role: .destructive) {
                 Task { await leaveSquad() }
@@ -130,8 +115,6 @@ struct SquadDetailView: View {
         }
     }
 
-    // MARK: - Load helpers
-
     @MainActor
     private func loadAll() async {
         guard let userId = services.auth.currentUserId else { return }
@@ -139,189 +122,266 @@ struct SquadDetailView: View {
         state = services.squads.state(userId: userId)
         if let squadId = state.currentSquad?.id {
             await services.squadPresence.subscribeToSquadPresence(squadId: squadId)
-            currentMission = await services.squadMission.currentMission(squadId: squadId)
-            weeklyHonors = await services.squadHonors.currentHonors(squadId: squadId)
         }
-        if let me = currentUserId {
-            activeChallenges = await services.friendChallenge.activeChallenges(userId: me)
-        }
+        await refreshMemberProfiles()
+        await refreshChallenges()
+        rebuildMessages()
     }
 
     @MainActor
     private func refreshState() async {
         guard let userId = services.auth.currentUserId else { return }
         state = services.squads.state(userId: userId)
+        await refreshMemberProfiles()
+        rebuildMessages()
     }
 
-    // MARK: - Section 1: Header card
+    @MainActor
+    private func refreshChallenges() async {
+        if let me = currentUserId {
+            activeChallenges = await services.friendChallenge.activeChallenges(userId: me)
+        }
+    }
+
+    @MainActor
+    private func refreshMemberProfiles() async {
+        let roster = state.roster
+        var profiles: [UUID: UserProfile] = [:]
+        for member in roster {
+            let profileUserId = resolvedProfileUserId(for: member)
+            if let profile = try? await services.user.fetchProfile(userId: profileUserId) {
+                profiles[member.userId] = profile
+            }
+        }
+        memberProfiles = profiles
+    }
+
+    private var squadBackdrop: some View {
+        GeometryReader { proxy in
+            ZStack(alignment: .topTrailing) {
+                LinearGradient(
+                    colors: [
+                        Color.unbound.accent.opacity(0.17),
+                        Color.unbound.warnOrange.opacity(0.07),
+                        Color.clear
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .frame(height: 340)
+
+                Image("SquadCrest")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: min(proxy.size.width * 0.74, 320))
+                    .opacity(0.11)
+                    .blendMode(.screen)
+                    .offset(x: 78, y: -58)
+
+                LinearGradient(
+                    stops: [
+                        .init(color: Color.unbound.bg.opacity(0.02), location: 0),
+                        .init(color: Color.unbound.bg.opacity(0.72), location: 0.72),
+                        .init(color: Color.unbound.bg, location: 1.0)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: 360)
+            }
+            .frame(width: proxy.size.width, height: 360, alignment: .top)
+        }
+        .frame(height: 360)
+        .allowsHitTesting(false)
+    }
 
     private func headerCard(squad: Squad) -> some View {
-        RoundedRectangle(cornerRadius: 16, style: .continuous)
-            .fill(Color.unbound.surface)
-            .overlay(
-                HStack(spacing: 12) {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(squad.name)
-                            .font(Font.unbound.titleM)
+        ZStack(alignment: .topTrailing) {
+            SquadConsoleBackground(tint: Color.unbound.accent)
+
+            Image("SquadCrest")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 164, height: 164)
+                .opacity(0.13)
+                .blendMode(.screen)
+                .offset(x: 36, y: -34)
+
+            VStack(alignment: .leading, spacing: 18) {
+                HStack(alignment: .top, spacing: 14) {
+                    crestMark(size: 66)
+
+                    Spacer(minLength: 0)
+
+                    VStack(alignment: .trailing, spacing: 3) {
+                        Text("\(state.roster.count)")
+                            .font(Font.unbound.monoM.weight(.semibold))
                             .foregroundStyle(Color.unbound.textPrimary)
-                        Text("\(state.roster.count) member\(state.roster.count == 1 ? "" : "s")")
-                            .font(Font.unbound.bodyM)
-                            .foregroundStyle(Color.unbound.textSecondary)
+                            .monospacedDigit()
+                        Text(state.roster.count == 1 ? "MEMBER" : "MEMBERS")
+                            .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                            .tracking(1.4)
+                            .foregroundStyle(Color.unbound.textTertiary)
                     }
-                    Spacer()
+                }
+
+                VStack(alignment: .leading, spacing: 9) {
+                    Text(squad.name)
+                        .font(.system(size: 34, weight: .black))
+                        .foregroundStyle(Color.unbound.textPrimary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.58)
+
+                    Text("Crew chat, linked sessions, and weekly heat live here.")
+                        .font(Font.unbound.bodyM)
+                        .foregroundStyle(Color.unbound.textSecondary)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    HStack(spacing: 8) {
+                        squadMetaPill(
+                            icon: "person.2.fill",
+                            value: "\(state.roster.count)/8",
+                            label: "CREW",
+                            tint: Color.unbound.accent
+                        )
+                        squadMetaPill(
+                            icon: "flame.fill",
+                            value: "\(squad.squadStreakWeeks)W",
+                            label: "STREAK",
+                            tint: Color.unbound.warnOrange
+                        )
+                    }
+                }
+
+                HStack(spacing: 10) {
+                    Button {
+                        showChat = true
+                    } label: {
+                        HStack(spacing: 10) {
+                            Text("OPEN CHAT")
+                                .font(Font.unbound.bodyMStrong)
+                                .tracking(1.2)
+                            Image(systemName: "bubble.left.and.bubble.right.fill")
+                                .font(.system(size: 13, weight: .bold))
+                        }
+                        .foregroundStyle(Color.unbound.textPrimary)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 50)
+                        .background(
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .fill(Color.unbound.accent)
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .strokeBorder(Color.white.opacity(0.16), lineWidth: 1)
+                        )
+                        .shadow(color: Color.unbound.accent.opacity(0.24), radius: 18, y: 8)
+                    }
+                    .buttonStyle(.plain)
+
                     if let inviteURL = squad.inviteURL {
                         ShareLink(item: inviteURL) {
-                            Label("Invite", systemImage: "person.badge.plus")
-                                .font(Font.unbound.bodyMStrong)
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 8)
+                            Image(systemName: "person.badge.plus")
+                                .font(.system(size: 15, weight: .bold))
+                                .foregroundStyle(Color.unbound.textPrimary)
+                                .frame(width: 50, height: 50)
                                 .background(
-                                    Capsule().fill(Color.unbound.accent.opacity(0.15))
+                                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                        .fill(Color.unbound.bg.opacity(0.52))
                                 )
-                                .foregroundStyle(Color.unbound.accent)
-                        }
-                    }
-                }
-                .padding(16)
-            )
-            .frame(height: 80)
-    }
-
-    // MARK: - Section 3: Aggregate Build hex
-
-    private var aggregateBuildCard: some View {
-        let hexValues = services.squads.aggregateBuildHexValues(userId: services.auth.currentUserId ?? "")
-        return RoundedRectangle(cornerRadius: 16, style: .continuous)
-            .fill(Color.unbound.surface)
-            .overlay(
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("AGGREGATE BUILD")
-                        .font(.system(size: 10, weight: .heavy, design: .monospaced))
-                        .tracking(1.5)
-                        .foregroundStyle(Color.unbound.textTertiary)
-
-                    // TODO(squads-impl, Phase 16+): Replace with real hex chart
-                    // component once AttributeProfile per-member snapshots are available.
-                    // For now: axis bars showing relative collective strength.
-                    VStack(spacing: 8) {
-                        ForEach(AttributeKey.allCases, id: \.self) { axis in
-                            let value = hexValues[axis] ?? 30
-                            let pct = (value - 30) / 50  // 0–1
-                            HStack(spacing: 8) {
-                                Text(axis.shortCode)
-                                    .font(.system(size: 10, weight: .heavy, design: .monospaced))
-                                    .foregroundStyle(Color.unbound.textSecondary)
-                                    .frame(width: 30, alignment: .leading)
-                                GeometryReader { geo in
-                                    ZStack(alignment: .leading) {
-                                        RoundedRectangle(cornerRadius: 4, style: .continuous)
-                                            .fill(Color.unbound.bg)
-                                            .frame(maxWidth: .infinity)
-                                            .frame(height: 6)
-                                        RoundedRectangle(cornerRadius: 4, style: .continuous)
-                                            .fill(Color.unbound.accent.opacity(0.6 + pct * 0.4))
-                                            .frame(width: max(8, geo.size.width * pct), height: 6)
-                                    }
-                                }
-                                .frame(height: 6)
-                                Text("\(Int(value))")
-                                    .font(.system(size: 10, design: .monospaced))
-                                    .foregroundStyle(Color.unbound.textTertiary)
-                                    .frame(width: 28, alignment: .trailing)
-                            }
-                        }
-                    }
-                }
-                .padding(16)
-            )
-    }
-
-    // MARK: - Section 4: Affinity card
-
-    private func affinityCard(squad: Squad) -> some View {
-        let isCaptain = currentUserId == squad.captainId
-
-        return RoundedRectangle(cornerRadius: 16, style: .continuous)
-            .fill(Color.unbound.surface)
-            .overlay(
-                HStack {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("AFFINITY")
-                            .font(.system(size: 10, weight: .heavy, design: .monospaced))
-                            .tracking(1.5)
-                            .foregroundStyle(Color.unbound.textTertiary)
-                        if let axis = squad.affinityAxis {
-                            Text(axis.displayName)
-                                .font(Font.unbound.titleS)
-                                .foregroundStyle(Color.unbound.accent)
-                            Text(axis.trainsCopy)
-                                .font(Font.unbound.bodyM)
-                                .foregroundStyle(Color.unbound.textSecondary)
-                        } else {
-                            Text("No affinity set")
-                                .font(Font.unbound.bodyM)
-                                .foregroundStyle(Color.unbound.textSecondary)
-                        }
-                    }
-                    Spacer()
-                    if isCaptain {
-                        Button { showAffinityPicker = true } label: {
-                            Text("Edit")
-                                .font(Font.unbound.bodyMStrong)
-                                .foregroundStyle(Color.unbound.accent)
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 7)
-                                .background(
-                                    Capsule().fill(Color.unbound.accent.opacity(0.12))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                        .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
                                 )
                         }
-                        .buttonStyle(.plain)
                     }
                 }
-                .padding(16)
-            )
+            }
+            .padding(18)
+        }
+        .frame(maxWidth: .infinity)
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [
+                            Color.white.opacity(0.16),
+                            Color.unbound.accent.opacity(0.32),
+                            Color.white.opacity(0.04)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1
+                )
+        }
+        .shadow(color: Color.black.opacity(0.28), radius: 24, y: 14)
     }
 
-    // MARK: - Section 5: Squad streak row
-
-    private func streakRow(squad: Squad) -> some View {
-        RoundedRectangle(cornerRadius: 14, style: .continuous)
-            .fill(Color.unbound.surface)
-            .overlay(
-                HStack(spacing: 12) {
-                    Image(systemName: "flame.fill")
-                        .font(.system(size: 20))
-                        .foregroundStyle(Color.unbound.warnOrange)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("SQUAD STREAK")
-                            .font(.system(size: 10, weight: .heavy, design: .monospaced))
-                            .tracking(1.5)
-                            .foregroundStyle(Color.unbound.textTertiary)
-                        Text("\(squad.squadStreakWeeks) week\(squad.squadStreakWeeks == 1 ? "" : "s")")
-                            .font(Font.unbound.titleS)
-                            .foregroundStyle(Color.unbound.textPrimary)
-                    }
-                    Spacer()
-                }
-                .padding(14)
-            )
-            .frame(height: 64)
-    }
-
-    // MARK: - Section 6: Roster grid
-
-    private var rosterGrid: some View {
-        let columns = [GridItem(.flexible()), GridItem(.flexible())]
-        let presenceMap: [UUID: SquadPresence] = Dictionary(
-            uniqueKeysWithValues: state.activeRosterPresence.map { ($0.userId, $0) }
+    private func crewStreakBadge(squad: Squad) -> some View {
+        let badge = CrewStreakBadgeState(
+            squadId: squad.id,
+            consecutiveWeeks: squad.squadStreakWeeks,
+            weekIsoLast: nil
         )
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .center, spacing: 13) {
+                badgeMedallion(tier: badge.currentTier, systemImage: "flame.fill", tint: Color.unbound.warnOrange)
+
+                VStack(alignment: .leading, spacing: 5) {
+                    sectionHeader("CREW STREAK")
+                    Text(badge.currentTier == .none ? "No badge yet" : "Tier \(badge.currentTier.roman)")
+                        .font(Font.unbound.titleS)
+                        .foregroundStyle(Color.unbound.textPrimary)
+                    Text(streakProgressCopy(badge))
+                        .font(Font.unbound.bodyM)
+                        .foregroundStyle(Color.unbound.textSecondary)
+                        .lineLimit(2)
+                }
+
+                Spacer(minLength: 0)
+
+                Text("\(badge.consecutiveWeeks)")
+                    .font(.system(size: 34, weight: .black, design: .rounded))
+                    .foregroundStyle(Color.unbound.textPrimary.opacity(0.92))
+                    .monospacedDigit()
+            }
+
+            squadProgressBar(value: badge.progressToNextTier, tint: Color.unbound.warnOrange)
+        }
+        .padding(16)
+        .squadPanel(cornerRadius: 20, tint: Color.unbound.warnOrange)
+    }
+
+    private var crewSection: some View {
+        let columns = [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)]
+        let presenceMap = Dictionary(uniqueKeysWithValues: state.activeRosterPresence.map { ($0.userId, $0) })
         return VStack(alignment: .leading, spacing: 10) {
-            sectionHeader("CREW")
+            HStack {
+                sectionHeader("CREW")
+                Spacer()
+                if !state.activeRosterPresence.isEmpty {
+                    Text("\(state.activeRosterPresence.count) LIVE")
+                        .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                        .tracking(1.2)
+                        .foregroundStyle(Color.unbound.accent)
+                        .padding(.horizontal, 9)
+                        .padding(.vertical, 5)
+                        .background(Capsule().fill(Color.unbound.accent.opacity(0.12)))
+                }
+            }
+
             LazyVGrid(columns: columns, spacing: 10) {
                 ForEach(state.roster) { member in
                     SquadMemberCard(
                         member: member,
                         presence: presenceMap[member.userId],
+                        weeklySessionCount: weeklySessionCount(for: member.userId),
+                        accountabilityBadge: accountabilityBadge(for: member.userId),
+                        displayNameOverride: displayName(for: member),
+                        profileUserId: resolvedProfileUserId(for: member),
                         onTap: { memberDetailTarget = member }
                     )
                 }
@@ -329,61 +389,7 @@ struct SquadDetailView: View {
         }
     }
 
-    // MARK: - Section 8: Activity feed
-
-    private var activityFeedSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            sectionHeader("ACTIVITY")
-            if state.recentActivity.isEmpty {
-                Text("No activity yet.")
-                    .font(Font.unbound.bodyM)
-                    .foregroundStyle(Color.unbound.textTertiary)
-                    .padding(.vertical, 12)
-            } else {
-                LazyVStack(spacing: 0) {
-                    ForEach(state.recentActivity.prefix(50)) { entry in
-                        ActivityFeedRow(entry: entry, roster: state.roster)
-                        if entry.id != state.recentActivity.prefix(50).last?.id {
-                            Divider()
-                                .overlay(Color.unbound.borderSubtle)
-                        }
-                    }
-                }
-                .background(
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .fill(Color.unbound.surface)
-                )
-                .padding(.horizontal, 12)
-            }
-        }
-    }
-
-    // MARK: - Section 9: Squad Titles row
-
-    private var squadTitlesRow: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            sectionHeader("SQUAD TITLES")
-            if state.unlockedSquadTitles.isEmpty {
-                Text("No titles earned yet. Keep grinding.")
-                    .font(Font.unbound.bodyM)
-                    .foregroundStyle(Color.unbound.textTertiary)
-                    .padding(.vertical, 4)
-            } else {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 10) {
-                        ForEach(state.unlockedSquadTitles, id: \.self) { titleId in
-                            SquadTitleBadge(titleId: titleId)
-                        }
-                    }
-                    .padding(.horizontal, 2)
-                }
-            }
-        }
-    }
-
-    // MARK: - Section 10: Friend Challenges
-
-    private var friendChallengesSection: some View {
+    private var challengesSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 sectionHeader("CHALLENGES")
@@ -391,33 +397,60 @@ struct SquadDetailView: View {
                 Button {
                     showChallengeCreate = true
                 } label: {
-                    Label("New challenge", systemImage: "plus")
-                        .font(.system(size: 12, weight: .semibold))
+                    Label("NEW", systemImage: "plus")
+                        .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                        .tracking(1.0)
                         .foregroundStyle(Color.unbound.accent)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(Capsule().fill(Color.unbound.accent.opacity(0.12)))
                 }
                 .buttonStyle(.plain)
             }
 
             if activeChallenges.isEmpty {
-                Text("No active challenges. Start one with a crewmate.")
-                    .font(Font.unbound.bodyM)
-                    .foregroundStyle(Color.unbound.textTertiary)
-                    .padding(.vertical, 4)
+                emptySlab("No active challenges. Start a co-op pair challenge with a crewmate.", icon: "flag.checkered")
             } else {
                 VStack(spacing: 10) {
                     ForEach(activeChallenges) { challenge in
-                        FriendChallengeCard(
-                            challenge: challenge,
-                            currentUserId: currentUserId ?? UUID(),
-                            roster: state.roster
-                        )
+                        ChallengeDashboardRow(challenge: challenge, roster: state.roster, currentUserId: currentUserId)
                     }
                 }
             }
         }
     }
 
-    // MARK: - Section 11: Footer
+    private var recentSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                sectionHeader("RECENT")
+                Spacer()
+                Button {
+                    showChat = true
+                } label: {
+                    HStack(spacing: 4) {
+                        Text("SEE ALL")
+                        Image(systemName: "arrow.right")
+                    }
+                    .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                    .tracking(1.0)
+                    .foregroundStyle(Color.unbound.accent)
+                }
+                .buttonStyle(.plain)
+            }
+
+            let recent = messages.prefix(3)
+            if recent.isEmpty {
+                emptySlab("The crew chat is quiet. Workouts and challenge moments will appear here.", icon: "bubble.left.and.bubble.right.fill")
+            } else {
+                VStack(spacing: 8) {
+                    ForEach(Array(recent)) { message in
+                        SquadMessagePreviewRow(message: message, authorName: displayName(for: message.authorUserId))
+                    }
+                }
+            }
+        }
+    }
 
     private var footerSection: some View {
         VStack(spacing: 12) {
@@ -430,18 +463,18 @@ struct SquadDetailView: View {
             Button(role: .destructive) {
                 showLeaveConfirm = true
             } label: {
-                Text("Leave Squad")
-                    .font(Font.unbound.bodyMStrong)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .fill(Color.unbound.alert.opacity(0.1))
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .strokeBorder(Color.unbound.alert.opacity(0.4), lineWidth: 1)
-                    )
+                HStack(spacing: 8) {
+                    Image(systemName: "rectangle.portrait.and.arrow.right")
+                        .font(.system(size: 13, weight: .bold))
+                    Text("LEAVE SQUAD")
+                        .font(Font.unbound.captionS.weight(.bold))
+                        .tracking(1.2)
+                }
+                .font(Font.unbound.bodyMStrong)
+                .frame(maxWidth: .infinity)
+                    .frame(height: 48)
+                    .background(Capsule().fill(Color.unbound.alert.opacity(0.08)))
+                    .overlay(Capsule().strokeBorder(Color.unbound.alert.opacity(0.38), lineWidth: 1))
                     .foregroundStyle(Color.unbound.alert)
             }
             .buttonStyle(.plain)
@@ -449,14 +482,10 @@ struct SquadDetailView: View {
         }
     }
 
-    // MARK: - Empty state
-
     private var emptyStateView: some View {
         VStack(spacing: 16) {
             Spacer(minLength: 60)
-            Image(systemName: "figure.2")
-                .font(.system(size: 40))
-                .foregroundStyle(Color.unbound.textTertiary)
+            crestMark(size: 82)
             Text("You're not in a squad.")
                 .font(Font.unbound.titleS)
                 .foregroundStyle(Color.unbound.textSecondary)
@@ -465,13 +494,178 @@ struct SquadDetailView: View {
         .frame(maxWidth: .infinity)
     }
 
-    // MARK: - Helpers
+    private func emptySlab(_ copy: String, icon: String) -> some View {
+        HStack(alignment: .top, spacing: 11) {
+            Image(systemName: icon)
+                .font(.system(size: 13, weight: .bold))
+                .foregroundStyle(Color.unbound.textTertiary)
+                .frame(width: 28, height: 28)
+                .background(Circle().fill(Color.unbound.surfaceElevated.opacity(0.78)))
+
+            Text(copy)
+                .font(Font.unbound.bodyM)
+                .foregroundStyle(Color.unbound.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Spacer(minLength: 0)
+        }
+        .padding(14)
+        .squadPanel(cornerRadius: 18, tint: Color.unbound.textTertiary)
+    }
+
+    private func badgeMedallion(tier: SquadBadgeTier, systemImage: String, tint: Color) -> some View {
+        ZStack {
+            Circle().fill(tint.opacity(0.14))
+            Circle().strokeBorder(tint.opacity(0.48), lineWidth: 1)
+            Image(systemName: systemImage)
+                .font(.system(size: 18, weight: .bold))
+                .foregroundStyle(tint)
+            Text(tier.roman)
+                .font(.system(size: 8, weight: .heavy, design: .monospaced))
+                .foregroundStyle(Color.unbound.textPrimary)
+                .offset(y: 20)
+        }
+        .frame(width: 54, height: 54)
+    }
 
     private func sectionHeader(_ label: String) -> some View {
-        Text(label)
-            .font(.system(size: 10, weight: .heavy, design: .monospaced))
-            .tracking(1.5)
-            .foregroundStyle(Color.unbound.textTertiary)
+        HStack(spacing: 8) {
+            Capsule()
+                .fill(Color.unbound.accent.opacity(0.9))
+                .frame(width: 3, height: 13)
+            Text(label)
+                .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                .tracking(1.5)
+                .foregroundStyle(Color.unbound.textTertiary)
+        }
+    }
+
+    private func crestMark(size: CGFloat) -> some View {
+        Image("SquadCrest")
+            .resizable()
+            .scaledToFit()
+            .padding(size * 0.15)
+            .frame(width: size, height: size)
+            .background(
+                RoundedRectangle(cornerRadius: size * 0.24, style: .continuous)
+                    .fill(Color.unbound.bg.opacity(0.54))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: size * 0.24, style: .continuous)
+                    .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
+            )
+    }
+
+    private func squadMetaPill(icon: String, value: String, label: String, tint: Color) -> some View {
+        HStack(spacing: 7) {
+            Image(systemName: icon)
+                .font(.system(size: 10, weight: .bold))
+                .foregroundStyle(tint)
+            Text(value)
+                .font(.system(size: 11, weight: .heavy, design: .monospaced))
+                .foregroundStyle(Color.unbound.textPrimary)
+                .monospacedDigit()
+            Text(label)
+                .font(.system(size: 8, weight: .heavy, design: .monospaced))
+                .tracking(1.0)
+                .foregroundStyle(Color.unbound.textTertiary)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
+        .background(Capsule().fill(Color.unbound.bg.opacity(0.46)))
+        .overlay(Capsule().strokeBorder(tint.opacity(0.28), lineWidth: 1))
+    }
+
+    private func squadProgressBar(value: Double, tint: Color) -> some View {
+        GeometryReader { proxy in
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(Color.white.opacity(0.08))
+                Capsule()
+                    .fill(tint)
+                    .frame(width: proxy.size.width * CGFloat(min(max(value, 0), 1)))
+                    .shadow(color: tint.opacity(0.34), radius: 8)
+            }
+        }
+        .frame(height: 6)
+    }
+
+    private func streakProgressCopy(_ badge: CrewStreakBadgeState) -> String {
+        guard let target = badge.nextTierTarget else { return "\(badge.consecutiveWeeks) consecutive weeks. Max tier earned." }
+        let remaining = max(0, target - badge.consecutiveWeeks)
+        return "\(badge.consecutiveWeeks)/\(target) weeks. \(remaining) to next tier."
+    }
+
+    private func accountabilityBadge(for userId: UUID) -> AccountabilityBadgeState {
+        AccountabilityBadgeState(userId: userId, clearedCount: state.recentActivity.filter { $0.userId == userId && $0.kind == .trialCompleted }.count)
+    }
+
+    private func weeklySessionCount(for userId: UUID) -> Int {
+        state.recentActivity.filter { $0.userId == userId && $0.kind == .trialCompleted }.count
+    }
+
+    private func displayName(for userId: UUID?) -> String {
+        guard let userId else { return "UNBOUND" }
+        if let member = state.roster.first(where: { $0.userId == userId }) {
+            return displayName(for: member)
+        }
+        return "Crewmate"
+    }
+
+    private func displayName(for member: SquadMember) -> String {
+        if let profile = memberProfiles[member.userId] {
+            if let name = profile.displayName?.trimmingCharacters(in: .whitespacesAndNewlines),
+               !name.isEmpty {
+                return name
+            }
+            if let handle = profile.displayHandle?.trimmingCharacters(in: .whitespacesAndNewlines),
+               !handle.isEmpty {
+                return "@\(handle.trimmingCharacters(in: CharacterSet(charactersIn: "@")))"
+            }
+        }
+        if isCurrentMember(member), ["Captain", "You"].contains(member.displayName) {
+            return "You"
+        }
+        return member.displayName
+    }
+
+    private func resolvedProfileUserId(for member: SquadMember) -> String {
+        if let current = services.auth.currentUserId,
+           SquadUserIdentity.uuid(from: current) == member.userId {
+            return current
+        }
+        return member.userId.uuidString
+    }
+
+    private func isCurrentMember(_ member: SquadMember) -> Bool {
+        guard let current = services.auth.currentUserId else { return false }
+        return SquadUserIdentity.uuid(from: current) == member.userId
+    }
+
+    private func rebuildMessages() {
+        guard let squad = state.currentSquad else {
+            messages = []
+            return
+        }
+        let activityMessages = state.recentActivity.map { entry in
+            SquadMessage(
+                id: entry.id,
+                squadId: entry.squadId,
+                authorUserId: entry.userId,
+                kind: entry.messageKind,
+                reactions: [],
+                createdAt: entry.createdAt
+            )
+        }
+        let migration = SquadMessage(
+            id: UUID(uuidString: "00000000-0000-0000-0000-000000000101") ?? UUID(),
+            squadId: squad.id,
+            authorUserId: nil,
+            kind: .system(.init(body: "Squads moved to one crew chat. Active missions, honors, affinity, and squad titles have been reset.")),
+            reactions: [],
+            createdAt: squad.createdAt.addingTimeInterval(1)
+        )
+        messages = ([migration] + activityMessages).sorted { $0.createdAt > $1.createdAt }
     }
 
     @MainActor
@@ -482,6 +676,134 @@ struct SquadDetailView: View {
             state = services.squads.state(userId: userId)
         } catch {
             leaveError = "Couldn't leave squad. Try again."
+        }
+    }
+}
+
+private struct SquadConsoleBackground: View {
+    let tint: Color
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color.unbound.surfaceElevated,
+                            Color.unbound.surface,
+                            Color.unbound.bg.opacity(0.96)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+
+            SquadSignalLines()
+                .stroke(Color.white.opacity(0.035), lineWidth: 1)
+
+            SquadDiagonalAccentShape()
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            tint.opacity(0.30),
+                            tint.opacity(0.08),
+                            .clear
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .frame(width: 218)
+                .frame(maxWidth: .infinity, alignment: .trailing)
+        }
+    }
+}
+
+private struct SquadDiagonalAccentShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        path.move(to: CGPoint(x: rect.width * 0.34, y: rect.minY))
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.minY))
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
+        path.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
+        path.closeSubpath()
+        return path
+    }
+}
+
+private struct SquadSignalLines: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        let spacing: CGFloat = 34
+        var x = -rect.height
+        while x < rect.width + rect.height {
+            path.move(to: CGPoint(x: x, y: rect.maxY))
+            path.addLine(to: CGPoint(x: x + rect.height, y: rect.minY))
+            x += spacing
+        }
+        return path
+    }
+}
+
+private struct SquadPanelStyle: ViewModifier {
+    let cornerRadius: CGFloat
+    let tint: Color
+
+    func body(content: Content) -> some View {
+        content
+            .background(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color.unbound.surfaceElevated.opacity(0.92),
+                                Color.unbound.surface.opacity(0.86),
+                                Color.unbound.bg.opacity(0.64)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .strokeBorder(
+                        LinearGradient(
+                            colors: [
+                                Color.white.opacity(0.10),
+                                tint.opacity(0.24),
+                                Color.unbound.borderSubtle
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1
+                    )
+            )
+    }
+}
+
+private extension View {
+    func squadPanel(cornerRadius: CGFloat = 18, tint: Color = Color.unbound.accent) -> some View {
+        modifier(SquadPanelStyle(cornerRadius: cornerRadius, tint: tint))
+    }
+}
+
+private extension SquadActivityEntry {
+    var messageKind: SquadMessage.Kind {
+        switch payload {
+        case .trialCompleted(let trialName, _):
+            return .workout(.init(title: trialName, durationMinutes: nil))
+        case .titleUnlocked(let titleId):
+            return .pr(.init(title: "Title unlocked", detail: titleId.displayName))
+        case .linkedSession(let participantUserIds, let durationMinutes):
+            return .workout(.init(title: "\(participantUserIds.count) crewmates trained together", durationMinutes: durationMinutes))
+        case .memberJoined(let memberDisplayName):
+            return .system(.init(body: "\(memberDisplayName) joined the crew."))
+        case .affinityChanged:
+            return .system(.init(body: "Crew affinity was retired in the Squads v1 redesign."))
+        case .squadStreakExtended(let weeks):
+            return .challengeEvent(.init(title: "Crew streak extended", detail: "\(weeks) weeks", challengeId: nil))
         }
     }
 }

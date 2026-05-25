@@ -83,7 +83,7 @@ final class BuildIdentityTests: XCTestCase {
     func testDisplayNameSpecialistPerAxis() {
         let cases: [(AttributeKey, String)] = [
             (.power, "Power Specialist"),
-            (.agility, "Movement Specialist"),
+            (.agility, "Vitality Specialist"),
             (.control, "Control Specialist"),
             (.endurance, "Endurance Specialist"),
             (.mobility, "Mobility Specialist"),
@@ -98,7 +98,7 @@ final class BuildIdentityTests: XCTestCase {
     func testDisplayNameHybridPerAxis() {
         let cases: [(AttributeKey, String)] = [
             (.power, "Power Hybrid"),
-            (.agility, "Movement Hybrid"),
+            (.agility, "Vitality Hybrid"),
             (.control, "Control Hybrid"),
             (.endurance, "Endurance Hybrid"),
             (.mobility, "Mobility Hybrid"),
@@ -113,7 +113,7 @@ final class BuildIdentityTests: XCTestCase {
     func testDisplayNameLeanPerAxis() {
         let cases: [(AttributeKey, String)] = [
             (.power, "Power-Oriented"),
-            (.agility, "Movement-Focused"),
+            (.agility, "Vitality-Focused"),
             (.control, "Control-Focused"),
             (.endurance, "Endurance-Dominant"),
             (.mobility, "Mobility-Focused"),

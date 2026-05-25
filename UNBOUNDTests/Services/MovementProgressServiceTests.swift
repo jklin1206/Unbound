@@ -226,6 +226,7 @@ final class MovementProgressServiceTests: XCTestCase {
         XCTAssertGreaterThan(result.totalAttributeXPGained, 0)
         XCTAssertEqual(result.totalAttributeXPGained, floor(result.totalAttributeXPGained))
         XCTAssertTrue(result.attributeRewards.contains { $0.key == .power && $0.xpGained > 0 })
+        XCTAssertFalse(result.attributeRewards.contains { $0.key == .agility })
         XCTAssertGreaterThan(profile.value(for: .power).xp, 0)
         XCTAssertEqual(
             result.progressionReceipt.overallLevelProgressBefore,
@@ -251,6 +252,70 @@ final class MovementProgressServiceTests: XCTestCase {
             documentId: "mock-user-123"
         )
         XCTAssertGreaterThan(bodyMap.load(for: .chest).lifetimeLoad, 0)
+    }
+
+    func testRecoveryCheckInAwardsVitalityWithoutMovementAP() async throws {
+        let services = ServiceContainer.mock
+        let log = PerformanceLog(
+            id: "perf-recovery-vitality",
+            userId: "mock-user-123",
+            source: .routine,
+            title: "Recovery Check-In",
+            startedAt: Date(timeIntervalSince1970: 100),
+            completedAt: Date(timeIntervalSince1970: 200),
+            blocks: [
+                PerformanceBlock(
+                    kind: .routine,
+                    title: "Recovery Check-In",
+                    exercises: [],
+                    durationSeconds: 180,
+                    notes: "vitality:recovery-check-in"
+                )
+            ]
+        )
+
+        let result = try await TrainingCompletionService.shared.complete(log, services: services)
+        let attribute = try XCTUnwrap(services.attribute as? MockAttributeService)
+        let profile = attribute.profile(userId: "mock-user-123")
+        let vitalityReward = try XCTUnwrap(result.attributeRewards.first { $0.key == .agility })
+
+        XCTAssertEqual(result.totalMovementAP, 0)
+        XCTAssertEqual(vitalityReward.xpGained, 5, accuracy: 0.001)
+        XCTAssertEqual(profile.value(for: .agility).xp, 5, accuracy: 0.001)
+    }
+
+    func testDeloadSessionAwardsVitalityOnTopOfMovementRewards() async throws {
+        let services = ServiceContainer.mock
+        let log = PerformanceLog(
+            id: "perf-deload-vitality",
+            userId: "mock-user-123",
+            source: .program,
+            title: "Push Deload",
+            startedAt: Date(timeIntervalSince1970: 100),
+            completedAt: Date(timeIntervalSince1970: 200),
+            blocks: [
+                PerformanceBlock(
+                    kind: .strength,
+                    title: "Push",
+                    exercises: [
+                        PerformanceExercise(
+                            name: "Bench Press",
+                            plannedSets: 1,
+                            plannedTarget: "5 reps",
+                            sets: [PerformanceSet(setNumber: 1, reps: 5, weightKg: 70, rpe: 6)],
+                            notes: "Deload modifier applied."
+                        )
+                    ]
+                )
+            ]
+        )
+
+        let result = try await TrainingCompletionService.shared.complete(log, services: services)
+        let vitalityReward = try XCTUnwrap(result.attributeRewards.first { $0.key == .agility })
+
+        XCTAssertGreaterThan(result.totalMovementAP, 0)
+        XCTAssertTrue(result.attributeRewards.contains { $0.key == .power && $0.xpGained > 0 })
+        XCTAssertEqual(vitalityReward.xpGained, 10, accuracy: 0.001)
     }
 
     func testTrainingCompletionRecordPreventsDuplicateCompatibleWorkoutSaves() async throws {

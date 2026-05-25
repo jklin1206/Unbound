@@ -14,8 +14,11 @@ struct ScanCheckpoint: Codable, Equatable, Identifiable {
     let buildIdentitySnapshot: BuildIdentity
     let narrative: String
     let deltaFromPrior: BuildIdentityDelta?
+    var checkpointOutcome: CheckpointOutcome? = nil
 
     var isFirstScan: Bool { deltaFromPrior == nil }
+    var completedCheckpointSignals: CheckpointSignals? { checkpointOutcome?.signals }
+    var skippedCheckpoint: Bool { checkpointOutcome?.wasSkipped == true }
 }
 
 // MARK: - BuildIdentity Codable conformance

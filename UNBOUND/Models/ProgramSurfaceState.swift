@@ -52,9 +52,9 @@ struct ProgramSurfaceState: Equatable, Sendable {
             if BlockRolloverScheduler.shouldRollover(program: program, now: now) {
                 return ProgramSurfaceState(
                     kind: .blockComplete,
-                    title: "Block complete",
-                    primaryActionTitle: "Build Next Block",
-                    secondaryActionTitle: "Rescan"
+                    title: "Arc complete",
+                    primaryActionTitle: "Build Next Arc",
+                    secondaryActionTitle: "Checkpoint"
                 )
             }
 
@@ -103,6 +103,7 @@ struct ProgramSurfaceState: Equatable, Sendable {
 
 #if DEBUG
 enum ProgramProofState: String, CaseIterable, Sendable {
+    case calibration
     case trainingDay = "training-day"
     case restDay = "rest-day"
     case missingDay = "missing-day"
@@ -163,14 +164,35 @@ enum ProgramProofProgramFactory {
     ) -> TrainingProgram {
         let createdAt: Date = {
             switch state {
-            case .trainingDay, .restDay, .missingDay:
+            case .calibration, .trainingDay, .restDay, .missingDay:
                 return now
             case .blockComplete:
                 return now.addingTimeInterval(-29 * 86_400)
             }
         }()
 
-        let days: [ProgramDay] = state == .missingDay ? [] : (1...14).map { dayNumber in
+        let durationDays = state == .calibration ? 7 : Arc.durationDays
+        let days: [ProgramDay] = state == .missingDay ? [] : (1...durationDays).map { dayNumber in
+            if state == .calibration {
+                return ProgramDay(
+                    id: "proof-calibration-day-\(dayNumber)",
+                    dayNumber: dayNumber,
+                    label: dayNumber == 1 ? "Calibration: Upper Standard" : "Calibration Rest",
+                    isRestDay: dayNumber != 1,
+                    workout: dayNumber == 1 ? calibrationProofWorkout() : nil,
+                    nutritionOverride: nil,
+                    recoveryActivities: dayNumber == 1 ? [] : [
+                        RecoveryActivity(
+                            id: "proof-calibration-recovery-\(dayNumber)",
+                            name: "Walk + Mobility",
+                            description: "Easy recovery while the app learns your standard.",
+                            durationMinutes: 20,
+                            frequency: "Calibration Week"
+                        )
+                    ]
+                )
+            }
+
             let isFirstDayRest = state == .restDay && dayNumber == 1
             let isScheduledRest = dayNumber == 4 || dayNumber == 7 || dayNumber == 11 || dayNumber == 14
             let isRest = isFirstDayRest || (!isFirstDayRest && isScheduledRest)
@@ -199,9 +221,11 @@ enum ProgramProofProgramFactory {
             analysisId: "proof-analysis",
             userId: userId,
             createdAt: createdAt,
-            name: "Program Proof \(state.rawValue)",
-            description: "DEBUG fixture for Program simulator proof states.",
-            durationDays: 14,
+            name: state == .calibration ? "Calibration Week" : "Program Proof \(state.rawValue)",
+            description: state == .calibration
+                ? "DEBUG fixture for Program calibration proof state."
+                : "DEBUG fixture for Program simulator proof states.",
+            durationDays: durationDays,
             days: days,
             nutritionPlan: NutritionPlan(
                 dailyCalories: 2850,
@@ -228,6 +252,23 @@ enum ProgramProofProgramFactory {
             requiredEquipment: ["Barbell", "Dumbbells", "Pullup Bar"],
             estimatedDailyMinutes: state == .restDay ? 30 : 55,
             rationale: nil
+        )
+    }
+
+    private static func calibrationProofWorkout() -> Workout {
+        Workout(
+            name: "Calibration: Upper Standard",
+            targetMuscleGroups: [.chest, .back, .shoulders, .arms],
+            warmup: [],
+            mainExercises: [
+                Exercise(id: "proof-cal-bench", name: "Barbell Bench Press", muscleGroups: [.chest, .shoulders, .arms], sets: 2, reps: "6-8", restSeconds: 120, rpe: 7, notes: "Calibration set: choose a clean RPE 6-7 load.", substitution: nil),
+                Exercise(id: "proof-cal-row", name: "Machine Row", muscleGroups: [.back, .lats, .arms], sets: 2, reps: "6-8", restSeconds: 120, rpe: 7, notes: "Calibration set: stop with 2-3 reps in reserve.", substitution: nil),
+                Exercise(id: "proof-cal-ohp", name: "Dumbbell OHP", muscleGroups: [.shoulders, .arms], sets: 2, reps: "6-8", restSeconds: 120, rpe: 7, notes: "Calibration set: control the tempo.", substitution: nil)
+            ],
+            cooldown: [],
+            estimatedMinutes: 35,
+            notes: "Calibration: find clean working standards at RPE 6-7. Stop with 2-3 reps in reserve; do not max.",
+            blockType: .deload
         )
     }
 

@@ -9,6 +9,7 @@ final class ProgramViewModel {
     var selectedDay: ProgramDay?
     var showTrainingDayNutrition = true
     var workoutLogs: [Int: WorkoutLog] = [:]  // dayNumber -> log
+    var activeWaveAdjustments: [WaveAdjustment] = []
 
     private let services: ServiceContainer
 
@@ -27,11 +28,13 @@ final class ProgramViewModel {
             state = .loaded(cached)
             services.analytics.track(.programViewed(programId: programId))
             await loadTrackingData()
+            refreshWaveAdjustments()
             await store.revalidate(userId: userId, expectedProgramId: programId)
             if let refreshed = store.program, refreshed.id != cached.id {
                 self.program = refreshed
                 state = .loaded(refreshed)
                 await loadTrackingData()
+                refreshWaveAdjustments()
             }
             return
         }
@@ -47,6 +50,7 @@ final class ProgramViewModel {
             if let userId { store.adopt(fetched, userId: userId) }
             services.analytics.track(.programViewed(programId: programId))
             await loadTrackingData()
+            refreshWaveAdjustments()
         } catch {
             state = .error(.databaseReadFailed(underlying: error))
         }
@@ -73,6 +77,54 @@ final class ProgramViewModel {
 
     func logFor(dayNumber: Int) -> WorkoutLog? {
         workoutLogs[dayNumber]
+    }
+
+    func completeRestDay(
+        _ day: ProgramDay,
+        at date: Date = Date()
+    ) async throws -> (performanceLog: PerformanceLog, result: TrainingCompletionResult)? {
+        guard day.isRestDay, let program else { return nil }
+        guard let userId = services.auth.currentUserId else {
+            services.logging.log(
+                "completeRestDay: no user id",
+                level: .warning,
+                context: ["programId": program.id, "dayNumber": day.dayNumber]
+            )
+            return nil
+        }
+
+        let completedAt = Date()
+        let durationSeconds = max(300, day.recoveryActivities.reduce(0) { $0 + max(0, $1.durationMinutes) } * 60)
+        let id = Self.recoveryCompletionId(
+            programId: program.id,
+            dayNumber: day.dayNumber,
+            date: date
+        )
+        let performanceLog = PerformanceLog(
+            id: id,
+            userId: userId,
+            source: .routine,
+            title: "Rest Day Recovery",
+            startedAt: completedAt.addingTimeInterval(-TimeInterval(durationSeconds)),
+            completedAt: completedAt,
+            programId: program.id,
+            dayNumber: day.dayNumber,
+            blocks: [
+                PerformanceBlock(
+                    kind: .routine,
+                    title: "Recovery Check-In",
+                    exercises: [],
+                    durationSeconds: durationSeconds,
+                    notes: "vitality:rest-day"
+                )
+            ],
+            notes: "vitality:rest-day"
+        )
+        let result = try await TrainingCompletionService.shared.complete(
+            performanceLog,
+            services: services
+        )
+        return (performanceLog, result)
     }
 
     func selectDay(_ day: ProgramDay) {
@@ -145,6 +197,88 @@ final class ProgramViewModel {
         await ProgramStore.shared.save(program, userId: userId)
     }
 
+    func scheduleSavedWorkout(
+        _ savedWorkout: SavedWorkout,
+        on dayNumbers: [Int],
+        replacingCustomizedDays: Bool = false
+    ) async throws {
+        guard let current = program else { return }
+        guard let userId = services.auth.currentUserId else {
+            services.logging.log(
+                "scheduleSavedWorkout: no user id",
+                level: .warning,
+                context: ["programId": current.id, "savedWorkoutId": savedWorkout.id.uuidString]
+            )
+            return
+        }
+
+        let updated = try SavedWorkoutScheduler.schedule(
+            savedWorkout,
+            on: dayNumbers,
+            in: current,
+            userId: userId,
+            replacingCustomizedDays: replacingCustomizedDays
+        )
+        program = updated
+        if case .loaded = state { state = .loaded(updated) }
+        await ProgramStore.shared.save(updated, userId: userId)
+        refreshWaveAdjustments()
+    }
+
+    func refreshWaveAdjustments(asOf date: Date = Date()) {
+        guard let program,
+              let userId = services.auth.currentUserId
+        else {
+            activeWaveAdjustments = []
+            return
+        }
+
+        let revertedIDs = WaveAdjustmentStore.shared.revertedAdjustmentIDs(
+            userId: userId,
+            programId: program.id
+        )
+        activeWaveAdjustments = WaveAdjuster.applyIfNeeded(
+            program: program,
+            asOf: date,
+            appliedAdjustmentIDs: revertedIDs
+        ).adjustments
+    }
+
+    func revertWaveAdjustment(_ adjustment: WaveAdjustment, asOf date: Date = Date()) {
+        guard let program,
+              let userId = services.auth.currentUserId
+        else { return }
+
+        WaveAdjustmentStore.shared.markReverted(
+            adjustment.id,
+            userId: userId,
+            programId: program.id
+        )
+        refreshWaveAdjustments(asOf: date)
+    }
+
+    func completeCheckpoint(_ outcome: CheckpointOutcome) async {
+        guard let current = program else { return }
+        guard let userId = services.auth.currentUserId else {
+            services.logging.log(
+                "completeCheckpoint: no user id",
+                level: .warning,
+                context: ["programId": current.id]
+            )
+            return
+        }
+
+        let updated = ArcGenerator.generateNextArc(
+            from: current,
+            checkpoint: outcome,
+            startDate: Date()
+        )
+        program = updated
+        if case .loaded = state { state = .loaded(updated) }
+        await ProgramStore.shared.save(updated, userId: userId)
+        refreshWaveAdjustments()
+    }
+
     // MARK: - Private mutation helpers
 
     private func mainExercise(dayNumber: Int, exerciseId: String) -> Exercise? {
@@ -171,5 +305,18 @@ final class ProgramViewModel {
         program.days[dayIndex].workout = workout
         self.program = program
         if case .loaded = state { state = .loaded(program) }
+    }
+
+    private static func recoveryCompletionId(
+        programId: String,
+        dayNumber: Int,
+        date: Date,
+        calendar: Calendar = .current
+    ) -> String {
+        let components = calendar.dateComponents([.year, .month, .day], from: date)
+        let year = components.year ?? 0
+        let month = components.month ?? 0
+        let day = components.day ?? 0
+        return "recovery-\(programId)-d\(dayNumber)-\(year)-\(month)-\(day)"
     }
 }

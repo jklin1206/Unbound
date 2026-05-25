@@ -1,7 +1,32 @@
 # UNBOUND Program Canvas + 28-Day Arc — Design Spec
 
 Date: 2026-05-24 (decisions locked 2026-05-24)
-Status: design spec — see Phase Plans index at bottom for executable agent plans.
+Status: implementation pass completed in local workspace; see Phase Plans index at bottom for original agent plans.
+
+## Implementation Status — 2026-05-24
+
+This pass moved the spec from planning into executable code across the Program engine, editor, proof/reward, skill-block, and Checkpoint boundaries.
+
+Implemented and verified:
+
+- 28-day Arc domain model, Wave 1 / Wave 2 math, current-Arc metadata, legacy decode defaults, and Arc context helpers.
+- Calibration-week generation remains 7 days; standard-ready Program generation now produces 28-day Arcs with session-role tags.
+- Saved Workouts v1: local JSON store, save sheet, A/B role guard, day scheduling, Program-tab library entry, Today replacement, and schedule sheet.
+- Session editor canvas upgrades: save current session, drag reorder, tap-to-swap, add/remove, and persistence strip.
+- Deterministic engine helpers: `ArcGenerator`, `WaveAdjuster`, `RegionFatigueBudget`, `SessionRoleTagger`, `MissedSessionMetric`, and templated `ProgramRationale` reason metadata.
+- Skill integration foundation: first-class `WorkoutBlock` / `SkillBlockKind`, skill block router, region-load tagger, and proof metadata.
+- Proof engine: runs from training completion, supports source tagging, family-aware prereq clearing, multi-rank reward payloads, and end-of-workout proof beat rendering.
+- Checkpoint journey: Program-tab Checkpoint sheet now covers body-capture entry, standards check, free-text notes, nutrition context, deterministic review, skip, and next-Arc apply.
+- Checkpoint foundation: skippable flow state machine, structured `CheckpointSignals`, deterministic validator, local summary boundary, nutrition targets, and next-Arc handoff model.
+- Wave 2 user gate: Program-tab reason rows now render per-day Wave 2 adjustments with templated copy and a local durable per-row undo store.
+- Program editor skill insertion: editor now has an Add Skill Block picker for primer / main / accessory / mobility placement using the deterministic skill router.
+- Home / Program boundary: Home now shows a compact launch/status card with day, time, and plan count only; Program owns the calendar, full movement list, editing, checkpoint, saved workouts, and adaptation controls.
+- Verification: focused Program/Checkpoint/Saved Workout/Proof slice passed 105 simulator tests; full simulator suite passed 790 tests on iPhone 17; build/install/launch smoke passed.
+
+Still intentionally not finished in this pass:
+
+- The full tutorial remains deferred, matching the locked decision in this spec.
+- The broad `ProgramBlock` -> `ProgramPhase` naming migration remains compatibility debt. There is already a separate `ProgramPhase` type in the app, so that rename needs a dedicated low-risk pass instead of being bundled into the Program Canvas integration.
 
 ## Migration Note (read first)
 
@@ -184,16 +209,18 @@ Checkpoint is a checkpoint, not a surprise rewrite. It is **skippable**, but hig
 
 **New-user and ongoing-user views share this priority order:**
 
-1. Today's workout (or today's replacement)
-2. Start/resume CTA
-3. Edit CTA
-4. Short reason labels for any active Wave 2 adjustments
-5. Weekly schedule
+1. Weekly schedule / calendar strip
+2. Today's workout (or today's replacement)
+3. Start/resume CTA
+4. Edit CTA
+5. Short reason labels for any active Wave 2 adjustments
 6. Current Arc context strip (e.g., "Arc 3 · Day 17 · Wave 2")
-7. Vow / add-on status
+7. Vow / add-on status only when it directly changes the selected Program session
 8. Skill focus blocks when routed today
 
 **The Program tab is not a permanent library dashboard.** The library appears when editing.
+
+Home owns broad weekly Binding Vow prompting and celebration. Program should not duplicate the full Vow card; it should only explain Vow work when it is actually attached to the selected workout as an add-on or replacement.
 
 **Ongoing-user spec** (Open Cycle 13 in original review — resolved here): Same skeleton as the new user. The Arc context strip replaces the new-user "Start Calibration Week" CTA once Calibration is complete. Mid-Arc Day-N view: Today's workout card on top, schedule strip below, Arc progress bar at top of the tab.
 

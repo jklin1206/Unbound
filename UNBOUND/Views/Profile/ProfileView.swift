@@ -74,20 +74,13 @@ struct ProfileView: View {
                     VStack(alignment: .leading, spacing: 16) {
                         trophyHeader
                         ProfileBuildCard(profile: attributeProfile)
-                        if let overallRankTrialReadiness {
-                            OverallRankTrialReadinessCard(readiness: overallRankTrialReadiness) { definition in
-                                startOverallRankTrial(definition)
-                            }
-                        }
+                        badgesCard
+                        profileArchiveStrip
                         if let beforePhoto, let afterPhoto {
                             ProgressJourneyCard(dayZero: beforePhoto, now: afterPhoto)
                         }
                         PhotoCalendarView().environmentObject(services)
-                        ProfileTrialHistorySection(trialsState: trialsState)
-                            .padding(.horizontal, 0)
-                        badgesCard
-                        settingsLink
-                        Spacer().frame(height: 28)
+                        Spacer().frame(height: 118)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 20)
@@ -123,8 +116,14 @@ struct ProfileView: View {
             .presentationDragIndicator(.visible)
         }
         .sheet(isPresented: $showRankInfo) {
-            RankInfoSheet(currentTier: aggregateTier)
-                .presentationDetents([.medium])
+            RankInfoSheet(
+                currentTier: aggregateTier,
+                readiness: overallRankTrialReadiness
+            ) { definition in
+                showRankInfo = false
+                startOverallRankTrial(definition)
+            }
+                .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
         }
         .fullScreenCover(isPresented: $showCamera) {
@@ -155,6 +154,9 @@ struct ProfileView: View {
                     attributeProfile = services.attribute.profile(userId: userId)
                 }
             }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .requestOpenProfileRankInfo)) { _ in
+            showRankInfo = true
         }
         .attributeRankUpToast()
     }
@@ -435,10 +437,15 @@ struct ProfileView: View {
             Button {
                 showRankInfo = true
             } label: {
-                RankTitlePlate(tier: aggregateTier, tint: rankColor)
+                RankTitlePlate(
+                    tier: aggregateTier,
+                    tint: rankColor,
+                    gateSummary: rankPlateGateSummary
+                )
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Current tier details")
+            .accessibilityLabel("Current tier and rank gate details")
+            .accessibilityIdentifier("profile.rankInfoButton")
             .frame(maxWidth: .infinity)
 
             LevelProgressPlate(
@@ -644,31 +651,114 @@ struct ProfileView: View {
         .frame(width: 68)
     }
 
-    // MARK: - Settings link
+    // MARK: - Rank gate
 
-    private var settingsLink: some View {
-        NavigationLink(destination: SettingsView(services: services)) {
-            HStack(spacing: 12) {
-                Image(systemName: "gearshape.fill")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(Color.unbound.textSecondary)
-                Text("SETTINGS")
-                    .font(Font.unbound.bodyMStrong)
-                    .tracking(1.4)
-                    .foregroundStyle(Color.unbound.textPrimary)
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(Color.unbound.textTertiary)
-            }
-            .padding(16)
-            .frame(maxWidth: .infinity)
-            .background(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(Color.unbound.surface)
-            )
+    private var rankPlateGateSummary: String? {
+        guard let readiness = overallRankTrialReadiness,
+              readiness.definition != nil
+        else { return nil }
+        if readiness.isReady { return "GATE READY" }
+        let met = readiness.requirements.filter(\.isMet).count
+        let total = max(1, readiness.requirements.count)
+        return "GATE \(met)/\(total)"
+    }
+
+    // MARK: - Quiet archive
+
+    @ViewBuilder
+    private var profileArchiveStrip: some View {
+        if hasVowArchiveContent {
+            bindingVowArchiveTile
         }
-        .buttonStyle(.plain)
+    }
+
+    private var hasVowArchiveContent: Bool {
+        trialsState.currentTrial != nil ||
+        !trialsState.unlockedTitles.isEmpty ||
+        trialsState.completionsByCardKind.values.reduce(0, +) > 0
+    }
+
+    private var bindingVowArchiveTile: some View {
+        let active = trialsState.currentTrial
+        let total = trialsState.completionsByCardKind.values.reduce(0, +)
+        let title = active?.chosenCard.displayName ?? trialsState.equippedTitle?.displayName ?? "Binding Vows"
+        let tint = active?.chosenCard.theme.tintColor ?? Color.unbound.accent
+
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 7) {
+                Image(systemName: "flag.2.crossed.fill")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(tint)
+                Text("VOW ARCHIVE")
+                    .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                    .tracking(1.4)
+                    .foregroundStyle(Color.unbound.textTertiary)
+                Spacer(minLength: 0)
+            }
+
+            Text(title.uppercased())
+                .font(Font.unbound.bodyMStrong)
+                .foregroundStyle(Color.unbound.textPrimary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.64)
+
+            HStack(spacing: 6) {
+                archiveStatChip(value: "\(total)", label: "SEALED", tint: tint)
+                archiveStatChip(value: "\(trialsState.unlockedTitles.count)", label: "TITLES", tint: Color.unbound.rankGold)
+            }
+
+            Text(bindingVowArchiveDetail(active: active))
+                .font(Font.unbound.captionS)
+                .foregroundStyle(Color.unbound.textSecondary)
+                .lineLimit(2)
+                .minimumScaleFactor(0.78)
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, minHeight: 132, alignment: .topLeading)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color.unbound.surface.opacity(0.74))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(tint.opacity(0.22), lineWidth: 1)
+        )
+        .accessibilityIdentifier("profile.bindingVowArchiveTile")
+    }
+
+    private func archiveStatChip(value: String, label: String, tint: Color) -> some View {
+        HStack(spacing: 4) {
+            Text(value)
+                .font(Font.unbound.monoS.weight(.bold))
+                .foregroundStyle(tint)
+                .monospacedDigit()
+            Text(label)
+                .font(.system(size: 8, weight: .heavy, design: .monospaced))
+                .tracking(0.9)
+                .foregroundStyle(Color.unbound.textTertiary)
+        }
+        .padding(.horizontal, 7)
+        .padding(.vertical, 4)
+        .background(Capsule().fill(tint.opacity(0.11)))
+    }
+
+    private func bindingVowArchiveDetail(active: WeeklyVow?) -> String {
+        if let active {
+            return "\(active.chosenCard.theme.displayLabel) is \(bindingVowStateLabel(active.capstoneState).lowercased())."
+        }
+        if trialsState.unlockedTitles.isEmpty {
+            return "Weekly vows live on Home; sealed vows build titles here."
+        }
+        return "Equipped title: \(trialsState.equippedTitle?.displayName ?? "None")."
+    }
+
+    private func bindingVowStateLabel(_ state: CapstoneState) -> String {
+        switch state {
+        case .pending: return "active"
+        case .windowOpen: return "proof ready"
+        case .completed: return "complete"
+        case .missed: return "missed"
+        }
     }
 
 }
@@ -798,65 +888,99 @@ private struct EditProfileSheet: View {
 
 private struct RankInfoSheet: View {
     let currentTier: SkillTier
+    let readiness: OverallRankTrialReadiness?
+    let onStart: (OverallRankTrialDefinition) -> Void
 
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("CURRENT TIER")
-                        .font(.system(size: 9, weight: .black, design: .monospaced))
-                        .tracking(1.7)
-                        .foregroundStyle(Color.unbound.textTertiary)
-                    Text(currentTier.displayName)
-                        .font(Font.unbound.titleS)
-                        .foregroundStyle(Color.unbound.textPrimary)
+        ScrollView(.vertical, showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 18) {
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("RANK")
+                            .font(.system(size: 9, weight: .black, design: .monospaced))
+                            .tracking(1.7)
+                            .foregroundStyle(Color.unbound.textTertiary)
+                        Text(currentTier.displayName)
+                            .font(Font.unbound.titleS)
+                            .foregroundStyle(Color.unbound.textPrimary)
+                    }
+                    Spacer()
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundStyle(Color.unbound.textSecondary)
+                            .frame(width: 32, height: 32)
+                            .background(Circle().fill(Color.unbound.surfaceElevated))
+                    }
+                    .buttonStyle(.plain)
                 }
-                Spacer()
-                Button {
-                    dismiss()
-                } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(Color.unbound.textSecondary)
-                        .frame(width: 32, height: 32)
-                        .background(Circle().fill(Color.unbound.surfaceElevated))
+
+                if let readiness {
+                    VStack(alignment: .leading, spacing: 10) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("NEXT RANK GATE")
+                                .font(.system(size: 9, weight: .black, design: .monospaced))
+                                .tracking(1.7)
+                                .foregroundStyle(Color.unbound.textTertiary)
+                            Text(rankGateTitle(readiness))
+                                .font(Font.unbound.titleS)
+                                .foregroundStyle(Color.unbound.textPrimary)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.72)
+                        }
+
+                        Text("Track the proofs for your next overall rank here. When every requirement is met, this becomes the trial start point.")
+                            .font(Font.unbound.bodyM)
+                            .foregroundStyle(Color.unbound.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+
+                        OverallRankTrialReadinessCard(readiness: readiness) { definition in
+                            dismiss()
+                            onStart(definition)
+                        }
+                    }
                 }
-                .buttonStyle(.plain)
+
+                VStack(alignment: .leading, spacing: 12) {
+                    RankInfoRow(
+                        icon: "shield.fill",
+                        tint: Color.unbound.accent,
+                        title: "Current tier",
+                        copy: "This is the highest named tier you have reached across tracked skills and key strength lifts. It is separate from account level and LV XP."
+                    )
+                    RankInfoRow(
+                        icon: "arrow.up.forward",
+                        tint: Color.unbound.rankGold,
+                        title: "How it unlocks",
+                        copy: "After you log a workout, UNBOUND checks your full training history against each skill's tier standard: reps, holds, load, bodyweight ratios, and movement requirements."
+                    )
+                    RankInfoRow(
+                        icon: "clock.arrow.circlepath",
+                        tint: Color.unbound.coachCyan,
+                        title: "Current vs previous",
+                        copy: "Current tier is what your profile shows now. Previous tier only appears during a rank-up moment, as the tier you moved from before the new unlock."
+                    )
+                }
+
+                Text("Main tracked lift tiers currently include bench press, back squat, deadlift, and overhead press. Skill tiers come from the skill graph criteria.")
+                    .font(Font.unbound.captionS)
+                    .foregroundStyle(Color.unbound.textTertiary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-
-            VStack(alignment: .leading, spacing: 12) {
-                RankInfoRow(
-                    icon: "shield.fill",
-                    tint: Color.unbound.accent,
-                    title: "What this is",
-                    copy: "Your profile tier is the highest named tier you have reached across tracked skills and key strength lifts. It is separate from account level and LV XP."
-                )
-                RankInfoRow(
-                    icon: "arrow.up.forward",
-                    tint: Color.unbound.rankGold,
-                    title: "How it unlocks",
-                    copy: "After you log a workout, UNBOUND checks your full training history against each skill's tier standard: reps, holds, load, bodyweight ratios, and movement requirements."
-                )
-                RankInfoRow(
-                    icon: "clock.arrow.circlepath",
-                    tint: Color.unbound.coachCyan,
-                    title: "Current vs previous",
-                    copy: "Current tier is what your profile shows now. Previous tier only appears during a rank-up moment, as the tier you moved from before the new unlock."
-                )
-            }
-
-            Text("Main tracked lift tiers currently include bench press, back squat, deadlift, and overhead press. Skill tiers come from the skill graph criteria.")
-                .font(Font.unbound.captionS)
-                .foregroundStyle(Color.unbound.textTertiary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            Spacer(minLength: 0)
+            .padding(20)
         }
-        .padding(20)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(Color.unbound.bg)
+        .background(Color.unbound.bg.ignoresSafeArea())
+    }
+
+    private func rankGateTitle(_ readiness: OverallRankTrialReadiness) -> String {
+        if let target = readiness.targetRank {
+            return "\(readiness.currentRank.displayName) -> \(target.displayName)"
+        }
+        return "\(readiness.currentRank.displayName) Gate Cleared"
     }
 }
 
@@ -1067,6 +1191,7 @@ private struct ProgressJourneyCard: View {
 private struct RankTitlePlate: View {
     let tier: SkillTier
     let tint: Color
+    let gateSummary: String?
 
     var body: some View {
         HStack(spacing: 8) {
@@ -1083,10 +1208,12 @@ private struct RankTitlePlate: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.48)
                     .allowsTightening(true)
-                Text("TIER")
+                Text(gateSummary ?? "TIER")
                     .font(.system(size: 8, weight: .black, design: .monospaced))
                     .tracking(1.4)
-                    .foregroundStyle(Color.unbound.textSecondary)
+                    .foregroundStyle(gateSummary == nil ? Color.unbound.textSecondary : tier.rewardTextTint)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.65)
             }
             Spacer(minLength: 0)
             Image(systemName: "info.circle.fill")
@@ -1103,6 +1230,7 @@ private struct RankTitlePlate: View {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .strokeBorder(tint.opacity(0.34), lineWidth: 1)
         )
+        .accessibilityIdentifier("profile.rankInfoPlate")
     }
 }
 

@@ -33,6 +33,9 @@ struct WorkoutRewardSequenceSummary: Identifiable {
     var cosmeticUnlock: CosmeticUnlockReward?
     var progression: ProgressionReceipt? = nil
     var weeklyVowCallout: WeeklyVowRewardCallout? = nil
+    var beats: [RewardBeat] = []
+    var tally: RewardTally = .empty
+    var emblemIgnition: Bool = false
 
     var hasShareableMoment: Bool {
         weeklyVowCallout?.completionBonus?.shareCard != nil
@@ -40,6 +43,7 @@ struct WorkoutRewardSequenceSummary: Identifiable {
             || !badges.isEmpty
             || liftProgress.contains(where: \.didAdvanceTier)
             || arcProgress.didCompleteArc
+            || emblemIgnition
     }
 }
 
@@ -295,7 +299,7 @@ extension WorkoutRewardSequenceSummary {
         let previousAttributeTiers = attributePreviousTiers(from: completionResult, deltas: attributeDeltas)
         let currentAttributeTiers = attributeTiers(from: completionResult, deltas: attributeDeltas)
 
-        return WorkoutRewardSequenceSummary(
+        var summary = WorkoutRewardSequenceSummary(
             workoutName: performanceLog.title,
             durationMinutes: durationMinutes,
             workSets: workSets,
@@ -344,6 +348,10 @@ extension WorkoutRewardSequenceSummary {
             progression: progression,
             weeklyVowCallout: weeklyVowCallout
         )
+        if let proofResult = completionResult?.proofEngineResult {
+            summary = RewardPayloadBuilder.attachProofRewards(proofResult, to: summary)
+        }
+        return summary
     }
 
     static func simpleReceipt(

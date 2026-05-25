@@ -4,7 +4,7 @@ final class MockProgramGenerationService: ProgramGenerationServiceProtocol, @unc
     func generateProgram(analysis: BodyAnalysis, userProfile: UserProfile) async throws -> TrainingProgram {
         try await Task.sleep(for: .seconds(2))
 
-        let days = (1...14).map { dayNum in
+        let days = (1...Arc.durationDays).map { dayNum in
             let isRest = dayNum % 4 == 0 || dayNum % 7 == 0
             return ProgramDay(
                 id: UUID().uuidString,
@@ -23,6 +23,7 @@ final class MockProgramGenerationService: ProgramGenerationServiceProtocol, @unc
                     estimatedMinutes: 45,
                     notes: nil
                 ),
+                sessionRole: isRest ? .rest : .push,
                 nutritionOverride: nil,
                 recoveryActivities: []
             )
@@ -34,9 +35,9 @@ final class MockProgramGenerationService: ProgramGenerationServiceProtocol, @unc
             analysisId: analysis.id,
             userId: analysis.userId,
             createdAt: Date(),
-            name: "Blueprint: Block 1",
+            name: "Blueprint: Arc 1",
             description: "A targeted program for your current build.",
-            durationDays: 14,
+            durationDays: Arc.durationDays,
             days: days,
             nutritionPlan: NutritionPlan(
                 dailyCalories: 2500, proteinGrams: 180, carbsGrams: 280, fatGrams: 80,

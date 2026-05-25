@@ -112,6 +112,7 @@ final class MovementResolverTests: XCTestCase {
     func testMobilityNamesResolveToDurationQualityLogger() {
         let hipFlexor = MovementResolver.resolve("Hip Flexor Stretch")
         let wrist = MovementResolver.resolve("Reverse Wrist Stretch")
+        let greatest = MovementResolver.resolve("World's Greatest Stretch")
 
         XCTAssertEqual(hipFlexor.role, .mobilityDuration)
         XCTAssertEqual(hipFlexor.rankTemplate, .mobilityDuration)
@@ -120,6 +121,8 @@ final class MovementResolverTests: XCTestCase {
 
         XCTAssertEqual(wrist.role, .mobilityDuration)
         XCTAssertEqual(wrist.displayName, "Wrist Prep Flow")
+        XCTAssertEqual(greatest.role, .mobilityDuration)
+        XCTAssertEqual(greatest.displayName, "World's Greatest Stretch")
     }
 
     func testRoutineContainerStaysRoutineContainer() {
@@ -204,7 +207,7 @@ final class MovementResolverTests: XCTestCase {
         XCTAssertGreaterThan(MovementCatalog.loggableMovements.count, MovementCatalog.rankStandards.count)
         XCTAssertEqual(MovementCatalog.cardioMovements.count, CardioType.allCases.count)
         XCTAssertFalse(MovementCatalog.carryMovements.isEmpty)
-        XCTAssertFalse(MovementCatalog.mobilityMovements.isEmpty)
+        XCTAssertGreaterThanOrEqual(MovementCatalog.mobilityMovements.count, 18)
 
         let invalidVariants = MovementCatalog.loggableVariants.compactMap { variant -> String? in
             guard let standard = MovementCatalog.rankStandard(for: variant) else {
@@ -226,7 +229,10 @@ final class MovementResolverTests: XCTestCase {
     }
 
     func testMovementCatalogDrivesExerciseLibraryAndSwapAlternatives() {
-        XCTAssertEqual(ExerciseLibrary.all.count, MovementCatalog.legacyExercises.count)
+        XCTAssertEqual(
+            ExerciseLibrary.all.count,
+            MovementCatalog.legacyExercises.count + MovementCatalog.mobilityMovements.count
+        )
         XCTAssertGreaterThan(ExerciseLibrary.all.count, 140)
 
         let safetyBarSquat = ExerciseLibrary.all.first { $0.canonicalName == "safety bar squat" }
@@ -240,6 +246,12 @@ final class MovementResolverTests: XCTestCase {
         XCTAssertEqual(hollowRock?.rankTemplate, .bodyweightReps)
         XCTAssertEqual(hollowRock?.category, .bodyweight)
         XCTAssertEqual(hollowRock?.loggerMode, .bodyweightSets)
+
+        let hipFlexorStretch = ExerciseLibrary.all.first { $0.id == "mobility.hip-flexor-stretch" }
+        XCTAssertEqual(hipFlexorStretch?.category, .mobility)
+        XCTAssertEqual(hipFlexorStretch?.movementSlot, .mobility)
+        XCTAssertEqual(hipFlexorStretch?.loggerMode, .mobility)
+        XCTAssertEqual(hipFlexorStretch?.rankTemplate, .mobilityDuration)
 
         let pulldownAlternatives = MovementCatalog.catalogAlternatives(to: "Lat Pulldown (Neutral)")
         XCTAssertFalse(pulldownAlternatives.contains { $0.name == "lat pulldown (neutral)" })
@@ -436,7 +448,9 @@ final class MovementResolverTests: XCTestCase {
             guard let definition = MovementCatalog.definition(for: item.id) else {
                 return "\(item.name) missing definition"
             }
-            guard MovementCatalog.catalogExercise(for: definition) != nil else {
+            guard definition.role == .mobilityDuration
+                || MovementCatalog.catalogExercise(for: definition) != nil
+            else {
                 return "\(item.name) missing catalog exercise"
             }
             guard !item.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {

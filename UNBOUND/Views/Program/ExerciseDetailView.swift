@@ -4,7 +4,8 @@ struct ExerciseDetailView: View {
     let exercise: Exercise
 
     private var movementDefinition: MovementDefinition? {
-        MovementCatalog.canonicalExercise(named: exercise.name)
+        let resolved = MovementResolver.resolve(exercise.name)
+        return MovementCatalog.definition(for: resolved.movementId)
     }
 
     var body: some View {
@@ -13,6 +14,10 @@ struct ExerciseDetailView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     if let movementDefinition {
+                        ExerciseVisualView(definition: movementDefinition, size: .hero)
+                            .frame(maxWidth: .infinity)
+                            .aspectRatio(1.05, contentMode: .fit)
+
                         movementMetadataCard(movementDefinition)
                     }
 

@@ -1,12 +1,14 @@
 import Foundation
 
 enum AttributeKey: String, CaseIterable, Codable, Sendable {
+    /// `agility` is kept as the raw value for storage/backward compatibility.
+    /// Product-facing copy treats this axis as Vitality.
     case power, agility, control, endurance, mobility, explosiveness
 
     var displayName: String {
         switch self {
         case .power:         return "Power"
-        case .agility:       return "Agility"
+        case .agility:       return "Vitality"
         case .control:       return "Control"
         case .endurance:     return "Endurance"
         case .mobility:      return "Mobility"
@@ -17,7 +19,7 @@ enum AttributeKey: String, CaseIterable, Codable, Sendable {
     var shortCode: String {
         switch self {
         case .power:         return "POW"
-        case .agility:       return "AGI"
+        case .agility:       return "VIT"
         case .control:       return "CTL"
         case .endurance:     return "END"
         case .mobility:      return "MOB"
@@ -29,7 +31,7 @@ enum AttributeKey: String, CaseIterable, Codable, Sendable {
     var trainsCopy: String {
         switch self {
         case .power:         return "Heavy compounds, sub-6 reps"
-        case .agility:       return "Sprints, change-of-direction"
+        case .agility:       return "Rest days, deloads, recovery"
         case .control:       return "Skill nodes, tempo, isometrics"
         case .endurance:     return "Z2 runs, density, long efforts"
         case .mobility:      return "Range of motion, flexibility"
@@ -46,7 +48,7 @@ extension AttributeKey {
     var buildVocab: String {
         switch self {
         case .power:         return "Power"
-        case .agility:       return "Movement"
+        case .agility:       return "Vitality"
         case .control:       return "Control"
         case .endurance:     return "Endurance"
         case .mobility:      return "Mobility"
@@ -70,7 +72,7 @@ extension AttributeKey {
     var taglinePhrase: String {
         switch self {
         case .power:         return "heavy output"
-        case .agility:       return "fast, lateral movement"
+        case .agility:       return "recovery consistency"
         case .control:       return "deliberate, controlled work"
         case .endurance:     return "long, sustained effort"
         case .mobility:      return "range-of-motion work"
@@ -86,11 +88,11 @@ extension AttributeKey {
     var emphasisLifts: [String] {
         switch self {
         case .power:         return ["back squat", "deadlift", "bench press", "overhead press"]
-        case .agility:       return ["bulgarian split squat", "walking lunge"]
+        case .agility:       return []
         case .control:       return ["pullup", "dip", "plank"]
         case .endurance:     return ["leg press", "leg curl (lying)", "deadlift"]
         case .mobility:      return ["goblet squat", "romanian deadlift", "good morning"]
-        case .explosiveness: return ["bulgarian split squat", "walking lunge"]
+        case .explosiveness: return ["jump squat", "kettlebell swing", "muscle-up", "pendlay row"]
         }
     }
 }

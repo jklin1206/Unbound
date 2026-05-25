@@ -17,36 +17,52 @@ import SwiftUI
 struct SquadTabView: View {
     @EnvironmentObject var services: ServiceContainer
     @State private var pendingInviteCode: String?
+    @State private var state: SquadState = .empty
+    @State private var loadedUserId: String?
 
     var body: some View {
         let userId = services.auth.currentUserId ?? "anonymous"
-        let state = services.squads.state(userId: userId)
 
         Group {
             if state.currentSquad != nil {
                 SquadDetailView()
             } else {
-                SquadEmptyView()
+                SquadEmptyView {
+                    Task { await reloadState(for: userId) }
+                }
             }
         }
+        .id(loadedUserId ?? userId)
         .linkedSessionToast()
-        .task {
-            await services.squads.loadCurrentSquad(userId: userId)
+        .task(id: userId) {
+            await reloadState(for: userId)
         }
         .onReceive(NotificationCenter.default.publisher(for: .squadStateChanged)) { _ in
-            Task { await services.squads.loadCurrentSquad(userId: userId) }
+            refreshFromCache(userId: userId)
         }
         .sheet(item: Binding<InviteCode?>(
             get: { pendingInviteCode.map(InviteCode.init) },
             set: { pendingInviteCode = $0?.value }
         )) { ic in
-            JoinSquadSheet(prefilledCode: ic.value)
+            JoinSquadSheet(prefilledCode: ic.value) {
+                Task { await reloadState(for: userId) }
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: .squadInviteCodeReceived)) { note in
             if let code = note.object as? String {
                 pendingInviteCode = code
             }
         }
+    }
+
+    private func reloadState(for userId: String) async {
+        await services.squads.loadCurrentSquad(userId: userId)
+        refreshFromCache(userId: userId)
+    }
+
+    private func refreshFromCache(userId: String) {
+        state = services.squads.state(userId: userId)
+        loadedUserId = userId
     }
 
     private struct InviteCode: Identifiable {

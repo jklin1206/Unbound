@@ -5,6 +5,9 @@ struct ExercisePreferenceRow: View {
     @ObservedObject var viewModel: ExerciseLibraryViewModel
 
     private var item: ExerciseLibraryItem { row.item }
+    private var definition: MovementDefinition? {
+        MovementCatalog.definition(for: item.id)
+    }
 
     private var statusBinding: Binding<ExercisePreferenceStatus?> {
         Binding(
@@ -20,6 +23,11 @@ struct ExercisePreferenceRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 12) {
+                if let definition {
+                    ExerciseVisualView(definition: definition, size: .thumbnail)
+                        .frame(width: 70, height: 70)
+                }
+
                 VStack(alignment: .leading, spacing: 4) {
                     Text(item.name)
                         .font(.bodyMedium(15))

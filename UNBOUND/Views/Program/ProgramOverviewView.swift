@@ -32,8 +32,11 @@ struct ProgramOverviewView: View {
     @State private var workoutReadyDraft: TrainingSessionDraft?
     @State private var activeWorkoutDraft: TrainingSessionDraft?
     @State private var sessionEditorDraft: TrainingSessionDraft?
-    @State private var weeklyVowsState: WeeklyVowsState = .empty
-    @State private var showWeeklyVowPicker = false
+    @State private var showSavedWorkouts = false
+    @State private var schedulingSavedWorkout: SavedWorkout?
+    @State private var savedWorkoutScheduleError: SavedWorkoutScheduleError?
+    @State private var recoveryRewardSequence: WorkoutRewardSequenceSummary?
+    @State private var isCompletingRecoveryDay = false
 
     // Active-goal detail launcher state.
     @State private var pushedSkillNode: SkillNode?
@@ -71,6 +74,7 @@ struct ProgramOverviewView: View {
     // Block rollover (Chunk 3): block-complete CTA + optional rescan + share.
     @State private var isGeneratingNextBlock: Bool = false
     @State private var showRescanFlow: Bool = false
+    @State private var showCheckpointFlow: Bool = false
     @State private var rolloverDeltaReport: ScanDeltaReport?
     @State private var rolloverProposal: BlockRolloverService.ProgramBlockProposal?
     @State private var showProgressReveal: Bool = false
@@ -109,6 +113,22 @@ struct ProgramOverviewView: View {
                     .transition(.opacity.combined(with: .scale(scale: 1.02)))
                     .zIndex(3)
             }
+
+            if isCompletingRecoveryDay {
+                recoveryCompletionOverlay
+                    .transition(.opacity)
+                    .zIndex(4)
+            }
+
+            if let recoveryRewardSequence {
+                WorkoutRewardSequenceView(summary: recoveryRewardSequence) {
+                    UnboundHaptics.medium()
+                    self.recoveryRewardSequence = nil
+                }
+                .interactiveDismissDisabled(true)
+                .transition(.opacity.combined(with: .scale(scale: 0.98)))
+                .zIndex(5)
+            }
         }
         .navigationBarHidden(true)
         .task {
@@ -128,16 +148,48 @@ struct ProgramOverviewView: View {
                     .presentationDragIndicator(.visible)
             }
         }
-        .sheet(isPresented: $showWeeklyVowPicker) {
-            TrialPickerSheet(
-                cards: weeklyVowsState.currentWeekCards,
-                onPick: { card in
-                    guard let userId = services.auth.currentUserId else { return }
-                    services.trials.pickVowCard(card, userId: userId)
-                    weeklyVowsState = services.trials.state(userId: userId)
+        .sheet(isPresented: $showSavedWorkouts) {
+            SavedWorkoutsListView(
+                onReplaceToday: { workout in
+                    showSavedWorkouts = false
+                    replaceTodayWithSavedWorkout(workout)
+                },
+                onSchedule: { workout in
+                    showSavedWorkouts = false
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
+                        schedulingSavedWorkout = workout
+                    }
+                },
+                onDismiss: {
+                    showSavedWorkouts = false
                 }
             )
-            .environmentObject(services)
+        }
+        .sheet(item: $schedulingSavedWorkout) { workout in
+            if let program = viewModel?.program {
+                ScheduleSavedWorkoutSheet(
+                    savedWorkout: workout,
+                    program: program,
+                    onSchedule: { dayNumbers in
+                        schedulingSavedWorkout = nil
+                        scheduleSavedWorkout(
+                            workout,
+                            dayNumbers: dayNumbers,
+                            replacingCustomizedDays: false
+                        )
+                    },
+                    onDismiss: {
+                        schedulingSavedWorkout = nil
+                    }
+                )
+            }
+        }
+        .alert(item: $savedWorkoutScheduleError) { error in
+            Alert(
+                title: Text("Saved Workout"),
+                message: Text(error.message),
+                dismissButton: .default(Text("OK"))
+            )
         }
         .fullScreenCover(item: $workoutReadyDraft) { draft in
             WorkoutReadyView(draft: draft)
@@ -157,15 +209,6 @@ struct ProgramOverviewView: View {
                 }
             }
             .environmentObject(services)
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .weeklyVowPicked)) { _ in
-            refreshWeeklyVowState()
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .weeklyVowCompleted)) { _ in
-            refreshWeeklyVowState()
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .weeklyVowWeekRolled)) { _ in
-            refreshWeeklyVowState()
         }
         .navigationDestination(item: $selectedDay) { day in
             DayDetailView(
@@ -228,6 +271,22 @@ struct ProgramOverviewView: View {
             }
             .environmentObject(services)
         }
+        .sheet(isPresented: $showCheckpointFlow) {
+            CheckpointFlowSheet(
+                nutritionContext: checkpointNutritionContext,
+                missedSessionSignal: checkpointMissedSessionSignal,
+                onCaptureBodyScan: {
+                    showRescanFlow = true
+                },
+                onCommit: { outcome in
+                    showCheckpointFlow = false
+                    Task { await applyCheckpointOutcome(outcome) }
+                },
+                onDismiss: {
+                    showCheckpointFlow = false
+                }
+            )
+        }
     }
 
     @MainActor
@@ -243,7 +302,6 @@ struct ProgramOverviewView: View {
         #endif
 
         guard let userId = services.auth.currentUserId else { return }
-        await loadWeeklyVowState(userId: userId)
 
         // History + travel don't depend on the profile — run concurrently.
         async let historyDone: Void = refreshHistory()
@@ -257,6 +315,7 @@ struct ProgramOverviewView: View {
             vm.program = cached
             vm.state = .loaded(cached)
             await vm.loadTrackingData()
+            vm.refreshWaveAdjustments(asOf: selectedDayDate)
         }
 
         // Background: learn the authoritative programId; reconcile only
@@ -273,6 +332,7 @@ struct ProgramOverviewView: View {
                         vm.program = refreshed
                         vm.state = .loaded(refreshed)
                         await vm.loadTrackingData()
+                        vm.refreshWaveAdjustments(asOf: selectedDayDate)
                     }
                 }
             } else if cached == nil {
@@ -283,12 +343,29 @@ struct ProgramOverviewView: View {
                     equipment: Set(profile.equipment ?? []),
                     experience: profile.experience,
                     sessionLength: profile.sessionLength,
-                    exerciseStyles: [],
-                    targetAreas: Set(profile.targetAreas ?? [])
+                    exerciseStyles: Set(profile.exerciseStyles ?? []),
+                    targetAreas: Set(profile.targetAreas ?? []),
+                    goals: Set(profile.goals ?? []),
+                    obstacles: Set(profile.obstacles ?? []),
+                    sleepQuality: profile.sleepQuality ?? 5,
+                    stressLevel: profile.stressLevel ?? 5,
+                    currentFrequency: profile.currentFrequency,
+                    commitment: profile.commitment ?? 8,
+                    displayHandle: profile.displayHandle ?? profile.displayName ?? "",
+                    age: profile.age ?? 0,
+                    gender: profile.gender ?? .unspecified,
+                    heightCm: profile.heightCm ?? 0,
+                    weightKg: profile.weightKg ?? 0,
+                    trainingDays: profile.trainingDays,
+                    trainingStyleOverride: profile.trainingStyleOverride,
+                    trainingFeedbackMode: profile.trainingFeedbackMode,
+                    cutModeActive: profile.cutMode.enabled,
+                    biologicalSex: profile.biologicalSex
                 )
                 vm.program = generated
                 vm.state = .loaded(generated)
                 store.adopt(generated, userId: userId)
+                vm.refreshWaveAdjustments(asOf: selectedDayDate)
             }
         } catch {
             if cached == nil {
@@ -311,26 +388,17 @@ struct ProgramOverviewView: View {
         }
     }
 
-    @MainActor
-    private func loadWeeklyVowState(userId: String) async {
-        await services.trials.ensureCurrentWeek(userId: userId)
-        services.trials.checkVowWindow(userId: userId, now: Date())
-        weeklyVowsState = services.trials.state(userId: userId)
-    }
-
-    @MainActor
-    private func refreshWeeklyVowState() {
-        guard let userId = services.auth.currentUserId else { return }
-        services.trials.checkVowWindow(userId: userId, now: Date())
-        weeklyVowsState = services.trials.state(userId: userId)
-    }
-
     // MARK: - V3 day-preview wrapper
     //
     // Sheet(item:) needs Identifiable but Date isn't, so wrap it.
     fileprivate struct PreviewDay: Identifiable, Hashable {
         let date: Date
         var id: Date { date }
+    }
+
+    private struct SavedWorkoutScheduleError: Identifiable {
+        let id = UUID()
+        let message: String
     }
 
     // MARK: - TODAY'S TRAINING (active goals)
@@ -683,6 +751,18 @@ struct ProgramOverviewView: View {
             Spacer()
             Button {
                 UnboundHaptics.soft()
+                showSavedWorkouts = true
+            } label: {
+                Image(systemName: "tray.full")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(Color.unbound.textSecondary)
+                    .frame(width: 34, height: 34)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Saved Workouts")
+            .accessibilityIdentifier("program.savedWorkouts")
+            Button {
+                UnboundHaptics.soft()
                 workoutReadyDraft = emptyCustomWorkoutDraft()
             } label: {
                 Image(systemName: "plus.square.on.square")
@@ -719,6 +799,43 @@ struct ProgramOverviewView: View {
         )
     }
 
+    private func replaceTodayWithSavedWorkout(_ workout: SavedWorkout) {
+        guard let program = viewModel?.program,
+              let day = programDay(for: Date(), in: program)
+        else {
+            savedWorkoutScheduleError = SavedWorkoutScheduleError(message: "No active Program day was available.")
+            return
+        }
+
+        scheduleSavedWorkout(
+            workout,
+            dayNumbers: [day.dayNumber],
+            replacingCustomizedDays: true
+        )
+    }
+
+    private func scheduleSavedWorkout(
+        _ workout: SavedWorkout,
+        dayNumbers: [Int],
+        replacingCustomizedDays: Bool
+    ) {
+        Task {
+            do {
+                try await viewModel?.scheduleSavedWorkout(
+                    workout,
+                    on: dayNumbers,
+                    replacingCustomizedDays: replacingCustomizedDays
+                )
+            } catch {
+                await MainActor.run {
+                    savedWorkoutScheduleError = SavedWorkoutScheduleError(
+                        message: "That Saved Workout could not be scheduled here. Pick another day or replace the existing custom slot."
+                    )
+                }
+            }
+        }
+    }
+
     private func launchSkillReadyDraft(_ node: SkillNode) {
         let userId = services.auth.currentUserId ?? "local"
         workoutReadyDraft = DailyWorkoutResolver.skillOnlyDraft(skillId: node.id, userId: userId)
@@ -749,6 +866,65 @@ struct ProgramOverviewView: View {
         }
 
         activeWorkoutDraft = programDraft(from: workout, day: day, date: date)
+    }
+
+    @MainActor
+    private func completeRecoveryDay(_ day: ProgramDay) async {
+        guard !isCompletingRecoveryDay, recoveryRewardSequence == nil else { return }
+        guard let viewModel else {
+            selectedDay = day
+            return
+        }
+
+        isCompletingRecoveryDay = true
+        do {
+            if let completion = try await viewModel.completeRestDay(day, at: selectedDayDate) {
+                UnboundHaptics.success()
+                recoveryRewardSequence = WorkoutRewardSequenceSummary.trainingReceipt(
+                    performanceLog: completion.performanceLog,
+                    completionResult: completion.result,
+                    sourceName: "Recovery"
+                )
+            } else {
+                selectedDay = day
+            }
+        } catch {
+            LoggingService.shared.log(
+                "Rest day recovery completion failed: \(error)",
+                level: .warning,
+                context: ["dayNumber": day.dayNumber]
+            )
+            selectedDay = day
+        }
+        isCompletingRecoveryDay = false
+    }
+
+    private var recoveryCompletionOverlay: some View {
+        ZStack {
+            Color.unbound.bg.opacity(0.72)
+                .ignoresSafeArea()
+
+            VStack(spacing: 12) {
+                ProgressView()
+                    .tint(Color.unbound.rankGold)
+                    .scaleEffect(1.12)
+                Text("LOCKING RECOVERY")
+                    .font(Font.unbound.captionS.weight(.heavy))
+                    .tracking(2.0)
+                    .foregroundStyle(Color.unbound.rankGold)
+            }
+            .padding(.horizontal, 24)
+            .padding(.vertical, 18)
+            .background(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(Color.unbound.surface)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .strokeBorder(Color.unbound.rankGold.opacity(0.32), lineWidth: 1)
+            )
+        }
+        .accessibilityIdentifier("program.recoveryCompleting")
     }
 
     private func programDraft(from workout: Workout, day: ProgramDay, date: Date) -> TrainingSessionDraft {
@@ -1089,9 +1265,9 @@ struct ProgramOverviewView: View {
 
             Button {
                 UnboundHaptics.soft()
-                showRescanFlow = true
+                showCheckpointFlow = true
             } label: {
-                Text("RESCAN FIRST")
+                Text("CHECKPOINT FIRST")
                     .font(.system(size: 12, weight: .heavy, design: .monospaced))
                     .tracking(1.6)
                     .foregroundStyle(Color.unbound.textSecondary)
@@ -1293,12 +1469,11 @@ struct ProgramOverviewView: View {
                     .padding(.bottom, 12)
                 }
 
+                weekStrip(program: program)
                 dayCard(program: program)
-                weeklyVowProgramSurface
                 if let proposal = rolloverProposal, proposal.scanDeltaReport != nil {
                     midBlockRescanProposalCard(proposal)
                 }
-                weekStrip(program: program)
                 if !ProgramScheduler.shared.todaysSkillSessions().isEmpty {
                     todaysTrainingSection
                 }
@@ -1331,49 +1506,10 @@ struct ProgramOverviewView: View {
         }
         .task(id: program.id) {
             await loadBlockRolloverContext(program: program)
+            viewModel?.refreshWaveAdjustments(asOf: selectedDayDate)
         }
-    }
-
-    @ViewBuilder
-    private var weeklyVowProgramSurface: some View {
-        if let vow = weeklyVowsState.currentVow,
-           vow.capstoneState != .missed {
-            VStack(alignment: .leading, spacing: 8) {
-                HStack(spacing: 8) {
-                    Image(systemName: "flame.fill")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(vow.chosenCard.theme.tintColor)
-                    Text("PROGRAM ADD-ON")
-                        .font(Font.unbound.monoS.weight(.bold))
-                        .tracking(1.4)
-                        .foregroundStyle(Color.unbound.textTertiary)
-                    Spacer()
-                    Text(vow.chosenCard.prescription?.summary.uppercased() ?? "BINDING")
-                        .font(Font.unbound.monoS.weight(.bold))
-                        .foregroundStyle(vow.chosenCard.theme.tintColor)
-                }
-                ActiveTrialCard(trial: vow)
-                    .environmentObject(services)
-            }
-            .padding(.top, 2)
-        } else if !weeklyVowsState.skippedCurrentWeek,
-                  !weeklyVowsState.currentWeekCards.isEmpty {
-            VStack(alignment: .leading, spacing: 8) {
-                HStack(spacing: 8) {
-                    Image(systemName: "flame.fill")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(Color.unbound.accent)
-                    Text("PROGRAM ADD-ON")
-                        .font(Font.unbound.monoS.weight(.bold))
-                        .tracking(1.4)
-                        .foregroundStyle(Color.unbound.textTertiary)
-                    Spacer()
-                }
-                TrialPickerPromptCard {
-                    showWeeklyVowPicker = true
-                }
-            }
-            .padding(.top, 2)
+        .task(id: selectedDayDate) {
+            viewModel?.refreshWaveAdjustments(asOf: selectedDayDate)
         }
     }
 
@@ -1423,12 +1559,12 @@ struct ProgramOverviewView: View {
 
             Button {
                 UnboundHaptics.soft()
-                showRescanFlow = true
+                showCheckpointFlow = true
             } label: {
                 HStack(spacing: 7) {
-                    Image(systemName: "camera.fill")
+                    Image(systemName: "flag.checkered")
                         .font(.system(size: 11, weight: .bold))
-                    Text("RESCAN")
+                    Text("CHECKPOINT")
                         .font(Font.unbound.captionS.weight(.heavy))
                         .tracking(1.2)
                     Spacer()
@@ -1644,10 +1780,10 @@ struct ProgramOverviewView: View {
         return VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .top, spacing: 12) {
                 VStack(alignment: .leading, spacing: 5) {
-                    Text(isToday ? "TODAY COMMAND" : dayHeaderLabel(for: selectedDayDate).uppercased())
+                    Text(commandHeaderLabel(for: day, date: selectedDayDate, isToday: isToday))
                         .font(Font.unbound.captionS.weight(.heavy))
                         .tracking(1.8)
-                        .foregroundStyle(isToday ? Color.unbound.coachCyan : Color.unbound.textTertiary)
+                        .foregroundStyle(isCalibrationDay(day) ? Color.unbound.accent : (isToday ? Color.unbound.coachCyan : Color.unbound.textTertiary))
                     Text(cardTitle(for: day))
                         .font(Font.unbound.titleL)
                         .foregroundStyle(Color.unbound.textPrimary)
@@ -1664,11 +1800,15 @@ struct ProgramOverviewView: View {
             HStack(spacing: 8) {
                 todayStatPill(value: exerciseCountLabel(for: day), label: "EXERCISES")
                 todayStatPill(value: durationLabel(for: day), label: "TIME")
-                todayStatPill(value: day?.isRestDay == true ? "REC" : "LIVE", label: day?.isRestDay == true ? "MODE" : "READY")
+                todayStatPill(
+                    value: isCalibrationDay(day) ? "6-7" : (day?.isRestDay == true ? "REC" : "LIVE"),
+                    label: isCalibrationDay(day) ? "RPE" : (day?.isRestDay == true ? "MODE" : "READY")
+                )
             }
 
             if let day, !day.isRestDay, let workout = day.workout {
                 modifierSummary(for: day, workout: workout)
+                waveAdjustmentPanel(for: day)
                 exerciseList(workout: workout)
             }
 
@@ -1680,7 +1820,9 @@ struct ProgramOverviewView: View {
                         return
                     }
                     if let day {
-                        if isToday, !day.isRestDay, day.workout != nil {
+                        if isToday, day.isRestDay {
+                            Task { await completeRecoveryDay(day) }
+                        } else if isToday, !day.isRestDay, day.workout != nil {
                             launchActiveWorkout(for: day, date: selectedDayDate)
                         } else {
                             selectedDay = day
@@ -1709,7 +1851,7 @@ struct ProgramOverviewView: View {
                     .shadow(color: Color.unbound.accent.opacity(0.35), radius: 10, y: 2)
                 }
                 .buttonStyle(.plain)
-                .disabled(day == nil)
+                .disabled(day == nil || isCompletingRecoveryDay)
                 .accessibilityIdentifier("program.startSession")
 
                 if let day, isToday, !day.isRestDay, day.workout != nil {
@@ -1779,6 +1921,8 @@ struct ProgramOverviewView: View {
             statusBadge("DONE", icon: "checkmark", tint: Color.unbound.success)
         } else if day?.isRestDay == true {
             statusBadge("REST", icon: "moon.zzz.fill", tint: Color.unbound.textSecondary)
+        } else if isCalibrationDay(day) {
+            statusBadge("CAL", icon: "target", tint: Color.unbound.accent)
         } else if isToday {
             statusBadge("START", icon: "bolt.fill", tint: Color.unbound.coachCyan)
         } else {
@@ -1893,6 +2037,78 @@ struct ProgramOverviewView: View {
             draft: draft,
             isTravelDay: activeTravelOverride?.day(for: selectedDayDate) != nil
         )
+    }
+
+    @ViewBuilder
+    private func waveAdjustmentPanel(for day: ProgramDay) -> some View {
+        let adjustments = waveAdjustments(for: day)
+        if !adjustments.isEmpty {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("WAVE 2 ADJUSTMENTS")
+                    .font(Font.unbound.monoS.weight(.bold))
+                    .foregroundStyle(Color.unbound.textTertiary)
+                ForEach(adjustments) { adjustment in
+                    waveAdjustmentRow(adjustment)
+                }
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 9)
+            .background(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(Color.unbound.bg.opacity(0.72))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .strokeBorder(Color.unbound.accent.opacity(0.28), lineWidth: 1)
+            )
+        }
+    }
+
+    private func waveAdjustmentRow(_ adjustment: WaveAdjustment) -> some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: adjustment.reason.iconSystemName)
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(Color.unbound.accent)
+                .padding(.top, 2)
+                .frame(width: 14)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(adjustment.reason.decisionApplied)
+                    .font(Font.unbound.captionS.weight(.bold))
+                    .tracking(0.4)
+                    .foregroundStyle(Color.unbound.textPrimary)
+                    .lineLimit(2)
+                Text(adjustment.reason.inputSummary)
+                    .font(Font.unbound.captionS)
+                    .tracking(0.2)
+                    .foregroundStyle(Color.unbound.textSecondary)
+                    .lineLimit(2)
+            }
+
+            Spacer(minLength: 4)
+
+            if adjustment.reason.revertible {
+                Button {
+                    UnboundHaptics.soft()
+                    viewModel?.revertWaveAdjustment(adjustment, asOf: selectedDayDate)
+                } label: {
+                    Text("UNDO")
+                        .font(Font.unbound.captionS.weight(.black))
+                        .tracking(0.8)
+                        .foregroundStyle(Color.unbound.warnOrange)
+                        .padding(.horizontal, 8)
+                        .frame(height: 28)
+                        .background(Capsule().fill(Color.unbound.warnOrange.opacity(0.12)))
+                        .overlay(Capsule().strokeBorder(Color.unbound.warnOrange.opacity(0.28), lineWidth: 1))
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("program.waveAdjustment.undo.\(adjustment.dayNumber)")
+            }
+        }
+    }
+
+    private func waveAdjustments(for day: ProgramDay) -> [WaveAdjustment] {
+        viewModel?.activeWaveAdjustments.filter { $0.dayNumber == day.dayNumber } ?? []
     }
 
     private func color(for role: ProgramModifierColorRole) -> Color {
@@ -2430,6 +2646,62 @@ struct ProgramOverviewView: View {
         activeTravelOverride = await TravelOverrideStore.shared.activeOverride(for: userId)
     }
 
+    @MainActor
+    private func applyCheckpointOutcome(_ outcome: CheckpointOutcome) async {
+        await viewModel?.completeCheckpoint(outcome)
+        if let program = viewModel?.program {
+            await loadBlockRolloverContext(program: program)
+        }
+    }
+
+    private var checkpointNutritionContext: NutritionContext {
+        let hardSessionWithin24Hours = pastLogs.contains { log in
+            guard let completedAt = log.completedAt else { return false }
+            return Date().timeIntervalSince(completedAt) <= 86_400
+        }
+        return NutritionTargetCalculator().calculate(
+            input: NutritionTargetCalculator.Input(
+                bodyweightKilograms: nil,
+                hardSessionLoggedWithin24Hours: hardSessionWithin24Hours
+            )
+        )
+    }
+
+    private var checkpointMissedSessionSignal: MissedSessionSignal {
+        guard let program = viewModel?.program else { return .onTrack }
+        let now = Date()
+        let sessions = scheduledAttendance(for: program, now: now)
+        let result = MissedSessionMetric.evaluate(sessions: sessions, now: now)
+        return MissedSessionSignal.fromScheduledSessions(
+            scheduled: result.scheduledCount,
+            missed: result.missedCount
+        )
+    }
+
+    private func scheduledAttendance(
+        for program: TrainingProgram,
+        now: Date
+    ) -> [ScheduledSessionAttendance] {
+        let calendar = Calendar.current
+        return program.days.compactMap { day in
+            guard !day.isRestDay else { return nil }
+            guard let scheduledAt = calendar.date(
+                byAdding: .day,
+                value: day.dayNumber - 1,
+                to: calendar.startOfDay(for: program.createdAt)
+            ) else {
+                return nil
+            }
+            guard scheduledAt <= now else { return nil }
+            let completedAt = viewModel?.workoutLogs[day.dayNumber]?.completedAt
+                ?? viewModel?.workoutLogs[day.dayNumber]?.startedAt
+            return ScheduledSessionAttendance(
+                scheduledAt: scheduledAt,
+                completedAt: completedAt
+            )
+        }
+    }
+
     // MARK: - Helpers
 
     private func programDay(for date: Date, in program: TrainingProgram) -> ProgramDay? {
@@ -2511,9 +2783,23 @@ struct ProgramOverviewView: View {
 
     private func ctaLabel(for day: ProgramDay?, isToday: Bool) -> String {
         guard let day else { return "NOTHING PLANNED" }
-        if day.isRestDay { return "VIEW RECOVERY" }
+        if day.isRestDay { return isToday ? "COMPLETE RECOVERY" : "VIEW RECOVERY" }
+        if isCalibrationDay(day) { return "LOCK STANDARD" }
         if isToday { return "BEGIN SESSION" }
         return "VIEW DETAILS"
+    }
+
+    private func commandHeaderLabel(for day: ProgramDay?, date: Date, isToday: Bool) -> String {
+        if isCalibrationDay(day) {
+            return isToday ? "CALIBRATION COMMAND" : "CALIBRATION"
+        }
+        return isToday ? "TODAY COMMAND" : dayHeaderLabel(for: date).uppercased()
+    }
+
+    private func isCalibrationDay(_ day: ProgramDay?) -> Bool {
+        guard let day, !day.isRestDay else { return false }
+        if day.label.localizedCaseInsensitiveContains("Calibration") { return true }
+        return day.workout?.notes?.localizedCaseInsensitiveContains("Calibration:") == true
     }
 
     private func weekRangeLabel(from: Date, to: Date) -> String {

@@ -21,6 +21,7 @@ struct WorkoutRewardSequenceView: View {
     private enum RewardBeatKind: Equatable {
         case sessionComplete
         case xp
+        case proof
         case rankReveal
         case attributes
         case collection
@@ -34,6 +35,10 @@ struct WorkoutRewardSequenceView: View {
 
         if summary.xp.total > 0 || !summary.xp.breakdown.isEmpty {
             beats.append(.xp)
+        }
+
+        if !summary.beats.isEmpty || summary.tally.hasAnyReward {
+            beats.append(.proof)
         }
 
         if !summary.liftProgress.isEmpty || summary.progression?.movementLines.isEmpty == false {
@@ -181,6 +186,8 @@ struct WorkoutRewardSequenceView: View {
             sessionCompleteBeat
         case .xp:
             xpBeat
+        case .proof:
+            proofBeat
         case .rankReveal:
             rankRevealBeat
         case .attributes:
@@ -280,6 +287,76 @@ struct WorkoutRewardSequenceView: View {
                 .padding(.top, 2)
             }
             .frame(maxWidth: .infinity)
+        }
+    }
+
+    private var proofBeat: some View {
+        let tally = summary.tally
+        let shownBeats = Array(summary.beats.prefix(6))
+        let tint = proofTint
+        let title = tally.ranksAdvanced > 1 ? "MULTI-RANK UP" : (tally.unlocksGained > 0 ? "SKILL UNLOCKED" : "STANDARDS CLEARED")
+
+        return RewardPanel(tint: tint, active: currentBeatKind == .proof || summary.emblemIgnition) {
+            VStack(alignment: .leading, spacing: 20) {
+                beatHeader(kicker: "PROOF LOCKED", title: title, tint: tint)
+
+                if summary.emblemIgnition {
+                    HStack(spacing: 14) {
+                        ZStack {
+                            RankPulseRings(tint: tint, hot: true, animate: currentBeatKind == .proof && pageRevealed)
+                            Image(systemName: "sparkles")
+                                .font(.system(size: 28, weight: .black))
+                                .foregroundStyle(tint)
+                                .shadow(color: tint.opacity(0.5), radius: 18)
+                        }
+                        .frame(width: 86, height: 86)
+
+                        VStack(alignment: .leading, spacing: 5) {
+                            Text(tally.ranksAdvanced > 1 ? "\(tally.ranksAdvanced) RANKS ADVANCED" : "EMBLEM IGNITED")
+                                .font(Font.unbound.bodyMStrong)
+                                .foregroundStyle(Color.unbound.textPrimary)
+                                .lineLimit(2)
+                                .minimumScaleFactor(0.78)
+                            Text("Your logged work cleared real standards.")
+                                .font(Font.unbound.captionS)
+                                .foregroundStyle(Color.unbound.textSecondary)
+                                .lineLimit(2)
+                        }
+                    }
+                }
+
+                VStack(spacing: 10) {
+                    if !shownBeats.isEmpty {
+                        ForEach(shownBeats) { beat in
+                            ProofRewardRow(beat: beat, tint: tint)
+                        }
+                    } else {
+                        if tally.standardsCleared > 0 {
+                            rewardLine(label: "Standards cleared", value: "\(tally.standardsCleared)", tint: tint)
+                        }
+                        if tally.unlocksGained > 0 {
+                            rewardLine(label: "Unlocks gained", value: "\(tally.unlocksGained)", tint: tint)
+                        }
+                        if tally.newBests > 0 {
+                            rewardLine(label: "New bests", value: "\(tally.newBests)", tint: Color.unbound.emberGlow)
+                        }
+                    }
+
+                    if summary.beats.count > shownBeats.count {
+                        rewardLine(
+                            label: "More proof",
+                            value: "+\(summary.beats.count - shownBeats.count)",
+                            tint: tint
+                        )
+                    }
+                }
+
+                HStack(spacing: 12) {
+                    proofToken(value: "\(tally.standardsCleared)", label: "STANDARDS", tint: tint)
+                    proofToken(value: "\(tally.unlocksGained)", label: "UNLOCKS", tint: Color.unbound.impact)
+                    proofToken(value: "\(tally.newBests)", label: "BESTS", tint: Color.unbound.emberGlow)
+                }
+            }
         }
     }
 
@@ -611,12 +688,13 @@ struct WorkoutRewardSequenceView: View {
                 let skillXP = summary.progression?.skillXPGained ?? 0
                 let primaryXPValue = summary.xp.total > 0 ? "+\(summary.xp.total)" : "+\(skillXP)"
                 let primaryXPLabel = summary.xp.total > 0 ? "LV XP" : "SKILL XP"
-                let featCount = summary.personalRecords.count + summary.badges.count + (summary.weeklyVowCallout == nil ? 0 : 1)
-                let featLabel = summary.weeklyVowCallout == nil ? "FEATS" : "BIND"
+                let proofCount = summary.tally.standardsCleared + summary.tally.unlocksGained + summary.tally.newBests
+                let featCount = summary.personalRecords.count + summary.badges.count + proofCount + (summary.weeklyVowCallout == nil ? 0 : 1)
+                let featLabel = proofCount > 0 ? "PROOF" : (summary.weeklyVowCallout == nil ? "FEATS" : "BIND")
                 HStack(spacing: 20) {
                     yieldToken(value: primaryXPValue, label: primaryXPLabel, tint: Color.rewardBlue)
-                    yieldToken(value: "\(summary.liftProgress.filter(\.didAdvanceTier).count)", label: "RANK UPS", tint: dominantLiftTint)
-                    yieldToken(value: "\(featCount)", label: featLabel, tint: summary.weeklyVowCallout?.theme.tintColor ?? Color.unbound.impact)
+                    yieldToken(value: "\(summary.liftProgress.filter(\.didAdvanceTier).count + summary.tally.ranksAdvanced)", label: "RANK UPS", tint: dominantLiftTint)
+                    yieldToken(value: "\(featCount)", label: featLabel, tint: proofCount > 0 ? proofTint : (summary.weeklyVowCallout?.theme.tintColor ?? Color.unbound.impact))
                 }
 
                 if let callout = summary.weeklyVowCallout {
@@ -734,7 +812,7 @@ struct WorkoutRewardSequenceView: View {
         case .xp:
             animatedXP = 0
             UnboundHaptics.heavy()
-        case .rankReveal, .attributes, .collection, .progression, .weeklyVow:
+        case .proof, .rankReveal, .attributes, .collection, .progression, .weeklyVow:
             UnboundHaptics.medium()
         case .sessionComplete, .final:
             UnboundHaptics.soft()
@@ -749,6 +827,16 @@ struct WorkoutRewardSequenceView: View {
 
     private var dominantLiftTint: Color {
         summary.liftProgress.first(where: \.didAdvanceTier)?.toTier.rewardTint ?? summary.liftProgress.first?.toTier.rewardTint ?? Color.rewardBlue
+    }
+
+    private var proofTint: Color {
+        if summary.tally.ranksAdvanced > 0 || summary.emblemIgnition {
+            return Color.unbound.rankGold
+        }
+        if summary.tally.unlocksGained > 0 {
+            return Color.unbound.impact
+        }
+        return Color.unbound.coachCyan
     }
 
     private var previousAttributeMap: [AttributeKey: Double] {
@@ -904,6 +992,30 @@ struct WorkoutRewardSequenceView: View {
         }
         .frame(maxWidth: .infinity)
     }
+
+    private func proofToken(value: String, label: String, tint: Color) -> some View {
+        VStack(spacing: 4) {
+            Text(value)
+                .font(.system(size: 22, weight: .black, design: .monospaced))
+                .foregroundStyle(tint)
+            Text(label)
+                .font(Font.unbound.captionS.weight(.heavy))
+                .tracking(1.0)
+                .foregroundStyle(Color.unbound.textTertiary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 10)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(tint.opacity(0.10))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(tint.opacity(0.24), lineWidth: 1)
+        )
+    }
 }
 
 // MARK: - Components
@@ -999,6 +1111,73 @@ private struct RewardPanel<Content: View>: View {
             .padding(.vertical, 8)
             .frame(maxWidth: .infinity, alignment: .center)
             .shadow(color: active ? tint.opacity(0.18) : .clear, radius: 24, y: 8)
+    }
+}
+
+private struct ProofRewardRow: View {
+    let beat: RewardBeat
+    let tint: Color
+
+    var body: some View {
+        HStack(spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(tint.opacity(0.14))
+                    .frame(width: 36, height: 36)
+                Image(systemName: iconName)
+                    .font(.system(size: 14, weight: .black))
+                    .foregroundStyle(tint)
+            }
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(beat.title.uppercased())
+                    .font(Font.unbound.bodyS.weight(.heavy))
+                    .foregroundStyle(Color.unbound.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.76)
+                Text(beat.subtitle.uppercased())
+                    .font(Font.unbound.captionS.weight(.semibold))
+                    .tracking(0.9)
+                    .foregroundStyle(Color.unbound.textTertiary)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.72)
+            }
+
+            Spacer(minLength: 8)
+
+            if let tier = beat.tier {
+                Text(tier.displayName.uppercased())
+                    .font(Font.unbound.captionS.weight(.black))
+                    .tracking(1.1)
+                    .foregroundStyle(tint)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.68)
+            }
+        }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color.unbound.surface.opacity(0.74))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(tint.opacity(0.18), lineWidth: 1)
+        )
+    }
+
+    private var iconName: String {
+        switch beat.kind {
+        case .standardCleared:
+            return "checkmark.seal.fill"
+        case .prereqCleared:
+            return "link.badge.plus"
+        case .skillUnlock:
+            return "sparkles"
+        case .rankAdvance:
+            return "chevron.up.2"
+        case .newBest:
+            return "flame.fill"
+        }
     }
 }
 

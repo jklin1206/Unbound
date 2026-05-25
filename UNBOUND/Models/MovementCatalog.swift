@@ -1340,7 +1340,7 @@ enum MovementCatalog {
             blockKind: .cardio,
             loggerMode: .cardio,
             aliases: cardioAliases(for: type),
-            attributeWeights: [.endurance: 0.7, .agility: 0.15, .power: 0.1, .control: 0.05],
+            attributeWeights: [.endurance: 0.75, .power: 0.1, .control: 0.15],
             canonicalExerciseName: nil,
             skillId: nil,
             cardioType: type,
@@ -1409,7 +1409,7 @@ enum MovementCatalog {
             blockKind: .carry,
             loggerMode: .carry,
             aliases: aliases,
-            attributeWeights: [.power: 0.4, .control: 0.25, .endurance: 0.25, .mobility: 0.1],
+            attributeWeights: [.power: 0.4, .control: 0.3, .endurance: 0.3],
             canonicalExerciseName: nil,
             skillId: nil,
             cardioType: nil,
@@ -1426,17 +1426,141 @@ enum MovementCatalog {
     }
 
     private static let mobilityDefinitions: [MovementDefinition] = [
-        mobility("hip-flexor-stretch", "Hip Flexor Stretch", aliases: ["hip flexor stretch", "couch stretch", "deep lunge hold"]),
-        mobility("hamstring-fold", "Hamstring Fold", aliases: ["hamstring fold", "seated forward fold", "forward fold"]),
-        mobility("pigeon-pose", "Pigeon Pose", aliases: ["pigeon pose", "figure-4", "figure 4"]),
-        mobility("thoracic-rotation", "Thoracic Rotation", aliases: ["thoracic rotation", "thread the needle", "spinal twist"]),
-        mobility("cat-cow", "Cat-Cow", aliases: ["cat-cow", "cat cow"]),
-        mobility("frog-stretch", "Frog Stretch", aliases: ["frog stretch"]),
-        mobility("wrist-prep", "Wrist Prep Flow", aliases: ["wrist prep flow", "wrist conditioning", "reverse wrist stretch", "finger pressure rocks"]),
-        mobility("shoulder-dislocates", "Shoulder Dislocates", aliases: ["shoulder dislocates", "shoulder circles"])
+        mobility(
+            "hip-flexor-stretch",
+            "Hip Flexor Stretch",
+            aliases: ["hip flexor stretch", "couch stretch", "deep lunge hold"],
+            muscleGroups: [.legs, .glutes],
+            bodyRegions: [.quads, .glutes]
+        ),
+        mobility(
+            "hamstring-fold",
+            "Hamstring Fold",
+            aliases: ["hamstring fold", "seated forward fold", "forward fold"],
+            muscleGroups: [.legs, .glutes, .back],
+            bodyRegions: [.hamstrings, .calves, .lowerBack]
+        ),
+        mobility(
+            "pigeon-pose",
+            "Pigeon Pose",
+            aliases: ["pigeon pose", "figure-4", "figure 4"],
+            muscleGroups: [.glutes, .legs],
+            bodyRegions: [.glutes, .hamstrings, .lowerBack]
+        ),
+        mobility(
+            "thoracic-rotation",
+            "Thoracic Rotation",
+            aliases: ["thoracic rotation", "thread the needle", "spinal twist"],
+            muscleGroups: [.back, .core],
+            bodyRegions: [.lats, .traps, .obliques]
+        ),
+        mobility(
+            "cat-cow",
+            "Cat-Cow",
+            aliases: ["cat-cow", "cat cow"],
+            muscleGroups: [.back, .core],
+            bodyRegions: [.lowerBack, .abs]
+        ),
+        mobility(
+            "frog-stretch",
+            "Frog Stretch",
+            aliases: ["frog stretch"],
+            muscleGroups: [.legs, .glutes],
+            bodyRegions: [.quads, .glutes]
+        ),
+        mobility(
+            "wrist-prep",
+            "Wrist Prep Flow",
+            aliases: ["wrist prep flow", "wrist conditioning", "reverse wrist stretch", "finger pressure rocks"],
+            muscleGroups: [.forearms],
+            bodyRegions: [.forearms]
+        ),
+        mobility(
+            "shoulder-dislocates",
+            "Shoulder Dislocates",
+            aliases: ["shoulder dislocates", "shoulder circles"],
+            muscleGroups: [.shoulders, .chest, .back],
+            bodyRegions: [.shoulders, .chest, .lats]
+        ),
+        mobility(
+            "deep-squat-hold",
+            "Deep Squat Hold",
+            aliases: ["deep squat hold", "resting squat", "deep squat"],
+            muscleGroups: [.legs, .glutes, .core],
+            bodyRegions: [.quads, .glutes, .calves, .lowerBack]
+        ),
+        mobility(
+            "ankle-rocks",
+            "Ankle Rocks",
+            aliases: ["ankle rocks", "ankle mobility rocks", "knee to wall"],
+            muscleGroups: [.calves, .legs],
+            bodyRegions: [.calves, .quads]
+        ),
+        mobility(
+            "standing-calf-stretch",
+            "Standing Calf Stretch",
+            aliases: ["standing calf stretch", "wall calf stretch", "calf stretch"],
+            muscleGroups: [.calves],
+            bodyRegions: [.calves]
+        ),
+        mobility(
+            "quad-stretch",
+            "Quad Stretch",
+            aliases: ["quad stretch", "standing quad stretch", "couch quad stretch"],
+            muscleGroups: [.legs, .glutes],
+            bodyRegions: [.quads, .glutes]
+        ),
+        mobility(
+            "doorway-pec-stretch",
+            "Doorway Pec Stretch",
+            aliases: ["doorway pec stretch", "doorway chest stretch", "pec stretch", "chest stretch"],
+            muscleGroups: [.chest, .shoulders],
+            bodyRegions: [.chest, .shoulders]
+        ),
+        mobility(
+            "lat-stretch",
+            "Lat Stretch",
+            aliases: ["lat stretch", "bench lat stretch", "prayer lat stretch"],
+            muscleGroups: [.lats, .back, .shoulders],
+            bodyRegions: [.lats, .shoulders, .lowerBack]
+        ),
+        mobility(
+            "childs-pose",
+            "Child's Pose",
+            aliases: ["child's pose", "childs pose", "kneeling lat stretch"],
+            muscleGroups: [.back, .shoulders, .core],
+            bodyRegions: [.lats, .shoulders, .lowerBack]
+        ),
+        mobility(
+            "ninety-ninety-hip-switch",
+            "90/90 Hip Switch",
+            aliases: ["90/90 hip switch", "90 90 hip switch", "shin box switch"],
+            muscleGroups: [.glutes, .legs, .core],
+            bodyRegions: [.glutes, .hamstrings, .obliques]
+        ),
+        mobility(
+            "cobra-stretch",
+            "Cobra Stretch",
+            aliases: ["cobra stretch", "upward dog", "press up stretch"],
+            muscleGroups: [.core, .back],
+            bodyRegions: [.abs, .lowerBack]
+        ),
+        mobility(
+            "worlds-greatest-stretch",
+            "World's Greatest Stretch",
+            aliases: ["world's greatest stretch", "worlds greatest stretch", "runner lunge rotation"],
+            muscleGroups: [.legs, .glutes, .back, .core],
+            bodyRegions: [.quads, .hamstrings, .glutes, .lats, .obliques]
+        )
     ]
 
-    private static func mobility(_ id: String, _ displayName: String, aliases: [String]) -> MovementDefinition {
+    private static func mobility(
+        _ id: String,
+        _ displayName: String,
+        aliases: [String],
+        muscleGroups: [MuscleGroup] = [.core],
+        bodyRegions: [BodyRegion] = [.abs, .obliques, .lowerBack]
+    ) -> MovementDefinition {
         MovementDefinition(
             id: "mobility.\(id)",
             displayName: displayName,
@@ -1453,8 +1577,8 @@ enum MovementCatalog {
             defaultMetric: .durationSeconds,
             equipment: [.bodyweight, .mobilityTool],
             difficulty: .beginner,
-            muscleGroups: [.core],
-            bodyRegions: [.abs, .obliques, .lowerBack],
+            muscleGroups: muscleGroups,
+            bodyRegions: bodyRegions,
             movementSlot: .mobility,
             substitutionGroup: "mobility.general",
             skillAssociations: [],
@@ -1620,15 +1744,15 @@ enum MovementCatalog {
     private static func skillAttributeWeights(for node: SkillNode) -> [AttributeKey: Double] {
         switch node.cluster {
         case .pullingPower:
-            return [.power: 0.45, .control: 0.25, .endurance: 0.2, .mobility: 0.1]
+            return [.power: 0.45, .control: 0.3, .endurance: 0.25]
         case .calisthenicControl, .planche, .handstand, .handstandPushup, .oneArmHandstand:
-            return [.control: 0.45, .power: 0.25, .mobility: 0.2, .endurance: 0.1]
+            return [.control: 0.55, .power: 0.25, .endurance: 0.2]
         case .coreLever:
-            return [.control: 0.55, .mobility: 0.2, .power: 0.15, .endurance: 0.1]
+            return [.control: 0.65, .power: 0.2, .endurance: 0.15]
         case .legDominance:
-            return [.power: 0.4, .control: 0.25, .mobility: 0.2, .endurance: 0.15]
+            return [.power: 0.45, .control: 0.35, .endurance: 0.2]
         case .conditioning:
-            return [.endurance: 0.65, .power: 0.15, .control: 0.1, .mobility: 0.1]
+            return [.endurance: 0.7, .power: 0.15, .control: 0.15]
         }
     }
 
@@ -1705,7 +1829,7 @@ enum MovementCatalog {
             blockKind: .skill,
             loggerMode: .skillAttempts,
             aliases: aliases,
-            attributeWeights: [.control: 0.55, .mobility: 0.2, .power: 0.15, .endurance: 0.1],
+            attributeWeights: [.control: 0.6, .power: 0.2, .endurance: 0.2],
             canonicalExerciseName: nil,
             skillId: skillId,
             cardioType: nil,

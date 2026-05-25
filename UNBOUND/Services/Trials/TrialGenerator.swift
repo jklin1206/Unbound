@@ -122,7 +122,7 @@ enum WeeklyVowGenerator {
     private static func lowBindingName(for axis: AttributeKey) -> String {
         switch axis {
         case .power: return "Iron Rule Vow"
-        case .agility: return "Quiet Step Vow"
+        case .agility: return "Recovery Rule Vow"
         case .control: return "Still Heart Vow"
         case .endurance: return "Last Breath Vow"
         case .mobility: return "Open Gate Vow"
@@ -133,7 +133,7 @@ enum WeeklyVowGenerator {
     private static func limitBindingName(for axis: AttributeKey) -> String {
         switch axis {
         case .power: return "Limit Break Vow"
-        case .agility: return "Flash Step Vow"
+        case .agility: return "Deep Reset Vow"
         case .control: return "Hollow Core Vow"
         case .endurance: return "Redline Vow"
         case .mobility: return "Flow State Vow"

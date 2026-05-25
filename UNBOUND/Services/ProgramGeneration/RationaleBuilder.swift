@@ -13,6 +13,14 @@ enum RationaleBuilder {
     ) -> ProgramRationale {
         var decisions: [ProgramRationale.Decision] = []
 
+        if input.calibration.requiresLearningWeek {
+            decisions.append(.init(
+                inputSummary: "No reliable working standards yet",
+                decisionApplied: "Week 1 is Calibration Week: find honest RPE 6-7 baselines before the first Arc",
+                iconSystemName: "target"
+            ))
+        }
+
         // 1. Frequency → split
         let daysCount = input.targetFrequency.numericCount
         let splitLabels = split.trainingDayTemplates.map(\.displayLabel).joined(separator: " / ")
@@ -68,8 +76,10 @@ enum RationaleBuilder {
         }
 
         return ProgramRationale(
-            headline: "Why this program",
-            summaryCopy: "Deterministic plan built from your scan, equipment, and training days.",
+            headline: input.calibration.requiresLearningWeek ? "Why calibration starts first" : "Why this program",
+            summaryCopy: input.calibration.requiresLearningWeek
+                ? "The app is learning your standard before prescribing a real Arc."
+                : "Deterministic plan built from your scan, equipment, and training days.",
             decisions: decisions
         )
     }

@@ -56,7 +56,7 @@ final class ProgramSurfaceStateTests: XCTestCase {
             now: now
         )
         XCTAssertEqual(complete.kind, .blockComplete)
-        XCTAssertEqual(complete.primaryActionTitle, "Build Next Block")
+        XCTAssertEqual(complete.primaryActionTitle, "Build Next Arc")
     }
 
     func testProgramProofFixturesResolveToRequestedSurfaceStates() {

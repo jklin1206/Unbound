@@ -1,219 +1,519 @@
 // UNBOUND/Views/Squads/SquadMemberDetailView.swift
-//
-// Read-only view pushed when a crew member's card is tapped.
-// No messaging or comments in v1.
 import SwiftUI
 
 struct SquadMemberDetailView: View {
+    @EnvironmentObject var services: ServiceContainer
+    @ObservedObject private var photoStore = ProfilePhotoStore.shared
+
     let member: SquadMember
     let roster: [SquadMember]
 
+    @State private var userProfile: UserProfile?
+    @State private var attributeProfile: AttributeProfile = .empty(userId: "", at: .now)
+    @State private var aggregateTier: SkillTier = .initiate
     @State private var memberActivity: [SquadActivityEntry] = []
+    @State private var workoutLogs: [WorkoutLog] = []
+    @State private var activeChallenges: [FriendChallenge] = []
     @State private var isLoading = true
 
-    // Derived: entries where kind == .titleUnlocked (rank-up proxy)
-    private var rankUpCount: Int {
-        memberActivity.filter { $0.kind == .titleUnlocked }.count
+    private var profileUserId: String {
+        if let current = services.auth.currentUserId,
+           SquadUserIdentity.uuid(from: current) == member.userId {
+            return current
+        }
+        return member.userId.uuidString
+    }
+
+    private var accountabilityBadge: AccountabilityBadgeState {
+        AccountabilityBadgeState(userId: member.userId, clearedCount: challengeClears)
     }
 
     var body: some View {
-        ScrollView {
-            LazyVStack(spacing: 16) {
-                // 1. Hero: BuildIdentity + displayName
-                heroSection
-                // 2. Equipped TitleBadge
-                if let titleId = member.equippedTitle {
-                    equippedTitleSection(titleId: titleId)
+        ZStack(alignment: .top) {
+            Color.unbound.bg.ignoresSafeArea()
+            backdrop
+
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 18) {
+                    heroSection
+                    ProfileBuildCard(profile: attributeProfile)
+                    weeklySessionsSection
+                    accountabilitySection
+                    recentWorkoutsSection
+                    activeChallengesSection
                 }
-                // 3. ASCENDANT SKILLS — placeholder
-                ascendantSkillsSection
-                // 4. Rank-ups counter
-                rankUpsSection
-                // 5. Recent activity feed for this member
-                recentActivitySection
+                .padding(.horizontal, 20)
+                .padding(.top, 8)
+                .padding(.bottom, 96)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 20)
         }
-        .background(Color.unbound.bg.ignoresSafeArea())
-        .navigationTitle(member.displayName)
+        .navigationTitle(displayName)
         .navigationBarTitleDisplayMode(.inline)
-        .task { await load() }
+        .task(id: profileUserId) { await load() }
     }
 
-    // MARK: - Hero section
+    private var backdrop: some View {
+        LinearGradient(
+            colors: [
+                aggregateTier.rewardTint.opacity(0.16),
+                Color.unbound.bg.opacity(0.20),
+                Color.clear
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+        .frame(height: 320)
+        .ignoresSafeArea(edges: .top)
+        .allowsHitTesting(false)
+    }
 
     private var heroSection: some View {
-        RoundedRectangle(cornerRadius: 16, style: .continuous)
-            .fill(Color.unbound.surface)
-            .overlay(
-                VStack(spacing: 12) {
-                    // Avatar
-                    ZStack {
-                        Circle().fill(Color.unbound.accent.opacity(0.2))
-                        Text(initials)
-                            .font(.system(size: 22, weight: .heavy))
-                            .foregroundStyle(Color.unbound.accent)
-                    }
-                    .frame(width: 60, height: 60)
-
-                    // Display name
-                    Text(member.displayName)
-                        .font(Font.unbound.titleM)
-                        .foregroundStyle(Color.unbound.textPrimary)
-
-                    // BuildIdentity
-                    if let identity = member.buildIdentity {
-                        // TODO(squads-impl, Phase 16+): Replace text+bars with real
-                        // BuildHexView once per-member AttributeProfile snapshots flow
-                        // to SquadMember.buildIdentity.
-                        VStack(spacing: 4) {
-                            Text(identity.displayName)
-                                .font(Font.unbound.bodyMStrong)
-                                .foregroundStyle(Color.unbound.accent)
-                            Text(identity.tagline)
-                                .font(Font.unbound.bodyM)
-                                .foregroundStyle(Color.unbound.textSecondary)
-                                .multilineTextAlignment(.center)
-                        }
-                    } else {
-                        Text("Build identity not set")
-                            .font(Font.unbound.bodyM)
-                            .foregroundStyle(Color.unbound.textTertiary)
-                    }
-                }
-                .padding(20)
-            )
-    }
-
-    // MARK: - Equipped title
-
-    private func equippedTitleSection(titleId: TitleID) -> some View {
-        RoundedRectangle(cornerRadius: 14, style: .continuous)
-            .fill(Color.unbound.surface)
-            .overlay(
-                HStack {
-                    VStack(alignment: .leading, spacing: 6) {
-                        sectionHeader("EQUIPPED TITLE")
-                        TitleBadge(titleId: titleId, compact: false)
-                    }
-                    Spacer()
-                }
-                .padding(14)
-            )
-    }
-
-    // MARK: - Ascendant Skills
-
-    private var ascendantSkillsSection: some View {
-        RoundedRectangle(cornerRadius: 14, style: .continuous)
-            .fill(Color.unbound.surface)
-            .overlay(
-                VStack(alignment: .leading, spacing: 8) {
-                    sectionHeader("ASCENDANT SKILLS")
-                    // TODO(squads-impl, Phase 16+): Render member's gold-tier individual
-                    // Titles here once the member skill-tier snapshot is returned as part
-                    // of SquadMember. For v1, SquadMember.buildIdentity does not carry
-                    // individual skill nodes; this section is an intentional placeholder.
-                    Text("Skill data available after first sync.")
-                        .font(Font.unbound.bodyM)
-                        .foregroundStyle(Color.unbound.textTertiary)
-                }
-                .padding(14)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            )
-    }
-
-    // MARK: - Rank-ups counter
-
-    private var rankUpsSection: some View {
-        RoundedRectangle(cornerRadius: 14, style: .continuous)
-            .fill(Color.unbound.surface)
-            .overlay(
-                HStack(spacing: 12) {
-                    Image(systemName: "arrow.up.circle.fill")
-                        .font(.system(size: 22))
-                        .foregroundStyle(Color.unbound.rankGold)
-                    VStack(alignment: .leading, spacing: 2) {
-                        sectionHeader("RANK-UPS")
-                        Text("\(rankUpCount)")
-                            .font(Font.unbound.titleS)
-                            .foregroundStyle(Color.unbound.textPrimary)
-                    }
-                    Spacer()
-                }
-                .padding(14)
-            )
-            .frame(height: 64)
-    }
-
-    // MARK: - Recent activity
-
-    private var recentActivitySection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            sectionHeader("RECENT ACTIVITY")
-            if isLoading {
-                HStack {
-                    Spacer()
-                    ProgressView()
-                        .tint(Color.unbound.accent)
-                    Spacer()
-                }
-                .padding(.vertical, 20)
-            } else if memberActivity.isEmpty {
-                Text("No activity yet.")
-                    .font(Font.unbound.bodyM)
-                    .foregroundStyle(Color.unbound.textTertiary)
-                    .padding(.vertical, 12)
-            } else {
-                LazyVStack(spacing: 0) {
-                    ForEach(memberActivity) { entry in
-                        ActivityFeedRow(entry: entry, roster: roster)
-                        if entry.id != memberActivity.last?.id {
-                            Divider()
-                                .overlay(Color.unbound.borderSubtle)
-                        }
-                    }
-                }
-                .background(
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .fill(Color.unbound.surface)
+        HStack(alignment: .center, spacing: 16) {
+            ZStack(alignment: .bottomTrailing) {
+                CosmeticAvatar(
+                    tier: RankCosmetics.equippedFrameTier(userId: profileUserId, currentTier: aggregateTier),
+                    size: 92,
+                    image: photoStore.image(userId: profileUserId),
+                    letterFallback: avatarInitial
                 )
-                .padding(.horizontal, 12)
+
+                Circle()
+                    .fill(presenceTint)
+                    .frame(width: 13, height: 13)
+                    .overlay(Circle().stroke(Color.unbound.bg, lineWidth: 2))
+                    .offset(x: -8, y: -8)
+            }
+            .shadow(color: aggregateTier.rewardTint.opacity(0.24), radius: 16, y: 8)
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text(displayName.uppercased())
+                    .font(.system(size: 25, weight: .black))
+                    .tracking(0.2)
+                    .foregroundStyle(Color.unbound.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.58)
+
+                if let handle = displayHandle {
+                    Text(handle)
+                        .font(.system(size: 11, weight: .bold, design: .monospaced))
+                        .tracking(1.1)
+                        .foregroundStyle(aggregateTier.rewardTextTint)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.62)
+                }
+
+                if let titleId = member.equippedTitle {
+                    TitleBadge(titleId: titleId, compact: false)
+                } else {
+                    Text(attributeProfile.buildName.uppercased())
+                        .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                        .tracking(1.4)
+                        .foregroundStyle(Color.unbound.textTertiary)
+                        .lineLimit(1)
+                }
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(16)
+        .memberPanel(tint: aggregateTier.rewardTint, cornerRadius: 22)
+        .overlay(alignment: .topTrailing) {
+            if isLoading {
+                ProgressView()
+                    .tint(Color.unbound.accent)
+                    .padding(16)
             }
         }
     }
 
-    // MARK: - Helpers
+    private var weeklySessionsSection: some View {
+        HStack(spacing: 12) {
+            metricBlock(value: "\(weeklySessionCount)", label: "THIS WEEK", tint: Color.unbound.accent)
+            metricBlock(value: "\(workoutLogs.count)", label: "LOGS", tint: aggregateTier.rewardTint)
+            metricBlock(value: aggregateTier.displayName.uppercased(), label: "TIER", tint: aggregateTier.rewardTint)
+        }
+    }
 
-    private var initials: String {
-        member.displayName
-            .split(separator: " ")
-            .compactMap(\.first)
-            .prefix(2)
-            .map(String.init)
-            .joined()
-            .uppercased()
+    private var accountabilitySection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 12) {
+                ZStack {
+                    Circle().fill(Color.unbound.accent.opacity(0.16))
+                    Circle().strokeBorder(Color.unbound.accent.opacity(0.42), lineWidth: 1)
+                    Image(systemName: "checkmark.seal.fill")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundStyle(Color.unbound.accent)
+                    Text(accountabilityBadge.currentTier.roman)
+                        .font(.system(size: 8, weight: .heavy, design: .monospaced))
+                        .foregroundStyle(Color.unbound.textPrimary)
+                        .offset(y: 20)
+                }
+                .frame(width: 54, height: 54)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    sectionHeader("ACCOUNTABILITY")
+                    Text(accountabilityBadge.currentTier == .none ? "No badge yet" : "Tier \(accountabilityBadge.currentTier.roman)")
+                        .font(Font.unbound.titleS)
+                        .foregroundStyle(Color.unbound.textPrimary)
+                    Text(accountabilityCopy)
+                        .font(Font.unbound.bodyM)
+                        .foregroundStyle(Color.unbound.textSecondary)
+                        .lineLimit(2)
+                }
+                Spacer(minLength: 0)
+            }
+
+            progressBar(value: accountabilityBadge.progressToNextTier, tint: Color.unbound.accent)
+        }
+        .padding(15)
+        .memberPanel(tint: Color.unbound.accent, cornerRadius: 20)
+    }
+
+    private var recentWorkoutsSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            sectionHeader("LAST WORKOUTS")
+            if isLoading {
+                loadingRow
+            } else if !recentWorkoutRows.isEmpty {
+                VStack(spacing: 8) {
+                    ForEach(recentWorkoutRows) { row in
+                        workoutRow(row)
+                    }
+                }
+            } else {
+                emptyRow("No recent workouts yet.", icon: "figure.strengthtraining.traditional")
+            }
+        }
+    }
+
+    private var activeChallengesSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            sectionHeader("CURRENTLY IN")
+            if activeChallenges.isEmpty {
+                emptyRow("No active challenge participation.", icon: "flag.checkered")
+            } else {
+                VStack(spacing: 8) {
+                    ForEach(activeChallenges) { challenge in
+                        challengeRow(challenge)
+                    }
+                }
+            }
+        }
+    }
+
+    private var loadingRow: some View {
+        HStack {
+            ProgressView().tint(Color.unbound.accent)
+            Text("Loading profile data")
+                .font(Font.unbound.bodyM)
+                .foregroundStyle(Color.unbound.textSecondary)
+            Spacer(minLength: 0)
+        }
+        .padding(14)
+        .memberPanel(tint: Color.unbound.textTertiary, cornerRadius: 18)
+    }
+
+    private func metricBlock(value: String, label: String, tint: Color) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(value)
+                .font(.system(size: 16, weight: .heavy, design: .monospaced))
+                .foregroundStyle(Color.unbound.textPrimary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.54)
+            Text(label)
+                .font(.system(size: 8, weight: .heavy, design: .monospaced))
+                .tracking(1.1)
+                .foregroundStyle(tint)
+                .lineLimit(1)
+                .minimumScaleFactor(0.62)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .memberPanel(tint: tint, cornerRadius: 16)
+    }
+
+    private func workoutRow(_ row: WorkoutProfileRow) -> some View {
+        HStack(alignment: .top, spacing: 11) {
+            Image(systemName: row.icon)
+                .font(.system(size: 13, weight: .bold))
+                .foregroundStyle(row.tint)
+                .frame(width: 30, height: 30)
+                .background(Circle().fill(row.tint.opacity(0.14)))
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(row.title)
+                    .font(Font.unbound.bodyMStrong)
+                    .foregroundStyle(Color.unbound.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+                Text(row.subtitle)
+                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                    .tracking(0.5)
+                    .foregroundStyle(Color.unbound.textTertiary)
+                    .lineLimit(1)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(12)
+        .memberPanel(tint: row.tint, cornerRadius: 18)
+    }
+
+    private func challengeRow(_ challenge: FriendChallenge) -> some View {
+        HStack(spacing: 11) {
+            Image(systemName: challenge.isPending ? "hourglass" : "flag.checkered")
+                .font(.system(size: 13, weight: .bold))
+                .foregroundStyle(challenge.isPending ? Color.unbound.warnOrange : Color.unbound.accent)
+                .frame(width: 30, height: 30)
+                .background(Circle().fill((challenge.isPending ? Color.unbound.warnOrange : Color.unbound.accent).opacity(0.14)))
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(challenge.kind.displayName)
+                    .font(Font.unbound.bodyMStrong)
+                    .foregroundStyle(Color.unbound.textPrimary)
+                    .lineLimit(1)
+                Text(challengeOpponentCopy(challenge))
+                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                    .foregroundStyle(Color.unbound.textTertiary)
+                    .lineLimit(1)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(12)
+        .memberPanel(tint: challenge.isPending ? Color.unbound.warnOrange : Color.unbound.accent, cornerRadius: 18)
+    }
+
+    private func emptyRow(_ copy: String, icon: String) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: icon)
+                .font(.system(size: 13, weight: .bold))
+                .foregroundStyle(Color.unbound.textTertiary)
+                .frame(width: 28, height: 28)
+                .background(Circle().fill(Color.unbound.surfaceElevated.opacity(0.78)))
+            Text(copy)
+                .font(Font.unbound.bodyM)
+                .foregroundStyle(Color.unbound.textSecondary)
+            Spacer(minLength: 0)
+        }
+        .padding(14)
+        .memberPanel(tint: Color.unbound.textTertiary, cornerRadius: 18)
     }
 
     private func sectionHeader(_ label: String) -> some View {
-        Text(label)
-            .font(.system(size: 10, weight: .heavy, design: .monospaced))
-            .tracking(1.5)
-            .foregroundStyle(Color.unbound.textTertiary)
+        HStack(spacing: 8) {
+            Capsule()
+                .fill(Color.unbound.accent.opacity(0.9))
+                .frame(width: 3, height: 13)
+            Text(label)
+                .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                .tracking(1.5)
+                .foregroundStyle(Color.unbound.textTertiary)
+        }
     }
 
-    private func load() async {
-        guard let userId = AuthService.shared.currentUserId else {
-            isLoading = false
-            return
+    private func progressBar(value: Double, tint: Color) -> some View {
+        GeometryReader { proxy in
+            ZStack(alignment: .leading) {
+                Capsule().fill(Color.white.opacity(0.08))
+                Capsule()
+                    .fill(tint)
+                    .frame(width: proxy.size.width * CGFloat(min(max(value, 0), 1)))
+                    .shadow(color: tint.opacity(0.32), radius: 8)
+            }
         }
-        let all = (try? await SquadActivityService.shared.fetchRecent(userId: userId)) ?? []
-        memberActivity = all
-            .filter { $0.userId == member.userId }
-            .prefix(20)
-            .map { $0 }
+        .frame(height: 6)
+    }
+
+    private var displayName: String {
+        if let name = userProfile?.displayName?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !name.isEmpty {
+            return name
+        }
+        if let handle = userProfile?.displayHandle?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !handle.isEmpty {
+            return handle.trimmingCharacters(in: CharacterSet(charactersIn: "@"))
+        }
+        if isCurrentMember, ["Captain", "You"].contains(member.displayName) {
+            return "You"
+        }
+        return member.displayName
+    }
+
+    private var displayHandle: String? {
+        guard let handle = userProfile?.displayHandle?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !handle.isEmpty
+        else { return nil }
+        return "@\(handle.trimmingCharacters(in: CharacterSet(charactersIn: "@")))"
+    }
+
+    private var avatarInitial: String {
+        displayName.first.map { String($0).uppercased() } ?? "U"
+    }
+
+    private var isCurrentMember: Bool {
+        guard let current = services.auth.currentUserId else { return false }
+        return SquadUserIdentity.uuid(from: current) == member.userId
+    }
+
+    private var presenceTint: Color {
+        activeChallenges.isEmpty ? Color.unbound.textTertiary : Color.unbound.accent
+    }
+
+    private var weeklySessionCount: Int {
+        let interval = currentWeekInterval
+        let logged = workoutLogs.filter { log in
+            interval.contains(log.completedAt ?? log.startedAt)
+        }.count
+        let activity = memberActivity.filter { entry in
+            entry.kind == .trialCompleted && interval.contains(entry.createdAt)
+        }.count
+        return max(logged, activity)
+    }
+
+    private var challengeClears: Int {
+        activeChallenges.filter { $0.winnerUserId == member.userId }.count
+    }
+
+    private var recentWorkoutRows: [WorkoutProfileRow] {
+        let logRows = workoutLogs.prefix(3).map { log in
+            WorkoutProfileRow(
+                id: log.id,
+                title: log.plannedWorkoutName,
+                subtitle: profileDateString(log.completedAt ?? log.startedAt),
+                icon: "figure.strengthtraining.traditional",
+                tint: Color.unbound.accent
+            )
+        }
+        if !logRows.isEmpty { return Array(logRows) }
+
+        return memberActivity
+            .filter { $0.kind == .trialCompleted }
+            .prefix(3)
+            .map { entry in
+                WorkoutProfileRow(
+                    id: entry.id.uuidString,
+                    title: workoutTitle(for: entry),
+                    subtitle: profileDateString(entry.createdAt),
+                    icon: "seal.fill",
+                    tint: Color.unbound.warnOrange
+                )
+            }
+    }
+
+    private var accountabilityCopy: String {
+        guard let target = accountabilityBadge.nextTierTarget else {
+            return "\(accountabilityBadge.clearedCount) clears. Max tier earned."
+        }
+        return "\(accountabilityBadge.clearedCount)/\(target) clears to next tier."
+    }
+
+    private var currentWeekInterval: DateInterval {
+        var calendar = Calendar(identifier: .iso8601)
+        calendar.timeZone = .current
+        return calendar.dateInterval(of: .weekOfYear, for: Date()) ?? DateInterval(start: Date(), duration: 7 * 24 * 60 * 60)
+    }
+
+    private func profileDateString(_ date: Date) -> String {
+        date.formatted(date: .abbreviated, time: .omitted)
+    }
+
+    private func workoutTitle(for entry: SquadActivityEntry) -> String {
+        if case .trialCompleted(let trialName, _) = entry.payload {
+            return trialName
+        }
+        return "Workout"
+    }
+
+    private func challengeOpponentCopy(_ challenge: FriendChallenge) -> String {
+        let otherId = challenge.challengerId == member.userId ? challenge.challengedId : challenge.challengerId
+        let name = roster.first(where: { $0.userId == otherId })?.displayName ?? "Crewmate"
+        return challenge.isPending ? "Pending with \(name)" : "Active with \(name)"
+    }
+
+    @MainActor
+    private func load() async {
+        isLoading = true
+        let resolvedUserId = profileUserId
+
+        userProfile = try? await services.user.fetchProfile(userId: resolvedUserId)
+        attributeProfile = services.attribute.snapshot(userId: resolvedUserId, asOf: .now)
+        aggregateTier = await services.rank.aggregateTier(userId: resolvedUserId)
+        workoutLogs = await fetchWorkoutLogs(userId: resolvedUserId)
+        activeChallenges = await services.friendChallenge.activeChallenges(userId: member.userId)
+
+        if let viewerId = services.auth.currentUserId {
+            let all = (try? await services.squadActivity.fetchRecent(userId: viewerId)) ?? []
+            memberActivity = all.filter { $0.userId == member.userId }
+        } else {
+            memberActivity = []
+        }
+
         isLoading = false
+    }
+
+    @MainActor
+    private func fetchWorkoutLogs(userId: String) async -> [WorkoutLog] {
+        (try? await services.database.query(
+            collection: "workoutLogs",
+            field: "userId",
+            isEqualTo: userId,
+            orderBy: "startedAt",
+            descending: true,
+            limit: 20
+        )) ?? []
+    }
+}
+
+private struct WorkoutProfileRow: Identifiable {
+    let id: String
+    let title: String
+    let subtitle: String
+    let icon: String
+    let tint: Color
+}
+
+private struct SquadMemberPanelStyle: ViewModifier {
+    let tint: Color
+    let cornerRadius: CGFloat
+
+    func body(content: Content) -> some View {
+        content
+            .background(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                tint.opacity(0.10),
+                                Color.unbound.surface.opacity(0.90),
+                                Color.unbound.bg.opacity(0.62)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .strokeBorder(
+                        LinearGradient(
+                            colors: [
+                                Color.white.opacity(0.10),
+                                tint.opacity(0.25),
+                                Color.unbound.borderSubtle
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1
+                    )
+            )
+    }
+}
+
+private extension View {
+    func memberPanel(tint: Color, cornerRadius: CGFloat) -> some View {
+        modifier(SquadMemberPanelStyle(tint: tint, cornerRadius: cornerRadius))
     }
 }
 
@@ -231,5 +531,6 @@ struct SquadMemberDetailView: View {
             ),
             roster: []
         )
+        .environmentObject(ServiceContainer.mock)
     }
 }

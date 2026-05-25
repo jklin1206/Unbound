@@ -13,6 +13,10 @@ struct SessionEditorView: View {
     @State private var isPersistingEdits = false
     @State private var focusedTarget: PrescriptionTarget?
     @State private var draggingTarget: PrescriptionTarget?
+    @State private var showSaveWorkoutSheet = false
+    @State private var showSkillBlockPicker = false
+    @State private var savedWorkoutConfirmation: SavedWorkoutConfirmation?
+    @State private var skillBlockConfirmation: SkillBlockConfirmation?
 
     @EnvironmentObject private var services: ServiceContainer
     @Environment(\.dismiss) private var dismiss
@@ -35,6 +39,8 @@ struct SessionEditorView: View {
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 16) {
                         summaryCard
+                        saveWorkoutAction
+                        skillBlockAction
                         compactPersistenceStrip
                         blocksList
                     }
@@ -89,10 +95,51 @@ struct SessionEditorView: View {
             }
             .environmentObject(services)
         }
+        .sheet(isPresented: $showSaveWorkoutSheet) {
+            SaveWorkoutSheet(
+                draft: draft,
+                existingWorkouts: SavedWorkoutStore.shared.all()
+            ) { savedWorkout in
+                SavedWorkoutStore.shared.save(savedWorkout)
+                savedWorkoutConfirmation = SavedWorkoutConfirmation(title: savedWorkout.title)
+            }
+        }
+        .sheet(isPresented: $showSkillBlockPicker) {
+            SkillBlockPickerSheet(
+                activeGoalIDs: Array(SkillProgressService.shared.activeGoalIds),
+                onPick: { node, kind in
+                    draft = SkillBlockRouter.insert(
+                        skillID: node.id,
+                        title: node.title,
+                        kind: kind,
+                        into: draft
+                    )
+                    skillBlockConfirmation = SkillBlockConfirmation(title: node.title, kind: kind)
+                    showSkillBlockPicker = false
+                },
+                onDismiss: {
+                    showSkillBlockPicker = false
+                }
+            )
+        }
         .alert("Add at least one exercise", isPresented: $showEmptyWorkoutWarning) {
             Button("OK", role: .cancel) {}
         } message: {
             Text("A session needs at least one exercise before it can start.")
+        }
+        .alert(item: $savedWorkoutConfirmation) { confirmation in
+            Alert(
+                title: Text("Saved Workout"),
+                message: Text("\(confirmation.title) is ready to reuse from this phone."),
+                dismissButton: .default(Text("OK"))
+            )
+        }
+        .alert(item: $skillBlockConfirmation) { confirmation in
+            Alert(
+                title: Text("Skill Block Added"),
+                message: Text("\(confirmation.title) was inserted as a \(confirmation.kind.displayName.lowercased()) block."),
+                dismissButton: .default(Text("OK"))
+            )
         }
         .task {
             await loadPickerContext()
@@ -209,6 +256,88 @@ struct SessionEditorView: View {
             RoundedRectangle(cornerRadius: 10, style: .continuous)
                 .fill(Color.unbound.bg.opacity(0.74))
         )
+    }
+
+    private var saveWorkoutAction: some View {
+        Button {
+            guard exerciseCount > 0 else {
+                showEmptyWorkoutWarning = true
+                return
+            }
+            UnboundHaptics.soft()
+            showSaveWorkoutSheet = true
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "square.and.arrow.down")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(Color.unbound.coachCyan)
+                    .frame(width: 30, height: 30)
+                    .background(Circle().fill(Color.unbound.coachCyan.opacity(0.13)))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Save Workout")
+                        .font(Font.unbound.bodyS.weight(.heavy))
+                        .foregroundStyle(Color.unbound.textPrimary)
+                    Text("Store this edited session as a reusable Saved Workout.")
+                        .font(Font.unbound.captionS)
+                        .foregroundStyle(Color.unbound.textSecondary)
+                        .lineLimit(2)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Color.unbound.textTertiary)
+            }
+            .padding(12)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(Color.unbound.surface)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("sessionEditor.saveWorkout")
+    }
+
+    private var skillBlockAction: some View {
+        Button {
+            UnboundHaptics.soft()
+            showSkillBlockPicker = true
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(Color.unbound.accent)
+                    .frame(width: 30, height: 30)
+                    .background(Circle().fill(Color.unbound.accent.opacity(0.13)))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Add Skill Block")
+                        .font(Font.unbound.bodyS.weight(.heavy))
+                        .foregroundStyle(Color.unbound.textPrimary)
+                    Text("Insert primer, main, accessory, or mobility skill work into this session.")
+                        .font(Font.unbound.captionS)
+                        .foregroundStyle(Color.unbound.textSecondary)
+                        .lineLimit(2)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Color.unbound.textTertiary)
+            }
+            .padding(12)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(Color.unbound.surface)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("sessionEditor.addSkillBlock")
     }
 
     private var compactPersistenceStrip: some View {
@@ -861,6 +990,17 @@ struct SessionEditorView: View {
                 return "custom-swap-\(target.id)"
             }
         }
+    }
+
+    private struct SavedWorkoutConfirmation: Identifiable {
+        let id = UUID()
+        let title: String
+    }
+
+    private struct SkillBlockConfirmation: Identifiable {
+        let id = UUID()
+        let title: String
+        let kind: SkillBlockKind
     }
 
     private struct PrescriptionDropDelegate: DropDelegate {

@@ -5,18 +5,18 @@ import XCTest
 
 final class DeterministicProgramGeneratorTests: XCTestCase {
 
-    func testGeneratesExactlyFourteenDays() throws {
+    func testGeneratesExactlyTwentyEightDaysForStandardReadyArc() throws {
         let input = makeInput(frequency: .four, trainingDays: [.monday, .tuesday, .thursday, .friday])
         let program = try DeterministicProgramGenerator.generate(input: input)
-        XCTAssertEqual(program.days.count, 14)
+        XCTAssertEqual(program.days.count, 28)
     }
 
-    func testTrainingDayCountMatchesTwiceTheFrequency() throws {
+    func testTrainingDayCountMatchesFourTrainingWeeks() throws {
         let days: Set<Weekday> = [.monday, .wednesday, .friday]
         let input = makeInput(frequency: .three, trainingDays: days)
         let program = try DeterministicProgramGenerator.generate(input: input)
         let trainingCount = program.days.filter { !$0.isRestDay }.count
-        XCTAssertEqual(trainingCount, 6) // 3/wk × 2 weeks
+        XCTAssertEqual(trainingCount, 12) // 3/wk x 4 weeks
     }
 
     func testRestDaysHaveNoWorkout() throws {
@@ -38,10 +38,97 @@ final class DeterministicProgramGeneratorTests: XCTestCase {
         }
     }
 
-    func testDurationDaysIsFourteen() throws {
+    func testDurationDaysIsTwentyEight() throws {
         let input = makeInput(frequency: .three, trainingDays: [.monday, .wednesday, .friday])
         let program = try DeterministicProgramGenerator.generate(input: input)
-        XCTAssertEqual(program.durationDays, 14)
+        XCTAssertEqual(program.durationDays, 28)
+        XCTAssertEqual(program.currentArc?.currentWave(asOf: input.blockStartDate), .wave1)
+        XCTAssertEqual(program.currentArc?.currentWave(asOf: input.blockStartDate.addingTimeInterval(14 * 86_400)), .wave2)
+    }
+
+    func testCalibrationWeekGeneratesSevenDayLearningProgram() throws {
+        var input = makeInput(
+            frequency: .three,
+            trainingDays: [.tuesday, .thursday, .saturday]
+        )
+        input.calibration = .learningWeek()
+
+        let program = try DeterministicProgramGenerator.generate(input: input)
+
+        XCTAssertEqual(program.name, "Calibration Week")
+        XCTAssertEqual(program.durationDays, 7)
+        XCTAssertEqual(program.days.count, 7)
+        XCTAssertTrue(program.rationale?.headline.localizedCaseInsensitiveContains("calibration") == true)
+
+        let workouts = program.days.compactMap(\.workout)
+        XCTAssertEqual(workouts.count, 3)
+        XCTAssertTrue(workouts.allSatisfy { $0.name.localizedCaseInsensitiveContains("Calibration") })
+    }
+
+    func testCalibrationExercisesAreConservativeAndExplainTheStandard() throws {
+        var input = makeInput(
+            frequency: .three,
+            trainingDays: [.tuesday, .thursday, .saturday]
+        )
+        input.calibration = .learningWeek()
+
+        let program = try DeterministicProgramGenerator.generate(input: input)
+        let exercises = program.days.compactMap(\.workout).flatMap(\.mainExercises)
+
+        XCTAssertFalse(exercises.isEmpty)
+        XCTAssertTrue(exercises.allSatisfy { ($0.rpe ?? 0) <= 7 })
+        XCTAssertTrue(exercises.allSatisfy { $0.sets <= 2 })
+        XCTAssertTrue(exercises.allSatisfy {
+            $0.notes?.localizedCaseInsensitiveContains("Calibration set") == true
+        })
+    }
+
+    func testStandardReadyInputDoesNotStartWithCalibration() throws {
+        var input = makeInput(
+            frequency: .three,
+            trainingDays: [.tuesday, .thursday, .saturday]
+        )
+        input.calibration = .standardReady(knownExerciseKeys: ["pushup", "pullup"])
+
+        let program = try DeterministicProgramGenerator.generate(input: input)
+
+        XCTAssertEqual(program.durationDays, 28)
+        XCTAssertFalse(program.name.localizedCaseInsensitiveContains("Calibration"))
+        XCTAssertFalse(program.days.compactMap(\.workout).contains {
+            $0.name.localizedCaseInsensitiveContains("Calibration")
+        })
+    }
+
+    func testStandardReadyProgramCreatesCurrentArcMetadata() throws {
+        let input = makeInput(frequency: .four, trainingDays: [.monday, .tuesday, .thursday, .friday])
+
+        let program = try DeterministicProgramGenerator.generate(input: input)
+
+        XCTAssertEqual(program.arcs.count, 1)
+        XCTAssertEqual(program.currentArc?.programId, program.id)
+        XCTAssertEqual(program.currentArc?.startDate, input.blockStartDate)
+        XCTAssertEqual(program.currentArc?.endDate, input.blockStartDate.addingTimeInterval(28 * 86_400))
+        XCTAssertEqual(program.currentArc?.wave1Range, 1...14)
+        XCTAssertEqual(program.currentArc?.wave2Range, 15...28)
+    }
+
+    func testGeneratedDaysCarrySessionRoles() throws {
+        let input = makeInput(
+            frequency: .five,
+            trainingDays: [.monday, .tuesday, .wednesday, .thursday, .friday],
+            buildIdentity: BuildIdentity(primary: .power, secondary: nil, shape: .balancedAthlete),
+            trainingStyle: .freeWeights,
+            equipment: [.fullGym]
+        )
+
+        let program = try DeterministicProgramGenerator.generate(input: input)
+        let trainingRoles = program.days.filter { !$0.isRestDay }.map(\.sessionRole)
+        let restRoles = program.days.filter(\.isRestDay).map(\.sessionRole)
+
+        XCTAssertTrue(trainingRoles.contains(.push))
+        XCTAssertTrue(trainingRoles.contains(.pull))
+        XCTAssertTrue(trainingRoles.contains(.legs))
+        XCTAssertTrue(restRoles.allSatisfy { $0 == .rest })
     }
 
     func testCutModeShiftsNutrition() throws {
@@ -174,6 +261,44 @@ final class DeterministicProgramGeneratorTests: XCTestCase {
         let names = program.days.compactMap(\.workout).flatMap(\.mainExercises).map(\.name)
         XCTAssertFalse(names.contains(original.displayName))
         XCTAssertTrue(names.contains(replacement.displayName))
+    }
+
+    func testProgressionStateFeedsGeneratedPrescriptionRPEAndRepRange() throws {
+        var input = makeInput(
+            frequency: .three,
+            trainingDays: [.tuesday, .thursday, .saturday],
+            buildIdentity: BuildIdentity(primary: .power, secondary: nil, shape: .balancedAthlete),
+            trainingStyle: .freeWeights,
+            equipment: [.fullGym]
+        )
+        let baseline = try DeterministicProgramGenerator.generate(input: input)
+        guard let seededExercise = baseline.days
+            .compactMap(\.workout)
+            .flatMap(\.mainExercises)
+            .first,
+              let definition = MovementCatalog.canonicalExercise(named: seededExercise.name)
+        else {
+            return XCTFail("Expected a generated exercise to seed.")
+        }
+
+        let state = ProgressionState.seed(
+            userId: "u-1",
+            exercise: definition.canonicalExerciseName ?? definition.displayName,
+            startingWeightKg: 80,
+            block: .intensification
+        )
+        input.progressionStates = [
+            MovementCatalog.normalized(definition.canonicalExerciseName ?? definition.displayName): state
+        ]
+
+        let program = try DeterministicProgramGenerator.generate(input: input)
+        let adjusted = program.days
+            .compactMap(\.workout)
+            .flatMap(\.mainExercises)
+            .first { $0.name == seededExercise.name }
+
+        XCTAssertEqual(adjusted?.reps, "6-8")
+        XCTAssertEqual(adjusted?.rpe, 8)
     }
 
     // MARK: — helper

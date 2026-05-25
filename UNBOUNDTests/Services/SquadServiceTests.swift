@@ -7,6 +7,7 @@ final class SquadServiceTests: XCTestCase {
     private var suiteName: String!
     private var defaults: UserDefaults!
     private var store: SquadStore!
+    private var localDirectory: LocalSquadDirectory!
     private var mockBackend: MockSquadBackend!
     private var auth: MockAuthService!
     private var service: SquadService!
@@ -19,9 +20,10 @@ final class SquadServiceTests: XCTestCase {
         suiteName = "SquadServiceTests-\(UUID().uuidString)"
         defaults = UserDefaults(suiteName: suiteName)!
         store = SquadStore(defaults: defaults)
+        localDirectory = LocalSquadDirectory(defaults: defaults)
         mockBackend = MockSquadBackend()
         auth = MockAuthService()
-        service = SquadService(store: store, backend: mockBackend, auth: auth)
+        service = SquadService(store: store, backend: mockBackend, localDirectory: localDirectory, auth: auth)
     }
 
     override func tearDown() {
@@ -98,6 +100,88 @@ final class SquadServiceTests: XCTestCase {
         let state = service.state(userId: userId)
         XCTAssertEqual(state.currentSquad?.id, squad.id)
         XCTAssertEqual(state.currentSquad?.captainId, UUID(uuidString: userId)!)
+    }
+
+    func testCreateSquadAllowsLocalDebugUserId() async throws {
+        let localUserId = "dev-player"
+        let squad = try await service.createSquad(name: "Local Crew", userId: localUserId)
+        let state = service.state(userId: localUserId)
+
+        XCTAssertEqual(squad.name, "Local Crew")
+        XCTAssertEqual(state.currentSquad?.id, squad.id)
+        XCTAssertEqual(state.roster.first?.userId, SquadUserIdentity.uuid(from: localUserId))
+        XCTAssertEqual(state.roster.first?.displayName, "You")
+        XCTAssertTrue(mockBackend.insertedSquads.isEmpty)
+    }
+
+    func testJoinSquadAllowsLocalDebugInviteCode() async throws {
+        let captainUserId = "dev-player"
+        let joinerUserId = "dev-player-two"
+        let created = try await service.createSquad(name: "Local Crew", userId: captainUserId)
+
+        let joined = try await service.joinSquad(inviteCode: created.inviteCode, userId: joinerUserId)
+        let state = service.state(userId: joinerUserId)
+
+        XCTAssertEqual(joined.id, created.id)
+        XCTAssertEqual(state.currentSquad?.id, created.id)
+        XCTAssertEqual(state.roster.count, 2)
+        XCTAssertEqual(state.roster.last?.userId, SquadUserIdentity.uuid(from: joinerUserId))
+        XCTAssertEqual(state.roster.last?.displayName, "You")
+    }
+
+    func testJoinSquadWithOwnLocalInviteIsIdempotent() async throws {
+        let captainUserId = "dev-player"
+        let created = try await service.createSquad(name: "Local Crew", userId: captainUserId)
+
+        let joined = try await service.joinSquad(inviteCode: created.inviteCode, userId: captainUserId)
+        let state = service.state(userId: captainUserId)
+
+        XCTAssertEqual(joined.id, created.id)
+        XCTAssertEqual(state.currentSquad?.id, created.id)
+        XCTAssertEqual(state.roster.count, 1)
+    }
+
+    func testLoadCurrentSquadAdoptsLegacyLocalCachedSquad() async throws {
+        let captainUserId = "dev-player"
+        let joinerUserId = "dev-player-two"
+        let captainUUID = try XCTUnwrap(SquadUserIdentity.uuid(from: captainUserId))
+        let squad = Squad(
+            id: UUID(),
+            name: "Legacy Local Crew",
+            captainId: captainUUID,
+            affinityAxis: nil,
+            affinitySetAt: nil,
+            inviteCode: "LEG123",
+            maxSize: 8,
+            squadStreakWeeks: 0,
+            createdAt: Date()
+        )
+        let member = SquadMember(
+            id: UUID(),
+            squadId: squad.id,
+            userId: captainUUID,
+            joinedAt: Date(),
+            displayName: "You",
+            equippedTitle: nil,
+            buildIdentity: nil
+        )
+        store.save(
+            SquadState(
+                currentSquad: squad,
+                roster: [member],
+                activeRosterPresence: [],
+                recentActivity: [],
+                unlockedSquadTitles: []
+            ),
+            userId: captainUserId
+        )
+
+        await service.loadCurrentSquad(userId: captainUserId)
+        let joined = try await service.joinSquad(inviteCode: squad.inviteCode, userId: joinerUserId)
+
+        XCTAssertEqual(service.state(userId: captainUserId).currentSquad?.id, squad.id)
+        XCTAssertEqual(joined.id, squad.id)
+        XCTAssertEqual(service.state(userId: joinerUserId).roster.count, 2)
     }
 
     func testCreateSquadInvalidName() async {

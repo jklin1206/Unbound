@@ -17,7 +17,7 @@ struct AttributeHex: View {
     var tiers: [AttributeKey: RankTitle]? = nil
     /// Optional 0...1 post-soft-cap glow per axis. Does not affect chart geometry.
     var prestigeGlow: [AttributeKey: Double]? = nil
-    /// Show "POW/AGI/..." axis labels around the hex.
+    /// Show "POW/VIT/..." axis labels around the hex.
     var showLabels: Bool = true
     /// Controls how much detail the axis labels show.
     var labelVariant: LabelVariant = .compact

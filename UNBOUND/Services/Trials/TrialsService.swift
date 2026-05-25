@@ -524,12 +524,12 @@ private enum WeeklyVowTrainingBuilder {
         case .agility:
             return easy
                 ? [
-                    makePrescription(exerciseName: "Walking Lunge", sets: 2, target: .repsRange(8, 10), restSeconds: 60, rpe: rpe(for: card), notes: "Smooth steps, quiet feet, clean balance."),
-                    makePrescription(exerciseName: "Thoracic Rotation", sets: 2, target: .timedSeconds(45), restSeconds: 15, rpe: rpe(for: card), notes: "Own the range before speed.")
+                    makePrescription(exerciseName: "Walk", sets: 1, target: .timedSeconds(600), restSeconds: 0, rpe: rpe(for: card), notes: "Keep it nasal-breathing easy; this is recovery, not conditioning."),
+                    makePrescription(exerciseName: "Hip Flexor Stretch", sets: 2, target: .timedSeconds(45), restSeconds: 15, rpe: rpe(for: card), notes: "Easy range only; leave fresher than you started.")
                 ]
                 : [
-                    makePrescription(exerciseName: "Bulgarian Split Squat", sets: 3, target: .repsRange(6, 8), restSeconds: 90, rpe: rpe(for: card), notes: "Stable reps without knee collapse."),
-                    makePrescription(exerciseName: "Jump Squat", sets: 3, target: .reps(5), restSeconds: 75, rpe: rpe(for: card), notes: "Land soft and reset each rep.")
+                    makePrescription(exerciseName: "Walk", sets: 1, target: .timedSeconds(720), restSeconds: 0, rpe: rpe(for: card), notes: "Steady recovery pace before any harder work."),
+                    makePrescription(exerciseName: "World's Greatest Stretch", sets: 2, target: .timedSeconds(60), restSeconds: 15, rpe: rpe(for: card), notes: "Move slowly and keep the session restorative.")
                 ]
         case .control:
             return [

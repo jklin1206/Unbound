@@ -61,11 +61,12 @@ final class AttributeContributionCatalogTests: XCTestCase {
         XCTAssertTrue(missing.isEmpty, "Default substitutes must point to canonical ExerciseCatalog names:\n\(missing.joined(separator: "\n"))")
     }
 
-    func testEveryAttributeKeyAppearsInAtLeastOneVector() {
+    func testEveryExerciseBackedAttributeKeyAppearsInAtLeastOneVector() {
         guard let exercises = loadExercises() else {
             XCTFail("AttributeContributions.json failed to load from Bundle.main")
             return
         }
+        let exerciseBackedAxes = Set(AttributeKey.allCases).subtracting([.agility])
         var represented: Set<AttributeKey> = []
         for (_, weights) in exercises {
             for (axisName, w) in weights where w > 0 {
@@ -74,10 +75,55 @@ final class AttributeContributionCatalogTests: XCTestCase {
                 }
             }
         }
-        for key in AttributeKey.allCases {
+        for key in exerciseBackedAxes {
             XCTAssertTrue(represented.contains(key),
                 "AttributeKey '\(key)' never appears with weight > 0 in any vector.")
         }
+    }
+
+    func testExerciseCatalogDoesNotGrantVitality() {
+        guard let exercises = loadExercises() else {
+            XCTFail("AttributeContributions.json failed to load from Bundle.main")
+            return
+        }
+        let vitalityExercises = exercises.compactMap { name, weights in
+            (weights["agility"] ?? 0) > 0 ? name : nil
+        }.sorted()
+        XCTAssertTrue(vitalityExercises.isEmpty,
+            "Vitality should come from recovery events, not regular exercise vectors:\n\(vitalityExercises.joined(separator: "\n"))")
+    }
+
+    func testExplosivenessHasMeaningfulExerciseCoverage() {
+        guard let exercises = loadExercises() else {
+            XCTFail("AttributeContributions.json failed to load from Bundle.main")
+            return
+        }
+        let explosiveExercises = exercises.filter { _, weights in
+            (weights["explosiveness"] ?? 0) > 0
+        }
+        let weightedShare = explosiveExercises.reduce(0.0) { partial, entry in
+            partial + (entry.value["explosiveness"] ?? 0)
+        } / Double(exercises.count)
+        XCTAssertGreaterThanOrEqual(explosiveExercises.count, 40,
+            "Explosiveness should cover obvious fast-force movements, not just one or two entries.")
+        XCTAssertGreaterThanOrEqual(weightedShare, 0.055,
+            "Explosiveness should have enough total catalog weight to be visible in progression.")
+    }
+
+    func testMobilityCoverageStaysNarrowAndROMBiased() {
+        guard let exercises = loadExercises() else {
+            XCTFail("AttributeContributions.json failed to load from Bundle.main")
+            return
+        }
+        let mobilityExercises = exercises.compactMap { name, weights in
+            (weights["mobility"] ?? 0) > 0 ? name : nil
+        }
+        XCTAssertLessThanOrEqual(mobilityExercises.count, 12,
+            "Mobility should stay narrow; normal lifts should not casually grant it.")
+        XCTAssertFalse(mobilityExercises.contains("face pull"))
+        XCTAssertFalse(mobilityExercises.contains("incline dumbbell curl"))
+        XCTAssertTrue(mobilityExercises.contains("cossack squat"))
+        XCTAssertTrue(mobilityExercises.contains("bodyweight squat"))
     }
 
     func testAllJSONKeysAreSpaceLowercaseFormat() {

@@ -45,7 +45,7 @@ The Program tab should feel like an on-demand training command center, not a sta
 - Session Editor has been redesigned for fewer visible commands: the plan summary is compact, persistence choices are chips, START is sticky at the bottom, exercise rows are direct tap-to-swap targets, drag handles reorder exercises, and remove lives behind a small row menu.
 - Program no longer shows the skill-focus schedule card on days where no skill work is routed; active goals stop taking over the Program surface when they are not modifying today's workout.
 - Program no longer exposes exercise `SWAP` in the `PLAN ADJUSTMENTS` row; plan-level chips stay focused on deload, travel, and short-session changes while exercise swaps route through EDIT.
-- Program now surfaces Binding Vow as a compact **Program Add-On** directly under Today Command. If a vow is active, the active card launches the routed `TrainingSessionDraft`; if no vow is picked, Program can open the same three-card picker as Home.
+- Binding Vow prompting now belongs on Home. Program should only surface Binding Vow work when it is attached to the selected session as a visible modifier/add-on, not as a duplicate full picker/card.
 - Binding Vows are now stronger than placeholder workouts:
   - weight proofs are exercise-specific (`exerciseWeightKg`) so unrelated heavy logs cannot clear the proof
   - Low Binding and Limit Binding use multi-movement axis templates
@@ -78,21 +78,22 @@ The Program tab should feel like an on-demand training command center, not a sta
 - Session Editor persistence choices are executable for Today Only, Repeat Swap, Preference, and Next Block. Next Block queues substitute intent into the next generation/proposal preference path while leaving the current block intact.
 - Program's selected-day card now uses `TrainingSessionAdaptationSummary` to explain scheduled skill work, travel mode, substitutions, deloads, trial prep, and skill-overlap tapering from the resolved session draft.
 - Program modifier rendering now uses a reusable, tested `ProgramModifierSummary` model with deterministic priority, icon/color roles, capped visible lines, and overflow count for compact Program surfaces.
-- Program surface-state resolution now uses a tested `ProgramSurfaceState` model covering no program, loading, load error/retry, block complete, rest day, training day, and missing-day cases. Initial load failures without a cache now land on a retryable Program error state instead of accidentally looking like no program exists. DEBUG simulator proof can seed saved-program states with `--unbound-proof-program-state=training-day|rest-day|missing-day|block-complete` and non-program surfaces with `--unbound-proof-program-surface=no-program|loading|load-error` before opening Program.
+- Program surface-state resolution now uses a tested `ProgramSurfaceState` model covering no program, loading, load error/retry, block complete, rest day, training day, calibration, and missing-day cases. Initial load failures without a cache now land on a retryable Program error state instead of accidentally looking like no program exists. DEBUG simulator proof can seed saved-program states with `--unbound-proof-program-state=calibration|training-day|rest-day|missing-day|block-complete` and non-program surfaces with `--unbound-proof-program-surface=no-program|loading|load-error` before opening Program.
 - Block rollover exists:
-  - 28-day block boundary detection
+  - duration-based boundary detection: normal 28-day Arcs and first-run 7-day Calibration Week
   - block complete state
   - optional rescan
   - generate next block
   - block progress reveal
-- Block rollover now creates a `ProgramBlockProposal` from the latest scan delta when available, shows proposal reasons in the block-complete UI, and passes scan-derived focus into rollover generation.
-- Current simulator proof: Program/rescan sweep is green at 100 passed on iPhone 17 after the reusable Program exercise-library slice; Program proof launches are green for training day, rest day, missing day, no program, load error, and block complete. After the Binding Vow naming pass, focused vow/proof tests passed 61/61, Program/active-workout regression passed 43/43, and the full iPhone 17 simulator suite passed 707/707. Build/run on iPhone 17 succeeded with Program screenshot proof showing Limit Break Vow on the Program tab.
+- Program generation is deterministic-first now. A user without at least two usable standards gets a 7-day Calibration Week; a standard-ready user gets the normal 28-day Arc. Claude is retained only as an emergency fallback, not the paid happy path.
+- Block rollover now creates a `ProgramBlockProposal` from the latest scan delta when available, shows proposal reasons in the block-complete UI, and passes scan-derived focus plus stored `ProgressionState` into rollover generation.
+- Current simulator proof: Program/Checkpoint/Saved Workout/Proof integration is green at 105 passed on iPhone 17, and the full iPhone 17 simulator suite passed 790/790. Build/run on iPhone 17 succeeded after the Program Canvas integration.
 - Monthly scan direction is defined elsewhere: scan is a checkpoint and storytelling input, not the source of truth for stats.
 
 ### Not Good Enough
 
 - Program is visually crowded. Too many cards have equal weight.
-- Home and Program both try to show today's work. Home should summarize; Program should execute.
+- Home and Program now have a stronger boundary: Home summarizes today's launch state; Program executes the detailed plan.
 - Active goals/focus work no longer renders the full schedule card on non-routed days; remaining work is to fold routed skill work even more tightly into the Today Command modifier language.
 - The normal workout start path is now direct, and the active workout now has a clearer logged/remaining footer, less duplicated exercise-menu chrome, higher-contrast current-set focus, compact non-current exercise rows, and cursor advancement after one-tap planned-set logging.
 - `WorkoutReadyView` exposes too much machinery up front. It reads like a block builder, not a ready screen.
@@ -186,6 +187,8 @@ Home and Program currently overlap too much. The intended split:
 - **Scan** is measurement/checkpoint input, not the daily command center.
 
 Home may deep-link into Program's primary action, but it should not duplicate the full Program surface.
+
+Implementation note (2026-05-24): Home now keeps only the launch/status summary for today: status, focus, day, time, plan count, and one primary action. The movement list, weekly calendar selection, editing, saved workouts, checkpoint, and Wave/adaptation controls belong to Program.
 
 ## User-State Matrix
 
@@ -421,8 +424,10 @@ No active program
   -> Build Program
   -> inputs already known from onboarding/profile/scan where possible
   -> confirm training days/equipment/focus
-  -> generated Base Program
-  -> Program tab shows Day 1 Today Command
+  -> if standards unknown: generated Calibration Week
+  -> if standards known: generated Base Program
+  -> Program tab shows today's command
+  -> Calibration Week completion rolls into the first real 28-day Arc
 ```
 
 Rules:
@@ -430,6 +435,7 @@ Rules:
 - Do not ask for known profile data again.
 - Let the user change equipment, training days, and focus before building.
 - Show a short "why this program" explanation after generation.
+- First week is not treated as the real program when standards are unknown. It is a low-risk RPE 6-7 standard-finding week that seeds progression.
 - If scan data is stale, ask whether to rescan, but do not block program creation.
 
 ### Normal Start

@@ -3,7 +3,7 @@ import Foundation
 
 /// Pure-function input bundle for program generation. No IO, no services.
 ///
-/// All fields needed to produce a deterministic 14-day `TrainingProgram` live
+/// All fields needed to produce a deterministic `TrainingProgram` live
 /// on this struct. Callers (tests, the real onboarding/report pipeline)
 /// assemble it from user profile + scan + settings.
 struct ProgramGeneratorInput {
@@ -20,7 +20,7 @@ struct ProgramGeneratorInput {
     var focusAreas: [FocusArea]
     var cutModeActive: Bool
     let trainingFeedbackMode: TrainingFeedbackMode
-    let progressionStates: [String: ProgressionState]
+    var progressionStates: [String: ProgressionState]
     let previousBlock: ProgramBlock?
     let weightKg: Double
     let heightCm: Double
@@ -28,15 +28,37 @@ struct ProgramGeneratorInput {
     let sex: BiologicalSex
     let blockStartDate: Date
     var exercisePreferences: [ExercisePreference] = []
+    var calibration: ProgramCalibrationInput = .standardReady()
 }
 
-/// Task 2.5 — turns a `ProgramGeneratorInput` into a fully-formed 14-day
+struct ProgramCalibrationInput {
+    let requiresLearningWeek: Bool
+    let knownExerciseKeys: Set<String>
+
+    static func learningWeek(knownExerciseKeys: Set<String> = []) -> ProgramCalibrationInput {
+        ProgramCalibrationInput(
+            requiresLearningWeek: true,
+            knownExerciseKeys: knownExerciseKeys
+        )
+    }
+
+    static func standardReady(knownExerciseKeys: Set<String> = []) -> ProgramCalibrationInput {
+        ProgramCalibrationInput(
+            requiresLearningWeek: false,
+            knownExerciseKeys: knownExerciseKeys
+        )
+    }
+}
+
+/// Task 2.5 — turns a `ProgramGeneratorInput` into a fully-formed
 /// `TrainingProgram`. No AI, no remote calls — every decision is a pure
 /// function of the input struct. Equipment filtering refinement (2.6) and
 /// rationale expansion (2.7) come in follow-up tasks; this generator is
 /// intentionally MVP: it schedules days, picks a small exercise pool per
 /// training day, and stamps sensible nutrition/recovery defaults.
 enum DeterministicProgramGenerator {
+    private static let standardArcDurationDays = Arc.durationDays
+    private static let calibrationDurationDays = 7
 
     enum GeneratorError: Error {
         case unexpected(String)
@@ -45,11 +67,15 @@ enum DeterministicProgramGenerator {
     static func generate(input: ProgramGeneratorInput) throws -> TrainingProgram {
         let bias = WeakPointBiaser.bias(from: input.focusAreas)
         let split = SplitLookup.split(buildIdentity: input.buildIdentity, frequency: input.targetFrequency)
+        let durationDays = input.calibration.requiresLearningWeek
+            ? calibrationDurationDays
+            : standardArcDurationDays
 
         let days = try scheduleDays(
             split: split,
             trainingDays: input.trainingDays,
             blockStartDate: input.blockStartDate,
+            durationDays: durationDays,
             input: input,
             bias: bias
         )
@@ -87,23 +113,31 @@ enum DeterministicProgramGenerator {
         )
 
         let rationale = RationaleBuilder.build(input: input, bias: bias, split: split)
+        let programId = UUID().uuidString
+        let arc = input.calibration.requiresLearningWeek
+            ? nil
+            : Arc(programId: programId, startDate: input.blockStartDate, state: .active)
 
         return TrainingProgram(
-            id: UUID().uuidString,
+            id: programId,
             scanId: input.scanId ?? "",
             analysisId: input.analysisId ?? "",
             userId: input.userId,
             createdAt: input.blockStartDate,
-            name: "\(input.buildIdentity.displayName) Arc",
-            description: "\(input.targetFrequency.numericCount)-day personalized plan.",
-            durationDays: 14,
+            name: input.calibration.requiresLearningWeek ? "Calibration Week" : "\(input.buildIdentity.displayName) Arc",
+            description: input.calibration.requiresLearningWeek
+                ? "Seven days to find your real working standards before the first Arc."
+                : "28-day personalized Arc built from your schedule and standards.",
+            durationDays: durationDays,
             days: days,
             nutritionPlan: nutritionPlan,
             recoveryPlan: recoveryPlan,
             difficultyLevel: difficultyLevel(for: input.experience),
             requiredEquipment: input.equipment.map(\.rawValue),
             estimatedDailyMinutes: estimatedDailyMinutes(for: input.experience),
-            rationale: rationale
+            rationale: rationale,
+            arcs: arc.map { [$0] } ?? [],
+            currentArcId: arc?.id
         )
     }
 
@@ -113,6 +147,7 @@ enum DeterministicProgramGenerator {
         split: Split,
         trainingDays: Set<Weekday>,
         blockStartDate: Date,
+        durationDays: Int,
         input: ProgramGeneratorInput,
         bias: [MuscleGroup: Int]
     ) throws -> [ProgramDay] {
@@ -121,7 +156,7 @@ enum DeterministicProgramGenerator {
         var cursor = 0
         var result: [ProgramDay] = []
 
-        for i in 0..<14 {
+        for i in 0..<durationDays {
             guard let date = cal.date(byAdding: .day, value: i, to: blockStartDate),
                   let weekday = Weekday(from: date, calendar: cal) else {
                 throw GeneratorError.unexpected("bad date math at offset \(i)")
@@ -130,15 +165,24 @@ enum DeterministicProgramGenerator {
 
             if trainingDays.contains(weekday) && !templates.isEmpty {
                 let template = templates[cursor % templates.count]
+                let sessionIndex = cursor
                 cursor += 1
-                let workout = buildWorkout(for: template, input: input, bias: bias)
-                let label = labelFor(template: template, bias: bias)
+                let workout: Workout
+                let label: String
+                if input.calibration.requiresLearningWeek {
+                    workout = buildCalibrationWorkout(sessionIndex: sessionIndex, input: input, bias: bias)
+                    label = workout.name
+                } else {
+                    workout = buildWorkout(for: template, input: input, bias: bias)
+                    label = labelFor(template: template, bias: bias)
+                }
                 result.append(ProgramDay(
                     id: UUID().uuidString,
                     dayNumber: dayNumber,
                     label: label,
                     isRestDay: false,
                     workout: workout,
+                    sessionRole: sessionRole(for: template, workout: workout),
                     nutritionOverride: nil,
                     recoveryActivities: []
                 ))
@@ -146,9 +190,10 @@ enum DeterministicProgramGenerator {
                 result.append(ProgramDay(
                     id: UUID().uuidString,
                     dayNumber: dayNumber,
-                    label: "Rest",
+                    label: input.calibration.requiresLearningWeek ? "Calibration Rest" : "Rest",
                     isRestDay: true,
                     workout: nil,
+                    sessionRole: .rest,
                     nutritionOverride: nil,
                     recoveryActivities: restDayActivities()
                 ))
@@ -157,7 +202,7 @@ enum DeterministicProgramGenerator {
         return result
     }
 
-    // MARK: — Workout building (MVP — refined in 2.6/2.7)
+    // MARK: — Workout building
 
     private static func buildWorkout(
         for template: DayTemplate,
@@ -243,6 +288,163 @@ enum DeterministicProgramGenerator {
             estimatedMinutes: 45 + (mainExercises.count * 5),
             notes: nil,
             blockType: .accumulation
+        )
+    }
+
+    private static func buildCalibrationWorkout(
+        sessionIndex: Int,
+        input: ProgramGeneratorInput,
+        bias: [MuscleGroup: Int]
+    ) -> Workout {
+        let compatibleCatalog = movementPool(input: input)
+        let plan = calibrationPlan(sessionIndex: sessionIndex, input: input)
+        var picked: [MovementDefinition] = []
+
+        for slot in plan.slots {
+            guard let definition = calibrationPick(
+                slot: slot,
+                from: compatibleCatalog,
+                alreadyPicked: picked,
+                input: input,
+                bias: bias
+            ) else { continue }
+            picked.append(definition)
+        }
+
+        if picked.isEmpty {
+            picked = Array(compatibleCatalog.prefix(3))
+        }
+
+        let exercises = uniqueDefinitions(picked).map { definition in
+            toCalibrationExercise(definition: definition, input: input)
+        }
+        let muscleGroups = Array(Set(exercises.flatMap(\.muscleGroups)))
+
+        return Workout(
+            name: plan.name,
+            targetMuscleGroups: muscleGroups.isEmpty ? plan.fallbackMuscleGroups : muscleGroups,
+            warmup: [],
+            mainExercises: exercises,
+            cooldown: [],
+            estimatedMinutes: min(55, max(28, 16 + exercises.count * 7)),
+            notes: "Calibration: find clean working standards at RPE 6-7. Stop with 2-3 reps in reserve; do not max.",
+            blockType: .deload
+        )
+    }
+
+    private static func calibrationPlan(
+        sessionIndex: Int,
+        input: ProgramGeneratorInput
+    ) -> (name: String, slots: [MovementSlot], fallbackMuscleGroups: [MuscleGroup]) {
+        let bodyweightOnly = input.trainingStyle == .bodyweight || input.equipment == [.bodyweight]
+        let plans: [(String, [MovementSlot], [MuscleGroup])] = bodyweightOnly
+            ? [
+                (
+                    "Calibration: Push + Pull Standard",
+                    [.horizontalPush, .verticalPull, .core],
+                    [.chest, .back, .core]
+                ),
+                (
+                    "Calibration: Legs + Control Standard",
+                    [.squat, .hinge, .verticalPush, .core],
+                    [.legs, .glutes, .shoulders, .core]
+                ),
+                (
+                    "Calibration: Full-Body Standard",
+                    [.horizontalPush, .horizontalPull, .squat, .core],
+                    [.chest, .back, .legs, .core]
+                )
+            ]
+            : [
+                (
+                    "Calibration: Upper Standard",
+                    [.horizontalPush, .horizontalPull, .verticalPush, .verticalPull],
+                    [.chest, .back, .shoulders, .arms]
+                ),
+                (
+                    "Calibration: Lower Standard",
+                    [.squat, .hinge, .core],
+                    [.legs, .glutes, .core]
+                ),
+                (
+                    "Calibration: Full-Body Standard",
+                    [.squat, .horizontalPush, .verticalPull, .core],
+                    [.legs, .chest, .back, .core]
+                ),
+                (
+                    "Calibration: Pull + Hinge Standard",
+                    [.hinge, .horizontalPull, .verticalPull, .core],
+                    [.back, .lats, .glutes, .core]
+                )
+            ]
+
+        return plans[sessionIndex % plans.count]
+    }
+
+    private static func calibrationPick(
+        slot: MovementSlot,
+        from catalog: [MovementDefinition],
+        alreadyPicked: [MovementDefinition],
+        input: ProgramGeneratorInput,
+        bias: [MuscleGroup: Int]
+    ) -> MovementDefinition? {
+        let usedKeys = Set(alreadyPicked.map { $0.canonicalExerciseName ?? $0.id })
+        let candidates = catalog
+            .filter { $0.movementSlot == slot }
+            .filter { !usedKeys.contains($0.canonicalExerciseName ?? $0.id) }
+
+        guard !candidates.isEmpty else { return nil }
+        if !bias.isEmpty,
+           let biased = WeakPointBiaser.pickBiased(
+               candidates: candidates,
+               biasedGroups: bias,
+               biasedGroupsFor: { $0.muscleGroups }
+           ) {
+            return biased
+        }
+
+        return candidates.first
+    }
+
+    private static func toCalibrationExercise(
+        definition: MovementDefinition,
+        input: ProgramGeneratorInput
+    ) -> Exercise {
+        let isBodyweight = input.trainingStyle == .bodyweight
+            || definition.equipment.allSatisfy { $0 == .bodyweight || $0 == .pullupBar || $0 == .dipStation || $0 == .rings || $0 == .box }
+        let targetReps: String
+        let sets: Int
+        let restSeconds: Int
+
+        switch definition.defaultMetric {
+        case .holdSeconds, .durationSeconds:
+            sets = 2
+            targetReps = "20s"
+            restSeconds = 75
+        case .distanceMeters:
+            sets = 2
+            targetReps = "100m"
+            restSeconds = 90
+        case .calories:
+            sets = 2
+            targetReps = "8 cal"
+            restSeconds = 90
+        case .reps:
+            sets = 2
+            targetReps = isBodyweight ? "AMRAP" : "6-8"
+            restSeconds = isBodyweight ? 90 : 120
+        }
+
+        return Exercise(
+            id: UUID().uuidString,
+            name: definition.displayName,
+            muscleGroups: definition.muscleGroups,
+            sets: sets,
+            reps: targetReps,
+            restSeconds: restSeconds,
+            rpe: 7,
+            notes: "Calibration set: choose a load or variation you can control at RPE 6-7. Stop before form breaks.",
+            substitution: nil
         )
     }
 
@@ -390,8 +592,7 @@ enum DeterministicProgramGenerator {
     }
 
     private static func toExercise(definition: MovementDefinition, input: ProgramGeneratorInput) -> Exercise {
-        let key = (definition.canonicalExerciseName ?? definition.displayName).lowercased()
-        let state = input.progressionStates[key]
+        let state = progressionState(for: definition, input: input)
         let sets = 3
         let reps: String
         if let s = state {
@@ -399,7 +600,7 @@ enum DeterministicProgramGenerator {
         } else {
             reps = "8-12"
         }
-        let rpeDefault = input.trainingFeedbackMode.defaultTargetRPE
+        let rpeDefault = state?.targetRPE ?? input.trainingFeedbackMode.defaultTargetRPE
         let substitute = MovementCatalog.catalogDefaultSubstitute(
             for: definition.displayName,
             style: input.trainingStyle,
@@ -420,6 +621,28 @@ enum DeterministicProgramGenerator {
             notes: nil,
             substitution: substitute?.displayName
         )
+    }
+
+    private static func progressionState(
+        for definition: MovementDefinition,
+        input: ProgramGeneratorInput
+    ) -> ProgressionState? {
+        let rankStandard = MovementCatalog.rankStandard(for: definition)
+        let keys = [
+            definition.canonicalExerciseName,
+            definition.displayName,
+            rankStandard?.canonicalExerciseName,
+            rankStandard?.displayName
+        ]
+        .compactMap { $0 }
+        .map(MovementCatalog.normalized)
+
+        for key in keys {
+            if let state = input.progressionStates[key] {
+                return state
+            }
+        }
+        return nil
     }
 
     private static func restDayActivities() -> [RecoveryActivity] {
@@ -446,6 +669,53 @@ enum DeterministicProgramGenerator {
             return template.displayLabel
         }
         return "\(template.displayLabel) + \(biggest.key.displayName) Bias"
+    }
+
+    private static func sessionRole(for template: DayTemplate, workout: Workout) -> SessionRole {
+        switch template {
+        case .push:
+            return .push
+        case .pull:
+            return .pull
+        case .legs:
+            return .legs
+        case .upper:
+            return .upper
+        case .lower:
+            return .lower
+        case .fullBody, .weakPoint:
+            return inferredSessionRole(from: workout)
+        case .skill:
+            return .skillOnly
+        case .rest:
+            return .rest
+        }
+    }
+
+    private static func inferredSessionRole(from workout: Workout) -> SessionRole {
+        let regions = workout.mainExercises
+            .flatMap(\.muscleGroups)
+            .map(ProgramBodyRegion.from(muscleGroup:))
+
+        let hasPush = regions.contains(.push) || regions.contains(.shoulders)
+        let hasPull = regions.contains(.pull)
+        let hasLegs = regions.contains(.legs) || regions.contains(.posterior)
+        let hasCore = regions.contains(.core)
+
+        switch (hasPush, hasPull, hasLegs, hasCore) {
+        case (true, true, true, _):
+            return .fullBody
+        case (true, true, false, _):
+            return .upper
+        case (false, false, true, true), (false, false, true, false):
+            return .lower
+        case (true, false, false, _):
+            return .push
+        case (false, true, false, _):
+            return .pull
+        default:
+            return .custom(workout.name)
+        }
     }
 
     private static func difficultyLevel(for experience: Experience) -> DifficultyLevel {

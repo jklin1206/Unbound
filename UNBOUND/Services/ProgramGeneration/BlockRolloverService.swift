@@ -289,10 +289,11 @@ enum BlockRolloverService {
         let style = profile.trainingStyleOverride ?? defaultStyle
         let feedback = profile.trainingFeedbackMode ?? TrainingFeedbackMode.default(for: experience)
 
-        // Progression state lookup is also stubbed for MVP — hooks in once we
-        // have a ProgressionStateStore aggregate API. Empty dict is safe: the
-        // generator will seed reasonable defaults on first prescription.
-        let progressionStates: [String: ProgressionState] = [:]
+        var progressionStates: [String: ProgressionState] = [:]
+        for state in await ProgressionStateStore.shared.fetchAll(userId: userId) {
+            progressionStates[MovementCatalog.normalized(state.exerciseKey)] = state
+        }
+        let preferences = (try? await ExercisePreferenceService.shared.fetchPreferences(userId: userId)) ?? []
 
         let input = ProgramGeneratorInput(
             userId: userId,
@@ -313,7 +314,9 @@ enum BlockRolloverService {
             heightCm: height,
             age: age,
             sex: sex,
-            blockStartDate: Date()
+            blockStartDate: Date(),
+            exercisePreferences: preferences,
+            calibration: .standardReady(knownExerciseKeys: Set(progressionStates.keys))
         )
 
         let program: TrainingProgram
