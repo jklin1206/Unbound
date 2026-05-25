@@ -3,28 +3,20 @@ import UIKit
 @testable import UNBOUND
 
 final class MovementResolverTests: XCTestCase {
-    func testDemoExerciseVisualAssetsResolveFromCatalogDefinitions() throws {
-        let expectedAssets = [
-            "bench press": "exercise_visual_exercise_bench-press",
-            "back squat": "exercise_visual_exercise_back-squat",
-            "lat pulldown": "exercise_visual_exercise_lat-pulldown",
-            "leg curl (lying)": "exercise_visual_exercise_leg-curl-lying",
-            "dumbbell bench press": "exercise_visual_exercise_dumbbell-bench-press",
-            "incline bench press": "exercise_visual_exercise_incline-bench-press",
-            "machine chest press": "exercise_visual_exercise_machine-chest-press",
-            "cable fly": "exercise_visual_exercise_cable-fly",
-            "pullup": "exercise_visual_exercise_pullup",
-            "assisted pullup machine": "exercise_visual_exercise_assisted-pullup-machine",
-            "wide grip lat pulldown": "exercise_visual_exercise_wide-grip-lat-pulldown",
-            "cable row (seated)": "exercise_visual_exercise_cable-row-seated"
-        ]
+    func testEveryCatalogExerciseHasVisualAsset() {
+        let exerciseDefinitions = MovementCatalog.definitions
+            .filter { $0.role == .canonicalExercise }
 
-        for (exerciseName, assetName) in expectedAssets {
-            let resolved = MovementResolver.resolve(exerciseName)
-            let definition = try XCTUnwrap(MovementCatalog.definition(for: resolved.movementId))
+        XCTAssertEqual(exerciseDefinitions.count, ExerciseCatalog.allExercises.count)
 
-            XCTAssertEqual(ExerciseVisualAsset.assetName(for: definition), assetName)
-            XCTAssertEqual(ExerciseVisualAsset.existingAssetName(for: definition), assetName)
+        for definition in exerciseDefinitions {
+            let assetName = ExerciseVisualAsset.assetName(for: definition)
+
+            XCTAssertEqual(
+                ExerciseVisualAsset.existingAssetName(for: definition),
+                assetName,
+                "\(definition.displayName) should resolve \(assetName)"
+            )
             XCTAssertNotNil(UIImage(named: assetName), "\(assetName) should ship in Assets.xcassets")
         }
     }
