@@ -8,7 +8,15 @@ final class MovementResolverTests: XCTestCase {
             "bench press": "exercise_visual_exercise_bench-press",
             "back squat": "exercise_visual_exercise_back-squat",
             "lat pulldown": "exercise_visual_exercise_lat-pulldown",
-            "leg curl (lying)": "exercise_visual_exercise_leg-curl-lying"
+            "leg curl (lying)": "exercise_visual_exercise_leg-curl-lying",
+            "dumbbell bench press": "exercise_visual_exercise_dumbbell-bench-press",
+            "incline bench press": "exercise_visual_exercise_incline-bench-press",
+            "machine chest press": "exercise_visual_exercise_machine-chest-press",
+            "cable fly": "exercise_visual_exercise_cable-fly",
+            "pullup": "exercise_visual_exercise_pullup",
+            "assisted pullup machine": "exercise_visual_exercise_assisted-pullup-machine",
+            "wide grip lat pulldown": "exercise_visual_exercise_wide-grip-lat-pulldown",
+            "cable row (seated)": "exercise_visual_exercise_cable-row-seated"
         ]
 
         for (exerciseName, assetName) in expectedAssets {
