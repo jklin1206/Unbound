@@ -4,7 +4,7 @@ import SwiftUI
 //
 // Profile section that shows:
 //   - Equipped title (if any)
-//   - This week's active vow (if any)
+//   - This week's active Binding Vow (if any)
 //   - Lifetime completion counters from WeeklyVowsState
 //
 // NOTE: Full multi-week history is not persisted in v1 (WeeklyVowsState only
@@ -63,14 +63,9 @@ struct ProfileTrialHistorySection: View {
         let tint = trial.chosenCard.theme.tintColor
 
         return HStack(spacing: 12) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(tint.opacity(0.15))
-                Image(systemName: "flag.fill")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(tint)
-            }
-            .frame(width: 38, height: 38)
+            WeeklyVowProofAsset(kind: trial.chosenCard.kind, tint: tint, compact: true)
+                .frame(width: 38, height: 38)
+                .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(trial.chosenCard.displayName)
@@ -109,11 +104,11 @@ struct ProfileTrialHistorySection: View {
         return HStack(spacing: 0) {
             statCell(value: "\(totalCompletions)", label: "COMPLETED")
             statDivider
-            statCell(value: "\(emberCount)", label: "LOW")
+            statCell(value: "\(emberCount)", label: "RECOVERY")
             statDivider
-            statCell(value: "\(overdriveCount)", label: "LIMIT")
+            statCell(value: "\(overdriveCount)", label: "FINISHER")
             statDivider
-            statCell(value: "\(apexCount)", label: "APEX")
+            statCell(value: "\(apexCount)", label: "LIMIT")
         }
         .padding(.vertical, 4)
         .background(
@@ -162,7 +157,7 @@ struct ProfileTrialHistorySection: View {
 
     private func titleChip(_ titleId: TitleID, isEquipped: Bool) -> some View {
         let tint: Color = isEquipped ? Color.unbound.accent : Color.unbound.textTertiary
-        return Text(titleId.displayName)
+        return Text(TitleCatalog.displayName(for: titleId))
             .font(.system(size: 10, weight: .bold, design: .monospaced))
             .tracking(1.2)
             .foregroundStyle(tint)
@@ -177,7 +172,7 @@ struct ProfileTrialHistorySection: View {
             Image(systemName: "star.fill")
                 .font(.system(size: 8, weight: .bold))
                 .foregroundStyle(Color.unbound.rankGold)
-            Text(titleId.displayName)
+            Text(TitleCatalog.displayName(for: titleId))
                 .font(.system(size: 9, weight: .bold, design: .monospaced))
                 .tracking(1.1)
                 .foregroundStyle(Color.unbound.rankGold)
@@ -206,7 +201,7 @@ extension CapstoneState {
     fileprivate var label: String {
         switch self {
         case .pending:    return "ACTIVE"
-        case .windowOpen: return "PROOF READY"
+        case .windowOpen: return "VOW READY"
         case .completed:  return "COMPLETE"
         case .missed:     return "MISSED"
         }
@@ -229,8 +224,8 @@ extension CapstoneState {
                     id: "weekly-vow-W20-ember",
                     kind: .ember,
                     theme: .axis(.power),
-                    displayName: "Iron Rule Vow",
-                    blurb: "Accept a low-day Binding Vow.",
+                    displayName: "Iron Reset",
+                    blurb: "A low-day proof for clean power work.",
                     capstone: TrialCapstone(displayName: "Low-Day Proof", description: "Complete easy power work.", evaluation: .manualClaim)
                 ),
                 capstoneState: .windowOpen

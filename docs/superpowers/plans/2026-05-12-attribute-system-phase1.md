@@ -914,9 +914,9 @@ final class AttributeServiceIngestTests: XCTestCase {
         XCTAssertEqual(crossings.first?.level, .tier)
     }
 
-    func testApplyDeltasEmitsATierEventOnCrossingHonedToVessel() {
+    func testApplyDeltasEmitsATierEventOnCrossingMasterToVessel() {
         var p = AttributeProfile.empty(userId: "u", at: t0)
-        // Honed = ordinal 10...11 (b, bPlus); Vessel = ordinal 12...13 (aMinus, a).
+        // Master = ordinal 10...11 (b, bPlus); Vessel = ordinal 12...13 (aMinus, a).
         // Boundary: bPlus(11) ≈ 64.7, aMinus(12) ≈ 70.6.
         p.set(.power, AttributeValue(peak: 80, current: 64, lastContributionAt: t0))
         let crossings = AttributeIngest.applyDeltas(&p, deltas: [.power: 10], at: t0)
@@ -1680,7 +1680,7 @@ struct BuildAttributeCell: View {
 
     private var isHighTier: Bool {
         switch value.rankTitle {
-        case .honed, .vessel, .unbound, .ascendant: return true
+        case .master, .vessel, .unbound, .ascendant: return true
         default: return false
         }
     }

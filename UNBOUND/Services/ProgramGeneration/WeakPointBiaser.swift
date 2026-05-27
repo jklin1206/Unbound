@@ -1,12 +1,12 @@
 // UNBOUND/Services/ProgramGeneration/WeakPointBiaser.swift
 import Foundation
 
-/// Converts the scan's weak-point signals into generator-usable shapes.
+/// Converts explicit focus-area inputs into generator-usable shapes.
 ///
 /// - `bias(from:)` → FocusArea[] → per-muscle-group integer weights
 /// - `pickBiased(...)` → C-bias: pick the candidate whose target groups
 ///   overlap the biased set (used when the generator has two equivalent
-///   exercise options and wants to pick the one that hits a weak point)
+///   exercise options and wants to honor a selected focus)
 /// - `addAccessories(...)` → B-bias: append extra accessory exercises whose
 ///   target groups overlap the biased set, up to a cap
 ///

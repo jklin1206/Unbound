@@ -235,7 +235,7 @@ Current status: **In progress. Home, Program Workout Ready, Skill Session save p
 - Progression integration coordinator pass completed on branch `codex/progression-overall-rank-trials`.
 - Committed the missing active-workout metric UI baseline so mixed loggers compile from committed source: `ExerciseLogCard` and `SetLogGridRow` now render block-aware `WEIGHT/LOAD`, `REPS/HOLD/TIME/DIST/CAL`, and suggestion values from `TrainingMetricKind`.
 - MovementCatalog caller migration advanced: deterministic and local program generation now use MovementCatalog program definitions, structured equipment compatibility, canonical exercise preferences, movement-slot filtering, and catalog substitutions; ProgressionEngine now resolves saved movement/rank-standard IDs through MovementCatalog and applies `WeightPlatePolicy` bumps.
-- Overall Rank Trial runner advanced beyond V1: added Honed -> Forged gate `The Reckoning`, including readiness, draft mapping, pass/fail attempt logging, and duplicate completion protection.
+- Overall Rank Trial runner advanced beyond V1: added Forged -> Veteran gate `The Reckoning`, including readiness, draft mapping, pass/fail attempt logging, and duplicate completion protection.
 - Weekly Vow polish integrated as a narrow slice: saved `PerformanceLog` gating now records a persistent completion ledger, prevents duplicate bonus consumption, adds Vow bonus metadata, and only exposes Apex share-card metadata after real saved work.
 - Focused simulator proof on iPhone 17 passed after the integrated slices: 98/98 across `MovementResolverTests`, `ExerciseEquipmentClassifierTests`, `ProgressionEngineBehaviorTests`, `DeterministicProgramGeneratorTests`, `OverallRankTrialServiceTests`, `WeeklyVowsServiceTests`, and `WeeklyVowsStoreTests`.
 - Combined result bundle: `/Users/jlin/Library/Developer/XcodeBuildMCP/workspaces/toji-aa3a04fb00a4/result-bundles/test_sim_2026-05-23T01-24-22-220Z_pid85954_8af81497.xcresult`
@@ -590,7 +590,7 @@ Exit criteria:
 Current status: **V1 ladder implemented and simulator-tested through Ascendant.** Overall Rank trials now cover every transition from Initiate -> Ascendant with MovementCatalog-backed readiness, draft mapping, pass/fail logging, duplicate protection, and rank advance only on pass. Comeback and duplicate attempt callout data are service-tested; richer UI surfacing, badge activation, path/equipment variants, and cleanup of any passive aggregate-rank surfaces remain.
 
 2026-05-22 Agent C / `codex/progression-overall-rank-trials` completion notes:
-- Added `OverallRankTrialService.swift` with the pure `TrialReadinessService`, V1 `Foundation Proof` definition, persisted attempt state, and `OverallRankTrialRunner`.
+- Added `OverallRankTrialService.swift` with the pure `TrialReadinessService`, V1 `The Awakening` definition, persisted attempt state, and `OverallRankTrialRunner`.
 - V1 readiness checks Overall LV, top-N attribute floor, movement AP, skill tier, and equipment, and reports missing/met requirement rows for UI.
 - Added `TrainingSessionSource.overallRankTrial` and routed pass/fail attempts through `TrainingSessionDraft` -> `PerformanceLog` -> `TrainingCompletionService`.
 - Active workout completion now records overall-rank trial attempts after unified completion and injects the rank-up into the existing reward sequence only when the named trial is passed.
@@ -633,7 +633,7 @@ Current status: **V1 ladder implemented and simulator-tested through Ascendant.*
 - Full suite log: `/Users/jlin/Library/Developer/XcodeBuildMCP/workspaces/toji-aa3a04fb00a4/logs/test_sim_2026-05-22T20-18-25-616Z_pid85954_5383312d.log`
 
 2026-05-23 upper-rank trial pass:
-- Added the remaining upper Overall Rank gates: `The Crucible` (Veteran -> Vessel), `The Threshold` (Vessel -> Unbound), and `The Ascension` (Unbound -> Ascendant).
+- Added the remaining upper Overall Rank gates: `The Ten Hundred` (Master -> Vessel), `The Threshold` (Vessel -> Unbound), and `The Ascension` (Unbound -> Ascendant).
 - Each upper trial includes Overall LV, top-attribute floor, equipment, movement AP, skill tier, draft mapping, pass/fail, duplicate-attempt, and catalog-backed definition coverage.
 - Focused XcodeBuildMCP simulator test pass on iPhone 17: `OverallRankTrialServiceTests` passed 31/31.
 - Result bundle: `/Users/jlin/Library/Developer/XcodeBuildMCP/workspaces/toji-aa3a04fb00a4/result-bundles/test_sim_2026-05-23T04-05-27-328Z_pid85954_f8e597a7.xcresult`

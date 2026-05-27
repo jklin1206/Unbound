@@ -153,7 +153,7 @@ final class SkillTierTests: XCTestCase {
         XCTAssertFalse(SkillTier.apprentice.isFlagshipMoment)
         XCTAssertFalse(SkillTier.forged.isFlagshipMoment)
         XCTAssertFalse(SkillTier.veteran.isFlagshipMoment)
-        XCTAssertFalse(SkillTier.honed.isFlagshipMoment)
+        XCTAssertFalse(SkillTier.master.isFlagshipMoment)
         XCTAssertTrue(SkillTier.vessel.isFlagshipMoment)
         XCTAssertTrue(SkillTier.unbound.isFlagshipMoment)
         XCTAssertTrue(SkillTier.ascendant.isFlagshipMoment)
@@ -194,7 +194,7 @@ enum SkillTier: Int, Codable, CaseIterable, Sendable, Comparable {
     case apprentice  = 2
     case forged      = 3
     case veteran     = 4
-    case honed       = 5
+    case master       = 5
     case vessel      = 6
     case unbound     = 7
     case ascendant   = 8
@@ -206,7 +206,7 @@ enum SkillTier: Int, Codable, CaseIterable, Sendable, Comparable {
         case .apprentice: return "Apprentice"
         case .forged:     return "Forged"
         case .veteran:    return "Veteran"
-        case .honed:      return "Honed"
+        case .master:      return "Master"
         case .vessel:     return "Vessel"
         case .unbound:    return "Unbound"
         case .ascendant:  return "Ascendant"
@@ -1004,7 +1004,7 @@ final class RankServiceTests: XCTestCase {
             .apprentice: .reps(3, exerciseName: "pull-up"),
             .forged:     .reps(8, exerciseName: "pull-up"),
             .veteran:    .reps(12, exerciseName: "pull-up"),
-            .honed:      .reps(15, exerciseName: "pull-up"),
+            .master:      .reps(15, exerciseName: "pull-up"),
             .vessel:     .reps(20, exerciseName: "pull-up"),
             .unbound:    .reps(25, exerciseName: "pull-up"),
             .ascendant:  .reps(30, exerciseName: "pull-up")
@@ -1120,7 +1120,7 @@ final class RankServiceTests: XCTestCase {
             .apprentice: .reps(3, exerciseName: "pull-up"),
             .forged:     .reps(8, exerciseName: "pull-up"),
             .veteran:    .reps(12, exerciseName: "pull-up"),
-            .honed:      .reps(15, exerciseName: "pull-up"),
+            .master:      .reps(15, exerciseName: "pull-up"),
             .vessel:     .reps(20, exerciseName: "pull-up"),
             .unbound:    .reps(25, exerciseName: "pull-up"),
             .ascendant:  .reps(30, exerciseName: "pull-up")
@@ -1444,7 +1444,7 @@ enum CalSkillTiers {
             .apprentice: .seconds(45),
             .forged:     .seconds(60),
             .veteran:    .seconds(90),
-            .honed:      .seconds(120),
+            .master:      .seconds(120),
             .vessel:     .seconds(180),
             .unbound:    .seconds(240),
             .ascendant:  .seconds(300)
@@ -1604,7 +1604,7 @@ enum LiftTierCriteria {
             .apprentice: .weightKg(60),
             .forged:     .weightKg(80),
             .veteran:    .weightKg(100),
-            .honed:      .weightKg(120),
+            .master:      .weightKg(120),
             .vessel:     .weightKg(140),
             .unbound:    .weightKg(160),
             .ascendant:  .weightKg(180)
@@ -1615,7 +1615,7 @@ enum LiftTierCriteria {
             .apprentice: .weightKg(80),
             .forged:     .weightKg(100),
             .veteran:    .weightKg(130),
-            .honed:      .weightKg(160),
+            .master:      .weightKg(160),
             .vessel:     .weightKg(180),
             .unbound:    .weightKg(200),
             .ascendant:  .weightKg(220)
@@ -1626,7 +1626,7 @@ enum LiftTierCriteria {
             .apprentice: .weightKg(100),
             .forged:     .weightKg(130),
             .veteran:    .weightKg(160),
-            .honed:      .weightKg(180),
+            .master:      .weightKg(180),
             .vessel:     .weightKg(200),
             .unbound:    .weightKg(220),
             .ascendant:  .weightKg(240)
@@ -1637,7 +1637,7 @@ enum LiftTierCriteria {
             .apprentice: .weightKg(40),
             .forged:     .weightKg(50),
             .veteran:    .weightKg(60),
-            .honed:      .weightKg(70),
+            .master:      .weightKg(70),
             .vessel:     .weightKg(80),
             .unbound:    .weightKg(90),
             .ascendant:  .weightKg(100)

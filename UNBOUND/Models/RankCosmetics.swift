@@ -93,7 +93,8 @@ enum RankCosmetics {
         let unlocked = unlockedTiers(userId: userId, currentTier: currentTier)
         let fallback = unlocked.last ?? currentTier
         guard let raw = UserDefaults.standard.string(forKey: keyPrefix + userId),
-              let tier = SkillTier.allCases.first(where: { $0.rankTitle.rawValue == raw }),
+              let storedTitle = RankTitle.storedRawValue(raw),
+              let tier = SkillTier.allCases.first(where: { $0.rankTitle == storedTitle }),
               unlocked.contains(tier)
         else { return fallback.rankTitle }
         return tier.rankTitle
@@ -153,11 +154,32 @@ struct CosmeticAvatar: View {
             } else {
                 Circle()
                     .fill(Color.unbound.accent)
-                Image(systemName: "person.fill")
-                    .font(.system(size: size * 0.34, weight: .semibold))
-                    .foregroundStyle(Color.white.opacity(0.55))
+                if avatarFallbackText.isEmpty {
+                    Image(systemName: "person.fill")
+                        .font(.system(size: size * 0.34, weight: .semibold))
+                        .foregroundStyle(Color.white.opacity(0.55))
+                } else {
+                    Text(avatarFallbackText)
+                        .font(.system(size: fallbackFontSize, weight: .black, design: .rounded))
+                        .foregroundStyle(Color.white.opacity(0.82))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.64)
+                }
             }
         }
+    }
+
+    private var avatarFallbackText: String {
+        String(
+            letterFallback
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+                .uppercased()
+                .prefix(2)
+        )
+    }
+
+    private var fallbackFontSize: CGFloat {
+        avatarFallbackText.count > 1 ? size * 0.18 : size * 0.24
     }
 
     @ViewBuilder
@@ -200,7 +222,7 @@ private struct AvatarFrameRing: View {
             }
 
             // Cardinal ornaments — diamonds at top/right/bottom/left.
-            // Lower tiers stay clean; honed+ get the ornament treatment.
+            // Lower tiers stay clean; master+ get the ornament treatment.
             if tier.ordinal >= 5 {
                 ForEach(0..<4) { i in
                     Circle()

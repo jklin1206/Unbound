@@ -8,8 +8,8 @@ protocol ScanPhotoWriting {
 }
 
 /// Orchestrates the new scan flow: reads BuildIdentity from the attribute
-/// system (never from the photo), persists photo + checkpoint, calls Claude
-/// Haiku for narrative copy. Never grades the body.
+/// system (never from the photo), persists photo + checkpoint, and may call
+/// a bounded narrative service for recap copy. Never grades the body.
 @MainActor
 final class ScanCheckpointService {
 

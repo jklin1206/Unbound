@@ -17,7 +17,7 @@ enum LiftTierCriteria {
             .apprentice: .weightKg(60),
             .forged:     .weightKg(80),
             .veteran:    .weightKg(100),
-            .honed:      .weightKg(120),
+            .master:      .weightKg(120),
             .vessel:     .weightKg(140),
             .unbound:    .weightKg(160),
             .ascendant:  .weightKg(180)
@@ -28,7 +28,7 @@ enum LiftTierCriteria {
             .apprentice: .weightKg(80),
             .forged:     .weightKg(100),
             .veteran:    .weightKg(130),
-            .honed:      .weightKg(160),
+            .master:      .weightKg(160),
             .vessel:     .weightKg(180),
             .unbound:    .weightKg(200),
             .ascendant:  .weightKg(220)
@@ -39,7 +39,7 @@ enum LiftTierCriteria {
             .apprentice: .weightKg(100),
             .forged:     .weightKg(130),
             .veteran:    .weightKg(160),
-            .honed:      .weightKg(180),
+            .master:      .weightKg(180),
             .vessel:     .weightKg(200),
             .unbound:    .weightKg(220),
             .ascendant:  .weightKg(240)
@@ -50,7 +50,7 @@ enum LiftTierCriteria {
             .apprentice: .weightKg(40),
             .forged:     .weightKg(50),
             .veteran:    .weightKg(60),
-            .honed:      .weightKg(70),
+            .master:      .weightKg(70),
             .vessel:     .weightKg(80),
             .unbound:    .weightKg(90),
             .ascendant:  .weightKg(100)

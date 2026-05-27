@@ -85,8 +85,8 @@ struct TrainingProgram: Codable, Identifiable {
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         id = try c.decode(String.self, forKey: .id)
-        scanId = try c.decode(String.self, forKey: .scanId)
-        analysisId = try c.decode(String.self, forKey: .analysisId)
+        scanId = try c.decodeIfPresent(String.self, forKey: .scanId) ?? ""
+        analysisId = try c.decodeIfPresent(String.self, forKey: .analysisId) ?? ""
         userId = try c.decode(String.self, forKey: .userId)
         createdAt = try c.decode(Date.self, forKey: .createdAt)
         name = try c.decode(String.self, forKey: .name)
@@ -274,6 +274,23 @@ enum ProgramBodyRegion: Hashable, Sendable {
             return .shoulders
         case .neck:
             return .other("neck")
+        }
+    }
+
+    static func from(bodyRegion: BodyRegion) -> ProgramBodyRegion {
+        switch bodyRegion {
+        case .chest, .triceps:
+            return .push
+        case .shoulders:
+            return .shoulders
+        case .biceps, .forearms, .traps, .lats:
+            return .pull
+        case .abs, .obliques:
+            return .core
+        case .lowerBack, .hamstrings, .glutes:
+            return .posterior
+        case .quads, .calves:
+            return .legs
         }
     }
 

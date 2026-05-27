@@ -26,10 +26,10 @@ struct Step_SkillTreePreview: View {
         let tree = SkillTree.universal
 
         OnboardingScaffold(
-            title: "You won't stay at E.",
-            subtitle: "This is the ladder. Real feats, earned rep by rep.",
+            title: L10n.onboarding("skillTreePreview.title", defaultValue: "You won't stay at baseline."),
+            subtitle: L10n.onboarding("skillTreePreview.subtitle", defaultValue: "This is the ladder. Real feats, earned rep by rep."),
             progress: progress,
-            primaryTitle: "I'm ready",
+            primaryTitle: L10n.onboarding("skillTreePreview.primary", defaultValue: "I'm ready"),
             hudStep: .trajectory,
             onBack: onBack,
             onPrimary: onContinue
@@ -54,7 +54,7 @@ struct Step_SkillTreePreview: View {
                 .opacity(hasAnimated ? 1 : 0)
                 .offset(y: hasAnimated ? 0 : 12)
 
-                Text("Tap any node to see what it takes.")
+                Text(L10n.onboarding("skillTreePreview.tapHint", defaultValue: "Tap any node to see what it takes."))
                     .font(Font.unbound.captionS)
                     .foregroundStyle(Color.unbound.textTertiary)
             }
@@ -90,8 +90,8 @@ struct Step_SkillTreePreview: View {
 
     private var legendRow: some View {
         HStack(spacing: 16) {
-            legendBadge(state: .attempting, label: "You're here")
-            legendBadge(state: .locked, label: "Locked")
+            legendBadge(state: .attempting, label: L10n.onboarding("skillTreePreview.legend.current", defaultValue: "You're here"))
+            legendBadge(state: .locked, label: L10n.onboarding("skillTreePreview.legend.locked", defaultValue: "Locked"))
             Spacer()
         }
         .padding(.horizontal, 4)
@@ -139,21 +139,36 @@ struct Step_SkillTreePreview: View {
                     Image(systemName: "flame.fill")
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(Color.unbound.ember)
-                    Text("WHAT THIS UNLOCKS")
+                    Text(L10n.onboarding("skillTreePreview.unlocks.title", defaultValue: "WHAT THIS UNLOCKS"))
                         .font(Font.unbound.captionS)
                         .tracking(1.4)
                         .foregroundStyle(Color.unbound.ember)
                 }
 
                 VStack(alignment: .leading, spacing: 10) {
-                    hypeFeat("Muscle-up", "The pull-up everyone wants")
-                    hypeFeat("Front lever", "Core, grip, and lats in one hold")
-                    hypeFeat("One-arm pushup", "Pure body control")
-                    hypeFeat("Pistol squat", "Legs that actually work as a unit")
-                    hypeFeat("Human flag", "The one that makes strangers stare")
+                    hypeFeat(
+                        L10n.onboarding("skillTreePreview.feat.muscleUp.name", defaultValue: "Muscle-up"),
+                        L10n.onboarding("skillTreePreview.feat.muscleUp.detail", defaultValue: "The pull-up everyone wants")
+                    )
+                    hypeFeat(
+                        L10n.onboarding("skillTreePreview.feat.frontLever.name", defaultValue: "Front lever"),
+                        L10n.onboarding("skillTreePreview.feat.frontLever.detail", defaultValue: "Core, grip, and lats in one hold")
+                    )
+                    hypeFeat(
+                        L10n.onboarding("skillTreePreview.feat.oneArmPushup.name", defaultValue: "One-arm pushup"),
+                        L10n.onboarding("skillTreePreview.feat.oneArmPushup.detail", defaultValue: "Pure body control")
+                    )
+                    hypeFeat(
+                        L10n.onboarding("skillTreePreview.feat.pistolSquat.name", defaultValue: "Pistol squat"),
+                        L10n.onboarding("skillTreePreview.feat.pistolSquat.detail", defaultValue: "Legs that actually work as a unit")
+                    )
+                    hypeFeat(
+                        L10n.onboarding("skillTreePreview.feat.humanFlag.name", defaultValue: "Human flag"),
+                        L10n.onboarding("skillTreePreview.feat.humanFlag.detail", defaultValue: "The one that makes strangers stare")
+                    )
                 }
 
-                Text("Each one is real. Each one is logged. Each one is yours.")
+                Text(L10n.onboarding("skillTreePreview.unlocks.body", defaultValue: "Each one is real. Each one is logged. Each one is yours."))
                     .font(Font.unbound.bodyM)
                     .foregroundStyle(Color.unbound.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -189,16 +204,16 @@ struct Step_SkillTreePreview: View {
                     Image(systemName: "sparkles")
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(Color.unbound.accent)
-                    Text("HOW THIS WORKS")
+                    Text(L10n.onboarding("skillTreePreview.how.title", defaultValue: "HOW THIS WORKS"))
                         .font(Font.unbound.captionS)
                         .tracking(1.4)
                         .foregroundStyle(Color.unbound.accent)
                 }
 
                 VStack(alignment: .leading, spacing: 10) {
-                    howStep(number: "1", text: "Open the app. See your next unlock.")
-                    howStep(number: "2", text: "Follow the session we built around it — form videos, set-by-set.")
-                    howStep(number: "3", text: "Log your reps. Hit the benchmark — the node flips. Next one lights up.")
+                    howStep(number: "1", text: L10n.onboarding("skillTreePreview.how.step1", defaultValue: "Open the app. See your next unlock."))
+                    howStep(number: "2", text: L10n.onboarding("skillTreePreview.how.step2", defaultValue: "Follow the session we built around it — form videos, set-by-set."))
+                    howStep(number: "3", text: L10n.onboarding("skillTreePreview.how.step3", defaultValue: "Log your reps. Hit the benchmark — the node flips. Next one lights up."))
                 }
             }
         }
@@ -244,8 +259,8 @@ private struct NodeDetailSheet: View {
                         .font(Font.unbound.titleM)
                         .foregroundStyle(Color.unbound.textPrimary)
                     Text({
-                        if node.isMythic { return "MYTHIC NODE" }
-                        if node.isKeystone { return "KEYSTONE" }
+                        if node.isMythic { return L10n.onboarding("skillTreePreview.node.mythic", defaultValue: "MYTHIC NODE") }
+                        if node.isKeystone { return L10n.onboarding("skillTreePreview.node.keystone", defaultValue: "KEYSTONE") }
                         return node.type.rawValue.uppercased()
                     }())
                         .font(Font.unbound.captionS)
@@ -256,7 +271,7 @@ private struct NodeDetailSheet: View {
             }
 
             VStack(alignment: .leading, spacing: 8) {
-                Text("WHAT IT TAKES")
+                Text(L10n.onboarding("skillTreePreview.node.requirementTitle", defaultValue: "WHAT IT TAKES"))
                     .font(Font.unbound.captionS)
                     .tracking(1.4)
                     .foregroundStyle(Color.unbound.textTertiary)

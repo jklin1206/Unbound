@@ -122,7 +122,7 @@ final class BlockRolloverServiceTests: XCTestCase {
         XCTAssertFalse(resolution.exercisesToRotate.contains("face pull"))
     }
 
-    func testBlockProposalUsesScanDeltaAsNextBlockFocusWithoutMutatingCurrentBlock() {
+    func testBlockProposalKeepsScanRecapOutOfHiddenBodyBias() {
         let delta = makeDelta(
             improvements: ["shoulders"],
             laggingAreas: ["chest", "arms"],
@@ -140,16 +140,14 @@ final class BlockRolloverServiceTests: XCTestCase {
         XCTAssertEqual(proposal.midBlockPatchPolicy, .nextBlockOnly)
         XCTAssertEqual(
             proposal.midBlockPatchPolicy.detail,
-            "This scan can bias the next block, but it will not rewrite today's workout or the current split."
+            "This checkpoint can inform the next-block review, but it will not rewrite today's workout or body-grade the athlete."
         )
-        XCTAssertEqual(proposal.focusAreas.map(\.muscleGroup), [.chest, .arms])
-        XCTAssertEqual(proposal.focusAreas.map(\.priority), [1, 2])
+        XCTAssertTrue(proposal.focusAreas.isEmpty)
         XCTAssertTrue(proposal.lines.contains { $0.kind == .scan })
-        XCTAssertTrue(proposal.lines.contains { $0.kind == .focus })
+        XCTAssertFalse(proposal.lines.contains { $0.kind == .focus })
 
         let analysis = BlockRolloverService.analysis(from: proposal, userId: "u-1")
-        XCTAssertEqual(analysis?.scanId, "scan-after")
-        XCTAssertEqual(analysis?.focusAreas, proposal.focusAreas)
+        XCTAssertNil(analysis)
     }
 
     func testBlockProposalPromptsOptionalRescanWhenNoDeltaExists() {
@@ -163,6 +161,71 @@ final class BlockRolloverServiceTests: XCTestCase {
         XCTAssertTrue(proposal.focusAreas.isEmpty)
         XCTAssertNil(BlockRolloverService.analysis(from: proposal, userId: "u-1"))
         XCTAssertEqual(proposal.lines.first?.kind, .rescan)
+    }
+
+    func testExerciseHistoryCountsCurrentPrescriptionAndLoggedPriorBlocks() {
+        let startedAt = Date(timeIntervalSince1970: 1_700_000_000)
+        let blocks = [
+            makeBlock(number: 3, programId: "program-1", startedAt: startedAt),
+            makeBlock(number: 2, programId: "program-2", startedAt: startedAt.addingTimeInterval(-14 * 86_400)),
+            makeBlock(number: 1, programId: "program-3", startedAt: startedAt.addingTimeInterval(-28 * 86_400))
+        ]
+        let currentProgram = ProgramTestFactory.makeProgram(
+            days: [
+                ProgramTestFactory.makeDay(dayNumber: 1, label: "Barbell Bench Press", role: .push, muscleGroups: [.chest]),
+                ProgramTestFactory.makeDay(dayNumber: 2, label: "Lat Pulldown (Bar)", role: .pull, muscleGroups: [.back, .lats])
+            ],
+            createdAt: startedAt,
+            withArc: true
+        )
+        let logs = [
+            makeLog(programId: "program-2", exerciseNames: ["Barbell Bench Press", "Back Squat"], at: startedAt.addingTimeInterval(-7 * 86_400)),
+            makeLog(programId: "program-3", exerciseNames: ["Bench Press"], at: startedAt.addingTimeInterval(-21 * 86_400))
+        ]
+
+        let history = BlockRolloverService.exerciseHistory(
+            previousBlock: blocks[0],
+            blocks: blocks,
+            currentProgram: currentProgram,
+            recentLogs: logs,
+            progressionStates: [],
+            familyStates: []
+        )
+
+        XCTAssertEqual(history["bench press"]?.consecutiveBlocksPrescribed, 3)
+        XCTAssertEqual(history["lat pulldown"]?.consecutiveBlocksPrescribed, 1)
+        XCTAssertNil(history["back squat"])
+    }
+
+    func testExerciseHistoryMarksFreshPlateauDeloadSignal() {
+        let startedAt = Date(timeIntervalSince1970: 1_700_000_000)
+        let block = makeBlock(number: 3, programId: "program-1", startedAt: startedAt)
+        let currentProgram = ProgramTestFactory.makeProgram(
+            days: [
+                ProgramTestFactory.makeDay(dayNumber: 1, label: "Barbell Bench Press", role: .push, muscleGroups: [.chest])
+            ],
+            createdAt: startedAt,
+            withArc: true
+        )
+        var state = ProgressionState.seed(
+            userId: "u-1",
+            exercise: "bench press",
+            startingWeightKg: 80,
+            block: .deload
+        )
+        state.updatedAt = startedAt.addingTimeInterval(60)
+
+        let history = BlockRolloverService.exerciseHistory(
+            previousBlock: block,
+            blocks: [block],
+            currentProgram: currentProgram,
+            recentLogs: [],
+            progressionStates: [state],
+            familyStates: []
+        )
+
+        XCTAssertEqual(history["bench press"]?.consecutiveBlocksPrescribed, 1)
+        XCTAssertEqual(history["bench press"]?.hadPlateauDeload, true)
     }
 
     private func makeDelta(
@@ -186,6 +249,60 @@ final class BlockRolloverServiceTests: XCTestCase {
             improvements: improvements,
             laggingAreas: laggingAreas,
             recommendedFocus: recommendedFocus
+        )
+    }
+
+    private func makeBlock(number: Int, programId: String, startedAt: Date) -> ProgramBlock {
+        ProgramBlock(
+            id: "block-\(number)",
+            userId: "u-1",
+            programId: programId,
+            blockNumber: number,
+            startedAt: startedAt,
+            scanId: nil,
+            accessoryBias: [:],
+            cutModeActive: false,
+            biasRefreshedFromPrevious: false,
+            exerciseRotationsThisBlock: []
+        )
+    }
+
+    private func makeLog(
+        programId: String,
+        exerciseNames: [String],
+        at: Date
+    ) -> WorkoutLog {
+        WorkoutLog(
+            id: "log-\(programId)-\(Int(at.timeIntervalSince1970))",
+            userId: "u-1",
+            programId: programId,
+            dayNumber: 1,
+            plannedWorkoutName: "Logged",
+            startedAt: at,
+            completedAt: at.addingTimeInterval(45 * 60),
+            exerciseEntries: exerciseNames.enumerated().map { index, name in
+                ExerciseLogEntry(
+                    id: "entry-\(programId)-\(index)",
+                    exerciseName: name,
+                    plannedSets: 3,
+                    plannedReps: "8-10",
+                    sets: [
+                        SetLog(
+                            id: "set-\(programId)-\(index)",
+                            setNumber: 1,
+                            weightKg: 60,
+                            reps: 8,
+                            rpe: 7,
+                            isWarmup: false
+                        )
+                    ],
+                    skipped: false,
+                    notes: nil
+                )
+            },
+            overallNotes: nil,
+            overallRPE: nil,
+            durationMinutes: 45
         )
     }
 }

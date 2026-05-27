@@ -15,7 +15,7 @@ final class WorkoutLoggingViewModel: ObservableObject {
     let dayNumber: Int
     private let services: ServiceContainer
     // MIGRATION(Phase 9): this legacy Program logger is receipt-preview first.
-    // New AP/LV/attribute/body-map writes must stay in TrainingCompletionService;
+    // New AP/LVL/attribute/body-map writes must stay in TrainingCompletionService;
     // the WorkoutLog below is kept only as compatible history until this route is removed.
     private var pendingLegacyLog: WorkoutLog?
     private var pendingPerformanceLog: PerformanceLog?

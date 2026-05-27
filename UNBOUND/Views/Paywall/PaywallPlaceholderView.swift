@@ -1,223 +1,117 @@
 import SwiftUI
 
 struct PaywallPlaceholderView: View {
-    @EnvironmentObject var services: ServiceContainer
+    @EnvironmentObject private var services: ServiceContainer
     @Environment(\.dismiss) private var dismiss
 
-    @State private var selectedPlan: String = "annual"
-    @State private var isLoading = false
-    @State private var errorMessage: String?
-
-    private let features = [
-        "Custom training program",
-        "Nutrition plan",
-        "Recovery guide",
-        "Progress tracking",
-        "Unlimited re-scans"
-    ]
+    private var features: [String] {
+        [
+            L10n.string(.paywallFeatureCustomProgram, defaultValue: "Custom training program"),
+            L10n.string(.paywallFeatureNutritionRecovery, defaultValue: "Nutrition and recovery guidance"),
+            L10n.string(.paywallFeatureProgressScans, defaultValue: "Progress tracking and re-scans"),
+            L10n.string(.paywallFeatureSkillTree, defaultValue: "Skill tree progression"),
+            L10n.string(.paywallFeatureSquadsVowsUnlocks, defaultValue: "Squads, proofs, and unlocks")
+        ]
+    }
 
     var body: some View {
         ZStack {
-            Color.theme.background.ignoresSafeArea()
+            Color.unbound.bg.ignoresSafeArea()
 
             ScrollView {
-                VStack(spacing: 28) {
-                    // Header
-                    VStack(spacing: 12) {
-                        Image(systemName: "bolt.fill")
-                            .font(.system(size: 44))
-                            .foregroundColor(.theme.primary)
-                            .padding(.top, 40)
+                VStack(spacing: 24) {
+                    header
+                    featureList
 
-                        Text("Unlock Your Full Program")
-                            .font(.headline(28))
-                            .foregroundColor(.theme.textPrimary)
-                            .multilineTextAlignment(.center)
+                    SubscriptionPackagePicker(
+                        placement: AppConstants.Paywall.hardGate,
+                        ctaTitle: L10n.string(.paywallSubscribeToUnlock, defaultValue: "Subscribe to unlock"),
+                        onPurchased: { dismiss() }
+                    )
+                    .environmentObject(services)
 
-                        Text("Everything you need to build your ideal physique")
-                            .font(.bodyText(16))
-                            .foregroundColor(.theme.textSecondary)
-                            .multilineTextAlignment(.center)
-                    }
-                    .padding(.horizontal, 24)
+                    RestorePurchasesButton()
+                        .padding(.top, 4)
 
-                    // Feature list
-                    VStack(spacing: 12) {
-                        ForEach(features, id: \.self) { feature in
-                            HStack(spacing: 12) {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundColor(.theme.secondary)
-                                    .font(.system(size: 20))
-                                Text(feature)
-                                    .font(.bodyMedium(16))
-                                    .foregroundColor(.theme.textPrimary)
-                                Spacer()
-                            }
-                        }
-                    }
-                    .padding(20)
-                    .background(Color.theme.surface)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                    .padding(.horizontal, 24)
-
-                    // Plan cards
-                    HStack(spacing: 12) {
-                        PlanCard(
-                            title: "Weekly",
-                            price: "$4.99",
-                            period: "per week",
-                            trialDays: "3-day trial",
-                            badge: nil,
-                            isSelected: selectedPlan == "weekly"
-                        ) {
-                            selectedPlan = "weekly"
-                        }
-
-                        PlanCard(
-                            title: "Annual",
-                            price: "$29.99",
-                            period: "per year",
-                            trialDays: "7-day trial",
-                            badge: "BEST VALUE",
-                            isSelected: selectedPlan == "annual"
-                        ) {
-                            selectedPlan = "annual"
-                        }
-                    }
-                    .padding(.horizontal, 24)
-
-                    // Error
-                    if let errorMessage {
-                        Text(errorMessage)
-                            .font(.caption())
-                            .foregroundColor(.theme.danger)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 24)
-                    }
-
-                    // CTA
-                    VStack(spacing: 16) {
-                        GradientButton(title: "Start Free Trial", action: {
-                            Task { await startTrial() }
-                        }, isLoading: isLoading)
-                        .padding(.horizontal, 24)
-
-                        Button("Restore Purchases") {
-                            Task { await restorePurchases() }
-                        }
-                        .font(.bodyMedium(15))
-                        .foregroundColor(.theme.textSecondary)
-                    }
-
-                    // Terms
-                    HStack(spacing: 4) {
-                        Link("Terms of Service", destination: URL(string: "https://unboundapp.com/terms")!)
-                        Text("·")
-                        Link("Privacy Policy", destination: URL(string: "https://unboundapp.com/privacy")!)
-                    }
-                    .font(.caption(12))
-                    .foregroundColor(.theme.textMuted)
-                    .padding(.bottom, 32)
+                    legalLinks
 
                     #if DEBUG
-                    // Dev-only: bypass the paywall without charging. Compiled out
-                    // of Release builds entirely — the Button literal is gone.
                     Button {
                         DevFlags.shared.unlockAllFeatures = true
+                        dismiss()
                     } label: {
-                        Text("🧪 Dev: bypass paywall")
-                            .font(.caption(12))
-                            .foregroundColor(.theme.textMuted)
+                        Text(L10n.string(.subscriptionLockedDevUnlock, defaultValue: "DEV · Unlock simulator"))
+                            .font(Font.unbound.monoS)
+                            .tracking(1.4)
+                            .foregroundStyle(Color.unbound.impact)
                     }
-                    .padding(.bottom, 24)
+                    .buttonStyle(.plain)
                     #endif
                 }
+                .padding(.horizontal, 24)
+                .padding(.top, 48)
+                .padding(.bottom, 34)
             }
         }
     }
 
-    private func startTrial() async {
-        isLoading = true
-        errorMessage = nil
-        defer { isLoading = false }
-        do {
-            let success = try await services.subscription.purchase(packageId: selectedPlan)
-            if success { dismiss() }
-        } catch {
-            errorMessage = "Purchase failed. Please try again."
+    private var header: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "flame.fill")
+                .font(.system(size: 42, weight: .black))
+                .foregroundStyle(Color.unbound.accent)
+                .shadow(color: Color.unbound.accent.opacity(0.55), radius: 18)
+
+            Text(L10n.string(.paywallUnlockTitle, defaultValue: "Unlock UNBOUND"))
+                .font(Font.unbound.displayM)
+                .foregroundStyle(Color.unbound.textPrimary)
+                .multilineTextAlignment(.center)
+
+            Text(L10n.string(
+                .paywallUnlockSubtitle,
+                defaultValue: "Your full training system, progress engine, and crew layer."
+            ))
+                .font(Font.unbound.bodyM)
+                .foregroundStyle(Color.unbound.textSecondary)
+                .multilineTextAlignment(.center)
         }
     }
 
-    private func restorePurchases() async {
-        isLoading = true
-        errorMessage = nil
-        defer { isLoading = false }
-        do {
-            let success = try await services.subscription.restorePurchases()
-            if success {
-                dismiss()
-            } else {
-                errorMessage = "No active subscription found."
-            }
-        } catch {
-            errorMessage = "Restore failed. Please try again."
-        }
-    }
-}
-
-// MARK: - Plan Card
-
-private struct PlanCard: View {
-    let title: String
-    let price: String
-    let period: String
-    let trialDays: String
-    let badge: String?
-    let isSelected: Bool
-    let onTap: () -> Void
-
-    var body: some View {
-        Button(action: onTap) {
-            VStack(spacing: 8) {
-                if let badge {
-                    Text(badge)
-                        .font(.caption(11))
-                        .fontWeight(.bold)
-                        .foregroundColor(.theme.background)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(Color.theme.primary)
-                        .clipShape(Capsule())
-                } else {
-                    Spacer().frame(height: 22)
+    private var featureList: some View {
+        VStack(spacing: 12) {
+            ForEach(features, id: \.self) { feature in
+                HStack(spacing: 12) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(Color.unbound.accent)
+                    Text(feature)
+                        .font(Font.unbound.bodyM)
+                        .foregroundStyle(Color.unbound.textPrimary)
+                    Spacer(minLength: 0)
                 }
-
-                Text(title)
-                    .font(.bodyMedium(15))
-                    .foregroundColor(.theme.textPrimary)
-
-                Text(price)
-                    .font(.headline(22))
-                    .foregroundColor(isSelected ? .theme.primary : .theme.textPrimary)
-
-                Text(period)
-                    .font(.caption(12))
-                    .foregroundColor(.theme.textSecondary)
-
-                Text(trialDays)
-                    .font(.caption(11))
-                    .foregroundColor(.theme.secondary)
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 16)
-            .background(Color.theme.surface)
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(isSelected ? Color.theme.primary : Color.theme.surfaceLight, lineWidth: isSelected ? 2 : 1)
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 12))
         }
-        .buttonStyle(.plain)
+        .padding(18)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(Color.unbound.surface)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(Color.unbound.border, lineWidth: 1)
+        )
+    }
+
+    private var legalLinks: some View {
+        HStack(spacing: 6) {
+            Link(L10n.string(.legalTermsShort, defaultValue: "Terms"), destination: AppConstants.Legal.termsURL)
+            Text("/")
+                .foregroundStyle(Color.unbound.textTertiary)
+            Link(L10n.string(.legalPrivacyShort, defaultValue: "Privacy"), destination: AppConstants.Legal.privacyURL)
+        }
+        .font(Font.unbound.captionS)
+        .foregroundStyle(Color.unbound.textSecondary)
+        .padding(.top, 4)
     }
 }
 

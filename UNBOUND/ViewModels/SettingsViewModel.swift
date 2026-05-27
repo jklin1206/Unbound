@@ -26,6 +26,13 @@ final class SettingsViewModel: ObservableObject {
         do {
             userProfile = try await services.user.fetchProfile(userId: userId)
         } catch {
+            #if DEBUG
+            if userId == "dev-player",
+               let localProfile: UserProfile = try? await DatabaseService.shared.read(collection: "users", documentId: userId) {
+                userProfile = localProfile
+                return
+            }
+            #endif
             errorMessage = "Failed to load profile"
         }
     }
@@ -33,7 +40,6 @@ final class SettingsViewModel: ObservableObject {
     func signOut() {
         do {
             try services.auth.signOut()
-            services.analytics.track(.signOut)
         } catch {
             errorMessage = "Failed to sign out"
         }
@@ -58,7 +64,8 @@ final class SettingsViewModel: ObservableObject {
 
         isLoading = true
         do {
-            try await services.user.deleteUserData(userId: userId)
+            try? await services.user.deleteUserData(userId: userId)
+            try? await services.storage.deleteUserPhotos(userId: userId)
             try await services.auth.deleteAccount()
             services.analytics.track(.accountDeleted)
         } catch {

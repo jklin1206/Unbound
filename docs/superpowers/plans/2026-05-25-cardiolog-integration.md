@@ -42,6 +42,10 @@ Out:
 | `UNBOUND/UNBOUNDTests/Services/WeeklyVolumeWithCardioTests.swift` | **Create** | Logging cardio increases weekly volume |
 | `UNBOUND/UNBOUNDTests/Services/PlateauFixWithCardioTests.swift` | **Create** | High cardio + stagnant strength → fatigue suggestion, not load increase |
 
+## Plan Notes
+
+- TODO(cardiolog-integration): `WeeklyVolumeService.swift` and `SquadMessageAutoPoster.swift` are not present in the current `UNBOUND/UNBOUND/Services` tree; defer those consumers until the real services land rather than creating placeholder architecture.
+
 ---
 
 ## Tasks

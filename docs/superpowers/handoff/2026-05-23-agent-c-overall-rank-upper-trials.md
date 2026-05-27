@@ -32,15 +32,15 @@ Agents should not work on one shared branch. Start from `origin/codex/progressio
 
 The service already covers:
 
-- Initiate -> Novice: Foundation Proof
+- Initiate -> Novice: The Awakening
 - Novice -> Apprentice: The Calibration
-- Apprentice -> Honed: The Forge
-- Honed -> Forged: The Reckoning
-- Forged -> Veteran: The Gauntlet
+- Apprentice -> Forged: The Forge
+- Forged -> Veteran: The Reckoning
+- Veteran -> Master: The Gauntlet
 
 Your lane should add the remaining upper-rank gates in a bounded way:
 
-- Veteran -> Vessel
+- Master -> Vessel
 - Vessel -> Unbound
 - Unbound -> Ascendant
 
@@ -95,4 +95,3 @@ Simulator proof:
 - Prefer all three upper definitions if scope stays clean.
 - No passive rank path bypasses the trial runner.
 - Roadmap Phase 7 has a dated note listing added gates and proof status.
-

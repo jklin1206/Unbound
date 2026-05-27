@@ -67,7 +67,7 @@ struct ChapterInterstitial: View {
 
             VStack {
                 Spacer()
-                Text("TAP TO CONTINUE")
+                Text(L10n.onboarding("chapter.tapToContinue", defaultValue: "TAP TO CONTINUE"))
                     .font(Font.unbound.monoS)
                     .tracking(2)
                     .foregroundStyle(Color.unbound.textTertiary)

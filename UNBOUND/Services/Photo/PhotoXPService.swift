@@ -4,14 +4,14 @@ import Foundation
 
 @MainActor
 protocol PhotoXPServiceProtocol: AnyObject {
-    /// Awards +5 LV XP the first time a user captures a photo on a given
+    /// Awards +5 LVL XP the first time a user captures a photo on a given
     /// calendar day. No-ops (returns false) on subsequent same-day captures
-    /// to prevent farming. Returns true when LV XP was awarded.
+    /// to prevent farming. Returns true when LVL XP was awarded.
     @discardableResult
     func awardDailyPhoto(userId: String) -> Bool
 
-    /// Awards +25 LV XP for a completed bi-weekly scan. No dedup — the
-    /// 14-day eligibility gate lives in the UI layer.
+    /// Awards +25 LVL XP for a completed monthly checkpoint. No dedup; the
+    /// monthly eligibility gate lives in the UI layer.
     func awardScan(userId: String)
 }
 

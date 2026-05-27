@@ -139,6 +139,8 @@ struct UnboundSkillTreeTabView: View {
                 Image(skinService.currentSkin.backgroundAssetName)
                     .resizable()
                     .aspectRatio(contentMode: .fill)
+                    .contrast(skinService.currentSkin.backgroundAssetContrast)
+                    .opacity(skinService.currentSkin.backgroundAssetOpacity)
             } else {
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
                     .fill(skinService.currentSkin.nodeGradient)
@@ -148,8 +150,8 @@ struct UnboundSkillTreeTabView: View {
                 .blendMode(.screen)
             Image(systemName: "hexagon.fill")
                 .font(.system(size: 18, weight: .bold))
-                .foregroundStyle(skinService.currentSkin.primaryColor)
-                .shadow(color: skinService.currentSkin.impactColor.opacity(0.55), radius: 6)
+                .foregroundStyle(skinService.currentSkin.decalColor)
+                .shadow(color: skinService.currentSkin.impactDecalColor.opacity(0.55), radius: 6)
         }
         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
     }
@@ -182,9 +184,18 @@ struct UnboundSkillTreeTabView: View {
                     Hexagon().fill(Color.unbound.surfaceElevated)
                     Hexagon().strokeBorder(glowColor(for: rank), lineWidth: 2)
                         .shadow(color: glowColor(for: rank).opacity(0.55), radius: 10)
-                    Text(rank.displayName)
-                        .font(.system(size: 30, weight: .black, design: .monospaced))
-                        .foregroundStyle(Color.unbound.textPrimary)
+                    VStack(spacing: 5) {
+                        Image(rank.title.assetName)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 36, height: 36)
+                        Text(rank.title.displayName.uppercased())
+                            .font(.system(size: 8, weight: .black, design: .monospaced))
+                            .tracking(0.7)
+                            .foregroundStyle(Color.unbound.textPrimary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.58)
+                    }
                 }
                 .frame(width: 92, height: 92)
             }
@@ -273,11 +284,14 @@ struct UnboundSkillTreeTabView: View {
 
     private func rankChip(_ rank: SubRank, filled: Bool) -> some View {
         let style = skinService.currentSkin.rankChipStyle
-        return Text(rank.displayName)
-            .font(Font.unbound.monoM)
+        return Text(rank.title.displayName.uppercased())
+            .font(.system(size: 8, weight: .heavy, design: .monospaced))
+            .tracking(0.7)
             .foregroundStyle(filled ? style.text : Color.unbound.textSecondary)
             .padding(.horizontal, 10)
             .padding(.vertical, 4)
+            .lineLimit(1)
+            .minimumScaleFactor(0.62)
             .background(
                 Capsule()
                     .fill(filled ? style.background : Color.clear)
@@ -289,10 +303,7 @@ struct UnboundSkillTreeTabView: View {
     }
 
     private func glowColor(for rank: SubRank) -> Color {
-        if rank.ordinal >= SubRank.sMinus.ordinal {
-            return skinService.currentSkin.impactColor
-        }
-        return skinService.currentSkin.primaryColor
+        rank.title.rewardTint
     }
 
     private var progressionPathsLink: some View {

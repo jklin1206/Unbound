@@ -13,7 +13,7 @@ final class PrereqClearerTests: XCTestCase {
         let requirements = [
             repRequirement(.apprentice), // 3 reps
             repRequirement(.forged),     // 5 reps
-            repRequirement(.honed),      // 8 reps
+            repRequirement(.master),      // 8 reps
             repRequirement(.vessel),     // 10 reps
             SkillUnlockRequirement(
                 sourceSkillId: "pp.dead-hang",
@@ -34,7 +34,7 @@ final class PrereqClearerTests: XCTestCase {
 
         XCTAssertTrue(clearedIds.contains(repRequirement(.apprentice).id))
         XCTAssertTrue(clearedIds.contains(repRequirement(.forged).id))
-        XCTAssertTrue(clearedIds.contains(repRequirement(.honed).id))
+        XCTAssertTrue(clearedIds.contains(repRequirement(.master).id))
         XCTAssertTrue(clearedIds.contains(repRequirement(.vessel).id))
         XCTAssertFalse(clearedIds.contains("pp.dead-hang:\(SkillTier.forged.rawValue)"))
         XCTAssertFalse(cleared.contains { $0.requirement.directProofFamily == .mobility })

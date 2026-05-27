@@ -2,9 +2,11 @@ import Foundation
 
 enum AnalyticsEvent {
     case appOpen
+    case appOpened
     case screenView(screenName: String)
     case onboardingStarted
     case onboardingStepViewed(step: Int, screenName: String)
+    case onboardingStepCompleted(step: String)
     case onboardingCompleted
     case onboardingSkipped(atStep: Int)
     case signInStarted(method: String)
@@ -26,16 +28,28 @@ enum AnalyticsEvent {
     case programDayViewed(programId: String, dayNumber: Int)
     case workoutStarted(programId: String, dayNumber: Int)
     case workoutCompleted(programId: String, dayNumber: Int)
+    case workoutAbandoned(programId: String, dayNumber: Int)
     case paywallTriggered(placement: String)
+    case paywallViewed(placement: String)
     case paywallPresented(placement: String)
     case paywallDismissed(placement: String)
     case paywallConverted(placement: String, productId: String)
     case subscriptionStarted(productId: String, isTrialPeriod: Bool)
     case subscriptionRenewed(productId: String)
+    case subscriptionCanceled(productId: String)
     case subscriptionCancelled(productId: String)
     case subscriptionRestored
     case rescanStarted(previousScanId: String)
     case progressViewed(currentScore: Int, previousScore: Int)
+    case prAwarded(movementName: String, metric: String)
+    case skillTierCrossed(skillId: String, tier: String)
+    case bindingVowCleared(vowId: String)
+    case programGenerated(programId: String)
+    case squadCreated(squadId: String)
+    case squadJoined(squadId: String)
+    case challengeCreated(challengeId: String, kind: String)
+    case challengeCleared(challengeId: String, kind: String)
+    case tabSelected(tab: String)
     // Exercise Preferences
     case exercisePreferenceSet(exerciseName: String, status: String)
     case exerciseLibraryViewed
@@ -60,9 +74,11 @@ enum AnalyticsEvent {
     var name: String {
         switch self {
         case .appOpen: return "app_open"
+        case .appOpened: return "app_opened"
         case .screenView: return "screen_view"
         case .onboardingStarted: return "onboarding_started"
         case .onboardingStepViewed: return "onboarding_step_viewed"
+        case .onboardingStepCompleted: return "onboarding_step_completed"
         case .onboardingCompleted: return "onboarding_completed"
         case .onboardingSkipped: return "onboarding_skipped"
         case .signInStarted: return "sign_in_started"
@@ -84,16 +100,28 @@ enum AnalyticsEvent {
         case .programDayViewed: return "program_day_viewed"
         case .workoutStarted: return "workout_started"
         case .workoutCompleted: return "workout_completed"
+        case .workoutAbandoned: return "workout_abandoned"
         case .paywallTriggered: return "paywall_triggered"
+        case .paywallViewed: return "paywall_viewed"
         case .paywallPresented: return "paywall_presented"
         case .paywallDismissed: return "paywall_dismissed"
         case .paywallConverted: return "paywall_converted"
         case .subscriptionStarted: return "subscription_started"
         case .subscriptionRenewed: return "subscription_renewed"
+        case .subscriptionCanceled: return "subscription_canceled"
         case .subscriptionCancelled: return "subscription_cancelled"
         case .subscriptionRestored: return "subscription_restored"
         case .rescanStarted: return "rescan_started"
         case .progressViewed: return "progress_viewed"
+        case .prAwarded: return "pr_awarded"
+        case .skillTierCrossed: return "skill_tier_crossed"
+        case .bindingVowCleared: return "binding_vow_cleared"
+        case .programGenerated: return "program_generated"
+        case .squadCreated: return "squad_created"
+        case .squadJoined: return "squad_joined"
+        case .challengeCreated: return "challenge_created"
+        case .challengeCleared: return "challenge_cleared"
+        case .tabSelected: return "tab_selected"
         case .exercisePreferenceSet: return "exercise_preference_set"
         case .exerciseLibraryViewed: return "exercise_library_viewed"
         case .workoutLoggingStarted: return "workout_logging_started"
@@ -111,13 +139,15 @@ enum AnalyticsEvent {
 
     var parameters: [String: Any] {
         switch self {
-        case .appOpen, .signOut, .accountDeleted, .onboardingStarted, .onboardingCompleted,
+        case .appOpen, .appOpened, .signOut, .accountDeleted, .onboardingStarted, .onboardingCompleted,
              .scanStarted, .scanPhotosCompleted, .subscriptionRestored, .scanAnalysisStarted:
             return [:]
         case .screenView(let name):
             return ["screen_name": name]
         case .onboardingStepViewed(let step, let name):
             return ["step": step, "screen_name": name]
+        case .onboardingStepCompleted(let step):
+            return ["step": step]
         case .onboardingSkipped(let step):
             return ["at_step": step]
         case .signInStarted(let method), .signInCompleted(let method):
@@ -144,18 +174,35 @@ enum AnalyticsEvent {
             return ["program_id": programId, "day_number": dayNumber]
         case .workoutStarted(let programId, let dayNumber), .workoutCompleted(let programId, let dayNumber):
             return ["program_id": programId, "day_number": dayNumber]
-        case .paywallTriggered(let placement), .paywallPresented(let placement), .paywallDismissed(let placement):
+        case .workoutAbandoned(let programId, let dayNumber):
+            return ["program_id": programId, "day_number": dayNumber]
+        case .paywallTriggered(let placement), .paywallViewed(let placement),
+             .paywallPresented(let placement), .paywallDismissed(let placement):
             return ["placement": placement]
         case .paywallConverted(let placement, let productId):
             return ["placement": placement, "product_id": productId]
         case .subscriptionStarted(let productId, let isTrial):
             return ["product_id": productId, "is_trial": isTrial]
-        case .subscriptionRenewed(let productId), .subscriptionCancelled(let productId):
+        case .subscriptionRenewed(let productId), .subscriptionCanceled(let productId), .subscriptionCancelled(let productId):
             return ["product_id": productId]
         case .rescanStarted(let previousScanId):
             return ["previous_scan_id": previousScanId]
         case .progressViewed(let current, let previous):
             return ["current_score": current, "previous_score": previous]
+        case .prAwarded(let movementName, let metric):
+            return ["movement_name": movementName, "metric": metric]
+        case .skillTierCrossed(let skillId, let tier):
+            return ["skill_id": skillId, "tier": tier]
+        case .bindingVowCleared(let vowId):
+            return ["vow_id": vowId]
+        case .programGenerated(let programId):
+            return ["program_id": programId]
+        case .squadCreated(let squadId), .squadJoined(let squadId):
+            return ["squad_id": squadId]
+        case .challengeCreated(let challengeId, let kind), .challengeCleared(let challengeId, let kind):
+            return ["challenge_id": challengeId, "kind": kind]
+        case .tabSelected(let tab):
+            return ["tab": tab]
         case .exercisePreferenceSet(let exerciseName, let status):
             return ["exercise_name": exerciseName, "status": status]
         case .exerciseLibraryViewed:

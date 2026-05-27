@@ -117,12 +117,12 @@ struct OnboardingScaffold<Content: View>: View {
             VStack(alignment: .leading, spacing: 10) {
                 if showsProgress {
                     HStack(spacing: 8) {
-                        Text("CALIBRATION ARC")
+                        Text("ARC PROGRESS")
                             .font(Font.unbound.captionS.weight(.bold))
                             .tracking(1.8)
                             .foregroundStyle(Color.unbound.ember)
 
-                        Text("STEP \(progressStepLabel)")
+                        Text("\(progressPercent)%")
                             .font(.system(size: 10, weight: .bold, design: .monospaced))
                             .tracking(0.8)
                             .foregroundStyle(Color.unbound.textSecondary)
@@ -202,8 +202,9 @@ struct OnboardingScaffold<Content: View>: View {
 
                         Spacer(minLength: 0)
 
-                        Text("\(progressStepLabel)")
+                        Text("ARC")
                             .font(.system(size: 10, weight: .bold, design: .monospaced))
+                            .tracking(1.0)
                             .foregroundStyle(Color.unbound.ember)
                             .padding(.horizontal, 7)
                             .padding(.vertical, 3)
@@ -317,11 +318,6 @@ struct OnboardingScaffold<Content: View>: View {
         Int((progress * 100).rounded())
     }
 
-    private var progressStepLabel: String {
-        let raw = Int(ceil(progress * Double(OnboardingStep.total)))
-        let clamped = max(1, min(OnboardingStep.total, raw))
-        return "\(clamped)/\(OnboardingStep.total)"
-    }
 }
 
 #Preview("Legacy") {

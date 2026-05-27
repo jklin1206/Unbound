@@ -10,60 +10,56 @@ struct Step29_SocialProof: View {
     let onBack: () -> Void
     let onContinue: () -> Void
 
-    private let testimonials: [Testimonial] = [
-        Testimonial(
-            quote: "I stopped negotiating with myself. I wanted to see the card move.",
-            name: "Kai",
-            role: "Beta Tester",
-            rank: "B",
-            rankStart: "E",
-            months: 2,
-            sessions: 28,
-            streak: 14,
-            focus: "Rank Climb"
-        ),
-        Testimonial(
-            quote: "Day Zero made the first week feel real. Every workout had a reason.",
-            name: "Mason",
-            role: "Beta Tester",
-            rank: "C",
-            rankStart: "E",
-            months: 3,
-            sessions: 36,
-            streak: 21,
-            focus: "Day Zero"
-        ),
-        Testimonial(
-            quote: "It felt like loading into a training arc. I actually wanted the next session.",
-            name: "Jalen",
-            role: "Beta Tester",
-            rank: "C",
-            rankStart: "E",
-            months: 1,
-            sessions: 18,
-            streak: 9,
-            focus: "First Arc"
-        )
-    ]
+    private var testimonials: [Testimonial] {
+        [
+            Testimonial(
+                quote: L10n.onboarding("socialProof.testimonial.kai.quote", defaultValue: "I opened it because I wanted to see the next gate light up."),
+                name: "Kai",
+                role: L10n.onboarding("socialProof.role.betaTester", defaultValue: "Beta Tester"),
+                rank: .master,
+                rankStart: .initiate,
+                months: 2,
+                sessions: 28,
+                streak: 14,
+                focus: L10n.onboarding("socialProof.testimonial.kai.focus", defaultValue: "Rank Climb")
+            ),
+            Testimonial(
+                quote: L10n.onboarding("socialProof.testimonial.mason.quote", defaultValue: "The first week felt like a quest, not another plan I had to babysit."),
+                name: "Mason",
+                role: L10n.onboarding("socialProof.role.betaTester", defaultValue: "Beta Tester"),
+                rank: .veteran,
+                rankStart: .initiate,
+                months: 3,
+                sessions: 36,
+                streak: 21,
+                focus: L10n.onboarding("socialProof.testimonial.mason.focus", defaultValue: "Day Zero")
+            ),
+            Testimonial(
+                quote: L10n.onboarding("socialProof.testimonial.jalen.quote", defaultValue: "Seeing Initiate on Day Zero made me want to earn the next title."),
+                name: "Jalen",
+                role: L10n.onboarding("socialProof.role.betaTester", defaultValue: "Beta Tester"),
+                rank: .forged,
+                rankStart: .initiate,
+                months: 1,
+                sessions: 18,
+                streak: 9,
+                focus: L10n.onboarding("socialProof.testimonial.jalen.focus", defaultValue: "First Arc")
+            )
+        ]
+    }
 
     var body: some View {
         OnboardingScaffold(
-            title: "They came back for the next session.",
-            subtitle: "Beta testers started at Day Zero and kept opening UNBOUND because the climb felt visible.",
+            title: L10n.onboarding("socialProof.title", defaultValue: "Other players crossed the first gate."),
+            subtitle: L10n.onboarding("socialProof.subtitle", defaultValue: "The hook was simple: open the app, do the work, watch the path change."),
             progress: progress,
-            primaryTitle: "I'm in",
+            primaryTitle: L10n.onboarding("socialProof.primary", defaultValue: "Show me mine"),
             hudStep: .socialProofGallery,
             onBack: onBack,
             onPrimary: onContinue
         ) {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(spacing: 8) {
-                    Text("BETA LOG")
-                        .font(.system(size: 10, weight: .black, design: .monospaced))
-                        .tracking(1.2)
-                        .foregroundStyle(Color.unbound.accent)
-                }
-                .padding(.bottom, 4)
+            VStack(alignment: .leading, spacing: 14) {
+                betaHero
 
                 VStack(spacing: 0) {
                     ForEach(Array(testimonials.enumerated()), id: \.element.id) { index, t in
@@ -76,12 +72,46 @@ struct Step29_SocialProof: View {
         }
     }
 
+    private var betaHero: some View {
+        ZStack(alignment: .bottomLeading) {
+            Image("onboarding_path_beta_logs")
+                .resizable()
+                .scaledToFill()
+                .frame(height: 238)
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .overlay(
+                    LinearGradient(
+                        colors: [Color.clear, Color.black.opacity(0.64)],
+                        startPoint: .center,
+                        endPoint: .bottom
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                )
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text(L10n.onboarding("socialProof.eyebrow", defaultValue: "BETA LOG"))
+                    .font(.system(size: 10, weight: .black, design: .monospaced))
+                    .tracking(1.4)
+                    .foregroundStyle(Color.unbound.accent)
+                Text("First arcs. Real climbs.")
+                    .font(Font.unbound.titleS)
+                    .foregroundStyle(Color.unbound.textPrimary)
+            }
+            .padding(16)
+        }
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .strokeBorder(Color.unbound.accent.opacity(0.28), lineWidth: 1)
+        )
+        .shadow(color: Color.unbound.accent.opacity(0.18), radius: 18)
+    }
+
     private var socialProofFooter: some View {
         HStack(spacing: 8) {
             Image(systemName: "flame.fill")
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(Color.unbound.accent)
-            Text("Open the app. Finish the session. Watch the rank move.")
+            Text(L10n.onboarding("socialProof.footer", defaultValue: "The point is not more hype. The point is having a path you want to return to."))
                 .font(Font.unbound.bodyS)
                 .foregroundStyle(Color.unbound.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -113,17 +143,17 @@ struct Step29_SocialProof: View {
                             .foregroundStyle(Color.unbound.textTertiary)
                     }
 
-                    Text("\"\(t.quote)\"")
+                    Text(L10n.onboardingFormat("socialProof.quoteFormat", defaultValue: "\"%@\"", t.quote))
                         .font(Font.unbound.bodyM)
                         .foregroundStyle(Color.unbound.textSecondary)
                         .lineSpacing(1.5)
-                        .lineLimit(3)
+                        .lineLimit(2)
                         .minimumScaleFactor(0.88)
 
                     HStack(spacing: 12) {
-                        microStat("\(t.sessions) sessions")
-                        microStat("\(t.streak)d streak")
-                        microStat("\(t.months) mo")
+                        microStat(L10n.onboardingFormat("socialProof.stat.sessions", defaultValue: "%d sessions", t.sessions))
+                        microStat(L10n.onboardingFormat("socialProof.stat.streak", defaultValue: "%dd streak", t.streak))
+                        microStat(L10n.onboardingFormat("socialProof.stat.months", defaultValue: "%d mo", t.months))
                     }
                 }
             }
@@ -147,20 +177,21 @@ struct Step29_SocialProof: View {
             Image(systemName: "arrow.right")
                 .font(.system(size: 9, weight: .black))
                 .foregroundStyle(Color.unbound.textTertiary)
-            rankMark(t.rank, tint: rankTint(for: t.rank))
+            rankMark(t.rank, tint: t.rank.rewardTint)
         }
     }
 
-    private func rankMark(_ value: String, tint: Color) -> some View {
-        let tier = RankTitle.legacyLetterFallback(value).asSkillTier
-        return HStack(spacing: 4) {
-            Image(tier.assetName)
+    private func rankMark(_ value: RankTitle, tint: Color) -> some View {
+        HStack(spacing: 4) {
+            Image(value.assetName)
                 .resizable()
                 .scaledToFit()
                 .frame(width: 18, height: 18)
-            Text(value)
-                .font(.system(size: 13, weight: .black, design: .monospaced))
+            Text(shortRankName(value))
+                .font(.system(size: 8, weight: .black, design: .monospaced))
+                .tracking(0.5)
                 .foregroundStyle(tint)
+                .lineLimit(1)
         }
     }
 
@@ -171,14 +202,17 @@ struct Step29_SocialProof: View {
             .foregroundStyle(Color.unbound.textTertiary)
     }
 
-    private func rankTint(for letter: String) -> Color {
-        switch letter.uppercased() {
-        case "S": return Color.unbound.rankGold
-        case "A": return Color.unbound.accent
-        case "B": return Color.unbound.rankGreen
-        case "C": return Color.unbound.rankGreen
-        case "D": return Color.unbound.rankOrange
-        default: return Color.unbound.rankRed
+    private func shortRankName(_ rank: RankTitle) -> String {
+        switch rank {
+        case .initiate: return "INIT"
+        case .novice: return "NOV"
+        case .apprentice: return "APP"
+        case .forged: return "FORG"
+        case .veteran: return "VET"
+        case .master: return "MAS"
+        case .vessel: return "VES"
+        case .unbound: return "UNB"
+        case .ascendant: return "ASC"
         }
     }
 
@@ -187,8 +221,8 @@ struct Step29_SocialProof: View {
         let quote: String
         let name: String
         let role: String
-        let rank: String
-        let rankStart: String
+        let rank: RankTitle
+        let rankStart: RankTitle
         let months: Int
         let sessions: Int
         let streak: Int

@@ -18,7 +18,7 @@ final class SkillTierTests: XCTestCase {
         XCTAssertFalse(SkillTier.apprentice.isFlagshipMoment)
         XCTAssertFalse(SkillTier.forged.isFlagshipMoment)
         XCTAssertFalse(SkillTier.veteran.isFlagshipMoment)
-        XCTAssertFalse(SkillTier.honed.isFlagshipMoment)
+        XCTAssertFalse(SkillTier.master.isFlagshipMoment)
         XCTAssertTrue(SkillTier.vessel.isFlagshipMoment)
         XCTAssertTrue(SkillTier.unbound.isFlagshipMoment)
         XCTAssertTrue(SkillTier.ascendant.isFlagshipMoment)

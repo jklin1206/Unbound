@@ -2,6 +2,7 @@ import Foundation
 import Combine
 
 protocol SubscriptionServiceProtocol: Sendable {
+    var isSubscribed: Bool { get }
     var hasActiveSubscription: Bool { get }
     var subscriptionStatusPublisher: AnyPublisher<Bool, Never> { get }
 
@@ -13,11 +14,13 @@ protocol SubscriptionServiceProtocol: Sendable {
     func restorePurchases() async throws -> Bool
 }
 
-struct SubscriptionPackage: Identifiable {
+struct SubscriptionPackage: Identifiable, Sendable {
     let id: String
+    let productId: String
     let title: String
     let price: String
     let duration: String
+    let pricePerMonth: String?
     let hasFreeTrial: Bool
     let freeTrialDuration: String?
 }

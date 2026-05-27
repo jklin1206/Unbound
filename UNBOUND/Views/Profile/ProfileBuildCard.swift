@@ -18,15 +18,17 @@ struct ProfileBuildCard: View {
 
             VStack(spacing: 8) {
                 AttributeHex(
-                    current: currentValues,
-                    peak: peakValues,
+                    current: profile.hexChartValues,
+                    peak: profile.peakHexChartValues,
                     levels: profile.levels,
-                    tiers: profile.rankTitles,
+                    tiers: profile.levelRankTitles,
+                    prestigeGlow: profile.prestigeGlowValues,
                     showLabels: true,
                     labelVariant: .profile,
                     radius: 90
                 )
-                .padding(.vertical, 24)
+                .padding(.horizontal, 40)
+                .padding(.vertical, 46)
 
                 Text(profile.buildName.uppercased())
                     .font(.system(size: 13, weight: .semibold, design: .monospaced))
@@ -73,14 +75,6 @@ struct ProfileBuildCard: View {
         }
     }
 
-    private var currentValues: [AttributeKey: Double] {
-        Dictionary(uniqueKeysWithValues: AttributeKey.allCases.map { ($0, profile.value(for: $0).current) })
-    }
-
-    private var peakValues: [AttributeKey: Double] {
-        Dictionary(uniqueKeysWithValues: AttributeKey.allCases.map { ($0, profile.value(for: $0).peak) })
-    }
-
     private var dominantKey: AttributeKey { profile.dominant }
     private var primaryTint: Color { dominantKey.rewardTint }
 }
@@ -107,6 +101,7 @@ private struct AttributeInfoSheet: View {
                             .monospacedDigit()
                             .lineLimit(1)
                             .minimumScaleFactor(0.7)
+                        AttributeRankBadge(rank: value.levelRankTitle, size: 12)
                     }
                     .tracking(0)
                     .foregroundStyle(Color.unbound.textPrimary)
@@ -119,11 +114,18 @@ private struct AttributeInfoSheet: View {
                         .tracking(0)
                         .foregroundStyle(Color.unbound.textPrimary)
                         .lineLimit(1)
-                    Text(value.rankTitle.displayName.uppercased())
-                        .font(.system(size: 9, weight: .bold, design: .monospaced))
-                        .tracking(0)
-                        .foregroundStyle(value.rankTitle.rewardTextTint)
-                        .lineLimit(1)
+                    HStack(spacing: 6) {
+                        AttributeRankBadge(rank: value.levelRankTitle, size: 16)
+                        Text("\(xpString(value.xpToNextLevel)) XP TO NEXT LEVEL")
+                            .font(.system(size: 9, weight: .bold, design: .monospaced))
+                            .tracking(0.4)
+                            .foregroundStyle(value.levelRankTitle.rewardTextTint.opacity(0.92))
+                            .monospacedDigit()
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.72)
+                    }
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel("\(value.levelRankTitle.displayName) rank, \(xpString(value.xpToNextLevel)) XP to next level")
                 }
 
                 Spacer(minLength: 0)
@@ -255,8 +257,8 @@ private struct AttributeInfoSheet: View {
         switch key {
         case .power:
             return "Raw force output. This rises when heavy strength work improves."
-        case .agility:
-            return "Recovery health. Rest days, deloads, and recovery check-ins feed this."
+        case .vitality:
+            return "Recovery consistency. Easy walks, deloads, and check-ins feed this without judging high-step days."
         case .control:
             return "Body control under tension. Skill work, tempo reps, and clean positions feed this."
         case .endurance:

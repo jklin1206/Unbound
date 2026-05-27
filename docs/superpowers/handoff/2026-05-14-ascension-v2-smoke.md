@@ -13,7 +13,7 @@ Sub-project #4 shipped on `ascension-tier-v2`. Ready for merge into `program-red
 
 ## What ships
 
-- **9-tier ladder** (Initiate → Novice → Apprentice → Forged → Veteran → Honed → Vessel → Unbound → Ascendant) as standalone `SkillTier` enum (Int rawValue, Comparable).
+- **9-tier ladder** (Initiate → Novice → Apprentice → Forged → Veteran → Master → Vessel → Unbound → Ascendant) as standalone `SkillTier` enum (Int rawValue, Comparable).
 - **Per-skill tier state** stored in `UserSkillTierStore` (UserDefaults JSON cache).
 - **Per-lift tier state** in `LiftTierService` (4 lifts: bench / squat / deadlift / OHP).
 - **Aggregate tier** = max across all per-skill + per-lift.
@@ -43,7 +43,7 @@ Confirmed in sim screenshot `/tmp/asc-v2-p10-home.png`:
 
 1. **LiftRank + RankBadge deletion deferred** — 15+ and 12+ callers respectively across many views (SkillTreeViewModel, UnboundHomeView, ExpandedBodyMapView, MuscleDetailSheet, ProfileView, SettingsView, BodyTierView, OnboardingPaywall, etc.). View-by-view migration to `TierBadge` is its own follow-up PR.
 
-2. **Cinematic visual bridge** — `RankUpCinematicPresenter` accepts the new `.skillTierAdvanced` notification and gates correctly (only flagship tiers fire), but synthesizes a `RankAdvance` (SubRank) for the existing cinematic view internals. Display still shows SubRank labels (`.c → .sPlus`-style) rather than SkillTier names ("Honed → Vessel"). Follow-up: rewrite cinematic view to render `SkillTierAdvance` directly.
+2. **Cinematic visual bridge** — `RankUpCinematicPresenter` accepts the new `.skillTierAdvanced` notification and gates correctly (only flagship tiers fire), but synthesizes a `RankAdvance` (SubRank) for the existing cinematic view internals. Display still shows SubRank labels (`.c → .sPlus`-style) rather than SkillTier names ("Master → Vessel"). Follow-up: rewrite cinematic view to render `SkillTierAdvance` directly.
 
 3. **TierBloomToast for MuscleGroupTier** — old version was replaced by SkillTier-based version. Project.yml excludes the dead stub. Future cleanup: remove the stub file entirely.
 

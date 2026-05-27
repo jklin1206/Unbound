@@ -16,12 +16,12 @@ struct OnboardingWelcomeView: View {
                     .padding(.bottom, 48)
 
                 VStack(spacing: 12) {
-                    Text("Your anime physique starts here.")
+                    Text(L10n.onboarding("welcome.title", defaultValue: "Your anime physique starts here."))
                         .font(.headline(32))
                         .foregroundColor(.theme.textPrimary)
                         .multilineTextAlignment(.center)
 
-                    Text("AI-powered body analysis meets real training science.")
+                    Text(L10n.onboarding("welcome.subtitle", defaultValue: "Deterministic training, monthly recaps, and real progression."))
                         .font(.bodyText())
                         .foregroundColor(.theme.textSecondary)
                         .multilineTextAlignment(.center)
@@ -30,7 +30,7 @@ struct OnboardingWelcomeView: View {
 
                 Spacer()
 
-                GradientButton(title: "Get Started", action: onNext)
+                GradientButton(title: L10n.onboarding("welcome.cta", defaultValue: "Get Started"), action: onNext)
                     .padding(.horizontal, 24)
                     .padding(.bottom, 80)
             }

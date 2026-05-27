@@ -25,6 +25,7 @@ struct ProgramOverviewView: View {
     @Bindable private var skillProgress = SkillProgressService.shared
 
     @State private var viewModel: ProgramViewModel?
+    @State private var currentProfile: UserProfile?
     @State private var selectedTab: Tab = .program
     @State private var selectedDay: ProgramDay?
     @State private var showPaywall = false
@@ -63,7 +64,7 @@ struct ProgramOverviewView: View {
     // Routines view state
     @State private var selectedRoutine: RoutineDef?
     @State private var activeRoutinePlayer: RoutineDef?
-    @State private var selectedChallengeId: String = "100-pushup"
+    @State private var selectedChallengeId: String = "daily-quest"
     @State private var selectedRoutineIdsByCategory: [RoutineCategory: String] = [:]
     @State private var travelingRoutine: RoutineDef?
     @State private var routineTravelProgress: CGFloat = 0
@@ -197,6 +198,8 @@ struct ProgramOverviewView: View {
         }
         .fullScreenCover(item: $activeWorkoutDraft) { draft in
             ActiveWorkoutContainerView(draft: draft, services: services) {
+                UserDefaults.standard.set(0, forKey: "unbound.shortSessionDate")
+                activeWorkoutDraft = nil
                 Task { await refreshHistory() }
             }
             .environmentObject(services)
@@ -323,6 +326,7 @@ struct ProgramOverviewView: View {
         // generate when there was no cache (first run).
         do {
             let profile: UserProfile = try await services.user.fetchProfile(userId: userId)
+            self.currentProfile = profile
             if let programId = profile.currentProgramId {
                 if cached == nil {
                     await vm.loadProgram(programId: programId)
@@ -337,7 +341,7 @@ struct ProgramOverviewView: View {
                 }
             } else if cached == nil {
                 vm.state = .loading
-                let generated = await ProgramGenerationService.shared.generateFromOnboarding(
+                let generated = try await ProgramGenerationService.shared.generateFromOnboarding(
                     userId: userId,
                     targetFrequency: profile.targetFrequency,
                     equipment: Set(profile.equipment ?? []),
@@ -345,13 +349,6 @@ struct ProgramOverviewView: View {
                     sessionLength: profile.sessionLength,
                     exerciseStyles: Set(profile.exerciseStyles ?? []),
                     targetAreas: Set(profile.targetAreas ?? []),
-                    goals: Set(profile.goals ?? []),
-                    obstacles: Set(profile.obstacles ?? []),
-                    sleepQuality: profile.sleepQuality ?? 5,
-                    stressLevel: profile.stressLevel ?? 5,
-                    currentFrequency: profile.currentFrequency,
-                    commitment: profile.commitment ?? 8,
-                    displayHandle: profile.displayHandle ?? profile.displayName ?? "",
                     age: profile.age ?? 0,
                     gender: profile.gender ?? .unspecified,
                     heightCm: profile.heightCm ?? 0,
@@ -404,7 +401,7 @@ struct ProgramOverviewView: View {
     // MARK: - TODAY'S TRAINING (active goals)
     //
     // V1: surfaces every active goal every day. Each row launches the
-    // existing AI-generated `SkillSessionView` directly — tapping the
+    // existing deterministic `SkillSessionView` directly — tapping the
     // card body navigates into `SkillDetailView` instead. State copy is
     // computed live from `SkillProgressService.canTrain` so the row
     // flips from "Ready" → "Trained today" without a refresh.
@@ -1403,15 +1400,10 @@ struct ProgramOverviewView: View {
 
     private func blockProgressTeaser(delta: ScanDeltaReport, nextBlock: Int) -> String {
         let improvement = delta.improvements.first?.capitalized
-        let focus = delta.laggingAreas.first?.capitalized
-        switch (improvement, focus) {
-        case let (improvement?, focus?):
-            return "\(improvement) up. \(focus) flagged as the focus for Block \(nextBlock)."
-        case let (improvement?, nil):
+        switch improvement {
+        case let improvement?:
             return "\(improvement) trending up. Block \(nextBlock) builds on it."
-        case let (nil, focus?):
-            return "Block \(nextBlock) leans into your \(focus.lowercased()) — the area we're going to bias next."
-        default:
+        case nil:
             return "Tap to see the side-by-side."
         }
     }
@@ -1438,37 +1430,6 @@ struct ProgramOverviewView: View {
     private func programBody(_ program: TrainingProgram) -> some View {
         ScrollView(.vertical, showsIndicators: false) {
             VStack(alignment: .leading, spacing: 16) {
-                // Resume banner — calm, top-of-content, only when a draft exists.
-                if draftStore.hasDraft {
-                    Button {
-                        resumeDraft = draftStore.load()
-                        showResume = resumeDraft != nil
-                    } label: {
-                        HStack(spacing: 12) {
-                            Image(systemName: "arrow.uturn.forward.circle.fill")
-                                .font(.system(size: 22))
-                                .foregroundStyle(Color.unbound.accent)
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("Resume your workout?")
-                                    .font(Font.unbound.bodyMStrong)
-                                    .foregroundStyle(Color.unbound.textPrimary)
-                                Text("Your last session is saved.")
-                                    .font(Font.unbound.monoS)
-                                    .foregroundStyle(Color.unbound.textSecondary)
-                            }
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 13, weight: .semibold))
-                                .foregroundStyle(Color.unbound.textSecondary)
-                        }
-                        .padding(16)
-                        .background(RoundedRectangle(cornerRadius: 16).fill(Color.unbound.surfaceElevated))
-                        .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(Color.unbound.border, lineWidth: 1))
-                    }
-                    .buttonStyle(.plain)
-                    .padding(.bottom, 12)
-                }
-
                 weekStrip(program: program)
                 dayCard(program: program)
                 if let proposal = rolloverProposal, proposal.scanDeltaReport != nil {
@@ -1806,6 +1767,10 @@ struct ProgramOverviewView: View {
                 )
             }
 
+            if let day {
+                ProgramFuelTargetBand(plan: program.nutritionPlan, day: day)
+            }
+
             if let day, !day.isRestDay, let workout = day.workout {
                 modifierSummary(for: day, workout: workout)
                 waveAdjustmentPanel(for: day)
@@ -1823,7 +1788,12 @@ struct ProgramOverviewView: View {
                         if isToday, day.isRestDay {
                             Task { await completeRecoveryDay(day) }
                         } else if isToday, !day.isRestDay, day.workout != nil {
-                            launchActiveWorkout(for: day, date: selectedDayDate)
+                            if let draft = resumableDraft(for: day) {
+                                resumeDraft = draft
+                                showResume = true
+                            } else {
+                                launchActiveWorkout(for: day, date: selectedDayDate)
+                            }
                         } else {
                             selectedDay = day
                         }
@@ -2164,7 +2134,7 @@ struct ProgramOverviewView: View {
     private var routinesTab: some View {
         ScrollView(.vertical, showsIndicators: false) {
             VStack(alignment: .leading, spacing: 22) {
-                Text("Pick a side mission when the main plan is not the move. Each routine earns LV XP.")
+                Text("Pick a side mission when the main plan is not the move. Each routine earns LVL XP.")
                     .font(Font.unbound.captionS)
                     .foregroundStyle(Color.unbound.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -2184,7 +2154,7 @@ struct ProgramOverviewView: View {
     }
 
     private var challengeLibrary: some View {
-        let challenges = RoutineLibrary.placeholderRoutines.filter { $0.category == .challenge }
+        let challenges = RoutineLibrary.routines(category: .challenge)
         return VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
                 Image(systemName: RoutineCategory.challenge.systemImage)
@@ -2248,8 +2218,8 @@ struct ProgramOverviewView: View {
         let requestedId = Self.launchArgumentValue(for: "--unbound-open-routine")
         let routine = requestedId
             .flatMap { id in RoutineLibrary.placeholderRoutines.first { $0.id == id } }
-            ?? RoutineLibrary.placeholderRoutines.first { $0.category == .challenge }
-            ?? RoutineLibrary.placeholderRoutines.first
+            ?? RoutineLibrary.routines(category: .challenge).first
+            ?? RoutineLibrary.routinesSortedByDifficulty.first
 
         guard let routine else { return }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
@@ -2272,7 +2242,7 @@ struct ProgramOverviewView: View {
     #endif
 
     private func routineSection(category: RoutineCategory) -> some View {
-        let items = RoutineLibrary.placeholderRoutines.filter { $0.category == category }
+        let items = RoutineLibrary.routines(category: category)
         let selection = Binding<String>(
             get: { selectedRoutineIdsByCategory[category] ?? items.first?.id ?? "" },
             set: { selectedRoutineIdsByCategory[category] = $0 }
@@ -2328,7 +2298,7 @@ struct ProgramOverviewView: View {
                         .foregroundStyle(Color.unbound.textSecondary)
                 }
                 Spacer()
-                Text("+\(routine.spReward) LV XP")
+                Text("+\(routine.spReward) LVL XP")
                     .font(Font.unbound.monoS.weight(.bold))
                     .foregroundStyle(routine.category.color)
                     .monospacedDigit()
@@ -2661,7 +2631,7 @@ struct ProgramOverviewView: View {
         }
         return NutritionTargetCalculator().calculate(
             input: NutritionTargetCalculator.Input(
-                bodyweightKilograms: nil,
+                bodyweightKilograms: currentProfile?.weightKg,
                 hardSessionLoggedWithin24Hours: hardSessionWithin24Hours
             )
         )
@@ -2721,32 +2691,7 @@ struct ProgramOverviewView: View {
     /// Synthesize a ProgramDay from a travel override day so the rest of
     /// the UI renders it like any other scheduled workout.
     private func travelProgramDay(from tday: TravelDay, on date: Date) -> ProgramDay {
-        let workout: Workout? = {
-            guard !tday.isRest else { return nil }
-            let exercises = tday.exercises.map { name in
-                Exercise(
-                    id: UUID().uuidString,
-                    name: name,
-                    muscleGroups: [],
-                    sets: 3,
-                    reps: "8-12",
-                    restSeconds: 60,
-                    rpe: nil,
-                    notes: nil,
-                    substitution: nil
-                )
-            }
-            return Workout(
-                name: tday.title,
-                targetMuscleGroups: [],
-                warmup: [],
-                mainExercises: exercises,
-                cooldown: [],
-                estimatedMinutes: parseMinutes(from: tday.duration),
-                notes: "Travel plan · \(activeTravelOverride?.summary ?? "")",
-                blockType: nil
-            )
-        }()
+        let workout = tday.workout(summary: "Travel plan: \(activeTravelOverride?.summary ?? "Keep rhythm without rewriting the main arc.")")
         return ProgramDay(
             id: "travel-\(Int(date.timeIntervalSince1970))",
             dayNumber: 0,
@@ -2758,7 +2703,7 @@ struct ProgramOverviewView: View {
         )
     }
 
-    /// Parse the LLM's duration string ("~30 MIN", "45 min", etc.) into
+    /// Parse the duration string ("~30 MIN", "45 min", etc.) into
     /// an integer minute count; falls back to 30 if parsing fails.
     private func parseMinutes(from text: String) -> Int {
         let digits = text.compactMap { $0.isNumber ? $0 : nil }
@@ -2785,8 +2730,26 @@ struct ProgramOverviewView: View {
         guard let day else { return "NOTHING PLANNED" }
         if day.isRestDay { return isToday ? "COMPLETE RECOVERY" : "VIEW RECOVERY" }
         if isCalibrationDay(day) { return "LOCK STANDARD" }
+        if isToday, resumableDraft(for: day) != nil { return "RESUME SESSION" }
         if isToday { return "BEGIN SESSION" }
         return "VIEW DETAILS"
+    }
+
+    private func resumableDraft(for day: ProgramDay?) -> ActiveWorkoutSession? {
+        guard let day,
+              let program = viewModel?.program,
+              day.workout != nil,
+              draftStore.hasDraft
+        else { return nil }
+
+        guard let draft = draftStore.load() else { return nil }
+
+        guard draft.programId == program.id,
+              draft.dayNumber == day.dayNumber,
+              !draft.exercises.isEmpty
+        else { return nil }
+
+        return draft
     }
 
     private func commandHeaderLabel(for day: ProgramDay?, date: Date, isToday: Bool) -> String {
@@ -2897,12 +2860,59 @@ private func routineStepPreview(_ step: RoutineStep) -> String {
     case .timed(let l, let s, _):           return "\(l) — \(s)s"
     case .interval(let l, let r, _):        return "\(l) — \(r) rounds"
     case .repTarget(let n, let t, _):       return t.map { "\(n) — \($0)" } ?? "\(n) — AMRAP"
-    case .circuit(let r, _, _):             return "Circuit × \(r) rounds"
+    case .circuit(let r, _, let steps):
+        let moves = steps.compactMap(routineStepShortLabel).prefix(4).joined(separator: " + ")
+        return moves.isEmpty ? "Circuit × \(r) rounds" : "Circuit × \(r): \(moves)"
     case .note(let t):                      return t
     }
 }
 
+private func routineStepShortLabel(_ step: RoutineStep) -> String? {
+    switch step {
+    case .instruction(let text, _):
+        return text.components(separatedBy: "—").first?
+            .components(separatedBy: "×").first?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    case .timed(let label, _, let style):
+        return style == .work ? label : nil
+    case .repTarget(let name, _, _):
+        return name
+    case .interval(let label, _, _):
+        return label
+    case .circuit, .note:
+        return nil
+    }
+}
+
 // MARK: - Routine challenge carousel
+
+private struct RoutineDifficultyBadge: View {
+    let tier: SkillTier
+    var compact: Bool = false
+
+    private var tint: Color { tier.rewardTextTint }
+
+    var body: some View {
+        HStack(spacing: compact ? 5 : 7) {
+            Image(tier.assetName)
+                .resizable()
+                .scaledToFit()
+                .frame(width: compact ? 14 : 18, height: compact ? 14 : 18)
+
+            Text(tier.displayName.uppercased())
+                .font(compact ? Font.unbound.monoS.weight(.heavy) : Font.unbound.captionS.weight(.heavy))
+                .tracking(compact ? 1.0 : 1.3)
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+        }
+        .foregroundStyle(tint)
+        .padding(.horizontal, compact ? 9 : 11)
+        .padding(.vertical, compact ? 6 : 8)
+        .background(Capsule().fill(Color.unbound.bg.opacity(compact ? 0.62 : 0.52)))
+        .overlay(Capsule().strokeBorder(tint.opacity(0.36), lineWidth: 1))
+        .accessibilityLabel("\(tier.displayName) routine difficulty")
+    }
+}
 
 private struct RoutineChallengeCard: View {
     let routine: RoutineDef
@@ -2944,8 +2954,8 @@ private struct RoutineChallengeCard: View {
             VStack(alignment: .leading, spacing: 14) {
                 HStack(spacing: 8) {
                     metricPill(value: routine.durationLabel, label: "TIME")
-                    metricPill(value: "+\(routine.spReward)", label: "LV XP")
-                    metricPill(value: "\(routine.steps.count)", label: "STEPS")
+                    rankMetricPill(tier: routine.difficultyTier)
+                    metricPill(value: "+\(routine.spReward)", label: "LVL XP")
                 }
 
                 HStack(spacing: 12) {
@@ -3064,6 +3074,40 @@ private struct RoutineChallengeCard: View {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .fill(Color.unbound.surfaceElevated)
         )
+    }
+
+    private func rankMetricPill(tier: SkillTier) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            HStack(spacing: 6) {
+                Image(tier.assetName)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 18, height: 18)
+
+                Text(tier.displayName.uppercased())
+                    .font(Font.unbound.monoS.weight(.bold))
+                    .foregroundStyle(Color.unbound.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.68)
+            }
+
+            Text("RANK")
+                .font(.system(size: 8, weight: .heavy, design: .monospaced))
+                .tracking(1.1)
+                .foregroundStyle(Color.unbound.textTertiary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color.unbound.surfaceElevated)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(tier.rewardTextTint.opacity(0.24), lineWidth: 1)
+        )
+        .accessibilityLabel("\(tier.displayName) routine rank")
     }
 }
 
@@ -3330,6 +3374,10 @@ private struct RoutineReadyFace: View {
 
     private var hero: some View {
         VStack(alignment: .leading, spacing: 12) {
+            if let image = UIImage(named: routine.coverAssetName) {
+                routineCoverHero(image)
+            }
+
             HStack(spacing: 8) {
                 Image(systemName: routine.category.systemImage)
                     .font(.system(size: 13, weight: .semibold))
@@ -3337,7 +3385,7 @@ private struct RoutineReadyFace: View {
                     .font(Font.unbound.captionS.weight(.bold))
                     .tracking(1.5)
                 Spacer()
-                Text(canEarnLevelXP ? "+\(routine.spReward) LV XP" : "XP CLAIMED")
+                Text(canEarnLevelXP ? "+\(routine.spReward) LVL XP" : "XP CLAIMED")
                     .font(Font.unbound.monoS.weight(.heavy))
                     .foregroundStyle(canEarnLevelXP ? routine.category.color : Color.unbound.textTertiary)
             }
@@ -3348,6 +3396,8 @@ private struct RoutineReadyFace: View {
                 .tracking(0.4)
                 .foregroundStyle(Color.unbound.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)
+
+            RoutineDifficultyBadge(tier: routine.difficultyTier)
 
             Text(routine.subtitle)
                 .font(Font.unbound.bodyM)
@@ -3366,11 +3416,34 @@ private struct RoutineReadyFace: View {
         )
     }
 
+    private func routineCoverHero(_ image: UIImage) -> some View {
+        Image(uiImage: image)
+            .resizable()
+            .scaledToFill()
+            .frame(maxWidth: .infinity)
+            .frame(height: 168)
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .overlay(
+                LinearGradient(
+                    colors: [.clear, Color.unbound.bg.opacity(0.50)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .strokeBorder(routine.category.color.opacity(0.22), lineWidth: 1)
+            )
+            .accessibilityHidden(true)
+    }
+
     private var routineStats: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 8) {
             statPill(value: routine.durationLabel, label: "TIME", icon: "clock")
+            statPill(value: routine.difficultyTier.displayName.uppercased(), label: "RANK", icon: "shield.lefthalf.filled")
             statPill(value: "\(runCount)", label: "STEPS", icon: "list.bullet")
-            statPill(value: canEarnLevelXP ? "+\(routine.spReward)" : "0", label: "LV XP", icon: "sparkles")
+            statPill(value: canEarnLevelXP ? "+\(routine.spReward)" : "0", label: "LVL XP", icon: "sparkles")
         }
     }
 
@@ -3449,7 +3522,7 @@ private struct RoutineReadyFace: View {
             .buttonStyle(.plain)
             .accessibilityIdentifier("routine.ready.start")
 
-            Text(canEarnLevelXP ? "Completion uses the shared rewards screen." : "You can repeat it, but LV XP is already claimed today.")
+            Text(canEarnLevelXP ? "Completion uses the shared rewards screen." : "You can repeat it, but LVL XP is already claimed today.")
                 .font(Font.unbound.captionS)
                 .foregroundStyle(Color.unbound.textTertiary)
                 .multilineTextAlignment(.center)
@@ -3525,10 +3598,32 @@ private struct RoutinePreviewSheet: View {
                                 .foregroundStyle(Color.unbound.textTertiary)
                             Text("·")
                                 .foregroundStyle(Color.unbound.textTertiary)
-                            Text("+\(routine.spReward) LV XP")
+                            Text("+\(routine.spReward) LVL XP")
                                 .font(Font.unbound.monoM.weight(.bold))
                                 .foregroundStyle(routine.category.color)
                         }
+                    }
+
+                    if let image = UIImage(named: routine.coverAssetName) {
+                        Image(uiImage: image)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 172)
+                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                            .overlay(
+                                LinearGradient(
+                                    colors: [.clear, Color.unbound.bg.opacity(0.55)],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
+                                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                    .strokeBorder(routine.category.color.opacity(0.22), lineWidth: 1)
+                            )
+                            .accessibilityHidden(true)
                     }
 
                     VStack(alignment: .leading, spacing: 4) {
@@ -3536,6 +3631,8 @@ private struct RoutinePreviewSheet: View {
                             .font(Font.unbound.titleL)
                             .tracking(0.4)
                             .foregroundStyle(Color.unbound.textPrimary)
+                        RoutineDifficultyBadge(tier: routine.difficultyTier)
+                            .padding(.top, 4)
                         Text(routine.subtitle)
                             .font(Font.unbound.bodyM)
                             .foregroundStyle(Color.unbound.textSecondary)
@@ -3582,9 +3679,9 @@ private struct RoutinePreviewSheet: View {
 
                     let canComplete = RoutineHistoryStore.shared.canComplete(routineId: routine.id)
                     let label: String = {
-                        if didComplete { return "+\(routine.spReward) LV XP LOCKED IN" }
+                        if didComplete { return "+\(routine.spReward) LVL XP LOCKED IN" }
                         if !canComplete { return "DONE TODAY · COME BACK TOMORROW" }
-                        return "COMPLETE FEAT · +\(routine.spReward) LV XP"
+                        return "COMPLETE FEAT · +\(routine.spReward) LVL XP"
                     }()
                     let icon: String = {
                         if didComplete || !canComplete { return "checkmark.seal.fill" }
@@ -3838,9 +3935,8 @@ private struct DayPreviewSheet: View {
 //      pinned (Mon-Sun); the user reorders the CATEGORIES, so dragging
 //      Pull from Mon to Sun swaps the categories on those rows. Drag
 //      handles stay visible via `.environment(\.editMode, .active)`.
-//   2. AI SUGGEST OPTIMAL — one-tap Claude call generates a 7-day split
-//      tailored to the user's active goals; populates the draft (no
-//      auto-save).
+//   2. OPTIMIZE SPLIT — deterministic 7-day split from active goals;
+//      populates the draft (no auto-save).
 //   3. WEEK PHASE picker — chip + bottom sheet (heavy/moderate/light/
 //      deload). Persists immediately via setWeekPhase.
 //   4. Tap-a-chip per row still works for picking the category.
@@ -3853,7 +3949,7 @@ private struct WeeklyScheduleEditorSheet: View {
     /// Local working copy — committed to service on Save.
     @State private var draft: [DayCategory] = []
 
-    /// V4 — AI suggest in-flight + error state.
+    /// V4 — deterministic optimize in-flight + error state.
     @State private var isSuggesting: Bool = false
     @State private var suggestErrorVisible: Bool = false
 
@@ -4078,11 +4174,10 @@ private struct WeeklyScheduleEditorSheet: View {
 
     private var bottomActions: some View {
         VStack(spacing: 10) {
-            // V4 — AI SUGGEST OPTIMAL button.
             UnboundButton(
-                title: isSuggesting ? "GENERATING…" : "SUGGEST OPTIMAL",
+                title: isSuggesting ? "OPTIMIZING…" : "OPTIMIZE SPLIT",
                 variant: .secondary,
-                icon: "sparkles",
+                icon: "wand.and.stars.inverse",
                 isEnabled: !isSuggesting
             ) {
                 Task { await runSuggest() }
@@ -4097,7 +4192,7 @@ private struct WeeklyScheduleEditorSheet: View {
             }
 
             if suggestErrorVisible {
-                Text("Couldn't generate. Try again?")
+                Text("Couldn't optimize. Try again?")
                     .font(Font.unbound.captionS)
                     .tracking(0.4)
                     .foregroundStyle(Color.unbound.alert)
@@ -4146,23 +4241,18 @@ private struct WeeklyScheduleEditorSheet: View {
 
     private func runSuggest() async {
         guard !isSuggesting else { return }
-        let userId = services.auth.currentUserId ?? "anonymous"
         let goals = skillProgress.activeGoalIds
         withAnimation(.easeInOut(duration: 0.15)) {
             isSuggesting = true
             suggestErrorVisible = false
         }
-        do {
-            let suggested = try await AISessionGeneratorService.shared.suggestWeeklySchedule(
-                activeGoalIds: goals,
-                userId: userId
-            )
-            // Populate draft — let user review and tap SAVE to commit.
+        let suggested = ProgramScheduler.shared.optimizedWeeklySchedule(activeGoalIds: goals)
+        if suggested.count == 7 {
             draft = suggested
             UnboundHaptics.medium()
-        } catch {
+        } else {
             LoggingService.shared.log(
-                "suggestWeeklySchedule failed: \(error.localizedDescription)",
+                "optimizedWeeklySchedule returned invalid count",
                 level: .warning
             )
             withAnimation(.easeInOut(duration: 0.15)) {

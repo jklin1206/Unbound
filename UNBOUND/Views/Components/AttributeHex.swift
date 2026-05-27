@@ -24,7 +24,7 @@ struct AttributeHex: View {
     /// Outer radius in points. Hex is drawn within a square box of side = 2*radius.
     let radius: CGFloat
 
-    private let axisOrder: [AttributeKey] = [.power, .agility, .control, .endurance, .mobility, .explosiveness]
+    private let axisOrder: [AttributeKey] = [.power, .vitality, .control, .endurance, .mobility, .explosiveness]
 
     var body: some View {
         Canvas { ctx, size in
@@ -127,32 +127,32 @@ struct AttributeHex: View {
 
     @ViewBuilder
     private func axisLabelView(for key: AttributeKey) -> some View {
-        VStack(spacing: labelVariant == .profile ? 1 : 2) {
+        VStack(spacing: 2) {
             if labelVariant == .profile {
+                let level = levels?[key]
+                    ?? AttributeLevelCurve.level(forXP: AttributeLevelCurve.legacyXP(forScore: current[key] ?? 0))
                 Text(key.shortCode)
-                    .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                    .font(.system(size: 11, weight: .heavy, design: .monospaced))
                     .tracking(0)
-                    .foregroundStyle(Color.unbound.textPrimary.opacity(0.94))
+                    .foregroundStyle(key.rewardTint)
                     .lineLimit(1)
+                Text("LVL \(level)")
+                    .font(.system(size: 8, weight: .black, design: .monospaced))
+                    .tracking(0)
+                    .foregroundStyle(Color.unbound.textSecondary.opacity(0.92))
+                    .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.62)
             } else {
                 let level = levels?[key]
                     ?? AttributeLevelCurve.level(forXP: AttributeLevelCurve.legacyXP(forScore: current[key] ?? 0))
                 Text("\(key.shortCode) LVL \(level)")
-                    .font(.system(size: tiers == nil ? 8 : 7, weight: .bold, design: .monospaced))
+                    .font(.system(size: 8.5, weight: .bold, design: .monospaced))
                     .tracking(0)
-                    .foregroundStyle(Color.unbound.textSecondary.opacity(0.9))
+                    .foregroundStyle(key.rewardTint.opacity(0.92))
                     .monospacedDigit()
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
-            }
-
-            if labelVariant == .compact, let tier = tiers?[key] {
-                Text(tier.displayName.uppercased())
-                    .font(.system(size: labelVariant == .profile ? 6.5 : 5.5, weight: .heavy, design: .monospaced))
-                    .tracking(0)
-                    .foregroundStyle(tier.rewardTextTint.opacity(0.92))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.58)
             }
         }
     }
@@ -160,18 +160,31 @@ struct AttributeHex: View {
     private var labelRadiusInset: CGFloat {
         switch labelVariant {
         case .compact:
-            return tiers == nil ? 16 : 20
+            return 17
         case .profile:
-            return 25
+            return 27
         }
     }
 
     private var labelWidth: CGFloat {
         switch labelVariant {
         case .compact:
-            return tiers == nil ? 56 : 68
+            return 62
         case .profile:
-            return 56
+            return 60
         }
+    }
+}
+
+struct AttributeRankBadge: View {
+    let rank: RankTitle
+    var size: CGFloat
+
+    var body: some View {
+        Image(rank.assetName)
+            .resizable()
+            .scaledToFit()
+            .frame(width: size, height: size)
+            .accessibilityLabel("\(rank.displayName) rank")
     }
 }

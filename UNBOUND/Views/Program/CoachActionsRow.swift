@@ -7,7 +7,7 @@ import SwiftUI
 // feeds `CoachActionExecutor` (or sets a session flag for SHORT).
 //
 //   DELOAD — confirm, executor applies a planned deload
-//   TRAVEL — Claude-generated travel plan based on duration + equipment
+//   TRAVEL — deterministic bodyweight travel plan based on duration
 //   SHORT  — today's session gets trimmed to compound lifts only
 //
 // Exercise swaps live in SessionEditorView so the main Program surface does
@@ -602,75 +602,58 @@ private struct TravelAdjustSheet: View {
         defer { generating = false }
         errorMsg = nil
 
-        let archetype = "balanced-athlete" // archetype field removed; use generic label
-        let equipmentList = equipment.map(\.rawValue).sorted().joined(separator: ", ")
+        generatedPlan = deterministicTravelPlan(days: days, equipment: equipment)
+    }
 
-        let schemaJSON = """
-        {
-          "type": "object",
-          "properties": {
-            "summary": { "type": "string" },
-            "days": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "title":     { "type": "string" },
-                  "duration":  { "type": "string" },
-                  "exercises": { "type": "array", "items": { "type": "string" } }
-                },
-                "required": ["title", "duration", "exercises"]
-              }
+    private func deterministicTravelPlan(days: Int, equipment: Set<TravelEquipment>) -> TravelPlan {
+        let selected = equipment.isEmpty ? Set([TravelEquipment.bodyweight]) : equipment
+        let templates = travelTemplates(equipment: selected)
+        let planDays = (0..<max(1, days)).map { index -> TravelPlanDay in
+            if (index + 1).isMultiple(of: 4) {
+                return TravelPlanDay(
+                    title: "REST / WALK",
+                    duration: "REST",
+                    exercises: ["Walk 20 minutes", "Couch Stretch", "Thread the Needle"]
+                )
             }
-          },
-          "required": ["summary", "days"]
+            return templates[index % templates.count]
         }
-        """
-        let systemPrompt = """
-        You generate SHORT, equipment-constrained training plans for a user who is
-        traveling. Output 3-5 sessions max across the window, even if days > 5 —
-        programmed rest is part of a good travel plan. Keep exercises simple,
-        widely-knowable, and feasible with the equipment listed. NEVER
-        recommend anything the user doesn't have equipment for.
+        let equipmentLabel = selected.map(\.displayName).sorted().joined(separator: " + ")
+        return TravelPlan(
+            summary: "\(days)-day travel block loaded for \(equipmentLabel). Normal arc resumes when the window ends.",
+            days: planDays
+        )
+    }
 
-        Use UNBOUND's anime-inflected coach voice for the summary (1 sentence).
-        Sessions should be 20-45 minutes max. Never exceed three sessions
-        per seven-day window.
-
-        Output strict JSON matching the response schema.
-        """
-        let userPrompt = """
-        ARCHETYPE: \(archetype)
-        DURATION: \(days) days
-        EQUIPMENT: \(equipmentList)
-
-        Generate the travel plan.
-        """
-
-        do {
-            let schema = try JSONValue.fromJSONString(schemaJSON)
-            let result: TravelPlanLLM = try await ClaudeClient.shared.sendStructured(
-                TravelPlanLLM.self,
-                model: .haiku45,
-                system: systemPrompt,
-                userText: userPrompt,
-                tool: ClaudeClient.Tool(
-                    name: "travel_plan",
-                    description: "Return the structured equipment-constrained travel plan.",
-                    inputSchema: schema
-                ),
-                maxTokens: 1024,
-                temperature: 0.45
+    private func travelTemplates(equipment: Set<TravelEquipment>) -> [TravelPlanDay] {
+        let pull = pullSlot(equipment: equipment)
+        let hinge = equipment.contains(.dumbbells) || equipment.contains(.hotelGym)
+            ? "Dumbbell Romanian Deadlift"
+            : "Single-Leg Glute Bridge"
+        return [
+            TravelPlanDay(
+                title: "PUSH",
+                duration: "~30 MIN",
+                exercises: ["Push-ups", "Pike Push-ups", "Chair Dips", "Plank Shoulder Taps"]
+            ),
+            TravelPlanDay(
+                title: "LOWER",
+                duration: "~35 MIN",
+                exercises: ["Split Squats", "Reverse Lunges", hinge, "Wall Sit"]
+            ),
+            TravelPlanDay(
+                title: "FULL BODY",
+                duration: "~30 MIN",
+                exercises: ["Tempo Squats", "Push-ups", pull, "Mountain Climbers", "Side Plank"]
             )
-            generatedPlan = TravelPlan(
-                summary: result.summary,
-                days: result.days.map {
-                    TravelPlanDay(title: $0.title, duration: $0.duration, exercises: $0.exercises)
-                }
-            )
-        } catch {
-            errorMsg = "Couldn't generate plan. Try again."
-        }
+        ]
+    }
+
+    private func pullSlot(equipment: Set<TravelEquipment>) -> String {
+        if equipment.contains(.hotelGym) { return "Lat Pulldown" }
+        if equipment.contains(.dumbbells) { return "One-Arm Dumbbell Row" }
+        if equipment.contains(.resistanceBands) { return "Band Row" }
+        return "Prone Swimmers"
     }
 }
 
@@ -700,17 +683,6 @@ private struct TravelPlanDay {
     let title: String
     let duration: String
     let exercises: [String]
-}
-
-private struct TravelPlanLLM: Decodable {
-    let summary: String
-    let days: [Day]
-
-    struct Day: Decodable {
-        let title: String
-        let duration: String
-        let exercises: [String]
-    }
 }
 
 // MARK: - Short Session Confirm Sheet

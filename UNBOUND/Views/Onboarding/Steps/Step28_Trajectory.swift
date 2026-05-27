@@ -21,10 +21,10 @@ struct Step28_Trajectory: View {
 
     var body: some View {
         OnboardingScaffold(
-            title: "Here's what changes.",
-            subtitle: "One path keeps repeating. One path starts climbing.",
+            title: L10n.onboarding("trajectory.title", defaultValue: "Here's what changes."),
+            subtitle: L10n.onboarding("trajectory.subtitle", defaultValue: "One path keeps repeating. One path starts climbing."),
             progress: progress,
-            primaryTitle: "See my arc",
+            primaryTitle: L10n.onboarding("trajectory.primary", defaultValue: "See my arc"),
             hudStep: .trajectory,
             onBack: onBack,
             onPrimary: onContinue
@@ -43,12 +43,12 @@ struct Step28_Trajectory: View {
         UnboundCard {
             VStack(alignment: .leading, spacing: 14) {
                 HStack {
-                    Text("RANK OVER TIME")
+                    Text(L10n.onboarding("trajectory.chart.title", defaultValue: "RANK OVER TIME"))
                         .font(Font.unbound.captionS)
                         .tracking(1.4)
                         .foregroundStyle(Color.unbound.textTertiary)
                     Spacer()
-                    Text("12 months")
+                    Text(L10n.onboarding("trajectory.chart.duration", defaultValue: "12 months"))
                         .font(Font.unbound.captionS)
                         .foregroundStyle(Color.unbound.textTertiary)
                 }
@@ -98,7 +98,7 @@ struct Step28_Trajectory: View {
                 .chartYAxis {
                     AxisMarks(values: [0, 1, 2, 3, 4, 5]) { value in
                         AxisValueLabel {
-                            Text(rankLetter(for: value.as(Int.self) ?? 0))
+                            Text(axisRankLabel(for: value.as(Int.self) ?? 0))
                                 .font(Font.unbound.captionS.monospaced())
                                 .foregroundStyle(
                                     (value.as(Int.self) ?? 0) == 5
@@ -113,7 +113,7 @@ struct Step28_Trajectory: View {
                 .chartXAxis {
                     AxisMarks(values: [0, 3, 6, 9, 12]) { value in
                         AxisValueLabel {
-                            Text("\(value.as(Int.self) ?? 0)mo")
+                            Text(L10n.onboardingFormat("trajectory.chart.month", defaultValue: "%dmo", value.as(Int.self) ?? 0))
                                 .font(Font.unbound.captionS)
                                 .foregroundStyle(Color.unbound.textTertiary)
                         }
@@ -131,8 +131,8 @@ struct Step28_Trajectory: View {
 
     private var legend: some View {
         HStack(spacing: 20) {
-            legendItem(color: Color.unbound.accent, label: "With UNBOUND", dashed: false)
-            legendItem(color: Color.unbound.textTertiary, label: "On your own", dashed: true)
+            legendItem(color: Color.unbound.accent, label: L10n.onboarding("trajectory.legend.withUnbound", defaultValue: "With UNBOUND"), dashed: false)
+            legendItem(color: Color.unbound.textTertiary, label: L10n.onboarding("trajectory.legend.alone", defaultValue: "On your own"), dashed: true)
         }
     }
 
@@ -167,10 +167,10 @@ struct Step28_Trajectory: View {
                     .font(.system(size: 22))
                     .foregroundStyle(Color.unbound.accent)
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Projected: \(rankGapText)")
+                    Text(L10n.onboardingFormat("trajectory.projected", defaultValue: "Projected: %@", rankGapText))
                         .font(Font.unbound.bodyLStrong)
                         .foregroundStyle(Color.unbound.textPrimary)
-                    Text("That's a real difference. The plan is yours if you want it.")
+                    Text(L10n.onboarding("trajectory.callout.body", defaultValue: "That's a real difference. The plan is yours if you want it."))
                         .font(Font.unbound.bodyS)
                         .foregroundStyle(Color.unbound.textSecondary)
                 }
@@ -180,16 +180,16 @@ struct Step28_Trajectory: View {
     }
 
     private var rankGapText: String {
-        let withEnd = rankLetter(for: Int(commitmentSlope.rounded()))
-        let withoutEnd = rankLetter(for: Int(withoutSlope.rounded()))
-        return "Rank \(withEnd) with UNBOUND vs. Rank \(withoutEnd) without"
+        let withEnd = rankLabel(for: Int(commitmentSlope.rounded()))
+        let withoutEnd = rankLabel(for: Int(withoutSlope.rounded()))
+        return L10n.onboardingFormat("trajectory.rankGap", defaultValue: "%@ with UNBOUND vs. %@ without", withEnd, withoutEnd)
     }
 
-    // MARK: Sell card — why the line keeps climbing past S
+    // MARK: Sell card
 
-    /// The visual ceiling in most apps is "S rank" — a badge to collect and
-    /// then stare at. UNBOUND treats S as a milestone, not a cap. This card
-    /// is the verbal half of the uncapped graph.
+    /// Most apps treat the top badge as a cap. UNBOUND treats the top tier
+    /// as a milestone, not a ceiling. This card is the verbal half of the
+    /// uncapped graph.
     private var sellCard: some View {
         UnboundCard {
             VStack(alignment: .leading, spacing: 10) {
@@ -197,12 +197,12 @@ struct Step28_Trajectory: View {
                     Image(systemName: "flame.fill")
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(Color.unbound.ember)
-                    Text("WHY WE DON'T PLATEAU AT S")
+                    Text(L10n.onboarding("trajectory.sell.title", defaultValue: "WHY THE ARC KEEPS CLIMBING"))
                         .font(Font.unbound.captionS)
                         .tracking(1.4)
                         .foregroundStyle(Color.unbound.ember)
                 }
-                Text("S is where most apps stop measuring. UNBOUND keeps tracking real feats — muscle-up, front lever, one-arm pushup — so the line keeps climbing long after the badge.")
+                Text(L10n.onboarding("trajectory.sell.body", defaultValue: "Most apps stop at a badge. UNBOUND keeps tracking real feats — muscle-up, front lever, one-arm pushup — so progress stays visible after the first big unlock."))
                     .font(Font.unbound.bodyM)
                     .foregroundStyle(Color.unbound.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -238,9 +238,8 @@ struct Step28_Trajectory: View {
         }
     }
 
-    /// With-UNBOUND end-state rank (0–5.5, maps E..S..unbound). The ceiling
-    /// is intentionally past S so the violet curve keeps climbing through
-    /// the badge — this is the "we don't cap you at S" moment of the graph.
+    /// With-UNBOUND end-state rank. The ceiling is intentionally beyond the
+    /// ordinary band so the violet curve keeps climbing through the badge.
     /// Higher commitment + higher target frequency = steeper climb.
     private var commitmentSlope: Double {
         let base = Double(flow.commitment) / 10.0 * 3.6
@@ -262,15 +261,27 @@ struct Step28_Trajectory: View {
         max(0.5, min(1.8, Double(flow.commitment) / 10.0 * 1.5))
     }
 
-    private func rankLetter(for value: Int) -> String {
+    private func rankLabel(for value: Int) -> String {
         switch value {
-        case 0: return "E"
-        case 1: return "D"
-        case 2: return "C"
-        case 3: return "B"
-        case 4: return "A"
-        case 5: return "S"
-        default: return "★"
+        case 0: return "Initiate"
+        case 1: return "Novice"
+        case 2: return "Apprentice"
+        case 3: return "Forged"
+        case 4: return "Veteran"
+        case 5: return "Master"
+        default: return "Ascendant"
+        }
+    }
+
+    private func axisRankLabel(for value: Int) -> String {
+        switch value {
+        case 0: return "INIT"
+        case 1: return "NOV"
+        case 2: return "APP"
+        case 3: return "FORG"
+        case 4: return "VET"
+        case 5: return "MAS"
+        default: return "ASC"
         }
     }
 }

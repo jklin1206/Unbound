@@ -9,23 +9,25 @@ struct OnboardingHowItWorksView: View {
         let description: String
     }
 
-    private let steps: [Step] = [
-        Step(
-            icon: "camera.fill",
-            title: "Take 3 Photos",
-            description: "Front, side, and back — we'll guide you"
-        ),
-        Step(
-            icon: "chart.bar.fill",
-            title: "Get Your Body Report",
-            description: "AI analyzes your physique against your target archetype"
-        ),
-        Step(
-            icon: "dumbbell.fill",
-            title: "Follow Your Program",
-            description: "Custom training, nutrition, and recovery plan"
-        )
-    ]
+    private var steps: [Step] {
+        [
+            Step(
+                icon: "camera.fill",
+                title: L10n.onboarding("howItWorks.step.photos.title", defaultValue: "Take 3 Photos"),
+                description: L10n.onboarding("howItWorks.step.photos.description", defaultValue: "Front, side, and back — we'll guide you")
+            ),
+            Step(
+                icon: "chart.bar.fill",
+                title: L10n.onboarding("howItWorks.step.report.title", defaultValue: "Get Your Monthly Recap"),
+                description: L10n.onboarding("howItWorks.step.report.description", defaultValue: "Monthly recaps summarize validated progress signals")
+            ),
+            Step(
+                icon: "dumbbell.fill",
+                title: L10n.onboarding("howItWorks.step.program.title", defaultValue: "Follow Your Program"),
+                description: L10n.onboarding("howItWorks.step.program.description", defaultValue: "Custom training, nutrition, and recovery plan")
+            )
+        ]
+    }
 
     var body: some View {
         ZStack {
@@ -34,7 +36,7 @@ struct OnboardingHowItWorksView: View {
             VStack(spacing: 0) {
                 Spacer()
 
-                Text("How It Works")
+                Text(L10n.onboarding("howItWorks.title", defaultValue: "How It Works"))
                     .font(.headline(28))
                     .foregroundColor(.theme.textPrimary)
                     .padding(.bottom, 40)
@@ -71,7 +73,7 @@ struct OnboardingHowItWorksView: View {
 
                 Spacer()
 
-                GradientButton(title: "Continue", action: onNext)
+                GradientButton(title: L10n.onboarding("common.continue", defaultValue: "Continue"), action: onNext)
                     .padding(.horizontal, 24)
                     .padding(.bottom, 80)
             }

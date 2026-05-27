@@ -1,16 +1,15 @@
 // UNBOUND/Services/ProgramGeneration/AccessoryBiasRefreshRule.swift
 import Foundation
 
-/// Gates whether the next block's accessory bias refreshes from a new scan,
+/// Gates whether the next block's accessory bias refreshes from new focus input,
 /// or carries forward from the previous block.
 ///
-/// Rule: if the top-2 muscle groups (by bias weight) in the new scan match
+/// Rule: if the top-2 muscle groups (by bias weight) in the new input match
 /// the top-2 of the previous block's bias — and their rank order matches —
 /// carry forward. Otherwise refresh.
 ///
-/// This avoids churn when a scan doesn't meaningfully change weak-point
-/// priorities. Body composition doesn't shift enough in 2 weeks to warrant
-/// re-shuffling the plan for a user whose scan came back identical.
+/// This avoids churn when a checkpoint or profile change does not actually
+/// change the user's explicit training priorities.
 enum AccessoryBiasRefreshRule {
 
     struct Result: Equatable {

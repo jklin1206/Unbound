@@ -49,7 +49,7 @@ struct TrialCapstoneToast: View {
                     .tracking(1.4)
                     .foregroundStyle(Color.unbound.textTertiary)
                     .lineLimit(1)
-                Text("Binding Sealed")
+                Text("Vow Sealed")
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(Color.unbound.textPrimary)
             }
@@ -160,7 +160,7 @@ extension View {
 
 // MARK: - Previews
 
-#Preview("Vow complete — power") {
+#Preview("Proof complete - power") {
     ZStack {
         Color.unbound.bg.ignoresSafeArea()
         TrialCapstoneToast(
@@ -172,8 +172,8 @@ extension View {
                     id: "weekly-vow-W20-ember",
                     kind: .ember,
                     theme: .axis(.power),
-                    displayName: "Iron Rule Vow",
-                    blurb: "Accept a low-day Binding Vow.",
+                    displayName: "Iron Reset",
+                    blurb: "A low-day proof for clean power work.",
                     capstone: TrialCapstone(displayName: "Low-Day Proof", description: "Complete easy power work.", evaluation: .manualClaim)
                 ),
                 capstoneState: .completed

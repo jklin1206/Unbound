@@ -143,7 +143,11 @@ enum ExerciseClassification: String, Codable {
     /// Keyword-matched classification. Any exercise not explicitly matched
     /// falls through to `.accessory`.
     static func classify(exerciseKey key: String) -> ExerciseClassification {
-        let normalized = key.lowercased()
+        let normalized = MovementCatalog.normalized(key)
+
+        if isBodyweightProgression(key: key, normalized: normalized) {
+            return .bodyweightSkill
+        }
 
         let upperCompoundKeywords = [
             "bench press", "bench", "overhead press", "ohp", "military press",
@@ -161,22 +165,50 @@ enum ExerciseClassification: String, Codable {
         let bodyweightKeywords = [
             "pullup", "pull-up", "chin-up", "chinup",
             "pushup", "push-up", "dip",
+            "bodyweight squat", "cossack squat", "pistol squat", "shrimp squat",
             "l-sit", "lsit", "plank", "dragon flag",
             "dead hang", "muscle-up", "muscle up",
             "hanging knee raise", "hanging leg raise",
-            "hollow rock", "walking lunge"
+            "hollow hold", "hollow rock", "ab wheel", "front lever", "back lever",
+            "walking lunge"
         ]
 
+        if !normalized.contains("weighted"),
+           bodyweightKeywords.contains(where: { normalized.contains(MovementCatalog.normalized($0)) }) {
+            return .bodyweightSkill
+        }
         if upperCompoundKeywords.contains(where: { normalized.contains($0) }) {
             return .upperCompound
         }
         if lowerCompoundKeywords.contains(where: { normalized.contains($0) }) {
             return .lowerCompound
         }
-        if bodyweightKeywords.contains(where: { normalized.contains($0) }) {
-            return .bodyweightSkill
-        }
         return .accessory
+    }
+
+    private static func isBodyweightProgression(key: String, normalized: String) -> Bool {
+        guard !normalized.contains("weighted") else { return false }
+        guard let definition = MovementCatalog.canonicalExercise(named: key) else { return false }
+
+        switch definition.rankTemplate {
+        case .bodyweightReps, .holdControl:
+            return true
+        case .weightedBodyweight:
+            return false
+        default:
+            break
+        }
+
+        if definition.blockKind == .bodyweight {
+            return true
+        }
+
+        let loadedEquipment: Set<MovementEquipment> = [
+            .barbell, .dumbbell, .kettlebell, .cable, .machine,
+            .smithMachine, .sled, .cardioMachine
+        ]
+        let required = Set(definition.equipment)
+        return definition.progressionFamily != nil && required.isDisjoint(with: loadedEquipment)
     }
 
     /// Default rep range per block. Hypertrophy ranges tighten as we push

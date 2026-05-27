@@ -250,7 +250,7 @@ extension AttributeKey {
     var rewardTint: Color {
         switch self {
         case .power: return Color.unbound.ember
-        case .agility: return Color.unbound.rankGold
+        case .vitality: return Color.unbound.rankGold
         case .control: return Color.unbound.success
         case .endurance: return Color.unbound.coachCyan
         case .mobility: return Color.rewardTeal

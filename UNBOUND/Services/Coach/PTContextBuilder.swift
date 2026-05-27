@@ -69,10 +69,10 @@ final class PTContextBuilder {
         return md
     }
 
-    // MARK: - Body scan delta
+    // MARK: - Training checkpoint recap
 
     /// Most recent `ScanDeltaReport` for this user from the local store, or
-    /// nil if no rescan has been compared yet.
+    /// nil if no monthly checkpoint recap has been built yet.
     private func fetchLatestDeltaReport(userId: String) async -> ScanDeltaReport? {
         let reports: [ScanDeltaReport] = (try? await DatabaseService.shared.query(
             collection: ScanComparisonService.localCollection,
@@ -86,23 +86,15 @@ final class PTContextBuilder {
     }
 
     private func renderDelta(_ d: ScanDeltaReport) -> String {
-        var md = "## Body scan delta (latest)\n"
-        md += "- Overall: \(d.overall.before) → \(d.overall.after) (\(formatDelta(d.overall.delta)))\n"
+        var md = "## Training checkpoint recap (latest)\n"
         if !d.improvements.isEmpty {
-            md += "- Improvements: \(d.improvements.joined(separator: ", "))\n"
-        }
-        if !d.laggingAreas.isEmpty {
-            md += "- Lagging: \(d.laggingAreas.joined(separator: ", "))\n"
+            md += "- Proof signals: \(d.improvements.joined(separator: ", "))\n"
         }
         md += "- Coach note: \"\(d.recommendedFocus)\"\n"
         if !d.narrative.isEmpty {
             md += "- Narrative: \(d.narrative)\n"
         }
         return md
-    }
-
-    private func formatDelta(_ n: Int) -> String {
-        n >= 0 ? "+\(n)" : "\(n)"
     }
 
     // MARK: Renderers

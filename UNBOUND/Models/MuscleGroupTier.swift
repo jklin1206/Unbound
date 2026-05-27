@@ -2,8 +2,9 @@ import Foundation
 
 // MARK: - MuscleGroupTier
 //
-// E/D/C/B/A/S tier for each muscle group. Mirrors the RankBadge visual
-// language. Threshold bands are applied to a 0-100 scalar (the
+// Internal tier bucket for each muscle group. Mirrors the RankBadge visual
+// language while user-facing surfaces map into named tiers. Threshold bands
+// are applied to a 0-100 scalar (the
 // MuscleGroupAssessment.currentScore, optionally boosted by recent logs).
 //
 // NOTE (Chunk 2 scope): tier compute is deterministic from scan + logs.
@@ -18,7 +19,7 @@ enum MuscleGroupTier: String, CaseIterable, Codable, Sendable {
         rawValue.uppercased()
     }
 
-    /// Ordered rank (S = 5, E = 0) — used for "did tier go up?" comparisons.
+    /// Ordered rank from lowest to highest — used for "did tier go up?" comparisons.
     var rank: Int {
         switch self {
         case .e: return 0
@@ -32,7 +33,7 @@ enum MuscleGroupTier: String, CaseIterable, Codable, Sendable {
 
     /// Human-readable descriptor shown in secondary UI.
     /// Names intentionally past-tense / earned — each feels like an unlock, not a label.
-    /// "Unbound" at A-rank is a deliberate brand moment: the user literally becomes the app name.
+    /// "Unbound" is a deliberate brand moment: the user literally becomes the app name.
     var caption: String {
         switch self {
         case .e: return "Dormant"
@@ -70,7 +71,7 @@ extension MuscleGroupTier {
         case .e: return .initiate
         case .d: return .apprentice
         case .c: return .veteran
-        case .b: return .honed
+        case .b: return .master
         case .a: return .unbound
         case .s: return .ascendant
         }

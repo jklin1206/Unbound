@@ -21,12 +21,12 @@ struct AuthContainerView: View {
                 VStack(spacing: 0) {
                     // Logo / title area
                     VStack(spacing: 8) {
-                        Text("UNBOUND")
+                        Text(L10n.string(.appName, defaultValue: "UNBOUND"))
                             .font(.headline(40))
                             .foregroundColor(.theme.textPrimary)
                             .tracking(4)
 
-                        Text("Sign in to back up your progress")
+                        Text(L10n.string(.authSignInSubtitle, defaultValue: "Sign in to back up your progress"))
                             .font(.bodyMedium(16))
                             .foregroundColor(.theme.textSecondary)
                     }
@@ -45,7 +45,7 @@ struct AuthContainerView: View {
                                 .fill(Color.theme.surfaceLight)
                                 .frame(height: 1)
 
-                            Text("or continue with email")
+                            Text(L10n.string(.authEmailDivider, defaultValue: "or continue with email"))
                                 .font(.caption(13))
                                 .foregroundColor(.theme.textMuted)
                                 .fixedSize()
@@ -64,14 +64,14 @@ struct AuthContainerView: View {
 
                     // Terms / privacy
                     VStack(spacing: 4) {
-                        Text("By continuing, you agree to our")
+                        Text(L10n.string(.authLegalPrefix, defaultValue: "By continuing, you agree to our"))
                             .font(.caption(12))
                             .foregroundColor(.theme.textMuted)
 
                         HStack(spacing: 4) {
-                            Link("Terms of Service", destination: URL(string: "https://unboundapp.com/terms")!)
-                            Text("and")
-                            Link("Privacy Policy", destination: URL(string: "https://unboundapp.com/privacy")!)
+                            Link(L10n.string(.legalTermsOfService, defaultValue: "Terms of Service"), destination: AppConstants.Legal.termsURL)
+                            Text(L10n.string(.authLegalAnd, defaultValue: "and"))
+                            Link(L10n.string(.legalPrivacyPolicy, defaultValue: "Privacy Policy"), destination: AppConstants.Legal.privacyURL)
                         }
                         .font(.caption(12))
                         .foregroundColor(.theme.textSecondary)

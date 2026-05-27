@@ -23,15 +23,27 @@ final class SquadActivityService: SquadActivityServiceProtocol {
     private var observers: [NSObjectProtocol] = []
     private var recordedVowCompletionIds = Set<String>()
 
+    convenience init() {
+        self.init(
+            backend: SquadActivityBackend.shared,
+            auth: AuthService.shared,
+            squadService: SquadService.shared,
+            observesNotifications: !Self.isRunningUnderXCTest
+        )
+    }
+
     init(
-        backend: SquadActivityBackendProtocol = SquadActivityBackend.shared,
-        auth: AuthServiceProtocol = AuthService.shared,
-        squadService: SquadServiceProtocol = SquadService.shared
+        backend: SquadActivityBackendProtocol,
+        auth: AuthServiceProtocol,
+        squadService: SquadServiceProtocol,
+        observesNotifications: Bool = true
     ) {
         self.backend = backend
         self.auth = auth
         self.squadService = squadService
-        observeTrialsNotifications()
+        if observesNotifications {
+            observeTrialsNotifications()
+        }
     }
 
     deinit {
@@ -62,6 +74,10 @@ final class SquadActivityService: SquadActivityServiceProtocol {
     }
 
     // MARK: - Private
+
+    private static var isRunningUnderXCTest: Bool {
+        ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+    }
 
     private func observeTrialsNotifications() {
         let vowObs = NotificationCenter.default.addObserver(

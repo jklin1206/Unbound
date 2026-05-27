@@ -6,6 +6,9 @@
 # Xcode
 build/
 DerivedData/
+.derivedData/
+.derivedData-*/
+.module-cache/
 *.pbxuser
 *.mode1v3
 *.mode2v3
@@ -58,3 +61,8 @@ UNBOUND.xcodeproj/project.xcworkspace/xcshareddata/
 # Local browser traces and content research scratch
 .playwright-mcp/
 .unbound-content-scout/
+.code-review-graph/
+.claude/
+LocalArtifacts/
+gojo-wiki.yml
+sjw-wiki.yml

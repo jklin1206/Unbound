@@ -40,6 +40,12 @@ enum RationaleBuilder {
             ))
         }
 
+        decisions.append(.init(
+            inputSummary: "Session window: \(input.sessionLengthMinutes) minutes",
+            decisionApplied: "Warmups, main work, accessories, and rest are budgeted to fit that window",
+            iconSystemName: "clock"
+        ))
+
         // 3. Equipment / style
         if input.trainingStyle == .bodyweight {
             decisions.append(.init(

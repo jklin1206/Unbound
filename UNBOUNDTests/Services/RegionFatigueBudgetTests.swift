@@ -35,4 +35,89 @@ final class RegionFatigueBudgetTests: XCTestCase {
             RegionFatigueBudget.trimRecommendations(sources: [], budget: RegionLoad()).isEmpty
         )
     }
+
+    func testWorkoutRegionLoadUsesRoleWeightedBodyLedger() {
+        let workout = Workout(
+            name: "Push",
+            targetMuscleGroups: [.chest, .shoulders, .arms],
+            warmup: [],
+            mainExercises: [
+                Exercise(
+                    id: "bench",
+                    name: "Bench Press",
+                    muscleGroups: [.chest, .shoulders, .arms],
+                    sets: 4,
+                    reps: "6-8",
+                    restSeconds: 120,
+                    rpe: 8,
+                    notes: nil,
+                    substitution: nil
+                )
+            ],
+            cooldown: [],
+            estimatedMinutes: 45,
+            notes: nil,
+            blockType: nil
+        )
+
+        let load = RegionFatigueBudget.regionLoad(for: workout)
+
+        XCTAssertEqual(load[.push], 5.4, accuracy: 0.001)
+        XCTAssertEqual(load[.shoulders], 1.4, accuracy: 0.001)
+    }
+
+    func testDraftRegionLoadCarriesSkillMobilityAndTendonStress() {
+        let draft = TrainingSessionDraft(
+            userId: "u1",
+            source: .routine,
+            title: "Skill + Carry",
+            estimatedMinutes: 32,
+            blocks: [
+                TrainingBlock(
+                    kind: .skill,
+                    title: "Handstand",
+                    prescriptions: [
+                        TrainingBlockPrescription(
+                            exerciseName: "Freestanding Handstand",
+                            sets: 5,
+                            target: .holdSeconds(20),
+                            restSeconds: 90
+                        )
+                    ]
+                ),
+                TrainingBlock(
+                    kind: .routine,
+                    title: "Mobility",
+                    prescriptions: [
+                        TrainingBlockPrescription(
+                            exerciseName: "Deep Squat Hold",
+                            sets: 2,
+                            target: .holdSeconds(45),
+                            restSeconds: 20
+                        )
+                    ]
+                ),
+                TrainingBlock(
+                    kind: .carry,
+                    title: "Loaded Carry",
+                    prescriptions: [
+                        TrainingBlockPrescription(
+                            exerciseName: "Farmer Carry",
+                            sets: 4,
+                            target: .distanceMeters(40),
+                            restSeconds: 90,
+                            muscleGroups: [.back, .arms, .shoulders]
+                        )
+                    ]
+                )
+            ]
+        )
+
+        let load = RegionFatigueBudget.regionLoad(for: draft)
+
+        XCTAssertGreaterThan(load[.shoulders], 0)
+        XCTAssertGreaterThan(load[.posterior], 0)
+        XCTAssertGreaterThan(load[.pull], 0)
+        XCTAssertGreaterThan(load[.legs], 0)
+    }
 }

@@ -22,10 +22,27 @@ enum SkillTierMigration {
     static func migrateIfNeeded(
         userId: String,
         history: [ExerciseLogEntry],
+        bodyweightKg: Double
+    ) -> Bool {
+        migrateIfNeeded(
+            userId: userId,
+            history: history,
+            bodyweightKg: bodyweightKg,
+            rankService: RankService.shared,
+            store: .shared,
+            defaults: .standard
+        )
+    }
+
+    /// Returns true if migration ran this call.
+    @discardableResult
+    static func migrateIfNeeded(
+        userId: String,
+        history: [ExerciseLogEntry],
         bodyweightKg: Double,
-        rankService: RankServiceProtocol = RankService.shared,
-        store: UserSkillTierStore = .shared,
-        defaults: UserDefaults = .standard
+        rankService: RankServiceProtocol,
+        store: UserSkillTierStore,
+        defaults: UserDefaults
     ) -> Bool {
         let key = "\(migratedFlagKey).\(userId)"
         guard !defaults.bool(forKey: key) else { return false }

@@ -120,8 +120,12 @@ final class AuthService: NSObject, AuthServiceProtocol, @unchecked Sendable {
     // MARK: Sign out / delete
 
     func signOut() throws {
+        AnalyticsService.shared.track(.signOut)
+        AnalyticsService.shared.reset()
         Task { try? await UnboundSupabase.client.auth.signOut() }
+        Task { try? await SubscriptionService.shared.logout() }
         Task { @MainActor in ProgramStore.shared.clear() }
+        DevFlags.shared.unlockAllFeatures = false
         #if DEBUG
         UserDefaults.standard.removeObject(forKey: debugUserIdOverrideKey)
         #endif
@@ -132,9 +136,38 @@ final class AuthService: NSObject, AuthServiceProtocol, @unchecked Sendable {
     }
 
     func deleteAccount() async throws {
-        // Supabase row cascade handles most of it via FK ON DELETE CASCADE.
-        // User deletion requires service-role — route through an Edge Function.
-        // For V1, sign out and mark locally. Full delete is a V1.1 todo.
+        guard await UnboundSupabase.isSignedIn else {
+            try signOut()
+            return
+        }
+
+        struct DeleteAccountBody: Encodable {
+            let confirm: Bool
+        }
+        struct DeleteAccountResponse: Decodable {
+            let deleted: Bool
+        }
+
+        do {
+            let response: DeleteAccountResponse = try await UnboundSupabase.client.functions
+                .invoke(
+                    "delete_account",
+                    options: FunctionInvokeOptions(body: DeleteAccountBody(confirm: true))
+                )
+            guard response.deleted else {
+                throw AppError.authAccountDeletionFailed(
+                    underlying: NSError(
+                        domain: "AuthService",
+                        code: 1,
+                        userInfo: [NSLocalizedDescriptionKey: "Delete account function returned false"]
+                    )
+                )
+            }
+        } catch {
+            logger.log("Delete account failed: \(error)", level: .error)
+            throw AppError.authAccountDeletionFailed(underlying: error)
+        }
+
         try signOut()
     }
 
@@ -231,6 +264,7 @@ final class AuthService: NSObject, AuthServiceProtocol, @unchecked Sendable {
                     }
                 case .signedOut, .userDeleted:
                     UserDefaults.standard.removeObject(forKey: cachedUserIdKey)
+                    AnalyticsService.shared.reset()
                     self.authStateSubject.send(nil)
                 default:
                     break
@@ -241,6 +275,10 @@ final class AuthService: NSObject, AuthServiceProtocol, @unchecked Sendable {
 
     private func cacheUserId(_ uid: String) {
         UserDefaults.standard.set(uid, forKey: cachedUserIdKey)
+        AnalyticsService.shared.identify(
+            userId: uid,
+            traits: ["authState": "signedIn"]
+        )
         authStateSubject.send(uid)
     }
 

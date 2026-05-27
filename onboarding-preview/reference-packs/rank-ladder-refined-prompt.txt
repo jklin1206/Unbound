@@ -1,0 +1,31 @@
+EDIT / REGENERATE SPEC FOR UNBOUND RANK LADDER
+
+Use the provided 10 visual references:
+Asset 00: the original ladder composition. Preserve its overall vibe: bottom player at the very bottom, massive dark violet staircase, floating black shards, purple lightning, gold trim, and a big circular apex portal at the top.
+Assets 01-09: the exact app rank badges. These are not style inspiration; these are the symbols to use.
+
+Required badge order from bottom to top:
+1. Initiate
+2. Novice
+3. Apprentice
+4. Forged
+5. Veteran
+6. Master
+7. Vessel
+8. Unbound
+9. Ascendant
+
+Task:
+Replace the existing rank symbols on Asset 00 with the actual badge assets in the exact order above. Keep the bottom player standing at the very bottom of the ladder. Keep the top as the only grand circular portal/apex moment, and place Ascendant there. The other badges should sit cleanly on the ladder landings below it. Simplify the composition; do not add extra sockets, duplicate badges, text, labels, numbers, UI chrome, or invented emblems.
+
+Style:
+Premium anime RPG onboarding art, cinematic, dark black/violet, gold highlights, clean centered mobile wallpaper, 9:19 vertical.
+
+Hard constraints:
+- Exactly nine rank badges total.
+- No duplicate Unbound.
+- No fake badges.
+- No extra rank icons.
+- No text in the image.
+- Preserve the lone player at the bottom.
+- The apex circle exists only at the top.

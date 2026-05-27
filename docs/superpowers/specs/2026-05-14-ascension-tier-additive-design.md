@@ -17,7 +17,7 @@ The 9 tiers:
 3. Apprentice
 4. Forged
 5. Veteran
-6. Honed
+6. Master
 7. **Vessel** (mythic threshold — cinematic begins)
 8. **Unbound** (the brand — cinematic)
 9. **Ascendant** (final climb — cinematic)
@@ -29,7 +29,7 @@ The 9 tiers:
 - Per-lift 9-tier ladder for the major lifts (bench / squat / dead / OHP)
 - Aggregate rank derived from per-skill + per-lift (single number for the Home hero)
 - `TierBadge` pill chip rendering for tier display
-- `TierBloomToast` for tier-up notifications (Initiate → ... → Honed crossings)
+- `TierBloomToast` for tier-up notifications (Initiate → ... → Master crossings)
 - `RankUpCinematic` updated to fire on Vessel / Unbound / Ascendant crossings (already present from #1, just thread SkillTier through it)
 - One-time migration: replays existing workout logs through `TierCriteriaEvaluator` to backfill per-skill + per-lift tier state
 
@@ -85,7 +85,7 @@ What changes visually:
 | File | Purpose |
 |---|---|
 | `Views/Components/Unbound/TierBadge.swift` | NEW. Pill chip showing tier name + optional sub-progress indicator. |
-| `Views/Components/Unbound/TierBloomToast.swift` | NEW. Subtle slide-in toast for tier crossings #1-#6 (Initiate through Honed). Auto-dismiss 2.5s. |
+| `Views/Components/Unbound/TierBloomToast.swift` | NEW. Subtle slide-in toast for tier crossings #1-#6 (Initiate through Master). Auto-dismiss 2.5s. |
 | `Views/Components/Cinematic/RankUpCinematic.swift` | MODIFY. Already accepts BuildIdentity (from #1). Add a tier param + gate so cinematic only fires when crossing into Vessel / Unbound / Ascendant. |
 | `Views/Home/UnboundHomeView.swift` | MODIFY. Replace aggregate rank letter display with tier name (e.g. "FORGED" instead of "B"). Same card location, same height. |
 | `Views/Home/UnboundSkillTreeTabView.swift` | MODIFY. Each skill node renders TierBadge instead of legacy rank chip. |

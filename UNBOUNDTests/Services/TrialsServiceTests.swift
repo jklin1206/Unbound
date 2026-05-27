@@ -167,7 +167,7 @@ final class WeeklyVowsServiceTests: XCTestCase {
 
         let unwrapped = try! XCTUnwrap(draft)
         XCTAssertEqual(unwrapped.userId, "u-1")
-        XCTAssertEqual(unwrapped.source, .custom)
+        XCTAssertEqual(unwrapped.source, .vow)
         XCTAssertEqual(unwrapped.programId, "weekly-vow:\(overdrive.id)")
         XCTAssertFalse(unwrapped.blocks.isEmpty)
         XCTAssertFalse(unwrapped.blocks.flatMap(\.prescriptions).isEmpty)
@@ -222,8 +222,8 @@ final class WeeklyVowsServiceTests: XCTestCase {
             id: "weekly-vow-W5-overdrive",
             kind: .overdrive,
             theme: .axis(.explosiveness),
-            displayName: "One Strike Vow",
-            blurb: "Accept a redline Binding Vow after training.",
+            displayName: "One Strike",
+            blurb: "A controlled finisher after training.",
             capstone: WeeklyVowProof(
                 displayName: "Output Proof",
                 description: "8 max-effort box jumps.",
@@ -301,8 +301,8 @@ final class WeeklyVowsServiceTests: XCTestCase {
                 id: "weekly-vow-test-apex-\(proof.displayName)",
                 kind: .apex,
                 theme: .wildcard,
-                displayName: "\(proof.displayName) Vow",
-                blurb: "Accept a weekend Binding Vow.",
+                displayName: "\(proof.displayName) Standard",
+                blurb: "A dedicated weekend proof.",
                 capstone: proof,
                 prescription: WeeklyVowPrescription(
                     placement: .dedicatedSession,
@@ -380,8 +380,8 @@ final class WeeklyVowsServiceTests: XCTestCase {
         XCTAssertEqual(unwrapped.callout.vowId, overdrive.id)
         XCTAssertEqual(unwrapped.callout.performanceLogId, log.id)
         XCTAssertEqual(unwrapped.callout.cardKind, .overdrive)
-        XCTAssertEqual(unwrapped.callout.title, "\(overdrive.displayName) Sealed")
-        XCTAssertEqual(unwrapped.callout.shareTitle, "Binding Vow Sealed")
+        XCTAssertEqual(unwrapped.callout.title, "\(overdrive.displayName) Cleared")
+        XCTAssertEqual(unwrapped.callout.shareTitle, "Binding Vow Cleared")
         XCTAssertEqual(unwrapped.callout.shareSubtitle, "\(overdrive.displayName) - \(overdrive.capstone.displayName)")
         XCTAssertEqual(unwrapped.callout.proofName, overdrive.capstone.displayName)
         XCTAssertEqual(unwrapped.callout.completionBonus, unwrapped.completionBonus)
@@ -393,8 +393,8 @@ final class WeeklyVowsServiceTests: XCTestCase {
             unwrapped.callout.shareSubtitle
         ])
         XCTAssertEqual(unwrapped.completionBonus.overallLevelXP, 120)
-        XCTAssertEqual(unwrapped.completionBonus.badgeProgress.displayText, "Limit Binding I 1/3")
-        XCTAssertEqual(unwrapped.completionBonus.cosmeticProgress.displayText, "Limit Binding Seal 1/5")
+        XCTAssertEqual(unwrapped.completionBonus.badgeProgress.displayText, "Finisher Vow I 1/3")
+        XCTAssertEqual(unwrapped.completionBonus.cosmeticProgress.displayText, "Finisher Vow Mark 1/5")
         XCTAssertNil(unwrapped.completionBonus.shareCard)
         XCTAssertEqual(service.state(userId: "u-1").weeklyVowCompletionLedger.count, 1)
         XCTAssertEqual(service.state(userId: "u-1").weeklyVowCompletionLedger.first?.performanceLogId, log.id)
@@ -710,10 +710,10 @@ final class WeeklyVowsServiceTests: XCTestCase {
             kind: kind,
             theme: .axis(axis),
             displayName: "\(kind.displayName) · \(axis.displayName)",
-            blurb: "A focused vow for \(axis.displayName.lowercased()).",
+            blurb: "A focused proof for \(axis.displayName.lowercased()).",
             capstone: WeeklyVowProof(
                 displayName: "Proof",
-                description: "Complete the vow work.",
+                description: "Complete the proof work.",
                 evaluation: .manualClaim
             ),
             prescription: WeeklyVowPrescription(

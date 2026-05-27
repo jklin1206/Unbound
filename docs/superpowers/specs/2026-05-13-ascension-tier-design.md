@@ -17,7 +17,7 @@
 These come from the user 2026-05-07 and 2026-05-13:
 
 1. **Per-skill mastery, not aggregate scoring.** Each skill has its own ladder. No fake "user rank" that aggregates across skills. The user advances on the moves they train.
-2. **9 named tiers, Apex-style.** Initiate · Novice · Apprentice · Forged · Veteran · Honed · Vessel · **Unbound** · Ascendant. No letter grades. Bottom 4 are quiet trainee tiers; top 5 are brand-flavored. Unbound is the brand moment at rank 8.
+2. **9 named tiers, Apex-style.** Initiate · Novice · Apprentice · Forged · Veteran · Master · Vessel · **Unbound** · Ascendant. No letter grades. Bottom 4 are quiet trainee tiers; top 5 are brand-flavored. Unbound is the brand moment at rank 8.
 3. **Cinematic asymmetry.** Only Vessel/Unbound/Ascendant crossings trigger the full chain-shatter cinematic. Lower tiers use the quiet bloom toast. (Per [[feedback_unbound_cinematic_asymmetry]].)
 4. **One vocabulary across all skill types.** Calisthenic skills, barbell lifts, and endurance moves all use the same 9-tier ladder. No parallel SubRank or alternative system.
 5. **Earned through training.** Tier advances are driven by `RankService.computeTier(skill:history:)` over the user's actual workout logs — not by self-report, scan-derived state, or LLM grading. (Aligns with [[project_unbound_create_your_own_arc]].)
@@ -39,7 +39,7 @@ enum SkillTier: Int, Codable, CaseIterable, Sendable, Comparable {
     case apprentice  = 2
     case forged      = 3
     case veteran     = 4
-    case honed       = 5
+    case master       = 5
     case vessel      = 6
     case unbound     = 7
     case ascendant   = 8
@@ -51,7 +51,7 @@ enum SkillTier: Int, Codable, CaseIterable, Sendable, Comparable {
         case .apprentice: return "Apprentice"
         case .forged:     return "Forged"
         case .veteran:    return "Veteran"
-        case .honed:      return "Honed"
+        case .master:      return "Master"
         case .vessel:     return "Vessel"
         case .unbound:    return "Unbound"
         case .ascendant:  return "Ascendant"
@@ -182,7 +182,7 @@ enum PullSkillTiers {
             .apprentice: .reps(3, exerciseName: "pull-up"),
             .forged:     .reps(8, exerciseName: "pull-up"),
             .veteran:    .reps(12, exerciseName: "pull-up"),
-            .honed:      .reps(15, exerciseName: "strict pull-up"),
+            .master:      .reps(15, exerciseName: "strict pull-up"),
             .vessel:     .reps(3, exerciseName: "weighted pull-up"),
             .unbound:    .variant("muscle-up"),
             .ascendant:  .variant("one-arm pull-up")
@@ -271,7 +271,7 @@ BADGES
 
 `RankUpCinematic` view modifier observes `.rankAdvanced` notification.
 
-- **Initiate→Honed (5 tier transitions: I→N, N→A, A→F, F→V, V→H):** existing `TierBloomToast`-style quiet rank-up. ~1.2s, slide-in chip, no haptic.
+- **Initiate→Master (5 tier transitions: I→N, N→A, A→F, F→V, V→H):** existing `TierBloomToast`-style quiet rank-up. ~1.2s, slide-in chip, no haptic.
 - **Vessel/Unbound/Ascendant (H→V, V→U, U→A):** full chain-shatter `RankUpCinematic`. ~4s, heavy haptic, share-card prompt at end.
 
 Listeners (`UnboundHomeView`, `MuscleHeatmapView`, `BodyMapView`) update their handlers to read `SkillTierAdvance` payloads instead of the legacy `RankAdvance`.

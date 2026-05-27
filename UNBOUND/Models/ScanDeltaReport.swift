@@ -2,18 +2,18 @@ import Foundation
 
 // MARK: - ScanDeltaReport
 //
-// Visual delta between two body scans (typically the onboarding scan and a
-// rescan ~30 days later). Produced by `ScanComparisonService` via Claude.
-// Injected into the coach's PT context so the coach can reference real,
-// scored visible progress instead of guessing.
+// Legacy checkpoint recap shape between two scans. New scans derive this
+// from `ScanCheckpoint` and earned attribute deltas, not from photo scoring.
+// It is kept so older rollover/share/coach surfaces can keep reading a
+// compact progress payload while the app moves away from body grades.
 //
-// Scores are 1-10 integers, Claude-judged. `delta = after - before`.
+// `BodyPartDelta` is retained for persistence compatibility. Current
+// checkpoint reports keep these neutral; user-facing progress should come
+// from `improvements`, `recommendedFocus`, and `ScanCheckpoint.deltaFromPrior`.
 //
-// `laggingAreas` is INTERNAL (used to seed Block 2 generation + coach-only
-// prompts). Per `project_unbound_scans_never_show_setbacks`, lagging copy
-// must NOT surface in user-facing UI as a regression — only as positive
-// "focus area" framing. The coach can lean on it; the home/profile screens
-// must not.
+// `laggingAreas` remains only for old saved reports. New reports leave it
+// empty because monthly scans must not identify "weak body parts" from photos
+// or use that as hidden programming input.
 
 struct BodyPartDelta: Codable, Equatable {
     let before: Int   // 1-10
@@ -25,10 +25,10 @@ struct ScanDeltaReport: Codable, Identifiable, Equatable {
     let id: String
     let userId: String
     let baselineScanId: String     // onboarding scan id
-    let comparisonScanId: String   // rescan id
+    let comparisonScanId: String   // checkpoint id
     let createdAt: Date
 
-    // Per-body-part before/after, Claude-scored 1-10.
+    // Legacy before/after slots kept for decoding older reports.
     let shoulders: BodyPartDelta
     let chest: BodyPartDelta
     let arms: BodyPartDelta
@@ -38,7 +38,7 @@ struct ScanDeltaReport: Codable, Identifiable, Equatable {
 
     // Coach-facing summary.
     let narrative: String           // 2-3 sentences, human-readable
-    let improvements: [String]      // e.g. ["shoulders", "arms"]
-    let laggingAreas: [String]      // INTERNAL — for coach + Block 2 only
+    let improvements: [String]      // e.g. ["power", "control"]
+    let laggingAreas: [String]      // Legacy decode only; new reports leave empty.
     let recommendedFocus: String    // one-line coaching note
 }

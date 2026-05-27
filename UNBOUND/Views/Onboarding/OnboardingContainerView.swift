@@ -29,6 +29,7 @@ struct OnboardingContainerView: View {
                     Color.unbound.bg
                         .ignoresSafeArea()
                         .onAppear {
+                            services.analytics.track(.onboardingStarted)
                             let nextFlow = OnboardingFlowViewModel(userService: services.user)
                             #if DEBUG
                             nextFlow.applyDebugLaunchStepIfPresent()
@@ -76,7 +77,7 @@ struct OnboardingContainerView: View {
             HStack(spacing: 6) {
                 Image(systemName: "rectangle.stack.fill")
                     .font(.system(size: 10, weight: .bold))
-                Text("DEV · JUMP")
+                Text(L10n.onboarding("debug.devJump", defaultValue: "DEV · JUMP"))
                     .font(.system(size: 10, weight: .heavy, design: .monospaced))
                     .tracking(1.4)
             }
@@ -104,7 +105,7 @@ struct OnboardingContainerView: View {
             HStack(spacing: 6) {
                 Image(systemName: "forward.end.fill")
                     .font(.system(size: 10, weight: .bold))
-                Text("DEV · SKIP")
+                Text(L10n.onboarding("debug.devSkip", defaultValue: "DEV · SKIP"))
                     .font(.system(size: 10, weight: .heavy, design: .monospaced))
                     .tracking(1.4)
             }
@@ -231,10 +232,6 @@ private struct OnboardingRouter: View {
 
                 case .exerciseStyle:
                     Step_ExerciseStyle(flow: flow, progress: flow.progress, onBack: back, onContinue: advance)
-                        .transition(screenTransition)
-
-                case .buildSeed:
-                    Step_BuildSeed(flow: flow, progress: flow.progress, onBack: back, onContinue: advance)
                         .transition(screenTransition)
 
                 case .sessionLength:
@@ -396,26 +393,32 @@ private struct Step_ResultsSnapshot: View {
     let onContinue: () -> Void
 
     private var focusZone: String {
-        flow.targetAreas.first?.displayName ?? "Full Body"
+        flow.targetAreas.first?.displayName ?? L10n.onboarding("common.fullBody", defaultValue: "Full Body")
     }
     private var frequencyLabel: String {
-        flow.targetFrequency?.displayName ?? "4 days / week"
+        flow.targetFrequency?.displayName ?? L10n.onboarding("common.fourDaysPerWeek", defaultValue: "4 days / week")
     }
     private var sessionLabel: String {
-        flow.sessionLength?.displayName ?? "45 minutes"
+        flow.sessionLength?.displayName ?? L10n.onboarding("common.fortyFiveMinutes", defaultValue: "45 minutes")
     }
     private var equipmentLabel: String {
-        if flow.equipment.contains(.fullGym) { return "Full gym" }
-        if flow.equipment.contains(.bodyweight), flow.equipment.count == 1 { return "Bodyweight" }
-        if flow.equipment.isEmpty { return "Equipment open" }
-        return "Mixed equipment"
+        if flow.equipment.contains(.fullGym) {
+            return L10n.onboarding("equipment.fullGym", defaultValue: "Full gym")
+        }
+        if flow.equipment.contains(.bodyweight), flow.equipment.count == 1 {
+            return L10n.onboarding("equipment.bodyweight", defaultValue: "Bodyweight")
+        }
+        if flow.equipment.isEmpty {
+            return L10n.onboarding("equipment.open", defaultValue: "Equipment open")
+        }
+        return L10n.onboarding("equipment.mixed", defaultValue: "Mixed equipment")
     }
     private var boostedAttributes: [AttributeKey] {
-        AttributeKey.allCases.filter { flow.seededAttributes.contains($0) }
+        AttributeKey.allCases.filter { flow.effectiveSeededAttributes.contains($0) }
     }
     private var starterLevels: [AttributeKey: Int] {
         AttributeKey.allCases.reduce(into: [:]) { result, key in
-            result[key] = flow.seededAttributes.contains(key) ? 3 : 1
+            result[key] = flow.effectiveSeededAttributes.contains(key) ? 3 : 1
         }
     }
     private var starterTiers: [AttributeKey: RankTitle] {
@@ -425,16 +428,16 @@ private struct Step_ResultsSnapshot: View {
     }
     private var starterHex: [AttributeKey: Double] {
         starterLevels.reduce(into: [:]) { result, entry in
-            result[entry.key] = flow.seededAttributes.contains(entry.key) ? 24 : 8
+            result[entry.key] = flow.effectiveSeededAttributes.contains(entry.key) ? 24 : 8
         }
     }
 
     var body: some View {
         OnboardingScaffold(
-            title: "Your starting point is set.",
-            subtitle: "Day Zero is marked. The climb starts from here.",
+            title: L10n.onboarding("resultsSnapshot.title", defaultValue: "Your starting point is set."),
+            subtitle: L10n.onboarding("resultsSnapshot.subtitle", defaultValue: "Day Zero is marked. The climb starts from here."),
             progress: progress,
-            primaryTitle: "Start my arc",
+            primaryTitle: L10n.onboarding("resultsSnapshot.primary", defaultValue: "Start my arc"),
             primaryIcon: "arrow.right",
             hudStep: .resultsSnapshot,
             onBack: onBack,
@@ -461,17 +464,17 @@ private struct Step_ResultsSnapshot: View {
                     VStack(spacing: 14) {
                         HStack(alignment: .top) {
                             VStack(alignment: .leading, spacing: 6) {
-                                Text("ENTRY MAP")
+                                Text(L10n.onboarding("resultsSnapshot.entryMap", defaultValue: "ENTRY MAP"))
                                     .font(.system(size: 10, weight: .black, design: .monospaced))
                                     .tracking(1.4)
                                     .foregroundStyle(Color.unbound.accent)
-                                Text("INITIATE")
+                                Text(L10n.onboarding("common.rank.initiate", defaultValue: "INITIATE"))
                                     .font(.system(size: 34, weight: .black, design: .rounded))
                                     .foregroundStyle(Color.unbound.textPrimary)
                                     .lineLimit(1)
                                     .minimumScaleFactor(0.72)
                                     .fixedSize(horizontal: true, vertical: false)
-                                Text("This is the first mark. Everything above it has to be earned.")
+                                Text(L10n.onboarding("resultsSnapshot.entryBody", defaultValue: "This is the first mark. Everything above it has to be earned."))
                                     .font(Font.unbound.bodyS)
                                     .foregroundStyle(Color.unbound.textSecondary)
                                     .fixedSize(horizontal: false, vertical: true)
@@ -502,9 +505,13 @@ private struct Step_ResultsSnapshot: View {
                             .frame(width: 118, height: 118)
 
                             VStack(spacing: 9) {
-                                mapMetric(label: "OVERALL LV", value: "LV 0", tint: Color.unbound.accent)
-                                mapMetric(label: "FOCUS", value: focusZone.uppercased(), tint: Color.unbound.warnOrange)
-                                mapMetric(label: "STARTER BOOST", value: boostLabel, tint: Color.unbound.rankGreen)
+                                mapMetric(
+                                    label: L10n.onboarding("resultsSnapshot.metric.overallLevel", defaultValue: "OVERALL LVL"),
+                                    value: L10n.onboardingFormat("common.level", defaultValue: "LVL %d", 0),
+                                    tint: Color.unbound.accent
+                                )
+                                mapMetric(label: L10n.onboarding("common.focus", defaultValue: "FOCUS"), value: focusZone.uppercased(), tint: Color.unbound.warnOrange)
+                                mapMetric(label: L10n.onboarding("resultsSnapshot.metric.starterBoost", defaultValue: "STARTER BOOST"), value: boostLabel, tint: Color.unbound.rankGreen)
                             }
                             .frame(maxWidth: .infinity)
                         }
@@ -514,10 +521,14 @@ private struct Step_ResultsSnapshot: View {
                 .frame(maxWidth: .infinity)
 
                 VStack(spacing: 8) {
-                    signalRow(icon: "calendar", label: "Training rhythm", value: "\(frequencyLabel) · \(sessionLabel)")
-                    signalRow(icon: "dumbbell.fill", label: "Available tools", value: equipmentLabel)
-                    signalRow(icon: "hexagon.fill", label: "First spark", value: "A tiny mark on the hex. Enough to begin.")
-                    signalRow(icon: "flag.checkered", label: "Next gate", value: "Show up. Clear the wall. Climb.")
+                    signalRow(
+                        icon: "calendar",
+                        label: L10n.onboarding("resultsSnapshot.signal.trainingRhythm", defaultValue: "Training rhythm"),
+                        value: L10n.onboardingFormat("resultsSnapshot.signal.trainingRhythm.value", defaultValue: "%@ · %@", frequencyLabel, sessionLabel)
+                    )
+                    signalRow(icon: "dumbbell.fill", label: L10n.onboarding("resultsSnapshot.signal.availableTools", defaultValue: "Available tools"), value: equipmentLabel)
+                    signalRow(icon: "hexagon.fill", label: L10n.onboarding("resultsSnapshot.signal.firstSpark", defaultValue: "First spark"), value: L10n.onboarding("resultsSnapshot.signal.firstSpark.value", defaultValue: "A tiny mark on the hex. Enough to begin."))
+                    signalRow(icon: "flag.checkered", label: L10n.onboarding("resultsSnapshot.signal.nextGate", defaultValue: "Next gate"), value: L10n.onboarding("resultsSnapshot.signal.nextGate.value", defaultValue: "Show up. Clear the wall. Climb."))
                 }
 
                 infoCallout
@@ -527,7 +538,7 @@ private struct Step_ResultsSnapshot: View {
 
     private var boostLabel: String {
         let codes = boostedAttributes.prefix(2).map(\.shortCode)
-        return codes.isEmpty ? "NONE YET" : codes.joined(separator: " + ")
+        return codes.isEmpty ? L10n.onboarding("resultsSnapshot.boost.none", defaultValue: "NONE YET") : codes.joined(separator: " + ")
     }
 
     private var infoCallout: some View {
@@ -536,7 +547,7 @@ private struct Step_ResultsSnapshot: View {
                 .font(.system(size: 12, weight: .bold))
                 .foregroundStyle(Color.unbound.accent)
                 .padding(.top, 1)
-            Text("The blank parts are the point. Your first sessions start turning this into something real.")
+            Text(L10n.onboarding("resultsSnapshot.callout", defaultValue: "The blank parts are the point. Your first sessions start turning this into something real."))
                 .font(Font.unbound.bodyS)
                 .foregroundStyle(Color.unbound.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -619,20 +630,20 @@ private struct Step_PlanReady: View {
     }
 
     private var sessionLengthLabel: String {
-        flow.sessionLength?.displayName ?? "45 minutes"
+        flow.sessionLength?.displayName ?? L10n.onboarding("common.fortyFiveMinutes", defaultValue: "45 minutes")
     }
 
     private var planTitle: String {
         // TODO(Phase 17): wire to BuildIdentity once archetype is fully removed
-        "ARC 1"
+        L10n.onboarding("common.arcOne", defaultValue: "ARC 1")
     }
 
     var body: some View {
         OnboardingScaffold(
-            title: "Your first arc is ready.",
-            subtitle: "The next version of you has a starting line.",
+            title: L10n.onboarding("planReady.title", defaultValue: "Your opening block is ready."),
+            subtitle: L10n.onboarding("planReady.subtitle", defaultValue: "Start with honest standards. Use them to unlock the first 28-day Arc."),
             progress: progress,
-            primaryTitle: "Unlock my arc",
+            primaryTitle: L10n.onboarding("planReady.primary", defaultValue: "Unlock my training"),
             primaryIcon: "lock.open.fill",
             hudStep: .planReady,
             onBack: onBack,
@@ -642,24 +653,24 @@ private struct Step_PlanReady: View {
                 UnboundCard {
                     VStack(alignment: .leading, spacing: 12) {
                         HStack(spacing: 8) {
-                            Text("ARC READY")
+                            Text(L10n.onboarding("planReady.eyebrow", defaultValue: "BLOCK READY"))
                                 .font(.system(size: 10, weight: .black, design: .monospaced))
                                 .tracking(1.1)
                                 .foregroundStyle(Color.unbound.accent)
                             Spacer(minLength: 0)
-                            Text("GENERATED")
+                            Text(L10n.onboarding("planReady.generated", defaultValue: "GENERATED"))
                                 .font(.system(size: 9, weight: .bold, design: .monospaced))
                                 .foregroundStyle(Color.unbound.textSecondary)
                         }
 
-                        Text(planTitle)
+                        Text("CALIBRATION WEEK")
                             .font(Font.unbound.titleM)
                             .foregroundStyle(Color.unbound.textPrimary)
                             .lineLimit(1)
                             .minimumScaleFactor(0.82)
 
                         OnboardingGeneratedArt(
-                            candidateAssets: ["onboarding_plan_ready_hero", "body_unbound_front"],
+                            candidateAssets: ["onboarding_path_protocol_dossier", "onboarding_plan_ready_hero", "body_unbound_front"],
                             fallbackSymbol: "figure.mixed.cardio",
                             tint: Color.unbound.accent
                         )
@@ -667,9 +678,9 @@ private struct Step_PlanReady: View {
                         .frame(height: 148)
 
                         HStack(spacing: 9) {
-                            planStat(label: "WEEKLY", value: "\(sessionsPerWeek)x")
-                            planStat(label: "SESSION", value: sessionLengthLabel.uppercased())
-                            planStat(label: "START", value: "ARC 1")
+                            planStat(label: L10n.onboarding("planReady.stat.weekly", defaultValue: "WEEKLY"), value: L10n.onboardingFormat("common.timesPerWeek.compact", defaultValue: "%dx", sessionsPerWeek))
+                            planStat(label: L10n.onboarding("planReady.stat.session", defaultValue: "SESSION"), value: sessionLengthLabel.uppercased())
+                            planStat(label: L10n.onboarding("common.start", defaultValue: "START"), value: "DAY 1")
                         }
 
                         Rectangle()
@@ -684,8 +695,8 @@ private struct Step_PlanReady: View {
                 }
 
                 HStack(spacing: 8) {
-                    insightChip(icon: "target", text: (flow.targetAreas.first?.displayName ?? "Full Body").uppercased())
-                    insightChip(icon: "flag.fill", text: (flow.goals.first?.displayName ?? "Build Muscle").uppercased())
+                    insightChip(icon: "target", text: (flow.targetAreas.first?.displayName ?? L10n.onboarding("common.fullBody", defaultValue: "Full Body")).uppercased())
+                    insightChip(icon: "flag.fill", text: (flow.goals.first?.displayName ?? L10n.onboarding("common.buildMuscle", defaultValue: "Build Muscle")).uppercased())
                     Spacer(minLength: 0)
                 }
 
@@ -694,7 +705,7 @@ private struct Step_PlanReady: View {
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(Color.unbound.accent)
                         .padding(.top, 1)
-                    Text("You can start today. Unlock the full arc, weekly climb, and guidance that keeps you moving.")
+                    Text(L10n.onboarding("planReady.callout", defaultValue: "You can start today. Unlock the calibration week, 28-day Arcs, workout logging, and profile progress that keeps moving with you."))
                         .font(Font.unbound.bodyS)
                         .foregroundStyle(Color.unbound.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -714,14 +725,14 @@ private struct Step_PlanReady: View {
 
     private var primaryWorkoutLabel: String {
         if let area = flow.targetAreas.first {
-            return "\(area.displayName) Focus"
+            return L10n.onboardingFormat("planReady.workout.focus", defaultValue: "%@ Focus", area.displayName)
         }
-        return "Upper Focus"
+        return L10n.onboarding("planReady.workout.upperFocus", defaultValue: "Upper Focus")
     }
 
     private var secondaryWorkoutLabel: String {
         // TODO(Phase 17): key this off BuildIdentity once archetype is fully removed
-        return "Lower + Core Foundation"
+        return L10n.onboarding("planReady.workout.lowerCoreFoundation", defaultValue: "Lower + Core Foundation")
     }
 
     private func planStat(label: String, value: String) -> some View {

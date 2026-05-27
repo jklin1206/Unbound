@@ -74,8 +74,8 @@ final class SquadActivityServiceTests: XCTestCase {
             id: "weekly-vow-test-W01",
             kind: .overdrive,
             theme: .axis(.power),
-            displayName: "Limit Break Vow",
-            blurb: "Accept a redline Binding Vow after training.",
+            displayName: "Power Finish",
+            blurb: "A controlled finisher after training.",
             capstone: WeeklyVowProof(
                 displayName: "Hit a new PR",
                 description: "Hit a new one-rep max this week.",

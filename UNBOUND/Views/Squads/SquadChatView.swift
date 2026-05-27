@@ -5,6 +5,8 @@ struct SquadChatView: View {
     let roster: [SquadMember]
     let initialMessages: [SquadMessage]
     let currentUserId: UUID?
+    let messageService: SquadMessageService
+    let onMessagesChanged: (([SquadMessage]) -> Void)?
 
     @Environment(\.dismiss) private var dismiss
     @State private var messages: [SquadMessage]
@@ -16,12 +18,16 @@ struct SquadChatView: View {
         squad: Squad,
         roster: [SquadMember],
         initialMessages: [SquadMessage],
-        currentUserId: UUID?
+        currentUserId: UUID?,
+        messageService: SquadMessageService = .shared,
+        onMessagesChanged: (([SquadMessage]) -> Void)? = nil
     ) {
         self.squad = squad
         self.roster = roster
         self.initialMessages = initialMessages
         self.currentUserId = currentUserId
+        self.messageService = messageService
+        self.onMessagesChanged = onMessagesChanged
         _messages = State(initialValue: initialMessages.sorted { $0.createdAt < $1.createdAt })
     }
 
@@ -56,11 +62,18 @@ struct SquadChatView: View {
             ),
             titleVisibility: .visible
         ) {
-            Button("Report Message", role: .destructive) {}
-            Button("Block User", role: .destructive) {}
+            Button("Report Message", role: .destructive) {
+                reportCurrentMessage()
+            }
+            Button("Block User", role: .destructive) {
+                reportCurrentMessage()
+            }
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("Reports help keep crew chat safe.")
+        }
+        .task(id: squad.id) {
+            await refreshMessagesLoop()
         }
     }
 
@@ -141,33 +154,55 @@ struct SquadChatView: View {
     private func send() {
         let body = draft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !body.isEmpty else { return }
-        messages.append(
-            SquadMessage(
-                id: UUID(),
-                squadId: squad.id,
-                authorUserId: currentUserId,
-                kind: .text(.init(body: body)),
-                reactions: [],
-                createdAt: Date()
-            )
+        let pending = SquadMessage(
+            id: UUID(),
+            squadId: squad.id,
+            authorUserId: currentUserId,
+            kind: .text(.init(body: String(body.prefix(1000)))),
+            reactions: [],
+            createdAt: Date()
         )
+        messages.append(pending)
+        publishMessages()
         draft = ""
         isDraftFocused = true
+
+        Task {
+            let saved = await messageService.sendMessage(pending)
+            await MainActor.run {
+                replaceMessage(id: pending.id, with: saved)
+            }
+        }
     }
 
     private func addReaction(_ emoji: SquadMessageReaction.Emoji, to messageId: UUID) {
         guard let index = messages.firstIndex(where: { $0.id == messageId }),
               let userId = currentUserId else { return }
-        messages[index].reactions.removeAll { $0.userId == userId && $0.emoji == emoji }
-        messages[index].reactions.append(
-            SquadMessageReaction(
-                id: UUID(),
-                messageId: messageId,
-                userId: userId,
-                emoji: emoji,
-                createdAt: Date()
+        let alreadyReacted = messages[index].reactions.contains { $0.userId == userId && $0.emoji == emoji }
+        if alreadyReacted {
+            messages[index].reactions.removeAll { $0.userId == userId && $0.emoji == emoji }
+        } else {
+            messages[index].reactions.append(
+                SquadMessageReaction(
+                    id: UUID(),
+                    messageId: messageId,
+                    userId: userId,
+                    emoji: emoji,
+                    createdAt: Date()
+                )
             )
-        )
+        }
+        publishMessages()
+
+        Task {
+            await messageService.setReaction(
+                emoji: emoji,
+                messageId: messageId,
+                squadId: squad.id,
+                userId: userId,
+                shouldAdd: !alreadyReacted
+            )
+        }
     }
 
     private func scrollToLastMessage(_ proxy: ScrollViewProxy) {
@@ -180,6 +215,48 @@ struct SquadChatView: View {
     private func displayName(for userId: UUID?) -> String {
         guard let userId else { return "UNBOUND" }
         return roster.first(where: { $0.userId == userId })?.displayName ?? "Crewmate"
+    }
+
+    @MainActor
+    private func refreshMessagesLoop() async {
+        await refreshMessages()
+        while !Task.isCancelled {
+            try? await Task.sleep(nanoseconds: 10_000_000_000)
+            await refreshMessages()
+        }
+    }
+
+    @MainActor
+    private func refreshMessages() async {
+        let merged = await messageService.fetchRecent(
+            squadId: squad.id,
+            fallbackMessages: messages,
+            limit: 80
+        )
+        messages = merged.sorted { $0.createdAt < $1.createdAt }
+        publishMessages()
+    }
+
+    private func replaceMessage(id: UUID, with saved: SquadMessage) {
+        messages.removeAll { $0.id == id || $0.id == saved.id }
+        messages.append(saved)
+        messages.sort { $0.createdAt < $1.createdAt }
+        publishMessages()
+    }
+
+    private func publishMessages() {
+        onMessagesChanged?(messages.sorted { $0.createdAt > $1.createdAt })
+    }
+
+    private func reportCurrentMessage() {
+        guard let message = reportingMessage else { return }
+        Task {
+            await messageService.report(
+                messageId: message.id,
+                reporterUserId: currentUserId,
+                reason: "inappropriate"
+            )
+        }
     }
 }
 
@@ -255,7 +332,7 @@ struct SquadMessageBubble: View {
         case .pr(let payload):
             card(payload.title, payload.detail, nil)
         case .vowSeal(let payload):
-            card("Binding Vow sealed", payload.title, nil)
+            card("Binding Vow cleared", payload.title, nil)
         case .challengeEvent(let payload):
             card(payload.title, payload.detail, nil)
         case .savedWorkoutShare(let payload):

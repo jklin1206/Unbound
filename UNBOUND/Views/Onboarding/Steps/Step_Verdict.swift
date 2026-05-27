@@ -28,7 +28,7 @@ struct Step_Verdict: View {
                         if flow.scanInsights != nil {
                             scanSignalStrip
                         }
-                        Spacer().frame(height: 92) // space for pinned CTA
+                        Spacer().frame(height: 124) // space for pinned CTA
                     }
                     .padding(.horizontal, 22)
                     .padding(.top, 52)
@@ -44,7 +44,7 @@ struct Step_Verdict: View {
             VStack {
                 Spacer()
                 UnboundButton(
-                    title: "See the ladder",
+                    title: L10n.onboarding("verdict.primary", defaultValue: "See the ladder"),
                     icon: "arrow.right",
                     action: onContinue
                 )
@@ -90,17 +90,30 @@ struct Step_Verdict: View {
             profileHexReveal
         }
         .frame(maxWidth: .infinity, alignment: .center)
+        .padding(.top, 10)
+        .opacity(hasAnimated ? 1 : 0)
+        .scaleEffect(hasAnimated ? 1 : 0.97)
     }
 
     private var revealHeader: some View {
         VStack(spacing: 2) {
-            Text("UNBOUND")
+            Text(L10n.string(.appName, defaultValue: "UNBOUND").uppercased())
                 .font(.system(size: 18, weight: .black, design: .monospaced))
                 .tracking(5.0)
                 .foregroundStyle(Color.unbound.accent)
                 .multilineTextAlignment(.center)
 
-            Text("DAY ZERO")
+            Text(L10n.onboarding("verdict.rankRevealed", defaultValue: "RANK REVEALED"))
+                .font(.system(size: 10, weight: .black, design: .monospaced))
+                .tracking(2.2)
+                .foregroundStyle(initiateTint)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 5)
+                .background(Capsule().fill(initiateTint.opacity(0.12)))
+                .overlay(Capsule().strokeBorder(initiateTint.opacity(0.42), lineWidth: 1))
+                .padding(.top, 4)
+
+            Text(L10n.onboarding("verdict.dayZero", defaultValue: "DAY ZERO"))
                 .font(.system(size: 50, weight: .black))
                 .tracking(1.2)
                 .foregroundStyle(Color.unbound.textPrimary)
@@ -136,13 +149,28 @@ struct Step_Verdict: View {
                 letterFallback: "U"
             )
             .shadow(color: initiateTint.opacity(0.46), radius: 26)
+            .scaleEffect(hasAnimated ? 1 : 0.82)
+            .rotation3DEffect(.degrees(hasAnimated ? 0 : -8), axis: (x: 0, y: 1, z: 0))
+
+            Circle()
+                .trim(from: 0, to: hasAnimated ? 1 : 0.08)
+                .stroke(
+                    AngularGradient(
+                        colors: [.clear, initiateTint.opacity(0.2), Color.unbound.impact, initiateTint.opacity(0.2), .clear],
+                        center: .center
+                    ),
+                    style: StrokeStyle(lineWidth: 2, lineCap: .round)
+                )
+                .frame(width: 246, height: 246)
+                .rotationEffect(.degrees(hasAnimated ? 360 : 0))
+                .animation(.easeOut(duration: 1.1).delay(0.12), value: hasAnimated)
         }
         .frame(height: 232)
     }
 
     private var initiateIdentityBlock: some View {
         VStack(spacing: 8) {
-            Text("PROFILE CREATED")
+            Text(L10n.onboarding("verdict.profileCreated", defaultValue: "PROFILE CREATED"))
                 .font(.system(size: 11, weight: .black, design: .monospaced))
                 .tracking(1.6)
                 .foregroundStyle(initiateTint)
@@ -151,7 +179,7 @@ struct Step_Verdict: View {
                 .background(Capsule().fill(Color.unbound.bg.opacity(0.88)))
                 .overlay(Capsule().strokeBorder(initiateTint.opacity(0.44), lineWidth: 1))
 
-            Text("UNBOUND")
+            Text(L10n.string(.appName, defaultValue: "UNBOUND").uppercased())
                 .font(.system(size: 34, weight: .black))
                 .tracking(0.8)
                 .foregroundStyle(Color.unbound.textPrimary)
@@ -176,11 +204,11 @@ struct Step_Verdict: View {
                 .frame(width: 48, height: 48)
 
             VStack(alignment: .leading, spacing: 3) {
-                Text("CURRENT RANK")
+                Text(L10n.onboarding("verdict.currentRank", defaultValue: "CURRENT RANK"))
                     .font(.system(size: 10, weight: .black, design: .monospaced))
                     .tracking(2.0)
                     .foregroundStyle(initiateTint)
-                Text("INITIATE")
+                Text(L10n.onboarding("common.rank.initiate", defaultValue: "INITIATE"))
                     .font(.system(size: 24, weight: .black, design: .monospaced))
                     .tracking(1.0)
                     .foregroundStyle(Color.unbound.textPrimary)
@@ -199,16 +227,18 @@ struct Step_Verdict: View {
             RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .strokeBorder(initiateTint.opacity(0.58), lineWidth: 1.2)
         )
+        .shadow(color: initiateTint.opacity(hasAnimated ? 0.42 : 0), radius: 24)
+        .scaleEffect(hasAnimated ? 1 : 0.94)
     }
 
     private var dayZeroMilestoneBand: some View {
         VStack(spacing: 10) {
             VStack(alignment: .center, spacing: 4) {
-                Text("STARTING LINE")
+                Text(L10n.onboarding("verdict.startingLine", defaultValue: "STARTING LINE"))
                     .font(.system(size: 9, weight: .black, design: .monospaced))
                     .tracking(1.8)
                     .foregroundStyle(initiateTint)
-                Text("Your first rank is locked in. The rest is earned by showing up.")
+                Text(L10n.onboarding("verdict.startingLine.body", defaultValue: "Your first rank is locked in. The rest is earned by showing up."))
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(Color.unbound.textPrimary)
                     .multilineTextAlignment(.center)
@@ -217,9 +247,9 @@ struct Step_Verdict: View {
             .frame(maxWidth: .infinity, alignment: .center)
 
             HStack(spacing: 8) {
-                revealPill("DAY 0")
-                revealPill("\(sessionsPerWeek)x / WEEK")
-                revealPill("FIRST ARC")
+                revealPill(L10n.onboarding("common.dayZero.compact", defaultValue: "DAY 0"))
+                revealPill(L10n.onboardingFormat("common.timesPerWeek.long", defaultValue: "%dx / WEEK", sessionsPerWeek))
+                revealPill(L10n.onboarding("verdict.firstArc", defaultValue: "FIRST ARC"))
             }
         }
         .padding(.horizontal, 14)
@@ -237,22 +267,22 @@ struct Step_Verdict: View {
 
     private var onboardingProofGrid: some View {
         LazyVGrid(columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)], spacing: 8) {
-            revealStatTile(label: "START", value: "DAY 0", icon: "flame.fill", tint: Color.unbound.ember)
-            revealStatTile(label: "MONTH ONE", value: "\(sessionsPerWeek)x / WEEK", icon: "bolt.fill", tint: Color.unbound.coachCyan)
-            revealStatTile(label: "BUILD FOCUS", value: focusAreas.first?.uppercased() ?? "FULL BODY", icon: "sparkles", tint: initiateTint)
-            revealStatTile(label: "FIRST UNLOCK", value: firstUnlockTitle.uppercased(), icon: "dumbbell.fill", tint: Color.unbound.accent)
+            revealStatTile(label: L10n.onboarding("common.start", defaultValue: "START"), value: L10n.onboarding("common.dayZero.compact", defaultValue: "DAY 0"), icon: "flame.fill", tint: Color.unbound.ember)
+            revealStatTile(label: L10n.onboarding("verdict.monthOne", defaultValue: "MONTH ONE"), value: L10n.onboardingFormat("common.timesPerWeek.long", defaultValue: "%dx / WEEK", sessionsPerWeek), icon: "bolt.fill", tint: Color.unbound.coachCyan)
+            revealStatTile(label: L10n.onboarding("verdict.buildFocus", defaultValue: "BUILD FOCUS"), value: focusAreas.first?.uppercased() ?? L10n.onboarding("common.fullBody", defaultValue: "Full Body").uppercased(), icon: "sparkles", tint: initiateTint)
+            revealStatTile(label: L10n.onboarding("verdict.firstUnlock", defaultValue: "FIRST UNLOCK"), value: firstUnlockTitle.uppercased(), icon: "dumbbell.fill", tint: Color.unbound.accent)
         }
     }
 
     private var profileHexReveal: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 14) {
             HStack {
-                Text("BUILD HEX")
+                Text(L10n.onboarding("verdict.buildHex", defaultValue: "BUILD HEX"))
                     .font(.system(size: 9, weight: .black, design: .monospaced))
                     .tracking(2.0)
                     .foregroundStyle(Color.unbound.textTertiary)
                 Spacer()
-                Text("BASELINE")
+                Text(L10n.onboarding("verdict.baseline", defaultValue: "BASELINE"))
                     .font(.system(size: 9, weight: .black, design: .monospaced))
                     .tracking(1.3)
                     .foregroundStyle(initiateTint)
@@ -267,11 +297,13 @@ struct Step_Verdict: View {
                 labelVariant: .profile,
                 radius: 82
             )
-            .padding(.vertical, 16)
+            .padding(.horizontal, 42)
+            .padding(.top, 42)
+            .padding(.bottom, 46)
 
             attributeLevelGrid
 
-            Text("This is just the baseline. Every session makes the card harder to ignore.")
+            Text(L10n.onboarding("verdict.buildHex.body", defaultValue: "This is just the baseline. Every session makes the card harder to ignore."))
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(Color.unbound.textSecondary)
                 .multilineTextAlignment(.center)
@@ -298,7 +330,7 @@ struct Step_Verdict: View {
                         .font(.system(size: 9, weight: .black, design: .monospaced))
                         .foregroundStyle(key.rewardTint)
                     Spacer(minLength: 0)
-                    Text("LV \(level)")
+                    Text(L10n.onboardingFormat("common.level", defaultValue: "LVL %d", level))
                         .font(.system(size: 9, weight: .black, design: .monospaced))
                         .foregroundStyle(Color.unbound.textPrimary)
                         .monospacedDigit()
@@ -501,7 +533,7 @@ struct Step_Verdict: View {
             }
             .frame(height: 5)
 
-            Text("LV \(level)")
+            Text(L10n.onboardingFormat("common.level", defaultValue: "LVL %d", level))
                 .font(.system(size: 10, weight: .black, design: .monospaced))
                 .foregroundStyle(Color.unbound.textSecondary)
                 .frame(width: 42, alignment: .trailing)
@@ -550,14 +582,14 @@ struct Step_Verdict: View {
                 Image(systemName: "viewfinder")
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(Color.unbound.ember)
-                Text("DAY ZERO SIGNAL")
+                Text(L10n.onboarding("verdict.scanSignal.title", defaultValue: "DAY ZERO SIGNAL"))
                     .font(Font.unbound.captionS)
                     .tracking(1.4)
                     .foregroundStyle(Color.unbound.ember)
             }
 
             if let insights = flow.scanInsights {
-                Text("\(insights.headline) · Shoulder-to-hip \(String(format: "%.2f", insights.shoulderHipRatio))")
+                Text(L10n.onboardingFormat("verdict.scanSignal.summary", defaultValue: "%@ · Shoulder-to-hip %.2f", insights.headline, insights.shoulderHipRatio))
                     .font(Font.unbound.bodyM)
                     .foregroundStyle(Color.unbound.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -569,7 +601,7 @@ struct Step_Verdict: View {
     private var trainingPortfolio: some View {
         VStack(alignment: .leading, spacing: 18) {
             VStack(alignment: .leading, spacing: 8) {
-                Text("FIRST ARC")
+                Text(L10n.onboarding("verdict.firstArc", defaultValue: "FIRST ARC"))
                     .font(Font.unbound.captionS)
                     .tracking(1.6)
                     .foregroundStyle(Color.unbound.accent)
@@ -582,9 +614,21 @@ struct Step_Verdict: View {
             }
 
             VStack(spacing: 0) {
-                planLine(number: 1, title: "Foundation", detail: "Lock the base. Make the first week automatic.")
-                planLine(number: 2, title: "Growth", detail: "Add pressure where your build is asking for it.")
-                planLine(number: 3, title: "Rank climb", detail: "Sessions push the profile forward.")
+                planLine(
+                    number: 1,
+                    title: L10n.onboarding("verdict.trainingPlan.foundation.title", defaultValue: "Foundation"),
+                    detail: L10n.onboarding("verdict.trainingPlan.foundation.detail", defaultValue: "Lock the base. Make the first week automatic.")
+                )
+                planLine(
+                    number: 2,
+                    title: L10n.onboarding("verdict.trainingPlan.growth.title", defaultValue: "Growth"),
+                    detail: L10n.onboarding("verdict.trainingPlan.growth.detail", defaultValue: "Add pressure where your build is asking for it.")
+                )
+                planLine(
+                    number: 3,
+                    title: L10n.onboarding("verdict.trainingPlan.rankClimb.title", defaultValue: "Rank climb"),
+                    detail: L10n.onboarding("verdict.trainingPlan.rankClimb.detail", defaultValue: "Sessions push the profile forward.")
+                )
             }
         }
         .padding(.horizontal, 4)
@@ -665,12 +709,12 @@ struct Step_Verdict: View {
 
             // Snapshot framing — no judgment, just a logged moment.
             VStack(spacing: 10) {
-                Text("YOUR SNAPSHOT · UNBOUND")
+                Text(L10n.onboarding("verdict.snapshot.title", defaultValue: "YOUR SNAPSHOT · UNBOUND"))
                     .font(Font.unbound.monoS)
                     .tracking(1.8)
                     .foregroundStyle(Color.unbound.accent)
 
-                Text("The Build Begins")
+                Text(L10n.onboarding("verdict.snapshot.headline", defaultValue: "The Build Begins"))
                     .font(Font.unbound.displayM)
                     .foregroundStyle(Color.unbound.textPrimary)
                     .multilineTextAlignment(.center)
@@ -678,7 +722,7 @@ struct Step_Verdict: View {
                 HStack(spacing: 8) {
                     Image(systemName: "checkmark.seal.fill")
                         .font(.system(size: 11, weight: .semibold))
-                    Text("LOGGED · \(loggedDateText)")
+                    Text(L10n.onboardingFormat("verdict.snapshot.logged", defaultValue: "LOGGED · %@", loggedDateText))
                         .font(Font.unbound.captionS)
                         .tracking(1.4)
                 }
@@ -689,9 +733,7 @@ struct Step_Verdict: View {
                     Capsule().strokeBorder(Color.unbound.success.opacity(0.55), lineWidth: 1)
                 )
 
-                Text(flow.displayHandle.isEmpty
-                     ? "Your arc is logged. Every session moves this forward."
-                     : "\(flow.displayHandle) — your arc is logged. Every session moves this forward.")
+                Text(snapshotBody)
                     .font(Font.unbound.bodyL)
                     .foregroundStyle(Color.unbound.textSecondary)
                     .multilineTextAlignment(.center)
@@ -703,8 +745,16 @@ struct Step_Verdict: View {
 
     private var loggedDateText: String {
         let f = DateFormatter()
-        f.dateFormat = "MMM d"
-        return f.string(from: Date()).uppercased()
+        f.locale = .current
+        f.setLocalizedDateFormatFromTemplate("MMMd")
+        return f.string(from: Date()).uppercased(with: Locale.current)
+    }
+
+    private var snapshotBody: String {
+        if flow.displayHandle.isEmpty {
+            return L10n.onboarding("verdict.snapshot.body.anonymous", defaultValue: "Your arc is logged. Every session moves this forward.")
+        }
+        return L10n.onboardingFormat("verdict.snapshot.body.named", defaultValue: "%@ — your arc is logged. Every session moves this forward.", flow.displayHandle)
     }
 
     // MARK: Scan insight — one honest, specific fact from the Vision analysis
@@ -721,7 +771,7 @@ struct Step_Verdict: View {
                     Image(systemName: "viewfinder")
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(Color.unbound.ember)
-                    Text("FROM DAY ZERO")
+                    Text(L10n.onboarding("verdict.scanInsight.fromDayZero", defaultValue: "FROM DAY ZERO"))
                         .font(Font.unbound.captionS)
                         .tracking(1.4)
                         .foregroundStyle(Color.unbound.ember)
@@ -733,7 +783,7 @@ struct Step_Verdict: View {
                         .foregroundStyle(Color.unbound.textPrimary)
 
                     HStack(spacing: 8) {
-                        Text("SHOULDER-TO-HIP")
+                        Text(L10n.onboarding("verdict.scanInsight.shoulderToHip", defaultValue: "SHOULDER-TO-HIP"))
                             .font(Font.unbound.captionS)
                             .tracking(1.2)
                             .foregroundStyle(Color.unbound.textTertiary)
@@ -759,7 +809,7 @@ struct Step_Verdict: View {
             VStack(spacing: 16) {
                 HStack(alignment: .center) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("DAY ZERO PROFILE")
+                        Text(L10n.onboarding("verdict.profile.title", defaultValue: "DAY ZERO PROFILE"))
                             .font(Font.unbound.captionS)
                             .tracking(1.5)
                             .foregroundStyle(Color.unbound.textTertiary)
@@ -773,16 +823,19 @@ struct Step_Verdict: View {
                     Spacer(minLength: 12)
 
                     VStack(spacing: 3) {
-                        Text("START")
+                        Text(L10n.onboarding("common.start", defaultValue: "START"))
                             .font(Font.unbound.captionS)
                             .tracking(1.2)
                             .foregroundStyle(Color.unbound.textTertiary)
-                        Text(flow.derivedRank)
-                            .font(.system(size: 34, weight: .black, design: .monospaced))
+                        Text(flow.derivedRank.displayName.uppercased())
+                            .font(Font.unbound.captionS.weight(.heavy))
+                            .tracking(1.1)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.58)
                             .foregroundStyle(rankTint(flow.derivedRank))
                             .shadow(color: rankTint(flow.derivedRank).opacity(0.45), radius: 12)
                     }
-                    .frame(width: 64)
+                    .frame(width: 96)
                 }
 
                 HStack(alignment: .center, spacing: 18) {
@@ -795,14 +848,14 @@ struct Step_Verdict: View {
                     .padding(.vertical, 12)
 
                     VStack(alignment: .leading, spacing: 10) {
-                        profileStat(label: "FOCUS", value: focusAreas.first?.uppercased() ?? "FULL BODY")
-                        profileStat(label: "FIRST UNLOCK", value: firstUnlockTitle.uppercased())
-                        profileStat(label: "PROTOCOL", value: "\(sessionsPerWeek)x / WEEK")
+                        profileStat(label: L10n.onboarding("common.focus", defaultValue: "FOCUS"), value: focusAreas.first?.uppercased() ?? L10n.onboarding("common.fullBody", defaultValue: "Full Body").uppercased())
+                        profileStat(label: L10n.onboarding("verdict.firstUnlock", defaultValue: "FIRST UNLOCK"), value: firstUnlockTitle.uppercased())
+                        profileStat(label: L10n.onboarding("verdict.protocol", defaultValue: "PROTOCOL"), value: L10n.onboardingFormat("common.timesPerWeek.long", defaultValue: "%dx / WEEK", sessionsPerWeek))
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
-                Text("This is your starting card. Every completed session moves the stats, rank, and next unlock forward.")
+                Text(L10n.onboarding("verdict.profile.body", defaultValue: "This is your starting card. Every completed session moves the stats, rank, and next unlock forward."))
                     .font(Font.unbound.bodyS)
                     .foregroundStyle(Color.unbound.textSecondary)
                     .multilineTextAlignment(.center)
@@ -813,12 +866,12 @@ struct Step_Verdict: View {
 
     private var displayHandleText: String {
         let trimmed = flow.displayHandle.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? "@PLAYER" : "@\(trimmed.uppercased())"
+        return trimmed.isEmpty ? L10n.onboarding("verdict.handle.fallback", defaultValue: "@PLAYER") : "@\(trimmed.uppercased())"
     }
 
     private var displayNameText: String {
         let trimmed = flow.displayHandle.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? "UNBOUND" : trimmed.uppercased()
+        return trimmed.isEmpty ? L10n.string(.appName, defaultValue: "UNBOUND").uppercased() : trimmed.uppercased()
     }
 
     private var initiateTint: Color {
@@ -848,14 +901,14 @@ struct Step_Verdict: View {
             let base: Double = {
                 switch key {
                 case .power: return 16
-                case .agility: return 12
+                case .vitality: return 12
                 case .control: return 14
                 case .endurance: return 15
                 case .mobility: return 10
                 case .explosiveness: return 8
                 }
             }()
-            let seededBoost = flow.seededAttributes.contains(key) ? 3.0 : 0.0
+            let seededBoost = flow.effectiveSeededAttributes.contains(key) ? 3.0 : 0.0
             let goalBoost: Double = {
                 switch key {
                 case .power:
@@ -868,7 +921,7 @@ struct Step_Verdict: View {
                     return flow.exerciseStyles.contains(.mobility) ? 2 : 0
                 case .explosiveness:
                     return flow.exerciseStyles.contains(.plyometrics) ? 2 : 0
-                case .agility:
+                case .vitality:
                     return flow.exerciseStyles.contains(.sports) ? 2 : 0
                 }
             }()
@@ -884,7 +937,7 @@ struct Step_Verdict: View {
     }
 
     private var firstUnlockTitle: String {
-        SkillTree.universal.nodes.first?.title ?? "First Node"
+        SkillTree.universal.nodes.first?.title ?? L10n.onboarding("verdict.firstUnlockFallback", defaultValue: "First Node")
     }
 
     private func profileStat(label: String, value: String) -> some View {
@@ -916,7 +969,7 @@ struct Step_Verdict: View {
     //
     // Pulls from every onboarding answer to assemble a 3–4 sentence dossier
     // that reads like a dossier, not a checklist. Static template with
-    // input-driven slots — AI-generated version is a follow-up.
+    // input-driven slots.
 
     private var buildDossierCard: some View {
         UnboundCard {
@@ -925,7 +978,7 @@ struct Step_Verdict: View {
                     Image(systemName: "doc.text.fill")
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(Color.unbound.ember)
-                    Text("YOUR BUILD DOSSIER")
+                    Text(L10n.onboarding("verdict.dossier.title", defaultValue: "YOUR BUILD DOSSIER"))
                         .font(Font.unbound.captionS)
                         .tracking(1.4)
                         .foregroundStyle(Color.unbound.ember)
@@ -949,42 +1002,49 @@ struct Step_Verdict: View {
         let commitPhrase = commitmentDescriptor
         let equipPhrase = equipmentDescriptor
 
-        return """
-        Your first arc starts from your \(experiencePhrase) baseline \(equipPhrase). Priority work is \(focusPhrase) — the gap between today and the version you keep picturing. With your \(commitPhrase) commitment, the first milestone is close enough to chase, and the climb keeps going after that.
-        """
+        return L10n.onboardingFormat(
+            "verdict.dossier.narrative",
+            defaultValue: "Your first arc starts from your %@ baseline %@. Priority work is %@ — the gap between today and the version you keep picturing. With your %@ commitment, the first milestone is close enough to chase, and the climb keeps going after that.",
+            experiencePhrase,
+            equipPhrase,
+            focusPhrase,
+            commitPhrase
+        )
     }
 
     private var focusAreasPhrase: String {
         let names = focusAreas.prefix(2).map { $0.lowercased() }
         switch names.count {
-        case 0: return "full-body recomposition"
+        case 0: return L10n.onboarding("verdict.focusPhrase.fullBody", defaultValue: "full-body recomposition")
         case 1: return names[0]
-        default: return "\(names[0]) and \(names[1])"
+        default: return L10n.onboardingFormat("verdict.focusPhrase.pair", defaultValue: "%@ and %@", names[0], names[1])
         }
     }
 
     private var experienceDescriptor: String {
         // Keyed off experience level — any experience enum exists downstream;
         // if not wired, return a safe default read.
-        "current"
+        L10n.onboarding("verdict.experience.current", defaultValue: "current")
     }
 
     private var commitmentDescriptor: String {
         switch flow.commitment {
-        case 9...10: return "all-in"
-        case 7...8: return "serious"
-        case 5...6: return "steady"
-        default: return "starting"
+        case 9...10: return L10n.onboarding("verdict.commitment.allIn", defaultValue: "all-in")
+        case 7...8: return L10n.onboarding("verdict.commitment.serious", defaultValue: "serious")
+        case 5...6: return L10n.onboarding("verdict.commitment.steady", defaultValue: "steady")
+        default: return L10n.onboarding("verdict.commitment.starting", defaultValue: "starting")
         }
     }
 
     private var equipmentDescriptor: String {
-        if flow.equipment.contains(.fullGym) { return "with full-gym access" }
+        if flow.equipment.contains(.fullGym) {
+            return L10n.onboarding("verdict.equipment.fullGym", defaultValue: "with full-gym access")
+        }
         if flow.equipment.contains(.bodyweight), flow.equipment.count == 1 {
-            return "with bodyweight only"
+            return L10n.onboarding("verdict.equipment.bodyweight", defaultValue: "with bodyweight only")
         }
         if flow.equipment.isEmpty { return "" }
-        return "with your current gear"
+        return L10n.onboarding("verdict.equipment.currentGear", defaultValue: "with your current gear")
     }
 
     // MARK: Build arc + supportive quote
@@ -993,12 +1053,12 @@ struct Step_Verdict: View {
         UnboundCard {
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
-                    Text("YOUR BUILD ARC")
+                    Text(L10n.onboarding("verdict.arc.title", defaultValue: "YOUR BUILD ARC"))
                         .font(Font.unbound.captionS)
                         .tracking(1.4)
                         .foregroundStyle(Color.unbound.textTertiary)
                     Spacer()
-                    Text("UNBOUND")
+                    Text(L10n.string(.appName, defaultValue: "UNBOUND").uppercased())
                         .font(Font.unbound.titleS)
                         .foregroundStyle(Color.unbound.accent)
                         .tracking(1.2)
@@ -1006,7 +1066,7 @@ struct Step_Verdict: View {
 
                 Divider().background(Color.unbound.borderSubtle)
 
-                Text("\"\(supportiveQuote)\"")
+                Text(L10n.onboardingFormat("verdict.arc.quote", defaultValue: "\"%@\"", supportiveQuote))
                     .font(Font.unbound.bodyL)
                     .foregroundStyle(Color.unbound.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -1016,7 +1076,7 @@ struct Step_Verdict: View {
 
     /// Supportive tone — Phase 2g upgrades this with BuildIdentity-keyed copy.
     private var supportiveQuote: String {
-        "Dense frame waiting to be built. Let's go."
+        L10n.onboarding("verdict.supportiveQuote", defaultValue: "Dense frame waiting to be built. Let's go.")
     }
 
     // MARK: Focus areas
@@ -1024,7 +1084,7 @@ struct Step_Verdict: View {
     private var focusCard: some View {
         UnboundCard {
             VStack(alignment: .leading, spacing: 14) {
-                Text("FOCUS AREAS")
+                Text(L10n.onboarding("verdict.focusAreas.title", defaultValue: "FOCUS AREAS"))
                     .font(Font.unbound.captionS)
                     .tracking(1.4)
                     .foregroundStyle(Color.unbound.textTertiary)
@@ -1054,7 +1114,7 @@ struct Step_Verdict: View {
         // Phase 2g: derive from BuildIdentity + targetAreas scan output.
         // For now, fall back to user-selected target areas or generic default.
         let areas = flow.targetAreas.prefix(4).map(\.displayName)
-        return areas.isEmpty ? ["Full body"] : Array(areas)
+        return areas.isEmpty ? [L10n.onboarding("common.fullBody", defaultValue: "Full Body")] : Array(areas)
     }
 
     // MARK: Plan preview
@@ -1062,20 +1122,32 @@ struct Step_Verdict: View {
     private var planCard: some View {
         UnboundCard {
             VStack(alignment: .leading, spacing: 14) {
-                Text("YOUR ADAPTIVE PROTOCOL")
+                Text(L10n.onboarding("verdict.protocol.title", defaultValue: "YOUR ADAPTIVE PROTOCOL"))
                     .font(Font.unbound.captionS)
                     .tracking(1.4)
                     .foregroundStyle(Color.unbound.textTertiary)
 
-                planArc(number: 1, title: "Foundation", detail: "Wake the base. Volume in, form locked.")
-                planArc(number: 2, title: "Growth", detail: "Intensification. Loads climb, reps tighten.")
-                planArc(number: 3, title: "Power", detail: "Realization when rank opens it.")
+                planArc(
+                    number: 1,
+                    title: L10n.onboarding("verdict.protocol.foundation.title", defaultValue: "Foundation"),
+                    detail: L10n.onboarding("verdict.protocol.foundation.detail", defaultValue: "Wake the base. Volume in, form locked.")
+                )
+                planArc(
+                    number: 2,
+                    title: L10n.onboarding("verdict.protocol.growth.title", defaultValue: "Growth"),
+                    detail: L10n.onboarding("verdict.protocol.growth.detail", defaultValue: "Intensification. Loads climb, reps tighten.")
+                )
+                planArc(
+                    number: 3,
+                    title: L10n.onboarding("verdict.protocol.power.title", defaultValue: "Power"),
+                    detail: L10n.onboarding("verdict.protocol.power.detail", defaultValue: "Realization when rank opens it.")
+                )
 
                 Divider().background(Color.unbound.borderSubtle)
 
                 HStack(spacing: 12) {
-                    statChip(icon: "calendar", value: "\(sessionsPerWeek)", label: "sessions / week")
-                    statChip(icon: "clock", value: "\(sessionMinutes)", label: "min / session")
+                    statChip(icon: "calendar", value: "\(sessionsPerWeek)", label: L10n.onboarding("verdict.protocol.sessionsPerWeek", defaultValue: "sessions / week"))
+                    statChip(icon: "clock", value: "\(sessionMinutes)", label: L10n.onboarding("verdict.protocol.minutesPerSession", defaultValue: "min / session"))
                 }
             }
         }
@@ -1138,15 +1210,8 @@ struct Step_Verdict: View {
         flow.sessionLength?.minutes ?? 45
     }
 
-    private func rankTint(_ rank: String) -> Color {
-        switch rank.uppercased() {
-        case "S": return Color.unbound.rankGold
-        case "A": return Color.unbound.accent
-        case "B": return Color.unbound.rankGreen
-        case "C": return Color.unbound.rankAmber
-        case "D": return Color.unbound.rankOrange
-        default: return Color.unbound.rankRed
-        }
+    private func rankTint(_ rank: RankTitle) -> Color {
+        rank.rewardTextTint
     }
 }
 
@@ -1155,7 +1220,7 @@ private struct DayZeroPortfolioHex: View {
     let radius: CGFloat
     var showsLabels: Bool = true
 
-    private let axisOrder: [AttributeKey] = [.power, .agility, .control, .endurance, .mobility, .explosiveness]
+    private let axisOrder: [AttributeKey] = [.power, .vitality, .control, .endurance, .mobility, .explosiveness]
 
     var body: some View {
         Canvas { ctx, size in

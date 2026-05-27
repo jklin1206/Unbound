@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 // MARK: - RoutinePlayerView
 //
@@ -159,8 +160,17 @@ struct RoutinePlayerView: View {
     }
 
     private func instructionFace(text: String, cue: String?) -> some View {
-        VStack(spacing: 20) {
+        let reference = MobilityReferenceLibrary.reference(for: "\(text) \(cue ?? "")")
+        let exerciseAssetName = reference == nil ? exerciseVisualAssetName(for: "\(text) \(cue ?? "")") : nil
+        return VStack(spacing: 20) {
             Spacer()
+            if let reference {
+                MobilityReferenceCard(reference: reference, accent: accent, compact: true)
+                    .padding(.horizontal, 24)
+            } else if let exerciseAssetName {
+                RoutineExerciseVisualCard(assetName: exerciseAssetName, title: text, accent: accent, compact: true)
+                    .padding(.horizontal, 24)
+            }
             VStack(spacing: 12) {
                 Text(text)
                     .font(Font.unbound.displayM).tracking(0.3)
@@ -182,8 +192,17 @@ struct RoutinePlayerView: View {
 
     private func timedFace(label: String, style: TimedStyle) -> some View {
         let ringColor = style == .rest ? Color.unbound.textTertiary : accent
+        let reference = style == .work ? MobilityReferenceLibrary.reference(for: label) : nil
+        let exerciseAssetName = style == .work && reference == nil ? exerciseVisualAssetName(for: label) : nil
         return VStack(spacing: 28) {
             Spacer()
+            if let reference {
+                MobilityReferenceCard(reference: reference, accent: accent, compact: true)
+                    .padding(.horizontal, 24)
+            } else if let exerciseAssetName {
+                RoutineExerciseVisualCard(assetName: exerciseAssetName, title: label, accent: accent, compact: true)
+                    .padding(.horizontal, 24)
+            }
             Text(label.uppercased())
                 .font(.system(size: 12, weight: .heavy, design: .monospaced))
                 .tracking(2.0)
@@ -220,8 +239,13 @@ struct RoutinePlayerView: View {
     private func intervalFace(label: String, rounds: Int,
                               segments: [IntervalSegment]) -> some View {
         let seg = segments[min(intervalSegment, segments.count - 1)]
+        let exerciseAssetName = exerciseVisualAssetName(for: label)
         return VStack(spacing: 24) {
             Spacer()
+            if let exerciseAssetName {
+                RoutineExerciseVisualCard(assetName: exerciseAssetName, title: label, accent: accent, compact: true)
+                    .padding(.horizontal, 24)
+            }
             Text(label.uppercased())
                 .font(.system(size: 13, weight: .heavy, design: .monospaced))
                 .tracking(1.8).foregroundStyle(accent)
@@ -254,8 +278,17 @@ struct RoutinePlayerView: View {
                                cue: String?) -> some View {
         let total = bursts.reduce(0, +)
         let hit = target.map { total >= $0 } ?? false
+        let reference = MobilityReferenceLibrary.reference(for: "\(name) \(cue ?? "")")
+        let exerciseAssetName = reference == nil ? exerciseVisualAssetName(for: "\(name) \(cue ?? "")") : nil
         return VStack(spacing: 22) {
             Spacer()
+            if let reference {
+                MobilityReferenceCard(reference: reference, accent: accent, compact: true)
+                    .padding(.horizontal, 24)
+            } else if let exerciseAssetName {
+                RoutineExerciseVisualCard(assetName: exerciseAssetName, title: name, accent: accent, compact: true)
+                    .padding(.horizontal, 24)
+            }
             Text(name.uppercased())
                 .font(.system(size: 13, weight: .heavy, design: .monospaced))
                 .tracking(1.8).foregroundStyle(accent)
@@ -320,7 +353,7 @@ struct RoutinePlayerView: View {
                 Divider().frame(height: 32).background(Color.unbound.border)
                 completeStat(historyLabel, "HISTORY")
                 Divider().frame(height: 32).background(Color.unbound.border)
-                completeStat("+\(routine.spReward)", "LV XP")
+                completeStat("+\(routine.spReward)", "LVL XP")
             }
             .padding(16)
             .background(RoundedRectangle(cornerRadius: 14, style: .continuous)
@@ -610,6 +643,13 @@ struct RoutinePlayerView: View {
         return elapsedSeconds > 0 && Double(longest) >= Double(elapsedSeconds) * 0.5
     }
 
+    private func exerciseVisualAssetName(for text: String) -> String? {
+        guard let assetName = RoutineStepVisualLibrary.assetName(for: text),
+              UIImage(named: assetName) != nil
+        else { return nil }
+        return assetName
+    }
+
     private var headlineValue: String {
         switch buildRecord().primaryMetric {
         case .time(let s): return String(format: "%02d:%02d", s / 60, s % 60)
@@ -627,5 +667,172 @@ struct RoutinePlayerView: View {
     private var historyLabel: String {
         let s = RoutineHistoryStore.shared.summary(routineId: routine.id)
         return "\((s?.count ?? 0) + 1)×"
+    }
+}
+
+struct RoutineExerciseVisualCard: View {
+    let assetName: String
+    let title: String
+    let accent: Color
+    var compact: Bool = false
+
+    private var image: UIImage? {
+        UIImage(named: assetName)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: compact ? 8 : 10) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(title.uppercased())
+                    .font(Font.unbound.captionS.weight(.heavy))
+                    .tracking(1.2)
+                    .foregroundStyle(Color.unbound.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+
+                Spacer(minLength: 8)
+
+                Text("FORM")
+                    .font(Font.unbound.monoS.weight(.heavy))
+                    .foregroundStyle(accent)
+            }
+
+            if let image {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .padding(compact ? 10 : 14)
+                    .background(Color.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .strokeBorder(accent.opacity(0.18), lineWidth: 1)
+                    )
+                    .frame(height: compact ? 152 : 190)
+            }
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color.unbound.surfaceElevated.opacity(0.82))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(accent.opacity(0.26), lineWidth: 1)
+        )
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(title) form reference")
+    }
+}
+
+struct MobilityReferenceCard: View {
+    let reference: MobilityReference
+    let accent: Color
+    var compact: Bool = false
+    var framed: Bool = true
+
+    private var shippedImages: [UIImage] {
+        if let singleImage = UIImage(named: reference.assetName) {
+            return [singleImage]
+        }
+
+        return [reference.startAssetName, reference.endAssetName].compactMap { assetName in
+            UIImage(named: assetName)
+        }
+    }
+
+    var body: some View {
+        let content = VStack(alignment: .leading, spacing: compact ? 8 : 10) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(reference.title.uppercased())
+                    .font(Font.unbound.captionS.weight(.heavy))
+                    .tracking(1.2)
+                    .foregroundStyle(Color.unbound.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+
+                Spacer(minLength: 8)
+
+                Text(reference.targetArea.uppercased())
+                    .font(Font.unbound.monoS.weight(.heavy))
+                    .foregroundStyle(accent)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+            }
+
+            if !shippedImages.isEmpty {
+                referenceMedia(images: shippedImages)
+                    .frame(height: compact ? 156 : 196)
+            }
+
+            Text(reference.cue)
+                .font(Font.unbound.captionS)
+                .foregroundStyle(Color.unbound.textSecondary)
+                .lineLimit(compact ? 2 : 3)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+
+        Group {
+            if framed {
+                content
+                    .padding(12)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .fill(Color.unbound.surfaceElevated.opacity(0.82))
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .strokeBorder(accent.opacity(0.26), lineWidth: 1)
+                    )
+            } else {
+                content
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(reference.title) reference. \(reference.cue)")
+    }
+
+    @ViewBuilder
+    private func referenceMedia(images: [UIImage]) -> some View {
+        if images.count == 1, let image = images.first {
+            referenceImage(image)
+        } else {
+            HStack(spacing: 8) {
+                ForEach(Array(images.prefix(2).enumerated()), id: \.offset) { index, image in
+                    referenceImage(image, label: index == 0 ? "START" : "END")
+                }
+            }
+        }
+    }
+
+    private func referenceImage(_ image: UIImage, label: String? = nil) -> some View {
+        Image(uiImage: image)
+            .resizable()
+            .scaledToFit()
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color.black.opacity(0.52))
+            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .overlay(alignment: .topLeading) {
+                if let label {
+                    Text(label)
+                        .font(Font.unbound.monoS.weight(.heavy))
+                        .foregroundStyle(Color.white)
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 4)
+                        .background(
+                            Capsule(style: .continuous)
+                                .fill(Color.black.opacity(0.72))
+                        )
+                        .padding(7)
+                }
+            }
+            .overlay(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .strokeBorder(accent.opacity(0.18), lineWidth: 1)
+            )
     }
 }

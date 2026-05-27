@@ -8,13 +8,13 @@ enum Weekday: String, Codable, CaseIterable, Identifiable, Hashable {
 
     var short: String {
         switch self {
-        case .monday: return "Mon"
-        case .tuesday: return "Tue"
-        case .wednesday: return "Wed"
-        case .thursday: return "Thu"
-        case .friday: return "Fri"
-        case .saturday: return "Sat"
-        case .sunday: return "Sun"
+        case .monday: return L10n.string(.weekdayMondayShort, defaultValue: "Mon")
+        case .tuesday: return L10n.string(.weekdayTuesdayShort, defaultValue: "Tue")
+        case .wednesday: return L10n.string(.weekdayWednesdayShort, defaultValue: "Wed")
+        case .thursday: return L10n.string(.weekdayThursdayShort, defaultValue: "Thu")
+        case .friday: return L10n.string(.weekdayFridayShort, defaultValue: "Fri")
+        case .saturday: return L10n.string(.weekdaySaturdayShort, defaultValue: "Sat")
+        case .sunday: return L10n.string(.weekdaySundayShort, defaultValue: "Sun")
         }
     }
 

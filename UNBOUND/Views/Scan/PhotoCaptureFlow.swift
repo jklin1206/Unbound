@@ -6,16 +6,16 @@ import UIKit
 // Presented as a fullScreenCover from Home / Profile. Enum-driven:
 //
 //   .photo — daily ritual. Tap → camera → review → confirm → save
-//            ProgressPhoto(source: .manual) → +5 LV XP (deduped per day) →
+//            ProgressPhoto(source: .manual) → +5 LVL XP (deduped per day) →
 //            dismiss with toast.
 //
 //   .scan  — monthly checkpoint. Consent gate (first time only)
-//            → camera → tap shutter → review → confirm → analyzing cinematic
-//            → ScanPayoffView → RETURN HOME → +25 LV XP + ProgressPhoto(source: .scan).
+//            → camera → tap shutter → review → confirm → saving cinematic
+//            → ScanPayoffView → RETURN HOME → +25 LVL XP + ProgressPhoto(source: .scan).
 //            Build Identity comes from training data, not photo analysis.
 //            No alignment gating — open camera, tap shutter, done.
 //
-// On scan failure: degrades silently to photo path (+5 LV XP) and does NOT
+// On scan failure: degrades silently to photo path (+5 LVL XP) and does NOT
 // advance the scan timer — user can retry immediately.
 
 struct PhotoCaptureFlow: View {
@@ -49,7 +49,7 @@ struct PhotoCaptureFlow: View {
         case consent        // scan only, first time
         case camera
         case review
-        case analyzing      // scan only
+        case analyzing      // scan only; saving checkpoint proof
         case payoff         // scan only
     }
 
@@ -134,17 +134,23 @@ struct PhotoCaptureFlow: View {
     }
 
     private var introLabel: String {
-        mode == .scan ? "BI-WEEKLY SCAN · +25 LV XP" : "DAILY PHOTO · +5 LV XP"
+        mode == .scan
+            ? L10n.string(.scanCaptureIntroScanLabel, defaultValue: "MONTHLY CHECKPOINT · +25 LVL XP")
+            : L10n.string(.scanCaptureIntroPhotoLabel, defaultValue: "DAILY PHOTO · +5 LVL XP")
     }
     private var introTitle: String {
-        mode == .scan ? "Lock in your body read." : "Lock in today's photo."
+        mode == .scan
+            ? L10n.string(.scanCaptureIntroScanTitle, defaultValue: "Lock in your progress proof.")
+            : L10n.string(.scanCaptureIntroPhotoTitle, defaultValue: "Lock in today's photo.")
     }
     private var introBody: String {
         mode == .scan
-            ? "One photo to mark this moment. No coaching, no analysis — just an honest checkpoint to look back on."
-            : "One photo. Keeps the arc honest. Come back in a month and see the change."
+            ? L10n.string(.scanCaptureIntroScanBody, defaultValue: "One photo to mark this month. No body grading; program changes still come from workouts and check-ins.")
+            : L10n.string(.scanCaptureIntroPhotoBody, defaultValue: "One photo. Keeps the arc honest. Come back in a month and see the change.")
     }
-    private var introCTA: String { "OPEN CAMERA" }
+    private var introCTA: String {
+        L10n.string(.scanCaptureOpenCamera, defaultValue: "OPEN CAMERA")
+    }
 
     private func advanceFromIntro() {
         if mode == .scan && !scanConsentGranted {
@@ -186,7 +192,11 @@ struct PhotoCaptureFlow: View {
                     }
                     .buttonStyle(.plain)
                     Spacer()
-                    Text(mode == .scan ? "SCAN" : "PHOTO")
+                    Text(
+                        mode == .scan
+                            ? L10n.string(.scanCaptureCameraScanMode, defaultValue: "SCAN")
+                            : L10n.string(.scanCaptureCameraPhotoMode, defaultValue: "PHOTO")
+                    )
                         .font(Font.unbound.captionS.weight(.bold))
                         .tracking(2.0)
                         .foregroundStyle(Color.unbound.textPrimary)
@@ -268,7 +278,7 @@ struct PhotoCaptureFlow: View {
                         HStack(spacing: 6) {
                             Image(systemName: "arrow.counterclockwise")
                                 .font(.system(size: 12, weight: .bold))
-                            Text("RETAKE")
+                            Text(L10n.string(.scanCaptureRetake, defaultValue: "RETAKE"))
                                 .font(Font.unbound.captionS.weight(.bold))
                                 .tracking(1.4)
                         }
@@ -306,7 +316,11 @@ struct PhotoCaptureFlow: View {
                     confirm()
                 } label: {
                     HStack(spacing: 10) {
-                        Text(mode == .scan ? "ANALYZE" : "LOCK IT IN")
+                        Text(
+                            mode == .scan
+                                ? L10n.string(.scanCaptureAnalyze, defaultValue: "SAVE CHECKPOINT")
+                                : L10n.string(.scanCaptureLockItIn, defaultValue: "LOCK IT IN")
+                        )
                             .font(Font.unbound.bodyMStrong)
                             .tracking(1.6)
                         Image(systemName: "arrow.right")
@@ -365,11 +379,11 @@ struct PhotoCaptureFlow: View {
                     analyzingPhase = 360
                 }
             }
-            Text("PHYSIQUE READ")
+            Text(L10n.string(.scanCaptureAnalyzingTitle, defaultValue: "SAVING CHECKPOINT"))
                 .font(Font.unbound.captionS.weight(.bold))
                 .tracking(2.0)
                 .foregroundStyle(Color.unbound.accent)
-            Text("Scoring your build. Takes a moment.")
+            Text(L10n.string(.scanCaptureAnalyzingBody, defaultValue: "Saving the proof and preparing your monthly recap. No body scoring."))
                 .font(Font.unbound.bodyS)
                 .foregroundStyle(Color.unbound.textSecondary)
                 .multilineTextAlignment(.center)
@@ -415,21 +429,29 @@ struct PhotoCaptureFlow: View {
     private func runScan() async {
         guard let image = capturedImage else { return }
         let userId = services.auth.currentUserId ?? "anonymous"
-
-        // Save the photo to the library. Scan ID is the photo ID.
-        let photoId = savePhotoToDatabase(image: image, userId: userId, source: .scan)
+        guard let photoData = image.jpegData(compressionQuality: 0.85) else {
+            await degradeToPhoto()
+            return
+        }
 
         // Commit the ScanCheckpoint — this is the authoritative scan record.
         // Reads BuildIdentity from AttributeService, generates Haiku narrative,
         // and persists to disk. AI never grades the body.
-        if let photoData = image.jpegData(compressionQuality: 0.85) {
-            if let cp = try? await ScanCheckpointService.shared.commit(
+        let checkpoint: ScanCheckpoint
+        do {
+            checkpoint = try await ScanCheckpointService.shared.commit(
                 userId: userId,
                 photoData: photoData
-            ) {
-                scanCheckpoint = cp
-            }
+            )
+            scanCheckpoint = checkpoint
+        } catch {
+            await degradeToPhoto()
+            return
         }
+
+        // Save the photo to the library only after the checkpoint commits.
+        // If the commit fails, the scan timer and scan XP do not advance.
+        let photoId = savePhotoToDatabase(image: image, userId: userId, source: .scan)
 
         services.photoXP.awardScan(userId: userId)
         UserDefaults.standard.set(
@@ -444,10 +466,9 @@ struct PhotoCaptureFlow: View {
             userInfo: ["photoId": photoId]
         )
 
-        // Fire-and-forget delta comparison. If a baseline scan exists,
-        // ScanComparisonService produces a structured delta report that
-        // PTContextBuilder injects into the coach's next message.
-        // Failures are silent — coach simply skips the delta section.
+        // Fire-and-forget checkpoint recap. If a prior scan exists, the
+        // legacy report bridge stores earned attribute deltas for older
+        // coach/rollover surfaces. Photos are not AI-scored.
         Task.detached(priority: .utility) {
             await ScanComparisonService.shared.triggerComparisonIfNeeded(userId: userId)
         }
@@ -456,15 +477,21 @@ struct PhotoCaptureFlow: View {
     }
 
     /// Scan failed or context couldn't be built. Treat as a photo instead:
-    /// award the daily +5 LV XP, do NOT advance the 14-day scan timer.
+    /// award the daily +5 LVL XP, do NOT advance the monthly scan timer.
     @MainActor
     private func degradeToPhoto() async {
+        guard let image = capturedImage else {
+            onComplete(.scanDegradedToPhoto)
+            return
+        }
         let userId = services.auth.currentUserId ?? "anonymous"
+        let photoId = savePhotoToDatabase(image: image, userId: userId, source: .manual)
         _ = services.photoXP.awardDailyPhoto(userId: userId)
         UserDefaults.standard.set(
             Date().timeIntervalSince1970,
             forKey: "unbound.lastPhotoTimestamp"
         )
+        NotificationCenter.default.post(name: .photoCaptured, object: nil, userInfo: ["photoId": photoId])
         onComplete(.scanDegradedToPhoto)
     }
 

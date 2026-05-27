@@ -54,6 +54,26 @@
       "power": 0.85,
       "explosiveness": 0.15
     },
+    "band curl": {
+      "endurance": 0.6,
+      "control": 0.25,
+      "power": 0.15
+    },
+    "band lat pull": {
+      "control": 0.55,
+      "endurance": 0.3,
+      "power": 0.15
+    },
+    "band row": {
+      "control": 0.65,
+      "endurance": 0.25,
+      "power": 0.1
+    },
+    "band tricep extension": {
+      "endurance": 0.6,
+      "control": 0.25,
+      "power": 0.15
+    },
     "banded muscle-up": {
       "control": 0.5,
       "explosiveness": 0.5

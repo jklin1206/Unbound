@@ -6,6 +6,7 @@ enum TrainingSessionSource: String, Codable, Hashable, Sendable {
     case cardio
     case custom
     case routine
+    case vow
     case overallRankTrial
 }
 
@@ -67,9 +68,27 @@ struct TrainingSessionDraft: Codable, Identifiable, Hashable, Sendable {
     }
 }
 
+extension TrainingSessionDraft {
+    static let weeklyVowProgramIdPrefix = "weekly-vow:"
+
+    var weeklyVowId: String? {
+        guard let programId,
+              programId.hasPrefix(Self.weeklyVowProgramIdPrefix)
+        else { return nil }
+
+        let id = String(programId.dropFirst(Self.weeklyVowProgramIdPrefix.count))
+        return id.isEmpty ? nil : id
+    }
+
+    var isWeeklyVowDraft: Bool {
+        source == .vow || weeklyVowId != nil || id.hasPrefix("weekly-vow-draft-")
+    }
+}
+
 enum TrainingSessionAdaptationKind: String, Codable, Hashable, Sendable {
     case scheduledSkill
     case travel
+    case shortSession
     case substitution
     case deload
     case trialPrep
@@ -161,6 +180,17 @@ enum TrainingSessionAdaptationSummary {
             )
         }
 
+        let shortModeCount = prescriptions.filter { containsNote($0.notes, "Short mode") }.count
+        if shortModeCount > 0 {
+            lines.append(
+                TrainingSessionAdaptationLine(
+                    kind: .shortSession,
+                    title: "Short mode active",
+                    detail: "\(shortModeCount) priority exercise\(shortModeCount == 1 ? "" : "s") kept; accessories trimmed for today."
+                )
+            )
+        }
+
         let substitutedCount = prescriptions.filter {
             containsNote($0.notes, "today's modifiers") || containsNote($0.notes, "swapped from")
         }.count
@@ -233,6 +263,8 @@ private extension TrainingSessionAdaptationKind {
         switch self {
         case .deload:
             return 10
+        case .shortSession:
+            return 15
         case .substitution:
             return 20
         case .travel:
@@ -252,6 +284,8 @@ private extension TrainingSessionAdaptationKind {
             return "figure.strengthtraining.traditional"
         case .travel:
             return "airplane"
+        case .shortSession:
+            return "timer"
         case .substitution:
             return "arrow.triangle.2.circlepath"
         case .deload:
@@ -265,7 +299,7 @@ private extension TrainingSessionAdaptationKind {
 
     var colorRole: ProgramModifierColorRole {
         switch self {
-        case .scheduledSkill, .trialPrep:
+        case .scheduledSkill, .trialPrep, .shortSession:
             return .accent
         case .travel, .substitution:
             return .warning

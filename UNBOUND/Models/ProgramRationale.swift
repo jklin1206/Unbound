@@ -116,8 +116,8 @@ enum ProgramRationaleCopy {
             return regionName.map { "Trimmed \($0) accessory volume because that region is over budget." }
                 ?? "Trimmed accessory volume because the week is over budget."
         case .vowReplacingAccessory:
-            return regionName.map { "Your vow adds \($0) work, so matching accessory volume was replaced." }
-                ?? "Your vow adds work, so matching accessory volume was replaced."
+            return regionName.map { "Your Binding Vow adds \($0) work, so matching accessory volume was replaced." }
+                ?? "Your Binding Vow adds work, so matching accessory volume was replaced."
         case .skillBlockInserted:
             return regionName.map { "Inserted skill work for \($0) without changing the rest of the split." }
                 ?? "Inserted skill work without changing the rest of the split."

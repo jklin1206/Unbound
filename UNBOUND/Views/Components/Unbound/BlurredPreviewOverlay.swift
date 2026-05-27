@@ -8,7 +8,7 @@ import SwiftUI
 // reveal the full protocol preview post-verdict, then blur it behind a
 // "Unlock full protocol" paywall CTA.
 //
-// Day 2 will hook this up to RevenueCat/Superwall.
+// Purchase handling is native RevenueCat.
 
 struct BlurredPreviewOverlay<Preview: View, CTA: View>: View {
     @ViewBuilder var preview: () -> Preview

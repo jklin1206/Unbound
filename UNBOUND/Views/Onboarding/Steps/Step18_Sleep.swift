@@ -16,14 +16,18 @@ struct Step18_Sleep: View {
             onBack: onBack,
             onPrimary: onContinue
         ) {
-            HUDSlider(
-                value: $flow.sleepQuality,
-                steps: HUDSlider.fivePointStoredSteps,
-                descriptors: HUDSlider.sleepDescriptors,
-                leftAnchor: "Restless",
-                rightAnchor: "Restored"
-            )
-            .padding(.top, 32)
+            VStack(spacing: 24) {
+                LifestyleSignalAsset(kind: LifestyleSignalAsset.Kind.sleep, value: flow.sleepQuality)
+                    .padding(.top, 10)
+
+                HUDSlider(
+                    value: $flow.sleepQuality,
+                    steps: HUDSlider.fivePointStoredSteps,
+                    descriptors: HUDSlider.sleepDescriptors,
+                    leftAnchor: "Restless",
+                    rightAnchor: "Restored"
+                )
+            }
         }
     }
 }

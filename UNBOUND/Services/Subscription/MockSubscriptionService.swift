@@ -3,7 +3,8 @@ import Combine
 
 final class MockSubscriptionService: SubscriptionServiceProtocol, @unchecked Sendable {
     private let subject = CurrentValueSubject<Bool, Never>(false)
-    var hasActiveSubscription: Bool { subject.value }
+    var isSubscribed: Bool { subject.value }
+    var hasActiveSubscription: Bool { isSubscribed }
     var subscriptionStatusPublisher: AnyPublisher<Bool, Never> { subject.eraseToAnyPublisher() }
 
     func configure() {}
@@ -12,8 +13,26 @@ final class MockSubscriptionService: SubscriptionServiceProtocol, @unchecked Sen
 
     func fetchOfferings() async throws -> [SubscriptionPackage] {
         [
-            SubscriptionPackage(id: "weekly", title: "Weekly", price: "$4.99", duration: "Weekly", hasFreeTrial: true, freeTrialDuration: "3 Days"),
-            SubscriptionPackage(id: "annual", title: "Annual", price: "$29.99", duration: "Annual", hasFreeTrial: true, freeTrialDuration: "7 Days")
+            SubscriptionPackage(
+                id: "$rc_weekly",
+                productId: "unbound_weekly",
+                title: "Weekly",
+                price: "$14.99",
+                duration: "Weekly",
+                pricePerMonth: nil,
+                hasFreeTrial: true,
+                freeTrialDuration: "3 Days"
+            ),
+            SubscriptionPackage(
+                id: "$rc_three_month",
+                productId: "unbound_month_3",
+                title: "3 Month",
+                price: "$24.99",
+                duration: "3 Months",
+                pricePerMonth: "$8.33",
+                hasFreeTrial: true,
+                freeTrialDuration: "3 Days"
+            )
         ]
     }
 

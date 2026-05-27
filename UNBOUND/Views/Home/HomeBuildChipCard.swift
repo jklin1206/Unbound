@@ -9,8 +9,9 @@ struct HomeBuildChipCard: View {
         Button(action: onTap) {
             HStack(spacing: 14) {
                 AttributeHex(
-                    current: currentValues,
+                    current: profile.hexChartValues,
                     peak: nil,
+                    prestigeGlow: profile.prestigeGlowValues,
                     showLabels: false,
                     radius: 38
                 )
@@ -46,10 +47,6 @@ struct HomeBuildChipCard: View {
             .shadow(color: Color.unbound.accent.opacity(0.10), radius: 6)
         }
         .buttonStyle(.plain)
-    }
-
-    private var currentValues: [AttributeKey: Double] {
-        Dictionary(uniqueKeysWithValues: AttributeKey.allCases.map { ($0, profile.value(for: $0).current) })
     }
 
     private var buildPrimary: String {

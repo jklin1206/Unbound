@@ -8,7 +8,7 @@ The full canonical spec lives in **[`PROGRESSION.md`](./PROGRESSION.md)**. That 
 
 - **5 first-class progression systems + 1 currency:** Skills · Movements/Lifts · Attributes (POW/AGI/END/CTL/MOB/EXP) · **Overall LV** · Overall Rank · AP.
 - **2 diagnostic surfaces:** Body Map (heat, never ranked) · Trial Readiness Card.
-- **1 universal ladder:** 9 tiers — Initiate → Novice → Apprentice → Honed → Forged → Veteran → Vessel → Unbound → Ascendant. Used by skills, movements, attributes, and overall rank.
+- **1 universal ladder:** 9 tiers — Initiate → Novice → Apprentice → Forged → Veteran → Master → Vessel → Unbound → Ascendant. Used by skills, movements, attributes, and overall rank.
 - **AP is the currency** of every set — fans out into movement progress, attribute XP, body-map saturation, **and Overall LV XP**.
 - **Standards gate rank-ups.** AP doesn't. You only rank up a lift by hitting its explicit weight/rep target.
 - **Skills have variant trees** (Pull-Up: assisted → strict → archer → OAPU). **Movements/lifts don't** — they only have weight/rep standards.
@@ -51,10 +51,10 @@ Realistic time-to-Ascendant for a returning vet: 6–9 months from re-engagement
 
 1. **The Awakening** (Initiate → Novice) — ritual establishment chipper
 2. **The Calibration** (Novice → Apprentice) — AMRAP density
-3. **The Forge** (Apprentice → Honed) — 3-round chipper w/ run + weighted + pull
-4. **The Reckoning** (Honed → Forged) — heavy → conditioning → heavy sandwich
-5. **The Gauntlet** (Forged → Veteran) — Hyrox-style 8-station hybrid
-6. **The Ten Hundred** (Veteran → Vessel) — 1000-rep volume hell
+3. **The Forge** (Apprentice → Forged) — 3-round chipper w/ run + weighted + pull
+4. **The Reckoning** (Forged → Veteran) — heavy → conditioning → heavy sandwich
+5. **The Gauntlet** (Veteran → Master) — Hyrox-style 8-station hybrid
+6. **The Ten Hundred** (Master → Vessel) — 1000-rep volume hell
 7. **The Restriction** (Vessel → Unbound) — 4-phase limit-breaking session
 8. **The Ascension** (Unbound → Ascendant) — 5-phase 90-min athletic warfare
 

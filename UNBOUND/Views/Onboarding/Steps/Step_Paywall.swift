@@ -4,257 +4,351 @@ import SwiftUI
 //
 // Hard paywall. Blurred full-protocol preview behind, unlock CTA in front.
 //
-// Two pricing tiers: weekly (highlighted) + annual (best value). 7-day free
-// trial. Superwall wiring comes when we swap the stub `purchase()` with a
-// real RevenueCat call — Day 2+ integration work.
+// Two pricing tiers: weekly (highlighted) + annual (best value). The app no
+// longer offers limited access after onboarding; users subscribe or remain on
+// the locked paywall surface.
 
 struct Step_Paywall: View {
     @Bindable var flow: OnboardingFlowViewModel
     let onUnlock: () -> Void
 
-    @State private var selectedPlan: PricingPlan = .annual
     @State private var hasAnimated = false
+    @State private var pulse = false
     @EnvironmentObject var services: ServiceContainer
 
     var body: some View {
         ZStack {
             Color.unbound.bg.ignoresSafeArea()
 
-            // Blurred protocol preview behind
-            ProtocolPreviewBackdrop()
-                .blur(radius: 22)
-                .overlay(Color.unbound.bg.opacity(0.55))
+            Image("onboarding_path_open_gate")
+                .resizable()
+                .scaledToFill()
+                .opacity(0.46)
+                .blur(radius: 3)
                 .ignoresSafeArea()
 
-            // Violet vignette
-            RadialGradient(
-                colors: [Color.unbound.accent.opacity(0.25), Color.clear],
-                center: .center,
-                startRadius: 20,
-                endRadius: 420
+            LinearGradient(
+                colors: [
+                    Color.unbound.bg.opacity(0.54),
+                    Color.unbound.bg.opacity(0.86),
+                    Color.black.opacity(0.98)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
             )
             .ignoresSafeArea()
 
+            RadialGradient(
+                colors: [
+                    Color.unbound.accent.opacity(pulse ? 0.34 : 0.18),
+                    Color.clear
+                ],
+                center: .top,
+                startRadius: 30,
+                endRadius: 460
+            )
+            .ignoresSafeArea()
+            .animation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true), value: pulse)
+
             ScrollView(.vertical, showsIndicators: false) {
-                VStack(spacing: 24) {
-                    Spacer().frame(height: 40)
+                VStack(spacing: 12) {
+                    Spacer().frame(height: 14)
 
                     header
-                    benefits
-                    pricingPlans
-                    ctaSection
+                    transformationPanel
 
-                    Spacer().frame(height: 24)
+                    Spacer().frame(height: 440)
                 }
                 .padding(.horizontal, 20)
             }
+
+            VStack(spacing: 0) {
+                Spacer()
+                bottomPurchaseTray
+            }
+            .ignoresSafeArea(edges: .bottom)
         }
         .toolbar(.hidden, for: .navigationBar)
         .opacity(hasAnimated ? 1 : 0)
         .onAppear {
+            services.analytics.track(.paywallViewed(placement: AppConstants.Paywall.hardGate))
             withAnimation(.easeOut(duration: 0.4)) { hasAnimated = true }
+            pulse = true
         }
     }
 
     // MARK: Header
 
     private var header: some View {
-        VStack(spacing: 12) {
-            TierBadge(tier: RankTitle.legacyLetterFallback(flow.derivedRank).asSkillTier)
+        VStack(spacing: 10) {
+            HStack(spacing: 8) {
+                Image(systemName: "lock.open.fill")
+                    .font(.system(size: 12, weight: .bold))
+                Text(L10n.onboarding("paywall.kicker", defaultValue: "THE GATE IS OPEN"))
+                    .font(Font.unbound.captionS.weight(.heavy))
+                    .tracking(1.6)
+            }
+            .foregroundStyle(Color.unbound.impact)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 7)
+            .background(Capsule().fill(Color.unbound.impact.opacity(0.12)))
+            .overlay(Capsule().strokeBorder(Color.unbound.impact.opacity(0.35), lineWidth: 1))
 
-            Text("Start your arc.")
-                .font(Font.unbound.displayM)
+            Text(L10n.onboarding("paywall.title", defaultValue: "Become the version that keeps showing up."))
+                .font(.system(size: 34, weight: .black, design: .rounded))
                 .foregroundStyle(Color.unbound.textPrimary)
                 .multilineTextAlignment(.center)
+                .lineSpacing(1)
+                .fixedSize(horizontal: false, vertical: true)
+                .shadow(color: Color.unbound.accent.opacity(0.42), radius: 18)
 
-            Text("Every rep tracked. Every node earned. Every milestone yours.")
+            Text(L10n.onboarding("paywall.subtitle", defaultValue: "Unlock your first block, recovery targets, progress profile, and the feedback loop that makes training feel worth coming back to."))
                 .font(Font.unbound.bodyM)
-                .foregroundStyle(Color.unbound.textSecondary)
+                .foregroundStyle(Color.unbound.textPrimary.opacity(0.82))
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 12)
+                .fixedSize(horizontal: false, vertical: true)
         }
+        .padding(.horizontal, 4)
     }
 
-    // MARK: Benefits
+    // MARK: Transformation
 
-    private var benefits: some View {
+    private var transformationPanel: some View {
         VStack(alignment: .leading, spacing: 12) {
-            benefitRow("Three arcs built around where you start")
-            benefitRow("Full skill tree: muscle-up, front lever, the whole ladder")
-            benefitRow("Monthly milestones that show how far you've climbed")
-            benefitRow("Daily sessions, streaks, and gains you keep")
+            HStack(alignment: .center, spacing: 12) {
+                paywallSeal
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(L10n.onboarding("paywall.panel.title", defaultValue: "Your first arc is ready."))
+                        .font(Font.unbound.titleM)
+                        .foregroundStyle(Color.unbound.textPrimary)
+
+                    Text(L10n.onboarding("paywall.panel.subtitle", defaultValue: "Start with a four-week block that turns training, recovery, and visible progress into one loop."))
+                        .font(Font.unbound.bodyS)
+                        .foregroundStyle(Color.unbound.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+
+            HStack(spacing: 8) {
+                compactUnlock(icon: "calendar.badge.clock", text: "First 4-week training arc")
+                compactUnlock(icon: "moon.stars.fill", text: "Recovery and sleep targets")
+                compactUnlock(icon: "hexagon.fill", text: "Build Hex, logs, and profile proof")
+            }
         }
-        .padding(18)
+        .padding(15)
         .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(.ultraThinMaterial)
+            ZStack {
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(Color.unbound.surface.opacity(0.92))
+                LinearGradient(
+                    colors: [
+                        Color.unbound.accent.opacity(0.22),
+                        Color.unbound.impact.opacity(0.1),
+                        Color.black.opacity(0.18)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            }
         )
         .overlay(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .strokeBorder(Color.unbound.border, lineWidth: 1)
+                .strokeBorder(Color.unbound.accent.opacity(0.35), lineWidth: 1)
         )
     }
 
-    private func benefitRow(_ text: String) -> some View {
-        HStack(alignment: .center, spacing: 12) {
-            Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(Color.unbound.accent)
+    private var paywallSeal: some View {
+        ZStack {
+            Circle()
+                .fill(Color.unbound.impact.opacity(0.16))
+            Circle()
+                .strokeBorder(Color.unbound.impact.opacity(0.45), lineWidth: 1)
+            Image(systemName: "lock.open.fill")
+                .font(.system(size: 22, weight: .black))
+                .foregroundStyle(Color.unbound.impact)
+                .shadow(color: Color.unbound.impact.opacity(0.6), radius: 12)
+        }
+        .frame(width: 58, height: 58)
+    }
+
+    private func compactUnlock(icon: String, text: String) -> some View {
+        HStack(spacing: 9) {
+            Image(systemName: icon)
+                .font(.system(size: 12, weight: .black))
+                .foregroundStyle(Color.unbound.impact)
+                .frame(width: 16)
             Text(text)
-                .font(Font.unbound.bodyM)
-                .foregroundStyle(Color.unbound.textPrimary)
-            Spacer()
+                .font(Font.unbound.captionS.weight(.semibold))
+                .foregroundStyle(Color.unbound.textPrimary.opacity(0.92))
+                .lineLimit(2)
+                .minimumScaleFactor(0.72)
         }
+        .frame(maxWidth: .infinity, minHeight: 44)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 8)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color.black.opacity(0.24))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(Color.white.opacity(0.08), lineWidth: 1)
+        )
     }
 
-    // MARK: Pricing
+    // MARK: Feature unlocks
 
-    private var pricingPlans: some View {
-        VStack(spacing: 12) {
-            pricingCard(plan: .weekly)
-            pricingCard(plan: .annual)
-        }
-    }
+    private var featureUnlocks: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(L10n.onboarding("paywall.unlocks.title", defaultValue: "What unlocks now"))
+                .font(Font.unbound.captionS.weight(.heavy))
+                .tracking(1.7)
+                .foregroundStyle(Color.unbound.impact)
 
-    private func pricingCard(plan: PricingPlan) -> some View {
-        let isSelected = selectedPlan == plan
-        return Button(action: {
-            UnboundHaptics.medium()
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.78)) {
-                selectedPlan = plan
+            ForEach(unlocks) { unlock in
+                featureRow(unlock)
             }
-        }) {
-            HStack(spacing: 14) {
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 8) {
-                        Text(plan.title)
-                            .font(Font.unbound.bodyLStrong)
-                            .foregroundStyle(Color.unbound.textPrimary)
-                        if let badge = plan.badge {
-                            Text(badge)
-                                .font(Font.unbound.captionS)
-                                .tracking(1.2)
-                                .foregroundStyle(Color.unbound.impact)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 3)
-                                .overlay(
-                                    Capsule().strokeBorder(Color.unbound.impact.opacity(0.6), lineWidth: 1)
-                                )
-                        }
-                    }
-                    Text(plan.subtitle)
-                        .font(Font.unbound.bodyS)
-                        .foregroundStyle(Color.unbound.textSecondary)
-                }
-                Spacer()
-                Text(plan.price)
-                    .font(Font.unbound.titleS)
+        }
+    }
+
+    private var unlocks: [PaywallUnlock] {
+        [
+            PaywallUnlock(
+                icon: "calendar.badge.clock",
+                title: L10n.onboarding("paywall.unlock.program.title", defaultValue: "Your first block"),
+                detail: L10n.onboarding("paywall.unlock.program.detail", defaultValue: "Workouts built from your goals, equipment, schedule, and starting point.")
+            ),
+            PaywallUnlock(
+                icon: "figure.strengthtraining.traditional",
+                title: L10n.onboarding("paywall.unlock.sessions.title", defaultValue: "A loop that keeps moving"),
+                detail: L10n.onboarding("paywall.unlock.sessions.detail", defaultValue: "Log sets, RPE, swaps, and finishes so every session feeds the next.")
+            ),
+            PaywallUnlock(
+                icon: "hexagon.fill",
+                title: L10n.onboarding("paywall.unlock.profile.title", defaultValue: "Visible proof"),
+                detail: L10n.onboarding("paywall.unlock.profile.detail", defaultValue: "Your Build Hex, logs, milestones, and rank path start changing from Day Zero.")
+            )
+        ]
+    }
+
+    private func featureRow(_ unlock: PaywallUnlock) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: unlock.icon)
+                .font(.system(size: 15, weight: .bold))
+                .foregroundStyle(Color.unbound.impact)
+                .frame(width: 30, height: 30)
+                .background(Circle().fill(Color.unbound.impact.opacity(0.12)))
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(unlock.title)
+                    .font(Font.unbound.bodyMStrong)
                     .foregroundStyle(Color.unbound.textPrimary)
-                    .monospacedDigit()
+                    .fixedSize(horizontal: false, vertical: true)
+                Text(unlock.detail)
+                    .font(Font.unbound.bodyS)
+                    .foregroundStyle(Color.unbound.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            .padding(18)
-            .background(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(Color.unbound.surface)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .strokeBorder(
-                        isSelected ? Color.unbound.accent : Color.unbound.border,
-                        lineWidth: isSelected ? 1.5 : 1
-                    )
-            )
-            .shadow(
-                color: isSelected ? Color.unbound.accent.opacity(0.35) : .clear,
-                radius: 14, x: 0, y: 0
-            )
-            .scaleEffect(isSelected ? 1.01 : 1.0)
+
+            Spacer(minLength: 0)
         }
-        .buttonStyle(.plain)
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color.black.opacity(0.48))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(Color.unbound.accent.opacity(0.18), lineWidth: 1)
+        )
     }
 
     // MARK: CTA
 
+    private var bottomPurchaseTray: some View {
+        VStack(spacing: 10) {
+            ctaSection
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 26)
+        .padding(.bottom, 14)
+        .background(
+            LinearGradient(
+                colors: [
+                    Color.clear,
+                    Color.black.opacity(0.9),
+                    Color.black.opacity(0.98)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea()
+        )
+        .overlay(alignment: .top) {
+            LinearGradient(
+                colors: [
+                    Color.unbound.accent.opacity(0.26),
+                    Color.clear
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .frame(height: 1)
+        }
+    }
+
     private var ctaSection: some View {
         VStack(spacing: 8) {
-            UnboundButton(
-                title: "Start the arc — 7 days free",
-                icon: "flame.fill",
-                action: purchase
+            SubscriptionPackagePicker(
+                placement: AppConstants.Paywall.hardGate,
+                ctaTitle: L10n.onboarding("paywall.subscribeCTA", defaultValue: "Start my first arc"),
+                showsPitch: false,
+                onPurchased: onUnlock
             )
-            Text("Cancel anytime. \(selectedPlan.billingAfterTrial) after trial.")
+
+            Text(L10n.onboarding("paywall.disclaimer", defaultValue: "Start today. Cancel anytime. Checkout is handled securely by Apple."))
                 .font(Font.unbound.captionS)
                 .foregroundStyle(Color.unbound.textTertiary)
                 .multilineTextAlignment(.center)
 
-            // Skip for Day 1 — real paywall will use Superwall
-            Button(action: onUnlock) {
-                Text("Continue with limited access")
-                    .font(Font.unbound.bodyS)
-                    .foregroundStyle(Color.unbound.textTertiary)
-                    .underline()
+            RestorePurchasesButton()
+                .padding(.top, 8)
+
+            #if DEBUG
+            Button {
+                DevFlags.shared.unlockAllFeatures = true
+                onUnlock()
+            } label: {
+                Text(L10n.onboarding("paywall.devUnlock", defaultValue: "DEV · Unlock simulator"))
+                    .font(Font.unbound.monoS)
+                    .tracking(1.4)
+                    .foregroundStyle(Color.unbound.impact)
             }
             .buttonStyle(.plain)
             .padding(.top, 8)
+            #endif
         }
     }
 
-    private func purchase() {
-        // Day 1 stub — unlocks immediately. Day 2+ wires real RevenueCat +
-        // Superwall purchase flow with proper offering/package selection.
-        Task {
-            _ = try? await services.subscription.purchase(packageId: selectedPlan.productId)
-            onUnlock()
+    private var sessionsPerWeek: Int {
+        switch flow.targetFrequency {
+        case .three: return 3
+        case .four: return 4
+        case .five: return 5
+        case .six: return 6
+        case nil: return 4
         }
     }
 }
 
-// MARK: - PricingPlan
-
-private enum PricingPlan {
-    case weekly, annual
-
-    var title: String {
-        switch self {
-        case .weekly: return "Weekly"
-        case .annual: return "Annual"
-        }
-    }
-
-    var subtitle: String {
-        switch self {
-        case .weekly: return "Flexible. Most popular."
-        case .annual: return "Save 80%. Commit to the transformation."
-        }
-    }
-
-    var price: String {
-        switch self {
-        case .weekly: return "$9.99 / wk"
-        case .annual: return "$49.99 / yr"
-        }
-    }
-
-    var badge: String? {
-        switch self {
-        case .annual: return "BEST VALUE"
-        default: return nil
-        }
-    }
-
-    var billingAfterTrial: String {
-        switch self {
-        case .weekly: return "$9.99 / week"
-        case .annual: return "$49.99 / year ($0.96 / week)"
-        }
-    }
-
-    var productId: String {
-        switch self {
-        case .weekly: return "unbound.weekly"
-        case .annual: return "unbound.annual"
-        }
-    }
+private struct PaywallUnlock: Identifiable {
+    let id = UUID()
+    let icon: String
+    let title: String
+    let detail: String
 }
 
 // MARK: - ProtocolPreviewBackdrop
@@ -268,14 +362,14 @@ private struct ProtocolPreviewBackdrop: View {
             ForEach(0..<5, id: \.self) { i in
                 HStack {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("WEEK \(i + 1)")
+                        Text(L10n.onboardingFormat("paywall.preview.week", defaultValue: "WEEK %d", i + 1))
                             .font(Font.unbound.captionS)
                             .tracking(1.4)
                             .foregroundStyle(Color.unbound.textTertiary)
-                        Text("Upper body · \(45 + i * 5) min")
+                        Text(L10n.onboardingFormat("paywall.preview.workout", defaultValue: "Upper body · %d min", 45 + i * 5))
                             .font(Font.unbound.bodyLStrong)
                             .foregroundStyle(Color.unbound.textPrimary)
-                        Text("Bench · Row · Press · Curl · Core")
+                        Text(L10n.onboarding("paywall.preview.exercises", defaultValue: "Bench · Row · Press · Curl · Core"))
                             .font(Font.unbound.bodyS)
                             .foregroundStyle(Color.unbound.textSecondary)
                     }

@@ -1,7 +1,6 @@
 // UNBOUND/Services/Attributes/AttributeCatalog.swift
 import Foundation
 
-@MainActor
 final class AttributeCatalog: AttributeCatalogProtocol {
     static let shared = AttributeCatalog()
 
@@ -96,16 +95,22 @@ private struct Payload: Decodable {
 
 private struct WeightDict: Decodable {
     let power: Double?
-    let agility: Double?
+    let vitality: Double?
+    let legacyAgility: Double?
     let control: Double?
     let endurance: Double?
     let mobility: Double?
     let explosiveness: Double?
 
+    enum CodingKeys: String, CodingKey {
+        case power, vitality, control, endurance, mobility, explosiveness
+        case legacyAgility = "agility"
+    }
+
     func toAttributeWeights() -> [AttributeKey: Double] {
         var out: [AttributeKey: Double] = [:]
         if let v = power, v > 0         { out[.power] = v }
-        if let v = agility, v > 0       { out[.agility] = v }
+        if let v = vitality ?? legacyAgility, v > 0 { out[.vitality] = v }
         if let v = control, v > 0       { out[.control] = v }
         if let v = endurance, v > 0     { out[.endurance] = v }
         if let v = mobility, v > 0      { out[.mobility] = v }

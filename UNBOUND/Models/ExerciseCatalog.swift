@@ -198,6 +198,7 @@ enum ExerciseCatalog {
             .init(name: "landmine row", displayName: "Landmine Row", muscleGroups: [.back, .lats, .arms], defaultSubstitute: "meadows row"),
             .init(name: "meadows row", displayName: "Meadows Row", muscleGroups: [.back, .lats, .arms], defaultSubstitute: "dumbbell row"),
             .init(name: "pendlay row", displayName: "Pendlay Row", muscleGroups: [.back, .lats, .arms], defaultSubstitute: "bent-over row"),
+            .init(name: "band row", displayName: "Band Row", muscleGroups: [.back, .lats, .arms], defaultSubstitute: "inverted row"),
             .init(name: "inverted row", displayName: "Inverted Row", muscleGroups: [.back, .lats, .arms], defaultSubstitute: "dumbbell row")
         ],
         .pullVertical: [
@@ -219,6 +220,7 @@ enum ExerciseCatalog {
             .init(name: "lat pulldown", displayName: "Lat Pulldown (Bar)", muscleGroups: [.back, .lats, .arms], defaultSubstitute: "pullup"),
             .init(name: "single arm pulldown", displayName: "Single-Arm Pulldown", muscleGroups: [.back, .lats, .arms], defaultSubstitute: "lat pulldown"),
             .init(name: "straight arm pulldown", displayName: "Straight-Arm Pulldown", muscleGroups: [.lats], defaultSubstitute: "lat pulldown"),
+            .init(name: "band lat pull", displayName: "Band Lat Pull", muscleGroups: [.back, .lats, .arms], defaultSubstitute: "band row"),
             .init(name: "machine pullover", displayName: "Machine Pullover", muscleGroups: [.lats, .back], defaultSubstitute: "straight arm pulldown"),
             .init(name: "chest-to-bar pullup", displayName: "Chest-to-Bar Pullup", muscleGroups: [.back, .lats, .arms], defaultSubstitute: "pullup")
         ],
@@ -235,6 +237,7 @@ enum ExerciseCatalog {
             .init(name: "rope hammer curl", displayName: "Rope Hammer Curl", muscleGroups: [.arms, .forearms], defaultSubstitute: "hammer curl"),
             .init(name: "preacher curl", displayName: "Preacher Curl (Machine)", muscleGroups: [.arms], defaultSubstitute: "dumbbell curl"),
             .init(name: "machine biceps curl", displayName: "Machine Biceps Curl", muscleGroups: [.arms], defaultSubstitute: "preacher curl"),
+            .init(name: "band curl", displayName: "Band Curl", muscleGroups: [.arms, .forearms], defaultSubstitute: "dumbbell curl"),
             .init(name: "close grip bench press", displayName: "Close Grip Bench", muscleGroups: [.arms, .chest], defaultSubstitute: "tricep pushdown"),
             .init(name: "tricep pushdown", displayName: "Tricep Pushdown (Cable)", muscleGroups: [.arms], defaultSubstitute: "skull crushers"),
             .init(name: "rope tricep pushdown", displayName: "Rope Tricep Pushdown", muscleGroups: [.arms], defaultSubstitute: "tricep pushdown"),
@@ -242,6 +245,7 @@ enum ExerciseCatalog {
             .init(name: "overhead tricep extension", displayName: "Overhead Tricep Ext (Cable)", muscleGroups: [.arms], defaultSubstitute: "tricep pushdown"),
             .init(name: "rope overhead tricep extension", displayName: "Rope Overhead Tricep Extension", muscleGroups: [.arms], defaultSubstitute: "overhead tricep extension"),
             .init(name: "machine triceps extension", displayName: "Machine Triceps Extension", muscleGroups: [.arms], defaultSubstitute: "overhead tricep extension"),
+            .init(name: "band tricep extension", displayName: "Band Tricep Extension", muscleGroups: [.arms], defaultSubstitute: "diamond pushup"),
             .init(name: "skull crushers", displayName: "Skull Crushers", muscleGroups: [.arms], defaultSubstitute: "tricep pushdown"),
             .init(name: "dip", displayName: "Dip (Tricep)", muscleGroups: [.arms, .chest, .shoulders], defaultSubstitute: "close grip bench press"),
             .init(name: "straight bar dip", displayName: "Straight Bar Dip", muscleGroups: [.chest, .arms, .shoulders], defaultSubstitute: "dip", progressionFamily: "pull", progressionTier: 7),

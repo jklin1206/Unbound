@@ -71,15 +71,18 @@ struct CheckpointValidationInput: Equatable, Sendable {
     var draft: CheckpointSignalDraft
     var standardsCheck: CheckpointStandardsCheck
     var missedSessionSignal: MissedSessionSignal
+    var cardioMinutesLastWeek: Int
 
     init(
         draft: CheckpointSignalDraft,
         standardsCheck: CheckpointStandardsCheck = .none,
-        missedSessionSignal: MissedSessionSignal = .onTrack
+        missedSessionSignal: MissedSessionSignal = .onTrack,
+        cardioMinutesLastWeek: Int = 0
     ) {
         self.draft = draft
         self.standardsCheck = standardsCheck
         self.missedSessionSignal = missedSessionSignal
+        self.cardioMinutesLastWeek = max(0, cardioMinutesLastWeek)
     }
 }
 
@@ -100,16 +103,21 @@ struct CheckpointValidator: Sendable {
             )
         }
 
+        let resolvedRecoveryState = recoveryStateAdjustedForCardio(
+            input.draft.recoveryStateHint,
+            cardioMinutesLastWeek: input.cardioMinutesLastWeek
+        )
         let bias = computeLoadAdjustmentBias(
-            recoveryState: input.draft.recoveryStateHint,
+            recoveryState: resolvedRecoveryState,
             standardsCheck: input.standardsCheck,
-            missedSessionSignal: input.missedSessionSignal
+            missedSessionSignal: input.missedSessionSignal,
+            cardioMinutesLastWeek: input.cardioMinutesLastWeek
         )
 
         return CheckpointValidationResult(
             signals: CheckpointSignals(
                 loadAdjustmentBias: bias,
-                recoveryStateHint: input.draft.recoveryStateHint,
+                recoveryStateHint: resolvedRecoveryState,
                 weakRegions: regionResolution.regions,
                 skillFocusHints: input.draft.skillFocusHints,
                 nutrition: input.draft.nutrition,
@@ -134,7 +142,8 @@ struct CheckpointValidator: Sendable {
     private func computeLoadAdjustmentBias(
         recoveryState: RecoveryState?,
         standardsCheck: CheckpointStandardsCheck,
-        missedSessionSignal: MissedSessionSignal
+        missedSessionSignal: MissedSessionSignal,
+        cardioMinutesLastWeek: Int
     ) -> Double {
         var bias = 0.0
 
@@ -158,6 +167,15 @@ struct CheckpointValidator: Sendable {
             bias -= 0.22
         }
 
+        switch cardioMinutesLastWeek {
+        case 181...:
+            bias -= 0.12
+        case 60...180:
+            bias -= 0.04
+        default:
+            break
+        }
+
         if standardsCheck.painFlagged || standardsCheck.formBreakdownFlagged {
             bias -= 0.16
         } else if let clearRate = standardsCheck.clearRate {
@@ -169,6 +187,30 @@ struct CheckpointValidator: Sendable {
         }
 
         return CheckpointSignals.clampedLoadAdjustmentBias(bias)
+    }
+
+    private func recoveryStateAdjustedForCardio(
+        _ state: RecoveryState?,
+        cardioMinutesLastWeek minutes: Int
+    ) -> RecoveryState? {
+        switch minutes {
+        case 181...:
+            switch state {
+            case .flagged:
+                return .flagged
+            case .accumulated:
+                return .flagged
+            case .wellRecovered, .normal, .none:
+                return .accumulated
+            }
+        case 60...180:
+            if state == .wellRecovered {
+                return .normal
+            }
+            return state
+        default:
+            return state
+        }
     }
 
     private func resolveWeakRegions(_ rawIDs: [String]) -> (regions: [BodyRegion], dropped: [String]) {

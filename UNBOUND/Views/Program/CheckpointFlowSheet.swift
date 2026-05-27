@@ -220,7 +220,7 @@ struct CheckpointFlowSheet: View {
         VStack(spacing: 14) {
             ProgressView()
                 .tint(Color.unbound.accent)
-            Text(isSummarizing ? "Building your Checkpoint review..." : "Checkpoint ready.")
+            Text(isSummarizing ? "Building your Arc recap..." : "Checkpoint ready.")
                 .font(Font.unbound.bodyS)
                 .foregroundStyle(Color.unbound.textSecondary)
         }
@@ -232,7 +232,7 @@ struct CheckpointFlowSheet: View {
         VStack(alignment: .leading, spacing: 12) {
             infoCard(
                 icon: "quote.bubble.fill",
-                title: "Arc summary",
+                title: "Arc recap",
                 detail: signals.freeTextSummary ?? "Checkpoint saved. Next Arc will stay conservative."
             )
 
@@ -411,7 +411,7 @@ struct CheckpointFlowSheet: View {
         guard !isSummarizing else { return }
         isSummarizing = true
         Task {
-            let result = await LocalCheckpointSummarizer().summarize(
+            let result = await CheckpointSummarizer().summarize(
                 CheckpointSummaryInput(
                     freeText: flow.freeText,
                     standardsCheck: flow.standardsCheck,
@@ -439,9 +439,9 @@ struct CheckpointFlowSheet: View {
         case .entry: return "END OF ARC"
         case .bodyCapture: return "BODY CAPTURE"
         case .standardsCheck: return "STANDARD CHECK"
-        case .freeText: return "ARC NOTE"
+        case .freeText: return "RECAP NOTE"
         case .nutritionCheck: return "TRAINING SUPPORT"
-        case .summarizing: return "VALIDATING"
+        case .summarizing: return "RECAP"
         case .review: return "REVIEW"
         case .commit: return "SAVED"
         case .cancelled: return "CANCELLED"
@@ -453,9 +453,9 @@ struct CheckpointFlowSheet: View {
         case .entry: return "Checkpoint before the next Arc."
         case .bodyCapture: return "Add a scan if you want visual proof."
         case .standardsCheck: return "Log what standards were tested."
-        case .freeText: return "Tell UNBOUND what changed."
+        case .freeText: return "Add a note for your recap."
         case .nutritionCheck: return "Keep training fuel simple."
-        case .summarizing: return "Turning notes into safe signals."
+        case .summarizing: return "Writing your Arc recap."
         case .review: return "Review before anything applies."
         case .commit: return "Checkpoint saved."
         case .cancelled: return "Checkpoint cancelled."
@@ -471,11 +471,11 @@ struct CheckpointFlowSheet: View {
         case .standardsCheck:
             return "This helps decide whether the next Arc should push, hold, or soften pressure."
         case .freeText:
-            return "Use plain language: pain, energy, weak areas, skills you want, or what felt different."
+            return "Use plain language if you want color in the recap. Training changes come from the checked inputs and validated logs."
         case .nutritionCheck:
             return "No calories or meal policing. Just protein, hydration, and light fuel context."
         case .summarizing:
-            return "Free text is converted into structured signals, then validated before it can affect training."
+            return "The recap can use your note, but next-Arc signals stay deterministic."
         case .review:
             return "Nothing changes silently. Apply this review or skip and keep the current structure."
         case .commit:

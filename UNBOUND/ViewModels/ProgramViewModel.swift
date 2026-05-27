@@ -94,7 +94,9 @@ final class ProgramViewModel {
         }
 
         let completedAt = Date()
-        let durationSeconds = max(300, day.recoveryActivities.reduce(0) { $0 + max(0, $1.durationMinutes) } * 60)
+        let durationSeconds = restDayCompletionDurationSeconds(for: day)
+        let healthSnapshot = await recoverySnapshot(for: date)
+        let vitalityNotes = restDayVitalityNotes(from: healthSnapshot)
         let id = Self.recoveryCompletionId(
             programId: program.id,
             dayNumber: day.dayNumber,
@@ -104,7 +106,7 @@ final class ProgramViewModel {
             id: id,
             userId: userId,
             source: .routine,
-            title: "Rest Day Recovery",
+            title: "Recovery Day",
             startedAt: completedAt.addingTimeInterval(-TimeInterval(durationSeconds)),
             completedAt: completedAt,
             programId: program.id,
@@ -112,19 +114,48 @@ final class ProgramViewModel {
             blocks: [
                 PerformanceBlock(
                     kind: .routine,
-                    title: "Recovery Check-In",
+                    title: "Recovery Summary",
                     exercises: [],
                     durationSeconds: durationSeconds,
-                    notes: "vitality:rest-day"
+                    notes: vitalityNotes
                 )
             ],
-            notes: "vitality:rest-day"
+            notes: vitalityNotes
         )
         let result = try await TrainingCompletionService.shared.complete(
             performanceLog,
             services: services
         )
         return (performanceLog, result)
+    }
+
+    private func restDayCompletionDurationSeconds(for day: ProgramDay) -> Int {
+        let activeMinutes = day.recoveryActivities.reduce(0) { total, activity in
+            let text = "\(activity.name) \(activity.description)".lowercased()
+            let isSleepTarget = text.contains("sleep") || text.contains("shutdown")
+            return isSleepTarget ? total : total + max(0, activity.durationMinutes)
+        }
+        return max(300, min(activeMinutes * 60, 90 * 60))
+    }
+
+    private func recoverySnapshot(for date: Date) async -> HealthRecoverySnapshot? {
+        guard services.health.isHealthDataAvailable else { return nil }
+        do {
+            return try await services.health.recoverySnapshot(for: date, calendar: .current)
+        } catch {
+            services.logging.log(
+                "HealthKit recovery snapshot unavailable: \(error)",
+                level: .info
+            )
+            return nil
+        }
+    }
+
+    private func restDayVitalityNotes(from snapshot: HealthRecoverySnapshot?) -> String? {
+        guard let snapshot else { return nil }
+        let tokens = snapshot.vitalitySignals.map(\.token)
+        guard !tokens.isEmpty else { return snapshot.evidenceNote }
+        return (tokens + [snapshot.evidenceNote]).joined(separator: " ")
     }
 
     func selectDay(_ day: ProgramDay) {

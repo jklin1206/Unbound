@@ -11,8 +11,8 @@ import Foundation
 //   2. Rewrite the userId field to the new Supabase UID
 //   3. Write back to the local store under the new UID (or new filename)
 //   4. Upload to Supabase via SupabaseDatabase (best-effort; local is source of truth until verified)
-//   5. Legacy files stay on disk for one session as a backup, then are purged
-//      on next app launch (handled by a stale-legacy cleanup in app delegate)
+//   5. Legacy user-keyed singleton docs stay on disk as a backup; per-record
+//      docs are rewritten in place with the Supabase userId.
 //
 // The `users` collection is special: the legacy UserProfile.id IS the old
 // UUID. We create a NEW UserProfile with the Supabase UID and copy all
@@ -31,9 +31,21 @@ enum LocalToSupabaseMigration {
         // User profile: copy legacy profile → new profile keyed by Supabase UID
         await migrateUserProfile(from: legacyUserId, to: supabaseUserId, logger: logger)
 
-        // TODO(P2a.2-followup): migrate workoutLogs, workingWeights, skillProgress,
-        // programs, scans. Each has a different shape so we handle them one by
-        // one once the corresponding cloud-write service lands.
+        let summary = await UserDataMigrationCoordinator().migrate(
+            legacyUserId: legacyUserId,
+            supabaseUserId: supabaseUserId
+        )
+        logger.log(
+            "Local user data migration summary",
+            level: .info,
+            context: [
+                "localWrites": summary.migratedLocally,
+                "remoteDeferred": summary.remoteDeferred,
+                "workoutLogs": summary.workoutLogs,
+                "workingWeights": summary.workingWeights,
+                "skillProgress": summary.skillProgress
+            ]
+        )
 
         logger.log("Local→cloud migration finished", level: .info)
     }
@@ -85,6 +97,11 @@ enum LocalToSupabaseMigration {
         migrated.goals = legacy.goals
         migrated.targetAreas = legacy.targetAreas
         migrated.workoutTime = legacy.workoutTime
+        migrated.exerciseStyles = legacy.exerciseStyles
+        migrated.trainingFeedbackMode = legacy.trainingFeedbackMode
+        migrated.trainingStyleOverride = legacy.trainingStyleOverride
+        migrated.trainingDays = legacy.trainingDays
+        migrated.cutMode = legacy.cutMode
 
         // Write locally under the new primary key.
         try? await db.create(migrated, collection: "users", documentId: supabaseUserId)

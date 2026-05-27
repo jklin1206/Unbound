@@ -130,9 +130,8 @@ struct ClusterCardView: View {
             ZStack {
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
                     .fill(Color.unbound.surfaceElevated)
-                Image(systemName: tree.glyph)
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundStyle(Color.unbound.textPrimary)
+                SkillTreeIconMark(tree: tree, isLocked: isLocked)
+                    .padding(5)
             }
             .frame(width: 44, height: 44)
 
@@ -230,7 +229,7 @@ struct ClusterCardView: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
             Spacer(minLength: 0)
-            Text("LV \(currentLevel)")
+            Text("LVL \(currentLevel)")
                 .font(Font.unbound.monoS)
                 .foregroundStyle(Color.unbound.textSecondary)
         }
@@ -279,6 +278,182 @@ private struct AchievementPreview {
     let label: String
     let icon: String
     let isAchieved: Bool
+}
+
+private struct SkillTreeIconMark: View {
+    let tree: SkillDisplayTree
+    let isLocked: Bool
+
+    private var primary: Color {
+        isLocked ? Color.unbound.textTertiary : Color.unbound.textPrimary
+    }
+
+    private var accent: Color {
+        isLocked ? Color.unbound.border : Color.unbound.accent
+    }
+
+    var body: some View {
+        Group {
+            if UIImage(named: representativeAssetName) != nil {
+                Image(representativeAssetName)
+                    .renderingMode(.template)
+                    .resizable()
+                    .interpolation(.high)
+                    .scaledToFit()
+                    .foregroundStyle(primary)
+                    .shadow(color: Color.black.opacity(isLocked ? 0.1 : 0.45), radius: 2)
+                    .shadow(color: accent.opacity(isLocked ? 0 : 0.45), radius: 5)
+                    .overlay(alignment: .bottom) {
+                        Capsule()
+                            .fill(accent.opacity(isLocked ? 0.18 : 0.5))
+                            .frame(width: 19, height: 2)
+                            .offset(y: 3)
+                    }
+            } else {
+                Canvas { context, size in
+                    drawGuideLines(in: &context, size: size)
+
+                    switch tree {
+                    case .pull:
+                        drawPull(in: &context, size: size)
+                    case .push:
+                        drawPush(in: &context, size: size)
+                    case .legs:
+                        drawLegs(in: &context, size: size)
+                    case .coreLevers:
+                        drawCore(in: &context, size: size)
+                    case .handstand:
+                        drawHandstand(in: &context, size: size)
+                    case .planche:
+                        drawPlanche(in: &context, size: size)
+                    }
+                }
+            }
+        }
+        .accessibilityHidden(true)
+    }
+
+    private var representativeAssetName: String {
+        switch tree {
+        case .pull: return "pp_pullup"
+        case .push: return "cal_pushup"
+        case .legs: return "ld_pistol-squat"
+        case .coreLevers: return "cl_vertical-l-sit"
+        case .handstand: return "hs_handstand"
+        case .planche: return "pl_full-planche"
+        }
+    }
+
+    private func point(_ x: CGFloat, _ y: CGFloat, in size: CGSize) -> CGPoint {
+        CGPoint(x: size.width * x, y: size.height * y)
+    }
+
+    private func stroke(
+        _ path: Path,
+        in context: inout GraphicsContext,
+        color: Color,
+        width: CGFloat = 2.2
+    ) {
+        context.stroke(
+            path,
+            with: .color(color),
+            style: StrokeStyle(lineWidth: width, lineCap: .round, lineJoin: .round)
+        )
+    }
+
+    private func line(
+        _ a: CGPoint,
+        _ b: CGPoint,
+        in context: inout GraphicsContext,
+        color: Color,
+        width: CGFloat = 2.2
+    ) {
+        var path = Path()
+        path.move(to: a)
+        path.addLine(to: b)
+        stroke(path, in: &context, color: color, width: width)
+    }
+
+    private func circle(
+        center: CGPoint,
+        radius: CGFloat,
+        in context: inout GraphicsContext,
+        color: Color
+    ) {
+        let rect = CGRect(
+            x: center.x - radius,
+            y: center.y - radius,
+            width: radius * 2,
+            height: radius * 2
+        )
+        context.fill(Path(ellipseIn: rect), with: .color(color))
+    }
+
+    private func drawGuideLines(in context: inout GraphicsContext, size: CGSize) {
+        var path = Path()
+        path.move(to: point(0.16, 0.82, in: size))
+        path.addLine(to: point(0.84, 0.82, in: size))
+        stroke(path, in: &context, color: accent.opacity(0.22), width: 1.1)
+    }
+
+    private func drawPull(in context: inout GraphicsContext, size: CGSize) {
+        line(point(0.16, 0.18, in: size), point(0.84, 0.18, in: size), in: &context, color: accent, width: 2.4)
+        circle(center: point(0.5, 0.36, in: size), radius: size.width * 0.075, in: &context, color: primary)
+        line(point(0.34, 0.18, in: size), point(0.44, 0.42, in: size), in: &context, color: primary)
+        line(point(0.66, 0.18, in: size), point(0.56, 0.42, in: size), in: &context, color: primary)
+        line(point(0.5, 0.44, in: size), point(0.5, 0.66, in: size), in: &context, color: primary)
+        line(point(0.5, 0.66, in: size), point(0.38, 0.78, in: size), in: &context, color: primary)
+        line(point(0.5, 0.66, in: size), point(0.62, 0.78, in: size), in: &context, color: primary)
+    }
+
+    private func drawPush(in context: inout GraphicsContext, size: CGSize) {
+        line(point(0.15, 0.76, in: size), point(0.86, 0.76, in: size), in: &context, color: accent.opacity(0.45), width: 1.6)
+        circle(center: point(0.28, 0.48, in: size), radius: size.width * 0.07, in: &context, color: primary)
+        line(point(0.34, 0.51, in: size), point(0.72, 0.62, in: size), in: &context, color: primary, width: 2.8)
+        line(point(0.72, 0.62, in: size), point(0.86, 0.65, in: size), in: &context, color: primary)
+        line(point(0.43, 0.54, in: size), point(0.38, 0.76, in: size), in: &context, color: primary)
+        line(point(0.55, 0.57, in: size), point(0.58, 0.76, in: size), in: &context, color: primary)
+    }
+
+    private func drawLegs(in context: inout GraphicsContext, size: CGSize) {
+        circle(center: point(0.42, 0.28, in: size), radius: size.width * 0.07, in: &context, color: primary)
+        line(point(0.43, 0.36, in: size), point(0.34, 0.56, in: size), in: &context, color: primary)
+        line(point(0.36, 0.48, in: size), point(0.22, 0.56, in: size), in: &context, color: primary)
+        line(point(0.36, 0.48, in: size), point(0.5, 0.56, in: size), in: &context, color: primary)
+        line(point(0.34, 0.56, in: size), point(0.48, 0.7, in: size), in: &context, color: primary)
+        line(point(0.48, 0.7, in: size), point(0.4, 0.82, in: size), in: &context, color: primary)
+        line(point(0.38, 0.58, in: size), point(0.82, 0.58, in: size), in: &context, color: accent, width: 2.4)
+    }
+
+    private func drawCore(in context: inout GraphicsContext, size: CGSize) {
+        line(point(0.2, 0.66, in: size), point(0.2, 0.34, in: size), in: &context, color: accent.opacity(0.7), width: 1.7)
+        line(point(0.8, 0.66, in: size), point(0.8, 0.34, in: size), in: &context, color: accent.opacity(0.7), width: 1.7)
+        line(point(0.16, 0.5, in: size), point(0.84, 0.5, in: size), in: &context, color: accent, width: 1.8)
+        circle(center: point(0.42, 0.28, in: size), radius: size.width * 0.065, in: &context, color: primary)
+        line(point(0.42, 0.36, in: size), point(0.42, 0.58, in: size), in: &context, color: primary)
+        line(point(0.42, 0.58, in: size), point(0.78, 0.58, in: size), in: &context, color: primary, width: 2.7)
+        line(point(0.36, 0.42, in: size), point(0.24, 0.5, in: size), in: &context, color: primary)
+        line(point(0.48, 0.42, in: size), point(0.62, 0.5, in: size), in: &context, color: primary)
+    }
+
+    private func drawHandstand(in context: inout GraphicsContext, size: CGSize) {
+        circle(center: point(0.5, 0.66, in: size), radius: size.width * 0.065, in: &context, color: primary)
+        line(point(0.5, 0.58, in: size), point(0.5, 0.34, in: size), in: &context, color: primary, width: 2.8)
+        line(point(0.5, 0.36, in: size), point(0.36, 0.18, in: size), in: &context, color: primary)
+        line(point(0.5, 0.36, in: size), point(0.64, 0.18, in: size), in: &context, color: primary)
+        line(point(0.43, 0.7, in: size), point(0.34, 0.82, in: size), in: &context, color: accent, width: 2.4)
+        line(point(0.57, 0.7, in: size), point(0.66, 0.82, in: size), in: &context, color: accent, width: 2.4)
+    }
+
+    private func drawPlanche(in context: inout GraphicsContext, size: CGSize) {
+        line(point(0.2, 0.76, in: size), point(0.33, 0.76, in: size), in: &context, color: accent, width: 1.8)
+        line(point(0.62, 0.76, in: size), point(0.75, 0.76, in: size), in: &context, color: accent, width: 1.8)
+        circle(center: point(0.28, 0.42, in: size), radius: size.width * 0.06, in: &context, color: primary)
+        line(point(0.34, 0.44, in: size), point(0.72, 0.5, in: size), in: &context, color: primary, width: 2.8)
+        line(point(0.72, 0.5, in: size), point(0.88, 0.46, in: size), in: &context, color: primary)
+        line(point(0.44, 0.46, in: size), point(0.34, 0.76, in: size), in: &context, color: primary)
+        line(point(0.55, 0.48, in: size), point(0.62, 0.76, in: size), in: &context, color: primary)
+    }
 }
 
 // MARK: - Convenience init (no progress service)

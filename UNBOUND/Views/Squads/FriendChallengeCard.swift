@@ -30,7 +30,7 @@ struct FriendChallengeCard: View {
                     Text(challenge.kind.displayName.uppercased())
                         .font(.system(size: 9, weight: .heavy, design: .monospaced))
                         .tracking(1.5)
-                        .foregroundStyle(Color.unbound.textTertiary ?? Color.unbound.textSecondary)
+                        .foregroundStyle(Color.unbound.textTertiary)
                     Text(challenge.kind.subtitle)
                         .font(.system(size: 12))
                         .foregroundStyle(Color.unbound.textSecondary)

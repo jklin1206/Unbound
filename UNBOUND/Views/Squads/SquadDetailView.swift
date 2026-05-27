@@ -13,6 +13,7 @@ struct SquadDetailView: View {
     @State private var activeChallenges: [FriendChallenge] = []
     @State private var messages: [SquadMessage] = []
     @State private var memberProfiles: [UUID: UserProfile] = [:]
+    @State private var memberFrameTiers: [UUID: RankTitle] = [:]
 
     private var currentUserId: UUID? {
         services.auth.currentUserId.flatMap(SquadUserIdentity.uuid(from:))
@@ -56,7 +57,10 @@ struct SquadDetailView: View {
                         squad: squad,
                         roster: state.roster,
                         initialMessages: messages,
-                        currentUserId: currentUserId
+                        currentUserId: currentUserId,
+                        onMessagesChanged: { updated in
+                            messages = updated
+                        }
                     )
                 }
             }
@@ -124,8 +128,10 @@ struct SquadDetailView: View {
             await services.squadPresence.subscribeToSquadPresence(squadId: squadId)
         }
         await refreshMemberProfiles()
+        await refreshMemberFrameTiers()
         await refreshChallenges()
         rebuildMessages()
+        await refreshMessages()
     }
 
     @MainActor
@@ -133,7 +139,9 @@ struct SquadDetailView: View {
         guard let userId = services.auth.currentUserId else { return }
         state = services.squads.state(userId: userId)
         await refreshMemberProfiles()
+        await refreshMemberFrameTiers()
         rebuildMessages()
+        await refreshMessages()
     }
 
     @MainActor
@@ -141,6 +149,19 @@ struct SquadDetailView: View {
         if let me = currentUserId {
             activeChallenges = await services.friendChallenge.activeChallenges(userId: me)
         }
+    }
+
+    @MainActor
+    private func refreshMessages() async {
+        guard let squad = state.currentSquad else {
+            messages = []
+            return
+        }
+        messages = await SquadMessageService.shared.fetchRecent(
+            squadId: squad.id,
+            fallbackMessages: messages,
+            limit: 80
+        )
     }
 
     @MainActor
@@ -154,6 +175,20 @@ struct SquadDetailView: View {
             }
         }
         memberProfiles = profiles
+    }
+
+    @MainActor
+    private func refreshMemberFrameTiers() async {
+        var tiers: [UUID: RankTitle] = [:]
+        for member in state.roster {
+            let profileUserId = resolvedProfileUserId(for: member)
+            let aggregateTier = await services.rank.aggregateTier(userId: profileUserId)
+            tiers[member.userId] = RankCosmetics.equippedFrameTier(
+                userId: profileUserId,
+                currentTier: aggregateTier
+            )
+        }
+        memberFrameTiers = tiers
     }
 
     private var squadBackdrop: some View {
@@ -382,6 +417,7 @@ struct SquadDetailView: View {
                         accountabilityBadge: accountabilityBadge(for: member.userId),
                         displayNameOverride: displayName(for: member),
                         profileUserId: resolvedProfileUserId(for: member),
+                        cosmeticTier: frameTier(for: member),
                         onTap: { memberDetailTarget = member }
                     )
                 }
@@ -635,6 +671,10 @@ struct SquadDetailView: View {
             return current
         }
         return member.userId.uuidString
+    }
+
+    private func frameTier(for member: SquadMember) -> RankTitle {
+        memberFrameTiers[member.userId] ?? .initiate
     }
 
     private func isCurrentMember(_ member: SquadMember) -> Bool {

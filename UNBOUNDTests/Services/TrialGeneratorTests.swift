@@ -126,7 +126,7 @@ final class WeeklyVowGeneratorTests: XCTestCase {
         let profile = makeProfile(powerValue: 70, controlValue: 30)
         let cards = WeeklyVowGenerator.cards(profile: profile, history: [], weekStart: .now, weekNumber: 5)
 
-        XCTAssertTrue(cards.allSatisfy { $0.displayName.hasSuffix("Vow") })
+        XCTAssertTrue(cards.allSatisfy { $0.displayName.localizedCaseInsensitiveContains("vow") })
         XCTAssertTrue(cards.allSatisfy { $0.blurb.localizedCaseInsensitiveContains("Binding Vow") })
         XCTAssertFalse(cards.map(\.displayName).contains { name in
             name.localizedCaseInsensitiveContains("Ember")

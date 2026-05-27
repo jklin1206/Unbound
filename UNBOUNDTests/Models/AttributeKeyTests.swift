@@ -17,8 +17,14 @@ final class AttributeKeyTests: XCTestCase {
     }
 
     func testRawValuesAreLowercaseStable() {
-        let expected = ["power", "agility", "control", "endurance", "mobility", "explosiveness"]
+        let expected = ["power", "vitality", "control", "endurance", "mobility", "explosiveness"]
         XCTAssertEqual(AttributeKey.allCases.map(\.rawValue), expected)
+    }
+
+    func testLegacyAgilityDecodesAsVitality() throws {
+        let data = try JSONEncoder().encode("agility")
+        let decoded = try JSONDecoder().decode(AttributeKey.self, from: data)
+        XCTAssertEqual(decoded, .vitality)
     }
 
     func testCodableRoundTripPreservesAllCases() throws {

@@ -24,7 +24,7 @@ struct SquadMission: Codable, Identifiable, Equatable, Sendable {
         var displayName: String {
             switch self {
             case .alignedSessions: return "Aligned Crew"
-            case .capstonesTogether: return "Binding Crew"
+            case .capstonesTogether: return "Proof Crew"
             case .focusSessions: return "Focus Crew"
             case .tierCrossings: return "Tier Crossing"
             case .linkedSessions: return "Linked Crew"
@@ -35,7 +35,7 @@ struct SquadMission: Codable, Identifiable, Equatable, Sendable {
         var subtitle: String {
             switch self {
             case .alignedSessions: return "Hit aligned-axis sessions together."
-            case .capstonesTogether: return "Each seal a Binding Vow."
+            case .capstonesTogether: return "Each clear a Binding Vow."
             case .focusSessions: return "Hit focus-mode sessions as a crew."
             case .tierCrossings: return "Cross tiers together."
             case .linkedSessions: return "Stack linked workouts."

@@ -179,12 +179,12 @@ struct FriendChallengeCreateSheet: View {
             Text(title)
                 .font(.system(size: 10, weight: .heavy, design: .monospaced))
                 .tracking(2.0)
-                .foregroundStyle(Color.unbound.textTertiary ?? Color.unbound.textSecondary)
+                .foregroundStyle(Color.unbound.textTertiary)
         }
     }
 
     private func createChallenge() async {
-        guard let opponent = selectedOpponent, let me = currentUserId else { return }
+        guard let opponent = selectedOpponent, currentUserId != nil else { return }
         isCreating = true
         error = nil
         do {

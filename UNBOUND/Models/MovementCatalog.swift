@@ -344,11 +344,11 @@ enum MovementCatalog {
         return definitions
     }()
 
-    static var definitionsById: [String: MovementDefinition] {
+    static let definitionsById: [String: MovementDefinition] = {
         Dictionary(uniqueKeysWithValues: definitions.map { ($0.id, $0) })
-    }
+    }()
 
-    static var aliasIndex: [String: MovementDefinition] {
+    static let aliasIndex: [String: MovementDefinition] = {
         var index: [String: MovementDefinition] = [:]
         for definition in definitions {
             index[normalized(definition.displayName)] = definition
@@ -360,7 +360,7 @@ enum MovementCatalog {
             }
         }
         return index
-    }
+    }()
 
     static func definition(for id: String) -> MovementDefinition? {
         definitionsById[id]
@@ -844,7 +844,7 @@ enum MovementCatalog {
         return payload.exercises.mapValues { dict in
             var out: [AttributeKey: Double] = [:]
             if let value = dict.power, value > 0 { out[.power] = value }
-            if let value = dict.agility, value > 0 { out[.agility] = value }
+            if let value = dict.vitality ?? dict.legacyAgility, value > 0 { out[.vitality] = value }
             if let value = dict.control, value > 0 { out[.control] = value }
             if let value = dict.endurance, value > 0 { out[.endurance] = value }
             if let value = dict.mobility, value > 0 { out[.mobility] = value }
@@ -1084,6 +1084,7 @@ enum MovementCatalog {
         var equipment: Set<MovementEquipment> = []
         let isDumbbellVariant = name.contains("dumbbell")
         let isKettlebellVariant = name.contains("kettlebell")
+        let isBandVariant = name.contains("band")
         let isMachineVariant = name.contains("machine")
             || name.contains("smith")
             || name.contains("cable")
@@ -1091,18 +1092,23 @@ enum MovementCatalog {
             || name.contains("hammer strength")
 
         if name.contains("smith") { equipment.insert(.smithMachine) }
-        if name.contains("barbell") || name.contains("safety bar") || name.contains("back squat") || name.contains("front squat") || name.contains("good morning") || name.contains("landmine") || name.contains("t bar row") {
+        if !isBandVariant,
+           name.contains("barbell") || name.contains("safety bar") || name.contains("back squat") || name.contains("front squat") || name.contains("good morning") || name.contains("landmine") || name.contains("t bar row") {
             equipment.insert(.barbell)
         }
         if !isDumbbellVariant,
            !isKettlebellVariant,
+           !isBandVariant,
            !isMachineVariant,
            name.contains("deadlift") || name.contains("bench press") || name.contains("overhead press") || name.contains("hip thrust") {
             equipment.insert(.barbell)
         }
         if name.contains("dumbbell") || name.contains("arnold press") || name.contains("goblet") || name.contains("hammer curl") || name.contains("lateral raise") || name.contains("fly") { equipment.insert(.dumbbell) }
         if name.contains("kettlebell") { equipment.insert(.kettlebell) }
-        if name.contains("cable") || name.contains("pulldown") || name.contains("pushdown") || name.contains("face pull") || name.contains("pallof") { equipment.insert(.cable) }
+        if !isBandVariant,
+           name.contains("cable") || name.contains("pulldown") || name.contains("pushdown") || name.contains("face pull") || name.contains("pallof") {
+            equipment.insert(.cable)
+        }
         if name.contains("machine") || name.contains("plate loaded") || name.contains("hammer strength") || name.contains("converging") || name.contains("leg press") || name.contains("hack squat") || name.contains("pendulum") || name.contains("v squat") || name.contains("pec deck") || name.contains("leg curl") || name.contains("leg extension") || name.contains("reverse hyper") || name.contains("glute ham") || name.contains("captain") { equipment.insert(.machine) }
         if name.contains("pullup") || name.contains("chin up") || name.contains("hanging") { equipment.insert(.pullupBar) }
         if name.contains("dip") { equipment.insert(.dipStation) }
@@ -1836,8 +1842,8 @@ enum MovementCatalog {
             defaultMetric: .holdSeconds,
             equipment: [.bodyweight],
             difficulty: .intermediate,
-            muscleGroups: [.shoulders, .core],
-            bodyRegions: [.shoulders, .abs, .obliques, .lowerBack],
+            muscleGroups: [.shoulders, .forearms, .core],
+            bodyRegions: [.shoulders, .forearms, .abs, .obliques, .lowerBack],
             movementSlot: .skill,
             substitutionGroup: "skill.\(skillId)",
             skillAssociations: [skillId],
@@ -2216,9 +2222,15 @@ private struct AttributePayload: Decodable {
 
 private struct AttributeWeightDict: Decodable {
     let power: Double?
-    let agility: Double?
+    let vitality: Double?
+    let legacyAgility: Double?
     let control: Double?
     let endurance: Double?
     let mobility: Double?
     let explosiveness: Double?
+
+    enum CodingKeys: String, CodingKey {
+        case power, vitality, control, endurance, mobility, explosiveness
+        case legacyAgility = "agility"
+    }
 }

@@ -21,7 +21,7 @@ final class ScanCheckpointTests: XCTestCase {
 
     func testCodableRoundtripWithDelta() throws {
         let identity = BuildIdentity(primary: .power, secondary: nil, shape: .specialist)
-        let delta = BuildIdentityDelta(perAxis: [.power: 12, .agility: -2])
+        let delta = BuildIdentityDelta(perAxis: [.power: 12, .vitality: -2])
         let checkpoint = ScanCheckpoint(
             id: "scan-2",
             userId: "u-1",

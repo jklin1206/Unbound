@@ -34,6 +34,7 @@ struct UnboundApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var services = ServiceContainer()
     @Environment(\.scenePhase) private var scenePhase
+    @State private var lastAppOpenedAt: Date?
 
     var body: some Scene {
         WindowGroup {
@@ -64,7 +65,9 @@ struct UnboundApp: App {
                 .task { SyncTriggers.shared.start() }
                 .onChange(of: scenePhase) { _, phase in
                     if phase == .active {
+                        trackAppOpenedIfNeeded()
                         Task { await SyncEngine.shared.flush() }
+                        Task { await NotificationService.applyStoredPreferences() }
                         if let uid = services.auth.currentUserId {
                             Task {
                                 await RolloverCoordinator.shared
@@ -75,11 +78,19 @@ struct UnboundApp: App {
                 }
         }
     }
+
+    private func trackAppOpenedIfNeeded(now: Date = Date()) {
+        let shouldTrack = lastAppOpenedAt
+            .map { now.timeIntervalSince($0) >= 5 * 60 }
+            ?? true
+        guard shouldTrack else { return }
+        lastAppOpenedAt = now
+        services.analytics.track(.appOpened)
+    }
 }
 
 struct RootView: View {
     @EnvironmentObject var services: ServiceContainer
-    @ObservedObject private var entitlement = EntitlementService.shared
     @State private var isAuthenticated = false
     @State private var isCheckingAuth = true
 
@@ -107,12 +118,8 @@ struct RootView: View {
             } else if !isAuthenticated {
                 AuthContainerView()
             } else {
-                // Entitlement gating now lives inline on premium features
-                // (Coach, Program, Report "unlock" CTA). The app root always
-                // lands on Home once onboarding is complete. Calibration will
-                // return as an optional program-side flow when that system is
-                // redesigned around the first week instead of the questionnaire.
                 HomeTabView()
+                    .subscriptionGate()
             }
         }
         .task {
@@ -122,45 +129,60 @@ struct RootView: View {
 
             for await userId in services.auth.authStatePublisher.values {
                 isAuthenticated = userId != nil
+                isCheckingAuth = false
                 if let userId {
-                    services.analytics.setUserId(userId)
-                    try? await services.subscription.login(userId: userId)
-                    // Backfill the 6-axis hex from existing logs on first launch
-                    // (no-op if the profile already exists in the store).
-                    await services.attribute.backfillFromExistingLogs(userId: userId)
-                    // Trials: roll week on Monday or first launch. Marks prior
-                    // uncompleted trial as .missed and generates 3 fresh cards.
-                    await services.trials.ensureCurrentWeek(userId: userId)
-                    // Restore-on-sign-in: if this device has no local program
-                    // cache for the user, pull their data down once and
-                    // rehydrate the active program. Gated on "no local cache"
-                    // so it does NOT run on every launch.
-                    if ProgramStore.shared.loadLocal(userId: userId) == nil {
-                        try? await SyncEngine.shared.restore(userId: userId)
-                        if let profile: UserProfile = try? await DatabaseService.shared
-                            .read(collection: "users", documentId: userId),
-                           let pid = profile.currentProgramId,
-                           let prog: TrainingProgram = try? await DatabaseService.shared
-                            .read(collection: "programs", documentId: pid) {
-                            ProgramStore.shared.adopt(prog, userId: userId)
-                        }
-                    }
-                    // One-time skill-tier migration: replay full log history
-                    // to seed UserSkillTierState. Idempotent — guarded by
-                    // a UserDefaults flag so it only runs once per user.
+                    services.analytics.identify(
+                        userId: userId,
+                        traits: ["authState": "signedIn"]
+                    )
+                    #if DEBUG
+                    DevFlags.shared.unlockAllFeatures = true
+                    #endif
                     Task {
+                        #if DEBUG
+                        if userId != DevBuildBootstrapper.userId {
+                            try? await services.subscription.login(userId: userId)
+                        }
+                        #else
+                        try? await services.subscription.login(userId: userId)
+                        #endif
+
+                        // Backfill the 6-axis hex from existing logs on first launch
+                        // (no-op if the profile already exists in the store).
+                        await services.attribute.backfillFromExistingLogs(userId: userId)
+                        // Trials: roll week on Monday or first launch. Marks prior
+                        // uncompleted trial as .missed and generates 3 fresh cards.
+                        await services.trials.ensureCurrentWeek(userId: userId)
+                        // Restore-on-sign-in: if this device has no local program
+                        // cache for the user, pull their data down once and
+                        // rehydrate the active program. Gated on "no local cache"
+                        // so it does NOT run on every launch.
+                        if ProgramStore.shared.loadLocal(userId: userId) == nil {
+                            try? await SyncEngine.shared.restore(userId: userId)
+                            if let profile: UserProfile = try? await DatabaseService.shared
+                                .read(collection: "users", documentId: userId),
+                               let pid = profile.currentProgramId,
+                               let prog: TrainingProgram = try? await DatabaseService.shared
+                                .read(collection: "programs", documentId: pid) {
+                                ProgramStore.shared.adopt(prog, userId: userId)
+                            }
+                        }
+                        // One-time skill-tier migration: replay full log history
+                        // to seed UserSkillTierState. Idempotent — guarded by
+                        // a UserDefaults flag so it only runs once per user.
                         let profile = try? await services.user.fetchProfile(userId: userId)
                         let bodyweightKg = profile?.weightKg ?? 70.0
                         let logs = (try? await services.workoutLog.fetchLogs(userId: userId, programId: nil)) ?? []
                         let history = logs.flatMap { $0.exerciseEntries }
-                        await SkillTierMigration.migrateIfNeeded(
+                        SkillTierMigration.migrateIfNeeded(
                             userId: userId,
                             history: history,
                             bodyweightKg: bodyweightKg
                         )
                     }
+                } else {
+                    services.analytics.reset()
                 }
-                isCheckingAuth = false
             }
         }
     }

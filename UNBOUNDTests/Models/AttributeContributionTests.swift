@@ -10,7 +10,7 @@ final class AttributeContributionTests: XCTestCase {
     }
 
     func testSumWithinToleranceReturnsFalseWhenSumIsOff() {
-        let c = AttributeContribution(weights: [.power: 0.5, .agility: 0.2])
+        let c = AttributeContribution(weights: [.power: 0.5, .vitality: 0.2])
         XCTAssertFalse(c.sumIsValid)
     }
 

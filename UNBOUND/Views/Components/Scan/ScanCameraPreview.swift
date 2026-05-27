@@ -35,8 +35,9 @@ final class ScanCameraPreviewHostView: UIView {
                 connection.automaticallyAdjustsVideoMirroring = false
                 connection.isVideoMirrored = true
             }
-            if connection.isVideoOrientationSupported {
-                connection.videoOrientation = .portrait
+            let portraitAngle: CGFloat = 90
+            if connection.isVideoRotationAngleSupported(portraitAngle) {
+                connection.videoRotationAngle = portraitAngle
             }
         }
         previewLayer.frame = bounds

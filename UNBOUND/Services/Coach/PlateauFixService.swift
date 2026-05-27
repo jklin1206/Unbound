@@ -2,14 +2,13 @@ import Foundation
 
 // MARK: - PlateauFixService
 //
-// One-shot AI diagnosis for a stalled lift. Returns a structured result:
+// Deterministic diagnosis for a stalled lift. Returns a structured result:
 // diagnosis sentence + 3-week prescription. No back-and-forth. Called
 // from PlateauFixSheet — result shown as a card.
 
 @MainActor
 final class PlateauFixService {
     static let shared = PlateauFixService()
-    private let claude = ClaudeClient.shared
     private let database = DatabaseService.shared
     private init() {}
 
@@ -39,89 +38,50 @@ final class PlateauFixService {
             $0.exerciseKey.contains(plateau.exerciseKey.lowercased())
         }
 
-        let context = buildContext(plateau: plateau, state: matchedState)
-
-        let payload: PlateauFixPayload = try await claude.sendStructured(
-            PlateauFixPayload.self,
-            model: .sonnet46,
-            system: systemPrompt,
-            userText: context,
-            tool: fixTool,
-            maxTokens: 512
-        )
-
         return PlateauFix(
             exerciseName: plateau.displayName,
-            diagnosis: payload.diagnosis,
-            weeks: payload.weeks.map {
-                FixWeek(label: $0.label, focus: $0.focus, instruction: $0.instruction)
-            }
+            diagnosis: diagnosis(for: plateau, state: matchedState),
+            weeks: weeks(for: plateau, state: matchedState)
         )
     }
 
-    // MARK: - Context builder
+    // MARK: - Deterministic rules
 
-    private func buildContext(plateau: PlateauedExercise, state: ProgressionState?) -> String {
-        var ctx = "Stalled lift: \(plateau.displayName)\n"
-        ctx += "Sessions without progression: \(plateau.stalledSessions)\n"
-        if let s = state {
-            ctx += "Current working weight: \(s.currentWorkingWeightKg)kg\n"
-            ctx += "Target rep range: \(s.targetRepMin)–\(s.targetRepMax)\n"
-            ctx += "Target RPE: \(s.targetRPE)\n"
-            ctx += "Block: \(s.blockType.rawValue), week \(s.weekInBlock)\n"
+    private func diagnosis(for plateau: PlateauedExercise, state: ProgressionState?) -> String {
+        if let state, state.blockType == .deload {
+            return "\(plateau.displayName) is already in a deload response. Keep the reset controlled before pushing load again."
         }
-        ctx += "\nDiagnose why this lift is stuck and give a 3-week fix plan."
-        return ctx
+        if plateau.stalledSessions >= 4 {
+            return "\(plateau.displayName) has stalled across multiple exposures, so the next move is a short volume reset and cleaner top-set target."
+        }
+        return "\(plateau.displayName) is showing an early plateau signal. Hold intensity steady and rebuild high-quality reps before adding load."
     }
 
-    // MARK: - Prompt
-
-    private let systemPrompt = """
-    You are a direct, evidence-based strength coach. No fluff.
-    Diagnose plateau causes from the data (insufficient volume, too high RPE, \
-    frequency, technique breakdown, fatigue, etc.). Give a concrete 3-week \
-    prescription. Each week = one clear directive.
-    """
-
-    // MARK: - Tool
-
-    private var fixTool: ClaudeClient.Tool {
-        ClaudeClient.Tool(
-            name: "plateau_fix",
-            description: "Plateau diagnosis and 3-week fix",
-            inputSchema: .object([
-                "type": .string("object"),
-                "properties": .object([
-                    "diagnosis": .object(["type": .string("string")]),
-                    "weeks": .object([
-                        "type": .string("array"),
-                        "minItems": .integer(3),
-                        "maxItems": .integer(3),
-                        "items": .object([
-                            "type": .string("object"),
-                            "properties": .object([
-                                "label": .object(["type": .string("string")]),
-                                "focus": .object(["type": .string("string")]),
-                                "instruction": .object(["type": .string("string")])
-                            ]),
-                            "required": .array([.string("label"), .string("focus"), .string("instruction")])
-                        ])
-                    ])
-                ]),
-                "required": .array([.string("diagnosis"), .string("weeks")])
-            ])
-        )
+    private func weeks(for plateau: PlateauedExercise, state: ProgressionState?) -> [FixWeek] {
+        let weight = state.map { formatWeight($0.currentWorkingWeightKg) } ?? "current load"
+        let repRange = state.map { "\($0.targetRepMin)-\($0.targetRepMax)" } ?? "target"
+        return [
+            FixWeek(
+                label: "WEEK 1",
+                focus: "Reset",
+                instruction: "Drop to 90% of \(weight), keep \(repRange) reps clean, and stop at RPE 7."
+            ),
+            FixWeek(
+                label: "WEEK 2",
+                focus: "Rebuild",
+                instruction: "Return to \(weight) only if all work sets hit the rep floor without form drift."
+            ),
+            FixWeek(
+                label: "WEEK 3",
+                focus: "Advance",
+                instruction: "Add the smallest available load bump after hitting the top of the range at RPE 8 or lower."
+            )
+        ]
     }
-}
 
-// MARK: - Decodable payload
-
-private struct PlateauFixPayload: Decodable {
-    struct WeekPayload: Decodable {
-        let label: String
-        let focus: String
-        let instruction: String
+    private func formatWeight(_ weight: Double) -> String {
+        weight.truncatingRemainder(dividingBy: 1) == 0
+            ? "\(Int(weight))kg"
+            : String(format: "%.1fkg", weight)
     }
-    let diagnosis: String
-    let weeks: [WeekPayload]
 }

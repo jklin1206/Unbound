@@ -30,7 +30,7 @@ struct Step_Arc03_Path: View {
                 Spacer()
 
                 VStack(spacing: 12) {
-                    Text("Climb the ranks")
+                    Text(L10n.onboarding("arcPath.title", defaultValue: "Climb the ranks"))
                         .font(Font.unbound.titleL)
                         .foregroundStyle(Color.unbound.textPrimary)
                         .multilineTextAlignment(.center)
@@ -38,7 +38,7 @@ struct Step_Arc03_Path: View {
                         .lineLimit(2)
                         .minimumScaleFactor(0.85)
 
-                    Text("Every rep moves the ladder.")
+                    Text(L10n.onboarding("arcPath.subtitle", defaultValue: "Every rep moves the ladder."))
                         .font(Font.unbound.bodyM)
                         .foregroundStyle(Color.unbound.textSecondary)
                         .multilineTextAlignment(.center)
@@ -51,7 +51,7 @@ struct Step_Arc03_Path: View {
 
                 Spacer().frame(height: 24)
 
-                UnboundButton(title: "Begin", icon: "arrow.right", action: onBegin)
+                UnboundButton(title: L10n.onboarding("arcPath.cta", defaultValue: "Begin"), icon: "arrow.right", action: onBegin)
                     .opacity(copyIn ? 1 : 0)
                     .scaleEffect(buttonPulse ? 1.02 : 1.0)
                     .padding(.horizontal, 20)
@@ -61,19 +61,19 @@ struct Step_Arc03_Path: View {
         .statusBarHidden()
         .toolbar(.hidden, for: .navigationBar)
         .onAppear {
-            withAnimation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.2)) {
+            withAnimation(.spring(response: 0.42, dampingFraction: 0.82).delay(0.05)) {
                 statsIn = true
             }
-            withAnimation(.spring(response: 0.5, dampingFraction: 0.85).delay(1.2)) {
+            withAnimation(.spring(response: 0.42, dampingFraction: 0.86).delay(0.45)) {
                 copyIn = true
             }
-            withAnimation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true).delay(1.4)) {
+            withAnimation(.easeInOut(duration: 1.35).repeatForever(autoreverses: true).delay(0.65)) {
                 buttonPulse = true
             }
-            withAnimation(.easeInOut(duration: 1.15).repeatForever(autoreverses: true).delay(0.8)) {
+            withAnimation(.easeInOut(duration: 0.95).repeatForever(autoreverses: true).delay(0.45)) {
                 badgeSurge = true
             }
-            withAnimation(.linear(duration: 28).repeatForever(autoreverses: false)) {
+            withAnimation(.linear(duration: 20).repeatForever(autoreverses: false)) {
                 orbitSpin = .degrees(360)
             }
         }
@@ -112,17 +112,17 @@ struct Step_Arc03_Path: View {
             return
         }
 
-        try? await Task.sleep(nanoseconds: 2_800_000_000)
+        try? await Task.sleep(nanoseconds: 650_000_000)
         guard !Task.isCancelled else { return }
-        withAnimation(.spring(response: 0.82, dampingFraction: 0.76)) {
+        withAnimation(.spring(response: 0.58, dampingFraction: 0.78)) {
             activeRankIndex = 0
         }
         UnboundHaptics.soft()
 
         while !Task.isCancelled {
-            try? await Task.sleep(nanoseconds: 1_850_000_000)
+            try? await Task.sleep(nanoseconds: 1_250_000_000)
             guard !Task.isCancelled else { return }
-            withAnimation(.spring(response: 0.82, dampingFraction: 0.76)) {
+            withAnimation(.spring(response: 0.58, dampingFraction: 0.78)) {
                 activeRankIndex = (activeRankIndex + 1) % ranks.count
             }
             UnboundHaptics.soft()
@@ -174,7 +174,7 @@ private struct RankOrbitStage: View {
                 .position(selected ? center : orbitPosition(for: index))
                 .opacity(statsIn ? badgeOpacity(progress: progress, selected: selected) : 0)
                 .scaleEffect(selected ? 1.72 : 1.0)
-                .animation(.spring(response: 0.82, dampingFraction: 0.76), value: activeRankIndex)
+                .animation(.spring(response: 0.58, dampingFraction: 0.78), value: activeRankIndex)
             }
 
             rankName
@@ -228,7 +228,7 @@ private struct RankOrbitStage: View {
         case .apprentice: return "FORMING"
         case .forged: return "BUILT UNDER LOAD"
         case .veteran: return "PROVEN"
-        case .honed: return "SHARPENED"
+        case .master: return "SHARPENED"
         case .vessel: return "HIGH TIER"
         case .unbound: return "RESTRICTION BROKEN"
         case .ascendant: return "APEX"

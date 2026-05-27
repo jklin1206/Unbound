@@ -213,9 +213,9 @@ enum OverallRankTrialDefinitions {
     }
 
     static let foundationProof = OverallRankTrialDefinition(
-        id: "overall-rank-trial-novice-foundation-proof",
+        id: "overall-rank-trial-novice-awakening",
         targetRank: .novice,
-        displayName: "Foundation Proof",
+        displayName: "The Awakening",
         subtitle: "Initiate to Novice rank gate",
         estimatedMinutes: 14,
         minOverallLevel: 1,
@@ -324,10 +324,10 @@ enum OverallRankTrialDefinitions {
     )
 
     static let forge = OverallRankTrialDefinition(
-        id: "overall-rank-trial-honed-forge",
-        targetRank: .honed,
+        id: "overall-rank-trial-forged-forge",
+        targetRank: .forged,
         displayName: "The Forge",
-        subtitle: "Apprentice to Honed rank gate",
+        subtitle: "Apprentice to Forged rank gate",
         estimatedMinutes: 35,
         minOverallLevel: 15,
         topAttributeCount: 1,
@@ -338,7 +338,7 @@ enum OverallRankTrialDefinitions {
             movementStandard("exercise.kettlebell-swing", minimumAP: 140)
         ],
         skillStandards: [
-            skillStandard("pp.pullup", minimumTier: .honed)
+            skillStandard("pp.pullup", minimumTier: .forged)
         ],
         performanceStandards: [
             performanceStandard(
@@ -380,10 +380,10 @@ enum OverallRankTrialDefinitions {
     )
 
     static let reckoning = OverallRankTrialDefinition(
-        id: "overall-rank-trial-forged-reckoning",
-        targetRank: .forged,
+        id: "overall-rank-trial-veteran-reckoning",
+        targetRank: .veteran,
         displayName: "The Reckoning",
-        subtitle: "Honed to Forged rank gate",
+        subtitle: "Forged to Veteran rank gate",
         estimatedMinutes: 42,
         minOverallLevel: 22,
         topAttributeCount: 2,
@@ -395,8 +395,8 @@ enum OverallRankTrialDefinitions {
             movementStandard("carry.farmer-carry", minimumAP: 180)
         ],
         skillStandards: [
-            skillStandard("pp.pullup", minimumTier: .forged),
-            skillStandard("co.bw-farmer-carry", minimumTier: .forged, displayName: "Farmer Carry")
+            skillStandard("pp.pullup", minimumTier: .veteran),
+            skillStandard("co.bw-farmer-carry", minimumTier: .veteran, displayName: "Farmer Carry")
         ],
         performanceStandards: [
             performanceStandard(
@@ -446,10 +446,10 @@ enum OverallRankTrialDefinitions {
     )
 
     static let gauntlet = OverallRankTrialDefinition(
-        id: "overall-rank-trial-veteran-gauntlet",
-        targetRank: .veteran,
+        id: "overall-rank-trial-master-gauntlet",
+        targetRank: .master,
         displayName: "The Gauntlet",
-        subtitle: "Forged to Veteran rank gate",
+        subtitle: "Veteran to Master rank gate",
         estimatedMinutes: 50,
         minOverallLevel: 40,
         topAttributeCount: 3,
@@ -468,8 +468,8 @@ enum OverallRankTrialDefinitions {
             movementStandard("carry.sled-push", minimumAP: 220)
         ],
         skillStandards: [
-            skillStandard("co.bw-farmer-carry", minimumTier: .veteran, displayName: "Farmer Carry"),
-            skillStandard("ld.box-jump", minimumTier: .veteran)
+            skillStandard("co.bw-farmer-carry", minimumTier: .master, displayName: "Farmer Carry"),
+            skillStandard("ld.box-jump", minimumTier: .master)
         ],
         performanceStandards: [
             performanceStandard(
@@ -537,10 +537,10 @@ enum OverallRankTrialDefinitions {
     )
 
     static let crucible = OverallRankTrialDefinition(
-        id: "overall-rank-trial-vessel-crucible",
+        id: "overall-rank-trial-vessel-ten-hundred",
         targetRank: .vessel,
-        displayName: "The Crucible",
-        subtitle: "Veteran to Vessel rank gate",
+        displayName: "The Ten Hundred",
+        subtitle: "Master to Vessel rank gate",
         estimatedMinutes: 58,
         minOverallLevel: 55,
         topAttributeCount: 4,
@@ -790,7 +790,24 @@ enum OverallRankTrialDefinitions {
     ]
 
     static func definition(id: String) -> OverallRankTrialDefinition? {
-        all.first { $0.id == id }
+        if let definition = all.first(where: { $0.id == id }) {
+            return definition
+        }
+        switch id {
+        case "overall-rank-trial-novice-foundation-proof":
+            return foundationProof
+        case "overall-rank-trial-honed-forge",
+             "overall-rank-trial-master-forge":
+            return forge
+        case "overall-rank-trial-forged-reckoning":
+            return reckoning
+        case "overall-rank-trial-veteran-gauntlet":
+            return gauntlet
+        case "overall-rank-trial-vessel-crucible":
+            return crucible
+        default:
+            return nil
+        }
     }
 
     static func nextTrial(after rank: RankTitle) -> OverallRankTrialDefinition? {
@@ -801,11 +818,11 @@ enum OverallRankTrialDefinitions {
             return calibration
         case .apprentice:
             return forge
-        case .honed:
-            return reckoning
         case .forged:
-            return gauntlet
+            return reckoning
         case .veteran:
+            return gauntlet
+        case .master:
             return crucible
         case .vessel:
             return threshold
@@ -823,9 +840,9 @@ private extension RankTitle {
         case .initiate: return 0
         case .novice: return 1
         case .apprentice: return 2
-        case .honed: return 3
-        case .forged: return 4
-        case .veteran: return 5
+        case .forged: return 3
+        case .veteran: return 4
+        case .master: return 5
         case .vessel: return 6
         case .unbound: return 7
         case .ascendant: return 8
@@ -1129,9 +1146,9 @@ final class TrialReadinessService {
             OverallRankTrialRequirementLine(
                 id: "overall-level",
                 kind: .overallLevel,
-                label: "Overall LV",
-                current: "LV \(input.overallLevel)",
-                required: "LV \(definition.minOverallLevel)",
+                label: "Overall LVL",
+                current: "LVL \(input.overallLevel)",
+                required: "LVL \(definition.minOverallLevel)",
                 isMet: input.overallLevel >= definition.minOverallLevel
             )
         )

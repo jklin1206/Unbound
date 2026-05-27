@@ -1,4 +1,6 @@
 import SwiftUI
+import UserNotifications
+import UIKit
 
 struct SettingsView: View {
     @EnvironmentObject var services: ServiceContainer
@@ -6,6 +8,7 @@ struct SettingsView: View {
     @State private var showDeleteAccount = false
     @AppStorage(WeightPlatePolicy.unitDefaultsKey) private var trainingWeightUnitRaw = TrainingWeightUnit.localeDefault.rawValue
     @AppStorage(WeightPlatePolicy.microloadingDefaultsKey) private var microloadingEnabled = false
+    @AppStorage(AppConstants.Analytics.usageOptOutKey) private var analyticsOptOut = false
 
     init(services: ServiceContainer) {
         _viewModel = StateObject(wrappedValue: SettingsViewModel(services: services))
@@ -16,7 +19,7 @@ struct SettingsView: View {
             // MARK: Account
             Section {
                 HStack {
-                    Label("Email", systemImage: "envelope")
+                    Label(L10n.string(.settingsEmail, defaultValue: "Email"), systemImage: "envelope")
                         .foregroundColor(.theme.textPrimary)
                     Spacer()
                     Text(viewModel.userProfile?.email ?? "—")
@@ -27,28 +30,28 @@ struct SettingsView: View {
                 Button(role: .destructive) {
                     viewModel.signOut()
                 } label: {
-                    Label("Sign Out", systemImage: "rectangle.portrait.and.arrow.right")
+                    Label(L10n.string(.settingsSignOut, defaultValue: "Sign Out"), systemImage: "rectangle.portrait.and.arrow.right")
                         .foregroundColor(.theme.danger)
                 }
             } header: {
-                Text("Account")
+                Text(L10n.string(.settingsSectionAccount, defaultValue: "Account"))
                     .foregroundColor(.theme.textSecondary)
             }
 
             // MARK: Subscription
             Section {
                 HStack {
-                    Label("Plan", systemImage: "crown")
+                    Label(L10n.string(.settingsPlan, defaultValue: "Plan"), systemImage: "crown")
                         .foregroundColor(.theme.textPrimary)
                     Spacer()
-                    Text(viewModel.hasActiveSubscription ? "Pro" : "Free")
+                    Text(viewModel.hasActiveSubscription ? settingsPlanPro : settingsPlanFree)
                         .font(.bodyMedium(14))
                         .foregroundColor(viewModel.hasActiveSubscription ? .theme.primary : .theme.textMuted)
                 }
 
                 if let url = URL(string: "itms-apps://apps.apple.com/account/subscriptions") {
                     Link(destination: url) {
-                        Label("Manage Subscription", systemImage: "arrow.up.circle")
+                        Label(L10n.string(.settingsManageSubscription, defaultValue: "Manage Subscription"), systemImage: "arrow.up.circle")
                             .foregroundColor(.theme.textPrimary)
                     }
                 }
@@ -60,17 +63,36 @@ struct SettingsView: View {
                         HStack(spacing: 8) {
                             ProgressView()
                                 .tint(.theme.primary)
-                            Text("Restoring…")
+                            Text(L10n.string(.subscriptionRestoreRestoring, defaultValue: "Restoring..."))
                                 .foregroundColor(.theme.textSecondary)
                         }
                     } else {
-                        Label("Restore Purchases", systemImage: "arrow.counterclockwise")
+                        Label(L10n.string(.subscriptionRestoreIdle, defaultValue: "Restore Purchases"), systemImage: "arrow.counterclockwise")
                             .foregroundColor(.theme.textPrimary)
                     }
                 }
                 .disabled(viewModel.isLoading)
             } header: {
-                Text("Subscription")
+                Text(L10n.string(.settingsSectionSubscription, defaultValue: "Subscription"))
+                    .foregroundColor(.theme.textSecondary)
+            }
+
+            // MARK: Privacy
+            Section {
+                Toggle(isOn: shareUsageDataBinding) {
+                    Label(L10n.string(.settingsShareUsageData, defaultValue: "Share usage data"), systemImage: "chart.line.uptrend.xyaxis")
+                        .foregroundColor(.theme.textPrimary)
+                }
+                .tint(.theme.primary)
+
+                NavigationLink {
+                    NotificationSettingsView()
+                } label: {
+                    Label(L10n.string(.settingsNotifications, defaultValue: "Notifications"), systemImage: "bell.badge")
+                        .foregroundColor(.theme.textPrimary)
+                }
+            } header: {
+                Text(L10n.string(.settingsSectionPrivacy, defaultValue: "Privacy"))
                     .foregroundColor(.theme.textSecondary)
             }
 
@@ -81,12 +103,12 @@ struct SettingsView: View {
                         Text(unit.displayName).tag(unit.rawValue)
                     }
                 } label: {
-                    Label("Weight Unit", systemImage: "scalemass")
+                    Label(L10n.string(.settingsWeightUnit, defaultValue: "Weight Unit"), systemImage: "scalemass")
                         .foregroundColor(.theme.textPrimary)
                 }
 
                 Toggle(isOn: $microloadingEnabled) {
-                    Label("Micro plates", systemImage: "plus.forwardslash.minus")
+                    Label(L10n.string(.settingsMicroPlates, defaultValue: "Micro plates"), systemImage: "plus.forwardslash.minus")
                         .foregroundColor(.theme.textPrimary)
                 }
                 .tint(.theme.primary)
@@ -95,34 +117,37 @@ struct SettingsView: View {
                     ExercisePreferencesView()
                         .environmentObject(services)
                 } label: {
-                    Label("Exercise Library", systemImage: "list.bullet.rectangle.portrait")
+                    Label(L10n.string(.settingsExerciseLibrary, defaultValue: "Exercise Library"), systemImage: "list.bullet.rectangle.portrait")
                         .foregroundColor(.theme.textPrimary)
                 }
                 NavigationLink {
                     EquipmentSettingsView()
                 } label: {
-                    Label("Equipment", systemImage: "dumbbell.fill")
+                    Label(L10n.string(.settingsEquipment, defaultValue: "Equipment"), systemImage: "dumbbell.fill")
                         .foregroundColor(.theme.textPrimary)
                 }
                 NavigationLink {
                     CoachActionHistoryView()
                         .environmentObject(services)
                 } label: {
-                    Label("Plan changes", systemImage: "arrow.triangle.2.circlepath")
+                    Label(L10n.string(.settingsPlanChanges, defaultValue: "Plan changes"), systemImage: "arrow.triangle.2.circlepath")
                         .foregroundColor(.theme.textPrimary)
                 }
                 NavigationLink {
                     BadgeGalleryView()
                         .environmentObject(services)
                 } label: {
-                    Label("Badges", systemImage: "rosette")
+                    Label(L10n.string(.settingsBadges, defaultValue: "Badges"), systemImage: "rosette")
                         .foregroundColor(.theme.textPrimary)
                 }
             } header: {
-                Text("Training")
+                Text(L10n.string(.settingsSectionTraining, defaultValue: "Training"))
                     .foregroundColor(.theme.textSecondary)
             } footer: {
-                Text("Your exact logged weights are preserved. UNBOUND rounds suggestions and progression jumps to the selected plate system.")
+                Text(L10n.string(
+                    .settingsTrainingFooter,
+                    defaultValue: "Your exact logged weights are preserved. UNBOUND rounds suggestions and progression jumps to the selected plate system."
+                ))
                     .font(.caption(11))
                     .foregroundColor(.theme.textMuted)
             }
@@ -133,21 +158,21 @@ struct SettingsView: View {
                     ProfileCosmeticsView()
                         .environmentObject(services)
                 } label: {
-                    Label("Profile cosmetics", systemImage: "person.crop.circle.badge.sparkles")
+                    Label(L10n.string(.settingsProfileCosmetics, defaultValue: "Profile cosmetics"), systemImage: "person.crop.circle.badge.sparkles")
                         .foregroundColor(.theme.textPrimary)
                 }
                 NavigationLink {
                     SkinPickerView()
                         .environmentObject(services)
                 } label: {
-                    Label("Skill tree cosmetics", systemImage: "paintpalette")
+                    Label(L10n.string(.settingsSkillTreeCosmetics, defaultValue: "Skill tree cosmetics"), systemImage: "paintpalette")
                         .foregroundColor(.theme.textPrimary)
                 }
             } header: {
-                Text("Appearance")
+                Text(L10n.string(.settingsSectionAppearance, defaultValue: "Appearance"))
                     .foregroundColor(.theme.textSecondary)
             } footer: {
-                Text("Equip unlocked profile frames, backdrops, and skill-tree cosmetics.")
+                Text(L10n.string(.settingsAppearanceFooter, defaultValue: "Equip unlocked profile frames, backdrops, and skill-tree cosmetics."))
                     .font(.caption(11))
                     .foregroundColor(.theme.textMuted)
             }
@@ -156,7 +181,7 @@ struct SettingsView: View {
             Section {
                 if let mailURL = URL(string: "mailto:support@unboundapp.com") {
                     Link(destination: mailURL) {
-                        Label("Contact Us", systemImage: "envelope.badge")
+                        Label(L10n.string(.settingsContactUs, defaultValue: "Contact Us"), systemImage: "envelope.badge")
                             .foregroundColor(.theme.textPrimary)
                     }
                 }
@@ -164,31 +189,27 @@ struct SettingsView: View {
                 NavigationLink {
                     FAQPlaceholderView()
                 } label: {
-                    Label("FAQ", systemImage: "questionmark.circle")
+                    Label(L10n.string(.settingsFAQ, defaultValue: "FAQ"), systemImage: "questionmark.circle")
                         .foregroundColor(.theme.textPrimary)
                 }
             } header: {
-                Text("Support")
+                Text(L10n.string(.settingsSectionSupport, defaultValue: "Support"))
                     .foregroundColor(.theme.textSecondary)
             }
 
             // MARK: Legal
             Section {
-                if let tosURL = URL(string: "https://unboundapp.com/terms") {
-                    Link(destination: tosURL) {
-                        Label("Terms of Service", systemImage: "doc.text")
-                            .foregroundColor(.theme.textPrimary)
-                    }
+                Link(destination: AppConstants.Legal.termsURL) {
+                    Label(L10n.string(.legalTermsOfService, defaultValue: "Terms of Service"), systemImage: "doc.text")
+                        .foregroundColor(.theme.textPrimary)
                 }
 
-                if let privacyURL = URL(string: "https://unboundapp.com/privacy") {
-                    Link(destination: privacyURL) {
-                        Label("Privacy Policy", systemImage: "hand.raised")
-                            .foregroundColor(.theme.textPrimary)
-                    }
+                Link(destination: AppConstants.Legal.privacyURL) {
+                    Label(L10n.string(.legalPrivacyPolicy, defaultValue: "Privacy Policy"), systemImage: "hand.raised")
+                        .foregroundColor(.theme.textPrimary)
                 }
             } header: {
-                Text("Legal")
+                Text(L10n.string(.settingsSectionLegal, defaultValue: "Legal"))
                     .foregroundColor(.theme.textSecondary)
             }
 
@@ -197,11 +218,11 @@ struct SettingsView: View {
                 Button(role: .destructive) {
                     showDeleteAccount = true
                 } label: {
-                    Label("Delete Account", systemImage: "trash")
+                    Label(L10n.string(.settingsDeleteAccount, defaultValue: "Delete Account"), systemImage: "trash")
                         .foregroundColor(.theme.danger)
                 }
             } header: {
-                Text("Danger Zone")
+                Text(L10n.string(.settingsSectionDangerZone, defaultValue: "Danger Zone"))
                     .foregroundColor(.theme.textSecondary)
             }
 
@@ -215,6 +236,7 @@ struct SettingsView: View {
                     Label("Dev Player Tools", systemImage: "gamecontroller")
                         .foregroundColor(.theme.textPrimary)
                 }
+                .accessibilityIdentifier("settings.devPlayerTools")
 
                 Toggle(isOn: Binding(
                     get: { DevFlags.shared.unlockAllFeatures },
@@ -251,19 +273,41 @@ struct SettingsView: View {
         .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
         .background(Color.theme.background)
-        .navigationTitle("Settings")
+        .navigationTitle(L10n.string(.settingsTitle, defaultValue: "Settings"))
         .navigationBarTitleDisplayMode(.large)
         .navigationDestination(isPresented: $showDeleteAccount) {
             AccountDeletionView(viewModel: viewModel)
         }
-        .alert("Error", isPresented: .constant(viewModel.errorMessage != nil)) {
-            Button("OK") { viewModel.errorMessage = nil }
+        .alert(L10n.string(.settingsAlertError, defaultValue: "Error"), isPresented: .constant(viewModel.errorMessage != nil)) {
+            Button(L10n.string(.settingsAlertOK, defaultValue: "OK")) { viewModel.errorMessage = nil }
         } message: {
             Text(viewModel.errorMessage ?? "")
         }
         .onAppear {
             Task { await viewModel.loadProfile() }
         }
+    }
+
+    private var shareUsageDataBinding: Binding<Bool> {
+        Binding(
+            get: { !analyticsOptOut },
+            set: { isEnabled in
+                analyticsOptOut = !isEnabled
+                if isEnabled {
+                    services.analytics.optIn()
+                } else {
+                    services.analytics.optOut()
+                }
+            }
+        )
+    }
+
+    private var settingsPlanPro: String {
+        L10n.string(.settingsPlanPro, defaultValue: "Pro")
+    }
+
+    private var settingsPlanFree: String {
+        L10n.string(.settingsPlanFree, defaultValue: "Free")
     }
 
     // MARK: - Dev resets
@@ -300,6 +344,187 @@ struct SettingsView: View {
 #endif
 }
 
+private struct NotificationSettingsView: View {
+    @State private var preferences = NotificationPreferencesStore.shared.load()
+    @State private var authorizationLabel = L10n.string(.notificationSettingsChecking, defaultValue: "Checking...")
+
+    private let store = NotificationPreferencesStore.shared
+
+    var body: some View {
+        List {
+            Section {
+                HStack {
+                    Label(L10n.string(.notificationSettingsPermission, defaultValue: "Permission"), systemImage: "bell")
+                        .foregroundColor(.theme.textPrimary)
+                    Spacer()
+                    Text(authorizationLabel)
+                        .font(.bodyText(14))
+                        .foregroundColor(.theme.textMuted)
+                }
+
+                Button {
+                    Task { await requestAuthorization() }
+                } label: {
+                    Label(L10n.string(.notificationSettingsAllowNotifications, defaultValue: "Allow Notifications"), systemImage: "checkmark.circle")
+                        .foregroundColor(.theme.textPrimary)
+                }
+            } header: {
+                Text(L10n.string(.notificationSettingsSectionSystem, defaultValue: "System"))
+                    .foregroundColor(.theme.textSecondary)
+            }
+
+            Section {
+                Toggle(isOn: binding(
+                    get: { $0.workoutReminders.isEnabled },
+                    set: { $0.workoutReminders.isEnabled = $1 }
+                )) {
+                    Label(L10n.string(.notificationSettingsWorkoutReminders, defaultValue: "Workout reminders"), systemImage: "flame.fill")
+                        .foregroundColor(.theme.textPrimary)
+                }
+                .tint(.theme.primary)
+
+                Picker(L10n.string(.notificationSettingsTime, defaultValue: "Time"), selection: binding(
+                    get: { $0.workoutReminders.workoutTime ?? .evening },
+                    set: { $0.workoutReminders.workoutTime = $1 }
+                )) {
+                    ForEach(WorkoutTime.allCases) { time in
+                        Text(time.displayName).tag(time)
+                    }
+                }
+
+                ForEach(Weekday.allCases) { day in
+                    Toggle(isOn: dayBinding(day)) {
+                        Text(day.short)
+                            .foregroundColor(.theme.textPrimary)
+                    }
+                    .tint(.theme.primary)
+                }
+            } header: {
+                Text(L10n.string(.settingsSectionTraining, defaultValue: "Training"))
+                    .foregroundColor(.theme.textSecondary)
+            }
+
+            Section {
+                Toggle(isOn: binding(
+                    get: { $0.retentionNudges.isEnabled },
+                    set: { $0.retentionNudges.isEnabled = $1 }
+                )) {
+                    Label(L10n.string(.notificationSettingsRescanNudge, defaultValue: "Rescan nudge"), systemImage: "calendar.badge.clock")
+                        .foregroundColor(.theme.textPrimary)
+                }
+                .tint(.theme.primary)
+
+                Stepper(value: binding(
+                    get: { $0.retentionNudges.daysAfterAnchor },
+                    set: { $0.retentionNudges.daysAfterAnchor = max(1, $1) }
+                ), in: 1...90) {
+                    HStack {
+                        Text(L10n.string(.notificationSettingsDaysAfterScan, defaultValue: "Days after scan"))
+                            .foregroundColor(.theme.textPrimary)
+                        Spacer()
+                        Text("\(preferences.retentionNudges.daysAfterAnchor)")
+                            .font(.system(size: 15, weight: .semibold, design: .monospaced))
+                            .foregroundColor(.theme.primary)
+                    }
+                }
+            } header: {
+                Text(L10n.string(.notificationSettingsSectionProgress, defaultValue: "Progress"))
+                    .foregroundColor(.theme.textSecondary)
+            }
+
+            Section {
+                Toggle(isOn: binding(
+                    get: { $0.milestones.isEnabled },
+                    set: { $0.milestones.isEnabled = $1 }
+                )) {
+                    Label(L10n.string(.notificationSettingsMilestones, defaultValue: "Milestones"), systemImage: "rosette")
+                        .foregroundColor(.theme.textPrimary)
+                }
+                .tint(.theme.primary)
+            }
+        }
+        .listStyle(.insetGrouped)
+        .scrollContentBackground(.hidden)
+        .background(Color.theme.background)
+        .navigationTitle(L10n.string(.settingsNotifications, defaultValue: "Notifications"))
+        .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            preferences = store.load()
+            Task { await refreshAuthorizationLabel() }
+        }
+    }
+
+    private func binding<Value>(
+        get: @escaping (NotificationPreferences) -> Value,
+        set: @escaping (inout NotificationPreferences, Value) -> Void
+    ) -> Binding<Value> {
+        Binding(
+            get: { get(preferences) },
+            set: { value in
+                update { preferences in
+                    set(&preferences, value)
+                }
+            }
+        )
+    }
+
+    private func dayBinding(_ day: Weekday) -> Binding<Bool> {
+        Binding(
+            get: { preferences.workoutReminders.trainingDays.contains(day) },
+            set: { isEnabled in
+                update { preferences in
+                    if isEnabled {
+                        preferences.workoutReminders.trainingDays.insert(day)
+                    } else {
+                        preferences.workoutReminders.trainingDays.remove(day)
+                    }
+                }
+            }
+        )
+    }
+
+    private func update(_ mutate: (inout NotificationPreferences) -> Void) {
+        var updated = preferences
+        mutate(&updated)
+        updated.updatedAt = Date()
+        preferences = updated
+        store.save(updated)
+        Task { await NotificationService.applyStoredPreferences() }
+    }
+
+    private func requestAuthorization() async {
+        _ = try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound])
+        await refreshAuthorizationLabel()
+        await NotificationService.applyStoredPreferences()
+    }
+
+    private func refreshAuthorizationLabel() async {
+        let settings = await UNUserNotificationCenter.current().notificationSettings()
+        await MainActor.run {
+            authorizationLabel = settings.authorizationStatus.settingsLabel
+        }
+    }
+}
+
+private extension UNAuthorizationStatus {
+    var settingsLabel: String {
+        switch self {
+        case .authorized:
+            return L10n.string(.notificationAuthorizationAllowed, defaultValue: "Allowed")
+        case .provisional:
+            return L10n.string(.notificationAuthorizationProvisional, defaultValue: "Provisional")
+        case .ephemeral:
+            return L10n.string(.notificationAuthorizationTemporary, defaultValue: "Temporary")
+        case .denied:
+            return L10n.string(.notificationAuthorizationDenied, defaultValue: "Denied")
+        case .notDetermined:
+            return L10n.string(.notificationAuthorizationNotAsked, defaultValue: "Not asked")
+        @unknown default:
+            return L10n.string(.notificationAuthorizationUnknown, defaultValue: "Unknown")
+        }
+    }
+}
+
 #if DEBUG
 private struct DevPlayerToolsView: View {
     @EnvironmentObject private var services: ServiceContainer
@@ -316,6 +541,7 @@ private struct DevPlayerToolsView: View {
     @State private var selectedBestLiftReps: Int = 1
     @State private var isApplying = false
     @State private var status = "Dev account is local-only and hidden in release builds."
+    @State private var devSandboxSnapshot = DevProgramScanSnapshot.empty
 
     private var currentUserId: String {
         AuthService.shared.currentUserId ?? DevBuildBootstrapper.userId
@@ -370,6 +596,8 @@ private struct DevPlayerToolsView: View {
                     .font(.caption(11))
                     .foregroundColor(.theme.textMuted)
             }
+
+            programScanSection
 
             Section {
                 Stepper(value: $selectedLevel, in: 1...80) {
@@ -579,6 +807,79 @@ private struct DevPlayerToolsView: View {
         .onAppear { loadDevControlValues() }
     }
 
+    private var programScanSection: some View {
+        Section {
+            DevProgramScanSnapshotCard(snapshot: devSandboxSnapshot)
+
+            Button {
+                run(successMessage: "Seeded Arc Day 1 with fresh scan history.") {
+                    await DevBuildBootstrapper.seedProgramScanSandbox(services: services, state: .arcDay1)
+                }
+            } label: {
+                Label("Seed Arc Day 1", systemImage: "calendar.badge.plus")
+                    .foregroundColor(.theme.primary)
+            }
+            .accessibilityIdentifier("dev.program.seedArcDay1")
+
+            Button {
+                run(successMessage: "Forced Wave 2 today. Program now opens on Arc day 15.") {
+                    await DevBuildBootstrapper.seedProgramScanSandbox(services: services, state: .wave2)
+                }
+            } label: {
+                Label("Force Wave 2 Today", systemImage: "waveform.path.ecg")
+                    .foregroundColor(.theme.primary)
+            }
+            .accessibilityIdentifier("dev.program.forceWave2")
+
+            Button {
+                run(successMessage: "Forced checkpoint due. Program should show block-complete actions.") {
+                    await DevBuildBootstrapper.seedProgramScanSandbox(services: services, state: .checkpointDue)
+                }
+            } label: {
+                Label("Force Checkpoint Due", systemImage: "flag.checkered")
+                    .foregroundColor(.theme.primary)
+            }
+            .accessibilityIdentifier("dev.program.forceCheckpointDue")
+
+            Button {
+                run(successMessage: "Seeded scan history and made the monthly scan window due.") {
+                    await DevBuildBootstrapper.seedScanHistory(daysAgo: 31)
+                }
+            } label: {
+                Label("Seed Scan Due History", systemImage: "camera.viewfinder")
+                    .foregroundColor(.theme.primary)
+            }
+            .accessibilityIdentifier("dev.scan.seedDueHistory")
+
+            Button {
+                run(successMessage: "Locked the scan window to today so cadence copy can be checked.") {
+                    await DevBuildBootstrapper.seedScanHistory(daysAgo: 0)
+                }
+            } label: {
+                Label("Lock Scan Window", systemImage: "lock.fill")
+                    .foregroundColor(.theme.primary)
+            }
+            .accessibilityIdentifier("dev.scan.lockWindow")
+
+            Button {
+                run(successMessage: "Regenerated a deterministic program from the current dev onboarding profile.") {
+                    await DevBuildBootstrapper.regenerateProgramFromDevProfile()
+                }
+            } label: {
+                Label("Regenerate From Dev Profile", systemImage: "arrow.triangle.2.circlepath")
+                    .foregroundColor(.theme.primary)
+            }
+            .accessibilityIdentifier("dev.program.regenerateFromProfile")
+        } header: {
+            Text("Program + Scan Sandbox")
+                .foregroundColor(.theme.textSecondary)
+        } footer: {
+            Text("Seeds real local program, workout log, progress photo, scan checkpoint, and scan-delta records. Launch args: --unbound-dev-program-sandbox arc-day-1|wave-2|checkpoint-due, --unbound-dev-scan due|locked.")
+                .font(.caption(11))
+                .foregroundColor(.theme.textMuted)
+        }
+    }
+
     private func devStepper(label: String, systemName: String, value: Binding<Int>, range: ClosedRange<Int>) -> some View {
         Stepper(value: value, in: range) {
             HStack {
@@ -597,7 +898,7 @@ private struct DevPlayerToolsView: View {
         case .power: return "bolt.fill"
         case .explosiveness: return "hare.fill"
         case .control: return "scope"
-        case .agility: return "heart.fill"
+        case .vitality: return "heart.fill"
         case .mobility: return "figure.flexibility"
         case .endurance: return "infinity"
         }
@@ -614,18 +915,128 @@ private struct DevPlayerToolsView: View {
         devAttributes = Dictionary(uniqueKeysWithValues: AttributeKey.allCases.map { key in
             (key, profile.value(for: key).current)
         })
+        devSandboxSnapshot = DevBuildBootstrapper.programScanSnapshot()
     }
 
-    private func run(_ action: @escaping () async -> Void) {
+    private func run(
+        successMessage: String = "Applied. Pull to refresh or switch tabs if a visible screen was already loaded.",
+        _ action: @escaping () async -> Void
+    ) {
         isApplying = true
         status = "Applying..."
         Task {
             await action()
             await MainActor.run {
                 isApplying = false
-                status = "Applied. Pull to refresh or switch tabs if a visible screen was already loaded."
+                status = successMessage
+                loadDevControlValues()
                 UINotificationFeedbackGenerator().notificationOccurred(.success)
             }
+        }
+    }
+}
+
+enum DevProgramSandboxState: String, CaseIterable, Identifiable {
+    case arcDay1 = "arc-day-1"
+    case wave2 = "wave-2"
+    case checkpointDue = "checkpoint-due"
+
+    var id: String { rawValue }
+
+    var startOffsetDays: Int {
+        switch self {
+        case .arcDay1: return 0
+        case .wave2: return -14
+        case .checkpointDue: return -29
+        }
+    }
+
+    var scanDaysAgo: Int {
+        switch self {
+        case .arcDay1: return 31
+        case .wave2: return 16
+        case .checkpointDue: return 31
+        }
+    }
+
+    var arcState: ArcState {
+        switch self {
+        case .arcDay1, .wave2: return .active
+        case .checkpointDue: return .checkpointDue
+        }
+    }
+
+    var completedDayCount: Int {
+        switch self {
+        case .arcDay1: return 0
+        case .wave2: return 8
+        case .checkpointDue: return 18
+        }
+    }
+}
+
+struct DevProgramScanSnapshot: Equatable {
+    var programName: String
+    var arcStatus: String
+    var workoutDays: Int
+    var requiredEquipment: String
+    var scanStatus: String
+    var checkpointCount: Int
+    var lastScan: String
+
+    static let empty = DevProgramScanSnapshot(
+        programName: "No local program",
+        arcStatus: "No active Arc",
+        workoutDays: 0,
+        requiredEquipment: "None",
+        scanStatus: "No scan history",
+        checkpointCount: 0,
+        lastScan: "Never"
+    )
+}
+
+private struct DevProgramScanSnapshotCard: View {
+    let snapshot: DevProgramScanSnapshot
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Image(systemName: "stethoscope")
+                    .foregroundColor(.theme.primary)
+                Text("Current Sandbox")
+                    .font(.caption(12).weight(.semibold))
+                    .foregroundColor(.theme.textSecondary)
+                Spacer()
+            }
+
+            Text(snapshot.programName)
+                .font(.bodyText(15))
+                .foregroundColor(.theme.textPrimary)
+                .lineLimit(2)
+
+            VStack(alignment: .leading, spacing: 6) {
+                snapshotLine("Arc", snapshot.arcStatus)
+                snapshotLine("Workouts", "\(snapshot.workoutDays) training days")
+                snapshotLine("Equipment", snapshot.requiredEquipment)
+                snapshotLine("Scans", "\(snapshot.checkpointCount) checkpoints · \(snapshot.lastScan)")
+                snapshotLine("Window", snapshot.scanStatus)
+            }
+        }
+        .padding(.vertical, 6)
+        .accessibilityIdentifier("dev.programScan.snapshot")
+    }
+
+    private func snapshotLine(_ label: String, _ value: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Text(label.uppercased())
+                .font(.system(size: 10, weight: .bold, design: .monospaced))
+                .foregroundColor(.theme.textMuted)
+                .frame(width: 70, alignment: .leading)
+            Text(value)
+                .font(.caption(12))
+                .foregroundColor(.theme.textSecondary)
+                .lineLimit(2)
+            Spacer(minLength: 0)
         }
     }
 }
@@ -645,6 +1056,10 @@ enum DevBuildBootstrapper {
     private static let rankTrialReadyProofArg = "--unbound-proof-rank-trial-ready"
     private static let programStateProofArg = "--unbound-proof-program-state"
     private static let programSurfaceProofArg = "--unbound-proof-program-surface"
+    private static let devProgramSandboxArg = "--unbound-dev-program-sandbox"
+    private static let devScanSandboxArg = "--unbound-dev-scan"
+    private static let squadRosterProofArg = "--unbound-seed-squad-roster"
+    private static let squadActivityProofArg = "--unbound-proof-squad-activity"
 
     static func ensureReady() async {
         AuthService.shared.activateDevUser(id: userId)
@@ -653,7 +1068,7 @@ enum DevBuildBootstrapper {
         await maxEverything(
             level: 42,
             services: ServiceContainer(),
-            completeOnboarding: shouldCompleteOnboardingForLaunchRoute
+            completeOnboarding: shouldCompleteOnboardingForDevLaunch
         )
         if ProcessInfo.processInfo.arguments.contains(resetOpenedSkillForProofArg),
            let skillId = launchArgumentValue(for: "--unbound-open-skill") {
@@ -671,8 +1086,22 @@ enum DevBuildBootstrapper {
         if let rawProgramState = launchArgumentValue(for: programStateProofArg) {
             await seedProgramProofState(rawValue: rawProgramState)
         }
+        if let rawSandboxState = launchArgumentValue(for: devProgramSandboxArg),
+           let sandboxState = DevProgramSandboxState(rawValue: rawSandboxState) {
+            await seedProgramScanSandbox(services: ServiceContainer(), state: sandboxState)
+        }
+        if let rawScanState = launchArgumentValue(for: devScanSandboxArg) {
+            let normalized = rawScanState.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            await seedScanHistory(daysAgo: normalized == "locked" ? 0 : 31)
+        }
         if shouldSeedBindingVowForProof {
             await seedBindingVowForProof()
+        }
+        if ProcessInfo.processInfo.arguments.contains(squadRosterProofArg) {
+            await seedSquadRosterForProof()
+        }
+        if ProcessInfo.processInfo.arguments.contains(squadActivityProofArg) {
+            await seedSquadActivityProof()
         }
         UserDefaults.standard.set(true, forKey: didBootstrapKey)
     }
@@ -691,6 +1120,17 @@ enum DevBuildBootstrapper {
             || arguments.contains(where: { $0 == scheduledSkillProofArg || $0.hasPrefix("\(scheduledSkillProofArg)=") })
             || arguments.contains(where: { $0 == programStateProofArg || $0.hasPrefix("\(programStateProofArg)=") })
             || arguments.contains(where: { $0 == programSurfaceProofArg || $0.hasPrefix("\(programSurfaceProofArg)=") })
+            || arguments.contains(where: { $0 == devProgramSandboxArg || $0.hasPrefix("\(devProgramSandboxArg)=") })
+            || arguments.contains(where: { $0 == devScanSandboxArg || $0.hasPrefix("\(devScanSandboxArg)=") })
+            || arguments.contains(squadActivityProofArg)
+    }
+
+    private static var shouldCompleteOnboardingForDevLaunch: Bool {
+        let arguments = ProcessInfo.processInfo.arguments
+        if arguments.contains("-OnboardingStep") || arguments.contains("--onboarding-step") {
+            return false
+        }
+        return true
     }
 
     private static var rankTrialProofTargetArgument: String? {
@@ -874,12 +1314,149 @@ enum DevBuildBootstrapper {
         ))
     }
 
+    static func seedSquadRosterForProof() async {
+        AuthService.shared.activateDevUser(id: userId)
+
+        let joinerUserId = "dev-player-two"
+        try? await SquadService.shared.leaveSquad(userId: joinerUserId)
+        await SquadService.shared.loadCurrentSquad(userId: userId)
+
+        let squad: Squad
+        if let existing = SquadService.shared.state(userId: userId).currentSquad {
+            squad = existing
+        } else if let created = try? await SquadService.shared.createSquad(name: "Codex Crew", userId: userId) {
+            squad = created
+        } else {
+            return
+        }
+
+        _ = try? await SquadService.shared.joinSquad(inviteCode: squad.inviteCode, userId: joinerUserId)
+        await SquadService.shared.loadCurrentSquad(userId: userId)
+    }
+
+    static func seedSquadActivityProof() async {
+        AuthService.shared.activateDevUser(id: userId)
+        await seedSquadRosterForProof()
+
+        let partnerUserId = "dev-player-two"
+        guard let userUUID = SquadUserIdentity.uuid(from: userId),
+              let partnerUUID = SquadUserIdentity.uuid(from: partnerUserId)
+        else { return }
+
+        await SquadService.shared.loadCurrentSquad(userId: userId)
+        guard let loadedSquad = SquadService.shared.state(userId: userId).currentSquad else { return }
+        LocalSquadDirectory.shared.updateStreakWeeks(squadId: loadedSquad.id, weeks: 6)
+        await SquadService.shared.loadCurrentSquad(userId: userId)
+
+        guard let squad = SquadService.shared.state(userId: userId).currentSquad else { return }
+        let existingChallenge = await FriendChallengeService.shared
+            .activeChallenges(userId: userUUID)
+            .first { $0.squadId == squad.id && $0.kind == .mostSessions }
+
+        let challenge: FriendChallenge
+        if let existingChallenge {
+            challenge = existingChallenge
+        } else if let created = try? await FriendChallengeService.shared.createChallenge(
+            challengedId: partnerUUID,
+            kind: .mostSessions,
+            squadId: squad.id
+        ) {
+            challenge = created
+        } else {
+            return
+        }
+
+        try? await FriendChallengeService.shared.accept(challenge.id)
+        for offset in 0..<3 {
+            await FriendChallengeService.shared.recordProgress(
+                log: proofWorkoutLog(userId: userId, dayOffset: offset),
+                userId: userId
+            )
+        }
+        for offset in 0..<2 {
+            await FriendChallengeService.shared.recordProgress(
+                log: proofWorkoutLog(userId: partnerUserId, dayOffset: offset + 3),
+                userId: partnerUserId
+            )
+        }
+
+        let now = Date()
+        var state = SquadService.shared.state(userId: userId)
+        state.currentSquad = squad
+        state.recentActivity = [
+            SquadActivityEntry(
+                id: UUID(),
+                squadId: squad.id,
+                userId: nil,
+                kind: .squadStreakExtended,
+                payload: .squadStreakExtended(weeks: 6),
+                createdAt: now.addingTimeInterval(-60)
+            ),
+            SquadActivityEntry(
+                id: UUID(),
+                squadId: squad.id,
+                userId: userUUID,
+                kind: .linkedSession,
+                payload: .linkedSession(participantUserIds: [userUUID, partnerUUID], durationMinutes: 44),
+                createdAt: now.addingTimeInterval(-150)
+            ),
+            SquadActivityEntry(
+                id: UUID(),
+                squadId: squad.id,
+                userId: userUUID,
+                kind: .trialCompleted,
+                payload: .trialCompleted(trialName: "Upper Body Power", theme: .axis(.power)),
+                createdAt: now.addingTimeInterval(-260)
+            ),
+            SquadActivityEntry(
+                id: UUID(),
+                squadId: squad.id,
+                userId: partnerUUID,
+                kind: .trialCompleted,
+                payload: .trialCompleted(trialName: "Mobility Reset", theme: .axis(.mobility)),
+                createdAt: now.addingTimeInterval(-420)
+            ),
+            SquadActivityEntry(
+                id: UUID(),
+                squadId: squad.id,
+                userId: partnerUUID,
+                kind: .memberJoined,
+                payload: .memberJoined(memberDisplayName: "Crewmate 2"),
+                createdAt: now.addingTimeInterval(-620)
+            )
+        ]
+        SquadStore.shared.save(state, userId: userId)
+        NotificationCenter.default.post(name: .squadStateChanged, object: nil)
+    }
+
+    private static func proofWorkoutLog(userId: String, dayOffset: Int) -> WorkoutLog {
+        let completedAt = Calendar.current.date(
+            byAdding: .day,
+            value: -dayOffset,
+            to: Date()
+        ) ?? Date()
+        let startedAt = completedAt.addingTimeInterval(-44 * 60)
+        return WorkoutLog(
+            id: "squad-proof-\(userId)-\(dayOffset)",
+            userId: userId,
+            programId: "squad-proof-program",
+            dayNumber: max(1, dayOffset + 1),
+            plannedWorkoutName: "Squad Proof Session",
+            startedAt: startedAt,
+            completedAt: completedAt,
+            exerciseEntries: [],
+            overallNotes: "Simulator proof session",
+            overallRPE: 7,
+            durationMinutes: 44
+        )
+    }
+
     static func seedAttributes() {
         applyAttributes([
             .power: 88,
             .explosiveness: 78,
             .control: 82,
-            .agility: 66,
+            .vitality: 66,
             .mobility: 60,
             .endurance: 74
         ])
@@ -942,8 +1519,8 @@ enum DevBuildBootstrapper {
         let log = WorkoutLog(
             id: "dev-profile-prs",
             userId: userId,
-            programId: "dev-program",
-            dayNumber: 1,
+            programId: "dev-profile",
+            dayNumber: 0,
             plannedWorkoutName: "Dev Showcase",
             startedAt: now.addingTimeInterval(-86_400),
             completedAt: now.addingTimeInterval(-86_400 + 3_600),
@@ -988,7 +1565,7 @@ enum DevBuildBootstrapper {
     static func seedOverallRankTrialReadyProof(targetRankRawValue: String = RankTitle.novice.rawValue) async {
         AuthService.shared.activateDevUser(id: userId)
         let now = Date()
-        let targetRank = RankTitle(rawValue: targetRankRawValue) ?? .novice
+        let targetRank = RankTitle.storedRawValue(targetRankRawValue) ?? .novice
         let definition = OverallRankTrialDefinitions.all.first { $0.targetRank == targetRank }
             ?? OverallRankTrialDefinitions.foundationProof
         OverallRankTrialStore.shared.save(
@@ -1042,10 +1619,10 @@ enum DevBuildBootstrapper {
         switch targetRank {
         case .novice: return .initiate
         case .apprentice: return .novice
-        case .honed: return .apprentice
-        case .forged: return .honed
+        case .forged: return .apprentice
         case .veteran: return .forged
-        case .vessel: return .veteran
+        case .master: return .veteran
+        case .vessel: return .master
         case .unbound: return .vessel
         case .ascendant: return .unbound
         case .initiate: return .initiate
@@ -1059,28 +1636,32 @@ enum DevBuildBootstrapper {
         case .apprentice: return 1
         case .forged: return 2
         case .veteran: return 3
-        case .honed: return 4
+        case .master: return 4
         case .vessel: return 5
         case .unbound: return 6
         case .ascendant: return 7
         }
     }
 
-    static func seedProgram() async {
-        let now = Date()
+    static func seedProgram(
+        startDate: Date = Date(),
+        arcState: ArcState = .active
+    ) async {
+        let calendar = Calendar.current
+        let startDate = calendar.startOfDay(for: startDate)
         let workouts: [Workout] = [
             Workout(
-                name: "Power Upper",
+                name: "Push Strength",
                 targetMuscleGroups: [.chest, .shoulders, .arms],
                 warmup: [],
                 mainExercises: [
-                    Exercise(id: "dev-bench", name: "Bench Press", muscleGroups: [.chest, .shoulders, .arms], sets: 4, reps: "4-6", restSeconds: 180, rpe: 8, notes: nil, substitution: nil),
-                    Exercise(id: "dev-ohp", name: "Overhead Press", muscleGroups: [.shoulders, .arms], sets: 3, reps: "5", restSeconds: 150, rpe: 8, notes: nil, substitution: nil),
-                    Exercise(id: "dev-pullup", name: "Pullup", muscleGroups: [.back, .arms], sets: 4, reps: "6-10", restSeconds: 120, rpe: 8, notes: nil, substitution: nil)
+                    Exercise(id: "dev-bench", name: "Barbell Bench Press", muscleGroups: [.chest, .shoulders, .arms], sets: 4, reps: "4-6", restSeconds: 180, rpe: 8, notes: "Pause the first rep. Stop one rep before grind.", substitution: "Dumbbell Bench Press"),
+                    Exercise(id: "dev-incline-db", name: "Incline Dumbbell Press", muscleGroups: [.chest, .shoulders, .arms], sets: 3, reps: "8-10", restSeconds: 120, rpe: 8, notes: nil, substitution: "Push-Up"),
+                    Exercise(id: "dev-ohp", name: "Overhead Press", muscleGroups: [.shoulders, .arms], sets: 3, reps: "5-7", restSeconds: 150, rpe: 8, notes: nil, substitution: "Dumbbell OHP")
                 ],
                 cooldown: [],
                 estimatedMinutes: 55,
-                notes: "Debug seeded session.",
+                notes: "Debug seeded push session.",
                 blockType: .intensification
             ),
             Workout(
@@ -1090,12 +1671,26 @@ enum DevBuildBootstrapper {
                 mainExercises: [
                     Exercise(id: "dev-squat", name: "Back Squat", muscleGroups: [.legs, .glutes, .core], sets: 4, reps: "3-5", restSeconds: 180, rpe: 8, notes: nil, substitution: nil),
                     Exercise(id: "dev-rdl", name: "Romanian Deadlift", muscleGroups: [.legs, .glutes, .back], sets: 3, reps: "6-8", restSeconds: 150, rpe: 8, notes: nil, substitution: nil),
-                    Exercise(id: "dev-calf", name: "Standing Calf Raise", muscleGroups: [.calves], sets: 4, reps: "10-15", restSeconds: 75, rpe: 8, notes: nil, substitution: nil)
+                    Exercise(id: "dev-split-squat", name: "Bulgarian Split Squat", muscleGroups: [.legs, .glutes], sets: 3, reps: "8-10", restSeconds: 90, rpe: 8, notes: nil, substitution: "Reverse Lunge")
                 ],
                 cooldown: [],
                 estimatedMinutes: 60,
-                notes: "Debug seeded session.",
+                notes: "Debug seeded lower session.",
                 blockType: .intensification
+            ),
+            Workout(
+                name: "Pull Volume",
+                targetMuscleGroups: [.back, .lats, .arms],
+                warmup: [],
+                mainExercises: [
+                    Exercise(id: "dev-pullup", name: "Pull-Up", muscleGroups: [.back, .lats, .arms], sets: 4, reps: "6-10", restSeconds: 120, rpe: 8, notes: nil, substitution: "Lat Pulldown"),
+                    Exercise(id: "dev-row", name: "Chest-Supported Row", muscleGroups: [.back, .lats, .arms], sets: 4, reps: "8-12", restSeconds: 120, rpe: 8, notes: nil, substitution: "One-Arm Dumbbell Row"),
+                    Exercise(id: "dev-face-pull", name: "Face Pull", muscleGroups: [.shoulders, .traps], sets: 3, reps: "12-15", restSeconds: 75, rpe: 7, notes: nil, substitution: "Band Pull-Apart")
+                ],
+                cooldown: [],
+                estimatedMinutes: 50,
+                notes: "Debug seeded pull session.",
+                blockType: .accumulation
             ),
             Workout(
                 name: "Skill Control",
@@ -1108,19 +1703,54 @@ enum DevBuildBootstrapper {
                 ],
                 cooldown: [],
                 estimatedMinutes: 45,
-                notes: "Debug seeded session.",
+                notes: "Debug seeded skill-control session.",
                 blockType: .accumulation
+            ),
+            Workout(
+                name: "Full Body Engine",
+                targetMuscleGroups: [.legs, .glutes, .back, .shoulders, .forearms],
+                warmup: [],
+                mainExercises: [
+                    Exercise(id: "dev-deadlift", name: "Deadlift", muscleGroups: [.legs, .glutes, .back, .traps], sets: 3, reps: "3-5", restSeconds: 180, rpe: 8, notes: "Leave one clean rep in reserve.", substitution: "Trap Bar Deadlift"),
+                    Exercise(id: "dev-push-press", name: "Dumbbell Push Press", muscleGroups: [.shoulders, .arms, .legs], sets: 3, reps: "6-8", restSeconds: 120, rpe: 8, notes: nil, substitution: "Landmine Press"),
+                    Exercise(id: "dev-farmer", name: "Farmer Carry", muscleGroups: [.forearms, .traps, .core], sets: 4, reps: "40m", restSeconds: 90, rpe: 8, notes: nil, substitution: "Suitcase Carry")
+                ],
+                cooldown: [],
+                estimatedMinutes: 55,
+                notes: "Debug seeded full-body session.",
+                blockType: .intensification
             )
         ]
 
-        let days = (1...14).map { day in
-            let isRest = day == 4 || day == 7 || day == 11 || day == 14
+        let weeklyPlan: [(label: String, role: SessionRole, workoutIndex: Int?)] = [
+            ("Push Strength", .pushHorizontal, 0),
+            ("Lower Output", .squatFocus, 1),
+            ("Pull Volume", .pull, 2),
+            ("Recovery", .rest, nil),
+            ("Skill Control", .skillOnly, 3),
+            ("Full Body Engine", .fullBody, 4),
+            ("Recovery", .rest, nil)
+        ]
+
+        let days = (1...Arc.durationDays).map { day in
+            let plan = weeklyPlan[(day - 1) % weeklyPlan.count]
+            let isRest = plan.workoutIndex == nil
+            let wave = day <= Arc.waveLengthDays ? "Wave 1" : "Wave 2"
+            let workout = plan.workoutIndex.map { index -> Workout in
+                var copy = workouts[index]
+                if day > Arc.waveLengthDays {
+                    copy.blockType = .intensification
+                    copy.notes = "Wave 2 debug session: same pattern, slightly higher intent."
+                }
+                return copy
+            }
             return ProgramDay(
                 id: "dev-day-\(day)",
                 dayNumber: day,
-                label: isRest ? "Recovery" : "Day \(day)",
+                label: isRest ? "Recovery" : "\(wave) · \(plan.label)",
                 isRestDay: isRest,
-                workout: isRest ? nil : workouts[(day - 1) % workouts.count],
+                workout: workout,
+                sessionRole: plan.role,
                 nutritionOverride: nil,
                 recoveryActivities: isRest ? [
                     RecoveryActivity(id: "dev-recovery-\(day)", name: "Walk + Mobility", description: "Zone 2 walk with hip and shoulder range work.", durationMinutes: 30, frequency: "Today")
@@ -1128,14 +1758,21 @@ enum DevBuildBootstrapper {
             )
         }
 
+        let arc = Arc(
+            id: "dev-arc-1",
+            programId: "dev-program",
+            startDate: startDate,
+            state: arcState
+        )
         let program = TrainingProgram(
             id: "dev-program",
             scanId: "dev-scan",
             analysisId: "dev-analysis",
             userId: userId,
-            createdAt: now,
+            createdAt: startDate,
             name: "Dev Ascension Block",
-            description: "Seeded debug block with strength, skill, recovery, and nutrition surfaces populated.",
+            description: "Seeded 28-day debug Arc with strength, skill, recovery, scan, and nutrition surfaces populated.",
+            durationDays: Arc.durationDays,
             days: days,
             nutritionPlan: NutritionPlan(
                 dailyCalories: 2850,
@@ -1161,14 +1798,250 @@ enum DevBuildBootstrapper {
                 notes: "Debug recovery target."
             ),
             difficultyLevel: .advanced,
-            requiredEquipment: ["Barbell", "Dumbbells", "Pullup Bar"],
+            requiredEquipment: ["Barbell", "Dumbbells", "Bench", "Pullup Bar", "Cable or Band"],
             estimatedDailyMinutes: 55,
-            rationale: nil
+            rationale: nil,
+            arcs: [arc],
+            currentArcId: arc.id
+        )
+
+        let block = ProgramBlock(
+            id: "dev-program-block-1",
+            userId: userId,
+            programId: program.id,
+            blockNumber: 1,
+            startedAt: startDate,
+            endedAt: arcState == .checkpointDue ? arc.endDate : nil,
+            scanId: "dev-scan-latest",
+            accessoryBias: [.shoulders: 2, .lats: 2, .glutes: 1],
+            cutModeActive: false,
+            biasRefreshedFromPrevious: false,
+            exerciseRotationsThisBlock: ["Barbell Bench Press", "Back Squat", "Pull-Up"]
         )
 
         try? await DatabaseService.shared.create(program, collection: "programs", documentId: program.id)
         await ProgramStore.shared.save(program, userId: userId)
         try? await DatabaseService.shared.update(["currentProgramId": program.id], collection: "users", documentId: userId)
+        await ProgramBlockStore.shared.save(block)
+    }
+
+    static func seedProgramScanSandbox(
+        services: ServiceContainer,
+        state: DevProgramSandboxState
+    ) async {
+        await activate(services: services, completeOnboarding: true)
+        let calendar = Calendar.current
+        let start = calendar.date(
+            byAdding: .day,
+            value: state.startOffsetDays,
+            to: calendar.startOfDay(for: Date())
+        ) ?? Date()
+        await seedProgram(startDate: start, arcState: state.arcState)
+        await seedWorkoutLogs(
+            programStartDate: start,
+            completedDayNumbers: completedTrainingDays(count: state.completedDayCount)
+        )
+        await seedScanHistory(daysAgo: state.scanDaysAgo)
+    }
+
+    static func seedScanHistory(daysAgo: Int) async {
+        AuthService.shared.activateDevUser(id: userId)
+        UserDefaults.standard.set(true, forKey: "unbound.scanConsentGranted")
+
+        let now = Date()
+        let safeDaysAgo = max(0, daysAgo)
+        let latestDate = Calendar.current.date(byAdding: .day, value: -safeDaysAgo, to: now) ?? now
+        let baselineDate = Calendar.current.date(byAdding: .day, value: -60, to: latestDate) ?? latestDate.addingTimeInterval(-60 * 86_400)
+
+        let before = devProgressImage(named: "DevProgressBefore", fallbackColor: UIColor(red: 0.06, green: 0.10, blue: 0.13, alpha: 1))
+        let after = devProgressImage(named: "DevProgressAfter", fallbackColor: UIColor(red: 0.02, green: 0.23, blue: 0.26, alpha: 1))
+
+        guard let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else { return }
+        let scanPhotoDir = docs.appendingPathComponent("scan-photos", isDirectory: true)
+        try? FileManager.default.createDirectory(at: scanPhotoDir, withIntermediateDirectories: true)
+
+        let baselineFilename = "dev-scan-baseline-front.jpg"
+        let latestFilename = "dev-scan-latest-front.jpg"
+        let baselineURL = scanPhotoDir.appendingPathComponent(baselineFilename)
+        let latestURL = scanPhotoDir.appendingPathComponent(latestFilename)
+        try? before.jpegData(compressionQuality: 0.88)?.write(to: baselineURL, options: [.atomic])
+        try? after.jpegData(compressionQuality: 0.88)?.write(to: latestURL, options: [.atomic])
+
+        let baselineIdentity = BuildIdentity(primary: .power, secondary: .endurance, shape: .hybrid)
+        let latestIdentity = BuildIdentity(primary: .power, secondary: .control, shape: .hybrid)
+        let baselineCheckpoint = ScanCheckpoint(
+            id: "dev-scan-baseline",
+            userId: userId,
+            createdAt: baselineDate,
+            photoFilename: baselineFilename,
+            buildIdentitySnapshot: baselineIdentity,
+            narrative: "Baseline debug scan locked. Power leads the profile with endurance close behind.",
+            deltaFromPrior: nil
+        )
+        let latestCheckpoint = ScanCheckpoint(
+            id: "dev-scan-latest",
+            userId: userId,
+            createdAt: latestDate,
+            photoFilename: latestFilename,
+            buildIdentitySnapshot: latestIdentity,
+            narrative: "Debug checkpoint shows the Arc compounding: pressing strength held while control improved.",
+            deltaFromPrior: BuildIdentityDelta(perAxis: [
+                .power: 3,
+                .control: 8,
+                .endurance: 2,
+                .explosiveness: 2,
+                .vitality: 1,
+                .mobility: 1
+            ])
+        )
+        try? ScanCheckpointStore.shared.save(baselineCheckpoint)
+        try? ScanCheckpointStore.shared.save(latestCheckpoint)
+
+        let baselinePhoto = ProgressPhoto(
+            id: "dev-scan-photo-baseline",
+            userId: userId,
+            storageUrl: baselineURL.path,
+            capturedAt: baselineDate,
+            note: "Dev baseline scan",
+            angle: .front,
+            blockNumber: 1,
+            source: .scan
+        )
+        let latestPhoto = ProgressPhoto(
+            id: "dev-scan-photo-latest",
+            userId: userId,
+            storageUrl: latestURL.path,
+            capturedAt: latestDate,
+            note: safeDaysAgo == 0 ? "Dev locked scan" : "Dev due scan",
+            angle: .front,
+            blockNumber: 1,
+            source: .scan
+        )
+        try? await DatabaseService.shared.create(baselinePhoto, collection: "progressPhotos", documentId: baselinePhoto.id)
+        try? await DatabaseService.shared.create(latestPhoto, collection: "progressPhotos", documentId: latestPhoto.id)
+
+        let report = ScanDeltaReport(
+            id: "dev-scan-delta-report",
+            userId: userId,
+            baselineScanId: baselineCheckpoint.id,
+            comparisonScanId: latestCheckpoint.id,
+            createdAt: latestDate,
+            shoulders: BodyPartDelta(before: 5, after: 7),
+            chest: BodyPartDelta(before: 6, after: 7),
+            arms: BodyPartDelta(before: 5, after: 6),
+            core: BodyPartDelta(before: 4, after: 6),
+            legs: BodyPartDelta(before: 6, after: 6),
+            overall: BodyPartDelta(before: 5, after: 7),
+            narrative: "Power and control proof signals are trending up. Next block should keep pull volume stable while watching logged recovery.",
+            improvements: ["power", "control"],
+            laggingAreas: [],
+            recommendedFocus: "Let completed sessions, RPE, equipment, and recovery drive the next block."
+        )
+        try? await DatabaseService.shared.create(report, collection: "scanDeltaReports", documentId: report.id)
+
+        UserDefaults.standard.set(latestDate.timeIntervalSince1970, forKey: "unbound.lastScanTimestamp")
+        try? await DatabaseService.shared.update(["totalScans": 2], collection: "users", documentId: userId)
+    }
+
+    static func regenerateProgramFromDevProfile() async {
+        await activate(services: ServiceContainer(), completeOnboarding: true)
+        guard let profile: UserProfile = try? await DatabaseService.shared.read(collection: "users", documentId: userId) else {
+            return
+        }
+        do {
+            let program = try await ProgramGenerationService.shared.generateFromOnboarding(
+                userId: userId,
+                targetFrequency: profile.targetFrequency,
+                equipment: Set(profile.equipment ?? [.bodyweight]),
+                experience: profile.experience,
+                sessionLength: profile.sessionLength,
+                exerciseStyles: Set(profile.exerciseStyles ?? []),
+                targetAreas: Set(profile.targetAreas ?? []),
+                age: profile.age ?? 0,
+                gender: profile.gender ?? .unspecified,
+                heightCm: profile.heightCm ?? 0,
+                weightKg: profile.weightKg ?? 0,
+                trainingDays: profile.trainingDays,
+                trainingStyleOverride: profile.trainingStyleOverride,
+                trainingFeedbackMode: profile.trainingFeedbackMode,
+                cutModeActive: profile.cutMode.enabled,
+                biologicalSex: profile.biologicalSex
+            )
+            try? await DatabaseService.shared.create(program, collection: "programs", documentId: program.id)
+            await ProgramStore.shared.save(program, userId: userId)
+            try? await DatabaseService.shared.update(["currentProgramId": program.id], collection: "users", documentId: userId)
+        } catch {
+            LoggingService.shared.log(
+                "Dev deterministic regeneration failed: \(error)",
+                level: .error,
+                context: ["userId": userId]
+            )
+        }
+    }
+
+    static func programScanSnapshot() -> DevProgramScanSnapshot {
+        let program = ProgramStore.shared.loadLocal(userId: userId) ?? ProgramStore.shared.program
+        let checkpoints = (try? ScanCheckpointStore.shared.history(userId: userId)) ?? []
+        let lastScan = checkpoints.last?.createdAt
+        let scanCadence = ScanCadenceState.compute(lastScanAt: lastScan, now: Date())
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+
+        guard let program else {
+            return DevProgramScanSnapshot(
+                programName: "No local program",
+                arcStatus: "No active Arc",
+                workoutDays: 0,
+                requiredEquipment: "None",
+                scanStatus: scanCadence.isUnlocked ? "Ready" : "Locked \(scanCadence.daysUntilNext)d",
+                checkpointCount: checkpoints.count,
+                lastScan: lastScan.map { formatter.string(from: $0) } ?? "Never"
+            )
+        }
+
+        let arcStatus: String = {
+            if let context = ArcScheduler.context(for: program) {
+                return context.displayText
+            }
+            if BlockRolloverScheduler.shouldRollover(program: program) {
+                return "Checkpoint due"
+            }
+            return "Day \(BlockRolloverScheduler.currentDayNumber(program: program)) · legacy block"
+        }()
+        let equipment = program.requiredEquipment.prefix(3).joined(separator: ", ")
+        return DevProgramScanSnapshot(
+            programName: program.name,
+            arcStatus: arcStatus,
+            workoutDays: program.days.filter { !$0.isRestDay && $0.workout != nil }.count,
+            requiredEquipment: equipment.isEmpty ? "None" : equipment,
+            scanStatus: scanCadence.isUnlocked ? "Ready" : "Locked \(scanCadence.daysUntilNext)d",
+            checkpointCount: checkpoints.count,
+            lastScan: lastScan.map { formatter.string(from: $0) } ?? "Never"
+        )
+    }
+
+    private static func completedTrainingDays(count: Int) -> [Int] {
+        guard count > 0 else { return [] }
+        return Array((1...Arc.durationDays).filter { day in
+            let weekdayIndex = ((day - 1) % 7) + 1
+            return weekdayIndex != 4 && weekdayIndex != 7
+        }.prefix(count))
+    }
+
+    private static func devProgressImage(named name: String, fallbackColor: UIColor) -> UIImage {
+        if let image = UIImage(named: name) {
+            return image
+        }
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: 900, height: 1200))
+        return renderer.image { ctx in
+            fallbackColor.setFill()
+            ctx.fill(CGRect(x: 0, y: 0, width: 900, height: 1200))
+            UIColor.white.withAlphaComponent(0.12).setStroke()
+            let path = UIBezierPath(roundedRect: CGRect(x: 300, y: 180, width: 300, height: 780), cornerRadius: 150)
+            path.lineWidth = 10
+            path.stroke()
+        }
     }
 
     static func seedProgramProofState(rawValue: String) async {
@@ -1190,7 +2063,10 @@ enum DevBuildBootstrapper {
         }
     }
 
-    static func seedWorkoutLogs() async {
+    static func seedWorkoutLogs(
+        programStartDate: Date? = nil,
+        completedDayNumbers: [Int] = [1, 2, 3, 5, 6]
+    ) async {
         let now = Date()
         let lifts: [(String, Double, Int)] = [
             ("bench press", 142.5, 3),
@@ -1221,8 +2097,8 @@ enum DevBuildBootstrapper {
         let log = WorkoutLog(
             id: "dev-profile-prs",
             userId: userId,
-            programId: "dev-program",
-            dayNumber: 1,
+            programId: "dev-profile",
+            dayNumber: 0,
             plannedWorkoutName: "Dev Showcase",
             startedAt: now.addingTimeInterval(-86_400),
             completedAt: now.addingTimeInterval(-86_400 + 3_600),
@@ -1232,6 +2108,68 @@ enum DevBuildBootstrapper {
             durationMinutes: 60
         )
         try? await DatabaseService.shared.create(log, collection: "workoutLogs", documentId: log.id)
+
+        let calendar = Calendar.current
+        for day in 1...Arc.durationDays {
+            try? await DatabaseService.shared.delete(collection: "workoutLogs", documentId: "dev-program-log-day-\(day)")
+        }
+        for day in completedDayNumbers where day > 0 {
+            let startedAt = programStartDate
+                .flatMap { calendar.date(byAdding: .day, value: day - 1, to: $0) }
+                ?? now.addingTimeInterval(Double(-day) * 86_400)
+            let sessionEntries = [
+                ExerciseLogEntry(
+                    id: "dev-program-\(day)-main",
+                    exerciseName: day % 2 == 0 ? "Back Squat" : "Barbell Bench Press",
+                    plannedSets: 4,
+                    plannedReps: day % 2 == 0 ? "3-5" : "4-6",
+                    sets: (1...4).map { set in
+                        SetLog(
+                            id: "dev-program-\(day)-main-\(set)",
+                            setNumber: set,
+                            weightKg: Double(day % 2 == 0 ? 150 + day : 105 + day),
+                            reps: day % 2 == 0 ? 5 : 6,
+                            rpe: min(9, 7 + (day / 14)),
+                            isWarmup: false
+                        )
+                    },
+                    skipped: false,
+                    notes: "Seeded debug working sets."
+                ),
+                ExerciseLogEntry(
+                    id: "dev-program-\(day)-accessory",
+                    exerciseName: day % 3 == 0 ? "Pull-Up" : "Romanian Deadlift",
+                    plannedSets: 3,
+                    plannedReps: day % 3 == 0 ? "6-10" : "6-8",
+                    sets: (1...3).map { set in
+                        SetLog(
+                            id: "dev-program-\(day)-accessory-\(set)",
+                            setNumber: set,
+                            weightKg: day % 3 == 0 ? nil : Double(110 + day),
+                            reps: day % 3 == 0 ? 8 : 8,
+                            rpe: 8,
+                            isWarmup: false
+                        )
+                    },
+                    skipped: false,
+                    notes: nil
+                )
+            ]
+            let dayLog = WorkoutLog(
+                id: "dev-program-log-day-\(day)",
+                userId: userId,
+                programId: "dev-program",
+                dayNumber: day,
+                plannedWorkoutName: "Dev Program Day \(day)",
+                startedAt: startedAt,
+                completedAt: startedAt.addingTimeInterval(3_300),
+                exerciseEntries: sessionEntries,
+                overallNotes: "Seeded program sandbox session.",
+                overallRPE: 8,
+                durationMinutes: 55
+            )
+            try? await DatabaseService.shared.create(dayLog, collection: "workoutLogs", documentId: dayLog.id)
+        }
     }
 
     static func seedProgressPhotos() async {
@@ -1390,11 +2328,11 @@ private struct FAQPlaceholderView: View {
     var body: some View {
         ZStack {
             Color.theme.background.ignoresSafeArea()
-            Text("FAQ coming soon")
+            Text(L10n.string(.settingsFAQComingSoon, defaultValue: "FAQ coming soon"))
                 .font(.bodyText(16))
                 .foregroundColor(.theme.textSecondary)
         }
-        .navigationTitle("FAQ")
+        .navigationTitle(L10n.string(.settingsFAQ, defaultValue: "FAQ"))
         .navigationBarTitleDisplayMode(.inline)
     }
 }

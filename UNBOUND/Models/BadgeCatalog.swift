@@ -209,8 +209,8 @@ enum BadgeCatalog {
         ),
         Badge(
             id: "biweekly_scan",
-            displayName: "Two-Week Read",
-            description: "Two bi-weekly scans within 14 days of each other.",
+            displayName: "Checkpoint Streak",
+            description: "Two monthly checkpoints completed on cadence.",
             iconSystemName: "sparkle.magnifyingglass",
             rarity: .rare,
             unlockedAt: nil

@@ -36,7 +36,7 @@ struct ActiveTrialCard: View {
         .buttonStyle(.plain)
         .disabled(!canLaunchTraining)
         .accessibilityIdentifier("weeklyVow.activeCard.startTraining")
-        .accessibilityLabel("Start binding vow training")
+        .accessibilityLabel("Start Binding Vow training")
         .fullScreenCover(item: $trainingDraft) { draft in
             WorkoutReadyView(draft: draft)
                 .environmentObject(services)
@@ -45,8 +45,9 @@ struct ActiveTrialCard: View {
 
     private var cardContent: some View {
         HStack(alignment: .center, spacing: 14) {
-            TrialProgressGlyph(progress: capstoneProgress, tint: tint)
-                .frame(width: 54, height: 58)
+            WeeklyVowProofAsset(kind: card.kind, tint: tint, compact: true)
+                .frame(width: 54, height: 54)
+                .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 8) {
@@ -70,7 +71,7 @@ struct ActiveTrialCard: View {
                     .minimumScaleFactor(0.72)
 
                 HStack(spacing: 7) {
-                    Text("PROOF")
+                    Text("VOW")
                         .font(.system(size: 9, weight: .heavy, design: .monospaced))
                         .tracking(1.2)
                         .foregroundStyle(Color.unbound.textTertiary)
@@ -162,7 +163,7 @@ struct ActiveTrialCard: View {
 
     private var capstoneStateLabel: String {
         switch trial.capstoneState {
-        case .pending:    return "MON–FRI"
+        case .pending:    return "READY"
         case .windowOpen: return "OPEN"
         case .completed:  return "COMPLETE"
         case .missed:     return "MISSED"
@@ -229,8 +230,8 @@ private struct TrialActiveCutShape: Shape {
                     id: "weekly-vow-W20-ember",
                     kind: .ember,
                     theme: .axis(.power),
-                    displayName: "Iron Rule Vow",
-                    blurb: "Accept a low-day Binding Vow.",
+                    displayName: "Iron Reset",
+                    blurb: "A low-day proof for clean power work.",
                     capstone: TrialCapstone(displayName: "Low-Day Proof", description: "Complete easy power work.", evaluation: .manualClaim)
                 ),
                 capstoneState: .windowOpen

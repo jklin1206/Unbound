@@ -198,7 +198,7 @@ final class SquadBackend: SquadBackendProtocol, @unchecked Sendable {
             return response.squad.toSquad()
         } catch let error as FunctionsError {
             switch error {
-            case .httpError(let code, let data):
+            case .httpError(_, let data):
                 // Surface structured error codes from the Edge Function
                 if let payload = try? JSONDecoder().decode([String: String].self, from: data) {
                     switch payload["error"] {

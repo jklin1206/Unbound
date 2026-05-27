@@ -22,7 +22,7 @@ struct StatBar: View {
                 Text(tier)
                     .font(Font.unbound.monoS)
                     .foregroundStyle(muted ? Color.unbound.textTertiary : Color.unbound.accent)
-                    .frame(minWidth: 14, alignment: .trailing)
+                    .frame(minWidth: 30, alignment: .trailing)
             }
 
             GeometryReader { geo in
@@ -120,10 +120,10 @@ struct StatBar: View {
     ZStack {
         Color.unbound.bg.ignoresSafeArea()
         VStack(spacing: 18) {
-            StatBar(label: "STRENGTH", tier: "E", value: 0.18, muted: true)
-            StatBar(label: "STAMINA", tier: "E", value: 0.22, muted: true)
-            StatBar(label: "DISCIPLINE", tier: "A", value: 0.82)
-            StatBar(label: "CONFIDENCE", tier: "B", value: 0.72)
+            StatBar(label: "STRENGTH", tier: "LOW", value: 0.18, muted: true)
+            StatBar(label: "STAMINA", tier: "LOW", value: 0.22, muted: true)
+            StatBar(label: "DISCIPLINE", tier: "HIGH", value: 0.82)
+            StatBar(label: "CONFIDENCE", tier: "HIGH", value: 0.72)
         }
         .padding(32)
     }

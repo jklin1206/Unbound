@@ -17,6 +17,9 @@ struct Step19_Stress: View {
             onPrimary: onContinue
         ) {
             VStack(alignment: .leading, spacing: 24) {
+                LifestyleSignalAsset(kind: LifestyleSignalAsset.Kind.stress, value: flow.stressLevel)
+                    .padding(.top, 10)
+
                 HUDSlider(
                     value: $flow.stressLevel,
                     steps: HUDSlider.fivePointStoredSteps,
@@ -24,7 +27,6 @@ struct Step19_Stress: View {
                     leftAnchor: "Calm",
                     rightAnchor: "Burned out"
                 )
-                .padding(.top, 32)
 
                 if flow.stressLevel >= 7 {
                     HUDCallout(

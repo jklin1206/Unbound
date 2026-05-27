@@ -150,7 +150,7 @@ struct Step_Arc01_Opening: View {
 
                 Button(action: awaken) {
                     HStack(spacing: 12) {
-                        Text("BEGIN YOUR ARC")
+                        Text(L10n.onboarding("arcOpening.cta", defaultValue: "BEGIN YOUR ARC"))
                             .font(Font.unbound.bodyMStrong)
                             .tracking(2.2)
                         Image(systemName: "arrow.right")
@@ -197,9 +197,9 @@ struct Step_Arc01_Opening: View {
 
     private var titleBlock: some View {
         VStack(spacing: 10) {
-            auraText("UNBOUND", font: Font.unbound.displayXL, tracking: 4)
+            auraText(L10n.string(.appName, defaultValue: "UNBOUND"), font: Font.unbound.displayXL, tracking: 4)
 
-            Text("BREAK THE RESTRICTION")
+            Text(L10n.onboarding("arcOpening.tagline", defaultValue: "BREAK THE RESTRICTION"))
                 .font(Font.unbound.bodyM)
                 .foregroundStyle(Color.unbound.accent)
                 .tracking(3.2)

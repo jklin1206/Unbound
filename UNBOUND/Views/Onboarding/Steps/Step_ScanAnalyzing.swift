@@ -121,6 +121,11 @@ struct Step_ScanAnalyzing: View {
                 // Corner HUD
                 HudReadouts(percent: percent, elapsed: elapsed)
 
+                if fraction > 0.78 {
+                    RankRevealCharge(fraction: fraction)
+                        .transition(.opacity.combined(with: .scale(scale: 0.96)))
+                }
+
                 // Completion bloom — fires at 100%
                 if completionBloom {
                     RadialGradient(
@@ -188,6 +193,43 @@ struct Step_ScanAnalyzing: View {
         }
     }
 
+}
+
+private struct RankRevealCharge: View {
+    let fraction: Double
+
+    private var revealProgress: Double {
+        max(0, min(1, (fraction - 0.78) / 0.22))
+    }
+
+    var body: some View {
+        VStack(spacing: 12) {
+            Spacer()
+
+            ZStack {
+                Circle()
+                    .stroke(Color.unbound.accent.opacity(0.22), lineWidth: 1)
+                    .frame(width: 118, height: 118)
+                    .scaleEffect(1 + revealProgress * 0.18)
+                    .opacity(1 - revealProgress * 0.35)
+
+                Image(SkillTier.initiate.assetName)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 72 + CGFloat(revealProgress * 16), height: 72 + CGFloat(revealProgress * 16))
+                    .shadow(color: Color.unbound.accent.opacity(0.72), radius: 22)
+            }
+
+            Text(L10n.onboarding("scanAnalyzing.rankIncoming", defaultValue: "RANK REVEAL INCOMING"))
+                .font(.system(size: 11, weight: .black, design: .monospaced))
+                .tracking(1.8)
+                .foregroundStyle(Color.unbound.textPrimary)
+
+            Spacer().frame(height: 74)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .opacity(revealProgress)
+    }
 }
 
 
@@ -285,13 +327,15 @@ private struct HudReadouts: View {
     let elapsed: TimeInterval
 
     // Status strings keep this beat in "starting the arc" language.
-    private let statusStrings = [
-        "SAVING DAY ZERO",
-        "SETTING THE STARTING LINE",
-        "COMPILING YOUR ARC",
-        "ARMING MONTH ONE",
-        "BUILDING YOUR PROTOCOL"
-    ]
+    private var statusStrings: [String] {
+        [
+            L10n.onboarding("scanAnalyzing.status.saving", defaultValue: "SAVING DAY ZERO"),
+            L10n.onboarding("scanAnalyzing.status.startingLine", defaultValue: "SETTING THE STARTING LINE"),
+            L10n.onboarding("scanAnalyzing.status.compiling", defaultValue: "COMPILING YOUR ARC"),
+            L10n.onboarding("scanAnalyzing.status.arming", defaultValue: "ARMING MONTH ONE"),
+            L10n.onboarding("scanAnalyzing.status.building", defaultValue: "BUILDING YOUR PROTOCOL")
+        ]
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -300,18 +344,18 @@ private struct HudReadouts: View {
                     Text("\(percent)%")
                         .font(Font.unbound.monoL)
                         .foregroundStyle(Color.unbound.accent)
-                    Text("LOCKING IN")
+                    Text(L10n.onboarding("scanAnalyzing.lockingIn", defaultValue: "LOCKING IN"))
                         .font(Font.unbound.captionS)
                         .tracking(1.4)
                         .foregroundStyle(Color.unbound.textSecondary)
                 }
                 Spacer()
                 VStack(alignment: .trailing, spacing: 4) {
-                    Text("DAY ZERO")
+                    Text(L10n.onboarding("scanAnalyzing.dayZero", defaultValue: "DAY ZERO"))
                         .font(Font.unbound.captionS)
                         .tracking(1.4)
                         .foregroundStyle(Color.unbound.textSecondary)
-                    Text("COMMITTED")
+                    Text(L10n.onboarding("scanAnalyzing.committed", defaultValue: "COMMITTED"))
                         .font(Font.unbound.captionS)
                         .tracking(1.4)
                         .foregroundStyle(Color.unbound.ember)

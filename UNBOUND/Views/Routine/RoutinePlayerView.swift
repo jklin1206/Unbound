@@ -9,7 +9,7 @@ import SwiftUI
 //               rep stepper, LOG SET button, next-up preview.
 // Rest stage:   full-screen rest timer with a draining circular ring,
 //               skip and +30s affordances.
-// Complete:     summary card with total time + sets + LV XP awarded.
+// Complete:     summary card with total time + sets + LVL XP awarded.
 
 struct SideQuestPlayerView: View {
     let routine: SideQuest
@@ -156,7 +156,7 @@ struct SideQuestPlayerView: View {
 
             Spacer()
 
-            Text("\(routine.spReward) LV XP")
+            Text("\(routine.spReward) LVL XP")
                 .font(Font.unbound.captionS.weight(.bold))
                 .tracking(1.4)
                 .foregroundStyle(categoryColor)
@@ -203,7 +203,12 @@ struct SideQuestPlayerView: View {
     // MARK: Exercise card
 
     private var exerciseCard: some View {
-        VStack(alignment: .leading, spacing: 20) {
+        let reference = MobilityReferenceLibrary.reference(for: "\(currentExercise.name) \(currentExercise.cue ?? "")")
+        return VStack(alignment: .leading, spacing: 20) {
+            if let reference {
+                MobilityReferenceCard(reference: reference, accent: categoryColor, compact: true, framed: false)
+            }
+
             // Name + set header
             VStack(alignment: .leading, spacing: 6) {
                 Text(currentExercise.name.uppercased())
@@ -576,7 +581,7 @@ struct SideQuestPlayerView: View {
                     Divider()
                         .frame(height: 32)
                         .background(Color.unbound.border)
-                    statPill(value: "+\(routine.spReward)", label: "LV XP")
+                    statPill(value: "+\(routine.spReward)", label: "LVL XP")
                 }
                 .padding(16)
                 .background(

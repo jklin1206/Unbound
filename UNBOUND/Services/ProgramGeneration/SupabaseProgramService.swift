@@ -28,7 +28,7 @@ final class SupabaseProgramService: ProgramRemote, @unchecked Sendable {
     /// thrown — caller wraps in `try?` already.
     func saveProgram(_ program: TrainingProgram, userId: String) async {
         do {
-            _ = try await supabase.upsert(program, into: "programs")
+            _ = try await supabase.upsert(ProgramSupabasePayload(program), into: "programs")
             try await supabase.patch(
                 ["current_program_id": AnyJSON.string(program.id)],
                 in: "users",
@@ -60,7 +60,7 @@ final class SupabaseProgramService: ProgramRemote, @unchecked Sendable {
     /// unauthenticated fallback counts as persisted (matches `saveProgram`).
     func persist(_ program: TrainingProgram, userId: String) async -> Bool {
         do {
-            _ = try await supabase.upsert(program, into: "programs")
+            _ = try await supabase.upsert(ProgramSupabasePayload(program), into: "programs")
             try await supabase.patch(
                 ["current_program_id": AnyJSON.string(program.id)],
                 in: "users", keyedBy: "id", equals: userId)
@@ -95,5 +95,63 @@ final class SupabaseProgramService: ProgramRemote, @unchecked Sendable {
         } catch SupabaseDatabaseError.notAuthenticated {
             return try await local.read(collection: "programs", documentId: id)
         }
+    }
+}
+
+struct ProgramSupabasePayload: Codable, Sendable {
+    let id: String
+    let userId: String
+    let scanId: String?
+    let analysisId: String?
+    let createdAt: Date
+    let archetype: String
+    let name: String
+    let description: String
+    let durationDays: Int
+    let difficultyLevel: DifficultyLevel
+    let requiredEquipment: [String]
+    let estimatedDailyMinutes: Int
+    let days: [ProgramDay]
+    let nutritionPlan: NutritionPlan
+    let recoveryPlan: RecoveryPlan
+
+    init(_ program: TrainingProgram) {
+        id = program.id
+        userId = program.userId
+        scanId = program.scanId.uuidStringIfValid
+        analysisId = program.analysisId.uuidStringIfValid
+        createdAt = program.createdAt
+        archetype = "universal"
+        name = program.name
+        description = program.description
+        durationDays = program.durationDays
+        difficultyLevel = program.difficultyLevel
+        requiredEquipment = program.requiredEquipment
+        estimatedDailyMinutes = program.estimatedDailyMinutes
+        days = program.days
+        nutritionPlan = program.nutritionPlan
+        recoveryPlan = program.recoveryPlan
+    }
+
+    static func encodedJSON(from program: TrainingProgram) throws -> Data {
+        try UnboundSupabase.dbEncoder.encode(Self(program))
+    }
+
+    static func encodedJSON(fromProgramJSON data: Data) throws -> Data {
+        let program: TrainingProgram
+        if let decoded = try? JSONDecoder.unbound.decode(TrainingProgram.self, from: data) {
+            program = decoded
+        } else {
+            program = try JSONDecoder().decode(TrainingProgram.self, from: data)
+        }
+        return try encodedJSON(from: program)
+    }
+}
+
+private extension String {
+    var uuidStringIfValid: String? {
+        let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
+        guard UUID(uuidString: trimmed) != nil else { return nil }
+        return trimmed
     }
 }

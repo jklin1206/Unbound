@@ -1,0 +1,4 @@
+"CFBundleDisplayName" = "UNBOUND";
+"NSCameraUsageDescription" = "UNBOUND needs camera access to take your body scan photos";
+"NSHealthShareUsageDescription" = "UNBOUND reads Apple Health steps, walking distance, and sleep to ground vitality and recovery guidance.";
+"NSPhotoLibraryUsageDescription" = "UNBOUND needs photo library access to set your profile picture";

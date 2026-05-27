@@ -86,7 +86,7 @@ These 12 decisions resolve the open ambiguities from the original draft. They ar
 - Saved custom sessions are called **Saved Workouts**.
 - Exercise + Saved-Workout library appears during editing, not as a permanent Program tab destination.
 - Checkpoint Scan (formerly "Monthly Scan") is skippable but highly rewarded. See terminology note in §4.
-- AI is limited to Checkpoint summary copy and free-text scan interpretation. Training generation, progression, swaps, skill placement, proof, and rewards stay deterministic.
+- AI is limited to Checkpoint recap copy. Free text may color the recap, but training generation, progression, swaps, skill placement, proof, rewards, and next-Arc signals stay deterministic.
 - Any meaningful change to load, reps, sets, exercise, volume, or intensity needs a visible reason.
 - If a user logs their own workout instead of the suggested one, it counts as that day's replacement.
 - Checkpoint Scan preserves heavily customized user workouts by default; it adjusts targets and suggestions around them.
@@ -199,7 +199,7 @@ Checkpoint is a checkpoint, not a surprise rewrite. It is **skippable**, but hig
 - do not block the user from training
 
 **If completed**
-- AI may summarize messy free-text input (this is the AI's full scope here)
+- AI may summarize the end-of-Arc recap from approved facts and optional user note
 - deterministic rules decide the next Arc, suggestions, skill focus, and adjustment pressure
 - present a review before changes apply
 
@@ -399,7 +399,6 @@ AI is used only where language is messy and human interpretation helps.
 
 **Allowed**
 - Checkpoint Scan summary
-- free-text scan interpretation into structured signals
 - the single end-of-Arc "how the Arc went" paragraph (coach voice)
 
 **Not allowed**
@@ -412,8 +411,9 @@ AI is used only where language is messy and human interpretation helps.
 - deload logic
 - vow fatigue budgeting
 - **reason-label copy on Wave 2 / Checkpoint changes** (Decision 6 — pure templates)
+- free-text interpretation into next-Arc training signals
 
-All AI outputs must be converted into structured signals and passed through deterministic validation before affecting training.
+AI outputs must not affect training decisions. They are recap copy only.
 
 ---
 

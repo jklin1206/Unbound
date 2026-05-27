@@ -8,7 +8,7 @@ struct AppleSignInButton: View {
             HStack(spacing: 10) {
                 Image(systemName: "apple.logo")
                     .font(.title3)
-                Text("Sign in with Apple")
+                Text(L10n.string(.authAppleSignIn, defaultValue: "Sign in with Apple"))
                     .font(.bodyMedium(17))
                     .fontWeight(.semibold)
             }

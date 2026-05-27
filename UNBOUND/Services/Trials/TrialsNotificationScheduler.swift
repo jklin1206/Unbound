@@ -36,23 +36,23 @@ enum WeeklyVowsNotificationScheduler {
         await schedule(
             id: mondayId,
             title: "This week's Binding Vows are ready",
-            body: "Choose Low, Limit, or Apex Binding.",
+            body: "Choose Recovery, Finisher, or Limit.",
             on: weekStart.addingTimeInterval(9 * 3600)
         )
 
-        // Saturday 08:00 — proof unlock
+        // Saturday 08:00 — vow window opens
         await schedule(
             id: saturdayId,
-            title: "Binding Vow proof unlocked",
-            body: "Seal it clean when you're ready.",
+            title: "Binding Vow window is open",
+            body: "Clear it clean when you're ready.",
             on: weekStart.addingTimeInterval(5 * 86_400 + 8 * 3600)
         )
 
         // Sunday 18:00 — closing reminder
         await schedule(
             id: sundayId,
-            title: "Binding Vow window closes in 6 hours",
-            body: "Last chance to seal this week's vow.",
+            title: "Binding Vow closes in 6 hours",
+            body: "Last chance to clear this week's vow.",
             on: weekStart.addingTimeInterval(6 * 86_400 + 18 * 3600)
         )
     }

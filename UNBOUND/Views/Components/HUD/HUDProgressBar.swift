@@ -31,9 +31,8 @@ struct HUDProgressBar: View {
     }
 
     private var eyebrow: String {
-        let n = String(format: "%02d", max(1, currentStep))
-        let total = String(format: "%02d", max(1, totalSteps))
-        return "STAGE \(n) / \(total) · \(category.displayName)"
+        let percent = Int((Double(max(1, currentStep)) / Double(max(1, totalSteps)) * 100).rounded())
+        return "\(category.displayName) · \(percent)% SYNCED"
     }
 
     private func bucket(for step: Int) -> Int {

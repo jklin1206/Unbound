@@ -6,12 +6,8 @@ import Foundation
 /// ratios, torso/leg proportions, crude posture flags. No body-fat %,
 /// no muscle-mass score, no hallucinated vibes.
 ///
-/// Used by onboarding to confirm or nudge the user's archetype pick and
-/// tune priority focus areas. Stored on `OnboardingFlowViewModel` and
-/// rendered as a single honest insight on the Verdict screen.
-///
-/// Not to be confused with `BodyAnalysis` (the LLM-powered deep analysis
-/// produced by `BodyAnalysisService` — post-paywall premium feature).
+/// Used by onboarding only as a lightweight measurement hint. It is not a
+/// grade and does not create hidden programming bias.
 struct BodyScanInsights: Codable, Equatable {
     /// Shoulder width / hip width. Classic V-taper anthropometric ratio.
     /// 1.6+ = strong V-taper. 1.3–1.6 = balanced. <1.3 = squared/broad-hip.

@@ -66,7 +66,7 @@ final class AttributeContributionCatalogTests: XCTestCase {
             XCTFail("AttributeContributions.json failed to load from Bundle.main")
             return
         }
-        let exerciseBackedAxes = Set(AttributeKey.allCases).subtracting([.agility])
+        let exerciseBackedAxes = Set(AttributeKey.allCases).subtracting([.vitality])
         var represented: Set<AttributeKey> = []
         for (_, weights) in exercises {
             for (axisName, w) in weights where w > 0 {
@@ -87,7 +87,7 @@ final class AttributeContributionCatalogTests: XCTestCase {
             return
         }
         let vitalityExercises = exercises.compactMap { name, weights in
-            (weights["agility"] ?? 0) > 0 ? name : nil
+            (weights["vitality"] ?? 0) > 0 ? name : nil
         }.sorted()
         XCTAssertTrue(vitalityExercises.isEmpty,
             "Vitality should come from recovery events, not regular exercise vectors:\n\(vitalityExercises.joined(separator: "\n"))")

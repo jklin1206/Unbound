@@ -4,8 +4,8 @@ import Foundation
 //
 // Coarse 12-way muscle partition. The canonical training-signal taxonomy:
 // `ScanContextBuilder` buckets recent training volume into these groups and
-// `ScanContext` keys its 14-day signal map by `MuscleHeatGroup.rawValue`,
-// which the rescan/program-generation pipeline consumes. The rawValues are
+// `ScanContext` keys its monthly checkpoint signal map by `MuscleHeatGroup.rawValue`,
+// which the recap pipeline consumes. The rawValues are
 // part of that contract — keep them stable.
 
 enum MuscleHeatGroup: String, CaseIterable, Codable, Sendable, Hashable, Identifiable {

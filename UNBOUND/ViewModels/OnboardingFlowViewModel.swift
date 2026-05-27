@@ -46,7 +46,6 @@ enum OnboardingStep: Int, CaseIterable, Identifiable {
     case workoutTime         // when in the day
     case equipment
     case exerciseStyle       // what kinds of exercises they enjoy
-    case buildSeed           // attribute system seed survey (sub-project #1, Task 1a.12)
     case sessionLength
     case resultsSnapshot     // early personalized checkpoint
     case diet
@@ -96,7 +95,53 @@ enum OnboardingStep: Int, CaseIterable, Identifiable {
 
     var id: Int { rawValue }
 
-    static var total: Int { allCases.count }
+    static let flowOrder: [OnboardingStep] = [
+        .arc01Opening,
+        .problemFrame,
+        .arc03Path,
+        .restartLoop,
+        .chapterMapping,
+        .goals,
+        .obstacles,
+        .targetAreas,
+        .name,
+        .motivation,
+        .age,
+        .gender,
+        .height,
+        .weight,
+        .experience,
+        .targetFrequency,
+        .trainingDays,
+        .workoutTime,
+        .equipment,
+        .exerciseStyle,
+        .sessionLength,
+        .resultsSnapshot,
+        .diet,
+        .sleep,
+        .stress,
+        .priorAttempts,
+        .commitment,
+        .notifications,
+        .chapterScan,
+        .scanLive,
+        .scanReview,
+        .scanAnalyzing,
+        .verdict,
+        .whyThisProgram,
+        .obstacleFix,
+        .planReady,
+        .commitToday,
+        .chapterPath,
+        .lifeChangeEnergy,
+        .lifeChangeSleep,
+        .lifeChangeConfidence,
+        .commitDay30,
+        .paywall
+    ]
+
+    static var total: Int { flowOrder.count }
 
     /// Whether the progress bar should render. Hidden on hero frames.
     var showsProgressBar: Bool {
@@ -147,7 +192,7 @@ enum OnboardingStep: Int, CaseIterable, Identifiable {
              .commitDay30, .commitDay90, .commitToday:
             return .profile
         case .experience, .targetFrequency, .trainingDays, .workoutTime,
-             .equipment, .exerciseStyle, .buildSeed, .sessionLength:
+             .equipment, .exerciseStyle, .sessionLength:
             return .training
         case .age, .gender, .height, .weight:
             return .body
@@ -163,6 +208,12 @@ enum OnboardingStep: Int, CaseIterable, Identifiable {
         case .paywall:
             return .paywall
         }
+    }
+}
+
+extension OnboardingStep {
+    var analyticsName: String {
+        String(describing: self)
     }
 }
 
@@ -190,35 +241,34 @@ extension OnboardingStep {
         case .workoutTime: return "18 Workout Time"
         case .equipment: return "19 Equipment"
         case .exerciseStyle: return "20 Exercise Style"
-        case .buildSeed: return "21 Build Seed"
-        case .sessionLength: return "22 Session Length"
-        case .resultsSnapshot: return "23 Entry Map"
-        case .diet: return "24 Diet"
-        case .sleep: return "25 Sleep"
-        case .stress: return "26 Stress"
-        case .priorAttempts: return "27 Prior Attempts"
-        case .commitment: return "28 Commitment"
-        case .notifications: return "29 Notifications"
-        case .chapterScan: return "30 Chapter Scan"
-        case .scanLive: return "31 Arc Entry"
-        case .scanReview: return "32 Scan Review"
-        case .scanAnalyzing: return "33 Scan Analyzing"
-        case .verdict: return "34 Verdict"
-        case .trajectory: return "35 Trajectory"
-        case .obstacleFix: return "36 Obstacle Fix"
-        case .chapterPath: return "37 Chapter Path"
-        case .whyThisProgram: return "38 Path Locked"
-        case .socialProofGallery: return "39 Social Proof"
-        case .lifeChangeEnergy: return "40 Energy"
-        case .lifeChangeStrength: return "41 Strength"
-        case .lifeChangeConfidence: return "42 Confidence"
-        case .lifeChangeSleep: return "43 Sleep"
-        case .lifeChangeLooksFeel: return "44 Looks/Feel"
-        case .commitDay30: return "45 Day 30"
-        case .commitDay90: return "46 Day 90"
-        case .commitToday: return "47 Commit Today"
-        case .planReady: return "48 Arc Ready"
-        case .paywall: return "49 Paywall"
+        case .sessionLength: return "21 Session Length"
+        case .resultsSnapshot: return "22 Entry Map"
+        case .diet: return "23 Diet"
+        case .sleep: return "24 Sleep"
+        case .stress: return "25 Stress"
+        case .priorAttempts: return "26 Prior Attempts"
+        case .commitment: return "27 Commitment"
+        case .notifications: return "28 Notifications"
+        case .chapterScan: return "29 Chapter Scan"
+        case .scanLive: return "30 Arc Entry"
+        case .scanReview: return "31 Scan Review"
+        case .scanAnalyzing: return "32 Scan Analyzing"
+        case .verdict: return "33 Verdict"
+        case .trajectory: return "34 Trajectory"
+        case .obstacleFix: return "35 Obstacle Fix"
+        case .chapterPath: return "36 Chapter Path"
+        case .whyThisProgram: return "37 Path Locked"
+        case .socialProofGallery: return "38 Social Proof"
+        case .lifeChangeEnergy: return "39 Energy"
+        case .lifeChangeStrength: return "40 Strength"
+        case .lifeChangeConfidence: return "41 Confidence"
+        case .lifeChangeSleep: return "42 Sleep"
+        case .lifeChangeLooksFeel: return "43 Looks/Feel"
+        case .commitDay30: return "44 Day 30"
+        case .commitDay90: return "45 Day 90"
+        case .commitToday: return "46 Commit Today"
+        case .planReady: return "47 Arc Ready"
+        case .paywall: return "48 Paywall"
         }
     }
 
@@ -266,12 +316,13 @@ final class OnboardingFlowViewModel {
 
     /// 0 ... 1 fraction of flow complete — feeds `OnboardingProgressBar`.
     var progress: Double {
-        Double(currentStep.rawValue) / Double(OnboardingStep.total - 1)
+        let index = OnboardingStep.flowOrder.firstIndex(of: currentStep) ?? 0
+        return Double(index) / Double(max(1, OnboardingStep.total - 1))
     }
 
     // MARK: Answer model
 
-    // archetype property removed — BuildSeed is the only path (Phase 11)
+    // Archetype is inferred from goals/styles instead of a separate build-pick screen.
     var motivations: Set<Motivation> = []
     var goals: Set<Goal> = []
     var targetAreas: Set<TargetArea> = []
@@ -309,6 +360,92 @@ final class OnboardingFlowViewModel {
     /// Attribute seed survey — Task 1a.12. Up to 2 attributes get +15 prefill via AttributeService.applySeed.
     var seededAttributes: Set<AttributeKey> = []
 
+    /// The onboarding reveal should feel like UNBOUND is spotting potential,
+    /// not making the user self-label a stat build. If an old/debug flow has
+    /// explicit seeds, keep them; otherwise infer the first sparks from intent.
+    var effectiveSeededAttributes: Set<AttributeKey> {
+        if !seededAttributes.isEmpty {
+            return seededAttributes
+        }
+
+        var scores: [AttributeKey: Int] = Dictionary(uniqueKeysWithValues: AttributeKey.allCases.map { ($0, 0) })
+        func add(_ key: AttributeKey, _ amount: Int = 1) {
+            scores[key, default: 0] += amount
+        }
+
+        for goal in goals {
+            switch goal {
+            case .buildMuscle:
+                add(.power, 2)
+                add(.control)
+            case .loseFat:
+                add(.endurance, 2)
+                add(.vitality)
+            case .getDefined:
+                add(.control, 2)
+                add(.power)
+            case .getStronger:
+                add(.power, 3)
+            case .athletic:
+                add(.explosiveness, 2)
+                add(.endurance, 2)
+            case .feelBetter:
+                add(.vitality, 2)
+                add(.mobility)
+            }
+        }
+
+        for area in targetAreas {
+            switch area {
+            case .chest, .shoulders, .arms:
+                add(.power)
+                add(.control)
+            case .back, .core:
+                add(.control, 2)
+            case .legs, .glutes:
+                add(.power)
+                add(.explosiveness)
+            case .fullBody:
+                add(.vitality)
+                add(.control)
+            }
+        }
+
+        for style in exerciseStyles {
+            switch style {
+            case .compoundLifts, .olympicLifts:
+                add(.power, 2)
+            case .isolation:
+                add(.control)
+            case .calisthenics:
+                add(.control, 2)
+            case .cardioIntervals, .steadyCardio:
+                add(.endurance, 2)
+            case .mobility:
+                add(.mobility, 2)
+            case .sports:
+                add(.vitality)
+                add(.explosiveness)
+            case .plyometrics:
+                add(.explosiveness, 2)
+            case .machines:
+                add(.power)
+            }
+        }
+
+        let ranked = AttributeKey.allCases.sorted {
+            let lhs = scores[$0, default: 0]
+            let rhs = scores[$1, default: 0]
+            if lhs == rhs {
+                return $0.shortCode < $1.shortCode
+            }
+            return lhs > rhs
+        }
+
+        let selected = ranked.prefix(2).filter { scores[$0, default: 0] > 0 }
+        return selected.isEmpty ? [.power, .control] : Set(selected)
+    }
+
     // MARK: Scan captures
 
     /// Captured photos keyed by angle. Populated during scanCapture{Front/Side/Back}.
@@ -327,16 +464,17 @@ final class OnboardingFlowViewModel {
 
     /// AI aesthetic scores from the onboarding photo. Populated
     /// concurrently during the 6s analyzing screen — usually ready by
-    /// Derived rank — computed post-scan. In Day 1.5 stub this is keyed off
-    /// the user's chosen archetype + commitment. V1.1 swaps in real vision AI.
-    var derivedRank: String {
+    /// Derived starting tier — computed post-scan. In Day 1.5 stub this is
+    /// keyed off the user's chosen archetype + commitment. V1.1 swaps in
+    /// real vision AI.
+    var derivedRank: RankTitle {
         let score = Int(Double(commitment) + Double(dietQuality) / 2)
         switch score {
-        case ..<6: return "E"
-        case 6..<9: return "D"
-        case 9..<12: return "C"
-        case 12..<14: return "B"
-        default: return "A"
+        case ..<6: return .initiate
+        case 6..<9: return .novice
+        case 9..<12: return .apprentice
+        case 12..<14: return .forged
+        default: return .veteran
         }
     }
 
@@ -367,29 +505,27 @@ final class OnboardingFlowViewModel {
     // MARK: Navigation
 
     func advance() {
-        var next = currentStep.rawValue + 1
-        while next < OnboardingStep.total,
-              let step = OnboardingStep(rawValue: next),
-              shouldSkip(step) {
-            next += 1
-        }
-        guard next < OnboardingStep.total else { return }
-        currentStep = OnboardingStep(rawValue: next) ?? currentStep
+        AnalyticsService.shared.track(.onboardingStepCompleted(step: currentStep.analyticsName))
+        guard let index = OnboardingStep.flowOrder.firstIndex(of: currentStep) else { return }
+        let nextIndex = index + 1
+        guard OnboardingStep.flowOrder.indices.contains(nextIndex) else { return }
+        currentStep = OnboardingStep.flowOrder[nextIndex]
     }
 
     func back() {
-        var prev = currentStep.rawValue - 1
-        while prev >= 0,
-              let step = OnboardingStep(rawValue: prev),
-              shouldSkip(step) {
-            prev -= 1
-        }
-        guard prev >= 0 else { return }
-        currentStep = OnboardingStep(rawValue: prev) ?? currentStep
+        guard let index = OnboardingStep.flowOrder.firstIndex(of: currentStep) else { return }
+        let previousIndex = index - 1
+        guard OnboardingStep.flowOrder.indices.contains(previousIndex) else { return }
+        currentStep = OnboardingStep.flowOrder[previousIndex]
     }
 
     private func shouldSkip(_ step: OnboardingStep) -> Bool {
-        return false
+        switch step {
+        case .lifeChangeEnergy, .lifeChangeStrength, .lifeChangeConfidence, .lifeChangeSleep, .lifeChangeLooksFeel:
+            return true
+        default:
+            return false
+        }
     }
 
     func jump(to step: OnboardingStep) {
@@ -545,8 +681,6 @@ final class OnboardingFlowViewModel {
             return !priorAttempts.isEmpty
         case .name:
             return !displayHandle.trimmingCharacters(in: .whitespaces).isEmpty
-        case .buildSeed:
-            return true  // 0–2 selections allowed — always advanceable
         case .notifications, .scanAnalyzing,
              .verdict, .trajectory, .obstacleFix, .whyThisProgram,
              .socialProofGallery, .commitDay30, .commitDay90, .commitToday, .planReady, .paywall:
@@ -575,18 +709,20 @@ final class OnboardingFlowViewModel {
                 BadgeService.shared.bind(userId: userId)
             }
             await scheduleNotifications()
+            AnalyticsService.shared.track(.onboardingCompleted)
             logger.info("Onboarding answers persisted for user \(userId, privacy: .private)")
             return true
         } catch {
             logger.error("Failed to persist onboarding answers: \(String(describing: error))")
             UserDefaults.standard.set(true, forKey: "onboardingCompleted")
             await scheduleNotifications()
+            AnalyticsService.shared.track(.onboardingCompleted)
             return false
         }
     }
 
     private func scheduleNotifications() async {
-        guard let workoutTime else { return }
+        guard notificationsRequested, let workoutTime else { return }
         await NotificationService.scheduleWorkoutReminders(
             workoutTime: workoutTime,
             trainingDays: trainingDays
@@ -615,7 +751,8 @@ final class OnboardingFlowViewModel {
             "priorAttempts": priorAttempts.map(\.rawValue)
         ]
         if let workoutTime { fields["workoutTime"] = workoutTime.rawValue }
-        // preferredArchetype field removed — seededAttributes drive Build instead
+        fields["seededAttributes"] = effectiveSeededAttributes.map(\.rawValue)
+        // preferredArchetype field removed — inferred attribute sparks drive Build instead
         if let experience { fields["experience"] = experience.rawValue }
         // Auto-default training feedback mode from experience level.
         // Beginner-equivalent (never/tried) → silent; active (used/current) → quick.

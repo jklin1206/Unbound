@@ -3,8 +3,8 @@ import SwiftUI
 import UIKit
 
 /// Nth-scan payoff. Before/after photo split + ScanBuildDeltaCard +
-/// Claude evolution narrative. Setbacks NEVER appear as negative numbers —
-/// regressed axes become quiet "Focus area" pills via BuildIdentityDelta.
+/// checkpoint evolution narrative. Setbacks NEVER appear as negative numbers —
+/// regressed axes become quiet "Watch signal" pills via BuildIdentityDelta.
 struct NthScanEvolutionCard: View {
     let priorCheckpoint: ScanCheckpoint
     let currentCheckpoint: ScanCheckpoint
@@ -37,8 +37,14 @@ struct NthScanEvolutionCard: View {
 
     private var photoSplit: some View {
         VStack(spacing: 0) {
-            photoRow(image: priorImage, label: "30 DAYS AGO")
-            photoRow(image: currentImage, label: "TODAY")
+            photoRow(
+                image: priorImage,
+                label: L10n.string(.scanEvolutionPriorPhotoLabel, defaultValue: "30 DAYS AGO")
+            )
+            photoRow(
+                image: currentImage,
+                label: L10n.string(.scanEvolutionCurrentPhotoLabel, defaultValue: "TODAY")
+            )
         }
     }
 
@@ -66,7 +72,7 @@ struct NthScanEvolutionCard: View {
     }
 
     private var titleBlock: some View {
-        Text("YOUR ARC EVOLVED")
+        Text(L10n.string(.scanEvolutionTitle, defaultValue: "YOUR ARC EVOLVED"))
             .font(Font.unbound.displayM)
             .foregroundStyle(Color.unbound.textPrimary)
             .tracking(3)
@@ -79,7 +85,7 @@ struct NthScanEvolutionCard: View {
         if !regressed.isEmpty {
             HStack(spacing: 8) {
                 ForEach(regressed, id: \.self) { axis in
-                    Text("Focus area · \(axis.buildVocab)")
+                    Text(L10n.format(.scanEvolutionFocusArea, defaultValue: "Watch signal · %@", axis.buildVocab))
                         .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(Color.unbound.textTertiary)
                         .padding(.horizontal, 10)
@@ -102,17 +108,17 @@ struct NthScanEvolutionCard: View {
     }
 
     private var cadenceAnchor: some View {
-        Text("Next checkpoint in 30 days.")
+        Text(L10n.string(.scanEvolutionCadence, defaultValue: "Next checkpoint in 30 days."))
             .font(.system(size: 12, weight: .medium))
             .foregroundStyle(Color.unbound.textTertiary)
     }
 
     private var ctaBlock: some View {
         VStack(spacing: 12) {
-            UnboundButton(title: "BACK TO TRAINING", action: onPrimary)
+            UnboundButton(title: L10n.string(.scanEvolutionPrimaryCTA, defaultValue: "BACK TO TRAINING"), action: onPrimary)
                 .padding(.horizontal, 20)
             Button(action: onShare) {
-                Text("Share evolution")
+                Text(L10n.string(.scanEvolutionShare, defaultValue: "Share evolution"))
                     .font(.system(size: 13))
                     .foregroundStyle(Color.unbound.textTertiary)
                     .underline()

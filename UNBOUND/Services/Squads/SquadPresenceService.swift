@@ -64,7 +64,7 @@ final class SquadPresenceService: SquadPresenceServiceProtocol {
         let expires = now.addingTimeInterval(3 * 3600)
         let iso = ISO8601DateFormatter()
         do {
-            try await UnboundSupabase.client.database
+            try await UnboundSupabase.client.schema("public")
                 .from("squad_presence")
                 .upsert([
                     "user_id": userId,
@@ -80,7 +80,7 @@ final class SquadPresenceService: SquadPresenceServiceProtocol {
 
     func clearPresence(userId: String) async {
         do {
-            try await UnboundSupabase.client.database
+            try await UnboundSupabase.client.schema("public")
                 .from("squad_presence")
                 .delete()
                 .eq("user_id", value: userId)
@@ -125,7 +125,7 @@ final class SquadPresenceService: SquadPresenceServiceProtocol {
 
     private func refreshPresence(squadId: UUID) async {
         do {
-            let rows: [SquadPresenceRow] = try await UnboundSupabase.client.database
+            let rows: [SquadPresenceRow] = try await UnboundSupabase.client.schema("public")
                 .from("squad_presence")
                 .select()
                 .eq("squad_id", value: squadId.uuidString)

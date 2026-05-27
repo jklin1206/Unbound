@@ -15,7 +15,7 @@ import UIKit
 //   4. XP gained (always shown if > 0, smallest card)
 //
 // Brand rules: drama only when earned. The bottom four named tiers
-// (Veteran/Honed/Vessel/Unbound/Ascendant) get bigger emphasis. Lower
+// (Veteran/Master/Vessel/Unbound/Ascendant) get bigger emphasis. Lower
 // tier crossings render as a clean compact card.
 
 struct RewardCelebrationView: View {
@@ -381,14 +381,14 @@ struct RewardCelebrationView: View {
                         .font(Font.unbound.captionS.weight(.heavy))
                         .tracking(1.4)
                         .foregroundStyle(Color.unbound.success)
-                    Text(receipt.didOverallLevelUp ? "Overall LV advanced" : "Work banked")
+                    Text(receipt.didOverallLevelUp ? "Overall LVL advanced" : "Work banked")
                         .font(Font.unbound.bodyMStrong)
                         .foregroundStyle(Color.unbound.textPrimary)
                 }
 
                 Spacer(minLength: 0)
 
-                Text("LV \(receipt.overallLevelAfter)")
+                Text("LVL \(receipt.overallLevelAfter)")
                     .font(.system(size: 14, weight: .heavy, design: .monospaced))
                     .foregroundStyle(Color.unbound.textPrimary)
                     .padding(.horizontal, 10)
@@ -405,7 +405,7 @@ struct RewardCelebrationView: View {
                     progressionRow("Attribute XP", "+\(formatNumber(receipt.totalAttributeXP)) XP")
                 }
                 if receipt.overallLevelXPGained > 0 {
-                    progressionRow("Overall LV XP", "+\(formatNumber(receipt.overallLevelXPGained)) XP")
+                    progressionRow("Overall LVL XP", "+\(formatNumber(receipt.overallLevelXPGained)) XP")
                 }
                 if receipt.skillXPGained > 0 {
                     progressionRow("Skill XP", "+\(receipt.skillXPGained) XP")
@@ -432,8 +432,8 @@ struct RewardCelebrationView: View {
                 VStack(spacing: 7) {
                     ForEach(receipt.attributeLines) { line in
                         let levelText = line.didLevelUp
-                            ? "LV \(line.levelBefore) → \(line.levelAfter)"
-                            : "LV \(line.levelAfter)"
+                            ? "LVL \(line.levelBefore) → \(line.levelAfter)"
+                            : "LVL \(line.levelAfter)"
                         progressionDetailRow(
                             title: "\(line.key.shortCode) · \(levelText)",
                             value: "+\(formatNumber(line.xpGained)) XP"

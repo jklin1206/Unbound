@@ -18,7 +18,7 @@ struct RPEOnboardingStep: View {
         let ex = Exercise(id: "demo-bench", name: "Bench Press",
                           muscleGroups: [], sets: 3, reps: "8",
                           restSeconds: 90, rpe: nil, notes: nil, substitution: nil)
-        let w = Workout(name: "Try it", targetMuscleGroups: [], warmup: [],
+        let w = Workout(name: L10n.onboarding("rpeLoop.demoWorkoutName", defaultValue: "Try it"), targetMuscleGroups: [], warmup: [],
                         mainExercises: [ex], cooldown: [],
                         estimatedMinutes: 0, notes: nil, blockType: nil)
         let s = ActiveWorkoutSession(workout: w, programId: "onboarding-demo", dayNumber: 0)
@@ -34,13 +34,13 @@ struct RPEOnboardingStep: View {
     var body: some View {
         VStack(spacing: 24) {
             VStack(spacing: 10) {
-                Text("TRY THE LOOP")
+                Text(L10n.onboarding("rpeLoop.eyebrow", defaultValue: "TRY THE LOOP"))
                     .font(Font.unbound.captionS)
                     .tracking(2)
                     .foregroundStyle(Color.unbound.accent)
                 Text(allLogged
-                     ? "Progress moved. In the full protocol, every logged set feeds your rank, stats, next unlock, and next session."
-                     : "Tap the checkmark to log a set. Then tap RPE and rate how hard it felt. This is how UNBOUND adapts without making you guess.")
+                     ? L10n.onboarding("rpeLoop.body.logged", defaultValue: "Progress moved. In the full protocol, every logged set feeds your rank, stats, next unlock, and next session.")
+                     : L10n.onboarding("rpeLoop.body.initial", defaultValue: "Tap the checkmark to log a set. Then tap RPE and rate how hard it felt. This is how UNBOUND adapts without making you guess."))
                     .font(Font.unbound.bodyM)
                     .foregroundStyle(Color.unbound.textSecondary)
                     .multilineTextAlignment(.center)
@@ -87,7 +87,7 @@ struct RPEOnboardingStep: View {
             Spacer()
 
             Button(action: onContinue) {
-                Text("GOT IT")
+                Text(L10n.onboarding("rpeLoop.cta", defaultValue: "GOT IT"))
                     .font(Font.unbound.bodyLStrong).tracking(2)
                     .foregroundStyle(Color.unbound.bg)
                     .frame(maxWidth: .infinity)
@@ -144,10 +144,10 @@ struct RPEOnboardingStep: View {
                 .frame(width: 48, height: 44)
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("+12 XP · POWER +1")
+                    Text(L10n.onboarding("rpeLoop.reward.title", defaultValue: "+12 XP · POWER +1"))
                         .font(Font.unbound.bodyLStrong)
                         .foregroundStyle(Color.unbound.textPrimary)
-                    Text("First unlock progress: 8%")
+                    Text(L10n.onboarding("rpeLoop.reward.subtitle", defaultValue: "First unlock progress: 8%"))
                         .font(Font.unbound.bodyS)
                         .foregroundStyle(Color.unbound.textSecondary)
                 }
@@ -174,12 +174,12 @@ private struct OnboardingSetEditor: View {
 
     var body: some View {
         VStack(spacing: 28) {
-            StepperControl(label: isWeight ? "Weight" : "Reps", value: $value,
+            StepperControl(label: isWeight ? L10n.onboarding("rpeLoop.editor.weight", defaultValue: "Weight") : L10n.onboarding("rpeLoop.editor.reps", defaultValue: "Reps"), value: $value,
                            step: isWeight ? weightStep : 1,
                            unit: isWeight ? weightUnit.shortLabel : nil,
                            allowsDecimal: isWeight)
             Button { onSave(value); dismiss() } label: {
-                Text("DONE")
+                Text(L10n.onboarding("rpeLoop.editor.done", defaultValue: "DONE"))
                     .font(Font.unbound.bodyLStrong).tracking(2)
                     .foregroundStyle(Color.unbound.bg)
                     .frame(maxWidth: .infinity)

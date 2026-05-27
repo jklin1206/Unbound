@@ -17,15 +17,18 @@ struct ProgramGeneratorInput {
     let targetFrequency: TargetFrequency
     let trainingDays: Set<Weekday>
     let experience: Experience
+    var sessionLengthMinutes: Int = 45
     var focusAreas: [FocusArea]
     var cutModeActive: Bool
     let trainingFeedbackMode: TrainingFeedbackMode
     var progressionStates: [String: ProgressionState]
     let previousBlock: ProgramBlock?
+    var exerciseRotationsToApply: [String] = []
     let weightKg: Double
     let heightCm: Double
     let age: Int
     let sex: BiologicalSex
+    var nutritionProfileMissingFields: [String] = []
     let blockStartDate: Date
     var exercisePreferences: [ExercisePreference] = []
     var calibration: ProgramCalibrationInput = .standardReady()
@@ -88,6 +91,8 @@ enum DeterministicProgramGenerator {
             frequency: input.targetFrequency,
             cutMode: input.cutModeActive
         )
+        let hydrationLiters = personalizedHydrationLiters(weightKg: input.weightKg)
+        let nutritionSource = nutritionSourceSummary(missingFields: input.nutritionProfileMissingFields)
 
         let nutritionPlan = NutritionPlan(
             dailyCalories: macros.calories,
@@ -96,9 +101,11 @@ enum DeterministicProgramGenerator {
             fatGrams: macros.fatG,
             mealCount: 4,
             meals: [],
-            hydrationLiters: 3.0,
+            hydrationLiters: hydrationLiters,
             supplements: [],
-            notes: "",
+            notes: nutritionNotes(missingFields: input.nutritionProfileMissingFields),
+            sourceSummary: nutritionSource,
+            usesEstimatedProfileDefaults: !input.nutritionProfileMissingFields.isEmpty,
             restDayCalories: max(0, macros.calories - 200),
             restDayProteinGrams: macros.proteinG,
             restDayCarbsGrams: max(0, macros.carbsG - 50),
@@ -134,11 +141,31 @@ enum DeterministicProgramGenerator {
             recoveryPlan: recoveryPlan,
             difficultyLevel: difficultyLevel(for: input.experience),
             requiredEquipment: input.equipment.map(\.rawValue),
-            estimatedDailyMinutes: estimatedDailyMinutes(for: input.experience),
+            estimatedDailyMinutes: sessionBudgetMinutes(for: input),
             rationale: rationale,
             arcs: arc.map { [$0] } ?? [],
             currentArcId: arc?.id
         )
+    }
+
+    private static func personalizedHydrationLiters(weightKg: Double) -> Double {
+        let raw = weightKg * 35 / 1_000
+        let clamped = min(max(raw, 1.8), 4.5)
+        return (clamped * 10).rounded() / 10
+    }
+
+    private static func nutritionSourceSummary(missingFields: [String]) -> String {
+        guard !missingFields.isEmpty else {
+            return "Based on your profile stats, weekly training frequency, and current goal."
+        }
+        return "Using default \(missingFields.joined(separator: ", ")) until your profile is completed."
+    }
+
+    private static func nutritionNotes(missingFields: [String]) -> String {
+        if missingFields.isEmpty {
+            return "Starting estimate from your profile stats and weekly training frequency. Adjust after two weeks of weigh-ins, performance, and hunger signals."
+        }
+        return "Temporary estimate. Complete your \(missingFields.joined(separator: ", ")) to tighten calories and macros before treating them as targets."
     }
 
     // MARK: — Day scheduling
@@ -173,7 +200,8 @@ enum DeterministicProgramGenerator {
                     workout = buildCalibrationWorkout(sessionIndex: sessionIndex, input: input, bias: bias)
                     label = workout.name
                 } else {
-                    workout = buildWorkout(for: template, input: input, bias: bias)
+                    let blockType = blockType(forDayNumber: dayNumber, input: input)
+                    workout = buildWorkout(for: template, input: input, bias: bias, blockType: blockType)
                     label = labelFor(template: template, bias: bias)
                 }
                 result.append(ProgramDay(
@@ -207,7 +235,8 @@ enum DeterministicProgramGenerator {
     private static func buildWorkout(
         for template: DayTemplate,
         input: ProgramGeneratorInput,
-        bias: [MuscleGroup: Int]
+        bias: [MuscleGroup: Int],
+        blockType: BlockType
     ) -> Workout {
         let compatibleCatalog = movementPool(input: input)
 
@@ -236,8 +265,8 @@ enum DeterministicProgramGenerator {
             eligiblePool = compatibleCatalog
         }
 
-        let compounds = eligiblePool.filter(isPrimaryMovement)
-        let accessories = eligiblePool.filter { !isPrimaryMovement($0) }
+        let compounds = rotationFiltered(eligiblePool.filter(isPrimaryMovement), input: input)
+        let accessories = rotationFiltered(eligiblePool.filter { !isPrimaryMovement($0) }, input: input)
 
         // Compounds: prefer the biased pick first, then the next available
         // different entry. If compounds is empty (very possible in a pure
@@ -274,20 +303,41 @@ enum DeterministicProgramGenerator {
         // unlikely given the fallback above), at least grab the first few
         // entries so mainExercises is never empty.
         if picked.isEmpty {
-            picked = Array(eligiblePool.prefix(3))
+            picked = Array(rotationFiltered(eligiblePool, input: input).prefix(3))
         }
 
-        let mainExercises = uniqueDefinitions(picked).map { toExercise(definition: $0, input: input) }
+        let warmup = warmupExercises(for: template, input: input)
+        let cooldown = cooldownExercises(for: template, blockType: blockType)
+        let mainExercises = uniqueDefinitions(picked).map {
+            toExercise(definition: $0, input: input, blockType: blockType)
+        }
+        let compressed = compressedMainExercises(
+            mainExercises,
+            warmup: warmup,
+            cooldown: cooldown,
+            budgetMinutes: sessionBudgetMinutes(for: input)
+        )
+        let estimatedMinutes = estimatedWorkoutMinutes(
+            warmup: warmup,
+            main: compressed.exercises,
+            cooldown: cooldown
+        )
+        let notes = [
+            blockProgrammingNote(for: blockType),
+            compressed.note
+        ]
+        .compactMap { $0 }
+        .joined(separator: " ")
 
         return Workout(
             name: template.displayLabel,
             targetMuscleGroups: Array(templateGroups),
-            warmup: [],
-            mainExercises: mainExercises,
-            cooldown: [],
-            estimatedMinutes: 45 + (mainExercises.count * 5),
-            notes: nil,
-            blockType: .accumulation
+            warmup: warmup,
+            mainExercises: compressed.exercises,
+            cooldown: cooldown,
+            estimatedMinutes: estimatedMinutes,
+            notes: notes,
+            blockType: blockType
         )
     }
 
@@ -315,19 +365,37 @@ enum DeterministicProgramGenerator {
             picked = Array(compatibleCatalog.prefix(3))
         }
 
+        let warmup = calibrationWarmup(input: input, planName: plan.name)
         let exercises = uniqueDefinitions(picked).map { definition in
             toCalibrationExercise(definition: definition, input: input)
         }
+        let compressed = compressedMainExercises(
+            exercises,
+            warmup: warmup,
+            cooldown: [],
+            budgetMinutes: sessionBudgetMinutes(for: input)
+        )
         let muscleGroups = Array(Set(exercises.flatMap(\.muscleGroups)))
+        let estimatedMinutes = estimatedWorkoutMinutes(
+            warmup: warmup,
+            main: compressed.exercises,
+            cooldown: []
+        )
+        let note = [
+            "Calibration: find clean working standards at RPE 6-7. Stop with 2-3 reps in reserve; do not max.",
+            compressed.note
+        ]
+        .compactMap { $0 }
+        .joined(separator: " ")
 
         return Workout(
             name: plan.name,
             targetMuscleGroups: muscleGroups.isEmpty ? plan.fallbackMuscleGroups : muscleGroups,
-            warmup: [],
-            mainExercises: exercises,
+            warmup: warmup,
+            mainExercises: compressed.exercises,
             cooldown: [],
-            estimatedMinutes: min(55, max(28, 16 + exercises.count * 7)),
-            notes: "Calibration: find clean working standards at RPE 6-7. Stop with 2-3 reps in reserve; do not max.",
+            estimatedMinutes: estimatedMinutes,
+            notes: note,
             blockType: .deload
         )
     }
@@ -393,17 +461,18 @@ enum DeterministicProgramGenerator {
             .filter { $0.movementSlot == slot }
             .filter { !usedKeys.contains($0.canonicalExerciseName ?? $0.id) }
 
-        guard !candidates.isEmpty else { return nil }
+        let rotationAwareCandidates = rotationFiltered(candidates, input: input)
+        guard !rotationAwareCandidates.isEmpty else { return nil }
         if !bias.isEmpty,
            let biased = WeakPointBiaser.pickBiased(
-               candidates: candidates,
+               candidates: rotationAwareCandidates,
                biasedGroups: bias,
                biasedGroupsFor: { $0.muscleGroups }
            ) {
             return biased
         }
 
-        return candidates.first
+        return rotationAwareCandidates.first
     }
 
     private static func toCalibrationExercise(
@@ -591,16 +660,53 @@ enum DeterministicProgramGenerator {
         }
     }
 
-    private static func toExercise(definition: MovementDefinition, input: ProgramGeneratorInput) -> Exercise {
+    private static func rotationFiltered(
+        _ definitions: [MovementDefinition],
+        input: ProgramGeneratorInput
+    ) -> [MovementDefinition] {
+        let staleKeys = rotationKeys(for: input)
+        guard !definitions.isEmpty, !staleKeys.isEmpty else { return definitions }
+        let fresh = definitions.filter { !matchesRotation($0, staleKeys: staleKeys) }
+        return fresh.isEmpty ? definitions : fresh
+    }
+
+    private static func rotationKeys(for input: ProgramGeneratorInput) -> Set<String> {
+        let raw = (input.previousBlock?.exerciseRotationsThisBlock ?? []) + input.exerciseRotationsToApply
+        return Set(raw.map(MovementCatalog.normalized).filter { !$0.isEmpty })
+    }
+
+    private static func matchesRotation(
+        _ definition: MovementDefinition,
+        staleKeys: Set<String>
+    ) -> Bool {
+        let rankStandard = MovementCatalog.rankStandard(for: definition)
+        let candidates = [
+            definition.canonicalExerciseName,
+            definition.displayName,
+            definition.id,
+            rankStandard?.canonicalExerciseName,
+            rankStandard?.displayName,
+            rankStandard?.id
+        ]
+        .compactMap { $0 }
+        .map(MovementCatalog.normalized)
+
+        return candidates.contains { staleKeys.contains($0) }
+    }
+
+    private static func toExercise(
+        definition: MovementDefinition,
+        input: ProgramGeneratorInput,
+        blockType: BlockType
+    ) -> Exercise {
         let state = progressionState(for: definition, input: input)
-        let sets = 3
-        let reps: String
-        if let s = state {
-            reps = "\(s.targetRepMin)-\(s.targetRepMax)"
-        } else {
-            reps = "8-12"
-        }
-        let rpeDefault = state?.targetRPE ?? input.trainingFeedbackMode.defaultTargetRPE
+        let primary = isPrimaryMovement(definition)
+        let prescription = prescription(
+            for: blockType,
+            state: state,
+            isPrimary: primary,
+            fallbackRPE: input.trainingFeedbackMode.defaultTargetRPE
+        )
         let substitute = MovementCatalog.catalogDefaultSubstitute(
             for: definition.displayName,
             style: input.trainingStyle,
@@ -614,13 +720,355 @@ enum DeterministicProgramGenerator {
             id: UUID().uuidString,
             name: definition.displayName,
             muscleGroups: definition.muscleGroups,
-            sets: sets,
-            reps: reps,
-            restSeconds: 90,
-            rpe: rpeDefault > 0 ? rpeDefault : nil,
-            notes: nil,
+            sets: prescription.sets,
+            reps: prescription.reps,
+            restSeconds: prescription.restSeconds,
+            rpe: prescription.rpe > 0 ? prescription.rpe : nil,
+            notes: prescription.note,
             substitution: substitute?.displayName
         )
+    }
+
+    private static func blockType(forDayNumber dayNumber: Int, input: ProgramGeneratorInput) -> BlockType {
+        if input.calibration.requiresLearningWeek { return .deload }
+        let dayInArc = ((max(1, dayNumber) - 1) % standardArcDurationDays) + 1
+        switch dayInArc {
+        case 1...14:
+            return .accumulation
+        case 15...21:
+            return .intensification
+        case 22...24:
+            return input.experience == .never ? .intensification : .realization
+        default:
+            return .deload
+        }
+    }
+
+    private static func prescription(
+        for blockType: BlockType,
+        state: ProgressionState?,
+        isPrimary: Bool,
+        fallbackRPE: Int
+    ) -> (sets: Int, reps: String, restSeconds: Int, rpe: Int, note: String?) {
+        switch blockType {
+        case .accumulation:
+            let reps = state.map { "\($0.targetRepMin)-\($0.targetRepMax)" } ?? "8-12"
+            return (
+                sets: isPrimary ? 4 : 3,
+                reps: reps,
+                restSeconds: isPrimary ? 120 : 75,
+                rpe: max(7, state?.targetRPE ?? fallbackRPE),
+                note: "Volume focus. Leave 2 reps in reserve."
+            )
+        case .intensification:
+            return (
+                sets: isPrimary ? 4 : 3,
+                reps: isPrimary ? "5-8" : "8-10",
+                restSeconds: isPrimary ? 150 : 90,
+                rpe: 8,
+                note: "Load focus. Add weight only if bar speed and form stay clean."
+            )
+        case .realization, .peaking:
+            return (
+                sets: isPrimary ? 3 : 2,
+                reps: isPrimary ? "3-5" : "6-8",
+                restSeconds: isPrimary ? 180 : 90,
+                rpe: blockType == .peaking ? 9 : 8,
+                note: "Quality focus. No grinders; stop before form breaks."
+            )
+        case .deload:
+            return (
+                sets: isPrimary ? 2 : 2,
+                reps: "8 easy",
+                restSeconds: 60,
+                rpe: 6,
+                note: "Deload. Move well and keep reps easy."
+            )
+        }
+    }
+
+    private static func blockProgrammingNote(for blockType: BlockType) -> String {
+        switch blockType {
+        case .accumulation:
+            return "Accumulation block: build volume and repeatable standards."
+        case .intensification:
+            return "Intensification block: tighten reps and push load with clean form."
+        case .realization:
+            return "Realization block: lower volume, higher intent, prove the work."
+        case .peaking:
+            return "Peaking block: test-specific work only."
+        case .deload:
+            return "Deload block: reduce fatigue so the next arc lands."
+        }
+    }
+
+    private struct WorkoutCompressionResult {
+        var exercises: [Exercise]
+        var note: String?
+    }
+
+    private static func compressedMainExercises(
+        _ exercises: [Exercise],
+        warmup: [Exercise],
+        cooldown: [Exercise],
+        budgetMinutes: Int
+    ) -> WorkoutCompressionResult {
+        guard !exercises.isEmpty else {
+            return WorkoutCompressionResult(exercises: exercises, note: nil)
+        }
+
+        var compressed = exercises
+        let originalCount = compressed.count
+        let minimumExerciseCount = min(2, compressed.count)
+        var usedCompression = false
+
+        while estimatedWorkoutMinutes(warmup: warmup, main: compressed, cooldown: cooldown) > budgetMinutes,
+              compressed.count > minimumExerciseCount,
+              let index = compressed.lastIndex(where: { !isPrimaryExercise($0) }) {
+            compressed.remove(at: index)
+            usedCompression = true
+        }
+
+        while estimatedWorkoutMinutes(warmup: warmup, main: compressed, cooldown: cooldown) > budgetMinutes,
+              let index = compressed.lastIndex(where: { !isPrimaryExercise($0) && $0.sets > 1 }) {
+            compressed[index].sets -= 1
+            compressed[index].restSeconds = min(compressed[index].restSeconds, 60)
+            usedCompression = true
+        }
+
+        while estimatedWorkoutMinutes(warmup: warmup, main: compressed, cooldown: cooldown) > budgetMinutes,
+              let index = compressed.lastIndex(where: { $0.restSeconds > 60 }) {
+            compressed[index].restSeconds = max(60, compressed[index].restSeconds - 30)
+            usedCompression = true
+        }
+
+        while estimatedWorkoutMinutes(warmup: warmup, main: compressed, cooldown: cooldown) > budgetMinutes,
+              let index = compressed.lastIndex(where: { $0.sets > 2 }) {
+            compressed[index].sets -= 1
+            usedCompression = true
+        }
+
+        if usedCompression {
+            compressed = compressed.map { exercise in
+                var adjusted = exercise
+                adjusted.notes = appendNote(
+                    "Compressed to fit the \(budgetMinutes)-minute session window.",
+                    to: adjusted.notes
+                )
+                return adjusted
+            }
+        }
+
+        let removed = originalCount - compressed.count
+        let note: String?
+        if usedCompression {
+            note = removed > 0
+                ? "Compressed to fit \(budgetMinutes)m: removed \(removed) lower-priority accessory\(removed == 1 ? "" : "s") and tightened rest."
+                : "Compressed to fit \(budgetMinutes)m: tightened sets and rest while preserving the main pattern."
+        } else {
+            note = "Built to fit the \(budgetMinutes)-minute session window."
+        }
+
+        return WorkoutCompressionResult(exercises: compressed, note: note)
+    }
+
+    private static func warmupExercises(
+        for template: DayTemplate,
+        input: ProgramGeneratorInput
+    ) -> [Exercise] {
+        let isAdvancedStrength = input.experience == .current && input.trainingStyle != .bodyweight
+        let base: [Exercise]
+
+        switch template {
+        case .push:
+            base = [
+                warmupExercise("Shoulder Dislocates", groups: [.shoulders, .chest, .back], reps: "45s"),
+                warmupExercise("Incline Pushup", groups: [.chest, .shoulders, .arms, .core], reps: "8")
+            ]
+        case .pull:
+            base = [
+                warmupExercise("Shoulder Dislocates", groups: [.shoulders, .back], reps: "45s"),
+                warmupExercise("Band Row", groups: [.back, .lats, .arms], reps: "12")
+            ]
+        case .legs, .lower:
+            base = [
+                warmupExercise("World's Greatest Stretch", groups: [.legs, .glutes, .back, .core], reps: "45s"),
+                warmupExercise("Bodyweight Squat", groups: [.legs, .glutes, .core], reps: "10")
+            ]
+        case .upper:
+            base = [
+                warmupExercise("Shoulder Dislocates", groups: [.shoulders, .chest, .back], reps: "45s"),
+                warmupExercise("Band Row", groups: [.back, .lats, .arms], reps: "12")
+            ]
+        case .fullBody, .weakPoint:
+            base = [
+                warmupExercise("World's Greatest Stretch", groups: [.legs, .glutes, .back, .core], reps: "45s"),
+                warmupExercise("Incline Pushup", groups: [.chest, .shoulders, .arms, .core], reps: "8")
+            ]
+        case .skill:
+            base = [
+                warmupExercise("Wrist Prep Flow", groups: [.forearms], reps: "45s"),
+                warmupExercise("Hollow Hold", groups: [.core], reps: "20s")
+            ]
+        case .rest:
+            base = []
+        }
+
+        guard isAdvancedStrength, let ramp = rampWarmupExercise(for: template) else {
+            return base
+        }
+        return base + [ramp]
+    }
+
+    private static func calibrationWarmup(
+        input: ProgramGeneratorInput,
+        planName: String
+    ) -> [Exercise] {
+        if planName.localizedCaseInsensitiveContains("lower")
+            || planName.localizedCaseInsensitiveContains("legs") {
+            return warmupExercises(for: .lower, input: input)
+        }
+        if planName.localizedCaseInsensitiveContains("pull") {
+            return warmupExercises(for: .pull, input: input)
+        }
+        if planName.localizedCaseInsensitiveContains("upper") {
+            return warmupExercises(for: .upper, input: input)
+        }
+        return warmupExercises(for: .fullBody, input: input)
+    }
+
+    private static func cooldownExercises(for template: DayTemplate, blockType: BlockType) -> [Exercise] {
+        let breathing = warmupExercise(
+            "90/90 Breathing Reset",
+            groups: [.core],
+            reps: "60s",
+            restSeconds: 0,
+            notes: "Downshift before you leave."
+        )
+
+        let stretch: Exercise
+        switch template {
+        case .push, .upper:
+            stretch = warmupExercise(
+                "Doorway Pec Stretch",
+                groups: [.chest, .shoulders],
+                reps: "45s",
+                restSeconds: 0,
+                notes: "Open the front line."
+            )
+        case .pull:
+            stretch = warmupExercise(
+                "Child's Pose Lat Reach",
+                groups: [.back, .lats],
+                reps: "45s",
+                restSeconds: 0,
+                notes: "Easy lat reset."
+            )
+        case .legs, .lower:
+            stretch = warmupExercise(
+                "Couch Stretch",
+                groups: [.legs, .glutes],
+                reps: "45s",
+                restSeconds: 0,
+                notes: "Hip flexor reset."
+            )
+        case .skill:
+            stretch = warmupExercise(
+                "Wrist Flexor Stretch",
+                groups: [.forearms],
+                reps: "45s",
+                restSeconds: 0,
+                notes: "Unload the wrists."
+            )
+        case .fullBody, .weakPoint, .rest:
+            stretch = warmupExercise(
+                "World's Greatest Stretch",
+                groups: [.legs, .glutes, .back, .core],
+                reps: "45s",
+                restSeconds: 0,
+                notes: "Full-body reset."
+            )
+        }
+
+        return blockType == .deload ? [stretch, breathing] : [breathing, stretch]
+    }
+
+    private static func rampWarmupExercise(for template: DayTemplate) -> Exercise? {
+        switch template {
+        case .push, .upper:
+            return warmupExercise("Pushup", groups: [.chest, .shoulders, .arms, .core], sets: 1, reps: "5", restSeconds: 45, notes: "Ramp set before loading.")
+        case .pull:
+            return warmupExercise("Inverted Row", groups: [.back, .lats, .arms], sets: 1, reps: "6", restSeconds: 45, notes: "Ramp set before loading.")
+        case .legs, .lower, .fullBody, .weakPoint:
+            return warmupExercise("Bodyweight Squat", groups: [.legs, .glutes, .core], sets: 1, reps: "6", restSeconds: 45, notes: "Ramp set before loading.")
+        case .skill, .rest:
+            return nil
+        }
+    }
+
+    private static func warmupExercise(
+        _ name: String,
+        groups: [MuscleGroup],
+        sets: Int = 1,
+        reps: String,
+        restSeconds: Int = 30,
+        notes: String? = "Prep work."
+    ) -> Exercise {
+        Exercise(
+            id: UUID().uuidString,
+            name: name,
+            muscleGroups: groups,
+            sets: sets,
+            reps: reps,
+            restSeconds: restSeconds,
+            rpe: 5,
+            notes: notes,
+            substitution: nil
+        )
+    }
+
+    private static func estimatedWorkoutMinutes(
+        warmup: [Exercise],
+        main: [Exercise],
+        cooldown: [Exercise]
+    ) -> Int {
+        let warmupSeconds = warmup.reduce(0) { $0 + estimatedSeconds(for: $1, defaultWorkSeconds: 30) }
+        let mainSeconds = main.reduce(0) { $0 + estimatedSeconds(for: $1, defaultWorkSeconds: 40) }
+        let cooldownSeconds = cooldown.reduce(0) { $0 + estimatedSeconds(for: $1, defaultWorkSeconds: 30) }
+        let transitionSeconds = max(0, warmup.count + main.count + cooldown.count - 1) * 30
+        return max(5, Int(ceil(Double(warmupSeconds + mainSeconds + cooldownSeconds + transitionSeconds) / 60.0)))
+    }
+
+    private static func estimatedSeconds(for exercise: Exercise, defaultWorkSeconds: Int) -> Int {
+        let workSeconds = durationSeconds(in: exercise.reps) ?? defaultWorkSeconds
+        return max(1, exercise.sets) * (workSeconds + max(0, exercise.restSeconds))
+    }
+
+    private static func durationSeconds(in reps: String) -> Int? {
+        let lower = reps.lowercased()
+        guard lower.contains("s") else { return nil }
+        let digits = lower.prefix { $0.isNumber }
+        guard !digits.isEmpty else { return nil }
+        return Int(String(digits))
+    }
+
+    private static func isPrimaryExercise(_ exercise: Exercise) -> Bool {
+        guard let definition = MovementCatalog.canonicalExercise(named: exercise.name) else {
+            return false
+        }
+        return isPrimaryMovement(definition)
+    }
+
+    private static func sessionBudgetMinutes(for input: ProgramGeneratorInput) -> Int {
+        min(90, max(30, input.sessionLengthMinutes))
+    }
+
+    private static func appendNote(_ note: String, to existing: String?) -> String {
+        guard let existing, !existing.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return note
+        }
+        if existing.localizedCaseInsensitiveContains(note) { return existing }
+        return "\(existing) \(note)"
     }
 
     private static func progressionState(
@@ -726,11 +1174,4 @@ enum DeterministicProgramGenerator {
         }
     }
 
-    private static func estimatedDailyMinutes(for experience: Experience) -> Int {
-        switch experience {
-        case .never, .tried: return 45
-        case .used: return 60
-        case .current: return 75
-        }
-    }
 }

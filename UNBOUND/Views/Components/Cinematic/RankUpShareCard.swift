@@ -7,7 +7,7 @@ import SwiftUI
 //
 // Layout (top → bottom):
 //   - "UNBOUND" wordmark + build identity label
-//   - Giant rank display (180pt mono, skin glow)
+//   - Giant rank badge + named rank title
 //   - Exercise name
 //   - Build identity tagline beneath
 //   - Footer: unboundapp.com + identity pill
@@ -94,12 +94,18 @@ struct RankUpShareCard: View {
                 .tracking(8.0)
                 .foregroundStyle(skin.primaryColor)
 
-            Text(rank.displayName)
-                .font(.system(size: 320, weight: .black, design: .monospaced))
+            Image(rankTitle.assetName)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 280, height: 280)
+                .shadow(color: tint.opacity(0.75), radius: 32)
+                .shadow(color: tint.opacity(0.45), radius: 80)
+
+            Text(rankTitle.displayName.uppercased())
+                .font(.system(size: 72, weight: .black, design: .default))
+                .tracking(5.0)
                 .foregroundStyle(Color.unbound.textPrimary)
-                .shadow(color: skin.rimColor.opacity(0.75), radius: 32)
-                .shadow(color: skin.impactColor.opacity(0.45), radius: 80)
-                .minimumScaleFactor(0.5)
+                .minimumScaleFactor(0.55)
                 .lineLimit(1)
 
             Text(exerciseDisplayName.uppercased())
@@ -139,8 +145,9 @@ struct RankUpShareCard: View {
 
     // MARK: Identity presentation
 
-    /// Neutral accent tint. Future polish can map `buildIdentity.shape` → tint variant.
-    private var tint: Color { Color.unbound.accent }
+    private var rankTitle: RankTitle { rank.title }
+
+    private var tint: Color { rankTitle.rewardTint }
 
     private var tagline: String { buildIdentity.tagline }
 }
@@ -175,7 +182,7 @@ enum RankUpShareCardRenderer {
         exerciseDisplayName: String
     ) -> String {
         """
-        Just hit \(rank.displayName) on \(exerciseDisplayName). The arc continues. — via UNBOUND
+        Just reached \(rank.title.displayName) on \(exerciseDisplayName). The arc continues. — via UNBOUND
 
         #UNBOUND #RankUp
         """

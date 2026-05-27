@@ -43,6 +43,39 @@ final class AttributeProfileTests: XCTestCase {
         XCTAssertEqual(value.level, AttributeLevelCurve.level(forXP: value.xp))
     }
 
+    func testHexChartValuesUseLevelScaledXPInsteadOfRawScore() {
+        let xp = AttributeLevelCurve.xpRequired(forLevel: 4)
+        var p = AttributeProfile.empty(userId: "u1", at: t0)
+        p.set(.power, AttributeValue(peak: 90, current: 90, xp: xp, lastContributionAt: t0))
+
+        XCTAssertEqual(
+            p.hexChartValues[.power] ?? -1,
+            AttributeLevelCurve.hexDisplayValue(level: 4, progress: 0),
+            accuracy: 0.001
+        )
+        XCTAssertLessThan(p.hexChartValues[.power] ?? 100, 90)
+    }
+
+    func testAttributeLevelRankTitlesUseLevelBands() {
+        XCTAssertEqual(AttributeLevelCurve.rankTitle(forLevel: 0), .initiate)
+        XCTAssertEqual(AttributeLevelCurve.rankTitle(forLevel: 3), .novice)
+        XCTAssertEqual(AttributeLevelCurve.rankTitle(forLevel: 6), .apprentice)
+        XCTAssertEqual(AttributeLevelCurve.rankTitle(forLevel: 10), .forged)
+        XCTAssertEqual(AttributeLevelCurve.rankTitle(forLevel: 15), .veteran)
+        XCTAssertEqual(AttributeLevelCurve.rankTitle(forLevel: 25), .master)
+        XCTAssertEqual(AttributeLevelCurve.rankTitle(forLevel: 40), .vessel)
+        XCTAssertEqual(AttributeLevelCurve.rankTitle(forLevel: 65), .unbound)
+        XCTAssertEqual(AttributeLevelCurve.rankTitle(forLevel: 100), .ascendant)
+    }
+
+    func testLegacyMidProfileKeepsFlatEarlyHexScale() {
+        var p = AttributeProfile.empty(userId: "u1", at: t0)
+        p.set(.power, AttributeValue(peak: 72, current: 72, lastContributionAt: t0))
+
+        XCTAssertLessThan(p.hexChartValues[.power] ?? 100, 30)
+        XCTAssertEqual(p.levelRankTitles[.power], .forged)
+    }
+
     func testDominantIsAxisWithHighestPeak() {
         var p = AttributeProfile.empty(userId: "u1", at: t0)
         p.set(.power,    AttributeValue(peak: 80, current: 60, lastContributionAt: t0))
@@ -54,7 +87,7 @@ final class AttributeProfileTests: XCTestCase {
         var p = AttributeProfile.empty(userId: "u1", at: t0)
         // All 6 axes non-zero — exercises the `peak > 0` filter on a fully-trained profile.
         p.set(.power,         AttributeValue(peak: 80, current: 60, lastContributionAt: t0))
-        p.set(.agility,       AttributeValue(peak: 45, current: 40, lastContributionAt: t0))
+        p.set(.vitality,       AttributeValue(peak: 45, current: 40, lastContributionAt: t0))
         p.set(.control,       AttributeValue(peak: 55, current: 50, lastContributionAt: t0))
         p.set(.endurance,     AttributeValue(peak: 60, current: 55, lastContributionAt: t0))
         p.set(.mobility,      AttributeValue(peak: 20, current: 14, lastContributionAt: t0))

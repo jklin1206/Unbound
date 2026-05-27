@@ -7,7 +7,7 @@ struct Step_ProblemFrame: View {
 
     private let baselineLevels: [AttributeKey: Int] = [
         .power: 1,
-        .agility: 1,
+        .vitality: 1,
         .control: 1,
         .endurance: 2,
         .mobility: 2,
@@ -27,12 +27,12 @@ struct Step_ProblemFrame: View {
                 Spacer().frame(height: 44)
 
                 VStack(spacing: 9) {
-                    Text("DAY ZERO")
+                    Text(L10n.onboarding("problemOpening.eyebrow", defaultValue: "DAY ZERO"))
                         .font(Font.unbound.monoS)
                         .tracking(2.0)
                         .foregroundStyle(Color.unbound.accent)
 
-                    Text("Your stats aren't there yet.")
+                    Text(L10n.onboarding("problemOpening.title", defaultValue: "Your stats aren't there yet."))
                         .font(Font.unbound.displayM)
                         .foregroundStyle(Color.unbound.textPrimary)
                         .multilineTextAlignment(.center)
@@ -73,7 +73,7 @@ struct Step_ProblemFrame: View {
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.78)
 
-                            Text("STARTING POINT")
+                            Text(L10n.onboarding("problemOpening.startingPoint", defaultValue: "STARTING POINT"))
                                 .font(Font.unbound.captionS)
                                 .tracking(1.1)
                                 .foregroundStyle(Color.unbound.textSecondary)
@@ -81,23 +81,8 @@ struct Step_ProblemFrame: View {
                                 .minimumScaleFactor(0.78)
                         }
 
-                        VStack(alignment: .leading, spacing: 10) {
-                            AttributeHex(
-                                current: baselineHexValues,
-                                peak: nil,
-                                levels: baselineLevels,
-                                tiers: nil,
-                                showLabels: true,
-                                radius: 66
-                            )
-                            .frame(width: 154, height: 154)
-
-                            VStack(spacing: 6) {
-                                ForEach(AttributeKey.allCases, id: \.self) { key in
-                                    baselineRow(key)
-                                }
-                            }
-                        }
+                        problemBaselineHex()
+                            .frame(width: 174, height: 174)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .opacity(hasAnimated ? 1 : 0)
@@ -108,14 +93,14 @@ struct Step_ProblemFrame: View {
                 Spacer()
 
                 VStack(spacing: 10) {
-                    Text("No rank. No map.")
+                    Text(L10n.onboarding("problemOpening.noRank", defaultValue: "No rank. No map."))
                         .font(Font.unbound.titleM)
                         .foregroundStyle(Color.unbound.textPrimary)
                         .multilineTextAlignment(.center)
                         .lineLimit(2)
                         .minimumScaleFactor(0.82)
 
-                    Text("This is where the climb starts.")
+                    Text(L10n.onboarding("problemOpening.body", defaultValue: "This is where the climb starts."))
                         .font(Font.unbound.bodyM)
                         .foregroundStyle(Color.unbound.textSecondary)
                         .multilineTextAlignment(.center)
@@ -128,7 +113,7 @@ struct Step_ProblemFrame: View {
 
                 Spacer().frame(height: 24)
 
-                UnboundButton(title: "Show the ladder", icon: "arrow.right", action: onContinue)
+                UnboundButton(title: L10n.onboarding("problemOpening.cta", defaultValue: "Show the ladder"), icon: "arrow.right", action: onContinue)
                     .padding(.horizontal, 20)
                     .padding(.bottom, 20)
                     .opacity(hasAnimated ? 1 : 0)
@@ -146,6 +131,49 @@ struct Step_ProblemFrame: View {
         baselineLevels.reduce(into: [:]) { result, entry in
             result[entry.key] = Double(entry.value * 5 + 4)
         }
+    }
+
+    private func problemBaselineHex() -> some View {
+        GeometryReader { geo in
+            let axes: [AttributeKey] = [.power, .vitality, .control, .endurance, .mobility, .explosiveness]
+            let side = min(geo.size.width, geo.size.height)
+            let center = CGPoint(x: geo.size.width / 2, y: geo.size.height / 2)
+            let chartRadius = side * 0.31
+            let labelRadius = side * 0.45
+
+            ZStack {
+                AttributeHex(
+                    current: baselineHexValues,
+                    peak: nil,
+                    levels: baselineLevels,
+                    tiers: nil,
+                    showLabels: false,
+                    radius: chartRadius
+                )
+                .position(center)
+
+                ForEach(Array(axes.enumerated()), id: \.element) { index, key in
+                    let angle = -CGFloat.pi / 2 + CGFloat(index) * (2 * .pi / 6)
+                    problemAxisLabel(key)
+                        .frame(width: 52)
+                        .position(
+                            x: center.x + cos(angle) * labelRadius,
+                            y: center.y + sin(angle) * labelRadius
+                        )
+                }
+            }
+            .frame(width: geo.size.width, height: geo.size.height)
+        }
+    }
+
+    private func problemAxisLabel(_ key: AttributeKey) -> some View {
+        Text("\(key.shortCode) LVL \(baselineLevels[key] ?? 0)")
+            .font(.system(size: 7.5, weight: .bold, design: .monospaced))
+            .tracking(0)
+            .foregroundStyle(Color.unbound.textSecondary.opacity(0.9))
+            .monospacedDigit()
+            .lineLimit(1)
+            .minimumScaleFactor(0.72)
     }
 
     private func hexRow(_ key: AttributeKey, value: Double) -> some View {
@@ -202,7 +230,7 @@ struct Step_ProblemFrame: View {
             }
             .frame(height: 5)
 
-            Text("LV \(level)")
+            Text(L10n.onboardingFormat("common.level", defaultValue: "LVL %d", level))
                 .font(.system(size: 8, weight: .bold, design: .monospaced))
                 .foregroundStyle(Color.unbound.textSecondary)
                 .monospacedDigit()
@@ -218,34 +246,34 @@ struct Step_RestartLoop: View {
         .init(
             tier: .vessel,
             asset: .archetypeShredded,
-            buildName: "Speed",
-            caption: "fast movement",
-            levels: [.power: 18, .agility: 27, .control: 25, .endurance: 21, .mobility: 22, .explosiveness: 26],
-            tiers: [.power: .honed, .agility: .vessel, .control: .vessel, .endurance: .forged, .mobility: .forged, .explosiveness: .vessel]
+            buildName: L10n.onboarding("restartLoop.preview.speed.name", defaultValue: "Speed"),
+            caption: L10n.onboarding("restartLoop.preview.speed.caption", defaultValue: "fast movement"),
+            levels: [.power: 18, .vitality: 27, .control: 25, .endurance: 21, .mobility: 22, .explosiveness: 26],
+            tiers: [.power: .master, .vitality: .vessel, .control: .vessel, .endurance: .forged, .mobility: .forged, .explosiveness: .vessel]
         ),
         .init(
             tier: .unbound,
             asset: .archetypeVTaper,
-            buildName: "Pull",
-            caption: "upper-body work",
-            levels: [.power: 24, .agility: 21, .control: 23, .endurance: 32, .mobility: 19, .explosiveness: 29],
-            tiers: [.power: .vessel, .agility: .forged, .control: .vessel, .endurance: .unbound, .mobility: .honed, .explosiveness: .unbound]
+            buildName: L10n.onboarding("restartLoop.preview.pull.name", defaultValue: "Pull"),
+            caption: L10n.onboarding("restartLoop.preview.pull.caption", defaultValue: "upper-body work"),
+            levels: [.power: 24, .vitality: 21, .control: 23, .endurance: 32, .mobility: 19, .explosiveness: 29],
+            tiers: [.power: .vessel, .vitality: .forged, .control: .vessel, .endurance: .unbound, .mobility: .master, .explosiveness: .unbound]
         ),
         .init(
             tier: .ascendant,
             asset: .archetypeHeavyweight,
-            buildName: "Power",
-            caption: "heavy force",
-            levels: [.power: 39, .agility: 14, .control: 22, .endurance: 20, .mobility: 11, .explosiveness: 28],
-            tiers: [.power: .ascendant, .agility: .apprentice, .control: .forged, .endurance: .forged, .mobility: .novice, .explosiveness: .unbound]
+            buildName: L10n.onboarding("restartLoop.preview.power.name", defaultValue: "Power"),
+            caption: L10n.onboarding("restartLoop.preview.power.caption", defaultValue: "heavy force"),
+            levels: [.power: 39, .vitality: 14, .control: 22, .endurance: 20, .mobility: 11, .explosiveness: 28],
+            tiers: [.power: .ascendant, .vitality: .apprentice, .control: .forged, .endurance: .forged, .mobility: .novice, .explosiveness: .unbound]
         ),
         .init(
             tier: .unbound,
             asset: .archetypeSleeper,
-            buildName: "Control",
-            caption: "skill work",
-            levels: [.power: 21, .agility: 18, .control: 34, .endurance: 28, .mobility: 24, .explosiveness: 17],
-            tiers: [.power: .forged, .agility: .honed, .control: .unbound, .endurance: .vessel, .mobility: .vessel, .explosiveness: .forged]
+            buildName: L10n.onboarding("restartLoop.preview.control.name", defaultValue: "Control"),
+            caption: L10n.onboarding("restartLoop.preview.control.caption", defaultValue: "skill work"),
+            levels: [.power: 21, .vitality: 18, .control: 34, .endurance: 28, .mobility: 24, .explosiveness: 17],
+            tiers: [.power: .forged, .vitality: .master, .control: .unbound, .endurance: .vessel, .mobility: .vessel, .explosiveness: .forged]
         )
     ]
 
@@ -267,12 +295,12 @@ struct Step_RestartLoop: View {
                 Spacer().frame(height: 44)
 
                 VStack(spacing: 9) {
-                    Text("BUILD PREVIEW")
+                    Text(L10n.onboarding("restartLoop.eyebrow", defaultValue: "BUILD PREVIEW"))
                         .font(Font.unbound.monoS)
                         .tracking(2.0)
                         .foregroundStyle(Color.unbound.accent)
 
-                    Text("What you train becomes your build.")
+                    Text(L10n.onboarding("restartLoop.title", defaultValue: "What you train becomes your build."))
                         .font(Font.unbound.displayM)
                         .foregroundStyle(Color.unbound.textPrimary)
                         .multilineTextAlignment(.center)
@@ -290,36 +318,17 @@ struct Step_RestartLoop: View {
                             rimLight: .impact,
                             chromaticAberration: 0.35,
                             breathe: true,
-                            scale: 0.78,
+                            scale: 0.72,
                             asset: active.asset
                         )
-                        .frame(width: 178, height: 352)
+                        .frame(width: 154, height: 334)
                     }
-                    .frame(width: 178, height: 352)
+                    .frame(width: 154, height: 334)
                     .id(active.asset.rawValue)
                     .transition(.opacity.combined(with: .scale(scale: 0.96)))
 
-                    VStack(alignment: .leading, spacing: 12) {
-                        VStack(alignment: .leading, spacing: 7) {
-                            rankBadge(active.tier)
-
-                            Text(active.tier.displayName)
-                                .font(Font.unbound.titleM)
-                                .foregroundStyle(Color.unbound.textPrimary)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.78)
-
-                            Text(active.caption.uppercased())
-                                .font(Font.unbound.captionS)
-                                .tracking(1.1)
-                                .foregroundStyle(Color.unbound.textSecondary)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.78)
-                        }
-
-                        profileHex(active)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    buildProfileCard(active)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .padding(.horizontal, 20)
                 .opacity(hasAnimated ? 1 : 0)
@@ -338,7 +347,7 @@ struct Step_RestartLoop: View {
                 .padding(.bottom, 16)
                 .opacity(hasAnimated ? 1 : 0)
 
-                UnboundButton(title: "Climb the ranks", icon: "flame.fill", action: onContinue)
+                UnboundButton(title: L10n.onboarding("restartLoop.cta", defaultValue: "Climb the ranks"), icon: "flame.fill", action: onContinue)
                     .padding(.horizontal, 20)
                     .padding(.bottom, 20)
                     .opacity(hasAnimated ? 1 : 0)
@@ -368,36 +377,103 @@ struct Step_RestartLoop: View {
         Image(tier.assetName)
             .resizable()
             .scaledToFit()
-            .frame(width: 46, height: 46)
+            .frame(width: 54, height: 54)
             .shadow(color: tier.rewardTint.opacity(0.34), radius: 10)
     }
 
-    private func profileHex(_ preview: OnboardingBadgePreview) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
+    private func buildProfileCard(_ preview: OnboardingBadgePreview) -> some View {
+        let peakStat = peakStat(for: preview)
+        return VStack(spacing: 12) {
+            HStack(alignment: .top, spacing: 10) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(L10n.onboarding("restartLoop.profile.eyebrow", defaultValue: "PROFILE PATH"))
+                        .font(.system(size: 9, weight: .black, design: .monospaced))
+                        .tracking(1.4)
+                        .foregroundStyle(preview.tier.rewardTextTint)
+                    Text(preview.buildName.uppercased())
+                        .font(.system(size: 24, weight: .black, design: .rounded))
+                        .tracking(0)
+                        .foregroundStyle(Color.unbound.textPrimary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.64)
+                    Text(preview.caption.uppercased())
+                        .font(.system(size: 9, weight: .bold, design: .monospaced))
+                        .tracking(1.0)
+                        .foregroundStyle(Color.unbound.textTertiary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.72)
+                }
+
+                Spacer(minLength: 6)
+
+                rankBadge(preview.tier)
+            }
+
             AttributeHex(
                 current: preview.hexValues,
                 peak: nil,
                 levels: preview.levels,
-                tiers: nil,
+                tiers: preview.tiers,
                 showLabels: true,
-                radius: 66
+                labelVariant: .profile,
+                radius: 54
             )
-            .frame(width: 154, height: 154)
+            .padding(.horizontal, 24)
+            .padding(.vertical, 32)
 
-            VStack(spacing: 6) {
-                ForEach(AttributeKey.allCases, id: \.self) { key in
-                    compactHexRow(
-                        key,
-                        level: preview.levels[key] ?? 0,
-                        tier: preview.tiers[key] ?? .initiate,
-                        maxLevel: preview.maxLevel,
-                        tint: preview.tier.rewardTint
-                    )
-                }
+            HStack(spacing: 8) {
+                profileMetric(
+                    label: L10n.onboarding("restartLoop.metric.rank", defaultValue: "RANK"),
+                    value: preview.tier.displayName.uppercased(),
+                    tint: preview.tier.rewardTextTint
+                )
+                profileMetric(
+                    label: L10n.onboarding("restartLoop.metric.peak", defaultValue: "PEAK"),
+                    value: peakStat.shortCode,
+                    tint: peakStat.rewardTint
+                )
             }
         }
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(Color.unbound.surface.opacity(0.74))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(preview.tier.rewardTint.opacity(0.42), lineWidth: 1)
+        )
+        .shadow(color: preview.tier.rewardTint.opacity(0.14), radius: 18, y: 10)
         .id("hex-\(preview.asset.rawValue)")
         .transition(.opacity.combined(with: .move(edge: .trailing)))
+    }
+
+    private func peakStat(for preview: OnboardingBadgePreview) -> AttributeKey {
+        AttributeKey.allCases.max {
+            (preview.levels[$0] ?? 0) < (preview.levels[$1] ?? 0)
+        } ?? .power
+    }
+
+    private func profileMetric(label: String, value: String, tint: Color) -> some View {
+        VStack(spacing: 3) {
+            Text(label)
+                .font(.system(size: 8, weight: .black, design: .monospaced))
+                .tracking(1.0)
+                .foregroundStyle(Color.unbound.textTertiary)
+                .lineLimit(1)
+            Text(value)
+                .font(.system(size: 10, weight: .black, design: .monospaced))
+                .tracking(0.2)
+                .foregroundStyle(tint)
+                .lineLimit(1)
+                .minimumScaleFactor(0.62)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 8)
+        .background(
+            RoundedRectangle(cornerRadius: 11, style: .continuous)
+                .fill(Color.unbound.bg.opacity(0.44))
+        )
     }
 
     private func compactHexRow(_ key: AttributeKey, level: Int, tier: RankTitle, maxLevel: Int, tint: Color) -> some View {
@@ -417,7 +493,7 @@ struct Step_RestartLoop: View {
             }
             .frame(height: 5)
 
-            Text("LV \(level)")
+            Text(L10n.onboardingFormat("common.level", defaultValue: "LVL %d", level))
                 .font(.system(size: 8, weight: .bold, design: .monospaced))
                 .foregroundStyle(Color.unbound.textSecondary)
                 .monospacedDigit()
@@ -472,18 +548,18 @@ struct Step_UnboundFix: View {
                 Spacer()
 
                 SystemNoticeCard(
-                    eyebrow: "COUNTER-SYSTEM FOUND",
-                    title: "UNBOUND",
-                    message: "A progression layer for your training.",
+                    eyebrow: L10n.onboarding("unboundFix.eyebrow", defaultValue: "COUNTER-SYSTEM FOUND"),
+                    title: L10n.string(.appName, defaultValue: "UNBOUND"),
+                    message: L10n.onboarding("unboundFix.message", defaultValue: "A progression layer for your training."),
                     accent: Color.unbound.accent,
                     icon: "sparkles",
                     pulse: pulse
                 ) {
                     VStack(spacing: 10) {
-                        FixChip(icon: "viewfinder", title: "BASELINE")
-                        FixChip(icon: "hexagon.fill", title: "STATS")
-                        FixChip(icon: "point.3.connected.trianglepath.dotted", title: "UNLOCKS")
-                        FixChip(icon: "list.bullet.clipboard.fill", title: "PROTOCOL")
+                        FixChip(icon: "viewfinder", title: L10n.onboarding("unboundFix.chip.baseline", defaultValue: "BASELINE"))
+                        FixChip(icon: "hexagon.fill", title: L10n.onboarding("unboundFix.chip.stats", defaultValue: "STATS"))
+                        FixChip(icon: "point.3.connected.trianglepath.dotted", title: L10n.onboarding("unboundFix.chip.unlocks", defaultValue: "UNLOCKS"))
+                        FixChip(icon: "list.bullet.clipboard.fill", title: L10n.onboarding("unboundFix.chip.protocol", defaultValue: "PROTOCOL"))
                     }
                 }
                 .padding(.horizontal, 22)
@@ -492,7 +568,7 @@ struct Step_UnboundFix: View {
 
                 Spacer()
 
-                UnboundButton(title: "Begin your arc", icon: "flame.fill", action: onContinue)
+                UnboundButton(title: L10n.onboarding("unboundFix.cta", defaultValue: "Begin your arc"), icon: "flame.fill", action: onContinue)
                     .padding(.horizontal, 20)
                     .padding(.bottom, 20)
                     .opacity(hasAnimated ? 1 : 0)
@@ -539,7 +615,7 @@ private struct SystemNoticeCard<Content: View>: View {
                         .tracking(1.8)
                         .foregroundStyle(accent)
 
-                    Text("NEW ENTRY")
+                    Text(L10n.onboarding("unboundFix.newEntry", defaultValue: "NEW ENTRY"))
                         .font(.system(size: 9, weight: .heavy, design: .monospaced))
                         .tracking(1.2)
                         .foregroundStyle(Color.unbound.textTertiary)

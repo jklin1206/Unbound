@@ -7,7 +7,7 @@ struct WeeklyVowProof: Codable, Equatable, Sendable {
     let evaluation: WeeklyVowProofEvaluation
 }
 
-/// How a vow proof is verified.
+/// How a Binding Vow standard is verified.
 enum WeeklyVowProofEvaluation: Codable, Equatable, Sendable {
     /// Auto-detected from log via TierCriterionEvaluator.
     case autoFromLog(TierCriterion)

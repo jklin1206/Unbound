@@ -3,12 +3,8 @@ import SwiftUI
 // MARK: - BlockProgressRevealView
 //
 // Sheet shown from the block-complete state when the user has a fresh
-// `ScanDeltaReport`. Renders a 6-cell before/after grid (shoulders, chest,
-// arms, core, legs, overall), a short narrative, and a share affordance.
-//
-// Style follows `Step_Verdict.swift`'s `gradeCell` — large monospaced score,
-// thin colored bar at the bottom. Two columns side by side: BEFORE on the
-// left, AFTER on the right, with a delta chip between them.
+// `ScanDeltaReport`. Renders checkpoint proof signals, a short narrative,
+// and a share affordance.
 //
 // Sharing: the card body is rendered to a UIImage via SwiftUI's
 // `ImageRenderer` and exposed through `ShareLink`. This is the viral moment
@@ -17,7 +13,7 @@ import SwiftUI
 // Constraint per `project_unbound_no_match_percent` and
 // `project_unbound_scans_never_show_setbacks`:
 //   - No match-percent UI.
-//   - Lagging areas are reframed as "FOCUS NEXT" tags, never as a regression.
+//   - No body-part grading or negative setback numbers.
 
 struct BlockProgressRevealView: View {
     let deltaReport: ScanDeltaReport
@@ -61,7 +57,7 @@ struct BlockProgressRevealView: View {
                 .font(.system(size: 12, weight: .heavy, design: .monospaced))
                 .tracking(2.4)
                 .foregroundStyle(Color.unbound.accent)
-            Text("Side-by-side")
+            Text("Checkpoint recap")
                 .font(Font.unbound.titleL)
                 .foregroundStyle(Color.unbound.textPrimary)
         }
@@ -71,7 +67,7 @@ struct BlockProgressRevealView: View {
 
     private var shareableCard: some View {
         VStack(alignment: .leading, spacing: 20) {
-            scoreGrid
+            proofSignals
             if !deltaReport.narrative.isEmpty {
                 narrativeBlock
             }
@@ -80,131 +76,53 @@ struct BlockProgressRevealView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private var scoreGrid: some View {
-        let cells: [(String, BodyPartDelta)] = [
-            ("SHOULDERS", deltaReport.shoulders),
-            ("CHEST",     deltaReport.chest),
-            ("ARMS",      deltaReport.arms),
-            ("CORE",      deltaReport.core),
-            ("LEGS",      deltaReport.legs),
-            ("OVERALL",   deltaReport.overall)
-        ]
-        return VStack(spacing: 10) {
-            HStack(spacing: 8) {
-                Text("BEFORE")
-                    .font(.system(size: 9, weight: .heavy, design: .monospaced))
-                    .tracking(1.6)
-                    .foregroundStyle(Color.unbound.textTertiary)
-                    .frame(maxWidth: .infinity, alignment: .center)
-                Spacer().frame(width: 28)
-                Text("AFTER")
-                    .font(.system(size: 9, weight: .heavy, design: .monospaced))
-                    .tracking(1.6)
-                    .foregroundStyle(Color.unbound.accent)
-                    .frame(maxWidth: .infinity, alignment: .center)
-            }
-            VStack(spacing: 10) {
-                ForEach(cells, id: \.0) { label, delta in
-                    deltaRow(label: label, delta: delta)
-                }
-            }
-        }
-    }
-
-    private func deltaRow(label: String, delta: BodyPartDelta) -> some View {
-        HStack(spacing: 8) {
-            scoreCell(
-                label: label,
-                value: delta.before,
-                accent: Color.unbound.textSecondary,
-                isAfter: false
-            )
-            deltaChip(delta: delta.delta)
-                .frame(width: 28)
-            scoreCell(
-                label: label,
-                value: delta.after,
-                accent: Color.unbound.accent,
-                isAfter: true
-            )
-        }
-    }
-
-    private func scoreCell(
-        label: String,
-        value: Int,
-        accent: Color,
-        isAfter: Bool
-    ) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text(label)
+    private var proofSignals: some View {
+        let signals = deltaReport.improvements.isEmpty
+            ? ["Training proof logged"]
+            : deltaReport.improvements.map { $0.capitalized }
+        return VStack(alignment: .leading, spacing: 12) {
+            Text("PROOF SIGNALS")
                 .font(.system(size: 9, weight: .heavy, design: .monospaced))
-                .tracking(1.4)
+                .tracking(1.8)
                 .foregroundStyle(Color.unbound.textTertiary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-            Spacer(minLength: 6)
-            Text("\(value)")
-                .font(.system(size: 38, weight: .black, design: .rounded))
-                .foregroundStyle(Color.unbound.textPrimary)
-                .lineLimit(1)
-                .monospacedDigit()
-            Spacer(minLength: 10)
-            GeometryReader { proxy in
-                ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill(Color.unbound.borderSubtle)
-                        .frame(height: 3)
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill(accent)
-                        .frame(
-                            width: max(0, min(CGFloat(value) / 10.0, 1.0)) * proxy.size.width,
-                            height: 3
-                        )
-                        .shadow(color: accent.opacity(isAfter ? 0.55 : 0.0), radius: 4)
+
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                ForEach(signals, id: \.self) { signal in
+                    proofCell(signal)
                 }
             }
-            .frame(height: 3)
+
+            Text(deltaReport.recommendedFocus)
+                .font(Font.unbound.captionS)
+                .foregroundStyle(Color.unbound.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 2)
         }
-        .padding(.horizontal, 12)
-        .padding(.top, 12)
-        .padding(.bottom, 14)
-        .frame(maxWidth: .infinity, minHeight: 96, alignment: .leading)
+    }
+
+    private func proofCell(_ title: String) -> some View {
+        HStack(spacing: 9) {
+            Image(systemName: "checkmark.seal.fill")
+                .font(.system(size: 14, weight: .bold))
+                .foregroundStyle(Color.unbound.success)
+            Text(title.uppercased())
+                .font(Font.unbound.captionS.weight(.heavy))
+                .tracking(1.1)
+                .foregroundStyle(Color.unbound.textPrimary)
+                .lineLimit(2)
+                .minimumScaleFactor(0.72)
+            Spacer(minLength: 0)
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, minHeight: 56, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .fill(Color.unbound.surfaceElevated)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .strokeBorder(
-                    isAfter ? Color.unbound.accent.opacity(0.32) : Color.unbound.borderSubtle,
-                    lineWidth: 1
-                )
+                .strokeBorder(Color.unbound.success.opacity(0.24), lineWidth: 1)
         )
-    }
-
-    private func deltaChip(delta: Int) -> some View {
-        // Per scans-never-show-setbacks: if delta is zero or negative we
-        // surface "→" (held the line) instead of a negative number. Only
-        // positive deltas read as numeric gains.
-        let label: String
-        let tint: Color
-        if delta > 0 {
-            label = "+\(delta)"
-            tint = Color.unbound.success
-        } else {
-            label = "→"
-            tint = Color.unbound.textTertiary
-        }
-        return Text(label)
-            .font(.system(size: 13, weight: .heavy, design: .monospaced))
-            .tracking(0.8)
-            .foregroundStyle(tint)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(tint.opacity(0.12))
-            )
     }
 
     private var narrativeBlock: some View {

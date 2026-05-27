@@ -121,7 +121,7 @@ final class BadgeService: BadgeServiceProtocol {
         }
     }
 
-    // MARK: Photo / bi-weekly scan evaluators
+    // MARK: Photo / monthly checkpoint evaluators
     //
     // Photo ritual cadence badges. `first_photo` on the first capture ever.
     // `monthly_arc` when the user hits ≥4 captures in a rolling 30-day

@@ -18,7 +18,7 @@ extension RankTitle {
         case .apprentice: return 3
         case .forged:     return 4
         case .veteran:    return 5
-        case .honed:      return 6
+        case .master:      return 6
         case .vessel:     return 7
         case .unbound:    return 8
         case .ascendant:  return 9
@@ -51,7 +51,7 @@ extension RankTitle {
         case .apprentice: return Self.rankColor(red: 0xC7, green: 0x9D, blue: 0x46)
         case .forged: return Self.rankColor(red: 0xAF, green: 0x40, blue: 0x1A)
         case .veteran: return Self.rankColor(red: 0x3E, green: 0x74, blue: 0x49)
-        case .honed: return Self.rankColor(red: 0x2C, green: 0x90, blue: 0xBB)
+        case .master: return Self.rankColor(red: 0x2C, green: 0x90, blue: 0xBB)
         case .vessel: return Self.rankColor(red: 0x54, green: 0x2F, blue: 0x7F)
         case .unbound: return Self.rankColor(red: 0x97, green: 0x33, blue: 0x9D)
         case .ascendant: return Color.unbound.rankGold
@@ -89,7 +89,7 @@ extension RankTitle {
             return Color.unbound.ember
         case .veteran:
             return Self.rankColor(red: 0x64, green: 0xC4, blue: 0x75)
-        case .honed:
+        case .master:
             return rewardTint
         case .vessel:
             return Self.rankColor(red: 0xB2, green: 0x7A, blue: 0xF4)
@@ -115,7 +115,7 @@ extension RankTitle {
     var rewardEndpointOrnamentAssetName: String {
         switch self {
         case .forged, .apprentice: return "reward_ornament_endpoint_orange"
-        case .veteran, .honed: return "reward_ornament_endpoint_teal"
+        case .veteran, .master: return "reward_ornament_endpoint_teal"
         default: return "reward_ornament_endpoint_blue"
         }
     }
@@ -135,8 +135,8 @@ extension RankTitle {
         case .novice:     return .apprentice
         case .apprentice: return .forged
         case .forged:     return .veteran
-        case .veteran:    return .honed
-        case .honed:      return .vessel
+        case .veteran:    return .master
+        case .master:      return .vessel
         case .vessel:     return .unbound
         case .unbound:    return .ascendant
         case .ascendant:  return nil
@@ -145,18 +145,17 @@ extension RankTitle {
 
     /// Derives the user's currently-earned tier on a given skill from the
     /// existing per-node state model. Bridge between the legacy 1-5 level
-    /// + E-S difficulty system and the 9-tier ladder shown to the user.
+    /// + intrinsic difficulty buckets and the 9-tier ladder shown to the user.
     ///
     /// Mapping rules:
     /// - locked / attempting → Initiate
     /// - achieved at currentLevel L (1-4) → Novice/Apprentice/Forged/Veteran
-    /// - achieved at currentLevel 5      → Honed
+    /// - achieved at currentLevel 5      → Master
     /// - mastered: caps boosted by intrinsic skill difficulty
-    ///   - E/D-rank skill mastered → Honed
-    ///   - C-rank mastered          → Vessel
-    ///   - B-rank mastered          → Vessel
-    ///   - A-rank mastered          → Unbound
-    ///   - S-rank mastered          → Ascendant
+    ///   - lowest buckets  → Master
+    ///   - middle buckets  → Vessel
+    ///   - high bucket     → Unbound
+    ///   - highest bucket  → Ascendant
     static func derived(
         state: NodeState,
         currentLevel: Int,
@@ -172,7 +171,7 @@ extension RankTitle {
             case 2:    return .apprentice
             case 3:    return .forged
             case 4:    return .veteran
-            default:   return .honed
+            default:   return .master
             }
         }()
 
@@ -182,7 +181,7 @@ extension RankTitle {
 
         // mastered — bump by intrinsic difficulty
         switch skillRank {
-        case .e, .d: return .honed
+        case .e, .d: return .master
         case .c, .b: return .vessel
         case .a:     return .unbound
         case .s:     return .ascendant
@@ -198,7 +197,7 @@ extension SkillTier {
         case .apprentice: return .apprentice
         case .forged:     return .forged
         case .veteran:    return .veteran
-        case .honed:      return .honed
+        case .master:      return .master
         case .vessel:     return .vessel
         case .unbound:    return .unbound
         case .ascendant:  return .ascendant

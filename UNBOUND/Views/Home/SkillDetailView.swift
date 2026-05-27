@@ -21,6 +21,7 @@ struct SkillDetailView: View {
 
     @Environment(\.dismiss) private var dismiss
     @Bindable private var skillProgress = SkillProgressService.shared
+    @ObservedObject private var skinService = SkinService.shared
 
     @State private var phase: Bool = false
     @State private var isSessionPresented: Bool = false
@@ -251,30 +252,47 @@ struct SkillDetailView: View {
     private var heroBlock: some View {
         let frame1 = iconAssetName(node.id, frame: 1)
         let hasFrame1 = UIImage(named: frame1) != nil
+        let tint = currentSkillIconTint
 
         return ZStack {
             Circle()
-                .fill(Color.unbound.accent.opacity(0.22))
+                .fill(tint.opacity(0.2))
                 .frame(width: 200, height: 200)
                 .blur(radius: 46)
 
+            Circle()
+                .fill(Color.unbound.bg.opacity(0.54))
+                .overlay(
+                    Circle()
+                        .strokeBorder(tint.opacity(0.32), lineWidth: 2)
+                )
+                .frame(width: 168, height: 168)
+                .shadow(color: Color.black.opacity(0.42), radius: 18)
+
             if hasFrame1 {
                 Image(frame1)
+                    .renderingMode(.template)
                     .resizable()
                     .interpolation(.high)
                     .aspectRatio(contentMode: .fit)
-                    .frame(width: 220, height: 220)
-                    .shadow(color: Color.unbound.accent.opacity(0.55), radius: 28)
+                    .foregroundStyle(tint)
+                    .frame(width: 168, height: 168)
+                    .shadow(color: Color.black.opacity(0.7), radius: 8)
+                    .shadow(color: tint.opacity(0.55), radius: 24)
             } else {
                 Image(systemName: node.glyph)
                     .font(.system(size: 140, weight: .regular))
-                    .foregroundStyle(Color.unbound.accent)
+                    .foregroundStyle(tint)
                     .frame(width: 220, height: 220)
-                    .shadow(color: Color.unbound.accent.opacity(0.55), radius: 28)
+                    .shadow(color: tint.opacity(0.55), radius: 28)
             }
         }
         .frame(width: 220, height: 220)
         .frame(maxWidth: .infinity)
+    }
+
+    private var currentSkillIconTint: Color {
+        node.isMythic ? skinService.currentSkin.impactDecalColor : skinService.currentSkin.decalColor
     }
 
     // MARK: - 3. Title block
@@ -392,7 +410,7 @@ struct SkillDetailView: View {
     //
     // Replaces the old "NEXT BEAT" card. Shows all 9 ranks for this skill
     // with their badge + criterion + clear/current/locked state. Levels
-    // 1-5 in the existing data feed Novice through Honed; Initiate is
+    // 1-5 in the existing data feed Novice through Master; Initiate is
     // entry; Vessel/Unbound/Ascendant remain placeholders until per-skill
     // top-tier criteria are authored (Chunk 3 of the rank redesign).
 
@@ -884,7 +902,7 @@ struct SkillDetailView: View {
             return node.levels.first(where: { $0.level == 3 })?.criterion ?? "Own the core standard"
         case .veteran:
             return node.levels.first(where: { $0.level == 4 })?.criterion ?? "Add volume or difficulty"
-        case .honed:
+        case .master:
             return node.levels.first(where: { $0.level == 5 })?.criterion ?? "High-quality repeatability"
         case .vessel, .unbound, .ascendant:
             return "Advanced standard coming soon"

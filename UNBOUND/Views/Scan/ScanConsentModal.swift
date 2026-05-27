@@ -2,8 +2,8 @@ import SwiftUI
 
 // MARK: - ScanConsentModal
 //
-// Shown ONCE, the first time a user attempts a bi-weekly scan. Explains
-// that the photo goes to Anthropic's Claude for coach-style analysis. User
+// Shown ONCE, the first time a user attempts a monthly checkpoint. Explains
+// that the photo is saved as progress proof and is never body-graded. User
 // accepts → persisted in @AppStorage("unbound.scanConsentGranted"). No
 // re-prompt on subsequent scans or failure retries.
 
@@ -28,12 +28,12 @@ struct ScanConsentModal: View {
                 .frame(width: 64, height: 64)
 
                 VStack(alignment: .leading, spacing: 10) {
-                    Text("BODY READ · HOW IT WORKS")
+                    Text(L10n.string(.scanConsentEyebrow, defaultValue: "PROGRESS PHOTO · HOW IT WORKS"))
                         .font(Font.unbound.captionS.weight(.bold))
                         .tracking(1.8)
                         .foregroundStyle(Color.unbound.accent)
 
-                    Text("Your scan photo is sent to Anthropic's Claude for a 3-sentence coach read.")
+                    Text(L10n.string(.scanConsentTitle, defaultValue: "Your scan photo is saved as progress proof. AI never grades your body."))
                         .font(Font.unbound.titleM)
                         .tracking(0.3)
                         .foregroundStyle(Color.unbound.textPrimary)
@@ -43,18 +43,18 @@ struct ScanConsentModal: View {
                 VStack(alignment: .leading, spacing: 12) {
                     bullet(
                         icon: "checkmark",
-                        title: "Qualitative only",
-                        body: "No body-fat %, no measurements, no medical claims."
+                        title: L10n.string(.scanConsentBulletQualitativeTitle, defaultValue: "QUALITATIVE ONLY"),
+                        body: L10n.string(.scanConsentBulletQualitativeBody, defaultValue: "No body-fat %, no measurements, no medical claims.")
                     )
                     bullet(
                         icon: "lock.shield",
-                        title: "Delete anytime",
-                        body: "Clear all scan analyses from Settings → Privacy."
+                        title: L10n.string(.scanConsentBulletDeleteTitle, defaultValue: "DELETE ANYTIME"),
+                        body: L10n.string(.scanConsentBulletDeleteBody, defaultValue: "Clear checkpoint photos and recaps from Settings → Privacy.")
                     )
                     bullet(
                         icon: "camera",
-                        title: "Your choice",
-                        body: "Skip this and use plain daily photos instead."
+                        title: L10n.string(.scanConsentBulletChoiceTitle, defaultValue: "YOUR CHOICE"),
+                        body: L10n.string(.scanConsentBulletChoiceBody, defaultValue: "Skip this and use plain daily photos instead.")
                     )
                 }
 
@@ -66,7 +66,7 @@ struct ScanConsentModal: View {
                         onAccept()
                     } label: {
                         HStack(spacing: 10) {
-                            Text("ACCEPT & CONTINUE")
+                            Text(L10n.string(.scanConsentAccept, defaultValue: "ACCEPT & CONTINUE"))
                                 .font(Font.unbound.bodyMStrong)
                                 .tracking(1.6)
                             Image(systemName: "arrow.right")
@@ -87,7 +87,7 @@ struct ScanConsentModal: View {
                         UnboundHaptics.soft()
                         onDecline()
                     } label: {
-                        Text("NOT NOW")
+                        Text(L10n.string(.scanConsentDecline, defaultValue: "NOT NOW"))
                             .font(Font.unbound.captionS.weight(.bold))
                             .tracking(1.4)
                             .foregroundStyle(Color.unbound.textTertiary)
@@ -109,7 +109,7 @@ struct ScanConsentModal: View {
                 .frame(width: 20, alignment: .leading)
                 .padding(.top, 2)
             VStack(alignment: .leading, spacing: 2) {
-                Text(title.uppercased())
+                Text(title)
                     .font(Font.unbound.captionS.weight(.bold))
                     .tracking(1.2)
                     .foregroundStyle(Color.unbound.textPrimary)

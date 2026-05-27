@@ -124,7 +124,7 @@ struct SkillNode: Identifiable, Codable, Hashable, Sendable {
     // MARK: - Phase 1a additions (skill-tree redesign)
     //
     // `rank` and `levels` are introduced so every node can carry an
-    // E/D/C/B/A/S difficulty tier and a 1-5 XP-gated ladder. Both default
+    // intrinsic difficulty bucket and a 1-5 XP-gated ladder. Both default
     // so existing content in SkillTreeContent.swift keeps compiling — the
     // Phase 1c migration populates real values per node.
 
@@ -235,8 +235,9 @@ struct SkillNode: Identifiable, Codable, Hashable, Sendable {
 
 extension SkillNode {
     /// True when this node deserves the "mythic / life pursuit" visual
-    /// treatment — S-rank OR the explicit `isMythic` flag. Drives the flame
-    /// rank chip and impact-coloured accents wherever rank is rendered.
+    /// treatment — top intrinsic bucket OR the explicit `isMythic` flag.
+    /// Drives the flame rank chip and impact-coloured accents wherever rank
+    /// is rendered.
     /// Kept as a computed property so UI code reads it in one place.
     var displaysMythic: Bool { rank == .s || isMythic }
 

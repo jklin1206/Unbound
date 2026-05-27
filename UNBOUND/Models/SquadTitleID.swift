@@ -26,7 +26,7 @@ extension SquadTitleID {
         case .collectiveAxis:
             switch axis {
             case .power:         return "The Iron Crew"
-            case .agility:       return "The Recovery Crew"
+            case .vitality:       return "The Recovery Crew"
             case .control:       return "The Focused Crew"
             case .endurance:     return "The Long Haul Crew"
             case .mobility:      return "The Loose Crew"
@@ -36,7 +36,7 @@ extension SquadTitleID {
         case .affinityTenure:
             switch axis {
             case .power:         return "Power Pact"
-            case .agility:       return "Vitality Pact"
+            case .vitality:       return "Vitality Pact"
             case .control:       return "Control Pact"
             case .endurance:     return "Endurance Pact"
             case .mobility:      return "Mobility Pact"

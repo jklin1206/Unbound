@@ -79,23 +79,14 @@ enum RegionFatigueBudget {
     }
 
     static func regionLoad(for workout: Workout) -> RegionLoad {
-        let exercises = workout.warmup + workout.mainExercises + workout.cooldown
-        return exercises.reduce(into: RegionLoad()) { total, exercise in
-            let setLoad = max(1, exercise.sets)
-            for muscle in exercise.muscleGroups {
-                total.add(Double(setLoad), to: ProgramBodyRegion.from(muscleGroup: muscle))
-            }
+        BodyRegionTrainingLedger.loads(for: workout).reduce(into: RegionLoad()) { total, load in
+            total.add(load.coachLoadScore, to: ProgramBodyRegion.from(bodyRegion: load.region))
         }
     }
 
     static func regionLoad(for draft: TrainingSessionDraft) -> RegionLoad {
-        draft.blocks.reduce(into: RegionLoad()) { total, block in
-            for prescription in block.prescriptions {
-                let setLoad = max(1, prescription.sets)
-                for muscle in prescription.muscleGroups {
-                    total.add(Double(setLoad), to: ProgramBodyRegion.from(muscleGroup: muscle))
-                }
-            }
+        BodyRegionTrainingLedger.loads(for: draft).reduce(into: RegionLoad()) { total, load in
+            total.add(load.coachLoadScore, to: ProgramBodyRegion.from(bodyRegion: load.region))
         }
     }
 

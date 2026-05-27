@@ -7,13 +7,20 @@ enum CardioType: String, Codable, CaseIterable, Sendable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .run:        return "Run"
-        case .bike:       return "Bike"
-        case .row:        return "Row"
-        case .walk:       return "Walk"
-        case .swim:       return "Swim"
-        case .stairs:     return "Stairs"
-        case .elliptical: return "Elliptical"
+        case .run:
+            return L10n.string(.cardioRunDisplayName, defaultValue: "Run")
+        case .bike:
+            return L10n.string(.cardioBikeDisplayName, defaultValue: "Bike")
+        case .row:
+            return L10n.string(.cardioRowDisplayName, defaultValue: "Row")
+        case .walk:
+            return L10n.string(.cardioWalkDisplayName, defaultValue: "Walk")
+        case .swim:
+            return L10n.string(.cardioSwimDisplayName, defaultValue: "Swim")
+        case .stairs:
+            return L10n.string(.cardioStairsDisplayName, defaultValue: "Stairs")
+        case .elliptical:
+            return L10n.string(.cardioEllipticalDisplayName, defaultValue: "Elliptical")
         }
     }
 
@@ -75,4 +82,8 @@ struct CardioSession: Codable, Identifiable, Sendable, Hashable {
         self.notes = notes
         self.date = date
     }
+}
+
+extension Notification.Name {
+    static let cardioLogged = Notification.Name("unbound.cardioLogged")
 }

@@ -13,7 +13,7 @@ enum SkillTier: Int, Codable, CaseIterable, Sendable, Comparable {
     case apprentice  = 2
     case forged      = 3
     case veteran     = 4
-    case honed       = 5
+    case master       = 5
     case vessel      = 6
     case unbound     = 7
     case ascendant   = 8
@@ -25,7 +25,7 @@ enum SkillTier: Int, Codable, CaseIterable, Sendable, Comparable {
         case .apprentice: return "Apprentice"
         case .forged:     return "Forged"
         case .veteran:    return "Veteran"
-        case .honed:      return "Honed"
+        case .master:      return "Master"
         case .vessel:     return "Vessel"
         case .unbound:    return "Unbound"
         case .ascendant:  return "Ascendant"
@@ -44,7 +44,7 @@ enum SkillTier: Int, Codable, CaseIterable, Sendable, Comparable {
         case .apprentice: return "rank_title_apprentice"
         case .forged:     return "rank_title_forged"
         case .veteran:    return "rank_title_veteran"
-        case .honed:      return "rank_title_honed"
+        case .master:      return "rank_title_master"
         case .vessel:     return "rank_title_vessel"
         case .unbound:    return "rank_title_unbound"
         case .ascendant:  return "rank_title_ascendant"
@@ -92,7 +92,7 @@ extension SubRank {
         case 4...5: return .apprentice
         case 6...7: return .forged
         case 8...9: return .veteran
-        case 10...11: return .honed
+        case 10...11: return .master
         case 12...13: return .vessel
         case 14...15: return .unbound
         default:    return .ascendant
@@ -109,7 +109,7 @@ extension RankTitle {
         case .apprentice: return .apprentice
         case .forged:     return .forged
         case .veteran:    return .veteran
-        case .honed:      return .honed
+        case .master:      return .master
         case .vessel:     return .vessel
         case .unbound:    return .unbound
         case .ascendant:  return .ascendant

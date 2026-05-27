@@ -6,7 +6,7 @@ struct EmailAuthView: View {
     var body: some View {
         VStack(spacing: 12) {
             // Email field
-            TextField("Email", text: $viewModel.email)
+            TextField(L10n.string(.authEmailPlaceholder, defaultValue: "Email"), text: $viewModel.email)
                 .keyboardType(.emailAddress)
                 .textContentType(.emailAddress)
                 .autocapitalization(.none)
@@ -20,7 +20,7 @@ struct EmailAuthView: View {
                 .disabled(viewModel.isLoading)
 
             // Password field
-            SecureField("Password", text: $viewModel.password)
+            SecureField(L10n.string(.authPasswordPlaceholder, defaultValue: "Password"), text: $viewModel.password)
                 .textContentType(.password)
                 .font(.bodyMedium(16))
                 .foregroundColor(.theme.textPrimary)
@@ -45,7 +45,9 @@ struct EmailAuthView: View {
 
             // Sign In / Create Account button
             GradientButton(
-                title: viewModel.isSignUp ? "Create Account" : "Sign In",
+                title: viewModel.isSignUp
+                    ? L10n.string(.authCreateAccount, defaultValue: "Create Account")
+                    : L10n.string(.authSignIn, defaultValue: "Sign In"),
                 action: {
                     Task { await viewModel.signInWithEmail() }
                 },
@@ -59,8 +61,8 @@ struct EmailAuthView: View {
                 viewModel.errorMessage = nil
             } label: {
                 Text(viewModel.isSignUp
-                     ? "Already have an account? Sign in"
-                     : "Don't have an account? Create one")
+                     ? L10n.string(.authToggleSignIn, defaultValue: "Already have an account? Sign in")
+                     : L10n.string(.authToggleCreateAccount, defaultValue: "Don't have an account? Create one"))
                     .font(.bodyMedium(14))
                     .foregroundColor(.theme.textSecondary)
             }

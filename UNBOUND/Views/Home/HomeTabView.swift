@@ -68,6 +68,12 @@ struct HomeTabView: View {
         .rankUpCinematicOverlay()
         .skinUnlockToast()
         .badgeUnlockToast()
+        .onAppear {
+            services.analytics.track(.tabSelected(tab: tabName(for: selectedTab)))
+        }
+        .onChange(of: selectedTab) { _, tab in
+            services.analytics.track(.tabSelected(tab: tabName(for: tab)))
+        }
         .onReceive(NotificationCenter.default.publisher(for: .requestNavigateToProfileTab)) { _ in
             selectedTab = 4
         }
@@ -126,6 +132,17 @@ struct HomeTabView: View {
         if arguments.contains("--unbound-open-profile") { return 4 }
         #endif
         return 0
+    }
+
+    private func tabName(for index: Int) -> String {
+        switch index {
+        case 0: return "home"
+        case 1: return "program"
+        case 2: return "skills"
+        case 3: return "squad"
+        case 4: return "profile"
+        default: return "unknown"
+        }
     }
 
     #if DEBUG

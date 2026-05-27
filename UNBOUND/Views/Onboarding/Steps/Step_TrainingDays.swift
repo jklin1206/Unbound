@@ -27,10 +27,10 @@ struct Step_TrainingDays: View {
 
     var body: some View {
         OnboardingScaffold(
-            title: "Which days will you train?",
-            subtitle: "Pick \(requiredCount) days that work for you.",
+            title: L10n.onboarding("trainingDays.title", defaultValue: "Which days will you train?"),
+            subtitle: L10n.onboardingFormat("trainingDays.subtitle", defaultValue: "Pick %d days that work for you.", requiredCount),
             progress: progress,
-            primaryTitle: "Continue",
+            primaryTitle: L10n.onboarding("common.continue", defaultValue: "Continue"),
             primaryEnabled: isValid,
             hudStep: .trainingDays,
             onBack: onBack,
@@ -45,7 +45,7 @@ struct Step_TrainingDays: View {
                 .padding(.top, 4)
 
                 if !isValid {
-                    Text("Selected \(flow.trainingDays.count) of \(requiredCount)")
+                    Text(L10n.onboardingFormat("trainingDays.selectedCount", defaultValue: "Selected %d of %d", flow.trainingDays.count, requiredCount))
                         .font(.caption)
                         .foregroundColor(.secondary)
                         .padding(.top, 4)

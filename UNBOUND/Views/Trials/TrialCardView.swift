@@ -2,15 +2,16 @@ import SwiftUI
 
 // MARK: - TrialCardView
 //
-// Single card in the weekly vow pick tray. Sized ~460pt tall so it fills
+// Single card in the weekly Binding Vow pick tray. Sized ~460pt tall so it fills
 // most of the viewport in a TabView/.page swiper without clipping.
 //
 // Layout top → bottom:
 //   1. Theme tag (axis name or WILDCARD) + kind badge
-//   2. Display name (big title)
-//   3. Blurb (narrative subtitle)
-//   4. Binding prescription pills
-//   5. Proof hint footer
+//   2. Custom vow mark
+//   3. Display name (big title)
+//   4. Blurb (narrative subtitle)
+//   5. Session prescription pills
+//   6. Standard hint footer
 
 struct TrialCardView: View {
     let card: TrialCard
@@ -35,7 +36,13 @@ struct TrialCardView: View {
                 kindBadge
             }
 
-            Spacer().frame(height: 28)
+            Spacer().frame(height: 20)
+
+            WeeklyVowProofAsset(kind: card.kind, tint: tint)
+                .frame(width: 76, height: 76)
+                .accessibilityHidden(true)
+
+            Spacer().frame(height: 18)
 
             // ── Big title ─────────────────────────────────────────────
             Text(card.displayName)
@@ -56,19 +63,19 @@ struct TrialCardView: View {
 
             Spacer().frame(height: 24)
 
-            // ── Binding prescription pills ───────────────────────────
+            // ── Session prescription pills ───────────────────────────
             vowPrescription
 
             Spacer(minLength: 20)
 
-            // ── Proof divider ────────────────────────────────────────
+            // ── Standard divider ─────────────────────────────────────
             Rectangle()
                 .fill(Color.white.opacity(0.07))
                 .frame(height: 0.5)
 
             Spacer().frame(height: 16)
 
-            // ── Proof hint ───────────────────────────────────────────
+            // ── Standard hint ────────────────────────────────────────
             proofHint
         }
         .padding(22)
@@ -130,7 +137,7 @@ struct TrialCardView: View {
     private var vowPrescription: some View {
         if let prescription = card.prescription {
             VStack(alignment: .leading, spacing: 6) {
-                Text("BINDING")
+                Text("SESSION")
                     .font(.system(size: 9, weight: .bold))
                     .tracking(1.5)
                     .foregroundStyle(Color.unbound.textTertiary)
@@ -159,12 +166,12 @@ struct TrialCardView: View {
 
     private var proofHint: some View {
         HStack(alignment: .top, spacing: 10) {
-            Image(systemName: "flag.fill")
+            Image(systemName: "checkmark.seal.fill")
                 .font(.system(size: 11, weight: .semibold))
                 .foregroundStyle(tint.opacity(0.8))
 
             VStack(alignment: .leading, spacing: 3) {
-                Text("PROOF")
+                Text("STANDARD")
                     .font(.system(size: 9, weight: .bold))
                     .tracking(1.6)
                     .foregroundStyle(Color.unbound.textTertiary)
@@ -180,6 +187,111 @@ struct TrialCardView: View {
     }
 }
 
+struct WeeklyVowProofAsset: View {
+    let kind: WeeklyVowKind
+    let tint: Color
+    var compact: Bool = false
+
+    var body: some View {
+        ZStack {
+            VowFacetShape()
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            tint.opacity(compact ? 0.30 : 0.40),
+                            Color.unbound.surfaceElevated.opacity(0.92)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+
+            VowFacetShape()
+                .strokeBorder(tint.opacity(compact ? 0.45 : 0.62), lineWidth: compact ? 1 : 1.4)
+
+            VowFacetShape()
+                .inset(by: compact ? 7 : 10)
+                .stroke(tint.opacity(0.22), lineWidth: 1)
+
+            Image(systemName: kind.proofAssetSymbolName)
+                .font(.system(size: compact ? 18 : 28, weight: .black))
+                .foregroundStyle(tint)
+                .shadow(color: tint.opacity(0.35), radius: compact ? 8 : 14)
+        }
+    }
+}
+
+struct WeeklyVowCoachValidationStrip: View {
+    let tint: Color
+    var compact: Bool = false
+
+    private let lenses: [(label: String, detail: String, icon: String)] = [
+        ("Home", "Clear setup", "house.fill"),
+        ("Pro", "Load checked", "clipboard.fill"),
+        ("Elite", "Clean standard", "medal.fill")
+    ]
+
+    var body: some View {
+        HStack(spacing: compact ? 6 : 8) {
+            ForEach(lenses, id: \.label) { lens in
+                HStack(spacing: 5) {
+                    Image(systemName: lens.icon)
+                        .font(.system(size: compact ? 9 : 10, weight: .bold))
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(lens.label.uppercased())
+                            .font(.system(size: compact ? 7 : 8, weight: .heavy, design: .monospaced))
+                            .tracking(1.0)
+                        if !compact {
+                            Text(lens.detail)
+                                .font(Font.unbound.captionS)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.72)
+                        }
+                    }
+                }
+                .foregroundStyle(tint)
+                .padding(.horizontal, compact ? 7 : 9)
+                .frame(height: compact ? 26 : 34)
+                .frame(maxWidth: .infinity)
+                .background(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(tint.opacity(0.11))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .strokeBorder(tint.opacity(0.24), lineWidth: 1)
+                )
+            }
+        }
+    }
+}
+
+private struct VowFacetShape: InsettableShape {
+    var insetAmount: CGFloat = 0
+
+    func path(in rect: CGRect) -> Path {
+        let rect = rect.insetBy(dx: insetAmount, dy: insetAmount)
+        let cut = min(rect.width, rect.height) * 0.18
+        var path = Path()
+        path.move(to: CGPoint(x: rect.midX, y: rect.minY))
+        path.addLine(to: CGPoint(x: rect.maxX - cut, y: rect.minY + cut))
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.midY))
+        path.addLine(to: CGPoint(x: rect.maxX - cut, y: rect.maxY - cut))
+        path.addLine(to: CGPoint(x: rect.midX, y: rect.maxY))
+        path.addLine(to: CGPoint(x: rect.minX + cut, y: rect.maxY - cut))
+        path.addLine(to: CGPoint(x: rect.minX, y: rect.midY))
+        path.addLine(to: CGPoint(x: rect.minX + cut, y: rect.minY + cut))
+        path.closeSubpath()
+        return path
+    }
+
+    func inset(by amount: CGFloat) -> VowFacetShape {
+        var copy = self
+        copy.insetAmount += amount
+        return copy
+    }
+}
+
 // MARK: - Previews
 
 #Preview("Aligned card") {
@@ -189,8 +301,8 @@ struct TrialCardView: View {
             id: "weekly-vow-W20-ember",
             kind: .ember,
             theme: .axis(.power),
-            displayName: "Iron Rule Vow",
-            blurb: "Accept a low-day Binding Vow.",
+            displayName: "Iron Reset",
+            blurb: "A low-day proof for clean power work.",
             capstone: TrialCapstone(
                 displayName: "Low-Day Proof",
                 description: "Complete easy power work at RPE 3-5.",
@@ -215,8 +327,8 @@ struct TrialCardView: View {
             id: "weekly-vow-W20-apex",
             kind: .apex,
             theme: .wildcard,
-            displayName: "No Retreat Vow",
-            blurb: "Accept a weekend Binding Vow.",
+            displayName: "Pull-Up Standard",
+            blurb: "A dedicated weekend proof.",
             capstone: TrialCapstone(
                 displayName: "Circuit Finisher",
                 description: "Complete a 20-minute AMRAP with at least 4 movements.",

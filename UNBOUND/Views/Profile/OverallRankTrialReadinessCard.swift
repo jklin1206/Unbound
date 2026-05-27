@@ -13,10 +13,14 @@ struct OverallRankTrialReadinessCard: View {
                     Text(definition.displayName.uppercased())
                         .font(Font.unbound.titleS)
                         .foregroundStyle(Color.unbound.textPrimary)
-                    Text("\(readiness.currentRank.displayName.uppercased()) -> \(definition.targetRank.displayName.uppercased())")
+                    Text("\(readiness.currentRank.displayName.uppercased()) -> \(definition.targetRank.displayName.uppercased()) RANK GATE")
                         .font(Font.unbound.captionS.weight(.heavy))
                         .tracking(1.4)
                         .foregroundStyle(definition.targetRank.rewardTextTint)
+                    Text(readiness.isReady ? "Qualified." : "Finish the missing proofs.")
+                        .font(Font.unbound.captionS)
+                        .foregroundStyle(Color.unbound.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
 
                 requirementList
@@ -68,7 +72,7 @@ struct OverallRankTrialReadinessCard: View {
             Image(systemName: "seal.fill")
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(statusTint)
-            Text("OVERALL RANK TRIAL")
+            Text("TRIAL QUALIFICATION")
                 .font(.system(size: 10, weight: .heavy, design: .monospaced))
                 .tracking(1.8)
                 .foregroundStyle(Color.unbound.textTertiary)
@@ -85,34 +89,70 @@ struct OverallRankTrialReadinessCard: View {
 
     @ViewBuilder
     private var requirementList: some View {
-        let visible = readiness.missingRequirements.isEmpty
-            ? Array(readiness.requirements.prefix(3))
-            : Array(readiness.missingRequirements.prefix(4))
+        let metCount = readiness.requirements.filter(\.isMet).count
+        let ordered = readiness.requirements.sorted { lhs, rhs in
+            if lhs.isMet != rhs.isMet { return !lhs.isMet && rhs.isMet }
+            return lhs.label < rhs.label
+        }
 
-        VStack(spacing: 8) {
-            ForEach(visible) { line in
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                Text("QUALIFICATIONS")
+                    .font(.system(size: 9, weight: .black, design: .monospaced))
+                    .tracking(1.5)
+                    .foregroundStyle(Color.unbound.textTertiary)
+                Spacer(minLength: 0)
+                Text("\(metCount)/\(readiness.requirements.count)")
+                    .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                    .tracking(1.0)
+                    .foregroundStyle(statusTint)
+            }
+
+            ForEach(ordered) { line in
                 HStack(spacing: 10) {
-                    Image(systemName: line.isMet ? "checkmark.circle.fill" : "circle")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(line.isMet ? Color.unbound.success : Color.unbound.textTertiary)
+                    Image(systemName: line.isMet ? "checkmark.circle.fill" : requirementIcon(for: line.kind))
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(line.isMet ? Color.unbound.success : statusTint.opacity(0.78))
+                        .frame(width: 18)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(line.label.uppercased())
                             .font(Font.unbound.captionS.weight(.bold))
                             .tracking(1.1)
                             .foregroundStyle(Color.unbound.textPrimary)
-                        Text("\(line.current) / \(line.required)")
+                        Text(requirementProgressText(line))
                             .font(Font.unbound.captionS)
                             .foregroundStyle(Color.unbound.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                     Spacer(minLength: 0)
                 }
                 .padding(10)
                 .background(
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(Color.white.opacity(0.035))
+                        .fill(line.isMet ? Color.white.opacity(0.028) : statusTint.opacity(0.09))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .strokeBorder(line.isMet ? Color.clear : statusTint.opacity(0.22), lineWidth: 1)
                 )
             }
         }
+    }
+
+    private func requirementIcon(for kind: OverallRankTrialRequirementKind) -> String {
+        switch kind {
+        case .overallLevel: return "chart.line.uptrend.xyaxis"
+        case .attributes: return "hexagon.fill"
+        case .movement: return "figure.strengthtraining.traditional"
+        case .skill: return "seal.fill"
+        case .equipment: return "backpack.fill"
+        }
+    }
+
+    private func requirementProgressText(_ line: OverallRankTrialRequirementLine) -> String {
+        let current = line.current.isEmpty ? "None set" : line.current
+        let required = line.required.isEmpty ? "None required" : line.required
+        return "Current: \(current)  •  Required: \(required)"
     }
 
     private func attemptRow(_ attempt: OverallRankTrialAttempt) -> some View {

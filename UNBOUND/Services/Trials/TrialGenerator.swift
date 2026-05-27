@@ -4,8 +4,8 @@ import Foundation
 /// Pure card generator. Inputs: user's AttributeProfile, recent log
 /// history, week-start Date, ISO week number. Output: 3 WeeklyVowCards.
 ///
-/// Deterministic given identical inputs. Low Binding = recovery-safe low-day
-/// work. Limit Binding = after-workout finisher. Apex Binding cycles per
+/// Deterministic given identical inputs. Recovery Vow = recovery-safe
+/// low-day work. Finisher Vow = after-workout finisher. Limit Vow cycles per
 /// weekNumber.
 @MainActor
 enum WeeklyVowGenerator {
@@ -34,8 +34,8 @@ enum WeeklyVowGenerator {
             id: "weekly-vow-W\(weekNumber)-ember",
             kind: .ember,
             theme: .axis(axis),
-            displayName: lowBindingName(for: axis),
-            blurb: "Accept a low-day Binding Vow: protect recovery, sharpen \(axis.displayName.lowercased()), and keep the week alive without forcing a PR.",
+            displayName: recoveryVowName(for: axis),
+            blurb: "A low-day Binding Vow: protect recovery, sharpen \(axis.displayName.lowercased()), and keep the week moving without forcing a PR.",
             capstone: WeeklyVowProof(
                 displayName: "Low-Day Proof",
                 description: "Complete 8-12 minutes of easy \(axis.displayName.lowercased()) work at RPE 3-5.",
@@ -74,8 +74,8 @@ enum WeeklyVowGenerator {
             id: "weekly-vow-W\(weekNumber)-overdrive",
             kind: .overdrive,
             theme: .axis(axis),
-            displayName: limitBindingName(for: axis),
-            blurb: "Accept a redline Binding Vow after training: pay a short finisher cost and push your \(axis.displayName.lowercased()) output.",
+            displayName: overdriveVowName(for: axis),
+            blurb: "A controlled Binding Vow after training: add a short focused effort for \(axis.displayName.lowercased()) while keeping form intact.",
             capstone: capstone,
             prescription: WeeklyVowPrescription(
                 placement: .afterWorkout,
@@ -104,8 +104,8 @@ enum WeeklyVowGenerator {
             id: "weekly-vow-W\(weekNumber)-apex",
             kind: .apex,
             theme: .wildcard,
-            displayName: apexBindingName(for: capstone),
-            blurb: "Accept a weekend Binding Vow: one focused proof, no clutter, seal it clean.",
+            displayName: apexVowName(for: capstone),
+            blurb: "A dedicated Limit Binding Vow: one focused standard, clean execution, no extra clutter.",
             capstone: capstone,
             prescription: WeeklyVowPrescription(
                 placement: .dedicatedSession,
@@ -117,39 +117,39 @@ enum WeeklyVowGenerator {
         )
     }
 
-    // MARK: binding vow naming
+    // MARK: vow naming
 
-    private static func lowBindingName(for axis: AttributeKey) -> String {
+    private static func recoveryVowName(for axis: AttributeKey) -> String {
         switch axis {
-        case .power: return "Iron Rule Vow"
-        case .agility: return "Recovery Rule Vow"
-        case .control: return "Still Heart Vow"
-        case .endurance: return "Last Breath Vow"
+        case .power: return "Iron Reset Vow"
+        case .vitality: return "Recovery Reset Vow"
+        case .control: return "Still Core Vow"
+        case .endurance: return "Base Pace Vow"
         case .mobility: return "Open Gate Vow"
         case .explosiveness: return "First Spark Vow"
         }
     }
 
-    private static func limitBindingName(for axis: AttributeKey) -> String {
+    private static func overdriveVowName(for axis: AttributeKey) -> String {
         switch axis {
-        case .power: return "Limit Break Vow"
-        case .agility: return "Deep Reset Vow"
+        case .power: return "Power Finish Vow"
+        case .vitality: return "Deep Reset Vow"
         case .control: return "Hollow Core Vow"
-        case .endurance: return "Redline Vow"
-        case .mobility: return "Flow State Vow"
+        case .endurance: return "Pace Finish Vow"
+        case .mobility: return "Flow Finish Vow"
         case .explosiveness: return "One Strike Vow"
         }
     }
 
-    private static func apexBindingName(for capstone: WeeklyVowProof) -> String {
+    private static func apexVowName(for capstone: WeeklyVowProof) -> String {
         switch capstone.displayName {
-        case "Max Pull-Up AMRAP": return "No Retreat Vow"
-        case "Broad Jump Distance": return "Heaven Step Vow"
-        case "1-Rep PR Attempt": return "Final Set Vow"
-        case "Strict Muscle-Up": return "Ascension Vow"
+        case "Max Pull-Up AMRAP": return "Pull-Up Vow"
+        case "Broad Jump Distance": return "Broad Jump Vow"
+        case "1-Rep PR Attempt": return "Top Set Vow"
+        case "Strict Muscle-Up": return "Muscle-Up Vow"
         case "L-Sit Hold": return "Stillness Vow"
-        case "5K Sub-25": return "Blood Pace Vow"
-        default: return "Final Proof Vow"
+        case "5K Sub-25": return "5K Vow"
+        default: return "Final Vow"
         }
     }
 

@@ -99,7 +99,7 @@ final class ProgressionEngine {
         } ?? workingSets[0]
 
         let hitTopOfRange = bestSet.reps >= state.targetRepMax
-        let hitTargetRPE = (bestSet.rpe ?? 0) >= state.targetRPE
+        let hitTargetRPE = isCleanRPEHit(bestSet.rpe, targetRPE: state.targetRPE)
 
         var next = state
         next.updatedAt = loggedAt
@@ -211,11 +211,12 @@ final class ProgressionEngine {
             state.lastBumpDate = Date()
 
         case .accessory:
-            // Accessories: reps-first strategy. If we're still below the max of
-            // an expanded rep window, just extend it; else bump weight + reset.
-            let extendedMax = state.targetRepMax + 2
-            if state.targetRepMax < extendedMax {
-                state.targetRepMax = extendedMax
+            // Accessories use a reps-first strategy, but the window must cap.
+            // Once the cap is reached, bump load when possible and reset to the
+            // block's normal accessory range.
+            let ceiling = accessoryRepCeiling(for: state)
+            if state.targetRepMax < ceiling {
+                state.targetRepMax = min(ceiling, state.targetRepMax + 2)
                 state.consecutiveSessionsAtTarget = 0
             } else {
                 state.currentWorkingWeightKg = WeightPlatePolicy.progressedWeightKilograms(
@@ -233,6 +234,16 @@ final class ProgressionEngine {
             // tree service act on it.
             state.consecutiveSessionsAtTarget = 0
         }
+    }
+
+    private func isCleanRPEHit(_ rpe: Int?, targetRPE: Int) -> Bool {
+        guard targetRPE > 0 else { return true }
+        guard let rpe else { return false }
+        return rpe <= targetRPE
+    }
+
+    private func accessoryRepCeiling(for state: ProgressionState) -> Int {
+        max(20, state.classification.defaultRepRange(for: state.blockType).upperBound)
     }
 
     // MARK: Exercise name normalization

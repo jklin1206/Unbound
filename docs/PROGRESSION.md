@@ -97,9 +97,9 @@ Used everywhere — same tier names across skills, movements, attributes, and ov
 | 1 | **Initiate** | Day-one starting point |
 | 2 | **Novice** | First real proof of work |
 | 3 | **Apprentice** | Established practice |
-| 4 | **Honed** | Solid intermediate |
-| 5 | **Forged** | Strong intermediate |
-| 6 | **Veteran** | Advanced |
+| 4 | **Forged** | Strong intermediate |
+| 5 | **Veteran** | Advanced |
+| 6 | **Master** | High command of the craft |
 | 7 | **Vessel** | Elite |
 | 8 | **Unbound** | Brand-defining tier — "break the restriction" |
 | 9 | **Ascendant** | Top of the ladder, perpetual prestige |
@@ -135,9 +135,9 @@ Example calibration:
 | Initiate | jumping/negative | bar dip control | wall-assist 15s | tuck 5s | assisted full-depth |
 | Novice | 1 strict | strict bar pull above waist | wall-supported 30s | tuck 15s | strict unweighted 1 |
 | Apprentice | 5 strict | 1 clean strict | freestanding 5s | 1-leg 15s | 3 unweighted |
-| Honed | 10 strict | 3 strict | freestanding 20s | straddle 15s | 5 unweighted |
-| Forged | 15 strict + 25 lb | 5 strict | freestanding 45s | straddle 30s | 8 + 10 lb |
-| Veteran | 20 strict + 50 lb | 8 strict, deep range | press to handstand | full L 30s | 5 + 25 lb |
+| Forged | 10 strict | 3 strict | freestanding 20s | straddle 15s | 5 unweighted |
+| Veteran | 15 strict + 25 lb | 5 strict | freestanding 45s | straddle 30s | 8 + 10 lb |
+| Master | 20 strict + 50 lb | 8 strict, deep range | press to handstand | full L 30s | 5 + 25 lb |
 | Vessel | 5 + 90 lb / archer | 12 strict / chest-to-bar | press to HS × 5 | full L 45s | 5 + 45 lb / shrimp |
 | Unbound | 3 OAPU each side | 5 ring MUs | freestanding 60s + walk | full L 60s + V-sit prep | 5 shrimp |
 | Ascendant | 5 OAPU each side / clean human flag adjacent | 10 ring MUs / 5 strict ring | freestanding 90s + variations | V-sit 30s | 5 shrimp / 3 dragon |
@@ -198,9 +198,9 @@ Example for Bench Press (BW = bodyweight):
 | Initiate | bar (45 lb) × 5 |
 | Novice | 0.75× BW × 5 |
 | Apprentice | 1.0× BW × 5 |
-| Honed | 1.25× BW × 5 |
-| Forged | 1.5× BW × 5 |
-| Veteran | 1.75× BW × 3 |
+| Forged | 1.25× BW × 5 |
+| Veteran | 1.5× BW × 5 |
+| Master | 1.75× BW × 3 |
 | Vessel | 2.0× BW × 3 |
 | Unbound | 2.25× BW × 1 |
 | Ascendant | 2.5× BW × 1 |
@@ -260,12 +260,12 @@ else:
     attribute_level[a] = 100 + floor((attribute_xp[a] - xp_at_100) / 1,500)
 ```
 
-The curve mirrors LV: early levels tick over fast, mid levels take more work, and late levels keep moving at a fixed prestige cadence. This gives the system a **third dopamine cadence** between per-set XP (`+47 POW`) and per-tier rank-ups (`POW reached Honed`):
+The curve mirrors LV: early levels tick over fast, mid levels take more work, and late levels keep moving at a fixed prestige cadence. This gives the system a **third dopamine cadence** between per-set XP (`+47 POW`) and per-tier rank-ups (`POW reached Master`):
 
 ```
 per-set:     "+47 POW XP"                ← every set
 per-level:   "POW LV 15 → 16"            ← every few sessions
-per-tier:    "POW reached Honed"         ← every few weeks/months
+per-tier:    "POW reached Master"         ← every few weeks/months
 ```
 
 Attribute level is the integer that lives on the hex axis. Tier is the prestige label underneath.
@@ -294,7 +294,7 @@ The hex should communicate build shape first: POW-heavy, CTL-heavy, balanced hyb
 Per-attribute display on the profile card (drill-down):
 
 ```
-POW  LV 14 · Apprentice  1,247 XP   → Honed in 753 XP
+POW  LV 14 · Apprentice  1,247 XP   → Master in 753 XP
 ```
 
 Attribute level + tier label + numerical XP + distance to next tier.
@@ -371,9 +371,9 @@ Every rank-up grants a one-time LV XP bolus. Sizes scale fast with tier:
 |---|---|
 | Novice | 50 |
 | Apprentice | 150 |
-| Honed | 400 |
-| Forged | 900 |
-| Veteran | 1,800 |
+| Forged | 400 |
+| Veteran | 900 |
+| Master | 1,800 |
 | Vessel | 3,500 |
 | Unbound | 6,500 |
 | Ascendant | 12,000 |
@@ -608,9 +608,9 @@ The user must hit these *before* the trial unlocks:
 |---|---|---|---|---|---|
 | **Novice** | 1 | — | — | **3** | The Awakening |
 | **Apprentice** | 2 | 1 | — | **8** | The Calibration |
-| **Honed** | 2 | 1 | 1 of 6 | **15** | The Forge |
-| **Forged** | 3 | 2 | 2 of 6 | **25** | The Reckoning |
-| **Veteran** | 3 | 2 | 3 of 6 | **40** | The Gauntlet |
+| **Forged** | 2 | 1 | 1 of 6 | **15** | The Forge |
+| **Veteran** | 3 | 2 | 2 of 6 | **25** | The Reckoning |
+| **Master** | 3 | 2 | 3 of 6 | **40** | The Gauntlet |
 | **Vessel** | 4 | 3 | 3 of 6 | **60** | The Ten Hundred |
 | **Unbound** | 4 | 3 | 4 of 6 | **85** | The Restriction |
 | **Ascendant** | 5 | 3 | 4 of 6 | **110** | The Ascension |
@@ -676,7 +676,7 @@ Variants:
 
 ---
 
-#### Trial 3 · The Forge (Apprentice → Honed)
+#### Trial 3 · The Forge (Apprentice → Forged)
 *Multi-round chipper. Strength + conditioning integration.*
 
 ```
@@ -698,7 +698,7 @@ Variants:
 
 ---
 
-#### Trial 4 · The Reckoning (Honed → Forged)
+#### Trial 4 · The Reckoning (Forged → Veteran)
 *Heavy + conditioning sandwich. Strength expression under fatigue — can you still hit your numbers when you're already spent?*
 
 ```
@@ -719,7 +719,7 @@ Variants:
 
 ---
 
-#### Trial 5 · The Gauntlet (Forged → Veteran)
+#### Trial 5 · The Gauntlet (Veteran → Master)
 *Hyrox-style multi-modal hybrid. Running through punishment, station by station — test of total athleticism.*
 
 ```
@@ -744,7 +744,7 @@ Variants:
 
 ---
 
-#### Trial 6 · The Ten Hundred (Veteran → Vessel)
+#### Trial 6 · The Ten Hundred (Master → Vessel)
 *Pure volume hell. 1000 reps. Mental + physical endurance.*
 
 ```
@@ -988,12 +988,12 @@ Each movement tracks two numbers:
 - **Recent best** — heaviest/longest/most you've hit in the last 90 days (rolling window)
 
 ```
-BENCH PRESS · Honed
-  Lifetime PR: 225 lb (Honed standard ✓)
+BENCH PRESS · Master
+  Lifetime PR: 225 lb (Master standard ✓)
   Recent best: 185 lb           ← honest stale signal
 ```
 
-The rank stays Honed (lifetime PR earned it). The recent best shows current capability. **No demotion, full transparency.** Re-hitting 225 snaps recent best back to 225.
+The rank stays Master (lifetime PR earned it). The recent best shows current capability. **No demotion, full transparency.** Re-hitting 225 snaps recent best back to 225.
 
 **3. Stale flag per movement/skill**
 
@@ -1163,7 +1163,7 @@ Current implementation status (2026-05-23):
 │    AGI 19 · Veteran
 │    END 15 · Forged
 │    CTL 24 · Vessel
-│    MOB 10 · Honed
+│    MOB 10 · Master
 │    EXP 18 · Veteran
 │  Build name: "Power Hybrid"               ← derived identity label
 ├──────────────────────────────────────────┤
@@ -1179,11 +1179,11 @@ Current implementation status (2026-05-23):
 ```
 WORKOUT COMPLETE — 45:22
 
-BENCH PRESS                  toward HONED (225 lb)
+BENCH PRESS                  toward MASTER (225 lb)
   Set 1: 185×5    +42 AP
   Set 2: 195×5    +51 AP
   Set 3: 205×3    +58 AP
-  Set 4: 225×1    +84 AP + 200 PR  ★ HONED ACHIEVED
+  Set 4: 225×1    +84 AP + 200 PR  ★ MASTER ACHIEVED
   Total: +435 AP into Bench Press
 
 Attribute XP gained:
@@ -1221,16 +1221,16 @@ FORGED TRIAL — locked
 MOVEMENT RANKS  (3 at Forged)
   ✅ Squat        Forged   (275 / 1.75× BW)
   ✅ Deadlift     Forged   (365 / 2.25× BW)
-  ⬜ Bench        Honed    195 / 225 needed     ← close
+  ⬜ Bench        Master    195 / 225 needed     ← close
 
 SKILL RANKS  (2 at Forged)
   ✅ Weighted Plank   Forged  (3:00 @ 45 lb)
-  ⬜ Farmer Carry     Honed   60s / 90s needed
+  ⬜ Farmer Carry     Master   60s / 90s needed
 
 ATTRIBUTE FLOOR  (2 of 6 at Forged)
   ✅ POW Forged
   ✅ AGI Forged
-  ⬜ CTL Honed                                  ← close
+  ⬜ CTL Master                                  ← close
 
 MIN OVERALL LV  (25)
   ✅ Your LV: 27
@@ -1241,7 +1241,7 @@ CHALLENGE: THE RECKONING
   Cap: 45 min
 
 STATUS: 2 requirements remaining
-EASIEST UNLOCK: Bench to Honed (10 lb away)
+EASIEST UNLOCK: Bench to Master (10 lb away)
 ```
 
 ### Body map (the coaching surface)
@@ -1276,7 +1276,7 @@ if L > 100:  xp_required_for_lv[L] = xp_at_100 + (L - 100) × 3,750
 
 # LV rank-up bolus (fires on every movement/skill rank-up)
 rank_up_lv_bolus = base_for_tier[new_tier] × skill_difficulty_factor[skill] × velocity_multiplier
-# tier_factor table: Novice 50, Apprentice 150, Honed 400, Forged 900,
+# tier_factor table: Novice 50, Apprentice 150, Master 400, Forged 900,
 #                    Veteran 1800, Vessel 3500, Unbound 6500, Ascendant 12000
 # skill_difficulty_factor: Pull-Up 1.0, L-Sit 0.8, Pistol 1.0, Handstand 1.3,
 #                          Muscle-Up 1.5, OAPU 1.8, Front Lever 2.0, Planche 2.5
@@ -1364,7 +1364,7 @@ overall_rank = highest_trial_passed_tier
 ## 18. Outstanding implementation notes
 
 - Execution roadmap lives at `docs/superpowers/handoff/2026-05-21-unified-workout-progression-migration-roadmap.md`.
-- 2026-05-22 Overall Rank trial lane: service definitions cover Foundation Proof, The Calibration, and V1 The Forge. The runner still routes attempts through `TrainingSessionDraft` -> `PerformanceLog` -> `TrainingCompletionService`, then records pass/fail rank-gate attempts idempotently by performance log id. Focused service tests cover The Forge readiness, locked, failed, passed, and duplicate-log paths; simulator UI proof remains pending.
+- 2026-05-22 Overall Rank trial lane: service definitions cover The Awakening, The Calibration, and V1 The Forge. The runner still routes attempts through `TrainingSessionDraft` -> `PerformanceLog` -> `TrainingCompletionService`, then records pass/fail rank-gate attempts idempotently by performance log id. Focused service tests cover The Forge readiness, locked, failed, passed, and duplicate-log paths; simulator UI proof remains pending.
 - 2026-05-23 Binding Vows lane: generator now stamps exercise-specific weight proofs from recent power-movement history, training drafts use catalog-backed multi-movement templates for every Low/Limit Binding axis and proof-specific Apex Binding drafts, Home owns the broad Binding Vow prompt/status, Program only shows Vow work when attached to the selected session as a modifier, and user-facing card names use anime-impact vows like Limit Break Vow / Final Set Vow instead of Ember / Overdrive prefixes. Focused simulator proof passed 61 vow/proof tests, 43 Program/active-workout regression tests, and the full iPhone 17 simulator suite passed 707/707 after the Binding Vow naming pass.
 - 2026-05-24 Program Canvas lane: deterministic 7-day Calibration Week -> 28-day Arc generation is wired, Saved Workouts are local and schedulable, Session Editor supports skill-block insertion, Checkpoint is a skippable Program-tab journey, Wave 2 reason rows have per-row local undo, and proof rewards run after every workout source. Focused Program/Checkpoint/Saved Workout/Proof simulator proof passed 105/105, full iPhone 17 simulator suite passed 790/790, and build/install/launch smoke passed.
 

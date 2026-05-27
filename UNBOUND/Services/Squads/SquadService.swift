@@ -337,7 +337,8 @@ final class SquadService: SquadServiceProtocol {
     }
 
     private func saveLocalState(squad: Squad, roster: [SquadMember], userId: String) {
-        var state = store.load(userId: userId)
+        let existing = store.load(userId: userId)
+        var state = existing
         state.currentSquad = squad
         state.roster = normalizedLocalRoster(
             roster,
@@ -345,7 +346,7 @@ final class SquadService: SquadServiceProtocol {
             userUUID: SquadUserIdentity.uuid(from: userId)
         )
         state.activeRosterPresence = []
-        state.recentActivity = []
+        state.recentActivity = existing.recentActivity.filter { $0.squadId == squad.id }
         store.save(state, userId: userId)
         NotificationCenter.default.post(name: .squadStateChanged, object: nil)
     }

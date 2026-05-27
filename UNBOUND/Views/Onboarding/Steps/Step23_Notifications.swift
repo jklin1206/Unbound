@@ -9,10 +9,12 @@ struct Step23_Notifications: View {
 
     var body: some View {
         OnboardingScaffold(
-            title: "Stay on track.",
-            subtitle: "A small nudge when it's time to keep the streak alive.",
+            title: L10n.onboarding("notifications.title", defaultValue: "Stay on track."),
+            subtitle: L10n.onboarding("notifications.subtitle", defaultValue: "A small nudge when it's time to keep the streak alive."),
             progress: progress,
-            primaryTitle: flow.notificationsRequested ? "Continue" : "Enable notifications",
+            primaryTitle: flow.notificationsRequested
+                ? L10n.onboarding("common.continue", defaultValue: "Continue")
+                : L10n.onboarding("notifications.enable", defaultValue: "Enable notifications"),
             hudStep: .notifications,
             onBack: onBack,
             onPrimary: handlePrimary
@@ -46,16 +48,16 @@ struct Step23_Notifications: View {
                 }
 
                 VStack(spacing: 12) {
-                    hudBenefitRow(icon: "flame.fill", text: "Never break a streak")
-                    hudBenefitRow(icon: "calendar", text: "Session reminders that work with your schedule")
-                    hudBenefitRow(icon: "chart.line.uptrend.xyaxis", text: "Monthly moments to see what changed")
+                    hudBenefitRow(icon: "flame.fill", text: L10n.onboarding("notifications.benefit.streak", defaultValue: "Never break a streak"))
+                    hudBenefitRow(icon: "calendar", text: L10n.onboarding("notifications.benefit.schedule", defaultValue: "Session reminders that work with your schedule"))
+                    hudBenefitRow(icon: "chart.line.uptrend.xyaxis", text: L10n.onboarding("notifications.benefit.monthly", defaultValue: "Monthly moments to see what changed"))
                 }
 
                 Spacer().frame(height: 8)
 
                 if !flow.notificationsRequested {
-                    Button(action: { flow.notificationsRequested = true; onContinue() }) {
-                        Text("SKIP FOR NOW")
+                    Button(action: { onContinue() }) {
+                        Text(L10n.onboarding("notifications.skip", defaultValue: "SKIP FOR NOW"))
                             .font(Font.unbound.monoS)
                             .tracking(1.6)
                             .foregroundStyle(Color.unbound.textSecondary)

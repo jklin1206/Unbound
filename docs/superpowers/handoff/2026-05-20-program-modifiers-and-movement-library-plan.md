@@ -125,7 +125,7 @@ Everyone can say they are doing the same trial:
 
 - Forged Trial
 - Veteran Trial
-- Honed Trial
+- Master Trial
 - Vessel Trial
 - Unbound Trial
 - Ascendant Trial

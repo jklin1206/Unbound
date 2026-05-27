@@ -6,6 +6,7 @@ struct APIEndpoint {
     let body: Data?
     let timeout: TimeInterval
 
+    @available(*, unavailable, message: "Body photo analysis was removed; use ScanCheckpointService instead.")
     static func analyzeBody(scanId: String, userId: String) -> APIEndpoint {
         let body = try? JSONSerialization.data(withJSONObject: ["scanId": scanId, "userId": userId])
         return APIEndpoint(

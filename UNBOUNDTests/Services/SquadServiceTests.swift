@@ -388,8 +388,8 @@ final class SquadServiceTests: XCTestCase {
     func testSetAffinityNilClears() async throws {
         let squad = seedSquad()
         // First set a non-nil affinity.
-        try await service.setAffinity(.agility, userId: userId)
-        XCTAssertEqual(service.state(userId: userId).currentSquad?.affinityAxis, .agility)
+        try await service.setAffinity(.vitality, userId: userId)
+        XCTAssertEqual(service.state(userId: userId).currentSquad?.affinityAxis, .vitality)
 
         // Now clear it.
         try await service.setAffinity(nil, userId: userId)
@@ -404,13 +404,13 @@ final class SquadServiceTests: XCTestCase {
         let squad = seedSquad()
         var s = store.load(userId: userId)
         let power    = BuildIdentity(primary: .power,      secondary: nil, shape: .lean)
-        let agility  = BuildIdentity(primary: .agility,    secondary: nil, shape: .lean)
+        let vitality = BuildIdentity(primary: .vitality,    secondary: nil, shape: .lean)
         let power2   = BuildIdentity(primary: .power,      secondary: nil, shape: .lean)
         s.roster = [
             SquadMember(id: UUID(), squadId: squad.id, userId: UUID(), joinedAt: Date(),
                         displayName: "A", equippedTitle: nil, buildIdentity: power),
             SquadMember(id: UUID(), squadId: squad.id, userId: UUID(), joinedAt: Date(),
-                        displayName: "B", equippedTitle: nil, buildIdentity: agility),
+                        displayName: "B", equippedTitle: nil, buildIdentity: vitality),
             SquadMember(id: UUID(), squadId: squad.id, userId: UUID(), joinedAt: Date(),
                         displayName: "C", equippedTitle: nil, buildIdentity: power2),
         ]
@@ -418,19 +418,19 @@ final class SquadServiceTests: XCTestCase {
 
         let agg = service.aggregateBuildHexValues(userId: userId)
 
-        // 3 members: 2 power, 1 agility, 0 others.
+        // 3 members: 2 power, 1 vitality, 0 others.
         // power:    30 + (2/3)*50 ≈ 63.3
-        // agility:  30 + (1/3)*50 ≈ 46.6
+        // vitality: 30 + (1/3)*50 ≈ 46.6
         // others:   30 + 0        = 30
         let powerVal   = agg[.power]    ?? 0
-        let agilityVal = agg[.agility]  ?? 0
+        let vitalityVal = agg[.vitality]  ?? 0
         let controlVal = agg[.control]  ?? 0
 
-        XCTAssertGreaterThan(powerVal, agilityVal, "power axis should dominate (2 members)")
-        XCTAssertGreaterThan(agilityVal, controlVal, "agility (1 member) > control (0 members)")
+        XCTAssertGreaterThan(powerVal, vitalityVal, "power axis should dominate (2 members)")
+        XCTAssertGreaterThan(vitalityVal, controlVal, "vitality (1 member) > control (0 members)")
         XCTAssertEqual(controlVal, 30.0, accuracy: 0.01)
         XCTAssertEqual(powerVal,   30 + (2.0/3.0) * 50, accuracy: 0.01)
-        XCTAssertEqual(agilityVal, 30 + (1.0/3.0) * 50, accuracy: 0.01)
+        XCTAssertEqual(vitalityVal, 30 + (1.0/3.0) * 50, accuracy: 0.01)
     }
 
     func testLoadCurrentSquadPopulatesState() async {

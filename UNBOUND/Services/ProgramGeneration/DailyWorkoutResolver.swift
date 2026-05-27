@@ -5,6 +5,7 @@ struct DailyWorkoutModifierContext: Equatable, Sendable {
     var deloadFactor: Double?
     var trialPrepMovementIds: [String]
     var avoidedMovementIds: Set<String>
+    var shortSessionActive: Bool
 
     static let empty = DailyWorkoutModifierContext()
 
@@ -12,12 +13,14 @@ struct DailyWorkoutModifierContext: Equatable, Sendable {
         availableEquipment: [Equipment]? = nil,
         deloadFactor: Double? = nil,
         trialPrepMovementIds: [String] = [],
-        avoidedMovementIds: Set<String> = []
+        avoidedMovementIds: Set<String> = [],
+        shortSessionActive: Bool = false
     ) {
         self.availableEquipment = availableEquipment
         self.deloadFactor = deloadFactor
         self.trialPrepMovementIds = trialPrepMovementIds
         self.avoidedMovementIds = avoidedMovementIds
+        self.shortSessionActive = shortSessionActive
     }
 
     var hasModifiers: Bool {
@@ -25,6 +28,7 @@ struct DailyWorkoutModifierContext: Equatable, Sendable {
             || deloadFactor != nil
             || !trialPrepMovementIds.isEmpty
             || !avoidedMovementIds.isEmpty
+            || shortSessionActive
     }
 }
 
@@ -65,11 +69,15 @@ enum DailyWorkoutResolver {
         scheduledSkillIds: [String],
         modifierContext: DailyWorkoutModifierContext = .empty
     ) -> TrainingSessionDraft {
+        var effectiveContext = modifierContext
+        if isShortSessionActive(on: date) {
+            effectiveContext.shortSessionActive = true
+        }
         let skillBlocks = scheduledSkillIds.compactMap(skillBlock)
         let adjustedWorkout = adjustedWorkout(
             workout,
             for: skillBlocks,
-            modifierContext: modifierContext
+            modifierContext: effectiveContext
         )
         var draft = TrainingSessionAdapters.draft(
             from: adjustedWorkout,
@@ -81,6 +89,24 @@ enum DailyWorkoutResolver {
         draft.date = date
         draft.estimatedMinutes = estimatedMinutes(for: draft.blocks, fallback: adjustedWorkout.estimatedMinutes)
         return draft
+    }
+
+    static func resolvedWorkout(
+        from workout: Workout,
+        date: Date = Date(),
+        scheduledSkillIds: [String] = [],
+        modifierContext: DailyWorkoutModifierContext = .empty
+    ) -> Workout {
+        var effectiveContext = modifierContext
+        if isShortSessionActive(on: date) {
+            effectiveContext.shortSessionActive = true
+        }
+        let skillBlocks = scheduledSkillIds.compactMap(skillBlock)
+        return adjustedWorkout(
+            workout,
+            for: skillBlocks,
+            modifierContext: effectiveContext
+        )
     }
 
     static func skillOnlyDraft(
@@ -119,7 +145,15 @@ enum DailyWorkoutResolver {
         adjusted = trialPrepWorkout(adjusted, modifierContext: modifierContext)
         adjusted = taperedWorkout(adjusted, for: skillBlocks)
         adjusted = deloadedWorkout(adjusted, modifierContext: modifierContext)
+        adjusted = shortSessionWorkout(adjusted, modifierContext: modifierContext)
         return adjusted
+    }
+
+    private static func isShortSessionActive(on date: Date) -> Bool {
+        let stored = UserDefaults.standard.double(forKey: "unbound.shortSessionDate")
+        guard stored > 0 else { return false }
+        let today = Calendar.current.startOfDay(for: date).timeIntervalSince1970
+        return abs(stored - today) < 60
     }
 
     private static func substitutedWorkout(
@@ -129,8 +163,22 @@ enum DailyWorkoutResolver {
         guard modifierContext.hasModifiers else { return workout }
 
         var copy = workout
+        let originalExclusions = Set(workout.mainExercises.flatMap(exclusionNames))
+        var usedNames: Set<String> = []
         copy.mainExercises = workout.mainExercises.map { exercise in
-            guard let replacement = replacement(for: exercise, modifierContext: modifierContext) else {
+            let excluded = originalExclusions.union(usedNames)
+            let uniqueReplacement = replacement(
+                for: exercise,
+                modifierContext: modifierContext,
+                additionalExcludedNames: excluded
+            )
+            let fallbackReplacement = replacement(
+                for: exercise,
+                modifierContext: modifierContext,
+                additionalExcludedNames: []
+            )
+            guard let replacement = uniqueReplacement ?? fallbackReplacement else {
+                usedNames.formUnion(exclusionNames(for: exercise))
                 return exercise
             }
             var adjusted = exercise
@@ -138,6 +186,7 @@ enum DailyWorkoutResolver {
             adjusted.muscleGroups = replacement.muscleGroups
             adjusted.substitution = exercise.name
             adjusted.notes = appendNote("Adjusted for today's modifiers.", to: exercise.notes)
+            usedNames.formUnion(exclusionNames(for: replacement))
             return adjusted
         }
         return copy
@@ -145,12 +194,17 @@ enum DailyWorkoutResolver {
 
     private static func replacement(
         for exercise: Exercise,
-        modifierContext: DailyWorkoutModifierContext
+        modifierContext: DailyWorkoutModifierContext,
+        additionalExcludedNames: Set<String>
     ) -> CatalogExercise? {
         guard let current = MovementCatalog.canonicalExercise(named: exercise.name) else { return nil }
         let equipment = modifierContext.availableEquipment ?? [.fullGym]
         let style: TrainingStyle = equipment == [.bodyweight] ? .bodyweight : .hybrid
-        let excluded = Set([current.displayName, current.canonicalExerciseName ?? exercise.name] + modifierContext.avoidedMovementIds.map { $0 })
+        let excluded = Set(
+            [current.displayName, current.canonicalExerciseName ?? exercise.name]
+                + modifierContext.avoidedMovementIds.map { $0 }
+                + Array(additionalExcludedNames)
+        )
         let unavailable = modifierContext.availableEquipment.map {
             !MovementCatalog.isProgramCompatible(current, style: style, userEquipment: $0)
         } ?? false
@@ -163,6 +217,33 @@ enum DailyWorkoutResolver {
             userEquipment: equipment,
             excludedNames: excluded
         )
+    }
+
+    private static func exclusionNames(for exercise: Exercise) -> [String] {
+        if let definition = MovementCatalog.canonicalExercise(named: exercise.name) {
+            return [
+                definition.id,
+                definition.displayName,
+                definition.canonicalExerciseName ?? exercise.name,
+                definition.rankStandardMovementId
+            ].map(MovementCatalog.normalized)
+        }
+        return [MovementCatalog.normalized(exercise.name)]
+    }
+
+    private static func exclusionNames(for exercise: CatalogExercise) -> [String] {
+        if let definition = MovementCatalog.canonicalExercise(named: exercise.name) {
+            return [
+                definition.id,
+                definition.displayName,
+                definition.canonicalExerciseName ?? exercise.name,
+                definition.rankStandardMovementId
+            ].map(MovementCatalog.normalized)
+        }
+        return [
+            MovementCatalog.normalized(exercise.name),
+            MovementCatalog.normalized(exercise.displayName)
+        ]
     }
 
     private static func trialPrepWorkout(
@@ -200,6 +281,40 @@ enum DailyWorkoutResolver {
             return adjusted
         }
         return copy
+    }
+
+    private static func shortSessionWorkout(
+        _ workout: Workout,
+        modifierContext: DailyWorkoutModifierContext
+    ) -> Workout {
+        guard modifierContext.shortSessionActive,
+              workout.mainExercises.count > 3
+        else { return workout }
+
+        var copy = workout
+        let primary = workout.mainExercises.filter(isPrimaryExercise)
+        let accessory = workout.mainExercises.filter { !isPrimaryExercise($0) }
+        let kept = Array((primary + accessory).prefix(3))
+        copy.mainExercises = kept.map { exercise in
+            var adjusted = exercise
+            adjusted.notes = appendNote("Short mode kept this exercise; lower-priority work was cut for today.", to: exercise.notes)
+            return adjusted
+        }
+        copy.estimatedMinutes = min(workout.estimatedMinutes, 30)
+        copy.notes = appendNote("Short mode active: compounds first, accessories trimmed.", to: workout.notes)
+        return copy
+    }
+
+    private static func isPrimaryExercise(_ exercise: Exercise) -> Bool {
+        guard let definition = MovementCatalog.canonicalExercise(named: exercise.name) else {
+            return false
+        }
+        switch definition.movementSlot {
+        case .squat, .hinge, .horizontalPush, .verticalPush, .horizontalPull, .verticalPull:
+            return true
+        case .arms, .core, .calves, .carry, .cardio, .mobility, .routine, .skill:
+            return false
+        }
     }
 
     private static func skillBlock(skillId: String) -> TrainingBlock? {

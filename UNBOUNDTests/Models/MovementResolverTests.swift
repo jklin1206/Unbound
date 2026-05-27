@@ -240,7 +240,7 @@ final class MovementResolverTests: XCTestCase {
             "Variants must resolve directly to a ranked standard:\n\(invalidVariants.joined(separator: "\n"))"
         )
 
-        XCTAssertEqual(MovementCatalog.catalogExercises(for: .pullVertical).count, 20)
+        XCTAssertEqual(MovementCatalog.catalogExercises(for: .pullVertical).count, 21)
         XCTAssertEqual(
             MovementCatalog.catalogExercise(named: "Barbell Bench Press")?.name,
             "bench press"

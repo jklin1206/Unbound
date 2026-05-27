@@ -48,9 +48,9 @@ enum DayCategory: String, CaseIterable, Identifiable, Hashable, Codable {
 // MARK: - WeekPhase (V4)
 //
 // Manual periodization tag the user picks to set this week's emphasis.
-// Flows into AI session generation so prescriptions scale with the user's
-// chosen intensity. A 7-day periodization cycle was deemed too complex for
-// V4 — the simple manual tag keeps the user in control.
+// Flows into deterministic session prescription so volume/intensity scale
+// with the user's chosen emphasis. A 7-day periodization cycle was deemed
+// too complex for V4 — the simple manual tag keeps the user in control.
 enum WeekPhase: String, Codable, CaseIterable, Identifiable, Hashable {
     case heavy, moderate, light, deload
 
@@ -94,7 +94,7 @@ final class ProgramScheduler {
 
     /// Maps skill clusters to body-part categories so active goals route to
     /// the right days. Cluster IDs come from SkillCluster enum.
-    private func category(for cluster: SkillCluster) -> DayCategory {
+    static func category(for cluster: SkillCluster) -> DayCategory {
         switch cluster {
         case .calisthenicControl: return .push
         case .pullingPower:       return .pull
@@ -106,6 +106,67 @@ final class ProgramScheduler {
         case .planche:            return .skills
         case .conditioning:       return .conditioning   // V3 — real conditioning slot
         }
+    }
+
+    func optimizedWeeklySchedule(activeGoalIds: Set<String>) -> [DayCategory] {
+        let categories = activeGoalIds.compactMap { id -> DayCategory? in
+            guard let node = SkillGraph.shared.node(id: id) else { return nil }
+            return Self.category(for: node.cluster)
+        }
+        guard !categories.isEmpty else { return Self.defaultWeeklySchedule }
+
+        let counts = Dictionary(grouping: categories, by: { $0 })
+            .mapValues(\.count)
+        let ranked = counts
+            .sorted { lhs, rhs in
+                if lhs.value != rhs.value { return lhs.value > rhs.value }
+                return categoryPriority(lhs.key) < categoryPriority(rhs.key)
+            }
+            .map(\.key)
+
+        var schedule = Self.defaultWeeklySchedule
+        let trainingSlots = [0, 1, 2, 3, 4, 5]
+        for (offset, slot) in trainingSlots.enumerated() {
+            schedule[slot] = ranked[offset % ranked.count]
+        }
+        if ranked.count == 1 {
+            schedule[1] = recoveryPair(for: ranked[0])
+            schedule[3] = .conditioning
+            schedule[5] = .skills
+        }
+        schedule[6] = .rest
+        return smoothBackToBackRepeats(schedule)
+    }
+
+    private func categoryPriority(_ category: DayCategory) -> Int {
+        switch category {
+        case .pull: return 0
+        case .push: return 1
+        case .legs: return 2
+        case .core: return 3
+        case .skills: return 4
+        case .conditioning: return 5
+        case .rest: return 6
+        }
+    }
+
+    private func recoveryPair(for category: DayCategory) -> DayCategory {
+        switch category {
+        case .pull, .push: return .legs
+        case .legs: return .pull
+        case .core, .skills: return .conditioning
+        case .conditioning, .rest: return .push
+        }
+    }
+
+    private func smoothBackToBackRepeats(_ schedule: [DayCategory]) -> [DayCategory] {
+        var result = schedule
+        for index in 1..<6 where result[index] == result[index - 1] {
+            if let swapIndex = ((index + 1)..<6).first(where: { result[$0] != result[index] }) {
+                result.swapAt(index, swapIndex)
+            }
+        }
+        return result
     }
 
     // MARK: - Weekly schedule
@@ -178,7 +239,7 @@ final class ProgramScheduler {
 
         let matching = goals.filter {
             guard let node = graph.node(id: $0) else { return false }
-            return category(for: node.cluster) == cat
+            return Self.category(for: node.cluster) == cat
         }
 
         return matching.sorted { a, b in
@@ -209,7 +270,7 @@ final class ProgramScheduler {
               let node = SkillGraph.shared.node(id: skillId)
         else { return nil }
 
-        let targetCategory = category(for: node.cluster)
+        let targetCategory = Self.category(for: node.cluster)
         guard targetCategory != .rest else { return nil }
 
         let calendar = Calendar(identifier: .iso8601)

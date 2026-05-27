@@ -8,7 +8,7 @@ import Foundation
 // Default rule, based on the current rank ladder:
 // Initiate/Novice/Apprentice = exposure and assisted progressions.
 // Forged = first clean ownership of the named skill.
-// Veteran/Honed+ = repeatable ownership for high-risk or mythic branches.
+// Veteran/Master+ = repeatable ownership for high-risk or mythic branches.
 
 struct SkillUnlockRequirement: Codable, Hashable, Sendable, Identifiable {
     let sourceSkillId: String
@@ -123,7 +123,7 @@ enum SkillUnlockStandards {
 
     private static func inferredTier(from parent: SkillNode?, to child: SkillNode) -> SkillTier {
         if child.isMythic || child.rank == .s || child.tier >= 6 {
-            return .honed
+            return .master
         }
 
         let title = child.title.lowercased()
@@ -187,26 +187,26 @@ enum SkillUnlockStandards {
         // and strict work need repeatable ownership first.
         "pp.muscle-up->pp.10-muscle-ups": .forged,
         "pp.muscle-up->pp.ring-muscle-up": .veteran,
-        "pp.ring-muscle-up->pp.strict-muscle-up": .honed,
+        "pp.ring-muscle-up->pp.strict-muscle-up": .master,
 
         // One-arm pulling should not open from a lucky first rep.
         "pp.archer-pullup->pp.one-arm-pullup-negative": .veteran,
-        "pp.weighted-pullup->pp.one-arm-pullup": .honed,
+        "pp.weighted-pullup->pp.one-arm-pullup": .master,
         "pp.one-arm-pullup->pp.5-oap-side": .veteran,
 
         // Handstand line: wall work opens freestanding practice at ownership,
         // but one-arm work waits until the full handstand path is repeatable.
         "hs.wall-handstand-30->hs.freestanding-hs-10": .forged,
-        "hs.freestanding-hs-30->hs.wall-supported-oah": .honed,
+        "hs.freestanding-hs-30->hs.wall-supported-oah": .master,
         "hs.wall-supported-oah->oah.one-arm-handstand-5s": .veteran,
-        "oah.one-arm-handstand-5s->oah.full-one-arm-handstand": .honed,
+        "oah.one-arm-handstand-5s->oah.full-one-arm-handstand": .master,
 
         // Planche: the next lever opens at ownership; elite dynamic branches
         // require repeatable control.
         "pl.tuck-planche->pl.tuck-planche-pushup": .forged,
         "pl.straddle-planche->pl.full-planche": .veteran,
         "pl.full-planche->pl.full-planche-pushup": .veteran,
-        "pl.full-planche->pl.one-arm-planche": .honed,
+        "pl.full-planche->pl.one-arm-planche": .master,
         "pl.straddle-planche->pl.bent-arm-planche": .veteran,
         "pl.half-lay-planche->pl.full-planche": .forged,
 
@@ -216,7 +216,7 @@ enum SkillUnlockStandards {
         "cl.straddle-front-lever->cl.full-front-lever": .veteran,
         "cl.skin-the-cat->cl.straddle-back-lever": .forged,
         "cl.straddle-back-lever->cl.full-back-lever": .veteran,
-        "cl.skin-the-cat->cl.three-sixty-pulls": .honed,
+        "cl.skin-the-cat->cl.three-sixty-pulls": .master,
 
         // Legs: loaded/explosive variants wait until the base pattern is owned.
         "ld.bulgarian-split-squat->ld.pistol-squat": .forged,
@@ -232,7 +232,7 @@ enum SkillUnlockStandards {
             return "Own the first clean standard before this unlocks."
         case .veteran:
             return "Show repeatable ownership before this harder branch opens."
-        case .honed, .vessel, .unbound, .ascendant:
+        case .master, .vessel, .unbound, .ascendant:
             return "Prove strong ownership before this high-skill branch opens."
         }
     }

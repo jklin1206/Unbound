@@ -5,7 +5,7 @@ import XCTest
 @MainActor
 final class ScanPayoffFlavorServiceTests: XCTestCase {
     func testReturnsNonEmptyString() async {
-        let service = ScanPayoffFlavorService()
+        let service = ScanPayoffFlavorService(networkEnabled: false)
         let identity = BuildIdentity(primary: .power, secondary: nil, shape: .specialist)
         let result = await service.flavor(for: identity)
         XCTAssertFalse(result.isEmpty)
@@ -14,7 +14,7 @@ final class ScanPayoffFlavorServiceTests: XCTestCase {
 
     func testFallbackOnNetworkError() async {
         // The default ClaudeClient may not have a key in test env — fallback path is exercised.
-        let service = ScanPayoffFlavorService()
+        let service = ScanPayoffFlavorService(networkEnabled: false)
         let identity = BuildIdentity(primary: .mobility, secondary: nil, shape: .lean)
         let result = await service.flavor(for: identity)
         // Either real Haiku response or "Your work is showing." — both pass

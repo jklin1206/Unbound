@@ -176,6 +176,7 @@ final class TrainingCompletionService {
         result.bodyMapNoveltyMultiplier = noveltyMultiplier
         result.bodyMapRegionRewards = previewBodyRegionRewards(
             from: gains,
+            trainingLoads: BodyRegionTrainingLedger.loads(for: performanceLog),
             at: performanceLog.completedAt
         )
 
@@ -194,10 +195,11 @@ final class TrainingCompletionService {
             xpDeltas: xpDeltas,
             at: performanceLog.completedAt
         )
-        if let vitalityXP = VitalityRewardPolicy.xp(for: performanceLog) {
+        let vitalityAward = VitalityRewardPolicy.previewAward(for: performanceLog)
+        if vitalityAward.totalXP > 0 {
             let vitalityProgress = AttributeIngest.applyXPDeltas(
                 &attributeProfile,
-                xpDeltas: [.agility: vitalityXP],
+                xpDeltas: [.vitality: vitalityAward.totalXP],
                 at: performanceLog.completedAt
             )
             attributeProgress.rewards.append(contentsOf: vitalityProgress.rewards)
@@ -246,6 +248,7 @@ final class TrainingCompletionService {
             userId: performanceLog.userId,
             sourceLogId: performanceLog.id,
             at: performanceLog.completedAt,
+            trainingLoads: BodyRegionTrainingLedger.loads(for: performanceLog),
             database: services.database
         )
         result.bodyMapNoveltyMultiplier = bodyMapProgress.noveltyMultiplier
@@ -263,14 +266,23 @@ final class TrainingCompletionService {
         )
         var attributeRewards = attributeProgress.rewards
         var attributeRankUpEventCount = attributeProgress.rankUpEvents.count
-        if let vitalityXP = VitalityRewardPolicy.xp(for: performanceLog) {
+        let vitalityAward = await VitalityRewardPolicy.award(
+            for: performanceLog,
+            database: services.database
+        )
+        if vitalityAward.totalXP > 0 {
             let vitalityProgress = await services.attribute.applyXPDeltas(
-                [.agility: vitalityXP],
+                [.vitality: vitalityAward.totalXP],
                 userId: performanceLog.userId,
                 at: performanceLog.completedAt
             )
             attributeRewards.append(contentsOf: vitalityProgress.rewards)
             attributeRankUpEventCount += vitalityProgress.rankUpEvents.count
+            await VitalityRewardPolicy.record(
+                award: vitalityAward,
+                performanceLog: performanceLog,
+                database: services.database
+            )
         }
         result.attributeProfileBefore = attributeProfileBefore
         result.attributeProfileAfter = services.attribute.snapshot(
@@ -295,21 +307,10 @@ final class TrainingCompletionService {
 
     private func previewBodyRegionRewards(
         from gains: [MovementAPGain],
+        trainingLoads: [BodyRegionTrainingLoad] = [],
         at date: Date
     ) -> [BodyMapRegionReward] {
-        var loadsByRegion: [BodyRegion: Double] = [:]
-
-        for gain in gains where gain.rawAP > 0 {
-            let exactRegions = MovementCatalog.definition(for: gain.movementId)?.bodyRegions ?? []
-            let standardRegions = MovementCatalog.definition(for: gain.rankStandardMovementId)?.bodyRegions ?? []
-            let regions = Array(Set(exactRegions.isEmpty ? standardRegions : exactRegions))
-            guard !regions.isEmpty else { continue }
-
-            let loadShare = gain.rawAP / Double(regions.count)
-            for region in regions {
-                loadsByRegion[region, default: 0] += loadShare
-            }
-        }
+        let loadsByRegion = previewRegionLoads(from: gains, trainingLoads: trainingLoads)
 
         return loadsByRegion
             .map { region, loadAdded in
@@ -322,6 +323,62 @@ final class TrainingCompletionService {
                 )
             }
             .sorted { $0.region.rawValue < $1.region.rawValue }
+    }
+
+    private func previewRegionLoads(
+        from gains: [MovementAPGain],
+        trainingLoads: [BodyRegionTrainingLoad]
+    ) -> [BodyRegion: Double] {
+        let totalAP = gains.reduce(0) { $0 + max(0, $1.rawAP) }
+        let apRegions = Set(gains.flatMap { bodyRegions(for: $0) })
+        let roleWeightedLoads = mergedTrainingLoads(trainingLoads)
+            .filter { region, load in
+                apRegions.contains(region) && load.coachLoadScore > 0
+            }
+        let totalCoachLoad = roleWeightedLoads.values.reduce(0) { $0 + $1.coachLoadScore }
+        if totalAP > 0, totalCoachLoad > 0 {
+            return roleWeightedLoads.reduce(into: [:]) { result, entry in
+                result[entry.key] = totalAP * (entry.value.coachLoadScore / totalCoachLoad)
+            }
+        }
+        if totalAP == 0, !trainingLoads.isEmpty {
+            return mergedTrainingLoads(trainingLoads).reduce(into: [:]) { result, entry in
+                let load = entry.value.coachLoadScore * 10
+                if load > 0 {
+                    result[entry.key] = load
+                }
+            }
+        }
+
+        var loadsByRegion: [BodyRegion: Double] = [:]
+        for gain in gains where gain.rawAP > 0 {
+            let regions = bodyRegions(for: gain)
+            guard !regions.isEmpty else { continue }
+
+            let loadShare = gain.rawAP / Double(regions.count)
+            for region in regions {
+                loadsByRegion[region, default: 0] += loadShare
+            }
+        }
+
+        return loadsByRegion
+    }
+
+    private func mergedTrainingLoads(
+        _ trainingLoads: [BodyRegionTrainingLoad]
+    ) -> [BodyRegion: BodyRegionTrainingLoad] {
+        trainingLoads.reduce(into: [:]) { result, load in
+            var current = result[load.region] ?? BodyRegionTrainingLoad(region: load.region)
+            current.merge(load)
+            result[load.region] = current
+        }
+    }
+
+    private func bodyRegions(for gain: MovementAPGain) -> [BodyRegion] {
+        let exactRegions = MovementCatalog.definition(for: gain.movementId)?.bodyRegions ?? []
+        let standardRegions = MovementCatalog.definition(for: gain.rankStandardMovementId)?.bodyRegions ?? []
+        let regions = exactRegions.isEmpty ? standardRegions : exactRegions
+        return Array(Set(regions)).sorted { $0.rawValue < $1.rawValue }
     }
 
     private func saveCompatibleWorkoutLog(
@@ -379,41 +436,6 @@ final class TrainingCompletionService {
                 throw error
             }
         }
-    }
-}
-
-private enum VitalityRewardPolicy {
-    static func xp(for performanceLog: PerformanceLog) -> Double? {
-        let text = searchableText(for: performanceLog)
-        if text.contains("vitality:rest-day") || text.contains("rest day recovery") {
-            return 8
-        }
-        if text.contains("deload") {
-            return 10
-        }
-        if text.contains("vitality:recovery-check-in")
-            || text.contains("recovery check-in")
-            || text.contains("active recovery") {
-            return 5
-        }
-        return nil
-    }
-
-    private static func searchableText(for performanceLog: PerformanceLog) -> String {
-        var parts: [String] = [
-            performanceLog.title,
-            performanceLog.notes ?? ""
-        ]
-        for block in performanceLog.blocks {
-            parts.append(block.title)
-            parts.append(block.notes ?? "")
-            for exercise in block.exercises {
-                parts.append(exercise.name)
-                parts.append(exercise.plannedTarget)
-                parts.append(exercise.notes ?? "")
-            }
-        }
-        return parts.joined(separator: " ").lowercased()
     }
 }
 
@@ -487,6 +509,8 @@ private extension WorkoutProofSource {
             self = .skillPractice
         case .custom, .routine, .cardio:
             self = .custom
+        case .vow:
+            self = .vow
         case .overallRankTrial:
             self = .retest
         }

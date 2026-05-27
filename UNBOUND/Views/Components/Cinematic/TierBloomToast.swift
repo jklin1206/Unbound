@@ -4,7 +4,7 @@ import SwiftUI
 //
 // Subtle bottom-of-screen notification that fires when a skill crosses a
 // SkillTier threshold where `to.isFlagshipMoment == false` (i.e., Initiate
-// through Honed). Flagship tiers (Vessel/Unbound/Ascendant) use the full
+// through Master). Flagship tiers (Vessel/Unbound/Ascendant) use the full
 // RankUpCinematic chain-shatter takeover — this is everything else.
 //
 // Beat timeline (~2.5s total):

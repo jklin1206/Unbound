@@ -84,7 +84,7 @@ final class AttributeServiceIngestTests: XCTestCase {
         XCTAssertEqual(crossings.first?.level, .tier)
     }
 
-    func testApplyDeltasEmitsATierEventOnCrossingHonedToVessel() {
+    func testApplyDeltasEmitsATierEventOnCrossingMasterToVessel() {
         var p = AttributeProfile.empty(userId: "u", at: t0)
         p.set(.power, AttributeValue(peak: 80, current: 64, lastContributionAt: t0))
         let crossings = AttributeIngest.applyDeltas(&p, deltas: [.power: 10], at: t0)

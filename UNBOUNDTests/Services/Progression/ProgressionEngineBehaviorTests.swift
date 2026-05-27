@@ -13,6 +13,14 @@ final class ProgressionEngineBehaviorTests: XCTestCase {
         XCTAssertTrue(pullDefinitions.allSatisfy { $0.progressionFamily == "pull" })
     }
 
+    func testBodyweightProgressionsDoNotClassifyAsLoadedCompounds() {
+        XCTAssertEqual(ExerciseClassification.classify(exerciseKey: "bodyweight squat"), .bodyweightSkill)
+        XCTAssertEqual(ExerciseClassification.classify(exerciseKey: "l sit"), .bodyweightSkill)
+        XCTAssertEqual(ExerciseClassification.classify(exerciseKey: "tuck front lever"), .bodyweightSkill)
+        XCTAssertEqual(ExerciseClassification.classify(exerciseKey: "back squat"), .lowerCompound)
+        XCTAssertEqual(ExerciseClassification.classify(exerciseKey: "weighted pullup"), .upperCompound)
+    }
+
     // Smoke test: the `mode:` parameter exists and defaults to .advance,
     // so existing callers that don't pass it still compile.
     func testIngestAcceptsModeParameter() async {
@@ -146,6 +154,74 @@ final class ProgressionEngineBehaviorTests: XCTestCase {
         XCTAssertNil(variantState)
     }
 
+    @MainActor
+    func testGrindyRPEDoesNotAdvanceProgressionCounterOrWeight() async {
+        let userId = "grindy-rpe-\(UUID().uuidString)"
+        let startedAt = Date(timeIntervalSince1970: 3_000)
+
+        await ProgressionEngine.shared.ingest(
+            log: progressionLog(
+                id: "bench-grind-1-\(UUID().uuidString)",
+                userId: userId,
+                exerciseName: "bench press",
+                reps: 10,
+                weightKg: 60,
+                rpe: 9,
+                at: startedAt
+            ),
+            mode: .advance
+        )
+        await ProgressionEngine.shared.ingest(
+            log: progressionLog(
+                id: "bench-grind-2-\(UUID().uuidString)",
+                userId: userId,
+                exerciseName: "bench press",
+                reps: 10,
+                weightKg: 60,
+                rpe: 9,
+                at: startedAt.addingTimeInterval(86_400)
+            ),
+            mode: .advance
+        )
+
+        let state: ProgressionState? = try? await DatabaseService.shared.read(
+            collection: "progression_states",
+            documentId: "\(userId):bench press"
+        )
+        XCTAssertEqual(state?.consecutiveSessionsAtTarget, 0)
+        XCTAssertEqual(state?.currentWorkingWeightKg, 60)
+    }
+
+    @MainActor
+    func testAccessoryProgressionCapsRepRangeThenBumpsLoad() async {
+        let userId = "accessory-cap-\(UUID().uuidString)"
+        let startedAt = Date(timeIntervalSince1970: 4_000)
+        let repTargets = [15, 15, 17, 17, 19, 19, 20, 20]
+
+        for (index, reps) in repTargets.enumerated() {
+            await ProgressionEngine.shared.ingest(
+                log: progressionLog(
+                    id: "curl-\(index)-\(UUID().uuidString)",
+                    userId: userId,
+                    exerciseName: "cable curl",
+                    reps: reps,
+                    weightKg: 10,
+                    rpe: 7,
+                    at: startedAt.addingTimeInterval(Double(index) * 86_400)
+                ),
+                mode: .advance
+            )
+        }
+
+        let state: ProgressionState? = try? await DatabaseService.shared.read(
+            collection: "progression_states",
+            documentId: "\(userId):cable curl"
+        )
+        XCTAssertEqual(state?.targetRepMax, 15)
+        XCTAssertEqual(state?.consecutiveSessionsAtTarget, 0)
+        XCTAssertGreaterThan(state?.currentWorkingWeightKg ?? 0, 10)
+    }
+
     private func neutralLatPulldownLog(
         id: String,
         userId: String,
@@ -176,7 +252,47 @@ final class ProgressionEngineBehaviorTests: XCTestCase {
                             setNumber: 1,
                             weightKg: 70,
                             reps: 10,
-                            rpe: 8,
+                            rpe: 7,
+                            isWarmup: false
+                        )
+                    ],
+                    skipped: false,
+                    notes: nil
+                )
+            ]
+        )
+    }
+
+    private func progressionLog(
+        id: String,
+        userId: String,
+        exerciseName: String,
+        reps: Int,
+        weightKg: Double,
+        rpe: Int,
+        at date: Date
+    ) -> WorkoutLog {
+        WorkoutLog(
+            id: id,
+            userId: userId,
+            programId: "program-progression-regression",
+            dayNumber: 1,
+            plannedWorkoutName: "Progression Regression",
+            startedAt: date,
+            completedAt: date.addingTimeInterval(1_800),
+            exerciseEntries: [
+                ExerciseLogEntry(
+                    id: "entry-\(id)",
+                    exerciseName: exerciseName,
+                    plannedSets: 1,
+                    plannedReps: "\(reps)",
+                    sets: [
+                        SetLog(
+                            id: "set-\(id)",
+                            setNumber: 1,
+                            weightKg: weightKg,
+                            reps: reps,
+                            rpe: rpe,
                             isWarmup: false
                         )
                     ],

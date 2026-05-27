@@ -31,9 +31,17 @@ final class ProgramStore {
         var syncedAt: Date?
     }
 
+    convenience init(directory: URL? = nil) {
+        self.init(
+            directory: directory,
+            remote: SupabaseProgramService.shared,
+            outbox: .shared
+        )
+    }
+
     init(directory: URL? = nil,
-         remote: ProgramRemote = SupabaseProgramService.shared,
-         outbox: OutboxStore = .shared) {
+         remote: ProgramRemote,
+         outbox: OutboxStore) {
         let base = directory ?? FileManager.default
             .urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("UNBOUND", isDirectory: true)
@@ -45,11 +53,12 @@ final class ProgramStore {
 
     private func readCache() -> Cached? {
         guard let data = try? Data(contentsOf: fileURL) else { return nil }
-        return try? JSONDecoder().decode(Cached.self, from: data)
+        return (try? JSONDecoder.unbound.decode(Cached.self, from: data))
+            ?? (try? JSONDecoder().decode(Cached.self, from: data))
     }
 
     private func writeCache(_ c: Cached) {
-        if let data = try? JSONEncoder().encode(c) {
+        if let data = try? JSONEncoder.unbound.encode(c) {
             try? data.write(to: fileURL, options: .atomic)
         }
     }
@@ -74,7 +83,7 @@ final class ProgramStore {
         self.program = program
         writeCache(Cached(program: program, userId: userId, dirty: false, syncedAt: Date()))
 
-        if let json = try? JSONEncoder().encode(program) {
+        if let json = try? JSONEncoder.unbound.encode(program) {
             outbox.enqueue(OutboxEntry(id: UUID(), userId: userId,
                 collection: "programs", docId: program.id, op: .upsert,
                 payloadJSON: json, enqueuedAt: Date(), attempt: 0))

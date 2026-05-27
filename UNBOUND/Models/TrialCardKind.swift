@@ -33,21 +33,37 @@ extension WeeklyVowKind: Codable {
 extension WeeklyVowKind {
     var displayName: String {
         switch self {
-        case .ember: return "Low Binding"
-        case .overdrive: return "Limit Binding"
-        case .apex: return "Apex Binding"
+        case .ember: return "Recovery Vow"
+        case .overdrive: return "Finisher Vow"
+        case .apex: return "Limit Vow"
         }
     }
 
     var shortDescription: String {
         switch self {
         case .ember:
-            return "Low-day binding vow"
+            return "Recovery-safe binding"
         case .overdrive:
-            return "Redline finisher vow"
+            return "Post-workout binding"
         case .apex:
-            return "Dedicated event vow"
+            return "Limit standard"
         }
+    }
+
+    var proofAssetSymbolName: String {
+        switch self {
+        case .ember: return "leaf.fill"
+        case .overdrive: return "bolt.fill"
+        case .apex: return "scope"
+        }
+    }
+
+    static func kind(fromWeeklyVowRoute route: String?) -> WeeklyVowKind? {
+        guard let route = route?.lowercased() else { return nil }
+        if route.contains("apex") || route.contains("prestige") { return .apex }
+        if route.contains("overdrive") || route.contains("growth") { return .overdrive }
+        if route.contains("ember") || route.contains("aligned") { return .ember }
+        return nil
     }
 
     // Temporary adapters for old call sites and persisted raw values.

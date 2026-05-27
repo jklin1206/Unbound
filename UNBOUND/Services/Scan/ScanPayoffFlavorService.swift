@@ -7,13 +7,24 @@ import Foundation
 @MainActor
 final class ScanPayoffFlavorService {
     static let shared = ScanPayoffFlavorService()
-    private let client = ClaudeClient.shared
+    private let client: ClaudeClient
+    private let networkEnabled: Bool
     private let logger = LoggingService.shared
-    private let fallback = "Your work is showing."
+    private var fallback: String {
+        L10n.string(.scanPayoffFlavorFallback, defaultValue: "Your work is showing.")
+    }
+
+    init(client: ClaudeClient = .shared, networkEnabled: Bool? = nil) {
+        self.client = client
+        self.networkEnabled = networkEnabled ?? !Self.isRunningUnderXCTest
+    }
 
     /// Returns one-liner flavor copy commenting on Build Identity.
     /// Never references body parts. Falls back on error.
     func flavor(for identity: BuildIdentity) async -> String {
+        guard networkEnabled else {
+            return fallback
+        }
         let system = """
         You write one-sentence flavor copy for a fitness app. \
         Comment on the user's training identity, not their body.
@@ -55,5 +66,9 @@ final class ScanPayoffFlavorService {
 
         Now write the sentence for "\(buildIdentityName)":
         """
+    }
+
+    private static var isRunningUnderXCTest: Bool {
+        ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
     }
 }

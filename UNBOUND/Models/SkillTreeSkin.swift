@@ -63,7 +63,7 @@ enum SkillTreeSkin: String, Codable, Sendable, CaseIterable, Identifiable {
         case .graphite:     return nil
         case .ember:        return .novice
         case .jade:         return .veteran
-        case .frost:        return .honed
+        case .frost:        return .master
         case .gold:         return .vessel
         case .void:         return .unbound
         case .aurora:       return .unbound
@@ -78,7 +78,7 @@ enum SkillTreeSkin: String, Codable, Sendable, CaseIterable, Identifiable {
         case .graphite:     return "Always available."
         case .ember:        return "Reach Novice aggregate tier."
         case .jade:         return "Reach Veteran aggregate tier."
-        case .frost:        return "Reach Honed aggregate tier."
+        case .frost:        return "Reach Master aggregate tier."
         case .gold:         return "Reach Vessel aggregate tier."
         case .void:         return "Reach Unbound aggregate tier."
         case .aurora:       return "Reach Unbound aggregate tier."
@@ -136,6 +136,33 @@ enum SkillTreeSkin: String, Codable, Sendable, CaseIterable, Identifiable {
         case .aurora:       return Color.skinHex("99F6E4")
         case .holographic:  return Color.skinHex("D8B4FE")
         case .ascendant:    return Color.skinHex("FFE8A3")
+        }
+    }
+
+    /// High-contrast decal color for generated skill icon silhouettes.
+    /// The asset provides alpha; the selected skin owns the color.
+    var decalColor: Color {
+        switch self {
+        case .violet:       return Color.skinHex("C4B5FD")
+        case .graphite:     return Color.skinHex("E2E8F0")
+        case .ember:        return Color.skinHex("FED7AA")
+        case .jade:         return Color.skinHex("BBF7D0")
+        case .frost:        return Color.skinHex("ECFEFF")
+        case .gold:         return Color.skinHex("FFF4D1")
+        case .void:         return Color.skinHex("F5D0FE")
+        case .aurora:       return Color.skinHex("CCFBF1")
+        case .holographic:  return Color.skinHex("E0F2FE")
+        case .ascendant:    return Color.skinHex("FFFBEA")
+        }
+    }
+
+    var impactDecalColor: Color {
+        switch self {
+        case .graphite:     return Color.skinHex("F8FAFC")
+        case .gold, .ascendant:
+            return Color.skinHex("FFFFFF")
+        default:
+            return impactColor
         }
     }
 
@@ -217,6 +244,22 @@ enum SkillTreeSkin: String, Codable, Sendable, CaseIterable, Identifiable {
         case .violet: return 0.08
         case .ember, .gold, .aurora, .holographic, .ascendant: return 0.11
         case .jade, .frost, .void: return 0.09
+        }
+    }
+
+    var backgroundAssetOpacity: Double {
+        switch self {
+        case .graphite, .jade, .frost: return 0.96
+        case .gold, .ember, .void: return 0.92
+        case .violet, .aurora, .holographic, .ascendant: return 0.88
+        }
+    }
+
+    var backgroundAssetContrast: Double {
+        switch self {
+        case .graphite, .jade, .frost: return 1.24
+        case .gold, .ember, .void: return 1.18
+        case .violet, .aurora, .holographic, .ascendant: return 1.14
         }
     }
 

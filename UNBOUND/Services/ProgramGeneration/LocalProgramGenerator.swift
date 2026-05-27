@@ -394,7 +394,7 @@ enum LocalProgramGenerator {
     //   "power" + .specialist  → heavy lower (barbell mass, squat-dominant)
     //   "power" + other shape  → pull-dominant upper frame
     //   "control"              → calisthenics, core, corePower-dominant
-    //   "endurance"/"agility"  → athletic, full-body rotational
+    //   "endurance"/"vitality" → athletic, full-body rotational
     //   "balanced"             → default full-body
     //
     // programTemplateKey is the primary discriminator;
@@ -444,14 +444,14 @@ enum LocalProgramGenerator {
         case ("control", 5): return [corePowerDay, basePushDay, basePullDay, corePowerDay, baseLegsDay]
         case ("control", 6): return [corePowerDay, basePushDay, basePullDay, corePowerDay, baseLegsDay, fullBodyDay]
 
-        // endurance / agility / mobility / explosiveness — athletic rotational; all share the balanced split
-        case (_, 3) where ["endurance","agility","mobility","explosiveness"].contains(key):
+        // endurance / vitality / mobility / explosiveness — athletic rotational; all share the balanced split
+        case (_, 3) where ["endurance","vitality","mobility","explosiveness"].contains(key):
             return [fullBodyDay, fullBodyDay, fullBodyDay]
-        case (_, 4) where ["endurance","agility","mobility","explosiveness"].contains(key):
+        case (_, 4) where ["endurance","vitality","mobility","explosiveness"].contains(key):
             return [baseUpperDay, baseLowerDay, baseUpperDay, baseLowerDay]
-        case (_, 5) where ["endurance","agility","mobility","explosiveness"].contains(key):
+        case (_, 5) where ["endurance","vitality","mobility","explosiveness"].contains(key):
             return [basePushDay, basePullDay, baseLegsDay, baseUpperDay, corePowerDay]
-        case (_, 6) where ["endurance","agility","mobility","explosiveness"].contains(key):
+        case (_, 6) where ["endurance","vitality","mobility","explosiveness"].contains(key):
             return [basePushDay, basePullDay, baseLegsDay, basePushDay, basePullDay, corePowerDay]
 
         // "balanced" + hybridAthlete — symmetric push/pull/legs
@@ -1017,7 +1017,7 @@ enum LocalProgramGenerator {
     //   power + heavy (specialist/lean) → squat (barbell mass, squat anchor)
     //   power + pull  (non-specialist)  → pullup (pull-vertical emphasis)
     //   control                         → l-sit / dragon flag / plank (calisthenics precision)
-    //   endurance/agility/others        → bench press (balanced athletic baseline)
+    //   endurance/vitality/others       → bench press (balanced athletic baseline)
     //   balanced / hybridAthlete        → bench press (neutral compound)
     private static func isSignatureLift(exercise: ExerciseTemplate, buildIdentity: BuildIdentity) -> Bool {
         let key = buildIdentity.programTemplateKey
@@ -1039,7 +1039,7 @@ enum LocalProgramGenerator {
                    exercise.name.localizedCaseInsensitiveContains("dragon") ||
                    exercise.name.localizedCaseInsensitiveContains("plank")
         default:
-            // endurance, agility, mobility, explosiveness, balanced — athletic baseline
+            // endurance, vitality, mobility, explosiveness, balanced — athletic baseline
             return exercise.name.localizedCaseInsensitiveContains("bench press")
         }
     }
@@ -1295,7 +1295,7 @@ enum LocalProgramGenerator {
             return "Core and calisthenics mastery. Move your own bodyweight like a weapon."
         case "endurance", "mobility":
             return "Balanced athlete. Push, pull, and squat proportionally."
-        case "agility", "explosiveness":
+        case "vitality", "explosiveness":
             return "Fast, functional, capable. Built like an athlete who never stops."
         default:
             // balanced, hybridAthlete
@@ -1586,7 +1586,7 @@ enum LocalProgramGenerator {
             return "Pull-vertical emphasis: progression toward the muscle-up; shoulders and back own the split."
         case _ where isPowerHeavy:
             return "Squat-anchored lower body dominance; the frame gets bigger first."
-        case "endurance", "mobility", "agility", "explosiveness":
+        case "endurance", "mobility", "vitality", "explosiveness":
             return "Push/pull/squat in equal measure — the athletic baseline the whole flow rotates around."
         default:
             // balanced, hybridAthlete
@@ -1645,7 +1645,7 @@ enum LocalProgramGenerator {
         switch key {
         case "control":     return "figure.strengthtraining.functional"
         case "endurance":   return "figure.run"
-        case "agility":     return "figure.run.circle"
+        case "vitality":    return "figure.run.circle"
         case "mobility":    return "figure.flexibility"
         case "explosiveness": return "bolt.fill"
         default:            return "figure.mixed.cardio"  // balanced / hybridAthlete

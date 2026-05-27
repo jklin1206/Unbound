@@ -57,7 +57,7 @@ enum SubRank: String, Codable, CaseIterable, Sendable, Comparable {
         case 4...5: return .apprentice
         case 6...7: return .forged
         case 8...9: return .veteran
-        case 10...11: return .honed
+        case 10...11: return .master
         case 12...13: return .vessel
         case 14...15: return .unbound
         default: return .ascendant
@@ -128,7 +128,7 @@ enum RankTitle: String, Codable, CaseIterable, Sendable {
     case apprentice
     case forged
     case veteran
-    case honed
+    case master
     case vessel
     case unbound
     case ascendant
@@ -140,7 +140,7 @@ enum RankTitle: String, Codable, CaseIterable, Sendable {
         case .apprentice: return "Apprentice"
         case .forged: return "Forged"
         case .veteran: return "Veteran"
-        case .honed: return "Honed"
+        case .master: return "Master"
         case .vessel: return "Vessel"
         case .unbound: return "Unbound"
         case .ascendant: return "Ascendant"
@@ -149,12 +149,36 @@ enum RankTitle: String, Codable, CaseIterable, Sendable {
 
     var assetName: String { "rank_title_\(rawValue)" }
 
+    static func storedRawValue(_ rawValue: String) -> RankTitle? {
+        if rawValue == "honed" {
+            return .master
+        }
+        return RankTitle(rawValue: rawValue)
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let rawValue = try container.decode(String.self)
+        guard let title = RankTitle.storedRawValue(rawValue) else {
+            throw DecodingError.dataCorruptedError(
+                in: container,
+                debugDescription: "Unknown rank title: \(rawValue)"
+            )
+        }
+        self = title
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+
     static func legacyLetterFallback(_ letter: String) -> RankTitle {
         switch letter.uppercased().prefix(1) {
         case "E": return .initiate
         case "D": return .apprentice
         case "C": return .veteran
-        case "B": return .honed
+        case "B": return .master
         case "A": return .unbound
         case "S": return .ascendant
         default: return .initiate

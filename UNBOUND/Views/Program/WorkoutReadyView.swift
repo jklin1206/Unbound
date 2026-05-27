@@ -23,16 +23,22 @@ struct WorkoutReadyView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 18) {
                         header
-                        recentDraftsSection
+                        if draft.isWeeklyVowDraft {
+                            weeklyProofWorkSummary
+                        } else {
+                            recentDraftsSection
+                        }
                         blockList
-                        addControls
+                        if !draft.isWeeklyVowDraft {
+                            addControls
+                        }
                         startControls
                     }
                     .padding(20)
                     .padding(.bottom, 28)
                 }
             }
-            .navigationTitle("Workout Ready")
+            .navigationTitle(draft.isWeeklyVowDraft ? "Binding Vow" : "Workout Ready")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -64,6 +70,7 @@ struct WorkoutReadyView: View {
                     draft: draft,
                     services: services,
                     onFinished: {
+                        UserDefaults.standard.set(0, forKey: "unbound.shortSessionDate")
                         activeWorkoutDraft = nil
                         dismiss()
                     }
@@ -72,7 +79,16 @@ struct WorkoutReadyView: View {
         }
     }
 
+    @ViewBuilder
     private var header: some View {
+        if draft.isWeeklyVowDraft {
+            weeklyProofHeader
+        } else {
+            workoutHeader
+        }
+    }
+
+    private var workoutHeader: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(draft.source.rawValue.uppercased())
                 .font(Font.unbound.captionS.weight(.heavy))
@@ -91,9 +107,111 @@ struct WorkoutReadyView: View {
         .background(cardBackground)
     }
 
+    private var weeklyProofHeader: some View {
+        let kind = weeklyVowKind
+        let tint = weeklyProofTint
+        return VStack(alignment: .leading, spacing: 16) {
+            HStack(alignment: .center, spacing: 14) {
+                WeeklyVowProofAsset(kind: kind, tint: tint)
+                    .frame(width: 72, height: 72)
+                    .accessibilityHidden(true)
+
+                VStack(alignment: .leading, spacing: 7) {
+                    Text("BINDING VOW")
+                        .font(Font.unbound.captionS.weight(.heavy))
+                        .tracking(1.8)
+                        .foregroundStyle(tint)
+                    Text(weeklyProofTitle)
+                        .font(.system(.title2).weight(.black))
+                        .foregroundStyle(Color.unbound.textPrimary)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.78)
+                    HStack(spacing: 8) {
+                        readyChip(kind.displayName, icon: "checkmark.seal.fill")
+                        readyChip("\(draft.estimatedMinutes) min", icon: "clock")
+                    }
+                }
+                .layoutPriority(1)
+            }
+
+            WeeklyVowCoachValidationStrip(tint: tint)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(18)
+        .background(cardBackground)
+    }
+
+    private var weeklyProofWorkSummary: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("YOU'LL DO")
+                .font(Font.unbound.captionS.weight(.bold))
+                .tracking(1.4)
+                .foregroundStyle(Color.unbound.textTertiary)
+
+            ForEach(Array(weeklyProofPrescriptions.prefix(4))) { prescription in
+                HStack(spacing: 10) {
+                    Image(systemName: "target")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(weeklyProofTint)
+                        .frame(width: 28, height: 28)
+                        .background(Circle().fill(weeklyProofTint.opacity(0.12)))
+
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(prescription.exerciseName)
+                            .font(Font.unbound.bodyS.weight(.semibold))
+                            .foregroundStyle(Color.unbound.textPrimary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.74)
+                        Text("\(prescription.sets)x \(prescription.target.displayText) · \(prescription.restSeconds)s rest\(rpeLabel(for: prescription))")
+                            .font(Font.unbound.captionS)
+                            .foregroundStyle(Color.unbound.textSecondary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.72)
+                    }
+                    Spacer(minLength: 0)
+                }
+                .padding(12)
+                .background(cardBackground)
+            }
+        }
+    }
+
+    private var weeklyVowKind: WeeklyVowKind {
+        WeeklyVowKind.kind(fromWeeklyVowRoute: draft.weeklyVowId)
+            ?? WeeklyVowKind.kind(fromWeeklyVowRoute: draft.id)
+            ?? .overdrive
+    }
+
+    private var weeklyProofTint: Color {
+        switch weeklyVowKind {
+        case .ember:
+            return Color.unbound.rankGreen
+        case .overdrive:
+            return Color.unbound.accent
+        case .apex:
+            return Color.unbound.rankGold
+        }
+    }
+
+    private var weeklyProofTitle: String {
+        draft.title
+            .replacingOccurrences(of: "Binding Vow - ", with: "")
+            .replacingOccurrences(of: "Weekly Proof - ", with: "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var weeklyProofPrescriptions: [TrainingBlockPrescription] {
+        draft.blocks.flatMap(\.prescriptions)
+    }
+
+    private func rpeLabel(for prescription: TrainingBlockPrescription) -> String {
+        guard let rpe = prescription.rpe else { return "" }
+        return " · RPE \(rpe)"
+    }
+
     private var blockList: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("BLOCKS")
+            Text(draft.isWeeklyVowDraft ? "VOW BLOCKS" : "BLOCKS")
                 .font(Font.unbound.captionS.weight(.bold))
                 .tracking(1.4)
                 .foregroundStyle(Color.unbound.textTertiary)
@@ -160,42 +278,44 @@ struct WorkoutReadyView: View {
 
             Spacer(minLength: 8)
 
-            VStack(spacing: 4) {
-                Button {
-                    moveBlock(from: index, by: -1)
-                } label: {
-                    Image(systemName: "chevron.up")
-                        .frame(width: 28, height: 24)
+            if !draft.isWeeklyVowDraft {
+                VStack(spacing: 4) {
+                    Button {
+                        moveBlock(from: index, by: -1)
+                    } label: {
+                        Image(systemName: "chevron.up")
+                            .frame(width: 28, height: 24)
+                    }
+                    .disabled(index == 0)
+                    .accessibilityLabel("Move \(block.title) up")
+                    .accessibilityIdentifier("workoutReady.block.\(index).moveUp")
+
+                    Button {
+                        moveBlock(from: index, by: 1)
+                    } label: {
+                        Image(systemName: "chevron.down")
+                            .frame(width: 28, height: 24)
+                    }
+                    .disabled(index >= draft.blocks.count - 1)
+                    .accessibilityLabel("Move \(block.title) down")
+                    .accessibilityIdentifier("workoutReady.block.\(index).moveDown")
                 }
-                .disabled(index == 0)
-                .accessibilityLabel("Move \(block.title) up")
-                .accessibilityIdentifier("workoutReady.block.\(index).moveUp")
+                .buttonStyle(.plain)
+                .foregroundStyle(Color.unbound.textTertiary)
 
                 Button {
-                    moveBlock(from: index, by: 1)
+                    editingBlock = BlockEditDraft(block: block)
                 } label: {
-                    Image(systemName: "chevron.down")
-                        .frame(width: 28, height: 24)
+                    Image(systemName: "slider.horizontal.3")
+                        .frame(width: 34, height: 34)
                 }
-                .disabled(index >= draft.blocks.count - 1)
-                .accessibilityLabel("Move \(block.title) down")
-                .accessibilityIdentifier("workoutReady.block.\(index).moveDown")
+                .buttonStyle(.plain)
+                .foregroundStyle(Color.unbound.textSecondary)
+                .accessibilityLabel("Edit \(block.title)")
+                .accessibilityIdentifier("workoutReady.block.\(index).edit")
             }
-            .buttonStyle(.plain)
-            .foregroundStyle(Color.unbound.textTertiary)
 
-            Button {
-                editingBlock = BlockEditDraft(block: block)
-            } label: {
-                Image(systemName: "slider.horizontal.3")
-                    .frame(width: 34, height: 34)
-            }
-            .buttonStyle(.plain)
-            .foregroundStyle(Color.unbound.textSecondary)
-            .accessibilityLabel("Edit \(block.title)")
-            .accessibilityIdentifier("workoutReady.block.\(index).edit")
-
-            if block.kind == .skill, let skillId = block.skillId {
+            if !draft.isWeeklyVowDraft, block.kind == .skill, let skillId = block.skillId {
                 Button {
                     activeSkillSession = SkillLaunch(skillId: skillId, title: block.title)
                 } label: {
@@ -208,16 +328,18 @@ struct WorkoutReadyView: View {
                 .accessibilityIdentifier("workoutReady.block.\(index).startSkill")
             }
 
-            Button {
-                removeBlock(id: block.id)
-            } label: {
-                Image(systemName: "minus.circle")
-                    .frame(width: 34, height: 34)
+            if !draft.isWeeklyVowDraft {
+                Button {
+                    removeBlock(id: block.id)
+                } label: {
+                    Image(systemName: "minus.circle")
+                        .frame(width: 34, height: 34)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(Color.unbound.textTertiary)
+                .accessibilityLabel("Remove \(block.title)")
+                .accessibilityIdentifier("workoutReady.block.\(index).remove")
             }
-            .buttonStyle(.plain)
-            .foregroundStyle(Color.unbound.textTertiary)
-            .accessibilityLabel("Remove \(block.title)")
-            .accessibilityIdentifier("workoutReady.block.\(index).remove")
         }
         .padding(14)
         .background(cardBackground)
@@ -250,21 +372,23 @@ struct WorkoutReadyView: View {
 
     private var startControls: some View {
         VStack(spacing: 10) {
-            Button {
-                saveRecentDraft()
-            } label: {
-                Label("Save Custom Draft", systemImage: "tray.and.arrow.down")
-                    .frame(maxWidth: .infinity)
+            if !draft.isWeeklyVowDraft {
+                Button {
+                    saveRecentDraft()
+                } label: {
+                    Label("Save Custom Draft", systemImage: "tray.and.arrow.down")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .disabled(draft.blocks.isEmpty)
+                .accessibilityIdentifier("workoutReady.saveDraft")
             }
-            .buttonStyle(.bordered)
-            .disabled(draft.blocks.isEmpty)
-            .accessibilityIdentifier("workoutReady.saveDraft")
 
             Button {
                 saveRecentDraftIfCustom()
                 activeWorkoutDraft = draft
             } label: {
-                Label("Start Workout", systemImage: "play.fill")
+                Label(draft.isWeeklyVowDraft ? "Start Binding Vow" : "Start Workout", systemImage: "play.fill")
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
@@ -272,7 +396,10 @@ struct WorkoutReadyView: View {
             .opacity(hasWorkoutCompatibleBlocks ? 1 : 0.45)
             .accessibilityIdentifier("workoutReady.startWorkout")
 
-            if !hasWorkoutCompatibleBlocks, let skillBlock = draft.blocks.first(where: { $0.kind == .skill }), let skillId = skillBlock.skillId {
+            if !draft.isWeeklyVowDraft,
+               !hasWorkoutCompatibleBlocks,
+               let skillBlock = draft.blocks.first(where: { $0.kind == .skill }),
+               let skillId = skillBlock.skillId {
                 Button {
                     activeSkillSession = SkillLaunch(skillId: skillId, title: skillBlock.title)
                 } label: {
@@ -379,6 +506,7 @@ struct WorkoutReadyView: View {
     }
 
     private func saveRecentDraftIfCustom() {
+        guard !draft.isWeeklyVowDraft else { return }
         let hasMixedCustomBlock = draft.blocks.contains { block in
             switch block.kind {
             case .custom, .cardio, .carry, .routine:

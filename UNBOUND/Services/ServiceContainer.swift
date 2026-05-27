@@ -20,6 +20,7 @@ final class ServiceContainer: ObservableObject {
     let workingWeight: any WorkingWeightServiceProtocol
     let cardioLog: any CardioLogServiceProtocol
     let calibration: any CalibrationServiceProtocol
+    let health: any HealthKitServiceProtocol
     let entitlement: EntitlementService
     let rank: any RankServiceProtocol
     let skin: any SkinServiceProtocol
@@ -59,6 +60,7 @@ final class ServiceContainer: ObservableObject {
         self.workingWeight = WorkingWeightService.shared
         self.cardioLog = CardioLogService.shared
         self.calibration = CalibrationService.shared
+        self.health = HealthKitService.shared
         self.entitlement = EntitlementService.shared
         self.rank = RankService.shared
         self.skin = SkinService.shared
@@ -98,6 +100,7 @@ final class ServiceContainer: ObservableObject {
         workingWeight: any WorkingWeightServiceProtocol,
         cardioLog: any CardioLogServiceProtocol,
         calibration: any CalibrationServiceProtocol,
+        health: any HealthKitServiceProtocol = MockHealthKitService(),
         entitlement: EntitlementService,
         rank: any RankServiceProtocol,
         skin: any SkinServiceProtocol,
@@ -125,6 +128,7 @@ final class ServiceContainer: ObservableObject {
         self.workingWeight = workingWeight
         self.cardioLog = cardioLog
         self.calibration = calibration
+        self.health = health
         self.entitlement = entitlement
         self.rank = rank
         self.skin = skin
@@ -165,6 +169,7 @@ final class ServiceContainer: ObservableObject {
             workingWeight: MockWorkingWeightService(),
             cardioLog: MockCardioLogService(),
             calibration: MockCalibrationService(),
+            health: MockHealthKitService(),
             entitlement: EntitlementService.shared,
             rank: MockRankService(),
             skin: MockSkinService(),

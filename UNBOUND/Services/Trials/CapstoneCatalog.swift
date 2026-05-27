@@ -14,7 +14,7 @@ enum CapstoneCatalog {
             // dynamically scaled criterion at card generation time.
             evaluation: .autoFromLog(.weightKg(0))
         ),
-        .agility: WeeklyVowProof(
+        .vitality: WeeklyVowProof(
             displayName: "Recovery Check-In",
             description: "Complete a 3-minute recovery check-in without skipping the timer.",
             evaluation: .liveTimer(seconds: 180, exerciseName: "recovery check-in")

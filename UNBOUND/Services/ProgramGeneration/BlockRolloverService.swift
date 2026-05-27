@@ -31,18 +31,18 @@ enum BlockRolloverService {
             var detail: String {
                 switch self {
                 case .nextBlockOnly:
-                    return "This scan can bias the next block, but it will not rewrite today's workout or the current split."
+                    return "This checkpoint can inform the next-block review, but it will not rewrite today's workout or body-grade the athlete."
                 }
             }
         }
 
         struct Line: Equatable {
-            enum Kind: String {
-                case scan
-                case focus
-                case carryForward
-                case rotation
-                case rescan
+        enum Kind: String {
+            case scan
+            case focus
+            case carryForward
+            case rotation
+            case rescan
             }
 
             let kind: Kind
@@ -62,7 +62,7 @@ enum BlockRolloverService {
 
     // MARK: Pure resolution
 
-    /// Given the previous block, new scan focus, and per-exercise history,
+    /// Given the previous block, logged focus, and per-exercise history,
     /// decide the new block's bias and which exercises to rotate.
     static func resolveRollover(
         previousBlock: ProgramBlock?,
@@ -143,26 +143,17 @@ enum BlockRolloverService {
             focusAreas: proposal.focusAreas,
             summary: delta.narrative,
             strengths: delta.improvements,
-            weaknesses: delta.laggingAreas
+            weaknesses: []
         )
     }
 
     private static func focusAreas(from delta: ScanDeltaReport?) -> [FocusArea] {
-        guard let delta else { return [] }
-        let rawAreas = delta.laggingAreas.isEmpty ? [delta.recommendedFocus] : delta.laggingAreas
-        var seen = Set<MuscleGroup>()
-        return rawAreas.compactMap(muscleGroup(named:))
-            .prefix(2)
-            .enumerated()
-            .compactMap { index, muscleGroup in
-                guard seen.insert(muscleGroup).inserted else { return nil }
-                return FocusArea(
-                    muscleGroup: muscleGroup,
-                    priority: index + 1,
-                    rationale: "Monthly scan checkpoint",
-                    suggestedFocus: delta.recommendedFocus
-                )
-            }
+        guard delta != nil else { return [] }
+        // Monthly scans are proof + recap. They do not label body parts as
+        // lagging and do not create hidden accessory bias. Next-block focus
+        // should come from user-selected goals, logged performance, plateaus,
+        // equipment, and validated checkpoint signals.
+        return []
     }
 
     private static func proposalLines(
@@ -177,17 +168,17 @@ enum BlockRolloverService {
             lines.append(
                 ProgramBlockProposal.Line(
                     kind: .scan,
-                    title: "Scan checkpoint included",
-                    detail: improvement.map { "\($0) is trending up; the next block can use the latest checkpoint." }
-                        ?? "The next block can use the latest scan checkpoint without changing today's workout."
+                    title: "Checkpoint recap included",
+                    detail: improvement.map { "\($0) is trending up; the next block review can see the latest proof." }
+                        ?? "The next block review can use the latest checkpoint without changing today's workout."
                 )
             )
         } else {
             lines.append(
                 ProgramBlockProposal.Line(
                     kind: .rescan,
-                    title: "Rescan optional",
-                    detail: "You can build the next block from training history now, or scan first for fresher bias."
+                    title: "Checkpoint optional",
+                    detail: "You can build the next block from training history now, or save a checkpoint first for a fresh recap."
                 )
             )
         }
@@ -224,17 +215,6 @@ enum BlockRolloverService {
         return lines
     }
 
-    private static func muscleGroup(named raw: String) -> MuscleGroup? {
-        let normalized = raw
-            .lowercased()
-            .replacingOccurrences(of: "_", with: " ")
-            .replacingOccurrences(of: "-", with: " ")
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        return MuscleGroup.allCases.first { group in
-            group.rawValue == normalized || group.displayName.lowercased() == normalized
-        }
-    }
-
     // MARK: Full flow (integration)
 
     enum RolloverError: Error {
@@ -263,12 +243,27 @@ enum BlockRolloverService {
             throw RolloverError.missingProfileInputs
         }
 
-        let previous = await ProgramBlockStore.shared.latestBlock(userId: userId)
+        let blocks = await ProgramBlockStore.shared.blocks(userId: userId)
+        let previous = blocks.first
         let focusAreas = analysis?.focusAreas ?? []
 
-        // Exercise history is stubbed for MVP — rotation fires once we have
-        // sufficient block records + logged workouts to build real history.
-        let exerciseHistory: [String: ExerciseRefreshRule.ExerciseHistory] = [:]
+        var progressionStates: [String: ProgressionState] = [:]
+        let fetchedProgressionStates = await ProgressionStateStore.shared.fetchAll(userId: userId)
+        for state in fetchedProgressionStates {
+            progressionStates[MovementCatalog.normalized(state.exerciseKey)] = state
+        }
+
+        let currentProgram = await activeProgram(userId: userId)
+        let recentLogs = (try? await WorkoutLogService.shared.fetchRecentLogs(userId: userId, limit: 240)) ?? []
+        let familyStates = await ProgressionStateStore.shared.allFamilyStates(userId: userId)
+        let exerciseHistory = exerciseHistory(
+            previousBlock: previous,
+            blocks: blocks,
+            currentProgram: currentProgram,
+            recentLogs: recentLogs,
+            progressionStates: fetchedProgressionStates,
+            familyStates: familyStates
+        )
 
         let resolution = resolveRollover(
             previousBlock: previous,
@@ -289,10 +284,6 @@ enum BlockRolloverService {
         let style = profile.trainingStyleOverride ?? defaultStyle
         let feedback = profile.trainingFeedbackMode ?? TrainingFeedbackMode.default(for: experience)
 
-        var progressionStates: [String: ProgressionState] = [:]
-        for state in await ProgressionStateStore.shared.fetchAll(userId: userId) {
-            progressionStates[MovementCatalog.normalized(state.exerciseKey)] = state
-        }
         let preferences = (try? await ExercisePreferenceService.shared.fetchPreferences(userId: userId)) ?? []
 
         let input = ProgramGeneratorInput(
@@ -305,11 +296,13 @@ enum BlockRolloverService {
             targetFrequency: frequency,
             trainingDays: trainingDays,
             experience: experience,
+            sessionLengthMinutes: profile.sessionLength?.minutes ?? defaultSessionMinutes(for: experience),
             focusAreas: focusAreas,
             cutModeActive: profile.cutMode.enabled,
             trainingFeedbackMode: feedback,
             progressionStates: progressionStates,
             previousBlock: previous,
+            exerciseRotationsToApply: resolution.exercisesToRotate,
             weightKg: weight,
             heightCm: height,
             age: age,
@@ -341,5 +334,166 @@ enum BlockRolloverService {
 
         await ProgramBlockStore.shared.save(newBlock)
         return program
+    }
+
+    static func exerciseHistory(
+        previousBlock: ProgramBlock?,
+        blocks: [ProgramBlock],
+        currentProgram: TrainingProgram?,
+        recentLogs: [WorkoutLog],
+        progressionStates: [ProgressionState],
+        familyStates: [ProgressionFamilyState] = []
+    ) -> [String: ExerciseRefreshRule.ExerciseHistory] {
+        let sortedBlocks = rolloverBlocks(
+            blocks: blocks,
+            previousBlock: previousBlock,
+            currentProgram: currentProgram
+        )
+        guard !sortedBlocks.isEmpty else { return [:] }
+
+        var exerciseKeysByProgramId: [String: Set<String>] = [:]
+        for log in recentLogs {
+            let keys = Set(log.exerciseEntries.compactMap(loggedExerciseKey))
+            guard !keys.isEmpty else { continue }
+            exerciseKeysByProgramId[log.programId, default: []].formUnion(keys)
+        }
+        if let currentProgram {
+            exerciseKeysByProgramId[currentProgram.id, default: []].formUnion(
+                prescribedExerciseKeys(in: currentProgram)
+            )
+        }
+
+        let blockSets = sortedBlocks.map { block in
+            (
+                block: block,
+                keys: exerciseKeysByProgramId[block.programId, default: []]
+            )
+        }
+        guard let latest = blockSets.first, !latest.keys.isEmpty else { return [:] }
+
+        let statesByKey = progressionStateMap(progressionStates)
+        let familyStatesByFamily = Dictionary(uniqueKeysWithValues: familyStates.map { ($0.family, $0) })
+        let freshStimulusCutoff = latest.block.startedAt
+
+        var result: [String: ExerciseRefreshRule.ExerciseHistory] = [:]
+        for key in latest.keys {
+            var count = 0
+            for blockSet in blockSets {
+                if blockSet.keys.contains(key) {
+                    count += 1
+                } else {
+                    break
+                }
+            }
+
+            guard count > 0 else { continue }
+            let state = statesByKey[key]
+            let family = MovementCatalog.canonicalExercise(named: key)?.progressionFamily
+            let hadTierUnlock = family
+                .flatMap { familyStatesByFamily[$0] }
+                .map { $0.updatedAt >= freshStimulusCutoff } ?? false
+            let hadPlateauDeload = state.map {
+                $0.blockType == .deload && $0.updatedAt >= freshStimulusCutoff
+            } ?? false
+
+            result[key] = ExerciseRefreshRule.ExerciseHistory(
+                exerciseKey: key,
+                consecutiveBlocksPrescribed: count,
+                hadTierUnlock: hadTierUnlock,
+                hadPlateauDeload: hadPlateauDeload
+            )
+        }
+        return result
+    }
+
+    private static func rolloverBlocks(
+        blocks: [ProgramBlock],
+        previousBlock: ProgramBlock?,
+        currentProgram: TrainingProgram?
+    ) -> [ProgramBlock] {
+        var sorted = blocks.sorted { lhs, rhs in lhs.blockNumber > rhs.blockNumber }
+        guard let currentProgram else { return sorted }
+        if sorted.contains(where: { $0.programId == currentProgram.id }) {
+            return sorted
+        }
+
+        let virtualBlock = ProgramBlock(
+            id: "active-\(currentProgram.id)",
+            userId: currentProgram.userId,
+            programId: currentProgram.id,
+            blockNumber: previousBlock?.blockNumber ?? 1,
+            startedAt: currentProgram.createdAt,
+            scanId: currentProgram.scanId.isEmpty ? nil : currentProgram.scanId,
+            accessoryBias: previousBlock?.accessoryBias ?? [:],
+            cutModeActive: previousBlock?.cutModeActive ?? false,
+            biasRefreshedFromPrevious: previousBlock?.biasRefreshedFromPrevious ?? false,
+            exerciseRotationsThisBlock: previousBlock?.exerciseRotationsThisBlock ?? []
+        )
+        sorted.insert(virtualBlock, at: 0)
+        return sorted
+    }
+
+    private static func prescribedExerciseKeys(in program: TrainingProgram) -> Set<String> {
+        Set(program.days
+            .compactMap(\.workout)
+            .flatMap(\.mainExercises)
+            .map { exerciseKey(name: $0.name) }
+            .filter { !$0.isEmpty })
+    }
+
+    private static func loggedExerciseKey(_ entry: ExerciseLogEntry) -> String? {
+        guard !entry.skipped else { return nil }
+        guard entry.sets.contains(where: { !$0.isWarmup && $0.reps > 0 }) else { return nil }
+        let key = exerciseKey(
+            name: entry.exerciseName,
+            movementId: entry.movementId,
+            rankStandardMovementId: entry.rankStandardMovementId
+        )
+        return key.isEmpty ? nil : key
+    }
+
+    private static func progressionStateMap(_ states: [ProgressionState]) -> [String: ProgressionState] {
+        var map: [String: ProgressionState] = [:]
+        for state in states {
+            map[MovementCatalog.normalized(state.exerciseKey)] = state
+            map[MovementCatalog.normalized(state.displayName)] = state
+        }
+        return map
+    }
+
+    private static func exerciseKey(
+        name: String,
+        movementId: String? = nil,
+        rankStandardMovementId: String? = nil
+    ) -> String {
+        if let resolved = MovementCatalog.resolvedTrainingMovement(
+            name: name,
+            movementId: movementId,
+            rankStandardMovementId: rankStandardMovementId
+        ) {
+            let exact = resolved.exact.canonicalExerciseName ?? resolved.exact.displayName
+            return MovementCatalog.normalized(exact)
+        }
+        if let definition = MovementCatalog.canonicalExercise(named: name) {
+            return MovementCatalog.normalized(definition.canonicalExerciseName ?? definition.displayName)
+        }
+        return MovementCatalog.normalized(name)
+    }
+
+    @MainActor
+    private static func activeProgram(userId: String) -> TrainingProgram? {
+        if ProgramStore.shared.program == nil {
+            _ = ProgramStore.shared.loadLocal(userId: userId)
+        }
+        guard ProgramStore.shared.program?.userId == userId else { return nil }
+        return ProgramStore.shared.program
+    }
+
+    private static func defaultSessionMinutes(for experience: Experience) -> Int {
+        switch experience {
+        case .never, .tried: return 45
+        case .used: return 60
+        case .current: return 75
+        }
     }
 }

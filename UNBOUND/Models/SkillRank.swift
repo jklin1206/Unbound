@@ -2,19 +2,17 @@ import SwiftUI
 
 // MARK: - SkillRank
 //
-// E/D/C/B/A/S tier that accompanies every skill node. The rank is a
-// difficulty/identity signal shown on the node chip, NOT the user's
-// current progression within the skill. Progression lives in the
-// 1-5 level ladder on each SkillNode (see SkillLevel.swift).
+// Legacy intrinsic difficulty bucket that accompanies every skill node.
+// It is a content-authoring signal, NOT the user's current progression
+// within the skill. Progression lives in SkillTier.
 //
-// Brand language comes from the existing UNBOUND rank tier system
-// (Dormant/Awakened/Forged/Sharpened/Unbound/Ascended). Keep the
-// palette muted — rank is a signal, not a billboard.
+// User-facing surfaces should render the mapped Initiate → Ascendant
+// `rankTitle`, never the raw bucket key.
 
 public enum SkillRank: String, Codable, CaseIterable, Sendable {
     case e, d, c, b, a, s
 
-    /// Letter shown on rank chip (E/D/C/B/A/S)
+    /// Raw legacy bucket key. Do not use this for user-facing rank labels.
     public var letter: String { rawValue.uppercased() }
 
     /// UNBOUND rank language per existing brand system
@@ -29,26 +27,25 @@ public enum SkillRank: String, Codable, CaseIterable, Sendable {
         }
     }
 
-    /// Relative difficulty order for sorting (E = easiest)
+    /// Relative difficulty order for sorting from easiest to hardest.
     public var difficultyOrder: Int {
         SkillRank.allCases.firstIndex(of: self) ?? 0
     }
 
     /// Visual title badge used when showing skill difficulty. The internal
-    /// E/D/C/B/A/S ladder remains useful for ordering and content authoring,
-    /// but the UI presents the app's rank-title badges instead of letters.
+    /// bucket remains useful for ordering and content authoring, but the UI
+    /// presents the app's named rank-title badges instead of raw keys.
     var rankTitle: RankTitle {
         RankTitle.legacyLetterFallback(rawValue)
     }
 
-    /// True when the rank sits at the top of the ladder (S = Ascended).
-    /// An S-rank skill is a life pursuit, not a rank tier — distinct visual
-    /// treatment (flame instead of hex, impact orange instead of muted
-    /// violet) is applied wherever rank chips render.
+    /// True when the skill sits at the top intrinsic difficulty bucket.
+    /// These skills are life pursuits, so distinct visual treatment is
+    /// applied wherever rank chips render.
     public var isAscendedTier: Bool { self == .s }
 
     /// Supporting tagline shown alongside `unboundLabel` when space permits.
-    /// S-rank emphasizes the lifelong-practice framing.
+    /// The top bucket emphasizes the lifelong-practice framing.
     public var tagline: String {
         switch self {
         case .e: return "Foundation."

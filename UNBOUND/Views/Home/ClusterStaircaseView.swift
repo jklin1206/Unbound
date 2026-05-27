@@ -688,8 +688,8 @@ struct ClusterStaircaseView: View {
                     .frame(width: width, height: height)
                     .clipped()
                     .saturation(1.08)
-                    .contrast(1.08)
-                    .opacity(0.82)
+                    .contrast(skinService.currentSkin.backgroundAssetContrast)
+                    .opacity(skinService.currentSkin.backgroundAssetOpacity)
             }
             Rectangle()
                 .fill(skinService.currentSkin.mapBackground)
@@ -768,7 +768,8 @@ struct ClusterStaircaseView: View {
         let isPresent: Bool
     }
 
-    /// Compute a row for ALL 6 rank tiers so the gutter always reads E-S.
+    /// Compute a row for every intrinsic difficulty bucket so the gutter
+    /// always reads as a stable badge ladder.
     /// Present ranks anchor to the min-Y of their nodes. Absent ranks get
     /// an interpolated Y between the nearest present ranks above & below
     /// so the column of hex badges spaces evenly top-to-bottom.
@@ -789,7 +790,7 @@ struct ClusterStaircaseView: View {
             }
         }
 
-        let ranks = SkillRank.allCases  // E, D, C, B, A, S
+        let ranks = SkillRank.allCases
 
         // Anchors: y for every present rank. Synthetic edge anchors at the
         // top/bottom so absent ranks at the head/tail of the list still get
@@ -1748,20 +1749,19 @@ struct ClusterStaircaseView: View {
                 .foregroundStyle(Color.unbound.textTertiary)
         case .attempting:
             skillIcon(for: node, size: fontSize * 2.4, fallback: node.glyph,
-                      tint: skinService.currentSkin.primaryColor)
+                      tint: skinService.currentSkin.decalColor)
         case .achieved:
             skillIcon(for: node, size: fontSize * 2.4,
                       fallback: node.isKeystone ? "crown.fill" : "checkmark",
-                      tint: skinService.currentSkin.primaryColor)
+                      tint: skinService.currentSkin.decalColor)
         case .mastered:
             skillIcon(for: node, size: fontSize * 2.4, fallback: "crown.fill",
-                      tint: skinService.currentSkin.impactColor)
+                      tint: skinService.currentSkin.impactDecalColor)
         }
     }
 
-    /// Renders the AI-generated skill icon if the asset exists; otherwise falls
-    /// back to an SF Symbol. Asset images already carry the violet silhouette
-    /// styling so we don't tint them — only the SF Symbol fallback is tinted.
+    /// Renders the generated skill icon asset if it exists; otherwise falls
+    /// back to an SF Symbol.
     /// Asset names map node ids by replacing dots with underscores
     /// (e.g. `cal.pushup` → `cal_pushup`).
     @ViewBuilder
@@ -1773,16 +1773,39 @@ struct ClusterStaircaseView: View {
     ) -> some View {
         let assetName = node.id.replacingOccurrences(of: ".", with: "_")
         if UIImage(named: assetName) != nil {
-            Image(assetName)
-                .resizable()
-                .interpolation(.high)
-                .aspectRatio(contentMode: .fit)
-                .frame(width: size, height: size)
+            ZStack {
+                Circle()
+                    .fill(Color.unbound.bg.opacity(0.5))
+                    .overlay(
+                        Circle()
+                            .strokeBorder(tint.opacity(0.28), lineWidth: max(1, size * 0.025))
+                    )
+                    .frame(width: size * 0.88, height: size * 0.88)
+                    .shadow(color: Color.black.opacity(0.42), radius: size > 80 ? 7 : 4)
+
+                Image(assetName)
+                    .renderingMode(usesOriginalNodeArtwork(assetName) ? .original : .template)
+                    .resizable()
+                    .interpolation(.high)
+                    .aspectRatio(contentMode: .fit)
+                    .foregroundStyle(tint)
+                    .frame(
+                        width: size * (usesOriginalNodeArtwork(assetName) ? 0.9 : 0.78),
+                        height: size * (usesOriginalNodeArtwork(assetName) ? 0.9 : 0.78)
+                    )
+                    .shadow(color: Color.black.opacity(0.72), radius: size > 80 ? 5 : 3)
+                    .shadow(color: tint.opacity(0.5), radius: size > 80 ? 8 : 4)
+            }
+            .frame(width: size, height: size)
         } else {
             Image(systemName: symbolName)
                 .font(.system(size: size / 2.4, weight: .semibold))
                 .foregroundStyle(tint)
         }
+    }
+
+    private func usesOriginalNodeArtwork(_ assetName: String) -> Bool {
+        assetName == "hs_tuck-handstand"
     }
 
     // MARK: - Section algorithm (unchanged — still used to identify role)

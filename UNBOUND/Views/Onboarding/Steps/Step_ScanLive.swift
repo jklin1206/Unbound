@@ -144,20 +144,20 @@ struct Step_ScanLive: View {
             HStack(spacing: 8) {
                 Image(systemName: "hexagon.fill")
                     .font(.system(size: 10, weight: .black))
-                Text("DAY ZERO ENTRY")
+                Text(L10n.onboarding("scanLive.entry.eyebrow", defaultValue: "DAY ZERO ENTRY"))
                     .font(Font.unbound.monoS)
                     .tracking(2.0)
             }
             .foregroundStyle(Color.unbound.accent)
 
-            Text("Step into Day Zero")
+            Text(L10n.onboarding("scanLive.entry.title", defaultValue: "Step into Day Zero"))
                 .font(Font.unbound.titleL)
                 .foregroundStyle(Color.unbound.textPrimary)
                 .multilineTextAlignment(.center)
                 .lineLimit(2)
                 .minimumScaleFactor(0.84)
 
-            Text("One frame now. Proof in 30 days.")
+            Text(L10n.onboarding("scanLive.entry.subtitle", defaultValue: "One frame now. Proof in 30 days."))
                 .font(Font.unbound.bodyS)
                 .foregroundStyle(Color.unbound.textSecondary)
                 .multilineTextAlignment(.center)
@@ -254,18 +254,18 @@ struct Step_ScanLive: View {
             HStack(spacing: 8) {
                 Image(systemName: "flame.fill")
                     .font(.system(size: 11, weight: .semibold))
-                Text("MONTH ONE STARTS HERE")
+                Text(L10n.onboarding("scanLive.instruction.eyebrow", defaultValue: "MONTH ONE STARTS HERE"))
                     .font(Font.unbound.captionS)
                     .tracking(1.6)
             }
             .foregroundStyle(Color.unbound.accent)
 
-            Text("Set the before.")
+            Text(L10n.onboarding("scanLive.instruction.title", defaultValue: "Set the before."))
                 .font(Font.unbound.titleM)
                 .foregroundStyle(Color.unbound.textPrimary)
                 .multilineTextAlignment(.center)
 
-            Text("This is the first page of the climb.")
+            Text(L10n.onboarding("scanLive.instruction.subtitle", defaultValue: "This is the first page of the climb."))
                 .font(Font.unbound.captionS)
                 .foregroundStyle(Color.unbound.textSecondary)
                 .multilineTextAlignment(.center)
@@ -322,7 +322,7 @@ struct Step_ScanLive: View {
             .buttonStyle(.plain)
             .disabled(isCapturing)
 
-            Text("BEGIN")
+            Text(L10n.onboarding("scanLive.capture", defaultValue: "BEGIN"))
                 .font(Font.unbound.monoS)
                 .tracking(1.8)
                 .foregroundStyle(Color.unbound.textPrimary)
@@ -415,7 +415,7 @@ struct Step_ScanLive: View {
                     HStack(spacing: 8) {
                         Image(systemName: "arrow.clockwise")
                             .font(.system(size: 13, weight: .semibold))
-                        Text("Retry camera")
+                        Text(L10n.onboarding("scanLive.retryCamera", defaultValue: "Retry camera"))
                             .font(Font.unbound.bodyMStrong)
                     }
                     .foregroundStyle(Color.unbound.textPrimary)
@@ -432,7 +432,7 @@ struct Step_ScanLive: View {
                 HStack(spacing: 6) {
                     Image(systemName: "forward.fill")
                         .font(.system(size: 11, weight: .semibold))
-                    Text("Skip (dev · simulator)")
+                    Text(L10n.onboarding("scanLive.skipSimulator", defaultValue: "Skip (dev · simulator)"))
                         .font(Font.unbound.monoS)
                         .tracking(1.2)
                 }
@@ -468,9 +468,9 @@ struct Step_ScanLive: View {
 
     private var fallbackTitle: String {
         switch sessionStatus {
-        case .starting:    return "Starting camera…"
-        case .denied:      return "Camera access blocked"
-        case .unavailable: return "Camera unavailable"
+        case .starting:    return L10n.onboarding("scanLive.fallback.starting.title", defaultValue: "Starting camera…")
+        case .denied:      return L10n.onboarding("scanLive.fallback.denied.title", defaultValue: "Camera access blocked")
+        case .unavailable: return L10n.onboarding("scanLive.fallback.unavailable.title", defaultValue: "Camera unavailable")
         case .running:     return ""
         }
     }
@@ -478,14 +478,14 @@ struct Step_ScanLive: View {
     private var fallbackBody: String {
         switch sessionStatus {
         case .starting:
-            return "One sec — bringing up the front camera."
+            return L10n.onboarding("scanLive.fallback.starting.body", defaultValue: "One sec — bringing up the front camera.")
         case .denied:
-            return "Open Settings → UNBOUND → Camera and turn it on. Then come back and retry."
+            return L10n.onboarding("scanLive.fallback.denied.body", defaultValue: "Open Settings → UNBOUND → Camera and turn it on. Then come back and retry.")
         case .unavailable:
             #if targetEnvironment(simulator)
-            return "Camera isn't available in the simulator. Build to a device to run the live scan."
+            return L10n.onboarding("scanLive.fallback.unavailable.simulatorBody", defaultValue: "Camera isn't available in the simulator. Build to a device to run the live scan.")
             #else
-            return "We couldn't reach your camera. Try again in a moment."
+            return L10n.onboarding("scanLive.fallback.unavailable.body", defaultValue: "We couldn't reach your camera. Try again in a moment.")
             #endif
         case .running:
             return ""

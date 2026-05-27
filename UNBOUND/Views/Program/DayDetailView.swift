@@ -178,7 +178,7 @@ private struct NutritionSectionCard: View {
     private var fat: Int { override?.fatGrams ?? (isRestDay ? plan.restDayFatGrams : plan.fatGrams) }
 
     var body: some View {
-        NavigationLink(destination: NutritionDayView(plan: plan, override: override)) {
+        NavigationLink(destination: NutritionDayView(plan: plan, override: override, initialIsRestDay: isRestDay)) {
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
                     Label("Nutrition", systemImage: "fork.knife")

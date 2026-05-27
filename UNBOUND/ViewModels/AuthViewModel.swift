@@ -26,6 +26,9 @@ final class AuthViewModel: ObservableObject {
         do {
             let userId = try await auth.signInWithApple()
             _ = try await user.createUserIfNeeded(userId: userId, email: nil)
+            #if DEBUG
+            DevFlags.shared.unlockAllFeatures = true
+            #endif
             analytics.track(.signInCompleted(method: "apple"))
         } catch {
             errorMessage = error.localizedDescription
@@ -49,6 +52,9 @@ final class AuthViewModel: ObservableObject {
                 userId = try await auth.signInWithEmail(email: email, password: password)
             }
             _ = try await user.createUserIfNeeded(userId: userId, email: email)
+            #if DEBUG
+            DevFlags.shared.unlockAllFeatures = true
+            #endif
             analytics.track(.signInCompleted(method: method))
         } catch {
             errorMessage = error.localizedDescription

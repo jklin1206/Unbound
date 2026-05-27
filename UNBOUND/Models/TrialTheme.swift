@@ -16,7 +16,7 @@ extension WeeklyVowTheme {
         case .axis(let key):
             switch key {
             case .power:         return Color.unbound.accent
-            case .agility:       return Color(red: 0.3, green: 0.82, blue: 0.55)
+            case .vitality:       return Color(red: 0.3, green: 0.82, blue: 0.55)
             case .control:       return Color(red: 0.45, green: 0.65, blue: 1.0)
             case .endurance:     return Color(red: 0.25, green: 0.70, blue: 0.50)
             case .mobility:      return Color(red: 0.55, green: 0.75, blue: 0.35)

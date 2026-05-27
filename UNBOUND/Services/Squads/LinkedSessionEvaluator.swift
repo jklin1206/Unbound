@@ -26,8 +26,19 @@ enum LinkedSessionEvaluator {
     ///   - service: The XP service to write into. Defaults to `SessionXPService.shared`.
     static func applyLinkedXPBonus(
         userId: String,
+        sessionXPDelta: Int
+    ) async {
+        await applyLinkedXPBonus(
+            userId: userId,
+            sessionXPDelta: sessionXPDelta,
+            service: SessionXPService.shared
+        )
+    }
+
+    static func applyLinkedXPBonus(
+        userId: String,
         sessionXPDelta: Int,
-        service: SessionXPServiceProtocol = SessionXPService.shared
+        service: SessionXPServiceProtocol
     ) async {
         let linkedBonus = Int(Double(sessionXPDelta) * 0.20)
 

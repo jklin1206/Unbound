@@ -82,13 +82,23 @@ struct RankUpCinematic: View {
                 }
 
                 if showRank {
-                    Text(advance.toRank.displayName)
-                        .font(.system(size: 160, weight: .black, design: .monospaced))
-                        .foregroundStyle(Color.unbound.textPrimary)
-                        .shadow(color: rankGlow.opacity(0.7), radius: 28)
-                        .shadow(color: rankGlow.opacity(0.35), radius: 60)
-                        .scaleEffect(showRank ? 1.0 : 0.6)
-                        .transition(.scale.combined(with: .opacity))
+                    VStack(spacing: 12) {
+                        Image(targetTitle.assetName)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 156, height: 156)
+                            .shadow(color: rankGlow.opacity(0.72), radius: 28)
+                            .shadow(color: rankGlow.opacity(0.36), radius: 60)
+
+                        Text(targetTitle.displayName.uppercased())
+                            .font(.system(size: 48, weight: .black, design: .default))
+                            .tracking(2.0)
+                            .foregroundStyle(Color.unbound.textPrimary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.58)
+                    }
+                    .scaleEffect(showRank ? 1.0 : 0.6)
+                    .transition(.scale.combined(with: .opacity))
                 }
 
                 if showExerciseLabel {
@@ -239,13 +249,13 @@ struct RankUpCinematic: View {
         shareSheetItems = [image, caption]
     }
 
-    /// Skin-driven glow. S-tier pops the skin's impact hue; below S pops
-    /// the primary.
+    private var targetTitle: RankTitle {
+        advance.toRank.title
+    }
+
+    /// Skin-driven glow matched to the actual named rank badge.
     private var rankGlow: Color {
-        let skin = SkinService.shared.currentSkin
-        return advance.toRank.ordinal >= SubRank.sMinus.ordinal
-            ? skin.impactColor
-            : skin.primaryColor
+        targetTitle.rewardTint
     }
 }
 

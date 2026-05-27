@@ -14,14 +14,25 @@ final class SquadMissionService: SquadMissionServiceProtocol {
     static let shared = SquadMissionService()
     private let backend: SquadBackendProtocol
     private let squadService: any SquadServiceProtocol
+    private let remoteReadsEnabled: Bool
     private let logger = LoggingService.shared
 
+    convenience init(remoteReadsEnabled: Bool = true) {
+        self.init(
+            backend: SquadBackend.shared,
+            squadService: SquadService.shared,
+            remoteReadsEnabled: remoteReadsEnabled
+        )
+    }
+
     init(
-        backend: SquadBackendProtocol = SquadBackend.shared,
-        squadService: any SquadServiceProtocol = SquadService.shared
+        backend: SquadBackendProtocol,
+        squadService: any SquadServiceProtocol,
+        remoteReadsEnabled: Bool = true
     ) {
         self.backend = backend
         self.squadService = squadService
+        self.remoteReadsEnabled = remoteReadsEnabled
     }
 
     // MARK: - Private Codable row type
@@ -93,6 +104,7 @@ final class SquadMissionService: SquadMissionServiceProtocol {
     }
 
     func currentMission(squadId: UUID) async -> SquadMission? {
+        guard remoteReadsEnabled else { return nil }
         let weekIso = Self.currentWeekIso()
         do {
             let rows: [MissionRow] = try await db

@@ -23,8 +23,43 @@ struct AttributeProfile: Codable, Sendable, Equatable {
         Dictionary(uniqueKeysWithValues: AttributeKey.allCases.map { ($0, level(for: $0)) })
     }
 
+    var hexChartValues: [AttributeKey: Double] {
+        Dictionary(uniqueKeysWithValues: AttributeKey.allCases.map { key in
+            let value = value(for: key)
+            return (key, value.hexChartValue)
+        })
+    }
+
+    var peakHexChartValues: [AttributeKey: Double]? {
+        let values = Dictionary(uniqueKeysWithValues: AttributeKey.allCases.map { key in
+            let value = value(for: key)
+            let peakXP = max(value.xp, AttributeLevelCurve.legacyXP(forScore: value.peak))
+            return (key, AttributeLevelCurve.hexDisplayValue(
+                level: AttributeLevelCurve.level(forXP: peakXP),
+                progress: AttributeLevelCurve.progressFraction(forXP: peakXP)
+            ))
+        })
+
+        let hasDistinctPeak = AttributeKey.allCases.contains { key in
+            abs((values[key] ?? 0) - (hexChartValues[key] ?? 0)) > 0.5
+        }
+
+        return hasDistinctPeak ? values : nil
+    }
+
+    var prestigeGlowValues: [AttributeKey: Double] {
+        Dictionary(uniqueKeysWithValues: AttributeKey.allCases.map { key in
+            let value = value(for: key)
+            return (key, value.hexPrestigeGlow)
+        })
+    }
+
     var rankTitles: [AttributeKey: RankTitle] {
         Dictionary(uniqueKeysWithValues: AttributeKey.allCases.map { ($0, value(for: $0).rankTitle) })
+    }
+
+    var levelRankTitles: [AttributeKey: RankTitle] {
+        Dictionary(uniqueKeysWithValues: AttributeKey.allCases.map { ($0, value(for: $0).levelRankTitle) })
     }
 
     mutating func set(_ key: AttributeKey, _ value: AttributeValue) {

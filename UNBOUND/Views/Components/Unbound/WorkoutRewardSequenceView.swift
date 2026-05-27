@@ -623,11 +623,11 @@ struct WorkoutRewardSequenceView: View {
 
                     VStack(spacing: 10) {
                         if let bonus = callout.completionBonus {
-                            rewardLine(label: "Binding Bonus", value: "+\(bonus.overallLevelXP) LV XP", tint: Color.rewardBlue)
-                            rewardLine(label: "Binding Badge", value: bonus.badgeProgress.displayText, tint: tint)
-                            rewardLine(label: "Binding Cosmetic", value: bonus.cosmeticProgress.displayText, tint: tint)
+                            rewardLine(label: "Vow Bonus", value: "+\(bonus.overallLevelXP) LVL XP", tint: Color.rewardBlue)
+                            rewardLine(label: "Vow Badge", value: bonus.badgeProgress.displayText, tint: tint)
+                            rewardLine(label: "Vow Cosmetic", value: bonus.cosmeticProgress.displayText, tint: tint)
                         }
-                        rewardLine(label: "Proof", value: callout.proofName, tint: tint)
+                        rewardLine(label: "Standard", value: callout.proofName, tint: tint)
                         rewardLine(label: "Receipt", value: callout.receiptLine, tint: Color.rewardBlue)
                     }
 
@@ -687,10 +687,10 @@ struct WorkoutRewardSequenceView: View {
 
                 let skillXP = summary.progression?.skillXPGained ?? 0
                 let primaryXPValue = summary.xp.total > 0 ? "+\(summary.xp.total)" : "+\(skillXP)"
-                let primaryXPLabel = summary.xp.total > 0 ? "LV XP" : "SKILL XP"
+                let primaryXPLabel = summary.xp.total > 0 ? "LVL XP" : "SKILL XP"
                 let proofCount = summary.tally.standardsCleared + summary.tally.unlocksGained + summary.tally.newBests
                 let featCount = summary.personalRecords.count + summary.badges.count + proofCount + (summary.weeklyVowCallout == nil ? 0 : 1)
-                let featLabel = proofCount > 0 ? "PROOF" : (summary.weeklyVowCallout == nil ? "FEATS" : "BIND")
+                let featLabel = proofCount > 0 ? "PROOF" : (summary.weeklyVowCallout == nil ? "FEATS" : "VOW")
                 HStack(spacing: 20) {
                     yieldToken(value: primaryXPValue, label: primaryXPLabel, tint: Color.rewardBlue)
                     yieldToken(value: "\(summary.liftProgress.filter(\.didAdvanceTier).count + summary.tally.ranksAdvanced)", label: "RANK UPS", tint: dominantLiftTint)

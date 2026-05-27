@@ -34,6 +34,12 @@ enum AttributeLevelCurve {
         return min(1, max(0, (xp - floorXP) / (nextXP - floorXP)))
     }
 
+    static func rankTitle(forLevel level: Int) -> RankTitle {
+        rankThresholds
+            .last(where: { level >= $0.level })?
+            .title ?? .initiate
+    }
+
     static func hexDisplayValue(level: Int, progress: Double) -> Double {
         let effectiveLevel = max(0, Double(level) + min(1, max(0, progress)))
         let prePrestigeLevel = min(effectiveLevel, Double(softCapLevel))
@@ -55,6 +61,18 @@ enum AttributeLevelCurve {
     private static func xpRequiredForUncappedLevel(_ level: Int) -> Double {
         attrBase * pow(Double(max(0, level)), exponent)
     }
+
+    private static let rankThresholds: [(title: RankTitle, level: Int)] = [
+        (.initiate, 0),
+        (.novice, 3),
+        (.apprentice, 6),
+        (.forged, 10),
+        (.veteran, 15),
+        (.master, 25),
+        (.vessel, 40),
+        (.unbound, 65),
+        (.ascendant, softCapLevel)
+    ]
 
     static func xpAwarded(forScoreDelta delta: Double) -> Double {
         max(0, delta) * legacyScoreXPScale
@@ -93,6 +111,10 @@ struct AttributeValue: Codable, Sendable, Equatable {
 
     var rankTitle: RankTitle { subRank.title }
 
+    var levelRankTitle: RankTitle {
+        AttributeLevelCurve.rankTitle(forLevel: level)
+    }
+
     var peakSubRank: SubRank {
         SubRank.nearest(for: peak / 100.0 * 17.0)
     }
@@ -100,6 +122,20 @@ struct AttributeValue: Codable, Sendable, Equatable {
     var peakRankTitle: RankTitle { peakSubRank.title }
 
     var level: Int { AttributeLevelCurve.level(forXP: xp) }
+
+    var hexChartValue: Double {
+        AttributeLevelCurve.hexDisplayValue(
+            level: level,
+            progress: AttributeLevelCurve.progressFraction(forXP: xp)
+        )
+    }
+
+    var hexPrestigeGlow: Double {
+        AttributeLevelCurve.hexPrestigeGlow(
+            level: level,
+            progress: AttributeLevelCurve.progressFraction(forXP: xp)
+        )
+    }
 
     var nextLevelXP: Double {
         AttributeLevelCurve.xpRequired(forLevel: level + 1)

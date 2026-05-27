@@ -16,10 +16,10 @@ struct Step_ScanReview: View {
 
     var body: some View {
         OnboardingScaffold(
-            title: "Day Zero locked?",
-            subtitle: "This is the before. In 30 days, you get the first real proof of the climb.",
+            title: L10n.onboarding("scanReview.title", defaultValue: "Day Zero locked?"),
+            subtitle: L10n.onboarding("scanReview.subtitle", defaultValue: "This is the before. In 30 days, you get the first real proof of the climb."),
             progress: progress,
-            primaryTitle: "Enter the arc",
+            primaryTitle: L10n.onboarding("scanReview.primary", defaultValue: "Enter the arc"),
             primaryIcon: "flame.fill",
             primaryEnabled: flow.capturedPhotos[.front] != nil,
             hudStep: .scanReview,
@@ -64,7 +64,7 @@ struct Step_ScanReview: View {
                 HStack(spacing: 8) {
                     Image(systemName: "arrow.counterclockwise")
                         .font(.system(size: 13, weight: .semibold))
-                    Text("Retake Day Zero")
+                    Text(L10n.onboarding("scanReview.retake", defaultValue: "Retake Day Zero"))
                         .font(Font.unbound.bodyMStrong)
                 }
                 .foregroundStyle(Color.unbound.textSecondary)
@@ -87,10 +87,10 @@ struct Step_ScanReview: View {
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(Color.unbound.accent)
             VStack(alignment: .leading, spacing: 2) {
-                Text("Private by default")
+                Text(L10n.onboarding("scanReview.privacy.title", defaultValue: "Private by default"))
                     .font(Font.unbound.bodyMStrong)
                     .foregroundStyle(Color.unbound.textPrimary)
-                Text("Your photo stays on your device. Never uploaded.")
+                Text(L10n.onboarding("scanReview.privacy.body", defaultValue: "Your photo stays on your device. Never uploaded."))
                     .font(Font.unbound.bodyS)
                     .foregroundStyle(Color.unbound.textSecondary)
             }

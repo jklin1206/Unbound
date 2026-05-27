@@ -28,30 +28,60 @@ enum AppError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .authNotAuthenticated:
-            return "You need to sign in to continue."
+            return L10n.string(
+                .appErrorAuthNotAuthenticatedDescription,
+                defaultValue: "You need to sign in to continue."
+            )
         case .cameraAccessDenied:
-            return "Camera access is required for body scanning. Please enable it in Settings."
+            return L10n.string(
+                .appErrorCameraAccessDeniedDescription,
+                defaultValue: "Camera access is required for scan photos. Please enable it in Settings."
+            )
         case .analysisTimeout:
-            return "Analysis is taking longer than expected. Please try again."
+            return L10n.string(
+                .appErrorAnalysisTimeoutDescription,
+                defaultValue: "Analysis is taking longer than expected. Please try again."
+            )
         case .networkNoConnection:
-            return "No internet connection. Please check your network and try again."
+            return L10n.string(
+                .appErrorNetworkNoConnectionDescription,
+                defaultValue: "No internet connection. Please check your network and try again."
+            )
         case .subscriptionNoActiveEntitlement:
-            return "This feature requires an active subscription."
+            return L10n.string(
+                .appErrorSubscriptionNoActiveEntitlementDescription,
+                defaultValue: "This feature requires an active subscription."
+            )
         default:
-            return "Something went wrong. Please try again."
+            return L10n.string(
+                .appErrorGenericDescription,
+                defaultValue: "Something went wrong. Please try again."
+            )
         }
     }
 
     var recoverySuggestion: String? {
         switch self {
         case .cameraAccessDenied:
-            return "Open Settings > UNBOUND > Camera and enable access."
+            return L10n.string(
+                .appErrorCameraAccessDeniedRecovery,
+                defaultValue: "Open Settings > UNBOUND > Camera and enable access."
+            )
         case .networkNoConnection:
-            return "Connect to Wi-Fi or enable cellular data."
+            return L10n.string(
+                .appErrorNetworkNoConnectionRecovery,
+                defaultValue: "Connect to Wi-Fi or enable cellular data."
+            )
         case .analysisTimeout:
-            return "Try again with better lighting and clearer photos."
+            return L10n.string(
+                .appErrorAnalysisTimeoutRecovery,
+                defaultValue: "Try again with better lighting and clearer photos."
+            )
         default:
-            return "If the problem persists, contact support."
+            return L10n.string(
+                .appErrorGenericRecovery,
+                defaultValue: "If the problem persists, contact support."
+            )
         }
     }
 }

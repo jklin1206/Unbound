@@ -33,8 +33,12 @@ enum WaveAdjuster {
             return WaveAdjustmentResult(program: program, adjustments: [], didApply: false)
         }
 
+        var adjustedProgram = program
         var adjustments: [WaveAdjustment] = []
-        for day in program.days where !day.isRestDay && day.savedWorkoutId == nil {
+        for index in adjustedProgram.days.indices {
+            let day = adjustedProgram.days[index]
+            guard !day.isRestDay && day.savedWorkoutId == nil else { continue }
+            guard day.dayNumber >= dayNumber else { continue }
             guard let workout = day.workout else { continue }
             let load = RegionFatigueBudget.regionLoad(for: workout)
             guard let primary = load.loads.max(by: { $0.value < $1.value })?.key else { continue }
@@ -53,11 +57,12 @@ enum WaveAdjuster {
             )
             if !appliedAdjustmentIDs.contains(adjustment.id) {
                 adjustments.append(adjustment)
+                adjustedProgram.days[index].workout = waveTwoWorkout(from: workout)
             }
         }
 
         return WaveAdjustmentResult(
-            program: program,
+            program: adjustments.isEmpty ? program : adjustedProgram,
             adjustments: adjustments,
             didApply: !adjustments.isEmpty
         )
@@ -70,5 +75,23 @@ enum WaveAdjuster {
         var updated = appliedAdjustmentIDs
         updated.remove(adjustmentID)
         return updated
+    }
+
+    private static func waveTwoWorkout(from workout: Workout) -> Workout {
+        var adjusted = workout
+        adjusted.mainExercises = workout.mainExercises.map { exercise in
+            var copy = exercise
+            copy.rpe = min(9, (copy.rpe ?? 7) + 1)
+            copy.notes = appendNote("Wave 2 intensity target raised.", to: copy.notes)
+            return copy
+        }
+        adjusted.notes = appendNote("Wave 2 adjustment applied to remaining engine-owned prescriptions.", to: adjusted.notes)
+        return adjusted
+    }
+
+    private static func appendNote(_ note: String, to existing: String?) -> String {
+        guard let existing, !existing.isEmpty else { return note }
+        if existing.localizedCaseInsensitiveContains(note) { return existing }
+        return "\(existing) \(note)"
     }
 }

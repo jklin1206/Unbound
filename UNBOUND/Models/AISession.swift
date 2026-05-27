@@ -2,11 +2,9 @@ import Foundation
 
 // MARK: - AISession
 //
-// Claude-generated, user-contextualized training session for a single skill.
-// Replaces the static `SkillTrainingPlan` lookup at the SkillSessionView entry
-// point. Static plans (in `SkillTrainingPlanLibrary`) are still used as
-// reference methodology for the 12 keystone skills and as a fallback when the
-// API call fails — so the user always gets a workable session.
+// Legacy name for a user-contextualized skill session. Current production
+// sessions are deterministic and RPE-adjusted by `RPESessionService`; the
+// shape remains so existing SkillSessionView rendering can stay stable.
 
 struct AISession: Codable, Equatable {
     let skillId: String
@@ -15,15 +13,14 @@ struct AISession: Codable, Equatable {
     /// One-line overview, e.g. "Today: pull-up volume + grip strength".
     let summary: String
 
-    /// Honest duration estimate from the model.
+    /// Honest duration estimate from the prescription.
     let estimatedDurationMinutes: Int
 
     /// Ordered list of exercises. Use `isAccessory` to split mains vs optional
     /// supplementary work in the UI.
     let exercises: [AIExercise]
 
-    /// True when this session was AI-generated. False when we fell back to
-    /// the static plan / minimal default because the API call failed.
+    /// True only for old cached sessions that were model-generated.
     let isAIGenerated: Bool
 }
 
@@ -67,7 +64,7 @@ enum AIPrescriptionTarget: Codable, Equatable {
 //
 // The session view's set-logger sheet renders against `PrescriptionTarget` and
 // `TrainingPrescription`. Bridging here keeps the existing logging UI and the
-// session-finish XP flow working unchanged — we just feed AI-generated data
+// session-finish XP flow working unchanged — we feed session prescription data
 // through the same shape.
 
 extension AIPrescriptionTarget {

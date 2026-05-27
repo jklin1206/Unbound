@@ -226,7 +226,7 @@ final class MovementProgressServiceTests: XCTestCase {
         XCTAssertGreaterThan(result.totalAttributeXPGained, 0)
         XCTAssertEqual(result.totalAttributeXPGained, floor(result.totalAttributeXPGained))
         XCTAssertTrue(result.attributeRewards.contains { $0.key == .power && $0.xpGained > 0 })
-        XCTAssertFalse(result.attributeRewards.contains { $0.key == .agility })
+        XCTAssertFalse(result.attributeRewards.contains { $0.key == .vitality })
         XCTAssertGreaterThan(profile.value(for: .power).xp, 0)
         XCTAssertEqual(
             result.progressionReceipt.overallLevelProgressBefore,
@@ -277,11 +277,11 @@ final class MovementProgressServiceTests: XCTestCase {
         let result = try await TrainingCompletionService.shared.complete(log, services: services)
         let attribute = try XCTUnwrap(services.attribute as? MockAttributeService)
         let profile = attribute.profile(userId: "mock-user-123")
-        let vitalityReward = try XCTUnwrap(result.attributeRewards.first { $0.key == .agility })
+        let vitalityReward = try XCTUnwrap(result.attributeRewards.first { $0.key == .vitality })
 
         XCTAssertEqual(result.totalMovementAP, 0)
-        XCTAssertEqual(vitalityReward.xpGained, 5, accuracy: 0.001)
-        XCTAssertEqual(profile.value(for: .agility).xp, 5, accuracy: 0.001)
+        XCTAssertEqual(vitalityReward.xpGained, 4, accuracy: 0.001)
+        XCTAssertEqual(profile.value(for: .vitality).xp, 4, accuracy: 0.001)
     }
 
     func testDeloadSessionAwardsVitalityOnTopOfMovementRewards() async throws {
@@ -311,11 +311,11 @@ final class MovementProgressServiceTests: XCTestCase {
         )
 
         let result = try await TrainingCompletionService.shared.complete(log, services: services)
-        let vitalityReward = try XCTUnwrap(result.attributeRewards.first { $0.key == .agility })
+        let vitalityReward = try XCTUnwrap(result.attributeRewards.first { $0.key == .vitality })
 
         XCTAssertGreaterThan(result.totalMovementAP, 0)
         XCTAssertTrue(result.attributeRewards.contains { $0.key == .power && $0.xpGained > 0 })
-        XCTAssertEqual(vitalityReward.xpGained, 10, accuracy: 0.001)
+        XCTAssertEqual(vitalityReward.xpGained, 8, accuracy: 0.001)
     }
 
     func testTrainingCompletionRecordPreventsDuplicateCompatibleWorkoutSaves() async throws {
@@ -580,6 +580,185 @@ final class MovementProgressServiceTests: XCTestCase {
         XCTAssertTrue(duplicate.wasDuplicate)
         XCTAssertGreaterThan(profile.load(for: .chest).lifetimeLoad, 0)
         XCTAssertEqual(profile.processedSourceLogIds, ["perf-body-1", "perf-body-2"])
+    }
+
+    func testBodyRegionTrainingLedgerSeparatesDirectSecondaryAndSkillPractice() {
+        let loads = BodyRegionTrainingLedger.loads(for: [
+            Exercise(
+                id: "ledger-bench",
+                name: "Bench Press",
+                muscleGroups: [.chest, .shoulders, .arms],
+                sets: 4,
+                reps: "6-8",
+                restSeconds: 120,
+                rpe: 8,
+                notes: nil,
+                substitution: nil
+            ),
+            Exercise(
+                id: "ledger-pullup",
+                name: "Pullup",
+                muscleGroups: [.back, .lats, .arms],
+                sets: 3,
+                reps: "6-10",
+                restSeconds: 120,
+                rpe: 8,
+                notes: nil,
+                substitution: nil
+            ),
+            Exercise(
+                id: "ledger-handstand",
+                name: "Freestanding Handstand",
+                muscleGroups: [.shoulders, .core],
+                sets: 5,
+                reps: "20s",
+                restSeconds: 90,
+                rpe: 7,
+                notes: nil,
+                substitution: nil
+            )
+        ])
+        let byRegion = Dictionary(uniqueKeysWithValues: loads.map { ($0.region, $0) })
+
+        XCTAssertEqual(byRegion[.chest]?.directHardSets, 4)
+        XCTAssertEqual(byRegion[.triceps]?.secondaryExposureSets, 4)
+        XCTAssertEqual(byRegion[.lats]?.directHardSets, 3)
+        XCTAssertEqual(byRegion[.biceps]?.secondaryExposureSets, 3)
+        XCTAssertEqual(byRegion[.shoulders]?.secondaryExposureSets, 4)
+        XCTAssertEqual(byRegion[.shoulders]?.skillPracticeSets, 5)
+        XCTAssertEqual(byRegion[.shoulders]?.jointTendonStressSets, 5)
+        XCTAssertEqual(byRegion[.forearms]?.skillPracticeSets, 5)
+        XCTAssertEqual(byRegion[.forearms]?.jointTendonStressSets, 5)
+    }
+
+    func testBodyRegionTrainingLedgerSeparatesMobilityAndCarryStressFromHardSets() {
+        let draft = TrainingSessionDraft(
+            userId: "u1",
+            source: .routine,
+            title: "Mobility + Carry",
+            estimatedMinutes: 24,
+            blocks: [
+                TrainingBlock(
+                    kind: .routine,
+                    title: "Mobility",
+                    prescriptions: [
+                        TrainingBlockPrescription(
+                            exerciseName: "Deep Squat Hold",
+                            sets: 2,
+                            target: .holdSeconds(45),
+                            restSeconds: 20
+                        )
+                    ]
+                ),
+                TrainingBlock(
+                    kind: .carry,
+                    title: "Loaded Carry",
+                    prescriptions: [
+                        TrainingBlockPrescription(
+                            exerciseName: "Farmer Carry",
+                            sets: 4,
+                            target: .distanceMeters(40),
+                            restSeconds: 90,
+                            muscleGroups: [.back, .arms, .shoulders]
+                        )
+                    ]
+                )
+            ]
+        )
+
+        let byRegion = Dictionary(uniqueKeysWithValues: BodyRegionTrainingLedger.loads(for: draft).map { ($0.region, $0) })
+
+        XCTAssertEqual(byRegion[.quads]?.mobilityControlSets, 2)
+        XCTAssertEqual(byRegion[.glutes]?.mobilityControlSets, 2)
+        XCTAssertEqual(byRegion[.forearms]?.jointTendonStressSets, 4)
+        XCTAssertEqual(byRegion[.traps]?.jointTendonStressSets, 4)
+        XCTAssertEqual(byRegion[.lowerBack]?.jointTendonStressSets, 4)
+        XCTAssertEqual(byRegion[.shoulders]?.jointTendonStressSets, 4)
+    }
+
+    func testBodyRegionTrainingLedgerTreatsPlanksAsTrunkBracingNotDirectLowBack() {
+        let loads = BodyRegionTrainingLedger.loads(for: [
+            Exercise(
+                id: "ledger-plank",
+                name: "Plank",
+                muscleGroups: [.core],
+                sets: 3,
+                reps: "30s",
+                restSeconds: 45,
+                rpe: 7,
+                notes: nil,
+                substitution: nil
+            )
+        ])
+        let byRegion = Dictionary(uniqueKeysWithValues: loads.map { ($0.region, $0) })
+
+        XCTAssertEqual(byRegion[.abs]?.directHardSets, 3)
+        XCTAssertEqual(byRegion[.obliques]?.directHardSets, 3)
+        XCTAssertEqual(byRegion[.lowerBack]?.directHardSets ?? 0, 0)
+        XCTAssertEqual(byRegion[.lowerBack]?.secondaryExposureSets, 3)
+    }
+
+    func testTrainingCompletionBodyMapUsesRoleWeightedLoadsForProfile() async throws {
+        let services = ServiceContainer.mock
+        let log = PerformanceLog(
+            id: "perf-body-role-weighted",
+            userId: "mock-user-123",
+            source: .program,
+            title: "Push",
+            startedAt: Date(timeIntervalSince1970: 100),
+            completedAt: Date(timeIntervalSince1970: 200),
+            blocks: [
+                PerformanceBlock(
+                    kind: .strength,
+                    title: "Push",
+                    exercises: [
+                        PerformanceExercise(
+                            name: "Bench Press",
+                            plannedSets: 1,
+                            plannedTarget: "5 reps",
+                            sets: [PerformanceSet(setNumber: 1, reps: 5, weightKg: 100, rpe: 8)]
+                        )
+                    ]
+                )
+            ]
+        )
+
+        _ = try await TrainingCompletionService.shared.complete(log, services: services)
+        let bodyMap: BodyMapProfile = try await services.database.read(
+            collection: "body_map_profiles",
+            documentId: "mock-user-123"
+        )
+
+        XCTAssertGreaterThan(bodyMap.load(for: .chest).lifetimeLoad, bodyMap.load(for: .shoulders).lifetimeLoad)
+        XCTAssertGreaterThan(bodyMap.load(for: .chest).lifetimeLoad, bodyMap.load(for: .triceps).lifetimeLoad)
+        XCTAssertEqual(bodyMap.load(for: .chest).recentDirectHardSets, 1)
+        XCTAssertEqual(bodyMap.load(for: .shoulders).recentSecondaryExposureSets, 1)
+        XCTAssertEqual(bodyMap.load(for: .triceps).recentSecondaryExposureSets, 1)
+    }
+
+    func testBodyMapRoleOnlyTrainingLoadUpdatesProfileWithoutMovementAP() async throws {
+        let database = MockDatabaseService()
+        var tendonLoad = BodyRegionTrainingLoad(region: .forearms)
+        tendonLoad.add(4, as: .jointTendonStress)
+
+        let result = await BodyMapProgressService.shared.ingest(
+            movementAPGains: [],
+            userId: "role-only-user",
+            sourceLogId: "role-only-carry",
+            at: Date(timeIntervalSince1970: 200),
+            trainingLoads: [tendonLoad],
+            database: database
+        )
+        let profile: BodyMapProfile = try await database.read(
+            collection: "body_map_profiles",
+            documentId: "role-only-user"
+        )
+
+        XCTAssertFalse(result.wasDuplicate)
+        XCTAssertEqual(result.regionRewards.first?.region, .forearms)
+        XCTAssertGreaterThan(result.regionRewards.first?.loadAdded ?? 0, 0)
+        XCTAssertEqual(profile.load(for: .forearms).recentJointTendonStressSets, 4)
+        XCTAssertGreaterThan(profile.load(for: .forearms).recentLoad, 0)
     }
 
     func testScanContextBuilderUsesCatalogIdsAndLegacyNamesForVolume() async throws {

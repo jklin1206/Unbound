@@ -568,13 +568,13 @@ final class UNBOUNDSmokeTest: XCTestCase {
         let strictMuscleUp = try! XCTUnwrap(graph.node(id: "pp.strict-muscle-up"))
         let strictRequirements = SkillUnlockStandards.groups(for: strictMuscleUp, in: graph).flatMap(\.requirements)
         XCTAssertTrue(strictRequirements.contains {
-            $0.sourceSkillId == "pp.ring-muscle-up" && $0.requiredTier >= .honed
+            $0.sourceSkillId == "pp.ring-muscle-up" && $0.requiredTier >= .master
         })
 
         let oneArmHandstand = try! XCTUnwrap(graph.node(id: "oah.full-one-arm-handstand"))
         let oahRequirements = SkillUnlockStandards.groups(for: oneArmHandstand, in: graph).flatMap(\.requirements)
         XCTAssertTrue(oahRequirements.contains {
-            $0.sourceSkillId == "oah.one-arm-handstand-5s" && $0.requiredTier >= .honed
+            $0.sourceSkillId == "oah.one-arm-handstand-5s" && $0.requiredTier >= .master
         })
     }
 
@@ -588,7 +588,7 @@ final class UNBOUNDSmokeTest: XCTestCase {
 
         let ringMuscleUpUnlocks = SkillUnlockStandards.outgoingUnlocks(from: "pp.ring-muscle-up", in: graph)
         XCTAssertTrue(ringMuscleUpUnlocks.contains {
-            $0.child.id == "pp.strict-muscle-up" && $0.requirement.requiredTier >= .honed
+            $0.child.id == "pp.strict-muscle-up" && $0.requirement.requiredTier >= .master
         })
     }
 
@@ -649,5 +649,139 @@ final class UNBOUNDSmokeTest: XCTestCase {
             skipped: false,
             notes: nil
         )
+    }
+}
+
+final class AnalyticsServiceTests: XCTestCase {
+    func testTrackCallsBackendWithEventNameAndMergedSuperProperties() {
+        let backend = InMemoryAnalyticsBackend()
+        let service = AnalyticsService(backend: backend)
+
+        service.registerSuper(["isSubscribed": true, "source": "super"])
+        service.track(.workoutStarted(programId: "program-1", dayNumber: 2))
+
+        XCTAssertEqual(backend.events.count, 1)
+        XCTAssertEqual(backend.events.first?.name, "workout_started")
+        XCTAssertEqual(backend.events.first?.properties["program_id"] as? String, "program-1")
+        XCTAssertEqual(backend.events.first?.properties["day_number"] as? Int, 2)
+        XCTAssertEqual(backend.events.first?.properties["isSubscribed"] as? Bool, true)
+        XCTAssertEqual(backend.events.first?.properties["source"] as? String, "super")
+    }
+
+    func testConfigureDefaultsAreIncludedInTrackedEvents() {
+        let backend = InMemoryAnalyticsBackend()
+        let service = AnalyticsService(backend: backend)
+
+        service.configure(defaultProperties: ["appVersion": "1.0", "build": "42"])
+        service.track(.appOpened)
+
+        XCTAssertEqual(backend.configuredProperties["appVersion"] as? String, "1.0")
+        XCTAssertEqual(backend.events.first?.properties["appVersion"] as? String, "1.0")
+        XCTAssertEqual(backend.events.first?.properties["build"] as? String, "42")
+    }
+
+    func testIdentifyAndResetForwardToBackend() {
+        let backend = InMemoryAnalyticsBackend()
+        let service = AnalyticsService(backend: backend)
+
+        service.identify(userId: "user-1", traits: ["email": "test@example.com"])
+        XCTAssertEqual(backend.identifiedUserId, "user-1")
+        XCTAssertEqual(backend.identifyTraits["email"] as? String, "test@example.com")
+
+        service.reset()
+        XCTAssertNil(backend.identifiedUserId)
+        XCTAssertEqual(backend.resetCount, 1)
+    }
+
+    func testOptOutHaltsSubsequentTrackCalls() {
+        let backend = InMemoryAnalyticsBackend()
+        let service = AnalyticsService(backend: backend)
+
+        service.track(.appOpened)
+        service.optOut()
+        service.track(.tabSelected(tab: "home"))
+
+        XCTAssertEqual(backend.events.map(\.name), ["app_opened"])
+        XCTAssertTrue(backend.isOptedOut)
+        XCTAssertEqual(backend.optOutCount, 1)
+    }
+
+    func testOptInResumesTrackCallsAfterOptOut() {
+        let backend = InMemoryAnalyticsBackend()
+        let service = AnalyticsService(backend: backend)
+
+        service.optOut()
+        service.track(.tabSelected(tab: "home"))
+        service.optIn()
+        service.track(.tabSelected(tab: "profile"))
+
+        XCTAssertEqual(backend.events.map(\.name), ["tab_selected"])
+        XCTAssertEqual(backend.events.first?.properties["tab"] as? String, "profile")
+        XCTAssertEqual(backend.optInCount, 1)
+    }
+}
+
+@MainActor
+final class AuthViewModelDevEntitlementTests: XCTestCase {
+    private final class UserServiceStub: UserServiceProtocol, @unchecked Sendable {
+        var createdUserIds: [String] = []
+
+        func createUserIfNeeded(userId: String, email: String?) async throws -> UserProfile {
+            createdUserIds.append(userId)
+            return UserProfile(
+                id: userId,
+                email: email,
+                createdAt: Date(),
+                onboardingCompleted: true,
+                totalScans: 0
+            )
+        }
+
+        func fetchProfile(userId: String) async throws -> UserProfile {
+            UserProfile(id: userId, createdAt: Date(), onboardingCompleted: true, totalScans: 0)
+        }
+
+        func updateProfile(userId: String, fields: [String: Any]) async throws {}
+        func deleteUserData(userId: String) async throws {}
+    }
+
+    func testEmailSignInUnlocksDevEntitlementInDebug() async {
+        DevFlags.shared.unlockAllFeatures = false
+        defer { DevFlags.shared.unlockAllFeatures = false }
+
+        let viewModel = AuthViewModel(
+            auth: MockAuthService(),
+            user: UserServiceStub(),
+            analytics: AnalyticsService(backend: InMemoryAnalyticsBackend())
+        )
+        viewModel.email = "dev@example.com"
+        viewModel.password = "password"
+
+        await viewModel.signInWithEmail()
+
+        #if DEBUG
+        XCTAssertTrue(DevFlags.shared.unlockAllFeatures)
+        #else
+        XCTAssertFalse(DevFlags.shared.unlockAllFeatures)
+        #endif
+    }
+
+    func testAppleSignInUnlocksDevEntitlementInDebug() async {
+        DevFlags.shared.unlockAllFeatures = false
+        defer { DevFlags.shared.unlockAllFeatures = false }
+
+        let viewModel = AuthViewModel(
+            auth: MockAuthService(),
+            user: UserServiceStub(),
+            analytics: AnalyticsService(backend: InMemoryAnalyticsBackend())
+        )
+
+        await viewModel.signInWithApple()
+
+        #if DEBUG
+        XCTAssertTrue(DevFlags.shared.unlockAllFeatures)
+        #else
+        XCTAssertFalse(DevFlags.shared.unlockAllFeatures)
+        #endif
     }
 }

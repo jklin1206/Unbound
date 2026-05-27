@@ -7,7 +7,7 @@ struct ScanBuildDeltaCard: View {
 
     var body: some View {
         VStack(spacing: 12) {
-            Text("BUILD · ARC EVOLUTION")
+            Text(L10n.string(.scanBuildDeltaTitle, defaultValue: "BUILD · ARC EVOLUTION"))
                 .font(.system(size: 9, weight: .bold, design: .monospaced))
                 .tracking(2.0)
                 .foregroundStyle(Color.unbound.textTertiary)
@@ -26,7 +26,7 @@ struct ScanBuildDeltaCard: View {
 
             HStack(alignment: .center, spacing: 10) {
                 VStack(spacing: 4) {
-                    Text("SCAN 1")
+                    Text(L10n.string(.scanBuildDeltaFirstScan, defaultValue: "SCAN 1"))
                         .font(.system(size: 9, weight: .bold, design: .monospaced))
                         .tracking(2.0)
                         .foregroundStyle(Color.unbound.textTertiary)
@@ -36,7 +36,7 @@ struct ScanBuildDeltaCard: View {
                     .font(.system(size: 16, weight: .bold))
                     .foregroundStyle(Color.unbound.accent)
                 VStack(spacing: 4) {
-                    Text("LATEST")
+                    Text(L10n.string(.scanBuildDeltaLatest, defaultValue: "LATEST"))
                         .font(.system(size: 9, weight: .bold, design: .monospaced))
                         .tracking(2.0)
                         .foregroundStyle(Color.unbound.accent)
@@ -62,11 +62,11 @@ struct ScanBuildDeltaCard: View {
     private func deltaCell(for key: AttributeKey) -> some View {
         let delta = latestScan.value(for: key).current - firstScan.value(for: key).current
         let rounded = Int(delta.rounded())
-        let flat = abs(rounded) < 5
+        let didImprove = rounded > 0
         return VStack(spacing: 2) {
-            Text(rounded >= 0 ? "+\(rounded)" : "\(rounded)")
+            Text(didImprove ? "+\(rounded)" : "HELD")
                 .font(.system(size: 12, weight: .heavy, design: .monospaced))
-                .foregroundStyle(flat ? Color.unbound.textTertiary : Color.unbound.accent)
+                .foregroundStyle(didImprove ? Color.unbound.accent : Color.unbound.textTertiary)
             Text(key.shortCode)
                 .font(.system(size: 8, weight: .medium, design: .monospaced))
                 .tracking(1.0)

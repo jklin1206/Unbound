@@ -5,7 +5,8 @@ import Foundation
 enum SideQuestLibrary {
     static let all: [SideQuest] = [
         pushProtocol, pullProtocol, coreCircuit,
-        shoulderBurn, morningMobility, zone2Walk,
+        shoulderBurn, morningMobility, hipReset,
+        shoulderSpineReset, ankleSquatPrep, eveningStretch, zone2Walk,
     ]
 
     static let pushProtocol = SideQuest(
@@ -164,6 +165,145 @@ enum SideQuestLibrary {
                 id: "mob-worlds", name: "World's Greatest Stretch", sets: 2, reps: "5 each", restSeconds: 15,
                 cue: "Lunge, hand inside foot, opposite arm to sky. Rotate slowly.",
                 muscleGroups: ["hip flexors", "thoracic", "hamstrings"]
+            ),
+        ]
+    )
+
+    static let hipReset = SideQuest(
+        id: "hip-reset-v1",
+        title: "Hip Reset",
+        subtitle: "5 exercises · 10 sets · ~15 min",
+        category: .mobility,
+        estimatedMinutes: 15,
+        spReward: 22,
+        exercises: [
+            SideQuestExercise(
+                id: "mob-9090", name: "90-90 Hip Switch", sets: 2, reps: "8 each", restSeconds: 15,
+                cue: "Sit tall. Rotate both knees side to side without collapsing the chest.",
+                muscleGroups: ["hips", "glutes"]
+            ),
+            SideQuestExercise(
+                id: "mob-couch", name: "Couch Stretch", sets: 2, reps: "45s each", restSeconds: 15,
+                cue: "Rear glute on, ribs down. Back out if the low back takes over.",
+                muscleGroups: ["quads", "hip flexors"]
+            ),
+            SideQuestExercise(
+                id: "mob-frog", name: "Frog Stretch", sets: 2, reps: "45s", restSeconds: 20,
+                cue: "Knees wide, shins roughly parallel. Rock back gently.",
+                muscleGroups: ["adductors", "hips"]
+            ),
+            SideQuestExercise(
+                id: "mob-figure4", name: "Figure-4 Stretch", sets: 2, reps: "45s each", restSeconds: 15,
+                cue: "Cross ankle above the knee. Pull only until the glute lights up.",
+                muscleGroups: ["glutes", "hips"]
+            ),
+            SideQuestExercise(
+                id: "mob-glutebridge", name: "Glute Bridge", sets: 2, reps: "12", restSeconds: 20,
+                cue: "Ribs down. Drive through heels and stop before the low back arches.",
+                muscleGroups: ["glutes", "hamstrings"]
+            ),
+        ]
+    )
+
+    static let shoulderSpineReset = SideQuest(
+        id: "shoulder-spine-reset-v1",
+        title: "Shoulder + Spine Reset",
+        subtitle: "5 exercises · 10 sets · ~12 min",
+        category: .mobility,
+        estimatedMinutes: 12,
+        spReward: 20,
+        exercises: [
+            SideQuestExercise(
+                id: "mob-shouldercars", name: "Shoulder CARs", sets: 2, reps: "5 each", restSeconds: 15,
+                cue: "Make the biggest pain-free circle while the ribs stay stacked.",
+                muscleGroups: ["shoulders", "upper back"]
+            ),
+            SideQuestExercise(
+                id: "mob-threadneedle", name: "Thread the Needle", sets: 2, reps: "8 each", restSeconds: 15,
+                cue: "Reach under the chest, then open through the ribs.",
+                muscleGroups: ["thoracic spine", "shoulders"]
+            ),
+            SideQuestExercise(
+                id: "mob-latprayer", name: "Lat Prayer Stretch", sets: 2, reps: "45s", restSeconds: 15,
+                cue: "Hips back, arms long, ribs down.",
+                muscleGroups: ["lats", "shoulders"]
+            ),
+            SideQuestExercise(
+                id: "mob-wallpec", name: "Wall Pec Stretch", sets: 2, reps: "35s each", restSeconds: 15,
+                cue: "Shoulder down. Turn the chest away gently.",
+                muscleGroups: ["chest", "front delts"]
+            ),
+            SideQuestExercise(
+                id: "mob-wristrocks", name: "Wrist Rocks", sets: 2, reps: "12", restSeconds: 15,
+                cue: "Small rocks with full palm contact. No sharp pressure.",
+                muscleGroups: ["wrists", "forearms"]
+            ),
+        ]
+    )
+
+    static let ankleSquatPrep = SideQuest(
+        id: "ankle-squat-prep-v1",
+        title: "Ankle + Squat Prep",
+        subtitle: "4 exercises · 8 sets · ~10 min",
+        category: .mobility,
+        estimatedMinutes: 10,
+        spReward: 18,
+        exercises: [
+            SideQuestExercise(
+                id: "mob-anklerock", name: "Knee-to-Wall Ankle Rock", sets: 2, reps: "10 each", restSeconds: 15,
+                cue: "Heel stays down. Knee tracks over the middle toes.",
+                muscleGroups: ["ankles", "calves"]
+            ),
+            SideQuestExercise(
+                id: "mob-calfpedal", name: "Calf Pedal", sets: 2, reps: "45s", restSeconds: 15,
+                cue: "Alternate heels down while pressing the floor away.",
+                muscleGroups: ["calves", "hamstrings"]
+            ),
+            SideQuestExercise(
+                id: "mob-squathold", name: "Deep Squat Hold", sets: 2, reps: "45s", restSeconds: 20,
+                cue: "Tripod feet, knees track toes, chest open.",
+                muscleGroups: ["ankles", "hips", "adductors"]
+            ),
+            SideQuestExercise(
+                id: "mob-hamrock", name: "Hamstring Rock", sets: 2, reps: "10 each", restSeconds: 15,
+                cue: "Rock back until the stretch appears. Return smooth.",
+                muscleGroups: ["hamstrings", "calves"]
+            ),
+        ]
+    )
+
+    static let eveningStretch = SideQuest(
+        id: "evening-stretch-v1",
+        title: "Evening Stretch",
+        subtitle: "5 exercises · 10 sets · ~12 min",
+        category: .mobility,
+        estimatedMinutes: 12,
+        spReward: 18,
+        exercises: [
+            SideQuestExercise(
+                id: "mob-hamfold", name: "Hamstring Fold", sets: 2, reps: "45s each", restSeconds: 15,
+                cue: "Hinge from the hips. Soft knees, no bouncing.",
+                muscleGroups: ["hamstrings", "calves"]
+            ),
+            SideQuestExercise(
+                id: "mob-pigeon", name: "Pigeon Pose", sets: 2, reps: "45s each", restSeconds: 15,
+                cue: "Square enough to feel glute, never knee pain.",
+                muscleGroups: ["glutes", "hips"]
+            ),
+            SideQuestExercise(
+                id: "mob-forwardfold", name: "Seated Forward Fold", sets: 2, reps: "45s", restSeconds: 15,
+                cue: "Reach long first, then fold without yanking.",
+                muscleGroups: ["hamstrings", "back"]
+            ),
+            SideQuestExercise(
+                id: "mob-spinaltwist", name: "Spinal Twist", sets: 2, reps: "35s each", restSeconds: 15,
+                cue: "Rotate gradually and keep the breath easy.",
+                muscleGroups: ["spine", "hips"]
+            ),
+            SideQuestExercise(
+                id: "mob-childreach", name: "Child's Pose Reach", sets: 2, reps: "45s", restSeconds: 15,
+                cue: "Walk hands long and breathe into the lats.",
+                muscleGroups: ["lats", "spine"]
             ),
         ]
     )

@@ -51,7 +51,7 @@ Two deferred items from sub-project #4 (Ascension Tier). This doc estimates effo
 
 ### Current state
 
-`RankUpCinematicPresenter` accepts `.skillTierAdvanced` notifications and gates correctly (only flagship Vessel/Unbound/Ascendant fire). BUT it synthesizes a `RankAdvance` (SubRank-shaped) to feed the existing cinematic view internals. The cinematic STILL displays SubRank labels (`.c → .sPlus`) instead of SkillTier names ("Honed → Vessel").
+`RankUpCinematicPresenter` accepts `.skillTierAdvanced` notifications and gates correctly (only flagship Vessel/Unbound/Ascendant fire). BUT it synthesizes a `RankAdvance` (SubRank-shaped) to feed the existing cinematic view internals. The cinematic STILL displays SubRank labels (`.c → .sPlus`) instead of SkillTier names ("Master → Vessel").
 
 ### What needs rewriting
 

@@ -51,8 +51,7 @@ struct UnboundHomeView: View {
     @State private var weekSessionDays: Set<Int> = [] // Mon=1...Sun=7
 
     // Modal state
-    @State private var showingSession = false
-    @State private var completedPresentedWorkout = false
+    @State private var workoutReadyDraft: TrainingSessionDraft?
     @State private var showingCalibrationWorkout = false
     // navigateToCoach removed — replaced by CoachModesStrip
     @State private var showingGainsToast = false
@@ -104,6 +103,7 @@ struct UnboundHomeView: View {
                         topBar
                         homeBriefing
                         trainingConsole
+                        homeLoadRailCard
                         homeMomentumCard
                         contextualStack
                         HomeBuildChipCard(profile: attributeProfile) {
@@ -159,25 +159,12 @@ struct UnboundHomeView: View {
             CalibrationWorkoutView(onComplete: { calibrationSkipRatio = 0 })
                 .environmentObject(services)
         }
-        .fullScreenCover(isPresented: $showingSession, onDismiss: {
-            guard completedPresentedWorkout else { return }
-            completedPresentedWorkout = false
-            onSessionComplete()
-        }) {
-            if let workout = todayProgramDay?.workout, let program {
-                NavigationStack {
-                    WorkoutLoggingView(
-                        workout: workout,
-                        programId: program.id,
-                        dayNumber: todayProgramDay?.dayNumber ?? 1,
-                        services: services,
-                        onFinished: {
-                            completedPresentedWorkout = true
-                            showingSession = false
-                        }
-                    )
-                }
-            }
+        .fullScreenCover(item: $workoutReadyDraft, onDismiss: {
+            workoutReadyDraft = nil
+            Task { await refreshWorkoutCompletionState() }
+        }) { draft in
+            WorkoutReadyView(draft: draft)
+                .environmentObject(services)
         }
         .fullScreenCover(item: $captureMode) { mode in
             PhotoCaptureFlow(mode: mode) { outcome in
@@ -222,6 +209,11 @@ struct UnboundHomeView: View {
                 onPick: { card in
                     guard let userId = services.auth.currentUserId else { return }
                     services.trials.pickVowCard(card, userId: userId)
+                    trialsState = services.trials.state(userId: userId)
+                },
+                onSkip: {
+                    guard let userId = services.auth.currentUserId else { return }
+                    services.trials.skipThisWeek(userId: userId)
                     trialsState = services.trials.state(userId: userId)
                 }
             )
@@ -359,7 +351,7 @@ struct UnboundHomeView: View {
                 Button {
                     UnboundHaptics.medium()
                     if canStart {
-                        showingSession = true
+                        beginTodaySession()
                     } else if isRest {
                         captureMode = .photo
                     } else {
@@ -421,7 +413,7 @@ struct UnboundHomeView: View {
                 .font(Font.unbound.captionS.weight(.bold))
                 .tracking(1.4)
                 .foregroundStyle(rankColor)
-            Text("LV \(level)")
+            Text("LVL \(level)")
                 .font(Font.unbound.monoM.weight(.semibold))
                 .foregroundStyle(Color.unbound.textPrimary)
                 .monospacedDigit()
@@ -551,7 +543,7 @@ struct UnboundHomeView: View {
                         .tracking(1.7)
                         .foregroundStyle(Color.unbound.textTertiary)
                     Spacer(minLength: 0)
-                    Text("LV \(level)")
+                    Text("LVL \(level)")
                         .font(Font.unbound.monoS.weight(.semibold))
                         .foregroundStyle(Color.unbound.textSecondary)
                         .monospacedDigit()
@@ -561,7 +553,7 @@ struct UnboundHomeView: View {
                     Text(tierName(for: aggregateRank).uppercased())
                         .font(Font.unbound.titleS)
                         .foregroundStyle(Color.unbound.textPrimary)
-                    Text("TO \(aggregateRank.advanced(by: 1).displayName)")
+                    Text(nextRankMomentumLabel(for: aggregateRank))
                         .font(Font.unbound.monoS.weight(.semibold))
                         .tracking(1.0)
                         .foregroundStyle(rankColor)
@@ -648,7 +640,7 @@ struct UnboundHomeView: View {
 
                 Spacer(minLength: 0)
 
-                Text("+\(dailyQuest.spReward) LV XP")
+                Text("+\(dailyQuest.spReward) LVL XP")
                     .font(Font.unbound.monoS.weight(.bold))
                     .foregroundStyle(categoryColor)
                     .monospacedDigit()
@@ -772,7 +764,7 @@ struct UnboundHomeView: View {
                             .font(Font.unbound.captionS.weight(.bold))
                             .tracking(1.6)
                             .foregroundStyle(rankColor)
-                        Text("LV \(level)")
+                        Text("LVL \(level)")
                             .font(Font.unbound.monoS.weight(.semibold))
                             .foregroundStyle(Color.unbound.textSecondary)
                             .monospacedDigit()
@@ -826,10 +818,12 @@ struct UnboundHomeView: View {
                 .font(.system(size: 9, weight: .bold))
                 .tracking(1.0)
                 .foregroundStyle(Color.unbound.textTertiary)
-            Text(rank.displayName)
-                .font(Font.unbound.monoS.weight(.bold))
+            Text(rank.title.displayName.uppercased())
+                .font(.system(size: 8, weight: .heavy, design: .monospaced))
+                .tracking(0.6)
                 .foregroundStyle(tint)
-                .monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(0.66)
         }
         .lineLimit(1)
         .minimumScaleFactor(0.74)
@@ -843,14 +837,29 @@ struct UnboundHomeView: View {
 
     private var readinessRail: some View {
         VStack(spacing: 0) {
-            railMetric(label: "READINESS", value: readinessValue, detail: readinessDetail, tint: readinessTint)
+            railMetric(label: "LOAD", value: readinessValue, detail: readinessDetail, tint: readinessTint)
             railDivider
-            railMetric(label: "NEXT RANK", value: aggregateRank.advanced(by: 1).displayName, detail: tierName(for: aggregateRank.advanced(by: 1)), tint: aggregateRank.advanced(by: 1).regionTint)
+            if let readiness = overallRankTrialReadiness,
+               readiness.definition != nil {
+                railMetric(
+                    label: "RANK TRIAL",
+                    value: rankTrialRailValue(readiness),
+                    detail: rankTrialRailDetail(readiness),
+                    tint: rankGatePulseTint(readiness)
+                )
+            } else {
+                railMetric(
+                    label: "NEXT TITLE",
+                    value: nextTitleValue(for: aggregateRank),
+                    detail: nextTitleDetail(for: aggregateRank),
+                    tint: aggregateRank.advanced(by: 1).regionTint
+                )
+            }
             railDivider
             HStack(spacing: 0) {
-                railMetric(label: "WEEK", value: "\(weekSessionDays.count)/7", detail: "sessions", tint: Color.unbound.ember)
+                railMetric(label: "WEEK", value: "\(weekSessionDays.count)/\(weeklySessionTarget)", detail: "target", tint: Color.unbound.ember)
                 verticalRailDivider
-                railMetric(label: "LV XP", value: "\(gains)", detail: "banked", tint: Color.unbound.textPrimary)
+                railMetric(label: "LVL XP", value: "\(gains)", detail: "banked", tint: Color.unbound.textPrimary)
             }
         }
         .padding(.vertical, 4)
@@ -859,6 +868,19 @@ struct UnboundHomeView: View {
                 .fill(Color.unbound.ember.opacity(0.82))
                 .frame(width: 2)
         }
+    }
+
+    private var homeLoadRailCard: some View {
+        readinessRail
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(Color.unbound.surface)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
+            )
     }
 
     private func railMetric(label: String, value: String, detail: String, tint: Color) -> some View {
@@ -926,7 +948,10 @@ struct UnboundHomeView: View {
         if !plateaus.isEmpty { return "WATCH" }
         if shouldShowCalibrationCard { return "CAL" }
         if todayProgramDay?.isRestDay == true { return "REST" }
-        return "GO"
+        if !hasLoggedAnyWorkout { return "START" }
+        if weekSessionDays.count >= weeklySessionTarget { return "FULL" }
+        if daysSinceLastSession >= 3 { return "MISS" }
+        return "ON"
     }
 
     private var readinessDetail: String {
@@ -939,18 +964,47 @@ struct UnboundHomeView: View {
         if todayProgramDay?.isRestDay == true {
             return "recovery"
         }
-        return "clear"
+        if !hasLoggedAnyWorkout {
+            return "first log"
+        }
+        if weekSessionDays.count >= weeklySessionTarget {
+            return "\(weekSessionDays.count)/\(weeklySessionTarget) sessions"
+        }
+        if daysSinceLastSession >= 3 {
+            return "\(daysSinceLastSession)d since log"
+        }
+        return todayProgramDay?.workout?.blockType?.displayName ?? "on track"
     }
 
     private var readinessTint: Color {
         if !plateaus.isEmpty { return Color.unbound.warnOrange }
         if shouldShowCalibrationCard { return Color.unbound.ember }
         if todayProgramDay?.isRestDay == true { return Color.unbound.coachCyan }
+        if !hasLoggedAnyWorkout { return Color.unbound.accent }
+        if weekSessionDays.count >= weeklySessionTarget { return Color.unbound.success }
+        if daysSinceLastSession >= 3 { return Color.unbound.warnOrange }
         return Color.unbound.success
     }
 
+    private var weeklySessionTarget: Int {
+        if let count = profile?.targetFrequency?.numericCount {
+            return max(1, count)
+        }
+        if let program {
+            let weeks = max(1, Int(ceil(Double(program.durationDays) / 7.0)))
+            let sessions = program.days.filter { !$0.isRestDay }.count
+            return max(1, Int(ceil(Double(sessions) / Double(weeks))))
+        }
+        return 4
+    }
+
+    private var daysSinceLastSession: Int {
+        guard let startedAt = lastLog?.startedAt else { return 99 }
+        return max(0, Calendar.current.dateComponents([.day], from: startedAt, to: Date()).day ?? 0)
+    }
+
     /// Placeholder avatar: initials in a chamfered charcoal circle with a
-    /// small violet LV chip overlapping the bottom-right. Swap to the real
+    /// small violet LVL chip overlapping the bottom-right. Swap to the real
     /// user photo once the scan pipeline feeds it in. Frame derives from
     /// the user's currently equipped rank-tier cosmetic.
     private func avatarBadge(level: Int) -> some View {
@@ -1039,7 +1093,7 @@ struct UnboundHomeView: View {
             HStack(spacing: 0) {
                 homeCommandButton(
                     title: "Quest",
-                    subtitle: "+\(dailyQuest.spReward) LV XP",
+                    subtitle: "+\(dailyQuest.spReward) LVL XP",
                     icon: "bolt.fill",
                     tint: questColor
                 ) {
@@ -1051,7 +1105,7 @@ struct UnboundHomeView: View {
 
                 homeCommandButton(
                     title: shouldShowScanEligibility ? "Scan" : "Photo",
-                    subtitle: shouldShowScanEligibility ? "+25 LV XP" : "+5 LV XP",
+                    subtitle: shouldShowScanEligibility ? "+25 LVL XP" : "+5 LVL XP",
                     icon: shouldShowScanEligibility ? "sparkle.magnifyingglass" : "camera.fill",
                     tint: shouldShowScanEligibility ? Color.unbound.accent : Color.unbound.ember
                 ) {
@@ -1171,12 +1225,12 @@ struct UnboundHomeView: View {
         guard let readiness = overallRankTrialReadiness,
               readiness.definition != nil
         else { return false }
-        return readiness.isReady || readiness.missingRequirements.count <= 2
+        return true
     }
 
     private func rankGatePulseCard(_ readiness: OverallRankTrialReadiness) -> some View {
         let tint = rankGatePulseTint(readiness)
-        let target = readiness.targetRank?.displayName ?? "Rank"
+        let target = readiness.targetRank?.displayName ?? "Title"
         let metCount = readiness.requirements.filter(\.isMet).count
         let totalCount = max(1, readiness.requirements.count)
 
@@ -1196,7 +1250,7 @@ struct UnboundHomeView: View {
 
                 VStack(alignment: .leading, spacing: 5) {
                     HStack(spacing: 7) {
-                        Text("NEXT GATE")
+                        Text("RANK TRIAL")
                             .font(.system(size: 9, weight: .heavy, design: .monospaced))
                             .tracking(1.5)
                             .foregroundStyle(Color.unbound.textTertiary)
@@ -1206,7 +1260,7 @@ struct UnboundHomeView: View {
                             .foregroundStyle(tint)
                     }
 
-                    Text("\(target) · \(metCount)/\(totalCount) proofs")
+                    Text("\(target) Trial · \(metCount)/\(totalCount) proofs")
                         .font(Font.unbound.bodyMStrong)
                         .foregroundStyle(Color.unbound.textPrimary)
                         .lineLimit(1)
@@ -1243,6 +1297,7 @@ struct UnboundHomeView: View {
 
     private func rankGatePulseStatus(_ readiness: OverallRankTrialReadiness) -> String {
         if readiness.isReady { return "READY" }
+        if readiness.status == .attempted { return "REBUILD" }
         let missing = readiness.missingRequirements.count
         if missing == 1 { return "1 LEFT" }
         return "\(missing) LEFT"
@@ -1250,12 +1305,15 @@ struct UnboundHomeView: View {
 
     private func rankGatePulseDetail(_ readiness: OverallRankTrialReadiness) -> String {
         if readiness.isReady {
-            return "Open Profile to run the gate when you want it."
+            return "All proofs are in. Open Profile to run the trial."
+        }
+        if readiness.status == .attempted {
+            return "Trial attempted. Rebuild the missing proofs before the next run."
         }
         if let closest = readiness.missingRequirements.first {
-            return "Closest: \(closest.label) \(closest.current)/\(closest.required)"
+            return "Next proof: \(closest.label) · \(closest.current) of \(closest.required)"
         }
-        return "Open Profile for the full gate checklist."
+        return "Open Profile for the full trial checklist."
     }
 
     private func rankGatePulseTint(_ readiness: OverallRankTrialReadiness) -> Color {
@@ -1263,6 +1321,24 @@ struct UnboundHomeView: View {
             return readiness.targetRank?.rewardTextTint ?? Color.unbound.accent
         }
         return Color.unbound.rankGold
+    }
+
+    private func rankTrialRailValue(_ readiness: OverallRankTrialReadiness) -> String {
+        if readiness.isReady { return "READY" }
+        if readiness.status == .attempted { return "REBUILD" }
+        return readiness.targetRank?.displayName ?? "Trial"
+    }
+
+    private func rankTrialRailDetail(_ readiness: OverallRankTrialReadiness) -> String {
+        let met = readiness.requirements.filter(\.isMet).count
+        let total = max(1, readiness.requirements.count)
+        if readiness.isReady {
+            return readiness.targetRank.map { "\($0.displayName) trial" } ?? "trial"
+        }
+        if let next = readiness.missingRequirements.first {
+            return "\(met)/\(total) · \(next.label)"
+        }
+        return "\(met)/\(total) proofs"
     }
 
     // MARK: - Stats grid
@@ -1287,7 +1363,7 @@ struct UnboundHomeView: View {
                     .foregroundStyle(Color.unbound.textSecondary)
                 Spacer()
                 if lastGainsAwarded > 0 {
-                    Text("+\(lastGainsAwarded) LV XP")
+                    Text("+\(lastGainsAwarded) LVL XP")
                         .font(Font.unbound.monoS)
                         .foregroundStyle(Color.unbound.accent)
                         .monospacedDigit()
@@ -1308,7 +1384,7 @@ struct UnboundHomeView: View {
                 .font(.system(size: 18, weight: .semibold))
                 .foregroundStyle(Color.unbound.accent)
             VStack(alignment: .leading, spacing: 2) {
-                Text("+\(lastGainsAwarded) LV XP")
+                Text("+\(lastGainsAwarded) LVL XP")
                     .font(Font.unbound.bodyLStrong)
                     .foregroundStyle(Color.unbound.textPrimary)
                 Text("Session logged. Streak: \(streakDays) day\(streakDays == 1 ? "" : "s").")
@@ -1422,7 +1498,7 @@ struct UnboundHomeView: View {
                 return (fetched, nil)
             }
             // Genuine first run: no program id yet.
-            let generated = await ProgramGenerationService.shared.generateFromOnboarding(
+            let generated = try await ProgramGenerationService.shared.generateFromOnboarding(
                 userId: userId,
                 targetFrequency: fetched.targetFrequency,
                 equipment: Set(fetched.equipment ?? []),
@@ -1430,13 +1506,6 @@ struct UnboundHomeView: View {
                 sessionLength: fetched.sessionLength,
                 exerciseStyles: Set(fetched.exerciseStyles ?? []),
                 targetAreas: Set(fetched.targetAreas ?? []),
-                goals: Set(fetched.goals ?? []),
-                obstacles: Set(fetched.obstacles ?? []),
-                sleepQuality: fetched.sleepQuality ?? 5,
-                stressLevel: fetched.stressLevel ?? 5,
-                currentFrequency: fetched.currentFrequency,
-                commitment: fetched.commitment ?? 8,
-                displayHandle: fetched.displayHandle ?? fetched.displayName ?? "",
                 age: fetched.age ?? 0,
                 gender: fetched.gender ?? .unspecified,
                 heightCm: fetched.heightCm ?? 0,
@@ -1510,9 +1579,35 @@ struct UnboundHomeView: View {
         let userId = services.auth.currentUserId ?? "anonymous"
         let logs = (try? await services.workoutLog.fetchRecentLogs(userId: userId, limit: 1)) ?? []
         lastLog = logs.first
+        hasLoggedAnyWorkout = !logs.isEmpty
     }
 
-    // MARK: - Session completion hook
+    @MainActor
+    private func refreshWorkoutCompletionState() async {
+        await refreshSessionXP()
+        await refreshRanksAndStats()
+        await refreshLastLog()
+        await refreshWeeklyRhythm()
+    }
+
+    // MARK: - Session flow
+
+    private func beginTodaySession() {
+        guard let day = todayProgramDay,
+              let workout = day.workout
+        else {
+            NotificationCenter.default.post(name: .requestNavigateToProgramTab, object: nil)
+            return
+        }
+        let userId = services.auth.currentUserId ?? "anonymous"
+        workoutReadyDraft = DailyWorkoutResolver.programDraft(
+            from: workout,
+            userId: userId,
+            programId: program?.id,
+            dayNumber: day.dayNumber,
+            date: Date()
+        )
+    }
 
     private func onSessionComplete() {
         let today = Calendar.current.startOfDay(for: Date()).timeIntervalSince1970
@@ -1548,12 +1643,7 @@ struct UnboundHomeView: View {
             }
         }
 
-        Task {
-            await refreshSessionXP()
-            await refreshRanksAndStats()
-            await refreshLastLog()
-            await refreshWeeklyRhythm()
-        }
+        Task { await refreshWorkoutCompletionState() }
     }
 
     // MARK: - Derived
@@ -1578,27 +1668,7 @@ struct UnboundHomeView: View {
     }
 
     private func synthesizeTravelDay(from tday: TravelDay, override: TravelOverride) -> ProgramDay {
-        let workout: Workout? = {
-            guard !tday.isRest else { return nil }
-            let exercises = tday.exercises.map { name in
-                Exercise(
-                    id: UUID().uuidString, name: name, muscleGroups: [],
-                    sets: 3, reps: "8-12", restSeconds: 60,
-                    rpe: nil, notes: nil, substitution: nil
-                )
-            }
-            let mins = Int(String(tday.duration.filter(\.isNumber))) ?? 30
-            return Workout(
-                name: tday.title,
-                targetMuscleGroups: [],
-                warmup: [],
-                mainExercises: exercises,
-                cooldown: [],
-                estimatedMinutes: mins,
-                notes: "Travel · \(override.summary)",
-                blockType: nil
-            )
-        }()
+        let workout = tday.workout(summary: "Travel block: \(override.summary)")
         return ProgramDay(
             id: "travel-home",
             dayNumber: 0,
@@ -1629,7 +1699,25 @@ struct UnboundHomeView: View {
     /// Player-facing rank title. The underlying ordinal ladder remains
     /// strength-based; the UI now shows titles instead of letter grades.
     private func tierName(for rank: SubRank) -> String {
-        rank.displayName
+        rank.title.displayName
+    }
+
+    private func nextRankMomentumLabel(for rank: SubRank) -> String {
+        let nextTitle = rank.advanced(by: 1).title
+        guard nextTitle != rank.title else { return "PROOF +1" }
+        return "TO \(nextTitle.displayName.uppercased())"
+    }
+
+    private func nextTitleValue(for rank: SubRank) -> String {
+        let next = rank.advanced(by: 1)
+        guard next.title != rank.title else { return "PROOF +1" }
+        return next.title.displayName
+    }
+
+    private func nextTitleDetail(for rank: SubRank) -> String {
+        let next = rank.advanced(by: 1)
+        guard next.title != rank.title else { return rank.title.displayName }
+        return "next milestone"
     }
 
     private func dayWord(for date: Date) -> String {
@@ -1686,7 +1774,7 @@ struct UnboundHomeView: View {
                     .tracking(1.2)
                     .foregroundStyle(Color.unbound.textTertiary)
                 Spacer()
-                Text("+\(dailyQuest.spReward) LV XP")
+                Text("+\(dailyQuest.spReward) LVL XP")
                     .font(Font.unbound.monoS.weight(.bold))
                     .foregroundStyle(categoryColor)
                     .monospacedDigit()

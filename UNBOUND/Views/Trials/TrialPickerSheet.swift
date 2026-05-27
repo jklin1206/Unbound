@@ -2,7 +2,7 @@ import SwiftUI
 
 // MARK: - TrialPickerSheet
 //
-// Bottom sheet that presents the 3 Binding Vow cards as a horizontal
+// Bottom sheet that presents the 3 weekly Binding Vow cards as a horizontal
 // swipeable TabView (.page style).
 //
 // The sheet does NOT dismiss itself — the parent is responsible for
@@ -11,6 +11,7 @@ import SwiftUI
 struct TrialPickerSheet: View {
     let cards: [TrialCard]
     let onPick: (TrialCard) -> Void
+    var onSkip: (() -> Void)? = nil
 
     @Environment(\.dismiss) private var dismiss
 
@@ -29,6 +30,7 @@ struct TrialPickerSheet: View {
                         cardPager
                         pageIndicator
                         commitButton
+                        skipButton
                         Spacer().frame(height: 20)
                     }
                 }
@@ -48,10 +50,10 @@ struct TrialPickerSheet: View {
                 .font(.system(size: 11, weight: .heavy, design: .monospaced))
                 .tracking(2.0)
                 .foregroundStyle(Color.unbound.textTertiary)
-            Text("Choose your binding")
+            Text("Choose your vow")
                 .font(.system(size: 24, weight: .black))
                 .foregroundStyle(Color.unbound.textPrimary)
-            Text("Accept a restriction. Clear the proof. Seal the vow.")
+            Text("Pick one focused condition. Clear the standard. Keep the week moving.")
                 .font(Font.unbound.bodyS)
                 .foregroundStyle(Color.unbound.textSecondary)
                 .multilineTextAlignment(.center)
@@ -99,7 +101,7 @@ struct TrialPickerSheet: View {
                 dismiss()
             } label: {
                 HStack(spacing: 10) {
-                    Text("BIND VOW - \(card.displayName.uppercased())")
+                    Text("BIND - \(card.displayName.uppercased())")
                         .font(Font.unbound.bodyMStrong)
                         .tracking(1.2)
                         .lineLimit(1)
@@ -125,12 +127,32 @@ struct TrialPickerSheet: View {
         }
     }
 
+    @ViewBuilder
+    private var skipButton: some View {
+        if let onSkip {
+            Button {
+                UnboundHaptics.soft()
+                onSkip()
+                dismiss()
+            } label: {
+                Text("Skip this week")
+                    .font(Font.unbound.bodyS.weight(.semibold))
+                    .foregroundStyle(Color.unbound.textSecondary)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 40)
+            }
+            .buttonStyle(.plain)
+            .padding(.horizontal, 20)
+            .padding(.top, 8)
+        }
+    }
+
     private var emptyState: some View {
         VStack(spacing: 16) {
             Image(systemName: "calendar.badge.exclamationmark")
                 .font(.system(size: 44))
                 .foregroundStyle(Color.unbound.textTertiary)
-            Text("No bindings this week")
+            Text("No vows this week")
                 .font(.system(size: 18, weight: .bold))
                 .foregroundStyle(Color.unbound.textPrimary)
             Text("Pull to refresh or wait for the next week rollover.")
@@ -163,8 +185,8 @@ struct TrialPickerSheet: View {
                 id: "weekly-vow-W20-ember",
                 kind: .ember,
                 theme: .axis(.power),
-                displayName: "Iron Rule Vow",
-                blurb: "Accept a low-day Binding Vow.",
+                displayName: "Iron Reset",
+                blurb: "A low-day proof for clean power work.",
                 capstone: TrialCapstone(displayName: "Low-Day Proof", description: "Complete easy power work.", evaluation: .manualClaim),
                 prescription: WeeklyVowPrescription(placement: .recoveryDay, minMinutes: 8, maxMinutes: 12, minRPE: 3, maxRPE: 5)
             ),
@@ -172,8 +194,8 @@ struct TrialPickerSheet: View {
                 id: "weekly-vow-W20-overdrive",
                 kind: .overdrive,
                 theme: .axis(.mobility),
-                displayName: "Flow State Vow",
-                blurb: "Accept a redline Binding Vow after training.",
+                displayName: "Flow Finish",
+                blurb: "A controlled finisher after training.",
                 capstone: TrialCapstone(displayName: "Flow Session", description: "Complete a 10-minute mobility circuit.", evaluation: .manualClaim),
                 prescription: WeeklyVowPrescription(placement: .afterWorkout, minMinutes: 6, maxMinutes: 12, minRPE: 7, maxRPE: 8)
             ),
@@ -181,8 +203,8 @@ struct TrialPickerSheet: View {
                 id: "weekly-vow-W20-apex",
                 kind: .apex,
                 theme: .wildcard,
-                displayName: "No Retreat Vow",
-                blurb: "Accept a weekend Binding Vow.",
+                displayName: "Pull-Up Standard",
+                blurb: "A dedicated weekend proof.",
                 capstone: TrialCapstone(displayName: "Circuit Finisher", description: "20-min AMRAP, 4 movements.", evaluation: .manualClaim),
                 prescription: WeeklyVowPrescription(placement: .dedicatedSession, minMinutes: 20, maxMinutes: 45, minRPE: 8, maxRPE: 9)
             )

@@ -28,6 +28,7 @@ struct ProfileView: View {
     @State private var aggregateRank: SubRank = .eMinus
     @State private var aggregateTier: SkillTier = .initiate
     @State private var attributeProfile: AttributeProfile = AttributeProfile.empty(userId: "", at: .now)
+    @State private var bodyMapProfile: BodyMapProfile = BodyMapProfile(userId: "")
     @State private var unlockedBadges: [Badge] = []
     @State private var totalBadgeCount: Int = 0
     @State private var totalWorkouts: Int = 0
@@ -80,6 +81,7 @@ struct ProfileView: View {
                             ProgressJourneyCard(dayZero: beforePhoto, now: afterPhoto)
                         }
                         PhotoCalendarView().environmentObject(services)
+                        BodyMapProfileCard(profile: bodyMapProfile)
                         Spacer().frame(height: 118)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -158,6 +160,15 @@ struct ProfileView: View {
         .onReceive(NotificationCenter.default.publisher(for: .requestOpenProfileRankInfo)) { _ in
             showRankInfo = true
         }
+        .onReceive(NotificationCenter.default.publisher(for: .bodyMapProgressUpdated)) { notification in
+            if let profile = notification.userInfo?["profile"] as? BodyMapProfile {
+                bodyMapProfile = profile
+            } else if let userId = services.auth.currentUserId {
+                Task {
+                    bodyMapProfile = await BodyMapProgressService.shared.profile(userId: userId, database: services.database)
+                }
+            }
+        }
         .attributeRankUpToast()
     }
 
@@ -181,6 +192,7 @@ struct ProfileView: View {
         equippedBackgroundTier = RankCosmetics.equippedBackgroundTier(userId: userId, currentTier: aggregateTier)
         equippedProfileColorTier = RankCosmetics.equippedProfileColorTier(userId: userId, currentTier: aggregateTier)
         attributeProfile = services.attribute.profile(userId: userId)
+        bodyMapProfile = await BodyMapProgressService.shared.profile(userId: userId, database: services.database)
 
         unlockedBadges = services.badges.unlockedBadges(userId: userId)
             .sorted { ($0.unlockedAt ?? .distantPast) > ($1.unlockedAt ?? .distantPast) }
@@ -370,6 +382,8 @@ struct ProfileView: View {
                     .overlay(Circle().strokeBorder(Color.unbound.borderSubtle, lineWidth: 1))
             }
             .buttonStyle(.plain)
+            .accessibilityLabel("Settings")
+            .accessibilityIdentifier("profile.settings")
         }
     }
 
@@ -681,7 +695,9 @@ struct ProfileView: View {
     private var bindingVowArchiveTile: some View {
         let active = trialsState.currentTrial
         let total = trialsState.completionsByCardKind.values.reduce(0, +)
-        let title = active?.chosenCard.displayName ?? trialsState.equippedTitle?.displayName ?? "Binding Vows"
+        let title = active?.chosenCard.displayName
+            ?? trialsState.equippedTitle.map(TitleCatalog.displayName(for:))
+            ?? "Binding Vows"
         let tint = active?.chosenCard.theme.tintColor ?? Color.unbound.accent
 
         return VStack(alignment: .leading, spacing: 10) {
@@ -689,7 +705,7 @@ struct ProfileView: View {
                 Image(systemName: "flag.2.crossed.fill")
                     .font(.system(size: 10, weight: .bold))
                     .foregroundStyle(tint)
-                Text("VOW ARCHIVE")
+                Text("BINDING VOWS")
                     .font(.system(size: 9, weight: .heavy, design: .monospaced))
                     .tracking(1.4)
                     .foregroundStyle(Color.unbound.textTertiary)
@@ -703,8 +719,11 @@ struct ProfileView: View {
                 .minimumScaleFactor(0.64)
 
             HStack(spacing: 6) {
-                archiveStatChip(value: "\(total)", label: "SEALED", tint: tint)
+                archiveStatChip(value: "\(total)", label: "CLEARED", tint: tint)
                 archiveStatChip(value: "\(trialsState.unlockedTitles.count)", label: "TITLES", tint: Color.unbound.rankGold)
+                if let next = nextBindingVowTitleProgress {
+                    archiveStatChip(value: "\(next.current)/\(next.target)", label: "NEXT", tint: next.tint)
+                }
             }
 
             Text(bindingVowArchiveDetail(active: active))
@@ -712,6 +731,10 @@ struct ProfileView: View {
                 .foregroundStyle(Color.unbound.textSecondary)
                 .lineLimit(2)
                 .minimumScaleFactor(0.78)
+
+            if !trialsState.unlockedTitles.isEmpty {
+                bindingVowTitleShelf
+            }
         }
         .padding(14)
         .frame(maxWidth: .infinity, minHeight: 132, alignment: .topLeading)
@@ -724,6 +747,30 @@ struct ProfileView: View {
                 .strokeBorder(tint.opacity(0.22), lineWidth: 1)
         )
         .accessibilityIdentifier("profile.bindingVowArchiveTile")
+    }
+
+    private var bindingVowTitleShelf: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(trialsState.unlockedTitles, id: \.self) { titleId in
+                    bindingVowTitleButton(titleId)
+                }
+            }
+        }
+    }
+
+    private func bindingVowTitleButton(_ titleId: TitleID) -> some View {
+        let isEquipped = titleId == trialsState.equippedTitle
+        return Button {
+            equipBindingVowTitle(isEquipped ? nil : titleId)
+        } label: {
+            TitleBadge(titleId: titleId, compact: true)
+                .overlay(
+                    Capsule()
+                        .strokeBorder(isEquipped ? Color.unbound.rankGold : .clear, lineWidth: 1.5)
+                )
+        }
+        .buttonStyle(.plain)
     }
 
     private func archiveStatChip(value: String, label: String, tint: Color) -> some View {
@@ -747,20 +794,439 @@ struct ProfileView: View {
             return "\(active.chosenCard.theme.displayLabel) is \(bindingVowStateLabel(active.capstoneState).lowercased())."
         }
         if trialsState.unlockedTitles.isEmpty {
-            return "Weekly vows live on Home; sealed vows build titles here."
+            return "Binding Vows live on Home; cleared vows build titles here."
         }
-        return "Equipped title: \(trialsState.equippedTitle?.displayName ?? "None")."
+        return "Equipped title: \(trialsState.equippedTitle.map(TitleCatalog.displayName(for:)) ?? "None")."
+    }
+
+    private var nextBindingVowTitleProgress: (current: Int, target: Int, tint: Color)? {
+        let entries: [(kind: WeeklyVowKind, tint: Color)] = [
+            (.ember, Color.unbound.rankGreen),
+            (.overdrive, Color.unbound.accent),
+            (.apex, Color.unbound.rankGold)
+        ]
+        let thresholds = [3, 7, 15]
+        let candidates = entries.compactMap { entry -> (current: Int, target: Int, tint: Color, ratio: Double)? in
+            let current = trialsState.completionsByCardKind[entry.kind] ?? 0
+            guard let target = thresholds.first(where: { current < $0 }) else { return nil }
+            return (current, target, entry.tint, Double(current) / Double(target))
+        }
+        guard let next = candidates.max(by: { $0.ratio < $1.ratio }) else { return nil }
+        return (next.current, next.target, next.tint)
+    }
+
+    private func equipBindingVowTitle(_ titleId: TitleID?) {
+        guard let userId = services.auth.currentUserId else { return }
+        UnboundHaptics.soft()
+        services.trials.equipTitle(titleId, userId: userId)
+        trialsState = services.trials.state(userId: userId)
     }
 
     private func bindingVowStateLabel(_ state: CapstoneState) -> String {
         switch state {
         case .pending: return "active"
-        case .windowOpen: return "proof ready"
+        case .windowOpen: return "vow ready"
         case .completed: return "complete"
         case .missed: return "missed"
         }
     }
 
+}
+
+private struct BodyMapProfileCard: View {
+    let profile: BodyMapProfile
+
+    private var hotRows: [BodyMapRegionDisplayRow] {
+        rankedRows
+            .filter { $0.activityScore > 0 || $0.load.lifetimeLoad > 0 }
+            .prefix(4)
+            .map { $0 }
+    }
+
+    private var quietRows: [BodyMapRegionDisplayRow] {
+        allRows
+            .filter { $0.load.lifetimeLoad > 0 && $0.activityScore < maxActivityScore * 0.35 }
+            .sorted {
+                if $0.activityScore != $1.activityScore {
+                    return $0.activityScore < $1.activityScore
+                }
+                return $0.region.rawValue < $1.region.rawValue
+            }
+            .prefix(3)
+            .map { $0 }
+    }
+
+    private var rankedRows: [BodyMapRegionDisplayRow] {
+        allRows.sorted {
+            if $0.activityScore != $1.activityScore {
+                return $0.activityScore > $1.activityScore
+            }
+            return $0.load.lifetimeLoad > $1.load.lifetimeLoad
+        }
+    }
+
+    private var allRows: [BodyMapRegionDisplayRow] {
+        BodyRegion.allCases.map { region in
+            BodyMapRegionDisplayRow(region: region, load: profile.load(for: region))
+        }
+    }
+
+    private var maxActivityScore: Double {
+        max(1, allRows.map(\.activityScore).max() ?? 1)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .center, spacing: 10) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("HEAT MAP")
+                        .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                        .tracking(1.7)
+                        .foregroundStyle(Color.unbound.textTertiary)
+                    Text(primaryStatus.uppercased())
+                        .font(Font.unbound.bodyMStrong)
+                        .foregroundStyle(Color.unbound.textPrimary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.72)
+                }
+                Spacer(minLength: 0)
+                Text(trainedRegionSummary.uppercased())
+                    .font(Font.unbound.monoS.weight(.black))
+                    .foregroundStyle(Color.unbound.coachCyan)
+                    .lineLimit(1)
+            }
+
+            BodyHeatMapSilhouette(rows: allRows, maxActivityScore: maxActivityScore)
+                .frame(height: 238)
+
+            if !hotRows.isEmpty {
+                HStack(spacing: 7) {
+                    ForEach(hotRows.prefix(3)) { row in
+                        focusChip(row)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            if !quietRows.isEmpty {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("QUIET LATELY")
+                        .font(.system(size: 8, weight: .heavy, design: .monospaced))
+                        .tracking(0.9)
+                        .foregroundStyle(Color.unbound.textTertiary)
+                    HStack(spacing: 7) {
+                        ForEach(quietRows) { row in
+                            quietChip(row)
+                        }
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(Color.unbound.surface)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(Color.unbound.coachCyan.opacity(0.28), lineWidth: 1)
+        )
+        .accessibilityIdentifier("profile.bodyMapCard")
+    }
+
+    private var trainedRegionCount: Int {
+        allRows.filter { $0.load.lifetimeLoad > 0 }.count
+    }
+
+    private var trainedRegionSummary: String {
+        trainedRegionCount == 0 ? "No logs" : "\(trainedRegionCount) areas"
+    }
+
+    private var primaryStatus: String {
+        guard let top = hotRows.first, top.activityScore > 0 else {
+            return "Awaiting first session"
+        }
+        if let jointStress = hotRows.first(where: { $0.load.recentJointTendonStressSets >= 6 }) {
+            return "\(jointStress.region.displayName) joint stress elevated"
+        }
+        if let second = hotRows.dropFirst().first,
+           second.activityScore >= top.activityScore * 0.82 {
+            return "\(top.region.displayName) and \(second.region.displayName) did most work"
+        }
+        return "\(top.region.displayName) did most work"
+    }
+
+    private func focusChip(_ row: BodyMapRegionDisplayRow) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(row.region.displayName.uppercased())
+                .font(.system(size: 8, weight: .heavy, design: .monospaced))
+                .tracking(0.7)
+                .foregroundStyle(Color.unbound.textPrimary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+            Text(activityLabel(for: row).uppercased())
+                .font(.system(size: 8, weight: .heavy, design: .monospaced))
+                .tracking(0.7)
+                .foregroundStyle(row.tint)
+                .lineLimit(1)
+        }
+        .padding(.horizontal, 9)
+        .padding(.vertical, 7)
+        .background(Capsule().fill(row.tint.opacity(0.12)))
+        .overlay(Capsule().strokeBorder(row.tint.opacity(0.25), lineWidth: 1))
+    }
+
+    private func quietChip(_ row: BodyMapRegionDisplayRow) -> some View {
+        Text(row.region.displayName.uppercased())
+            .font(.system(size: 8, weight: .heavy, design: .monospaced))
+            .tracking(0.7)
+            .foregroundStyle(row.tint)
+            .lineLimit(1)
+            .minimumScaleFactor(0.7)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 5)
+            .background(Capsule().fill(row.tint.opacity(0.12)))
+            .overlay(Capsule().strokeBorder(row.tint.opacity(0.24), lineWidth: 1))
+    }
+
+    private func activityLabel(for row: BodyMapRegionDisplayRow) -> String {
+        guard row.activityScore > 0 else { return "Resting" }
+        let fraction = row.activityScore / maxActivityScore
+        if fraction >= 0.72 { return "Heavy" }
+        if fraction >= 0.34 { return "Moderate" }
+        return "Light"
+    }
+
+    private func recencyText(_ date: Date?) -> String {
+        guard let date else { return "NOT LOGGED" }
+        let days = Calendar.current.dateComponents([.day], from: date, to: .now).day ?? 0
+        if days <= 0 { return "TODAY" }
+        if days == 1 { return "1 DAY AGO" }
+        return "\(days) DAYS AGO"
+    }
+
+    private func roleSummaryText(_ load: BodyRegionLoad) -> String {
+        let pairs = rolePairs(for: load).prefix(2)
+        guard !pairs.isEmpty else { return "Recently trained" }
+        return pairs
+            .map { $0.label }
+            .joined(separator: " + ")
+    }
+
+    private func rolePairs(for load: BodyRegionLoad) -> [(label: String, value: Double, priority: Int)] {
+        [
+            ("Main work", load.recentDirectHardSets, 0),
+            ("Helping work", load.recentSecondaryExposureSets, 1),
+            ("Skill practice", load.recentSkillPracticeSets, 2),
+            ("Mobility", load.recentMobilityControlSets, 3),
+            ("Joint stress", load.recentJointTendonStressSets, 4)
+        ]
+        .filter { $0.value > 0.05 }
+        .sorted {
+            if $0.value != $1.value { return $0.value > $1.value }
+            return $0.priority < $1.priority
+        }
+    }
+}
+
+private struct BodyHeatMapSilhouette: View {
+    let rows: [BodyMapRegionDisplayRow]
+    let maxActivityScore: Double
+
+    private var rowByRegion: [BodyRegion: BodyMapRegionDisplayRow] {
+        Dictionary(uniqueKeysWithValues: rows.map { ($0.region, $0) })
+    }
+
+    private var patches: [BodyHeatPatch] {
+        BodyRegion.allCases.flatMap { region -> [BodyHeatPatch] in
+            guard let row = rowByRegion[region], row.activityScore > 0 else { return [] }
+            let intensity = min(1, max(0, row.activityScore / max(1, maxActivityScore)))
+            return BodyHeatPatch.patches(for: region, tint: row.tint, intensity: intensity)
+        }
+    }
+
+    private var hasHeat: Bool {
+        patches.contains { $0.intensity > 0 }
+    }
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color.black.opacity(0.22))
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color.unbound.surfaceElevated.opacity(0.45))
+
+            SilhouetteView(rimLight: .neutral, chromaticAberration: 0.45, breathe: false, scale: 0.58, asset: .frontMale)
+                .frame(width: 170, height: 222)
+                .clipped()
+                .opacity(0.72)
+
+            GeometryReader { geo in
+                ZStack {
+                    ForEach(patches) { patch in
+                        heatPatch(patch)
+                            .frame(
+                                width: geo.size.width * patch.width,
+                                height: geo.size.height * patch.height
+                            )
+                            .position(
+                                x: geo.size.width * patch.x,
+                                y: geo.size.height * patch.y
+                            )
+                    }
+                }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+
+            if !hasHeat {
+                VStack(spacing: 6) {
+                    Image(systemName: "flame")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundStyle(Color.unbound.textTertiary)
+                    Text("NO HEAT YET")
+                        .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                        .tracking(1.0)
+                        .foregroundStyle(Color.unbound.textSecondary)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 9)
+                .background(Capsule().fill(Color.black.opacity(0.35)))
+                .overlay(Capsule().strokeBorder(Color.unbound.borderSubtle, lineWidth: 1))
+            }
+
+            VStack {
+                HStack {
+                    Text("LOW")
+                    heatLegend
+                    Text("HIGH")
+                }
+                .font(.system(size: 8, weight: .heavy, design: .monospaced))
+                .tracking(0.8)
+                .foregroundStyle(Color.unbound.textTertiary)
+                .padding(.top, 10)
+                Spacer()
+                Text("RECENT TRAINING HEAT")
+                    .font(.system(size: 8, weight: .heavy, design: .monospaced))
+                    .tracking(1.2)
+                    .foregroundStyle(Color.unbound.textTertiary)
+                    .padding(.bottom, 10)
+            }
+        }
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
+        )
+    }
+
+    private var heatLegend: some View {
+        LinearGradient(
+            colors: [
+                Color.unbound.coachCyan.opacity(0.24),
+                Color.unbound.impact.opacity(0.58),
+                Color.unbound.ember.opacity(0.86)
+            ],
+            startPoint: .leading,
+            endPoint: .trailing
+        )
+        .frame(width: 64, height: 5)
+        .clipShape(Capsule())
+    }
+
+    private func heatPatch(_ patch: BodyHeatPatch) -> some View {
+        Capsule()
+            .fill(
+                RadialGradient(
+                    colors: [
+                        patch.tint.opacity(0.18 + patch.intensity * 0.68),
+                        patch.tint.opacity(0.08 + patch.intensity * 0.28),
+                        .clear
+                    ],
+                    center: .center,
+                    startRadius: 0,
+                    endRadius: 54
+                )
+            )
+            .blur(radius: 3 + patch.intensity * 3)
+            .overlay(
+                Capsule()
+                    .strokeBorder(patch.tint.opacity(0.12 + patch.intensity * 0.36), lineWidth: 1)
+            )
+            .blendMode(.screen)
+    }
+}
+
+private struct BodyHeatPatch: Identifiable {
+    let id: String
+    let x: CGFloat
+    let y: CGFloat
+    let width: CGFloat
+    let height: CGFloat
+    let tint: Color
+    let intensity: Double
+
+    static func patches(for region: BodyRegion, tint: Color, intensity: Double) -> [BodyHeatPatch] {
+        func patch(_ id: String, _ x: CGFloat, _ y: CGFloat, _ width: CGFloat, _ height: CGFloat) -> BodyHeatPatch {
+            BodyHeatPatch(id: "\(region.rawValue)-\(id)", x: x, y: y, width: width, height: height, tint: tint, intensity: intensity)
+        }
+
+        switch region {
+        case .chest:
+            return [patch("center", 0.50, 0.33, 0.26, 0.12)]
+        case .shoulders:
+            return [patch("left", 0.38, 0.28, 0.16, 0.09), patch("right", 0.62, 0.28, 0.16, 0.09)]
+        case .traps:
+            return [patch("upper", 0.50, 0.24, 0.19, 0.08)]
+        case .lats:
+            return [patch("left", 0.41, 0.40, 0.13, 0.18), patch("right", 0.59, 0.40, 0.13, 0.18)]
+        case .abs:
+            return [patch("center", 0.50, 0.48, 0.19, 0.18)]
+        case .obliques:
+            return [patch("left", 0.40, 0.49, 0.10, 0.17), patch("right", 0.60, 0.49, 0.10, 0.17)]
+        case .lowerBack:
+            return [patch("center", 0.50, 0.55, 0.21, 0.13)]
+        case .biceps:
+            return [patch("left", 0.31, 0.40, 0.08, 0.15), patch("right", 0.69, 0.40, 0.08, 0.15)]
+        case .triceps:
+            return [patch("left", 0.29, 0.43, 0.08, 0.16), patch("right", 0.71, 0.43, 0.08, 0.16)]
+        case .forearms:
+            return [patch("left", 0.25, 0.56, 0.08, 0.18), patch("right", 0.75, 0.56, 0.08, 0.18)]
+        case .glutes:
+            return [patch("center", 0.50, 0.63, 0.22, 0.11)]
+        case .quads:
+            return [patch("left", 0.43, 0.75, 0.10, 0.22), patch("right", 0.57, 0.75, 0.10, 0.22)]
+        case .hamstrings:
+            return [patch("left", 0.43, 0.77, 0.10, 0.20), patch("right", 0.57, 0.77, 0.10, 0.20)]
+        case .calves:
+            return [patch("left", 0.43, 0.91, 0.08, 0.13), patch("right", 0.57, 0.91, 0.08, 0.13)]
+        }
+    }
+}
+
+private struct BodyMapRegionDisplayRow: Identifiable {
+    var id: String { region.rawValue }
+    let region: BodyRegion
+    let load: BodyRegionLoad
+
+    var activityScore: Double {
+        let roleLoad = load.recentRoleCoachLoad
+        return roleLoad > 0 ? roleLoad : load.recentLoad
+    }
+
+    var tint: Color {
+        switch region {
+        case .chest, .triceps:
+            return Color.unbound.ember
+        case .shoulders:
+            return Color.unbound.impact
+        case .biceps, .forearms, .traps, .lats:
+            return Color.unbound.coachCyan
+        case .abs, .obliques, .lowerBack:
+            return Color.unbound.accent
+        case .quads, .hamstrings, .glutes, .calves:
+            return Color.unbound.rankGold
+        }
+    }
 }
 
 private struct EditProfileSheet: View {
@@ -896,15 +1362,23 @@ private struct RankInfoSheet: View {
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
             VStack(alignment: .leading, spacing: 18) {
-                HStack(alignment: .top) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("RANK")
+                HStack(alignment: .center, spacing: 12) {
+                    Image(headerTier.assetName)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 44, height: 44)
+                        .shadow(color: headerTier.rewardTint.opacity(0.38), radius: 12)
+
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("RANK TRIAL")
                             .font(.system(size: 9, weight: .black, design: .monospaced))
                             .tracking(1.7)
                             .foregroundStyle(Color.unbound.textTertiary)
-                        Text(currentTier.displayName)
+                        Text(readiness.map(rankGateTitle) ?? currentTier.displayName)
                             .font(Font.unbound.titleS)
                             .foregroundStyle(Color.unbound.textPrimary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.72)
                     }
                     Spacer()
                     Button {
@@ -920,60 +1394,23 @@ private struct RankInfoSheet: View {
                 }
 
                 if let readiness {
+                    RankTrialFlowStrip(readiness: readiness)
+
                     VStack(alignment: .leading, spacing: 10) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("NEXT RANK GATE")
-                                .font(.system(size: 9, weight: .black, design: .monospaced))
-                                .tracking(1.7)
-                                .foregroundStyle(Color.unbound.textTertiary)
-                            Text(rankGateTitle(readiness))
-                                .font(Font.unbound.titleS)
-                                .foregroundStyle(Color.unbound.textPrimary)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.72)
-                        }
-
-                        Text("Track the proofs for your next overall rank here. When every requirement is met, this becomes the trial start point.")
-                            .font(Font.unbound.bodyM)
-                            .foregroundStyle(Color.unbound.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
-
                         OverallRankTrialReadinessCard(readiness: readiness) { definition in
                             dismiss()
                             onStart(definition)
                         }
                     }
                 }
-
-                VStack(alignment: .leading, spacing: 12) {
-                    RankInfoRow(
-                        icon: "shield.fill",
-                        tint: Color.unbound.accent,
-                        title: "Current tier",
-                        copy: "This is the highest named tier you have reached across tracked skills and key strength lifts. It is separate from account level and LV XP."
-                    )
-                    RankInfoRow(
-                        icon: "arrow.up.forward",
-                        tint: Color.unbound.rankGold,
-                        title: "How it unlocks",
-                        copy: "After you log a workout, UNBOUND checks your full training history against each skill's tier standard: reps, holds, load, bodyweight ratios, and movement requirements."
-                    )
-                    RankInfoRow(
-                        icon: "clock.arrow.circlepath",
-                        tint: Color.unbound.coachCyan,
-                        title: "Current vs previous",
-                        copy: "Current tier is what your profile shows now. Previous tier only appears during a rank-up moment, as the tier you moved from before the new unlock."
-                    )
-                }
-
-                Text("Main tracked lift tiers currently include bench press, back squat, deadlift, and overhead press. Skill tiers come from the skill graph criteria.")
-                    .font(Font.unbound.captionS)
-                    .foregroundStyle(Color.unbound.textTertiary)
-                    .fixedSize(horizontal: false, vertical: true)
             }
             .padding(20)
         }
         .background(Color.unbound.bg.ignoresSafeArea())
+    }
+
+    private var headerTier: RankTitle {
+        readiness?.targetRank ?? currentTier.rankTitle
     }
 
     private func rankGateTitle(_ readiness: OverallRankTrialReadiness) -> String {
@@ -984,42 +1421,59 @@ private struct RankInfoSheet: View {
     }
 }
 
-private struct RankInfoRow: View {
-    let icon: String
-    let tint: Color
-    let title: String
-    let copy: String
+private struct RankTrialFlowStrip: View {
+    let readiness: OverallRankTrialReadiness
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            Image(systemName: icon)
-                .font(.system(size: 13, weight: .bold))
-                .foregroundStyle(tint)
-                .frame(width: 30, height: 30)
-                .background(Circle().fill(tint.opacity(0.14)))
-                .overlay(Circle().strokeBorder(tint.opacity(0.34), lineWidth: 1))
+        let met = readiness.requirements.filter(\.isMet).count
+        let total = max(1, readiness.requirements.count)
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title.uppercased())
-                    .font(.system(size: 9, weight: .black, design: .monospaced))
-                    .tracking(1.3)
-                    .foregroundStyle(Color.unbound.textPrimary)
-                Text(copy)
-                    .font(Font.unbound.captionS)
-                    .foregroundStyle(Color.unbound.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
+        return HStack(spacing: 8) {
+            step(icon: "list.bullet.clipboard.fill", label: "\(met)/\(total)", caption: "PROOFS", tint: Color.unbound.accent)
+            connector
+            step(icon: readiness.isReady ? "checkmark.seal.fill" : "lock.fill", label: readiness.isReady ? "READY" : "LOCKED", caption: "GATE", tint: readiness.targetRank?.rewardTextTint ?? Color.unbound.rankGold)
+            connector
+            step(icon: "play.fill", label: "TRIAL", caption: "WORKOUT", tint: Color.unbound.coachCyan)
         }
         .padding(12)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity)
         .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .fill(Color.unbound.surface)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
         )
+    }
+
+    private var connector: some View {
+        Capsule()
+            .fill(Color.unbound.borderSubtle)
+            .frame(width: 18, height: 2)
+    }
+
+    private func step(icon: String, label: String, caption: String, tint: Color) -> some View {
+        VStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(tint)
+                .frame(width: 28, height: 28)
+                .background(Circle().fill(tint.opacity(0.14)))
+                .overlay(Circle().strokeBorder(tint.opacity(0.32), lineWidth: 1))
+            VStack(spacing: 1) {
+                Text(label)
+                    .font(Font.unbound.monoS.weight(.heavy))
+                    .foregroundStyle(Color.unbound.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+                Text(caption)
+                    .font(.system(size: 7, weight: .heavy, design: .monospaced))
+                    .tracking(0.8)
+                    .foregroundStyle(Color.unbound.textTertiary)
+            }
+        }
+        .frame(maxWidth: .infinity)
     }
 }
 
@@ -1056,7 +1510,7 @@ private struct ProfileHeroAvatar: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
                 .offset(x: -2, y: 2)
 
-            Text("LV \(level)")
+            Text("LVL \(level)")
                 .font(.system(size: 10, weight: .black, design: .monospaced))
                 .tracking(1.0)
                 .foregroundStyle(Color.unbound.textPrimary)

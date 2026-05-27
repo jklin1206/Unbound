@@ -61,7 +61,7 @@ struct FirstScanArcCard: View {
     }
 
     private var titleBlock: some View {
-        Text("YOUR ARC BEGINS")
+        Text(L10n.string(.scanFirstArcTitle, defaultValue: "YOUR ARC BEGINS"))
             .font(Font.unbound.displayM)
             .foregroundStyle(Color.unbound.textPrimary)
             .tracking(3)
@@ -95,7 +95,7 @@ struct FirstScanArcCard: View {
     }
 
     private var cadenceAnchor: some View {
-        Text("Come back in 30 days to see how your arc evolves.")
+        Text(L10n.string(.scanFirstArcCadence, defaultValue: "Come back in 30 days to see how your arc evolves."))
             .font(.system(size: 12, weight: .medium))
             .foregroundStyle(Color.unbound.textTertiary)
             .multilineTextAlignment(.center)
@@ -104,10 +104,10 @@ struct FirstScanArcCard: View {
 
     private var ctaBlock: some View {
         VStack(spacing: 12) {
-            UnboundButton(title: "BEGIN TRAINING", action: onPrimary)
+            UnboundButton(title: L10n.string(.scanFirstArcPrimaryCTA, defaultValue: "BEGIN TRAINING"), action: onPrimary)
                 .padding(.horizontal, 20)
             Button(action: onShare) {
-                Text("Share your start")
+                Text(L10n.string(.scanFirstArcShare, defaultValue: "Share your start"))
                     .font(.system(size: 13))
                     .foregroundStyle(Color.unbound.textTertiary)
                     .underline()

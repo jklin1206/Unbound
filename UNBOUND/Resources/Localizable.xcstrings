@@ -1,0 +1,1130 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "app.error.analysis.timeout.description" : {
+      "comment" : "Shown when scan processing takes too long.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Analysis is taking longer than expected. Please try again."
+          }
+        }
+      }
+    },
+    "app.error.analysis.timeout.recovery" : {
+      "comment" : "Recovery suggestion for an analysis timeout.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try again with better lighting and clearer photos."
+          }
+        }
+      }
+    },
+    "app.error.auth.notAuthenticated.description" : {
+      "comment" : "Shown when a signed-in user is required.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You need to sign in to continue."
+          }
+        }
+      }
+    },
+    "app.error.camera.accessDenied.description" : {
+      "comment" : "Shown when camera permission has not been granted.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Camera access is required for scan photos. Please enable it in Settings."
+          }
+        }
+      }
+    },
+    "app.error.camera.accessDenied.recovery" : {
+      "comment" : "Recovery suggestion for camera permission denial.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Settings > UNBOUND > Camera and enable access."
+          }
+        }
+      }
+    },
+    "app.error.generic.description" : {
+      "comment" : "Generic app error fallback.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Something went wrong. Please try again."
+          }
+        }
+      }
+    },
+    "app.error.generic.recovery" : {
+      "comment" : "Generic recovery suggestion.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "If the problem persists, contact support."
+          }
+        }
+      }
+    },
+    "app.error.network.noConnection.description" : {
+      "comment" : "Shown when the device is offline.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No internet connection. Please check your network and try again."
+          }
+        }
+      }
+    },
+    "app.error.network.noConnection.recovery" : {
+      "comment" : "Recovery suggestion when the device is offline.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connect to Wi-Fi or enable cellular data."
+          }
+        }
+      }
+    },
+    "app.error.subscription.noActiveEntitlement.description" : {
+      "comment" : "Shown when a subscription is required.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This feature requires an active subscription."
+          }
+        }
+      }
+    },
+    "app.name" : {
+      "comment" : "Product name.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "UNBOUND"
+          }
+        }
+      }
+    },
+    "cardio.type.bike.displayName" : {
+      "comment" : "Cardio activity type.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bike"
+          }
+        }
+      }
+    },
+    "cardio.type.elliptical.displayName" : {
+      "comment" : "Cardio activity type.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elliptical"
+          }
+        }
+      }
+    },
+    "cardio.type.row.displayName" : {
+      "comment" : "Cardio activity type.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Row"
+          }
+        }
+      }
+    },
+    "cardio.type.run.displayName" : {
+      "comment" : "Cardio activity type.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Run"
+          }
+        }
+      }
+    },
+    "cardio.type.stairs.displayName" : {
+      "comment" : "Cardio activity type.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stairs"
+          }
+        }
+      }
+    },
+    "cardio.type.swim.displayName" : {
+      "comment" : "Cardio activity type.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Swim"
+          }
+        }
+      }
+    },
+    "cardio.type.walk.displayName" : {
+      "comment" : "Cardio activity type.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Walk"
+          }
+        }
+      }
+    },
+    "notification.retention.rescan.body" : {
+      "comment" : "Body for the 30-day checkpoint local notification.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A month of reps. Lock in the proof."
+          }
+        }
+      }
+    },
+    "notification.retention.rescan.title" : {
+      "comment" : "Title for the 30-day checkpoint local notification.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "30-day check. Time for a checkpoint."
+          }
+        }
+      }
+    },
+    "notification.workout.afternoon.body" : {
+      "comment" : "Body for afternoon workout reminder notification.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afternoon window. Your protocol is waiting."
+          }
+        }
+      }
+    },
+    "notification.workout.afternoon.title" : {
+      "comment" : "Title for afternoon workout reminder notification.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afternoon grind."
+          }
+        }
+      }
+    },
+    "notification.workout.earlyMorning.body" : {
+      "comment" : "Body for early morning workout reminder notification.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gym is empty. Reps are yours."
+          }
+        }
+      }
+    },
+    "notification.workout.earlyMorning.title" : {
+      "comment" : "Title for early morning workout reminder notification.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Early birds get the reps."
+          }
+        }
+      }
+    },
+    "notification.workout.evening.body" : {
+      "comment" : "Body for evening workout reminder notification.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The day's almost done. Finish it right."
+          }
+        }
+      }
+    },
+    "notification.workout.evening.title" : {
+      "comment" : "Title for evening workout reminder notification.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Evening session. Don't skip."
+          }
+        }
+      }
+    },
+    "notification.workout.lateNight.body" : {
+      "comment" : "Body for late-night workout reminder notification.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Everyone else is asleep. You're building."
+          }
+        }
+      }
+    },
+    "notification.workout.lateNight.title" : {
+      "comment" : "Title for late-night workout reminder notification.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Late-night rep. Most people sleep."
+          }
+        }
+      }
+    },
+    "notification.workout.lunch.body" : {
+      "comment" : "Body for lunch workout reminder notification.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This is the one most people skip. You're not most people."
+          }
+        }
+      }
+    },
+    "notification.workout.lunch.title" : {
+      "comment" : "Title for lunch workout reminder notification.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Midday window is open."
+          }
+        }
+      }
+    },
+    "notification.workout.morning.body" : {
+      "comment" : "Body for morning workout reminder notification.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Set the tone before the day sets it for you."
+          }
+        }
+      }
+    },
+    "notification.workout.morning.title" : {
+      "comment" : "Title for morning workout reminder notification.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Morning session. Go."
+          }
+        }
+      }
+    },
+    "notification.workout.varies.body" : {
+      "comment" : "Body for workout reminder notification when time varies.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your session is on the schedule. Earn it."
+          }
+        }
+      }
+    },
+    "notification.workout.varies.title" : {
+      "comment" : "Title for workout reminder notification when time varies.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Time to train."
+          }
+        }
+      }
+    },
+    "subscription.locked.cta" : {
+      "comment" : "Primary button title on the hard-gated subscription screen.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Subscribe to continue"
+          }
+        }
+      }
+    },
+    "subscription.locked.devUnlock" : {
+      "comment" : "Debug-only button for simulator unlock.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DEV · Unlock simulator"
+          }
+        }
+      }
+    },
+    "subscription.locked.subtitle" : {
+      "comment" : "Subtitle on the hard-gated subscription screen.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your training, your crew, your build. Cancel anytime."
+          }
+        }
+      }
+    },
+    "subscription.locked.title" : {
+      "comment" : "Headline on the hard-gated subscription screen.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Subscribe to unlock UNBOUND"
+          }
+        }
+      }
+    },
+    "subscription.restore.failure" : {
+      "comment" : "Restore purchase failure message.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't restore. Try again."
+          }
+        }
+      }
+    },
+    "subscription.restore.idle" : {
+      "comment" : "Restore purchases button title.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restore purchases"
+          }
+        }
+      }
+    },
+    "subscription.restore.noActive" : {
+      "comment" : "Restore purchases result when no subscription is active.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No active subscription found."
+          }
+        }
+      }
+    },
+    "subscription.restore.restoring" : {
+      "comment" : "Restore purchases button title while work is in progress.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restoring..."
+          }
+        }
+      }
+    },
+    "subscription.restore.success" : {
+      "comment" : "Restore purchases success message.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restored. Loading UNBOUND..."
+          }
+        }
+      }
+    },
+    "subscription.package.pitch.quarterly.title" : { "comment" : "Title when quarterly package is available.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Start with the 3-month arc" } } } },
+    "subscription.package.pitch.default.title" : { "comment" : "Default subscription package picker title.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Choose your training arc" } } } },
+    "subscription.package.pitch.quarterly.body" : { "comment" : "Body when quarterly package is available.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Best value for your first block. Weekly is there if you want maximum flexibility." } } } },
+    "subscription.package.pitch.default.body" : { "comment" : "Default subscription package picker body.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Unlock training, progression, scans, squads, and recovery guidance." } } } },
+    "subscription.package.unavailable.title" : { "comment" : "Title shown when no subscription products are available.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Subscription unavailable" } } } },
+    "subscription.package.unavailable.body" : { "comment" : "Body shown when no subscription products are available.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Products are not configured for this build yet." } } } },
+    "subscription.package.openingCheckout" : { "comment" : "Purchase button title while checkout is opening.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Opening checkout..." } } } },
+    "subscription.package.start.quarterly" : { "comment" : "Purchase button title for quarterly package.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Start 3-month arc" } } } },
+    "subscription.package.start.weekly" : { "comment" : "Purchase button title for weekly package.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Start weekly access" } } } },
+    "subscription.package.start.annual" : { "comment" : "Purchase button title for annual package.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Start annual arc" } } } },
+    "subscription.package.start.monthly" : { "comment" : "Purchase button title for monthly package.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Start monthly arc" } } } },
+    "subscription.package.message.revenueCatEmpty" : { "comment" : "Message shown when RevenueCat returns no products.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "RevenueCat returned no available packages." } } } },
+    "subscription.package.message.loadFailed" : { "comment" : "Message shown when subscription products fail to load.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Couldn't load subscription options." } } } },
+    "subscription.package.message.purchaseNotCompleted" : { "comment" : "Message shown when purchase flow is dismissed or cancelled.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Purchase was not completed." } } } },
+    "subscription.package.message.purchaseFailed" : { "comment" : "Message shown when purchase fails.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Purchase failed. Please try again." } } } },
+    "subscription.package.plan.quarterly" : { "comment" : "Display name for quarterly subscription package.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "3 Month Plan" } } } },
+    "subscription.package.plan.weekly" : { "comment" : "Display name for weekly subscription package.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Weekly Plan" } } } },
+    "subscription.package.plan.annual" : { "comment" : "Display name for annual subscription package.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Annual Plan" } } } },
+    "subscription.package.plan.monthly" : { "comment" : "Display name for monthly subscription package.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Monthly Plan" } } } },
+    "subscription.package.plan.fallback" : { "comment" : "Fallback display name for subscription package.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "UNBOUND Pro" } } } },
+    "subscription.package.badge.quarterly" : { "comment" : "Badge for quarterly subscription package.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "BEST START" } } } },
+    "subscription.package.badge.weekly" : { "comment" : "Badge for weekly subscription package.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "FLEXIBLE" } } } },
+    "subscription.package.badge.annual" : { "comment" : "Badge for annual subscription package.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "LOWEST MONTHLY" } } } },
+    "subscription.package.price.perMonth" : { "comment" : "Short per-month price line. Placeholder is localized price string.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "%@/mo" } } } },
+    "subscription.package.detail.quarterlyBilling" : { "comment" : "Quarterly billing detail. Placeholder is localized monthly price.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "%@/mo billed every 3 months" } } } },
+    "subscription.package.detail.annualBilling" : { "comment" : "Annual billing detail. Placeholder is localized monthly price.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "%@/mo billed annually" } } } },
+    "subscription.package.detail.weeklyTrial" : { "comment" : "Weekly trial detail. Placeholder is trial badge text.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "%@ then weekly access" } } } },
+    "subscription.package.detail.monthlyTrial" : { "comment" : "Monthly trial detail. Placeholder is trial badge text.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "%@ then monthly access" } } } },
+    "subscription.package.detail.weeklyFlexible" : { "comment" : "Weekly subscription detail without trial.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Flexible weekly access" } } } },
+    "subscription.package.detail.monthlyFlexible" : { "comment" : "Monthly subscription detail without trial.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Flexible monthly access" } } } },
+    "subscription.package.detail.generic" : { "comment" : "Generic subscription detail fallback.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Subscription" } } } },
+    "subscription.package.trial.withDuration" : { "comment" : "Trial badge with duration. Placeholder is RevenueCat duration text.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "%@ TRIAL" } } } },
+    "subscription.package.trial" : { "comment" : "Trial badge without duration.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "TRIAL" } } } },
+    "paywall.unlock.title" : { "comment" : "Paywall title.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Unlock UNBOUND" } } } },
+    "paywall.unlock.subtitle" : { "comment" : "Paywall subtitle.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Your full training system, progress engine, and crew layer." } } } },
+    "paywall.feature.customProgram" : { "comment" : "Paywall feature bullet.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Custom training program" } } } },
+    "paywall.feature.nutritionRecovery" : { "comment" : "Paywall feature bullet.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Nutrition and recovery guidance" } } } },
+    "paywall.feature.progressScans" : { "comment" : "Paywall feature bullet.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Progress tracking and re-scans" } } } },
+    "paywall.feature.skillTree" : { "comment" : "Paywall feature bullet.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Skill tree progression" } } } },
+    "paywall.feature.squadsVowsUnlocks" : { "comment" : "Paywall feature bullet.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Squads, vows, and unlocks" } } } },
+    "paywall.cta.subscribeToUnlock" : { "comment" : "Paywall purchase button title.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Subscribe to unlock" } } } },
+    "legal.terms.short" : { "comment" : "Short terms link label.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Terms" } } } },
+    "legal.privacy.short" : { "comment" : "Short privacy link label.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Privacy" } } } },
+    "legal.termsOfService" : { "comment" : "Terms of Service link label.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Terms of Service" } } } },
+    "legal.privacyPolicy" : { "comment" : "Privacy Policy link label.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Privacy Policy" } } } },
+    "auth.signIn.subtitle" : { "comment" : "Subtitle on auth screen.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Sign in to back up your progress" } } } },
+    "auth.apple.signIn" : { "comment" : "Apple sign-in button title.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Sign in with Apple" } } } },
+    "auth.email.divider" : { "comment" : "Divider label above email auth.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "or continue with email" } } } },
+    "auth.legal.prefix" : { "comment" : "Auth legal agreement prefix.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "By continuing, you agree to our" } } } },
+    "auth.legal.and" : { "comment" : "Conjunction between terms and privacy links.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "and" } } } },
+    "auth.email.placeholder" : { "comment" : "Email field placeholder.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Email" } } } },
+    "auth.password.placeholder" : { "comment" : "Password field placeholder.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Password" } } } },
+    "auth.email.createAccount" : { "comment" : "Create account button title.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Create Account" } } } },
+    "auth.email.signIn" : { "comment" : "Sign-in button title.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Sign In" } } } },
+    "auth.email.toggle.signIn" : { "comment" : "Toggle from sign-up to sign-in.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Already have an account? Sign in" } } } },
+    "auth.email.toggle.createAccount" : { "comment" : "Toggle from sign-in to account creation.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Don't have an account? Create one" } } } },
+    "settings.title" : { "comment" : "Settings navigation title.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Settings" } } } },
+    "settings.section.account" : { "comment" : "Settings section header.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Account" } } } },
+    "settings.section.subscription" : { "comment" : "Settings section header.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Subscription" } } } },
+    "settings.section.privacy" : { "comment" : "Settings section header.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Privacy" } } } },
+    "settings.section.training" : { "comment" : "Settings section header.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Training" } } } },
+    "settings.section.appearance" : { "comment" : "Settings section header.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Appearance" } } } },
+    "settings.section.support" : { "comment" : "Settings section header.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Support" } } } },
+    "settings.section.legal" : { "comment" : "Settings section header.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Legal" } } } },
+    "settings.section.dangerZone" : { "comment" : "Settings section header.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Danger Zone" } } } },
+    "settings.account.email" : { "comment" : "Email row label in settings.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Email" } } } },
+    "settings.account.signOut" : { "comment" : "Sign out button label.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Sign Out" } } } },
+    "settings.subscription.plan" : { "comment" : "Subscription plan row label.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Plan" } } } },
+    "settings.subscription.plan.pro" : { "comment" : "Active subscription plan label.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Pro" } } } },
+    "settings.subscription.plan.free" : { "comment" : "Free subscription plan label.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Free" } } } },
+    "settings.subscription.manage" : { "comment" : "Manage subscription link label.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Manage Subscription" } } } },
+    "settings.privacy.shareUsageData" : { "comment" : "Analytics opt-in toggle label.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Share usage data" } } } },
+    "settings.privacy.notifications" : { "comment" : "Notifications settings row and title.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Notifications" } } } },
+    "settings.training.weightUnit" : { "comment" : "Training weight unit picker label.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Weight Unit" } } } },
+    "settings.training.microPlates" : { "comment" : "Micro plates toggle label.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Micro plates" } } } },
+    "settings.training.exerciseLibrary" : { "comment" : "Exercise library settings row.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Exercise Library" } } } },
+    "settings.training.equipment" : { "comment" : "Equipment settings row.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Equipment" } } } },
+    "settings.training.planChanges" : { "comment" : "Coach action history settings row.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Plan changes" } } } },
+    "settings.training.badges" : { "comment" : "Badges settings row.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Badges" } } } },
+    "settings.training.footer" : { "comment" : "Footer under training preferences.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Your exact logged weights are preserved. UNBOUND rounds suggestions and progression jumps to the selected plate system." } } } },
+    "settings.appearance.profileCosmetics" : { "comment" : "Profile cosmetics settings row.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Profile cosmetics" } } } },
+    "settings.appearance.skillTreeCosmetics" : { "comment" : "Skill tree cosmetics settings row.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Skill tree cosmetics" } } } },
+    "settings.appearance.footer" : { "comment" : "Footer under appearance settings.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Equip unlocked profile frames, backdrops, and skill-tree cosmetics." } } } },
+    "settings.support.contactUs" : { "comment" : "Contact support link label.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Contact Us" } } } },
+    "settings.support.faq" : { "comment" : "FAQ row label.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "FAQ" } } } },
+    "settings.support.faq.comingSoon" : { "comment" : "FAQ placeholder body.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "FAQ coming soon" } } } },
+    "settings.danger.deleteAccount" : { "comment" : "Delete account button label.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Delete Account" } } } },
+    "settings.alert.error" : { "comment" : "Generic settings alert title.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Error" } } } },
+    "settings.alert.ok" : { "comment" : "Generic alert confirmation button.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "OK" } } } },
+    "settings.notifications.authorization.checking" : { "comment" : "Notification permission status while loading.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Checking..." } } } },
+    "settings.notifications.permission" : { "comment" : "Notification permission row label.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Permission" } } } },
+    "settings.notifications.allow" : { "comment" : "Request notification permission button.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Allow Notifications" } } } },
+    "settings.notifications.section.system" : { "comment" : "Notification settings section header.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "System" } } } },
+    "settings.notifications.workoutReminders" : { "comment" : "Workout reminders toggle label.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Workout reminders" } } } },
+    "settings.notifications.time" : { "comment" : "Workout reminder time picker label.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Time" } } } },
+    "settings.notifications.rescanNudge" : { "comment" : "Checkpoint nudge toggle label.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Checkpoint nudge" } } } },
+    "settings.notifications.daysAfterScan" : { "comment" : "Checkpoint nudge day count label.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Days after checkpoint" } } } },
+    "settings.notifications.section.progress" : { "comment" : "Notification settings progress section header.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Progress" } } } },
+    "settings.notifications.milestones" : { "comment" : "Milestone notifications toggle label.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Milestones" } } } },
+    "settings.notifications.authorization.allowed" : { "comment" : "Notification permission status label.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Allowed" } } } },
+    "settings.notifications.authorization.provisional" : { "comment" : "Notification permission status label.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Provisional" } } } },
+    "settings.notifications.authorization.temporary" : { "comment" : "Notification permission status label.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Temporary" } } } },
+    "settings.notifications.authorization.denied" : { "comment" : "Notification permission status label.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Denied" } } } },
+    "settings.notifications.authorization.notAsked" : { "comment" : "Notification permission status label.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Not asked" } } } },
+    "settings.notifications.authorization.unknown" : { "comment" : "Notification permission status label.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Unknown" } } } },
+    "weekday.monday.short" : { "comment" : "Short weekday label.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Mon" } } } },
+    "weekday.tuesday.short" : { "comment" : "Short weekday label.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Tue" } } } },
+    "weekday.wednesday.short" : { "comment" : "Short weekday label.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Wed" } } } },
+    "weekday.thursday.short" : { "comment" : "Short weekday label.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Thu" } } } },
+    "weekday.friday.short" : { "comment" : "Short weekday label.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Fri" } } } },
+    "weekday.saturday.short" : { "comment" : "Short weekday label.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Sat" } } } },
+    "weekday.sunday.short" : { "comment" : "Short weekday label.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Sun" } } } },
+    "workoutTime.earlyMorning.displayName" : { "comment" : "Workout time option label.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Early morning" } } } },
+    "workoutTime.morning.displayName" : { "comment" : "Workout time option label.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Morning" } } } },
+    "workoutTime.lunch.displayName" : { "comment" : "Workout time option label.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Lunchtime" } } } },
+    "workoutTime.afternoon.displayName" : { "comment" : "Workout time option label.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Afternoon" } } } },
+    "workoutTime.evening.displayName" : { "comment" : "Workout time option label.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Evening" } } } },
+    "workoutTime.lateNight.displayName" : { "comment" : "Workout time option label.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Late night" } } } },
+    "workoutTime.varies.displayName" : { "comment" : "Workout time option label.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Different each day" } } } },
+    "workoutTime.earlyMorning.subtitle" : { "comment" : "Workout time option subtitle.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "5–7 am" } } } },
+    "workoutTime.morning.subtitle" : { "comment" : "Workout time option subtitle.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "7–10 am" } } } },
+    "workoutTime.lunch.subtitle" : { "comment" : "Workout time option subtitle.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "11 am – 2 pm" } } } },
+    "workoutTime.afternoon.subtitle" : { "comment" : "Workout time option subtitle.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "2–5 pm" } } } },
+    "workoutTime.evening.subtitle" : { "comment" : "Workout time option subtitle.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "5–9 pm" } } } },
+    "workoutTime.lateNight.subtitle" : { "comment" : "Workout time option subtitle.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "9 pm – midnight" } } } },
+    "workoutTime.varies.subtitle" : { "comment" : "Workout time option subtitle.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "We'll stay flexible" } } } },
+    "trainingWeightUnit.kilograms.displayName" : { "comment" : "Training weight unit option label.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Kilograms" } } } },
+    "trainingWeightUnit.pounds.displayName" : { "comment" : "Training weight unit option label.", "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Pounds" } } } },
+    "scan.cadence.nextCheckpointIn" : {"comment":"User-facing scan flow copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"NEXT CHECKPOINT IN"}}}},
+    "scan.cadence.daysRemaining" : {"comment":"User-facing scan flow copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"%d DAYS"}}}},
+    "scan.cadence.body" : {"comment":"User-facing scan flow copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Monthly cadence keeps the change visible."}}}},
+    "scan.cadence.override" : {"comment":"User-facing scan flow copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Scan anyway"}}}},
+    "scan.consent.eyebrow" : {"comment":"User-facing scan flow copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"PROGRESS PHOTO · HOW IT WORKS"}}}},
+    "scan.consent.title" : {"comment":"User-facing scan flow copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Your scan photo is saved as progress proof. AI never grades your body."}}}},
+    "scan.consent.bullet.qualitative.title" : {"comment":"User-facing scan flow copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"QUALITATIVE ONLY"}}}},
+    "scan.consent.bullet.qualitative.body" : {"comment":"User-facing scan flow copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"No body-fat %, no measurements, no medical claims."}}}},
+    "scan.consent.bullet.delete.title" : {"comment":"User-facing scan flow copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"DELETE ANYTIME"}}}},
+    "scan.consent.bullet.delete.body" : {"comment":"User-facing scan flow copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Clear checkpoint photos and recaps from Settings → Privacy."}}}},
+    "scan.consent.bullet.choice.title" : {"comment":"User-facing scan flow copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"YOUR CHOICE"}}}},
+    "scan.consent.bullet.choice.body" : {"comment":"User-facing scan flow copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Skip this and use plain daily photos instead."}}}},
+    "scan.consent.accept" : {"comment":"User-facing scan flow copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"ACCEPT & CONTINUE"}}}},
+    "scan.consent.decline" : {"comment":"User-facing scan flow copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"NOT NOW"}}}},
+    "scan.capture.intro.scan.label" : {"comment":"User-facing scan flow copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"MONTHLY CHECKPOINT · +25 LVL XP"}}}},
+    "scan.capture.intro.photo.label" : {"comment":"User-facing scan flow copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"DAILY PHOTO · +5 LVL XP"}}}},
+    "scan.capture.intro.scan.title" : {"comment":"User-facing scan flow copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Lock in your progress proof."}}}},
+    "scan.capture.intro.photo.title" : {"comment":"User-facing scan flow copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Lock in today's photo."}}}},
+    "scan.capture.intro.scan.body" : {"comment":"User-facing scan flow copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"One photo to mark this month. No body grading; program changes still come from workouts and check-ins."}}}},
+    "scan.capture.intro.photo.body" : {"comment":"User-facing scan flow copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"One photo. Keeps the arc honest. Come back in a month and see the change."}}}},
+    "scan.capture.cta.openCamera" : {"comment":"User-facing scan flow copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"OPEN CAMERA"}}}},
+    "scan.capture.camera.mode.scan" : {"comment":"User-facing scan flow copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"SCAN"}}}},
+    "scan.capture.camera.mode.photo" : {"comment":"User-facing scan flow copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"PHOTO"}}}},
+    "scan.capture.review.retake" : {"comment":"User-facing scan flow copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"RETAKE"}}}},
+    "scan.capture.review.analyze" : {"comment":"User-facing scan flow copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"SAVE CHECKPOINT"}}}},
+    "scan.capture.review.lockItIn" : {"comment":"User-facing scan flow copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"LOCK IT IN"}}}},
+    "scan.capture.analyzing.title" : {"comment":"User-facing scan flow copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"SAVING CHECKPOINT"}}}},
+    "scan.capture.analyzing.body" : {"comment":"User-facing scan flow copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Saving the proof and preparing your monthly recap. No body scoring."}}}},
+    "scan.firstArc.title" : {"comment":"User-facing scan flow copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"YOUR ARC BEGINS"}}}},
+    "scan.firstArc.cadence" : {"comment":"User-facing scan flow copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Come back in 30 days to see how your arc evolves."}}}},
+    "scan.firstArc.cta.primary" : {"comment":"User-facing scan flow copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"BEGIN TRAINING"}}}},
+    "scan.firstArc.cta.share" : {"comment":"User-facing scan flow copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Share your start"}}}},
+    "scan.evolution.photo.priorLabel" : {"comment":"User-facing scan flow copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"30 DAYS AGO"}}}},
+    "scan.evolution.photo.currentLabel" : {"comment":"User-facing scan flow copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"TODAY"}}}},
+    "scan.evolution.title" : {"comment":"User-facing scan flow copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"YOUR ARC EVOLVED"}}}},
+    "scan.evolution.focusArea" : {"comment":"User-facing scan flow copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Watch signal · %@"}}}},
+    "scan.evolution.cadence" : {"comment":"User-facing scan flow copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Next checkpoint in 30 days."}}}},
+    "scan.evolution.cta.primary" : {"comment":"User-facing scan flow copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"BACK TO TRAINING"}}}},
+    "scan.evolution.cta.share" : {"comment":"User-facing scan flow copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Share evolution"}}}},
+    "scan.buildDelta.title" : {"comment":"User-facing scan flow copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"BUILD · ARC EVOLUTION"}}}},
+    "scan.buildDelta.firstScan" : {"comment":"User-facing scan flow copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"SCAN 1"}}}},
+    "scan.buildDelta.latest" : {"comment":"User-facing scan flow copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"LATEST"}}}},
+    "onboarding.answer.gender.male.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Male"}}}},
+    "onboarding.answer.gender.female.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Female"}}}},
+    "onboarding.answer.gender.unspecified.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Prefer not to say"}}}},
+    "onboarding.answer.bodyType.skinny.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Skinny"}}}},
+    "onboarding.answer.bodyType.skinnyFat.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Skinny-fat"}}}},
+    "onboarding.answer.bodyType.alreadyLifting.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Already lifting"}}}},
+    "onboarding.answer.bodyType.skinny.subtitle" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Lean frame, low muscle"}}}},
+    "onboarding.answer.bodyType.skinnyFat.subtitle" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Soft look without density"}}}},
+    "onboarding.answer.bodyType.alreadyLifting.subtitle" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Training experience present"}}}},
+    "onboarding.answer.experience.never.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Never trained"}}}},
+    "onboarding.answer.experience.tried.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Tried once"}}}},
+    "onboarding.answer.experience.used.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Used to train"}}}},
+    "onboarding.answer.experience.current.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Currently training"}}}},
+    "onboarding.answer.frequency.zero.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"0 days"}}}},
+    "onboarding.answer.frequency.oneToTwo.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"1–2 days"}}}},
+    "onboarding.answer.frequency.threeToFour.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"3–4 days"}}}},
+    "onboarding.answer.frequency.fivePlus.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"5+ days"}}}},
+    "onboarding.answer.frequency.zero.subtitle" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Starting fresh"}}}},
+    "onboarding.answer.frequency.oneToTwo.subtitle" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Occasional"}}}},
+    "onboarding.answer.frequency.threeToFour.subtitle" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Consistent"}}}},
+    "onboarding.answer.frequency.fivePlus.subtitle" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Heavy volume"}}}},
+    "onboarding.answer.targetFrequency.three.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"3 days / week"}}}},
+    "onboarding.answer.targetFrequency.four.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"4 days / week"}}}},
+    "onboarding.answer.targetFrequency.five.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"5 days / week"}}}},
+    "onboarding.answer.targetFrequency.six.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"6 days / week"}}}},
+    "onboarding.answer.targetFrequency.three.subtitle" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Balanced baseline"}}}},
+    "onboarding.answer.targetFrequency.four.subtitle" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Recommended"}}}},
+    "onboarding.answer.targetFrequency.five.subtitle" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Aggressive"}}}},
+    "onboarding.answer.targetFrequency.six.subtitle" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Elite volume"}}}},
+    "onboarding.answer.equipment.fullGym.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Full gym"}}}},
+    "onboarding.answer.equipment.machines.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Cables / machines"}}}},
+    "onboarding.answer.equipment.barbell.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Barbell + rack"}}}},
+    "onboarding.answer.equipment.dumbbells.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Dumbbells"}}}},
+    "onboarding.answer.equipment.bench.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Bench"}}}},
+    "onboarding.answer.equipment.pullupBar.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Pull-up bar"}}}},
+    "onboarding.answer.equipment.bodyweight.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Bodyweight only"}}}},
+    "onboarding.answer.equipment.bands.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Resistance bands"}}}},
+    "onboarding.answer.equipment.homeWeights.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Home weights"}}}},
+    "onboarding.answer.exerciseStyle.compoundLifts.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Compound lifts"}}}},
+    "onboarding.answer.exerciseStyle.isolation.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Isolation work"}}}},
+    "onboarding.answer.exerciseStyle.calisthenics.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Calisthenics"}}}},
+    "onboarding.answer.exerciseStyle.olympicLifts.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Olympic lifts"}}}},
+    "onboarding.answer.exerciseStyle.cardioIntervals.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Cardio intervals"}}}},
+    "onboarding.answer.exerciseStyle.steadyCardio.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Steady-state cardio"}}}},
+    "onboarding.answer.exerciseStyle.mobility.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Mobility & stretching"}}}},
+    "onboarding.answer.exerciseStyle.sports.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Sports & drills"}}}},
+    "onboarding.answer.exerciseStyle.plyometrics.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Plyometrics"}}}},
+    "onboarding.answer.exerciseStyle.machines.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Machine work"}}}},
+    "onboarding.answer.exerciseStyle.compoundLifts.subtitle" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Bench, squat, deadlift, row"}}}},
+    "onboarding.answer.exerciseStyle.isolation.subtitle" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Curls, flies, raises, extensions"}}}},
+    "onboarding.answer.exerciseStyle.calisthenics.subtitle" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Pullups, pushups, dips, L-sits"}}}},
+    "onboarding.answer.exerciseStyle.olympicLifts.subtitle" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Cleans, snatches, jerks"}}}},
+    "onboarding.answer.exerciseStyle.cardioIntervals.subtitle" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"HIIT, sprints, rounds"}}}},
+    "onboarding.answer.exerciseStyle.steadyCardio.subtitle" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Running, cycling, swimming"}}}},
+    "onboarding.answer.exerciseStyle.mobility.subtitle" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Yoga, stretching, recovery"}}}},
+    "onboarding.answer.exerciseStyle.sports.subtitle" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Basketball, soccer, climbing"}}}},
+    "onboarding.answer.exerciseStyle.plyometrics.subtitle" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Jumps, explosive movement"}}}},
+    "onboarding.answer.exerciseStyle.machines.subtitle" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Cable machines, hammer strength"}}}},
+    "onboarding.answer.obstacle.unsure.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Don't know what to do"}}}},
+    "onboarding.answer.obstacle.consistency.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Can't stay consistent"}}}},
+    "onboarding.answer.obstacle.plateau.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Hit a plateau"}}}},
+    "onboarding.answer.obstacle.time.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Time"}}}},
+    "onboarding.answer.obstacle.motivation.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Motivation"}}}},
+    "onboarding.answer.sessionLength.thirty.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"30 minutes"}}}},
+    "onboarding.answer.sessionLength.fortyFive.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"45 minutes"}}}},
+    "onboarding.answer.sessionLength.sixty.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"60 minutes"}}}},
+    "onboarding.answer.sessionLength.ninetyPlus.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"90+ minutes"}}}},
+    "onboarding.answer.priorAttempt.otherApps.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Other fitness apps"}}}},
+    "onboarding.answer.priorAttempt.trainer.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Personal trainer"}}}},
+    "onboarding.answer.priorAttempt.youtube.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"YouTube workouts"}}}},
+    "onboarding.answer.priorAttempt.onlinePrograms.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Online programs"}}}},
+    "onboarding.answer.priorAttempt.nothing.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"This is my first try"}}}},
+    "onboarding.answer.goal.buildMuscle.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Build muscle"}}}},
+    "onboarding.answer.goal.loseFat.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Lose fat"}}}},
+    "onboarding.answer.goal.getDefined.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Get defined"}}}},
+    "onboarding.answer.goal.getStronger.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Get stronger"}}}},
+    "onboarding.answer.goal.athletic.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Become athletic"}}}},
+    "onboarding.answer.goal.feelBetter.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Feel better in my body"}}}},
+    "onboarding.answer.goal.buildMuscle.subtitle" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Gain size. Fill out your frame."}}}},
+    "onboarding.answer.goal.loseFat.subtitle" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Cut the layer. See your shape."}}}},
+    "onboarding.answer.goal.getDefined.subtitle" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Carve detail and hardness."}}}},
+    "onboarding.answer.goal.getStronger.subtitle" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Lift more. Move more weight."}}}},
+    "onboarding.answer.goal.athletic.subtitle" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Speed, explosiveness, conditioning."}}}},
+    "onboarding.answer.goal.feelBetter.subtitle" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Confidence, energy, presence."}}}},
+    "onboarding.answer.targetArea.chest.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Chest"}}}},
+    "onboarding.answer.targetArea.back.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Back"}}}},
+    "onboarding.answer.targetArea.shoulders.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Shoulders"}}}},
+    "onboarding.answer.targetArea.arms.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Arms"}}}},
+    "onboarding.answer.targetArea.core.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Core"}}}},
+    "onboarding.answer.targetArea.legs.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Legs"}}}},
+    "onboarding.answer.targetArea.glutes.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Glutes"}}}},
+    "onboarding.answer.targetArea.fullBody.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Full body"}}}},
+    "onboarding.answer.motivation.discipline.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Discipline"}}}},
+    "onboarding.answer.motivation.aesthetic.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Aesthetic"}}}},
+    "onboarding.answer.motivation.strength.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Strength"}}}},
+    "onboarding.answer.motivation.confidence.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Confidence"}}}},
+    "onboarding.answer.motivation.recognition.displayName" : {"comment":"Onboarding answer option copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Recognition"}}}},
+    "attribute.power.displayName" : {"comment":"Shared build attribute vocabulary.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Power"}}}},
+    "attribute.power.shortCode" : {"comment":"Shared build attribute vocabulary.","localizations":{"en":{"stringUnit":{"state":"translated","value":"POW"}}}},
+    "attribute.power.trainsCopy" : {"comment":"Shared build attribute vocabulary.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Heavy compounds, sub-6 reps"}}}},
+    "attribute.power.buildVocab" : {"comment":"Shared build attribute vocabulary.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Power"}}}},
+    "attribute.power.leanSuffix" : {"comment":"Shared build attribute vocabulary.","localizations":{"en":{"stringUnit":{"state":"translated","value":"-Oriented"}}}},
+    "attribute.power.taglinePhrase" : {"comment":"Shared build attribute vocabulary.","localizations":{"en":{"stringUnit":{"state":"translated","value":"heavy output"}}}},
+    "attribute.vitality.displayName" : {"comment":"Shared build attribute vocabulary.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Vitality"}}}},
+    "attribute.vitality.shortCode" : {"comment":"Shared build attribute vocabulary.","localizations":{"en":{"stringUnit":{"state":"translated","value":"VIT"}}}},
+    "attribute.vitality.trainsCopy" : {"comment":"Shared build attribute vocabulary.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Easy walks, deloads, recovery"}}}},
+    "attribute.vitality.buildVocab" : {"comment":"Shared build attribute vocabulary.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Vitality"}}}},
+    "attribute.vitality.leanSuffix" : {"comment":"Shared build attribute vocabulary.","localizations":{"en":{"stringUnit":{"state":"translated","value":"-Focused"}}}},
+    "attribute.vitality.taglinePhrase" : {"comment":"Shared build attribute vocabulary.","localizations":{"en":{"stringUnit":{"state":"translated","value":"recovery consistency"}}}},
+    "attribute.control.displayName" : {"comment":"Shared build attribute vocabulary.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Control"}}}},
+    "attribute.control.shortCode" : {"comment":"Shared build attribute vocabulary.","localizations":{"en":{"stringUnit":{"state":"translated","value":"CTL"}}}},
+    "attribute.control.trainsCopy" : {"comment":"Shared build attribute vocabulary.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Skill nodes, tempo, isometrics"}}}},
+    "attribute.control.buildVocab" : {"comment":"Shared build attribute vocabulary.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Control"}}}},
+    "attribute.control.leanSuffix" : {"comment":"Shared build attribute vocabulary.","localizations":{"en":{"stringUnit":{"state":"translated","value":"-Focused"}}}},
+    "attribute.control.taglinePhrase" : {"comment":"Shared build attribute vocabulary.","localizations":{"en":{"stringUnit":{"state":"translated","value":"deliberate, controlled work"}}}},
+    "attribute.endurance.displayName" : {"comment":"Shared build attribute vocabulary.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Endurance"}}}},
+    "attribute.endurance.shortCode" : {"comment":"Shared build attribute vocabulary.","localizations":{"en":{"stringUnit":{"state":"translated","value":"END"}}}},
+    "attribute.endurance.trainsCopy" : {"comment":"Shared build attribute vocabulary.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Z2 runs, density, long efforts"}}}},
+    "attribute.endurance.buildVocab" : {"comment":"Shared build attribute vocabulary.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Endurance"}}}},
+    "attribute.endurance.leanSuffix" : {"comment":"Shared build attribute vocabulary.","localizations":{"en":{"stringUnit":{"state":"translated","value":"-Dominant"}}}},
+    "attribute.endurance.taglinePhrase" : {"comment":"Shared build attribute vocabulary.","localizations":{"en":{"stringUnit":{"state":"translated","value":"long, sustained effort"}}}},
+    "attribute.mobility.displayName" : {"comment":"Shared build attribute vocabulary.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Mobility"}}}},
+    "attribute.mobility.shortCode" : {"comment":"Shared build attribute vocabulary.","localizations":{"en":{"stringUnit":{"state":"translated","value":"MOB"}}}},
+    "attribute.mobility.trainsCopy" : {"comment":"Shared build attribute vocabulary.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Range of motion, flexibility"}}}},
+    "attribute.mobility.buildVocab" : {"comment":"Shared build attribute vocabulary.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Mobility"}}}},
+    "attribute.mobility.leanSuffix" : {"comment":"Shared build attribute vocabulary.","localizations":{"en":{"stringUnit":{"state":"translated","value":"-Focused"}}}},
+    "attribute.mobility.taglinePhrase" : {"comment":"Shared build attribute vocabulary.","localizations":{"en":{"stringUnit":{"state":"translated","value":"range-of-motion work"}}}},
+    "attribute.explosiveness.displayName" : {"comment":"Shared build attribute vocabulary.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Explosiveness"}}}},
+    "attribute.explosiveness.shortCode" : {"comment":"Shared build attribute vocabulary.","localizations":{"en":{"stringUnit":{"state":"translated","value":"EXP"}}}},
+    "attribute.explosiveness.trainsCopy" : {"comment":"Shared build attribute vocabulary.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Jumps, plyos, dynamic effort"}}}},
+    "attribute.explosiveness.buildVocab" : {"comment":"Shared build attribute vocabulary.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Explosive"}}}},
+    "attribute.explosiveness.leanSuffix" : {"comment":"Shared build attribute vocabulary.","localizations":{"en":{"stringUnit":{"state":"translated","value":" Athlete"}}}},
+    "attribute.explosiveness.taglinePhrase" : {"comment":"Shared build attribute vocabulary.","localizations":{"en":{"stringUnit":{"state":"translated","value":"explosive, dynamic effort"}}}},
+    "buildIdentity.displayName.balancedAthlete" : {"comment":"Build identity display copy and templates.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Balanced Athlete"}}}},
+    "buildIdentity.displayName.hybridAthlete" : {"comment":"Build identity display copy and templates.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Hybrid Athlete"}}}},
+    "buildIdentity.displayName.specialist" : {"comment":"Build identity display copy and templates.","localizations":{"en":{"stringUnit":{"state":"translated","value":"%@ Specialist"}}}},
+    "buildIdentity.displayName.hybrid" : {"comment":"Build identity display copy and templates.","localizations":{"en":{"stringUnit":{"state":"translated","value":"%@ Hybrid"}}}},
+    "buildIdentity.displayName.lean" : {"comment":"Build identity display copy and templates.","localizations":{"en":{"stringUnit":{"state":"translated","value":"%@%@"}}}},
+    "buildIdentity.axis.balanced" : {"comment":"Build identity display copy and templates.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Balanced"}}}},
+    "buildIdentity.tagline.even" : {"comment":"Build identity display copy and templates.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Even across every axis."}}}},
+    "buildIdentity.tagline.hybridAthlete" : {"comment":"Build identity display copy and templates.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Multi-axis athlete — no single specialty."}}}},
+    "buildIdentity.tagline.specialist" : {"comment":"Build identity display copy and templates.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Built around %@ — sharply focused."}}}},
+    "buildIdentity.tagline.hybrid" : {"comment":"Build identity display copy and templates.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Built around %@ with strong %@."}}}},
+    "buildIdentity.tagline.lean" : {"comment":"Build identity display copy and templates.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Trending toward %@."}}}},
+    "scan.narrative.first.balanced" : {"comment":"Deterministic scan narrative fallback text.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Your arc begins balanced across every axis. No single specialty yet — that's a starting line, not a verdict. Come back in 30 days and we'll see where you've tilted."}}}},
+    "scan.narrative.first.hybridAthlete" : {"comment":"Deterministic scan narrative fallback text.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Your arc begins as a hybrid athlete — multiple strengths, no single specialty. The next 30 days of training will start sharpening the lines."}}}},
+    "scan.narrative.first.specialist" : {"comment":"Deterministic scan narrative fallback text.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Your arc begins tilted toward %@. That's where you walked in — now we'll see how it compounds with training. Come back in 30 days."}}}},
+    "scan.narrative.first.hybrid.withSecondary" : {"comment":"Deterministic scan narrative fallback text.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Your arc begins as a %@ hybrid with strong %@. Two strengths to lean into, room everywhere else. The next checkpoint shows what 30 days does."}}}},
+    "scan.narrative.first.hybrid.withoutSecondary" : {"comment":"Deterministic scan narrative fallback text.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Your arc begins as a %@ hybrid. Two strengths to lean into, room everywhere else. The next checkpoint shows what 30 days does."}}}},
+    "scan.narrative.first.lean" : {"comment":"Deterministic scan narrative fallback text.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Your arc begins trending %@. A clear direction, but plenty of room to grow elsewhere. Come back in 30 days."}}}},
+    "scan.narrative.evolution.steady" : {"comment":"Deterministic scan narrative fallback text.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Your build held steady this month. Consistency is its own kind of win — keep the work going and the next checkpoint will show more."}}}},
+    "scan.narrative.evolution.primaryWithSecondary" : {"comment":"Deterministic scan narrative fallback text.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Your %@ grew +%d over the last month. %@ climbed +%d alongside it. The arc is compounding — keep training and the next checkpoint will keep moving."}}}},
+    "scan.narrative.evolution.primaryOnly" : {"comment":"Deterministic scan narrative fallback text.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Your %@ grew +%d over the last month. The arc is compounding — keep training and the next checkpoint will keep moving."}}}},
+    "scan.narrative.evolution.moved" : {"comment":"Deterministic scan narrative fallback text.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Your build moved this month. Keep training — the next checkpoint will show more."}}}},
+    "scan.payoffFlavor.fallback" : {"comment":"Deterministic scan narrative fallback text.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Your work is showing."}}}},
+    "onboarding.welcome.title" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Your anime physique starts here."}}}},
+    "onboarding.welcome.subtitle" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Deterministic training, monthly recaps, and real progression."}}}},
+    "onboarding.welcome.cta" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Get Started"}}}},
+    "onboarding.howItWorks.step.photos.title" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Take 3 Photos"}}}},
+    "onboarding.howItWorks.step.photos.description" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Front, side, and back — we'll guide you"}}}},
+    "onboarding.howItWorks.step.report.title" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Get Your Monthly Recap"}}}},
+    "onboarding.howItWorks.step.report.description" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Monthly recaps summarize validated progress signals"}}}},
+    "onboarding.howItWorks.step.program.title" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Follow Your Program"}}}},
+    "onboarding.howItWorks.step.program.description" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Custom training, nutrition, and recovery plan"}}}},
+    "onboarding.howItWorks.title" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"How It Works"}}}},
+    "onboarding.common.continue" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Continue"}}}},
+    "onboarding.rpeLoop.demoWorkoutName" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Try it"}}}},
+    "onboarding.rpeLoop.eyebrow" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"TRY THE LOOP"}}}},
+    "onboarding.rpeLoop.body.logged" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Progress moved. In the full protocol, every logged set feeds your rank, stats, next unlock, and next session."}}}},
+    "onboarding.rpeLoop.body.initial" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Tap the checkmark to log a set. Then tap RPE and rate how hard it felt. This is how UNBOUND adapts without making you guess."}}}},
+    "onboarding.rpeLoop.cta" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"GOT IT"}}}},
+    "onboarding.rpeLoop.reward.title" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"+12 XP · POWER +1"}}}},
+    "onboarding.rpeLoop.reward.subtitle" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"First unlock progress: 8%"}}}},
+    "onboarding.rpeLoop.editor.weight" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Weight"}}}},
+    "onboarding.rpeLoop.editor.reps" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Reps"}}}},
+    "onboarding.rpeLoop.editor.done" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"DONE"}}}},
+    "onboarding.chapter.tapToContinue" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"TAP TO CONTINUE"}}}},
+    "onboarding.name.title" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"What should we call you?"}}}},
+    "onboarding.name.subtitle" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Shown on your profile and scan cards."}}}},
+    "onboarding.name.placeholder" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Your handle"}}}},
+    "onboarding.name.eyebrow" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"HANDLE"}}}},
+    "onboarding.name.footer" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"You can change this later in settings."}}}},
+    "onboarding.notifications.title" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Stay on track."}}}},
+    "onboarding.notifications.subtitle" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"A small nudge when it's time to keep the streak alive."}}}},
+    "onboarding.notifications.enable" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Enable notifications"}}}},
+    "onboarding.notifications.benefit.streak" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Never break a streak"}}}},
+    "onboarding.notifications.benefit.schedule" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Session reminders that work with your schedule"}}}},
+    "onboarding.notifications.benefit.monthly" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Monthly moments to see what changed"}}}},
+    "onboarding.notifications.skip" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"SKIP FOR NOW"}}}},
+    "onboarding.trainingDays.title" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Which days will you train?"}}}},
+    "onboarding.trainingDays.subtitle" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Pick %d days that work for you."}}}},
+    "onboarding.trainingDays.selectedCount" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Selected %d of %d"}}}},
+    "onboarding.paywall.title" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Become the version that keeps showing up."}}}},
+    "onboarding.paywall.subtitle" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Unlock your first block, recovery targets, progress profile, and the feedback loop that makes training feel worth coming back to."}}}},
+    "onboarding.paywall.benefit.arcs" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Three arcs built around where you start"}}}},
+    "onboarding.paywall.benefit.skillTree" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Full skill tree: muscle-up, front lever, the whole ladder"}}}},
+    "onboarding.paywall.benefit.milestones" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Monthly milestones that show how far you've climbed"}}}},
+    "onboarding.paywall.benefit.sessions" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Daily sessions, streaks, and gains you keep"}}}},
+    "onboarding.paywall.subscribeCTA" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Start my first arc"}}}},
+    "onboarding.paywall.disclaimer" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Start today. Cancel anytime. Checkout is handled securely by Apple."}}}},
+    "onboarding.paywall.devUnlock" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"DEV · Unlock simulator"}}}},
+    "onboarding.paywall.preview.week" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"WEEK %d"}}}},
+    "onboarding.paywall.preview.workout" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Upper body · %d min"}}}},
+    "onboarding.paywall.preview.exercises" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Bench · Row · Press · Curl · Core"}}}},
+    "onboarding.arcOpening.cta" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"BEGIN YOUR ARC"}}}},
+    "onboarding.arcOpening.tagline" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"BREAK THE RESTRICTION"}}}},
+    "onboarding.arcProblem.eyebrow" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"DORMANT PROFILE"}}}},
+    "onboarding.arcProblem.stat.strength" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"STRENGTH"}}}},
+    "onboarding.arcProblem.stat.stamina" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"STAMINA"}}}},
+    "onboarding.arcProblem.stat.technique" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"TECHNIQUE"}}}},
+    "onboarding.arcProblem.stat.vitality" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"VITALITY"}}}},
+    "onboarding.arcProblem.title" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Your stats aren't where you want them"}}}},
+    "onboarding.arcProblem.subtitle" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Everyone starts here. The ones who stay? They level up."}}}},
+    "onboarding.arcProblem.tag.lowPower" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"LOW POWER"}}}},
+    "onboarding.arcProblem.tag.noSystem" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"NO SYSTEM"}}}},
+    "onboarding.arcProblem.tag.noMap" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"NO MAP"}}}},
+    "onboarding.arcPath.title" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Climb the ranks"}}}},
+    "onboarding.arcPath.subtitle" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Every rep moves the ladder."}}}},
+    "onboarding.arcPath.cta" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Begin"}}}},
+    "onboarding.scanLive.entry.eyebrow" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"DAY ZERO ENTRY"}}}},
+    "onboarding.scanLive.entry.title" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Step into Day Zero"}}}},
+    "onboarding.scanLive.entry.subtitle" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"One frame now. Proof in 30 days."}}}},
+    "onboarding.scanLive.instruction.eyebrow" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"MONTH ONE STARTS HERE"}}}},
+    "onboarding.scanLive.instruction.title" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Set the before."}}}},
+    "onboarding.scanLive.instruction.subtitle" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"This is the first page of the climb."}}}},
+    "onboarding.scanLive.capture" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"BEGIN"}}}},
+    "onboarding.scanLive.retryCamera" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Retry camera"}}}},
+    "onboarding.scanLive.skipSimulator" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Skip (dev · simulator)"}}}},
+    "onboarding.scanLive.fallback.starting.title" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Starting camera…"}}}},
+    "onboarding.scanLive.fallback.denied.title" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Camera access blocked"}}}},
+    "onboarding.scanLive.fallback.unavailable.title" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Camera unavailable"}}}},
+    "onboarding.scanLive.fallback.starting.body" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"One sec — bringing up the front camera."}}}},
+    "onboarding.scanLive.fallback.denied.body" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Open Settings → UNBOUND → Camera and turn it on. Then come back and retry."}}}},
+    "onboarding.scanLive.fallback.unavailable.simulatorBody" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Camera isn't available in the simulator. Build to a device to run the live scan."}}}},
+    "onboarding.scanLive.fallback.unavailable.body" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"We couldn't reach your camera. Try again in a moment."}}}},
+    "onboarding.scanReview.title" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Day Zero locked?"}}}},
+    "onboarding.scanReview.subtitle" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"This is the before. In 30 days, you get the first real proof of the climb."}}}},
+    "onboarding.scanReview.primary" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Enter the arc"}}}},
+    "onboarding.scanReview.retake" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Retake Day Zero"}}}},
+    "onboarding.scanReview.privacy.title" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Private by default"}}}},
+    "onboarding.scanReview.privacy.body" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Your photo stays on your device. Never uploaded."}}}},
+    "onboarding.scanAnalyzing.status.saving" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"SAVING DAY ZERO"}}}},
+    "onboarding.scanAnalyzing.status.startingLine" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"SETTING THE STARTING LINE"}}}},
+    "onboarding.scanAnalyzing.status.compiling" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"COMPILING YOUR ARC"}}}},
+    "onboarding.scanAnalyzing.status.arming" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"ARMING MONTH ONE"}}}},
+    "onboarding.scanAnalyzing.status.building" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"BUILDING YOUR PROTOCOL"}}}},
+    "onboarding.scanAnalyzing.lockingIn" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"LOCKING IN"}}}},
+    "onboarding.scanAnalyzing.dayZero" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"DAY ZERO"}}}},
+    "onboarding.scanAnalyzing.committed" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"COMMITTED"}}}},
+    "onboarding.socialProof.testimonial.kai.quote" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"I stopped negotiating with myself. I wanted to see the card move."}}}},
+    "onboarding.socialProof.role.betaTester" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Beta Tester"}}}},
+    "onboarding.socialProof.testimonial.kai.focus" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Rank Climb"}}}},
+    "onboarding.socialProof.testimonial.mason.quote" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Day Zero made the first week feel real. Every workout had a reason."}}}},
+    "onboarding.socialProof.testimonial.mason.focus" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Day Zero"}}}},
+    "onboarding.socialProof.testimonial.jalen.quote" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"It felt like loading into a training arc. I actually wanted the next session."}}}},
+    "onboarding.socialProof.testimonial.jalen.focus" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"First Arc"}}}},
+    "onboarding.socialProof.title" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"They came back for the next session."}}}},
+    "onboarding.socialProof.subtitle" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Beta testers started at Day Zero and kept opening UNBOUND because the climb felt visible."}}}},
+    "onboarding.socialProof.primary" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"I'm in"}}}},
+    "onboarding.socialProof.eyebrow" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"BETA LOG"}}}},
+    "onboarding.socialProof.footer" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Open the app. Finish the session. Watch the rank move."}}}},
+    "onboarding.socialProof.quoteFormat" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"\"%@\""}}}},
+    "onboarding.socialProof.stat.sessions" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"%d sessions"}}}},
+    "onboarding.socialProof.stat.streak" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"%dd streak"}}}},
+    "onboarding.socialProof.stat.months" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"%d mo"}}}},
+    "onboarding.problemOpening.eyebrow" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"DAY ZERO"}}}},
+    "onboarding.problemOpening.title" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Your stats aren't there yet."}}}},
+    "onboarding.problemOpening.startingPoint" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"STARTING POINT"}}}},
+    "onboarding.problemOpening.noRank" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"No rank. No map."}}}},
+    "onboarding.problemOpening.body" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"This is where the climb starts."}}}},
+    "onboarding.problemOpening.cta" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Show the ladder"}}}},
+    "onboarding.common.level" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"LVL %d"}}}},
+    "onboarding.restartLoop.preview.speed.name" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Speed"}}}},
+    "onboarding.restartLoop.preview.speed.caption" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"fast movement"}}}},
+    "onboarding.restartLoop.preview.pull.name" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Pull"}}}},
+    "onboarding.restartLoop.preview.pull.caption" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"upper-body work"}}}},
+    "onboarding.restartLoop.preview.power.name" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Power"}}}},
+    "onboarding.restartLoop.preview.power.caption" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"heavy force"}}}},
+    "onboarding.restartLoop.preview.control.name" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Control"}}}},
+    "onboarding.restartLoop.preview.control.caption" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"skill work"}}}},
+    "onboarding.restartLoop.eyebrow" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"BUILD PREVIEW"}}}},
+    "onboarding.restartLoop.title" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"What you train becomes your build."}}}},
+    "onboarding.restartLoop.cta" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Climb the ranks"}}}},
+    "onboarding.unboundFix.eyebrow" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"COUNTER-SYSTEM FOUND"}}}},
+    "onboarding.unboundFix.message" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"A progression layer for your training."}}}},
+    "onboarding.unboundFix.chip.baseline" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"BASELINE"}}}},
+    "onboarding.unboundFix.chip.stats" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"STATS"}}}},
+    "onboarding.unboundFix.chip.unlocks" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"UNLOCKS"}}}},
+    "onboarding.unboundFix.chip.protocol" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"PROTOCOL"}}}},
+    "onboarding.unboundFix.cta" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Begin your arc"}}}},
+    "onboarding.unboundFix.newEntry" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"NEW ENTRY"}}}},
+    "onboarding.skillTreePreview.title" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"You won't stay at baseline."}}}},
+    "onboarding.skillTreePreview.subtitle" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"This is the ladder. Real feats, earned rep by rep."}}}},
+    "onboarding.skillTreePreview.primary" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"I'm ready"}}}},
+    "onboarding.skillTreePreview.tapHint" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Tap any node to see what it takes."}}}},
+    "onboarding.skillTreePreview.legend.current" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"You're here"}}}},
+    "onboarding.skillTreePreview.legend.locked" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Locked"}}}},
+    "onboarding.skillTreePreview.unlocks.title" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"WHAT THIS UNLOCKS"}}}},
+    "onboarding.skillTreePreview.feat.muscleUp.name" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Muscle-up"}}}},
+    "onboarding.skillTreePreview.feat.muscleUp.detail" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"The pull-up everyone wants"}}}},
+    "onboarding.skillTreePreview.feat.frontLever.name" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Front lever"}}}},
+    "onboarding.skillTreePreview.feat.frontLever.detail" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Core, grip, and lats in one hold"}}}},
+    "onboarding.skillTreePreview.feat.oneArmPushup.name" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"One-arm pushup"}}}},
+    "onboarding.skillTreePreview.feat.oneArmPushup.detail" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Pure body control"}}}},
+    "onboarding.skillTreePreview.feat.pistolSquat.name" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Pistol squat"}}}},
+    "onboarding.skillTreePreview.feat.pistolSquat.detail" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Legs that actually work as a unit"}}}},
+    "onboarding.skillTreePreview.feat.humanFlag.name" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Human flag"}}}},
+    "onboarding.skillTreePreview.feat.humanFlag.detail" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"The one that makes strangers stare"}}}},
+    "onboarding.skillTreePreview.unlocks.body" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Each one is real. Each one is logged. Each one is yours."}}}},
+    "onboarding.skillTreePreview.how.title" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"HOW THIS WORKS"}}}},
+    "onboarding.skillTreePreview.how.step1" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Open the app. See your next unlock."}}}},
+    "onboarding.skillTreePreview.how.step2" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Follow the session we built around it — form videos, set-by-set."}}}},
+    "onboarding.skillTreePreview.how.step3" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Log your reps. Hit the benchmark — the node flips. Next one lights up."}}}},
+    "onboarding.skillTreePreview.node.mythic" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"MYTHIC NODE"}}}},
+    "onboarding.skillTreePreview.node.keystone" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"KEYSTONE"}}}},
+    "onboarding.skillTreePreview.node.requirementTitle" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"WHAT IT TAKES"}}}},
+    "onboarding.trajectory.title" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Here's what changes."}}}},
+    "onboarding.trajectory.subtitle" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"One path keeps repeating. One path starts climbing."}}}},
+    "onboarding.trajectory.primary" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"See my arc"}}}},
+    "onboarding.trajectory.chart.title" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"RANK OVER TIME"}}}},
+    "onboarding.trajectory.chart.duration" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"12 months"}}}},
+    "onboarding.trajectory.chart.month" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"%dmo"}}}},
+    "onboarding.trajectory.legend.withUnbound" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"With UNBOUND"}}}},
+    "onboarding.trajectory.legend.alone" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"On your own"}}}},
+    "onboarding.trajectory.projected" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Projected: %@"}}}},
+    "onboarding.trajectory.callout.body" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"That's a real difference. The plan is yours if you want it."}}}},
+    "onboarding.trajectory.rankGap" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"%@ with UNBOUND vs. %@ without"}}}},
+    "onboarding.trajectory.sell.title" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"WHY THE ARC KEEPS CLIMBING"}}}},
+    "onboarding.trajectory.sell.body" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Most apps stop at a badge. UNBOUND keeps tracking real feats — muscle-up, front lever, one-arm pushup — so progress stays visible after the first big unlock."}}}},
+    "onboarding.common.arcOne" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"ARC 1"}}}},
+    "onboarding.common.dayZero.compact" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"DAY 0"}}}},
+    "onboarding.common.focus" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"FOCUS"}}}},
+    "onboarding.common.fortyFiveMinutes" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"45 minutes"}}}},
+    "onboarding.common.fourDaysPerWeek" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"4 days / week"}}}},
+    "onboarding.common.fullBody" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Full Body"}}}},
+    "onboarding.common.rank.initiate" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"INITIATE"}}}},
+    "onboarding.common.start" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"START"}}}},
+    "onboarding.common.timesPerWeek.compact" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"%dx"}}}},
+    "onboarding.common.timesPerWeek.long" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"%dx / WEEK"}}}},
+    "onboarding.debug.devJump" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"DEV · JUMP"}}}},
+    "onboarding.debug.devSkip" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"DEV · SKIP"}}}},
+    "onboarding.equipment.bodyweight" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Bodyweight"}}}},
+    "onboarding.equipment.fullGym" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Full gym"}}}},
+    "onboarding.equipment.mixed" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Mixed equipment"}}}},
+    "onboarding.equipment.open" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Equipment open"}}}},
+    "onboarding.obstacleFix.consistency.callout" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"The goal is not more willpower. It is a journey you want to return to."}}}},
+    "onboarding.obstacleFix.consistency.fix1.detail" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Your training days become the rhythm of the arc."}}}},
+    "onboarding.obstacleFix.consistency.fix1.title" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Your days are locked"}}}},
+    "onboarding.obstacleFix.consistency.fix2.detail" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"The card changes because you showed up."}}}},
+    "onboarding.obstacleFix.consistency.fix2.title" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Every session leaves a mark"}}}},
+    "onboarding.obstacleFix.consistency.fix3.detail" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Streaks and node progress make missed days feel recoverable, not like a full restart."}}}},
+    "onboarding.obstacleFix.consistency.fix3.title" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Small wins stack"}}}},
+    "onboarding.obstacleFix.consistency.subtitle" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"You said consistency breaks. So every return needs to feel like progress."}}}},
+    "onboarding.obstacleFix.consistency.title" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Showing up starts to matter."}}}},
+    "onboarding.obstacleFix.firstUnlockFallback" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"your first node"}}}},
+    "onboarding.obstacleFix.focusFallback" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"your main focus area"}}}},
+    "onboarding.obstacleFix.motivation.callout" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Motivation starts the arc. Visible progress keeps it alive."}}}},
+    "onboarding.obstacleFix.motivation.fix1.detail" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"%@ becomes the first visible milestone, not a vague transformation."}}}},
+    "onboarding.obstacleFix.motivation.fix1.title" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"A concrete first unlock"}}}},
+    "onboarding.obstacleFix.motivation.fix2.detail" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Each session gives you something to watch, keep, and chase."}}}},
+    "onboarding.obstacleFix.motivation.fix2.title" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"The work pays out"}}}},
+    "onboarding.obstacleFix.motivation.fix3.detail" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"The Day Zero profile keeps the gap visible: where you started, where you are, and what changes next."}}}},
+    "onboarding.obstacleFix.motivation.fix3.title" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Your card becomes the mirror"}}}},
+    "onboarding.obstacleFix.motivation.subtitle" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"You said motivation fades. The answer is seeing the character move forward."}}}},
+    "onboarding.obstacleFix.motivation.title" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Motivation becomes momentum."}}}},
+    "onboarding.obstacleFix.plateau.callout" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"A plateau stops feeling permanent when the next wall is named."}}}},
+    "onboarding.obstacleFix.plateau.fix1.detail" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Too easy, too hard, or just right stops being a guess."}}}},
+    "onboarding.obstacleFix.plateau.fix1.title" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Effort has a target"}}}},
+    "onboarding.obstacleFix.plateau.fix2.detail" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"You can watch %@ move instead of hoping it is working."}}}},
+    "onboarding.obstacleFix.plateau.fix2.title" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Progress becomes visible"}}}},
+    "onboarding.obstacleFix.plateau.fix3.detail" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"When you prove you can handle it, the next wall gets taller."}}}},
+    "onboarding.obstacleFix.plateau.fix3.title" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Targets climb"}}}},
+    "onboarding.obstacleFix.plateau.subtitle" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"You said progress stalled. That means the next push needs to feel different."}}}},
+    "onboarding.obstacleFix.plateau.title" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"The wall can break."}}}},
+    "onboarding.obstacleFix.primary" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Show me my path"}}}},
+    "onboarding.obstacleFix.systemLock" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"SYSTEM LOCK"}}}},
+    "onboarding.obstacleFix.time.callout" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"The fix is not a bigger plan. It is a sharper one."}}}},
+    "onboarding.obstacleFix.time.fix1.detail" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Your workouts are built around %@, not an imaginary perfect day."}}}},
+    "onboarding.obstacleFix.time.fix1.title" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Session length is capped"}}}},
+    "onboarding.obstacleFix.time.fix2.detail" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"The plan puts %@ work where it matters most, then trims the noise."}}}},
+    "onboarding.obstacleFix.time.fix2.title" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Priority comes first"}}}},
+    "onboarding.obstacleFix.time.fix3.detail" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"%d days per week is the pace. No fantasy schedule required."}}}},
+    "onboarding.obstacleFix.time.fix3.title" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Frequency stays realistic"}}}},
+    "onboarding.obstacleFix.time.subtitle" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"You said time gets in the way. So the first step has to fit the day you actually have."}}}},
+    "onboarding.obstacleFix.time.title" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"The arc fits your life."}}}},
+    "onboarding.obstacleFix.unsure.callout" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"The first fix is clarity: open the app, see the target, do the next session."}}}},
+    "onboarding.obstacleFix.unsure.fix1.detail" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Every session points toward %@, not a random workout."}}}},
+    "onboarding.obstacleFix.unsure.fix1.title" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Your next move is visible"}}}},
+    "onboarding.obstacleFix.unsure.fix2.detail" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"%d sessions per week, %@ each, matched to your equipment and focus."}}}},
+    "onboarding.obstacleFix.unsure.fix2.title" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"The week is already built"}}}},
+    "onboarding.obstacleFix.unsure.fix3.detail" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Finish the work, and the next target steps into view."}}}},
+    "onboarding.obstacleFix.unsure.fix3.title" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"The path keeps moving"}}}},
+    "onboarding.obstacleFix.unsure.subtitle" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"You said you don't know what to do. UNBOUND gives the next move a shape."}}}},
+    "onboarding.obstacleFix.unsure.title" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"No more guessing."}}}},
+    "onboarding.obstacleFix.youSaid" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"YOU SAID"}}}},
+    "onboarding.planReady.callout" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"You can start today. Unlock the full arc, weekly climb, and guidance that keeps you moving."}}}},
+    "onboarding.planReady.eyebrow" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"ARC READY"}}}},
+    "onboarding.planReady.generated" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"GENERATED"}}}},
+    "onboarding.planReady.primary" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Unlock my arc"}}}},
+    "onboarding.planReady.stat.session" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"SESSION"}}}},
+    "onboarding.planReady.stat.weekly" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"WEEKLY"}}}},
+    "onboarding.planReady.subtitle" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"The next version of you has a starting line."}}}},
+    "onboarding.planReady.title" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Your first arc is ready."}}}},
+    "onboarding.planReady.workout.focus" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"%@ Focus"}}}},
+    "onboarding.planReady.workout.lowerCoreFoundation" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Lower + Core Foundation"}}}},
+    "onboarding.planReady.workout.upperFocus" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Upper Focus"}}}},
+    "onboarding.resultsSnapshot.boost.none" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"NONE YET"}}}},
+    "onboarding.resultsSnapshot.callout" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"The blank parts are the point. Your first sessions start turning this into something real."}}}},
+    "onboarding.resultsSnapshot.entryBody" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"This is the first mark. Everything above it has to be earned."}}}},
+    "onboarding.resultsSnapshot.entryMap" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"ENTRY MAP"}}}},
+    "onboarding.resultsSnapshot.metric.overallLevel" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"OVERALL LVL"}}}},
+    "onboarding.resultsSnapshot.metric.starterBoost" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"STARTER BOOST"}}}},
+    "onboarding.resultsSnapshot.primary" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Start my arc"}}}},
+    "onboarding.resultsSnapshot.signal.availableTools" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Available tools"}}}},
+    "onboarding.resultsSnapshot.signal.firstSpark" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"First spark"}}}},
+    "onboarding.resultsSnapshot.signal.firstSpark.value" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"A tiny mark on the hex. Enough to begin."}}}},
+    "onboarding.resultsSnapshot.signal.nextGate" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Next gate"}}}},
+    "onboarding.resultsSnapshot.signal.nextGate.value" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Show up. Clear the wall. Climb."}}}},
+    "onboarding.resultsSnapshot.signal.trainingRhythm" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Training rhythm"}}}},
+    "onboarding.resultsSnapshot.signal.trainingRhythm.value" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"%@ · %@"}}}},
+    "onboarding.resultsSnapshot.subtitle" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Day Zero is marked. The climb starts from here."}}}},
+    "onboarding.resultsSnapshot.title" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Your starting point is set."}}}},
+    "onboarding.verdict.arc.quote" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"\"%@\""}}}},
+    "onboarding.verdict.arc.title" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"YOUR BUILD ARC"}}}},
+    "onboarding.verdict.baseline" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"BASELINE"}}}},
+    "onboarding.verdict.buildFocus" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"BUILD FOCUS"}}}},
+    "onboarding.verdict.buildHex" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"BUILD HEX"}}}},
+    "onboarding.verdict.buildHex.body" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"This is just the baseline. Every session makes the card harder to ignore."}}}},
+    "onboarding.verdict.commitment.allIn" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"all-in"}}}},
+    "onboarding.verdict.commitment.serious" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"serious"}}}},
+    "onboarding.verdict.commitment.starting" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"starting"}}}},
+    "onboarding.verdict.commitment.steady" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"steady"}}}},
+    "onboarding.verdict.currentRank" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"CURRENT RANK"}}}},
+    "onboarding.verdict.dayZero" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"DAY ZERO"}}}},
+    "onboarding.verdict.dossier.narrative" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Your first arc starts from your %@ baseline %@. Priority work is %@ — the gap between today and the version you keep picturing. With your %@ commitment, the first milestone is close enough to chase, and the climb keeps going after that."}}}},
+    "onboarding.verdict.dossier.title" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"YOUR BUILD DOSSIER"}}}},
+    "onboarding.verdict.equipment.bodyweight" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"with bodyweight only"}}}},
+    "onboarding.verdict.equipment.currentGear" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"with your current gear"}}}},
+    "onboarding.verdict.equipment.fullGym" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"with full-gym access"}}}},
+    "onboarding.verdict.experience.current" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"current"}}}},
+    "onboarding.verdict.firstArc" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"FIRST ARC"}}}},
+    "onboarding.verdict.firstUnlock" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"FIRST UNLOCK"}}}},
+    "onboarding.verdict.firstUnlockFallback" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"First Node"}}}},
+    "onboarding.verdict.focusAreas.title" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"FOCUS AREAS"}}}},
+    "onboarding.verdict.focusPhrase.fullBody" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"full-body recomposition"}}}},
+    "onboarding.verdict.focusPhrase.pair" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"%@ and %@"}}}},
+    "onboarding.verdict.handle.fallback" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"@PLAYER"}}}},
+    "onboarding.verdict.monthOne" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"MONTH ONE"}}}},
+    "onboarding.verdict.primary" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"See the ladder"}}}},
+    "onboarding.verdict.profile.body" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"This is your starting card. Every completed session moves the stats, rank, and next unlock forward."}}}},
+    "onboarding.verdict.profile.title" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"DAY ZERO PROFILE"}}}},
+    "onboarding.verdict.profileCreated" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"PROFILE CREATED"}}}},
+    "onboarding.verdict.protocol" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"PROTOCOL"}}}},
+    "onboarding.verdict.protocol.foundation.detail" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Wake the base. Volume in, form locked."}}}},
+    "onboarding.verdict.protocol.foundation.title" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Foundation"}}}},
+    "onboarding.verdict.protocol.growth.detail" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Intensification. Loads climb, reps tighten."}}}},
+    "onboarding.verdict.protocol.growth.title" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Growth"}}}},
+    "onboarding.verdict.protocol.minutesPerSession" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"min / session"}}}},
+    "onboarding.verdict.protocol.power.detail" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Realization when rank opens it."}}}},
+    "onboarding.verdict.protocol.power.title" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Power"}}}},
+    "onboarding.verdict.protocol.sessionsPerWeek" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"sessions / week"}}}},
+    "onboarding.verdict.protocol.title" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"YOUR ADAPTIVE PROTOCOL"}}}},
+    "onboarding.verdict.scanInsight.fromDayZero" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"FROM DAY ZERO"}}}},
+    "onboarding.verdict.scanInsight.shoulderToHip" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"SHOULDER-TO-HIP"}}}},
+    "onboarding.verdict.scanSignal.summary" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"%@ · Shoulder-to-hip %.2f"}}}},
+    "onboarding.verdict.scanSignal.title" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"DAY ZERO SIGNAL"}}}},
+    "onboarding.verdict.snapshot.body.anonymous" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Your arc is logged. Every session moves this forward."}}}},
+    "onboarding.verdict.snapshot.body.named" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"%@ — your arc is logged. Every session moves this forward."}}}},
+    "onboarding.verdict.snapshot.headline" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"The Build Begins"}}}},
+    "onboarding.verdict.snapshot.logged" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"LOGGED · %@"}}}},
+    "onboarding.verdict.snapshot.title" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"YOUR SNAPSHOT · UNBOUND"}}}},
+    "onboarding.verdict.startingLine" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"STARTING LINE"}}}},
+    "onboarding.verdict.startingLine.body" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Your first rank is locked in. The rest is earned by showing up."}}}},
+    "onboarding.verdict.supportiveQuote" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Dense frame waiting to be built. Let's go."}}}},
+    "onboarding.verdict.trainingPlan.foundation.detail" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Lock the base. Make the first week automatic."}}}},
+    "onboarding.verdict.trainingPlan.foundation.title" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Foundation"}}}},
+    "onboarding.verdict.trainingPlan.growth.detail" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Add pressure where your build is asking for it."}}}},
+    "onboarding.verdict.trainingPlan.growth.title" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Growth"}}}},
+    "onboarding.verdict.trainingPlan.rankClimb.detail" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Sessions push the profile forward."}}}},
+    "onboarding.verdict.trainingPlan.rankClimb.title" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Rank climb"}}}},
+    "onboarding.common.buildMuscle" : {"comment":"Onboarding screen copy.","localizations":{"en":{"stringUnit":{"state":"translated","value":"Build Muscle"}}}}
+  },
+  "version" : "1.0"
+}

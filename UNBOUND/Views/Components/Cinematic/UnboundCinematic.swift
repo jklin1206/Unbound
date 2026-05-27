@@ -2,11 +2,8 @@ import SwiftUI
 
 // MARK: - UnboundCinematic
 //
-// The single cinematic moment in UNBOUND's rank system. Fires ONCE per
-// muscle group the first time it crosses from B → A (letter threshold).
-// Every other tier-up plays a subtle color bloom — only A earns this
-// full takeover. Protect the brand moment: do not reuse this animation
-// for sub-rank advances or for other letter tiers.
+// Legacy full-takeover cinematic for an Unbound-tier milestone. Newer rank-up
+// surfaces use RankUpCinematic/TierCinematicView with named rank badges.
 //
 // Beat timeline (~4.2s total):
 //   0.0-0.5s  BIND       chained bone-white hex appears, low hum
@@ -14,7 +11,7 @@ import SwiftUI
 //   1.3-1.6s  SHATTER    chains snap → fragments fly outward
 //                        violet burst expands, speed lines radiate
 //                        heavy impact haptic, screen flash
-//   1.6-2.6s  REVEAL     letter "A" pulses in, violet aura holds
+//   1.6-2.6s  REVEAL     Unbound badge pulses in, violet aura holds
 //   2.6-4.2s  HOLD       caption "{MUSCLE} · UNBOUND" visible,
 //                        soft tap-to-share hint, then auto-dismiss
 //
@@ -145,9 +142,10 @@ struct UnboundCinematic: View {
     private var letterReveal: some View {
         Group {
             if showLetter {
-                Text("A")
-                    .font(.system(size: 120, weight: .black, design: .rounded))
-                    .foregroundStyle(bone)
+                Image(RankTitle.unbound.assetName)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 132, height: 132)
                     .shadow(color: violet.opacity(0.9), radius: 24)
                     .transition(.scale(scale: 0.4).combined(with: .opacity))
                     .scaleEffect(phase == .hold ? 1.04 : 1.0)

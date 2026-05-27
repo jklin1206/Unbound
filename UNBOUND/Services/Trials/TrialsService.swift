@@ -9,10 +9,18 @@ final class WeeklyVowsService: WeeklyVowsServiceProtocol {
     private let attribute: AttributeServiceProtocol
     private let recentLogsProvider: (String) async -> [WorkoutLog]
 
+    convenience init() {
+        self.init(
+            store: .shared,
+            attribute: AttributeService.shared,
+            recentLogsProvider: nil
+        )
+    }
+
     init(
-        store: WeeklyVowsStore = .shared,
-        attribute: AttributeServiceProtocol = AttributeService.shared,
-        recentLogsProvider: ((String) async -> [WorkoutLog])? = nil
+        store: WeeklyVowsStore,
+        attribute: AttributeServiceProtocol,
+        recentLogsProvider: ((String) async -> [WorkoutLog])?
     ) {
         self.store = store
         self.attribute = attribute
@@ -285,7 +293,7 @@ final class WeeklyVowsService: WeeklyVowsServiceProtocol {
 }
 
 private enum WeeklyVowTrainingRoute {
-    private static let programIdPrefix = "weekly-vow:"
+    private static let programIdPrefix = TrainingSessionDraft.weeklyVowProgramIdPrefix
 
     static func programId(for vow: WeeklyVow) -> String {
         "\(programIdPrefix)\(vow.id)"
@@ -362,7 +370,7 @@ private enum WeeklyVowCompletionBonusCatalog {
                 target: badgeTarget
             ),
             cosmeticProgress: WeeklyVowProgressDescriptor(
-                title: "\(kind.displayName) Seal",
+                title: "\(kind.displayName) Mark",
                 current: cosmeticProgress,
                 target: cosmeticTarget
             ),
@@ -387,7 +395,7 @@ private enum WeeklyVowTrainingBuilder {
         return TrainingSessionDraft(
             id: "weekly-vow-draft-\(vow.id)",
             userId: vow.userId,
-            source: .custom,
+            source: .vow,
             title: "Binding Vow - \(card.displayName)",
             date: date,
             estimatedMinutes: estimatedMinutes(for: card, prescriptions: prescriptions),
@@ -422,7 +430,7 @@ private enum WeeklyVowTrainingBuilder {
                 target: .reps(max(1, count)),
                 restSeconds: restSeconds(for: card, fallback: 120),
                 rpe: rpe(for: card),
-                notes: "Log clean reps that satisfy the vow proof."
+                notes: "Log clean reps that satisfy the proof."
             )
             guard card.kind == .apex else { return [primary] }
             return ([primary] + apexSupport(for: exerciseName, card: card)).prefixArray(4)
@@ -494,7 +502,7 @@ private enum WeeklyVowTrainingBuilder {
                 target: .amrap,
                 restSeconds: restSeconds(for: card, fallback: 120),
                 rpe: rpe(for: card),
-                notes: "Log the named movement variant for this vow."
+                notes: "Log the named movement variant for this proof."
             )
             guard card.kind == .apex else { return [primary] }
             return ([primary] + apexSupport(for: name, card: card)).prefixArray(4)
@@ -521,7 +529,7 @@ private enum WeeklyVowTrainingBuilder {
                     makePrescription(exerciseName: "Bench Press", sets: 3, target: .repsRange(3, 5), restSeconds: 150, rpe: rpe(for: card), notes: "Crisp reps; stop before form slows."),
                     makePrescription(exerciseName: "Farmer Carry", sets: 3, target: .distanceMeters(30), restSeconds: 90, rpe: rpe(for: card), notes: "Heavy walk, tall posture, no rushing.")
                 ]
-        case .agility:
+        case .vitality:
             return easy
                 ? [
                     makePrescription(exerciseName: "Walk", sets: 1, target: .timedSeconds(600), restSeconds: 0, rpe: rpe(for: card), notes: "Keep it nasal-breathing easy; this is recovery, not conditioning."),
@@ -720,17 +728,17 @@ private enum WeeklyVowTrainingBuilder {
     private static func blockTitle(for card: WeeklyVowCard) -> String {
         switch card.kind {
         case .ember:
-            return "Low Binding Work"
+            return "Recovery Vow Work"
         case .overdrive:
-            return "Limit Binding Work"
+            return "Finisher Vow Work"
         case .apex:
-            return "Apex Binding Circuit"
+            return "Limit Vow Circuit"
         }
     }
 
     private static func blockSubtitle(for card: WeeklyVowCard) -> String? {
         guard let prescription = card.prescription else { return card.capstone.displayName }
-        return "\(prescription.summary) - \(card.capstone.displayName)"
+        return "\(prescription.summary) · \(card.capstone.displayName)"
     }
 
     private static func rpe(for card: WeeklyVowCard) -> Int? {

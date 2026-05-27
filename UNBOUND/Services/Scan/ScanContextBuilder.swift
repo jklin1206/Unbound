@@ -3,10 +3,9 @@ import UIKit
 
 // MARK: - ScanContextBuilder
 //
-// Assembles the `ScanContext` payload that gets fed to Claude on a
-// bi-weekly scan. Pulls the user's profile (biometrics, archetype,
-// focus areas), the last 14 days of training, any stalled lifts, and
-// (if within 60 days) the previous scan photo for comparison.
+// Legacy builder for the removed photo-analysis payload. Active scan flow
+// uses `ScanCheckpointService`; this remains only for migration references
+// and older tests.
 //
 // Critically: volume-per-muscle-group comes from actual logged sets joined
 // against `MovementCatalog` muscle groups, not from LiftRank. Per plan, we
@@ -62,8 +61,7 @@ final class ScanContextBuilder {
         let (sessionCount, volume) = aggregateVolume(from: recent)
 
         // Stalled lifts — PlateauDetector returns exercises with 3+
-        // stagnant sessions. Useful training context for Claude to know
-        // what's NOT moving.
+        // stagnant sessions.
         let progressionStates = await progressionStore.fetchAll(userId: userId)
         let stalls = await plateauDetector.detect(userId: userId, states: progressionStates)
         let stalledNames = stalls.map { $0.displayName }
@@ -149,9 +147,8 @@ final class ScanContextBuilder {
 
     /// Maps `ExerciseCatalog.MuscleGroup` (12 coarse tags) to our
     /// `MuscleHeatGroup` taxonomy (12 coarse buckets). `.arms` lands on
-    /// `.biceps` for simplicity — the front-visible signal Claude cares
-    /// about is more biceps-weighted than triceps-weighted at the body
-    /// map scale. `.neck` is dropped (not in the taxonomy).
+    /// `.biceps` for simplicity because the heat-map buckets are coarser
+    /// than the exercise catalog. `.neck` is dropped (not in the taxonomy).
     private func heatGroup(for group: MuscleGroup) -> MuscleHeatGroup? {
         switch group {
         case .chest:     return .chest

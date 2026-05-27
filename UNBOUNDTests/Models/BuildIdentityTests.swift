@@ -34,7 +34,7 @@ final class BuildIdentityTests: XCTestCase {
     }
 
     func testThreeCloseAxesIsHybridAthlete() {
-        let p = profile([(.power, 40), (.explosiveness, 40), (.agility, 40)])
+        let p = profile([(.power, 40), (.explosiveness, 40), (.vitality, 40)])
         XCTAssertEqual(p.buildIdentity.shape, .hybridAthlete)
         XCTAssertNil(p.buildIdentity.primary)
         XCTAssertNil(p.buildIdentity.secondary)
@@ -83,7 +83,7 @@ final class BuildIdentityTests: XCTestCase {
     func testDisplayNameSpecialistPerAxis() {
         let cases: [(AttributeKey, String)] = [
             (.power, "Power Specialist"),
-            (.agility, "Vitality Specialist"),
+            (.vitality, "Vitality Specialist"),
             (.control, "Control Specialist"),
             (.endurance, "Endurance Specialist"),
             (.mobility, "Mobility Specialist"),
@@ -98,7 +98,7 @@ final class BuildIdentityTests: XCTestCase {
     func testDisplayNameHybridPerAxis() {
         let cases: [(AttributeKey, String)] = [
             (.power, "Power Hybrid"),
-            (.agility, "Vitality Hybrid"),
+            (.vitality, "Vitality Hybrid"),
             (.control, "Control Hybrid"),
             (.endurance, "Endurance Hybrid"),
             (.mobility, "Mobility Hybrid"),
@@ -113,7 +113,7 @@ final class BuildIdentityTests: XCTestCase {
     func testDisplayNameLeanPerAxis() {
         let cases: [(AttributeKey, String)] = [
             (.power, "Power-Oriented"),
-            (.agility, "Vitality-Focused"),
+            (.vitality, "Vitality-Focused"),
             (.control, "Control-Focused"),
             (.endurance, "Endurance-Dominant"),
             (.mobility, "Mobility-Focused"),

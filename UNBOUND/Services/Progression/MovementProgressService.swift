@@ -523,29 +523,43 @@ final class BodyMapProgressService {
 
     private init() {}
 
+    func profile(
+        userId: String,
+        database: any DatabaseServiceProtocol = SyncedDatabase.shared
+    ) async -> BodyMapProfile {
+        await loadProfile(userId: userId, database: database)
+    }
+
     @discardableResult
     func ingest(
         movementAPGains gains: [MovementAPGain],
         userId: String,
         sourceLogId: String,
         at date: Date,
+        trainingLoads: [BodyRegionTrainingLoad] = [],
         database: any DatabaseServiceProtocol = SyncedDatabase.shared
     ) async -> BodyMapIngestResult {
-        guard !gains.isEmpty else { return BodyMapIngestResult() }
+        guard !gains.isEmpty || !trainingLoads.isEmpty else { return BodyMapIngestResult() }
 
         var profile = await loadProfile(userId: userId, database: database)
         if profile.processedSourceLogIds.contains(sourceLogId) {
             return BodyMapIngestResult(wasDuplicate: true)
         }
 
-        let loadsByRegion = regionLoads(from: gains)
+        let loadsByRegion = regionLoads(from: gains, trainingLoads: trainingLoads)
+        let trainingLoadsByRegion = mergedTrainingLoads(trainingLoads)
         let novelty = noveltyMultiplier(for: Array(loadsByRegion.keys), profile: profile, at: date)
         var rewards: [BodyMapRegionReward] = []
 
         for (region, loadAdded) in loadsByRegion {
             var load = profile.load(for: region)
-            load.recentLoad = decayedRecentLoad(for: load, at: date) + loadAdded
+            let decayFactor = recentDecayFactor(for: load, at: date)
+            load.recentLoad = load.recentLoad * decayFactor + loadAdded
             load.lifetimeLoad += loadAdded
+            load.decayRecentRoleSets(by: decayFactor)
+            if let trainingLoad = trainingLoadsByRegion[region] {
+                load.addRecentRoleSets(trainingLoad)
+            }
             load.lastTrainedAt = date
             profile.setLoad(load, for: region)
             rewards.append(
@@ -599,7 +613,31 @@ final class BodyMapProgressService {
         return BodyMapProfile(userId: userId)
     }
 
-    private func regionLoads(from gains: [MovementAPGain]) -> [BodyRegion: Double] {
+    private func regionLoads(
+        from gains: [MovementAPGain],
+        trainingLoads: [BodyRegionTrainingLoad] = []
+    ) -> [BodyRegion: Double] {
+        let totalAP = gains.reduce(0) { $0 + max(0, $1.rawAP) }
+        let apRegions = Set(gains.flatMap { bodyRegions(for: $0) })
+        let roleWeightedLoads = mergedTrainingLoads(trainingLoads)
+            .filter { region, load in
+                apRegions.contains(region) && load.coachLoadScore > 0
+            }
+        let totalCoachLoad = roleWeightedLoads.values.reduce(0) { $0 + $1.coachLoadScore }
+        if totalAP > 0, totalCoachLoad > 0 {
+            return roleWeightedLoads.reduce(into: [:]) { result, entry in
+                result[entry.key] = totalAP * (entry.value.coachLoadScore / totalCoachLoad)
+            }
+        }
+        if totalAP == 0, !trainingLoads.isEmpty {
+            return mergedTrainingLoads(trainingLoads).reduce(into: [:]) { result, entry in
+                let load = entry.value.coachLoadScore * 10
+                if load > 0 {
+                    result[entry.key] = load
+                }
+            }
+        }
+
         var loads: [BodyRegion: Double] = [:]
 
         for gain in gains where gain.rawAP > 0 {
@@ -613,6 +651,16 @@ final class BodyMapProgressService {
         }
 
         return loads
+    }
+
+    private func mergedTrainingLoads(
+        _ trainingLoads: [BodyRegionTrainingLoad]
+    ) -> [BodyRegion: BodyRegionTrainingLoad] {
+        trainingLoads.reduce(into: [:]) { result, load in
+            var current = result[load.region] ?? BodyRegionTrainingLoad(region: load.region)
+            current.merge(load)
+            result[load.region] = current
+        }
     }
 
     private func bodyRegions(for gain: MovementAPGain) -> [BodyRegion] {
@@ -645,9 +693,13 @@ final class BodyMapProgressService {
     }
 
     private func decayedRecentLoad(for load: BodyRegionLoad, at date: Date) -> Double {
-        guard let lastTrainedAt = load.lastTrainedAt else { return load.recentLoad }
+        load.recentLoad * recentDecayFactor(for: load, at: date)
+    }
+
+    private func recentDecayFactor(for load: BodyRegionLoad, at date: Date) -> Double {
+        guard let lastTrainedAt = load.lastTrainedAt else { return 1.0 }
         let elapsed = max(0, date.timeIntervalSince(lastTrainedAt))
-        return load.recentLoad * pow(0.5, elapsed / Self.recentHalfLifeSeconds)
+        return pow(0.5, elapsed / Self.recentHalfLifeSeconds)
     }
 }
 

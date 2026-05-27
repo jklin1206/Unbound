@@ -87,7 +87,7 @@ const tierNames = [
   "Apprentice",
   "Forged",
   "Veteran",
-  "Honed",
+  "Master",
   "Vessel",
   "Unbound",
   "Ascendant",

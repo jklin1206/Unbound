@@ -7,7 +7,9 @@ final class SubscriptionService: NSObject, SubscriptionServiceProtocol, @uncheck
     private let logger = LoggingService.shared
     private let statusSubject = CurrentValueSubject<Bool, Never>(false)
 
-    var hasActiveSubscription: Bool { statusSubject.value }
+    @Published private(set) var isSubscribed: Bool = false
+
+    var hasActiveSubscription: Bool { isSubscribed }
     var subscriptionStatusPublisher: AnyPublisher<Bool, Never> { statusSubject.eraseToAnyPublisher() }
 
     private override init() { super.init() }
@@ -21,7 +23,7 @@ final class SubscriptionService: NSObject, SubscriptionServiceProtocol, @uncheck
             logger.log("SubscriptionService.configure: skipping RevenueCat init (placeholder key)", level: .info)
             return
         }
-        Purchases.logLevel = .debug
+        Purchases.logLevel = .error
         Purchases.configure(withAPIKey: key)
         Purchases.shared.delegate = self
     }
@@ -39,9 +41,12 @@ final class SubscriptionService: NSObject, SubscriptionServiceProtocol, @uncheck
     }
 
     func logout() async throws {
-        guard !isStubbed else { statusSubject.send(false); return }
+        guard !isStubbed else {
+            setSubscriptionStatus(false)
+            return
+        }
         _ = try await Purchases.shared.logOut()
-        statusSubject.send(false)
+        setSubscriptionStatus(false)
     }
 
     func fetchOfferings() async throws -> [SubscriptionPackage] {
@@ -52,9 +57,11 @@ final class SubscriptionService: NSObject, SubscriptionServiceProtocol, @uncheck
         return current.availablePackages.map { pkg in
             SubscriptionPackage(
                 id: pkg.identifier,
+                productId: pkg.storeProduct.productIdentifier,
                 title: pkg.storeProduct.localizedTitle,
                 price: pkg.localizedPriceString,
                 duration: pkg.storeProduct.subscriptionPeriod?.durationTitle ?? "",
+                pricePerMonth: pkg.storeProduct.localizedPricePerMonth,
                 hasFreeTrial: pkg.storeProduct.introductoryDiscount != nil,
                 freeTrialDuration: pkg.storeProduct.introductoryDiscount?.subscriptionPeriod.durationTitle
             )
@@ -80,8 +87,22 @@ final class SubscriptionService: NSObject, SubscriptionServiceProtocol, @uncheck
     }
 
     private func updateStatus(from customerInfo: CustomerInfo) {
-        let isActive = customerInfo.entitlements["pro"]?.isActive == true
+        let isActive = customerInfo.entitlements[AppConstants.RevenueCat.entitlementIdentifier]?.isActive == true
+        setSubscriptionStatus(isActive)
+    }
+
+    private func setSubscriptionStatus(_ isActive: Bool) {
+        let previous = isSubscribed
+        isSubscribed = isActive
         statusSubject.send(isActive)
+        AnalyticsService.shared.registerSuper(["isSubscribed": isActive])
+
+        guard previous != isActive else { return }
+        if isActive {
+            AnalyticsService.shared.track(.subscriptionStarted(productId: AppConstants.RevenueCat.entitlementIdentifier, isTrialPeriod: false))
+        } else {
+            AnalyticsService.shared.track(.subscriptionCanceled(productId: AppConstants.RevenueCat.entitlementIdentifier))
+        }
     }
 }
 

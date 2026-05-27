@@ -9,6 +9,7 @@ struct SquadMemberCard: View {
     var accountabilityBadge: AccountabilityBadgeState?
     var displayNameOverride: String?
     var profileUserId: String?
+    var cosmeticTier: RankTitle = .initiate
     let onTap: () -> Void
 
     @ObservedObject private var photoStore = ProfilePhotoStore.shared
@@ -104,31 +105,13 @@ struct SquadMemberCard: View {
     private var avatar: some View {
         let initials = displayName.split(separator: " ").compactMap { $0.first }.prefix(2)
         let initialString = initials.map(String.init).joined()
-        return ZStack {
-            Circle()
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            Color.unbound.accent.opacity(0.30),
-                            Color.unbound.surfaceElevated
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-            Circle().strokeBorder(Color.unbound.accent.opacity(0.32), lineWidth: 1)
-            if let profileImage {
-                Image(uiImage: profileImage)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .clipShape(Circle())
-            } else {
-                Text(initialString.uppercased())
-                    .font(Font.unbound.bodyMStrong)
-                    .foregroundStyle(Color.unbound.accent)
-            }
-        }
-        .frame(width: 44, height: 44)
+        return CosmeticAvatar(
+            tier: cosmeticTier,
+            size: 50,
+            image: profileImage,
+            letterFallback: initialString.isEmpty ? "U" : initialString
+        )
+        .shadow(color: cosmeticTier.rewardTint.opacity(0.22), radius: 10, y: 5)
     }
 
     private func presenceChip(startedAt: Date) -> some View {

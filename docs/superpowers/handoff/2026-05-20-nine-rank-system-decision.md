@@ -9,7 +9,7 @@ UNBOUND uses the 9-rank system everywhere:
 3. Apprentice
 4. Forged
 5. Veteran
-6. Honed
+6. Master
 7. Vessel
 8. Unbound
 9. Ascendant

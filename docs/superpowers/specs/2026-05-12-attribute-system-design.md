@@ -113,7 +113,7 @@ struct AttributeContribution: Codable, Sendable, Equatable {
 - Contributions live in a companion JSON file (`Resources/AttributeContributions.json`) loaded at app start. Easier to review/diff than Swift dict literals.
 
 **Tier vocabulary**
-- Reuses the existing 9-tier `RankTitle`: Initiate / Novice / Apprentice / Forged / Veteran / Honed / Vessel / Unbound / Ascendant.
+- Reuses the existing 9-tier `RankTitle`: Initiate / Novice / Apprentice / Forged / Veteran / Master / Vessel / Unbound / Ascendant.
 - Reuses existing 18-step `SubRank` for granular ordering.
 - Reuses existing `Assets.xcassets/RankTitles/rank_title_*` badges for per-axis profile rows. No new asset work.
 
@@ -233,7 +233,7 @@ Properties this guarantees:
 - 3×2 grid of axis cells. Each cell:
   - Code (e.g., POW) + value (e.g., 72)
   - Thin horizontal bar (value%)
-  - Rank-title badge (e.g., HONED) using existing `rank_title_*` asset family
+  - Rank-title badge (e.g., MASTER) using existing `rank_title_*` asset family
 
 **Build name** (Phase 1b minimum rule)
 ```
@@ -276,7 +276,7 @@ Emission rule (in `AttributeService.ingest`):
 |---|---|---|---|
 | Sub-rank within a tier (E- → E, E → E+, etc.) | `SubRank.eMinus → .e` | `.subRank` | **None** — sub-ranks stay silent per cinematic-asymmetry rule |
 | Tier crossing within E/D/C/B/S buckets | `RankTitle.apprentice → .forged` | `.tier` | `TierBloomToast` (small, scoped to the changed axis) |
-| Tier crossing into A-tier | `RankTitle.honed → .vessel`, `.vessel → .unbound`, `.unbound → .ascendant` | `.aTier` | Full chain-shatter cinematic (existing component) |
+| Tier crossing into A-tier | `RankTitle.master → .vessel`, `.vessel → .unbound`, `.unbound → .ascendant` | `.aTier` | Full chain-shatter cinematic (existing component) |
 
 `AttributeRankUpEvent` carries `{ axis: AttributeKey, fromTitle: RankTitle, toTitle: RankTitle, level: Level }` where `Level` is the table's third column. Subscribers in Profile / Home views dispatch animations off `level`. Never elevate.
 

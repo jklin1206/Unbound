@@ -123,6 +123,8 @@ struct SkinPickerView: View {
                 Image(skin.backgroundAssetName)
                     .resizable()
                     .aspectRatio(contentMode: .fill)
+                    .contrast(skin.backgroundAssetContrast)
+                    .opacity(skin.backgroundAssetOpacity)
             } else {
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .fill(skin.nodeGradient)

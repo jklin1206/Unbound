@@ -18,7 +18,7 @@ struct WeeklyHonorsStrip: View {
                 Text("WEEKLY HONORS")
                     .font(.system(size: 10, weight: .heavy, design: .monospaced))
                     .tracking(2.0)
-                    .foregroundStyle(Color.unbound.textTertiary ?? Color.unbound.textSecondary)
+                    .foregroundStyle(Color.unbound.textTertiary)
                 Spacer()
                 Text(honors.first?.weekIso ?? "")
                     .font(.system(size: 10, weight: .medium, design: .monospaced))
@@ -86,7 +86,7 @@ private struct HonorCard: View {
             Text(honor.kind.displayName.uppercased())
                 .font(.system(size: 9, weight: .heavy, design: .monospaced))
                 .tracking(1.5)
-                .foregroundStyle(Color.unbound.textTertiary ?? Color.unbound.textSecondary)
+                .foregroundStyle(Color.unbound.textTertiary)
                 .lineLimit(1)
 
             // Recipient

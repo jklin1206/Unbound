@@ -57,11 +57,11 @@ struct UnboundColors {
     // tile accents color-code category (coach/communication, warn/attention).
     let coachCyan = Color.unboundHex("06B6D4")        // communication tiles (coach bubble, chat)
     let warnOrange = Color.unboundHex("F97316")       // attention tiles (needs work, weakness)
-    let rankRed = Color.unboundHex("B91C1C")          // E-rank muscles — urgent/untrained
-    let rankOrange = Color.unboundHex("F97316")       // D-rank muscles — weak
-    let rankAmber = Color.unboundHex("EAB308")        // C-rank muscles — moderate
-    let rankGreen = Color.unboundHex("22C55E")        // B-rank muscles — solid
-    let rankGold = Color.unboundHex("FFC857")         // S-rank muscles — elite
+    let rankRed = Color.unboundHex("B91C1C")          // urgent/untrained
+    let rankOrange = Color.unboundHex("F97316")       // weak
+    let rankAmber = Color.unboundHex("EAB308")        // moderate
+    let rankGreen = Color.unboundHex("22C55E")        // solid
+    let rankGold = Color.unboundHex("FFC857")         // elite
 }
 
 // Self-contained hex helper so this file has no cross-file dependency.

@@ -2,9 +2,9 @@ import Foundation
 
 /// Durable, single-device FIFO of pending changes. Persisted as one JSON
 /// array via atomic write. Coalesces by (collection, docId) so the queue
-/// stays bounded regardless of edit volume. @MainActor for serialized access.
-@MainActor
-final class OutboxStore {
+/// stays bounded regardless of edit volume. Mutating operations stay on the
+/// main actor for serialized access while construction remains nonisolated.
+final class OutboxStore: @unchecked Sendable {
     static let shared = OutboxStore()
 
     private let pendingURL: URL
@@ -25,8 +25,10 @@ final class OutboxStore {
                      from: Data(contentsOf: deadletterURL))) ?? []
     }
 
+    @MainActor
     var pendingCount: Int { pending.count }
 
+    @MainActor
     func enqueue(_ entry: OutboxEntry) {
         if let i = pending.firstIndex(where: {
             $0.collection == entry.collection && $0.docId == entry.docId
@@ -38,22 +40,26 @@ final class OutboxStore {
         persistPending()
     }
 
+    @MainActor
     func peekBatch(limit: Int) -> [OutboxEntry] {
         Array(pending.prefix(limit))
     }
 
+    @MainActor
     func ack(_ ids: [UUID]) {
         let set = Set(ids)
         pending.removeAll { set.contains($0.id) }
         persistPending()
     }
 
+    @MainActor
     func recordFailure(_ id: UUID) {
         guard let i = pending.firstIndex(where: { $0.id == id }) else { return }
         pending[i].attempt += 1
         persistPending()
     }
 
+    @MainActor
     func moveToDeadletter(_ id: UUID) {
         guard let i = pending.firstIndex(where: { $0.id == id }) else { return }
         dead.append(pending.remove(at: i))
@@ -61,6 +67,7 @@ final class OutboxStore {
         try? JSONEncoder().encode(dead).write(to: deadletterURL, options: .atomic)
     }
 
+    @MainActor
     private func persistPending() {
         try? JSONEncoder().encode(pending).write(to: pendingURL, options: .atomic)
     }

@@ -16,14 +16,18 @@ struct Step17_Diet: View {
             onBack: onBack,
             onPrimary: onContinue
         ) {
-            HUDSlider(
-                value: $flow.dietQuality,
-                steps: HUDSlider.fivePointStoredSteps,
-                descriptors: HUDSlider.dietDescriptors,
-                leftAnchor: "Poor",
-                rightAnchor: "Excellent"
-            )
-            .padding(.top, 32)
+            VStack(spacing: 24) {
+                LifestyleSignalAsset(kind: LifestyleSignalAsset.Kind.diet, value: flow.dietQuality)
+                    .padding(.top, 10)
+
+                HUDSlider(
+                    value: $flow.dietQuality,
+                    steps: HUDSlider.fivePointStoredSteps,
+                    descriptors: HUDSlider.dietDescriptors,
+                    leftAnchor: "Poor",
+                    rightAnchor: "Excellent"
+                )
+            }
         }
     }
 }

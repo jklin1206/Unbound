@@ -27,36 +27,44 @@ struct BuildIdentity: Equatable, Sendable {
 
     var displayName: String {
         switch shape {
-        case .balancedAthlete: return "Balanced Athlete"
-        case .hybridAthlete:   return "Hybrid Athlete"
+        case .balancedAthlete: return balancedDisplayName
+        case .hybridAthlete:   return L10n.string(.buildIdentityDisplayNameHybridAthlete, defaultValue: "Hybrid Athlete")
         case .specialist:
-            guard let primary else { return "Balanced Athlete" }
-            return "\(primary.buildVocab) Specialist"
+            guard let primary else { return balancedDisplayName }
+            return L10n.format(.buildIdentityDisplayNameSpecialist, defaultValue: "%@ Specialist", primary.buildVocab)
         case .hybrid:
-            guard let primary else { return "Balanced Athlete" }
-            return "\(primary.buildVocab) Hybrid"
+            guard let primary else { return balancedDisplayName }
+            return L10n.format(.buildIdentityDisplayNameHybrid, defaultValue: "%@ Hybrid", primary.buildVocab)
         case .lean:
-            guard let primary else { return "Balanced Athlete" }
-            return "\(primary.buildVocab)\(primary.leanSuffix)"
+            guard let primary else { return balancedDisplayName }
+            return L10n.format(.buildIdentityDisplayNameLean, defaultValue: "%@%@", primary.buildVocab, primary.leanSuffix)
         }
     }
 
     var tagline: String {
         switch shape {
         case .balancedAthlete:
-            return "Even across every axis."
+            return evenTagline
         case .hybridAthlete:
-            return "Multi-axis athlete — no single specialty."
+            return L10n.string(.buildIdentityTaglineHybridAthlete, defaultValue: "Multi-axis athlete — no single specialty.")
         case .specialist:
-            guard let primary else { return "Even across every axis." }
-            return "Built around \(primary.taglinePhrase) — sharply focused."
+            guard let primary else { return evenTagline }
+            return L10n.format(.buildIdentityTaglineSpecialist, defaultValue: "Built around %@ — sharply focused.", primary.taglinePhrase)
         case .hybrid:
-            guard let primary, let secondary else { return "Even across every axis." }
-            return "Built around \(primary.taglinePhrase) with strong \(secondary.buildVocab)."
+            guard let primary, let secondary else { return evenTagline }
+            return L10n.format(.buildIdentityTaglineHybrid, defaultValue: "Built around %@ with strong %@.", primary.taglinePhrase, secondary.buildVocab)
         case .lean:
-            guard let primary else { return "Even across every axis." }
-            return "Trending toward \(primary.taglinePhrase)."
+            guard let primary else { return evenTagline }
+            return L10n.format(.buildIdentityTaglineLean, defaultValue: "Trending toward %@.", primary.taglinePhrase)
         }
+    }
+
+    private var balancedDisplayName: String {
+        L10n.string(.buildIdentityDisplayNameBalancedAthlete, defaultValue: "Balanced Athlete")
+    }
+
+    private var evenTagline: String {
+        L10n.string(.buildIdentityTaglineEven, defaultValue: "Even across every axis.")
     }
 }
 

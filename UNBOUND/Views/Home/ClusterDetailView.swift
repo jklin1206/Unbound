@@ -21,6 +21,7 @@ struct ClusterDetailView: View {
     var onNodeTap: (SkillNode) -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @ObservedObject private var skinService = SkinService.shared
 
     private var clusterNodes: [SkillNode] {
         graph.nodes(in: cluster)
@@ -146,7 +147,7 @@ struct ClusterDetailView: View {
                         ctx.stroke(
                             path,
                             with: .color(reachable
-                                         ? Color.unbound.accent.opacity(0.55)
+                                         ? skinService.currentSkin.primaryColor.opacity(0.55)
                                          : Color.unbound.border),
                             style: StrokeStyle(
                                 lineWidth: 1.5,
@@ -224,7 +225,8 @@ struct ClusterDetailView: View {
             ClusterNodeHex(
                 node: node,
                 state: nodeStates[node.id] ?? .locked,
-                progress: nodeProgress[node.id]
+                progress: nodeProgress[node.id],
+                skin: skinService.currentSkin
             )
             .position(p)
             .onTapGesture {
@@ -387,6 +389,7 @@ private struct ClusterNodeHex: View {
     let node: SkillNode
     let state: NodeState
     var progress: Double? = nil        // 0.0-1.0; rendered as bottom fill when attempting
+    let skin: SkillTreeSkin
 
     private var size: CGFloat {
         if node.isMythic || node.isKeystone { return 92 }
@@ -421,7 +424,7 @@ private struct ClusterNodeHex: View {
                 }
                 if node.isMythic {
                     Hexagon()
-                        .strokeBorder(Color.unbound.impact, lineWidth: 1.5)
+                        .strokeBorder(skin.impactColor, lineWidth: 1.5)
                         .frame(width: size + 16, height: size + 16)
                         .opacity(state == .locked ? 0.3 : 0.8)
                 }
@@ -449,33 +452,23 @@ private struct ClusterNodeHex: View {
                     Text("MYTHIC")
                         .font(.system(size: 9, weight: .heavy, design: .monospaced))
                         .tracking(1.8)
-                        .foregroundStyle(Color.unbound.impact)
+                        .foregroundStyle(skin.impactDecalColor)
                 } else if node.isKeystone {
                     Text("KEYSTONE")
                         .font(.system(size: 9, weight: .heavy, design: .monospaced))
                         .tracking(1.8)
-                        .foregroundStyle(Color.unbound.accent)
+                        .foregroundStyle(skin.decalColor)
                 }
             }
         }
     }
 
     private var fillColor: Color {
-        switch state {
-        case .locked, .attempting: return Color.unbound.surface
-        case .achieved:            return Color.unbound.accent.opacity(0.18)
-        case .mastered:            return Color.unbound.impact.opacity(0.22)
-        }
+        skin.nodeFill(state: state, faded: false)
     }
 
     private var borderColor: Color {
-        if node.isMythic && state == .locked { return Color.unbound.impact.opacity(0.45) }
-        switch state {
-        case .locked:     return Color.unbound.border
-        case .attempting: return Color.unbound.accent
-        case .achieved:   return Color.unbound.accent
-        case .mastered:   return Color.unbound.impact
-        }
+        skin.nodeBorder(state: state, faded: false, mythic: node.isMythic)
     }
 
     private var strokeWidth: CGFloat {
@@ -488,16 +481,11 @@ private struct ClusterNodeHex: View {
     }
 
     private var outerRingColor: Color {
-        state == .mastered ? Color.unbound.impact : Color.unbound.accent
+        state == .mastered ? skin.impactColor : skin.primaryColor
     }
 
     private var glowColor: Color {
-        switch state {
-        case .locked:     return .clear
-        case .attempting: return Color.unbound.accent.opacity(0.4)
-        case .achieved:   return Color.unbound.accent.opacity(0.55)
-        case .mastered:   return Color.unbound.impact.opacity(0.6)
-        }
+        skin.nodeGlow(state: state, faded: false)
     }
 
     private var labelColor: Color {
@@ -513,18 +501,52 @@ private struct ClusterNodeHex: View {
                 .font(.system(size: fontSize - 4, weight: .semibold))
                 .foregroundStyle(Color.unbound.textTertiary)
         case .attempting:
-            Image(systemName: node.glyph)
-                .font(.system(size: fontSize, weight: .semibold))
-                .foregroundStyle(Color.unbound.accent)
+            assetOrSymbol(symbolName: node.glyph, fontSize: fontSize, tint: skin.decalColor)
         case .achieved:
-            Image(systemName: "checkmark")
-                .font(.system(size: fontSize, weight: .bold))
-                .foregroundStyle(Color.unbound.accent)
+            assetOrSymbol(symbolName: "checkmark", fontSize: fontSize, tint: skin.decalColor)
         case .mastered:
-            Image(systemName: "crown.fill")
-                .font(.system(size: fontSize, weight: .semibold))
-                .foregroundStyle(Color.unbound.impact)
+            assetOrSymbol(symbolName: "crown.fill", fontSize: fontSize, tint: skin.impactDecalColor)
         }
+    }
+
+    @ViewBuilder
+    private func assetOrSymbol(symbolName: String, fontSize: CGFloat, tint: Color) -> some View {
+        let assetName = node.id.replacingOccurrences(of: ".", with: "_")
+        if UIImage(named: assetName) != nil {
+            let size = fontSize * 2.15
+            ZStack {
+                Circle()
+                    .fill(Color.unbound.bg.opacity(0.5))
+                    .overlay(
+                        Circle()
+                            .strokeBorder(tint.opacity(0.28), lineWidth: max(1, size * 0.025))
+                    )
+                    .frame(width: size * 0.88, height: size * 0.88)
+                    .shadow(color: Color.black.opacity(0.42), radius: 4)
+
+                Image(assetName)
+                    .renderingMode(usesOriginalNodeArtwork(assetName) ? .original : .template)
+                    .resizable()
+                    .interpolation(.high)
+                    .aspectRatio(contentMode: .fit)
+                    .foregroundStyle(tint)
+                    .frame(
+                        width: size * (usesOriginalNodeArtwork(assetName) ? 0.9 : 0.78),
+                        height: size * (usesOriginalNodeArtwork(assetName) ? 0.9 : 0.78)
+                    )
+                    .shadow(color: Color.black.opacity(0.72), radius: 3)
+                    .shadow(color: tint.opacity(0.5), radius: 4)
+            }
+            .frame(width: size, height: size)
+        } else {
+            Image(systemName: symbolName)
+                .font(.system(size: fontSize, weight: symbolName == "checkmark" ? .bold : .semibold))
+                .foregroundStyle(tint)
+        }
+    }
+
+    private func usesOriginalNodeArtwork(_ assetName: String) -> Bool {
+        assetName == "hs_tuck-handstand"
     }
 
     // MARK: In-hex progress fill
@@ -532,7 +554,7 @@ private struct ClusterNodeHex: View {
     private func progressFill(fraction: Double) -> some View {
         let f = max(0, min(1, fraction))
         return Hexagon()
-            .fill(Color.unbound.accent.opacity(0.35))
+            .fill(skin.primaryColor.opacity(0.35))
             .mask(
                 VStack(spacing: 0) {
                     Color.clear.frame(height: size * (1 - f))
@@ -547,14 +569,14 @@ private struct ClusterNodeHex: View {
         let pct = Int((max(0, min(1, fraction)) * 100).rounded())
         return Text("\(pct)%")
             .font(.system(size: 10, weight: .bold, design: .monospaced))
-            .foregroundStyle(Color.unbound.accent)
+            .foregroundStyle(skin.decalColor)
             .padding(.horizontal, 6)
             .padding(.vertical, 2)
             .background(
                 Capsule().fill(Color.unbound.bg)
             )
             .overlay(
-                Capsule().strokeBorder(Color.unbound.accent.opacity(0.6), lineWidth: 1)
+                Capsule().strokeBorder(skin.decalColor.opacity(0.6), lineWidth: 1)
             )
     }
 }

@@ -49,7 +49,7 @@ struct FriendChallengeOutcomeToast: View {
                 Text(challenge.kind.displayName.uppercased())
                     .font(.system(size: 10, weight: .semibold))
                     .tracking(1.4)
-                    .foregroundStyle(Color.unbound.textTertiary ?? Color.unbound.textSecondary)
+                    .foregroundStyle(Color.unbound.textTertiary)
                     .lineLimit(1)
                 Text(outcomeLabel)
                     .font(.system(size: 15, weight: .semibold))

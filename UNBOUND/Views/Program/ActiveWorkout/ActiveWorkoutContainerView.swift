@@ -289,6 +289,27 @@ struct ActiveWorkoutContainerView: View {
             }
             .padding(.horizontal, 4)
 
+            #if DEBUG
+            Button(action: debugFillPlannedSets) {
+                Label("Fill Planned Sets", systemImage: "wand.and.stars")
+                    .font(Font.unbound.captionS.weight(.bold))
+                    .tracking(1.1)
+                    .foregroundStyle(Color.unbound.textPrimary)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .fill(Color.unbound.surfaceElevated)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
+                    )
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("workout.debug.fillPlannedSets")
+            #endif
+
             Button(action: requestComplete) {
                 HStack(spacing: 10) {
                     if saving {
@@ -373,6 +394,41 @@ struct ActiveWorkoutContainerView: View {
             Task { await complete() }
         }
     }
+
+    #if DEBUG
+    private func debugFillPlannedSets() {
+        session.objectWillChange.send()
+        for exerciseIndex in session.exercises.indices where !session.exercises[exerciseIndex].skipped {
+            for setIndex in session.exercises[exerciseIndex].sets.indices {
+                guard !session.exercises[exerciseIndex].sets[setIndex].isWarmup else { continue }
+                var set = session.exercises[exerciseIndex].sets[setIndex]
+                switch session.exercises[exerciseIndex].metricKind {
+                case .reps:
+                    set.reps = set.suggestedReps ?? RepRange.lowerBound(session.exercises[exerciseIndex].plannedReps) ?? 8
+                    set.weightKg = set.suggestedWeightKg ?? debugWeightKg(exerciseIndex: exerciseIndex, setIndex: setIndex)
+                case .holdSeconds:
+                    set.holdSeconds = set.suggestedHoldSeconds ?? 30
+                case .durationSeconds:
+                    set.durationSeconds = set.suggestedDurationSeconds ?? 600
+                case .distanceMeters:
+                    set.distanceMeters = set.suggestedDistanceMeters ?? 400
+                case .calories:
+                    set.calories = set.suggestedCalories ?? 20
+                }
+                set.rpe = set.suggestedRPE ?? session.exercises[exerciseIndex].targetRPE ?? 8
+                set.logged = true
+                session.exercises[exerciseIndex].sets[setIndex] = set
+            }
+        }
+        try? draftStore.save(session)
+        UnboundHaptics.success()
+    }
+
+    private func debugWeightKg(exerciseIndex: Int, setIndex: Int) -> Double {
+        let base = 45 + (exerciseIndex * 15) + (setIndex * 2)
+        return Double(base)
+    }
+    #endif
 
     // MARK: - Ghost prefill
 

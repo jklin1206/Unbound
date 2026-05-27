@@ -2,7 +2,7 @@ import SwiftUI
 
 // MARK: - TrialPickerPromptCard
 //
-// Compact home banner shown before the Weekly Vow is chosen.
+// Compact home banner shown before the weekly Binding Vow is chosen.
 
 struct TrialPickerPromptCard: View {
     let onTap: () -> Void
@@ -13,8 +13,9 @@ struct TrialPickerPromptCard: View {
             onTap()
         }) {
             HStack(spacing: 13) {
-                TrialStrikeMark(tint: Color.unbound.accent)
-                    .frame(width: 36, height: 44)
+                WeeklyVowProofAsset(kind: .overdrive, tint: Color.unbound.accent, compact: true)
+                    .frame(width: 42, height: 42)
+                    .accessibilityHidden(true)
 
                 VStack(alignment: .leading, spacing: 5) {
                     HStack(spacing: 7) {
@@ -23,14 +24,14 @@ struct TrialPickerPromptCard: View {
                             .tracking(1.5)
                             .foregroundStyle(Color.unbound.accent)
                             .lineLimit(1)
-                        Text("3 PACTS")
+                        Text("3 OPTIONS")
                             .font(.system(size: 9, weight: .heavy, design: .monospaced))
                             .tracking(1.0)
                             .foregroundStyle(Color.unbound.textTertiary)
                             .lineLimit(1)
                     }
 
-                    Text("Bind this week's vow")
+                    Text("Pick this week's vow")
                         .font(Font.unbound.bodyMStrong)
                         .foregroundStyle(Color.unbound.textPrimary)
                         .lineLimit(1)

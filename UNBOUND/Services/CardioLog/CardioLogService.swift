@@ -7,12 +7,79 @@ protocol CardioLogServiceProtocol: Sendable {
     func delete(id: UUID) async throws
 }
 
+extension CardioLogServiceProtocol {
+    func sessionsInRange(
+        userId: String,
+        from startDate: Date,
+        through endDate: Date
+    ) async -> [CardioSession] {
+        guard startDate <= endDate else { return [] }
+        return await all(userId: userId).filter {
+            $0.date >= startDate && $0.date <= endDate
+        }
+    }
+
+    func sessionsInLastNDays(
+        userId: String,
+        days: Int,
+        asOf date: Date = Date(),
+        calendar: Calendar = .current
+    ) async -> [CardioSession] {
+        guard days > 0 else { return [] }
+        let cutoff = calendar.date(byAdding: .day, value: -days, to: date) ?? date
+        return await sessionsInRange(userId: userId, from: cutoff, through: date)
+    }
+
+    func minutesInLastNDays(
+        userId: String,
+        days: Int,
+        asOf date: Date = Date(),
+        calendar: Calendar = .current
+    ) async -> Int {
+        await sessionsInLastNDays(
+            userId: userId,
+            days: days,
+            asOf: date,
+            calendar: calendar
+        )
+        .reduce(0) { $0 + max(0, $1.durationMinutes) }
+    }
+
+    func cardioMinutesLastWeek(
+        userId: String,
+        asOf date: Date = Date(),
+        calendar: Calendar = .current
+    ) async -> Int {
+        await minutesInLastNDays(userId: userId, days: 7, asOf: date, calendar: calendar)
+    }
+
+    func minutesInWeek(
+        userId: String,
+        of date: Date,
+        calendar: Calendar = Calendar(identifier: .iso8601)
+    ) async -> Int {
+        guard let interval = calendar.dateInterval(of: .weekOfYear, for: date) else {
+            return 0
+        }
+
+        return await all(userId: userId)
+            .filter { $0.date >= interval.start && $0.date < interval.end }
+            .reduce(0) { $0 + max(0, $1.durationMinutes) }
+    }
+}
+
 final class CardioLogService: CardioLogServiceProtocol, @unchecked Sendable {
     static let shared = CardioLogService()
-    private let database = DatabaseService.shared
-    private let logger = LoggingService.shared
+    private let database: any DatabaseServiceProtocol
+    private let logger: LoggingService
 
-    private init() {}
+    init(
+        database: any DatabaseServiceProtocol = DatabaseService.shared,
+        logger: LoggingService = .shared
+    ) {
+        self.database = database
+        self.logger = logger
+    }
 
     func log(session: CardioSession) async throws {
         try await database.create(
@@ -23,6 +90,14 @@ final class CardioLogService: CardioLogServiceProtocol, @unchecked Sendable {
         logger.log(
             "Cardio logged: \(session.type.displayName) \(session.durationMinutes)m",
             level: .info
+        )
+        NotificationCenter.default.post(
+            name: .cardioLogged,
+            object: session,
+            userInfo: [
+                "sessionId": session.id.uuidString,
+                "userId": session.userId
+            ]
         )
     }
 

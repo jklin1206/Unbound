@@ -8,12 +8,12 @@ struct Step_BuildSeed: View {
 
     var body: some View {
         OnboardingScaffold(
-            title: "What does your training look like right now?",
-            subtitle: "Pick up to 2. We'll seed your build so the hex starts where you are.",
+            title: "You have more in you.",
+            subtitle: "UNBOUND reads your goals and marks the first sparks. The rest comes from what you earn.",
             progress: progress,
             primaryTitle: "Continue",
             primaryEnabled: true,
-            hudStep: .buildSeed,
+            hudStep: .resultsSnapshot,
             onBack: onBack,
             onPrimary: onContinue
         ) {

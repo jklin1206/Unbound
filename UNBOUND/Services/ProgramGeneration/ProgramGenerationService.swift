@@ -1,16 +1,14 @@
 import Foundation
 
-// Program generation is deterministic-first.
-// Claude remains an emergency fallback for malformed inputs or unexpected
-// generator errors, but the canonical path is local, auditable, and cheap:
-// first-time users start with Calibration Week, then normal 28-day Arcs
-// are built from scan/profile inputs plus stored progression state.
+// Program generation is deterministic. First-time users start with Calibration
+// Week, then normal 28-day Arcs are built from scan/profile inputs plus stored
+// progression state. AI is intentionally excluded from this path so workouts
+// remain local, auditable, repeatable, and testable.
 
 final class ProgramGenerationService: ProgramGenerationServiceProtocol, @unchecked Sendable {
     static let shared = ProgramGenerationService()
-    private let database = DatabaseService.shared
+    private let database: any DatabaseServiceProtocol = SyncedDatabase.shared
     private let logger = LoggingService.shared
-    private let claude = ClaudeClient.shared
 
     private init() {}
 
@@ -32,6 +30,7 @@ final class ProgramGenerationService: ProgramGenerationServiceProtocol, @uncheck
                 trainingDays: userProfile.trainingDays,
                 equipment: Set(userProfile.equipment ?? []),
                 experience: userProfile.experience,
+                sessionLength: userProfile.sessionLength,
                 exerciseStyles: Set(userProfile.exerciseStyles ?? []),
                 focusAreas: analysis.focusAreas,
                 cutModeActive: userProfile.cutMode.enabled,
@@ -52,37 +51,16 @@ final class ProgramGenerationService: ProgramGenerationServiceProtocol, @uncheck
                 "calibration": "\(input.calibration.requiresLearningWeek)"
             ])
         } catch {
-            let inputs = buildInputs(
-                buildIdentity: buildIdentity,
-                userProfile: userProfile,
-                analysis: analysis
+            logger.log("Deterministic program generation failed", level: .error, context: [
+                "buildIdentity": buildIdentity.displayName,
+                "deterministicError": "\(error)"
+            ])
+            try? await database.update(
+                ["status": ScanStatus.failed.rawValue],
+                collection: "scans",
+                documentId: analysis.scanId
             )
-            if let llm = try? await callClaude(inputs: inputs) {
-                program = ProgramBuilder.build(
-                    from: llm,
-                    userId: userProfile.id,
-                    scanId: analysis.scanId,
-                    analysisId: analysis.id,
-                    buildIdentity: buildIdentity
-                )
-                logger.log("Program generated via Claude fallback", level: .warning, context: [
-                    "programId": program.id,
-                    "buildIdentity": buildIdentity.displayName,
-                    "deterministicError": "\(error)"
-                ])
-            } else {
-                program = await localFallback(
-                    userProfile: userProfile,
-                    buildIdentity: buildIdentity,
-                    scanId: analysis.scanId,
-                    analysisId: analysis.id
-                )
-                logger.log("Program generated via legacy local fallback", level: .error, context: [
-                    "programId": program.id,
-                    "buildIdentity": buildIdentity.displayName,
-                    "deterministicError": "\(error)"
-                ])
-            }
+            throw error
         }
 
         try? await database.create(program, collection: "programs", documentId: program.id)
@@ -110,13 +88,6 @@ final class ProgramGenerationService: ProgramGenerationServiceProtocol, @uncheck
         sessionLength: SessionLength?,
         exerciseStyles: Set<ExerciseStyle>,
         targetAreas: Set<TargetArea>,
-        goals: Set<Goal> = [],
-        obstacles: Set<Obstacle> = [],
-        sleepQuality: Int = 5,
-        stressLevel: Int = 5,
-        currentFrequency: Frequency? = nil,
-        commitment: Int = 8,
-        displayHandle: String = "",
         age: Int = 0,
         gender: Gender = .unspecified,
         heightCm: Double = 0,
@@ -126,77 +97,39 @@ final class ProgramGenerationService: ProgramGenerationServiceProtocol, @uncheck
         trainingFeedbackMode: TrainingFeedbackMode? = nil,
         cutModeActive: Bool = false,
         biologicalSex: BiologicalSex? = nil
-    ) async -> TrainingProgram {
+    ) async throws -> TrainingProgram {
         // MIGRATION: derive BuildIdentity from AttributeService rather than relying
         // on the archetype param. The archetype param is kept for external API
         // compatibility (callers like UnboundHomeView still pass it) until Phase 2g
         // removes it from the call sites.
         let buildIdentity = await AttributeService.shared.snapshot(userId: userId, asOf: Date()).buildIdentity
 
-        let program: TrainingProgram
-        do {
-            let deterministic = await deterministicInput(
-                userId: userId,
-                buildIdentity: buildIdentity,
-                targetFrequency: targetFrequency,
-                trainingDays: trainingDays,
-                equipment: equipment,
-                experience: experience,
-                exerciseStyles: exerciseStyles,
-                targetAreas: targetAreas,
-                cutModeActive: cutModeActive,
-                trainingFeedbackMode: trainingFeedbackMode,
-                trainingStyleOverride: trainingStyleOverride,
-                age: age,
-                gender: gender,
-                biologicalSex: biologicalSex,
-                heightCm: heightCm,
-                weightKg: weightKg,
-                scanId: nil,
-                analysisId: nil
-            )
-            program = try DeterministicProgramGenerator.generate(input: deterministic)
-            logger.log("Onboarding program via deterministic generator", level: .info, context: [
-                "programId": program.id,
-                "calibration": "\(deterministic.calibration.requiresLearningWeek)"
-            ])
-        } catch {
-            let calibrations = await CalibrationService.shared.fetchAll(userId: userId)
-            let rank = await resolveArchetypeRank(userId: userId)
-            let preferences = (try? await ExercisePreferenceService.shared.fetchPreferences(userId: userId)) ?? []
-            let fallback = LocalProgramGenerator.generate(
-                buildIdentity: buildIdentity,
-                targetFrequency: targetFrequency,
-                equipment: equipment,
-                experience: experience,
-                sessionLength: sessionLength,
-                exerciseStyles: exerciseStyles,
-                targetAreas: targetAreas,
-                goals: goals,
-                obstacles: obstacles,
-                sleepQuality: sleepQuality,
-                stressLevel: stressLevel,
-                currentFrequency: currentFrequency,
-                commitment: commitment,
-                displayHandle: displayHandle,
-                age: age,
-                gender: gender,
-                heightCm: heightCm,
-                weightKg: weightKg,
-                preferences: preferences,
-                progressionStates: [],
-                familyStates: [],
-                customExercises: [],
-                calibrations: calibrations,
-                archetypeRank: rank,
-                userId: userId
-            )
-            program = fallback
-            logger.log("Onboarding program via legacy local fallback", level: .error, context: [
-                "programId": program.id,
-                "deterministicError": "\(error)"
-            ])
-        }
+        let deterministic = await deterministicInput(
+            userId: userId,
+            buildIdentity: buildIdentity,
+            targetFrequency: targetFrequency,
+            trainingDays: trainingDays,
+            equipment: equipment,
+            experience: experience,
+            sessionLength: sessionLength,
+            exerciseStyles: exerciseStyles,
+            targetAreas: targetAreas,
+            cutModeActive: cutModeActive,
+            trainingFeedbackMode: trainingFeedbackMode,
+            trainingStyleOverride: trainingStyleOverride,
+            age: age,
+            gender: gender,
+            biologicalSex: biologicalSex,
+            heightCm: heightCm,
+            weightKg: weightKg,
+            scanId: nil,
+            analysisId: nil
+        )
+        let program = try DeterministicProgramGenerator.generate(input: deterministic)
+        logger.log("Onboarding program via deterministic generator", level: .info, context: [
+            "programId": program.id,
+            "calibration": "\(deterministic.calibration.requiresLearningWeek)"
+        ])
 
         // Persist on a DETACHED task so a torn-down caller cannot abort the
         // writes. These two calls used to run inside the caller's task as
@@ -232,68 +165,11 @@ final class ProgramGenerationService: ProgramGenerationServiceProtocol, @uncheck
         return program
     }
 
-    // MARK: - Claude call
-
-    private func callClaude(inputs: ProgramGenerationPrompt.Inputs) async throws -> ProgramLLMOutput {
-        let schema = try JSONValue.fromJSONString(ProgramGenerationPrompt.schemaJSON)
-        let tool = ClaudeClient.Tool(
-            name: ProgramGenerationPrompt.toolName,
-            description: ProgramGenerationPrompt.toolDescription,
-            inputSchema: schema
-        )
-        return try await claude.sendStructured(
-            ProgramLLMOutput.self,
-            model: .sonnet46,
-            system: ProgramGenerationPrompt.systemPrompt(inputs),
-            userText: ProgramGenerationPrompt.userPrompt,
-            tool: tool,
-            maxTokens: 8192
-        )
-    }
-
-    // MARK: - Input builders
-
-    private func buildInputs(
-        buildIdentity: BuildIdentity,
-        userProfile: UserProfile,
-        analysis: BodyAnalysis
-    ) -> ProgramGenerationPrompt.Inputs {
-        let focusAreaNames = analysis.focusAreas
-            .sorted { $0.priority < $1.priority }
-            .map { $0.muscleGroup.displayName }
-
-        return ProgramGenerationPrompt.Inputs(
-            buildIdentity: buildIdentity,
-            targetFrequency: days(for: userProfile.targetFrequency),
-            equipment: (userProfile.equipment ?? []).map(\.rawValue),
-            experience: userProfile.experience?.rawValue ?? "unspecified",
-            sessionLengthMinutes: userProfile.sessionLength?.minutes ?? 60,
-            exerciseStyles: (userProfile.exerciseStyles ?? []).map(\.rawValue),
-            targetAreas: (userProfile.targetAreas ?? []).map(\.rawValue),
-            goals: (userProfile.goals ?? []).map(\.rawValue),
-            obstacles: (userProfile.obstacles ?? []).map(\.rawValue),
-            sleepQuality: userProfile.sleepQuality ?? 5,
-            stressLevel: userProfile.stressLevel ?? 5,
-            commitment: userProfile.commitment ?? 8,
-            displayHandle: userProfile.displayHandle ?? userProfile.displayName ?? "",
-            age: userProfile.age,
-            gender: userProfile.gender?.rawValue,
-            heightCm: userProfile.heightCm,
-            weightKg: userProfile.weightKg,
-            analysisSummary: analysis.summary,
-            focusAreas: focusAreaNames,
-            weaknesses: analysis.weaknesses,
-            strengths: analysis.strengths
-        )
-    }
-
-    private func days(for frequency: TargetFrequency?) -> Int {
-        switch frequency {
-        case .three: return 3
-        case .four: return 4
-        case .five: return 5
-        case .six: return 6
-        case .none: return 4
+    private func defaultSessionMinutes(for experience: Experience) -> Int {
+        switch experience {
+        case .never, .tried: return 45
+        case .used: return 60
+        case .current: return 75
         }
     }
 
@@ -306,6 +182,7 @@ final class ProgramGenerationService: ProgramGenerationServiceProtocol, @uncheck
         trainingDays: Set<Weekday>?,
         equipment: Set<Equipment>,
         experience: Experience?,
+        sessionLength: SessionLength?,
         exerciseStyles: Set<ExerciseStyle>,
         targetAreas: Set<TargetArea> = [],
         focusAreas: [FocusArea] = [],
@@ -341,6 +218,13 @@ final class ProgramGenerationService: ProgramGenerationServiceProtocol, @uncheck
         let resolvedFeedback = trainingFeedbackMode ?? TrainingFeedbackMode.default(for: resolvedExperience)
         let resolvedSex = biologicalSex ?? biologicalSexFallback(from: gender) ?? .male
         let resolvedFocus = focusAreas.isEmpty ? focusAreasFromTargets(targetAreas) : focusAreas
+        let missingNutritionFields = nutritionProfileMissingFields(
+            age: age,
+            biologicalSex: biologicalSex,
+            gender: gender,
+            heightCm: heightCm,
+            weightKg: weightKg
+        )
 
         let calibrations = await calibrationTask
         let progressions = await progressionTask
@@ -361,6 +245,7 @@ final class ProgramGenerationService: ProgramGenerationServiceProtocol, @uncheck
             targetFrequency: frequency,
             trainingDays: resolvedTrainingDays,
             experience: resolvedExperience,
+            sessionLengthMinutes: sessionLength?.minutes ?? defaultSessionMinutes(for: resolvedExperience),
             focusAreas: resolvedFocus,
             cutModeActive: cutModeActive,
             trainingFeedbackMode: resolvedFeedback,
@@ -370,6 +255,7 @@ final class ProgramGenerationService: ProgramGenerationServiceProtocol, @uncheck
             heightCm: heightCm > 0 ? heightCm : 175,
             age: age > 0 ? age : 30,
             sex: resolvedSex,
+            nutritionProfileMissingFields: missingNutritionFields,
             blockStartDate: Date(),
             exercisePreferences: preferences,
             calibration: calibrationInput(
@@ -510,6 +396,23 @@ final class ProgramGenerationService: ProgramGenerationServiceProtocol, @uncheck
         }
     }
 
+    private func nutritionProfileMissingFields(
+        age: Int,
+        biologicalSex: BiologicalSex?,
+        gender: Gender,
+        heightCm: Double,
+        weightKg: Double
+    ) -> [String] {
+        var missing: [String] = []
+        if weightKg <= 0 { missing.append("weight") }
+        if heightCm <= 0 { missing.append("height") }
+        if age <= 0 { missing.append("age") }
+        if biologicalSex == nil && biologicalSexFallback(from: gender) == nil {
+            missing.append("sex")
+        }
+        return missing
+    }
+
     private func focusAreasFromTargets(_ targetAreas: Set<TargetArea>) -> [FocusArea] {
         TargetArea.allCases
             .filter { targetAreas.contains($0) }
@@ -536,56 +439,4 @@ final class ProgramGenerationService: ProgramGenerationServiceProtocol, @uncheck
             }
     }
 
-    // MARK: - Local fallback
-
-    private func localFallback(
-        userProfile: UserProfile,
-        buildIdentity: BuildIdentity,
-        scanId: String,
-        analysisId: String
-    ) async -> TrainingProgram {
-        let calibrations = await CalibrationService.shared.fetchAll(userId: userProfile.id)
-        let rank = await resolveArchetypeRank(userId: userProfile.id)
-        let preferences = (try? await ExercisePreferenceService.shared.fetchPreferences(userId: userProfile.id)) ?? []
-        return LocalProgramGenerator.generate(
-            buildIdentity: buildIdentity,
-            targetFrequency: userProfile.targetFrequency,
-            equipment: Set(userProfile.equipment ?? []),
-            experience: userProfile.experience,
-            sessionLength: userProfile.sessionLength,
-            exerciseStyles: Set(userProfile.exerciseStyles ?? []),
-            targetAreas: Set(userProfile.targetAreas ?? []),
-            goals: Set(userProfile.goals ?? []),
-            obstacles: Set(userProfile.obstacles ?? []),
-            sleepQuality: userProfile.sleepQuality ?? 5,
-            stressLevel: userProfile.stressLevel ?? 5,
-            currentFrequency: userProfile.currentFrequency,
-            commitment: userProfile.commitment ?? 8,
-            displayHandle: userProfile.displayHandle ?? userProfile.displayName ?? "",
-            age: userProfile.age ?? 0,
-            gender: userProfile.gender ?? .unspecified,
-            heightCm: userProfile.heightCm ?? 0,
-            weightKg: userProfile.weightKg ?? 0,
-            preferences: preferences,
-            progressionStates: [],
-            familyStates: [],
-            customExercises: [],
-            calibrations: calibrations,
-            archetypeRank: rank,
-            userId: userProfile.id,
-            scanId: scanId,
-            analysisId: analysisId
-        )
-    }
-
-    /// Resolve the user's current aggregate rank. Runs on the
-    /// main actor (RankService is @MainActor) and funnels back here via
-    /// structured concurrency.
-    private func resolveArchetypeRank(userId: String) async -> SubRank {
-        await MainActor.run {
-            Task { @MainActor in
-                await RankService.shared.aggregateRank(userId: userId)
-            }
-        }.value
-    }
 }

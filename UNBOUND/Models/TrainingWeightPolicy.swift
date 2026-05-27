@@ -8,8 +8,10 @@ enum TrainingWeightUnit: String, Codable, CaseIterable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .kilograms: return "Kilograms"
-        case .pounds: return "Pounds"
+        case .kilograms:
+            return L10n.string(.trainingWeightUnitKilograms, defaultValue: "Kilograms")
+        case .pounds:
+            return L10n.string(.trainingWeightUnitPounds, defaultValue: "Pounds")
         }
     }
 

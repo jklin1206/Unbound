@@ -20,20 +20,20 @@ final class RewardPayloadBuilderTests: XCTestCase {
             standard(.apprentice),
             standard(.forged),
             standard(.veteran),
-            standard(.honed)
+            standard(.master)
         ]
         let rankEvent = RankAdvancement(
             skillId: "pp.pullup",
             skillTitle: "Pull-Up",
             fromTier: nil,
-            toTier: .honed,
+            toTier: .master,
             ranksAdvanced: 6
         )
 
         let payload = RewardPayloadBuilder.proofPayload(
             from: result(
                 standards: standards.shuffled(),
-                unlocks: [SkillUnlock(skillId: "pp.pullup", skillTitle: "Pull-Up", tier: .honed)],
+                unlocks: [SkillUnlock(skillId: "pp.pullup", skillTitle: "Pull-Up", tier: .master)],
                 multiRankEvent: rankEvent
             )
         )

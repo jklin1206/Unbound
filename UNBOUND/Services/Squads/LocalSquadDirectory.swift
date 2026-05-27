@@ -170,6 +170,25 @@ final class LocalSquadDirectory {
         save(records)
     }
 
+    func updateStreakWeeks(squadId: UUID, weeks: Int) {
+        var records = records()
+        guard let pair = records.first(where: { $0.value.squad.id == squadId }) else { return }
+        var record = pair.value
+        record.squad = Squad(
+            id: record.squad.id,
+            name: record.squad.name,
+            captainId: record.squad.captainId,
+            affinityAxis: record.squad.affinityAxis,
+            affinitySetAt: record.squad.affinitySetAt,
+            inviteCode: record.squad.inviteCode,
+            maxSize: record.squad.maxSize,
+            squadStreakWeeks: max(0, weeks),
+            createdAt: record.squad.createdAt
+        )
+        records[pair.key] = record
+        save(records)
+    }
+
     private func records() -> [String: Record] {
         guard let data = defaults.data(forKey: key),
               let decoded = try? JSONDecoder().decode([String: Record].self, from: data)

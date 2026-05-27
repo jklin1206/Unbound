@@ -24,12 +24,12 @@ packages:
   RevenueCat:
     url: https://github.com/RevenueCat/purchases-ios-spm.git
     from: "5.0.0"
-  Superwall:
-    url: https://github.com/superwall/Superwall-iOS.git
-    from: "4.0.0"
   Supabase:
     url: https://github.com/supabase-community/supabase-swift
     from: "2.0.0"
+  PostHog:
+    url: https://github.com/PostHog/posthog-ios.git
+    from: "3.0.0"
   # Hot-reload for SwiftUI iteration. Debug-only; the linker keeps it
   # out of release builds because the import is wrapped in #if DEBUG.
   # Setup: install InjectionIII.app once and drag UNBOUND.xcodeproj
@@ -58,12 +58,13 @@ targets:
     dependencies:
       - package: RevenueCat
         product: RevenueCat
-      - package: Superwall
-        product: SuperwallKit
       - package: Supabase
         product: Supabase
+      - package: PostHog
+        product: PostHog
       - package: HotReloading
         product: HotReloading
+      - sdk: AppIntents.framework
 
   UNBOUNDTests:
     type: bundle.unit-test
@@ -72,6 +73,7 @@ targets:
       - path: UNBOUNDTests
     dependencies:
       - target: UNBOUND
+      - sdk: AppIntents.framework
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES

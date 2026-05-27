@@ -19,7 +19,7 @@ struct SquadMissionCard: View {
                 Text("SQUAD MISSION")
                     .font(.system(size: 10, weight: .heavy, design: .monospaced))
                     .tracking(2.0)
-                    .foregroundStyle(Color.unbound.textTertiary ?? Color.unbound.textSecondary)
+                    .foregroundStyle(Color.unbound.textTertiary)
                 Spacer()
                 if mission.isCompleted {
                     completedBadge
@@ -33,10 +33,10 @@ struct SquadMissionCard: View {
             // Mission title + subtitle
             VStack(alignment: .leading, spacing: 4) {
                 Text(mission.kind.displayName)
-                    .font(Font.unbound.titleS ?? .system(size: 17, weight: .semibold))
+                    .font(Font.unbound.titleS)
                     .foregroundStyle(Color.unbound.textPrimary)
                 Text(mission.kind.subtitle)
-                    .font(Font.unbound.bodyS ?? .system(size: 13))
+                    .font(Font.unbound.bodyS)
                     .foregroundStyle(Color.unbound.textSecondary)
                     .lineLimit(2)
             }

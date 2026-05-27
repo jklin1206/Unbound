@@ -5,9 +5,9 @@ enum CommitVisionSlide: String, CaseIterable {
 
     var chip: String {
         switch self {
-        case .day30: return "30 DAYS IN"
-        case .day90: return "90 DAYS IN"
-        case .today: return "STARTING TODAY"
+        case .day30: return "FIRST ARC"
+        case .day90: return "THE CLIMB"
+        case .today: return "GATE ONE"
         }
     }
 
@@ -16,6 +16,14 @@ enum CommitVisionSlide: String, CaseIterable {
         case .day30: return "calendar"
         case .day90: return "star.square.fill"
         case .today: return "flame.fill"
+        }
+    }
+
+    var assetName: String {
+        switch self {
+        case .day30: return "onboarding_path_day30_card"
+        case .day90: return "onboarding_path_rank_gates"
+        case .today: return "onboarding_path_open_gate"
         }
     }
 
@@ -49,7 +57,7 @@ struct Step_CommitVision: View {
             onPrimary: onContinue
         ) {
             VStack(spacing: 0) {
-                Spacer().frame(height: 24)
+                visionHero
 
                 HStack(spacing: 8) {
                     Image(systemName: slide.icon)
@@ -85,12 +93,6 @@ struct Step_CommitVision: View {
                     .padding(.horizontal, 16)
                     .fixedSize(horizontal: false, vertical: true)
 
-                Spacer().frame(height: 24)
-
-                if slide != .today {
-                    visionPanel
-                }
-
                 Spacer().frame(height: 20)
 
                 HStack(spacing: 6) {
@@ -117,27 +119,26 @@ struct Step_CommitVision: View {
     }
 
     @ViewBuilder
-    private var visionPanel: some View {
-        HUDPanel(isActive: true, pulse: true) {
-            HStack(spacing: 14) {
-                Image(systemName: slide == .day30 ? "target" : "checkmark.seal.fill")
-                    .font(.system(size: 22, weight: .semibold))
-                    .foregroundStyle(Color.unbound.accent)
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(slide == .day30 ? "YOUR FIRST UNLOCK" : "WHAT YOU'LL HAVE HIT")
-                        .font(Font.unbound.monoS)
-                        .tracking(1.6)
-                        .foregroundStyle(Color.unbound.accent)
-                    Text(slide == .day30 ? firstNodeTitle : midNodeTitle)
-                        .font(Font.unbound.bodyLStrong)
-                        .foregroundStyle(Color.unbound.textPrimary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                Spacer()
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 16)
-        }
+    private var visionHero: some View {
+        Image(slide.assetName)
+            .resizable()
+            .scaledToFill()
+            .frame(height: slide == .today ? 292 : 318)
+            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .overlay(
+                LinearGradient(
+                    colors: [Color.black.opacity(0.08), Color.clear, Color.black.opacity(0.46)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .strokeBorder(Color.unbound.accent.opacity(0.32), lineWidth: 1)
+            )
+            .shadow(color: Color.unbound.accent.opacity(0.22), radius: 18)
+            .padding(.bottom, 22)
     }
 
     private var archetypeName: String {
@@ -171,22 +172,22 @@ struct Step_CommitVision: View {
     private var headlineText: String {
         switch slide {
         case .day30:
-            return "In 30 days, you'll hit your first unlock."
+            return "Your first arc is loaded."
         case .day90:
-            return "In 90 days, \(archetypeName) isn't a goal. It's a label."
+            return "The higher gates stop looking impossible."
         case .today:
-            return "All of this starts today."
+            return "Open the gate."
         }
     }
 
     private var bodyCopy: String {
         switch slide {
         case .day30:
-            return "Training \(sessionsPerWeek) days a week. Showing up on days you don't feel like it. By week four you'll feel different before you look different."
+            return "For the next four weeks, UNBOUND gives you the route: \(sessionsPerWeek)x/week training, recovery targets, check-ins, and visible proof that you are not stuck at Day Zero."
         case .day90:
-            return "You'll be halfway through your protocol. Friends will start noticing. Your own mirror will start agreeing. And you'll still be earlier than you think in the real transformation."
+            return "The ladder is not decoration. Your logged sessions, skill progress, and rank movement keep turning into the next visible step."
         case .today:
-            return "You don't become this person by wanting to. You become this person by starting. Today is where the 30-day version of you begins."
+            return "Your first route is loaded. Step through and start becoming the version that actually keeps showing up."
         }
     }
 }

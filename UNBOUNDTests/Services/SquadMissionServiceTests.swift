@@ -25,7 +25,7 @@ final class SquadMissionServiceTests: XCTestCase {
     // MARK: - generateThisWeek target
 
     func testGenerateThisWeekReturnsMission() async throws {
-        let service = SquadMissionService()
+        let service = SquadMissionService(remoteReadsEnabled: false)
         let squadId = UUID()
         let mission = try await service.generateThisWeek(squadId: squadId)
         XCTAssertEqual(mission.squadId, squadId)
@@ -35,7 +35,7 @@ final class SquadMissionServiceTests: XCTestCase {
     }
 
     func testGenerateThisWeekTargetPositive() async throws {
-        let service = SquadMissionService()
+        let service = SquadMissionService(remoteReadsEnabled: false)
         let mission = try await service.generateThisWeek(squadId: UUID())
         XCTAssertGreaterThan(mission.target, 0)
     }
@@ -43,7 +43,7 @@ final class SquadMissionServiceTests: XCTestCase {
     // MARK: - evaluateCompletion does NOT fire when progress < target
 
     func testEvaluateCompletionDoesNotFireBelowTarget() async {
-        let service = SquadMissionService()
+        let service = SquadMissionService(remoteReadsEnabled: false)
         var notificationFired = false
         let token = NotificationCenter.default.addObserver(
             forName: .squadMissionCompleted,

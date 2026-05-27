@@ -13,10 +13,10 @@ struct Step22_Name: View {
 
     var body: some View {
         OnboardingScaffold(
-            title: "What should we call you?",
-            subtitle: "Shown on your profile and scan cards.",
+            title: L10n.onboarding("name.title", defaultValue: "What should we call you?"),
+            subtitle: L10n.onboarding("name.subtitle", defaultValue: "Shown on your profile and scan cards."),
             progress: progress,
-            primaryTitle: "Continue",
+            primaryTitle: L10n.onboarding("common.continue", defaultValue: "Continue"),
             primaryEnabled: !localHandle.trimmingCharacters(in: .whitespaces).isEmpty,
             hudStep: .name,
             onBack: onBack,
@@ -30,12 +30,12 @@ struct Step22_Name: View {
 
                 HUDTextInput(
                     text: $localHandle,
-                    placeholder: "Your handle",
-                    eyebrow: "HANDLE",
+                    placeholder: L10n.onboarding("name.placeholder", defaultValue: "Your handle"),
+                    eyebrow: L10n.onboarding("name.eyebrow", defaultValue: "HANDLE"),
                     isFocused: $isFieldFocused
                 )
 
-                Text("You can change this later in settings.")
+                Text(L10n.onboarding("name.footer", defaultValue: "You can change this later in settings."))
                     .font(Font.unbound.monoS)
                     .tracking(1.2)
                     .foregroundStyle(Color.unbound.textTertiary)

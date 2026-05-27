@@ -79,20 +79,44 @@ enum ScanNarrativeService {
     static func fallbackFirstScanNarrative(for identity: BuildIdentity) -> String {
         switch identity.shape {
         case .balancedAthlete:
-            return "Your arc begins balanced across every axis. No single specialty yet — that's a starting line, not a verdict. Come back in 30 days and we'll see where you've tilted."
+            return L10n.string(
+                .scanNarrativeFirstBalanced,
+                defaultValue: "Your arc begins balanced across every axis. No single specialty yet — that's a starting line, not a verdict. Come back in 30 days and we'll see where you've tilted."
+            )
         case .hybridAthlete:
-            return "Your arc begins as a hybrid athlete — multiple strengths, no single specialty. The next 30 days of training will start sharpening the lines."
+            return L10n.string(
+                .scanNarrativeFirstHybridAthlete,
+                defaultValue: "Your arc begins as a hybrid athlete — multiple strengths, no single specialty. The next 30 days of training will start sharpening the lines."
+            )
         case .specialist:
-            let axis = identity.primary?.buildVocab ?? "Balanced"
-            return "Your arc begins tilted toward \(axis). That's where you walked in — now we'll see how it compounds with training. Come back in 30 days."
+            let axis = identity.primary?.buildVocab ?? L10n.string(.buildIdentityAxisBalanced, defaultValue: "Balanced")
+            return L10n.format(
+                .scanNarrativeFirstSpecialist,
+                defaultValue: "Your arc begins tilted toward %@. That's where you walked in — now we'll see how it compounds with training. Come back in 30 days.",
+                axis
+            )
         case .hybrid:
-            let primary = identity.primary?.buildVocab ?? "Balanced"
-            let secondary = identity.secondary?.buildVocab ?? ""
-            let secondaryText = secondary.isEmpty ? "" : " with strong \(secondary)"
-            return "Your arc begins as a \(primary) hybrid\(secondaryText). Two strengths to lean into, room everywhere else. The next checkpoint shows what 30 days does."
+            let primary = identity.primary?.buildVocab ?? L10n.string(.buildIdentityAxisBalanced, defaultValue: "Balanced")
+            if let secondary = identity.secondary?.buildVocab {
+                return L10n.format(
+                    .scanNarrativeFirstHybridWithSecondary,
+                    defaultValue: "Your arc begins as a %@ hybrid with strong %@. Two strengths to lean into, room everywhere else. The next checkpoint shows what 30 days does.",
+                    primary,
+                    secondary
+                )
+            }
+            return L10n.format(
+                .scanNarrativeFirstHybridWithoutSecondary,
+                defaultValue: "Your arc begins as a %@ hybrid. Two strengths to lean into, room everywhere else. The next checkpoint shows what 30 days does.",
+                primary
+            )
         case .lean:
-            let axis = identity.primary?.buildVocab ?? "Balanced"
-            return "Your arc begins trending \(axis). A clear direction, but plenty of room to grow elsewhere. Come back in 30 days."
+            let axis = identity.primary?.buildVocab ?? L10n.string(.buildIdentityAxisBalanced, defaultValue: "Balanced")
+            return L10n.format(
+                .scanNarrativeFirstLean,
+                defaultValue: "Your arc begins trending %@. A clear direction, but plenty of room to grow elsewhere. Come back in 30 days.",
+                axis
+            )
         }
     }
 
@@ -103,19 +127,34 @@ enum ScanNarrativeService {
     ) -> String {
         let positives = delta.positiveDeltas
         guard !positives.isEmpty else {
-            return "Your build held steady this month. Consistency is its own kind of win — keep the work going and the next checkpoint will show more."
+            return L10n.string(
+                .scanNarrativeEvolutionSteady,
+                defaultValue: "Your build held steady this month. Consistency is its own kind of win — keep the work going and the next checkpoint will show more."
+            )
         }
         if let primary = delta.primaryGrowthAxis,
            let value = positives[primary] {
             let other = positives.keys.filter { $0 != primary }.first
-            let secondaryClause: String
             if let other, let v = positives[other], v > 0 {
-                secondaryClause = " \(other.buildVocab) climbed +\(v) alongside it."
-            } else {
-                secondaryClause = ""
+                return L10n.format(
+                    .scanNarrativeEvolutionPrimaryWithSecondary,
+                    defaultValue: "Your %@ grew +%d over the last month. %@ climbed +%d alongside it. The arc is compounding — keep training and the next checkpoint will keep moving.",
+                    primary.buildVocab,
+                    value,
+                    other.buildVocab,
+                    v
+                )
             }
-            return "Your \(primary.buildVocab) grew +\(value) over the last month.\(secondaryClause) The arc is compounding — keep training and the next checkpoint will keep moving."
+            return L10n.format(
+                .scanNarrativeEvolutionPrimaryOnly,
+                defaultValue: "Your %@ grew +%d over the last month. The arc is compounding — keep training and the next checkpoint will keep moving.",
+                primary.buildVocab,
+                value
+            )
         }
-        return "Your build moved this month. Keep training — the next checkpoint will show more."
+        return L10n.string(
+            .scanNarrativeEvolutionMoved,
+            defaultValue: "Your build moved this month. Keep training — the next checkpoint will show more."
+        )
     }
 }
