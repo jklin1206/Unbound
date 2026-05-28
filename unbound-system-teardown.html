@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UNBOUND — System Teardown & Year Simulation</title>
+
+<!-- Fonts: Chakra Petch (angular anime-HUD display) + Satoshi (body) + JetBrains Mono (data) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap">
+
+<style>
+/* ===========================================
+   THEME — UNBOUND anime training-arc HUD
+   Tweak these to reskin the whole deck
+   =========================================== */
+:root {
+    --bg-0:        #05070e;   /* deep space */
+    --bg-1:        #0a0f1c;   /* panel base */
+    --bg-2:        #111a2e;   /* raised panel */
+    --line:        rgba(54, 224, 208, 0.18);
+    --line-soft:   rgba(255, 255, 255, 0.06);
+
+    --text:        #eaf2ff;
+    --text-dim:    #8aa0c0;
+    --text-faint:  #5c6f8c;
+
+    --cyan:        #36e0d0;   /* primary HUD accent */
+    --cyan-bright: #5cffe9;
+    --ember:       #ff6b35;   /* trial / warning / ember */
+    --gold:        #ffc24d;   /* rank / reward */
+    --violet:      #9b6bff;   /* prestige */
+    --red:         #ff4d6d;   /* gap / risk */
+    --green:       #3ddc97;   /* real / works */
+
+    --cyan-glow:   rgba(54, 224, 208, 0.28);
+    --ember-glow:  rgba(255, 107, 53, 0.30);
+
+    /* Typography */
+    --font-display: 'Chakra Petch', sans-serif;
+    --font-body:    'Satoshi', sans-serif;
+    --font-mono:    'JetBrains Mono', monospace;
+
+    --title-size:   clamp(2rem, 6vw, 5rem);
+    --h2-size:      clamp(1.4rem, 3.6vw, 2.7rem);
+    --h3-size:      clamp(1rem, 2.2vw, 1.5rem);
+    --body-size:    clamp(0.74rem, 1.25vw, 1.02rem);
+    --small-size:   clamp(0.62rem, 0.95vw, 0.82rem);
+    --tiny-size:    clamp(0.55rem, 0.8vw, 0.7rem);
+
+    --slide-padding: clamp(1.1rem, 4vw, 3.6rem);
+    --content-gap:   clamp(0.6rem, 2vw, 1.6rem);
+    --element-gap:   clamp(0.3rem, 1vw, 0.9rem);
+
+    --ease: cubic-bezier(0.16, 1, 0.3, 1);
+    --dur: 0.7s;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+/* --- viewport-base.css (mandatory, full) --- */
+html, body { height: 100%; overflow-x: hidden; }
+html { scroll-snap-type: y mandatory; scroll-behavior: smooth; }
+.slide {
+    width: 100vw; height: 100vh; height: 100dvh;
+    overflow: hidden; scroll-snap-align: start;
+    display: flex; flex-direction: column; position: relative;
+}
+.slide-content {
+    flex: 1; display: flex; flex-direction: column; justify-content: center;
+    max-height: 100%; overflow: hidden; padding: var(--slide-padding);
+}
+.card, .container, .content-box { max-width: min(92vw, 1100px); max-height: min(82vh, 760px); }
+.feature-list, .bullet-list { gap: clamp(0.4rem, 1vh, 1rem); }
+.feature-list li, .bullet-list li { font-size: var(--body-size); line-height: 1.4; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); gap: clamp(0.5rem, 1.5vw, 1rem); }
+img, .image-container { max-width: 100%; max-height: min(50vh, 400px); object-fit: contain; }
+@media (max-height: 700px){ :root{ --slide-padding:clamp(0.75rem,3vw,2rem); --content-gap:clamp(0.4rem,1.5vw,1rem); --title-size:clamp(1.25rem,4.5vw,2.5rem); --h2-size:clamp(1rem,3vw,1.75rem);} }
+@media (max-height: 600px){ :root{ --slide-padding:clamp(0.5rem,2.5vw,1.5rem); --content-gap:clamp(0.3rem,1vw,0.75rem); --title-size:clamp(1.1rem,4vw,2rem); --body-size:clamp(0.66rem,1.2vw,0.9rem);} .nav-dots,.keyboard-hint,.decorative{display:none;} }
+@media (max-height: 500px){ :root{ --slide-padding:clamp(0.4rem,2vw,1rem); --title-size:clamp(1rem,3.5vw,1.5rem); --h2-size:clamp(0.9rem,2.5vw,1.25rem); --body-size:clamp(0.62rem,1vw,0.82rem);} }
+@media (max-width: 600px){ :root{ --title-size:clamp(1.25rem,7vw,2.5rem);} .grid{ grid-template-columns:1fr;} }
+@media (prefers-reduced-motion: reduce){ *,*::before,*::after{ animation-duration:0.01ms!important; transition-duration:0.2s!important;} html{scroll-behavior:auto;} }
+
+/* ===========================================
+   GLOBAL CANVAS
+   =========================================== */
+body {
+    background: var(--bg-0);
+    color: var(--text);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+}
+
+/* Tech-grid background on every slide (UNBOUND HUD motif) */
+.slide::before {
+    content: "";
+    position: absolute; inset: 0;
+    background-image:
+        linear-gradient(var(--line-soft) 1px, transparent 1px),
+        linear-gradient(90deg, var(--line-soft) 1px, transparent 1px);
+    background-size: clamp(28px, 4vw, 52px) clamp(28px, 4vw, 52px);
+    mask-image: radial-gradient(ellipse 90% 80% at 50% 40%, #000 30%, transparent 100%);
+    opacity: 0.6; pointer-events: none;
+}
+/* Ambient glow per slide */
+.slide::after {
+    content: "";
+    position: absolute; pointer-events: none;
+    width: 70vw; height: 70vw; max-width: 900px; max-height: 900px;
+    top: -20%; right: -15%;
+    background: radial-gradient(circle, var(--cyan-glow), transparent 65%);
+    opacity: 0.35; filter: blur(20px);
+}
+.slide.ember-slide::after { background: radial-gradient(circle, var(--ember-glow), transparent 65%); opacity: 0.4; }
+
+/* ===========================================
+   TYPOGRAPHY HELPERS
+   =========================================== */
+.kicker {
+    font-family: var(--font-mono);
+    font-size: var(--small-size);
+    letter-spacing: 0.32em; text-transform: uppercase;
+    color: var(--cyan); display: flex; align-items: center; gap: 0.6em;
+}
+.kicker::before { content: ""; width: clamp(20px,3vw,46px); height: 1px; background: var(--cyan); display: inline-block; }
+h1, h2, h3 { font-family: var(--font-display); font-weight: 700; line-height: 1.02; letter-spacing: -0.01em; }
+h2 { font-size: var(--h2-size); }
+h3 { font-size: var(--h3-size); }
+p { font-size: var(--body-size); color: var(--text-dim); line-height: 1.55; }
+strong { color: var(--text); font-weight: 700; }
+.mono { font-family: var(--font-mono); }
+.cy { color: var(--cyan); }
+.em { color: var(--ember); }
+.gd { color: var(--gold); }
+.rd { color: var(--red); }
+.gr { color: var(--green); }
+.vi { color: var(--violet); }
+
+/* ===========================================
+   HUD PANEL — chamfered corner (UNBOUND ChamferedShape motif)
+   =========================================== */
+.hud {
+    position: relative;
+    background: linear-gradient(150deg, rgba(17,26,46,0.92), rgba(10,15,28,0.82));
+    border: 1px solid var(--line);
+    clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px));
+    padding: clamp(0.7rem, 1.6vw, 1.25rem);
+}
+.hud.em-edge { border-color: rgba(255,107,53,0.32); }
+.hud .corner-tag {
+    position: absolute; top: 0; right: 0;
+    font-family: var(--font-mono); font-size: var(--tiny-size);
+    color: var(--bg-0); background: var(--cyan);
+    padding: 2px 8px 2px 12px;
+    clip-path: polygon(14px 0, 100% 0, 100% 100%, 0 100%);
+    letter-spacing: 0.1em;
+}
+
+/* ===========================================
+   SLIDE 1 — TITLE
+   =========================================== */
+.title-slide { align-items: center; justify-content: center; text-align: center; }
+.title-slide h1 {
+    font-size: var(--title-size);
+    letter-spacing: 0.12em;
+    background: linear-gradient(180deg, #ffffff 0%, var(--cyan) 130%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    text-shadow: 0 0 60px var(--cyan-glow);
+}
+.title-slide .sub { font-family: var(--font-display); font-size: var(--h3-size); color: var(--text); margin-top: 0.4em; letter-spacing: 0.04em; }
+.title-slide .tag { font-family: var(--font-mono); font-size: var(--small-size); color: var(--text-faint); margin-top: 1.6em; letter-spacing: 0.18em; }
+.title-rule { width: clamp(60px, 12vw, 140px); height: 2px; background: linear-gradient(90deg, transparent, var(--ember), transparent); margin: 1.4em auto 0; }
+
+/* ===========================================
+   LAYOUT PRIMITIVES
+   =========================================== */
+.head-row { display: flex; flex-direction: column; gap: 0.5em; margin-bottom: var(--content-gap); }
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(0.6rem, 1.6vw, 1.3rem); }
+.three-col { display: grid; grid-template-columns: repeat(3, 1fr); gap: clamp(0.5rem, 1.4vw, 1rem); }
+@media (max-width: 720px){ .two-col, .three-col { grid-template-columns: 1fr; } }
+
+.stat-num { font-family: var(--font-display); font-weight: 700; font-size: clamp(1.6rem, 4.5vw, 3.2rem); color: var(--cyan); line-height: 1; }
+.stat-label { font-size: var(--small-size); color: var(--text-dim); margin-top: 0.3em; }
+
+/* Data table — HUD style */
+.dtable { width: 100%; border-collapse: collapse; font-size: var(--small-size); }
+.dtable th, .dtable td { text-align: left; padding: clamp(0.28rem,0.7vw,0.55rem) clamp(0.4rem,0.9vw,0.8rem); border-bottom: 1px solid var(--line-soft); }
+.dtable th { font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.08em; font-size: var(--tiny-size); color: var(--cyan); }
+.dtable td { color: var(--text-dim); }
+.dtable td.mono, .dtable td .mono { font-family: var(--font-mono); color: var(--text); }
+.dtable tr:last-child td { border-bottom: none; }
+
+.pill { display: inline-block; font-family: var(--font-mono); font-size: var(--tiny-size); padding: 2px 9px; border-radius: 2px; letter-spacing: 0.06em; }
+.pill.real { background: rgba(61,220,151,0.14); color: var(--green); border: 1px solid rgba(61,220,151,0.3); }
+.pill.mock { background: rgba(255,194,77,0.12); color: var(--gold); border: 1px solid rgba(255,194,77,0.3); }
+.pill.gap  { background: rgba(255,77,109,0.12); color: var(--red); border: 1px solid rgba(255,77,109,0.3); }
+.pill.det  { background: rgba(54,224,208,0.12); color: var(--cyan); border: 1px solid rgba(54,224,208,0.3); }
+
+/* tier ladder */
+.ladder { display: flex; flex-direction: column; gap: 4px; }
+.rung { display: grid; grid-template-columns: 28px 1fr; gap: 0.7em; align-items: center; }
+.rung .n { font-family: var(--font-mono); font-size: var(--tiny-size); color: var(--text-faint); text-align: right; }
+.rung .bar { height: clamp(20px, 3.2vh, 30px); display: flex; align-items: center; padding-left: 0.8em;
+    font-family: var(--font-display); font-size: var(--small-size); letter-spacing: 0.06em; color: var(--text);
+    clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 100%, 0 100%); }
+
+.list-clean { list-style: none; display: flex; flex-direction: column; gap: clamp(0.35rem, 1vh, 0.7rem); }
+.list-clean li { font-size: var(--body-size); color: var(--text-dim); line-height: 1.45; padding-left: 1.3em; position: relative; }
+.list-clean li::before { content: "▸"; position: absolute; left: 0; color: var(--cyan); font-size: 0.9em; }
+.list-clean.ember li::before { color: var(--ember); }
+.list-clean.gap li::before { content: "✕"; color: var(--red); font-size: 0.8em; }
+.list-clean.ok li::before { content: "✓"; color: var(--green); }
+.list-clean li b { color: var(--text); }
+.fp { font-family: var(--font-mono); font-size: var(--tiny-size); color: var(--text-faint); }
+
+.flow { display: flex; align-items: center; gap: clamp(0.3rem,1vw,0.7rem); flex-wrap: wrap; }
+.flow .node { font-family: var(--font-mono); font-size: var(--small-size); padding: 0.4em 0.8em; border: 1px solid var(--line); color: var(--text);
+    clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 100%, 8px 100%); background: var(--bg-2); }
+.flow .arr { color: var(--cyan); font-family: var(--font-mono); }
+
+/* ===========================================
+   ANIMATIONS
+   =========================================== */
+.reveal { opacity: 0; transform: translateY(28px); transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease); }
+.slide.visible .reveal { opacity: 1; transform: translateY(0); }
+.slide.visible .reveal:nth-child(1){transition-delay:.05s}
+.slide.visible .reveal:nth-child(2){transition-delay:.13s}
+.slide.visible .reveal:nth-child(3){transition-delay:.21s}
+.slide.visible .reveal:nth-child(4){transition-delay:.29s}
+.slide.visible .reveal:nth-child(5){transition-delay:.37s}
+.slide.visible .reveal:nth-child(6){transition-delay:.45s}
+.slide.visible .reveal:nth-child(7){transition-delay:.53s}
+.r2 .reveal { transition-delay: 0s; }
+
+@keyframes pulse { 0%,100%{opacity:.5} 50%{opacity:1} }
+.scanline { position: absolute; left:0; right:0; height: 2px; background: linear-gradient(90deg, transparent, var(--cyan), transparent); opacity:.4; animation: sweep 6s linear infinite; }
+@keyframes sweep { 0%{top:0} 100%{top:100%} }
+
+/* ===========================================
+   CHROME — progress, dots, footer
+   =========================================== */
+.progress-bar { position: fixed; top: 0; left: 0; height: 3px; background: linear-gradient(90deg, var(--cyan), var(--ember)); z-index: 100; width: 0; box-shadow: 0 0 12px var(--cyan-glow); }
+.nav-dots { position: fixed; right: clamp(8px,1.5vw,20px); top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 9px; z-index: 100; }
+.nav-dots button { width: 8px; height: 8px; border: 1px solid var(--text-faint); background: transparent; border-radius: 0; transform: rotate(45deg); cursor: pointer; padding: 0; transition: all .3s; }
+.nav-dots button.active { background: var(--cyan); border-color: var(--cyan); box-shadow: 0 0 8px var(--cyan-glow); }
+.slide-no { position: absolute; bottom: clamp(0.6rem,2vh,1.4rem); left: var(--slide-padding); font-family: var(--font-mono); font-size: var(--tiny-size); color: var(--text-faint); letter-spacing: 0.2em; z-index: 5; }
+.brand-foot { position: absolute; bottom: clamp(0.6rem,2vh,1.4rem); right: var(--slide-padding); font-family: var(--font-mono); font-size: var(--tiny-size); color: var(--text-faint); letter-spacing: 0.2em; z-index: 5; }
+.keyboard-hint { position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%); font-family: var(--font-mono); font-size: var(--tiny-size); color: var(--text-faint); z-index: 100; opacity: .6; }
+
+.caption { font-family: var(--font-mono); font-size: var(--tiny-size); color: var(--text-faint); letter-spacing: 0.08em; }
+.section-tag { font-family: var(--font-mono); font-size: var(--small-size); color: var(--ember); letter-spacing: 0.3em; }
+</style>
+</head>
+<body>
+
+<div class="progress-bar" id="progressBar"></div>
+<nav class="nav-dots" id="navDots"></nav>
+<div class="keyboard-hint decorative">↑ ↓ / SPACE / SCROLL</div>
+
+<!-- ============ 1 · TITLE ============ -->
+<section class="slide title-slide">
+    <div class="scanline"></div>
+    <div class="slide-content" style="align-items:center">
+        <div class="kicker reveal" style="justify-content:center">System Teardown · Year-1 Simulation</div>
+        <h1 class="reveal" style="margin-top:.4em">UNBOUND</h1>
+        <div class="sub reveal">The anime training-arc engine, fully disassembled</div>
+        <div class="title-rule reveal"></div>
+        <div class="tag reveal">COMPONENTS · GAPS · 52-WEEK SIM · TUTORIAL</div>
+    </div>
+    <div class="brand-foot">UNBOUND // BREAK THE RESTRICTION</div>
+</section>
+
+<!-- ============ 2 · WHAT IT IS ============ -->
+<section class="slide">
+    <div class="slide-content">
+        <div class="head-row">
+            <div class="kicker reveal">01 — The premise</div>
+            <h2 class="reveal">A real strength program, wearing a JRPG progression sheet.</h2>
+        </div>
+        <div class="two-col">
+            <div class="hud reveal">
+                <span class="corner-tag">THE LOOP</span>
+                <p style="color:var(--text)"><strong>Train → earn proof → see your character grow → pass a trial → rank up → repeat.</strong></p>
+                <p style="margin-top:.7em">Every completed set feeds <span class="cy">one</span> pipeline that ripples into XP, attributes, skill ranks, body-map heat, badges, and trial readiness. The fantasy is an honest fitness app that <em>feels</em> like leveling a shonen protagonist.</p>
+            </div>
+            <div class="hud reveal">
+                <span class="corner-tag">THE SPINE</span>
+                <p style="margin-bottom:.6em">All training converges on one route:</p>
+                <div class="flow">
+                    <span class="node">PerformanceLog</span><span class="arr">→</span>
+                    <span class="node cy" style="border-color:var(--cyan)">TrainingCompletionService</span><span class="arr">→</span>
+                    <span class="node">side effects</span>
+                </div>
+                <p style="margin-top:.7em" class="caption">XP · AP · attributes · skill tiers · body map · badges · trials — all fan out from one completion event.</p>
+            </div>
+        </div>
+    </div>
+    <div class="slide-no">02</div>
+    <div class="brand-foot">UNBOUND</div>
+</section>
+
+<!-- ============ 3 · SCALE ============ -->
+<section class="slide">
+    <div class="slide-content">
+        <div class="head-row"><div class="kicker reveal">02 — Codebase at a glance</div>
+        <h2 class="reveal">A mature, single-platform SwiftUI app — not a prototype.</h2></div>
+        <div class="three-col reveal" style="margin-bottom:var(--content-gap)">
+            <div class="hud"><div class="stat-num">~390</div><div class="stat-label">Swift source files (app target)</div></div>
+            <div class="hud"><div class="stat-num">9</div><div class="stat-label">skill-tree clusters · ~125 live nodes</div></div>
+            <div class="hud"><div class="stat-num">100%</div><div class="stat-label">deterministic core — no LLM in the math</div></div>
+        </div>
+        <div class="reveal hud em-edge">
+            <span class="corner-tag" style="background:var(--ember)">STACK</span>
+            <ul class="list-clean" style="margin-top:.2em">
+                <li><b>SwiftUI + MVVM</b>, wired through a single <span class="mono cy">ServiceContainer</span> DI graph (real services in prod, mocks for previews only).</li>
+                <li><b>Local-first persistence</b> → outbox → Supabase mirror. Auth via Sign in with Apple + email. RevenueCat hard paywall. PostHog analytics.</li>
+                <li><b>Claude (Haiku 4.5)</b> appears in exactly <span class="cy">3 places</span> — all narrative flavor copy. Zero LLM in program generation, scoring, or coaching.</li>
+            </ul>
+        </div>
+    </div>
+    <div class="slide-no">03</div><div class="brand-foot">UNBOUND</div>
+</section>
+
+<!-- ============ 4 · SECTION: COMPONENTS ============ -->
+<section class="slide ember-slide title-slide">
+    <div class="slide-content" style="align-items:center">
+        <div class="section-tag reveal">PART I</div>
+        <h2 class="reveal" style="font-size:var(--title-size); margin-top:.3em; letter-spacing:.06em">The Key Components</h2>
+        <p class="reveal" style="max-width:46ch; text-align:center; margin-top:.6em">Five progression systems, one currency, one program engine, one proof loop, and a social layer — held together by a single completion pipeline.</p>
+    </div>
+    <div class="slide-no">04</div><div class="brand-foot">UNBOUND // PART I</div>
+</section>
+
+<!-- ============ 5 · FIVE SYSTEMS ============ -->
+<section class="slide">
+    <div class="slide-content">
+        <div class="head-row"><div class="kicker reveal">03 — The progression spine</div>
+        <h2 class="reveal">Five parallel ladders + one currency</h2></div>
+        <div class="reveal"><table class="dtable">
+            <thead><tr><th>System</th><th>Measures</th><th>Moves up when…</th></tr></thead>
+            <tbody>
+                <tr><td class="mono gd">Overall Rank</td><td>Headline identity (9 titles)</td><td>You <span class="em">pass a Trial</span></td></tr>
+                <tr><td class="mono cy">Overall Level (LV)</td><td>Total time-in-game</td><td>Raw AP accrues (concave curve)</td></tr>
+                <tr><td class="mono cy">Movement / Lift Rank</td><td>Strength standard per lift</td><td>You hit weight×reps target</td></tr>
+                <tr><td class="mono cy">Skill Rank</td><td>Calisthenics capability</td><td>You prove the position</td></tr>
+                <tr><td class="mono cy">Attributes (×6)</td><td>POW·AGI·END·CTL·MOB·EXP build shape</td><td>XP crosses the curve</td></tr>
+                <tr><td class="mono vi">AP (currency)</td><td>Per-set work ledger</td><td>Every rep — it's the fuel, not a rank</td></tr>
+            </tbody>
+        </table></div>
+        <p class="reveal caption" style="margin-top:.9em">AP fuels everything but gates <span class="rd">nothing</span>. Standards gate lift/skill ranks; Trials gate Overall Rank. This separation is deliberate — it stops users grinding junk volume to fake a rank-up.</p>
+    </div>
+    <div class="slide-no">05</div><div class="brand-foot">UNBOUND</div>
+</section>
+
+<!-- ============ 6 · THE LADDER ============ -->
+<section class="slide">
+    <div class="slide-content">
+        <div class="head-row"><div class="kicker reveal">04 — The shared ladder</div>
+        <h2 class="reveal">One 9-tier ladder, reused everywhere</h2></div>
+        <div class="two-col">
+            <div class="reveal ladder">
+                <div class="rung"><span class="n">9</span><span class="bar" style="background:linear-gradient(90deg,var(--violet),transparent)">Ascendant</span></div>
+                <div class="rung"><span class="n">8</span><span class="bar" style="background:linear-gradient(90deg,#c39bff55,transparent)">Unbound</span></div>
+                <div class="rung"><span class="n">7</span><span class="bar" style="background:linear-gradient(90deg,#ffc24d55,transparent)">Vessel</span></div>
+                <div class="rung"><span class="n">6</span><span class="bar" style="background:linear-gradient(90deg,#ff6b3555,transparent)">Master</span></div>
+                <div class="rung"><span class="n">5</span><span class="bar" style="background:linear-gradient(90deg,#36e0d055,transparent)">Veteran</span></div>
+                <div class="rung"><span class="n">4</span><span class="bar" style="background:linear-gradient(90deg,#36e0d040,transparent)">Forged</span></div>
+                <div class="rung"><span class="n">3</span><span class="bar" style="background:linear-gradient(90deg,#36e0d030,transparent)">Apprentice</span></div>
+                <div class="rung"><span class="n">2</span><span class="bar" style="background:linear-gradient(90deg,#36e0d020,transparent)">Novice</span></div>
+                <div class="rung"><span class="n">1</span><span class="bar" style="background:linear-gradient(90deg,#ffffff14,transparent)">Initiate</span></div>
+            </div>
+            <div class="reveal hud" style="align-self:center">
+                <span class="corner-tag">SAME NAME, DIFFERENT PROOF</span>
+                <p style="color:var(--text)"><strong>"Forged" is a single rung — but it means something different on each system.</strong></p>
+                <ul class="list-clean" style="margin-top:.7em">
+                    <li>Forged <b>Bench</b> = 1.25× bodyweight ×5</li>
+                    <li>Forged <b>Handstand</b> = 20s freestanding</li>
+                    <li>Forged <b>POW attribute</b> = crossed an XP threshold</li>
+                </ul>
+                <p class="caption" style="margin-top:.7em">Calibrated so the same tier ≈ same athletic level across skills — like Diamond meaning the same across roles in a ranked game.</p>
+            </div>
+        </div>
+    </div>
+    <div class="slide-no">06</div><div class="brand-foot">UNBOUND</div>
+</section>
+
+<!-- ============ 7 · PROGRAM ENGINE ============ -->
+<section class="slide">
+    <div class="slide-content">
+        <div class="head-row"><div class="kicker reveal">05 — Program generation</div>
+        <h2 class="reveal">A deterministic engine, not an AI coach</h2></div>
+        <div class="reveal" style="margin-bottom:var(--content-gap)">
+            <div class="flow">
+                <span class="node">Onboarding + Calibration</span><span class="arr">→</span>
+                <span class="node cy" style="border-color:var(--cyan)">DeterministicProgramGenerator</span><span class="arr">→</span>
+                <span class="node">28-day Arc</span><span class="arr">→</span>
+                <span class="node">2×14-day Waves</span><span class="arr">→</span>
+                <span class="node">Days → Workouts</span>
+            </div>
+        </div>
+        <div class="two-col">
+            <div class="reveal hud">
+                <span class="corner-tag">THE ARC = 28 DAYS</span>
+                <ul class="list-clean">
+                    <li>Days <b>1–14</b> Accumulation · <b>15–21</b> Intensification · <b>22–24</b> Realization · <b>25–28</b> Deload</li>
+                    <li><b>Wave 2</b> (day 15+) bumps RPE +1 on engine-owned days</li>
+                    <li>Block ends → <b>rollover</b> regenerates a fresh Arc, carrying working weights forward & rotating stale exercises</li>
+                </ul>
+            </div>
+            <div class="reveal hud">
+                <span class="corner-tag">DAILY RESOLVER</span>
+                <p>Each day the stored workout is reshaped by modifiers in order:</p>
+                <p class="mono cy" style="font-size:var(--small-size); margin-top:.5em">substitution → trial-prep → skill-taper → deload → short-session</p>
+                <p class="caption" style="margin-top:.6em">It reshapes the prescription — it does <span class="rd">not</span> recompute weights. Weights live in per-exercise ProgressionState.</p>
+            </div>
+        </div>
+    </div>
+    <div class="slide-no">07</div><div class="brand-foot">UNBOUND</div>
+</section>
+
+<!-- ============ 8 · PROGRESSION ENGINE ============ -->
+<section class="slide">
+    <div class="slide-content">
+        <div class="head-row"><div class="kicker reveal">06 — How the weight actually moves</div>
+        <h2 class="reveal">Double progression, RPE-gated</h2></div>
+        <div class="two-col">
+            <div class="reveal hud">
+                <span class="corner-tag">THE RULE</span>
+                <p style="color:var(--text)"><strong>Hit top-of-rep-range at or below target RPE for 2 sessions in a row → advance.</strong></p>
+                <ul class="list-clean" style="margin-top:.7em">
+                    <li><b>Compounds:</b> bump weight (+5kg lower / +2.5kg upper), reset the counter</li>
+                    <li><b>Accessories:</b> add 2 reps to a ceiling, then bump weight</li>
+                    <li><b>Bodyweight skills:</b> no load bump — defers to the skill tree</li>
+                </ul>
+            </div>
+            <div class="reveal hud em-edge">
+                <span class="corner-tag" style="background:var(--ember)">SAFETY VALVES</span>
+                <ul class="list-clean ember">
+                    <li><b>Plateau:</b> exercise stalls ≥3× in 30 logs with no advance</li>
+                    <li><b>Deload:</b> triggers at ≥2 plateaus or week-4 of a block → 2 easy sets @ RPE 6</li>
+                    <li><b>Coach card:</b> one-tap swap / deload / rep-range / acknowledge — each reversible</li>
+                </ul>
+                <p class="caption" style="margin-top:.6em rd">Note: auto-deload is <span class="rd">surfaced as a suggestion</span>, not silently forced — see gaps.</p>
+            </div>
+        </div>
+    </div>
+    <div class="slide-no">08</div><div class="brand-foot">UNBOUND</div>
+</section>
+
+<!-- ============ 9 · XP / AP / LEVEL ============ -->
+<section class="slide">
+    <div class="slide-content">
+        <div class="head-row"><div class="kicker reveal">07 — The reward math</div>
+        <h2 class="reveal">Per-set AP fans out into three dopamine cadences</h2></div>
+        <div class="reveal hud" style="margin-bottom:var(--content-gap)">
+            <span class="corner-tag">PER SET</span>
+            <p class="mono cy" style="font-size:var(--small-size)">rawAP = 10 × metricFactor(log of reps) × intensity^1.5 × rpe × quality × variation</p>
+            <p class="caption" style="margin-top:.5em">Logarithmic on reps → cheap to start, brutal to scale. A 10-rep set ≈ 28 AP; doubling to 20 reps only ≈ 35 AP.</p>
+        </div>
+        <div class="three-col">
+            <div class="reveal hud"><div class="mono cy" style="font-size:var(--small-size)">PER SET</div><p style="color:var(--text); margin-top:.3em"><strong>+47 POW XP</strong></p><p class="caption">every set</p></div>
+            <div class="reveal hud"><div class="mono cy" style="font-size:var(--small-size)">PER LEVEL</div><p style="color:var(--text); margin-top:.3em"><strong>POW 15 → 16</strong></p><p class="caption">every few sessions</p></div>
+            <div class="reveal hud"><div class="mono gd" style="font-size:var(--small-size)">PER TIER</div><p style="color:var(--text); margin-top:.3em"><strong>POW reached Master</strong></p><p class="caption">every few weeks</p></div>
+        </div>
+        <p class="reveal caption" style="margin-top:.8em">Overall LV curve: <span class="mono">LV = floor((xp/250)^0.667)</span> to LV 100, then flat 3,750 XP/level. <span class="cy">Nothing ever decays.</span></p>
+    </div>
+    <div class="slide-no">09</div><div class="brand-foot">UNBOUND</div>
+</section>
+
+<!-- ============ 10 · SKILL TREE + ATTRIBUTES ============ -->
+<section class="slide">
+    <div class="slide-content">
+        <div class="head-row"><div class="kicker reveal">08 — Identity systems</div>
+        <h2 class="reveal">Skill tree & attribute hex</h2></div>
+        <div class="two-col">
+            <div class="reveal hud">
+                <span class="corner-tag">SKILL TREE</span>
+                <p style="color:var(--text)"><strong>~125 live nodes across 9 clusters</strong> (pull, push, core/levers, legs, handstand, planche, one-arm…).</p>
+                <ul class="list-clean" style="margin-top:.6em">
+                    <li>Nodes unlock by <b>proving prereqs</b> — OR-across-groups, AND-within</li>
+                    <li>Each node carries its own 9-tier rank, computed from log history</li>
+                    <li>Clusters can gate behind another cluster's keystone</li>
+                </ul>
+            </div>
+            <div class="reveal hud">
+                <span class="corner-tag">ATTRIBUTE HEX</span>
+                <p style="color:var(--text)"><strong>6 axes that draw your build shape.</strong></p>
+                <ul class="list-clean" style="margin-top:.6em">
+                    <li>Every exercise carries a weight vector → AP fans into axes</li>
+                    <li><b>Novelty bonus</b> (×1.0–1.5): training cold body regions pays more</li>
+                    <li>Shape resolves to <span class="cy">balanced / hybrid / specialist / lean</span></li>
+                </ul>
+            </div>
+        </div>
+        <p class="reveal caption" style="margin-top:.8em">The hex is the "what kind of athlete am I" read; lift & skill ranks answer "how good at X"; Overall LV answers "how long have I trained."</p>
+    </div>
+    <div class="slide-no">10</div><div class="brand-foot">UNBOUND</div>
+</section>
+
+<!-- ============ 11 · TRIALS ============ -->
+<section class="slide ember-slide">
+    <div class="slide-content">
+        <div class="head-row"><div class="kicker reveal">09 — The gates</div>
+        <h2 class="reveal">8 Trials — the only way Overall Rank moves</h2></div>
+        <div class="reveal" style="margin-bottom:var(--content-gap)"><table class="dtable">
+            <thead><tr><th>→ Tier</th><th>LV floor</th><th>Movements</th><th>Skills</th><th>Trial workout</th></tr></thead>
+            <tbody>
+                <tr><td class="mono">Novice</td><td class="mono cy">1</td><td>1</td><td>—</td><td class="em">The Awakening</td></tr>
+                <tr><td class="mono">Forged</td><td class="mono cy">15</td><td>2</td><td>1</td><td class="em">The Forge</td></tr>
+                <tr><td class="mono">Veteran</td><td class="mono cy">22–25</td><td>3</td><td>2</td><td class="em">The Reckoning</td></tr>
+                <tr><td class="mono">Master</td><td class="mono cy">40</td><td>3</td><td>2</td><td class="em">The Gauntlet</td></tr>
+                <tr><td class="mono">Vessel</td><td class="mono cy">55–60</td><td>4</td><td>3</td><td class="em">The Ten Hundred</td></tr>
+                <tr><td class="mono">Ascendant</td><td class="mono cy">90–110</td><td>5</td><td>3</td><td class="em">The Ascension</td></tr>
+            </tbody>
+        </table></div>
+        <p class="reveal caption">Each trial is a named, ceremonial workout graded station-by-station against rep/hold/distance floors with a time cap. LV is the anti-min-max gate: you can't speed-run lifts past it. Pass → cinematic + new rank. Fail → counts as a normal session, cooldown to retry.</p>
+    </div>
+    <div class="slide-no">11</div><div class="brand-foot">UNBOUND</div>
+</section>
+
+<!-- ============ 12 · SCAN / PROOF ============ -->
+<section class="slide">
+    <div class="slide-content">
+        <div class="head-row"><div class="kicker reveal">10 — Proof you're changing</div>
+        <h2 class="reveal">Body scan & monthly checkpoints</h2></div>
+        <div class="two-col">
+            <div class="reveal hud">
+                <span class="corner-tag">THE SCAN</span>
+                <p style="color:var(--text)"><strong>Photos are visual proof only — the body is never graded.</strong></p>
+                <ul class="list-clean" style="margin-top:.6em">
+                    <li>Captures one front photo, stored on-device</li>
+                    <li>Build Identity is read <b>from the attribute system</b>, not the image</li>
+                    <li>Onboarding uses on-device Apple Vision pose detection — no upload, no server AI verdict</li>
+                </ul>
+            </div>
+            <div class="reveal hud">
+                <span class="corner-tag">CHECKPOINT (per Arc)</span>
+                <p>End-of-Arc questionnaire → validated signals (recovery, missed sessions, cardio, pain, nutrition).</p>
+                <p style="margin-top:.5em">Produces a deterministic <span class="cy">loadAdjustmentBias</span> and a Claude-written recap paragraph.</p>
+                <p class="caption" style="margin-top:.5em">Scans only ever surface <b>positive</b> deltas — "scans never show setbacks." Decay caps idle axes quietly.</p>
+            </div>
+        </div>
+    </div>
+    <div class="slide-no">12</div><div class="brand-foot">UNBOUND</div>
+</section>
+
+<!-- ============ 13 · COACH + SOCIAL + INFRA ============ -->
+<section class="slide">
+    <div class="slide-content">
+        <div class="head-row"><div class="kicker reveal">11 — The supporting cast</div>
+        <h2 class="reveal">Coach · Squads · Infrastructure</h2></div>
+        <div class="three-col">
+            <div class="reveal hud">
+                <span class="corner-tag">COACH</span>
+                <p style="color:var(--text)"><strong>Deterministic, not a chatbot.</strong></p>
+                <ul class="list-clean" style="margin-top:.5em">
+                    <li>4 action cards: swap · deload · rep-range · acknowledge</li>
+                    <li>Plateau-fix = fixed 3-week reset template</li>
+                    <li>Travel mode = rotating bodyweight plans</li>
+                </ul>
+            </div>
+            <div class="reveal hud">
+                <span class="corner-tag">SQUADS</span>
+                <p style="color:var(--text)"><strong>Real Supabase backend.</strong></p>
+                <ul class="list-clean" style="margin-top:.5em">
+                    <li>Create/join/leave, roster, chat, reactions</li>
+                    <li>Weekly missions, honors, titles</li>
+                    <li>Friend challenges + live-ish presence</li>
+                </ul>
+            </div>
+            <div class="reveal hud">
+                <span class="corner-tag">INFRA</span>
+                <p style="color:var(--text)"><strong>Production-wired.</strong></p>
+                <ul class="list-clean ok" style="margin-top:.5em">
+                    <li>Local-first sync → Supabase</li>
+                    <li>SIWA + email auth, migration</li>
+                    <li>RevenueCat paywall, PostHog</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="slide-no">13</div><div class="brand-foot">UNBOUND</div>
+</section>
+
+<!-- ============ 14 · SECTION: SIMULATION ============ -->
+<section class="slide title-slide">
+    <div class="scanline"></div>
+    <div class="slide-content" style="align-items:center">
+        <div class="section-tag reveal" style="color:var(--cyan)">PART II</div>
+        <h2 class="reveal" style="font-size:var(--title-size); margin-top:.3em; letter-spacing:.06em">The Year Simulation</h2>
+        <p class="reveal" style="max-width:50ch; text-align:center; margin-top:.6em">I ran a beginner — <span class="cy">4×/week, 52 weeks, fully consistent</span> — through the engine's actual thresholds. Every number below comes from real code, not the design doc.</p>
+    </div>
+    <div class="slide-no">14</div><div class="brand-foot">UNBOUND // PART II</div>
+</section>
+
+<!-- ============ 15 · SIM SETUP ============ -->
+<section class="slide">
+    <div class="slide-content">
+        <div class="head-row"><div class="kicker reveal">12 — Methodology</div>
+        <h2 class="reveal">The test subject</h2></div>
+        <div class="three-col reveal" style="margin-bottom:var(--content-gap)">
+            <div class="hud"><div class="stat-num">4×</div><div class="stat-label">sessions / week (208 total)</div></div>
+            <div class="hud"><div class="stat-num">~500</div><div class="stat-label">AP / session (16–20 working sets)</div></div>
+            <div class="hud"><div class="stat-num">52</div><div class="stat-label">weeks · ~13 Arcs</div></div>
+        </div>
+        <div class="reveal hud">
+            <span class="corner-tag">INPUTS FROM CODE</span>
+            <ul class="list-clean">
+                <li>Experience = <span class="mono">.never</span> → first program is a <b>7-day Calibration Week</b>, and Realization is permanently suppressed for beginners</li>
+                <li>4×/week split resolves to <span class="mono cy">[upper, lower, upper, lower]</span></li>
+                <li>Novelty multiplier starts ~1.3 (cold body) and decays toward 1.0 as the body map saturates</li>
+            </ul>
+        </div>
+    </div>
+    <div class="slide-no">15</div><div class="brand-foot">UNBOUND</div>
+</section>
+
+<!-- ============ 16 · SIM: PROGRAM SIDE ============ -->
+<section class="slide">
+    <div class="slide-content">
+        <div class="head-row"><div class="kicker reveal">13 — What the program does</div>
+        <h2 class="reveal">The training side, week by week</h2></div>
+        <div class="reveal"><table class="dtable">
+            <thead><tr><th>Week</th><th>Phase</th><th>What fires</th></tr></thead>
+            <tbody>
+                <tr><td class="mono cy">1</td><td>Calibration</td><td>2×6–8 @RPE7, seeds ProgressionState per lift; ≥2 standards unlock the real Arc</td></tr>
+                <tr><td class="mono cy">2–4</td><td>Accumulation</td><td>4×8–10 + accessories; fast linear bumps (~+5kg lower every ~1.5 wks)</td></tr>
+                <tr><td class="mono cy">~5</td><td>First Deload</td><td>End of Arc 1 — 2 easy sets @RPE6, rest 60s</td></tr>
+                <tr><td class="mono cy">~6</td><td>Rollover</td><td>Fresh Arc, weights carried forward, a stale exercise rotated out</td></tr>
+                <tr><td class="mono cy">8</td><td>Intensification</td><td>4×5–8 @RPE8; Wave-2 RPE+1 applied</td></tr>
+                <tr><td class="mono cy">12+</td><td>Steady state</td><td>Linear gains slow, plateau detector starts flagging; cycle repeats every 28 days</td></tr>
+            </tbody>
+        </table></div>
+        <p class="reveal caption" style="margin-top:.8em rd">The Arcs are <span class="em">cosmetic 28-day cycles</span>, not escalating macrocycles. There's no training-age deceleration model — late-year weight is purely "did you hit top-of-range twice," so it depends on logged performance, not a curve.</p>
+    </div>
+    <div class="slide-no">16</div><div class="brand-foot">UNBOUND</div>
+</section>
+
+<!-- ============ 17 · SIM: RANK SIDE ============ -->
+<section class="slide ember-slide">
+    <div class="slide-content">
+        <div class="head-row"><div class="kicker reveal">14 — What the character sheet does</div>
+        <h2 class="reveal">Rank, level & rewards over 52 weeks</h2></div>
+        <div class="reveal"><table class="dtable">
+            <thead><tr><th>Milestone</th><th>Overall LV</th><th>Rank reachable</th><th>Bottleneck</th></tr></thead>
+            <tbody>
+                <tr><td class="mono cy">Week 4</td><td class="mono">~10</td><td>Novice → Apprentice</td><td>LV floor (easy)</td></tr>
+                <tr><td class="mono cy">Week 12</td><td class="mono">~20</td><td>Forged</td><td>First attribute floor</td></tr>
+                <tr><td class="mono cy">Week 26</td><td class="mono">~35</td><td>Veteran</td><td>3 attrs ≥ 78</td></tr>
+                <tr><td class="mono cy">Week 52</td><td class="mono gd">~55</td><td class="gd">Master → Vessel edge</td><td>Attribute display-score wall</td></tr>
+            </tbody>
+        </table></div>
+        <div class="two-col reveal" style="margin-top:var(--content-gap)">
+            <div class="hud"><span class="corner-tag">YEAR-END VERDICT</span><p style="color:var(--text)"><strong>Realistic finish: Veteran → Master.</strong> Vessel/Unbound/Ascendant are out of reach in year one — gated by LV 55–110 <em>and</em> 4–6 attributes at 84–95.</p></div>
+            <div class="hud"><span class="corner-tag">COLLECTED</span><p>~12–16 badges · 20–40 skill nodes (rep/weight-detectable) · gold weekly-Vow titles on the main axis.</p></div>
+        </div>
+    </div>
+    <div class="slide-no">17</div><div class="brand-foot">UNBOUND</div>
+</section>
+
+<!-- ============ 18 · SIM: CURVE FEEL ============ -->
+<section class="slide">
+    <div class="slide-content">
+        <div class="head-row"><div class="kicker reveal">15 — The shape of the year</div>
+        <h2 class="reveal">Fast for three months, then a hard taper</h2></div>
+        <div class="reveal hud" style="margin-bottom:var(--content-gap)">
+            <p style="color:var(--text)"><strong>The log-based AP formula + concave level curve + no decay = a deliberate "honeymoon then grind."</strong></p>
+            <p style="margin-top:.5em">Novice → Forged in ~3 months feels electric. Then the attribute <em>display score</em> (which gates the upper trials) climbs at <span class="mono">1/50</span> the rate of raw XP — so progress visibly decelerates exactly when the user expects to keep flying.</p>
+        </div>
+        <div class="two-col">
+            <div class="reveal hud"><span class="corner-tag">SCAN SIDE (MONTHLY)</span>
+            <ul class="list-clean"><li>Month 1: "your arc begins," no delta</li><li>Month 2: first positive delta → "build identity resolved" badge</li><li>Months 3–12: shape migrates balanced → specialist as a dominant axis pulls ahead</li></ul></div>
+            <div class="reveal hud em-edge"><span class="corner-tag" style="background:var(--ember)">THE CATCH</span>
+            <p>The checkpoint <em>questionnaire</em> feels like it reshapes next month's load — but the bias it computes is consumed only as <span class="rd">rationale copy</span>. The next Arc clones the prior Arc's sets verbatim. <b>Adaptation is largely cosmetic.</b></p></div>
+        </div>
+    </div>
+    <div class="slide-no">18</div><div class="brand-foot">UNBOUND</div>
+</section>
+
+<!-- ============ 19 · SECTION: GAPS ============ -->
+<section class="slide ember-slide title-slide">
+    <div class="slide-content" style="align-items:center">
+        <div class="section-tag reveal">PART III</div>
+        <h2 class="reveal" style="font-size:var(--title-size); margin-top:.3em; letter-spacing:.06em">What's Missing & What Needs Work</h2>
+        <p class="reveal" style="max-width:48ch; text-align:center; margin-top:.6em">The app is genuinely production-wired. The gaps are mostly <span class="em">loops that compute a signal but never close it</span> — plus a few honest stubs.</p>
+    </div>
+    <div class="slide-no">19</div><div class="brand-foot">UNBOUND // PART III</div>
+</section>
+
+<!-- ============ 20 · HIGH GAPS ============ -->
+<section class="slide">
+    <div class="slide-content">
+        <div class="head-row" style="margin-bottom:var(--element-gap)"><div class="kicker reveal">16 — High impact</div>
+        <h2 class="reveal">Three open loops that change the product story</h2></div>
+        <div class="reveal hud em-edge" style="margin-bottom:clamp(.4rem,1vh,.7rem)">
+            <span class="corner-tag" style="background:var(--ember)">1 · CHECKPOINT BIAS NOT APPLIED</span>
+            <p>Recovery/missed/cardio/pain all compute a clamped <span class="mono">loadAdjustmentBias</span> — then <b>ArcGenerator only uses it to pick a sentence.</b> The next Arc copies the old sets/reps/RPE unchanged. "Your answers reshape your program" is narrative-only. <span class="fp">ArcGenerator.expandToArcDays</span></p>
+        </div>
+        <div class="reveal hud em-edge" style="margin-bottom:clamp(.4rem,1vh,.7rem)">
+            <span class="corner-tag" style="background:var(--ember)">2 · RANK DECAY IS A NO-OP</span>
+            <p>By design "nothing decays," but <span class="mono">RankDecayService.applyDecay</span> does nothing — it only flips a cosmetic "recalibrating" banner and resets a streak counter. The honest staleness model (recent-vs-lifetime, stale flags) is specced but not wired. <span class="fp">RankDecayService.swift:108</span></p>
+        </div>
+        <div class="reveal hud em-edge">
+            <span class="corner-tag" style="background:var(--ember)">3 · NO LLM COACH EXISTS</span>
+            <p><span class="mono">PTContextBuilder</span> assembles a full athlete dossier for a coaching chat — but <b>nothing calls it.</b> If a conversational PT is the intended product, it's unbuilt scaffolding. <span class="fp">PTContextBuilder · AISessionGeneratorService (retired stub)</span></p>
+        </div>
+    </div>
+    <div class="slide-no">20</div><div class="brand-foot">UNBOUND</div>
+</section>
+
+<!-- ============ 21 · MEDIUM GAPS ============ -->
+<section class="slide">
+    <div class="slide-content">
+        <div class="head-row"><div class="kicker reveal">17 — Medium impact</div>
+        <h2 class="reveal">Loops that under-deliver</h2></div>
+        <div class="two-col">
+            <div class="reveal">
+                <ul class="list-clean gap">
+                    <li><b>Skill auto-proof is half-built.</b> Reps & weight auto-detect; holds, levers, carries, planche always return false → the L-sit/front-lever/handstand half of the tree needs a manual "I hit this" tap.</li>
+                    <li><b>Auto-deload isn't automatic.</b> The detector exists but only fires from a Coach card tap — a plateauing user gets no intervention unless they go looking.</li>
+                    <li><b>Realization/Peaking unreachable.</b> Gated by rank in the spec, but the live generator assigns phase by day-number and never produces peaking at all.</li>
+                </ul>
+            </div>
+            <div class="reveal">
+                <ul class="list-clean gap">
+                    <li><b>Badge catalog ↔ service mismatch.</b> Service awards ids (sessions_25, streak_14) absent from the catalog; catalog badges (streak_30/100) are never awarded. Some show blank, some unreachable.</li>
+                    <li><b>Squad polish deferred.</b> Roster shows raw UUIDs instead of handles; presence is 30s polling; leave-squad captain handoff has a known race; missions need a server cron.</li>
+                    <li><b>Scan delta carries dead columns.</b> Before/after body-part grades are frozen at a neutral 5→5 — persisted but inert.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="slide-no">21</div><div class="brand-foot">UNBOUND</div>
+</section>
+
+<!-- ============ 22 · REAL VS MOCK ============ -->
+<section class="slide">
+    <div class="slide-content">
+        <div class="head-row"><div class="kicker reveal">18 — Reality check</div>
+        <h2 class="reveal">Real vs mock vs stub, in production</h2></div>
+        <div class="reveal"><table class="dtable">
+            <thead><tr><th>Surface</th><th>Status</th><th>Note</th></tr></thead>
+            <tbody>
+                <tr><td>Auth · Sync · Analytics · Notifications</td><td><span class="pill real">REAL</span></td><td>Supabase / PostHog / UNUserNotificationCenter</td></tr>
+                <tr><td>Subscription / Paywall</td><td><span class="pill real">REAL</span></td><td>RevenueCat hard gate — but DEBUG unlocks everything</td></tr>
+                <tr><td>Program gen · Progression · Ranking</td><td><span class="pill det">DETERMINISTIC</span></td><td>100% on-device math, no AI</td></tr>
+                <tr><td>Squads backend</td><td><span class="pill real">REAL</span></td><td>Supabase tables; social polish deferred</td></tr>
+                <tr><td>Body analysis (vision)</td><td><span class="pill mock">THIN</span></td><td>On-device pose only; no server verdict</td></tr>
+                <tr><td>LLM coach / cloud functions</td><td><span class="pill gap">ABSENT</span></td><td>PLACEHOLDER URLs; chat unbuilt</td></tr>
+            </tbody>
+        </table></div>
+        <p class="reveal caption" style="margin-top:.8em">Bottom line: the skeleton is real and shippable. The gaps are <span class="cy">closed-loop adaptation</span> and <span class="cy">social/skill-proof polish</span> — not missing plumbing.</p>
+    </div>
+    <div class="slide-no">22</div><div class="brand-foot">UNBOUND</div>
+</section>
+
+<!-- ============ 23 · CONFUSING PARTS ============ -->
+<section class="slide">
+    <div class="slide-content">
+        <div class="head-row"><div class="kicker reveal">19 — Where I got confused (and a new user will too)</div>
+        <h2 class="reveal">The naming maze</h2></div>
+        <div class="two-col">
+            <div class="reveal hud">
+                <span class="corner-tag">3 "XP"s, 3 "RANK"s</span>
+                <ul class="list-clean">
+                    <li><b>Session XP</b> (a counter) ≠ <b>Overall LV XP</b> ≠ <b>Skill-node XP</b> — three curves, one word</li>
+                    <li><b>SubRank</b> (E–S strength) ≠ <b>SkillTier</b> (per-node) ≠ <b>Overall Rank</b> (the headline)</li>
+                    <li><span class="mono">RankState.swift</span> is empty — a trap when reasoning about "rank"</li>
+                </ul>
+            </div>
+            <div class="reveal hud">
+                <span class="corner-tag">TWO "BLOCK"s</span>
+                <ul class="list-clean">
+                    <li>The generator's <b>positional</b> Arc-day phase vs. per-exercise <b>ProgressionState.blockType</b> vs. a log-derived <b>PhaseEngine</b> — three unsynced notions</li>
+                    <li>So the screen can show "Realization 3–5" while the bump engine still keys off accumulation ranges</li>
+                    <li>"Trials" means two different systems: rank gates <em>and</em> weekly Vows</li>
+                </ul>
+            </div>
+        </div>
+        <p class="reveal caption" style="margin-top:.8em">These aren't bugs so much as <span class="em">vocabulary debt</span> from a fast migration. They're the #1 thing I'd document before onboarding a new engineer — or a new user.</p>
+    </div>
+    <div class="slide-no">23</div><div class="brand-foot">UNBOUND</div>
+</section>
+
+<!-- ============ 24 · SUBTLE RISKS ============ -->
+<section class="slide">
+    <div class="slide-content">
+        <div class="head-row"><div class="kicker reveal">20 — Subtle landmines</div>
+        <h2 class="reveal">Things that look right but aren't</h2></div>
+        <ul class="reveal list-clean ember" style="max-width:90ch">
+            <li><b>Shape uses peak, delta uses current.</b> Build Identity reads attribute <em>peaks</em>; the scan delta reads <em>current</em>. With decay, a scan can say "held the line" while your displayed identity hasn't moved — intentional-looking, genuinely subtle.</li>
+            <li><b>Rank-up notifications key off a per-launch in-memory baseline</b> that resets to E− every app start — so cinematics and rank badges can re-fire or mis-fire across sessions.</li>
+            <li><b>Pin ordering is load-bearing.</b> Scan-delta correctness depends on a snapshot being taken before reading history[n-2]. Reorder it and deltas silently corrupt.</li>
+            <li><b>DEBUG builds unlock all features</b> — easy to mistake "paywall isn't working" for a bug when it's a dev flag.</li>
+            <li><b>Squads are Release-strict:</b> an anonymous (not-signed-in) user can't create or join one, with no in-UI explanation.</li>
+        </ul>
+    </div>
+    <div class="slide-no">24</div><div class="brand-foot">UNBOUND</div>
+</section>
+
+<!-- ============ 25 · SECTION: TUTORIAL ============ -->
+<section class="slide title-slide">
+    <div class="scanline"></div>
+    <div class="slide-content" style="align-items:center">
+        <div class="section-tag reveal" style="color:var(--cyan)">PART IV</div>
+        <h2 class="reveal" style="font-size:var(--title-size); margin-top:.3em; letter-spacing:.06em">How I'd Write the Tutorial</h2>
+        <p class="reveal" style="max-width:50ch; text-align:center; margin-top:.6em">The systems are deep — but a first-time user should never feel the depth. Teach the <span class="cy">loop</span>, hide the <span class="cy">machinery</span>, reveal complexity only as it's earned.</p>
+    </div>
+    <div class="slide-no">25</div><div class="brand-foot">UNBOUND // PART IV</div>
+</section>
+
+<!-- ============ 26 · TUTORIAL PHILOSOPHY ============ -->
+<section class="slide">
+    <div class="slide-content">
+        <div class="head-row"><div class="kicker reveal">21 — The principle</div>
+        <h2 class="reveal">Don't explain the RPG. Let them feel the first level-up.</h2></div>
+        <div class="three-col">
+            <div class="reveal hud"><span class="corner-tag">DON'T</span>
+                <ul class="list-clean gap"><li>Front-load AP vs XP vs LV vs rank</li><li>Show the 9-tier ladder before they've earned rung 1</li><li>Explain attribute vectors or novelty math</li></ul>
+            </div>
+            <div class="reveal hud"><span class="corner-tag" style="background:var(--green); color:var(--bg-0)">DO</span>
+                <ul class="list-clean ok"><li>Get them to <b>one completed set</b> fast, then fire the reward sequence</li><li>Name the loop in 6 words: <em>train, earn, grow, prove, rank up</em></li><li>Surface each system the first time it actually triggers</li></ul>
+            </div>
+            <div class="reveal hud"><span class="corner-tag">FRAME</span>
+                <p>Anime training-arc voice per the brand guardrail: <em>"Start your arc"</em>, never <em>"fix what's wrong with you."</em> Invite, don't diagnose.</p>
+            </div>
+        </div>
+    </div>
+    <div class="slide-no">26</div><div class="brand-foot">UNBOUND</div>
+</section>
+
+<!-- ============ 27 · TUTORIAL STRUCTURE ============ -->
+<section class="slide">
+    <div class="slide-content">
+        <div class="head-row"><div class="kicker reveal">22 — The shape</div>
+        <h2 class="reveal">A 5-beat onboarding arc</h2></div>
+        <div class="reveal"><table class="dtable">
+            <thead><tr><th>Beat</th><th>Goal</th><th>What it teaches (implicitly)</th></tr></thead>
+            <tbody>
+                <tr><td class="mono cy">1 · Arrive</td><td>Pick the fantasy: your path & goal</td><td>"This is a journey, not a diagnosis"</td></tr>
+                <tr><td class="mono cy">2 · Calibrate</td><td>Log a few honest sets</td><td>The app reads truth from behavior — no stat survey</td></tr>
+                <tr><td class="mono cy">3 · First session</td><td>Complete day 1, trigger the reward beat</td><td>The core loop + what AP/XP feel like</td></tr>
+                <tr><td class="mono cy">4 · First proof</td><td>Take the day-one scan</td><td>"Proof you're changing" — set the before</td></tr>
+                <tr><td class="mono gd">5 · First gate</td><td>Show The Awakening trial as the near horizon</td><td>Ranks are earned through ceremony, not grind</td></tr>
+            </tbody>
+        </table></div>
+        <p class="reveal caption" style="margin-top:.8em">Then a <span class="cy">progressive-disclosure layer</span>: contextual coach-marks fire the first time the user hits a deload, unlocks a skill node, or sees a stale flag — each explained in one sentence, in-context, once.</p>
+    </div>
+    <div class="slide-no">27</div><div class="brand-foot">UNBOUND</div>
+</section>
+
+<!-- ============ 28 · TUTORIAL FORMAT ============ -->
+<section class="slide">
+    <div class="slide-content">
+        <div class="head-row"><div class="kicker reveal">23 — Format & what I'd fix first</div>
+        <h2 class="reveal">Interactive, in-product, earned</h2></div>
+        <div class="two-col">
+            <div class="reveal hud">
+                <span class="corner-tag">FORMAT</span>
+                <ul class="list-clean">
+                    <li><b>In-product coach-marks</b>, not a separate manual — teach at the moment of first trigger</li>
+                    <li>A persistent <b>"What is this?"</b> affordance on every rank/XP/attribute chip for the curious</li>
+                    <li>A one-page <b>glossary card</b> that disambiguates AP / LV / Rank / Tier in plain words</li>
+                    <li>A short <b>"your week"</b> recap that names the loop out loud after session 1</li>
+                </ul>
+            </div>
+            <div class="reveal hud em-edge">
+                <span class="corner-tag" style="background:var(--ember)">PREREQS FOR A GOOD TUTORIAL</span>
+                <p>Before teaching, fix what would confuse a learner:</p>
+                <ul class="list-clean ember" style="margin-top:.5em">
+                    <li>Unify the XP/rank vocabulary (or alias it consistently in UI)</li>
+                    <li>Make the checkpoint actually change load — or stop implying it does</li>
+                    <li>Give hold/lever skills a clean proof path so the tree feels alive</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="slide-no">28</div><div class="brand-foot">UNBOUND</div>
+</section>
+
+<!-- ============ 29 · CLOSING ============ -->
+<section class="slide title-slide ember-slide">
+    <div class="scanline"></div>
+    <div class="slide-content" style="align-items:center">
+        <div class="kicker reveal" style="justify-content:center">The one-line verdict</div>
+        <h2 class="reveal" style="font-size:clamp(1.5rem,4.5vw,3.4rem); margin-top:.4em; max-width:20ch; text-align:center; line-height:1.1">A real engine with a beautifully designed surface — held back by a few <span class="em">loops it computes but never closes.</span></h2>
+        <div class="title-rule reveal"></div>
+        <p class="reveal" style="max-width:52ch; text-align:center; margin-top:1em">Close the checkpoint→load loop, finish skill auto-proof, and untangle the XP/rank vocabulary — and UNBOUND's year-one journey goes from "feels great for 3 months" to "earns a full Ascendant arc."</p>
+        <div class="tag reveal" style="margin-top:1.6em">END OF TEARDOWN · UNBOUND</div>
+    </div>
+    <div class="slide-no">29</div><div class="brand-foot">UNBOUND // BREAK THE RESTRICTION</div>
+</section>
+
+<script>
+/* ===========================================
+   SLIDE PRESENTATION CONTROLLER
+   Scroll-snap deck with keyboard / wheel / touch nav,
+   progress bar, nav dots, and reveal-on-enter animations.
+   =========================================== */
+class SlidePresentation {
+    constructor() {
+        this.slides = Array.from(document.querySelectorAll('.slide'));
+        this.current = 0;
+        this.locked = false;
+        this.observe();
+        this.keys();
+        this.wheel();
+        this.touch();
+        this.dots();
+        this.progress();
+    }
+    observe() {
+        const io = new IntersectionObserver((entries) => {
+            entries.forEach(e => {
+                if (e.isIntersecting && e.intersectionRatio > 0.55) {
+                    e.target.classList.add('visible');
+                    this.current = this.slides.indexOf(e.target);
+                    this.syncDots();
+                }
+            });
+        }, { threshold: [0.55] });
+        this.slides.forEach(s => io.observe(s));
+        this.slides[0].classList.add('visible');
+    }
+    go(i) {
+        i = Math.max(0, Math.min(this.slides.length - 1, i));
+        this.slides[i].scrollIntoView({ behavior: 'smooth' });
+        this.current = i;
+    }
+    keys() {
+        document.addEventListener('keydown', (e) => {
+            if (['ArrowDown','ArrowRight',' ','PageDown'].includes(e.key)) { e.preventDefault(); this.go(this.current + 1); }
+            if (['ArrowUp','ArrowLeft','PageUp'].includes(e.key)) { e.preventDefault(); this.go(this.current - 1); }
+            if (e.key === 'Home') this.go(0);
+            if (e.key === 'End') this.go(this.slides.length - 1);
+        });
+    }
+    wheel() {
+        // Debounced wheel → one slide per gesture
+        let t = null;
+        window.addEventListener('wheel', (e) => {
+            if (this.locked) return;
+            if (Math.abs(e.deltaY) < 18) return;
+            this.locked = true;
+            this.go(this.current + (e.deltaY > 0 ? 1 : -1));
+            clearTimeout(t);
+            t = setTimeout(() => this.locked = false, 780);
+        }, { passive: true });
+    }
+    touch() {
+        let y0 = null;
+        window.addEventListener('touchstart', e => y0 = e.touches[0].clientY, { passive: true });
+        window.addEventListener('touchend', e => {
+            if (y0 === null) return;
+            const dy = y0 - e.changedTouches[0].clientY;
+            if (Math.abs(dy) > 45) this.go(this.current + (dy > 0 ? 1 : -1));
+            y0 = null;
+        }, { passive: true });
+    }
+    dots() {
+        const nav = document.getElementById('navDots');
+        this.slides.forEach((_, i) => {
+            const b = document.createElement('button');
+            b.setAttribute('aria-label', 'Go to slide ' + (i + 1));
+            b.addEventListener('click', () => this.go(i));
+            nav.appendChild(b);
+        });
+        this.dotEls = Array.from(nav.children);
+        this.syncDots();
+    }
+    syncDots() { if (this.dotEls) this.dotEls.forEach((d, i) => d.classList.toggle('active', i === this.current)); }
+    progress() {
+        const bar = document.getElementById('progressBar');
+        const update = () => {
+            const h = document.documentElement.scrollHeight - window.innerHeight;
+            bar.style.width = (h > 0 ? (window.scrollY / h) * 100 : 0) + '%';
+        };
+        window.addEventListener('scroll', update, { passive: true });
+        update();
+    }
+}
+new SlidePresentation();
+</script>
+</body>
+</html>

@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UNBOUND — Persona Simulation (8 Athletes, 1 Year)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap">
+<style>
+/* ===========================================
+   THEME — shares UNBOUND anime-HUD language with the teardown deck
+   =========================================== */
+:root {
+    --bg-0:#05070e; --bg-1:#0a0f1c; --bg-2:#111a2e;
+    --line:rgba(54,224,208,0.18); --line-soft:rgba(255,255,255,0.06);
+    --text:#eaf2ff; --text-dim:#8aa0c0; --text-faint:#5c6f8c;
+    --cyan:#36e0d0; --cyan-bright:#5cffe9; --ember:#ff6b35; --gold:#ffc24d;
+    --violet:#9b6bff; --red:#ff4d6d; --green:#3ddc97;
+    --cyan-glow:rgba(54,224,208,0.28); --ember-glow:rgba(255,107,53,0.30);
+    --font-display:'Chakra Petch',sans-serif; --font-body:'Satoshi',sans-serif; --font-mono:'JetBrains Mono',monospace;
+    --title-size:clamp(2rem,6vw,5rem); --h2-size:clamp(1.4rem,3.6vw,2.7rem); --h3-size:clamp(1rem,2.2vw,1.5rem);
+    --body-size:clamp(0.74rem,1.25vw,1.02rem); --small-size:clamp(0.62rem,0.95vw,0.82rem); --tiny-size:clamp(0.55rem,0.8vw,0.7rem);
+    --slide-padding:clamp(1.1rem,4vw,3.6rem); --content-gap:clamp(0.6rem,2vw,1.6rem); --element-gap:clamp(0.3rem,1vw,0.9rem);
+    --ease:cubic-bezier(0.16,1,0.3,1); --dur:0.7s;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+/* viewport-base.css (mandatory) */
+html,body{height:100%;overflow-x:hidden;}
+html{scroll-snap-type:y mandatory;scroll-behavior:smooth;}
+.slide{width:100vw;height:100vh;height:100dvh;overflow:hidden;scroll-snap-align:start;display:flex;flex-direction:column;position:relative;}
+.slide-content{flex:1;display:flex;flex-direction:column;justify-content:center;max-height:100%;overflow:hidden;padding:var(--slide-padding);}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:clamp(0.5rem,1.5vw,1rem);}
+img,.image-container{max-width:100%;max-height:min(50vh,400px);object-fit:contain;}
+@media (max-height:700px){:root{--slide-padding:clamp(0.75rem,3vw,2rem);--content-gap:clamp(0.4rem,1.5vw,1rem);--title-size:clamp(1.25rem,4.5vw,2.5rem);--h2-size:clamp(1rem,3vw,1.75rem);}}
+@media (max-height:600px){:root{--slide-padding:clamp(0.5rem,2.5vw,1.5rem);--content-gap:clamp(0.3rem,1vw,0.75rem);--title-size:clamp(1.1rem,4vw,2rem);--body-size:clamp(0.66rem,1.2vw,0.9rem);}.nav-dots,.keyboard-hint,.decorative{display:none;}}
+@media (max-height:500px){:root{--slide-padding:clamp(0.4rem,2vw,1rem);--title-size:clamp(1rem,3.5vw,1.5rem);--h2-size:clamp(0.9rem,2.5vw,1.25rem);--body-size:clamp(0.62rem,1vw,0.82rem);}}
+@media (max-width:600px){:root{--title-size:clamp(1.25rem,7vw,2.5rem);}.grid{grid-template-columns:1fr;}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:0.01ms!important;transition-duration:0.2s!important;}html{scroll-behavior:auto;}}
+
+body{background:var(--bg-0);color:var(--text);font-family:var(--font-body);-webkit-font-smoothing:antialiased;}
+.slide::before{content:"";position:absolute;inset:0;background-image:linear-gradient(var(--line-soft) 1px,transparent 1px),linear-gradient(90deg,var(--line-soft) 1px,transparent 1px);background-size:clamp(28px,4vw,52px) clamp(28px,4vw,52px);mask-image:radial-gradient(ellipse 90% 80% at 50% 40%,#000 30%,transparent 100%);opacity:0.6;pointer-events:none;}
+.slide::after{content:"";position:absolute;pointer-events:none;width:70vw;height:70vw;max-width:900px;max-height:900px;top:-20%;right:-15%;background:radial-gradient(circle,var(--cyan-glow),transparent 65%);opacity:0.32;filter:blur(20px);}
+.slide.ember-slide::after{background:radial-gradient(circle,var(--ember-glow),transparent 65%);opacity:0.4;}
+
+.kicker{font-family:var(--font-mono);font-size:var(--small-size);letter-spacing:0.32em;text-transform:uppercase;color:var(--cyan);display:flex;align-items:center;gap:0.6em;}
+.kicker::before{content:"";width:clamp(20px,3vw,46px);height:1px;background:var(--cyan);display:inline-block;}
+h1,h2,h3{font-family:var(--font-display);font-weight:700;line-height:1.02;letter-spacing:-0.01em;}
+h2{font-size:var(--h2-size);} h3{font-size:var(--h3-size);}
+p{font-size:var(--body-size);color:var(--text-dim);line-height:1.55;}
+strong{color:var(--text);font-weight:700;}
+.mono{font-family:var(--font-mono);} .cy{color:var(--cyan);} .em{color:var(--ember);} .gd{color:var(--gold);} .rd{color:var(--red);} .gr{color:var(--green);} .vi{color:var(--violet);}
+.head-row{display:flex;flex-direction:column;gap:0.5em;margin-bottom:var(--content-gap);}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:clamp(0.6rem,1.6vw,1.3rem);}
+.three-col{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(0.5rem,1.4vw,1rem);}
+@media (max-width:720px){.two-col,.three-col{grid-template-columns:1fr;}}
+
+.hud{position:relative;background:linear-gradient(150deg,rgba(17,26,46,0.92),rgba(10,15,28,0.82));border:1px solid var(--line);clip-path:polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,14px 100%,0 calc(100% - 14px));padding:clamp(0.7rem,1.6vw,1.25rem);}
+.hud.em-edge{border-color:rgba(255,107,53,0.32);}
+.hud .corner-tag{position:absolute;top:0;right:0;font-family:var(--font-mono);font-size:var(--tiny-size);color:var(--bg-0);background:var(--cyan);padding:2px 8px 2px 12px;clip-path:polygon(14px 0,100% 0,100% 100%,0 100%);letter-spacing:0.1em;}
+
+.stat-num{font-family:var(--font-display);font-weight:700;font-size:clamp(1.6rem,4.5vw,3.2rem);color:var(--cyan);line-height:1;}
+.stat-label{font-size:var(--small-size);color:var(--text-dim);margin-top:0.3em;}
+
+.dtable{width:100%;border-collapse:collapse;font-size:var(--small-size);}
+.dtable th,.dtable td{text-align:left;padding:clamp(0.26rem,0.65vw,0.5rem) clamp(0.4rem,0.9vw,0.8rem);border-bottom:1px solid var(--line-soft);}
+.dtable th{font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;font-size:var(--tiny-size);color:var(--cyan);}
+.dtable td{color:var(--text-dim);}
+.dtable td.mono,.dtable td .mono{font-family:var(--font-mono);color:var(--text);}
+.dtable tr:last-child td{border-bottom:none;}
+
+.list-clean{list-style:none;display:flex;flex-direction:column;gap:clamp(0.35rem,1vh,0.7rem);}
+.list-clean li{font-size:var(--body-size);color:var(--text-dim);line-height:1.45;padding-left:1.3em;position:relative;}
+.list-clean li::before{content:"▸";position:absolute;left:0;color:var(--cyan);font-size:0.9em;}
+.list-clean.ember li::before{color:var(--ember);}
+.list-clean.gap li::before{content:"✕";color:var(--red);font-size:0.8em;}
+.list-clean.ok li::before{content:"✓";color:var(--green);}
+.list-clean li b{color:var(--text);}
+.fp{font-family:var(--font-mono);font-size:var(--tiny-size);color:var(--text-faint);}
+.caption{font-family:var(--font-mono);font-size:var(--tiny-size);color:var(--text-faint);letter-spacing:0.08em;}
+.section-tag{font-family:var(--font-mono);font-size:var(--small-size);color:var(--ember);letter-spacing:0.3em;}
+
+/* persona card */
+.pcard{position:relative;background:linear-gradient(155deg,rgba(17,26,46,0.95),rgba(10,15,28,0.85));border:1px solid var(--line);clip-path:polygon(0 0,calc(100% - 16px) 0,100% 16px,100% 100%,16px 100%,0 calc(100% - 16px));padding:clamp(0.7rem,1.5vw,1.15rem);display:flex;flex-direction:column;gap:0.5em;}
+.pcard .ptop{display:flex;align-items:center;gap:0.6em;}
+.pcard .glyph{font-size:clamp(1.3rem,2.6vw,1.9rem);line-height:1;filter:drop-shadow(0 0 8px var(--cyan-glow));}
+.pcard .pname{font-family:var(--font-display);font-weight:700;font-size:var(--h3-size);color:var(--text);letter-spacing:0.01em;}
+.pcard .ptag{font-family:var(--font-mono);font-size:var(--tiny-size);color:var(--text-faint);letter-spacing:0.08em;text-transform:uppercase;}
+.pstats{display:grid;grid-template-columns:repeat(3,1fr);gap:0.4em;margin-top:0.2em;}
+.pstat{background:rgba(0,0,0,0.25);border:1px solid var(--line-soft);padding:0.35em 0.5em;}
+.pstat .k{font-family:var(--font-mono);font-size:clamp(.5rem,.7vw,.6rem);color:var(--text-faint);text-transform:uppercase;letter-spacing:0.08em;}
+.pstat .v{font-family:var(--font-display);font-weight:700;font-size:clamp(.85rem,1.5vw,1.15rem);color:var(--cyan);line-height:1.1;margin-top:1px;}
+.pstat .v.rank{color:var(--gold);}
+.pnote{font-size:var(--small-size);color:var(--text-dim);line-height:1.4;}
+.rankchip{display:inline-block;font-family:var(--font-mono);font-size:var(--tiny-size);padding:1px 7px;border-radius:2px;letter-spacing:.05em;border:1px solid;}
+.rk-forged{color:var(--cyan);border-color:rgba(54,224,208,.4);background:rgba(54,224,208,.1);}
+.rk-vet{color:var(--cyan-bright);border-color:rgba(92,255,233,.4);background:rgba(92,255,233,.1);}
+.rk-master{color:var(--ember);border-color:rgba(255,107,53,.4);background:rgba(255,107,53,.12);}
+.rk-vessel{color:var(--gold);border-color:rgba(255,194,77,.4);background:rgba(255,194,77,.12);}
+.rk-low{color:var(--text-dim);border-color:var(--line-soft);background:rgba(255,255,255,.04);}
+
+.reveal{opacity:0;transform:translateY(28px);transition:opacity var(--dur) var(--ease),transform var(--dur) var(--ease);}
+.slide.visible .reveal{opacity:1;transform:translateY(0);}
+.slide.visible .reveal:nth-child(1){transition-delay:.05s}
+.slide.visible .reveal:nth-child(2){transition-delay:.13s}
+.slide.visible .reveal:nth-child(3){transition-delay:.21s}
+.slide.visible .reveal:nth-child(4){transition-delay:.29s}
+.slide.visible .reveal:nth-child(5){transition-delay:.37s}
+.slide.visible .reveal:nth-child(6){transition-delay:.45s}
+.scanline{position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--cyan),transparent);opacity:.4;animation:sweep 6s linear infinite;}
+@keyframes sweep{0%{top:0}100%{top:100%}}
+
+.progress-bar{position:fixed;top:0;left:0;height:3px;background:linear-gradient(90deg,var(--cyan),var(--ember));z-index:100;width:0;box-shadow:0 0 12px var(--cyan-glow);}
+.nav-dots{position:fixed;right:clamp(8px,1.5vw,20px);top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:9px;z-index:100;}
+.nav-dots button{width:8px;height:8px;border:1px solid var(--text-faint);background:transparent;transform:rotate(45deg);cursor:pointer;padding:0;transition:all .3s;}
+.nav-dots button.active{background:var(--cyan);border-color:var(--cyan);box-shadow:0 0 8px var(--cyan-glow);}
+.slide-no{position:absolute;bottom:clamp(0.6rem,2vh,1.4rem);left:var(--slide-padding);font-family:var(--font-mono);font-size:var(--tiny-size);color:var(--text-faint);letter-spacing:0.2em;z-index:5;}
+.brand-foot{position:absolute;bottom:clamp(0.6rem,2vh,1.4rem);right:var(--slide-padding);font-family:var(--font-mono);font-size:var(--tiny-size);color:var(--text-faint);letter-spacing:0.2em;z-index:5;}
+.keyboard-hint{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);font-family:var(--font-mono);font-size:var(--tiny-size);color:var(--text-faint);z-index:100;opacity:.6;}
+.title-slide{align-items:center;justify-content:center;text-align:center;}
+.title-rule{width:clamp(60px,12vw,140px);height:2px;background:linear-gradient(90deg,transparent,var(--ember),transparent);margin:1.2em auto 0;}
+.tag{font-family:var(--font-mono);font-size:var(--small-size);color:var(--text-faint);margin-top:1.4em;letter-spacing:0.18em;}
+</style>
+</head>
+<body>
+<div class="progress-bar" id="progressBar"></div>
+<nav class="nav-dots" id="navDots"></nav>
+<div class="keyboard-hint decorative">↑ ↓ / SPACE / SCROLL</div>
+
+<!-- 1 · TITLE -->
+<section class="slide title-slide">
+    <div class="scanline"></div>
+    <div class="slide-content" style="align-items:center">
+        <div class="kicker reveal" style="justify-content:center">Companion Sim · 8 athletes · 52 weeks each</div>
+        <h1 class="reveal" style="font-size:var(--title-size);letter-spacing:.08em;margin-top:.4em;background:linear-gradient(180deg,#fff,var(--cyan) 130%);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:0 0 60px var(--cyan-glow)">PERSONA SIMULATION</h1>
+        <p class="reveal" style="max-width:54ch;margin-top:.6em">Eight people, very different starting standings, run through UNBOUND's <em>actual</em> code for one year. The result is not what the design doc promises.</p>
+        <div class="title-rule reveal"></div>
+        <div class="tag reveal">REALISTIC ADHERENCE · CODE-GROUNDED · NO VELOCITY LAYER</div>
+    </div>
+    <div class="brand-foot">UNBOUND // PERSONA SIM</div>
+</section>
+
+<!-- 2 · THE BOMBSHELL -->
+<section class="slide ember-slide">
+    <div class="slide-content">
+        <div class="head-row"><div class="kicker reveal">00 — Read this first</div>
+        <h2 class="reveal">The "honest acceleration" layer doesn't exist in the build</h2></div>
+        <div class="reveal hud em-edge" style="margin-bottom:var(--content-gap)">
+            <span class="corner-tag" style="background:var(--ember)">VERIFIED IN CODE</span>
+            <p style="color:var(--text)"><strong>The design doc's whole §6 velocity system is unbuilt.</strong> No rank-up LV boluses. No skill-difficulty multipliers. No compound velocity (1.25×/1.5×). No comeback boost. Overall Level is awarded by exactly one line: <span class="mono cy">xp += rawAP × novelty</span>. <span class="fp">MovementProgressService.swift:476 · nothing else writes LV XP</span></p>
+        </div>
+        <div class="reveal hud">
+            <p style="color:var(--text)"><strong>So rank is almost purely <span class="cy">volume-gated</span>.</strong> A returning national-level athlete and a true beginner who log the same number of sets reach the <em>same</em> rank. Standing — strength, skill, training age — is nearly invisible to the rank engine. That single fact drives every persona below.</p>
+        </div>
+    </div>
+    <div class="slide-no">02</div><div class="brand-foot">UNBOUND</div>
+</section>
+
+<!-- 3 · WHAT DRIVES RANK -->
+<section class="slide">
+    <div class="slide-content">
+        <div class="head-row"><div class="kicker reveal">01 — The actual gates</div>
+        <h2 class="reveal">What moves rank — and what doesn't</h2></div>
+        <div class="two-col">
+            <div class="reveal hud"><span class="corner-tag">DRIVES RANK</span>
+                <ul class="list-clean ok">
+                    <li><b>Overall LV</b> — cumulative AP. The dominant brake.</li>
+                    <li><b>Attribute display-score floors</b> — N axes above a threshold (co-gate at the top)</li>
+                    <li><b>Per-movement AP minimums</b> — tiny; cleared in a few sessions</li>
+                </ul>
+            </div>
+            <div class="reveal hud em-edge"><span class="corner-tag" style="background:var(--ember)">DOES <span style="font-weight:700">NOT</span> DRIVE RANK</span>
+                <ul class="list-clean gap">
+                    <li><b>How strong you are</b> — intensity sits at 1.0 vs your own baseline; a PR caps at ×1.4 for one set</li>
+                    <li><b>Skill standards</b> — every trial ships <span class="mono">skillStandards: []</span></li>
+                    <li><b>Movement-tier standards</b> — trials check AP totals, not 1.75×BW bench</li>
+                </ul>
+            </div>
+        </div>
+        <p class="reveal caption" style="margin-top:.8em">Per-set AP is nearly flat (~20–28) because the metric is logarithmic. <span class="cy">Sets logged × sessions per year</span> is the whole game.</p>
+    </div>
+    <div class="slide-no">03</div><div class="brand-foot">UNBOUND</div>
+</section>
+
+<!-- 4 · SESSION → LV MATH -->
+<section class="slide">
+    <div class="slide-content">
+        <div class="head-row"><div class="kicker reveal">02 — The conversion table</div>
+        <h2 class="reveal">Sessions → Level → Rank gate</h2></div>
+        <div class="reveal"><table class="dtable">
+            <thead><tr><th>Rank gate</th><th>Overall LV</th><th>Cumulative XP</th><th>Sessions* to reach</th></tr></thead>
+            <tbody>
+                <tr><td>Veteran</td><td class="mono cy">22</td><td class="mono">25,800</td><td class="mono">~65</td></tr>
+                <tr><td>Master</td><td class="mono cy">40</td><td class="mono">63,200</td><td class="mono">~158</td></tr>
+                <tr><td>Vessel</td><td class="mono cy">55</td><td class="mono">102,000</td><td class="mono">~255</td></tr>
+                <tr><td>Unbound</td><td class="mono cy">72</td><td class="mono">152,700</td><td class="mono">~382</td></tr>
+                <tr><td>Ascendant</td><td class="mono cy">90</td><td class="mono">213,500</td><td class="mono">~534</td></tr>
+            </tbody>
+        </table></div>
+        <p class="reveal caption" style="margin-top:.8em">*at ~400 XP/session (a full 16–20-set lift session × novelty). Shorter or skill-heavy sessions earn less, so the session counts stretch. <span class="cy">At 4×/week that's ~208 sessions/year</span> — making Master a 1-year ceiling and Ascendant a ~2.5–3 year wall.</p>
+    </div>
+    <div class="slide-no">04</div><div class="brand-foot">UNBOUND</div>
+</section>
+
+<!-- 5 · SECTION: PERSONAS -->
+<section class="slide title-slide ember-slide">
+    <div class="slide-content" style="align-items:center">
+        <div class="section-tag reveal">THE COHORT</div>
+        <h2 class="reveal" style="font-size:var(--title-size);margin-top:.3em;letter-spacing:.05em">Eight Athletes</h2>
+        <p class="reveal" style="max-width:48ch;text-align:center;margin-top:.6em">From a national-level returner to a weekend warrior to someone who quits at week three. Same engine, very different behavior.</p>
+    </div>
+    <div class="slide-no">05</div><div class="brand-foot">UNBOUND // THE COHORT</div>
+</section>
+
+<!-- 6 · PERSONAS 1 & 2 -->
+<section class="slide">
+    <div class="slide-content">
+        <div class="head-row" style="margin-bottom:var(--element-gap)"><div class="kicker reveal">03 — Beginners</div>
+        <h2 class="reveal">Same start, different discipline</h2></div>
+        <div class="two-col">
+            <div class="reveal pcard">
+                <div class="ptop"><span class="glyph">🔥</span><div><div class="pname">The Disciplined Newcomer</div><div class="ptag">true beginner · 4×/wk · 91% adherence</div></div></div>
+                <div class="pstats">
+                    <div class="pstat"><div class="k">Sessions/yr</div><div class="v">189</div></div>
+                    <div class="pstat"><div class="k">Year-end LV</div><div class="v">~46</div></div>
+                    <div class="pstat"><div class="k">Rank</div><div class="v rank">Master</div></div>
+                </div>
+                <p class="pnote">Hits the loop cleanly, never misses long. Clears Master (LV 40) around month 10 and starts eyeing Vessel. <span class="rd">This is the optimistic case</span> — most beginners aren't this consistent.</p>
+            </div>
+            <div class="reveal pcard">
+                <div class="ptop"><span class="glyph">🌙</span><div><div class="pname">Couch-to-Arc</div><div class="ptag">true beginner · plans 3×/wk · 61% real</div></div></div>
+                <div class="pstats">
+                    <div class="pstat"><div class="k">Sessions/yr</div><div class="v">95</div></div>
+                    <div class="pstat"><div class="k">Year-end LV</div><div class="v">~27</div></div>
+                    <div class="pstat"><div class="k">Rank</div><div class="v rank">Veteran</div></div>
+                </div>
+                <p class="pnote">Life happens — work, illness, motivation dips. Still real progress: clears Veteran (LV 22) but Master is out of reach. <span class="cy">This is the realistic median beginner.</span></p>
+            </div>
+        </div>
+        <p class="reveal caption" style="margin-top:.8em">Same body, same genetics, same program. The only variable is <span class="cy">sessions logged</span> — and it's the difference between rank 6 and rank 5.</p>
+    </div>
+    <div class="slide-no">06</div><div class="brand-foot">UNBOUND</div>
+</section>
+
+<!-- 7 · PERSONAS 3 & 8 -->
+<section class="slide">
+    <div class="slide-content">
+        <div class="head-row" style="margin-bottom:var(--element-gap)"><div class="kicker reveal">04 — The low-frequency edge</div>
+        <h2 class="reveal">Sporadic & lapsed</h2></div>
+        <div class="two-col">
+            <div class="reveal pcard">
+                <div class="ptop"><span class="glyph">📆</span><div><div class="pname">The Weekend Warrior</div><div class="ptag">~1–2×/wk · sporadic bursts</div></div></div>
+                <div class="pstats">
+                    <div class="pstat"><div class="k">Sessions/yr</div><div class="v">65</div></div>
+                    <div class="pstat"><div class="k">Year-end LV</div><div class="v">~20</div></div>
+                    <div class="pstat"><div class="k">Rank</div><div class="v rank" style="color:var(--cyan)">Forged</div></div>
+                </div>
+                <p class="pnote">Forever at Veteran's doorstep (LV 22). Chronic <span class="mono">🌫️ stale</span> flags on most movements; attribute scores keep drifting toward 70% of peak between bursts, so the hex never fully fills.</p>
+            </div>
+            <div class="reveal pcard">
+                <div class="ptop"><span class="glyph">👻</span><div><div class="pname">The Ghost</div><div class="ptag">trains 3 weeks · quits · returns month 8</div></div></div>
+                <div class="pstats">
+                    <div class="pstat"><div class="k">Sessions/yr</div><div class="v">~10</div></div>
+                    <div class="pstat"><div class="k">On return LV</div><div class="v">~6</div></div>
+                    <div class="pstat"><div class="k">Rank</div><div class="v rank rk-low" style="color:var(--text-dim)">Novice</div></div>
+                </div>
+                <p class="pnote">Returns to find LV & rank fully intact (<span class="cy">nothing decays</span>) — but the hex shrank to 70% and everything is stale. The "welcome back, re-run a trial for a 1.5× boost" promise <span class="rd">never fires — that boost is unbuilt.</span></p>
+            </div>
+        </div>
+    </div>
+    <div class="slide-no">07</div><div class="brand-foot">UNBOUND</div>
+</section>
+
+<!-- 8 · PERSONAS 4 & 5 — THE PUNCHLINE -->
+<section class="slide ember-slide">
+    <div class="slide-content">
+        <div class="head-row" style="margin-bottom:var(--element-gap)"><div class="kicker reveal">05 — Where standing should matter… but doesn't</div>
+        <h2 class="reveal">The veteran & the strongman</h2></div>
+        <div class="two-col">
+            <div class="reveal pcard">
+                <div class="ptop"><span class="glyph">⚡</span><div><div class="pname">The Returner</div><div class="ptag">detrained ex-athlete · 4×/wk</div></div></div>
+                <div class="pstats">
+                    <div class="pstat"><div class="k">Sessions/yr</div><div class="v">189</div></div>
+                    <div class="pstat"><div class="k">Year-end LV</div><div class="v">~47</div></div>
+                    <div class="pstat"><div class="k">Rank</div><div class="v rank">Master</div></div>
+                </div>
+                <p class="pnote">Comes in able to do real work day one. The doc says they should rocket up. In the build they level <span class="rd">identically to a beginner</span> — no comeback boost, no fast-track.</p>
+            </div>
+            <div class="reveal pcard">
+                <div class="ptop"><span class="glyph">🏋️</span><div><div class="pname">The Iron Veteran</div><div class="ptag">strong intermediate lifter · 4×/wk</div></div></div>
+                <div class="pstats">
+                    <div class="pstat"><div class="k">Sessions/yr</div><div class="v">185</div></div>
+                    <div class="pstat"><div class="k">Year-end LV</div><div class="v">~46</div></div>
+                    <div class="pstat"><div class="k">Rank</div><div class="v rank">Master</div></div>
+                </div>
+                <p class="pnote">Benches 1.5× BW on day one. The rank engine doesn't care — intensity is measured vs <em>your own</em> baseline, so his heavy sets earn the same AP as a beginner's light ones.</p>
+            </div>
+        </div>
+        <p class="reveal caption" style="margin-top:.8em em">The Disciplined Newcomer, The Returner, and The Iron Veteran <span class="em">all finish at Master</span> — three wildly different athletes, one rank, because they logged the same volume.</p>
+    </div>
+    <div class="slide-no">08</div><div class="brand-foot">UNBOUND</div>
+</section>
+
+<!-- 9 · PERSONAS 6 & 7 -->
+<section class="slide">
+    <div class="slide-content">
+        <div class="head-row" style="margin-bottom:var(--element-gap)"><div class="kicker reveal">06 — Skill vs sheer volume</div>
+        <h2 class="reveal">The bar athlete & the all-in</h2></div>
+        <div class="two-col">
+            <div class="reveal pcard">
+                <div class="ptop"><span class="glyph">🤸</span><div><div class="pname">The Bar Athlete</div><div class="ptag">calisthenics intermediate · 4×/wk</div></div></div>
+                <div class="pstats">
+                    <div class="pstat"><div class="k">Sessions/yr</div><div class="v">185</div></div>
+                    <div class="pstat"><div class="k">Year-end LV</div><div class="v">~41</div></div>
+                    <div class="pstat"><div class="k">Rank</div><div class="v rank">Master</div></div>
+                </div>
+                <p class="pnote">Unlocks the most skill-tree nodes by far — but those <span class="rd">don't gate trials</span>. Skill-heavy sessions earn slightly less AP, so he reaches Master a hair later despite being the most capable on the bar.</p>
+            </div>
+            <div class="reveal pcard">
+                <div class="ptop"><span class="glyph">🌋</span><div><div class="pname">The All-In</div><div class="ptag">advanced · 5–6×/wk · long sessions</div></div></div>
+                <div class="pstats">
+                    <div class="pstat"><div class="k">Sessions/yr</div><div class="v">280</div></div>
+                    <div class="pstat"><div class="k">Year-end LV</div><div class="v">~71</div></div>
+                    <div class="pstat"><div class="k">Rank</div><div class="v rank rk-vessel">Vessel</div></div>
+                </div>
+                <p class="pnote">The <span class="cy">only</span> persona to break the upper tiers — purely by volume + breadth. Passes Vessel (LV 55), knocking on Unbound's door. To clear it he must also hold 4 attributes ≥ 90 simultaneously.</p>
+            </div>
+        </div>
+    </div>
+    <div class="slide-no">09</div><div class="brand-foot">UNBOUND</div>
+</section>
+
+<!-- 10 · THE MATRIX -->
+<section class="slide">
+    <div class="slide-content">
+        <div class="head-row"><div class="kicker reveal">07 — All eight, side by side</div>
+        <h2 class="reveal">The cohort matrix</h2></div>
+        <div class="reveal"><table class="dtable">
+            <thead><tr><th>Persona</th><th>Standing</th><th>Sess/yr</th><th>LV</th><th>Year-1 rank</th></tr></thead>
+            <tbody>
+                <tr><td>🌋 The All-In</td><td>advanced, all-in</td><td class="mono">280</td><td class="mono">71</td><td><span class="rankchip rk-vessel">Vessel</span></td></tr>
+                <tr><td>⚡ The Returner</td><td>ex-athlete</td><td class="mono">189</td><td class="mono">47</td><td><span class="rankchip rk-master">Master</span></td></tr>
+                <tr><td>🔥 Disciplined Newcomer</td><td>true beginner</td><td class="mono">189</td><td class="mono">46</td><td><span class="rankchip rk-master">Master</span></td></tr>
+                <tr><td>🏋️ The Iron Veteran</td><td>strong lifter</td><td class="mono">185</td><td class="mono">46</td><td><span class="rankchip rk-master">Master</span></td></tr>
+                <tr><td>🤸 The Bar Athlete</td><td>calisthenics int.</td><td class="mono">185</td><td class="mono">41</td><td><span class="rankchip rk-master">Master</span></td></tr>
+                <tr><td>🌙 Couch-to-Arc</td><td>true beginner</td><td class="mono">95</td><td class="mono">27</td><td><span class="rankchip rk-vet">Veteran</span></td></tr>
+                <tr><td>📆 Weekend Warrior</td><td>casual</td><td class="mono">65</td><td class="mono">20</td><td><span class="rankchip rk-forged">Forged</span></td></tr>
+                <tr><td>👻 The Ghost</td><td>quit wk 3</td><td class="mono">10</td><td class="mono">6</td><td><span class="rankchip rk-low">Novice</span></td></tr>
+            </tbody>
+        </table></div>
+        <p class="reveal caption" style="margin-top:.7em">Sorted by rank. Notice the four-way Master tie across totally different abilities — and that the table is sorted almost perfectly by <span class="cy">sessions per year</span>, not by standing.</p>
+    </div>
+    <div class="slide-no">10</div><div class="brand-foot">UNBOUND</div>
+</section>
+
+<!-- 11 · THE PUNCHLINE -->
+<section class="slide ember-slide">
+    <div class="slide-content">
+        <div class="head-row"><div class="kicker reveal">08 — The pattern</div>
+        <h2 class="reveal">Behavior beats standing — completely</h2></div>
+        <div class="three-col">
+            <div class="reveal hud"><div class="stat-num">1</div><div class="stat-label">variable that predicts year-1 rank: <span class="cy">sessions logged</span></div></div>
+            <div class="reveal hud"><div class="stat-num gd">4</div><div class="stat-label">different athletes who all land on <span class="gd">Master</span></div></div>
+            <div class="reveal hud"><div class="stat-num em">0</div><div class="stat-label">rank benefit from being strong, skilled, or returning</div></div>
+        </div>
+        <div class="reveal hud" style="margin-top:var(--content-gap)">
+            <p style="color:var(--text)"><strong>Is this right or wrong?</strong> It depends what UNBOUND wants rank to <em>mean</em>. As built, rank is an <span class="cy">honesty-of-effort medal</span> — it rewards showing up, not ability. That's actually a defensible, kind design… but it clashes with the anime fantasy, where a returning monster should visibly outrank a newcomer.</p>
+        </div>
+    </div>
+    <div class="slide-no">11</div><div class="brand-foot">UNBOUND</div>
+</section>
+
+<!-- 12 · ANSWER + LEVERS -->
+<section class="slide">
+    <div class="slide-content">
+        <div class="head-row"><div class="kicker reveal">09 — So… is reaching Master in year one right?</div>
+        <h2 class="reveal">The verdict, and the fix</h2></div>
+        <div class="two-col">
+            <div class="reveal hud"><span class="corner-tag">VERDICT</span>
+                <ul class="list-clean">
+                    <li><b>For a disciplined trainer: yes</b> — Master is rank 6 of 9, and it's volume-gated, so consistency earns it honestly.</li>
+                    <li><b>For the median beginner: it's Veteran</b>, not Master — lower adherence is the real story.</li>
+                    <li><b>The upper three ranks take years</b> — exactly as you intuited, and that's healthy.</li>
+                </ul>
+            </div>
+            <div class="reveal hud em-edge"><span class="corner-tag" style="background:var(--ember)">IF YOU WANT STANDING TO MATTER</span>
+                <ul class="list-clean ember">
+                    <li>Ship the <b>rank-up LV boluses</b> + skill-difficulty multipliers (already specced, just unbuilt)</li>
+                    <li>Wire the <b>comeback boost</b> so returners feel their re-earned status</li>
+                    <li>Let <b>strength/skill standards</b> actually gate trials, not just AP totals</li>
+                </ul>
+            </div>
+        </div>
+        <p class="reveal caption" style="margin-top:.8em">Closing the unbuilt velocity layer is the single change that would make "different people in different standings" actually diverge — and make the word "Master" feel earned by mastery, not just mileage.</p>
+    </div>
+    <div class="slide-no">12</div><div class="brand-foot">UNBOUND</div>
+</section>
+
+<!-- 13 · CLOSING -->
+<section class="slide title-slide">
+    <div class="scanline"></div>
+    <div class="slide-content" style="align-items:center">
+        <div class="kicker reveal" style="justify-content:center">One line to remember</div>
+        <h2 class="reveal" style="font-size:clamp(1.5rem,4.5vw,3.2rem);margin-top:.4em;max-width:22ch;text-align:center;line-height:1.12">Right now UNBOUND ranks <span class="cy">how much you train</span>, not <span class="em">how good you are.</span></h2>
+        <div class="title-rule reveal"></div>
+        <p class="reveal" style="max-width:50ch;text-align:center;margin-top:1em">Both are valid philosophies — but only one matches the fantasy on the box. The velocity layer is the bridge between them, and it's sitting in the spec, unbuilt.</p>
+        <div class="tag reveal" style="margin-top:1.5em">END · PERSONA SIMULATION</div>
+    </div>
+    <div class="slide-no">13</div><div class="brand-foot">UNBOUND // BREAK THE RESTRICTION</div>
+</section>
+
+<script>
+class SlidePresentation{
+    constructor(){this.slides=Array.from(document.querySelectorAll('.slide'));this.current=0;this.locked=false;this.observe();this.keys();this.wheel();this.touch();this.dots();this.progress();}
+    observe(){const io=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting&&e.intersectionRatio>0.55){e.target.classList.add('visible');this.current=this.slides.indexOf(e.target);this.syncDots();}});},{threshold:[0.55]});this.slides.forEach(s=>io.observe(s));this.slides[0].classList.add('visible');}
+    go(i){i=Math.max(0,Math.min(this.slides.length-1,i));this.slides[i].scrollIntoView({behavior:'smooth'});this.current=i;}
+    keys(){document.addEventListener('keydown',e=>{if(['ArrowDown','ArrowRight',' ','PageDown'].includes(e.key)){e.preventDefault();this.go(this.current+1);}if(['ArrowUp','ArrowLeft','PageUp'].includes(e.key)){e.preventDefault();this.go(this.current-1);}if(e.key==='Home')this.go(0);if(e.key==='End')this.go(this.slides.length-1);});}
+    wheel(){let t=null;window.addEventListener('wheel',e=>{if(this.locked)return;if(Math.abs(e.deltaY)<18)return;this.locked=true;this.go(this.current+(e.deltaY>0?1:-1));clearTimeout(t);t=setTimeout(()=>this.locked=false,780);},{passive:true});}
+    touch(){let y0=null;window.addEventListener('touchstart',e=>y0=e.touches[0].clientY,{passive:true});window.addEventListener('touchend',e=>{if(y0===null)return;const dy=y0-e.changedTouches[0].clientY;if(Math.abs(dy)>45)this.go(this.current+(dy>0?1:-1));y0=null;},{passive:true});}
+    dots(){const nav=document.getElementById('navDots');this.slides.forEach((_,i)=>{const b=document.createElement('button');b.setAttribute('aria-label','Slide '+(i+1));b.addEventListener('click',()=>this.go(i));nav.appendChild(b);});this.dotEls=Array.from(nav.children);this.syncDots();}
+    syncDots(){if(this.dotEls)this.dotEls.forEach((d,i)=>d.classList.toggle('active',i===this.current));}
+    progress(){const bar=document.getElementById('progressBar');const u=()=>{const h=document.documentElement.scrollHeight-window.innerHeight;bar.style.width=(h>0?(window.scrollY/h)*100:0)+'%';};window.addEventListener('scroll',u,{passive:true});u();}
+}
+new SlidePresentation();
+</script>
+</body>
+</html>

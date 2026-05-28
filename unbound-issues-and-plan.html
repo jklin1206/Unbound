@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UNBOUND — Issue Register, Proofs & Remediation Plan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap">
+<style>
+/* THEME — shared UNBOUND anime-HUD language */
+:root{
+ --bg-0:#05070e;--bg-1:#0a0f1c;--bg-2:#111a2e;--line:rgba(54,224,208,0.18);--line-soft:rgba(255,255,255,0.06);
+ --text:#eaf2ff;--text-dim:#8aa0c0;--text-faint:#5c6f8c;
+ --cyan:#36e0d0;--cyan-bright:#5cffe9;--ember:#ff6b35;--gold:#ffc24d;--violet:#9b6bff;--red:#ff4d6d;--green:#3ddc97;
+ --cyan-glow:rgba(54,224,208,0.28);--ember-glow:rgba(255,107,53,0.30);
+ --font-display:'Chakra Petch',sans-serif;--font-body:'Satoshi',sans-serif;--font-mono:'JetBrains Mono',monospace;
+ --title-size:clamp(2rem,6vw,5rem);--h2-size:clamp(1.4rem,3.6vw,2.7rem);--h3-size:clamp(1rem,2.2vw,1.5rem);
+ --body-size:clamp(0.74rem,1.25vw,1.02rem);--small-size:clamp(0.58rem,0.9vw,0.78rem);--tiny-size:clamp(0.5rem,0.74vw,0.66rem);
+ --slide-padding:clamp(1.1rem,4vw,3.4rem);--content-gap:clamp(0.6rem,2vw,1.6rem);--element-gap:clamp(0.3rem,1vw,0.9rem);
+ --ease:cubic-bezier(0.16,1,0.3,1);--dur:0.7s;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;overflow-x:hidden;}
+html{scroll-snap-type:y mandatory;scroll-behavior:smooth;}
+.slide{width:100vw;height:100vh;height:100dvh;overflow:hidden;scroll-snap-align:start;display:flex;flex-direction:column;position:relative;}
+.slide-content{flex:1;display:flex;flex-direction:column;justify-content:center;max-height:100%;overflow:hidden;padding:var(--slide-padding);}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:clamp(0.5rem,1.5vw,1rem);}
+@media (max-height:700px){:root{--slide-padding:clamp(0.7rem,3vw,1.8rem);--content-gap:clamp(0.4rem,1.5vw,1rem);--title-size:clamp(1.25rem,4.5vw,2.5rem);--h2-size:clamp(1rem,3vw,1.7rem);}}
+@media (max-height:600px){:root{--slide-padding:clamp(0.45rem,2.5vw,1.4rem);--content-gap:clamp(0.3rem,1vw,0.7rem);--title-size:clamp(1.1rem,4vw,2rem);--body-size:clamp(0.64rem,1.2vw,0.88rem);}.nav-dots,.keyboard-hint,.decorative{display:none;}}
+@media (max-height:500px){:root{--slide-padding:clamp(0.4rem,2vw,1rem);--title-size:clamp(1rem,3.5vw,1.5rem);--h2-size:clamp(0.9rem,2.5vw,1.25rem);--body-size:clamp(0.6rem,1vw,0.8rem);}}
+@media (max-width:600px){:root{--title-size:clamp(1.25rem,7vw,2.5rem);}.grid{grid-template-columns:1fr;}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:0.01ms!important;transition-duration:0.2s!important;}html{scroll-behavior:auto;}}
+
+body{background:var(--bg-0);color:var(--text);font-family:var(--font-body);-webkit-font-smoothing:antialiased;}
+.slide::before{content:"";position:absolute;inset:0;background-image:linear-gradient(var(--line-soft) 1px,transparent 1px),linear-gradient(90deg,var(--line-soft) 1px,transparent 1px);background-size:clamp(28px,4vw,52px) clamp(28px,4vw,52px);mask-image:radial-gradient(ellipse 90% 80% at 50% 40%,#000 30%,transparent 100%);opacity:0.5;pointer-events:none;}
+.slide::after{content:"";position:absolute;pointer-events:none;width:70vw;height:70vw;max-width:880px;max-height:880px;top:-20%;right:-15%;background:radial-gradient(circle,var(--cyan-glow),transparent 65%);opacity:0.28;filter:blur(20px);}
+.slide.ember-slide::after{background:radial-gradient(circle,var(--ember-glow),transparent 65%);opacity:0.38;}
+
+.kicker{font-family:var(--font-mono);font-size:var(--small-size);letter-spacing:0.3em;text-transform:uppercase;color:var(--cyan);display:flex;align-items:center;gap:0.6em;}
+.kicker::before{content:"";width:clamp(20px,3vw,46px);height:1px;background:var(--cyan);display:inline-block;}
+h1,h2,h3{font-family:var(--font-display);font-weight:700;line-height:1.02;letter-spacing:-0.01em;}
+h2{font-size:var(--h2-size);}h3{font-size:var(--h3-size);}
+p{font-size:var(--body-size);color:var(--text-dim);line-height:1.5;}
+strong{color:var(--text);font-weight:700;}
+.mono{font-family:var(--font-mono);}.cy{color:var(--cyan);}.em{color:var(--ember);}.gd{color:var(--gold);}.rd{color:var(--red);}.gr{color:var(--green);}.vi{color:var(--violet);}
+.head-row{display:flex;flex-direction:column;gap:0.4em;margin-bottom:var(--content-gap);}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:clamp(0.6rem,1.6vw,1.3rem);}
+.three-col{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(0.5rem,1.4vw,1rem);}
+.five-col{display:grid;grid-template-columns:repeat(5,1fr);gap:clamp(0.4rem,1vw,0.8rem);}
+@media (max-width:820px){.five-col{grid-template-columns:repeat(2,1fr);}}
+@media (max-width:720px){.two-col,.three-col{grid-template-columns:1fr;}}
+
+.hud{position:relative;background:linear-gradient(150deg,rgba(17,26,46,0.92),rgba(10,15,28,0.82));border:1px solid var(--line);clip-path:polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,14px 100%,0 calc(100% - 14px));padding:clamp(0.65rem,1.5vw,1.15rem);}
+.hud.em-edge{border-color:rgba(255,107,53,0.32);}
+.hud.gr-edge{border-color:rgba(61,220,151,0.32);}
+.hud .corner-tag{position:absolute;top:0;right:0;font-family:var(--font-mono);font-size:var(--tiny-size);color:var(--bg-0);background:var(--cyan);padding:2px 8px 2px 12px;clip-path:polygon(14px 0,100% 0,100% 100%,0 100%);letter-spacing:0.1em;}
+.hud .corner-tag.em{background:var(--ember);}
+.hud .corner-tag.gr{background:var(--green);}
+
+.stat-num{font-family:var(--font-display);font-weight:700;font-size:clamp(1.5rem,4.2vw,3rem);color:var(--cyan);line-height:1;}
+.stat-label{font-size:var(--small-size);color:var(--text-dim);margin-top:0.3em;}
+
+.dtable{width:100%;border-collapse:collapse;font-size:var(--small-size);}
+.dtable.fixed{table-layout:fixed;}
+.dtable th,.dtable td{text-align:left;padding:clamp(0.2rem,0.5vw,0.4rem) clamp(0.32rem,0.7vw,0.62rem);border-bottom:1px solid var(--line-soft);vertical-align:top;}
+.dtable th{font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.06em;font-size:var(--tiny-size);color:var(--cyan);}
+.dtable td{color:var(--text-dim);line-height:1.28;}
+.dtable td.mono,.dtable td .mono{font-family:var(--font-mono);color:var(--text);}
+.dtable tr:last-child td{border-bottom:none;}
+.dtable td b{color:var(--text);}
+.proofcol{color:var(--text-dim);}
+.proofcol .pm{color:var(--green);font-family:var(--font-mono);}
+.proofcol .pt{font-family:var(--font-mono);font-size:var(--tiny-size);color:var(--cyan);text-transform:uppercase;letter-spacing:.05em;}
+
+.sev{display:inline-block;width:8px;height:8px;transform:rotate(45deg);margin-right:4px;flex:none;}
+.sev.crit{background:var(--red);box-shadow:0 0 7px rgba(255,77,109,.6);}
+.sev.high{background:var(--ember);}
+.sev.med{background:var(--gold);}
+.sev.low{background:var(--text-faint);}
+.eff{font-family:var(--font-mono);font-size:var(--tiny-size);padding:0 5px;border-radius:2px;border:1px solid;letter-spacing:.03em;white-space:nowrap;}
+.eff.s{color:var(--green);border-color:rgba(61,220,151,.4);background:rgba(61,220,151,.1);}
+.eff.m{color:var(--gold);border-color:rgba(255,194,77,.4);background:rgba(255,194,77,.1);}
+.eff.l{color:var(--red);border-color:rgba(255,77,109,.4);background:rgba(255,77,109,.1);}
+
+.list-clean{list-style:none;display:flex;flex-direction:column;gap:clamp(0.3rem,1vh,0.65rem);}
+.list-clean li{font-size:var(--body-size);color:var(--text-dim);line-height:1.38;padding-left:1.3em;position:relative;}
+.list-clean li::before{content:"▸";position:absolute;left:0;color:var(--cyan);font-size:0.9em;}
+.list-clean.ember li::before{color:var(--ember);}
+.list-clean.ok li::before{content:"✓";color:var(--green);}
+.list-clean li b{color:var(--text);}
+.caption{font-family:var(--font-mono);font-size:var(--tiny-size);color:var(--text-faint);letter-spacing:0.06em;}
+.section-tag{font-family:var(--font-mono);font-size:var(--small-size);color:var(--ember);letter-spacing:0.3em;}
+
+.phase{display:grid;grid-template-columns:auto 1fr;gap:0.8em;align-items:start;}
+.phase .pno{font-family:var(--font-display);font-weight:700;font-size:clamp(1rem,2.3vw,1.7rem);color:var(--bg-0);background:var(--cyan);width:clamp(32px,5vw,48px);height:clamp(32px,5vw,48px);display:flex;align-items:center;justify-content:center;clip-path:polygon(0 0,calc(100% - 8px) 0,100% 8px,100% 100%,8px 100%,0 calc(100% - 8px));}
+.phase .pno.em{background:var(--ember);}
+.phase .pbody h3{font-size:var(--h3-size);}
+.phase .pbody .when{font-family:var(--font-mono);font-size:var(--tiny-size);color:var(--cyan);letter-spacing:.1em;}
+.phase .pbody p{font-size:var(--small-size);margin-top:1px;}
+
+.reveal{opacity:0;transform:translateY(24px);transition:opacity var(--dur) var(--ease),transform var(--dur) var(--ease);}
+.slide.visible .reveal{opacity:1;transform:translateY(0);}
+.slide.visible .reveal:nth-child(1){transition-delay:.05s}.slide.visible .reveal:nth-child(2){transition-delay:.12s}.slide.visible .reveal:nth-child(3){transition-delay:.19s}.slide.visible .reveal:nth-child(4){transition-delay:.26s}.slide.visible .reveal:nth-child(5){transition-delay:.33s}.slide.visible .reveal:nth-child(6){transition-delay:.40s}
+.scanline{position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--cyan),transparent);opacity:.4;animation:sweep 6s linear infinite;}
+@keyframes sweep{0%{top:0}100%{top:100%}}
+
+.progress-bar{position:fixed;top:0;left:0;height:3px;background:linear-gradient(90deg,var(--cyan),var(--ember));z-index:100;width:0;box-shadow:0 0 12px var(--cyan-glow);}
+.nav-dots{position:fixed;right:clamp(8px,1.5vw,18px);top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:7px;z-index:100;}
+.nav-dots button{width:7px;height:7px;border:1px solid var(--text-faint);background:transparent;transform:rotate(45deg);cursor:pointer;padding:0;transition:all .3s;}
+.nav-dots button.active{background:var(--cyan);border-color:var(--cyan);box-shadow:0 0 8px var(--cyan-glow);}
+.slide-no{position:absolute;bottom:clamp(0.5rem,2vh,1.3rem);left:var(--slide-padding);font-family:var(--font-mono);font-size:var(--tiny-size);color:var(--text-faint);letter-spacing:0.2em;z-index:5;}
+.brand-foot{position:absolute;bottom:clamp(0.5rem,2vh,1.3rem);right:var(--slide-padding);font-family:var(--font-mono);font-size:var(--tiny-size);color:var(--text-faint);letter-spacing:0.2em;z-index:5;}
+.keyboard-hint{position:fixed;bottom:10px;left:50%;transform:translateX(-50%);font-family:var(--font-mono);font-size:var(--tiny-size);color:var(--text-faint);z-index:100;opacity:.6;}
+.title-slide{align-items:center;justify-content:center;text-align:center;}
+.title-rule{width:clamp(60px,12vw,140px);height:2px;background:linear-gradient(90deg,transparent,var(--ember),transparent);margin:1.2em auto 0;}
+.tag{font-family:var(--font-mono);font-size:var(--small-size);color:var(--text-faint);margin-top:1.3em;letter-spacing:0.18em;}
+.legend{display:flex;gap:1em;flex-wrap:wrap;font-family:var(--font-mono);font-size:var(--tiny-size);color:var(--text-faint);margin-top:.6em;align-items:center;}
+.legend span{display:flex;align-items:center;gap:.3em;}
+</style>
+</head>
+<body>
+<div class="progress-bar" id="progressBar"></div>
+<nav class="nav-dots" id="navDots"></nav>
+<div class="keyboard-hint decorative">↑ ↓ / SPACE / SCROLL</div>
+
+<!-- 1 TITLE -->
+<section class="slide title-slide ember-slide">
+ <div class="scanline"></div>
+ <div class="slide-content" style="align-items:center">
+  <div class="kicker reveal" style="justify-content:center">Issue register · proof of done · remediation roadmap</div>
+  <h1 class="reveal" style="font-size:var(--title-size);letter-spacing:.06em;margin-top:.4em;background:linear-gradient(180deg,#fff,var(--ember) 140%);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:0 0 60px var(--ember-glow)">EVERYTHING TO FIX</h1>
+  <p class="reveal" style="max-width:56ch;margin-top:.6em">Every issue we found — and a <span class="cy">falsifiable proof of done</span> for each, so nothing is "fixed" until a test, a sim, or a screenshot says so.</p>
+  <div class="title-rule reveal"></div>
+  <div class="tag reveal">54 ISSUES · 5 WORKSTREAMS · 1 PROOF PER FIX</div>
+ </div>
+ <div class="brand-foot">UNBOUND // REMEDIATION</div>
+</section>
+
+<!-- 2 METHOD -->
+<section class="slide">
+ <div class="slide-content">
+  <div class="head-row"><div class="kicker reveal">00 — How we found these</div>
+  <h2 class="reveal">Nine deep-dive passes across the whole codebase</h2></div>
+  <div class="three-col reveal" style="margin-bottom:var(--content-gap)">
+   <div class="hud"><div class="stat-num">592</div><div class="stat-label">Swift files swept</div></div>
+   <div class="hud"><div class="stat-num">911</div><div class="stat-label">tests exist — but no CI runs them</div></div>
+   <div class="hud"><div class="stat-num gd">54</div><div class="stat-label">distinct issues, each with a proof</div></div>
+  </div>
+  <div class="reveal hud">
+   <span class="corner-tag">PASSES</span>
+   <p style="color:var(--text)">Program engine · gamification spine · scan/coach/adaptation · infra/onboarding/squads · engine-constants verification · correctness &amp; concurrency · dead-code &amp; wiring · security/privacy/persistence · build/test/UX.</p>
+   <p class="caption" style="margin-top:.5em">Severity ◆ Critical / High / Med / Low. Effort <span class="eff s">S</span>&lt;2h · <span class="eff m">M</span>&lt;1d · <span class="eff l">L</span>&gt;1d. Every row carries a <span class="gr">✓ done-when</span>.</p>
+  </div>
+ </div>
+ <div class="slide-no">02</div><div class="brand-foot">UNBOUND</div>
+</section>
+
+<!-- 3 SCOREBOARD -->
+<section class="slide">
+ <div class="slide-content">
+  <div class="head-row"><div class="kicker reveal">01 — The scoreboard</div>
+  <h2 class="reveal">Where the risk lives</h2></div>
+  <div class="five-col reveal" style="margin-bottom:var(--content-gap)">
+   <div class="hud"><div class="stat-num rd">3</div><div class="stat-label">Critical / data-loss</div></div>
+   <div class="hud"><div class="stat-num em">10</div><div class="stat-label">High</div></div>
+   <div class="hud"><div class="stat-num gd">22</div><div class="stat-label">Medium</div></div>
+   <div class="hud"><div class="stat-num cy">19</div><div class="stat-label">Low / hygiene</div></div>
+   <div class="hud"><div class="stat-num gr">~18</div><div class="stat-label">are quick wins (S)</div></div>
+  </div>
+  <div class="reveal hud em-edge">
+   <span class="corner-tag em">THE THROUGH-LINE</span>
+   <p style="color:var(--text)">The plumbing is real and shippable. Nearly every serious issue is one of two shapes: a <span class="cy">loop that computes a signal but never applies it</span>, or a <span class="cy">feature wired into the container but never triggered</span>. Both are fixable — and provable — without re-architecting.</p>
+  </div>
+ </div>
+ <div class="slide-no">03</div><div class="brand-foot">UNBOUND</div>
+</section>
+
+<!-- 4 DEFINITION OF DONE -->
+<section class="slide">
+ <div class="slide-content">
+  <div class="head-row"><div class="kicker reveal">02 — Definition of done</div>
+  <h2 class="reveal">No fix is "done" on a claim — only on a passing proof</h2></div>
+  <div class="reveal hud gr-edge" style="margin-bottom:var(--content-gap)">
+   <span class="corner-tag gr">THE RULE</span>
+   <p style="color:var(--text)">Before touching code we write the <strong>falsifiable done-when</strong> first. Engine-math changes <span class="cy">re-run the persona sim</span> so balance shifts are visible, not assumed. The proof type is matched to the issue:</p>
+  </div>
+  <div class="three-col">
+   <div class="reveal hud"><span class="corner-tag">LOGIC</span><ul class="list-clean ok"><li><b>Unit / concurrency test</b> — assertion on the rule</li><li><b>Integration test</b> — a full multi-service flow</li><li><b>CI check</b> — green required gate on PR</li></ul></div>
+   <div class="reveal hud"><span class="corner-tag">BEHAVIOR</span><ul class="list-clean ok"><li><b>Sim re-run + screenshot</b> — cohort matrix shifts as predicted</li><li><b>Analytics funnel</b> — per-step drop-off in PostHog</li></ul></div>
+   <div class="reveal hud"><span class="corner-tag">VISIBLE</span><ul class="list-clean ok"><li><b>UI screenshot</b> in the simulator — the state actually renders</li><li><b>Instruments trace</b> — frame-time / no main-thread stall</li></ul></div>
+  </div>
+ </div>
+ <div class="slide-no">04</div><div class="brand-foot">UNBOUND</div>
+</section>
+
+<!-- 5 WORKSTREAMS -->
+<section class="slide ember-slide">
+ <div class="slide-content">
+  <div class="head-row"><div class="kicker reveal">03 — The plan, in five workstreams</div>
+  <h2 class="reveal">How we'll tackle all of it</h2></div>
+  <div class="two-col">
+   <div class="reveal hud"><span class="corner-tag em">A · STOP THE BLEEDING</span><p style="color:var(--text)">Data-loss &amp; revenue. Nothing else ships until a user can't silently lose scans, history, or money.</p></div>
+   <div class="reveal hud"><span class="corner-tag">B · CLOSE THE OPEN LOOPS</span><p style="color:var(--text)">Make systems do what the UI claims — checkpoint→load, velocity, decay, skill proof, dormant features.</p></div>
+   <div class="reveal hud"><span class="corner-tag">C · SAFETY NET</span><p style="color:var(--text)">CI, tests on the engine that mutates programs, and the correctness/date/concurrency bugs.</p></div>
+   <div class="reveal hud"><span class="corner-tag">D · PRODUCT &amp; FUNNEL</span><p style="color:var(--text)">Empty states, onboarding resume, localization, perf hitches, the vocabulary maze.</p></div>
+  </div>
+  <div class="reveal hud" style="margin-top:var(--element-gap)"><span class="corner-tag">E · HYGIENE</span><p style="color:var(--text)">Delete the dead code, split the 4,800-line files, kill stale config — pure cleanup, no behavior change.</p></div>
+ </div>
+ <div class="slide-no">05</div><div class="brand-foot">UNBOUND</div>
+</section>
+
+<!-- 6 WS-A -->
+<section class="slide">
+ <div class="slide-content">
+  <div class="head-row" style="margin-bottom:var(--element-gap)"><div class="kicker reveal">A — Stop the bleeding · data-loss &amp; revenue</div></div>
+  <div class="reveal"><table class="dtable fixed">
+   <colgroup><col style="width:23%"><col style="width:30%"><col style="width:47%"></colgroup>
+   <thead><tr><th>Issue</th><th>Fix</th><th>✓ Done when (proof)</th></tr></thead>
+   <tbody>
+    <tr><td><span class="sev crit"></span><b>Scans + photos lost on sign-in</b></td><td>Re-key scans + move photo dir <span class="eff m">M</span></td><td class="proofcol"><span class="pt">integ test</span> — seed anon user w/ 3 scans+photos, Apple sign-in, assert all resolve under new UID; <span class="pm">+</span> before/after scan-history screenshot identical</td></tr>
+    <tr><td><span class="sev crit"></span><b>Fire-and-forget migration</b></td><td>Await + retry + <span class="mono">migrationCompleted</span> flag <span class="eff m">M</span></td><td class="proofcol"><span class="pt">test</span> — inject mid-migration kill → relaunch resumes → flag true only after every collection re-keyed</td></tr>
+    <tr><td><span class="sev crit"></span><b>DB write race</b> (lost updates)</td><td>Make <span class="mono">DatabaseService</span> an actor / lock <span class="eff m">M</span></td><td class="proofcol"><span class="pt">concurrency test</span> — 100 parallel updates to one doc → assert 0 lost writes</td></tr>
+    <tr><td><span class="sev high"></span><b>Paywall bypass</b> (no server check)</td><td>Server <span class="mono">is_pro</span> via webhook; verify in premium fns <span class="eff l">L</span></td><td class="proofcol"><span class="pt">test</span> — spoof local entitlement + no server flag → premium Edge fn returns 403; reset onboarding flag → content stays locked</td></tr>
+    <tr><td><span class="sev high"></span><b>Sync last-write-wins</b></td><td><span class="mono">updated_at</span> / version merge on pull <span class="eff l">L</span></td><td class="proofcol"><span class="pt">test</span> — 2 devices edit different fields offline, both sync → merged doc keeps both edits</td></tr>
+    <tr><td><span class="sev med"></span><b>Deletion gaps + captain wipe</b></td><td>Delete full photo root; reassign captain <span class="eff m">M</span></td><td class="proofcol"><span class="pt">test</span> — delete → 0 rows all tables + 0 files (incl old-UUID dir); captain delete → squad survives w/ new captain</td></tr>
+   </tbody>
+  </table></div>
+  <div class="legend reveal"><span><span class="sev crit"></span>Critical</span><span><span class="sev high"></span>High</span><span><span class="sev med"></span>Med</span><span><span class="sev low"></span>Low</span><span><span class="gr">✓</span> = falsifiable proof</span></div>
+ </div>
+ <div class="slide-no">06</div><div class="brand-foot">UNBOUND</div>
+</section>
+
+<!-- 7 WS-B1 -->
+<section class="slide">
+ <div class="slide-content">
+  <div class="head-row" style="margin-bottom:var(--element-gap)"><div class="kicker reveal">B — Close the open loops · 1/2 · computed but never applied</div></div>
+  <div class="reveal"><table class="dtable fixed">
+   <colgroup><col style="width:23%"><col style="width:30%"><col style="width:47%"></colgroup>
+   <thead><tr><th>Issue</th><th>Fix</th><th>✓ Done when (proof)</th></tr></thead>
+   <tbody>
+    <tr><td><span class="sev high"></span><b>Checkpoint load-bias inert</b></td><td>Scale next Arc sets/reps/RPE by bias <span class="eff m">M</span></td><td class="proofcol"><span class="pt">test</span> — recovery-flagged checkpoint → next Arc total volume measurably &lt; prior (numeric assert); <span class="pm">+</span> 2-Arc screenshot</td></tr>
+    <tr><td><span class="sev high"></span><b>Velocity layer unbuilt</b></td><td>Boluses + skill/compound/comeback mult <span class="eff l">L</span></td><td class="proofcol"><span class="pt">sim re-run</span> — vet &amp; beginner at equal volume now diverge in LV; <span class="pm">+</span> updated cohort-matrix screenshot</td></tr>
+    <tr><td><span class="sev high"></span><b>Rank decay = no honest signal</b></td><td>Stale flags + recent-vs-lifetime <span class="eff m">M</span></td><td class="proofcol"><span class="pt">test</span> — 31d idle → stale flag + recent&lt;lifetime, rank unchanged; <span class="pm">+</span> stale-UI screenshot</td></tr>
+    <tr><td><span class="sev med"></span><b>Trials ignore skills</b></td><td>Path-aware "any N of" gates, mid/high tiers <span class="eff m">M</span></td><td class="proofcol"><span class="pt">test</span> — below skill req → readiness locked w/ skill line; meet it → unlocked, per path (lifter vs cali)</td></tr>
+    <tr><td><span class="sev med"></span><b>Skill auto-proof half-built</b></td><td>Detect hold-time / carry-distance <span class="eff m">M</span></td><td class="proofcol"><span class="pt">test</span> — log a 60s L-sit hold → node auto-advances with no manual tap (NodeState assert)</td></tr>
+    <tr><td><span class="sev med"></span><b>Auto-deload never fires + no peaking</b></td><td>PlateauDetector in ingest; rank-gate phase <span class="eff m">M</span></td><td class="proofcol"><span class="pt">test</span> — inject 2 plateaus → next resolved day is deload (no Coach tap); generator emits realization at rank≥threshold</td></tr>
+   </tbody>
+  </table></div>
+ </div>
+ <div class="slide-no">07</div><div class="brand-foot">UNBOUND</div>
+</section>
+
+<!-- 8 WS-B2 -->
+<section class="slide">
+ <div class="slide-content">
+  <div class="head-row" style="margin-bottom:var(--element-gap)"><div class="kicker reveal">B — Close the open loops · 2/2 · wired in, never triggered</div></div>
+  <div class="reveal"><table class="dtable fixed">
+   <colgroup><col style="width:23%"><col style="width:30%"><col style="width:47%"></colgroup>
+   <thead><tr><th>Issue</th><th>Fix</th><th>✓ Done when (proof)</th></tr></thead>
+   <tbody>
+    <tr><td><span class="sev med"></span><b>Linked-session bonus dead</b></td><td>Post event + apply +20% <span class="eff m">M</span></td><td class="proofcol"><span class="pt">UI test</span> — 2 squadmates train in window → toast appears, +20% LV applied; <span class="pm">+</span> screenshot</td></tr>
+    <tr><td><span class="sev med"></span><b>Squad titles never awarded</b></td><td>Wire threshold evaluator <span class="eff m">M</span></td><td class="proofcol"><span class="pt">test</span> — cross threshold → <span class="mono">unlockedSquadTitles</span> populated; <span class="pm">+</span> badge-renders screenshot</td></tr>
+    <tr><td><span class="sev med"></span><b>Missions/challenges never close</b></td><td>Launch trigger: generate/evaluate/expire <span class="eff m">M</span></td><td class="proofcol"><span class="pt">test</span> — new-week launch → mission created; past-deadline challenge → evaluated &amp; closed</td></tr>
+    <tr><td><span class="sev med"></span><b>Badge catalog ↔ service mismatch</b></td><td>Reconcile the id sets <span class="eff s">S</span></td><td class="proofcol"><span class="pt">test</span> — assert awarded-ids ⊆ catalog AND every catalog id reachable by a trigger (set equality)</td></tr>
+    <tr><td><span class="sev low"></span><b>Home bell + Daily-Quest inert</b></td><td>Wire to real dest/service or remove <span class="eff m">M</span></td><td class="proofcol"><span class="pt">manual UAT</span> — bell navigates to a real screen; quest reflects a real value (or is gone); <span class="pm">+</span> screenshot</td></tr>
+    <tr><td><span class="sev low"></span><b>Frozen 5→5 grades + dual loggers</b></td><td>Drop dead cols; one logger path <span class="eff m">M</span></td><td class="proofcol"><span class="pt">test</span> — scan delta writes no 5→5 grades; assert legacy VM no longer writes progression</td></tr>
+   </tbody>
+  </table></div>
+ </div>
+ <div class="slide-no">08</div><div class="brand-foot">UNBOUND</div>
+</section>
+
+<!-- 9 WS-C -->
+<section class="slide">
+ <div class="slide-content">
+  <div class="head-row" style="margin-bottom:var(--element-gap)"><div class="kicker reveal">C — Safety net · correctness, tests &amp; CI</div></div>
+  <div class="reveal"><table class="dtable fixed">
+   <colgroup><col style="width:23%"><col style="width:30%"><col style="width:47%"></colgroup>
+   <thead><tr><th>Issue</th><th>Fix</th><th>✓ Done when (proof)</th></tr></thead>
+   <tbody>
+    <tr><td><span class="sev high"></span><b>No CI</b></td><td>GitHub Actions <span class="mono">xcodebuild test</span> gate <span class="eff s">S</span></td><td class="proofcol"><span class="pt">CI check</span> — PR shows a required green test job; a deliberately-broken test fails the PR</td></tr>
+    <tr><td><span class="sev high"></span><b>Coach engine untested</b></td><td>CoachActionExecutorTests + decay tests <span class="eff m">M</span></td><td class="proofcol"><span class="pt">tests</span> — swap/deload/repRange/undo/redo/cap all green; Services/Coach coverage &gt;80%</td></tr>
+    <tr><td><span class="sev med"></span><b>Sunday "Monday" bug</b></td><td><span class="mono">calendar.firstWeekday = 2</span> <span class="eff s">S</span></td><td class="proofcol"><span class="pt">test</span> — week-start computed on a Sunday returns the past Monday; active vow not marked missed</td></tr>
+    <tr><td><span class="sev med"></span><b>Rank-up notifications mis-fire</b></td><td>Persist the rank baseline <span class="eff s">S</span></td><td class="proofcol"><span class="pt">test</span> — rank-up fires once; relaunch app → no duplicate <span class="mono">.rankAdvanced</span> for the same rank</td></tr>
+    <tr><td><span class="sev med"></span><b>Notification id collisions</b></td><td>Unique fallback identifier <span class="eff s">S</span></td><td class="proofcol"><span class="pt">test</span> — 3 rank-ups in one session → 3 distinct pending notification ids</td></tr>
+    <tr><td><span class="sev med"></span><b>Hidden decay un-qualifies trials</b></td><td><b class="cy">Gate trials on attribute PEAK, not current</b> <span class="eff s">S</span></td><td class="proofcol"><span class="pt">test</span> — qualify for a trial, idle 30d (current drifts to 70%) → still qualified (assert gate reads peak)</td></tr>
+    <tr><td><span class="sev med"></span><b>PII in release logs</b></td><td>Drop <span class="mono">privacy:.public</span> default <span class="eff s">S</span></td><td class="proofcol"><span class="pt">grep test</span> — no log uses <span class="mono">.public</span> on a context dict; captured release log has no UID/email</td></tr>
+   </tbody>
+  </table></div>
+ </div>
+ <div class="slide-no">09</div><div class="brand-foot">UNBOUND</div>
+</section>
+
+<!-- 10 WS-D -->
+<section class="slide">
+ <div class="slide-content">
+  <div class="head-row" style="margin-bottom:var(--element-gap)"><div class="kicker reveal">D — Product &amp; funnel · experience &amp; retention</div></div>
+  <div class="reveal"><table class="dtable fixed">
+   <colgroup><col style="width:23%"><col style="width:30%"><col style="width:47%"></colgroup>
+   <thead><tr><th>Issue</th><th>Fix</th><th>✓ Done when (proof)</th></tr></thead>
+   <tbody>
+    <tr><td><span class="sev high"></span><b>54-step onboarding, no resume</b></td><td>Persist last step + PostHog funnel <span class="eff l">L</span></td><td class="proofcol"><span class="pt">test + analytics</span> — quit at step 30 → relaunch resumes at 30; PostHog shows per-step drop-off</td></tr>
+    <tr><td><span class="sev med"></span><b>No empty states</b></td><td>Adopt <span class="mono">ContentUnavailableView</span> <span class="eff m">M</span></td><td class="proofcol"><span class="pt">UI screenshot</span> — squads / history / routines with no data each show an explicit empty state</td></tr>
+    <tr><td><span class="sev med"></span><b>Localization ~8%</b></td><td>Migrate program/home/profile copy <span class="eff l">L</span></td><td class="proofcol"><span class="pt">audit script + screenshot</span> — <span class="mono">localization_audit.sh</span> coverage &gt; target; pseudo-locale shows no raw English</td></tr>
+    <tr><td><span class="sev med"></span><b>Main-thread image decode</b></td><td>Off-main load + downsample <span class="eff s">S</span></td><td class="proofcol"><span class="pt">Instruments trace</span> — scan-payoff scroll has 0 main-thread decode &gt;16ms; 60fps</td></tr>
+    <tr><td><span class="sev med"></span><b>Notification re-request no-ops</b></td><td>Check <span class="mono">getNotificationSettings</span> first <span class="eff s">S</span></td><td class="proofcol"><span class="pt">test + screenshot</span> — status <span class="mono">.denied</span> → no system prompt, "Open Settings" path shown</td></tr>
+    <tr><td><span class="sev low"></span><b>Vocabulary maze + anon-squad silence</b></td><td>UI glossary + sign-in explainer <span class="eff m">M</span></td><td class="proofcol"><span class="pt">UI screenshot</span> — glossary reachable; anon user sees a squads explainer instead of a silent dead-end</td></tr>
+   </tbody>
+  </table></div>
+ </div>
+ <div class="slide-no">10</div><div class="brand-foot">UNBOUND</div>
+</section>
+
+<!-- 11 WS-E -->
+<section class="slide">
+ <div class="slide-content">
+  <div class="head-row" style="margin-bottom:var(--element-gap)"><div class="kicker reveal">E — Hygiene · cleanup, no behavior change</div>
+  <h2 class="reveal" style="font-size:var(--h3-size)">Proof for all of E: full suite green + app builds + dead-file count → 0</h2></div>
+  <div class="two-col">
+   <div class="reveal"><ul class="list-clean">
+    <li><b>Delete 8 orphaned files</b> — SkillDetailTabs ×4, legacy OnboardingViewModel, ABRotationGuard, SVGPathParser, BodyAnalysisPrompt <span class="eff s">S</span></li>
+    <li><b>Delete dead Firebase</b> <span class="mono">firestore.rules</span> + force-unwrapped PLACEHOLDER URLs <span class="eff s">S</span></li>
+    <li><b>Body-photo hardening</b> — <span class="mono">completeFileProtection</span> + exclude from backup <span class="eff s">S</span></li>
+    <li><b>Staging/prod config split</b> — TestFlight currently writes prod <span class="eff s">S</span></li>
+   </ul></div>
+   <div class="reveal"><ul class="list-clean">
+    <li><b>Split the giants</b> — ProgramOverviewView 4855 · SkillTreeContent 4565 · SkillDetailView 4333 <span class="eff l">L</span></li>
+    <li><b>Add SwiftLint</b> + format to CI <span class="eff s">S</span></li>
+    <li><b>Fix nonce charset</b> ('W' missing) + non-atomic photo write <span class="eff s">S</span></li>
+    <li><b>Retire orphaned engine</b> — LocalProgramGenerator, dual delta systems, dead block-state branch <span class="eff m">M</span></li>
+   </ul></div>
+  </div>
+  <p class="reveal caption" style="margin-top:.7em"><span class="gr">✓</span> Each deletion ships only behind a green CI run that confirms no broken references — proof that "no behavior change" is real, not assumed.</p>
+ </div>
+ <div class="slide-no">11</div><div class="brand-foot">UNBOUND</div>
+</section>
+
+<!-- 12 ROADMAP -->
+<section class="slide ember-slide">
+ <div class="slide-content">
+  <div class="head-row"><div class="kicker reveal">04 — The sequence</div>
+  <h2 class="reveal">A 6-week roadmap — each phase ends green</h2></div>
+  <div style="display:flex;flex-direction:column;gap:clamp(.4rem,1.2vh,.9rem)">
+   <div class="reveal phase"><div class="pno em">0</div><div class="pbody"><div class="when">WEEK 1 · NON-NEGOTIABLE</div><h3>Safety net + stop the worst bleeding</h3><p>CI gate · Coach tests · scans/photos migration · completion flag · DB-race lock · Monday bug · PII logging.</p></div></div>
+   <div class="reveal phase"><div class="pno em">1</div><div class="pbody"><div class="when">WEEKS 2–3 · TRUST &amp; MONEY</div><h3>Revenue &amp; data integrity</h3><p>Server-validated entitlement · deletion completeness · captain guard · sync merge · file protection.</p></div></div>
+   <div class="reveal phase"><div class="pno">2</div><div class="pbody"><div class="when">WEEKS 3–5 · THE PROMISE</div><h3>Close the open loops</h3><p>Checkpoint→load · velocity layer · decay/staleness · trial skill gates · skill auto-proof · auto-deload · peak-gating.</p></div></div>
+   <div class="reveal phase"><div class="pno">3</div><div class="pbody"><div class="when">WEEKS 5–6 · LIGHT IT UP</div><h3>Wire the dormant features</h3><p>Linked-session · squad titles · weekly missions · challenge expiry · badge reconcile · dead buttons.</p></div></div>
+   <div class="reveal phase"><div class="pno">4</div><div class="pbody"><div class="when">ONGOING</div><h3>Polish, funnel &amp; cleanup</h3><p>Empty states · onboarding resume + instrument · L10n · perf · glossary · delete dead code · split files.</p></div></div>
+  </div>
+ </div>
+ <div class="slide-no">12</div><div class="brand-foot">UNBOUND</div>
+</section>
+
+<!-- 13 DO-FIRST SEVEN -->
+<section class="slide">
+ <div class="slide-content">
+  <div class="head-row" style="margin-bottom:var(--element-gap)"><div class="kicker reveal">05 — If we do nothing else this week</div>
+  <h2 class="reveal">The seven that ship first — with their proofs</h2></div>
+  <div class="reveal"><table class="dtable fixed">
+   <colgroup><col style="width:4%"><col style="width:42%"><col style="width:54%"></colgroup>
+   <thead><tr><th>#</th><th>Action</th><th>✓ Done when (proof)</th></tr></thead>
+   <tbody>
+    <tr><td class="mono">1</td><td><b>Fix sign-in migration</b> so scans &amp; photos survive</td><td class="proofcol"><span class="pt">integ test</span> — 3 seeded scans + photos resolve under new UID; before/after history screenshot identical</td></tr>
+    <tr><td class="mono">2</td><td><b>Completion flag + retry</b> on migration</td><td class="proofcol"><span class="pt">test</span> — kill mid-migration → relaunch finishes it; flag set only on full success</td></tr>
+    <tr><td class="mono">3</td><td><b>Stand up CI</b> running the 911 tests</td><td class="proofcol"><span class="pt">CI</span> — required green check on PR; planted broken test fails the PR</td></tr>
+    <tr><td class="mono">4</td><td><b>Test the Coach engine</b></td><td class="proofcol"><span class="pt">tests</span> — swap/deload/repRange/undo/redo/cap pass; Services/Coach coverage &gt;80%</td></tr>
+    <tr><td class="mono">5</td><td><b>Lock the DB write path</b></td><td class="proofcol"><span class="pt">concurrency test</span> — 100 parallel updates to one doc → 0 lost</td></tr>
+    <tr><td class="mono">6</td><td><b>One-line Monday fix</b></td><td class="proofcol"><span class="pt">test</span> — week-start on a Sunday → past Monday; vow not marked missed</td></tr>
+    <tr><td class="mono">7</td><td><b>Strip PII from release logs</b></td><td class="proofcol"><span class="pt">grep test</span> — no <span class="mono">.public</span> on context; release log has no UID/email</td></tr>
+   </tbody>
+  </table></div>
+ </div>
+ <div class="slide-no">13</div><div class="brand-foot">UNBOUND</div>
+</section>
+
+<!-- 14 HOW WE EXECUTE -->
+<section class="slide">
+ <div class="slide-content">
+  <div class="head-row"><div class="kicker reveal">06 — How we'll actually do the work</div>
+  <h2 class="reveal">Guardrails for every fix</h2></div>
+  <div class="two-col">
+   <div class="reveal hud"><span class="corner-tag">PROCESS</span>
+    <ul class="list-clean">
+     <li><b>Write the done-when test first</b> — it must fail before the fix and pass after (esp. migration, Coach, date bugs)</li>
+     <li><b>One issue → one atomic commit</b>, traceable to its register ID</li>
+     <li><b>Engine change → re-run the persona sim</b> + attach the updated cohort screenshot so balance shifts are seen, not assumed</li>
+    </ul>
+   </div>
+   <div class="reveal hud"><span class="corner-tag">GUARDRAILS</span>
+    <ul class="list-clean">
+     <li><b>Stay on the unified spine</b> — all training through PerformanceLog → TrainingCompletionService</li>
+     <li><b>No new parallel reward/logging paths</b> — consolidate, don't fork</li>
+     <li><b>Migrations reversible &amp; idempotent</b>; never destructive without a proven backup path</li>
+    </ul>
+   </div>
+  </div>
+  <p class="reveal caption" style="margin-top:.8em">Each phase closes with: green CI · re-run sim · empty failing-proof list · a short handoff note. The next phase starts from verified ground.</p>
+ </div>
+ <div class="slide-no">14</div><div class="brand-foot">UNBOUND</div>
+</section>
+
+<!-- 15 CLOSING -->
+<section class="slide title-slide ember-slide">
+ <div class="scanline"></div>
+ <div class="slide-content" style="align-items:center">
+  <div class="kicker reveal" style="justify-content:center">The bottom line</div>
+  <h2 class="reveal" style="font-size:clamp(1.5rem,4.5vw,3.2rem);margin-top:.4em;max-width:24ch;text-align:center;line-height:1.12">Every fix has a <span class="cy">test that proves it</span> — or it isn't done.</h2>
+  <div class="title-rule reveal"></div>
+  <p class="reveal" style="max-width:52ch;text-align:center;margin-top:1em">54 issues, each with a falsifiable done-when. Week 1 stops the bleeding; six weeks closes the loops that make UNBOUND feel as deep as it actually is. Scoped, sequenced, and provable — ready to execute.</p>
+  <div class="tag reveal" style="margin-top:1.4em">54 ISSUES · 1 PROOF EACH · 1 PLAN</div>
+ </div>
+ <div class="slide-no">15</div><div class="brand-foot">UNBOUND // BREAK THE RESTRICTION</div>
+</section>
+
+<script>
+class SlidePresentation{
+ constructor(){this.slides=Array.from(document.querySelectorAll('.slide'));this.current=0;this.locked=false;this.observe();this.keys();this.wheel();this.touch();this.dots();this.progress();}
+ observe(){const io=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting&&e.intersectionRatio>0.55){e.target.classList.add('visible');this.current=this.slides.indexOf(e.target);this.syncDots();}});},{threshold:[0.55]});this.slides.forEach(s=>io.observe(s));this.slides[0].classList.add('visible');}
+ go(i){i=Math.max(0,Math.min(this.slides.length-1,i));this.slides[i].scrollIntoView({behavior:'smooth'});this.current=i;}
+ keys(){document.addEventListener('keydown',e=>{if(['ArrowDown','ArrowRight',' ','PageDown'].includes(e.key)){e.preventDefault();this.go(this.current+1);}if(['ArrowUp','ArrowLeft','PageUp'].includes(e.key)){e.preventDefault();this.go(this.current-1);}if(e.key==='Home')this.go(0);if(e.key==='End')this.go(this.slides.length-1);});}
+ wheel(){let t=null;window.addEventListener('wheel',e=>{if(this.locked)return;if(Math.abs(e.deltaY)<18)return;this.locked=true;this.go(this.current+(e.deltaY>0?1:-1));clearTimeout(t);t=setTimeout(()=>this.locked=false,780);},{passive:true});}
+ touch(){let y0=null;window.addEventListener('touchstart',e=>y0=e.touches[0].clientY,{passive:true});window.addEventListener('touchend',e=>{if(y0===null)return;const dy=y0-e.changedTouches[0].clientY;if(Math.abs(dy)>45)this.go(this.current+(dy>0?1:-1));y0=null;},{passive:true});}
+ dots(){const nav=document.getElementById('navDots');this.slides.forEach((_,i)=>{const b=document.createElement('button');b.setAttribute('aria-label','Slide '+(i+1));b.addEventListener('click',()=>this.go(i));nav.appendChild(b);});this.dotEls=Array.from(nav.children);this.syncDots();}
+ syncDots(){if(this.dotEls)this.dotEls.forEach((d,i)=>d.classList.toggle('active',i===this.current));}
+ progress(){const bar=document.getElementById('progressBar');const u=()=>{const h=document.documentElement.scrollHeight-window.innerHeight;bar.style.width=(h>0?(window.scrollY/h)*100:0)+'%';};window.addEventListener('scroll',u,{passive:true});u();}
+}
+new SlidePresentation();
+</script>
+</body>
+</html>
