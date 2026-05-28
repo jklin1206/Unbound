@@ -45,7 +45,7 @@ final class OverallRankTrialServiceTests: XCTestCase {
         super.tearDown()
     }
 
-    func testReadinessLockedWhenMovementSkillAttributeAndLevelRequirementsAreMissing() {
+    func testReadinessLockedWhenMovementAttributeAndLevelRequirementsAreMissing() {
         let readiness = TrialReadinessService.shared.evaluate(
             OverallRankTrialReadinessInput(
                 userId: "u1",
@@ -61,7 +61,6 @@ final class OverallRankTrialServiceTests: XCTestCase {
         XCTAssertEqual(readiness.status, .locked)
         XCTAssertTrue(readiness.missingRequirements.contains { $0.kind == .overallLevel })
         XCTAssertTrue(readiness.missingRequirements.contains { $0.kind == .movement })
-        XCTAssertTrue(readiness.missingRequirements.contains { $0.kind == .skill })
         XCTAssertTrue(readiness.missingRequirements.contains { $0.kind == .attributes })
     }
 
@@ -104,7 +103,6 @@ final class OverallRankTrialServiceTests: XCTestCase {
         XCTAssertEqual(readiness.definition?.id, definition.id)
         XCTAssertTrue(readiness.missingRequirements.contains { $0.kind == .overallLevel })
         XCTAssertTrue(readiness.missingRequirements.contains { $0.kind == .movement })
-        XCTAssertTrue(readiness.missingRequirements.contains { $0.kind == .skill })
         XCTAssertTrue(readiness.missingRequirements.contains { $0.kind == .equipment })
         XCTAssertFalse(readiness.requirements.contains { $0.kind == .attributes })
     }
@@ -119,7 +117,7 @@ final class OverallRankTrialServiceTests: XCTestCase {
                 movementProgress: movementProgress(for: definition),
                 skillTiers: ["pp.pullup": .apprentice],
                 attributeProfile: AttributeProfile.empty(userId: "u1", at: Date(timeIntervalSince1970: 0)),
-                equipment: [.bodyweight, .pullupBar]
+                equipment: readyEquipment()
             )
         )
 
@@ -127,7 +125,8 @@ final class OverallRankTrialServiceTests: XCTestCase {
         XCTAssertEqual(readiness.currentRank, .novice)
         XCTAssertEqual(readiness.targetRank, .apprentice)
         XCTAssertTrue(readiness.missingRequirements.isEmpty)
-        XCTAssertEqual(readiness.definition?.displayName, "The Calibration")
+        XCTAssertEqual(readiness.definition?.displayName, "Operator Screen")
+        XCTAssertEqual(readiness.resolvedTrial?.selectedLoadout, .gymHybrid)
     }
 
     func testApprenticeReadinessTargetsForgedAndLocksWhenForgeRequirementsAreMissing() {
@@ -150,7 +149,6 @@ final class OverallRankTrialServiceTests: XCTestCase {
         XCTAssertEqual(readiness.definition?.id, definition.id)
         XCTAssertTrue(readiness.missingRequirements.contains { $0.kind == .overallLevel })
         XCTAssertTrue(readiness.missingRequirements.contains { $0.kind == .movement })
-        XCTAssertTrue(readiness.missingRequirements.contains { $0.kind == .skill })
         XCTAssertTrue(readiness.missingRequirements.contains { $0.kind == .attributes })
         XCTAssertTrue(readiness.missingRequirements.contains { $0.kind == .equipment })
     }
@@ -165,7 +163,7 @@ final class OverallRankTrialServiceTests: XCTestCase {
                 movementProgress: movementProgress(for: definition),
                 skillTiers: skillTiers(for: definition),
                 attributeProfile: attributeProfile(score: definition.topAttributeFloor),
-                equipment: [.bodyweight, .kettlebell, .openSpace, .pullupBar]
+                equipment: readyEquipment()
             )
         )
 
@@ -173,7 +171,7 @@ final class OverallRankTrialServiceTests: XCTestCase {
         XCTAssertEqual(readiness.currentRank, .apprentice)
         XCTAssertEqual(readiness.targetRank, .forged)
         XCTAssertTrue(readiness.missingRequirements.isEmpty)
-        XCTAssertEqual(readiness.definition?.displayName, "The Forge")
+        XCTAssertEqual(readiness.definition?.displayName, "The Finisher")
     }
 
     func testForgeReadinessReportsFailedAfterMissedAttemptWhenRequirementsRemainMet() {
@@ -199,7 +197,7 @@ final class OverallRankTrialServiceTests: XCTestCase {
                 movementProgress: movementProgress(for: definition),
                 skillTiers: skillTiers(for: definition),
                 attributeProfile: attributeProfile(score: definition.topAttributeFloor),
-                equipment: [.bodyweight, .kettlebell, .openSpace, .pullupBar],
+                equipment: readyEquipment(),
                 attempts: [attempt]
             )
         )
@@ -219,7 +217,7 @@ final class OverallRankTrialServiceTests: XCTestCase {
                 movementProgress: movementProgress(for: definition),
                 skillTiers: skillTiers(for: definition),
                 attributeProfile: attributeProfile(score: definition.topAttributeFloor),
-                equipment: [.bodyweight, .openSpace, .pullupBar]
+                equipment: [.bodyweight, .openSpace]
             )
         )
 
@@ -240,7 +238,7 @@ final class OverallRankTrialServiceTests: XCTestCase {
                 movementProgress: movementProgress(for: definition),
                 skillTiers: skillTiers(for: definition),
                 attributeProfile: attributeProfile(score: definition.topAttributeFloor),
-                equipment: [.bodyweight, .kettlebell, .openSpace, .pullupBar]
+                equipment: readyEquipment()
             )
         )
 
@@ -248,7 +246,7 @@ final class OverallRankTrialServiceTests: XCTestCase {
         XCTAssertEqual(readiness.currentRank, .forged)
         XCTAssertEqual(readiness.targetRank, .veteran)
         XCTAssertTrue(readiness.missingRequirements.isEmpty)
-        XCTAssertEqual(readiness.definition?.displayName, "The Reckoning")
+        XCTAssertEqual(readiness.definition?.displayName, "Deck of Proof")
     }
 
     func testVeteranReadinessTargetsMasterAndLocksWhenGauntletRequirementsAreMissing() {
@@ -271,7 +269,6 @@ final class OverallRankTrialServiceTests: XCTestCase {
         XCTAssertEqual(readiness.definition?.id, definition.id)
         XCTAssertTrue(readiness.missingRequirements.contains { $0.kind == .overallLevel })
         XCTAssertTrue(readiness.missingRequirements.contains { $0.kind == .movement })
-        XCTAssertTrue(readiness.missingRequirements.contains { $0.kind == .skill })
         XCTAssertTrue(readiness.missingRequirements.contains { $0.kind == .attributes })
         XCTAssertTrue(readiness.missingRequirements.contains { $0.kind == .equipment })
     }
@@ -286,7 +283,7 @@ final class OverallRankTrialServiceTests: XCTestCase {
                 movementProgress: movementProgress(for: definition),
                 skillTiers: skillTiers(for: definition),
                 attributeProfile: attributeProfile(score: definition.topAttributeFloor),
-                equipment: definition.requiredEquipment
+                equipment: readyEquipment()
             )
         )
 
@@ -295,7 +292,7 @@ final class OverallRankTrialServiceTests: XCTestCase {
         XCTAssertEqual(readiness.currentRank, .veteran)
         XCTAssertEqual(readiness.targetRank, .master)
         XCTAssertTrue(readiness.missingRequirements.isEmpty)
-        XCTAssertEqual(readiness.definition?.displayName, "The Gauntlet")
+        XCTAssertEqual(readiness.definition?.displayName, "The Tower")
     }
 
     func testUpperRankReadinessLocksAndReadiesForEveryNewDefinition() {
@@ -319,7 +316,6 @@ final class OverallRankTrialServiceTests: XCTestCase {
             XCTAssertEqual(locked.definition?.id, definition.id, definition.displayName)
             XCTAssertTrue(locked.missingRequirements.contains { $0.kind == .overallLevel }, definition.displayName)
             XCTAssertTrue(locked.missingRequirements.contains { $0.kind == .movement }, definition.displayName)
-            XCTAssertTrue(locked.missingRequirements.contains { $0.kind == .skill }, definition.displayName)
             XCTAssertTrue(locked.missingRequirements.contains { $0.kind == .attributes }, definition.displayName)
             XCTAssertTrue(locked.missingRequirements.contains { $0.kind == .equipment }, definition.displayName)
 
@@ -331,7 +327,7 @@ final class OverallRankTrialServiceTests: XCTestCase {
                     movementProgress: movementProgress(for: definition),
                     skillTiers: skillTiers(for: definition),
                     attributeProfile: attributeProfile(score: definition.topAttributeFloor),
-                    equipment: definition.requiredEquipment
+                    equipment: readyEquipment()
                 )
             )
 
@@ -355,7 +351,7 @@ final class OverallRankTrialServiceTests: XCTestCase {
             from: draft,
             userId: "u1",
             startedAt: Date(timeIntervalSince1970: 100),
-            completedAt: Date(timeIntervalSince1970: 1_000),
+            completedAt: Date(timeIntervalSince1970: 800),
             passing: true
         )
 
@@ -368,179 +364,116 @@ final class OverallRankTrialServiceTests: XCTestCase {
         XCTAssertTrue(OverallRankTrialRunner.shared.evaluatePerformance(log, against: definition))
     }
 
-    func testCalibrationDraftMapsToFourteenRoundPerformanceStandards() {
+    func testOperatorScreenDraftMapsToResolvedStationFloors() throws {
         let definition = OverallRankTrialDefinitions.calibration
+        let resolved = try XCTUnwrap(resolvedTrial(for: definition, loadout: .homeKit))
         let draft = OverallRankTrialRunner.shared.draft(
             for: definition,
             userId: "u1",
-            date: Date(timeIntervalSince1970: 100)
-        )
-        let passingLog = OverallRankTrialRunner.shared.performanceLog(
-            from: draft,
-            userId: "u1",
-            startedAt: Date(timeIntervalSince1970: 100),
-            completedAt: Date(timeIntervalSince1970: 1_000),
-            passing: true
-        )
-        let failingLog = OverallRankTrialRunner.shared.performanceLog(
-            from: draft,
-            userId: "u1",
-            startedAt: Date(timeIntervalSince1970: 100),
-            completedAt: Date(timeIntervalSince1970: 1_000),
-            passing: false
+            date: Date(timeIntervalSince1970: 100),
+            resolvedTrial: resolved
         )
 
-        XCTAssertEqual(draft.title, "The Calibration")
+        XCTAssertEqual(definition.format, .operatorScreen)
+        XCTAssertEqual(draft.title, "Operator Screen")
         XCTAssertEqual(draft.estimatedMinutes, 20)
-        XCTAssertEqual(draft.blocks.flatMap(\.prescriptions).map(\.sets), [14, 14, 14])
-        XCTAssertEqual(passingLog.blocks.flatMap(\.exercises).map { $0.sets.count }, [14, 14, 14])
-        XCTAssertTrue(OverallRankTrialRunner.shared.evaluatePerformance(passingLog, against: definition))
-        XCTAssertFalse(OverallRankTrialRunner.shared.evaluatePerformance(failingLog, against: definition))
+        XCTAssertEqual(resolved.stations.map(\.category), [.engine, .lower, .push, .pull, .carryCore])
+        assertDraft(draft, matches: definition, resolvedTrial: resolved)
+        assertDraftPassesAndFails(draft, against: definition)
     }
 
-    func testForgeDraftMapsToThreeRoundChipperPerformanceStandards() {
+    func testFinisherDraftMapsToDescendingRoundStations() throws {
         let definition = OverallRankTrialDefinitions.forge
+        let resolved = try XCTUnwrap(resolvedTrial(for: definition, loadout: .homeKit))
         let draft = OverallRankTrialRunner.shared.draft(
             for: definition,
             userId: "u1",
-            date: Date(timeIntervalSince1970: 100)
-        )
-        let passingLog = OverallRankTrialRunner.shared.performanceLog(
-            from: draft,
-            userId: "u1",
-            startedAt: Date(timeIntervalSince1970: 100),
-            completedAt: Date(timeIntervalSince1970: 2_000),
-            passing: true
-        )
-        let failingLog = OverallRankTrialRunner.shared.performanceLog(
-            from: draft,
-            userId: "u1",
-            startedAt: Date(timeIntervalSince1970: 100),
-            completedAt: Date(timeIntervalSince1970: 2_000),
-            passing: false
+            date: Date(timeIntervalSince1970: 100),
+            resolvedTrial: resolved
         )
 
-        XCTAssertEqual(draft.title, "The Forge")
-        XCTAssertEqual(draft.estimatedMinutes, 35)
-        XCTAssertEqual(draft.blocks.map(\.kind), [.cardio, .strength, .bodyweight])
-        XCTAssertEqual(draft.blocks.first?.cardioType, .run)
-        XCTAssertEqual(draft.blocks.flatMap(\.prescriptions).map(\.sets), [3, 3, 3, 3])
-        XCTAssertEqual(passingLog.blocks.flatMap(\.exercises).map { $0.sets.count }, [3, 3, 3, 3])
-        XCTAssertTrue(OverallRankTrialRunner.shared.evaluatePerformance(passingLog, against: definition))
-        XCTAssertFalse(OverallRankTrialRunner.shared.evaluatePerformance(failingLog, against: definition))
+        XCTAssertEqual(definition.format, .finisher)
+        XCTAssertEqual(draft.title, "The Finisher")
+        XCTAssertEqual(draft.estimatedMinutes, 30)
+        XCTAssertEqual(resolved.stations.count, 15)
+        XCTAssertEqual(Array(resolved.stations.map(\.category).prefix(5)), [.engine, .hingePower, .push, .pull, .carryCore])
+        assertDraft(draft, matches: definition, resolvedTrial: resolved)
+        assertDraftPassesAndFails(draft, against: definition)
     }
 
-    func testReckoningDraftMapsToHybridLifterPerformanceStandards() {
+    func testDeckOfProofDraftMapsToDeterministicFixedDeck() throws {
         let definition = OverallRankTrialDefinitions.reckoning
+        let resolved = try XCTUnwrap(resolvedTrial(for: definition, loadout: .homeKit))
         let draft = OverallRankTrialRunner.shared.draft(
             for: definition,
             userId: "u1",
-            date: Date(timeIntervalSince1970: 100)
-        )
-        let passingLog = OverallRankTrialRunner.shared.performanceLog(
-            from: draft,
-            userId: "u1",
-            startedAt: Date(timeIntervalSince1970: 100),
-            completedAt: Date(timeIntervalSince1970: 2_600),
-            passing: true
-        )
-        let failingLog = OverallRankTrialRunner.shared.performanceLog(
-            from: draft,
-            userId: "u1",
-            startedAt: Date(timeIntervalSince1970: 100),
-            completedAt: Date(timeIntervalSince1970: 2_600),
-            passing: false
+            date: Date(timeIntervalSince1970: 100),
+            resolvedTrial: resolved
         )
 
-        XCTAssertEqual(draft.title, "The Reckoning")
+        XCTAssertEqual(definition.format, .fixedDeck)
+        XCTAssertEqual(draft.title, "Deck of Proof")
         XCTAssertEqual(draft.estimatedMinutes, 42)
-        XCTAssertEqual(draft.blocks.map(\.kind), [.cardio, .strength, .bodyweight, .carry])
-        XCTAssertEqual(draft.blocks.first?.cardioType, .run)
-        XCTAssertEqual(draft.blocks.flatMap(\.prescriptions).map(\.sets), [1, 2, 2, 2, 2])
-        XCTAssertEqual(passingLog.blocks.flatMap(\.exercises).map { $0.sets.count }, [1, 2, 2, 2, 2])
-        XCTAssertTrue(OverallRankTrialRunner.shared.evaluatePerformance(passingLog, against: definition))
-        XCTAssertFalse(OverallRankTrialRunner.shared.evaluatePerformance(failingLog, against: definition))
+        XCTAssertEqual(resolved.stations.count, 24)
+        XCTAssertEqual(resolved.stations.filter { $0.category == .push }.count, 6)
+        XCTAssertEqual(resolved.stations.filter { $0.category == .lower }.count, 6)
+        XCTAssertEqual(resolved.stations.filter { $0.category == .pull }.count, 6)
+        XCTAssertEqual(resolved.stations.filter { $0.category == .engine }.count, 4)
+        XCTAssertEqual(resolved.stations.filter { $0.category == .carryCore }.count, 2)
+        XCTAssertEqual(Array(resolved.stations.map(\.id).prefix(3)), ["deck-card-01", "deck-card-02", "deck-card-03"])
+        assertDraft(draft, matches: definition, resolvedTrial: resolved)
+        assertDraftPassesAndFails(draft, against: definition)
     }
 
-    func testGauntletDraftMapsToEightStationPerformanceStandards() {
+    func testTowerDraftMapsToTenFloorProtocol() throws {
         let definition = OverallRankTrialDefinitions.gauntlet
+        let resolved = try XCTUnwrap(resolvedTrial(for: definition, loadout: .homeKit))
         let draft = OverallRankTrialRunner.shared.draft(
             for: definition,
             userId: "u1",
-            date: Date(timeIntervalSince1970: 100)
-        )
-        let passingLog = OverallRankTrialRunner.shared.performanceLog(
-            from: draft,
-            userId: "u1",
-            startedAt: Date(timeIntervalSince1970: 100),
-            completedAt: Date(timeIntervalSince1970: 3_000),
-            passing: true
-        )
-        let failingLog = OverallRankTrialRunner.shared.performanceLog(
-            from: draft,
-            userId: "u1",
-            startedAt: Date(timeIntervalSince1970: 100),
-            completedAt: Date(timeIntervalSince1970: 3_000),
-            passing: false
+            date: Date(timeIntervalSince1970: 100),
+            resolvedTrial: resolved
         )
 
         assertCatalogBacked(definition)
-        XCTAssertEqual(draft.title, "The Gauntlet")
+        XCTAssertEqual(definition.format, .tower)
+        XCTAssertEqual(draft.title, "The Tower")
         XCTAssertEqual(draft.estimatedMinutes, 50)
-        XCTAssertEqual(draft.blocks.map(\.kind), [.cardio, .carry, .strength, .bodyweight, .skill])
-        XCTAssertEqual(draft.blocks.first?.cardioType, .run)
-        XCTAssertEqual(draft.blocks.flatMap(\.prescriptions).count, 8)
-        XCTAssertEqual(draft.blocks.flatMap(\.prescriptions).map(\.sets), Array(repeating: 1, count: 8))
-        XCTAssertEqual(
-            Set(draft.blocks.flatMap(\.prescriptions).compactMap(\.movementId)),
-            Set(definition.performanceStandards.map(\.movementId))
-        )
-        XCTAssertEqual(passingLog.blocks.flatMap(\.exercises).map { $0.sets.count }, Array(repeating: 1, count: 8))
-        XCTAssertTrue(OverallRankTrialRunner.shared.evaluatePerformance(passingLog, against: definition))
-        XCTAssertFalse(OverallRankTrialRunner.shared.evaluatePerformance(failingLog, against: definition))
+        XCTAssertEqual(resolved.stations.count, 11)
+        XCTAssertEqual(resolved.stations.map(\.id).first, "tower-floor-01")
+        XCTAssertEqual(resolved.stations.map(\.id).last, "tower-floor-10")
+        XCTAssertTrue(resolved.stations.map(\.id).contains("tower-floor-09-push"))
+        XCTAssertTrue(resolved.stations.map(\.id).contains("tower-floor-09-pull"))
+        assertDraft(draft, matches: definition, resolvedTrial: resolved)
+        assertDraftPassesAndFails(draft, against: definition)
     }
 
-    func testUpperRankDraftsMapToPerformanceStandardsForEveryNewDefinition() {
+    func testEliteProtocolsScoreCompoundPushAndPullStationsSeparately() throws {
+        let tower = try XCTUnwrap(resolvedTrial(for: OverallRankTrialDefinitions.gauntlet, loadout: .homeKit))
+        let bossRush = try XCTUnwrap(resolvedTrial(for: OverallRankTrialDefinitions.crucible, loadout: .homeKit))
+
+        XCTAssertEqual(tower.stations.first { $0.id == "tower-floor-09-push" }?.category, .push)
+        XCTAssertEqual(tower.stations.first { $0.id == "tower-floor-09-pull" }?.category, .pull)
+        XCTAssertFalse(tower.stations.map(\.id).contains("tower-floor-09"))
+        XCTAssertEqual(bossRush.stations.first { $0.id == "boss-upper-push" }?.category, .push)
+        XCTAssertEqual(bossRush.stations.first { $0.id == "boss-upper-pull" }?.category, .pull)
+        XCTAssertFalse(bossRush.stations.map(\.id).contains("boss-upper"))
+    }
+
+    func testUpperRankDraftsMapToResolvedProtocolsForEveryNewDefinition() throws {
         for trialCase in upperRankTrialCases {
             let definition = trialCase.definition
+            let resolved = try XCTUnwrap(resolvedTrial(for: definition, loadout: .homeKit), definition.displayName)
             let draft = OverallRankTrialRunner.shared.draft(
                 for: definition,
                 userId: "u1",
-                date: Date(timeIntervalSince1970: 100)
-            )
-            let passingLog = OverallRankTrialRunner.shared.performanceLog(
-                from: draft,
-                userId: "u1",
-                startedAt: Date(timeIntervalSince1970: 100),
-                completedAt: Date(timeIntervalSince1970: 4_500),
-                passing: true
-            )
-            let failingLog = OverallRankTrialRunner.shared.performanceLog(
-                from: draft,
-                userId: "u1",
-                startedAt: Date(timeIntervalSince1970: 100),
-                completedAt: Date(timeIntervalSince1970: 4_500),
-                passing: false
+                date: Date(timeIntervalSince1970: 100),
+                resolvedTrial: resolved
             )
 
             assertCatalogBacked(definition)
-            XCTAssertEqual(draft.source, .overallRankTrial, definition.displayName)
-            XCTAssertEqual(draft.programId, definition.id, definition.displayName)
-            XCTAssertEqual(draft.title, definition.displayName, definition.displayName)
-            XCTAssertEqual(draft.estimatedMinutes, definition.estimatedMinutes, definition.displayName)
-            XCTAssertEqual(
-                draft.blocks.flatMap(\.prescriptions).count,
-                definition.performanceStandards.count,
-                definition.displayName
-            )
-            XCTAssertEqual(
-                Set(draft.blocks.flatMap(\.prescriptions).compactMap(\.movementId)),
-                Set(definition.performanceStandards.map(\.movementId)),
-                definition.displayName
-            )
-            XCTAssertEqual(passingLog.blocks.flatMap(\.exercises).count, definition.performanceStandards.count, definition.displayName)
-            XCTAssertTrue(OverallRankTrialRunner.shared.evaluatePerformance(passingLog, against: definition), definition.displayName)
-            XCTAssertFalse(OverallRankTrialRunner.shared.evaluatePerformance(failingLog, against: definition), definition.displayName)
+            assertDraft(draft, matches: definition, resolvedTrial: resolved)
+            assertDraftPassesAndFails(draft, against: definition)
         }
     }
 
@@ -557,7 +490,7 @@ final class OverallRankTrialServiceTests: XCTestCase {
             from: draft,
             userId: "u1",
             startedAt: Date(timeIntervalSince1970: 100),
-            completedAt: Date(timeIntervalSince1970: 1_000),
+            completedAt: Date(timeIntervalSince1970: 800),
             passing: false
         )
 
@@ -594,7 +527,7 @@ final class OverallRankTrialServiceTests: XCTestCase {
             from: draft,
             userId: "u1",
             startedAt: Date(timeIntervalSince1970: 100),
-            completedAt: Date(timeIntervalSince1970: 1_000),
+            completedAt: Date(timeIntervalSince1970: 800),
             passing: true
         )
 
@@ -725,7 +658,7 @@ final class OverallRankTrialServiceTests: XCTestCase {
             from: draft,
             userId: "u1",
             startedAt: Date(timeIntervalSince1970: 100),
-            completedAt: Date(timeIntervalSince1970: 2_000),
+            completedAt: Date(timeIntervalSince1970: 1_800),
             passing: false
         )
 
@@ -767,7 +700,7 @@ final class OverallRankTrialServiceTests: XCTestCase {
             from: draft,
             userId: "u1",
             startedAt: Date(timeIntervalSince1970: 100),
-            completedAt: Date(timeIntervalSince1970: 2_000),
+            completedAt: Date(timeIntervalSince1970: 1_800),
             passing: true
         )
 
@@ -812,7 +745,7 @@ final class OverallRankTrialServiceTests: XCTestCase {
             from: draft,
             userId: "u1",
             startedAt: Date(timeIntervalSince1970: 3_000),
-            completedAt: Date(timeIntervalSince1970: 4_000),
+            completedAt: Date(timeIntervalSince1970: 4_600),
             passing: true
         )
 
@@ -828,7 +761,7 @@ final class OverallRankTrialServiceTests: XCTestCase {
         XCTAssertEqual(result.progress.currentRank, .forged)
         XCTAssertEqual(result.callouts.map(\.kind), [.comebackPass])
         XCTAssertEqual(result.callouts.first?.title, "Comeback clear")
-        XCTAssertTrue(result.callouts.first?.message.contains("The Forge") == true)
+        XCTAssertTrue(result.callouts.first?.message.contains("The Finisher") == true)
         XCTAssertTrue(result.callouts.first?.message.contains("1 failed attempt") == true)
         XCTAssertEqual(store.load(userId: "u1").attempts.count, 2)
     }
@@ -850,7 +783,7 @@ final class OverallRankTrialServiceTests: XCTestCase {
             from: draft,
             userId: "u1",
             startedAt: Date(timeIntervalSince1970: 100),
-            completedAt: Date(timeIntervalSince1970: 2_000),
+            completedAt: Date(timeIntervalSince1970: 1_800),
             passing: true
         )
 
@@ -875,7 +808,7 @@ final class OverallRankTrialServiceTests: XCTestCase {
         XCTAssertNil(second.completionResult)
         XCTAssertEqual(second.callouts.map(\.kind), [.duplicateAttempt])
         XCTAssertEqual(second.callouts.first?.title, "Attempt already counted")
-        XCTAssertTrue(second.callouts.first?.message.contains("The Forge") == true)
+        XCTAssertTrue(second.callouts.first?.message.contains("The Finisher") == true)
         XCTAssertEqual(progress.currentRank, .forged)
         XCTAssertEqual(progress.attempts.count, 1)
     }
@@ -1061,6 +994,7 @@ final class OverallRankTrialServiceTests: XCTestCase {
     func testUpperRankCompletionPassFailAndDuplicateBehaviorForEveryNewDefinition() async throws {
         for trialCase in upperRankTrialCases {
             let definition = trialCase.definition
+            let trialCompletedAt = Date(timeIntervalSince1970: 100 + Double(definition.estimatedMinutes * 60 - 30))
             let failingUserId = "upper-fail-\(definition.targetRank.rawValue)"
             store.save(
                 OverallRankTrialProgress(highestPassedRank: trialCase.sourceRank, attempts: []),
@@ -1077,7 +1011,7 @@ final class OverallRankTrialServiceTests: XCTestCase {
                 from: failingDraft,
                 userId: failingUserId,
                 startedAt: Date(timeIntervalSince1970: 100),
-                completedAt: Date(timeIntervalSince1970: 4_500),
+                completedAt: trialCompletedAt,
                 passing: false
             )
 
@@ -1120,7 +1054,7 @@ final class OverallRankTrialServiceTests: XCTestCase {
                 from: passingDraft,
                 userId: passingUserId,
                 startedAt: Date(timeIntervalSince1970: 100),
-                completedAt: Date(timeIntervalSince1970: 4_500),
+                completedAt: trialCompletedAt,
                 passing: true
             )
 
@@ -1150,6 +1084,398 @@ final class OverallRankTrialServiceTests: XCTestCase {
             XCTAssertEqual(progress.currentRank, definition.targetRank, definition.displayName)
             XCTAssertEqual(progress.attempts.count, 1, definition.displayName)
         }
+    }
+
+    func testResolverChoosesCleanOfficialLoadoutsForNoGymHomeAndGymUsers() throws {
+        let definition = OverallRankTrialDefinitions.forge
+
+        let noGym = RankTrialLoadoutResolver.shared.resolve(
+            definition: definition,
+            userId: "u1",
+            equipment: [.bodyweight, .openSpace, .pullupBar]
+        )
+        let home = RankTrialLoadoutResolver.shared.resolve(
+            definition: definition,
+            userId: "u1",
+            equipment: [.bodyweight, .openSpace, .dumbbell, .band]
+        )
+        let gym = RankTrialLoadoutResolver.shared.resolve(
+            definition: definition,
+            userId: "u1",
+            equipment: readyEquipment()
+        )
+
+        XCTAssertEqual(try XCTUnwrap(noGym.resolvedTrial).selectedLoadout, .noGymField)
+        XCTAssertEqual(try XCTUnwrap(home.resolvedTrial).selectedLoadout, .homeKit)
+        XCTAssertEqual(try XCTUnwrap(gym.resolvedTrial).selectedLoadout, .gymHybrid)
+        XCTAssertTrue(noGym.blockers.isEmpty)
+        XCTAssertTrue(home.blockers.isEmpty)
+        XCTAssertTrue(gym.blockers.isEmpty)
+    }
+
+    func testMissingPullSolutionBlocksApprenticePlus() {
+        let definition = OverallRankTrialDefinitions.calibration
+        let resolution = RankTrialLoadoutResolver.shared.resolve(
+            definition: definition,
+            userId: "u1",
+            equipment: [.bodyweight, .openSpace]
+        )
+
+        XCTAssertEqual(resolution.resolvedTrial?.selectedLoadout, .noGymField)
+        XCTAssertFalse(resolution.isReady)
+        XCTAssertTrue(resolution.blockers.contains { $0.id == "pull-solution" })
+    }
+
+    func testGymHybridDefinitionsAvoidMandatorySledBoxJumpAndNicheGates() {
+        let bannedMovementFragments = ["5k", "planche", "one-arm", "one_arm", "muscle-up", "muscleup", "sled", "box-jump"]
+
+        for definition in OverallRankTrialDefinitions.all {
+            let gym = definition.loadoutVariants.first { $0.loadout == .gymHybrid }
+            let stations = gym?.stations ?? []
+            let allOptions = stations.flatMap(\.movementOptions)
+            let requiredEquipment = allOptions.reduce(into: Set<MovementEquipment>()) { result, option in
+                result.formUnion(option.requiredEquipment)
+            }
+            let movementIds = allOptions.map(\.movementId)
+
+            XCTAssertFalse(requiredEquipment.contains(.sled), definition.displayName)
+            XCTAssertFalse(requiredEquipment.contains(.box), definition.displayName)
+            for fragment in bannedMovementFragments {
+                XCTAssertFalse(
+                    movementIds.contains { $0.localizedCaseInsensitiveContains(fragment) },
+                    "\(definition.displayName) should not include \(fragment)"
+                )
+            }
+        }
+    }
+
+    func testDetailedEvaluationFailsSkippedStationDespiteOtherOverperformance() throws {
+        let definition = OverallRankTrialDefinitions.calibration
+        let resolved = try XCTUnwrap(resolvedTrial(for: definition, loadout: .homeKit))
+        let draft = OverallRankTrialRunner.shared.draft(
+            for: definition,
+            userId: "u1",
+            date: Date(timeIntervalSince1970: 100),
+            resolvedTrial: resolved
+        )
+        var log = OverallRankTrialRunner.shared.performanceLog(
+            from: draft,
+            userId: "u1",
+            startedAt: Date(timeIntervalSince1970: 100),
+            completedAt: Date(timeIntervalSince1970: 1_000),
+            passing: true
+        )
+
+        log.blocks.removeFirst()
+        let evaluation = OverallRankTrialRunner.shared.evaluateDetailed(log, against: definition)
+
+        XCTAssertFalse(evaluation.passed)
+        XCTAssertEqual(evaluation.failedStation?.status, .missing)
+        XCTAssertEqual(evaluation.failedStation?.id, resolved.stations.first?.id)
+    }
+
+    func testDetailedEvaluationFailsPainAndFormBreakFlags() throws {
+        let definition = OverallRankTrialDefinitions.calibration
+        let resolved = try XCTUnwrap(resolvedTrial(for: definition, loadout: .homeKit))
+        let draft = OverallRankTrialRunner.shared.draft(
+            for: definition,
+            userId: "u1",
+            date: Date(timeIntervalSince1970: 100),
+            resolvedTrial: resolved
+        )
+        let cleanLog = OverallRankTrialRunner.shared.performanceLog(
+            from: draft,
+            userId: "u1",
+            startedAt: Date(timeIntervalSince1970: 100),
+            completedAt: Date(timeIntervalSince1970: 1_000),
+            passing: true
+        )
+        var painLog = cleanLog
+        var formBreakLog = cleanLog
+        painLog.blocks[0].exercises[0].sets[0].qualityFlags = [.pain]
+        formBreakLog.blocks[1].exercises[0].sets[0].qualityFlags = [.formBreak]
+
+        let painEvaluation = OverallRankTrialRunner.shared.evaluateDetailed(painLog, against: definition)
+        let formBreakEvaluation = OverallRankTrialRunner.shared.evaluateDetailed(formBreakLog, against: definition)
+
+        XCTAssertFalse(painEvaluation.passed)
+        XCTAssertEqual(painEvaluation.failedStation?.failedQualityFlags, Set([.pain]))
+        XCTAssertFalse(formBreakEvaluation.passed)
+        XCTAssertEqual(formBreakEvaluation.failedStation?.failedQualityFlags, Set([.formBreak]))
+    }
+
+    func testDetailedEvaluationReportsLoadPercentBodyweightBlockerWhenEnforced() throws {
+        let definition = OverallRankTrialDefinitions.calibration
+        let resolved = try XCTUnwrap(resolvedTrial(for: definition, loadout: .homeKit))
+        let draft = OverallRankTrialRunner.shared.draft(
+            for: definition,
+            userId: "u1",
+            date: Date(timeIntervalSince1970: 100),
+            resolvedTrial: resolved
+        )
+        var log = OverallRankTrialRunner.shared.performanceLog(
+            from: draft,
+            userId: "u1",
+            startedAt: Date(timeIntervalSince1970: 100),
+            completedAt: Date(timeIntervalSince1970: 1_000),
+            passing: true
+        )
+
+        let missingBodyweightEvaluation = OverallRankTrialRunner.shared.evaluateDetailed(
+            log,
+            against: definition,
+            enforceLoadPercent: true
+        )
+        XCTAssertFalse(missingBodyweightEvaluation.passed)
+        XCTAssertEqual(
+            missingBodyweightEvaluation.failedStation?.failureReason,
+            "Bodyweight is required for the load standard."
+        )
+
+        var lowLoadLog = log
+        for blockIndex in lowLoadLog.blocks.indices where lowLoadLog.blocks[blockIndex].kind == .carry {
+            for exerciseIndex in lowLoadLog.blocks[blockIndex].exercises.indices {
+                for setIndex in lowLoadLog.blocks[blockIndex].exercises[exerciseIndex].sets.indices {
+                    lowLoadLog.blocks[blockIndex].exercises[exerciseIndex].sets[setIndex].weightKg = 5
+                }
+            }
+        }
+        let lowLoadEvaluation = OverallRankTrialRunner.shared.evaluateDetailed(
+            lowLoadLog,
+            against: definition,
+            bodyweightKg: 100,
+            enforceLoadPercent: true
+        )
+        XCTAssertFalse(lowLoadEvaluation.passed)
+        XCTAssertEqual(
+            lowLoadEvaluation.failedStation?.failureReason,
+            "Logged load missed the bodyweight percentage standard."
+        )
+
+        for blockIndex in log.blocks.indices where log.blocks[blockIndex].kind == .carry {
+            for exerciseIndex in log.blocks[blockIndex].exercises.indices {
+                for setIndex in log.blocks[blockIndex].exercises[exerciseIndex].sets.indices {
+                    log.blocks[blockIndex].exercises[exerciseIndex].sets[setIndex].weightKg = 25
+                }
+            }
+        }
+        XCTAssertTrue(
+            OverallRankTrialRunner.shared.evaluateDetailed(
+                log,
+                against: definition,
+                bodyweightKg: 100,
+                enforceLoadPercent: true
+            ).passed
+        )
+    }
+
+    func testDetailedEvaluationFailsTrialTimeCap() throws {
+        let definition = OverallRankTrialDefinitions.calibration
+        let resolved = try XCTUnwrap(resolvedTrial(for: definition, loadout: .homeKit))
+        let draft = OverallRankTrialRunner.shared.draft(
+            for: definition,
+            userId: "u1",
+            date: Date(timeIntervalSince1970: 100),
+            resolvedTrial: resolved
+        )
+        let log = OverallRankTrialRunner.shared.performanceLog(
+            from: draft,
+            userId: "u1",
+            startedAt: Date(timeIntervalSince1970: 100),
+            completedAt: Date(timeIntervalSince1970: 100 + Double(definition.estimatedMinutes * 60 + 1)),
+            passing: true
+        )
+
+        let evaluation = OverallRankTrialRunner.shared.evaluateDetailed(log, against: definition)
+
+        XCTAssertFalse(evaluation.passed)
+        XCTAssertEqual(evaluation.failedStation?.id, "trial-time-cap")
+        XCTAssertEqual(evaluation.failedStation?.failureReason, "Trial exceeded the official time cap.")
+    }
+
+    func testDetailedEvaluationFailsStationTimeCapFromPerformanceBlockDuration() throws {
+        let definition = OverallRankTrialDefinitions.gauntlet
+        let resolved = try XCTUnwrap(resolvedTrial(for: definition, loadout: .homeKit))
+        let draft = OverallRankTrialRunner.shared.draft(
+            for: definition,
+            userId: "u1",
+            date: Date(timeIntervalSince1970: 100),
+            resolvedTrial: resolved
+        )
+        var log = OverallRankTrialRunner.shared.performanceLog(
+            from: draft,
+            userId: "u1",
+            startedAt: Date(timeIntervalSince1970: 100),
+            completedAt: Date(timeIntervalSince1970: 1_000),
+            passing: true
+        )
+        let cappedBlockIndex = try XCTUnwrap(log.blocks.firstIndex { $0.title == "Floor 10 Boss Hold" })
+        log.blocks[cappedBlockIndex].durationSeconds = (5 * 60) + 1
+
+        let evaluation = OverallRankTrialRunner.shared.evaluateDetailed(log, against: definition)
+
+        XCTAssertFalse(evaluation.passed)
+        XCTAssertEqual(evaluation.failedStation?.id, "tower-floor-10")
+        XCTAssertEqual(evaluation.failedStation?.failureReason, "Station exceeded the official time cap.")
+    }
+
+    func testRecordCompletedAttemptStoresOfficialLoadoutAndEvaluation() throws {
+        store.save(
+            OverallRankTrialProgress(highestPassedRank: .novice, attempts: []),
+            userId: "u1"
+        )
+        let definition = OverallRankTrialDefinitions.calibration
+        let resolved = try XCTUnwrap(resolvedTrial(for: definition, loadout: .homeKit))
+        let draft = OverallRankTrialRunner.shared.draft(
+            for: definition,
+            userId: "u1",
+            date: Date(timeIntervalSince1970: 100),
+            resolvedTrial: resolved
+        )
+        let log = OverallRankTrialRunner.shared.performanceLog(
+            from: draft,
+            userId: "u1",
+            startedAt: Date(timeIntervalSince1970: 100),
+            completedAt: Date(timeIntervalSince1970: 1_000),
+            passing: true
+        )
+
+        let completed = OverallRankTrialRunner.shared.recordCompletedAttempt(
+            performanceLog: log,
+            completionResult: TrainingCompletionResult(),
+            store: store,
+            bodyweightKg: 100
+        )
+        let result = try XCTUnwrap(completed)
+
+        XCTAssertTrue(result.attempt.passed)
+        XCTAssertEqual(result.attempt.loadout, .homeKit)
+        XCTAssertEqual(result.attempt.resolvedTrialId, "\(definition.id).homeKit")
+        XCTAssertTrue(result.evaluation.passed)
+        XCTAssertEqual(result.attempt.evaluation?.stationResults.count, resolved.stations.count)
+        XCTAssertEqual(store.load(userId: "u1").attempts.first?.loadout, .homeKit)
+    }
+
+    func testRecordCompletedAttemptEnforcesLoadPercentInProductionPath() throws {
+        let definition = OverallRankTrialDefinitions.calibration
+        let resolved = try XCTUnwrap(resolvedTrial(for: definition, loadout: .homeKit))
+        let draft = OverallRankTrialRunner.shared.draft(
+            for: definition,
+            userId: "u1",
+            date: Date(timeIntervalSince1970: 100),
+            resolvedTrial: resolved
+        )
+        let log = OverallRankTrialRunner.shared.performanceLog(
+            from: draft,
+            userId: "u1",
+            startedAt: Date(timeIntervalSince1970: 100),
+            completedAt: Date(timeIntervalSince1970: 1_000),
+            passing: true
+        )
+
+        let completed = OverallRankTrialRunner.shared.recordCompletedAttempt(
+            performanceLog: log,
+            completionResult: TrainingCompletionResult(),
+            store: store
+        )
+        let result = try XCTUnwrap(completed)
+
+        XCTAssertFalse(result.attempt.passed)
+        XCTAssertEqual(result.evaluation.failedStation?.failureReason, "Bodyweight is required for the load standard.")
+    }
+
+    func testActiveWorkoutSessionCarriesRankTrialLoadoutNotesAndQualityFlagsIntoPerformanceLog() throws {
+        let definition = OverallRankTrialDefinitions.calibration
+        let resolved = try XCTUnwrap(resolvedTrial(for: definition, loadout: .homeKit))
+        let draft = OverallRankTrialRunner.shared.draft(
+            for: definition,
+            userId: "u1",
+            date: Date(timeIntervalSince1970: 100),
+            resolvedTrial: resolved
+        )
+        let session = ActiveWorkoutSession(trainingDraft: draft)
+
+        session.confirmAsPlanned(exerciseIndex: 0, setIndex: 0)
+        session.toggleQualityFlag(.pain, exerciseIndex: 0, setIndex: 0)
+        let log = session.assemblePerformanceLog(userId: "u1")
+
+        XCTAssertEqual(log.blocks.first?.exercises.first?.notes, "Home Kit official station: Engine")
+        XCTAssertEqual(log.blocks.first?.exercises.first?.sets.first?.qualityFlags, Set([.pain]))
+    }
+
+    func testActiveWorkoutSessionCarriesRankTrialStationDurationIntoPerformanceLog() throws {
+        let definition = OverallRankTrialDefinitions.gauntlet
+        let resolved = try XCTUnwrap(resolvedTrial(for: definition, loadout: .homeKit))
+        let draft = OverallRankTrialRunner.shared.draft(
+            for: definition,
+            userId: "u1",
+            date: Date(timeIntervalSince1970: 100),
+            resolvedTrial: resolved
+        )
+        let session = ActiveWorkoutSession(trainingDraft: draft)
+        let started = Date(timeIntervalSince1970: 200)
+
+        for setIndex in session.exercises[0].sets.indices {
+            session.confirmAsPlanned(exerciseIndex: 0, setIndex: setIndex)
+        }
+        session.exercises[0].startedAt = started
+        session.exercises[0].completedAt = started.addingTimeInterval(301)
+        let log = session.assemblePerformanceLog(userId: "u1")
+
+        XCTAssertEqual(log.blocks.first?.title, "Floor 1 Engine")
+        XCTAssertEqual(log.blocks.first?.durationSeconds, 301)
+    }
+
+    func testRankTrialDraftDisplaysAndPrefillsBodyweightLoadStandards() throws {
+        let definition = OverallRankTrialDefinitions.gauntlet
+        let resolved = try XCTUnwrap(resolvedTrial(for: definition, loadout: .homeKit))
+        let draft = OverallRankTrialRunner.shared.draft(
+            for: definition,
+            userId: "u1",
+            date: Date(timeIntervalSince1970: 100),
+            resolvedTrial: resolved,
+            bodyweightKg: 100
+        )
+
+        let carryPrescription = try XCTUnwrap(
+            draft.blocks.flatMap(\.prescriptions).first { $0.loadPercentOfBodyweight != nil }
+        )
+        XCTAssertEqual(carryPrescription.displayTargetText, "100m @ 25 kg (25% BW)")
+        XCTAssertEqual(carryPrescription.suggestedWeightKg, 25)
+        XCTAssertTrue(draft.blocks.contains { $0.subtitle?.contains("100m @ 25 kg (25% BW)") == true })
+
+        let session = ActiveWorkoutSession(trainingDraft: draft)
+        let carryExercise = try XCTUnwrap(session.exercises.first { $0.id == carryPrescription.id })
+        XCTAssertEqual(carryExercise.plannedReps, "100m @ 25 kg (25% BW)")
+        XCTAssertEqual(carryExercise.sets.first?.suggestedWeightKg, 25)
+    }
+
+    func testRestoredRankTrialSessionKeepsOfficialSourceForAttemptRecording() throws {
+        let definition = OverallRankTrialDefinitions.calibration
+        let resolved = try XCTUnwrap(resolvedTrial(for: definition, loadout: .homeKit))
+        let draft = OverallRankTrialRunner.shared.draft(
+            for: definition,
+            userId: "u1",
+            date: Date(timeIntervalSince1970: 100),
+            resolvedTrial: resolved,
+            bodyweightKg: 100
+        )
+        let session = ActiveWorkoutSession(trainingDraft: draft)
+
+        let data = try JSONEncoder().encode(session.snapshot())
+        let snapshot = try JSONDecoder().decode(ActiveWorkoutSession.Snapshot.self, from: data)
+        let restored = ActiveWorkoutSession(snapshot: snapshot)
+        let log = restored.assemblePerformanceLog(userId: "u1")
+        let result = OverallRankTrialRunner.shared.recordCompletedAttempt(
+            performanceLog: log,
+            completionResult: TrainingCompletionResult(),
+            store: store,
+            bodyweightKg: 100
+        )
+
+        XCTAssertEqual(restored.source, .overallRankTrial)
+        XCTAssertEqual(log.source, .overallRankTrial)
+        XCTAssertNotNil(result)
     }
 
     func testAllOverallRankTrialDefinitionsAreCatalogBackedAndReachable() {
@@ -1191,6 +1517,104 @@ final class OverallRankTrialServiceTests: XCTestCase {
         Dictionary(uniqueKeysWithValues: definition.skillStandards.map { standard in
             (standard.skillId, standard.minimumTier)
         })
+    }
+
+    private func readyEquipment() -> Set<MovementEquipment> {
+        [
+            .bodyweight,
+            .openSpace,
+            .dumbbell,
+            .kettlebell,
+            .band,
+            .pullupBar,
+            .cable,
+            .machine,
+            .cardioMachine
+        ]
+    }
+
+    private func equipment(for loadout: TrialLoadout) -> Set<MovementEquipment> {
+        switch loadout {
+        case .noGymField:
+            return [.bodyweight, .openSpace, .pullupBar]
+        case .homeKit:
+            return [.bodyweight, .openSpace, .dumbbell, .kettlebell, .band, .pullupBar]
+        case .gymHybrid:
+            return readyEquipment()
+        }
+    }
+
+    private func resolvedTrial(
+        for definition: OverallRankTrialDefinition,
+        loadout: TrialLoadout
+    ) -> ResolvedRankTrial? {
+        RankTrialLoadoutResolver.shared.resolve(
+            definition: definition,
+            userId: "u1",
+            equipment: equipment(for: loadout),
+            generatedAt: Date(timeIntervalSince1970: 100)
+        ).resolvedTrial
+    }
+
+    private func assertDraft(
+        _ draft: TrainingSessionDraft,
+        matches definition: OverallRankTrialDefinition,
+        resolvedTrial: ResolvedRankTrial,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        XCTAssertEqual(draft.source, .overallRankTrial, file: file, line: line)
+        XCTAssertEqual(draft.programId, definition.id, file: file, line: line)
+        XCTAssertEqual(draft.title, definition.displayName, file: file, line: line)
+        XCTAssertEqual(draft.estimatedMinutes, definition.estimatedMinutes, file: file, line: line)
+        XCTAssertEqual(draft.blocks.count, resolvedTrial.stations.count, file: file, line: line)
+        XCTAssertEqual(
+            draft.blocks.map(\.title),
+            resolvedTrial.stations.map { $0.station.title },
+            file: file,
+            line: line
+        )
+        XCTAssertEqual(
+            draft.blocks.flatMap(\.prescriptions).map(\.movementId),
+            resolvedTrial.stations.map { Optional($0.selectedMovement.movementId) },
+            file: file,
+            line: line
+        )
+        XCTAssertEqual(
+            draft.blocks.flatMap(\.prescriptions).map(\.sets),
+            resolvedTrial.stations.map { $0.standard.plannedSets },
+            file: file,
+            line: line
+        )
+    }
+
+    private func assertDraftPassesAndFails(
+        _ draft: TrainingSessionDraft,
+        against definition: OverallRankTrialDefinition,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        let passingLog = OverallRankTrialRunner.shared.performanceLog(
+            from: draft,
+            userId: "u1",
+            startedAt: Date(timeIntervalSince1970: 100),
+            completedAt: Date(timeIntervalSince1970: 1_000),
+            passing: true
+        )
+        let failingLog = OverallRankTrialRunner.shared.performanceLog(
+            from: draft,
+            userId: "u1",
+            startedAt: Date(timeIntervalSince1970: 100),
+            completedAt: Date(timeIntervalSince1970: 1_000),
+            passing: false
+        )
+        let passingEvaluation = OverallRankTrialRunner.shared.evaluateDetailed(passingLog, against: definition)
+        let failingEvaluation = OverallRankTrialRunner.shared.evaluateDetailed(failingLog, against: definition)
+
+        XCTAssertTrue(passingEvaluation.passed, definition.displayName, file: file, line: line)
+        XCTAssertFalse(failingEvaluation.passed, definition.displayName, file: file, line: line)
+        XCTAssertNil(passingEvaluation.failedStation, definition.displayName, file: file, line: line)
+        XCTAssertNotNil(failingEvaluation.failedStation, definition.displayName, file: file, line: line)
     }
 
     private func attributeProfile(score: Double) -> AttributeProfile {
@@ -1246,7 +1670,7 @@ final class OverallRankTrialServiceTests: XCTestCase {
             analytics: AnalyticsService.shared,
             subscription: MockSubscriptionService(),
             paywall: MockPaywallService(),
-            user: UserService.shared,
+            user: RankTrialUserServiceStub(),
             storage: StorageService.shared,
             network: NetworkService.shared,
             bodyAnalysis: MockBodyAnalysisService(),
@@ -1267,5 +1691,31 @@ final class OverallRankTrialServiceTests: XCTestCase {
             attribute: MockAttributeService(),
             photoXP: MockPhotoXPService()
         )
+    }
+}
+
+private final class RankTrialUserServiceStub: UserServiceProtocol, @unchecked Sendable {
+    func createUserIfNeeded(userId: String, email: String?) async throws -> UserProfile {
+        profile(userId: userId, email: email)
+    }
+
+    func fetchProfile(userId: String) async throws -> UserProfile {
+        profile(userId: userId)
+    }
+
+    func updateProfile(userId: String, fields: [String: Any]) async throws {}
+    func deleteUserData(userId: String) async throws {}
+
+    private func profile(userId: String, email: String? = nil) -> UserProfile {
+        var profile = UserProfile(
+            id: userId,
+            email: email,
+            createdAt: Date(timeIntervalSince1970: 0),
+            onboardingCompleted: true,
+            totalScans: 0,
+            weightKg: 100
+        )
+        profile.equipment = [.fullGym, .pullupBar, .homeWeights, .bands]
+        return profile
     }
 }

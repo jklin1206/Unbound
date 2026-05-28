@@ -70,6 +70,10 @@ struct ExercisePreferenceRow: View {
                 libraryPill(text: "\(formatWhole(row.totalAP)) AP", color: .theme.primary)
             }
 
+            if let benchmark = row.nextBenchmarkSummary {
+                libraryPill(text: benchmark, color: .theme.warning)
+            }
+
             if let summary = row.bestMetricSummary {
                 libraryPill(text: summary, color: .theme.success)
             }

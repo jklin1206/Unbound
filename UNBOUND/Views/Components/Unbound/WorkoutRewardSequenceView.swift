@@ -26,6 +26,7 @@ struct WorkoutRewardSequenceView: View {
         case attributes
         case collection
         case progression
+        case rankTrial
         case weeklyVow
         case final
     }
@@ -55,6 +56,10 @@ struct WorkoutRewardSequenceView: View {
 
         if summary.progression?.hasContent == true {
             beats.append(.progression)
+        }
+
+        if summary.rankTrialCallout != nil {
+            beats.append(.rankTrial)
         }
 
         if summary.weeklyVowCallout != nil {
@@ -173,6 +178,7 @@ struct WorkoutRewardSequenceView: View {
         if let advance = summary.liftProgress.first(where: \.didAdvanceTier) { return advance.toTier.rewardTint }
         if let pr = summary.personalRecords.first { return pr.family.tint }
         if let attribute = summary.attributeDeltas.first(where: \.didAdvanceTier) { return attribute.tint }
+        if let rankTrial = summary.rankTrialCallout { return rankTrial.passed ? Color.unbound.rankGold : Color.unbound.alert }
         if let vow = summary.weeklyVowCallout { return vow.theme.tintColor }
         return Color.rewardBlue
     }
@@ -198,6 +204,8 @@ struct WorkoutRewardSequenceView: View {
             if let progression = summary.progression {
                 progressionBeat(progression)
             }
+        case .rankTrial:
+            rankTrialBeat
         case .weeklyVow:
             weeklyVowBeat
         case .final:
@@ -585,6 +593,53 @@ struct WorkoutRewardSequenceView: View {
     }
 
     @ViewBuilder
+    private var rankTrialBeat: some View {
+        if let callout = summary.rankTrialCallout {
+            let tint = callout.passed ? Color.unbound.rankGold : Color.unbound.alert
+            RewardPanel(tint: tint, active: currentBeatKind == .rankTrial) {
+                VStack(alignment: .leading, spacing: 18) {
+                    beatHeader(kicker: "RANK TRIAL RECEIPT", title: callout.title.uppercased(), tint: tint)
+
+                    HStack(spacing: 14) {
+                        ZStack {
+                            Circle()
+                                .fill(tint.opacity(0.18))
+                                .frame(width: 66, height: 66)
+                            Circle()
+                                .stroke(tint.opacity(0.72), lineWidth: 1.5)
+                                .frame(width: 66, height: 66)
+                            Image(systemName: callout.passed ? "checkmark.seal.fill" : "xmark.seal.fill")
+                                .font(.system(size: 30, weight: .black))
+                                .foregroundStyle(tint)
+                                .shadow(color: tint.opacity(0.45), radius: 14)
+                        }
+
+                        VStack(alignment: .leading, spacing: 5) {
+                            Text(callout.subtitle.uppercased())
+                                .font(Font.unbound.bodyMStrong)
+                                .foregroundStyle(Color.unbound.textPrimary)
+                                .lineLimit(2)
+                                .minimumScaleFactor(0.78)
+                            Text(callout.statusLine.uppercased())
+                                .font(Font.unbound.captionS.weight(.semibold))
+                                .tracking(1.0)
+                                .foregroundStyle(Color.unbound.textTertiary)
+                                .lineLimit(2)
+                                .minimumScaleFactor(0.72)
+                        }
+                    }
+
+                    VStack(spacing: 10) {
+                        rewardLine(label: "Verdict", value: callout.passed ? "Cleared" : "Not Cleared", tint: tint)
+                        rewardLine(label: "Detail", value: callout.detailLine, tint: Color.rewardBlue)
+                        rewardLine(label: "Receipt", value: callout.receiptLine, tint: tint)
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
     private var weeklyVowBeat: some View {
         if let callout = summary.weeklyVowCallout {
             let tint = callout.theme.tintColor
@@ -812,7 +867,7 @@ struct WorkoutRewardSequenceView: View {
         case .xp:
             animatedXP = 0
             UnboundHaptics.heavy()
-        case .proof, .rankReveal, .attributes, .collection, .progression, .weeklyVow:
+        case .proof, .rankReveal, .attributes, .collection, .progression, .rankTrial, .weeklyVow:
             UnboundHaptics.medium()
         case .sessionComplete, .final:
             UnboundHaptics.soft()

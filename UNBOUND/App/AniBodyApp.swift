@@ -21,11 +21,16 @@
 import SwiftUI
 import UIKit
 
-#if DEBUG
+#if DEBUG && targetEnvironment(simulator)
 // Hot-reload for SwiftUI iteration. Save any .swift file and the
 // simulator re-renders affected views without a rebuild. Requires
 // InjectionIII.app installed and pointed at this project.
 // See: https://github.com/johnno1962/HotReloading
+//
+// Guard MUST stay `DEBUG && targetEnvironment(simulator)`. On a real device
+// dyld can't load HotReloading.framework (it's not embedded for device) and
+// the app SIGABRTs on launch — see project.pbxproj where the SPM product
+// is also marked Weak-linked for the same reason.
 import HotReloading
 #endif
 

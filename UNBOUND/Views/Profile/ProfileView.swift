@@ -233,9 +233,14 @@ struct ProfileView: View {
 
     private func startOverallRankTrial(_ definition: OverallRankTrialDefinition) {
         let userId = services.auth.currentUserId ?? "anonymous"
+        let resolvedTrial = overallRankTrialReadiness?.resolvedTrial?.definitionId == definition.id
+            ? overallRankTrialReadiness?.resolvedTrial
+            : nil
         activeOverallRankTrialDraft = OverallRankTrialRunner.shared.draft(
             for: definition,
-            userId: userId
+            userId: userId,
+            resolvedTrial: resolvedTrial,
+            bodyweightKg: profile?.weightKg
         )
     }
 

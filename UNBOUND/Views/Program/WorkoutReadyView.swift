@@ -25,11 +25,13 @@ struct WorkoutReadyView: View {
                         header
                         if draft.isWeeklyVowDraft {
                             weeklyProofWorkSummary
+                        } else if isRankTrialDraft {
+                            rankTrialProtocolSummary
                         } else {
                             recentDraftsSection
                         }
                         blockList
-                        if !draft.isWeeklyVowDraft {
+                        if !isFixedProtocolDraft {
                             addControls
                         }
                         startControls
@@ -38,7 +40,7 @@ struct WorkoutReadyView: View {
                     .padding(.bottom, 28)
                 }
             }
-            .navigationTitle(draft.isWeeklyVowDraft ? "Binding Vow" : "Workout Ready")
+            .navigationTitle(draft.isWeeklyVowDraft ? "Binding Vow" : isRankTrialDraft ? "Rank Trial" : "Workout Ready")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -83,6 +85,8 @@ struct WorkoutReadyView: View {
     private var header: some View {
         if draft.isWeeklyVowDraft {
             weeklyProofHeader
+        } else if isRankTrialDraft {
+            rankTrialHeader
         } else {
             workoutHeader
         }
@@ -162,7 +166,7 @@ struct WorkoutReadyView: View {
                             .foregroundStyle(Color.unbound.textPrimary)
                             .lineLimit(1)
                             .minimumScaleFactor(0.74)
-                        Text("\(prescription.sets)x \(prescription.target.displayText) · \(prescription.restSeconds)s rest\(rpeLabel(for: prescription))")
+                        Text("\(prescription.sets)x \(prescription.displayTargetText) · \(prescription.restSeconds)s rest\(rpeLabel(for: prescription))")
                             .font(Font.unbound.captionS)
                             .foregroundStyle(Color.unbound.textSecondary)
                             .lineLimit(1)
@@ -173,6 +177,96 @@ struct WorkoutReadyView: View {
                 .padding(12)
                 .background(cardBackground)
             }
+        }
+    }
+
+    private var rankTrialHeader: some View {
+        let definition = rankTrialDefinition
+        let tint = definition?.targetRank.rewardTextTint ?? Color.unbound.rankGold
+
+        return VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .center, spacing: 14) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(tint.opacity(0.14))
+                    Image(systemName: "seal.fill")
+                        .font(.system(size: 22, weight: .black))
+                        .foregroundStyle(tint)
+                }
+                .frame(width: 58, height: 58)
+
+                VStack(alignment: .leading, spacing: 7) {
+                    Text("OVERALL RANK TRIAL")
+                        .font(Font.unbound.captionS.weight(.heavy))
+                        .tracking(1.8)
+                        .foregroundStyle(tint)
+                    Text(draft.title)
+                        .font(.system(.title2).weight(.black))
+                        .foregroundStyle(Color.unbound.textPrimary)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.78)
+                    HStack(spacing: 8) {
+                        readyChip(definition?.format.displayName ?? "Official", icon: "flag.checkered")
+                        readyChip("\(draft.blocks.count) stations", icon: "square.stack.3d.up")
+                        readyChip("\(draft.estimatedMinutes) min", icon: "clock")
+                    }
+                }
+                .layoutPriority(1)
+            }
+
+            Text("Official fixed protocol. Clear every station; pain or form-break flags fail the station.")
+                .font(Font.unbound.captionS.weight(.semibold))
+                .foregroundStyle(Color.unbound.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(18)
+        .background(cardBackground)
+    }
+
+    private var rankTrialProtocolSummary: some View {
+        let tint = rankTrialDefinition?.targetRank.rewardTextTint ?? Color.unbound.rankGold
+        let categories = Array(
+            draft.blocks
+                .compactMap(\.subtitle)
+                .reduce(into: [String]()) { result, subtitle in
+                    guard !result.contains(subtitle) else { return }
+                    result.append(subtitle)
+                }
+                .prefix(6)
+        )
+
+        return VStack(alignment: .leading, spacing: 10) {
+            Text("OFFICIAL VERSION")
+                .font(Font.unbound.captionS.weight(.bold))
+                .tracking(1.4)
+                .foregroundStyle(Color.unbound.textTertiary)
+
+            HStack(spacing: 8) {
+                if let loadout = rankTrialLoadoutLabel {
+                    readyChip(loadout, icon: "scope")
+                }
+                readyChip("Every station", icon: "checkmark.seal.fill")
+                readyChip("Clean reps", icon: "sparkles")
+            }
+
+            if !categories.isEmpty {
+                Text(categories.joined(separator: " / "))
+                    .font(Font.unbound.captionS)
+                    .foregroundStyle(Color.unbound.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            HStack(spacing: 8) {
+                Image(systemName: "lock.fill")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(tint)
+                Text("Stations are locked for rank validation.")
+                    .font(Font.unbound.captionS.weight(.semibold))
+                    .foregroundStyle(Color.unbound.textPrimary)
+            }
+            .padding(10)
+            .background(cardBackground)
         }
     }
 
@@ -211,7 +305,7 @@ struct WorkoutReadyView: View {
 
     private var blockList: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(draft.isWeeklyVowDraft ? "VOW BLOCKS" : "BLOCKS")
+            Text(draft.isWeeklyVowDraft ? "VOW BLOCKS" : isRankTrialDraft ? "TRIAL STATIONS" : "BLOCKS")
                 .font(Font.unbound.captionS.weight(.bold))
                 .tracking(1.4)
                 .foregroundStyle(Color.unbound.textTertiary)
@@ -278,7 +372,7 @@ struct WorkoutReadyView: View {
 
             Spacer(minLength: 8)
 
-            if !draft.isWeeklyVowDraft {
+            if !isFixedProtocolDraft {
                 VStack(spacing: 4) {
                     Button {
                         moveBlock(from: index, by: -1)
@@ -315,7 +409,7 @@ struct WorkoutReadyView: View {
                 .accessibilityIdentifier("workoutReady.block.\(index).edit")
             }
 
-            if !draft.isWeeklyVowDraft, block.kind == .skill, let skillId = block.skillId {
+            if !isFixedProtocolDraft, block.kind == .skill, let skillId = block.skillId {
                 Button {
                     activeSkillSession = SkillLaunch(skillId: skillId, title: block.title)
                 } label: {
@@ -328,7 +422,7 @@ struct WorkoutReadyView: View {
                 .accessibilityIdentifier("workoutReady.block.\(index).startSkill")
             }
 
-            if !draft.isWeeklyVowDraft {
+            if !isFixedProtocolDraft {
                 Button {
                     removeBlock(id: block.id)
                 } label: {
@@ -372,7 +466,7 @@ struct WorkoutReadyView: View {
 
     private var startControls: some View {
         VStack(spacing: 10) {
-            if !draft.isWeeklyVowDraft {
+            if !isFixedProtocolDraft {
                 Button {
                     saveRecentDraft()
                 } label: {
@@ -388,7 +482,7 @@ struct WorkoutReadyView: View {
                 saveRecentDraftIfCustom()
                 activeWorkoutDraft = draft
             } label: {
-                Label(draft.isWeeklyVowDraft ? "Start Binding Vow" : "Start Workout", systemImage: "play.fill")
+                Label(startButtonTitle, systemImage: "play.fill")
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
@@ -396,7 +490,7 @@ struct WorkoutReadyView: View {
             .opacity(hasWorkoutCompatibleBlocks ? 1 : 0.45)
             .accessibilityIdentifier("workoutReady.startWorkout")
 
-            if !draft.isWeeklyVowDraft,
+            if !isFixedProtocolDraft,
                !hasWorkoutCompatibleBlocks,
                let skillBlock = draft.blocks.first(where: { $0.kind == .skill }),
                let skillId = skillBlock.skillId {
@@ -413,6 +507,33 @@ struct WorkoutReadyView: View {
 
     private var hasWorkoutCompatibleBlocks: Bool {
         !draft.blocks.isEmpty
+    }
+
+    private var isFixedProtocolDraft: Bool {
+        draft.isWeeklyVowDraft || isRankTrialDraft
+    }
+
+    private var isRankTrialDraft: Bool {
+        draft.source == .overallRankTrial
+    }
+
+    private var rankTrialDefinition: OverallRankTrialDefinition? {
+        draft.programId.flatMap(OverallRankTrialDefinitions.definition)
+    }
+
+    private var rankTrialLoadoutLabel: String? {
+        draft.blocks
+            .flatMap(\.prescriptions)
+            .compactMap(\.notes)
+            .first { $0.contains(" official station:") }?
+            .components(separatedBy: " official station:")
+            .first
+    }
+
+    private var startButtonTitle: String {
+        if draft.isWeeklyVowDraft { return "Start Binding Vow" }
+        if isRankTrialDraft { return "Start Rank Trial" }
+        return "Start Workout"
     }
 
     private var nextScheduledSkillId: String? {
@@ -506,7 +627,7 @@ struct WorkoutReadyView: View {
     }
 
     private func saveRecentDraftIfCustom() {
-        guard !draft.isWeeklyVowDraft else { return }
+        guard !isFixedProtocolDraft else { return }
         let hasMixedCustomBlock = draft.blocks.contains { block in
             switch block.kind {
             case .custom, .cardio, .carry, .routine:
@@ -538,7 +659,7 @@ struct WorkoutReadyView: View {
 
     private func prescriptionSummary(_ block: TrainingBlock) -> String {
         block.prescriptions.prefix(3).map {
-            "\($0.exerciseName) · \($0.sets)x \($0.target.displayText)"
+            "\($0.exerciseName) · \($0.sets)x \($0.displayTargetText)"
         }
         .joined(separator: " / ")
     }
@@ -597,7 +718,7 @@ struct WorkoutReadyView: View {
             id = block.id
             title = block.title
             sets = block.prescriptions.first?.sets ?? 1
-            targetText = block.prescriptions.first?.target.displayText ?? "AMRAP"
+            targetText = block.prescriptions.first?.displayTargetText ?? "AMRAP"
             notes = block.notes ?? ""
         }
     }

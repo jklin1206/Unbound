@@ -104,6 +104,96 @@ struct ExerciseLibraryDisplayRow: Identifiable {
         }
         return nil
     }
+
+    var nextBenchmarkSummary: String? {
+        RankBenchmarkSummary.nextBenchmark(for: item, currentTier: movementProgress?.provenTier)
+    }
+}
+
+enum RankBenchmarkSummary {
+    static func nextBenchmark(for item: ExerciseLibraryItem, currentTier: SkillTier?) -> String? {
+        guard let criteria = criteriaTable(for: item),
+              let targetTier = targetTier(after: currentTier),
+              let criterion = criteria[targetTier]
+        else { return nil }
+
+        return "\(targetTier.displayName): \(criterionSummary(criterion))"
+    }
+
+    static func nextBenchmark(for node: SkillNode, currentTier: SkillTier?) -> String? {
+        guard let targetTier = targetTier(after: currentTier),
+              let criterion = node.tierCriteria[targetTier]
+        else { return nil }
+
+        return "\(targetTier.displayName): \(criterionSummary(criterion))"
+    }
+
+    private static func targetTier(after currentTier: SkillTier?) -> SkillTier? {
+        guard let currentTier else { return .initiate }
+        return SkillTier(rawValue: currentTier.rawValue + 1)
+    }
+
+    private static func criteriaTable(for item: ExerciseLibraryItem) -> [SkillTier: TierCriterion]? {
+        guard let definition = MovementCatalog.definition(for: item.id) else {
+            return LiftTierCriteria.table[MovementCatalog.normalized(item.name)]
+        }
+
+        if let skillId = definition.skillId,
+           let node = SkillGraph.shared.node(id: skillId),
+           !node.tierCriteria.isEmpty {
+            return node.tierCriteria
+        }
+
+        let keys = [
+            definition.canonicalExerciseName,
+            definition.displayName,
+            item.name,
+            item.rankStandardMovementId
+        ]
+        .compactMap { $0 }
+        .map(MovementCatalog.normalized)
+
+        for key in keys {
+            if let criteria = LiftTierCriteria.table[key] {
+                return criteria
+            }
+        }
+
+        return nil
+    }
+
+    private static func criterionSummary(_ criterion: TierCriterion) -> String {
+        switch criterion {
+        case .reps(let count, let exerciseName):
+            return "\(count) \(displayExerciseName(exerciseName))"
+        case .seconds(let seconds):
+            return "\(seconds)-second hold"
+        case .weightKg(let weight):
+            return "\(Int(weight.rounded())) kg working set"
+        case .exerciseWeightKg(let weight, let exerciseName):
+            return "\(Int(weight.rounded())) kg \(displayExerciseName(exerciseName))"
+        case .bodyweightRatio(let ratio):
+            return "\(String(format: "%.2g", ratio))x bodyweight"
+        case .exerciseBodyweightRatio(let ratio, let exerciseName):
+            return "\(String(format: "%.2g", ratio))x bodyweight \(displayExerciseName(exerciseName))"
+        case .variant(let name):
+            return "Log \(displayExerciseName(name))"
+        case .compound(let criteria):
+            return criteria.map(criterionSummary).joined(separator: " + ")
+        }
+    }
+
+    private static func displayExerciseName(_ name: String) -> String {
+        name
+            .split(separator: " ")
+            .map { part in
+                part
+                    .split(separator: "-")
+                    .map { $0.prefix(1).uppercased() + $0.dropFirst() }
+                    .joined(separator: "-")
+            }
+            .joined(separator: " ")
+    }
 }
 
 @MainActor
@@ -182,7 +272,10 @@ final class ExerciseLibraryViewModel: ObservableObject {
                 row.bestMetricSummary ?? "",
                 row.tier?.displayName ?? ""
             ].joined(separator: " ")
-            let matchesSearch = searchText.isEmpty || searchSource.localizedCaseInsensitiveContains(searchText)
+            let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+            let matchesSearch = query.isEmpty
+                || searchSource.localizedCaseInsensitiveContains(query)
+                || Self.searchKey(searchSource).contains(Self.searchKey(query))
             let matchesCategory = selectedCategory == nil || item.category == selectedCategory
             let matchesStatus: Bool
             switch selectedStatusFilter {
@@ -196,6 +289,15 @@ final class ExerciseLibraryViewModel: ObservableObject {
             }
             return matchesSearch && matchesCategory && matchesStatus
         }
+    }
+
+    private static func searchKey(_ value: String) -> String {
+        value
+            .lowercased()
+            .unicodeScalars
+            .filter { CharacterSet.alphanumerics.contains($0) }
+            .map(String.init)
+            .joined()
     }
 
     private var uniquePreferences: [ExercisePreference] {

@@ -538,7 +538,7 @@ struct SessionEditorView: View {
                                 .font(Font.unbound.bodyMStrong)
                                 .foregroundStyle(Color.unbound.textPrimary)
                                 .lineLimit(1)
-                            Text("\(prescription.sets) x \(prescription.target.displayText) · \(mmss(prescription.restSeconds)) rest")
+                            Text("\(prescription.sets) x \(prescription.displayTargetText) · \(mmss(prescription.restSeconds)) rest")
                                 .font(Font.unbound.captionS)
                                 .foregroundStyle(Color.unbound.textSecondary)
                                 .lineLimit(1)

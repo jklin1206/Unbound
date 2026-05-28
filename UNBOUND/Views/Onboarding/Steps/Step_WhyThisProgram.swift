@@ -8,10 +8,10 @@ struct Step_WhyThisProgram: View {
 
     var body: some View {
         OnboardingScaffold(
-            title: "Your first quest is loaded.",
-            subtitle: "The map is open. Now UNBOUND gives you the first block that starts moving the character.",
+            title: "The path starts paying you back.",
+            subtitle: "Behind the gate is not a feed of random workouts. It is a route that keeps turning effort into visible progress.",
             progress: progress,
-            primaryTitle: "Load the block",
+            primaryTitle: "Show the climb",
             primaryEnabled: true,
             hudStep: .whyThisProgram,
             onBack: onBack,
@@ -21,20 +21,20 @@ struct Step_WhyThisProgram: View {
             }
         ) {
             VStack(spacing: 14) {
-                protocolHero
+                pathHero
 
                 VStack(spacing: 10) {
-                    routeStat(label: "GATE 01", value: "CALIBRATION WEEK", icon: "target")
-                    routeStat(label: "NEXT", value: "28-DAY ARC", icon: "map.fill")
+                    routeStat(label: "RECEIVE", value: "YOUR OPENING ARC", icon: "map.fill")
+                    routeStat(label: "TRACK", value: "RANK, LOGS, PROOF", icon: "hexagon.fill")
                     routeStat(label: "RHYTHM", value: "\(sessionsPerWeek)x / \(sessionLengthLabel.uppercased())", icon: "timer")
                 }
 
                 HStack(alignment: .top, spacing: 10) {
-                    Image(systemName: "sparkles")
+                    Image(systemName: "lock.open.fill")
                         .font(.system(size: 14, weight: .black))
-                        .foregroundStyle(Color.unbound.accent)
+                        .foregroundStyle(Color.unbound.impact)
                         .padding(.top, 2)
-                    Text("No random workout drop. This is the first route: your days, your equipment, your standards, then the next gate.")
+                    Text("You get the first block, recovery targets, workout logging, monthly scans, rank movement, and the next gate only after the current one is earned.")
                         .font(Font.unbound.bodyS)
                         .foregroundStyle(Color.unbound.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -46,15 +46,15 @@ struct Step_WhyThisProgram: View {
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .strokeBorder(Color.unbound.accent.opacity(0.24), lineWidth: 1)
+                        .strokeBorder(Color.unbound.impact.opacity(0.26), lineWidth: 1)
                 )
             }
         }
     }
 
-    private var protocolHero: some View {
+    private var pathHero: some View {
         ZStack(alignment: .bottomLeading) {
-            Image("onboarding_path_protocol_dossier")
+            Image("onboarding_path_transformation")
                 .resizable()
                 .scaledToFill()
                 .frame(height: 302)
@@ -69,11 +69,11 @@ struct Step_WhyThisProgram: View {
                 )
 
             VStack(alignment: .leading, spacing: 6) {
-                Text("FIRST ROUTE")
+                Text("WHAT OPENS")
                     .font(.system(size: 10, weight: .black, design: .monospaced))
                     .tracking(1.5)
                     .foregroundStyle(Color.unbound.accent)
-                Text("OPENING BLOCK")
+                Text("THE ARC SYSTEM")
                     .font(Font.unbound.titleL)
                     .foregroundStyle(Color.unbound.textPrimary)
             }

@@ -54,6 +54,7 @@ final class ActiveWorkoutSession: ObservableObject {
         var suggestedDistanceMeters: Int?
         var suggestedCalories: Int?
         var suggestedRPE: Int?
+        var qualityFlags: Set<PerformanceQualityFlag>
 
         init(id: String, weightKg: Double?, reps: Int?, rpe: Int?,
              isWarmup: Bool, logged: Bool,
@@ -67,7 +68,8 @@ final class ActiveWorkoutSession: ObservableObject {
              suggestedDistanceMeters: Int? = nil,
              calories: Int? = nil,
              suggestedCalories: Int? = nil,
-             suggestedRPE: Int? = nil) {
+             suggestedRPE: Int? = nil,
+             qualityFlags: Set<PerformanceQualityFlag> = []) {
             self.id = id; self.weightKg = weightKg; self.reps = reps
             self.rpe = rpe; self.holdSeconds = holdSeconds
             self.durationSeconds = durationSeconds
@@ -81,13 +83,14 @@ final class ActiveWorkoutSession: ObservableObject {
             self.suggestedDistanceMeters = suggestedDistanceMeters
             self.suggestedCalories = suggestedCalories
             self.suggestedRPE = suggestedRPE
+            self.qualityFlags = qualityFlags
         }
 
         enum CodingKeys: String, CodingKey {
             case id, weightKg, reps, rpe, isWarmup, logged
             case holdSeconds, durationSeconds, distanceMeters, calories
             case suggestedWeightKg, suggestedReps, suggestedHoldSeconds
-            case suggestedDurationSeconds, suggestedDistanceMeters, suggestedCalories, suggestedRPE
+            case suggestedDurationSeconds, suggestedDistanceMeters, suggestedCalories, suggestedRPE, qualityFlags
         }
 
         init(from decoder: Decoder) throws {
@@ -109,6 +112,7 @@ final class ActiveWorkoutSession: ObservableObject {
             suggestedDistanceMeters = try c.decodeIfPresent(Int.self, forKey: .suggestedDistanceMeters)
             suggestedCalories = try c.decodeIfPresent(Int.self, forKey: .suggestedCalories)
             suggestedRPE = try c.decodeIfPresent(Int.self, forKey: .suggestedRPE)
+            qualityFlags = try c.decodeIfPresent(Set<PerformanceQualityFlag>.self, forKey: .qualityFlags) ?? []
         }
     }
 
@@ -135,6 +139,8 @@ final class ActiveWorkoutSession: ObservableObject {
         var cardioType: CardioType?
         var tracksHold: Bool
         var metricKind: TrainingMetricKind
+        var startedAt: Date?
+        var completedAt: Date?
 
         init(id: String, name: String, plannedSets: Int, plannedReps: String,
              restSeconds: Int, muscleGroups: [MuscleGroup], sets: [ActiveSet],
@@ -150,7 +156,9 @@ final class ActiveWorkoutSession: ObservableObject {
              routineId: String? = nil,
              cardioType: CardioType? = nil,
              tracksHold: Bool = false,
-             metricKind: TrainingMetricKind = .reps) {
+             metricKind: TrainingMetricKind = .reps,
+             startedAt: Date? = nil,
+             completedAt: Date? = nil) {
             let resolved = MovementResolver.resolve(name)
             self.id = id; self.name = name; self.plannedSets = plannedSets
             self.movementId = movementId ?? resolved.movementId
@@ -168,6 +176,8 @@ final class ActiveWorkoutSession: ObservableObject {
             self.cardioType = cardioType
             self.tracksHold = tracksHold
             self.metricKind = metricKind
+            self.startedAt = startedAt
+            self.completedAt = completedAt
         }
 
         enum CodingKeys: String, CodingKey {
@@ -175,7 +185,7 @@ final class ActiveWorkoutSession: ObservableObject {
             case muscleGroups, sets, skipped, notes
             case movementId, rankStandardMovementId
             case targetRPE, formCues, substitution
-            case blockKind, blockId, blockTitle, skillId, routineId, cardioType, tracksHold, metricKind
+            case blockKind, blockId, blockTitle, skillId, routineId, cardioType, tracksHold, metricKind, startedAt, completedAt
         }
 
         init(from decoder: Decoder) throws {
@@ -203,6 +213,8 @@ final class ActiveWorkoutSession: ObservableObject {
             cardioType = try c.decodeIfPresent(CardioType.self, forKey: .cardioType)
             tracksHold = try c.decodeIfPresent(Bool.self, forKey: .tracksHold) ?? false
             metricKind = try c.decodeIfPresent(TrainingMetricKind.self, forKey: .metricKind) ?? (tracksHold ? .holdSeconds : .reps)
+            startedAt = try c.decodeIfPresent(Date.self, forKey: .startedAt)
+            completedAt = try c.decodeIfPresent(Date.self, forKey: .completedAt)
         }
     }
 
@@ -212,6 +224,7 @@ final class ActiveWorkoutSession: ObservableObject {
         let dayNumber: Int
         let plannedWorkoutName: String
         let startedAt: Date
+        var source: TrainingSessionSource?
         var exercises: [ActiveExercise]
         var currentExerciseIndex: Int
         var currentSetIndex: Int
@@ -258,6 +271,7 @@ final class ActiveWorkoutSession: ObservableObject {
                 blockKind: .strength
             )
         }
+        markCurrentExerciseStarted(at: startedAt)
     }
 
     init(snapshot s: Snapshot) {
@@ -266,10 +280,11 @@ final class ActiveWorkoutSession: ObservableObject {
         self.dayNumber = s.dayNumber
         self.plannedWorkoutName = s.plannedWorkoutName
         self.startedAt = s.startedAt
-        self.source = .program
+        self.source = s.source ?? .program
         self.exercises = s.exercises
         self.currentExerciseIndex = min(s.currentExerciseIndex, max(0, s.exercises.count - 1))
         self.currentSetIndex = s.currentSetIndex
+        markCurrentExerciseStarted()
     }
 
     convenience init(trainingDraft draft: TrainingSessionDraft) {
@@ -278,11 +293,12 @@ final class ActiveWorkoutSession: ObservableObject {
                   dayNumber: draft.dayNumber ?? 0,
                   source: draft.source)
         self.exercises = Self.activeExercises(from: draft)
+        markCurrentExerciseStarted(at: startedAt)
     }
 
     func snapshot() -> Snapshot {
         Snapshot(id: id, programId: programId, dayNumber: dayNumber,
-                 plannedWorkoutName: plannedWorkoutName, startedAt: startedAt,
+                 plannedWorkoutName: plannedWorkoutName, startedAt: startedAt, source: source,
                  exercises: exercises, currentExerciseIndex: currentExerciseIndex,
                  currentSetIndex: currentSetIndex)
     }
@@ -320,9 +336,11 @@ final class ActiveWorkoutSession: ObservableObject {
         guard exercises.indices.contains(currentExerciseIndex),
               exercises[currentExerciseIndex].sets.indices.contains(currentSetIndex) else { return }
         objectWillChange.send()
+        markExerciseStarted(exerciseIndex: currentExerciseIndex)
         exercises[currentExerciseIndex].sets[currentSetIndex].weightKg = weightKg
         exercises[currentExerciseIndex].sets[currentSetIndex].reps = reps
         exercises[currentExerciseIndex].sets[currentSetIndex].logged = true
+        markExerciseCompletedIfReady(exerciseIndex: currentExerciseIndex)
     }
 
     func toggleCurrentWarmup() {
@@ -347,6 +365,7 @@ final class ActiveWorkoutSession: ObservableObject {
         if next < exercises.count {
             currentExerciseIndex = next
             currentSetIndex = 0
+            markCurrentExerciseStarted()
         }
     }
 
@@ -358,11 +377,14 @@ final class ActiveWorkoutSession: ObservableObject {
             return
         }
 
+        markExerciseCompletedIfReady(exerciseIndex: ei)
+
         if let nextExercise = exercises.indices.first(where: { idx in
             idx > ei && !exercises[idx].skipped && exercises[idx].sets.contains(where: { !$0.logged })
         }) {
             currentExerciseIndex = nextExercise
             currentSetIndex = exercises[nextExercise].sets.firstIndex(where: { !$0.logged }) ?? 0
+            markCurrentExerciseStarted()
         }
     }
 
@@ -370,6 +392,7 @@ final class ActiveWorkoutSession: ObservableObject {
         guard exercises.indices.contains(index) else { return }
         currentExerciseIndex = index
         currentSetIndex = 0
+        markCurrentExerciseStarted()
     }
 
     func addSetToCurrentExercise() {
@@ -416,9 +439,11 @@ final class ActiveWorkoutSession: ObservableObject {
         guard exercises.indices.contains(ei),
               exercises[ei].sets.indices.contains(si) else { return }
         objectWillChange.send()
+        markExerciseStarted(exerciseIndex: ei)
         exercises[ei].sets[si].weightKg = weightKg
         exercises[ei].sets[si].reps = reps
         exercises[ei].sets[si].logged = true
+        markExerciseCompletedIfReady(exerciseIndex: ei)
     }
 
     func setRPE(exerciseIndex ei: Int, setIndex si: Int, _ rpe: Int?) {
@@ -428,6 +453,18 @@ final class ActiveWorkoutSession: ObservableObject {
         exercises[ei].sets[si].rpe = rpe
     }
 
+    func toggleQualityFlag(_ flag: PerformanceQualityFlag, exerciseIndex ei: Int, setIndex si: Int) {
+        guard exercises.indices.contains(ei),
+              exercises[ei].sets.indices.contains(si) else { return }
+        objectWillChange.send()
+        if exercises[ei].sets[si].qualityFlags.contains(flag) {
+            exercises[ei].sets[si].qualityFlags.remove(flag)
+        } else {
+            exercises[ei].sets[si].qualityFlags.insert(flag)
+            exercises[ei].sets[si].qualityFlags.remove(.clean)
+        }
+    }
+
     /// One-tap "did it as planned": copy the program's suggestion into the
     /// actual values and log. No-op if already logged or indices invalid.
     func confirmAsPlanned(exerciseIndex ei: Int, setIndex si: Int) {
@@ -435,6 +472,7 @@ final class ActiveWorkoutSession: ObservableObject {
               exercises[ei].sets.indices.contains(si),
               !exercises[ei].sets[si].logged else { return }
         objectWillChange.send()
+        markExerciseStarted(exerciseIndex: ei)
         exercises[ei].sets[si].weightKg = exercises[ei].sets[si].suggestedWeightKg
         exercises[ei].sets[si].reps = exercises[ei].sets[si].suggestedReps
         exercises[ei].sets[si].holdSeconds = exercises[ei].sets[si].suggestedHoldSeconds
@@ -443,6 +481,7 @@ final class ActiveWorkoutSession: ObservableObject {
         exercises[ei].sets[si].calories = exercises[ei].sets[si].suggestedCalories
         exercises[ei].sets[si].rpe = exercises[ei].sets[si].suggestedRPE
         exercises[ei].sets[si].logged = true
+        markExerciseCompletedIfReady(exerciseIndex: ei)
         advanceAfterLogging(exerciseIndex: ei, setIndex: si)
     }
 
@@ -457,7 +496,9 @@ final class ActiveWorkoutSession: ObservableObject {
         let complete = exercises[ei].sets[si].hasMetric(exercises[ei].metricKind)
         if complete {
             objectWillChange.send()
+            markExerciseStarted(exerciseIndex: ei)
             exercises[ei].sets[si].logged = true
+            markExerciseCompletedIfReady(exerciseIndex: ei)
             advanceAfterLogging(exerciseIndex: ei, setIndex: si)
         }
         return complete && !was
@@ -579,15 +620,42 @@ final class ActiveWorkoutSession: ObservableObject {
                                 distanceMeters: exercise.metricKind == .distanceMeters ? set.distanceMeters : nil,
                                 calories: exercise.metricKind == .calories ? set.calories : nil,
                                 rpe: set.rpe,
-                                isWarmup: set.isWarmup
+                                isWarmup: set.isWarmup,
+                                qualityFlags: set.qualityFlags.isEmpty ? [.clean] : set.qualityFlags
                             )
                         },
                         skipped: exercise.skipped,
                         notes: exercise.notes.isEmpty ? nil : exercise.notes
                     )
-                }
+                },
+                durationSeconds: durationSeconds(for: group)
             )
         }
+    }
+
+    private func markCurrentExerciseStarted(at date: Date = Date()) {
+        markExerciseStarted(exerciseIndex: currentExerciseIndex, at: date)
+    }
+
+    private func markExerciseStarted(exerciseIndex index: Int, at date: Date = Date()) {
+        guard exercises.indices.contains(index), exercises[index].startedAt == nil else { return }
+        exercises[index].startedAt = date
+    }
+
+    private func markExerciseCompletedIfReady(exerciseIndex index: Int, at date: Date = Date()) {
+        guard exercises.indices.contains(index) else { return }
+        let workingSets = exercises[index].sets.filter { !$0.isWarmup }
+        guard !workingSets.isEmpty, workingSets.allSatisfy(\.logged) else { return }
+        exercises[index].completedAt = date
+    }
+
+    private func durationSeconds(for exercises: [ActiveExercise]) -> Int? {
+        let durations = exercises.compactMap { exercise -> Int? in
+            guard let startedAt = exercise.startedAt, let completedAt = exercise.completedAt else { return nil }
+            return max(0, Int(completedAt.timeIntervalSince(startedAt).rounded()))
+        }
+        guard !durations.isEmpty else { return nil }
+        return durations.reduce(0, +)
     }
 
     private static func activeExercises(from draft: TrainingSessionDraft) -> [ActiveExercise] {
@@ -599,7 +667,7 @@ final class ActiveWorkoutSession: ObservableObject {
                     id: prescription.id,
                     name: prescription.exerciseName,
                     plannedSets: prescription.sets,
-                    plannedReps: prescription.target.displayText,
+                    plannedReps: prescription.displayTargetText,
                     restSeconds: prescription.restSeconds,
                     muscleGroups: prescription.muscleGroups,
                     sets: (0..<max(1, prescription.sets)).map { _ in
@@ -610,7 +678,7 @@ final class ActiveWorkoutSession: ObservableObject {
                             rpe: nil,
                             isWarmup: false,
                             logged: false,
-                            suggestedWeightKg: nil,
+                            suggestedWeightKg: prescription.suggestedWeightKg,
                             suggestedReps: metricKind == .reps ? prescription.target.metricLowerBound : nil,
                             suggestedHoldSeconds: metricKind == .holdSeconds ? prescription.target.metricLowerBound : nil,
                             suggestedDurationSeconds: metricKind == .durationSeconds ? prescription.target.metricLowerBound : nil,
@@ -620,7 +688,7 @@ final class ActiveWorkoutSession: ObservableObject {
                         )
                     },
                     skipped: false,
-                    notes: "",
+                    notes: draft.source == .overallRankTrial ? (prescription.notes ?? "") : "",
                     movementId: prescription.movementId,
                     rankStandardMovementId: prescription.rankStandardMovementId,
                     targetRPE: prescription.rpe,

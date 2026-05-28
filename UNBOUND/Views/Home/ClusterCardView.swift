@@ -296,11 +296,12 @@ private struct SkillTreeIconMark: View {
         Group {
             if UIImage(named: representativeAssetName) != nil {
                 Image(representativeAssetName)
-                    .renderingMode(.template)
+                    .renderingMode(representativeAssetName.hasSuffix("_highlight") ? .original : .template)
                     .resizable()
                     .interpolation(.high)
                     .scaledToFit()
                     .foregroundStyle(primary)
+                    .scaleEffect(representativeAssetName.hasSuffix("_highlight") ? 1.22 : 1.0)
                     .shadow(color: Color.black.opacity(isLocked ? 0.1 : 0.45), radius: 2)
                     .shadow(color: accent.opacity(isLocked ? 0 : 0.45), radius: 5)
                     .overlay(alignment: .bottom) {
@@ -334,14 +335,16 @@ private struct SkillTreeIconMark: View {
     }
 
     private var representativeAssetName: String {
-        switch tree {
-        case .pull: return "pp_pullup"
-        case .push: return "cal_pushup"
-        case .legs: return "ld_pistol-squat"
-        case .coreLevers: return "cl_vertical-l-sit"
-        case .handstand: return "hs_handstand"
-        case .planche: return "pl_full-planche"
+        let base: String = switch tree {
+        case .pull: "pp_pullup"
+        case .push: "cal_pushup"
+        case .legs: "ld_pistol-squat"
+        case .coreLevers: "cl_vertical-l-sit"
+        case .handstand: "hs_handstand"
+        case .planche: "pl_full-planche"
         }
+        let highlight = "\(base)_highlight"
+        return UIImage(named: highlight) == nil ? base : highlight
     }
 
     private func point(_ x: CGFloat, _ y: CGFloat, in size: CGSize) -> CGPoint {

@@ -9,8 +9,11 @@ enum ExerciseVisualAsset {
     }
 
     static func existingAssetName(for definition: MovementDefinition) -> String? {
-        let name = assetName(for: definition)
-        return UIImage(named: name) == nil ? nil : name
+        existingAssetName(forMovementId: definition.id)
+    }
+
+    static func existingAssetName(forMovementId movementId: String) -> String? {
+        assetNameCandidates(forMovementId: movementId).first { UIImage(named: $0) != nil }
     }
 
     private static func sanitized(_ value: String) -> String {
@@ -18,6 +21,19 @@ enum ExerciseVisualAsset {
         return value.unicodeScalars.map { scalar in
             allowed.contains(scalar) ? Character(scalar).lowercased() : "_"
         }.joined()
+    }
+
+    private static func assetNameCandidates(forMovementId movementId: String) -> [String] {
+        let direct = prefix + sanitized(movementId)
+        let rawName = movementId
+            .replacingOccurrences(of: "exercise.", with: "")
+            .replacingOccurrences(of: "exercise_", with: "")
+        let slugged = "\(prefix)exercise_\(MovementCatalog.slug(rawName))"
+        let underscored = "\(prefix)exercise_\(MovementCatalog.normalized(rawName).replacingOccurrences(of: " ", with: "_"))"
+        return [direct, slugged, underscored].reduce(into: []) { result, candidate in
+            guard !result.contains(candidate) else { return }
+            result.append(candidate)
+        }
     }
 }
 

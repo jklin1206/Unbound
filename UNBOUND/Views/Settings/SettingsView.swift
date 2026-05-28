@@ -531,6 +531,7 @@ private struct DevPlayerToolsView: View {
 
     @State private var selectedLevel: Int = 25
     @State private var selectedRank: SkillTier = .ascendant
+    @State private var selectedRankTrialTarget: RankTitle = .novice
     @State private var devTotalSessions: Int = 96
     @State private var devCurrentStreak: Int = 21
     @State private var devLongestStreak: Int = 45
@@ -542,9 +543,16 @@ private struct DevPlayerToolsView: View {
     @State private var isApplying = false
     @State private var status = "Dev account is local-only and hidden in release builds."
     @State private var devSandboxSnapshot = DevProgramScanSnapshot.empty
+    @State private var notificationCategory: ContentNotificationPreset.Category = .streak
+    @State private var notificationPresetId: String = ContentNotificationCatalog.streak.first?.id ?? ""
+    @State private var notificationDelaySeconds: Double = 3
 
     private var currentUserId: String {
         AuthService.shared.currentUserId ?? DevBuildBootstrapper.userId
+    }
+
+    private static var rankTrialTargets: [RankTitle] {
+        OverallRankTrialDefinitions.all.map(\.targetRank)
     }
 
     var body: some View {
@@ -636,6 +644,31 @@ private struct DevPlayerToolsView: View {
                     .foregroundColor(.theme.textSecondary)
             } footer: {
                 Text("Rank updates the profile tier, badge frame, lift proof tiers, and skill-tier state for the dev player.")
+                    .font(.caption(11))
+                    .foregroundColor(.theme.textMuted)
+            }
+
+            Section {
+                Picker("Trial Target", selection: $selectedRankTrialTarget) {
+                    ForEach(Self.rankTrialTargets, id: \.self) { rank in
+                        Text(rank.displayName).tag(rank)
+                    }
+                }
+
+                Button {
+                    let target = selectedRankTrialTarget
+                    run(successMessage: "\(target.displayName) rank trial is ready for Dev Player.") {
+                        await DevBuildBootstrapper.seedOverallRankTrialReadyProof(targetRankRawValue: target.rawValue)
+                    }
+                } label: {
+                    Label("Make Rank Trial Ready", systemImage: "flag.checkered")
+                        .foregroundColor(.theme.primary)
+                }
+            } header: {
+                Text("Rank Trial")
+                    .foregroundColor(.theme.textSecondary)
+            } footer: {
+                Text("Sets the dev player's prior overall rank, level, movement AP, skill tiers, attributes, and compatible equipment so the selected rank gate unlocks.")
                     .font(.caption(11))
                     .foregroundColor(.theme.textMuted)
             }
@@ -789,6 +822,8 @@ private struct DevPlayerToolsView: View {
                     .foregroundColor(.theme.textSecondary)
             }
 
+            notificationPreviewSection
+
             Section {
                 Button(role: .destructive) {
                     DevBuildBootstrapper.clearDevProgress()
@@ -805,6 +840,103 @@ private struct DevPlayerToolsView: View {
         .navigationTitle("Dev Player")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear { loadDevControlValues() }
+    }
+
+    private var notificationPreviewSection: some View {
+        let presets = ContentNotificationCatalog.presets(in: notificationCategory)
+        let selectedPreset = ContentNotificationCatalog.preset(id: notificationPresetId)
+            ?? presets.first
+            ?? ContentNotificationCatalog.all[0]
+
+        return Section {
+            Picker("Category", selection: $notificationCategory) {
+                ForEach(ContentNotificationPreset.Category.allCases) { category in
+                    Text(category.displayName).tag(category)
+                }
+            }
+            .onChange(of: notificationCategory) { _, newValue in
+                let scoped = ContentNotificationCatalog.presets(in: newValue)
+                if !scoped.contains(where: { $0.id == notificationPresetId }) {
+                    notificationPresetId = scoped.first?.id ?? ""
+                }
+            }
+
+            Picker("Message", selection: $notificationPresetId) {
+                ForEach(presets) { preset in
+                    Text(preset.title).tag(preset.id)
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text(selectedPreset.title)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(.theme.textPrimary)
+                Text(selectedPreset.body)
+                    .font(.caption(13))
+                    .foregroundColor(.theme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(.vertical, 4)
+
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Label("Delay", systemImage: "timer")
+                        .foregroundColor(.theme.textPrimary)
+                    Spacer()
+                    Text("\(Int(notificationDelaySeconds.rounded()))s")
+                        .font(.system(size: 14, weight: .semibold, design: .monospaced))
+                        .foregroundColor(.theme.primary)
+                }
+                Slider(value: $notificationDelaySeconds, in: 1...15, step: 1)
+                    .tint(Color.unbound.accent)
+            }
+
+            Button {
+                fireNotificationPreview(preset: selectedPreset)
+            } label: {
+                Label("Send to Lock Screen", systemImage: "bell.badge.fill")
+                    .foregroundColor(.theme.primary)
+            }
+            .accessibilityIdentifier("dev.notification.fire")
+        } header: {
+            Text("Notification Preview")
+                .foregroundColor(.theme.textSecondary)
+        } footer: {
+            Text("Fires the selected message after the chosen delay. Lock the device before the timer runs out to capture the lock-screen pop for content carousels.")
+                .font(.caption(11))
+                .foregroundColor(.theme.textMuted)
+        }
+    }
+
+    private func fireNotificationPreview(preset: ContentNotificationPreset) {
+        let delay = max(1, Int(notificationDelaySeconds.rounded()))
+        status = "Permission check…"
+        Task {
+            let center = UNUserNotificationCenter.current()
+            let settings = await center.notificationSettings()
+            if settings.authorizationStatus == .notDetermined {
+                _ = try? await center.requestAuthorization(options: [.alert, .sound, .badge])
+            }
+            let content = UNMutableNotificationContent()
+            content.title = preset.title
+            content.body = preset.body
+            content.sound = .default
+            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: TimeInterval(delay), repeats: false)
+            let identifier = "com.unbound.devpreview.\(preset.id).\(Int(Date().timeIntervalSince1970))"
+            let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
+            do {
+                try await center.add(request)
+                await MainActor.run {
+                    status = "Notification queued. Lock your screen now — fires in \(delay)s."
+                    UINotificationFeedbackGenerator().notificationOccurred(.success)
+                }
+            } catch {
+                await MainActor.run {
+                    status = "Failed to schedule notification: \(error.localizedDescription)"
+                    UINotificationFeedbackGenerator().notificationOccurred(.error)
+                }
+            }
+        }
     }
 
     private var programScanSection: some View {
@@ -915,6 +1047,9 @@ private struct DevPlayerToolsView: View {
         devAttributes = Dictionary(uniqueKeysWithValues: AttributeKey.allCases.map { key in
             (key, profile.value(for: key).current)
         })
+        selectedRankTrialTarget = OverallRankTrialDefinitions.nextTrial(
+            after: OverallRankTrialStore.shared.load(userId: currentUserId).currentRank
+        )?.targetRank ?? .novice
         devSandboxSnapshot = DevBuildBootstrapper.programScanSnapshot()
     }
 

@@ -73,6 +73,7 @@ struct RPEOnboardingStep: View {
                         demo.confirmAsPlanned(exerciseIndex: 0, setIndex: si)
                         hasLogged = true
                     },
+                    onToggleQualityFlag: { _, _ in },
                     onAddSet: {}
                 )
                 .padding(.horizontal, 16)

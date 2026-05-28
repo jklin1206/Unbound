@@ -23,6 +23,8 @@ struct OverallRankTrialReadinessCard: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
 
+                trialSummary
+
                 requirementList
 
                 if let attempt = readiness.latestAttempt {
@@ -88,6 +90,47 @@ struct OverallRankTrialReadinessCard: View {
     }
 
     @ViewBuilder
+    private var trialSummary: some View {
+        if let resolved = readiness.resolvedTrial {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 8) {
+                    Image(systemName: "scope")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(statusTint)
+                    Text(resolved.selectedLoadout.displayName.uppercased())
+                        .font(.system(size: 9, weight: .black, design: .monospaced))
+                        .tracking(1.4)
+                        .foregroundStyle(Color.unbound.textTertiary)
+                    Spacer(minLength: 0)
+                    Text("\(resolved.stations.count) STATIONS")
+                        .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                        .tracking(1.0)
+                        .foregroundStyle(statusTint)
+                }
+
+                Text(categorySummary(resolved))
+                    .font(Font.unbound.captionS)
+                    .foregroundStyle(Color.unbound.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Text(readiness.blockerSummary ?? resolved.nextPrepAction)
+                    .font(Font.unbound.captionS.weight(.semibold))
+                    .foregroundStyle(readiness.blockerSummary == nil ? Color.unbound.textPrimary : Color.unbound.warnOrange)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(10)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(statusTint.opacity(0.08))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .strokeBorder(statusTint.opacity(0.18), lineWidth: 1)
+            )
+        }
+    }
+
+    @ViewBuilder
     private var requirementList: some View {
         let metCount = readiness.requirements.filter(\.isMet).count
         let ordered = readiness.requirements.sorted { lhs, rhs in
@@ -137,6 +180,10 @@ struct OverallRankTrialReadinessCard: View {
                 )
             }
         }
+    }
+
+    private func categorySummary(_ resolved: ResolvedRankTrial) -> String {
+        resolved.categoriesTested.map(\.displayName).joined(separator: " / ")
     }
 
     private func requirementIcon(for kind: OverallRankTrialRequirementKind) -> String {

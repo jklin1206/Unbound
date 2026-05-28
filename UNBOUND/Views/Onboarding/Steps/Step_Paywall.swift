@@ -56,8 +56,11 @@ struct Step_Paywall: View {
 
                     header
                     transformationPanel
+                    featureUnlocks
+                    climberProof
+                    pathPreview
 
-                    Spacer().frame(height: 440)
+                    Spacer().frame(height: 460)
                 }
                 .padding(.horizontal, 20)
             }
@@ -102,7 +105,7 @@ struct Step_Paywall: View {
                 .fixedSize(horizontal: false, vertical: true)
                 .shadow(color: Color.unbound.accent.opacity(0.42), radius: 18)
 
-            Text(L10n.onboarding("paywall.subtitle", defaultValue: "Unlock your first block, recovery targets, progress profile, and the feedback loop that makes training feel worth coming back to."))
+            Text(L10n.onboarding("paywall.subtitle", defaultValue: "You opened the gate. Unlock the arc that turns the scan into weekly training, rank movement, and proof you can see."))
                 .font(Font.unbound.bodyM)
                 .foregroundStyle(Color.unbound.textPrimary.opacity(0.82))
                 .multilineTextAlignment(.center)
@@ -120,11 +123,11 @@ struct Step_Paywall: View {
                 paywallSeal
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(L10n.onboarding("paywall.panel.title", defaultValue: "Your first arc is ready."))
+                    Text(L10n.onboarding("paywall.panel.title", defaultValue: "Your arc is waiting beyond the gate."))
                         .font(Font.unbound.titleM)
                         .foregroundStyle(Color.unbound.textPrimary)
 
-                    Text(L10n.onboarding("paywall.panel.subtitle", defaultValue: "Start with a four-week block that turns training, recovery, and visible progress into one loop."))
+                    Text(L10n.onboarding("paywall.panel.subtitle", defaultValue: "Start with a four-week block tuned to your schedule, equipment, focus areas, and Day Zero scan."))
                         .font(Font.unbound.bodyS)
                         .foregroundStyle(Color.unbound.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -132,9 +135,9 @@ struct Step_Paywall: View {
             }
 
             HStack(spacing: 8) {
-                compactUnlock(icon: "calendar.badge.clock", text: "First 4-week training arc")
-                compactUnlock(icon: "moon.stars.fill", text: "Recovery and sleep targets")
-                compactUnlock(icon: "hexagon.fill", text: "Build Hex, logs, and profile proof")
+                compactUnlock(icon: "calendar.badge.clock", text: "4-week opening arc")
+                compactUnlock(icon: "moon.stars.fill", text: "Recovery targets")
+                compactUnlock(icon: "hexagon.fill", text: "Rank proof")
             }
         }
         .padding(15)
@@ -218,18 +221,23 @@ struct Step_Paywall: View {
         [
             PaywallUnlock(
                 icon: "calendar.badge.clock",
-                title: L10n.onboarding("paywall.unlock.program.title", defaultValue: "Your first block"),
-                detail: L10n.onboarding("paywall.unlock.program.detail", defaultValue: "Workouts built from your goals, equipment, schedule, and starting point.")
+                title: L10n.onboarding("paywall.unlock.program.title", defaultValue: "The opening arc"),
+                detail: L10n.onboarding("paywall.unlock.program.detail", defaultValue: "A 4-week route built from your goals, equipment, training days, and starting point.")
             ),
             PaywallUnlock(
                 icon: "figure.strengthtraining.traditional",
-                title: L10n.onboarding("paywall.unlock.sessions.title", defaultValue: "A loop that keeps moving"),
-                detail: L10n.onboarding("paywall.unlock.sessions.detail", defaultValue: "Log sets, RPE, swaps, and finishes so every session feeds the next.")
+                title: L10n.onboarding("paywall.unlock.sessions.title", defaultValue: "Sessions that feed the next gate"),
+                detail: L10n.onboarding("paywall.unlock.sessions.detail", defaultValue: "Log sets, RPE, swaps, and finishes so your plan keeps adapting instead of going stale.")
             ),
             PaywallUnlock(
                 icon: "hexagon.fill",
-                title: L10n.onboarding("paywall.unlock.profile.title", defaultValue: "Visible proof"),
-                detail: L10n.onboarding("paywall.unlock.profile.detail", defaultValue: "Your Build Hex, logs, milestones, and rank path start changing from Day Zero.")
+                title: L10n.onboarding("paywall.unlock.profile.title", defaultValue: "A character card that changes"),
+                detail: L10n.onboarding("paywall.unlock.profile.detail", defaultValue: "Your Build Hex, milestones, streaks, and rank path start moving from Day Zero.")
+            ),
+            PaywallUnlock(
+                icon: "camera.viewfinder",
+                title: L10n.onboarding("paywall.unlock.scan.title", defaultValue: "Monthly evolution scans"),
+                detail: L10n.onboarding("paywall.unlock.scan.detail", defaultValue: "Return to the scanner, compare the work, and make the next arc more specific.")
             )
         ]
     }
@@ -264,6 +272,103 @@ struct Step_Paywall: View {
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .strokeBorder(Color.unbound.accent.opacity(0.18), lineWidth: 1)
         )
+    }
+
+    private var climberProof: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text(L10n.onboarding("paywall.climbers.title", defaultValue: "OTHERS CLIMBED"))
+                    .font(Font.unbound.captionS.weight(.heavy))
+                    .tracking(1.7)
+                    .foregroundStyle(Color.unbound.accent)
+                Spacer()
+                Text(L10n.onboarding("paywall.climbers.beta", defaultValue: "BETA LOGS"))
+                    .font(.system(size: 9, weight: .black, design: .monospaced))
+                    .tracking(1.2)
+                    .foregroundStyle(Color.unbound.textTertiary)
+            }
+
+            HStack(spacing: 9) {
+                climberStat(name: "KAI", move: "INIT -> MAS", detail: "28 sessions")
+                climberStat(name: "MASON", move: "INIT -> VET", detail: "21d streak")
+                climberStat(name: "JALEN", move: "INIT -> FORG", detail: "Arc 1 clear")
+            }
+        }
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color.black.opacity(0.42))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(Color.unbound.accent.opacity(0.22), lineWidth: 1)
+        )
+    }
+
+    private func climberStat(name: String, move: String, detail: String) -> some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text(name)
+                .font(.system(size: 9, weight: .black, design: .monospaced))
+                .tracking(1.0)
+                .foregroundStyle(Color.unbound.textTertiary)
+            Text(move)
+                .font(.system(size: 12, weight: .black, design: .monospaced))
+                .foregroundStyle(Color.unbound.impact)
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+            Text(detail.uppercased())
+                .font(.system(size: 8, weight: .bold, design: .monospaced))
+                .tracking(0.6)
+                .foregroundStyle(Color.unbound.textSecondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+        }
+        .padding(.horizontal, 9)
+        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(Color.unbound.surface.opacity(0.74))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .strokeBorder(Color.white.opacity(0.08), lineWidth: 1)
+        )
+    }
+
+    private var pathPreview: some View {
+        ZStack(alignment: .bottomLeading) {
+            Image("onboarding_path_protocol_dossier")
+                .resizable()
+                .scaledToFill()
+                .frame(height: 174)
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .overlay(
+                    LinearGradient(
+                        colors: [Color.clear, Color.black.opacity(0.72)],
+                        startPoint: .center,
+                        endPoint: .bottom
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                )
+
+            VStack(alignment: .leading, spacing: 5) {
+                Text(L10n.onboarding("paywall.pathPreview.eyebrow", defaultValue: "BEHIND THE PAYWALL"))
+                    .font(.system(size: 9, weight: .black, design: .monospaced))
+                    .tracking(1.4)
+                    .foregroundStyle(Color.unbound.accent)
+                Text(L10n.onboarding("paywall.pathPreview.title", defaultValue: "Your calibration week unlocks first."))
+                    .font(Font.unbound.bodyLStrong)
+                    .foregroundStyle(Color.unbound.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(14)
+        }
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(Color.unbound.accent.opacity(0.24), lineWidth: 1)
+        )
+        .shadow(color: Color.unbound.accent.opacity(0.18), radius: 16)
     }
 
     // MARK: CTA

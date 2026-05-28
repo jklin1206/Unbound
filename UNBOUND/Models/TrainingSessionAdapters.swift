@@ -117,7 +117,7 @@ enum TrainingSessionAdapters {
                         name: prescription.exerciseName,
                         muscleGroups: prescription.muscleGroups,
                         sets: prescription.sets,
-                        reps: prescription.target.displayText,
+                        reps: prescription.displayTargetText,
                         restSeconds: prescription.restSeconds,
                         rpe: prescription.rpe,
                         notes: prescription.notes,

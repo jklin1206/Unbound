@@ -33,6 +33,7 @@ struct WorkoutRewardSequenceSummary: Identifiable {
     var cosmeticUnlock: CosmeticUnlockReward?
     var progression: ProgressionReceipt? = nil
     var weeklyVowCallout: WeeklyVowRewardCallout? = nil
+    var rankTrialCallout: RankTrialRewardCallout? = nil
     var beats: [RewardBeat] = []
     var tally: RewardTally = .empty
     var emblemIgnition: Bool = false
@@ -244,6 +245,16 @@ struct WeeklyVowRewardCallout: Identifiable, Equatable, Sendable {
     var shareSubtitle: String
     var completedAt: Date
     var completionBonus: WeeklyVowCompletionBonus? = nil
+}
+
+struct RankTrialRewardCallout: Identifiable, Equatable, Sendable {
+    let id: String
+    var title: String
+    var subtitle: String
+    var statusLine: String
+    var detailLine: String
+    var receiptLine: String
+    var passed: Bool
 }
 
 extension AttributeKey {

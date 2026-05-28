@@ -23,50 +23,63 @@ struct SetLogGridRow: View {
     let metricKind: TrainingMetricKind
     let tracksHold: Bool
     let logged: Bool
+    let qualityFlags: Set<PerformanceQualityFlag>
     let isCurrent: Bool
     let onEditWeight: () -> Void
     let onEditReps: () -> Void
     let onPickRPE: () -> Void
     let onConfirmAsPlanned: () -> Void
+    let onToggleQualityFlag: (PerformanceQualityFlag) -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @AppStorage(WeightPlatePolicy.unitDefaultsKey) private var weightUnitRaw = TrainingWeightUnit.localeDefault.rawValue
 
     var body: some View {
-        HStack(spacing: 8) {
-            ZStack {
-                if isCurrent {
-                    Circle()
-                        .fill(Color.unbound.coachCyan.opacity(0.20))
-                        .frame(width: 26, height: 26)
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 8) {
+                ZStack {
+                    if isCurrent {
+                        Circle()
+                            .fill(Color.unbound.coachCyan.opacity(0.20))
+                            .frame(width: 26, height: 26)
+                    }
+                    Text("\(setNumber)")
+                        .font(Font.unbound.monoS.weight(isCurrent ? .bold : .regular))
+                        .foregroundStyle(isCurrent ? Color.unbound.coachCyan : Color.unbound.textTertiary)
                 }
-                Text("\(setNumber)")
-                    .font(Font.unbound.monoS.weight(isCurrent ? .bold : .regular))
-                    .foregroundStyle(isCurrent ? Color.unbound.coachCyan : Color.unbound.textTertiary)
+                .frame(width: 26, alignment: .leading)
+
+                cell(actual: weightKg.map(formatLoggedWeight),
+                     suggested: suggestedWeightKg.map(formatLoggedWeight),
+                     action: onEditWeight)
+                cell(actual: metricActual,
+                     suggested: metricSuggested,
+                     action: onEditReps)
+
+                Button(action: onPickRPE) {
+                    Text(display(actual: rpe.map(String.init),
+                                 suggested: suggestedRPE.map(String.init)))
+                        .font(Font.unbound.monoM)
+                        .foregroundStyle(valueColor(hasActual: rpe != nil,
+                                                    hasSuggested: suggestedRPE != nil))
+                        .frame(width: 44)
+                        .padding(.vertical, 10)
+                        .background(RoundedRectangle(cornerRadius: 10)
+                            .fill(isCurrent ? Color.unbound.bg.opacity(0.84) : Color.unbound.surfaceElevated))
+                }
+                .buttonStyle(.plain)
+
+                confirmControl.frame(width: 40)
             }
-            .frame(width: 26, alignment: .leading)
 
-            cell(actual: weightKg.map(formatLoggedWeight),
-                 suggested: suggestedWeightKg.map(formatLoggedWeight),
-                 action: onEditWeight)
-            cell(actual: metricActual,
-                 suggested: metricSuggested,
-                 action: onEditReps)
-
-            Button(action: onPickRPE) {
-                Text(display(actual: rpe.map(String.init),
-                             suggested: suggestedRPE.map(String.init)))
-                    .font(Font.unbound.monoM)
-                    .foregroundStyle(valueColor(hasActual: rpe != nil,
-                                                hasSuggested: suggestedRPE != nil))
-                    .frame(width: 44)
-                    .padding(.vertical, 10)
-                    .background(RoundedRectangle(cornerRadius: 10)
-                        .fill(isCurrent ? Color.unbound.bg.opacity(0.84) : Color.unbound.surfaceElevated))
+            if logged || !qualityFlags.isEmpty {
+                HStack(spacing: 8) {
+                    Spacer().frame(width: 26)
+                    qualityButton(.formBreak, icon: "exclamationmark.triangle.fill")
+                    qualityButton(.pain, icon: "heart.slash.fill")
+                    Spacer()
+                }
             }
-            .buttonStyle(.plain)
-
-            confirmControl.frame(width: 40)
         }
         .padding(.vertical, 8)
         .padding(.horizontal, isCurrent ? 8 : 0)
@@ -96,6 +109,26 @@ struct SetLogGridRow: View {
         case .calories:
             return calories.map { "\($0)" }
         }
+    }
+
+    private func qualityButton(_ flag: PerformanceQualityFlag, icon: String) -> some View {
+        let isOn = qualityFlags.contains(flag)
+        return Button {
+            onToggleQualityFlag(flag)
+        } label: {
+            Image(systemName: icon)
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(isOn ? Color.unbound.bg : Color.unbound.textTertiary)
+                .frame(width: 30, height: 26)
+                .background(
+                    Capsule().fill(isOn ? Color.unbound.alert : Color.unbound.surfaceElevated)
+                )
+                .overlay(
+                    Capsule().strokeBorder(isOn ? Color.unbound.alert : Color.unbound.borderSubtle, lineWidth: 1)
+                )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(flag == .pain ? "Toggle pain flag" : "Toggle form break flag")
     }
 
     private var metricSuggested: String? {

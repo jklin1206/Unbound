@@ -67,10 +67,23 @@ struct OnboardingContainerView: View {
     @ViewBuilder
     private func devJumpMenu(flow: OnboardingFlowViewModel) -> some View {
         Menu {
-            ForEach(OnboardingStep.allCases) { step in
-                Button(step.debugDisplayName) {
-                    flow.seedDebugAnswers()
-                    flow.jump(to: step)
+            Section(L10n.onboarding("debug.officialFlow", defaultValue: "Official Flow")) {
+                ForEach(OnboardingStep.flowOrder) { step in
+                    Button(step.debugDisplayName) {
+                        flow.seedDebugAnswers()
+                        flow.jump(to: step)
+                    }
+                }
+            }
+
+            if !OnboardingStep.archivedDebugSteps.isEmpty {
+                Section(L10n.onboarding("debug.archivedScreens", defaultValue: "Archived Screens")) {
+                    ForEach(OnboardingStep.archivedDebugSteps) { step in
+                        Button(step.debugDisplayName) {
+                            flow.seedDebugAnswers()
+                            flow.jump(to: step)
+                        }
+                    }
                 }
             }
         } label: {
@@ -307,6 +320,26 @@ private struct OnboardingRouter: View {
                 case .verdict:
                     Step_Verdict(flow: flow, onContinue: advance)
                         .transition(.opacity)
+
+                case .appPainSolution:
+                    Step_AppPainSolution(flow: flow, progress: flow.progress, onBack: back, onContinue: advance)
+                        .transition(screenTransition)
+
+                case .workoutPreviewDemo:
+                    Step_WorkoutPreviewDemo(flow: flow, progress: flow.progress, onBack: back, onContinue: advance)
+                        .transition(screenTransition)
+
+                case .workoutLogDemo:
+                    Step_WorkoutLogDemo(progress: flow.progress, onBack: back, onContinue: advance)
+                        .transition(screenTransition)
+
+                case .workoutRewardDemo:
+                    Step_WorkoutRewardDemo(progress: flow.progress, onBack: back, onContinue: advance)
+                        .transition(screenTransition)
+
+                case .appRatingPrompt:
+                    Step_AppRatingPrompt(progress: flow.progress, onBack: back, onContinue: advance)
+                        .transition(screenTransition)
 
                 case .trajectory:
                     Step28_Trajectory(flow: flow, progress: flow.progress, onBack: back, onContinue: advance)

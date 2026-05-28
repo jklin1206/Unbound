@@ -101,6 +101,7 @@ struct ActiveWorkoutContainerView: View {
 
             WorkoutLogGridView(
                 session: session,
+                rankTrialDefinition: rankTrialDefinition,
                 onIntent: { ei, intent in handleIntent(ei, intent) },
                 onEditWeight: { ei, si in editing = EditTarget(ei: ei, si: si, isWeight: true) },
                 onEditReps:   { ei, si in editing = EditTarget(ei: ei, si: si, isWeight: false) },
@@ -109,6 +110,10 @@ struct ActiveWorkoutContainerView: View {
                     session.confirmAsPlanned(exerciseIndex: ei, setIndex: si)
                     try? draftStore.save(session)
                     transition(ei: ei)
+                },
+                onToggleQualityFlag: { ei, si, flag in
+                    session.toggleQualityFlag(flag, exerciseIndex: ei, setIndex: si)
+                    try? draftStore.save(session)
                 },
                 onAddSet: { ei in
                     session.addSet(toExerciseIndex: ei)
@@ -266,6 +271,15 @@ struct ActiveWorkoutContainerView: View {
         }
     }
 
+    private var rankTrialDefinition: OverallRankTrialDefinition? {
+        guard session.source == .overallRankTrial else { return nil }
+        return OverallRankTrialDefinitions.definition(id: session.programId)
+    }
+
+    private var isRankTrial: Bool {
+        rankTrialDefinition != nil
+    }
+
     private var completionFooter: some View {
         let progress = session.progressSummary
         return VStack(spacing: 10) {
@@ -316,7 +330,7 @@ struct ActiveWorkoutContainerView: View {
                         ProgressView()
                             .tint(Color.unbound.bg)
                     }
-                    Text(saving ? "SAVING SESSION" : (progress.isComplete ? "FINISH SESSION" : "COMPLETE SESSION"))
+                    Text(saving ? "SAVING SESSION" : completionButtonTitle(progress: progress))
                         .font(Font.unbound.bodyLStrong)
                         .tracking(2)
                 }
@@ -330,7 +344,7 @@ struct ActiveWorkoutContainerView: View {
             .buttonStyle(.plain)
             .disabled(saving)
             .accessibilityIdentifier("workout.complete")
-            .accessibilityLabel(saving ? "Saving session" : "Complete session")
+            .accessibilityLabel(saving ? "Saving session" : (isRankTrial ? "Complete trial" : "Complete session"))
         }
         .padding(.horizontal, 16)
         .padding(.top, 14)
@@ -346,6 +360,13 @@ struct ActiveWorkoutContainerView: View {
             .offset(y: -42)
             .allowsHitTesting(false)
         }
+    }
+
+    private func completionButtonTitle(progress: ActiveWorkoutSession.ProgressSummary) -> String {
+        if isRankTrial {
+            return progress.isComplete ? "FINISH TRIAL" : "COMPLETE TRIAL"
+        }
+        return progress.isComplete ? "FINISH SESSION" : "COMPLETE SESSION"
     }
 
     // MARK: - Rest timer
@@ -445,6 +466,15 @@ struct ActiveWorkoutContainerView: View {
     // MARK: - Intent handler
 
     private func handleIntent(_ ei: Int, _ intent: OverflowIntent) {
+        if isRankTrial {
+            switch intent {
+            case .toggleWarmup, .editNotes:
+                break
+            case .addSet, .removeSet, .skipExercise, .swapExercise:
+                return
+            }
+        }
+
         switch intent {
         case .toggleWarmup:
             if session.exercises.indices.contains(ei),
@@ -527,7 +557,8 @@ struct ActiveWorkoutContainerView: View {
             )
             let rankTrialResult = OverallRankTrialRunner.shared.recordCompletedAttempt(
                 performanceLog: performanceLog,
-                completionResult: completionResult
+                completionResult: completionResult,
+                bodyweightKg: (try? await services.user.fetchProfile(userId: uid))?.weightKg
             )
             HapticManager.notification(.success)
             restTimer.stop()
@@ -539,7 +570,10 @@ struct ActiveWorkoutContainerView: View {
                 rankTrialResult: rankTrialResult,
                 weeklyVowReceipt: weeklyVowReceipt
             )
-            if totalLoggedWorkingSets > 0 || summary.progression?.hasContent == true || summary.weeklyVowCallout != nil {
+            if totalLoggedWorkingSets > 0
+                || summary.progression?.hasContent == true
+                || summary.weeklyVowCallout != nil
+                || summary.rankTrialCallout != nil {
                 saving = false
                 rewardSequence = summary
             } else {
@@ -588,13 +622,34 @@ struct ActiveWorkoutContainerView: View {
             return summary
         }()
 
-        return WorkoutRewardSequenceSummary.trainingReceipt(
+        var summary = WorkoutRewardSequenceSummary.trainingReceipt(
             performanceLog: performanceLog,
             completionResult: completionResult,
             rewardSummary: rewardSummary,
             fallbackXP: workSets * 12,
             sourceName: weeklyVowReceipt == nil ? session.source.rawValue.capitalized : "Binding Vow",
             weeklyVowCallout: weeklyVowReceipt?.callout
+        )
+        summary.rankTrialCallout = rankTrialResult.map(rankTrialCallout)
+        return summary
+    }
+
+    private func rankTrialCallout(_ result: OverallRankTrialRunResult) -> RankTrialRewardCallout {
+        let failed = result.evaluation.failedStation
+        let clearedCount = result.evaluation.stationResults.filter { $0.status == .passed }.count
+        let totalCount = result.evaluation.stationResults.count
+        let detail = failed.map { station in
+            station.failureReason.map { "\(station.title): \($0)" } ?? station.title
+        } ?? "\(clearedCount)/\(totalCount) stations cleared"
+
+        return RankTrialRewardCallout(
+            id: result.attempt.id,
+            title: result.definition.displayName,
+            subtitle: result.attempt.passed ? "\(result.definition.targetRank.displayName) gate cleared" : "\(result.definition.targetRank.displayName) gate held",
+            statusLine: result.attempt.passed ? "Official result saved" : "First failed station saved",
+            detailLine: detail,
+            receiptLine: "\(clearedCount)/\(totalCount) stations cleared",
+            passed: result.attempt.passed
         )
     }
 }

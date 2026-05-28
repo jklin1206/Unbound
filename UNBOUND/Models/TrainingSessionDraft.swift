@@ -577,6 +577,8 @@ struct TrainingBlockPrescription: Codable, Identifiable, Hashable, Sendable {
     var muscleGroups: [MuscleGroup]
     var rpe: Int?
     var notes: String?
+    var loadPercentOfBodyweight: Double?
+    var suggestedWeightKg: Double?
 
     init(
         id: String = UUID().uuidString,
@@ -588,7 +590,9 @@ struct TrainingBlockPrescription: Codable, Identifiable, Hashable, Sendable {
         restSeconds: Int,
         muscleGroups: [MuscleGroup] = [],
         rpe: Int? = nil,
-        notes: String? = nil
+        notes: String? = nil,
+        loadPercentOfBodyweight: Double? = nil,
+        suggestedWeightKg: Double? = nil
     ) {
         let resolved = MovementResolver.resolve(exerciseName)
         self.id = id
@@ -601,6 +605,35 @@ struct TrainingBlockPrescription: Codable, Identifiable, Hashable, Sendable {
         self.muscleGroups = muscleGroups
         self.rpe = rpe
         self.notes = notes
+        self.loadPercentOfBodyweight = loadPercentOfBodyweight
+        self.suggestedWeightKg = suggestedWeightKg
+    }
+
+    var displayTargetText: String {
+        guard let loadPercentOfBodyweight else {
+            return target.displayText
+        }
+
+        if let suggestedWeightKg {
+            return "\(target.displayText) @ \(Self.loadText(suggestedWeightKg)) (\(Self.bodyweightPercentText(loadPercentOfBodyweight)))"
+        }
+        return "\(target.displayText) @ \(Self.bodyweightPercentText(loadPercentOfBodyweight))"
+    }
+
+    private static func bodyweightPercentText(_ percent: Double) -> String {
+        let value = percent * 100
+        if value.rounded() == value {
+            return "\(Int(value))% BW"
+        }
+        return "\(String(format: "%.1f", value))% BW"
+    }
+
+    private static func loadText(_ kilograms: Double) -> String {
+        let rounded = (kilograms * 2).rounded() / 2
+        if rounded.rounded() == rounded {
+            return "\(Int(rounded)) kg"
+        }
+        return "\(String(format: "%.1f", rounded)) kg"
     }
 }
 

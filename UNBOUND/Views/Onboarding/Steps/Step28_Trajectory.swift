@@ -21,15 +21,15 @@ struct Step28_Trajectory: View {
 
     var body: some View {
         OnboardingScaffold(
-            title: L10n.onboarding("trajectory.title", defaultValue: "Here's what changes."),
-            subtitle: L10n.onboarding("trajectory.subtitle", defaultValue: "One path keeps repeating. One path starts climbing."),
+            title: L10n.onboarding("trajectory.title", defaultValue: "The path bends upward."),
+            subtitle: L10n.onboarding("trajectory.subtitle", defaultValue: "Progress is slow until consistency starts compounding. Then the climb stops looking linear."),
             progress: progress,
-            primaryTitle: L10n.onboarding("trajectory.primary", defaultValue: "See my arc"),
+            primaryTitle: L10n.onboarding("trajectory.primary", defaultValue: "Show me proof"),
             hudStep: .trajectory,
             onBack: onBack,
             onPrimary: onContinue
         ) {
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 12) {
                 chartCard
                 sellCard
                 calloutCard
@@ -41,14 +41,14 @@ struct Step28_Trajectory: View {
 
     private var chartCard: some View {
         UnboundCard {
-            VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 10) {
                 HStack {
                     Text(L10n.onboarding("trajectory.chart.title", defaultValue: "RANK OVER TIME"))
                         .font(Font.unbound.captionS)
                         .tracking(1.4)
                         .foregroundStyle(Color.unbound.textTertiary)
                     Spacer()
-                    Text(L10n.onboarding("trajectory.chart.duration", defaultValue: "12 months"))
+                    Text(L10n.onboarding("trajectory.chart.duration", defaultValue: "12 months · projected"))
                         .font(Font.unbound.captionS)
                         .foregroundStyle(Color.unbound.textTertiary)
                 }
@@ -96,7 +96,7 @@ struct Step28_Trajectory: View {
                     }
                 }
                 .chartYAxis {
-                    AxisMarks(values: [0, 1, 2, 3, 4, 5]) { value in
+                    AxisMarks(values: [0, 1, 2, 3, 4, 5, 6, 7]) { value in
                         AxisValueLabel {
                             Text(axisRankLabel(for: value.as(Int.self) ?? 0))
                                 .font(Font.unbound.captionS.monospaced())
@@ -121,8 +121,8 @@ struct Step28_Trajectory: View {
                             .foregroundStyle(Color.unbound.borderSubtle)
                     }
                 }
-                .chartYScale(domain: 0...6.0)
-                .frame(height: 240)
+                .chartYScale(domain: 0...7.35)
+                .frame(height: 204)
 
                 legend
             }
@@ -170,7 +170,7 @@ struct Step28_Trajectory: View {
                     Text(L10n.onboardingFormat("trajectory.projected", defaultValue: "Projected: %@", rankGapText))
                         .font(Font.unbound.bodyLStrong)
                         .foregroundStyle(Color.unbound.textPrimary)
-                    Text(L10n.onboarding("trajectory.callout.body", defaultValue: "That's a real difference. The plan is yours if you want it."))
+                    Text(L10n.onboarding("trajectory.callout.body", defaultValue: "The first months build the base. The later months show the gap."))
                         .font(Font.unbound.bodyS)
                         .foregroundStyle(Color.unbound.textSecondary)
                 }
@@ -180,8 +180,8 @@ struct Step28_Trajectory: View {
     }
 
     private var rankGapText: String {
-        let withEnd = rankLabel(for: Int(commitmentSlope.rounded()))
-        let withoutEnd = rankLabel(for: Int(withoutSlope.rounded()))
+        let withEnd = rankLabel(for: Int(commitmentCeiling.rounded()))
+        let withoutEnd = rankLabel(for: Int(withoutCeiling.rounded()))
         return L10n.onboardingFormat("trajectory.rankGap", defaultValue: "%@ with UNBOUND vs. %@ without", withEnd, withoutEnd)
     }
 
@@ -192,18 +192,18 @@ struct Step28_Trajectory: View {
     /// uncapped graph.
     private var sellCard: some View {
         UnboundCard {
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 10) {
                     Image(systemName: "flame.fill")
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(Color.unbound.ember)
-                    Text(L10n.onboarding("trajectory.sell.title", defaultValue: "WHY THE ARC KEEPS CLIMBING"))
+                    Text(L10n.onboarding("trajectory.sell.title", defaultValue: "WHY IT SHOOTS UP LATER"))
                         .font(Font.unbound.captionS)
                         .tracking(1.4)
                         .foregroundStyle(Color.unbound.ember)
                 }
-                Text(L10n.onboarding("trajectory.sell.body", defaultValue: "Most apps stop at a badge. UNBOUND keeps tracking real feats — muscle-up, front lever, one-arm pushup — so progress stays visible after the first big unlock."))
-                    .font(Font.unbound.bodyM)
+                Text(L10n.onboarding("trajectory.sell.body", defaultValue: "Early sessions teach the system your baseline. Once your logs, recovery, and scans stack up, the targets get sharper and rank movement accelerates."))
+                    .font(Font.unbound.bodyS)
                     .foregroundStyle(Color.unbound.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -219,46 +219,48 @@ struct Step28_Trajectory: View {
     }
 
     private var withPoints: [Point] {
-        let slope = commitmentSlope
         return (0...12).map { month in
-            let normalized = Double(month) / 12.0
-            let eased = 1 - pow(1 - normalized, 1.8)
-            return Point(month: month, rank: eased * slope)
+            Point(month: month, rank: projectedRank(at: month))
         }
     }
 
     private var withoutPoints: [Point] {
-        let slope = withoutSlope
         return (0...12).map { month in
-            // Linear-ish flat line — you make *some* progress alone but the
-            // curve caps out fast (lack of structure, inconsistency).
             let normalized = Double(month) / 12.0
-            let value = normalized * slope * 0.55
+            let earlyGain = 1 - exp(-normalized * 4.0)
+            let value = earlyGain * withoutCeiling
             return Point(month: month, rank: value)
         }
     }
 
-    /// With-UNBOUND end-state rank. The ceiling is intentionally beyond the
-    /// ordinary band so the violet curve keeps climbing through the badge.
-    /// Higher commitment + higher target frequency = steeper climb.
-    private var commitmentSlope: Double {
-        let base = Double(flow.commitment) / 10.0 * 3.6
-        let freqBoost: Double = {
-            switch flow.targetFrequency {
-            case .three: return 0.4
-            case .four: return 0.8
-            case .five: return 1.2
-            case .six: return 1.6
-            case nil: return 0.6
-            }
-        }()
-        return min(5.5, base + freqBoost)
+    private func projectedRank(at month: Int) -> Double {
+        let t = Double(month) / 12.0
+        let baseRamp = pow(t, 1.55) * 0.42
+        let compounding = 1 / (1 + exp(-8.5 * (t - 0.54)))
+        let lateBreakout = max(0, t - 0.68) * 1.35
+        let raw = (baseRamp + compounding + lateBreakout) / 1.74
+        return min(commitmentCeiling, raw * commitmentCeiling)
     }
 
-    /// Without-UNBOUND end-state. Capped low because grinding alone without
-    /// structure plateaus fast regardless of motivation.
-    private var withoutSlope: Double {
-        max(0.5, min(1.8, Double(flow.commitment) / 10.0 * 1.5))
+    /// With-UNBOUND end-state rank. The ceiling intentionally reaches beyond
+    /// Master so the curve can visually break upward after consistency compounds.
+    private var commitmentCeiling: Double {
+        let base = 4.95 + Double(flow.commitment) / 10.0 * 1.35
+        let freqBoost: Double = {
+            switch flow.targetFrequency {
+            case .three: return 0.25
+            case .four: return 0.55
+            case .five: return 0.82
+            case .six: return 1.05
+            case nil: return 0.45
+            }
+        }()
+        return min(7.25, base + freqBoost)
+    }
+
+    /// Without-UNBOUND end-state. Some early motivation gain, then plateau.
+    private var withoutCeiling: Double {
+        max(0.65, min(1.55, 0.55 + Double(flow.commitment) / 10.0 * 0.9))
     }
 
     private func rankLabel(for value: Int) -> String {
@@ -269,6 +271,7 @@ struct Step28_Trajectory: View {
         case 3: return "Forged"
         case 4: return "Veteran"
         case 5: return "Master"
+        case 6: return "Unbound"
         default: return "Ascendant"
         }
     }
@@ -281,6 +284,7 @@ struct Step28_Trajectory: View {
         case 3: return "FORG"
         case 4: return "VET"
         case 5: return "MAS"
+        case 6: return "UNB"
         default: return "ASC"
         }
     }

@@ -23,7 +23,9 @@ struct ExerciseLogCard: View {
     let onEditReps: (Int) -> Void
     let onPickRPE: (Int) -> Void
     let onConfirmAsPlanned: (Int) -> Void
+    let onToggleQualityFlag: (Int, PerformanceQualityFlag) -> Void
     let onAddSet: () -> Void
+    var allowsProtocolEditing: Bool = true
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @AppStorage(WeightPlatePolicy.unitDefaultsKey) private var weightUnitRaw = TrainingWeightUnit.localeDefault.rawValue
@@ -55,7 +57,9 @@ struct ExerciseLogCard: View {
                 }
                 .buttonStyle(.plain)
                 Spacer()
-                ExerciseOverflowMenu(isWarmup: isWarmupCurrent, onIntent: onIntent)
+                if allowsProtocolEditing {
+                    ExerciseOverflowMenu(isWarmup: isWarmupCurrent, onIntent: onIntent)
+                }
             }
 
             HStack(spacing: 8) {
@@ -113,24 +117,28 @@ struct ExerciseLogCard: View {
                         metricKind: metricKind,
                         tracksHold: tracksHold,
                         logged: set.logged,
+                        qualityFlags: set.qualityFlags,
                         isCurrent: currentSetIndex == idx,
                         onEditWeight: { onEditWeight(idx) },
                         onEditReps: { onEditReps(idx) },
                         onPickRPE: { onPickRPE(idx) },
-                        onConfirmAsPlanned: { onConfirmAsPlanned(idx) }
+                        onConfirmAsPlanned: { onConfirmAsPlanned(idx) },
+                        onToggleQualityFlag: { onToggleQualityFlag(idx, $0) }
                     )
                     if idx < sets.count - 1 {
                         Divider().overlay(Color.unbound.borderSubtle)
                     }
                 }
 
-                Button(action: onAddSet) {
-                    Label("Add set", systemImage: "plus")
-                        .font(Font.unbound.captionS)
-                        .foregroundStyle(Color.unbound.textSecondary)
-                        .padding(.top, 10)
+                if allowsProtocolEditing {
+                    Button(action: onAddSet) {
+                        Label("Add set", systemImage: "plus")
+                            .font(Font.unbound.captionS)
+                            .foregroundStyle(Color.unbound.textSecondary)
+                            .padding(.top, 10)
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
             } else {
                 compactProgressRow
             }

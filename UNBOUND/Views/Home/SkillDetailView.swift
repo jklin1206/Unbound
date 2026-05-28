@@ -250,7 +250,9 @@ struct SkillDetailView: View {
     /// video clip composited under the title; the multi-step form breakdown
     /// (infographic) lives in its own section below the hero.
     private var heroBlock: some View {
-        let frame1 = iconAssetName(node.id, frame: 1)
+        let traditional = SkillTraditionalVisualResolver.assetName(for: node)
+        let highlight = traditional
+        let frame1 = highlight ?? iconAssetName(node.id, frame: 1)
         let hasFrame1 = UIImage(named: frame1) != nil
         let tint = currentSkillIconTint
 
@@ -271,11 +273,12 @@ struct SkillDetailView: View {
 
             if hasFrame1 {
                 Image(frame1)
-                    .renderingMode(.template)
+                    .renderingMode(highlight == nil ? .template : .original)
                     .resizable()
                     .interpolation(.high)
                     .aspectRatio(contentMode: .fit)
                     .foregroundStyle(tint)
+                    .scaleEffect(traditional == nil ? 1.0 : 1.0)
                     .frame(width: 168, height: 168)
                     .shadow(color: Color.black.opacity(0.7), radius: 8)
                     .shadow(color: tint.opacity(0.55), radius: 24)
@@ -1651,6 +1654,12 @@ struct SkillDetailView: View {
     private func iconAssetName(_ id: String, frame: Int = 1) -> String {
         let safe = id.replacingOccurrences(of: ".", with: "_")
         return frame == 2 ? "\(safe)_f2" : safe
+    }
+
+    private func highlightAssetName(_ id: String) -> String? {
+        let safe = id.replacingOccurrences(of: ".", with: "_")
+        let candidate = "\(safe)_highlight"
+        return UIImage(named: candidate) == nil ? nil : candidate
     }
 }
 
@@ -4253,4 +4262,72 @@ private struct QuickLogSheet: View {
                 .strokeBorder(Color.unbound.border, lineWidth: 1)
         }
     }
+}
+
+enum SkillTraditionalVisualResolver {
+    static func assetName(for node: SkillNode) -> String? {
+        for slug in candidateSlugs(for: node) {
+            let candidate = "exercise_visual_exercise_\(slug)"
+            if UIImage(named: candidate) != nil {
+                return candidate
+            }
+        }
+        return nil
+    }
+
+    private static func candidateSlugs(for node: SkillNode) -> [String] {
+        var slugs: [String] = []
+
+        if let mapped = manualSlugMap[node.id] {
+            slugs.append(contentsOf: mapped)
+        }
+
+        slugs.append(MovementCatalog.slug(node.title))
+        slugs.append(node.id.components(separatedBy: ".").last ?? node.id)
+
+        for criterion in node.tierCriteria.values {
+            slugs.append(contentsOf: exerciseSlugs(in: criterion))
+        }
+
+        return slugs.reduce(into: []) { result, slug in
+            let normalized = MovementCatalog.slug(slug)
+            guard !normalized.isEmpty, !result.contains(normalized) else { return }
+            result.append(normalized)
+        }
+    }
+
+    private static func exerciseSlugs(in criterion: TierCriterion) -> [String] {
+        switch criterion {
+        case .reps(_, let exerciseName):
+            return [exerciseName]
+        case .exerciseWeightKg(_, let exerciseName):
+            return [exerciseName]
+        case .exerciseBodyweightRatio(_, let exerciseName):
+            return [exerciseName]
+        case .variant(let name):
+            return [name]
+        case .compound(let criteria):
+            return criteria.flatMap(exerciseSlugs)
+        case .seconds, .weightKg, .bodyweightRatio:
+            return []
+        }
+    }
+
+    private static let manualSlugMap: [String: [String]] = [
+        "cal.5-dips": ["dip"],
+        "cal.l-sit-10": ["l-sit"],
+        "cal.plank-30": ["plank"],
+        "cl.hollow-body-30": ["hollow-hold"],
+        "cl.tuck-front-lever": ["tuck-front-lever"],
+        "cl.dragon-flag": ["dragon-flag"],
+        "ld.single-leg-glute-bridge": ["glute-bridge"],
+        "pp.strict-pullup": ["pullup"],
+        "pp.weighted-pullup": ["weighted-pullup"],
+        "pp.wide-pullup": ["wide-grip-pullup"],
+        "pp.strict-chin-up": ["chin-up"],
+        "pp.oap-negative": ["negative-pullup"],
+        "pp.decline-row": ["inverted-row"],
+        "pp.straddle-row": ["inverted-row"],
+        "pp.muscle-up": ["muscle-up"]
+    ]
 }

@@ -71,6 +71,11 @@ enum OnboardingStep: Int, CaseIterable, Identifiable {
 
     // MARK: Post-scan reveals (sell the product)
     case verdict            // rank + photo + soft quote + plan preview
+    case appPainSolution    // names the pains again, now solved by the scanned plan
+    case workoutPreviewDemo // shows the daily mission
+    case workoutLogDemo     // lets the user taste logging
+    case workoutRewardDemo  // shows progress/rank reward after logging
+    case appRatingPrompt    // native Apple rating prompt before the final cinematic
     case trajectory         // 12-month projection chart
     case obstacleFix         // names the user's obstacle and maps UNBOUND's fix
 
@@ -95,6 +100,11 @@ enum OnboardingStep: Int, CaseIterable, Identifiable {
 
     var id: Int { rawValue }
 
+    /// Official production onboarding path.
+    ///
+    /// Keep deprecated/experimental cases in the enum only while old previews
+    /// or launch arguments still reference them. Production navigation and
+    /// the primary dev jump menu should use this list, not `allCases`.
     static let flowOrder: [OnboardingStep] = [
         .arc01Opening,
         .problemFrame,
@@ -129,15 +139,16 @@ enum OnboardingStep: Int, CaseIterable, Identifiable {
         .scanReview,
         .scanAnalyzing,
         .verdict,
-        .whyThisProgram,
-        .obstacleFix,
-        .planReady,
-        .commitToday,
+        .appPainSolution,
+        .workoutPreviewDemo,
+        .workoutLogDemo,
+        .workoutRewardDemo,
+        .appRatingPrompt,
         .chapterPath,
-        .lifeChangeEnergy,
-        .lifeChangeSleep,
-        .lifeChangeConfidence,
-        .commitDay30,
+        .whyThisProgram,
+        .trajectory,
+        .socialProofGallery,
+        .commitDay90,
         .paywall
     ]
 
@@ -201,7 +212,9 @@ enum OnboardingStep: Int, CaseIterable, Identifiable {
             return .lifestyle
         case .scanLive, .scanReview, .scanAnalyzing:
             return .scan
-        case .verdict, .trajectory, .obstacleFix, .whyThisProgram:
+        case .verdict, .appPainSolution, .workoutPreviewDemo,
+             .workoutLogDemo, .workoutRewardDemo, .appRatingPrompt,
+             .trajectory, .obstacleFix, .whyThisProgram:
             return .reveal
         case .resultsSnapshot, .planReady:
             return .reveal
@@ -254,22 +267,31 @@ extension OnboardingStep {
         case .scanReview: return "31 Scan Review"
         case .scanAnalyzing: return "32 Scan Analyzing"
         case .verdict: return "33 Verdict"
-        case .trajectory: return "34 Trajectory"
-        case .obstacleFix: return "35 Obstacle Fix"
-        case .chapterPath: return "36 Chapter Path"
-        case .whyThisProgram: return "37 Path Locked"
-        case .socialProofGallery: return "38 Social Proof"
-        case .lifeChangeEnergy: return "39 Energy"
-        case .lifeChangeStrength: return "40 Strength"
-        case .lifeChangeConfidence: return "41 Confidence"
-        case .lifeChangeSleep: return "42 Sleep"
-        case .lifeChangeLooksFeel: return "43 Looks/Feel"
-        case .commitDay30: return "44 Day 30"
-        case .commitDay90: return "45 Day 90"
-        case .commitToday: return "46 Commit Today"
-        case .planReady: return "47 Arc Ready"
-        case .paywall: return "48 Paywall"
+        case .appPainSolution: return "34 Problems Solved"
+        case .workoutPreviewDemo: return "35 Daily Mission"
+        case .workoutLogDemo: return "36 Log Workout"
+        case .workoutRewardDemo: return "37 Reward"
+        case .appRatingPrompt: return "38 Apple Rating"
+        case .chapterPath: return "39 Gate Open"
+        case .whyThisProgram: return "40 Path Benefits"
+        case .trajectory: return "41 Trajectory"
+        case .socialProofGallery: return "42 Climbers"
+        case .commitDay90: return "43 Staircase"
+        case .paywall: return "44 Paywall"
+        case .obstacleFix: return "ARCHIVED · Obstacle Fix"
+        case .lifeChangeEnergy: return "ARCHIVED · Energy"
+        case .lifeChangeStrength: return "ARCHIVED · Strength"
+        case .lifeChangeConfidence: return "ARCHIVED · Confidence"
+        case .lifeChangeSleep: return "ARCHIVED · Sleep"
+        case .lifeChangeLooksFeel: return "ARCHIVED · Looks/Feel"
+        case .commitDay30: return "ARCHIVED · Day 30"
+        case .commitToday: return "ARCHIVED · Commit Today"
+        case .planReady: return "ARCHIVED · Arc Ready"
         }
+    }
+
+    static var archivedDebugSteps: [OnboardingStep] {
+        allCases.filter { !flowOrder.contains($0) }
     }
 
     static func debugStep(matching identifier: String) -> OnboardingStep? {
@@ -682,7 +704,9 @@ final class OnboardingFlowViewModel {
         case .name:
             return !displayHandle.trimmingCharacters(in: .whitespaces).isEmpty
         case .notifications, .scanAnalyzing,
-             .verdict, .trajectory, .obstacleFix, .whyThisProgram,
+             .verdict, .appPainSolution, .workoutPreviewDemo,
+             .workoutLogDemo, .workoutRewardDemo, .appRatingPrompt,
+             .trajectory, .obstacleFix, .whyThisProgram,
              .socialProofGallery, .commitDay30, .commitDay90, .commitToday, .planReady, .paywall:
             return true
         case .scanLive, .scanReview:

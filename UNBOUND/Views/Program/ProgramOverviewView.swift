@@ -9,7 +9,7 @@ import SwiftUI
 //   ROUTINES — curated library of off-day / variety routines
 //              (cardio, mobility, challenges, alt circuits). Placeholder
 //              content until a real RoutineLibrary service ships.
-//   HISTORY  — past sessions grouped by week, newest first.
+//   RANKS    — current skill and exercise rank library.
 //
 // Taps on day tiles open DayDetailView as a preview (always preview-first,
 // per user direction).
@@ -50,13 +50,9 @@ struct ProgramOverviewView: View {
     @State private var weekOffset: Int = 0 // +1 = next week, -1 = prev
     @State private var selectedDayDate: Date = Calendar.current.startOfDay(for: Date())
 
-    // History view state
+    // Completed-log cache. Still feeds checkpoint/recovery context even
+    // though the old calendar tab is no longer surfaced.
     @State private var pastLogs: [WorkoutLog] = []
-    @State private var selectedLog: WorkoutLog?
-    @State private var historyMonth: Date = {
-        let c = Calendar.current
-        return c.date(from: c.dateComponents([.year, .month], from: Date())) ?? Date()
-    }()
 
     // Travel override (user hit the TRAVEL coach action)
     @State private var activeTravelOverride: TravelOverride?
@@ -87,7 +83,7 @@ struct ProgramOverviewView: View {
     @State private var showResume = false
     private let draftStore = WorkoutDraftStore()
 
-    enum Tab: Hashable { case program, routines, history }
+    enum Tab: Hashable { case program, routines, ranks }
 
     var body: some View {
         ZStack {
@@ -104,7 +100,7 @@ struct ProgramOverviewView: View {
                     switch selectedTab {
                     case .program:  programTab
                     case .routines: routinesTab
-                    case .history:  historyTab
+                    case .ranks:    ProgramRankLibraryView()
                     }
                 }
             }
@@ -222,9 +218,6 @@ struct ProgramOverviewView: View {
                 programViewModel: viewModel,
                 programId: viewModel?.program?.id ?? ""
             )
-        }
-        .navigationDestination(item: $selectedLog) { log in
-            WorkoutLogSummaryView(log: log)
         }
         .fullScreenCover(item: $activeRoutinePlayer) { routine in
             RoutineCompletionFlow(routine: routine) {
@@ -941,7 +934,7 @@ struct ProgramOverviewView: View {
         HStack(spacing: 0) {
             tabChip(.program, label: "PROGRAM")
             tabChip(.routines, label: "ROUTINES")
-            tabChip(.history, label: "HISTORY")
+            tabChip(.ranks, label: "RANKS")
         }
         .padding(4)
         .background(
@@ -2320,294 +2313,11 @@ struct ProgramOverviewView: View {
         .buttonStyle(.plain)
     }
 
-    // MARK: - HISTORY tab
-    //
-    // Workout calendar — completed sessions plotted on a month grid.
-    // A filled cell means you trained that day; tap it to drill into that
-    // session's WorkoutLogSummaryView. Mirrors PhotoCalendarView's
-    // month-grid structure so the two archives feel like one app.
-
-    private var historyTab: some View {
-        ScrollView(.vertical, showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 16) {
-                if pastLogs.isEmpty {
-                    historyEmpty
-                        .padding(.top, 48)
-                } else {
-                    historyCalendarCard
-                }
-                Spacer().frame(height: 28)
-            }
-            .padding(.horizontal, 20)
-            .padding(.top, 12)
-        }
-    }
-
-    private var historyEmpty: some View {
-        VStack(spacing: 10) {
-            Image(systemName: "clock.arrow.circlepath")
-                .font(.system(size: 28, weight: .regular))
-                .foregroundStyle(Color.unbound.textTertiary)
-            Text("No sessions logged yet")
-                .font(Font.unbound.bodyMStrong)
-                .foregroundStyle(Color.unbound.textSecondary)
-            Text("Your completed workouts land here.")
-                .font(Font.unbound.captionS)
-                .foregroundStyle(Color.unbound.textTertiary)
-        }
-        .frame(maxWidth: .infinity)
-    }
-
-    private var historyCalendarCard: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            historyCalendarHeader
-            VStack(alignment: .leading, spacing: 8) {
-                historyWeekdayLabels
-                historyCalendarGrid
-            }
-            historyMonthSummary
-        }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color.unbound.surface)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
-        )
-    }
-
-    private var historyCalendarHeader: some View {
-        HStack(alignment: .firstTextBaseline) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("TRAINING LOG")
-                    .font(Font.unbound.captionS.weight(.bold))
-                    .tracking(1.8)
-                    .foregroundStyle(Color.unbound.textTertiary)
-                Text(historyMonthLabel)
-                    .font(Font.unbound.titleS)
-                    .tracking(0.9)
-                    .foregroundStyle(Color.unbound.textPrimary)
-            }
-            Spacer()
-            HStack(spacing: 6) {
-                historyMonthButton(systemName: "chevron.left") {
-                    shiftHistoryMonth(by: -1)
-                }
-                historyMonthButton(systemName: "chevron.right") {
-                    shiftHistoryMonth(by: 1)
-                }
-                .disabled(isHistoryCurrentMonth)
-                .opacity(isHistoryCurrentMonth ? 0.35 : 1)
-            }
-        }
-    }
-
-    private func historyMonthButton(systemName: String, action: @escaping () -> Void) -> some View {
-        Button {
-            UnboundHaptics.soft()
-            action()
-        } label: {
-            Image(systemName: systemName)
-                .font(.system(size: 11, weight: .bold))
-                .foregroundStyle(Color.unbound.textSecondary)
-                .frame(width: 30, height: 30)
-                .background(Circle().fill(Color.unbound.bg.opacity(0.8)))
-                .overlay(Circle().strokeBorder(Color.unbound.borderSubtle, lineWidth: 1))
-        }
-        .buttonStyle(.plain)
-    }
-
-    private var historyWeekdayLabels: some View {
-        HStack(spacing: 0) {
-            ForEach(Array(["M", "T", "W", "T", "F", "S", "S"].enumerated()), id: \.offset) { _, l in
-                Text(l)
-                    .font(.system(size: 9, weight: .bold))
-                    .tracking(1.2)
-                    .foregroundStyle(Color.unbound.textTertiary)
-                    .frame(maxWidth: .infinity)
-            }
-        }
-    }
-
-    private var historyCalendarGrid: some View {
-        let days = historyDaysForMonth()
-        let columns = Array(repeating: GridItem(.flexible(), spacing: 4), count: 7)
-        return LazyVGrid(columns: columns, spacing: 4) {
-            ForEach(Array(days.enumerated()), id: \.offset) { _, day in
-                if let day {
-                    historyCell(for: day)
-                } else {
-                    Color.clear.aspectRatio(1, contentMode: .fit)
-                }
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func historyCell(for date: Date) -> some View {
-        let cal = Calendar.current
-        let isToday = cal.isDateInToday(date)
-        let dayLogs = logsOn(date)
-        let trained = !dayLogs.isEmpty
-
-        Button {
-            UnboundHaptics.soft()
-            if let log = dayLogs.first { selectedLog = log }
-        } label: {
-            ZStack {
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(trained ? Color.unbound.accent.opacity(0.18) : Color.unbound.bg)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 8, style: .continuous)
-                            .strokeBorder(
-                                trained
-                                    ? Color.unbound.accent
-                                    : (isToday ? Color.unbound.accent.opacity(0.5) : Color.unbound.borderSubtle),
-                                lineWidth: (trained || isToday) ? 1.5 : 0.75
-                            )
-                    )
-
-                VStack(spacing: 0) {
-                    HStack {
-                        Spacer()
-                        if dayLogs.count > 1 {
-                            Text("\(dayLogs.count)")
-                                .font(.system(size: 8, weight: .black, design: .monospaced))
-                                .foregroundStyle(Color.unbound.accent)
-                                .padding(3)
-                                .background(Circle().fill(Color.black.opacity(0.45)))
-                                .padding(3)
-                        }
-                    }
-                    Spacer()
-                    HStack(spacing: 0) {
-                        Text("\(cal.component(.day, from: date))")
-                            .font(Font.unbound.monoS.weight(.bold))
-                            .foregroundStyle(
-                                trained
-                                    ? Color.unbound.textPrimary
-                                    : (isToday ? Color.unbound.accent : Color.unbound.textSecondary)
-                            )
-                            .monospacedDigit()
-                        Spacer()
-                        if trained {
-                            Image(systemName: "checkmark")
-                                .font(.system(size: 8, weight: .black))
-                                .foregroundStyle(Color.unbound.accent)
-                        }
-                    }
-                    .padding(.horizontal, 5)
-                    .padding(.bottom, 4)
-                }
-            }
-            .aspectRatio(1, contentMode: .fit)
-        }
-        .buttonStyle(.plain)
-        .disabled(!trained)
-    }
-
-    private var historyMonthSummary: some View {
-        let monthLogs = pastLogs.filter {
-            Calendar.current.isDate($0.startedAt, equalTo: historyMonth, toGranularity: .month)
-        }
-        let minutes = monthLogs.reduce(0) { $0 + ($1.durationMinutes ?? 0) }
-        return HStack(spacing: 8) {
-            historySummaryStat("SESSIONS", "\(monthLogs.count)")
-            historySummaryStat("MINUTES", "\(minutes)")
-            historySummaryStat("LIFETIME", "\(pastLogs.count)")
-        }
-    }
-
-    private func historySummaryStat(_ label: String, _ value: String) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Text(label)
-                .font(.system(size: 8, weight: .bold))
-                .tracking(1.1)
-                .foregroundStyle(Color.unbound.textTertiary)
-                .lineLimit(1)
-            Text(value)
-                .font(Font.unbound.monoM.weight(.bold))
-                .foregroundStyle(Color.unbound.textPrimary)
-                .monospacedDigit()
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 10)
-        .padding(.vertical, 9)
-        .background(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(Color.unbound.bg.opacity(0.72))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
-        )
-    }
-
-    // MARK: - History calendar data
-
-    private func logsOn(_ date: Date) -> [WorkoutLog] {
-        let cal = Calendar.current
-        return pastLogs
-            .filter { cal.isDate($0.startedAt, inSameDayAs: date) }
-            .sorted { $0.startedAt > $1.startedAt }
-    }
-
-    private func shiftHistoryMonth(by delta: Int) {
-        let cal = Calendar.current
-        guard let newMonth = cal.date(byAdding: .month, value: delta, to: historyMonth) else { return }
-        if newMonth > Self.monthStart(of: Date()) { return }
-        withAnimation(.easeInOut(duration: 0.2)) {
-            historyMonth = newMonth
-        }
-    }
-
-    private var isHistoryCurrentMonth: Bool {
-        Calendar.current.isDate(historyMonth, equalTo: Date(), toGranularity: .month)
-    }
-
-    private var historyMonthLabel: String {
-        let f = DateFormatter()
-        f.dateFormat = "MMMM yyyy"
-        return f.string(from: historyMonth).uppercased()
-    }
-
-    /// 42 slots (6 weeks × 7 days), Monday-first. Slots outside the
-    /// displayed month are nil (rendered as empty space).
-    private func historyDaysForMonth() -> [Date?] {
-        var cal = Calendar.current
-        cal.firstWeekday = 2
-        let firstOfMonth = Self.monthStart(of: historyMonth)
-        let weekdayOfFirst = cal.component(.weekday, from: firstOfMonth)
-        let leadingEmpty = (weekdayOfFirst + 5) % 7   // Mon = 0 … Sun = 6
-        let daysInMonth = (cal.range(of: .day, in: .month, for: firstOfMonth) ?? 1..<32).count
-        var slots: [Date?] = Array(repeating: nil, count: leadingEmpty)
-        for d in 0..<daysInMonth {
-            if let date = cal.date(byAdding: .day, value: d, to: firstOfMonth) {
-                slots.append(date)
-            }
-        }
-        while slots.count < 42 { slots.append(nil) }
-        return slots
-    }
-
-    private static func monthStart(of date: Date) -> Date {
-        let cal = Calendar.current
-        return cal.date(from: cal.dateComponents([.year, .month], from: date)) ?? date
-    }
-
     @MainActor
     private func refreshHistory() async {
         let userId = services.auth.currentUserId ?? "anonymous"
         let logs = (try? await services.workoutLog.fetchRecentLogs(userId: userId, limit: 40)) ?? []
         pastLogs = logs.filter { $0.completedAt != nil }
-        // Land the calendar on the most recent session's month — never an
-        // empty grid for someone who trained last month but not yet this one.
-        if let latest = pastLogs.max(by: { $0.startedAt < $1.startedAt }) {
-            historyMonth = Self.monthStart(of: latest.startedAt)
-        }
     }
 
     @MainActor
@@ -2849,6 +2559,708 @@ struct ProgramOverviewView: View {
             .accessibilityIdentifier("program.retry")
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+// MARK: - Program rank library
+
+private struct ProgramRankLibraryView: View {
+    @EnvironmentObject private var services: ServiceContainer
+
+    @State private var rows: [ProgramRankLibraryRow] = []
+    @State private var searchText = ""
+    @State private var selectedFilter: ProgramRankLibraryFilter = .all
+    @State private var isLoading = true
+
+    private var filteredRows: [ProgramRankLibraryRow] {
+        rows
+            .filter(matchesSearchAndFilter)
+            .sorted(by: sortRankRows)
+    }
+
+    private var groupedSections: [ProgramRankLibrarySection] {
+        if selectedFilter != .all || !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return filteredRows.isEmpty ? [] : [ProgramRankLibrarySection(title: "Results", rows: filteredRows)]
+        }
+
+        let grouped = Dictionary(grouping: filteredRows, by: \.sectionTitle)
+        return grouped.map { title, rows in
+            ProgramRankLibrarySection(
+                title: title,
+                rows: rows.sorted(by: sortRowsWithinSection)
+            )
+        }
+        .sorted {
+            ($0.rows.first?.sectionOrder ?? Int.max) < ($1.rows.first?.sectionOrder ?? Int.max)
+        }
+    }
+
+    private var earnedCount: Int {
+        rows.filter(\.isEarned).count
+    }
+
+    private var topTier: SkillTier {
+        rows.map(\.tier).max() ?? .initiate
+    }
+
+    private var totalAP: Int {
+        Int(rows.reduce(0) { $0 + $1.totalAP }.rounded())
+    }
+
+    var body: some View {
+        ScrollView(.vertical, showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 14) {
+                rankLibraryHeader
+                rankSearchField
+                rankFilterRail
+
+                if isLoading {
+                    loadingState
+                } else if groupedSections.isEmpty {
+                    emptyState
+                } else {
+                    ForEach(groupedSections) { section in
+                        rankSection(section)
+                    }
+                }
+
+                Spacer().frame(height: 28)
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 12)
+        }
+        .task {
+            await loadRanks()
+        }
+    }
+
+    private var rankLibraryHeader: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .center, spacing: 10) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("RANK LIBRARY")
+                        .font(Font.unbound.captionS.weight(.bold))
+                        .tracking(1.8)
+                        .foregroundStyle(Color.unbound.textTertiary)
+                    Text("Every standard you can prove")
+                        .font(Font.unbound.titleS)
+                        .tracking(0.7)
+                        .foregroundStyle(Color.unbound.textPrimary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.72)
+                }
+                Spacer(minLength: 0)
+                Image(topTier.assetName)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 40, height: 40)
+                    .shadow(color: topTier.rewardTextTint.opacity(0.35), radius: 10)
+            }
+
+            HStack(spacing: 8) {
+                rankStatTile(label: "EARNED", value: "\(earnedCount)", tint: Color.unbound.accent)
+                rankStatTile(label: "STANDARDS", value: "\(rows.count)", tint: Color.unbound.coachCyan)
+                rankStatTile(label: "TOP", value: topTier.displayName.uppercased(), tint: topTier.rewardTextTint)
+                rankStatTile(label: "AP", value: "\(totalAP)", tint: Color.unbound.rankGold)
+            }
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color.unbound.surface)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .strokeBorder(topTier.rewardTextTint.opacity(0.24), lineWidth: 1)
+        )
+        .accessibilityIdentifier("program.rankLibrary.header")
+    }
+
+    private func rankStatTile(label: String, value: String, tint: Color) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(label)
+                .font(.system(size: 8, weight: .heavy, design: .monospaced))
+                .tracking(1.0)
+                .foregroundStyle(Color.unbound.textTertiary)
+            Text(value)
+                .font(Font.unbound.monoS.weight(.black))
+                .foregroundStyle(tint)
+                .lineLimit(1)
+                .minimumScaleFactor(0.58)
+                .monospacedDigit()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 9)
+        .background(
+            RoundedRectangle(cornerRadius: 11, style: .continuous)
+                .fill(Color.unbound.bg.opacity(0.68))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 11, style: .continuous)
+                .strokeBorder(tint.opacity(0.18), lineWidth: 1)
+        )
+    }
+
+    private var rankSearchField: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(Color.unbound.textTertiary)
+
+            TextField("Search ranks", text: $searchText)
+                .font(Font.unbound.bodyS)
+                .foregroundStyle(Color.unbound.textPrimary)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+        }
+        .padding(.horizontal, 12)
+        .frame(height: 42)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color.unbound.surface)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
+        )
+    }
+
+    private var rankFilterRail: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(ProgramRankLibraryFilter.allCases) { filter in
+                    rankFilterChip(filter)
+                }
+            }
+        }
+    }
+
+    private func rankFilterChip(_ filter: ProgramRankLibraryFilter) -> some View {
+        let isSelected = selectedFilter == filter
+        return Button {
+            UnboundHaptics.soft()
+            withAnimation(.easeInOut(duration: 0.16)) {
+                selectedFilter = filter
+            }
+        } label: {
+            Text(filter.displayName)
+                .font(Font.unbound.captionS.weight(.heavy))
+                .tracking(1.0)
+                .foregroundStyle(isSelected ? Color.unbound.textPrimary : Color.unbound.textTertiary)
+                .padding(.horizontal, 12)
+                .frame(height: 30)
+                .background(
+                    Capsule()
+                        .fill(isSelected ? Color.unbound.accent.opacity(0.24) : Color.unbound.surface)
+                )
+                .overlay(
+                    Capsule()
+                        .strokeBorder(isSelected ? Color.unbound.accent.opacity(0.36) : Color.unbound.borderSubtle, lineWidth: 1)
+                )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var loadingState: some View {
+        VStack(spacing: 10) {
+            ProgressView()
+                .tint(Color.unbound.accent)
+            Text("LOADING RANKS")
+                .font(Font.unbound.captionS.weight(.heavy))
+                .tracking(1.6)
+                .foregroundStyle(Color.unbound.textTertiary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 44)
+    }
+
+    private var emptyState: some View {
+        VStack(spacing: 10) {
+            Image(systemName: "seal")
+                .font(.system(size: 28, weight: .regular))
+                .foregroundStyle(Color.unbound.textTertiary)
+            Text("No ranks match those filters")
+                .font(Font.unbound.bodyMStrong)
+                .foregroundStyle(Color.unbound.textSecondary)
+            Text("Clear the search or log a ranked movement.")
+                .font(Font.unbound.captionS)
+                .foregroundStyle(Color.unbound.textTertiary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 44)
+    }
+
+    private func rankSection(_ section: ProgramRankLibrarySection) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(section.title.uppercased())
+                    .font(Font.unbound.captionS.weight(.heavy))
+                    .tracking(1.5)
+                    .foregroundStyle(Color.unbound.textTertiary)
+                Spacer(minLength: 0)
+                Text("\(section.rows.count)")
+                    .font(Font.unbound.monoS.weight(.bold))
+                    .foregroundStyle(Color.unbound.textTertiary)
+                    .monospacedDigit()
+            }
+
+            VStack(spacing: 8) {
+                ForEach(section.rows) { row in
+                    ProgramRankLibraryRowView(row: row)
+                }
+            }
+        }
+    }
+
+    @MainActor
+    private func loadRanks() async {
+        isLoading = true
+        guard let userId = services.auth.currentUserId else {
+            rows = []
+            isLoading = false
+            return
+        }
+
+        let progressStates: [MovementProgressState] = (try? await services.database.query(
+            collection: "movement_progress",
+            field: "userId",
+            isEqualTo: userId,
+            orderBy: nil,
+            descending: true,
+            limit: nil
+        )) ?? []
+
+        let skillTiers = UserSkillTierStore.shared.load(userId: userId)
+        let skillService = SkillProgressService.shared
+        rows = Self.makeSkillRows(
+            skillTiers: skillTiers,
+            nodeStates: skillService.nodeStates,
+            skillProgress: skillService.skillProgress,
+            activeGoalIds: skillService.activeGoalIds
+        ) + Self.makeMovementRows(progressStates: progressStates)
+        isLoading = false
+    }
+
+    private func matchesSearchAndFilter(_ row: ProgramRankLibraryRow) -> Bool {
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let matchesSearch = query.isEmpty
+            || row.searchText.localizedCaseInsensitiveContains(query)
+            || Self.searchKey(row.searchText).contains(Self.searchKey(query))
+        guard matchesSearch else { return false }
+
+        switch selectedFilter {
+        case .all:
+            return true
+        case .earned:
+            return row.isEarned
+        case .skills:
+            return row.source == .skill
+        case .exercises:
+            return row.source == .exercise
+        case .top:
+            return row.tier.rawValue >= SkillTier.veteran.rawValue
+        }
+    }
+
+    private func sortRankRows(_ lhs: ProgramRankLibraryRow, _ rhs: ProgramRankLibraryRow) -> Bool {
+        if lhs.tier != rhs.tier { return lhs.tier > rhs.tier }
+        if lhs.totalAP != rhs.totalAP { return lhs.totalAP > rhs.totalAP }
+        if lhs.source != rhs.source { return lhs.source.sortOrder < rhs.source.sortOrder }
+        return lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedAscending
+    }
+
+    private func sortRowsWithinSection(_ lhs: ProgramRankLibraryRow, _ rhs: ProgramRankLibraryRow) -> Bool {
+        if lhs.isEarned != rhs.isEarned { return lhs.isEarned && !rhs.isEarned }
+        return sortRankRows(lhs, rhs)
+    }
+
+    private static func makeSkillRows(
+        skillTiers: UserSkillTierState,
+        nodeStates: [String: NodeState],
+        skillProgress: [String: SkillProgress],
+        activeGoalIds: Set<String>
+    ) -> [ProgramRankLibraryRow] {
+        SkillGraph.shared.nodes.map { node in
+            let state = nodeStates[node.id] ?? .locked
+            let tier = skillTiers.tier(for: node.id)
+
+            let progress = skillProgress[node.id]
+            let status = activeGoalIds.contains(node.id) ? "TRAINING" : Self.nodeStateLabel(state)
+            let detail = RankBenchmarkSummary.nextBenchmark(for: node, currentTier: tier)
+                ?? progress.map { "LV \($0.currentLevel)" }
+                ?? node.target.displayName
+
+            return ProgramRankLibraryRow(
+                id: "skill-\(node.id)",
+                title: node.title,
+                subtitle: "\(node.cluster.displayName) skill",
+                detail: detail,
+                metric: status,
+                tier: tier,
+                visualAssetName: Self.skillVisualAssetName(for: node, progress: progress),
+                totalAP: 0,
+                source: .skill,
+                sourceId: node.id,
+                sectionTitle: "\(node.cluster.displayName) Skills",
+                sectionOrder: Self.skillSectionOrder(for: node.cluster),
+                lastActivityAt: nil,
+                earnedOverride: state == .achieved || state == .mastered || tier > .initiate
+            )
+        }
+    }
+
+    private static func skillSectionOrder(for cluster: SkillCluster) -> Int {
+        1 + (SkillCluster.allCases.firstIndex(of: cluster) ?? 0)
+    }
+
+    private static func makeMovementRows(progressStates: [MovementProgressState]) -> [ProgramRankLibraryRow] {
+        let progressByStandard = progressStates.reduce(into: [String: MovementProgressState]()) { result, state in
+            result[state.rankStandardMovementId] = state
+        }
+
+        var seenStandards: Set<String> = []
+        var rows: [ProgramRankLibraryRow] = ExerciseLibrary.all.compactMap { item in
+            guard item.isRankable,
+                  seenStandards.insert(item.rankStandardMovementId).inserted
+            else { return nil }
+
+            let progress = progressByStandard[item.rankStandardMovementId]
+            let displayRow = ExerciseLibraryDisplayRow(
+                item: item,
+                preferenceStatus: nil,
+                movementProgress: progress,
+                workingWeight: nil
+            )
+
+            return ProgramRankLibraryRow(
+                id: "movement-\(item.rankStandardMovementId)",
+                title: progress?.displayName ?? item.name,
+                subtitle: item.movementSlot.displayName,
+                detail: displayRow.nextBenchmarkSummary ?? displayRow.bestMetricSummary ?? item.rankTemplate.displayName,
+                metric: progress.map { "\(Int($0.totalAP.rounded())) AP" } ?? "0 AP",
+                tier: progress?.provenTier ?? .initiate,
+                visualAssetName: Self.exerciseVisualAssetName(for: item.id),
+                totalAP: progress?.totalAP ?? 0,
+                source: .exercise,
+                sourceId: item.rankStandardMovementId,
+                sectionTitle: item.movementSlot.displayName,
+                sectionOrder: 20 + ExerciseLibrary.slotOrder(item.movementSlot),
+                lastActivityAt: progress?.lastLoggedAt ?? progress?.updatedAt,
+                earnedOverride: nil
+            )
+        }
+
+        let representedStandards = Set(rows.map(\.sourceId))
+        let extraRows = progressStates
+            .filter { !representedStandards.contains($0.rankStandardMovementId) }
+            .map { state in
+                ProgramRankLibraryRow(
+                    id: "movement-\(state.rankStandardMovementId)",
+                    title: state.displayName,
+                    subtitle: state.rankTemplate.displayName,
+                    detail: Self.movementProgressSummary(state),
+                    metric: "\(Int(state.totalAP.rounded())) AP",
+                    tier: state.provenTier,
+                    visualAssetName: Self.exerciseVisualAssetName(for: state.rankStandardMovementId),
+                    totalAP: state.totalAP,
+                    source: .exercise,
+                    sourceId: state.rankStandardMovementId,
+                    sectionTitle: "Other Standards",
+                    sectionOrder: 80,
+                    lastActivityAt: state.lastLoggedAt ?? state.updatedAt,
+                    earnedOverride: nil
+                )
+            }
+
+        rows.append(contentsOf: extraRows)
+        return rows
+    }
+
+    private static func skillVisualAssetName(for node: SkillNode, progress: SkillProgress?) -> String? {
+        let base = node.id.replacingOccurrences(of: ".", with: "_")
+        let candidates = [
+            SkillTraditionalVisualResolver.assetName(for: node),
+            base,
+            "\(base)_f2"
+        ].compactMap { $0 }
+        return candidates.first { UIImage(named: $0) != nil }
+    }
+
+    private static func exerciseVisualAssetName(for movementId: String) -> String? {
+        ExerciseVisualAsset.existingAssetName(forMovementId: movementId)
+    }
+
+    private static func searchKey(_ value: String) -> String {
+        value
+            .lowercased()
+            .unicodeScalars
+            .filter { CharacterSet.alphanumerics.contains($0) }
+            .map(String.init)
+            .joined()
+    }
+
+    private static func nodeStateLabel(_ state: NodeState) -> String {
+        switch state {
+        case .locked: return "LOCKED"
+        case .attempting: return "TRAINING"
+        case .achieved: return "CLEARED"
+        case .mastered: return "MASTERED"
+        }
+    }
+
+    private static func movementProgressSummary(_ state: MovementProgressState) -> String {
+        if let estimated = state.bestEstimatedOneRepMaxKg {
+            let unit = WeightPlatePolicy.currentUnit
+            return "Est. 1RM \(WeightPlatePolicy.formatLoggedWeight(estimated, unit: unit))\(unit.shortLabel)"
+        }
+        if let load = state.bestLoadKg {
+            let unit = WeightPlatePolicy.currentUnit
+            if let reps = state.bestReps {
+                return "\(WeightPlatePolicy.formatLoggedWeight(load, unit: unit))\(unit.shortLabel) x \(reps)"
+            }
+            return "\(WeightPlatePolicy.formatLoggedWeight(load, unit: unit))\(unit.shortLabel)"
+        }
+        if let reps = state.bestReps { return "\(reps) reps" }
+        if let seconds = state.bestHoldSeconds { return "\(seconds)s hold" }
+        if let seconds = state.bestDurationSeconds { return "\(seconds / 60)m \(seconds % 60)s" }
+        if let meters = state.bestDistanceMeters { return "\(meters)m" }
+        if let calories = state.bestCalories { return "\(calories) cal" }
+        return state.rankTemplate.displayName
+    }
+}
+
+private struct ProgramRankLibrarySection: Identifiable {
+    let title: String
+    let rows: [ProgramRankLibraryRow]
+
+    var id: String { title }
+}
+
+private struct ProgramRankLibraryRow: Identifiable {
+    let id: String
+    let title: String
+    let subtitle: String
+    let detail: String
+    let metric: String
+    let tier: SkillTier
+    let visualAssetName: String?
+    let totalAP: Double
+    let source: ProgramRankLibrarySource
+    let sourceId: String
+    let sectionTitle: String
+    let sectionOrder: Int
+    let lastActivityAt: Date?
+    let earnedOverride: Bool?
+
+    var isEarned: Bool {
+        earnedOverride ?? (tier > .initiate || totalAP > 0)
+    }
+
+    var searchText: String {
+        [
+            title,
+            subtitle,
+            detail,
+            metric,
+            tier.displayName,
+            source.displayName,
+            sectionTitle
+        ].joined(separator: " ")
+    }
+}
+
+private enum ProgramRankLibrarySource: Equatable {
+    case skill
+    case exercise
+
+    var displayName: String {
+        switch self {
+        case .skill: return "Skill"
+        case .exercise: return "Exercise"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .skill: return "sparkles"
+        case .exercise: return "dumbbell.fill"
+        }
+    }
+
+    var sortOrder: Int {
+        switch self {
+        case .skill: return 0
+        case .exercise: return 1
+        }
+    }
+}
+
+private enum ProgramRankLibraryFilter: String, CaseIterable, Identifiable {
+    case all
+    case earned
+    case skills
+    case exercises
+    case top
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .all: return "All"
+        case .earned: return "Earned"
+        case .skills: return "Skills"
+        case .exercises: return "Exercises"
+        case .top: return "Top"
+        }
+    }
+}
+
+private struct ProgramRankLibraryRowView: View {
+    let row: ProgramRankLibraryRow
+
+    private var tint: Color { row.tier.rewardTextTint }
+    private var usesHighlightArt: Bool {
+        row.visualAssetName?.hasSuffix("_highlight") == true
+    }
+    private var usesTraditionalExerciseArt: Bool {
+        row.visualAssetName?.hasPrefix("exercise_visual_") == true
+    }
+
+    var body: some View {
+        HStack(spacing: 0) {
+            HStack(alignment: .center, spacing: 12) {
+                artwork
+
+                VStack(alignment: .leading, spacing: 7) {
+                    HStack(spacing: 6) {
+                        Image(systemName: row.source.systemImage)
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundStyle(tint)
+                        Text(row.source.displayName.uppercased())
+                            .font(.system(size: 8, weight: .heavy, design: .monospaced))
+                            .tracking(1.0)
+                            .foregroundStyle(Color.unbound.textTertiary)
+                        Spacer(minLength: 0)
+                        Text(row.metric)
+                            .font(.system(size: 8, weight: .heavy, design: .monospaced))
+                            .tracking(0.8)
+                            .foregroundStyle(tint.opacity(row.isEarned ? 0.95 : 0.58))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.65)
+                    }
+
+                    Text(row.title.uppercased())
+                        .font(Font.unbound.bodyMStrong)
+                        .foregroundStyle(Color.unbound.textPrimary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.68)
+
+                    Text("\(row.subtitle) - \(row.detail)")
+                        .font(Font.unbound.captionS)
+                        .foregroundStyle(Color.unbound.textSecondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.74)
+                }
+            }
+            .padding(.leading, 12)
+            .padding(.vertical, 11)
+            .padding(.trailing, 10)
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            rankBand
+        }
+        .frame(maxWidth: .infinity, minHeight: 96, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color.unbound.surface)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(tint.opacity(row.isEarned ? 0.22 : 0.10), lineWidth: 1)
+        )
+        .opacity(row.isEarned ? 1 : 0.68)
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .accessibilityLabel("\(row.title), \(row.tier.displayName), \(row.metric)")
+    }
+
+    @ViewBuilder
+    private var artwork: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(artworkBackground)
+
+            if let assetName = row.visualAssetName {
+                Image(assetName)
+                    .renderingMode(.original)
+                    .resizable()
+                    .interpolation(.high)
+                    .scaledToFit()
+                    .scaleEffect(assetName.hasSuffix("_highlight") ? 1.34 : 1.0)
+                    .padding((row.source == .exercise || usesTraditionalExerciseArt) ? 5 : (assetName.hasSuffix("_highlight") ? 0 : 4))
+                    .opacity(row.isEarned ? 1.0 : 0.52)
+            } else {
+                Image(systemName: row.source.systemImage)
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundStyle(tint.opacity(row.isEarned ? 0.9 : 0.46))
+            }
+        }
+        .frame(width: 58, height: 58)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(tint.opacity(row.isEarned ? 0.30 : 0.12), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    private var artworkBackground: some ShapeStyle {
+        if row.source == .exercise || usesTraditionalExerciseArt {
+            return AnyShapeStyle(Color.white)
+        }
+        if usesHighlightArt {
+            return AnyShapeStyle(
+                LinearGradient(
+                    colors: [
+                        Color(red: 0.36, green: 0.25, blue: 0.15),
+                        Color(red: 0.18, green: 0.13, blue: 0.10)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
+        }
+        return AnyShapeStyle(tint.opacity(row.isEarned ? 0.16 : 0.08))
+    }
+
+    private var rankBand: some View {
+        VStack(spacing: 0) {
+            Spacer(minLength: 0)
+            Image(row.tier.assetName)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 35, height: 35)
+                .opacity(row.isEarned ? 1.0 : 0.42)
+                .shadow(color: tint.opacity(row.isEarned ? 0.35 : 0.12), radius: 8)
+            Spacer(minLength: 0)
+        }
+        .frame(width: 58)
+        .frame(maxHeight: .infinity)
+        .background(
+            ZStack {
+                tint.opacity(row.isEarned ? 0.16 : 0.06)
+                LinearGradient(
+                    colors: [Color.white.opacity(0.05), Color.black.opacity(0.08)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            }
+        )
+        .overlay(alignment: .leading) {
+            Rectangle()
+                .fill(tint.opacity(row.isEarned ? 0.22 : 0.10))
+                .frame(width: 1)
+        }
     }
 }
 

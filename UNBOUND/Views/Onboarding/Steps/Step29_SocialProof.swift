@@ -10,6 +10,8 @@ struct Step29_SocialProof: View {
     let onBack: () -> Void
     let onContinue: () -> Void
 
+    @State private var hasAnimated = false
+
     private var testimonials: [Testimonial] {
         [
             Testimonial(
@@ -50,10 +52,10 @@ struct Step29_SocialProof: View {
 
     var body: some View {
         OnboardingScaffold(
-            title: L10n.onboarding("socialProof.title", defaultValue: "Other players crossed the first gate."),
-            subtitle: L10n.onboarding("socialProof.subtitle", defaultValue: "The hook was simple: open the app, do the work, watch the path change."),
+            title: L10n.onboarding("socialProof.title", defaultValue: "Others started at the floor too."),
+            subtitle: L10n.onboarding("socialProof.subtitle", defaultValue: "They opened the gate, cleared sessions, and watched the ladder stop being decoration."),
             progress: progress,
-            primaryTitle: L10n.onboarding("socialProof.primary", defaultValue: "Show me mine"),
+            primaryTitle: L10n.onboarding("socialProof.primary", defaultValue: "Reveal the ladder"),
             hudStep: .socialProofGallery,
             onBack: onBack,
             onPrimary: onContinue
@@ -61,13 +63,21 @@ struct Step29_SocialProof: View {
             VStack(alignment: .leading, spacing: 14) {
                 betaHero
 
-                VStack(spacing: 0) {
+                VStack(spacing: 12) {
                     ForEach(Array(testimonials.enumerated()), id: \.element.id) { index, t in
-                        betaLogRow(t, index: index + 1)
+                        climberProfileCard(t, index: index + 1)
+                            .opacity(hasAnimated ? 1 : 0)
+                            .offset(y: hasAnimated ? 0 : 18)
+                            .animation(.spring(response: 0.5, dampingFraction: 0.86).delay(0.14 + Double(index) * 0.08), value: hasAnimated)
                     }
                 }
 
                 socialProofFooter
+            }
+            .onAppear {
+                withAnimation(.spring(response: 0.62, dampingFraction: 0.88)) {
+                    hasAnimated = true
+                }
             }
         }
     }
@@ -93,7 +103,7 @@ struct Step29_SocialProof: View {
                     .font(.system(size: 10, weight: .black, design: .monospaced))
                     .tracking(1.4)
                     .foregroundStyle(Color.unbound.accent)
-                Text("First arcs. Real climbs.")
+                Text(L10n.onboarding("socialProof.hero.title", defaultValue: "First arcs. Real climbs."))
                     .font(Font.unbound.titleS)
                     .foregroundStyle(Color.unbound.textPrimary)
             }
@@ -111,7 +121,7 @@ struct Step29_SocialProof: View {
             Image(systemName: "flame.fill")
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(Color.unbound.accent)
-            Text(L10n.onboarding("socialProof.footer", defaultValue: "The point is not more hype. The point is having a path you want to return to."))
+            Text(L10n.onboarding("socialProof.footer", defaultValue: "The win is not the quote. The win is that the next rank gives the work somewhere to go."))
                 .font(Font.unbound.bodyS)
                 .foregroundStyle(Color.unbound.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -119,100 +129,219 @@ struct Step29_SocialProof: View {
         .padding(.top, 6)
     }
 
-    private func betaLogRow(_ t: Testimonial, index: Int) -> some View {
-        VStack(spacing: 0) {
-            HStack(alignment: .top, spacing: 14) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(String(format: "%02d", index))
-                        .font(.system(size: 11, weight: .black, design: .monospaced))
-                        .foregroundStyle(Color.unbound.accent)
+    private func climberProfileCard(_ t: Testimonial, index: Int) -> some View {
+        let tint = profileTint(for: t.rank)
 
-                    compactRankMove(t)
-                }
-                .frame(width: 86, alignment: .leading)
+        return VStack(alignment: .leading, spacing: 13) {
+            HStack(alignment: .center, spacing: 12) {
+                profileAvatar(t, index: index, tint: tint)
 
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack(alignment: .firstTextBaseline, spacing: 8) {
-                        Text(t.name)
-                            .font(Font.unbound.titleS)
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 8) {
+                        Text(t.name.uppercased())
+                            .font(.system(size: 19, weight: .black, design: .rounded))
                             .foregroundStyle(Color.unbound.textPrimary)
+                            .lineLimit(1)
 
                         Text(t.role.uppercased())
                             .font(.system(size: 8, weight: .black, design: .monospaced))
                             .tracking(0.9)
-                            .foregroundStyle(Color.unbound.textTertiary)
+                            .foregroundStyle(tint)
+                            .padding(.horizontal, 7)
+                            .padding(.vertical, 4)
+                            .background(Capsule().fill(tint.opacity(0.12)))
+                            .overlay(Capsule().strokeBorder(tint.opacity(0.32), lineWidth: 1))
                     }
 
-                    Text(L10n.onboardingFormat("socialProof.quoteFormat", defaultValue: "\"%@\"", t.quote))
-                        .font(Font.unbound.bodyM)
-                        .foregroundStyle(Color.unbound.textSecondary)
-                        .lineSpacing(1.5)
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.88)
-
-                    HStack(spacing: 12) {
-                        microStat(L10n.onboardingFormat("socialProof.stat.sessions", defaultValue: "%d sessions", t.sessions))
-                        microStat(L10n.onboardingFormat("socialProof.stat.streak", defaultValue: "%dd streak", t.streak))
-                        microStat(L10n.onboardingFormat("socialProof.stat.months", defaultValue: "%d mo", t.months))
-                    }
+                    Text(t.focus.uppercased())
+                        .font(.system(size: 10, weight: .black, design: .monospaced))
+                        .tracking(1.2)
+                        .foregroundStyle(Color.unbound.textTertiary)
                 }
-            }
-            .padding(.vertical, 17)
 
-            Rectangle()
-                .fill(Color.unbound.borderSubtle.opacity(0.72))
-                .frame(height: 1)
+                Spacer(minLength: 0)
+            }
+
+            premiumRankMove(t, tint: tint)
+
+            Text(L10n.onboardingFormat("socialProof.quoteFormat", defaultValue: "\"%@\"", t.quote))
+                .font(Font.unbound.bodyM)
+                .foregroundStyle(Color.unbound.textPrimary.opacity(0.88))
+                .lineSpacing(1.5)
+                .fixedSize(horizontal: false, vertical: true)
+
+            HStack(spacing: 8) {
+                profileStat(value: "\(t.sessions)", label: "SESSIONS", tint: tint)
+                profileStat(value: "\(t.streak)d", label: "STREAK", tint: tint)
+                profileStat(value: "\(t.months)mo", label: "CLIMB", tint: tint)
+            }
         }
+        .padding(14)
+        .background(
+            ZStack {
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(Color.black.opacity(0.42))
+                LinearGradient(
+                    colors: [
+                        tint.opacity(0.18),
+                        Color.unbound.surface.opacity(0.78),
+                        Color.black.opacity(0.28)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            }
+        )
         .overlay(
-            Rectangle()
-                .fill(Color.unbound.accent.opacity(0.34))
-                .frame(width: 2),
-            alignment: .leading
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [tint.opacity(0.68), Color.white.opacity(0.08), tint.opacity(0.24)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1.1
+                )
+        )
+        .shadow(color: tint.opacity(0.18), radius: 18, y: 8)
+    }
+
+    private func profileAvatar(_ t: Testimonial, index: Int, tint: Color) -> some View {
+        ZStack {
+            Circle()
+                .fill(
+                    RadialGradient(
+                        colors: [tint.opacity(0.46), Color.unbound.surface.opacity(0.92)],
+                        center: .topLeading,
+                        startRadius: 4,
+                        endRadius: 54
+                    )
+                )
+
+            Circle()
+                .strokeBorder(tint.opacity(0.72), lineWidth: 1.4)
+
+            Text(String(t.name.prefix(1)).uppercased())
+                .font(.system(size: 24, weight: .black, design: .rounded))
+                .foregroundStyle(Color.unbound.textPrimary)
+
+            Text(String(format: "%02d", index))
+                .font(.system(size: 8, weight: .black, design: .monospaced))
+                .foregroundStyle(Color.unbound.bg)
+                .padding(.horizontal, 5)
+                .padding(.vertical, 2)
+                .background(Capsule().fill(tint))
+                .offset(x: 22, y: 23)
+        }
+        .frame(width: 58, height: 58)
+        .shadow(color: tint.opacity(0.42), radius: 14)
+    }
+
+    private func premiumRankMove(_ t: Testimonial, tint: Color) -> some View {
+        HStack(spacing: 9) {
+            rankBubble(label: "START", rank: t.rankStart, tint: Color.unbound.textTertiary)
+
+            ZStack {
+                Capsule()
+                    .fill(tint.opacity(0.12))
+                    .frame(width: 34, height: 22)
+                Image(systemName: "arrow.right")
+                    .font(.system(size: 12, weight: .black))
+                    .foregroundStyle(tint)
+            }
+
+            rankBubble(label: "NOW", rank: t.rank, tint: tint)
+        }
+    }
+
+    private func rankBubble(label: String, rank: RankTitle, tint: Color) -> some View {
+        HStack(spacing: 8) {
+            Image(rank.assetName)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 30, height: 30)
+                .shadow(color: tint.opacity(0.36), radius: 8)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(label)
+                    .font(.system(size: 8, weight: .black, design: .monospaced))
+                    .tracking(1.0)
+                    .foregroundStyle(Color.unbound.textTertiary)
+                Text(rankDisplayName(rank))
+                    .font(.system(size: 12, weight: .black, design: .monospaced))
+                    .tracking(0.8)
+                    .foregroundStyle(tint)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.58)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 9)
+        .frame(maxWidth: .infinity)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color.black.opacity(0.28))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(tint.opacity(0.32), lineWidth: 1)
         )
     }
 
-    private func compactRankMove(_ t: Testimonial) -> some View {
-        HStack(spacing: 5) {
-            rankMark(t.rankStart, tint: Color.unbound.textTertiary)
-            Image(systemName: "arrow.right")
-                .font(.system(size: 9, weight: .black))
-                .foregroundStyle(Color.unbound.textTertiary)
-            rankMark(t.rank, tint: t.rank.rewardTint)
-        }
-    }
-
-    private func rankMark(_ value: RankTitle, tint: Color) -> some View {
-        HStack(spacing: 4) {
-            Image(value.assetName)
-                .resizable()
-                .scaledToFit()
-                .frame(width: 18, height: 18)
-            Text(shortRankName(value))
-                .font(.system(size: 8, weight: .black, design: .monospaced))
-                .tracking(0.5)
-                .foregroundStyle(tint)
+    private func profileStat(value: String, label: String, tint: Color) -> some View {
+        VStack(spacing: 3) {
+            Text(value.uppercased())
+                .font(.system(size: 15, weight: .black, design: .monospaced))
+                .foregroundStyle(Color.unbound.textPrimary)
                 .lineLimit(1)
+                .minimumScaleFactor(0.8)
+            Text(label)
+                .font(.system(size: 8, weight: .black, design: .monospaced))
+                .tracking(0.9)
+                .foregroundStyle(Color.unbound.textTertiary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 9)
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(tint.opacity(0.10))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .strokeBorder(tint.opacity(0.24), lineWidth: 1)
+        )
+    }
+
+    private func profileTint(for rank: RankTitle) -> Color {
+        switch rank {
+        case .initiate, .novice:
+            return Color.unbound.accent
+        case .apprentice, .forged:
+            return Color.unbound.warnOrange
+        case .veteran:
+            return Color.unbound.rankGreen
+        case .master:
+            return Color.unbound.impact
+        case .vessel, .unbound, .ascendant:
+            return rank.rewardTint
         }
     }
 
-    private func microStat(_ value: String) -> some View {
-        Text(value.uppercased())
-            .font(.system(size: 8, weight: .black, design: .monospaced))
-            .tracking(0.8)
-            .foregroundStyle(Color.unbound.textTertiary)
-    }
-
-    private func shortRankName(_ rank: RankTitle) -> String {
+    private func rankDisplayName(_ rank: RankTitle) -> String {
         switch rank {
-        case .initiate: return "INIT"
-        case .novice: return "NOV"
-        case .apprentice: return "APP"
-        case .forged: return "FORG"
-        case .veteran: return "VET"
-        case .master: return "MAS"
-        case .vessel: return "VES"
-        case .unbound: return "UNB"
-        case .ascendant: return "ASC"
+        case .initiate: return "INITIATE"
+        case .novice: return "NOVICE"
+        case .apprentice: return "APPRENTICE"
+        case .forged: return "FORGED"
+        case .veteran: return "VETERAN"
+        case .master: return "MASTER"
+        case .vessel: return "VESSEL"
+        case .unbound: return "UNBOUND"
+        case .ascendant: return "ASCENDANT"
         }
     }
 
