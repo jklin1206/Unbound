@@ -181,7 +181,7 @@ final class WeeklyVowGeneratorTests: XCTestCase {
                 default: return 50
                 }
             }()
-            profile.set(axis, AttributeValue(peak: value, current: value, lastContributionAt: .now))
+            profile.set(axis, AttributeValue(xp: AttributeLevelCurve.xpRequired(forLevel: Int(value)), lastContributionAt: .now))
         }
         return profile
     }

@@ -254,33 +254,24 @@ final class UNBOUNDSmokeTest: XCTestCase {
         )
         var completion = TrainingCompletionResult()
         var profileBefore = AttributeProfile.empty(userId: "u-attributes", at: now)
-        profileBefore.set(
-            .power,
-            AttributeValue(peak: 21.4, current: 21.4, xp: 400, lastContributionAt: now)
-        )
-        profileBefore.set(
-            .mobility,
-            AttributeValue(peak: 14, current: 14, xp: 225, lastContributionAt: now)
-        )
+        // base-independent: seed exactly L10 XP; +200 lands inside L10 still (L11 is +336).
+        let l10XP = AttributeLevelCurve.xpRequired(forLevel: 10)
+        profileBefore.set(.power, AttributeValue(xp: l10XP, lastContributionAt: now))
+        profileBefore.set(.mobility, AttributeValue(xp: l10XP, lastContributionAt: now))
         var profileAfter = profileBefore
-        profileAfter.set(
-            .power,
-            AttributeValue(peak: 21.5, current: 21.5, xp: 405, lastContributionAt: now)
-        )
+        profileAfter.set(.power, AttributeValue(xp: l10XP + 200, lastContributionAt: now))
         completion.attributeProfileBefore = profileBefore
         completion.attributeProfileAfter = profileAfter
         completion.attributeRewards = [
             AttributeProgressionReward(
                 key: .power,
-                xpGained: 5,
-                previousXP: 400,
-                currentXP: 405,
-                previousLevel: 2,
-                currentLevel: 2,
-                previousTier: .novice,
-                currentTier: .novice,
-                previousScore: 21.4,
-                currentScore: 21.5
+                xpGained: 200,
+                previousXP: l10XP,
+                currentXP: l10XP + 200,
+                previousLevel: 10,
+                currentLevel: 10,
+                previousTier: .forged,
+                currentTier: .forged
             )
         ]
 
@@ -293,54 +284,39 @@ final class UNBOUNDSmokeTest: XCTestCase {
 
         let power = sequence.attributeDeltas.first
         XCTAssertEqual(power?.key, .power)
-        XCTAssertEqual(power?.xpGained ?? 0, 5, accuracy: 0.001)
-        XCTAssertEqual(power?.previous ?? 0, 21.4, accuracy: 0.001)
-        XCTAssertEqual(power?.current ?? 0, 21.5, accuracy: 0.001)
-        XCTAssertEqual(sequence.attributePreviousLevels[.power], 2)
-        XCTAssertEqual(sequence.attributeLevels[.power], 2)
+        XCTAssertEqual(power?.xpGained ?? 0, 200, accuracy: 0.001)
+        XCTAssertEqual(sequence.attributePreviousLevels[.power], 10)
+        XCTAssertEqual(sequence.attributeLevels[.power], 10)
         XCTAssertEqual(sequence.attributePreviousLevels.count, AttributeKey.allCases.count)
         XCTAssertEqual(sequence.attributeLevels.count, AttributeKey.allCases.count)
-        XCTAssertEqual(sequence.attributeTiers[.power], profileAfter.rankTitles[.power])
+        XCTAssertEqual(sequence.attributeTiers[.power], profileAfter.levelRankTitles[.power])
         XCTAssertEqual(sequence.attributePreviousHexValues.count, AttributeKey.allCases.count)
         XCTAssertEqual(sequence.attributeCurrentHexValues.count, AttributeKey.allCases.count)
+        // Untouched axis: hex unchanged.
         XCTAssertEqual(
             sequence.attributePreviousHexValues[.mobility] ?? -1,
             sequence.attributeCurrentHexValues[.mobility] ?? -2,
             accuracy: 0.001
         )
-        XCTAssertGreaterThan(
-            sequence.attributeCurrentHexValues[.power] ?? 0,
-            sequence.attributePreviousHexValues[.power] ?? 0
-        )
-        XCTAssertEqual(power?.previousProgress ?? 0, AttributeLevelCurve.progressFraction(forXP: 400), accuracy: 0.001)
-        XCTAssertEqual(power?.currentProgress ?? 0, AttributeLevelCurve.progressFraction(forXP: 405), accuracy: 0.001)
-        XCTAssertEqual(
-            power?.previousHexChartValue ?? 0,
-            AttributeLevelCurve.hexDisplayValue(level: 2, progress: AttributeLevelCurve.progressFraction(forXP: 400)),
-            accuracy: 0.001
-        )
-        XCTAssertEqual(
-            power?.currentHexChartValue ?? 0,
-            AttributeLevelCurve.hexDisplayValue(level: 2, progress: AttributeLevelCurve.progressFraction(forXP: 405)),
-            accuracy: 0.001
-        )
-        XCTAssertEqual(power?.currentPrestigeGlow ?? 1, 0, accuracy: 0.001)
-        XCTAssertLessThan(power?.currentHexChartValue ?? 100, power?.current ?? 0)
+        // hexFill is linear level/max — both at L10 → equal (xp gain stayed in-level).
+        XCTAssertEqual(power?.previousProgress ?? 0, AttributeLevelCurve.progressFraction(forXP: l10XP), accuracy: 0.001)
+        XCTAssertEqual(power?.currentProgress ?? 0, AttributeLevelCurve.progressFraction(forXP: l10XP + 200), accuracy: 0.001)
+        XCTAssertEqual(power?.previousHexChartValue ?? 0, AttributeLevelCurve.hexFill(forLevel: 10) * 100, accuracy: 0.001)
+        XCTAssertEqual(power?.currentHexChartValue ?? 0, AttributeLevelCurve.hexFill(forLevel: 10) * 100, accuracy: 0.001)
     }
 
-    func testAttributeHexDisplayCompressesUncappedLevelsAndAddsPrestigeGlow() {
-        let low = AttributeLevelCurve.hexDisplayValue(level: 12, progress: 0.5)
-        let mid = AttributeLevelCurve.hexDisplayValue(level: 50, progress: 0)
-        let softCap = AttributeLevelCurve.hexDisplayValue(level: 100, progress: 0)
-        let prestige = AttributeLevelCurve.hexDisplayValue(level: 150, progress: 0)
-
-        XCTAssertLessThan(low, 20)
-        XCTAssertGreaterThan(mid, low)
-        XCTAssertGreaterThan(softCap, 90)
-        XCTAssertGreaterThan(prestige, softCap)
-        XCTAssertLessThan(prestige, 100)
-        XCTAssertEqual(AttributeLevelCurve.hexPrestigeGlow(level: 100, progress: 0), 0, accuracy: 0.001)
-        XCTAssertGreaterThan(AttributeLevelCurve.hexPrestigeGlow(level: 150, progress: 0), 0)
+    func testHexFillIsLinearLevelOverMaxWithCleanMax() {
+        // Linear, honest fill — no display compression, clean 100% at max.
+        XCTAssertEqual(AttributeLevelCurve.hexFill(forLevel: 0), 0, accuracy: 0.001)
+        XCTAssertEqual(AttributeLevelCurve.hexFill(forLevel: 50), 0.5, accuracy: 0.001)
+        XCTAssertEqual(AttributeLevelCurve.hexFill(forLevel: 100), 1.0, accuracy: 0.001)
+        // Strictly increasing.
+        XCTAssertGreaterThan(
+            AttributeLevelCurve.hexFill(forLevel: 50),
+            AttributeLevelCurve.hexFill(forLevel: 12)
+        )
+        // Clamps at max — no overshoot past 100%.
+        XCTAssertEqual(AttributeLevelCurve.hexFill(forLevel: 150), 1.0, accuracy: 0.001)
     }
 
     func testRewardBarsExposeCurrentLevelDenominators() {
@@ -370,8 +346,6 @@ final class UNBOUNDSmokeTest: XCTestCase {
             currentLevel: 4,
             previousProgress: 0.15,
             currentProgress: 0.35,
-            previous: 24,
-            current: 25,
             previousTier: .novice,
             currentTier: .novice
         )

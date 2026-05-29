@@ -290,7 +290,6 @@ struct Step_Verdict: View {
 
             AttributeHex(
                 current: onboardingAttributeValues,
-                peak: nil,
                 levels: onboardingAttributeLevels,
                 tiers: onboardingAttributeTiers,
                 showLabels: true,
@@ -504,7 +503,9 @@ struct Step_Verdict: View {
 
     private func portfolioAttributeRow(_ key: AttributeKey) -> some View {
         let value = onboardingAttributeValues[key] ?? 0
-        let level = AttributeLevelCurve.level(forXP: AttributeLevelCurve.legacyXP(forScore: value))
+        // Onboarding preview is pre-account (no persisted xp). Treat the
+        // synthetic 0…22 estimate directly as a small starter level.
+        let level = Int(value.rounded())
 
         return HStack(spacing: 12) {
             Text(key.shortCode)
@@ -841,7 +842,7 @@ struct Step_Verdict: View {
                 HStack(alignment: .center, spacing: 18) {
                     AttributeHex(
                         current: onboardingAttributeValues,
-                        peak: onboardingPeakValues,
+                        levels: onboardingAttributeLevels,
                         showLabels: true,
                         radius: 82
                     )
@@ -888,7 +889,7 @@ struct Step_Verdict: View {
     private var onboardingAttributeLevels: [AttributeKey: Int] {
         Dictionary(uniqueKeysWithValues: AttributeKey.allCases.map { key in
             let value = onboardingAttributeValues[key] ?? 0
-            return (key, AttributeLevelCurve.level(forXP: AttributeLevelCurve.legacyXP(forScore: value)))
+            return (key, Int(value.rounded()))
         })
     }
 
@@ -929,12 +930,6 @@ struct Step_Verdict: View {
         })
     }
 
-    private var onboardingPeakValues: [AttributeKey: Double] {
-        Dictionary(uniqueKeysWithValues: AttributeKey.allCases.map { key in
-            let current = onboardingAttributeValues[key] ?? 22
-            return (key, min(100, current + 24))
-        })
-    }
 
     private var firstUnlockTitle: String {
         SkillTree.universal.nodes.first?.title ?? L10n.onboarding("verdict.firstUnlockFallback", defaultValue: "First Node")
@@ -1298,7 +1293,7 @@ private struct DayZeroPortfolioHex: View {
 
             ForEach(Array(axisOrder.enumerated()), id: \.offset) { index, key in
                 let angle = -CGFloat.pi / 2 + CGFloat(index) * (2 * .pi / 6)
-                let level = AttributeLevelCurve.level(forXP: AttributeLevelCurve.legacyXP(forScore: current[key] ?? 0))
+                let level = Int((current[key] ?? 0).rounded())
 
                 HStack(spacing: 4) {
                     Text(key.shortCode)

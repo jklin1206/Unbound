@@ -50,70 +50,65 @@ final class AttributeServiceIngestTests: XCTestCase {
         }
     }
 
-    func testApplyDeltasLiftsPeakWhenCurrentExceedsPeak() {
+    func testApplyDeltasConvertsDeltaToPermanentXP() {
         var p = AttributeProfile.empty(userId: "u", at: t0)
+        // delta 25 × sessionDeltaXPScale(50) = 1_250 xp → L8 (base=16: 16·64=1_024 ≤ 1_250 < 16·81=1_296).
         let crossings = AttributeIngest.applyDeltas(&p, deltas: [.power: 25], at: t0)
-        XCTAssertEqual(p.value(for: .power).current, 25, accuracy: 0.001)
-        XCTAssertEqual(p.value(for: .power).peak,    25, accuracy: 0.001)
-        // 0 → 25 crosses several sub-ranks and a tier (initiate → apprentice).
-        // We assert at least one crossing is emitted on .power axis — the exact
-        // count depends on the SubRank/RankTitle table, but it must be > 0.
+        XCTAssertEqual(p.value(for: .power).xp, 1_250, accuracy: 0.001)
+        XCTAssertEqual(p.value(for: .power).level, 8)
+        // 0 → L8 crosses tiers (initiate → apprentice) — at least one event.
         XCTAssertGreaterThan(crossings.count, 0)
         XCTAssertTrue(crossings.allSatisfy { $0.axis == .power })
     }
 
-    func testApplyDeltasClampsCurrentAt100() {
+    func testApplyDeltasAccumulatesXP() {
         var p = AttributeProfile.empty(userId: "u", at: t0)
-        p.set(.power, AttributeValue(peak: 95, current: 95, xp: 100, lastContributionAt: t0))
+        p.set(.power, AttributeValue(xp: 100, lastContributionAt: t0))
         _ = AttributeIngest.applyDeltas(&p, deltas: [.power: 50], at: t0)
-        XCTAssertEqual(p.value(for: .power).current, 100, accuracy: 0.001)
-        XCTAssertEqual(p.value(for: .power).peak,    100, accuracy: 0.001)
-        XCTAssertEqual(
-            p.value(for: .power).xp,
-            100 + AttributeLevelCurve.xpAwarded(forScoreDelta: 50),
-            accuracy: 0.001
-        )
+        // 100 + 50 × 50 = 2_600 xp.
+        XCTAssertEqual(p.value(for: .power).xp, 2_600, accuracy: 0.001)
     }
 
     func testApplyDeltasEmitsTierEventOnCrossingApprenticeToForged() {
         var p = AttributeProfile.empty(userId: "u", at: t0)
-        p.set(.power, AttributeValue(peak: 50, current: 29, lastContributionAt: t0))
+        // Seed at L9 (base=16: 16·81 = 1_296, apprentice band L6..9). delta 8 × 50 = 400 → 1_696 xp → L10 = forged.
+        p.set(.power, AttributeValue(xp: AttributeLevelCurve.xpRequired(forLevel: 9), lastContributionAt: t0))
         let crossings = AttributeIngest.applyDeltas(&p, deltas: [.power: 8], at: t0)
         XCTAssertEqual(crossings.count, 1)
         XCTAssertEqual(crossings.first?.axis, .power)
+        XCTAssertEqual(crossings.first?.toTitle, .forged)
         XCTAssertEqual(crossings.first?.level, .tier)
     }
 
     func testApplyDeltasEmitsATierEventOnCrossingMasterToVessel() {
         var p = AttributeProfile.empty(userId: "u", at: t0)
-        p.set(.power, AttributeValue(peak: 80, current: 64, lastContributionAt: t0))
-        let crossings = AttributeIngest.applyDeltas(&p, deltas: [.power: 10], at: t0)
+        // Seed at L39 (base=16: 16·1_521 = 24_336, master band L25..39). delta 30 × 50 = 1_500 → 25_836 → L40 = vessel.
+        p.set(.power, AttributeValue(xp: AttributeLevelCurve.xpRequired(forLevel: 39), lastContributionAt: t0))
+        let crossings = AttributeIngest.applyDeltas(&p, deltas: [.power: 30], at: t0)
+        XCTAssertEqual(crossings.first?.toTitle, .vessel)
         XCTAssertEqual(crossings.first?.level, .aTier)
     }
 
     func testApplyDeltasEmitsNoEventForIntraTierStep() {
-        // Cadence coarsening (18-step SubRank → 9-tier RankTier): a small delta
-        // that stays inside one RankTier band no longer fires a rank-up. With
-        // the old SubRank ladder 0 → 6 stepped eMinus → e and emitted a silent
-        // `.subRank` event; on the 9-tier ladder both 0 and 6 map to .initiate
-        // (nearest(0) and nearest(0.48)), so no crossing is emitted.
+        // A small delta that stays inside one RankTitle band fires no rank-up.
+        // Seed at L11 (28·121 = 3_388, apprentice→forged band is L10..14 → forged).
         var p = AttributeProfile.empty(userId: "u", at: t0)
-        p.set(.power, AttributeValue(peak: 50, current: 0, lastContributionAt: t0))
-        let crossings = AttributeIngest.applyDeltas(&p, deltas: [.power: 6], at: t0)
+        p.set(.power, AttributeValue(xp: 3_388, lastContributionAt: t0))  // L11, forged
+        // delta 1 × 50 = 50 → 3_438 → still L11, still forged.
+        let crossings = AttributeIngest.applyDeltas(&p, deltas: [.power: 1], at: t0)
         XCTAssertTrue(crossings.isEmpty)
     }
 
     func testFirstBuildIdentityResolvedTransitionDetectable() {
-        // Verify the transition pattern that AttributeService.ingest depends on:
-        // starting from empty (balancedAthlete), adding enough to a single axis
-        // flips the shape. End-to-end badge-fire test requires a mock
-        // BadgeService — that's out of scope here; this validates the structural
-        // precondition.
+        // Starting from empty (balancedAthlete), adding enough to a single axis
+        // flips the shape (buildIdentity is now level-spread based; spread ≥ 15
+        // escapes balanced).
         var p = AttributeProfile.empty(userId: "u", at: t0)
         XCTAssertEqual(p.buildIdentity.shape, .balancedAthlete)
 
-        // Push power past balanced threshold: spread = 16 escapes balanced.
-        _ = AttributeIngest.applyDeltas(&p, deltas: [.power: 16], at: t0)
+        // delta 150 × 50 = 7_500 xp → L21 (base=16: 16·441 = 7_056 ≤ 7_500 < 16·484 = 7_744). spread 21 ≥ 15.
+        _ = AttributeIngest.applyDeltas(&p, deltas: [.power: 150], at: t0)
+        XCTAssertEqual(p.value(for: .power).level, 21)
         XCTAssertNotEqual(p.buildIdentity.shape, .balancedAthlete)
     }
 
@@ -207,9 +202,9 @@ final class AttributeServiceIngestTests: XCTestCase {
         var profile = AttributeProfile.empty(userId: "u", at: t0)
         let applied = AttributeIngest.applyXPDeltas(&profile, xpDeltas: xpDeltas, at: t0)
 
+        // Empty profile → all axes L0 → mean 0 → catch-up factor 1.0 (no scaling).
         XCTAssertEqual(profile.value(for: .power).xp, 90, accuracy: 0.001)
         XCTAssertEqual(profile.value(for: .control).xp, 30, accuracy: 0.001)
-        XCTAssertEqual(profile.value(for: .power).current, 90 / AttributeLevelCurve.legacyScoreXPScale, accuracy: 0.001)
         XCTAssertEqual(applied.rewards.count, 2)
         XCTAssertTrue(applied.rewards.contains { $0.key == .power && $0.xpGained == 90 })
     }

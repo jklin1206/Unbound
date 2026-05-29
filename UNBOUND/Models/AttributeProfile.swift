@@ -23,43 +23,15 @@ struct AttributeProfile: Codable, Sendable, Equatable {
         Dictionary(uniqueKeysWithValues: AttributeKey.allCases.map { ($0, level(for: $0)) })
     }
 
+    /// Per-axis hex fill on the chart's 0...100 scale (`hexFill × 100`).
     var hexChartValues: [AttributeKey: Double] {
         Dictionary(uniqueKeysWithValues: AttributeKey.allCases.map { key in
-            let value = value(for: key)
-            return (key, value.hexChartValue)
+            (key, value(for: key).hexFill * 100)
         })
-    }
-
-    var peakHexChartValues: [AttributeKey: Double]? {
-        let values = Dictionary(uniqueKeysWithValues: AttributeKey.allCases.map { key in
-            let value = value(for: key)
-            let peakXP = max(value.xp, AttributeLevelCurve.legacyXP(forScore: value.peak))
-            return (key, AttributeLevelCurve.hexDisplayValue(
-                level: AttributeLevelCurve.level(forXP: peakXP),
-                progress: AttributeLevelCurve.progressFraction(forXP: peakXP)
-            ))
-        })
-
-        let hasDistinctPeak = AttributeKey.allCases.contains { key in
-            abs((values[key] ?? 0) - (hexChartValues[key] ?? 0)) > 0.5
-        }
-
-        return hasDistinctPeak ? values : nil
-    }
-
-    var prestigeGlowValues: [AttributeKey: Double] {
-        Dictionary(uniqueKeysWithValues: AttributeKey.allCases.map { key in
-            let value = value(for: key)
-            return (key, value.hexPrestigeGlow)
-        })
-    }
-
-    var rankTitles: [AttributeKey: RankTitle] {
-        Dictionary(uniqueKeysWithValues: AttributeKey.allCases.map { ($0, value(for: $0).rankTitle) })
     }
 
     var levelRankTitles: [AttributeKey: RankTitle] {
-        Dictionary(uniqueKeysWithValues: AttributeKey.allCases.map { ($0, value(for: $0).levelRankTitle) })
+        Dictionary(uniqueKeysWithValues: AttributeKey.allCases.map { ($0, value(for: $0).rankTitle) })
     }
 
     mutating func set(_ key: AttributeKey, _ value: AttributeValue) {
@@ -79,38 +51,38 @@ struct AttributeProfile: Codable, Sendable, Equatable {
 
     var dominant: AttributeKey {
         // Fallback unreachable: AttributeKey.allCases is never empty.
-        AttributeKey.allCases.max(by: { value(for: $0).peak < value(for: $1).peak }) ?? .power
+        AttributeKey.allCases.max(by: { level(for: $0) < level(for: $1) }) ?? .power
     }
 
     var weakest: AttributeKey {
-        let active = AttributeKey.allCases.filter { value(for: $0).peak > 0 }
+        let active = AttributeKey.allCases.filter { level(for: $0) > 0 }
         let pool = active.isEmpty ? AttributeKey.allCases : active
         // Fallback unreachable: pool is never empty (defaults to allCases).
-        return pool.min(by: { value(for: $0).peak < value(for: $1).peak }) ?? .mobility
+        return pool.min(by: { level(for: $0) < level(for: $1) }) ?? .mobility
     }
 
     var isBalanced: Bool {
-        let peaks = AttributeKey.allCases.map { value(for: $0).peak }
-        guard case let (minP?, maxP?) = (peaks.min(), peaks.max()) else { return true }
-        return (maxP - minP) < 15
+        let levels = AttributeKey.allCases.map { level(for: $0) }
+        guard case let (minL?, maxL?) = (levels.min(), levels.max()) else { return true }
+        return (maxL - minL) < 15
     }
 
     /// Derived athletic identity. Sub-project #2 implementation.
     var buildIdentity: BuildIdentity {
         let sorted = AttributeKey.allCases
-            .sorted { value(for: $0).peak > value(for: $1).peak }
+            .sorted { level(for: $0) > level(for: $1) }
         let top1 = sorted[0]
         let top2 = sorted[1]
         let top3 = sorted[2]
-        let peaks = sorted.map { value(for: $0).peak }
-        let spread = (peaks.max() ?? 0) - (peaks.min() ?? 0)
+        let levels = sorted.map { level(for: $0) }
+        let spread = (levels.max() ?? 0) - (levels.min() ?? 0)
 
         if spread < 15 {
             return BuildIdentity(primary: nil, secondary: nil, shape: .balancedAthlete)
         }
 
-        let gap12 = value(for: top1).peak - value(for: top2).peak
-        let gap13 = value(for: top1).peak - value(for: top3).peak
+        let gap12 = level(for: top1) - level(for: top2)
+        let gap13 = level(for: top1) - level(for: top3)
 
         if gap12 > 25 {
             return BuildIdentity(primary: top1, secondary: nil, shape: .specialist)

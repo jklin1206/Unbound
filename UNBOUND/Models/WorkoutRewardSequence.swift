@@ -21,8 +21,6 @@ struct WorkoutRewardSequenceSummary: Identifiable {
     var attributeDeltas: [AttributeDeltaReward]
     var attributePreviousHexValues: [AttributeKey: Double] = [:]
     var attributeCurrentHexValues: [AttributeKey: Double] = [:]
-    var attributePreviousPrestigeGlow: [AttributeKey: Double] = [:]
-    var attributeCurrentPrestigeGlow: [AttributeKey: Double] = [:]
     var attributePreviousLevels: [AttributeKey: Int] = [:]
     var attributeLevels: [AttributeKey: Int] = [:]
     var attributePreviousTiers: [AttributeKey: RankTitle] = [:]
@@ -142,12 +140,9 @@ struct AttributeDeltaReward: Identifiable {
     var currentLevel: Int = 0
     var previousProgress: Double = 0
     var currentProgress: Double = 0
-    var previous: Double
-    var current: Double
     var previousTier: RankTitle
     var currentTier: RankTitle
 
-    var delta: Double { current - previous }
     var didAdvanceTier: Bool { currentTier.ordinal > previousTier.ordinal }
     var didIncreaseLevel: Bool { currentLevel > previousLevel }
     var tint: Color { key.rewardTint }
@@ -158,22 +153,13 @@ struct AttributeDeltaReward: Identifiable {
     var xpRemainingInLevel: Double { max(0, nextLevelXP - currentXP) }
     var levelProgressStart: Double { didIncreaseLevel ? 0 : previousProgress }
 
-    /// Reward hex display value on the component's 0...100 axis.
-    /// Uses permanent LVL + progress through the shared compressed display curve.
+    /// Reward hex fill on the component's 0...100 axis (`hexFill × 100`).
     var previousHexChartValue: Double {
-        AttributeLevelCurve.hexDisplayValue(level: previousLevel, progress: previousProgress)
+        AttributeLevelCurve.hexFill(forLevel: previousLevel) * 100
     }
 
     var currentHexChartValue: Double {
-        AttributeLevelCurve.hexDisplayValue(level: currentLevel, progress: currentProgress)
-    }
-
-    var previousPrestigeGlow: Double {
-        AttributeLevelCurve.hexPrestigeGlow(level: previousLevel, progress: previousProgress)
-    }
-
-    var currentPrestigeGlow: Double {
-        AttributeLevelCurve.hexPrestigeGlow(level: currentLevel, progress: currentProgress)
+        AttributeLevelCurve.hexFill(forLevel: currentLevel) * 100
     }
 }
 
@@ -325,16 +311,6 @@ extension WorkoutRewardSequenceSummary {
                 useCurrent: false
             ),
             attributeCurrentHexValues: attributeHexValues(
-                profile: completionResult?.attributeProfileAfter,
-                fallbackDeltas: attributeDeltas,
-                useCurrent: true
-            ),
-            attributePreviousPrestigeGlow: attributePrestigeGlow(
-                profile: completionResult?.attributeProfileBefore,
-                fallbackDeltas: attributeDeltas,
-                useCurrent: false
-            ),
-            attributeCurrentPrestigeGlow: attributePrestigeGlow(
                 profile: completionResult?.attributeProfileAfter,
                 fallbackDeltas: attributeDeltas,
                 useCurrent: true
@@ -517,8 +493,6 @@ extension WorkoutRewardSequenceSummary {
                         currentLevel: $0.currentLevel,
                         previousProgress: AttributeLevelCurve.progressFraction(forXP: $0.previousXP),
                         currentProgress: AttributeLevelCurve.progressFraction(forXP: $0.currentXP),
-                        previous: $0.previousScore,
-                        current: $0.currentScore,
                         previousTier: $0.previousTier,
                         currentTier: $0.currentTier
                     )
@@ -537,8 +511,6 @@ extension WorkoutRewardSequenceSummary {
                     currentLevel: $0.levelAfter,
                     previousProgress: $0.progressBefore,
                     currentProgress: $0.progressAfter,
-                    previous: Double($0.levelBefore),
-                    current: Double($0.levelAfter),
                     previousTier: $0.tierAfter,
                     currentTier: $0.tierAfter
                 )
@@ -580,7 +552,7 @@ extension WorkoutRewardSequenceSummary {
         deltas: [AttributeDeltaReward]
     ) -> [AttributeKey: RankTitle] {
         if let profile = completionResult?.attributeProfileBefore {
-            return profile.rankTitles
+            return profile.levelRankTitles
         }
 
         return Dictionary(uniqueKeysWithValues: deltas.map { ($0.key, $0.previousTier) })
@@ -591,7 +563,7 @@ extension WorkoutRewardSequenceSummary {
         deltas: [AttributeDeltaReward]
     ) -> [AttributeKey: RankTitle] {
         if let profile = completionResult?.attributeProfileAfter {
-            return profile.rankTitles
+            return profile.levelRankTitles
         }
 
         return Dictionary(uniqueKeysWithValues: deltas.map { ($0.key, $0.currentTier) })
@@ -604,42 +576,12 @@ extension WorkoutRewardSequenceSummary {
     ) -> [AttributeKey: Double] {
         if let profile {
             return Dictionary(uniqueKeysWithValues: AttributeKey.allCases.map { key in
-                let value = profile.value(for: key)
-                return (
-                    key,
-                    AttributeLevelCurve.hexDisplayValue(
-                        level: value.level,
-                        progress: AttributeLevelCurve.progressFraction(forXP: value.xp)
-                    )
-                )
+                (key, profile.value(for: key).hexFill * 100)
             })
         }
 
         return Dictionary(uniqueKeysWithValues: fallbackDeltas.map {
             ($0.key, useCurrent ? $0.currentHexChartValue : $0.previousHexChartValue)
-        })
-    }
-
-    private static func attributePrestigeGlow(
-        profile: AttributeProfile?,
-        fallbackDeltas: [AttributeDeltaReward],
-        useCurrent: Bool
-    ) -> [AttributeKey: Double] {
-        if let profile {
-            return Dictionary(uniqueKeysWithValues: AttributeKey.allCases.map { key in
-                let value = profile.value(for: key)
-                return (
-                    key,
-                    AttributeLevelCurve.hexPrestigeGlow(
-                        level: value.level,
-                        progress: AttributeLevelCurve.progressFraction(forXP: value.xp)
-                    )
-                )
-            })
-        }
-
-        return Dictionary(uniqueKeysWithValues: fallbackDeltas.map {
-            ($0.key, useCurrent ? $0.currentPrestigeGlow : $0.previousPrestigeGlow)
         })
     }
 
@@ -725,10 +667,10 @@ extension WorkoutRewardSequenceSummary {
                 LiftProgressReward(liftName: "Dip", family: .core, fromTier: .novice, toTier: .novice, fromProgress: 0.36, toProgress: 0.54, xpGained: 58)
             ],
             attributeDeltas: [
-                AttributeDeltaReward(key: .power, previous: 42, current: 44.4, previousTier: .forged, currentTier: .forged),
-                AttributeDeltaReward(key: .control, previous: 36, current: 37.1, previousTier: .apprentice, currentTier: .apprentice),
-                AttributeDeltaReward(key: .endurance, previous: 31, current: 31.8, previousTier: .apprentice, currentTier: .apprentice),
-                AttributeDeltaReward(key: .explosiveness, previous: 28, current: 28.5, previousTier: .novice, currentTier: .novice)
+                AttributeDeltaReward(key: .power, previousTier: .forged, currentTier: .forged),
+                AttributeDeltaReward(key: .control, previousTier: .apprentice, currentTier: .apprentice),
+                AttributeDeltaReward(key: .endurance, previousTier: .apprentice, currentTier: .apprentice),
+                AttributeDeltaReward(key: .explosiveness, previousTier: .novice, currentTier: .novice)
             ],
             personalRecords: [
                 PersonalRecordReward(liftName: "Bench Press", valueText: "82.5 kg", deltaText: "+5 kg over best", family: .press)

@@ -23,7 +23,7 @@ final class ScanCheckpointServiceTests: XCTestCase {
 
     func testFirstCommitProducesNoDelta() async throws {
         var profile = AttributeProfile.empty(userId: "u-1", at: .now)
-        profile.set(.power, AttributeValue(peak: 53, current: 53, lastContributionAt: .now))
+        profile.set(.power, AttributeValue(xp: AttributeLevelCurve.xpRequired(forLevel: 53), lastContributionAt: .now))
         attribute.profileByUser["u-1"] = profile
 
         let service = ScanCheckpointService(
@@ -46,7 +46,7 @@ final class ScanCheckpointServiceTests: XCTestCase {
     func testSecondCommitProducesPositiveDelta() async throws {
         // First scan: power=50.
         var first = AttributeProfile.empty(userId: "u-1", at: .now)
-        first.set(.power, AttributeValue(peak: 50, current: 50, lastContributionAt: .now))
+        first.set(.power, AttributeValue(xp: AttributeLevelCurve.xpRequired(forLevel: 50), lastContributionAt: .now))
         attribute.profileByUser["u-1"] = first
 
         let service = ScanCheckpointService(
@@ -61,7 +61,7 @@ final class ScanCheckpointServiceTests: XCTestCase {
 
         // Second scan: power=62.
         var second = AttributeProfile.empty(userId: "u-1", at: .now)
-        second.set(.power, AttributeValue(peak: 62, current: 62, lastContributionAt: .now))
+        second.set(.power, AttributeValue(xp: AttributeLevelCurve.xpRequired(forLevel: 62), lastContributionAt: .now))
         attribute.profileByUser["u-1"] = second
 
         let cp = try await service.commit(
@@ -75,7 +75,7 @@ final class ScanCheckpointServiceTests: XCTestCase {
 
     func testCommitPersistsCheckpoint() async throws {
         var profile = AttributeProfile.empty(userId: "u-1", at: .now)
-        profile.set(.power, AttributeValue(peak: 50, current: 50, lastContributionAt: .now))
+        profile.set(.power, AttributeValue(xp: AttributeLevelCurve.xpRequired(forLevel: 50), lastContributionAt: .now))
         attribute.profileByUser["u-1"] = profile
 
         let writer = StubPhotoWriter()

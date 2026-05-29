@@ -4,7 +4,6 @@ import SwiftUI
 // MARK: - AttributeRankUpToast
 //
 // Cinematic-asymmetry rule:
-//   .subRank → silent
 //   .tier    → this toast, accent border + soft glow
 //   .aTier   → this toast, impact border + bright glow (visual differentiation)
 //
@@ -29,8 +28,6 @@ struct AttributeRankUpToast: ViewModifier {
             .onReceive(NotificationCenter.default.publisher(for: .attributeRankUp)) { note in
                 guard let event = note.object as? AttributeRankUpEvent else { return }
                 switch event.level {
-                case .subRank:
-                    return  // silent per cinematic-asymmetry rule
                 case .tier:
                     show(event)
                 case .aTier:
@@ -42,8 +39,8 @@ struct AttributeRankUpToast: ViewModifier {
                         userId: "current",
                         exerciseKey: event.axis.rawValue,
                         displayName: event.axis.buildVocab,
-                        fromRank: event.fromSubRank,
-                        toRank: event.toSubRank,
+                        fromRank: event.fromTitle,
+                        toRank: event.toTitle,
                         at: event.timestamp
                     )
                     NotificationCenter.default.post(

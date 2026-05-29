@@ -186,7 +186,6 @@ struct Step_ProblemFrame: View {
             ZStack {
                 AttributeHex(
                     current: baselineHexValues,
-                    peak: nil,
                     levels: baselineLevels,
                     tiers: nil,
                     showLabels: false,
@@ -453,7 +452,6 @@ struct Step_RestartLoop: View {
 
             AttributeHex(
                 current: preview.hexValues,
-                peak: nil,
                 levels: preview.levels,
                 tiers: preview.tiers,
                 showLabels: true,

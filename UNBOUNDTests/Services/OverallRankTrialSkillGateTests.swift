@@ -33,7 +33,7 @@ final class OverallRankTrialSkillGateTests: XCTestCase {
     private func masterReadiness(skillTiers: [String: SkillTier]) -> OverallRankTrialReadiness {
         var profile = AttributeProfile.empty(userId: "u", at: Date(timeIntervalSince1970: 0))
         for key in AttributeKey.allCases {
-            profile.set(key, AttributeValue(peak: 100, current: 100, lastContributionAt: Date(timeIntervalSince1970: 0)))
+            profile.set(key, AttributeValue(xp: AttributeLevelCurve.xpRequired(forLevel: 100), lastContributionAt: Date(timeIntervalSince1970: 0)))
         }
         return TrialReadinessService.shared.evaluate(
             OverallRankTrialReadinessInput(

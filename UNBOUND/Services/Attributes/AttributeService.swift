@@ -37,7 +37,7 @@ protocol AttributeServiceProtocol: AnyObject {
         at date: Date
     ) async -> AttributeAPIngestResult
 
-    /// Apply onboarding seed. Each selected key gets peak=current=15.
+    /// Apply onboarding seed. Each selected key starts at L0 (xp = 0).
     func applySeed(_ seeded: Set<AttributeKey>, userId: String)
 
     /// Pin the current profile to a scan id, for later Δ comparison.
@@ -184,8 +184,10 @@ final class AttributeService: AttributeServiceProtocol {
         guard !seeded.isEmpty else { return }
         var profile = profile(userId: userId)
         let now = Date()
+        // Everyone starts at L0 — xp = 0, a tiny sliver. Training is the only
+        // way up.
         for key in seeded {
-            profile.set(key, AttributeValue(peak: 15, current: 15, xp: 0, lastContributionAt: now))
+            profile.set(key, AttributeValue(xp: 0, lastContributionAt: now))
         }
         profile.computedAt = now
         store.save(profile)
@@ -231,24 +233,21 @@ final class AttributeService: AttributeServiceProtocol {
         let now = Date()
         var prof = profile(userId: userId)
         var value = prof.value(for: axis)
-        let beforeRankTier = value.rankTier
-        value.xp += AttributeLevelCurve.xpAwarded(forScoreDelta: amount)
-        value.current = min(value.current + amount, 100)
-        value.peak = max(value.peak, value.current)
+        let beforeTitle = value.rankTitle
+        value.xp += max(0, amount)
         value.lastContributionAt = now
         prof.set(axis, value)
         prof.computedAt = now
         store.save(prof)
         // Fire rank-up notification if the tier crossed.
-        let afterRankTier = value.rankTier
-        if afterRankTier > beforeRankTier {
+        let afterTitle = value.rankTitle
+        if afterTitle > beforeTitle {
+            let crownBand: Set<RankTitle> = [.vessel, .unbound, .ascendant]
             let event = AttributeRankUpEvent(
                 axis: axis,
-                fromTitle: beforeRankTier,
-                toTitle: afterRankTier,
-                fromSubRank: beforeRankTier,
-                toSubRank: afterRankTier,
-                level: .subRank,
+                fromTitle: beforeTitle,
+                toTitle: afterTitle,
+                level: crownBand.contains(afterTitle) ? .aTier : .tier,
                 timestamp: now
             )
             NotificationCenter.default.post(name: .attributeRankUp, object: event)
@@ -322,9 +321,7 @@ final class MockAttributeService: AttributeServiceProtocol {
     func applyBoost(axis: AttributeKey, amount: Double, userId: String) {
         var prof = profileByUser[userId] ?? .empty(userId: userId, at: .now)
         var value = prof.value(for: axis)
-        value.xp += AttributeLevelCurve.xpAwarded(forScoreDelta: amount)
-        value.current = min(value.current + amount, 100)
-        value.peak = max(value.peak, value.current)
+        value.xp += max(0, amount)
         value.lastContributionAt = Date()
         prof.set(axis, value)
         profileByUser[userId] = prof

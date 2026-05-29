@@ -14,7 +14,7 @@ struct BuildAttributeCell: View {
             content
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("\(key.displayName), \(value.levelRankTitle.displayName) rank, level \(value.level)")
+        .accessibilityLabel("\(key.displayName), \(value.rankTitle.displayName) rank, level \(value.level)")
     }
 
     private var content: some View {
@@ -28,7 +28,7 @@ struct BuildAttributeCell: View {
                     .minimumScaleFactor(0.68)
                 Spacer()
                 HStack(spacing: 5) {
-                    AttributeRankBadge(rank: value.levelRankTitle, size: 18)
+                    AttributeRankBadge(rank: value.rankTitle, size: 18)
                     Text("LVL \(value.level)")
                         .font(.system(size: 11, weight: .black, design: .monospaced))
                         .tracking(0)

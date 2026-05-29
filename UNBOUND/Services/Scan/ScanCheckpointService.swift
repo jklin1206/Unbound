@@ -68,8 +68,8 @@ final class ScanCheckpointService {
                 let priorPinned = history[history.count - 2]
                 var perAxis: [AttributeKey: Int] = [:]
                 for key in AttributeKey.allCases {
-                    let before = Int(priorPinned.value(for: key).current)
-                    let after = Int(currentProfile.value(for: key).current)
+                    let before = priorPinned.value(for: key).level
+                    let after = currentProfile.value(for: key).level
                     perAxis[key] = after - before
                 }
                 delta = BuildIdentityDelta(perAxis: perAxis)

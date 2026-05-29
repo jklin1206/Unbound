@@ -10,8 +10,7 @@ struct HomeBuildChipCard: View {
             HStack(spacing: 14) {
                 AttributeHex(
                     current: profile.hexChartValues,
-                    peak: nil,
-                    prestigeGlow: profile.prestigeGlowValues,
+                    levels: profile.levels,
                     showLabels: false,
                     radius: 38
                 )

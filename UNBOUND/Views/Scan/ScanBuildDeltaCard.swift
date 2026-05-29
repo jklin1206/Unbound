@@ -30,7 +30,7 @@ struct ScanBuildDeltaCard: View {
                         .font(.system(size: 9, weight: .bold, design: .monospaced))
                         .tracking(2.0)
                         .foregroundStyle(Color.unbound.textTertiary)
-                    AttributeHex(current: values(firstScan), peak: nil, showLabels: false, radius: 54)
+                    AttributeHex(current: values(firstScan), showLabels: false, radius: 54)
                 }
                 Image(systemName: "arrow.right")
                     .font(.system(size: 16, weight: .bold))
@@ -40,7 +40,7 @@ struct ScanBuildDeltaCard: View {
                         .font(.system(size: 9, weight: .bold, design: .monospaced))
                         .tracking(2.0)
                         .foregroundStyle(Color.unbound.accent)
-                    AttributeHex(current: values(latestScan), peak: nil, showLabels: false, radius: 54)
+                    AttributeHex(current: values(latestScan), showLabels: false, radius: 54)
                 }
             }
 
@@ -56,12 +56,11 @@ struct ScanBuildDeltaCard: View {
     }
 
     private func values(_ p: AttributeProfile) -> [AttributeKey: Double] {
-        Dictionary(uniqueKeysWithValues: AttributeKey.allCases.map { ($0, p.value(for: $0).current) })
+        Dictionary(uniqueKeysWithValues: AttributeKey.allCases.map { ($0, p.value(for: $0).hexFill * 100) })
     }
 
     private func deltaCell(for key: AttributeKey) -> some View {
-        let delta = latestScan.value(for: key).current - firstScan.value(for: key).current
-        let rounded = Int(delta.rounded())
+        let rounded = latestScan.value(for: key).level - firstScan.value(for: key).level
         let didImprove = rounded > 0
         return VStack(spacing: 2) {
             Text(didImprove ? "+\(rounded)" : "HELD")

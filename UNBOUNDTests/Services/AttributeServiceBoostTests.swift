@@ -1,4 +1,8 @@
 // UNBOUNDTests/Services/AttributeServiceBoostTests.swift
+//
+// Phase 5: AttributeValue collapsed to {xp, lastContributionAt}. `applyBoost`
+// now adds its `amount` directly as permanent XP (the old 0...100 score /
+// peak clamp is gone — xp has a level ceiling, not a 100 cap).
 import XCTest
 @testable import UNBOUND
 
@@ -12,48 +16,35 @@ final class AttributeServiceBoostTests: XCTestCase {
         mock = MockAttributeService()
     }
 
-    func testBoostIncreasesAxisValue() {
-        // Seed a starting value
+    func testBoostAddsXP() {
         var profile = AttributeProfile.empty(userId: "u-1", at: .now)
-        profile.set(.power, AttributeValue(peak: 50, current: 50, lastContributionAt: .now))
+        profile.set(.power, AttributeValue(xp: 1_000, lastContributionAt: .now))
         mock.profileByUser["u-1"] = profile
 
-        mock.applyBoost(axis: .power, amount: 10, userId: "u-1")
+        mock.applyBoost(axis: .power, amount: 250, userId: "u-1")
 
-        let updated = mock.profile(userId: "u-1")
-        XCTAssertEqual(updated.value(for: .power).current, 60, accuracy: 0.01)
+        XCTAssertEqual(mock.profile(userId: "u-1").value(for: .power).xp, 1_250, accuracy: 0.01)
     }
 
-    func testBoostClampsTo100() {
+    func testBoostNeverReducesXP() {
         var profile = AttributeProfile.empty(userId: "u-1", at: .now)
-        profile.set(.power, AttributeValue(peak: 95, current: 95, lastContributionAt: .now))
+        profile.set(.endurance, AttributeValue(xp: 5_000, lastContributionAt: .now))
         mock.profileByUser["u-1"] = profile
 
-        mock.applyBoost(axis: .power, amount: 20, userId: "u-1")
+        mock.applyBoost(axis: .endurance, amount: -100, userId: "u-1")
 
-        let updated = mock.profile(userId: "u-1")
-        XCTAssertEqual(updated.value(for: .power).current, 100, accuracy: 0.01)
+        // Negative amounts are clamped to 0 — xp is permanent and only grows.
+        XCTAssertEqual(mock.profile(userId: "u-1").value(for: .endurance).xp, 5_000, accuracy: 0.01)
     }
 
-    func testBoostDoesNotReduceValue() {
+    func testBoostRaisesLevel() {
         var profile = AttributeProfile.empty(userId: "u-1", at: .now)
-        profile.set(.endurance, AttributeValue(peak: 40, current: 40, lastContributionAt: .now))
+        profile.set(.mobility, AttributeValue(xp: 0, lastContributionAt: .now))
         mock.profileByUser["u-1"] = profile
 
-        mock.applyBoost(axis: .endurance, amount: 5, userId: "u-1")
+        // base-independent: award exactly the XP for L10.
+        mock.applyBoost(axis: .mobility, amount: AttributeLevelCurve.xpRequired(forLevel: 10), userId: "u-1")
 
-        let updated = mock.profile(userId: "u-1")
-        XCTAssertGreaterThanOrEqual(updated.value(for: .endurance).current, 40)
-    }
-
-    func testBoostUpdatesPeakWhenCurrentExceedsPriorPeak() {
-        var profile = AttributeProfile.empty(userId: "u-1", at: .now)
-        profile.set(.mobility, AttributeValue(peak: 30, current: 30, lastContributionAt: .now))
-        mock.profileByUser["u-1"] = profile
-
-        mock.applyBoost(axis: .mobility, amount: 15, userId: "u-1")
-
-        let updated = mock.profile(userId: "u-1")
-        XCTAssertEqual(updated.value(for: .mobility).peak, 45, accuracy: 0.01)
+        XCTAssertEqual(mock.profile(userId: "u-1").value(for: .mobility).level, 10)
     }
 }

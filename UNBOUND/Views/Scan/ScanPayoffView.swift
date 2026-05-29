@@ -75,7 +75,7 @@ extension AttributeProfile {
     var hexValues: [AttributeKey: Double] {
         var dict: [AttributeKey: Double] = [:]
         for key in AttributeKey.allCases {
-            dict[key] = Double(value(for: key).current)
+            dict[key] = value(for: key).hexFill * 100
         }
         return dict
     }

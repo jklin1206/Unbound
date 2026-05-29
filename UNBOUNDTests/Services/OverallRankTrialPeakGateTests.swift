@@ -1,15 +1,18 @@
+// Phase 5: the attribute trial gate now reads permanent xp-derived LEVEL
+// (peak/current/drift were deleted). Level never decays, so a proven axis
+// stays met across any layoff — these tests assert that with the new model.
 import XCTest
 @testable import UNBOUND
 
 @MainActor
 final class OverallRankTrialPeakGateTests: XCTestCase {
 
-    /// Profile where every attribute has PEAKED at `peak` but `current` has
-    /// drifted down to `current` (a layoff).
-    private func profile(peak: Double, current: Double) -> AttributeProfile {
+    /// Profile where every attribute sits at `level`.
+    private func profile(level: Int) -> AttributeProfile {
         var p = AttributeProfile.empty(userId: "u1", at: Date(timeIntervalSince1970: 0))
+        let xp = AttributeLevelCurve.xpRequired(forLevel: level)
         for key in AttributeKey.allCases {
-            p.set(key, AttributeValue(peak: peak, current: current, lastContributionAt: Date(timeIntervalSince1970: 0)))
+            p.set(key, AttributeValue(xp: xp, lastContributionAt: Date(timeIntervalSince1970: 0)))
         }
         return p
     }
@@ -28,29 +31,26 @@ final class OverallRankTrialPeakGateTests: XCTestCase {
         return readiness.requirements.first { $0.id == "top-attributes" }
     }
 
-    /// Kickoff/WS-C decision: trials gate on PEAK. A proven peak that later
-    /// drifts in `current` must still satisfy the attribute requirement.
-    func testAttributeGateUsesPeakNotCurrent() {
+    /// At or above the floor LEVEL satisfies the gate (and stays satisfied —
+    /// level is permanent, never lost to a layoff).
+    func testAttributeGateMetAtFloorLevel() {
         guard let definition = OverallRankTrialDefinitions.nextTrial(after: .apprentice),
               definition.topAttributeCount > 0 else {
             return XCTFail("Expected a rank gate with an attribute requirement after Apprentice")
         }
-        let floor = definition.topAttributeFloor
-
-        // Peaked at floor, but current drifted to zero.
-        let peakOnly = profile(peak: floor, current: 0)
-        let line = topAttributesLine(currentRank: .apprentice, profile: peakOnly)
-        XCTAssertEqual(line?.isMet, true, "Peaked attributes must satisfy the gate even after drift")
+        let atFloor = profile(level: Int(definition.topAttributeFloor))
+        let line = topAttributesLine(currentRank: .apprentice, profile: atFloor)
+        XCTAssertEqual(line?.isMet, true, "Level at/above the floor must satisfy the gate")
     }
 
-    /// Negative control: never having reached the floor (peak below) stays locked.
-    func testAttributeGateStillLocksWhenPeakBelowFloor() {
+    /// Negative control: below the floor level stays locked.
+    func testAttributeGateLocksBelowFloorLevel() {
         guard let definition = OverallRankTrialDefinitions.nextTrial(after: .apprentice),
               definition.topAttributeCount > 0 else {
             return XCTFail("Expected a rank gate with an attribute requirement after Apprentice")
         }
-        let belowFloor = profile(peak: definition.topAttributeFloor - 5, current: definition.topAttributeFloor - 5)
+        let belowFloor = profile(level: max(0, Int(definition.topAttributeFloor) - 5))
         let line = topAttributesLine(currentRank: .apprentice, profile: belowFloor)
-        XCTAssertEqual(line?.isMet, false, "A peak below the floor must keep the gate locked")
+        XCTAssertEqual(line?.isMet, false, "A level below the floor must keep the gate locked")
     }
 }

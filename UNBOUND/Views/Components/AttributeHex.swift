@@ -7,16 +7,13 @@ struct AttributeHex: View {
         case profile
     }
 
-    /// 0...100 per axis. Renders the filled "current" polygon.
+    /// 0...100 hex-fill per axis. Renders the filled polygon.
     let current: [AttributeKey: Double]
-    /// Optional dashed peak overlay. Pass nil to omit.
-    let peak: [AttributeKey: Double]?
-    /// Optional permanent XP-derived level per axis. Falls back to legacy score-derived display levels.
+    /// Optional permanent XP-derived level per axis. Falls back to a level
+    /// derived from the fill fraction when absent.
     var levels: [AttributeKey: Int]? = nil
     /// Optional prestige tier labels to place under the axis level.
     var tiers: [AttributeKey: RankTitle]? = nil
-    /// Optional 0...1 post-soft-cap glow per axis. Does not affect chart geometry.
-    var prestigeGlow: [AttributeKey: Double]? = nil
     /// Show "POW/VIT/..." axis labels around the hex.
     var showLabels: Bool = true
     /// Controls how much detail the axis labels show.
@@ -31,9 +28,7 @@ struct AttributeHex: View {
             let center = CGPoint(x: size.width / 2, y: size.height / 2)
             drawGrid(ctx: ctx, center: center)
             drawAxes(ctx: ctx, center: center)
-            if let peak { drawPolygon(ctx: ctx, center: center, values: peak, dashed: true) }
             drawPolygon(ctx: ctx, center: center, values: current, dashed: false)
-            drawPrestigeGlows(ctx: ctx, center: center)
         }
         .frame(width: 2 * radius, height: 2 * radius)
         .overlay { if showLabels { labelOverlay } }
@@ -82,30 +77,12 @@ struct AttributeHex: View {
         }
     }
 
-    private func drawPrestigeGlows(ctx: GraphicsContext, center: CGPoint) {
-        guard let prestigeGlow else { return }
-
-        for (i, key) in axisOrder.enumerated() {
-            let intensity = min(1, max(0, prestigeGlow[key] ?? 0))
-            guard intensity > 0 else { continue }
-
-            let fraction = max(0.08, min(1, (current[key] ?? 0) / 100))
-            let tip = point(for: i, at: fraction, center: center)
-            let tint = key.rewardTint
-            let scale = CGFloat(0.7 + intensity * 0.8)
-
-            for ring in 0..<3 {
-                let diameter = CGFloat(10 + ring * 12) * scale
-                let opacity = [0.42, 0.18, 0.07][ring] * intensity
-                let rect = CGRect(
-                    x: tip.x - diameter / 2,
-                    y: tip.y - diameter / 2,
-                    width: diameter,
-                    height: diameter
-                )
-                ctx.fill(Path(ellipseIn: rect), with: .color(tint.opacity(opacity)))
-            }
-        }
+    /// Level for `key`: the passed-in xp-derived level, else derived from the
+    /// fill fraction (`fill% × maxLevel`).
+    private func displayLevel(for key: AttributeKey) -> Int {
+        if let level = levels?[key] { return level }
+        let fraction = max(0, min(1, (current[key] ?? 0) / 100))
+        return Int((fraction * Double(AttributeLevelCurve.maxLevel)).rounded())
     }
 
     @ViewBuilder
@@ -129,8 +106,7 @@ struct AttributeHex: View {
     private func axisLabelView(for key: AttributeKey) -> some View {
         VStack(spacing: 2) {
             if labelVariant == .profile {
-                let level = levels?[key]
-                    ?? AttributeLevelCurve.level(forXP: AttributeLevelCurve.legacyXP(forScore: current[key] ?? 0))
+                let level = displayLevel(for: key)
                 Text(key.shortCode)
                     .font(.system(size: 11, weight: .heavy, design: .monospaced))
                     .tracking(0)
@@ -144,8 +120,7 @@ struct AttributeHex: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.62)
             } else {
-                let level = levels?[key]
-                    ?? AttributeLevelCurve.level(forXP: AttributeLevelCurve.legacyXP(forScore: current[key] ?? 0))
+                let level = displayLevel(for: key)
                 Text("\(key.shortCode) LVL \(level)")
                     .font(.system(size: 8.5, weight: .bold, design: .monospaced))
                     .tracking(0)

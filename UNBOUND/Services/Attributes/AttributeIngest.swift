@@ -23,11 +23,44 @@ extension AttributeCatalogProtocol {
 
 enum AttributeIngest {
     static let gainConstant: Double = 4.0
-    /// Transitional bridge while the profile hex still uses the legacy 0...100
-    /// `current`/`peak` fields for shape. Permanent progression is stored in
-    /// `AttributeValue.xp`; this scale only keeps the visible hex from freezing
-    /// until the UI is fully XP-native.
-    static let apXPToDisplayScoreScale: Double = 1.0 / AttributeLevelCurve.legacyScoreXPScale
+    /// Converts a coarse legacy session `delta` (≈0…4 per axis, from
+    /// `deltas(for:catalog:)`) into permanent XP. Only the legacy WorkoutLog
+    /// ingest/backfill path uses this; the canonical AP path awards XP directly.
+    static let sessionDeltaXPScale: Double = 50
+
+    // MARK: - Per-axis catch-up multiplier (build-revealing + balance)
+    //
+    // Neglected axes (below the hex mean) earn faster; over-fed / near-cap axes
+    // slow down. Keeps the hex build-revealing while preventing a single axis
+    // (e.g. power) from trivially pinning at max. Pure function of the user's
+    // CURRENT per-axis levels — deterministic, no new persistence.
+
+    /// Slope of the catch-up bonus. Higher = stronger pull toward the mean.
+    /// One-line tunable.
+    static let catchUpK: Double = 2.0
+    /// Multiplier floor / ceiling.
+    static let catchUpMin: Double = 0.5
+    static let catchUpMax: Double = 2.0
+    /// At/above this level an axis is "near cap" and its factor is braked.
+    static let catchUpNearCapLevel: Int = 90
+    /// Brake applied to a near-cap axis's catch-up factor.
+    static let catchUpNearCapBrake: Double = 0.5
+
+    /// Catch-up factor for `axisLevel` given the mean level across the 6 axes.
+    /// `clamp(1 + k·(mean − level)/maxLevel, min, max)`, then a near-cap brake.
+    static func catchUpFactor(axisLevel: Int, meanLevel: Double) -> Double {
+        let raw = 1 + catchUpK * (meanLevel - Double(axisLevel)) / Double(AttributeLevelCurve.maxLevel)
+        var factor = min(catchUpMax, max(catchUpMin, raw))
+        if axisLevel >= catchUpNearCapLevel { factor *= catchUpNearCapBrake }
+        return factor
+    }
+
+    /// Mean of the current per-axis levels in `profile`.
+    static func meanLevel(of profile: AttributeProfile) -> Double {
+        let levels = AttributeKey.allCases.map { Double(profile.level(for: $0)) }
+        guard !levels.isEmpty else { return 0 }
+        return levels.reduce(0, +) / Double(levels.count)
+    }
 
     /// Compute per-attribute deltas for a finished workout. Pure — no IO.
     static func deltas(for session: WorkoutLog, catalog: AttributeCatalogProtocol) -> [AttributeKey: Double] {
@@ -121,7 +154,25 @@ enum AttributeIngest {
     // add a `static func deltas(for skillSession:catalog:) -> [AttributeKey: Double]`
     // overload here. Spec target: `(durationMin / 30) × (rpe / 10) × catalog vector × gainConstant`.
 
-    /// Mutates `profile` in place: adds deltas, lifts peaks, returns rank-up crossings.
+    /// Rank-up event for a tier crossing on the single RankTitle ladder.
+    private static func rankUpEvent(
+        axis: AttributeKey,
+        from previousTier: RankTitle,
+        to currentTier: RankTitle,
+        at date: Date
+    ) -> AttributeRankUpEvent? {
+        guard currentTier != previousTier else { return nil }
+        let crownBand: Set<RankTitle> = [.vessel, .unbound, .ascendant]
+        let level: AttributeRankUpEvent.Level = crownBand.contains(currentTier) ? .aTier : .tier
+        return AttributeRankUpEvent(
+            axis: axis,
+            fromTitle: previousTier, toTitle: currentTier,
+            level: level, timestamp: date
+        )
+    }
+
+    /// Mutates `profile` in place (legacy WorkoutLog path): converts coarse
+    /// session deltas to permanent XP, returns tier-crossing events.
     static func applyDeltas(
         _ profile: inout AttributeProfile,
         deltas: [AttributeKey: Double],
@@ -132,37 +183,19 @@ enum AttributeIngest {
             let delta = deltas[key] ?? 0
             guard delta > 0 else { continue }
             var v = profile.value(for: key)
-            let beforeSub  = v.rankTier
-            let beforeTier = v.rankTitle
-            v.xp += AttributeLevelCurve.xpAwarded(forScoreDelta: delta)
-            v.current = min(100, v.current + delta)
-            if v.current > v.peak { v.peak = v.current }
+            let previousTier = v.rankTitle
+            v.xp += delta * sessionDeltaXPScale
             v.lastContributionAt = date
             profile.set(key, v)
-            let afterSub  = v.rankTier
-            let afterTier = v.rankTitle
-            if afterSub != beforeSub {
-                let level: AttributeRankUpEvent.Level = {
-                    if afterTier != beforeTier {
-                        let aTitles: Set<RankTitle> = [.vessel, .unbound, .ascendant]
-                        return aTitles.contains(afterTier) ? .aTier : .tier
-                    }
-                    return .subRank
-                }()
-                events.append(AttributeRankUpEvent(
-                    axis: key,
-                    fromTitle: beforeTier, toTitle: afterTier,
-                    fromSubRank: beforeSub, toSubRank: afterSub,
-                    level: level, timestamp: date
-                ))
+            if let event = rankUpEvent(axis: key, from: previousTier, to: v.rankTitle, at: date) {
+                events.append(event)
             }
         }
         return events
     }
 
     /// Mutates `profile` by adding permanent XP from the AP fan-out path.
-    /// Returns reward rows plus rank-up events for any legacy display-tier
-    /// crossings caused by the small transitional score lift.
+    /// Returns reward rows plus tier-crossing rank-up events.
     static func applyXPDeltas(
         _ profile: inout AttributeProfile,
         xpDeltas: [AttributeKey: Double],
@@ -171,43 +204,29 @@ enum AttributeIngest {
         var rewards: [AttributeProgressionReward] = []
         var events: [AttributeRankUpEvent] = []
 
+        // Per-axis catch-up: scale each axis's gain by a factor off the CURRENT
+        // (pre-ingest) per-axis levels. Neglected axes (below the mean) gain
+        // faster; over-fed / near-cap axes slow. On top of the novelty
+        // multiplier already baked into `xpDeltas`.
+        let mean = meanLevel(of: profile)
+
         for key in AttributeKey.allCases {
-            let xpGained = xpDeltas[key] ?? 0
-            guard xpGained > 0 else { continue }
+            let rawXPGained = xpDeltas[key] ?? 0
+            guard rawXPGained > 0 else { continue }
 
             var value = profile.value(for: key)
             let previousXP = value.xp
             let previousLevel = value.level
-            let previousSubRank = value.rankTier
             let previousTier = value.rankTitle
-            let previousScore = value.current
 
+            let xpGained = rawXPGained * catchUpFactor(axisLevel: previousLevel, meanLevel: mean)
             value.xp += xpGained
-            let displayDelta = xpGained * apXPToDisplayScoreScale
-            value.current = min(100, value.current + displayDelta)
-            value.peak = max(value.peak, value.current)
             value.lastContributionAt = date
             profile.set(key, value)
 
-            let currentSubRank = value.rankTier
             let currentTier = value.rankTitle
-            if currentSubRank != previousSubRank {
-                let level: AttributeRankUpEvent.Level = {
-                    if currentTier != previousTier {
-                        let aTitles: Set<RankTitle> = [.vessel, .unbound, .ascendant]
-                        return aTitles.contains(currentTier) ? .aTier : .tier
-                    }
-                    return .subRank
-                }()
-                events.append(AttributeRankUpEvent(
-                    axis: key,
-                    fromTitle: previousTier,
-                    toTitle: currentTier,
-                    fromSubRank: previousSubRank,
-                    toSubRank: currentSubRank,
-                    level: level,
-                    timestamp: date
-                ))
+            if let event = rankUpEvent(axis: key, from: previousTier, to: currentTier, at: date) {
+                events.append(event)
             }
 
             rewards.append(AttributeProgressionReward(
@@ -218,9 +237,7 @@ enum AttributeIngest {
                 previousLevel: previousLevel,
                 currentLevel: value.level,
                 previousTier: previousTier,
-                currentTier: currentTier,
-                previousScore: previousScore,
-                currentScore: value.current
+                currentTier: currentTier
             ))
         }
 
@@ -255,8 +272,6 @@ struct AttributeProgressionReward: Sendable {
     var currentLevel: Int
     var previousTier: RankTitle
     var currentTier: RankTitle
-    var previousScore: Double
-    var currentScore: Double
 
     var didIncreaseLevel: Bool { currentLevel > previousLevel }
     var didAdvanceTier: Bool { currentTier.ordinal > previousTier.ordinal }

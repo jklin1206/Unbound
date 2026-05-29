@@ -1,33 +1,36 @@
 import Foundation
 
 enum AttributeLevelCurve {
-    static let attrBase: Double = 100
-    static let exponent: Double = 1.5
-    static let softCapLevel: Int = 100
-    static let cappedXPPerLevel: Double = 1_500
-    /// Transitional bridge for existing 0...100 profiles until raw AP fans into attribute XP directly.
-    static let legacyScoreXPScale: Double = 50
+    /// Clean, reachable ceiling — no soft-cap tail. L100 == a true "maxed it".
+    static let maxLevel: Int = 100
+    /// Cheap first levels → tiny visible slivers for new users. base=16 tunes
+    /// the horizon to ~3yr balanced / ~6yr focused for a heavy trainer.
+    static let base: Double = 16
+    /// Quadratic steepening → a real top cliff (last level ≈ 200× the first).
+    static let exponent: Double = 2.0
 
+    /// Cumulative XP required to *reach* `level`. Clamped at `maxLevel`.
+    static func xpRequired(forLevel level: Int) -> Double {
+        let clamped = min(max(0, level), maxLevel)
+        return base * pow(Double(clamped), exponent)
+    }
+
+    /// Permanent XP → level. Floors, clamps to `maxLevel`.
     static func level(forXP xp: Double) -> Int {
         guard xp > 0 else { return 0 }
-        let softCapXP = xpRequiredForUncappedLevel(softCapLevel)
-        guard xp >= softCapXP else {
-            return max(0, Int(floor(pow(xp / attrBase, 1.0 / exponent) + 1e-9)))
-        }
-        return softCapLevel + Int(floor((xp - softCapXP) / cappedXPPerLevel + 1e-9))
+        let raw = Int(floor(pow(xp / base, 1.0 / exponent) + 1e-9))
+        return min(maxLevel, max(0, raw))
     }
 
-    static func xpRequired(forLevel level: Int) -> Double {
-        guard level > 0 else { return 0 }
-        guard level > softCapLevel else {
-            return xpRequiredForUncappedLevel(level)
-        }
-        return xpRequiredForUncappedLevel(softCapLevel)
-            + Double(level - softCapLevel) * cappedXPPerLevel
+    /// Hex fill 0…1. Linear and honest: `level / maxLevel`. No display trick.
+    static func hexFill(forLevel level: Int) -> Double {
+        Double(min(max(0, level), maxLevel)) / Double(maxLevel)
     }
 
+    /// Fractional progress through the current level toward the next.
     static func progressFraction(forXP xp: Double) -> Double {
         let level = level(forXP: xp)
+        guard level < maxLevel else { return 0 }
         let floorXP = xpRequired(forLevel: level)
         let nextXP = xpRequired(forLevel: level + 1)
         guard nextXP > floorXP else { return 0 }
@@ -40,28 +43,6 @@ enum AttributeLevelCurve {
             .title ?? .initiate
     }
 
-    static func hexDisplayValue(level: Int, progress: Double) -> Double {
-        let effectiveLevel = max(0, Double(level) + min(1, max(0, progress)))
-        let prePrestigeLevel = min(effectiveLevel, Double(softCapLevel))
-        let base = 92 * pow(prePrestigeLevel / Double(softCapLevel), 0.9)
-
-        guard effectiveLevel > Double(softCapLevel) else { return base }
-
-        let postSoftCap = effectiveLevel - Double(softCapLevel)
-        let prestigePush = 8 * (1 - exp(-postSoftCap / 75))
-        return min(99.9, base + prestigePush)
-    }
-
-    static func hexPrestigeGlow(level: Int, progress: Double) -> Double {
-        let effectiveLevel = max(0, Double(level) + min(1, max(0, progress)))
-        guard effectiveLevel > Double(softCapLevel) else { return 0 }
-        return min(1, 1 - exp(-(effectiveLevel - Double(softCapLevel)) / 75))
-    }
-
-    private static func xpRequiredForUncappedLevel(_ level: Int) -> Double {
-        attrBase * pow(Double(max(0, level)), exponent)
-    }
-
     private static let rankThresholds: [(title: RankTitle, level: Int)] = [
         (.initiate, 0),
         (.novice, 3),
@@ -71,77 +52,43 @@ enum AttributeLevelCurve {
         (.master, 25),
         (.vessel, 40),
         (.unbound, 65),
-        (.ascendant, softCapLevel)
+        (.ascendant, maxLevel)
     ]
-
-    static func xpAwarded(forScoreDelta delta: Double) -> Double {
-        max(0, delta) * legacyScoreXPScale
-    }
-
-    static func legacyXP(forScore score: Double) -> Double {
-        max(0, score) * legacyScoreXPScale
-    }
 }
 
 struct AttributeValue: Codable, Sendable, Equatable {
-    var peak: Double
-    /// Callers must clamp to 0...100 — `AttributeIngest` and `AttributeDrift` enforce this invariant.
-    var current: Double
-    /// Permanent attribute XP. Unlike `current`, this never decays or caps.
+    /// Permanent attribute XP — the single source of truth per axis. Never
+    /// decays or caps below `maxLevel`. `level`, `rankTitle`, `hexFill`, and
+    /// `progressToNextLevel` all derive from this.
     var xp: Double
     var lastContributionAt: Date
 
-    init(peak: Double, current: Double, xp: Double? = nil, lastContributionAt: Date) {
-        self.peak = peak
-        self.current = current
-        self.xp = xp ?? AttributeLevelCurve.legacyXP(forScore: max(peak, current))
+    init(xp: Double, lastContributionAt: Date) {
+        self.xp = xp
         self.lastContributionAt = lastContributionAt
     }
 
     static func zero(at date: Date) -> AttributeValue {
-        AttributeValue(peak: 0, current: 0, xp: 0, lastContributionAt: date)
+        AttributeValue(xp: 0, lastContributionAt: date)
     }
 
-    /// Decay floor — `AttributeDrift` clamps `current` to this minimum after 37d idle (peak × 70%).
-    var floor: Double { peak * 0.70 }
-
-    /// Recent (possibly drifted) value sits below the lifetime peak.
-    var recentBelowLifetimePeak: Bool { current < peak }
-
-    /// Honest-signal: the axis has gone stale — idle past the drift grace
-    /// window AND recent value has fallen below the lifetime peak. `peak`,
-    /// `xp`, and the xp-derived `level` are unaffected: rank is never lost,
-    /// only honestly flagged so the displayed "recent" doesn't masquerade as
-    /// current ability.
+    /// Honest-signal: the axis has gone idle past the recency grace window.
+    /// `xp` and the derived `level`/`rankTitle` are unaffected — rank is never
+    /// lost, the axis is only flagged as not-recently-trained.
     func isStale(asOf date: Date) -> Bool {
         let daysIdle = date.timeIntervalSince(lastContributionAt) / 86_400.0
-        return daysIdle > AttributeDrift.graceDays && recentBelowLifetimePeak
-    }
-
-    var rankTier: RankTier {
-        RankTier.nearest(for: current / 100.0 * 8.0)
-    }
-
-    var rankTitle: RankTitle { rankTier }
-
-    var levelRankTitle: RankTitle {
-        AttributeLevelCurve.rankTitle(forLevel: level)
+        return daysIdle > AttributeDrift.graceDays
     }
 
     var level: Int { AttributeLevelCurve.level(forXP: xp) }
 
-    var hexChartValue: Double {
-        AttributeLevelCurve.hexDisplayValue(
-            level: level,
-            progress: AttributeLevelCurve.progressFraction(forXP: xp)
-        )
+    var rankTitle: RankTitle {
+        AttributeLevelCurve.rankTitle(forLevel: level)
     }
 
-    var hexPrestigeGlow: Double {
-        AttributeLevelCurve.hexPrestigeGlow(
-            level: level,
-            progress: AttributeLevelCurve.progressFraction(forXP: xp)
-        )
+    /// 0…1 hex fill for this axis.
+    var hexFill: Double {
+        AttributeLevelCurve.hexFill(forLevel: level)
     }
 
     var nextLevelXP: Double {
@@ -153,22 +100,17 @@ struct AttributeValue: Codable, Sendable, Equatable {
     }
 
     enum CodingKeys: String, CodingKey {
-        case peak, current, xp, lastContributionAt
+        case xp, lastContributionAt
     }
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        peak = try container.decode(Double.self, forKey: .peak)
-        current = try container.decode(Double.self, forKey: .current)
-        xp = try container.decodeIfPresent(Double.self, forKey: .xp)
-            ?? AttributeLevelCurve.legacyXP(forScore: max(peak, current))
+        xp = try container.decode(Double.self, forKey: .xp)
         lastContributionAt = try container.decode(Date.self, forKey: .lastContributionAt)
     }
 
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(peak, forKey: .peak)
-        try container.encode(current, forKey: .current)
         try container.encode(xp, forKey: .xp)
         try container.encode(lastContributionAt, forKey: .lastContributionAt)
     }

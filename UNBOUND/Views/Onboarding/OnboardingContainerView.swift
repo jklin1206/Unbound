@@ -528,7 +528,6 @@ private struct Step_ResultsSnapshot: View {
                                     .blur(radius: 18)
                                 AttributeHex(
                                     current: starterHex,
-                                    peak: nil,
                                     levels: starterLevels,
                                     tiers: starterTiers,
                                     showLabels: true,

@@ -5,10 +5,12 @@ import XCTest
 final class BuildIdentityTests: XCTestCase {
     private let t0 = Date(timeIntervalSince1970: 1_700_000_000)
 
+    /// Seed each axis at the given LEVEL (buildIdentity is now level-spread
+    /// based — the numeric value is the target level).
     private func profile(_ pairs: [(AttributeKey, Double)]) -> AttributeProfile {
         var p = AttributeProfile.empty(userId: "u", at: t0)
-        for (key, peak) in pairs {
-            p.set(key, AttributeValue(peak: peak, current: peak, lastContributionAt: t0))
+        for (key, level) in pairs {
+            p.set(key, AttributeValue(xp: AttributeLevelCurve.xpRequired(forLevel: Int(level)), lastContributionAt: t0))
         }
         return p
     }

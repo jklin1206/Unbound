@@ -19,10 +19,8 @@ struct ProfileBuildCard: View {
             VStack(spacing: 8) {
                 AttributeHex(
                     current: profile.hexChartValues,
-                    peak: profile.peakHexChartValues,
                     levels: profile.levels,
                     tiers: profile.levelRankTitles,
-                    prestigeGlow: profile.prestigeGlowValues,
                     showLabels: true,
                     labelVariant: .profile,
                     radius: 90
@@ -101,7 +99,7 @@ private struct AttributeInfoSheet: View {
                             .monospacedDigit()
                             .lineLimit(1)
                             .minimumScaleFactor(0.7)
-                        AttributeRankBadge(rank: value.levelRankTitle, size: 12)
+                        AttributeRankBadge(rank: value.rankTitle, size: 12)
                     }
                     .tracking(0)
                     .foregroundStyle(Color.unbound.textPrimary)
@@ -115,17 +113,17 @@ private struct AttributeInfoSheet: View {
                         .foregroundStyle(Color.unbound.textPrimary)
                         .lineLimit(1)
                     HStack(spacing: 6) {
-                        AttributeRankBadge(rank: value.levelRankTitle, size: 16)
+                        AttributeRankBadge(rank: value.rankTitle, size: 16)
                         Text("\(xpString(value.xpToNextLevel)) XP TO NEXT LEVEL")
                             .font(.system(size: 9, weight: .bold, design: .monospaced))
                             .tracking(0.4)
-                            .foregroundStyle(value.levelRankTitle.rewardTextTint.opacity(0.92))
+                            .foregroundStyle(value.rankTitle.rewardTextTint.opacity(0.92))
                             .monospacedDigit()
                             .lineLimit(1)
                             .minimumScaleFactor(0.72)
                     }
                     .accessibilityElement(children: .combine)
-                    .accessibilityLabel("\(value.levelRankTitle.displayName) rank, \(xpString(value.xpToNextLevel)) XP to next level")
+                    .accessibilityLabel("\(value.rankTitle.displayName) rank, \(xpString(value.xpToNextLevel)) XP to next level")
                 }
 
                 Spacer(minLength: 0)
@@ -169,20 +167,19 @@ private struct AttributeInfoSheet: View {
             }
 
             if value.isStale(asOf: Date()) {
-                // Honest signal: recent has drifted below lifetime peak after a
-                // layoff. Show both so "recent" never masquerades as ability;
-                // the rank/level above (xp-derived) is unaffected.
+                // Honest recency signal: axis hasn't been trained recently. Rank
+                // and level (xp-derived) are unaffected — never lost.
                 HStack(spacing: 18) {
-                    insightMetric(label: "RECENT", value: "\(Int(value.current.rounded()))")
-                    insightMetric(label: "PEAK", value: "\(Int(value.peak.rounded()))")
+                    insightMetric(label: "LVL", value: "\(value.level)")
+                    insightMetric(label: "% TO NEXT", value: "\(Int((AttributeLevelCurve.progressFraction(forXP: value.xp) * 100).rounded()))")
                 }
-                Text("RECALIBRATING — TRAIN TO RECLAIM YOUR PEAK")
+                Text("HASN'T BEEN TRAINED RECENTLY — KEEP IT SHARP")
                     .font(.system(size: 9, weight: .bold, design: .monospaced))
                     .tracking(0.8)
                     .foregroundStyle(key.rewardTint.opacity(0.92))
-                    .accessibilityLabel("Recalibrating: recent score \(Int(value.current.rounded())) is below your peak of \(Int(value.peak.rounded())). Train to reclaim your peak.")
+                    .accessibilityLabel("\(key.displayName) hasn't been trained recently. Train it to keep it sharp. Your level \(value.level) is unaffected.")
             } else {
-                insightMetric(label: "SCORE", value: "\(Int(value.current.rounded()))")
+                insightMetric(label: "LVL", value: "\(value.level)")
             }
 
             Spacer(minLength: 0)

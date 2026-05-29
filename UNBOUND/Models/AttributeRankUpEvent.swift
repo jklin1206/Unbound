@@ -3,10 +3,6 @@ import Foundation
 
 struct AttributeRankUpEvent: Equatable, Sendable {
     enum Level: Equatable, Sendable {
-        /// Intra-tier step. With the 9-tier RankTier ladder this no longer
-        /// fires (every rank change is a tier crossing); retained for the
-        /// silent cinematic-asymmetry contract.
-        case subRank
         /// Tier crossing below the crown band (e.g. Apprentice → Forged).
         case tier
         /// Crossing into Vessel / Unbound / Ascendant (crown band).
@@ -16,8 +12,6 @@ struct AttributeRankUpEvent: Equatable, Sendable {
     let axis: AttributeKey
     let fromTitle: RankTitle
     let toTitle: RankTitle
-    let fromSubRank: RankTier
-    let toSubRank: RankTier
     let level: Level
     let timestamp: Date
 }

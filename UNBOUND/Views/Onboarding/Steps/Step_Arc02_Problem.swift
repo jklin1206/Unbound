@@ -114,7 +114,6 @@ struct Step_Arc02_Problem: View {
                     .blur(radius: 24)
                 AttributeHex(
                     current: dormantHex,
-                    peak: nil,
                     levels: dormantLevels,
                     tiers: dormantTiers,
                     showLabels: true,

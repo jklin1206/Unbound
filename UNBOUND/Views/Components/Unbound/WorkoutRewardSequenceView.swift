@@ -440,10 +440,8 @@ struct WorkoutRewardSequenceView: View {
                     ZStack {
                         AttributeHex(
                             current: previousAttributeMap,
-                            peak: previousAttributeMap,
                             levels: previousAttributeLevels,
                             tiers: previousAttributeTiers,
-                            prestigeGlow: previousAttributePrestigeGlow,
                             showLabels: false,
                             radius: 66
                         )
@@ -455,8 +453,6 @@ struct WorkoutRewardSequenceView: View {
                             current: currentAttributeMap,
                             levels: currentAttributeLevels,
                             tiers: currentAttributeTiers,
-                            previousPrestigeGlow: previousAttributePrestigeGlow,
-                            currentPrestigeGlow: currentAttributePrestigeGlow,
                             progress: attributeHexProgress,
                             radius: 66
                         )
@@ -908,19 +904,6 @@ struct WorkoutRewardSequenceView: View {
         return Dictionary(uniqueKeysWithValues: summary.attributeDeltas.map { ($0.key, $0.currentHexChartValue) })
     }
 
-    private var previousAttributePrestigeGlow: [AttributeKey: Double] {
-        if !summary.attributePreviousPrestigeGlow.isEmpty {
-            return summary.attributePreviousPrestigeGlow
-        }
-        return Dictionary(uniqueKeysWithValues: summary.attributeDeltas.map { ($0.key, $0.previousPrestigeGlow) })
-    }
-
-    private var currentAttributePrestigeGlow: [AttributeKey: Double] {
-        if !summary.attributeCurrentPrestigeGlow.isEmpty {
-            return summary.attributeCurrentPrestigeGlow
-        }
-        return Dictionary(uniqueKeysWithValues: summary.attributeDeltas.map { ($0.key, $0.currentPrestigeGlow) })
-    }
 
     private var previousAttributeLevels: [AttributeKey: Int]? {
         summary.attributePreviousLevels.isEmpty ? nil : summary.attributePreviousLevels
@@ -947,10 +930,7 @@ struct WorkoutRewardSequenceView: View {
     }
 
     private func attributeDeltaText(_ delta: AttributeDeltaReward) -> String {
-        if delta.xpGained >= 0.5 {
-            return "+\(formatReceiptNumber(delta.xpGained)) XP"
-        }
-        return String(format: "+%.1f", delta.delta)
+        "+\(formatReceiptNumber(delta.xpGained)) XP"
     }
 
     private func readout(value: String, label: String) -> some View {
@@ -1241,8 +1221,6 @@ private struct AnimatedRewardAttributeHex: View, Animatable {
     let current: [AttributeKey: Double]
     let levels: [AttributeKey: Int]?
     let tiers: [AttributeKey: RankTitle]?
-    let previousPrestigeGlow: [AttributeKey: Double]
-    let currentPrestigeGlow: [AttributeKey: Double]
     var progress: Double
     let radius: CGFloat
 
@@ -1254,10 +1232,8 @@ private struct AnimatedRewardAttributeHex: View, Animatable {
     var body: some View {
         AttributeHex(
             current: interpolated(from: previous, to: current),
-            peak: previous,
             levels: levels,
             tiers: tiers,
-            prestigeGlow: interpolated(from: previousPrestigeGlow, to: currentPrestigeGlow),
             showLabels: false,
             radius: radius
         )
@@ -1944,7 +1920,7 @@ private struct AttributeDeltaRow: View {
                 .font(Font.unbound.monoS.weight(.heavy))
                 .foregroundStyle(delta.tint)
                 .frame(width: 34, alignment: .leading)
-            Text(String(format: "+%.1f", delta.delta))
+            Text("+\(Int(delta.xpGained.rounded())) XP")
                 .font(Font.unbound.monoS.weight(.semibold))
                 .foregroundStyle(Color.unbound.textPrimary)
             Image(systemName: delta.didAdvanceTier ? "arrow.up.right.square.fill" : "arrow.up")

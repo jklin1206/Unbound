@@ -315,7 +315,11 @@ final class MovementProgressServiceTests: XCTestCase {
 
         XCTAssertGreaterThan(result.totalMovementAP, 0)
         XCTAssertTrue(result.attributeRewards.contains { $0.key == .power && $0.xpGained > 0 })
-        XCTAssertEqual(vitalityReward.xpGained, 8, accuracy: 0.001)
+        // Per-axis catch-up nudge: the bench-press AP put power at L1, so when the
+        // 8 raw vitality XP is ingested the hex mean is 1/6 ≈ 0.16667 and vitality
+        // (L0, below mean) earns the catch-up factor 1 + 2·(0.16667−0)/100 = 1.003333.
+        // 8 × 1.003333 = 8.026666…
+        XCTAssertEqual(vitalityReward.xpGained, 8.0266666666666666, accuracy: 0.001)
     }
 
     func testTrainingCompletionRecordPreventsDuplicateCompatibleWorkoutSaves() async throws {

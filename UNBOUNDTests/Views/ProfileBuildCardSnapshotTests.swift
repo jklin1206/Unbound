@@ -12,21 +12,25 @@ final class ProfileBuildCardSnapshotTests: XCTestCase {
         _ = ProfileBuildCard(profile: p).body
     }
 
+    private func value(level: Int) -> AttributeValue {
+        AttributeValue(xp: AttributeLevelCurve.xpRequired(forLevel: level), lastContributionAt: t0)
+    }
+
     func testMidProfileRendersWithoutCrashing() {
         var p = AttributeProfile.empty(userId: "u", at: t0)
-        p.set(.power,         AttributeValue(peak: 72, current: 72, lastContributionAt: t0))
-        p.set(.vitality,       AttributeValue(peak: 45, current: 45, lastContributionAt: t0))
-        p.set(.control,       AttributeValue(peak: 58, current: 58, lastContributionAt: t0))
-        p.set(.endurance,     AttributeValue(peak: 52, current: 52, lastContributionAt: t0))
-        p.set(.mobility,      AttributeValue(peak: 28, current: 28, lastContributionAt: t0))
-        p.set(.explosiveness, AttributeValue(peak: 38, current: 38, lastContributionAt: t0))
+        p.set(.power,         value(level: 72))
+        p.set(.vitality,      value(level: 45))
+        p.set(.control,       value(level: 58))
+        p.set(.endurance,     value(level: 52))
+        p.set(.mobility,      value(level: 28))
+        p.set(.explosiveness, value(level: 38))
         _ = ProfileBuildCard(profile: p).body
     }
 
     func testSaturatedProfileRendersWithoutCrashing() {
         var p = AttributeProfile.empty(userId: "u", at: t0)
         for key in AttributeKey.allCases {
-            p.set(key, AttributeValue(peak: 95, current: 92, lastContributionAt: t0))
+            p.set(key, value(level: 95))
         }
         _ = ProfileBuildCard(profile: p).body
     }

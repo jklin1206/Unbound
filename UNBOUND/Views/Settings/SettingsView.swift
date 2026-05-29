@@ -1045,7 +1045,7 @@ private struct DevPlayerToolsView: View {
 
         let profile = AttributeProfileStore.shared.load(userId: currentUserId) ?? .empty(userId: currentUserId, at: .now)
         devAttributes = Dictionary(uniqueKeysWithValues: AttributeKey.allCases.map { key in
-            (key, profile.value(for: key).current)
+            (key, Double(profile.value(for: key).level))
         })
         selectedRankTrialTarget = OverallRankTrialDefinitions.nextTrial(
             after: OverallRankTrialStore.shared.load(userId: currentUserId).currentRank
@@ -1608,10 +1608,11 @@ enum DevBuildBootstrapper {
         let now = Date()
         var profile = AttributeProfile.empty(userId: userId, at: now)
         for key in AttributeKey.allCases {
-            let score = min(100, max(0, values[key] ?? 0))
+            // Dev slider value == target LEVEL; back into the xp that lands there.
+            let level = Int(min(100, max(0, values[key] ?? 0)).rounded())
             profile.set(
                 key,
-                AttributeValue(peak: score, current: score, lastContributionAt: now)
+                AttributeValue(xp: AttributeLevelCurve.xpRequired(forLevel: level), lastContributionAt: now)
             )
         }
         profile.computedAt = now

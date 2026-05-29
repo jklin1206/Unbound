@@ -72,7 +72,6 @@ struct FirstScanArcCard: View {
     private var hexBlock: some View {
         AttributeHex(
             current: buildAxisValues,
-            peak: nil,
             showLabels: true,
             radius: 130
         )

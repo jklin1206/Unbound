@@ -1626,12 +1626,12 @@ final class OverallRankTrialServiceTests: XCTestCase {
 
     private func attributeProfile(score: Double) -> AttributeProfile {
         var profile = AttributeProfile.empty(userId: "u1", at: Date(timeIntervalSince1970: 0))
+        // `score` is now interpreted as a target LEVEL (gate reads xp-derived level).
         for key in AttributeKey.allCases {
             profile.set(
                 key,
                 AttributeValue(
-                    peak: score,
-                    current: score,
+                    xp: AttributeLevelCurve.xpRequired(forLevel: Int(score)),
                     lastContributionAt: Date(timeIntervalSince1970: 0)
                 )
             )
