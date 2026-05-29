@@ -365,7 +365,7 @@ final class MovementProgressServiceTests: XCTestCase {
 
     func testTrainingCompletionQuarantinesCompatibleWorkoutLogWhenWriterIsMissing() async throws {
         let database = MockDatabaseService()
-        let workoutLog = SaveLogOnlyWorkoutLogService()
+        let workoutLog = NonCompatibilityWriterWorkoutLogService()
         let services = makeServices(database: database, workoutLog: workoutLog)
         let log = PerformanceLog(
             id: "perf-quarantined-compatible-write",
@@ -394,7 +394,6 @@ final class MovementProgressServiceTests: XCTestCase {
         let savedWorkoutLogId = try XCTUnwrap(result.savedWorkoutLogId)
         let saved: WorkoutLog = try await database.read(collection: "workoutLogs", documentId: savedWorkoutLogId)
 
-        XCTAssertEqual(workoutLog.saveCount, 0)
         XCTAssertTrue(workoutLog.logs.isEmpty)
         XCTAssertEqual(saved.id, savedWorkoutLogId)
         XCTAssertEqual(saved.plannedWorkoutName, "Push")
@@ -803,7 +802,7 @@ final class MovementProgressServiceTests: XCTestCase {
                 )
             ]
         )
-        try await workoutLog.saveLog(log)
+        try await workoutLog.saveCompatibleHistoryLog(log)
 
         let maybeContext = await builder.build(userId: "u1", currentImage: onePixelImage())
         let context = try XCTUnwrap(maybeContext)
@@ -934,14 +933,12 @@ private final class ScanContextUserService: UserServiceProtocol, @unchecked Send
     }
 }
 
-private final class SaveLogOnlyWorkoutLogService: WorkoutLogServiceProtocol, @unchecked Sendable {
-    var saveCount = 0
+/// A WorkoutLogServiceProtocol impl that deliberately does NOT conform to
+/// WorkoutLogCompatibilityHistoryWriting, so completion must quarantine
+/// compatible history to a direct database write instead of routing through
+/// this service.
+private final class NonCompatibilityWriterWorkoutLogService: WorkoutLogServiceProtocol, @unchecked Sendable {
     var logs: [WorkoutLog] = []
-
-    func saveLog(_ log: WorkoutLog) async throws {
-        saveCount += 1
-        logs.append(log)
-    }
 
     func updateLog(_ log: WorkoutLog) async throws {
         logs.removeAll { $0.id == log.id }

@@ -234,7 +234,7 @@ struct ActiveWorkoutContainerView: View {
                 }
             )
         }
-        // Custom exercise builder (same as WorkoutLoggingView)
+        // Custom exercise builder
         .sheet(isPresented: $showingCustomBuilder) {
             CustomExerciseBuilderView()
                 .environmentObject(services)
@@ -524,7 +524,7 @@ struct ActiveWorkoutContainerView: View {
         }
 
         // Wire point 2: fetchWeight(userId:exerciseName:) returns WorkingWeight? with .weightKg:Double.
-        // Use the normalized name (lowercased, spaces→"_") exactly like WorkoutLoggingViewModel.
+        // Use the normalized name (lowercased, spaces→"_") for the working-weight key.
         if let ex = session.currentExercise {
             let normalized = ex.name.lowercased().replacingOccurrences(of: " ", with: "_")
             if let ww = try? await services.workingWeight.fetchWeight(userId: uid, exerciseName: normalized) {

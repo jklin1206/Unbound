@@ -23,8 +23,8 @@ final class TrainingCompletionService {
     }
 
     /// Records squad-mission + friend-challenge progress for a completed
-    /// workout, exactly once per performanceLog id. Mirrors the legacy
-    /// WorkoutLogService.saveLog cascade that is now side-effect-free.
+    /// workout, exactly once per performanceLog id. This is the canonical
+    /// trigger now that the legacy WorkoutLogService.saveLog cascade is deleted.
     func recordSquadProgress(workoutLog: WorkoutLog, performanceLogId: String) async {
         guard !recordedSquadProgressLogIds.contains(performanceLogId) else { return }
         recordedSquadProgressLogIds.insert(performanceLogId)
@@ -83,9 +83,9 @@ final class TrainingCompletionService {
 
             // Squad cluster: a real finished workout advances squad-mission and
             // friend-challenge progress. The legacy WorkoutLogService.saveLog
-            // path that used to do this is now side-effect-free, so this is the
-            // canonical trigger. Idempotency-guarded so a re-flush of the same
-            // session can't double-count.
+            // path that used to do this is now deleted, so this is the canonical
+            // trigger. Idempotency-guarded so a re-flush of the same session
+            // can't double-count.
             await recordSquadProgress(workoutLog: workoutLog, performanceLogId: performanceLog.id)
         }
 
@@ -116,75 +116,6 @@ final class TrainingCompletionService {
             collection: "training_completion_records",
             documentId: record.id
         )
-
-        return result
-    }
-
-    @discardableResult
-    func recordProgressionForLegacyWorkout(
-        _ performanceLog: PerformanceLog,
-        compatibleWorkoutLog: WorkoutLog? = nil,
-        services: ServiceContainer
-    ) async -> TrainingCompletionResult {
-        if let existing: TrainingCompletionRecord = try? await services.database.read(
-            collection: "training_completion_records",
-            documentId: performanceLog.id
-        ) {
-            return TrainingCompletionResult(record: existing, wasAlreadyCompleted: true)
-        }
-
-        var result = TrainingCompletionResult()
-
-        try? await services.database.create(
-            performanceLog,
-            collection: "performanceLogs",
-            documentId: performanceLog.id
-        )
-        result.savedPerformanceLogId = performanceLog.id
-
-        // MIGRATION(Phase 9): the legacy WorkoutLoggingViewModel route must NOT
-        // write attribute/movement/overall-level/body-map progression — that is
-        // the canonical complete() path's job. Double-writing here awarded AP
-        // twice. We keep a side-effect-free reward preview so the legacy receipt
-        // still renders, then persist only compatible history + the receipt.
-        let progression = previewProgression(for: performanceLog, services: services)
-        result.mergeProgression(from: progression)
-
-        if let compatibleWorkoutLog {
-            do {
-                try await saveCompatibleWorkoutLog(
-                    compatibleWorkoutLog,
-                    performanceLogId: performanceLog.id,
-                    services: services
-                )
-                result.savedWorkoutLogId = compatibleWorkoutLog.id
-                result.proofEngineResult = ProofEngine.evaluate(
-                    log: compatibleWorkoutLog,
-                    source: WorkoutProofSource(performanceLog.source)
-                )
-            } catch {
-                LoggingService.shared.log(
-                    "TrainingCompletionService failed to write legacy-compatible WorkoutLog: \(error)",
-                    level: .warning,
-                    context: ["performanceLogId": performanceLog.id, "workoutLogId": compatibleWorkoutLog.id]
-                )
-            }
-        }
-
-        let record = TrainingCompletionRecord(result: result, performanceLog: performanceLog)
-        do {
-            try await services.database.create(
-                record,
-                collection: "training_completion_records",
-                documentId: record.id
-            )
-        } catch {
-            LoggingService.shared.log(
-                "TrainingCompletionService failed to write legacy completion receipt: \(error)",
-                level: .warning,
-                context: ["performanceLogId": performanceLog.id]
-            )
-        }
 
         return result
     }
@@ -446,11 +377,9 @@ final class TrainingCompletionService {
             return
         }
 
-        // MIGRATION(Phase 9): unified completion must never fall back to
-        // WorkoutLogServiceProtocol.saveLog(_:). That method still owns the
-        // old side-effect cascade for legacy callers, so compatible history is
-        // quarantined to a direct database write when a dedicated writer is
-        // unavailable.
+        // MIGRATION(Phase 9): when a service doesn't provide a dedicated
+        // compatibility writer, compatible history is quarantined to a direct
+        // database write so completion never re-runs any legacy save cascade.
         try await services.database.create(workoutLog, collection: "workoutLogs", documentId: workoutLog.id)
         LoggingService.shared.log(
             "TrainingCompletionService wrote compatible WorkoutLog through database quarantine",

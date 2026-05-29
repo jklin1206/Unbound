@@ -71,6 +71,17 @@ struct ExerciseLogCard: View {
             }
             .padding(.bottom, isExpanded ? 0 : 4)
 
+            if isUnmatched {
+                HStack(spacing: 6) {
+                    Image(systemName: "info.circle")
+                        .font(.system(size: 11, weight: .semibold))
+                    Text("Won't count toward rank or XP")
+                        .font(Font.unbound.captionS.weight(.semibold))
+                }
+                .foregroundStyle(Color.unbound.textTertiary)
+                .padding(.bottom, isExpanded ? 0 : 2)
+            }
+
             if isExpanded {
                 Divider().overlay(Color.unbound.borderSubtle).padding(.vertical, 8)
                 ExerciseDetailSections(
@@ -156,6 +167,10 @@ struct ExerciseLogCard: View {
 
     private var showsSetGrid: Bool {
         isCurrent || isExpanded
+    }
+
+    private var isUnmatched: Bool {
+        MovementResolver.resolve(name).isUnmatched
     }
 
     private var cardBackground: some View {

@@ -258,6 +258,9 @@ struct ResolvedMovement: Codable, Hashable, Sendable {
     var bodyRegions: [BodyRegion]
     var substitutionGroup: String
     var variationTags: Set<MovementVariationTag>
+
+    /// True when the catalog couldn't match this name — it earns zero rank/XP/attributes.
+    var isUnmatched: Bool { !rankable && movementId.hasPrefix("unresolved.") }
 }
 
 struct ResolvedTrainingMovement: Hashable, Sendable {

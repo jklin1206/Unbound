@@ -61,12 +61,29 @@ struct CustomExerciseBuilderView: View {
 
     private var nameCard: some View {
         card(title: "NAME") {
-            TextField("e.g. Zercher Squat", text: $displayName)
-                .font(Font.unbound.bodyLStrong)
-                .foregroundStyle(Color.unbound.textPrimary)
-                .textFieldStyle(.plain)
-                .padding(.vertical, 2)
+            VStack(alignment: .leading, spacing: 8) {
+                TextField("e.g. Zercher Squat", text: $displayName)
+                    .font(Font.unbound.bodyLStrong)
+                    .foregroundStyle(Color.unbound.textPrimary)
+                    .textFieldStyle(.plain)
+                    .padding(.vertical, 2)
+                if isUnmatched {
+                    HStack(spacing: 6) {
+                        Image(systemName: "info.circle")
+                            .font(.system(size: 11, weight: .semibold))
+                        Text("Won't count toward rank or XP")
+                            .font(Font.unbound.captionS.weight(.semibold))
+                    }
+                    .foregroundStyle(Color.unbound.textTertiary)
+                }
+            }
         }
+    }
+
+    private var isUnmatched: Bool {
+        let trimmed = displayName.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return false }
+        return MovementResolver.resolve(trimmed).isUnmatched
     }
 
     private var patternCard: some View {

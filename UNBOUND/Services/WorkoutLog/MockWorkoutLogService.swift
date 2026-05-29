@@ -2,13 +2,8 @@ import Foundation
 
 final class MockWorkoutLogService: WorkoutLogServiceProtocol, WorkoutLogCompatibilityHistoryWriting, @unchecked Sendable {
     var logs: [WorkoutLog] = []
-    private(set) var saveLogCallCount = 0
     private(set) var compatibleHistorySaveCallCount = 0
 
-    func saveLog(_ log: WorkoutLog) async throws {
-        saveLogCallCount += 1
-        upsert(log)
-    }
     func saveCompatibleHistoryLog(_ log: WorkoutLog) async throws {
         compatibleHistorySaveCallCount += 1
         upsert(log)
