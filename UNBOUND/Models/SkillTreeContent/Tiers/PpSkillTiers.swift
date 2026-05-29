@@ -1,6 +1,6 @@
 // UNBOUND/Models/SkillTreeContent/Tiers/PpSkillTiers.swift
 //
-// Tier criteria for every skill with prefix `pp.` (38 skills).
+// Tier criteria for every skill with prefix `pp.` (39 skills).
 // Pull/chin/muscle-up/row family. See CalSkillTiers.swift for the pattern.
 //
 // Hold-type skills (pp.dead-hang-30):
@@ -25,8 +25,8 @@ import Foundation
 #if DEBUG
 private let _ppCountCheck: Int = {
     assert(
-        PpSkillTiers.table.count == 38,
-        "pp cluster should have 38 entries, has \(PpSkillTiers.table.count)"
+        PpSkillTiers.table.count == 39,
+        "pp cluster should have 39 entries, has \(PpSkillTiers.table.count)"
     )
     for (id, tiers) in PpSkillTiers.table {
         assert(tiers.count == 9, "\(id) needs 9 tiers, has \(tiers.count)")
@@ -170,9 +170,11 @@ enum PpSkillTiers {
 
         // pp.archer-pullup — Archer Pull-Up. 3-rep anchor = Forged.
         // On-ramp to the one-arm chain.
+        // Reseat: pullup/wide-pullup on-ramp so Initiate–Novice are reachable
+        // before owning the archer; Forged = 4 = first clean archer (per proposal).
         "pp.archer-pullup": [
-            .initiate:   .reps(1,  exerciseName: "archer pullup"),
-            .novice:     .reps(2,  exerciseName: "archer pullup"),
+            .initiate:   .reps(5,  exerciseName: "pullup"),
+            .novice:     .reps(5,  exerciseName: "wide pullup"),
             .apprentice: .reps(3,  exerciseName: "archer pullup"),
             .forged:     .reps(4,  exerciseName: "archer pullup"),
             .veteran:    .reps(5,  exerciseName: "archer pullup"),
@@ -241,31 +243,33 @@ enum PpSkillTiers {
 
         // MARK: - Solo Arm
 
-        // pp.oap-negative — One-Arm Pull-Up Negative. 3-rep anchor = Forged.
-        // Last step before the full OAP.
+        // pp.oap-negative — One-Arm Pull-Up Negative. Reseat: archer-pullup
+        // on-ramp (sub for typewriter, which is unbacked) below the first slow
+        // one-arm negative. Forged = 3 = first controlled negatives.
         "pp.oap-negative": [
-            .initiate:   .reps(1,  exerciseName: "one-arm pullup negative"),
-            .novice:     .reps(2,  exerciseName: "one-arm pullup negative"),
-            .apprentice: .reps(3,  exerciseName: "one-arm pullup negative"),
-            .forged:     .reps(4,  exerciseName: "one-arm pullup negative"),
-            .veteran:    .reps(5,  exerciseName: "one-arm pullup negative"),
-            .master:      .reps(6,  exerciseName: "one-arm pullup negative"),
-            .vessel:     .reps(7,  exerciseName: "one-arm pullup negative"),
+            .initiate:   .reps(3,  exerciseName: "archer pullup"),
+            .novice:     .reps(5,  exerciseName: "archer pullup"),
+            .apprentice: .reps(1,  exerciseName: "one-arm pullup negative"),
+            .forged:     .reps(3,  exerciseName: "one-arm pullup negative"),
+            .veteran:    .reps(4,  exerciseName: "one-arm pullup negative"),
+            .master:      .reps(5,  exerciseName: "one-arm pullup negative"),
+            .vessel:     .reps(6,  exerciseName: "one-arm pullup negative"),
             .unbound:    .reps(9,  exerciseName: "one-arm pullup negative"),
             .ascendant:  .reps(12, exerciseName: "one-arm pullup negative"),
         ],
 
-        // pp.one-arm-pullup — One-Arm Pull-Up. Once-in-a-decade move.
-        // Initiate already requires reaching the OAP itself. Ascendant compounds
-        // the OAP rep target with weighted pullup volume to signal full mastery.
+        // pp.one-arm-pullup — One-Arm Pull-Up. Once-in-a-decade move. Reseat:
+        // weighted-pull strength → archer → one-arm negatives on-ramp so the
+        // bottom tiers are reachable; Forged = 1 = first true one-arm rep.
+        // Ascendant compounds the OAP rep target with weighted pullup volume.
         "pp.one-arm-pullup": [
-            .initiate:   .reps(1,  exerciseName: "one-arm pullup"),
-            .novice:     .reps(1,  exerciseName: "one-arm pullup"),
-            .apprentice: .reps(2,  exerciseName: "one-arm pullup"),
-            .forged:     .reps(3,  exerciseName: "one-arm pullup"),
-            .veteran:    .reps(4,  exerciseName: "one-arm pullup"),
-            .master:      .reps(5,  exerciseName: "one-arm pullup"),
-            .vessel:     .reps(6,  exerciseName: "one-arm pullup"),
+            .initiate:   .exerciseBodyweightRatio(0.5, exerciseName: "weighted pullup"),
+            .novice:     .reps(5,  exerciseName: "archer pullup"),
+            .apprentice: .reps(3,  exerciseName: "one-arm pullup negative"),
+            .forged:     .reps(1,  exerciseName: "one-arm pullup"),
+            .veteran:    .reps(2,  exerciseName: "one-arm pullup"),
+            .master:      .reps(3,  exerciseName: "one-arm pullup"),
+            .vessel:     .reps(5,  exerciseName: "one-arm pullup"),
             .unbound:    .compound([.reps(8, exerciseName: "one-arm pullup"), .exerciseBodyweightRatio(0.5, exerciseName: "weighted pullup")]),
             .ascendant:  .compound([.reps(10, exerciseName: "one-arm pullup"), .exerciseBodyweightRatio(0.75, exerciseName: "weighted pullup")]),
         ],
@@ -299,14 +303,16 @@ enum PpSkillTiers {
             .ascendant:  .reps(20, exerciseName: "muscle-up"),
         ],
 
-        // pp.ring-muscle-up — Ring Muscle-Up. anchor: 1 rep = Forged.
+        // pp.ring-muscle-up — Ring Muscle-Up. Reseat: own the bar MU + build the
+        // ring-transition bridge (banded MU on the unstable ring path) before the
+        // first ring rep. Forged = 1 = first clean ring muscle-up.
         "pp.ring-muscle-up": [
-            .initiate:   .reps(1,  exerciseName: "ring muscle-up"),
-            .novice:     .reps(2,  exerciseName: "ring muscle-up"),
-            .apprentice: .reps(3,  exerciseName: "ring muscle-up"),
-            .forged:     .reps(4,  exerciseName: "ring muscle-up"),
-            .veteran:    .reps(5,  exerciseName: "ring muscle-up"),
-            .master:      .reps(6,  exerciseName: "ring muscle-up"),
+            .initiate:   .reps(1,  exerciseName: "muscle-up"),
+            .novice:     .reps(3,  exerciseName: "muscle-up"),
+            .apprentice: .compound([.reps(5, exerciseName: "chest-to-bar pullup"), .variant("banded muscle-up")]),
+            .forged:     .reps(1,  exerciseName: "ring muscle-up"),
+            .veteran:    .reps(3,  exerciseName: "ring muscle-up"),
+            .master:      .reps(5,  exerciseName: "ring muscle-up"),
             .vessel:     .reps(8,  exerciseName: "ring muscle-up"),
             .unbound:    .reps(10, exerciseName: "ring muscle-up"),
             .ascendant:  .reps(12, exerciseName: "ring muscle-up"),
@@ -351,14 +357,16 @@ enum PpSkillTiers {
             .ascendant:  .reps(12, exerciseName: "plyometric pullup"),
         ],
 
-        // pp.clapping-pullup — Clapping Pull-Up. anchor: 1 rep = Forged.
+        // pp.clapping-pullup — Clapping Pull-Up. Reseat: explosive-pullup power +
+        // chest-to-bar pull height on-ramp before the first clap. Forged = 1 =
+        // first clean clapping pull-up.
         "pp.clapping-pullup": [
-            .initiate:   .reps(1,  exerciseName: "clapping pullup"),
-            .novice:     .reps(2,  exerciseName: "clapping pullup"),
-            .apprentice: .reps(3,  exerciseName: "clapping pullup"),
-            .forged:     .reps(4,  exerciseName: "clapping pullup"),
-            .veteran:    .reps(5,  exerciseName: "clapping pullup"),
-            .master:      .reps(6,  exerciseName: "clapping pullup"),
+            .initiate:   .reps(3,  exerciseName: "explosive pullup"),
+            .novice:     .reps(5,  exerciseName: "explosive pullup"),
+            .apprentice: .reps(5,  exerciseName: "chest-to-bar pullup"),
+            .forged:     .reps(1,  exerciseName: "clapping pullup"),
+            .veteran:    .reps(3,  exerciseName: "clapping pullup"),
+            .master:      .reps(5,  exerciseName: "clapping pullup"),
             .vessel:     .reps(7,  exerciseName: "clapping pullup"),
             .unbound:    .reps(9,  exerciseName: "clapping pullup"),
             .ascendant:  .reps(12, exerciseName: "clapping pullup"),
@@ -433,44 +441,51 @@ enum PpSkillTiers {
             .ascendant:  .reps(20, exerciseName: "wide pullup"),
         ],
 
-        // pp.heighted-chin-up — Heighted Chin-Up. anchor: 3 reps = Forged.
-        // Solo Arm on-ramp on the chin-up chain.
+        // pp.heighted-chin-up — Heighted Chin-Up. Reseat: chin-up volume +
+        // weighted/chest-to-bar pulling strength on-ramp before the elevated
+        // (one-arm-assist) chin. Forged = 3 = first clean heighted reps.
         "pp.heighted-chin-up": [
-            .initiate:   .reps(1,  exerciseName: "heighted chin-up"),
-            .novice:     .reps(2,  exerciseName: "heighted chin-up"),
-            .apprentice: .reps(3,  exerciseName: "heighted chin-up"),
-            .forged:     .reps(4,  exerciseName: "heighted chin-up"),
-            .veteran:    .reps(5,  exerciseName: "heighted chin-up"),
+            .initiate:   .reps(8,  exerciseName: "chin-up"),
+            .novice:     .exerciseBodyweightRatio(0.35, exerciseName: "weighted chin-up"),
+            .apprentice: .reps(5,  exerciseName: "chest-to-bar pullup"),
+            .forged:     .reps(3,  exerciseName: "heighted chin-up"),
+            .veteran:    .reps(4,  exerciseName: "heighted chin-up"),
             .master:      .reps(6,  exerciseName: "heighted chin-up"),
             .vessel:     .reps(7,  exerciseName: "heighted chin-up"),
             .unbound:    .reps(9,  exerciseName: "heighted chin-up"),
             .ascendant:  .reps(12, exerciseName: "heighted chin-up"),
         ],
 
-        // pp.one-arm-chin-up — One-Arm Chin-Up. anchor: 1 rep = Forged. Mythic.
+        // pp.one-arm-chin-up — One-Arm Chin-Up (Mythic). Reseat: kill the dead
+        // Init==Nov==1-rep bottom; heighted-chin → archer → one-arm negatives
+        // on-ramp (archer/negative sub for unbacked archer-chin/oac-negative).
+        // Forged = 1 = first true one-arm chin.
         "pp.one-arm-chin-up": [
-            .initiate:   .reps(1, exerciseName: "one-arm chin-up"),
-            .novice:     .reps(1, exerciseName: "one-arm chin-up"),
-            .apprentice: .reps(2, exerciseName: "one-arm chin-up"),
-            .forged:     .reps(3, exerciseName: "one-arm chin-up"),
-            .veteran:    .reps(4, exerciseName: "one-arm chin-up"),
-            .master:      .reps(5, exerciseName: "one-arm chin-up"),
-            .vessel:     .reps(6, exerciseName: "one-arm chin-up"),
-            .unbound:    .reps(7, exerciseName: "one-arm chin-up"),
+            .initiate:   .reps(3, exerciseName: "heighted chin-up"),
+            .novice:     .reps(3, exerciseName: "archer pullup"),
+            .apprentice: .reps(3, exerciseName: "one-arm pullup negative"),
+            .forged:     .reps(1, exerciseName: "one-arm chin-up"),
+            .veteran:    .reps(2, exerciseName: "one-arm chin-up"),
+            .master:      .reps(3, exerciseName: "one-arm chin-up"),
+            .vessel:     .reps(4, exerciseName: "one-arm chin-up"),
+            .unbound:    .reps(6, exerciseName: "one-arm chin-up"),
             .ascendant:  .reps(8, exerciseName: "one-arm chin-up"),
         ],
 
-        // pp.strict-muscle-up — Strict Muscle-Up. anchor: 1 rep = Forged. Mythic.
+        // pp.strict-muscle-up — Strict Muscle-Up (Mythic). Reseat: kill the dead
+        // Init==Nov==1-rep bottom; kipping-MU volume + chest-to-bar pull height
+        // on-ramp builds the strict pull before the first no-kip rep.
+        // Forged = 1 = first true strict muscle-up.
         "pp.strict-muscle-up": [
-            .initiate:   .reps(1, exerciseName: "strict muscle-up"),
-            .novice:     .reps(1, exerciseName: "strict muscle-up"),
-            .apprentice: .reps(2, exerciseName: "strict muscle-up"),
-            .forged:     .reps(3, exerciseName: "strict muscle-up"),
-            .veteran:    .reps(4, exerciseName: "strict muscle-up"),
-            .master:      .reps(5, exerciseName: "strict muscle-up"),
-            .vessel:     .reps(6, exerciseName: "strict muscle-up"),
-            .unbound:    .reps(7, exerciseName: "strict muscle-up"),
-            .ascendant:  .reps(8, exerciseName: "strict muscle-up"),
+            .initiate:   .reps(3,  exerciseName: "muscle-up"),
+            .novice:     .reps(5,  exerciseName: "chest-to-bar pullup"),
+            .apprentice: .compound([.reps(10, exerciseName: "chest-to-bar pullup"), .reps(5, exerciseName: "muscle-up")]),
+            .forged:     .reps(1,  exerciseName: "strict muscle-up"),
+            .veteran:    .reps(2,  exerciseName: "strict muscle-up"),
+            .master:      .reps(3,  exerciseName: "strict muscle-up"),
+            .vessel:     .reps(5,  exerciseName: "strict muscle-up"),
+            .unbound:    .reps(6,  exerciseName: "strict muscle-up"),
+            .ascendant:  .reps(8,  exerciseName: "strict muscle-up"),
         ],
 
         // MARK: - The Row
