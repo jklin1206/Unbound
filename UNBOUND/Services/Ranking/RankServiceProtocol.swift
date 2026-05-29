@@ -32,13 +32,15 @@ protocol RankServiceProtocol: AnyObject {
     /// the exercise isn't a tracked lift or the log lacks usable data.
     func computeLiftRank(
         entry: ExerciseLogEntry,
-        bodyweightKg: Double
+        bodyweightKg: Double,
+        sex: BiologicalSex?
     ) -> RankTier?
 
     /// Evaluate every entry in a log against persisted LiftRank state.
     /// Posts `.rankAdvanced` + persists per-lift updates. Called from
-    /// ProgressionEngine after normal progression ingest.
-    func evaluate(log: WorkoutLog, bodyweightKg: Double) async
+    /// ProgressionEngine after normal progression ingest. `sex` selects the
+    /// male/female strength-standard column (male default when nil).
+    func evaluate(log: WorkoutLog, bodyweightKg: Double, sex: BiologicalSex?) async
 
     /// Aggregate RankTier across the user's BuildIdentity primary axis (or
     /// top-3 axes for balanced/hybridAthlete). Reads the user's

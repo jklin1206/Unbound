@@ -221,7 +221,6 @@ final class MovementResolverTests: XCTestCase {
         XCTAssertNotNil(MovementCatalog.definition(for: "skill.co.bw-farmer-carry"))
         XCTAssertNotNil(MovementCatalog.definition(for: "skill.co.sled-push"))
         XCTAssertGreaterThan(MovementCatalog.rankStandards.count, 100)
-        XCTAssertEqual(MovementCatalog.movementStandardLadders.count, MovementCatalog.rankStandards.count)
         XCTAssertGreaterThan(MovementCatalog.loggableVariants.count, 20)
         XCTAssertGreaterThan(MovementCatalog.loggableMovements.count, MovementCatalog.rankStandards.count)
         XCTAssertEqual(MovementCatalog.cardioMovements.count, CardioType.allCases.count)
@@ -587,36 +586,6 @@ final class MovementResolverTests: XCTestCase {
             return definition.movementSlot == .horizontalPull
                 && MovementCatalog.isProgramCompatible(definition, style: .machines, userEquipment: [.machines])
         })
-    }
-
-    func testEveryRankedStandardHasNineTierMovementStandards() {
-        let invalid = MovementCatalog.movementStandardLadders.compactMap { ladder -> String? in
-            guard ladder.tiers.count == SkillTier.allCases.count,
-                  ladder.tiers.map(\.tier) == SkillTier.allCases else {
-                return "\(ladder.movementId) -> \(ladder.tiers.map { $0.tier.displayName }.joined(separator: ", "))"
-            }
-            return nil
-        }
-
-        XCTAssertTrue(
-            invalid.isEmpty,
-            "Every ranked movement standard must expose the full 9-tier ladder:\n\(invalid.joined(separator: "\n"))"
-        )
-
-        let benchResolved = MovementResolver.resolve("Bench Press")
-        let bench = MovementCatalog.definition(for: benchResolved.movementId).flatMap(MovementCatalog.standardLadder)
-        XCTAssertEqual(bench?.tiers.first?.displayText, "0.25x BW x 5")
-        XCTAssertEqual(bench?.tiers.last?.tier, .ascendant)
-
-        let pullupResolved = MovementResolver.resolve("Pull-Up")
-        let pullup = MovementCatalog.definition(for: pullupResolved.movementId).flatMap(MovementCatalog.standardLadder)
-        XCTAssertEqual(pullup?.rankTemplate, .bodyweightReps)
-        XCTAssertEqual(pullup?.tiers.last?.primaryMetric, .reps)
-
-        let lSitResolved = MovementResolver.resolve("L-Sit")
-        let lSit = MovementCatalog.definition(for: lSitResolved.movementId).flatMap(MovementCatalog.standardLadder)
-        XCTAssertEqual(lSit?.rankTemplate, .holdControl)
-        XCTAssertEqual(lSit?.tiers.last?.primaryMetric, .holdSeconds)
     }
 
     func testMovementCatalogValidationHasNoPolicyIssues() {

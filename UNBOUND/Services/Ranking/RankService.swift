@@ -124,29 +124,38 @@ final class RankService: RankServiceProtocol {
 
     func computeLiftRank(
         entry: ExerciseLogEntry,
-        bodyweightKg: Double
+        bodyweightKg: Double,
+        sex: BiologicalSex? = nil
     ) -> RankTier? {
         let key = rankExerciseKey(for: entry)
         let workingSets = entry.sets.filter { !$0.isWarmup }
         guard !workingSets.isEmpty else { return nil }
 
-        // Barbell lift path: use heaviest working set.
-        if StrengthStandards.isBarbellLift(exerciseKey: key) {
+        // Explicitly unranked accessories earn XP but no rank badge.
+        if StrengthStandards.isUnranked(exerciseKey: key) { return nil }
+
+        // Loaded path: compound (or variant), accessory family, or weighted
+        // pullup. StrengthStandards.rank resolves all three and returns the
+        // sex-correct RankTier from a bodyweight-relative load ratio.
+        if StrengthStandards.isBarbellLift(exerciseKey: key)
+            || StrengthStandards.accessoryFamily(for: key) != nil {
             let heaviest = workingSets.compactMap { $0.weightKg }.max() ?? 0
-            return StrengthStandards.subRank(
+            return StrengthStandards.rank(
                 liftKg: heaviest,
                 bodyweightKg: bodyweightKg,
-                exerciseKey: key
+                exerciseKey: key,
+                sex: sex
             )
         }
 
         // Weighted pullup path: heaviest added load (weightKg column).
         if key.contains("weighted pullup") || key.contains("weighted pull-up") || key.contains("weighted chin") {
             let heaviest = workingSets.compactMap { $0.weightKg }.max() ?? 0
-            return StrengthStandards.subRank(
+            return StrengthStandards.rank(
                 liftKg: heaviest,
                 bodyweightKg: max(bodyweightKg, 1),
-                exerciseKey: "weighted pullup"
+                exerciseKey: "weighted pullup",
+                sex: sex
             )
         }
 
@@ -169,13 +178,13 @@ final class RankService: RankServiceProtocol {
     // evaluate() still fires .rankAdvanced so cinematic/badge triggers work.
     private var sessionRanks: [String: RankTier] = [:]
 
-    func evaluate(log: WorkoutLog, bodyweightKg: Double) async {
+    func evaluate(log: WorkoutLog, bodyweightKg: Double, sex: BiologicalSex? = nil) async {
         guard bodyweightKg > 0 else {
             logger.log("RankService skipping evaluate — bodyweight unknown", level: .debug)
             return
         }
         for entry in log.exerciseEntries where !entry.skipped {
-            guard let candidate = computeLiftRank(entry: entry, bodyweightKg: bodyweightKg) else { continue }
+            guard let candidate = computeLiftRank(entry: entry, bodyweightKg: bodyweightKg, sex: sex) else { continue }
 
             let key = rankExerciseKey(for: entry)
 
@@ -342,7 +351,7 @@ final class MockRankService: RankServiceProtocol {
     func evaluateTierCrossings(log: WorkoutLog, userId: String) async -> [SkillTierAdvance] { [] }
     func state(userId: String) -> UserSkillTierState { .empty }
     func aggregateTier(userId: String) async -> SkillTier { .initiate }
-    func computeLiftRank(entry: ExerciseLogEntry, bodyweightKg: Double) -> RankTier? { .forged }
-    func evaluate(log: WorkoutLog, bodyweightKg: Double) async {}
+    func computeLiftRank(entry: ExerciseLogEntry, bodyweightKg: Double, sex: BiologicalSex? = nil) -> RankTier? { .forged }
+    func evaluate(log: WorkoutLog, bodyweightKg: Double, sex: BiologicalSex? = nil) async {}
     func aggregateRank(userId: String) async -> RankTier { aggregateRankOverride }
 }

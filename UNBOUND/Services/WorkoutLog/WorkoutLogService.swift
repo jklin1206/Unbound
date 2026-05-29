@@ -48,7 +48,7 @@ final class WorkoutLogService: WorkoutLogServiceProtocol, WorkoutLogCompatibilit
             // Lift-rank system: detect RankTier threshold crossings per lift
             // and post `.rankAdvanced` for the UI cinematic.
             if let bw, bw > 0 {
-                await RankService.shared.evaluate(log: log, bodyweightKg: bw)
+                await RankService.shared.evaluate(log: log, bodyweightKg: bw, sex: profile.biologicalSex)
             }
 
             // After rank evaluation, check for skin unlocks and record

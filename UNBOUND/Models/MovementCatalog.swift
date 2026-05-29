@@ -240,42 +240,6 @@ struct MovementDefinition: Identifiable, Codable, Hashable, Sendable {
     }
 }
 
-enum MovementStandardMetric: String, Codable, CaseIterable, Hashable, Sendable {
-    case reps
-    case holdSeconds
-    case durationSeconds
-    case distanceMeters
-    case calories
-    case loadBodyweightRatio
-    case addedLoadBodyweightRatio
-    case completionCount
-}
-
-enum MovementStandardComparison: String, Codable, CaseIterable, Hashable, Sendable {
-    case atLeast
-    case atMost
-    case complete
-}
-
-struct MovementTierStandard: Codable, Hashable, Sendable {
-    var tier: SkillTier
-    var primaryMetric: MovementStandardMetric
-    var primaryValue: Double
-    var comparison: MovementStandardComparison
-    var secondaryMetric: MovementStandardMetric?
-    var secondaryValue: Double?
-    var displayText: String
-}
-
-struct MovementStandardLadder: Identifiable, Codable, Hashable, Sendable {
-    var id: String { movementId }
-
-    var movementId: String
-    var displayName: String
-    var rankTemplate: MovementRankTemplate
-    var tiers: [MovementTierStandard]
-}
-
 struct ResolvedMovement: Codable, Hashable, Sendable {
     var rawName: String
     var movementId: String
@@ -617,26 +581,6 @@ enum MovementCatalog {
         return rankStandard(for: definition) ?? definition
     }
 
-    static var movementStandardLadders: [MovementStandardLadder] {
-        rankStandards.compactMap { standardLadder(for: $0) }
-    }
-
-    static func standardLadder(for definition: MovementDefinition) -> MovementStandardLadder? {
-        guard let standard = rankStandard(for: definition),
-              standard.rankable,
-              standard.rankTemplate != .unranked
-        else { return nil }
-
-        let tiers = tierStandards(for: standard)
-        guard !tiers.isEmpty else { return nil }
-        return MovementStandardLadder(
-            movementId: standard.id,
-            displayName: standard.displayName,
-            rankTemplate: standard.rankTemplate,
-            tiers: tiers
-        )
-    }
-
     static func normalized(_ value: String) -> String {
         value
             .trimmingCharacters(in: .whitespacesAndNewlines)
@@ -650,150 +594,6 @@ enum MovementCatalog {
 
     static func slug(_ value: String) -> String {
         normalized(value).replacingOccurrences(of: " ", with: "-")
-    }
-
-    private static func tierStandards(for definition: MovementDefinition) -> [MovementTierStandard] {
-        switch definition.rankTemplate {
-        case .barbellStrength:
-            return strengthRatioStandards(
-                ratios: [0.25, 0.50, 0.75, 1.00, 1.25, 1.50, 1.75, 2.00, 2.25],
-                reps: [5, 5, 5, 5, 3, 3, 2, 1, 1]
-            )
-        case .machineStrength:
-            return strengthRatioStandards(
-                ratios: [0.30, 0.45, 0.60, 0.80, 1.00, 1.20, 1.45, 1.70, 2.00],
-                reps: [10, 10, 8, 8, 6, 6, 5, 3, 3]
-            )
-        case .bodyweightReps:
-            return singleMetricStandards(
-                metric: .reps,
-                values: [1, 3, 6, 10, 15, 20, 25, 30, 40],
-                unit: "clean reps"
-            )
-        case .weightedBodyweight:
-            return addedLoadStandards(
-                ratios: [0.05, 0.10, 0.15, 0.25, 0.35, 0.50, 0.75, 1.00, 1.25],
-                reps: [5, 5, 5, 5, 3, 3, 2, 1, 1]
-            )
-        case .holdControl:
-            return singleMetricStandards(
-                metric: .holdSeconds,
-                values: [10, 20, 30, 45, 60, 75, 90, 120, 180],
-                unit: "clean seconds"
-            )
-        case .carrySled:
-            return carryStandards()
-        case .cardioPerformance:
-            return singleMetricStandards(
-                metric: .durationSeconds,
-                values: [600, 900, 1_200, 1_800, 2_700, 3_600, 5_400, 7_200, 10_800],
-                unit: "sustained seconds"
-            )
-        case .mobilityDuration:
-            return singleMetricStandards(
-                metric: .durationSeconds,
-                values: [30, 45, 60, 75, 90, 120, 150, 180, 240],
-                unit: "quality seconds"
-            )
-        case .routineCompletion:
-            return singleMetricStandards(
-                metric: .completionCount,
-                values: [1, 3, 5, 10, 20, 35, 50, 75, 100],
-                unit: "clean completions"
-            )
-        case .unranked:
-            return []
-        }
-    }
-
-    private static func strengthRatioStandards(ratios: [Double], reps: [Double]) -> [MovementTierStandard] {
-        zip(SkillTier.allCases, zip(ratios, reps)).map { tier, target in
-            MovementTierStandard(
-                tier: tier,
-                primaryMetric: .loadBodyweightRatio,
-                primaryValue: target.0,
-                comparison: .atLeast,
-                secondaryMetric: .reps,
-                secondaryValue: target.1,
-                displayText: "\(formatRatio(target.0))x BW x \(Int(target.1))"
-            )
-        }
-    }
-
-    private static func addedLoadStandards(ratios: [Double], reps: [Double]) -> [MovementTierStandard] {
-        zip(SkillTier.allCases, zip(ratios, reps)).map { tier, target in
-            MovementTierStandard(
-                tier: tier,
-                primaryMetric: .addedLoadBodyweightRatio,
-                primaryValue: target.0,
-                comparison: .atLeast,
-                secondaryMetric: .reps,
-                secondaryValue: target.1,
-                displayText: "+\(formatRatio(target.0))x BW x \(Int(target.1))"
-            )
-        }
-    }
-
-    private static func singleMetricStandards(
-        metric: MovementStandardMetric,
-        values: [Double],
-        unit: String
-    ) -> [MovementTierStandard] {
-        zip(SkillTier.allCases, values).map { tier, value in
-            MovementTierStandard(
-                tier: tier,
-                primaryMetric: metric,
-                primaryValue: value,
-                comparison: .atLeast,
-                secondaryMetric: nil,
-                secondaryValue: nil,
-                displayText: "\(formatStandardValue(value)) \(standardUnit(unit, value: value))"
-            )
-        }
-    }
-
-    private static func carryStandards() -> [MovementTierStandard] {
-        let targets: [(Double, Double)] = [
-            (0.25, 20), (0.50, 30), (0.75, 40),
-            (1.00, 40), (1.25, 50), (1.50, 50),
-            (1.75, 60), (2.00, 60), (2.25, 80)
-        ]
-        return zip(SkillTier.allCases, targets).map { tier, target in
-            MovementTierStandard(
-                tier: tier,
-                primaryMetric: .loadBodyweightRatio,
-                primaryValue: target.0,
-                comparison: .atLeast,
-                secondaryMetric: .distanceMeters,
-                secondaryValue: target.1,
-                displayText: "\(formatRatio(target.0))x BW for \(Int(target.1))m"
-            )
-        }
-    }
-
-    private static func formatRatio(_ value: Double) -> String {
-        var text = String(format: "%.2f", value)
-        while text.last == "0" {
-            text.removeLast()
-        }
-        if text.last == "." {
-            text.removeLast()
-        }
-        return text
-    }
-
-    private static func formatStandardValue(_ value: Double) -> String {
-        value.rounded() == value ? "\(Int(value))" : String(format: "%.1f", value)
-    }
-
-    private static func standardUnit(_ unit: String, value: Double) -> String {
-        if value == 1, unit == "clean reps" {
-            return "clean rep"
-        }
-        if value == 1, unit == "clean completions" {
-            return "clean completion"
-        }
-        return unit
     }
 
     private static let variantRankStandardNames: [String: String] = [
@@ -1896,19 +1696,6 @@ enum MovementCatalogValidation {
         }
 
         for definition in definitions {
-            if definition.rankable && definition.rankTemplate != .unranked {
-                guard let ladder = MovementCatalog.standardLadder(for: definition) else {
-                    issues.append("\(definition.id) is rankable but has no movement standard ladder.")
-                    continue
-                }
-                if ladder.tiers.count != SkillTier.allCases.count {
-                    issues.append("\(definition.id) ladder has \(ladder.tiers.count) tiers; expected \(SkillTier.allCases.count).")
-                }
-                if ladder.tiers.map(\.tier) != SkillTier.allCases {
-                    issues.append("\(definition.id) ladder tiers do not match the canonical 9-rank order.")
-                }
-            }
-
             if let variantOf = definition.variantOfMovementId {
                 guard let base = definitionsById[variantOf] else {
                     issues.append("\(definition.id) variantOfMovementId points at missing \(variantOf).")

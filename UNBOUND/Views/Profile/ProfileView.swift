@@ -220,7 +220,12 @@ struct ProfileView: View {
             limit: nil
         )) ?? []
         totalWorkouts = max(workoutLogs.count, sessionXP?.totalSessions ?? 0)
-        resolveBestSkillAndLift(userId: userId, workoutLogs: workoutLogs)
+        resolveBestSkillAndLift(
+            userId: userId,
+            workoutLogs: workoutLogs,
+            bodyweightKg: profile?.weightKg,
+            sex: profile?.biologicalSex
+        )
 
         // Load trials state
         trialsState = services.trials.state(userId: userId)
@@ -501,7 +506,12 @@ struct ProfileView: View {
         return "@PLAYER"
     }
 
-    private func resolveBestSkillAndLift(userId: String, workoutLogs: [WorkoutLog]) {
+    private func resolveBestSkillAndLift(
+        userId: String,
+        workoutLogs: [WorkoutLog],
+        bodyweightKg: Double?,
+        sex: BiologicalSex?
+    ) {
         let skillTiers = UserSkillTierStore.shared.load(userId: userId).perSkill
         let nodeStates = SkillProgressService.shared.nodeStates
         let clearedSkills = SkillGraph.shared.nodes.compactMap { node -> (node: SkillNode, state: NodeState)? in
@@ -527,7 +537,12 @@ struct ProfileView: View {
 
         let liftCandidates = Self.profileLiftNames.map { lift -> (key: String, name: String, tier: SkillTier, pr: LiftPR?) in
             let pr = Self.bestLiftPR(lift: lift, logs: workoutLogs)
-            let tier = Self.liftTier(for: lift, weightKg: pr?.weightKg ?? 0)
+            let tier = Self.liftTier(
+                for: lift,
+                weightKg: pr?.weightKg ?? 0,
+                bodyweightKg: bodyweightKg,
+                sex: sex
+            )
             return (lift, Self.displayLiftName(lift), tier, pr)
         }
 
@@ -579,12 +594,19 @@ struct ProfileView: View {
         }
     }
 
-    private static func liftTier(for lift: String, weightKg: Double) -> SkillTier {
-        guard let criteria = LiftTierCriteria.table[lift] else { return .initiate }
-        return SkillTier.allCases.reversed().first { tier in
-            guard case .weightKg(let target)? = criteria[tier] else { return false }
-            return weightKg >= target
-        } ?? .initiate
+    private static func liftTier(
+        for lift: String,
+        weightKg: Double,
+        bodyweightKg: Double?,
+        sex: BiologicalSex?
+    ) -> SkillTier {
+        guard let bodyweightKg, bodyweightKg > 0, weightKg > 0 else { return .initiate }
+        return StrengthStandards.rank(
+            liftKg: weightKg,
+            bodyweightKg: bodyweightKg,
+            exerciseKey: lift,
+            sex: sex
+        ) ?? .initiate
     }
 
     private static func masteryOrder(_ state: NodeState) -> Int {

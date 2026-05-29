@@ -55,7 +55,7 @@ final class SupabaseWorkoutLogService: WorkoutLogServiceProtocol, WorkoutLogComp
             await SkillProgressService.shared.recompute(after: log, userBodyweightKg: bw)
 
             if let bw, bw > 0 {
-                await RankService.shared.evaluate(log: log, bodyweightKg: bw)
+                await RankService.shared.evaluate(log: log, bodyweightKg: bw, sex: profile.biologicalSex)
             }
 
             _ = await SkinService.shared.evaluateUnlocks(userId: log.userId)

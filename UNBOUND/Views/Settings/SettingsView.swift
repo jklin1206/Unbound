@@ -1674,12 +1674,16 @@ enum DevBuildBootstrapper {
         try? await DatabaseService.shared.create(log, collection: "workoutLogs", documentId: log.id)
     }
 
+    /// Dev seeder bodyweight (matches the seeded Dev Player profile).
+    private static let devBodyweightKg: Double = 82
+
     private static func liftTier(for lift: String, weightKg: Double) -> SkillTier {
-        guard let criteria = LiftTierCriteria.table[lift] else { return .initiate }
-        return SkillTier.allCases.reversed().first { tier in
-            guard case .weightKg(let target)? = criteria[tier] else { return false }
-            return weightKg >= target
-        } ?? .initiate
+        StrengthStandards.rank(
+            liftKg: weightKg,
+            bodyweightKg: devBodyweightKg,
+            exerciseKey: lift,
+            sex: .male
+        ) ?? .initiate
     }
 
     static func seedProgressionFamilies(tier: SkillTier = .ascendant) async {

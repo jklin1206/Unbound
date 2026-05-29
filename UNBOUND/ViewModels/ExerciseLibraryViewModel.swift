@@ -49,6 +49,8 @@ struct ExerciseLibraryDisplayRow: Identifiable {
     let preferenceStatus: ExercisePreferenceStatus?
     let movementProgress: MovementProgressState?
     let workingWeight: WorkingWeight?
+    var bodyweightKg: Double?
+    var biologicalSex: BiologicalSex?
 
     var id: String { item.id }
 
@@ -106,18 +108,47 @@ struct ExerciseLibraryDisplayRow: Identifiable {
     }
 
     var nextBenchmarkSummary: String? {
-        RankBenchmarkSummary.nextBenchmark(for: item, currentTier: movementProgress?.provenTier)
+        RankBenchmarkSummary.nextBenchmark(
+            for: item,
+            currentTier: movementProgress?.provenTier,
+            bodyweightKg: bodyweightKg,
+            sex: biologicalSex
+        )
     }
 }
 
 enum RankBenchmarkSummary {
-    static func nextBenchmark(for item: ExerciseLibraryItem, currentTier: SkillTier?) -> String? {
-        guard let criteria = criteriaTable(for: item),
-              let targetTier = targetTier(after: currentTier),
-              let criterion = criteria[targetTier]
-        else { return nil }
+    static func nextBenchmark(
+        for item: ExerciseLibraryItem,
+        currentTier: SkillTier?,
+        bodyweightKg: Double? = nil,
+        sex: BiologicalSex? = nil
+    ) -> String? {
+        guard let targetTier = targetTier(after: currentTier) else { return nil }
 
-        return "\(targetTier.displayName): \(criterionSummary(criterion))"
+        // Skill-tree movements keep their bespoke per-tier criteria.
+        if let criteria = skillCriteriaTable(for: item),
+           let criterion = criteria[targetTier] {
+            return "\(targetTier.displayName): \(criterionSummary(criterion))"
+        }
+
+        // Loaded movements: next-tier benchmark from the bodyweight-relative
+        // StrengthStandards. Compounds/accessories use a ratio; weighted pullup
+        // uses an added-kg anchor.
+        let key = MovementCatalog.normalized(item.canonicalName)
+        if StrengthStandards.isWeightedPullup(exerciseKey: key),
+           let added = StrengthStandards.weightedPullupAdded(tier: targetTier) {
+            return "\(targetTier.displayName): +\(Int(added.rounded())) kg added"
+        }
+        if let ratio = StrengthStandards.ratio(exerciseKey: key, tier: targetTier, sex: sex) {
+            let ratioText = String(format: "%.2g", ratio)
+            if let bodyweightKg, bodyweightKg > 0 {
+                let kg = Int((ratio * bodyweightKg).rounded())
+                return "\(targetTier.displayName): \(ratioText)x bodyweight (≈ \(kg) kg)"
+            }
+            return "\(targetTier.displayName): \(ratioText)x bodyweight"
+        }
+        return nil
     }
 
     static func nextBenchmark(for node: SkillNode, currentTier: SkillTier?) -> String? {
@@ -133,33 +164,15 @@ enum RankBenchmarkSummary {
         return SkillTier(rawValue: currentTier.rawValue + 1)
     }
 
-    private static func criteriaTable(for item: ExerciseLibraryItem) -> [SkillTier: TierCriterion]? {
-        guard let definition = MovementCatalog.definition(for: item.id) else {
-            return LiftTierCriteria.table[MovementCatalog.normalized(item.name)]
-        }
-
-        if let skillId = definition.skillId,
-           let node = SkillGraph.shared.node(id: skillId),
-           !node.tierCriteria.isEmpty {
-            return node.tierCriteria
-        }
-
-        let keys = [
-            definition.canonicalExerciseName,
-            definition.displayName,
-            item.name,
-            item.rankStandardMovementId
-        ]
-        .compactMap { $0 }
-        .map(MovementCatalog.normalized)
-
-        for key in keys {
-            if let criteria = LiftTierCriteria.table[key] {
-                return criteria
-            }
-        }
-
-        return nil
+    /// Per-tier criteria for skill-tree movements only. Loaded lifts now derive
+    /// their benchmark from StrengthStandards (see nextBenchmark).
+    private static func skillCriteriaTable(for item: ExerciseLibraryItem) -> [SkillTier: TierCriterion]? {
+        guard let definition = MovementCatalog.definition(for: item.id),
+              let skillId = definition.skillId,
+              let node = SkillGraph.shared.node(id: skillId),
+              !node.tierCriteria.isEmpty
+        else { return nil }
+        return node.tierCriteria
     }
 
     private static func criterionSummary(_ criterion: TierCriterion) -> String {
@@ -205,6 +218,8 @@ final class ExerciseLibraryViewModel: ObservableObject {
     @Published var preferences: [String: ExercisePreference] = [:]
     @Published var movementProgress: [String: MovementProgressState] = [:]
     @Published var workingWeights: [String: WorkingWeight] = [:]
+    @Published var bodyweightKg: Double?
+    @Published var biologicalSex: BiologicalSex?
     @Published var state: LoadingState<Void> = .idle
 
     private let services: ServiceContainer
@@ -256,7 +271,9 @@ final class ExerciseLibraryViewModel: ObservableObject {
                 item: item,
                 preferenceStatus: statusFor(item),
                 movementProgress: movementProgress[item.rankStandardMovementId],
-                workingWeight: workingWeight(for: item)
+                workingWeight: workingWeight(for: item),
+                bodyweightKg: bodyweightKg,
+                biologicalSex: biologicalSex
             )
         }
     }
@@ -318,10 +335,15 @@ final class ExerciseLibraryViewModel: ObservableObject {
                 limit: nil
             )
             async let weightsLoad = services.workingWeight.fetchWeights(userId: userId)
+            async let profileLoad: UserProfile = services.database.read(collection: "users", documentId: userId)
 
             let prefs = try await prefsLoad
             let progressStates = (try? await movementLoad) ?? []
             let weights = (try? await weightsLoad) ?? []
+            if let profile = try? await profileLoad {
+                bodyweightKg = profile.weightKg
+                biologicalSex = profile.biologicalSex
+            }
             preferences = ExercisePreferenceLookup.index(prefs)
             movementProgress = Dictionary(uniqueKeysWithValues: progressStates.map { ($0.rankStandardMovementId, $0) })
             workingWeights = weights.reduce(into: [:]) { result, weight in
