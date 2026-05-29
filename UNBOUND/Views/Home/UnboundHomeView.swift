@@ -56,6 +56,7 @@ struct UnboundHomeView: View {
     // navigateToCoach removed — replaced by CoachModesStrip
     @State private var showingGainsToast = false
     @State private var lastGainsAwarded: Int = 0
+    @State private var showingNotificationSettings = false
 
     // Attribute profile (Phase 8+)
     @State private var attributeProfile: AttributeProfile = AttributeProfile.empty(userId: "", at: .now)
@@ -66,8 +67,8 @@ struct UnboundHomeView: View {
     @State private var xpShimmerPhase: CGFloat = -1
     @State private var statsRendered = false
 
-    // Daily Quest — wired to RoutineLibrary. Rotation service lands later.
-    @State private var dailyQuest = DailyQuestPlaceholder.sample
+    // Daily Quest — the card displays and starts the SAME real SideQuest.
+    // Rotation service lands later; until then it's a fixed library entry.
     @State private var activeRoutine: SideQuest = SideQuestLibrary.pushProtocol
     @State private var showRoutinePlayer = false
 
@@ -186,6 +187,18 @@ struct UnboundHomeView: View {
                     .environmentObject(services)
                 }
         )
+        .sheet(isPresented: $showingNotificationSettings) {
+            NavigationStack {
+                NotificationSettingsView()
+                    .toolbar {
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button(L10n.string("common.done", defaultValue: "Done")) {
+                                showingNotificationSettings = false
+                            }
+                        }
+                    }
+            }
+        }
         .fullScreenCover(isPresented: $showScanCaptureFlow, onDismiss: {
             // Refresh cadence after a scan completes
             let userId = services.auth.currentUserId ?? "anonymous"
@@ -254,7 +267,7 @@ struct UnboundHomeView: View {
 
             Button {
                 UnboundHaptics.soft()
-                // Notifications destination is a follow-up — no-op for now.
+                showingNotificationSettings = true
             } label: {
                 Image(systemName: "bell")
                     .font(.system(size: 15, weight: .semibold))
@@ -631,7 +644,7 @@ struct UnboundHomeView: View {
                         .font(Font.unbound.captionS.weight(.bold))
                         .tracking(1.6)
                         .foregroundStyle(Color.unbound.textTertiary)
-                    Text(dailyQuest.title)
+                    Text(activeRoutine.title)
                         .font(Font.unbound.bodyMStrong)
                         .foregroundStyle(Color.unbound.textPrimary)
                         .lineLimit(1)
@@ -640,7 +653,7 @@ struct UnboundHomeView: View {
 
                 Spacer(minLength: 0)
 
-                Text("+\(dailyQuest.spReward) LVL XP")
+                Text("+\(activeRoutine.spReward) LVL XP")
                     .font(Font.unbound.monoS.weight(.bold))
                     .foregroundStyle(categoryColor)
                     .monospacedDigit()
@@ -723,7 +736,7 @@ struct UnboundHomeView: View {
     }
 
     private var questColor: Color {
-        switch dailyQuest.category {
+        switch activeRoutine.category {
         case .cardio:   return Color.unbound.coachCyan
         case .mobility: return Color.unbound.rankGreen
         case .activity: return Color.unbound.warnOrange
@@ -1093,7 +1106,7 @@ struct UnboundHomeView: View {
             HStack(spacing: 0) {
                 homeCommandButton(
                     title: "Quest",
-                    subtitle: "+\(dailyQuest.spReward) LVL XP",
+                    subtitle: "+\(activeRoutine.spReward) LVL XP",
                     icon: "bolt.fill",
                     tint: questColor
                 ) {
@@ -1752,7 +1765,7 @@ struct UnboundHomeView: View {
 
     private func dailyQuestCard(isHero: Bool) -> some View {
         let categoryColor: Color = {
-            switch dailyQuest.category {
+            switch activeRoutine.category {
             case .cardio:   return Color.unbound.coachCyan
             case .mobility: return Color.unbound.rankGreen
             case .activity: return Color.unbound.warnOrange
@@ -1769,23 +1782,23 @@ struct UnboundHomeView: View {
                 Text("·")
                     .font(Font.unbound.captionS)
                     .foregroundStyle(Color.unbound.textTertiary)
-                Text(dailyQuest.category.label)
+                Text(activeRoutine.category.label)
                     .font(Font.unbound.captionS)
                     .tracking(1.2)
                     .foregroundStyle(Color.unbound.textTertiary)
                 Spacer()
-                Text("+\(dailyQuest.spReward) LVL XP")
+                Text("+\(activeRoutine.spReward) LVL XP")
                     .font(Font.unbound.monoS.weight(.bold))
                     .foregroundStyle(categoryColor)
                     .monospacedDigit()
             }
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(dailyQuest.title.uppercased())
+                Text(activeRoutine.title.uppercased())
                     .font(Font.unbound.titleM)
                     .tracking(0.4)
                     .foregroundStyle(Color.unbound.textPrimary)
-                Text(dailyQuest.subtitle)
+                Text(activeRoutine.subtitle)
                     .font(Font.unbound.monoS)
                     .tracking(0.4)
                     .foregroundStyle(Color.unbound.textSecondary)
@@ -1836,36 +1849,6 @@ struct UnboundHomeView: View {
         .overlay(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .strokeBorder(categoryColor.opacity(isHero ? 0.40 : 0.22), lineWidth: 1)
-        )
-    }
-
-    // MARK: - Daily Quest placeholder model
-    //
-    // Hardcoded sample until QuestService + QuestLibrary land. Shape here
-    // mirrors what the real QuestDef will expose so the card doesn't need
-    // rewiring — only the data source changes.
-    struct DailyQuestPlaceholder {
-        enum Category {
-            case cardio, mobility, activity, circuit
-            var label: String {
-                switch self {
-                case .cardio:   return "CARDIO"
-                case .mobility: return "MOBILITY"
-                case .activity: return "ACTIVITY"
-                case .circuit:  return "CIRCUIT"
-                }
-            }
-        }
-        var title: String
-        var subtitle: String
-        var category: Category
-        var spReward: Int
-
-        static let sample = DailyQuestPlaceholder(
-            title: "Push Protocol",
-            subtitle: "5 exercises · 15 sets · ~25 min",
-            category: .circuit,
-            spReward: 40
         )
     }
 
