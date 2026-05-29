@@ -271,8 +271,8 @@ struct Step28_Trajectory: View {
         case 3: return "Forged"
         case 4: return "Veteran"
         case 5: return "Master"
-        case 6: return "Unbound"
-        default: return "Ascendant"
+        case 6: return "Ascendant"
+        default: return "Unbound"
         }
     }
 

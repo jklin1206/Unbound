@@ -39,8 +39,13 @@ enum RankTier: Int, CaseIterable, Sendable, Comparable {
         case .veteran:    return "Veteran"
         case .master:     return "Master"
         case .vessel:     return "Vessel"
-        case .unbound:    return "Unbound"
-        case .ascendant:  return "Ascendant"
+        // Brand decision: "Unbound" is the PEAK label — the app's pinnacle.
+        // Label-only swap: case names + rawValues + tokens + badge art are kept
+        // (.ascendant stays rawValue 8 / the gold peak badge); only the
+        // user-facing displayName flips, so the top tier reads "Unbound" and
+        // tier 7 reads "Ascendant" (rising → arrived). See ONE-METRIC log.
+        case .unbound:    return "Ascendant"
+        case .ascendant:  return "Unbound"
         }
     }
 

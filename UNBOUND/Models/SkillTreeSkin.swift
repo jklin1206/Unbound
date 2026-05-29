@@ -47,7 +47,7 @@ enum SkillTreeSkin: String, Codable, Sendable, CaseIterable, Identifiable {
         case .gold:         return "Warm trophy lines for the crown-tier climb."
         case .void:         return "Deep-space surface with magenta impact seams."
         case .aurora:       return "Split teal, violet, and rose light across the tree."
-        case .holographic:  return "Prismatic node glow for Ascendant progress."
+        case .holographic:  return "Prismatic node glow for Unbound progress."
         case .ascendant:    return "White-gold apex styling for the top of the ladder."
         }
     }
@@ -80,10 +80,10 @@ enum SkillTreeSkin: String, Codable, Sendable, CaseIterable, Identifiable {
         case .jade:         return "Reach Veteran aggregate tier."
         case .frost:        return "Reach Master aggregate tier."
         case .gold:         return "Reach Vessel aggregate tier."
-        case .void:         return "Reach Unbound aggregate tier."
-        case .aurora:       return "Reach Unbound aggregate tier."
-        case .holographic:  return "Reach Ascendant aggregate tier."
-        case .ascendant:    return "Reach Ascendant aggregate tier."
+        case .void:         return "Reach Ascendant aggregate tier."
+        case .aurora:       return "Reach Ascendant aggregate tier."
+        case .holographic:  return "Reach Unbound aggregate tier."
+        case .ascendant:    return "Reach Unbound aggregate tier."
         }
     }
 

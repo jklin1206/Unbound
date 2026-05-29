@@ -26,8 +26,10 @@ final class SkillTierTests: XCTestCase {
 
     func testDisplayNames() {
         XCTAssertEqual(SkillTier.initiate.displayName, "Initiate")
-        XCTAssertEqual(SkillTier.unbound.displayName, "Unbound")
-        XCTAssertEqual(SkillTier.ascendant.displayName, "Ascendant")
+        // Brand swap: peak (.ascendant, rawValue 8) is labeled "Unbound";
+        // tier 7 (.unbound) is labeled "Ascendant". Case names kept; label-only.
+        XCTAssertEqual(SkillTier.unbound.displayName, "Ascendant")
+        XCTAssertEqual(SkillTier.ascendant.displayName, "Unbound")
     }
 
     func testCodableRoundtrip() throws {
