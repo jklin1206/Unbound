@@ -1733,32 +1733,13 @@ enum DevBuildBootstrapper {
             documentId: userId
         )
 
-        for standard in definition.movementStandards {
-            let state = MovementProgressState(
-                userId: userId,
-                rankStandardMovementId: standard.rankStandardMovementId,
-                displayName: standard.displayName,
-                rankTemplate: MovementCatalog.definition(for: standard.rankStandardMovementId)?.rankTemplate ?? .bodyweightReps,
-                totalAP: standard.minimumAP + 25,
-                lastGainedAP: 0,
-                updatedAt: now
-            )
-            try? await DatabaseService.shared.create(
-                state,
-                collection: "movement_progress",
-                documentId: state.id
-            )
-        }
-
-        var tierState = UserSkillTierStore.shared.load(userId: userId)
-        for standard in definition.skillStandards {
-            tierState.perSkill[standard.skillId] = standard.minimumTier
-        }
-        UserSkillTierStore.shared.save(tierState, userId: userId)
+        // Phase 7: eligibility = aggregateRank >= targetRank. Seed all four
+        // tracked lifts at the target tier (clears the ≥4-movement coverage
+        // floor and lands the weighted mean on the target), with fresh,
+        // mid-level attributes so freshness stays at 1.0.
+        seedLiftTiers(tier: definition.targetRank)
         applyAttributes(
-            Dictionary(uniqueKeysWithValues: AttributeKey.allCases.map { key in
-                (key, max(25, definition.topAttributeFloor + 2))
-            })
+            Dictionary(uniqueKeysWithValues: AttributeKey.allCases.map { key in (key, 50.0) })
         )
     }
 

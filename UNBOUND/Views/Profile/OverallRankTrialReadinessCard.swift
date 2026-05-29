@@ -189,9 +189,7 @@ struct OverallRankTrialReadinessCard: View {
     private func requirementIcon(for kind: OverallRankTrialRequirementKind) -> String {
         switch kind {
         case .overallLevel: return "chart.line.uptrend.xyaxis"
-        case .attributes: return "hexagon.fill"
-        case .movement: return "figure.strengthtraining.traditional"
-        case .skill: return "seal.fill"
+        case .rank: return "seal.fill"
         case .equipment: return "backpack.fill"
         }
     }

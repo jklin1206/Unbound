@@ -184,10 +184,14 @@ struct ProfileView: View {
         }
 
         aggregateTier = await services.rank.aggregateTier(userId: userId)
-        _ = RankCosmetics.unlockedTiers(userId: userId, currentTier: aggregateTier)
-        equippedFrameTier = RankCosmetics.equippedFrameTier(userId: userId, currentTier: aggregateTier)
-        equippedBackgroundTier = RankCosmetics.equippedBackgroundTier(userId: userId, currentTier: aggregateTier)
-        equippedProfileColorTier = RankCosmetics.equippedProfileColorTier(userId: userId, currentTier: aggregateTier)
+        // Cosmetics reflect the CONFIRMED overall rank (highestPassedRank,
+        // permanent), not the live accumulation (Phase 7 §5).
+        let confirmedRank = OverallRankTrialStore.shared.load(userId: userId).currentRank
+        let cosmeticTier = RankCosmetics.equipped(highestRank: confirmedRank)
+        _ = RankCosmetics.unlockedTiers(userId: userId, currentTier: cosmeticTier)
+        equippedFrameTier = RankCosmetics.equippedFrameTier(userId: userId, currentTier: cosmeticTier)
+        equippedBackgroundTier = RankCosmetics.equippedBackgroundTier(userId: userId, currentTier: cosmeticTier)
+        equippedProfileColorTier = RankCosmetics.equippedProfileColorTier(userId: userId, currentTier: cosmeticTier)
         attributeProfile = services.attribute.profile(userId: userId)
         bodyMapProfile = await BodyMapProgressService.shared.profile(userId: userId, database: services.database)
 
@@ -236,6 +240,15 @@ struct ProfileView: View {
 
     private func startOverallRankTrial(_ definition: OverallRankTrialDefinition) {
         let userId = services.auth.currentUserId ?? "anonymous"
+
+        // Auto-confirm crossings (Novice / Apprentice) claim the rank instantly
+        // — no session. Fire the confirm + cinematic and refresh readiness.
+        if OverallRankTrialDefinitions.ceremonyTier(for: definition.targetRank) == .autoConfirm {
+            OverallRankTrialRunner.shared.confirmAutoRank(for: definition, userId: userId)
+            Task { await load() }
+            return
+        }
+
         let resolvedTrial = overallRankTrialReadiness?.resolvedTrial?.definitionId == definition.id
             ? overallRankTrialReadiness?.resolvedTrial
             : nil

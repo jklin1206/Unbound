@@ -45,35 +45,30 @@ final class OverallRankTrialServiceTests: XCTestCase {
         super.tearDown()
     }
 
-    func testReadinessLockedWhenMovementAttributeAndLevelRequirementsAreMissing() {
+    func testReadinessLockedWhenAccumulationAndLevelRequirementsAreMissing() {
         let readiness = TrialReadinessService.shared.evaluate(
             OverallRankTrialReadinessInput(
                 userId: "u1",
                 currentRank: .initiate,
                 overallLevel: 0,
-                movementProgress: [:],
-                skillTiers: [:],
-                attributeProfile: AttributeProfile.empty(userId: "u1", at: Date(timeIntervalSince1970: 0)),
+                aggregateRank: .initiate,
                 equipment: [.bodyweight]
             )
         )
 
         XCTAssertEqual(readiness.status, .locked)
         XCTAssertTrue(readiness.missingRequirements.contains { $0.kind == .overallLevel })
-        XCTAssertTrue(readiness.missingRequirements.contains { $0.kind == .movement })
-        XCTAssertTrue(readiness.missingRequirements.contains { $0.kind == .attributes })
+        XCTAssertTrue(readiness.missingRequirements.contains { $0.kind == .rank })
     }
 
-    func testReadinessBecomesReadyWhenAllV1RequirementsAreMet() {
+    func testReadinessBecomesReadyWhenBothGatesAreMet() {
         let definition = OverallRankTrialDefinitions.foundationProof
         let readiness = TrialReadinessService.shared.evaluate(
             OverallRankTrialReadinessInput(
                 userId: "u1",
                 currentRank: .initiate,
                 overallLevel: definition.minOverallLevel,
-                movementProgress: movementProgress(for: definition),
-                skillTiers: ["cal.pushup": .novice],
-                attributeProfile: attributeProfile(score: 25),
+                aggregateRank: definition.targetRank,
                 equipment: [.bodyweight]
             )
         )
@@ -90,9 +85,7 @@ final class OverallRankTrialServiceTests: XCTestCase {
                 userId: "u1",
                 currentRank: .novice,
                 overallLevel: definition.minOverallLevel - 1,
-                movementProgress: [:],
-                skillTiers: [:],
-                attributeProfile: AttributeProfile.empty(userId: "u1", at: Date(timeIntervalSince1970: 0)),
+                aggregateRank: .initiate,
                 equipment: [.bodyweight]
             )
         )
@@ -102,9 +95,8 @@ final class OverallRankTrialServiceTests: XCTestCase {
         XCTAssertEqual(readiness.targetRank, .apprentice)
         XCTAssertEqual(readiness.definition?.id, definition.id)
         XCTAssertTrue(readiness.missingRequirements.contains { $0.kind == .overallLevel })
-        XCTAssertTrue(readiness.missingRequirements.contains { $0.kind == .movement })
+        XCTAssertTrue(readiness.missingRequirements.contains { $0.kind == .rank })
         XCTAssertTrue(readiness.missingRequirements.contains { $0.kind == .equipment })
-        XCTAssertFalse(readiness.requirements.contains { $0.kind == .attributes })
     }
 
     func testNoviceReadinessBecomesReadyForCalibrationWhenRequirementsAreMet() {
@@ -114,9 +106,7 @@ final class OverallRankTrialServiceTests: XCTestCase {
                 userId: "u1",
                 currentRank: .novice,
                 overallLevel: definition.minOverallLevel,
-                movementProgress: movementProgress(for: definition),
-                skillTiers: ["pp.pullup": .apprentice],
-                attributeProfile: AttributeProfile.empty(userId: "u1", at: Date(timeIntervalSince1970: 0)),
+                aggregateRank: definition.targetRank,
                 equipment: readyEquipment()
             )
         )
@@ -136,9 +126,7 @@ final class OverallRankTrialServiceTests: XCTestCase {
                 userId: "u1",
                 currentRank: .apprentice,
                 overallLevel: definition.minOverallLevel - 1,
-                movementProgress: [:],
-                skillTiers: [:],
-                attributeProfile: AttributeProfile.empty(userId: "u1", at: Date(timeIntervalSince1970: 0)),
+                aggregateRank: .initiate,
                 equipment: [.bodyweight]
             )
         )
@@ -148,8 +136,7 @@ final class OverallRankTrialServiceTests: XCTestCase {
         XCTAssertEqual(readiness.targetRank, .forged)
         XCTAssertEqual(readiness.definition?.id, definition.id)
         XCTAssertTrue(readiness.missingRequirements.contains { $0.kind == .overallLevel })
-        XCTAssertTrue(readiness.missingRequirements.contains { $0.kind == .movement })
-        XCTAssertTrue(readiness.missingRequirements.contains { $0.kind == .attributes })
+        XCTAssertTrue(readiness.missingRequirements.contains { $0.kind == .rank })
         XCTAssertTrue(readiness.missingRequirements.contains { $0.kind == .equipment })
     }
 
@@ -160,9 +147,7 @@ final class OverallRankTrialServiceTests: XCTestCase {
                 userId: "u1",
                 currentRank: .apprentice,
                 overallLevel: definition.minOverallLevel,
-                movementProgress: movementProgress(for: definition),
-                skillTiers: skillTiers(for: definition),
-                attributeProfile: attributeProfile(score: definition.topAttributeFloor),
+                aggregateRank: definition.targetRank,
                 equipment: readyEquipment()
             )
         )
@@ -194,9 +179,7 @@ final class OverallRankTrialServiceTests: XCTestCase {
                 userId: "u1",
                 currentRank: .apprentice,
                 overallLevel: definition.minOverallLevel,
-                movementProgress: movementProgress(for: definition),
-                skillTiers: skillTiers(for: definition),
-                attributeProfile: attributeProfile(score: definition.topAttributeFloor),
+                aggregateRank: definition.targetRank,
                 equipment: readyEquipment(),
                 attempts: [attempt]
             )
@@ -214,9 +197,7 @@ final class OverallRankTrialServiceTests: XCTestCase {
                 userId: "u1",
                 currentRank: .forged,
                 overallLevel: definition.minOverallLevel,
-                movementProgress: movementProgress(for: definition),
-                skillTiers: skillTiers(for: definition),
-                attributeProfile: attributeProfile(score: definition.topAttributeFloor),
+                aggregateRank: definition.targetRank,
                 equipment: [.bodyweight, .openSpace]
             )
         )
@@ -235,9 +216,7 @@ final class OverallRankTrialServiceTests: XCTestCase {
                 userId: "u1",
                 currentRank: .forged,
                 overallLevel: definition.minOverallLevel,
-                movementProgress: movementProgress(for: definition),
-                skillTiers: skillTiers(for: definition),
-                attributeProfile: attributeProfile(score: definition.topAttributeFloor),
+                aggregateRank: definition.targetRank,
                 equipment: readyEquipment()
             )
         )
@@ -256,9 +235,7 @@ final class OverallRankTrialServiceTests: XCTestCase {
                 userId: "u1",
                 currentRank: .veteran,
                 overallLevel: definition.minOverallLevel - 1,
-                movementProgress: [:],
-                skillTiers: [:],
-                attributeProfile: AttributeProfile.empty(userId: "u1", at: Date(timeIntervalSince1970: 0)),
+                aggregateRank: .initiate,
                 equipment: [.bodyweight, .openSpace]
             )
         )
@@ -268,8 +245,7 @@ final class OverallRankTrialServiceTests: XCTestCase {
         XCTAssertEqual(readiness.targetRank, .master)
         XCTAssertEqual(readiness.definition?.id, definition.id)
         XCTAssertTrue(readiness.missingRequirements.contains { $0.kind == .overallLevel })
-        XCTAssertTrue(readiness.missingRequirements.contains { $0.kind == .movement })
-        XCTAssertTrue(readiness.missingRequirements.contains { $0.kind == .attributes })
+        XCTAssertTrue(readiness.missingRequirements.contains { $0.kind == .rank })
         XCTAssertTrue(readiness.missingRequirements.contains { $0.kind == .equipment })
     }
 
@@ -280,9 +256,7 @@ final class OverallRankTrialServiceTests: XCTestCase {
                 userId: "u1",
                 currentRank: .veteran,
                 overallLevel: definition.minOverallLevel,
-                movementProgress: movementProgress(for: definition),
-                skillTiers: skillTiers(for: definition),
-                attributeProfile: attributeProfile(score: definition.topAttributeFloor),
+                aggregateRank: definition.targetRank,
                 equipment: readyEquipment()
             )
         )
@@ -303,9 +277,7 @@ final class OverallRankTrialServiceTests: XCTestCase {
                     userId: "u1",
                     currentRank: trialCase.sourceRank,
                     overallLevel: definition.minOverallLevel - 1,
-                    movementProgress: [:],
-                    skillTiers: [:],
-                    attributeProfile: AttributeProfile.empty(userId: "u1", at: Date(timeIntervalSince1970: 0)),
+                    aggregateRank: .initiate,
                     equipment: [.bodyweight]
                 )
             )
@@ -315,8 +287,7 @@ final class OverallRankTrialServiceTests: XCTestCase {
             XCTAssertEqual(locked.targetRank, definition.targetRank, definition.displayName)
             XCTAssertEqual(locked.definition?.id, definition.id, definition.displayName)
             XCTAssertTrue(locked.missingRequirements.contains { $0.kind == .overallLevel }, definition.displayName)
-            XCTAssertTrue(locked.missingRequirements.contains { $0.kind == .movement }, definition.displayName)
-            XCTAssertTrue(locked.missingRequirements.contains { $0.kind == .attributes }, definition.displayName)
+            XCTAssertTrue(locked.missingRequirements.contains { $0.kind == .rank }, definition.displayName)
             XCTAssertTrue(locked.missingRequirements.contains { $0.kind == .equipment }, definition.displayName)
 
             let ready = TrialReadinessService.shared.evaluate(
@@ -324,9 +295,7 @@ final class OverallRankTrialServiceTests: XCTestCase {
                     userId: "u1",
                     currentRank: trialCase.sourceRank,
                     overallLevel: definition.minOverallLevel,
-                    movementProgress: movementProgress(for: definition),
-                    skillTiers: skillTiers(for: definition),
-                    attributeProfile: attributeProfile(score: definition.topAttributeFloor),
+                    aggregateRank: definition.targetRank,
                     equipment: readyEquipment()
                 )
             )
@@ -1493,39 +1462,6 @@ final class OverallRankTrialServiceTests: XCTestCase {
         XCTAssertNil(OverallRankTrialDefinitions.nextTrial(after: .ascendant))
     }
 
-    private func movementProgress(
-        for definition: OverallRankTrialDefinition
-    ) -> [String: MovementProgressState] {
-        Dictionary(uniqueKeysWithValues: definition.movementStandards.map { standard in
-            (
-                standard.rankStandardMovementId,
-                MovementProgressState(
-                    userId: "u1",
-                    rankStandardMovementId: standard.rankStandardMovementId,
-                    displayName: standard.displayName,
-                    rankTemplate: MovementCatalog.definition(for: standard.rankStandardMovementId)?.rankTemplate ?? .bodyweightReps,
-                    totalAP: standard.minimumAP,
-                    updatedAt: Date(timeIntervalSince1970: 0)
-                )
-            )
-        })
-    }
-
-    private func skillTiers(
-        for definition: OverallRankTrialDefinition
-    ) -> [String: SkillTier] {
-        var tiers = Dictionary(uniqueKeysWithValues: definition.skillStandards.map { standard in
-            (standard.skillId, standard.minimumTier)
-        })
-        // Satisfy each path-aware group by meeting its first `minimumCount` options.
-        for group in definition.skillPathGroups {
-            for option in group.options.prefix(group.minimumCount) {
-                tiers[option.skillId] = option.minimumTier
-            }
-        }
-        return tiers
-    }
-
     private func readyEquipment() -> Set<MovementEquipment> {
         [
             .bodyweight,
@@ -1624,46 +1560,15 @@ final class OverallRankTrialServiceTests: XCTestCase {
         XCTAssertNotNil(failingEvaluation.failedStation, definition.displayName, file: file, line: line)
     }
 
-    private func attributeProfile(score: Double) -> AttributeProfile {
-        var profile = AttributeProfile.empty(userId: "u1", at: Date(timeIntervalSince1970: 0))
-        // `score` is now interpreted as a target LEVEL (gate reads xp-derived level).
-        for key in AttributeKey.allCases {
-            profile.set(
-                key,
-                AttributeValue(
-                    xp: AttributeLevelCurve.xpRequired(forLevel: Int(score)),
-                    lastContributionAt: Date(timeIntervalSince1970: 0)
-                )
-            )
-        }
-        return profile
-    }
-
     private func assertCatalogBacked(
         _ definition: OverallRankTrialDefinition,
         file: StaticString = #filePath,
         line: UInt = #line
     ) {
-        for standard in definition.movementStandards {
-            XCTAssertNotNil(
-                MovementCatalog.definition(for: standard.rankStandardMovementId),
-                "\(standard.rankStandardMovementId) should resolve through MovementCatalog",
-                file: file,
-                line: line
-            )
-        }
         for standard in definition.performanceStandards {
             XCTAssertNotNil(
                 MovementCatalog.definition(for: standard.movementId),
                 "\(standard.movementId) should resolve through MovementCatalog",
-                file: file,
-                line: line
-            )
-        }
-        for standard in definition.skillStandards {
-            XCTAssertNotNil(
-                MovementCatalog.definition(for: "skill.\(standard.skillId)"),
-                "\(standard.skillId) should resolve through MovementCatalog skill definitions",
                 file: file,
                 line: line
             )

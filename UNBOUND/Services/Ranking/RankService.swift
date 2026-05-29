@@ -214,22 +214,137 @@ final class RankService: RankServiceProtocol {
         }
     }
 
-    // MARK: BuildIdentity aggregate
+    // MARK: BuildIdentity aggregate (Phase 7 — accumulation)
 
-    /// Aggregate RankTier derived from family-tier progression states.
-    /// LiftRank-based aggregation removed in rank-cleanup-v1.
+    /// Overall rank = build-weighted, difficulty-weighted mean of the user's
+    /// per-movement `RankTier`s, with honest decay. (Phase 7.)
+    ///
+    /// Each ranked movement contributes `score = ranktier.rawValue` weighted by
+    /// `difficultyWeight × buildWeight × freshness`:
+    ///   - difficultyWeight `1 + difficulty/8` (range 1.0–2.0): a hard move
+    ///     counts up to 2×. Skills use `SkillNode.tier` (1–7); barbell compounds
+    ///     use a fixed high intrinsic difficulty (the ratio-band ceiling).
+    ///   - buildWeight: +0.5 if the move's top attribute axis == the profile's
+    ///     primary build axis, +0.25 if == secondary (cap 1.75). Balanced /
+    ///     hybrid builds have no axis to favor → flat 1.0.
+    ///   - freshness: 1.0 when the move's axis is fresh, decaying to a 0.5 floor
+    ///     once that axis goes stale (reuses `AttributeValue.isStale`). Rank is
+    ///     dampened, never erased.
+    ///
+    /// Coverage guard: fewer than `coverageFloor` ranked movements can't push the
+    /// weighted mean above Forged, so a day-1 single-lift spike can't inflate
+    /// overall rank.
     func aggregateRank(userId: String) async -> RankTier {
-        guard let mean = await familyTierRawValueMean(userId: userId) else { return .initiate }
-        return RankTier.nearest(for: mean)
+        let entries = rankedMovementEntries(userId: userId)
+        guard !entries.isEmpty else { return .initiate }
+
+        let profile = AttributeProfileStore.shared.load(userId: userId)
+            ?? .empty(userId: userId, at: .now)
+        let build = profile.buildIdentity
+        let now = Date()
+
+        var weightedSum = 0.0
+        var weightTotal = 0.0
+        for entry in entries {
+            let score = Double(entry.tier.rawValue)
+            let weight = difficultyWeight(entry.difficulty)
+                * buildWeight(topAxis: entry.topAxis, build: build)
+                * freshness(topAxis: entry.topAxis, profile: profile, asOf: now)
+            weightedSum += score * weight
+            weightTotal += weight
+        }
+        guard weightTotal > 0 else { return .initiate }
+
+        var overallRaw = weightedSum / weightTotal
+
+        // Coverage guard: below a minimum of ranked movements, cap the
+        // contribution at Forged (rawValue 3) so single-lift spikes can't
+        // inflate the overall rank.
+        if entries.count < Self.coverageFloor {
+            overallRaw = min(overallRaw, Double(RankTier.forged.rawValue))
+        }
+
+        return RankTier.nearest(for: overallRaw)
     }
 
-    /// Mean RankTier rawValue (0–8) derived from family-tier state. Returns nil
-    /// when the user has no family-tier records yet.
-    private func familyTierRawValueMean(userId: String) async -> Double? {
-        let states = await ProgressionStateStore.shared.allFamilyStates(userId: userId)
-        guard !states.isEmpty else { return nil }
-        let values = states.map { Double(StrengthStandards.subRank(forFamilyTier: $0.unlockedTier).rawValue) }
-        return values.reduce(0.0, +) / Double(values.count)
+    /// Minimum ranked movements required before the weighted mean can exceed
+    /// Forged.
+    static let coverageFloor = 4
+
+    /// Fixed intrinsic difficulty for tracked barbell compounds — they sit at
+    /// the top of the strength ratio ladder, comparable to elite skill tiers.
+    private static let barbellCompoundDifficulty = 6
+
+    /// A ranked movement the user has trained, reduced to the three inputs the
+    /// weighted mean needs.
+    private struct RankedMovement {
+        let tier: RankTier
+        let difficulty: Int          // 1…7 (skill node tier) or the compound ceiling
+        let topAxis: AttributeKey?   // dominant attributeWeights axis, nil if none
+    }
+
+    /// Collect per-movement ranks from the values `computeTier` (skills) and the
+    /// lift-tier ladder already produce. Initiate-tier movements are skipped —
+    /// they carry no signal.
+    private func rankedMovementEntries(userId: String) -> [RankedMovement] {
+        var entries: [RankedMovement] = []
+
+        // Skills — per-skill SkillTier from the tier store.
+        let skillState = UserSkillTierStore.shared.load(userId: userId)
+        for (skillId, tier) in skillState.perSkill where tier > .initiate {
+            let difficulty = SkillGraph.shared.node(id: skillId)?.tier ?? 1
+            let weights = MovementCatalog.definition(for: "skill.\(skillId)")?.attributeWeights
+            entries.append(
+                RankedMovement(tier: tier, difficulty: difficulty, topAxis: topAxis(of: weights))
+            )
+        }
+
+        // Barbell compounds — per-lift SkillTier from the lift-tier ladder.
+        for lift in Self.aggregateLiftKeys {
+            let tier = LiftTierService.shared.tier(lift: lift, userId: userId)
+            guard tier > .initiate else { continue }
+            let weights = MovementCatalog.definition(for: lift)?.attributeWeights
+                ?? MovementCatalog.definition(for: MovementResolver.resolve(lift).movementId)?.attributeWeights
+            entries.append(
+                RankedMovement(
+                    tier: tier,
+                    difficulty: Self.barbellCompoundDifficulty,
+                    topAxis: topAxis(of: weights)
+                )
+            )
+        }
+
+        return entries
+    }
+
+    private static let aggregateLiftKeys = ["bench press", "back squat", "deadlift", "overhead press"]
+
+    /// `1 + difficulty/8`, clamped to the 1.0–2.0 range.
+    private func difficultyWeight(_ difficulty: Int) -> Double {
+        let clamped = max(0, min(8, difficulty))
+        return min(2.0, max(1.0, 1.0 + Double(clamped) / 8.0))
+    }
+
+    /// Build alignment: +0.5 on the primary axis, +0.25 on the secondary, capped
+    /// at 1.75. Balanced / hybrid-athlete builds have no axis to favor → 1.0.
+    private func buildWeight(topAxis: AttributeKey?, build: BuildIdentity) -> Double {
+        guard let topAxis else { return 1.0 }
+        var weight = 1.0
+        if let primary = build.primary, topAxis == primary { weight += 0.5 }
+        else if let secondary = build.secondary, topAxis == secondary { weight += 0.25 }
+        return min(1.75, weight)
+    }
+
+    /// 1.0 when the move's axis is fresh, 0.5 once it goes stale. Floors at 0.5 —
+    /// rank is dampened by a layoff, never erased.
+    private func freshness(topAxis: AttributeKey?, profile: AttributeProfile, asOf date: Date) -> Double {
+        guard let topAxis else { return 1.0 }
+        return profile.value(for: topAxis).isStale(asOf: date) ? 0.5 : 1.0
+    }
+
+    /// The highest-weighted attribute axis for a movement's `attributeWeights`.
+    private func topAxis(of weights: [AttributeKey: Double]?) -> AttributeKey? {
+        weights?.max(by: { $0.value < $1.value })?.key
     }
 
     // MARK: Private helpers

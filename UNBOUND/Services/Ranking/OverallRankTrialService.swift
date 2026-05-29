@@ -9,10 +9,8 @@ enum OverallRankTrialStatus: String, Codable, Equatable, Sendable {
 }
 
 enum OverallRankTrialRequirementKind: String, Codable, Equatable, Sendable {
-    case movement
-    case skill
-    case attributes
     case overallLevel
+    case rank
     case equipment
 }
 
@@ -85,38 +83,6 @@ struct OverallRankTrialRequirementLine: Identifiable, Codable, Equatable, Sendab
     let current: String
     let required: String
     let isMet: Bool
-}
-
-struct OverallRankTrialMovementStandard: Codable, Equatable, Sendable {
-    let rankStandardMovementId: String
-    let displayName: String
-    let minimumAP: Double
-}
-
-struct OverallRankTrialSkillStandard: Codable, Equatable, Sendable {
-    let skillId: String
-    let displayName: String
-    let minimumTier: SkillTier
-}
-
-/// Path-aware "any N of" skill gate. Unlike `skillStandards` (every entry is a
-/// hard AND requirement), a group is satisfied when ANY `minimumCount` of its
-/// options are met — so a lifter and a calisthenics athlete each have a route
-/// to the same rank instead of being blocked by the other path's skills.
-struct OverallRankTrialSkillGroup: Codable, Equatable, Sendable {
-    let id: String
-    let label: String
-    let minimumCount: Int
-    let options: [OverallRankTrialSkillStandard]
-
-    /// How many of the options the user currently meets.
-    func metCount(skillTiers: [String: SkillTier]) -> Int {
-        options.filter { (skillTiers[$0.skillId] ?? .initiate) >= $0.minimumTier }.count
-    }
-
-    func isMet(skillTiers: [String: SkillTier]) -> Bool {
-        metCount(skillTiers: skillTiers) >= minimumCount
-    }
 }
 
 struct OverallRankTrialPerformanceStandard: Codable, Equatable, Sendable {
@@ -313,12 +279,7 @@ struct OverallRankTrialDefinition: Identifiable, Codable, Equatable, Sendable {
     let estimatedMinutes: Int
     let format: RankTrialFormat
     let minOverallLevel: Int
-    let topAttributeCount: Int
-    let topAttributeFloor: Double
     let requiredEquipment: Set<MovementEquipment>
-    let movementStandards: [OverallRankTrialMovementStandard]
-    let skillStandards: [OverallRankTrialSkillStandard]
-    let skillPathGroups: [OverallRankTrialSkillGroup]
     let performanceStandards: [OverallRankTrialPerformanceStandard]
     let loadoutVariants: [TrialLoadoutVariant]
     let legacyIds: Set<String>
@@ -331,12 +292,7 @@ struct OverallRankTrialDefinition: Identifiable, Codable, Equatable, Sendable {
         estimatedMinutes: Int,
         format: RankTrialFormat = .finisher,
         minOverallLevel: Int,
-        topAttributeCount: Int,
-        topAttributeFloor: Double,
         requiredEquipment: Set<MovementEquipment>,
-        movementStandards: [OverallRankTrialMovementStandard],
-        skillStandards: [OverallRankTrialSkillStandard],
-        skillPathGroups: [OverallRankTrialSkillGroup] = [],
         performanceStandards: [OverallRankTrialPerformanceStandard],
         loadoutVariants: [TrialLoadoutVariant] = [],
         legacyIds: Set<String> = []
@@ -348,12 +304,7 @@ struct OverallRankTrialDefinition: Identifiable, Codable, Equatable, Sendable {
         self.estimatedMinutes = estimatedMinutes
         self.format = format
         self.minOverallLevel = minOverallLevel
-        self.topAttributeCount = topAttributeCount
-        self.topAttributeFloor = topAttributeFloor
         self.requiredEquipment = requiredEquipment
-        self.movementStandards = movementStandards
-        self.skillStandards = skillStandards
-        self.skillPathGroups = skillPathGroups
         self.performanceStandards = performanceStandards
         self.loadoutVariants = loadoutVariants
         self.legacyIds = legacyIds
@@ -361,8 +312,8 @@ struct OverallRankTrialDefinition: Identifiable, Codable, Equatable, Sendable {
 
     enum CodingKeys: String, CodingKey {
         case id, targetRank, displayName, subtitle, estimatedMinutes, format
-        case minOverallLevel, topAttributeCount, topAttributeFloor, requiredEquipment
-        case movementStandards, skillStandards, skillPathGroups, performanceStandards
+        case minOverallLevel, requiredEquipment
+        case performanceStandards
         case loadoutVariants, legacyIds
     }
 
@@ -375,13 +326,7 @@ struct OverallRankTrialDefinition: Identifiable, Codable, Equatable, Sendable {
         estimatedMinutes = try c.decode(Int.self, forKey: .estimatedMinutes)
         format = try c.decode(RankTrialFormat.self, forKey: .format)
         minOverallLevel = try c.decode(Int.self, forKey: .minOverallLevel)
-        topAttributeCount = try c.decode(Int.self, forKey: .topAttributeCount)
-        topAttributeFloor = try c.decode(Double.self, forKey: .topAttributeFloor)
         requiredEquipment = try c.decode(Set<MovementEquipment>.self, forKey: .requiredEquipment)
-        movementStandards = try c.decode([OverallRankTrialMovementStandard].self, forKey: .movementStandards)
-        skillStandards = try c.decode([OverallRankTrialSkillStandard].self, forKey: .skillStandards)
-        // Additive + backward-compatible: older persisted definitions lack this.
-        skillPathGroups = try c.decodeIfPresent([OverallRankTrialSkillGroup].self, forKey: .skillPathGroups) ?? []
         performanceStandards = try c.decode([OverallRankTrialPerformanceStandard].self, forKey: .performanceStandards)
         loadoutVariants = try c.decodeIfPresent([TrialLoadoutVariant].self, forKey: .loadoutVariants) ?? []
         legacyIds = try c.decodeIfPresent(Set<String>.self, forKey: .legacyIds) ?? []
@@ -507,33 +452,6 @@ struct OverallRankTrialDefinition: Identifiable, Codable, Equatable, Sendable {
 }
 
 enum OverallRankTrialDefinitions {
-    private static func movementStandard(
-        _ movementId: String,
-        minimumAP: Double,
-        displayName: String? = nil
-    ) -> OverallRankTrialMovementStandard {
-        OverallRankTrialMovementStandard(
-            rankStandardMovementId: movementId,
-            displayName: displayName ?? MovementCatalog.definition(for: movementId)?.displayName ?? movementId,
-            minimumAP: minimumAP
-        )
-    }
-
-    private static func skillStandard(
-        _ skillId: String,
-        minimumTier: SkillTier,
-        displayName: String? = nil
-    ) -> OverallRankTrialSkillStandard {
-        OverallRankTrialSkillStandard(
-            skillId: skillId,
-            displayName: displayName
-                ?? MovementCatalog.definition(for: "skill.\(skillId)")?.displayName
-                ?? SkillGraph.shared.node(id: skillId)?.title
-                ?? skillId,
-            minimumTier: minimumTier
-        )
-    }
-
     private static func option(
         _ movementId: String,
         _ displayName: String? = nil,
@@ -639,11 +557,7 @@ enum OverallRankTrialDefinitions {
         estimatedMinutes: Int,
         format: RankTrialFormat,
         minOverallLevel: Int,
-        topAttributeCount: Int,
-        topAttributeFloor: Double,
-        movementStandards: [OverallRankTrialMovementStandard],
         loadoutVariants: [TrialLoadoutVariant],
-        skillPathGroups: [OverallRankTrialSkillGroup] = [],
         legacyIds: Set<String> = []
     ) -> OverallRankTrialDefinition {
         let defaultVariant = loadoutVariants.first { $0.loadout == .homeKit } ?? loadoutVariants[0]
@@ -655,12 +569,7 @@ enum OverallRankTrialDefinitions {
             estimatedMinutes: estimatedMinutes,
             format: format,
             minOverallLevel: minOverallLevel,
-            topAttributeCount: topAttributeCount,
-            topAttributeFloor: topAttributeFloor,
             requiredEquipment: defaultVariant.requiredEquipment,
-            movementStandards: movementStandards,
-            skillStandards: [],
-            skillPathGroups: skillPathGroups,
             performanceStandards: defaultVariant.stations.map(\.standard),
             loadoutVariants: loadoutVariants,
             legacyIds: legacyIds
@@ -1106,22 +1015,7 @@ enum OverallRankTrialDefinitions {
         estimatedMinutes: 14,
         format: .daily100,
         minOverallLevel: 1,
-        topAttributeCount: 2,
-        topAttributeFloor: 20,
         requiredEquipment: [.bodyweight],
-        movementStandards: [
-            OverallRankTrialMovementStandard(
-                rankStandardMovementId: "exercise.pushup",
-                displayName: "Push-Up",
-                minimumAP: 50
-            ),
-            OverallRankTrialMovementStandard(
-                rankStandardMovementId: "exercise.bodyweight-squat",
-                displayName: "Bodyweight Squat",
-                minimumAP: 30
-            )
-        ],
-        skillStandards: [],
         performanceStandards: daily100Stations(loadout: .homeKit).map(\.standard),
         loadoutVariants: loadoutVariants(
             noGym: daily100Stations(loadout: .noGymField),
@@ -1139,12 +1033,6 @@ enum OverallRankTrialDefinitions {
         estimatedMinutes: 20,
         format: .operatorScreen,
         minOverallLevel: 8,
-        topAttributeCount: 0,
-        topAttributeFloor: 0,
-        movementStandards: [
-            movementStandard("exercise.pushup", minimumAP: 90, displayName: "Push-Up"),
-            movementStandard("exercise.inverted-row", minimumAP: 60)
-        ],
         loadoutVariants: loadoutVariants(
             noGym: operatorStations(loadout: .noGymField),
             home: operatorStations(loadout: .homeKit),
@@ -1160,13 +1048,6 @@ enum OverallRankTrialDefinitions {
         estimatedMinutes: 30,
         format: .finisher,
         minOverallLevel: 15,
-        topAttributeCount: 1,
-        topAttributeFloor: 58,
-        movementStandards: [
-            movementStandard("exercise.pushup", minimumAP: 120, displayName: "Push-Up"),
-            movementStandard("exercise.inverted-row", minimumAP: 100),
-            movementStandard("exercise.dumbbell-romanian-deadlift", minimumAP: 120)
-        ],
         loadoutVariants: loadoutVariants(
             noGym: finisherStations(loadout: .noGymField),
             home: finisherStations(loadout: .homeKit),
@@ -1183,13 +1064,6 @@ enum OverallRankTrialDefinitions {
         estimatedMinutes: 42,
         format: .fixedDeck,
         minOverallLevel: 22,
-        topAttributeCount: 2,
-        topAttributeFloor: 68,
-        movementStandards: [
-            movementStandard("exercise.step-up", minimumAP: 160),
-            movementStandard("exercise.inverted-row", minimumAP: 160),
-            movementStandard("carry.loaded-march", minimumAP: 160, displayName: "Loaded March")
-        ],
         loadoutVariants: loadoutVariants(
             noGym: deckStations(loadout: .noGymField),
             home: deckStations(loadout: .homeKit),
@@ -1206,33 +1080,11 @@ enum OverallRankTrialDefinitions {
         estimatedMinutes: 50,
         format: .tower,
         minOverallLevel: 40,
-        topAttributeCount: 3,
-        topAttributeFloor: 78,
-        movementStandards: [
-            movementStandard("cardio.run", minimumAP: 240, displayName: "Run"),
-            movementStandard("exercise.dumbbell-row", minimumAP: 220),
-            movementStandard("carry.loaded-march", minimumAP: 220, displayName: "Loaded March")
-        ],
         loadoutVariants: loadoutVariants(
             noGym: towerStations(loadout: .noGymField),
             home: towerStations(loadout: .homeKit),
             gym: towerStations(loadout: .gymHybrid)
         ),
-        // Representative path-aware gate (mechanism proof; full per-rank content
-        // is a balance pass to be specced separately). A pull athlete OR a
-        // single-leg-strength athlete clears it — neither path is blocked by the
-        // other's skill.
-        skillPathGroups: [
-            OverallRankTrialSkillGroup(
-                id: "master-signature-skill",
-                label: "Signature skill",
-                minimumCount: 1,
-                options: [
-                    OverallRankTrialSkillStandard(skillId: "pp.muscle-up", displayName: "Muscle-up", minimumTier: .novice),
-                    OverallRankTrialSkillStandard(skillId: "ld.pistol-squat", displayName: "Pistol squat", minimumTier: .novice)
-                ]
-            )
-        ],
         legacyIds: ["overall-rank-trial-veteran-gauntlet"]
     )
 
@@ -1244,14 +1096,6 @@ enum OverallRankTrialDefinitions {
         estimatedMinutes: 58,
         format: .bossRush,
         minOverallLevel: 55,
-        topAttributeCount: 4,
-        topAttributeFloor: 84,
-        movementStandards: [
-            movementStandard("cardio.run", minimumAP: 320, displayName: "Run"),
-            movementStandard("exercise.dumbbell-romanian-deadlift", minimumAP: 300),
-            movementStandard("exercise.dumbbell-row", minimumAP: 280),
-            movementStandard("carry.farmer-carry", minimumAP: 280)
-        ],
         loadoutVariants: loadoutVariants(
             noGym: bossRushStations(loadout: .noGymField),
             home: bossRushStations(loadout: .homeKit),
@@ -1268,14 +1112,6 @@ enum OverallRankTrialDefinitions {
         estimatedMinutes: 65,
         format: .raid,
         minOverallLevel: 72,
-        topAttributeCount: 5,
-        topAttributeFloor: 90,
-        movementStandards: [
-            movementStandard("cardio.run", minimumAP: 420, displayName: "Run"),
-            movementStandard("exercise.dumbbell-romanian-deadlift", minimumAP: 360),
-            movementStandard("exercise.dumbbell-row", minimumAP: 340),
-            movementStandard("carry.farmer-carry", minimumAP: 340)
-        ],
         loadoutVariants: loadoutVariants(
             noGym: raidStations(loadout: .noGymField),
             home: raidStations(loadout: .homeKit),
@@ -1291,14 +1127,6 @@ enum OverallRankTrialDefinitions {
         estimatedMinutes: 75,
         format: .finalExam,
         minOverallLevel: 90,
-        topAttributeCount: 6,
-        topAttributeFloor: 95,
-        movementStandards: [
-            movementStandard("cardio.run", minimumAP: 500, displayName: "Run"),
-            movementStandard("exercise.dumbbell-row", minimumAP: 440),
-            movementStandard("exercise.pushup", minimumAP: 400, displayName: "Push-Up"),
-            movementStandard("carry.farmer-carry", minimumAP: 420)
-        ],
         loadoutVariants: loadoutVariants(
             noGym: finalExamStations(loadout: .noGymField),
             home: finalExamStations(loadout: .homeKit),
@@ -1344,6 +1172,34 @@ enum OverallRankTrialDefinitions {
             return ascension
         default:
             return nil
+        }
+    }
+}
+
+/// How a rank crossing is claimed once eligibility (accumulation + LVL) is met.
+/// Derived purely from the target rank — not new config.
+///   - Novice / Apprentice (rawValue 1–2): `autoConfirm` — claimed instantly
+///     with a cinematic, no session. Early progress is never gated on a workout.
+///   - Forged / Veteran (rawValue 3–4): `benchmark` — one short qualifying
+///     session (forge / reckoning), infinitely retryable.
+///   - Master+ (rawValue ≥ 5 — the crown crossings, Tower onward): `gauntlet` —
+///     the epic themed conditioning gauntlet (Tower / Boss Rush / Raid /
+///     Final Exam).
+enum OverallRankCeremonyTier: String, Equatable, Sendable {
+    case autoConfirm
+    case benchmark
+    case gauntlet
+}
+
+extension OverallRankTrialDefinitions {
+    static func ceremonyTier(for targetRank: RankTier) -> OverallRankCeremonyTier {
+        switch targetRank.rawValue {
+        case ...2:           // Novice, Apprentice
+            return .autoConfirm
+        case 3...4:          // Forged, Veteran
+            return .benchmark
+        default:             // Master and up — the epic gauntlets
+            return .gauntlet
         }
     }
 }
@@ -1710,9 +1566,8 @@ struct OverallRankTrialReadinessInput: Equatable, Sendable {
     let userId: String
     let currentRank: RankTitle
     let overallLevel: Int
-    let movementProgress: [String: MovementProgressState]
-    let skillTiers: [String: SkillTier]
-    let attributeProfile: AttributeProfile
+    /// Live build-weighted accumulation (Phase 7). Gates next-rank eligibility.
+    let aggregateRank: RankTier
     let equipment: Set<MovementEquipment>
     let attempts: [OverallRankTrialAttempt]
 
@@ -1720,18 +1575,14 @@ struct OverallRankTrialReadinessInput: Equatable, Sendable {
         userId: String,
         currentRank: RankTitle,
         overallLevel: Int,
-        movementProgress: [String: MovementProgressState],
-        skillTiers: [String: SkillTier],
-        attributeProfile: AttributeProfile,
+        aggregateRank: RankTier,
         equipment: Set<MovementEquipment> = [.bodyweight],
         attempts: [OverallRankTrialAttempt] = []
     ) {
         self.userId = userId
         self.currentRank = currentRank
         self.overallLevel = overallLevel
-        self.movementProgress = movementProgress
-        self.skillTiers = skillTiers
-        self.attributeProfile = attributeProfile
+        self.aggregateRank = aggregateRank
         self.equipment = equipment
         self.attempts = attempts
     }
@@ -1823,21 +1674,8 @@ final class TrialReadinessService {
             collection: "overall_level_progress",
             documentId: userId
         )
-        var movementById: [String: MovementProgressState] = [:]
-        for definition in OverallRankTrialDefinitions.all {
-            for standard in definition.movementStandards {
-                guard movementById[standard.rankStandardMovementId] == nil,
-                      let state: MovementProgressState = try? await services.database.read(
-                        collection: "movement_progress",
-                        documentId: "\(userId):\(standard.rankStandardMovementId)"
-                      )
-                else { continue }
-                movementById[standard.rankStandardMovementId] = state
-            }
-        }
 
-        let skillState = services.rank.state(userId: userId)
-        let profile = services.attribute.profile(userId: userId)
+        let aggregateRank = await services.rank.aggregateRank(userId: userId)
         let userProfile = try? await services.user.fetchProfile(userId: userId)
         let equipment = movementEquipment(from: userProfile?.equipment ?? [.bodyweight])
 
@@ -1846,9 +1684,7 @@ final class TrialReadinessService {
                 userId: userId,
                 currentRank: progress.currentRank,
                 overallLevel: overallProgress?.level ?? 0,
-                movementProgress: movementById,
-                skillTiers: skillState.perSkill,
-                attributeProfile: profile,
+                aggregateRank: aggregateRank,
                 equipment: equipment,
                 attempts: progress.attempts
             )
@@ -1911,69 +1747,19 @@ final class TrialReadinessService {
             )
         )
 
-        if definition.topAttributeCount > 0 {
-            // Gate on LEVEL: xp-derived, permanent, never lost to a layoff — a
-            // rank trial unlocks on proven ceiling and stays unlocked.
-            let qualifiedAttributes = AttributeKey.allCases
-                .map { Double(input.attributeProfile.value(for: $0).level) }
-                .filter { $0 >= definition.topAttributeFloor }
-                .count
-            lines.append(
-                OverallRankTrialRequirementLine(
-                    id: "top-attributes",
-                    kind: .attributes,
-                    label: "Top attributes",
-                    current: "\(qualifiedAttributes)/\(definition.topAttributeCount)",
-                    required: "\(definition.topAttributeCount) at \(Int(definition.topAttributeFloor))+",
-                    isMet: qualifiedAttributes >= definition.topAttributeCount
-                )
+        // Accumulation gate (Phase 7): the build-weighted aggregate rank must
+        // reach the target tier. This is "elite in your build" — fairness lives
+        // in the build-weighting, not in a fixed skill/attribute conformity set.
+        lines.append(
+            OverallRankTrialRequirementLine(
+                id: "accumulated-rank",
+                kind: .rank,
+                label: "Accumulated rank",
+                current: input.aggregateRank.displayName,
+                required: definition.targetRank.displayName,
+                isMet: input.aggregateRank >= definition.targetRank
             )
-        }
-
-        for standard in definition.movementStandards {
-            let currentAP = input.movementProgress[standard.rankStandardMovementId]?.totalAP ?? 0
-            lines.append(
-                OverallRankTrialRequirementLine(
-                    id: "movement-\(standard.rankStandardMovementId)",
-                    kind: .movement,
-                    label: standard.displayName,
-                    current: "\(Int(currentAP.rounded())) AP",
-                    required: "\(Int(standard.minimumAP.rounded())) AP",
-                    isMet: currentAP >= standard.minimumAP
-                )
-            )
-        }
-
-        for standard in definition.skillStandards {
-            let currentTier = input.skillTiers[standard.skillId] ?? .initiate
-            lines.append(
-                OverallRankTrialRequirementLine(
-                    id: "skill-\(standard.skillId)",
-                    kind: .skill,
-                    label: standard.displayName,
-                    current: currentTier.displayName,
-                    required: standard.minimumTier.displayName,
-                    isMet: currentTier >= standard.minimumTier
-                )
-            )
-        }
-
-        // Path-aware "any N of" skill gates: a lifter and a calisthenics athlete
-        // each have a route — the group clears when any `minimumCount` options
-        // are met, rather than requiring every listed skill.
-        for group in definition.skillPathGroups {
-            let met = group.metCount(skillTiers: input.skillTiers)
-            lines.append(
-                OverallRankTrialRequirementLine(
-                    id: "skill-group-\(group.id)",
-                    kind: .skill,
-                    label: group.label,
-                    current: "\(met)/\(group.minimumCount)",
-                    required: "any \(group.minimumCount) of \(group.options.map(\.displayName).joined(separator: " / "))",
-                    isMet: met >= group.minimumCount
-                )
-            )
-        }
+        )
 
         let requiredEquipment = resolution.resolvedTrial?.requiredEquipment ?? definition.requiredEquipment
         let missingEquipment = resolution.blockers.reduce(into: Set<MovementEquipment>()) { result, blocker in
@@ -2057,6 +1843,47 @@ final class OverallRankTrialRunner {
             generatedAt: date
         ).resolvedTrial
         return definition.makeDraft(userId: userId, date: date, resolvedTrial: resolved, bodyweightKg: bodyweightKg)
+    }
+
+    /// Auto-confirm ceremony (Phase 7): the moment eligibility is met for an
+    /// `autoConfirm` crossing, claim the rank with no session — record a
+    /// synthetic passing attempt (so `highestPassedRank` advances) and fire the
+    /// rank-up cinematic via `.overallRankTrialCompleted`. Idempotent: a
+    /// crossing already at/above the target no-ops.
+    @discardableResult
+    func confirmAutoRank(
+        for definition: OverallRankTrialDefinition,
+        userId: String,
+        date: Date = Date(),
+        store: OverallRankTrialStore = .shared
+    ) -> OverallRankTrialRecordResult? {
+        guard OverallRankTrialDefinitions.ceremonyTier(for: definition.targetRank) == .autoConfirm else {
+            return nil
+        }
+        let attempt = OverallRankTrialAttempt(
+            id: "\(definition.id).auto-confirm",
+            userId: userId,
+            definitionId: definition.id,
+            targetRank: definition.targetRank,
+            startedAt: date,
+            completedAt: date,
+            performanceLogId: "\(definition.id).auto-confirm",
+            passed: true,
+            movementAPGained: 0,
+            overallLevelXPGained: 0
+        )
+        let record = store.record(attempt, userId: userId)
+        if record.didAdvanceRank {
+            NotificationCenter.default.post(
+                name: .overallRankTrialCompleted,
+                object: record.attempt,
+                userInfo: [
+                    "targetRank": definition.targetRank.token,
+                    "definitionId": definition.id
+                ]
+            )
+        }
+        return record
     }
 
     @discardableResult
