@@ -45,8 +45,7 @@ struct SkillTreeView: View {
                             path.addLine(to: to)
 
                             let isReachable = nodeStates[node.id] != .locked ||
-                                nodeStates[prereqId] == .achieved ||
-                                nodeStates[prereqId] == .mastered
+                                nodeStates[prereqId] == .proven
                             let color: Color = isReachable
                                 ? Color.unbound.accent.opacity(0.6)
                                 : Color.unbound.border
@@ -121,8 +120,8 @@ struct SkillNodeHexagon: View {
                     .strokeBorder(borderColor, lineWidth: borderWidth)
                     .frame(width: nodeSize, height: nodeSize)
 
-                // Outer glow for achieved / mastered / boss-active
-                if state == .mastered || (node.isKeystone && state != .locked) {
+                // Outer glow for proven keystone / boss-active
+                if node.isKeystone && state != .locked {
                     Hexagon()
                         .strokeBorder(Color.unbound.impact, lineWidth: 1)
                         .frame(width: nodeSize + 10, height: nodeSize + 10)
@@ -164,37 +163,29 @@ struct SkillNodeHexagon: View {
 
     private var fillColor: Color {
         switch state {
-        case .locked:     return Color.unbound.surface
-        case .attempting: return Color.unbound.surface
-        case .achieved:   return Color.unbound.accent.opacity(0.18)
-        case .mastered:   return Color.unbound.impact.opacity(0.22)
+        case .locked: return Color.unbound.surface
+        case .proven: return Color.unbound.accent.opacity(0.18)
         }
     }
 
     private var borderColor: Color {
         switch state {
-        case .locked:     return Color.unbound.border
-        case .attempting: return Color.unbound.accent
-        case .achieved:   return Color.unbound.accent
-        case .mastered:   return Color.unbound.impact
+        case .locked: return Color.unbound.border
+        case .proven: return Color.unbound.accent
         }
     }
 
     private var borderWidth: CGFloat {
         switch state {
-        case .locked:     return 1
-        case .attempting: return 1.5
-        case .achieved:   return 1.5
-        case .mastered:   return 2
+        case .locked: return 1
+        case .proven: return 1.5
         }
     }
 
     private var glowColor: Color {
         switch state {
-        case .locked:     return .clear
-        case .attempting: return Color.unbound.accent.opacity(0.4)
-        case .achieved:   return Color.unbound.accent.opacity(0.55)
-        case .mastered:   return Color.unbound.impact.opacity(0.6)
+        case .locked: return .clear
+        case .proven: return Color.unbound.accent.opacity(0.55)
         }
     }
 
@@ -211,18 +202,10 @@ struct SkillNodeHexagon: View {
             Image(systemName: "lock.fill")
                 .font(.system(size: node.isKeystone ? 26 : 20, weight: .semibold))
                 .foregroundStyle(Color.unbound.textTertiary)
-        case .attempting:
-            Image(systemName: iconForType)
-                .font(.system(size: node.isKeystone ? 30 : 24, weight: .semibold))
-                .foregroundStyle(Color.unbound.accent)
-        case .achieved:
+        case .proven:
             Image(systemName: "checkmark")
                 .font(.system(size: node.isKeystone ? 32 : 26, weight: .bold))
                 .foregroundStyle(Color.unbound.accent)
-        case .mastered:
-            Image(systemName: "crown.fill")
-                .font(.system(size: node.isKeystone ? 32 : 26, weight: .semibold))
-                .foregroundStyle(Color.unbound.impact)
         }
     }
 
@@ -241,8 +224,8 @@ struct SkillNodeHexagon: View {
             SkillTreeView(
                 tree: .unitTree,
                 nodeStates: [
-                    "ld.goblet-20": .attempting,
-                    "pp.dead-hang": .attempting
+                    "ld.goblet-20": .proven,
+                    "pp.dead-hang": .proven
                 ]
             )
             .padding(20)

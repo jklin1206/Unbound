@@ -1595,7 +1595,7 @@ enum MovementCatalog {
     }
 
     private static func difficulty(for node: SkillNode) -> MovementDifficulty {
-        if node.isMythic || node.rank == .s || node.tier >= 7 {
+        if node.isMythic || node.placementRank >= .unbound || node.tier >= 7 {
             return .elite
         }
         switch node.tier {

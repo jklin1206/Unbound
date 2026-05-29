@@ -42,24 +42,17 @@ final class RewardComputer {
     }
 
     /// Build a snapshot before the write. Reads:
-    ///   - user's current derived rank for the skill
+    ///   - user's current EARNED tier for the skill (`UserSkillTierState.perSkill`)
     ///   - user's currently unlocked badge ids
     ///   - prior-best dimension value across all past logs for this skill
     ///   - whether ANY prior log exists (drives first-set detection)
     func before(
         skillId: String,
-        skillRank: SkillRank,
-        nodeState: NodeState,
-        currentLevel: Int,
         isHoldBased: Bool,
         userId: String,
         badgeService: BadgeServiceProtocol
     ) async -> Snapshot {
-        let derived = RankTitle.derived(
-            state: nodeState,
-            currentLevel: currentLevel,
-            skillRank: skillRank
-        )
+        let derived = UserSkillTierStore.shared.load(userId: userId).perSkill[skillId] ?? .initiate
 
         let unlockedIds = Set(badgeService.unlockedBadges(userId: userId).map(\.id))
 
@@ -92,9 +85,6 @@ final class RewardComputer {
         snapshot: Snapshot,
         skillTitle: String,
         bestSet: LoggedSet,
-        skillRankAfter: SkillRank,
-        nodeStateAfter: NodeState,
-        currentLevelAfter: Int,
         xpGained: Int,
         unlockedBadges: [Badge]
     ) async -> RewardSummary {
@@ -111,12 +101,9 @@ final class RewardComputer {
             summary.personalRecord = pr
         }
 
-        // Rank-up — re-derive against the post-write state
-        let after = RankTitle.derived(
-            state: nodeStateAfter,
-            currentLevel: currentLevelAfter,
-            skillRank: skillRankAfter
-        )
+        // Rank-up — re-read the earned tier after the write (RankService /
+        // tier evaluation persists `perSkill` from the logged proof).
+        let after = UserSkillTierStore.shared.load(userId: snapshot.userId).perSkill[snapshot.skillId] ?? .initiate
         if after.ordinal > snapshot.derivedRank.ordinal {
             summary.rankUp = RankUp(
                 skillId: snapshot.skillId,

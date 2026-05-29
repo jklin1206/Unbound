@@ -7,13 +7,13 @@ import Observation
 // manual "I hit it" overrides. Exposes an @Observable snapshot for
 // views. Persists UserSkillProgress in the local JSON store.
 //
-// State transitions:
-//   locked → attempting    : all prerequisite nodes are .achieved or .mastered
-//   attempting → achieved  : the node's requirement is met by a single log entry or an override
-//   achieved → mastered    : requirement is met again at 2x threshold (e.g. double the target reps)
+// State transitions (2-state model):
+//   locked → proven : the node's target requirement is met by a log entry or
+//                     a manual "I hit this" override. How GOOD the user is at a
+//                     proven node is the per-skill earned RankTier, not state.
 //
 // Notification emits `NodeUnlockedEvent` when a node transitions to
-// .achieved or .mastered — caller uses this to show the reveal overlay.
+// .proven — caller uses this to show the reveal overlay.
 
 @Observable
 @MainActor
@@ -32,14 +32,6 @@ final class SkillProgressService {
     /// recent attempt. 0.0–1.0. Populated during recompute. Missing entries
     /// mean "no data yet" — render the hex without a fill.
     private(set) var nodeProgress: [String: Double] = [:]
-
-    // MARK: - Phase 1a addition (skill-tree redesign)
-    //
-    // Peer snapshot of per-node 1-5 level + XP progression. Kept in parallel
-    // with `nodeStates` rather than folded into NodeState so that all existing
-    // `== .locked` / `== .achieved` comparisons across the codebase keep
-    // working unchanged. Empty until Phase 1b wires XP accrual.
-    private(set) var skillProgress: [String: SkillProgress] = [:]
 
     /// Mirror of `UserSkillProgress.bookmarkedNodeIds` for view binding.
     private(set) var bookmarkedNodeIds: Set<String> = []
@@ -88,7 +80,6 @@ final class SkillProgressService {
         if let existing: UserSkillProgress = try? await database.read(collection: "skillProgress", documentId: userId) {
             progress = existing
             nodeStates = existing.nodeStates
-            skillProgress = existing.skillProgress
             bookmarkedNodeIds = existing.bookmarkedNodeIds
             activeGoalIds = existing.activeGoalIds
             // Older payloads predate `weeklySchedule` — Codable's default makes
@@ -101,14 +92,12 @@ final class SkillProgressService {
             let empty = UserSkillProgress.empty(userId: userId)
             progress = empty
             nodeStates = [:]
-            skillProgress = [:]
             bookmarkedNodeIds = []
             activeGoalIds = []
             weeklySchedule = Array(repeating: nil, count: 7)
             currentWeekPhase = .moderate
             try? await database.create(empty, collection: "skillProgress", documentId: userId)
         }
-        seedRootNodes()
     }
 
     /// Re-evaluate node states after a workout log is saved.
@@ -130,15 +119,17 @@ final class SkillProgressService {
             let gate = prereqsMet(for: node)
             let newState: NodeState
 
-            if !gate {
-                newState = .locked
-            } else if requirementMet(node.requirement, logs: pool, bodyweightKg: userBodyweightKg, threshold: 2.0) {
-                newState = .mastered
-            } else if requirementMet(node.requirement, logs: pool, bodyweightKg: userBodyweightKg, threshold: 1.0) {
-                newState = .achieved
+            if currentState == .proven {
+                // Earned never demotes: once proven, always proven, even if the
+                // proof ages out of the recent-log window. Mirrors the Phase-7
+                // "claimed rank never demotes" guarantee for aggregate rank.
+                newState = .proven
+            } else if gate && requirementMet(node.requirement, logs: pool, bodyweightKg: userBodyweightKg, threshold: 1.0) {
+                newState = .proven
             } else {
-                newState = .attempting
-                // Compute how far along toward the target the user is.
+                newState = .locked
+                // Compute how far along toward the target the user is so the
+                // hex fill animates even before the node is proven.
                 let frac = bestFraction(node.requirement, logs: pool, bodyweightKg: userBodyweightKg)
                 if frac > 0 { progressMap[node.id] = min(1.0, frac) }
             }
@@ -146,13 +137,9 @@ final class SkillProgressService {
             if newState != currentState {
                 mutated = true
                 progress?.nodeStates[node.id] = newState
-                if newState == .achieved && progress?.achievedAt[node.id] == nil {
-                    progress?.achievedAt[node.id] = Date()
-                    unlocked = NodeUnlockedEvent(node: node, newState: .achieved, gainsAwarded: gainsFor(node: node))
-                }
-                if newState == .mastered && progress?.masteredAt[node.id] == nil {
-                    progress?.masteredAt[node.id] = Date()
-                    unlocked = NodeUnlockedEvent(node: node, newState: .mastered, gainsAwarded: gainsFor(node: node))
+                if newState == .proven && progress?.provenAt[node.id] == nil {
+                    progress?.provenAt[node.id] = Date()
+                    unlocked = NodeUnlockedEvent(node: node, newState: .proven, gainsAwarded: gainsFor(node: node))
                 }
             }
         }
@@ -180,8 +167,7 @@ final class SkillProgressService {
         guard prereqsMet(for: node) else { return }
 
         p.nodeStates[nodeId] = state
-        if state == .achieved && p.achievedAt[nodeId] == nil { p.achievedAt[nodeId] = Date() }
-        if state == .mastered && p.masteredAt[nodeId] == nil { p.masteredAt[nodeId] = Date() }
+        if state == .proven && p.provenAt[nodeId] == nil { p.provenAt[nodeId] = Date() }
         p.updatedAt = Date()
         progress = p
         nodeStates = p.nodeStates
@@ -196,129 +182,15 @@ final class SkillProgressService {
         pendingUnlock = nil
     }
 
-    // MARK: - Phase 1b: XP API
+    // MARK: - Train availability
 
-    /// Returns the current `SkillProgress` for `nodeId`, or `.starter`
-    /// (Lv1, 0/100 XP) if nothing has been stored yet. Never mutates.
-    func currentSkillProgress(for nodeId: String) -> SkillProgress {
-        skillProgress[nodeId] ?? .starter
-    }
+    /// True when the Train CTA is enabled for a node. The old per-skill XP
+    /// daily cap is gone (it only throttled fake attendance XP), so a trainable
+    /// node is always ready — the meaningful signal is the earned RankTier.
+    func canTrain(nodeId: String) -> Bool { true }
 
-    /// Grants XP for a verified session on this node. Handles level-up
-    /// transitions (including multi-level jumps when xpAmount is large),
-    /// promotes `NodeState` to `.achieved` on the first level-up, and caps
-    /// the node at Level 5 with `.mastered` once the final XP bar fills.
-    ///
-    /// No-ops when the node is already `.mastered` (cap).
-    ///
-    /// - Parameters:
-    ///   - nodeId: The node that earned XP from this session.
-    ///   - xpAmount: XP to grant. Defaults to `25` (one verified session).
-    @discardableResult
-    func awardSessionXP(forNodeId nodeId: String, xpAmount: Int = 25) async -> Int {
-        guard var p = progress else { return 0 }
-        guard xpAmount > 0 else { return 0 }
-        guard isNodeTrainable(nodeId: nodeId) else { return 0 }
-
-        // 1. Load or initialize progress for this node.
-        var sp = p.skillProgress[nodeId] ?? .starter
-
-        // 2. Already capped at mastered → no-op.
-        let existingState = p.nodeStates[nodeId] ?? .locked
-        if existingState == .mastered && sp.currentLevel == 5 {
-            return 0
-        }
-
-        // 2b. Daily cap: one award per node per 24h. Prevents tap-to-grind.
-        if let last = p.lastTrainedAt[nodeId],
-           Date().timeIntervalSince(last) < 24 * 3600 {
-            return 0
-        }
-
-        // 3. Add the XP.
-        sp.xpInLevel += xpAmount
-
-        // 4. Roll overflow forward, level by level, up to Lv5.
-        //    Lv5 keeps the Lv5 bar (175 XP) as its "until mastered" threshold
-        //    — filling it flips the node to .mastered in step 5 below.
-        while sp.xpInLevel >= sp.xpToNextLevel && sp.currentLevel < 5 {
-            sp.xpInLevel -= sp.xpToNextLevel
-            sp.currentLevel += 1
-            let nextThreshold = sp.currentLevel == 5
-                ? xpForLevel(5)
-                : xpForLevel(sp.currentLevel + 1)
-            sp.xpToNextLevel = nextThreshold
-        }
-
-        // 5. At Lv5 with its bar full → mastered.
-        let hasMasteredThisCall: Bool
-        if sp.currentLevel == 5 && sp.xpInLevel >= sp.xpToNextLevel {
-            sp.xpInLevel = sp.xpToNextLevel   // cap the display
-            hasMasteredThisCall = existingState != .mastered
-        } else {
-            hasMasteredThisCall = false
-        }
-
-        // 6. Side-effect on NodeState — never downgrade.
-        //    Lv1→Lv2+: promote .locked / .attempting to .achieved.
-        //    Lv5 with full XP: promote to .mastered.
-        var newNodeState: NodeState? = nil
-        if hasMasteredThisCall {
-            newNodeState = .mastered
-        } else if sp.currentLevel >= 2 && (existingState == .locked || existingState == .attempting) {
-            newNodeState = .achieved
-        }
-
-        // 7. Commit to state.
-        p.skillProgress[nodeId] = sp
-        p.lastTrainedAt[nodeId] = Date()
-        if let newState = newNodeState {
-            p.nodeStates[nodeId] = newState
-            if newState == .achieved && p.achievedAt[nodeId] == nil {
-                p.achievedAt[nodeId] = Date()
-            }
-            if newState == .mastered && p.masteredAt[nodeId] == nil {
-                p.masteredAt[nodeId] = Date()
-            }
-        }
-        p.updatedAt = Date()
-        progress = p
-        skillProgress = p.skillProgress
-        nodeStates = p.nodeStates
-
-        // 8. Persist (mirrors the manuallyMark / recompute pattern).
-        try? await database.create(p, collection: "skillProgress", documentId: p.userId)
-
-        // 9. Publish an unlock event if this call pushed the node over a
-        //    reveal-worthy threshold. Uses the same NodeUnlockedEvent that
-        //    views already listen for via pendingUnlock.
-        if let newState = newNodeState,
-           let node = SkillGraph.shared.node(id: nodeId),
-           newState == .achieved || newState == .mastered {
-            let event = NodeUnlockedEvent(
-                node: node,
-                newState: newState,
-                gainsAwarded: gainsFor(node: node)
-            )
-            pendingUnlock = event
-        }
-
-        return xpAmount
-    }
-
-    /// True when the Train CTA is allowed to award XP. Gated by the
-    /// 24h cap recorded in `UserSkillProgress.lastTrainedAt`. Treat
-    /// missing entries as "ready to train."
-    func canTrain(nodeId: String) -> Bool {
-        guard let last = progress?.lastTrainedAt[nodeId] else { return true }
-        return Date().timeIntervalSince(last) >= 24 * 3600
-    }
-
-    /// Wall-clock time the next train is available. Nil = ready now.
-    func nextTrainAvailable(nodeId: String) -> Date? {
-        guard let last = progress?.lastTrainedAt[nodeId] else { return nil }
-        return last.addingTimeInterval(24 * 3600)
-    }
+    /// Wall-clock time the next train is available. Always nil — no cap.
+    func nextTrainAvailable(nodeId: String) -> Date? { nil }
 
     /// True when a node is allowed to be trained directly. Locked skills are
     /// still viewable as dossiers, but training/program actions require the
@@ -420,14 +292,6 @@ final class SkillProgressService {
         try? await database.create(p, collection: "skillProgress", documentId: p.userId)
     }
 
-    /// XP required to reach `level` starting from `level - 1`.
-    /// Lv1 is the starting floor — nothing required to be there.
-    /// Curve: 100 / 125 / 150 / 175 for Lv2 / Lv3 / Lv4 / Lv5.
-    func xpForLevel(_ level: Int) -> Int {
-        guard level >= 2 && level <= 5 else { return 0 }
-        return 100 + 25 * (level - 2)
-    }
-
     // MARK: Internal helpers
 
     /// OR-across-groups, AND-within-a-group. A node is unlocked if ANY
@@ -453,47 +317,10 @@ final class SkillProgressService {
         }
     }
 
-    /// Seeds `.attempting` for the universal root nodes (no-prereq nodes) if
-    /// they haven't already been recorded. Also self-heals: any node currently
-    /// `.attempting` whose prereqs are NOT met (because the tree was
-    /// restructured underneath them) gets demoted to `.locked`. This keeps
-    /// existing user state consistent with content updates.
-    private func seedRootNodes() {
-        guard var p = progress else { return }
-        let graph = SkillGraph.shared
-
-        // 1. Demote any orphaned .attempting nodes whose prereqs no longer hold.
-        for (id, state) in p.nodeStates where state == .attempting {
-            guard let node = graph.node(id: id) else { continue }
-            if !node.prereqs.isEmpty {
-                let tierState = UserSkillTierStore.shared.load(userId: p.userId)
-                let met = SkillUnlockStandards.groups(for: node, in: graph).contains { group in
-                    group.requirements.allSatisfy { requirement in
-                        SkillUnlockStandards.isSatisfied(
-                            requirement,
-                            nodeStates: p.nodeStates,
-                            tierState: tierState
-                        )
-                    }
-                }
-                if !met { p.nodeStates[id] = .locked }
-            }
-        }
-
-        // 2. Seed root nodes (no prereqs) as .attempting (only if currently locked).
-        let rootIds = graph.nodes.filter { $0.prereqs.isEmpty }.map(\.id)
-        for id in rootIds where p.state(for: id) == .locked {
-            p.nodeStates[id] = .attempting
-        }
-
-        progress = p
-        nodeStates = p.nodeStates
-    }
-
     // MARK: Requirement evaluation
 
     /// Does the user's recent log pool meet `requirement` at `threshold`×?
-    /// threshold 1.0 = exactly the benchmark. 2.0 = "mastered" (double).
+    /// threshold 1.0 = exactly the benchmark (proven).
     // Internal (not private) so the auto-proof detection can be unit-tested
     // directly without driving the full SkillGraph prereq/cluster machinery.
     func requirementMet(

@@ -30,11 +30,37 @@ enum NodeType: String, Codable, Sendable {
 
 // MARK: Node state
 
-enum NodeState: String, Codable, Sendable {
-    case locked       // prerequisites not met
-    case attempting   // prereqs met, target not yet hit
-    case achieved     // target hit once
-    case mastered     // target hit at 2× (or sustained over 2+ sessions for boss-style nodes)
+// Two honest states: a node is either `locked` (prereqs not met / target not
+// yet hit) or `proven` (the node's target has been met). How GOOD the user is
+// at a proven node is expressed by the per-skill earned `RankTier`
+// (`UserSkillTierState.perSkill`), surfaced via `TierBadge` — not by NodeState.
+//
+// Legacy collapse: persisted `skillProgress` blobs predate this and may store
+// the old 4-state raw values. The tolerant decoder below maps them so existing
+// local saves decode without crashing:
+//   attempting        → locked   (prereqs met but target not yet hit)
+//   achieved|mastered → proven   (target hit at least once)
+enum NodeState: String, Sendable {
+    case locked
+    case proven
+}
+
+extension NodeState: Codable {
+    init(from decoder: Decoder) throws {
+        let raw = try decoder.singleValueContainer().decode(String.self)
+        switch raw {
+        case "proven", "achieved", "mastered":
+            self = .proven
+        // "locked", "attempting", and any unknown value fold into locked.
+        default:
+            self = .locked
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
 
 // MARK: Requirement
@@ -70,8 +96,7 @@ indirect enum NodeRequirement: Codable, Hashable, Sendable {
 // MARK: Prerequisite group (OR-across-groups, AND-within-a-group)
 
 struct PrerequisiteGroup: Codable, Hashable, Sendable {
-    /// Node-ids that must all be `.achieved` or `.mastered` for this
-    /// group to be satisfied.
+    /// Node-ids that must all be `.proven` for this group to be satisfied.
     let nodeIds: [String]
 
     init(_ ids: [String]) { self.nodeIds = ids }
@@ -99,8 +124,7 @@ struct SkillNode: Identifiable, Codable, Hashable, Sendable {
     let isKeystone: Bool               // renders larger + violet outer ring
     let isMythic: Bool                 // implies isKeystone; gold stroke + LEGENDARY chip
 
-    /// The stated target that defines this node. Hit once = .achieved,
-    /// hit 2× = .mastered.
+    /// The stated target that defines this node. Hit once = `.proven`.
     let target: NodeRequirement
 
     /// OR-across-groups, AND-within-a-group. Empty = entry node.
@@ -122,13 +146,6 @@ struct SkillNode: Identifiable, Codable, Hashable, Sendable {
     let position: NodeGridPosition
 
     // MARK: - Phase 1a additions (skill-tree redesign)
-    //
-    // `rank` is introduced so every node can carry an intrinsic difficulty
-    // bucket. Defaults so existing content in SkillTreeContent.swift keeps
-    // compiling — the Phase 1c migration populates real values per node.
-
-    /// Difficulty tier shown on the node chip. Defaults to `.d`.
-    var rank: SkillRank = .d
 
     /// Phase 2h: named sub-chapter within the owning cluster's tree.
     /// Nodes that share a sub-chapter render beneath a horizontal
@@ -183,7 +200,6 @@ struct SkillNode: Identifiable, Codable, Hashable, Sendable {
         timeline: String = "",
         glyph: String? = nil,
         position: NodeGridPosition = .zero,
-        rank: SkillRank = .d,
         subChapter: String? = nil,
         isParallelToParent: Bool = false,
         tierCriteria: [SkillTier: TierCriterion] = [:]
@@ -208,7 +224,6 @@ struct SkillNode: Identifiable, Codable, Hashable, Sendable {
             timelineEstimate: timeline,
             glyph: glyph ?? defaultGlyph(for: type, isMythic: isMythic),
             position: position,
-            rank: rank,
             subChapter: subChapter,
             isParallelToParent: isParallelToParent,
             tierCriteria: tierCriteria
@@ -229,11 +244,11 @@ struct SkillNode: Identifiable, Codable, Hashable, Sendable {
 
 extension SkillNode {
     /// True when this node deserves the "mythic / life pursuit" visual
-    /// treatment — top intrinsic bucket OR the explicit `isMythic` flag.
-    /// Drives the flame rank chip and impact-coloured accents wherever rank
-    /// is rendered.
+    /// treatment — top intrinsic difficulty (Vessel+ placement) OR the
+    /// explicit `isMythic` flag. Drives the flame rank chip and impact-coloured
+    /// accents wherever difficulty is rendered.
     /// Kept as a computed property so UI code reads it in one place.
-    var displaysMythic: Bool { rank == .s || isMythic }
+    var displaysMythic: Bool { placementRank >= .vessel || isMythic }
 
     /// Canonical node-difficulty bucket on the 9-step RankTier scale.
     /// Maps `tier` N → `RankTier(rawValue: N)` (tier 1 → Novice … tier 8 →
@@ -248,8 +263,7 @@ extension SkillNode {
         if prereqs.isEmpty { return true }
         return prereqs.contains { group in
             group.nodeIds.allSatisfy { id in
-                let s = states[id] ?? .locked
-                return s == .achieved || s == .mastered
+                (states[id] ?? .locked) == .proven
             }
         }
     }
@@ -294,8 +308,7 @@ struct SkillGraph: Codable, Sendable {
         let keystones = self.nodes.filter { $0.cluster == required && $0.isKeystone }
         guard !keystones.isEmpty else { return false }
         return keystones.allSatisfy { ks in
-            let state = nodeStates[ks.id] ?? .locked
-            return state == .achieved || state == .mastered
+            (nodeStates[ks.id] ?? .locked) == .proven
         }
     }
 }
@@ -347,7 +360,6 @@ struct SkillTree: Codable, Sendable {
                     timelineEstimate: n.timelineEstimate,
                     glyph: n.glyph,
                     position: NodeGridPosition(row: row, column: idx - columnOrder.count / 2),
-                    rank: n.rank,
                     subChapter: n.subChapter,
                     isParallelToParent: n.isParallelToParent,
                     tierCriteria: n.tierCriteria

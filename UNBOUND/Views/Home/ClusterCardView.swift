@@ -17,7 +17,6 @@ struct ClusterCardView: View {
     let tree: SkillDisplayTree
     let graph: SkillGraph
     let nodeStates: [String: NodeState]
-    let skillProgress: SkillProgressService?  // for level lookups, optional
 
     private var total: Int { tree.totalCount(in: graph) }
     private var achieved: Int { tree.achievedCount(in: graph, states: nodeStates) }
@@ -212,7 +211,8 @@ struct ClusterCardView: View {
     }
 
     private func nowChip(_ node: SkillNode) -> some View {
-        let currentLevel = skillProgress?.skillProgress[node.id]?.currentLevel ?? 1
+        let userId = AuthService.shared.currentUserId ?? "anonymous"
+        let earnedTier = UserSkillTierStore.shared.load(userId: userId).perSkill[node.id] ?? .initiate
         return HStack(spacing: 8) {
             Circle()
                 .fill(Color.unbound.accent)
@@ -229,9 +229,7 @@ struct ClusterCardView: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
             Spacer(minLength: 0)
-            Text("LVL \(currentLevel)")
-                .font(Font.unbound.monoS)
-                .foregroundStyle(Color.unbound.textSecondary)
+            TierBadge(tier: earnedTier, compact: true)
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 8)
@@ -259,17 +257,19 @@ struct ClusterCardView: View {
             let userId = AuthService.shared.currentUserId ?? "anonymous"
             let skillTier = UserSkillTierStore.shared.load(userId: userId).perSkill[node.id] ?? .initiate
             TierBadge(tier: skillTier, compact: true)
-            rankPill(rank: node.rank)
+            difficultyPill(rank: node.placementRank)
         }
     }
 
-    private func rankPill(rank: SkillRank) -> some View {
-        Image(rank.rankTitle.assetName)
+    /// Intrinsic difficulty pill — renders the node's fixed `placementRank`
+    /// (RankTier) badge art, distinct from the earned TierBadge above it.
+    private func difficultyPill(rank: RankTier) -> some View {
+        Image(rank.assetName)
             .resizable()
             .scaledToFit()
             .frame(width: 36, height: 36)
-            .shadow(color: rank.accentColor.opacity(0.35), radius: 8)
-            .accessibilityLabel("\(rank.rankTitle.displayName) difficulty")
+            .shadow(color: rank.rewardTint.opacity(0.35), radius: 8)
+            .accessibilityLabel("\(rank.displayName) difficulty")
     }
 }
 
@@ -459,10 +459,3 @@ private struct SkillTreeIconMark: View {
     }
 }
 
-// MARK: - Convenience init (no progress service)
-
-extension ClusterCardView {
-    init(tree: SkillDisplayTree, graph: SkillGraph, nodeStates: [String: NodeState]) {
-        self.init(tree: tree, graph: graph, nodeStates: nodeStates, skillProgress: nil)
-    }
-}

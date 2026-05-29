@@ -36,12 +36,9 @@ final class UserDataMigrationCoordinatorTests: XCTestCase {
         )
         local.progress[legacyUserId] = UserSkillProgress(
             userId: legacyUserId,
-            nodeStates: ["pp_pullup": .achieved],
-            achievedAt: ["pp_pullup": now],
-            masteredAt: [:],
+            nodeStates: ["pp_pullup": .proven],
+            provenAt: ["pp_pullup": now],
             updatedAt: now,
-            skillProgress: ["pp_pullup": SkillProgress(currentLevel: 2, xpInLevel: 10, xpToNextLevel: 125)],
-            lastTrainedAt: [:],
             bookmarkedNodeIds: ["pp_pullup"],
             activeGoalIds: [],
             weeklySchedule: [.push, nil, nil, nil, nil, nil, nil],
@@ -116,12 +113,9 @@ final class UserDataMigrationCoordinatorTests: XCTestCase {
         let local = MockMigrationLocalStore()
         local.progress[legacyUserId] = UserSkillProgress(
             userId: legacyUserId,
-            nodeStates: ["pp_pullup": .achieved, "hs_wall": .attempting],
-            achievedAt: ["pp_pullup": old],
-            masteredAt: [:],
+            nodeStates: ["pp_pullup": .proven, "hs_wall": .locked],
+            provenAt: ["pp_pullup": old],
             updatedAt: old,
-            skillProgress: ["pp_pullup": SkillProgress(currentLevel: 2, xpInLevel: 50, xpToNextLevel: 125)],
-            lastTrainedAt: ["pp_pullup": old],
             bookmarkedNodeIds: ["pp_pullup"],
             activeGoalIds: ["hs_wall"],
             weeklySchedule: [.push, .pull, nil, nil, nil, nil, nil],
@@ -129,12 +123,9 @@ final class UserDataMigrationCoordinatorTests: XCTestCase {
         )
         local.progress[supabaseUserId] = UserSkillProgress(
             userId: supabaseUserId,
-            nodeStates: ["pp_pullup": .mastered],
-            achievedAt: ["pp_pullup": newer],
-            masteredAt: ["pp_pullup": newer],
+            nodeStates: ["pp_pullup": .proven],
+            provenAt: ["pp_pullup": newer],
             updatedAt: newer,
-            skillProgress: [:],
-            lastTrainedAt: [:],
             bookmarkedNodeIds: [],
             activeGoalIds: ["pp_pullup"],
             weeklySchedule: [nil, .legs, nil, nil, nil, nil, nil],
@@ -149,10 +140,9 @@ final class UserDataMigrationCoordinatorTests: XCTestCase {
         _ = await sut.migrate(legacyUserId: legacyUserId, supabaseUserId: supabaseUserId)
 
         let migrated = try XCTUnwrap(local.progress[supabaseUserId])
-        XCTAssertEqual(migrated.nodeStates["pp_pullup"], .mastered)
-        XCTAssertEqual(migrated.nodeStates["hs_wall"], .attempting)
-        XCTAssertEqual(migrated.achievedAt["pp_pullup"], old)
-        XCTAssertEqual(migrated.masteredAt["pp_pullup"], newer)
+        XCTAssertEqual(migrated.nodeStates["pp_pullup"], .proven)
+        XCTAssertEqual(migrated.nodeStates["hs_wall"], .locked)   // legacy attempting → locked
+        XCTAssertEqual(migrated.provenAt["pp_pullup"], old)       // earliest first-proof wins
         XCTAssertEqual(migrated.bookmarkedNodeIds, Set(["pp_pullup"]))
         XCTAssertEqual(migrated.activeGoalIds, Set(["pp_pullup", "hs_wall"]))
         XCTAssertEqual(migrated.weeklySchedule[0], .push)

@@ -763,7 +763,7 @@ struct ClusterStaircaseView: View {
 
     /// One gutter row. `isPresent` toggles colored vs dimmed styling.
     fileprivate struct RankBand {
-        let rank: SkillRank
+        let rank: RankTier
         let y: CGFloat
         let isPresent: Bool
     }
@@ -779,10 +779,10 @@ struct ClusterStaircaseView: View {
         topY: CGFloat,
         bottomY: CGFloat
     ) -> [RankBand] {
-        var minY: [SkillRank: CGFloat] = [:]
+        var minY: [RankTier: CGFloat] = [:]
         for (id, pt) in positions {
             guard let node = nodeById[id] else { continue }
-            let r = node.rank
+            let r = node.placementRank
             if let existing = minY[r] {
                 if pt.y < existing { minY[r] = pt.y }
             } else {
@@ -790,7 +790,7 @@ struct ClusterStaircaseView: View {
             }
         }
 
-        let ranks = SkillRank.allCases
+        let ranks = RankTier.allCases
 
         // Anchors: y for every present rank. Synthetic edge anchors at the
         // top/bottom so absent ranks at the head/tail of the list still get
@@ -835,7 +835,7 @@ struct ClusterStaircaseView: View {
 
     /// A full-width horizontal stripe for a single rank.
     fileprivate struct RankBandRegion {
-        let rank: SkillRank
+        let rank: RankTier
         let top: CGFloat
         let bottom: CGFloat
     }
@@ -851,16 +851,16 @@ struct ClusterStaircaseView: View {
         topY: CGFloat,
         bottomY: CGFloat
     ) -> (bands: [RankBandRegion], dividers: [CGFloat]) {
-        var minY: [SkillRank: CGFloat] = [:]
-        var maxY: [SkillRank: CGFloat] = [:]
+        var minY: [RankTier: CGFloat] = [:]
+        var maxY: [RankTier: CGFloat] = [:]
         for (id, pt) in positions {
             guard let node = nodeById[id] else { continue }
-            let r = node.rank
+            let r = node.placementRank
             if let e = minY[r] { if pt.y < e { minY[r] = pt.y } } else { minY[r] = pt.y }
             if let e = maxY[r] { if pt.y > e { maxY[r] = pt.y } } else { maxY[r] = pt.y }
         }
 
-        let presentRanks = SkillRank.allCases.filter { minY[$0] != nil }
+        let presentRanks = RankTier.allCases.filter { minY[$0] != nil }
 
         // Short-circuit: no ranks present — single covering band.
         guard !presentRanks.isEmpty else {
@@ -922,18 +922,18 @@ struct ClusterStaircaseView: View {
 
     /// Small difficulty badge in the gutter. Uses rank-title badge art so
     /// difficulty reads as Initiate → Ascendant rather than letter grades.
-    private func rankTitleBadge(rank: SkillRank, active: Bool, size: CGFloat) -> some View {
-        Image(rank.rankTitle.assetName)
+    private func rankTitleBadge(rank: RankTier, active: Bool, size: CGFloat) -> some View {
+        Image(rank.assetName)
             .resizable()
             .scaledToFit()
             .frame(width: size, height: size)
             .saturation(active ? 1 : 0.15)
             .opacity(active ? 1.0 : 0.28)
             .shadow(
-                color: rank.accentColor.opacity(active ? 0.35 : 0),
+                color: rank.rewardTint.opacity(active ? 0.35 : 0),
                 radius: active ? 8 : 0
             )
-            .accessibilityLabel("\(rank.rankTitle.displayName) difficulty")
+            .accessibilityLabel("\(rank.displayName) difficulty")
     }
 
     /// Tags the active hex with the `id("active")` anchor used by
@@ -1729,10 +1729,8 @@ struct ClusterStaircaseView: View {
 
     private func strokeWidth(state: NodeState) -> CGFloat {
         switch state {
-        case .locked:     return 1
-        case .attempting: return 1.5
-        case .achieved:   return 1.5
-        case .mastered:   return 2
+        case .locked: return 1
+        case .proven: return 1.5
         }
     }
 
@@ -1747,16 +1745,10 @@ struct ClusterStaircaseView: View {
             Image(systemName: node.isKeystone ? "crown" : "lock.fill")
                 .font(.system(size: fontSize - 3, weight: .semibold))
                 .foregroundStyle(Color.unbound.textTertiary)
-        case .attempting:
-            skillIcon(for: node, size: fontSize * 2.4, fallback: node.glyph,
-                      tint: skinService.currentSkin.decalColor)
-        case .achieved:
+        case .proven:
             skillIcon(for: node, size: fontSize * 2.4,
                       fallback: node.isKeystone ? "crown.fill" : "checkmark",
                       tint: skinService.currentSkin.decalColor)
-        case .mastered:
-            skillIcon(for: node, size: fontSize * 2.4, fallback: "crown.fill",
-                      tint: skinService.currentSkin.impactDecalColor)
         }
     }
 
@@ -1836,17 +1828,13 @@ struct ClusterStaircaseView: View {
             .sorted { (tiers[$0.id] ?? $0.tier) < (tiers[$1.id] ?? $1.tier) }
         let achieved = Array(achievedAll.suffix(2))
 
-        let attempting = nodes
-            .filter { state($0) == .attempting }
+        // "Active" = the next unproven node whose prereqs are satisfied
+        // (the old `.attempting` concept, now derived rather than stored).
+        let unlockables = nodes
+            .filter { state($0) == .locked }
+            .filter { $0.prereqsSatisfied(given: nodeStates) }
             .sorted { (tiers[$0.id] ?? $0.tier) < (tiers[$1.id] ?? $1.tier) }
-        var activeNode: SkillNode? = attempting.first
-        if activeNode == nil {
-            let unlockables = nodes
-                .filter { state($0) == .locked }
-                .filter { $0.prereqsSatisfied(given: nodeStates) }
-                .sorted { (tiers[$0.id] ?? $0.tier) < (tiers[$1.id] ?? $1.tier) }
-            activeNode = unlockables.first
-        }
+        var activeNode: SkillNode? = unlockables.first
         if activeNode == nil { activeNode = keystone }
 
         let keystoneIsActive = (activeNode?.id == keystone?.id) && keystone != nil
@@ -1863,7 +1851,6 @@ struct ClusterStaircaseView: View {
             .filter { node in
                 if ancestorIds.contains(node.id) { return true }
                 if node.prereqsSatisfied(given: nodeStates) { return true }
-                if state(node) == .attempting { return true }
                 return false
             }
             .sorted {
@@ -1941,7 +1928,7 @@ struct ClusterStaircaseView: View {
     // MARK: - Helpers
 
     private func isUnlockedState(_ s: NodeState) -> Bool {
-        s == .achieved || s == .mastered
+        s == .proven
     }
 }
 

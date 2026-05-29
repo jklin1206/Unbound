@@ -263,9 +263,9 @@ enum SkillTreeSkin: String, Codable, Sendable, CaseIterable, Identifiable {
         }
     }
 
-    func bandTint(for rank: SkillRank) -> Color {
-        let ramp = 0.012 + Double(rank.difficultyOrder) * 0.011
-        let color = rank.isAscendedTier ? impactColor : primaryColor
+    func bandTint(for rank: RankTier) -> Color {
+        let ramp = 0.012 + Double(rank.rawValue) * 0.011
+        let color = rank >= .vessel ? impactColor : primaryColor
         return color.opacity(ramp)
     }
 
@@ -273,12 +273,8 @@ enum SkillTreeSkin: String, Codable, Sendable, CaseIterable, Identifiable {
         switch state {
         case .locked:
             return Color.unbound.surface
-        case .attempting:
-            return primaryColor.opacity(faded ? 0.10 : 0.16)
-        case .achieved:
+        case .proven:
             return primaryColor.opacity(faded ? 0.10 : 0.20)
-        case .mastered:
-            return impactColor.opacity(faded ? 0.14 : 0.24)
         }
     }
 
@@ -287,21 +283,15 @@ enum SkillTreeSkin: String, Codable, Sendable, CaseIterable, Identifiable {
         switch state {
         case .locked:
             return faded ? Color.unbound.border.opacity(0.7) : Color.unbound.border
-        case .attempting:
-            return primaryColor
-        case .achieved:
+        case .proven:
             return primaryColor.opacity(faded ? 0.7 : 1.0)
-        case .mastered:
-            return impactColor
         }
     }
 
     func nodeGlow(state: NodeState, faded: Bool) -> Color {
         switch state {
         case .locked: return .clear
-        case .attempting: return primaryColor.opacity(0.38)
-        case .achieved: return primaryColor.opacity(faded ? 0.24 : 0.46)
-        case .mastered: return impactColor.opacity(0.58)
+        case .proven: return primaryColor.opacity(faded ? 0.24 : 0.46)
         }
     }
 }

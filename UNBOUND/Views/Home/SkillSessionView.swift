@@ -661,23 +661,16 @@ struct SkillSessionView: View {
         // XP: 25 × completion fraction. Cap at 25, floor at 1 if anything logged.
         let xp = computeXP()
 
-        // Snapshot before write. Look up the canonical node so we have
-        // the intrinsic SkillRank + hold-based detection without
-        // requiring callers to thread it in.
+        // Snapshot before write. Look up the canonical node for hold-based
+        // detection (the earned tier is read from the tier store inside before/after).
         let node = SkillGraph.shared.node(id: skillId)
-        let skillRank = node?.rank ?? .d
         let isHoldBased: Bool = {
             if case .hold = node?.target { return true }
             return false
         }()
-        let preState = SkillProgressService.shared.nodeStates[skillId] ?? .locked
-        let preLevel = SkillProgressService.shared.currentSkillProgress(for: skillId).currentLevel
 
         let preSnapshot = await RewardComputer.shared.before(
             skillId: skillId,
-            skillRank: skillRank,
-            nodeState: preState,
-            currentLevel: preLevel,
             isHoldBased: isHoldBased,
             userId: userId,
             badgeService: services.badges
@@ -724,17 +717,10 @@ struct SkillSessionView: View {
             )
         }
 
-        // Post-write state.
-        let postLevel = SkillProgressService.shared.currentSkillProgress(for: skillId).currentLevel
-        let postState = SkillProgressService.shared.nodeStates[skillId] ?? preState
-
         var summary = await RewardComputer.shared.after(
             snapshot: preSnapshot,
             skillTitle: skillTitle,
             bestSet: bestSet ?? LoggedSet(reps: 0, holdSeconds: nil, weightKg: nil, rpe: nil),
-            skillRankAfter: skillRank,
-            nodeStateAfter: postState,
-            currentLevelAfter: postLevel,
             xpGained: completionResult.skillXPGained,
             unlockedBadges: unlocked
         )

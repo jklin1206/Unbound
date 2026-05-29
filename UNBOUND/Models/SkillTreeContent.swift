@@ -291,8 +291,7 @@ extension SkillGraph {
                 "Knees caving inward on the concentric",
                 "Bouncing out of the bottom"
             ],
-            timeline: "1-3 weeks to groove the pattern.",
-            rank: .e
+            timeline: "1-3 weeks to groove the pattern."
         ),
         .simple(
             id: "ld.split-squat",
@@ -314,8 +313,7 @@ extension SkillGraph {
                 "Pushing off the rear foot",
                 "Forward lean into a lunge pattern"
             ],
-            timeline: "1-3 weeks from half squat.",
-            rank: .e
+            timeline: "1-3 weeks from half squat."
         ),
         .simple(
             id: "ld.bulgarian-split-squat",
@@ -339,8 +337,7 @@ extension SkillGraph {
                 "Pushing off the rear foot (it's a balance point, not a driver)",
                 "Uneven depth between reps"
             ],
-            timeline: "2-4 weeks from split squat.",
-            rank: .d
+            timeline: "2-4 weeks from split squat."
         ),
         .simple(
             id: "ld.shrimp-squat",
@@ -362,8 +359,7 @@ extension SkillGraph {
                 "Working heel rising",
                 "Letting the rear leg do the work via hip flexion"
             ],
-            timeline: "2-4 months from BSS mastery.",
-            rank: .c
+            timeline: "2-4 months from BSS mastery."
         ),
         .simple(
             id: "ld.pistol-squat",
@@ -387,8 +383,7 @@ extension SkillGraph {
                 "Bouncing off the bottom — no control in the hole",
                 "Non-working leg bent or touching the floor"
             ],
-            timeline: "6-18 months from BSS mastery.",
-            rank: .c
+            timeline: "6-18 months from BSS mastery."
         ),
         .simple(
             id: "ld.weighted-pistol",
@@ -411,8 +406,7 @@ extension SkillGraph {
                 "Bouncing off the bottom",
                 "Using the weight as a counterbalance instead of a load"
             ],
-            timeline: "6-12 months from clean pistol.",
-            rank: .b
+            timeline: "6-12 months from clean pistol."
         ),
 
         // ────────────────────────────────────────────────────────────────
@@ -441,8 +435,7 @@ extension SkillGraph {
                 "Swinging legs to buy time",
                 "Dropping when grip fails instead of lowering with control"
             ],
-            timeline: "2-6 weeks for most healthy adults.",
-            rank: .e
+            timeline: "2-6 weeks for most healthy adults."
         ),
         .simple(
             id: "pp.pullup",
@@ -466,8 +459,7 @@ extension SkillGraph {
                 "Not reaching full dead hang between reps",
                 "Chin-over-bar via neck-craning rather than a real pull"
             ],
-            timeline: "6 weeks to 6 months depending on starting strength.",
-            rank: .d
+            timeline: "6 weeks to 6 months depending on starting strength."
         ),
         .simple(
             id: "pp.strict-pullup",
@@ -492,8 +484,7 @@ extension SkillGraph {
                 "Kipping to grind out the last reps",
                 "Skipping the dead hang reset"
             ],
-            timeline: "3-12 months from first pullup.",
-            rank: .b
+            timeline: "3-12 months from first pullup."
         ),
         .simple(
             id: "pp.archer-pullup",
@@ -517,7 +508,6 @@ extension SkillGraph {
                 "Rotating through the hips to lever up"
             ],
             timeline: "2-6 months from weighted pullup mastery.",
-            rank: .b,
             isParallelToParent: true
         ),
         .simple(
@@ -542,8 +532,7 @@ extension SkillGraph {
                 "Partial ROM under load",
                 "Not warming up the biceps tendon before heavy work"
             ],
-            timeline: "1-2 years from strict pullup × 5.",
-            rank: .b
+            timeline: "1-2 years from strict pullup × 5."
         ),
         .simple(
             id: "pp.oap-negative",
@@ -566,8 +555,7 @@ extension SkillGraph {
                 "Free hand assisting",
                 "Cutting eccentric short of full extension"
             ],
-            timeline: "6-12 months of dedicated pull work.",
-            rank: .a
+            timeline: "6-12 months of dedicated pull work."
         ),
         .simple(
             id: "pp.one-arm-pullup",
@@ -592,8 +580,7 @@ extension SkillGraph {
                 "Free hand gripping shirt/bar/body as secret assist",
                 "Partial ROM — chin not fully over bar"
             ],
-            timeline: "3-5+ years of dedicated pull programming.",
-            rank: .s
+            timeline: "3-5+ years of dedicated pull programming."
         ),
         .simple(
             id: "pp.muscle-up",
@@ -618,8 +605,7 @@ extension SkillGraph {
                 "Chicken-winging (one arm transitions first, the other lags)",
                 "Stopping at bar-level instead of pressing through to full lockout"
             ],
-            timeline: "6-18 months from first pullup, if dips are trained in parallel.",
-            rank: .a
+            timeline: "6-18 months from first pullup, if dips are trained in parallel."
         ),
         .simple(
             id: "pp.ring-muscle-up",
@@ -643,7 +629,6 @@ extension SkillGraph {
                 "Rings splayed outward at the top (poor lockout)"
             ],
             timeline: "3-12 months from bar MU.",
-            rank: .a,
             isParallelToParent: true
         ),
 
@@ -671,8 +656,7 @@ extension SkillGraph {
                 "Butt in the air — shortens the lever and cheats",
                 "Holding breath instead of breathing steady"
             ],
-            timeline: "1-4 weeks from zero to 30s clean.",
-            rank: .e
+            timeline: "1-4 weeks from zero to 30s clean."
         ),
         .simple(
             id: "cal.l-sit-10",
@@ -695,8 +679,7 @@ extension SkillGraph {
                 "Bent knees",
                 "Hips dropping below parallel to hands"
             ],
-            timeline: "1-3 months from solid compressed leg raises.",
-            rank: .d
+            timeline: "1-3 months from solid compressed leg raises."
         ),
         .simple(
             id: "cal.pushup",
@@ -720,8 +703,7 @@ extension SkillGraph {
                 "Partial ROM — bouncing off the top without lockout",
                 "Head jutting forward before the chest"
             ],
-            timeline: "2-6 weeks for first 10 clean reps.",
-            rank: .e
+            timeline: "2-6 weeks for first 10 clean reps."
         ),
         .simple(
             id: "cal.5-dips",
@@ -744,8 +726,7 @@ extension SkillGraph {
                 "Shrugging at the bottom",
                 "Swinging legs for momentum"
             ],
-            timeline: "1-3 months from solid pushups.",
-            rank: .d
+            timeline: "1-3 months from solid pushups."
         ),
         .simple(
             id: "cal.ring-dip",
@@ -770,8 +751,7 @@ extension SkillGraph {
                 "Partial ROM — not reaching full shoulder depth",
                 "Skipping the turn-out at the top — loses the strict standard"
             ],
-            timeline: "3-6 months from 5 bar dips.",
-            rank: .c
+            timeline: "3-6 months from 5 bar dips."
         ),
         .simple(
             id: "cal.diamond-pushup",
@@ -793,8 +773,7 @@ extension SkillGraph {
                 "Flared elbows — defeats the triceps emphasis",
                 "Partial depth to keep reps moving"
             ],
-            timeline: "2-6 weeks from the strict push-up.",
-            rank: .d
+            timeline: "2-6 weeks from the strict push-up."
         ),
         .simple(
             id: "cal.pseudo-planche-pushup",
@@ -816,8 +795,7 @@ extension SkillGraph {
                 "Hands not turned backward enough — shoulder strain",
                 "Piking hips to cheat the lean"
             ],
-            timeline: "1-3 months from diamond pushup.",
-            rank: .c
+            timeline: "1-3 months from diamond pushup."
         ),
         .simple(
             id: "pl.tuck-planche",
@@ -841,8 +819,7 @@ extension SkillGraph {
                 "Hips drooping below shoulders",
                 "Tucked legs come away from torso"
             ],
-            timeline: "3-9 months from crane pose.",
-            rank: .b
+            timeline: "3-9 months from crane pose."
         ),
         .simple(
             id: "cal.tuck-planche-pushup",
@@ -865,8 +842,7 @@ extension SkillGraph {
                 "Losing the tuck and collapsing hips",
                 "Bouncing out of the bottom"
             ],
-            timeline: "6-12 months from tuck planche.",
-            rank: .b
+            timeline: "6-12 months from tuck planche."
         ),
         .simple(
             id: "pl.straddle-planche",
@@ -889,8 +865,7 @@ extension SkillGraph {
                 "Lazy split — legs drift together",
                 "Banana back (lumbar arch, hips drop)"
             ],
-            timeline: "1-2 years from tuck planche.",
-            rank: .a
+            timeline: "1-2 years from tuck planche."
         ),
         .simple(
             id: "pl.full-planche",
@@ -915,8 +890,7 @@ extension SkillGraph {
                 "Shoulders rolling forward (scapular collapse)",
                 "Bent arms — at this tier, arms MUST stay locked"
             ],
-            timeline: "2-4 years from first tuck planche.",
-            rank: .s
+            timeline: "2-4 years from first tuck planche."
         ),
         .simple(
             id: "cal.handstand-pushup",
@@ -940,8 +914,7 @@ extension SkillGraph {
                 "Partial lockout at the top",
                 "Falling out of balance instead of bailing safely"
             ],
-            timeline: "2-4 years from bent arm press.",
-            rank: .a
+            timeline: "2-4 years from bent arm press."
         ),
         .simple(
             id: "cal.ninety-degree-pushup",
@@ -965,7 +938,6 @@ extension SkillGraph {
                 "Piking hips or kicking back to handstand"
             ],
             timeline: "5+ years of vertical pressing work.",
-            rank: .a,
             isParallelToParent: true
         ),
         .simple(
@@ -990,8 +962,7 @@ extension SkillGraph {
                 "Fake clap that barely separates the hands",
                 "Bailing instead of catching the rep"
             ],
-            timeline: "Mostly aspirational. 7+ years past first HSPU.",
-            rank: .s
+            timeline: "Mostly aspirational. 7+ years past first HSPU."
         ),
 
         // ────────────────────────────────────────────────────────────────
@@ -1019,8 +990,7 @@ extension SkillGraph {
                 "Elbows flared wide",
                 "Cutting range of motion"
             ],
-            timeline: "3–8 weeks from diamond pushup.",
-            rank: .d
+            timeline: "3–8 weeks from diamond pushup."
         ),
         .simple(
             id: "cal.elevated-pike-pushup",
@@ -1043,8 +1013,7 @@ extension SkillGraph {
                 "Hips dropping mid-set",
                 "Rushing reps"
             ],
-            timeline: "4–8 weeks after pike pushup × 10.",
-            rank: .c
+            timeline: "4–8 weeks after pike pushup × 10."
         ),
         .simple(
             id: "hs.wall-handstand-30",
@@ -1069,8 +1038,7 @@ extension SkillGraph {
                 "Counting time after the ribs flare or the low back dumps",
                 "Letting the head crane forward instead of staying between the arms"
             ],
-            timeline: "4-12 weeks from wall plank if wrists and shoulders are trained consistently.",
-            rank: .d
+            timeline: "4-12 weeks from wall plank if wrists and shoulders are trained consistently."
         ),
         .simple(
             id: "hs.freestanding-hs-30",
@@ -1096,8 +1064,7 @@ extension SkillGraph {
                 "Trying to balance with shoulder swings instead of hand pressure",
                 "Holding breath to fake stability"
             ],
-            timeline: "6-24 months from a clean 60s wall handstand for most consistent athletes; faster if shoulder mobility and wrist tolerance are already built.",
-            rank: .a
+            timeline: "6-24 months from a clean 60s wall handstand for most consistent athletes; faster if shoulder mobility and wrist tolerance are already built."
         ),
         .simple(
             id: "oah.one-arm-handstand-5s",
@@ -1122,8 +1089,7 @@ extension SkillGraph {
                 "Jumping into it rather than progressive weight shifts",
                 "Not letting body re-learn balance — rushes the nervous system"
             ],
-            timeline: "3-7 years of daily handstand work.",
-            rank: .s
+            timeline: "3-7 years of daily handstand work."
         ),
         .simple(
             id: "oah.full-one-arm-handstand",
@@ -1141,8 +1107,7 @@ extension SkillGraph {
                 "Long line from wrist through heels",
                 "Breathe through the hold"
             ],
-            timeline: "5-10+ years of daily handstand work. Aspirational.",
-            rank: .s
+            timeline: "5-10+ years of daily handstand work. Aspirational."
         ),
 
 
@@ -1171,8 +1136,7 @@ extension SkillGraph {
                 "Rib flare",
                 "Legs bent to cheat"
             ],
-            timeline: "2–6 weeks from untrained.",
-            rank: .e
+            timeline: "2–6 weeks from untrained."
         ),
         .simple(
             id: "cl.hanging-knee-raise",
@@ -1195,8 +1159,7 @@ extension SkillGraph {
                 "Partial ROM — knees stop at 90°",
                 "Shrugged shoulders while hanging"
             ],
-            timeline: "2-8 weeks from first dead hang.",
-            rank: .e
+            timeline: "2-8 weeks from first dead hang."
         ),
         .simple(
             id: "cl.hanging-leg-raise",
@@ -1220,7 +1183,6 @@ extension SkillGraph {
                 "Quickly dropping the eccentric"
             ],
             timeline: "1-3 months from knee raises.",
-            rank: .d,
             isParallelToParent: true
         ),
         .simple(
@@ -1244,8 +1206,7 @@ extension SkillGraph {
                 "Bent knees to cheat the compression",
                 "Toes clearly short of the bar"
             ],
-            timeline: "1-4 months from leg raises.",
-            rank: .c
+            timeline: "1-4 months from leg raises."
         ),
         .simple(
             id: "cl.standing-ab-rollout",
@@ -1268,7 +1229,6 @@ extension SkillGraph {
                 "Holding breath instead of breathing through the rep"
             ],
             timeline: "3-12 months from kneeling rollout.",
-            rank: .a,
             isParallelToParent: true
         ),
         .simple(
@@ -1292,8 +1252,7 @@ extension SkillGraph {
                 "Shoulders shrug up toward ears",
                 "Swinging through reps instead of controlled reps"
             ],
-            timeline: "6-18 months from leg raises.",
-            rank: .b
+            timeline: "6-18 months from leg raises."
         ),
         .simple(
             id: "cl.tuck-front-lever",
@@ -1318,8 +1277,7 @@ extension SkillGraph {
                 "Shrugged shoulders that let the lats switch off",
                 "Opening the tuck before the short lever is still"
             ],
-            timeline: "3-9 months from 10 pullups + solid hanging core.",
-            rank: .b
+            timeline: "3-9 months from 10 pullups + solid hanging core."
         ),
         .simple(
             id: "cl.straddle-front-lever",
@@ -1344,8 +1302,7 @@ extension SkillGraph {
                 "Losing shoulder depression as fatigue sets in",
                 "Letting one leg carry higher than the other"
             ],
-            timeline: "6-18 months from tuck front lever.",
-            rank: .b
+            timeline: "6-18 months from tuck front lever."
         ),
         .simple(
             id: "cl.full-front-lever",
@@ -1371,8 +1328,7 @@ extension SkillGraph {
                 "Anterior pelvic tilt — lower back arches, legs drop",
                 "Trying full before straddle seconds are calm"
             ],
-            timeline: "1-3 years from tuck front lever.",
-            rank: .a
+            timeline: "1-3 years from tuck front lever."
         ),
         .simple(
             id: "cl.straddle-back-lever",
@@ -1398,7 +1354,6 @@ extension SkillGraph {
                 "Treating shoulder stretch discomfort as something to push through"
             ],
             timeline: "6-18 months from tuck back lever.",
-            rank: .b,
             isParallelToParent: true
         ),
         .simple(
@@ -1424,8 +1379,7 @@ extension SkillGraph {
                 "Piking hips downward",
                 "Counting a hold that can only be entered by falling into it"
             ],
-            timeline: "6-18 months from tuck back lever.",
-            rank: .a
+            timeline: "6-18 months from tuck back lever."
         ),
 
         // ────────────────────────────────────────────────────────────────
@@ -1454,8 +1408,7 @@ extension SkillGraph {
                 "Dropping early = no counted rep",
                 "Uneven loading between hands"
             ],
-            timeline: "2-6 months from BW deadlift.",
-            rank: .d
+            timeline: "2-6 months from BW deadlift."
         ),
         .simple(
             id: "co.1.5x-farmer-carry",
@@ -1478,8 +1431,7 @@ extension SkillGraph {
                 "Forward lean under load",
                 "Mis-loading hands"
             ],
-            timeline: "1-3 years from BW farmer carry.",
-            rank: .c
+            timeline: "1-3 years from BW farmer carry."
         ),
         .simple(
             id: "co.dead-hang-45",
@@ -1502,8 +1454,7 @@ extension SkillGraph {
                 "Gripping with 3 fingers",
                 "Dropping early instead of lowering with control"
             ],
-            timeline: "2-6 weeks from dead hang 30s.",
-            rank: .e
+            timeline: "2-6 weeks from dead hang 30s."
         ),
         .simple(
             id: "co.dead-hang-60",
@@ -1526,8 +1477,7 @@ extension SkillGraph {
                 "Holding breath",
                 "Letting shoulders shrug as fatigue builds"
             ],
-            timeline: "1-3 months from 45s.",
-            rank: .d
+            timeline: "1-3 months from 45s."
         ),
         .simple(
             id: "co.sled-push",
@@ -1550,8 +1500,7 @@ extension SkillGraph {
                 "Huge strides stall momentum",
                 "Sprinting out the first 10s and dying"
             ],
-            timeline: "Develops naturally alongside squat programming.",
-            rank: .d
+            timeline: "Develops naturally alongside squat programming."
         ),
         .simple(
             id: "co.400m-row",
@@ -1573,8 +1522,7 @@ extension SkillGraph {
                 "Short strokes sacrifice distance per effort",
                 "Burning out in the first 200m"
             ],
-            timeline: "2-6 months of rowing practice.",
-            rank: .c
+            timeline: "2-6 months of rowing practice."
         ),
         .simple(
             id: "co.mile-sub-7",
@@ -1596,8 +1544,7 @@ extension SkillGraph {
                 "No base aerobic miles in the weeks before — cramps mid-effort",
                 "Heel-striking hard — rolls into stride over midfoot"
             ],
-            timeline: "2-4 months of 2-3 runs per week from untrained.",
-            rank: .d
+            timeline: "2-4 months of 2-3 runs per week from untrained."
         ),
         .simple(
             id: "co.5k-sub-22",
@@ -1620,8 +1567,7 @@ extension SkillGraph {
                 "No long runs in the build — blows up in mile 2",
                 "Ignoring easy days — every run hard = no adaptation"
             ],
-            timeline: "3-9 months from sub-7 mile.",
-            rank: .c
+            timeline: "3-9 months from sub-7 mile."
         ),
         .simple(
             id: "co.2x-farmer-carry",
@@ -1646,8 +1592,7 @@ extension SkillGraph {
                 "Picking up with a rounded back",
                 "Walking too slow — grip fails before the clock"
             ],
-            timeline: "2-4 years from 1.5× farmer carry.",
-            rank: .b
+            timeline: "2-4 years from 1.5× farmer carry."
         ),
         .simple(
             id: "co.assault-bike-30",
@@ -1670,8 +1615,7 @@ extension SkillGraph {
                 "Holding breath through the middle",
                 "Pacing like a 5-minute effort — leaves calories on the table"
             ],
-            timeline: "2-6 months of bike intervals.",
-            rank: .c
+            timeline: "2-6 months of bike intervals."
         ),
 
         // ════════════════════════════════════════════════════════════════════
@@ -1708,8 +1652,7 @@ extension SkillGraph {
                 "Not reaching dead hang between reps",
                 "Shrugging shoulders at the top"
             ],
-            timeline: "4-10 weeks from first chin-up attempt.",
-            rank: .d
+            timeline: "4-10 weeks from first chin-up attempt."
         ),
         .simple(
             id: "pp.strict-chin-up",
@@ -1732,8 +1675,7 @@ extension SkillGraph {
                 "Letting the elbows flare out",
                 "Bouncing out of the dead hang"
             ],
-            timeline: "2-6 months from first chin-up.",
-            rank: .b
+            timeline: "2-6 months from first chin-up."
         ),
         .simple(
             id: "pp.weighted-chin-up",
@@ -1756,8 +1698,7 @@ extension SkillGraph {
                 "Kipping to fight the load",
                 "Losing dead hang reset when fatigue hits"
             ],
-            timeline: "1-2 years from strict chin-up × 8.",
-            rank: .b
+            timeline: "1-2 years from strict chin-up × 8."
         ),
         .simple(
             id: "pp.l-sit-chin-up",
@@ -1780,8 +1721,7 @@ extension SkillGraph {
                 "Bent knees — loses the L-sit standard",
                 "Kipping with the core to lift the body"
             ],
-            timeline: "4-12 months from strict chin-up + L-sit.",
-            rank: .b
+            timeline: "4-12 months from strict chin-up + L-sit."
         ),
         .simple(
             id: "pp.wide-pullup",
@@ -1804,8 +1744,7 @@ extension SkillGraph {
                 "Partial ROM because leverage drops at width",
                 "Shrugging to cheat the last inch"
             ],
-            timeline: "1-4 months from strict pullup × 5.",
-            rank: .b
+            timeline: "1-4 months from strict pullup × 5."
         ),
         .simple(
             id: "pp.explosive-pullup",
@@ -1828,8 +1767,7 @@ extension SkillGraph {
                 "Missing the re-grip and dropping",
                 "Partial ROM under the explosive cue"
             ],
-            timeline: "2-6 months from strict pullup mastery.",
-            rank: .b
+            timeline: "2-6 months from strict pullup mastery."
         ),
         .simple(
             id: "pp.clapping-pullup",
@@ -1852,8 +1790,7 @@ extension SkillGraph {
                 "Kipping to fake the height",
                 "Shrugging shoulders on the re-catch"
             ],
-            timeline: "6-18 months from explosive pullup.",
-            rank: .a
+            timeline: "6-18 months from explosive pullup."
         ),
 
         // ────────────────────────────────────────────────────────────────
@@ -1880,8 +1817,7 @@ extension SkillGraph {
                 "Partial ROM — not touching the bench",
                 "Using a bench too tall — reduces useful loading"
             ],
-            timeline: "1-4 weeks for most beginners.",
-            rank: .e
+            timeline: "1-4 weeks for most beginners."
         ),
         .simple(
             id: "cal.decline-pushup",
@@ -1904,8 +1840,7 @@ extension SkillGraph {
                 "Going too tall on the elevation too soon",
                 "Elbow flare under the shoulder load"
             ],
-            timeline: "2-4 weeks from 10 standard pushups.",
-            rank: .d
+            timeline: "2-4 weeks from 10 standard pushups."
         ),
         .simple(
             id: "cal.sphinx-pushup",
@@ -1927,8 +1862,7 @@ extension SkillGraph {
                 "Partial ROM — not full elbow lockout at top",
                 "Rushing the eccentric"
             ],
-            timeline: "2-4 weeks from 10 pike pushups.",
-            rank: .d
+            timeline: "2-4 weeks from 10 pike pushups."
         ),
         .simple(
             id: "cal.archer-pushup",
@@ -1950,8 +1884,7 @@ extension SkillGraph {
                 "Off arm bending to assist",
                 "Chest not touching on the working side"
             ],
-            timeline: "2-6 months from decline pushup.",
-            rank: .c
+            timeline: "2-6 months from decline pushup."
         ),
         .simple(
             id: "cal.one-arm-pushup",
@@ -1973,8 +1906,7 @@ extension SkillGraph {
                 "Partial ROM",
                 "Using free arm as secret support"
             ],
-            timeline: "6-18 months from archer pushup.",
-            rank: .b
+            timeline: "6-18 months from archer pushup."
         ),
         .simple(
             id: "cal.explosive-pushup",
@@ -1997,7 +1929,6 @@ extension SkillGraph {
                 "Piking the hips to push off higher"
             ],
             timeline: "2-6 weeks from decline pushup.",
-            rank: .d,
             isParallelToParent: true
         ),
         .simple(
@@ -2020,8 +1951,7 @@ extension SkillGraph {
                 "Landing stiff-armed",
                 "Cheating with hip dip for liftoff"
             ],
-            timeline: "1-4 months from explosive pushup.",
-            rank: .c
+            timeline: "1-4 months from explosive pushup."
         ),
         .simple(
             id: "cal.floating-pike-pushup",
@@ -2045,7 +1975,6 @@ extension SkillGraph {
                 "Partial ROM — not bringing head down"
             ],
             timeline: "6-18 months from elevated pike pushup.",
-            rank: .b,
             isParallelToParent: true
         ),
         .simple(
@@ -2070,8 +1999,7 @@ extension SkillGraph {
                 "Dropping too deep with shoulders rolled forward",
                 "Pushing mostly with the legs"
             ],
-            timeline: "1-3 weeks for most beginners.",
-            rank: .e
+            timeline: "1-3 weeks for most beginners."
         ),
         .simple(
             id: "cal.triple-clap-pushup",
@@ -2094,8 +2022,7 @@ extension SkillGraph {
                 "Fake claps that barely touch",
                 "Piking hips for cheat airtime"
             ],
-            timeline: "5+ years of power training. Very rare.",
-            rank: .s
+            timeline: "5+ years of power training. Very rare."
         ),
 
         // ────────────────────────────────────────────────────────────────
@@ -2122,8 +2049,7 @@ extension SkillGraph {
                 "Partial ROM at the top",
                 "Rushing the eccentric"
             ],
-            timeline: "1-2 weeks from zero.",
-            rank: .e
+            timeline: "1-2 weeks from zero."
         ),
         .simple(
             id: "ld.weighted-sl-calf",
@@ -2146,8 +2072,7 @@ extension SkillGraph {
                 "Partial ROM",
                 "Free leg sneaking assistance"
             ],
-            timeline: "2-6 months from bodyweight calf raises.",
-            rank: .c
+            timeline: "2-6 months from bodyweight calf raises."
         ),
         .simple(
             id: "ld.box-jump",
@@ -2171,7 +2096,6 @@ extension SkillGraph {
                 "Jumping down off the box"
             ],
             timeline: "1-3 weeks to groove the jump.",
-            rank: .d,
             isParallelToParent: true
         ),
         .simple(
@@ -2194,8 +2118,7 @@ extension SkillGraph {
                 "Landing stiff — joints take a beating",
                 "Forward lean on the concentric"
             ],
-            timeline: "1-3 weeks from deep squat.",
-            rank: .d
+            timeline: "1-3 weeks from deep squat."
         ),
         .simple(
             id: "ld.weighted-split-squat",
@@ -2218,8 +2141,7 @@ extension SkillGraph {
                 "Front knee tracking past toes",
                 "Pushing off the rear foot"
             ],
-            timeline: "2-4 weeks from bodyweight split squat.",
-            rank: .d
+            timeline: "2-4 weeks from bodyweight split squat."
         ),
         .simple(
             id: "ld.fire-hydrant",
@@ -2241,8 +2163,7 @@ extension SkillGraph {
                 "Hips dropping to the opposite side",
                 "Rushing reps"
             ],
-            timeline: "Immediate — activation drill.",
-            rank: .b
+            timeline: "Immediate — activation drill."
         ),
         .simple(
             id: "ld.single-leg-glute-bridge",
@@ -2264,8 +2185,7 @@ extension SkillGraph {
                 "Lumbar arch instead of glute squeeze",
                 "Partial ROM — hips not reaching lockout"
             ],
-            timeline: "1-3 weeks.",
-            rank: .d
+            timeline: "1-3 weeks."
         ),
         .simple(
             id: "ld.flying-kickback",
@@ -2287,8 +2207,7 @@ extension SkillGraph {
                 "Leg drifting out to the side",
                 "Swinging instead of driving"
             ],
-            timeline: "Immediate.",
-            rank: .d
+            timeline: "Immediate."
         ),
         .simple(
             id: "ld.leg-extensions",
@@ -2310,8 +2229,7 @@ extension SkillGraph {
                 "Bouncing out of the bottom",
                 "Cutting ROM short at the top"
             ],
-            timeline: "1-3 weeks.",
-            rank: .d
+            timeline: "1-3 weeks."
         ),
         .simple(
             id: "ld.advancing-nordic-curl",
@@ -2334,8 +2252,7 @@ extension SkillGraph {
                 "Pushing off with hands (that's a nordic curl regression)",
                 "Anchor slipping mid-rep"
             ],
-            timeline: "1-3 months from nordic hip hinge.",
-            rank: .b
+            timeline: "1-3 months from nordic hip hinge."
         ),
         .simple(
             id: "ld.floor-to-ceiling-squat",
@@ -2358,8 +2275,7 @@ extension SkillGraph {
                 "Partial squat before the jump",
                 "Stopping short on the leap"
             ],
-            timeline: "5+ years of explosive leg training. Very rare.",
-            rank: .s
+            timeline: "5+ years of explosive leg training. Very rare."
         ),
 
         // ────────────────────────────────────────────────────────────────
@@ -2386,8 +2302,7 @@ extension SkillGraph {
                 "Sitting all the way up — that's a sit-up, not a crunch",
                 "Feet lifting off the floor"
             ],
-            timeline: "Immediate.",
-            rank: .e
+            timeline: "Immediate."
         ),
         .simple(
             id: "cl.reverse-crunch",
@@ -2409,8 +2324,7 @@ extension SkillGraph {
                 "Using momentum from the eccentric",
                 "Lumbar arching at the bottom"
             ],
-            timeline: "1-2 weeks from crunches.",
-            rank: .d
+            timeline: "1-2 weeks from crunches."
         ),
         .simple(
             id: "cl.superman-plank",
@@ -2432,8 +2346,7 @@ extension SkillGraph {
                 "Arm and leg on the same side — cancels the anti-rotation",
                 "Dropping the extended limb to the floor"
             ],
-            timeline: "1-4 weeks from 30s plank.",
-            rank: .c
+            timeline: "1-4 weeks from 30s plank."
         ),
         .simple(
             id: "cl.extended-plank",
@@ -2455,8 +2368,7 @@ extension SkillGraph {
                 "Hip sag as the lever gets long",
                 "Shrugged shoulders under the load"
             ],
-            timeline: "2-4 weeks from plank 30s.",
-            rank: .d
+            timeline: "2-4 weeks from plank 30s."
         ),
         .simple(
             id: "cl.knee-ab-rollout",
@@ -2478,8 +2390,7 @@ extension SkillGraph {
                 "Rolling too far too soon (injury risk)",
                 "Holding breath instead of breathing"
             ],
-            timeline: "1-4 weeks from solid plank.",
-            rank: .d
+            timeline: "1-4 weeks from solid plank."
         ),
         .simple(
             id: "cl.levitation-crunch",
@@ -2501,8 +2412,7 @@ extension SkillGraph {
                 "Using the arms to swing up",
                 "Not fully levitating — partial ROM"
             ],
-            timeline: "1-3 months from reverse crunch.",
-            rank: .c
+            timeline: "1-3 months from reverse crunch."
         ),
         .simple(
             id: "cl.inverted-situp",
@@ -2525,8 +2435,7 @@ extension SkillGraph {
                 "Legs slipping off the bar",
                 "Partial ROM"
             ],
-            timeline: "2-6 months from hanging leg raise.",
-            rank: .c
+            timeline: "2-6 months from hanging leg raise."
         ),
         .simple(
             id: "cl.skin-the-cat",
@@ -2551,8 +2460,7 @@ extension SkillGraph {
                 "Skipping warm-up — shoulders need prep",
                 "Going deeper than can be reversed under control"
             ],
-            timeline: "2-6 months from german hang.",
-            rank: .b
+            timeline: "2-6 months from german hang."
         ),
         .simple(
             id: "cl.german-hang",
@@ -2578,7 +2486,6 @@ extension SkillGraph {
                 "Dropping too deep because the rings are set too high"
             ],
             timeline: "3-9 months from tuck front lever.",
-            rank: .b,
             isParallelToParent: true
         ),
         .simple(
@@ -2604,8 +2511,7 @@ extension SkillGraph {
                 "Shrugged shoulders on the re-catch",
                 "Trying it without first owning high pulls, release drills, and safe landing practice"
             ],
-            timeline: "5+ years of dedicated explosive pulling. Very rare.",
-            rank: .a
+            timeline: "5+ years of dedicated explosive pulling. Very rare."
         ),
 
         // ────────────────────────────────────────────────────────────────
@@ -2632,8 +2538,7 @@ extension SkillGraph {
                 "Arching the spine to stay up",
                 "Kicking up too hard against the wall"
             ],
-            timeline: "1-4 weeks from wall plank.",
-            rank: .d
+            timeline: "1-4 weeks from wall plank."
         ),
         .simple(
             id: "hs.tuck-handstand",
@@ -2655,8 +2560,7 @@ extension SkillGraph {
                 "Bent arms when balance shifts",
                 "Over-kicking into the position"
             ],
-            timeline: "1-3 months from wall handstand.",
-            rank: .c
+            timeline: "1-3 months from wall handstand."
         ),
         .simple(
             id: "hs.crow-pose",
@@ -2678,8 +2582,7 @@ extension SkillGraph {
                 "Keeping weight over the feet — won't float",
                 "Tipping forward onto the head — yes, put a pillow down"
             ],
-            timeline: "1-4 weeks from wall plank.",
-            rank: .d
+            timeline: "1-4 weeks from wall plank."
         ),
         .simple(
             id: "hs.crane-pose",
@@ -2701,8 +2604,7 @@ extension SkillGraph {
                 "Bending arms as soon as balance shifts",
                 "Hips dropping — arms not vertical"
             ],
-            timeline: "1-3 months from crow pose.",
-            rank: .c
+            timeline: "1-3 months from crow pose."
         ),
         .simple(
             id: "hs.flying-crow",
@@ -2724,8 +2626,7 @@ extension SkillGraph {
                 "Leg drifting out to the side",
                 "Losing knee-tricep contact on the bent leg"
             ],
-            timeline: "3-9 months from crow.",
-            rank: .c
+            timeline: "3-9 months from crow."
         ),
         .simple(
             id: "hs.elbow-lever",
@@ -2747,8 +2648,7 @@ extension SkillGraph {
                 "Legs sagging below horizontal",
                 "Bent knees to cheat the lever"
             ],
-            timeline: "2-8 weeks from crow pose.",
-            rank: .d
+            timeline: "2-8 weeks from crow pose."
         ),
         .simple(
             id: "hs.one-arm-elbow-lever",
@@ -2770,8 +2670,7 @@ extension SkillGraph {
                 "Body rotating open as weight shifts",
                 "Working arm collapsing"
             ],
-            timeline: "6-18 months from elbow lever.",
-            rank: .b
+            timeline: "6-18 months from elbow lever."
         ),
         .simple(
             id: "hs.tuck-press",
@@ -2793,8 +2692,7 @@ extension SkillGraph {
                 "Bent arms once weight shifts",
                 "Losing the tuck as hips rise"
             ],
-            timeline: "6-18 months from tuck handstand.",
-            rank: .b
+            timeline: "6-18 months from tuck handstand."
         ),
         .simple(
             id: "hs.straddle-press",
@@ -2816,8 +2714,7 @@ extension SkillGraph {
                 "Closing the straddle too early",
                 "Hamstring flexibility limits not addressed in warm-up"
             ],
-            timeline: "1-3 years from tuck press.",
-            rank: .a
+            timeline: "1-3 years from tuck press."
         ),
         .simple(
             id: "hs.press-to-handstand",
@@ -2839,8 +2736,7 @@ extension SkillGraph {
                 "Bent arms once the hips rise",
                 "Losing the pike shape — hips lead too early"
             ],
-            timeline: "2-4 years from straddle press.",
-            rank: .a
+            timeline: "2-4 years from straddle press."
         ),
 
         // ────────────────────────────────────────────────────────────────
@@ -2868,8 +2764,7 @@ extension SkillGraph {
                 "Arms bending too much — turns into a pushup",
                 "Not extending the legs fully"
             ],
-            timeline: "6-18 months from elbow lever.",
-            rank: .b
+            timeline: "6-18 months from elbow lever."
         ),
         .simple(
             id: "pl.half-lay-planche",
@@ -2892,8 +2787,7 @@ extension SkillGraph {
                 "Hip drop as the lever tightens",
                 "Banana back"
             ],
-            timeline: "6-18 months from straddle planche.",
-            rank: .a
+            timeline: "6-18 months from straddle planche."
         ),
 
         // ────────────────────────────────────────────────────────────────
@@ -2928,8 +2822,7 @@ extension SkillGraph {
                 "Chin reaching instead of chest pulling to bar",
                 "Bar set too low before ready — skip the progression"
             ],
-            timeline: "2-4 weeks for most untrained adults.",
-            rank: .e
+            timeline: "2-4 weeks for most untrained adults."
         ),
         .simple(
             id: "pp.row",
@@ -2952,8 +2845,7 @@ extension SkillGraph {
                 "Neck reaching to fake the final inches",
                 "Short reps that never return to straight arms"
             ],
-            timeline: "2-6 weeks from incline rows.",
-            rank: .d
+            timeline: "2-6 weeks from incline rows."
         ),
         .simple(
             id: "pp.decline-row",
@@ -2976,8 +2868,7 @@ extension SkillGraph {
                 "Partial ROM — not touching bar",
                 "Feet too elevated before ready — skip the progression"
             ],
-            timeline: "2-6 weeks from incline row.",
-            rank: .d
+            timeline: "2-6 weeks from incline row."
         ),
         .simple(
             id: "pp.one-arm-row",
@@ -3001,7 +2892,6 @@ extension SkillGraph {
                 "Partial ROM"
             ],
             timeline: "2-6 months from decline row.",
-            rank: .c,
             isParallelToParent: true
         ),
         .simple(
@@ -3025,8 +2915,7 @@ extension SkillGraph {
                 "Arching the lower back to cheat",
                 "Partial reps — chin over bar instead of sternum"
             ],
-            timeline: "2-4 months from decline row.",
-            rank: .c
+            timeline: "2-4 months from decline row."
         ),
         .simple(
             id: "pp.straddle-row",
@@ -3049,8 +2938,7 @@ extension SkillGraph {
                 "Hips dropping to cheat",
                 "Kipping to squeeze late reps"
             ],
-            timeline: "3-6 months from tuck row.",
-            rank: .b
+            timeline: "3-6 months from tuck row."
         ),
         .simple(
             id: "pp.tuck-front-lever-pullup",
@@ -3073,8 +2961,7 @@ extension SkillGraph {
                 "Vertical pullup with bent legs (different skill)",
                 "Bent arms at the bottom"
             ],
-            timeline: "6-18 months from one-arm row + tuck front lever.",
-            rank: .b
+            timeline: "6-18 months from one-arm row + tuck front lever."
         ),
 
         // MARK: Pull — Ascent / Crossover / Solo Arm additions
@@ -3099,8 +2986,7 @@ extension SkillGraph {
                 "Kipping for the extra height",
                 "Partial ROM at the bottom"
             ],
-            timeline: "6-12 months from weighted chin-up.",
-            rank: .a
+            timeline: "6-12 months from weighted chin-up."
         ),
         .simple(
             id: "pp.one-arm-chin-up",
@@ -3125,8 +3011,7 @@ extension SkillGraph {
                 "Free hand grabbing shirt/wrist as secret assist",
                 "Chin not fully clearing the bar"
             ],
-            timeline: "3-5+ years of dedicated pull work.",
-            rank: .s
+            timeline: "3-5+ years of dedicated pull work."
         ),
         .simple(
             id: "pp.strict-muscle-up",
@@ -3150,8 +3035,7 @@ extension SkillGraph {
                 "Piking the legs at the transition",
                 "Using momentum from the eccentric of a previous rep"
             ],
-            timeline: "6-18 months from first muscle-up.",
-            rank: .s
+            timeline: "6-18 months from first muscle-up."
         ),
 
         // MARK: Push — Bent Arm Press (distinct from Bent Arm Planche)
@@ -3175,8 +3059,7 @@ extension SkillGraph {
                 "Dumping weight into the head or neck",
                 "Opening the legs early before the hips stack"
             ],
-            timeline: "3-9 months from floating pike push-up.",
-            rank: .b
+            timeline: "3-9 months from floating pike push-up."
         ),
 
         // MARK: Legs — Foundation gap nodes
@@ -3201,8 +3084,7 @@ extension SkillGraph {
                 "Leaning forward instead of stepping up tall",
                 "Box too low to matter, or too high to form-check"
             ],
-            timeline: "Immediate.",
-            rank: .e
+            timeline: "Immediate."
         ),
         .simple(
             id: "ld.deep-squat",
@@ -3224,8 +3106,7 @@ extension SkillGraph {
                 "Chest collapsing — turns it into a rest squat",
                 "Holding breath through the entire time"
             ],
-            timeline: "Immediate to 6 weeks for rusty adults.",
-            rank: .e
+            timeline: "Immediate to 6 weeks for rusty adults."
         ),
         .simple(
             id: "ld.glute-bridge",
@@ -3247,8 +3128,7 @@ extension SkillGraph {
                 "Arching lumbar to fake hip height",
                 "Rushing — no top squeeze"
             ],
-            timeline: "Immediate.",
-            rank: .e
+            timeline: "Immediate."
         ),
         .simple(
             id: "ld.weighted-bss",
@@ -3271,8 +3151,7 @@ extension SkillGraph {
                 "Weights drifting forward, shifting balance",
                 "Partial depth to cheat the load"
             ],
-            timeline: "3-6 months from bodyweight BSS mastery.",
-            rank: .c
+            timeline: "3-6 months from bodyweight BSS mastery."
         ),
         .simple(
             id: "ld.sissy-squat",
@@ -3294,8 +3173,7 @@ extension SkillGraph {
                 "Knees caving in under the load",
                 "Too-aggressive knee travel before ready — patellar issues"
             ],
-            timeline: "4-8 weeks of quad-specific work.",
-            rank: .b
+            timeline: "4-8 weeks of quad-specific work."
         ),
         .simple(
             id: "ld.nordic-hip-hinge",
@@ -3318,8 +3196,7 @@ extension SkillGraph {
                 "Ankles unanchored — position breaks",
                 "Using hands for a third contact point"
             ],
-            timeline: "2-6 weeks from single-leg glute bridge.",
-            rank: .d
+            timeline: "2-6 weeks from single-leg glute bridge."
         ),
         .simple(
             id: "ld.nordic-curl",
@@ -3342,8 +3219,7 @@ extension SkillGraph {
                 "Breaking at the hips to cheat",
                 "Dropping the last 6 inches of descent"
             ],
-            timeline: "1-3 years from advanced nordic hip hinge.",
-            rank: .a
+            timeline: "1-3 years from advanced nordic hip hinge."
         ),
 
         // MARK: Core — Spine/Raised gap nodes
@@ -3367,8 +3243,7 @@ extension SkillGraph {
                 "Free leg rising above hip line",
                 "Shoulders rotating open"
             ],
-            timeline: "2-6 weeks from plank.",
-            rank: .d
+            timeline: "2-6 weeks from plank."
         ),
         .simple(
             id: "cl.v-sit",
@@ -3390,8 +3265,7 @@ extension SkillGraph {
                 "Bent knees to fake the compression",
                 "Shoulders creeping up toward ears"
             ],
-            timeline: "6-18 months from clean L-sit.",
-            rank: .b
+            timeline: "6-18 months from clean L-sit."
         ),
         .simple(
             id: "cl.straddle-l-sit",
@@ -3413,8 +3287,7 @@ extension SkillGraph {
                 "Bent knees to cheat the width",
                 "Hip flexors tight — legs won't open wide"
             ],
-            timeline: "6-12 months from clean L-sit.",
-            rank: .b
+            timeline: "6-12 months from clean L-sit."
         ),
         .simple(
             id: "cl.dragon-flag-hip-raise",
@@ -3437,8 +3310,7 @@ extension SkillGraph {
                 "Kipping with the legs for momentum",
                 "Releasing the grip before the rep is done"
             ],
-            timeline: "2-4 months from reverse crunch.",
-            rank: .c
+            timeline: "2-4 months from reverse crunch."
         ),
         .simple(
             id: "cl.decline-situp",
@@ -3461,8 +3333,7 @@ extension SkillGraph {
                 "Yanking the head forward",
                 "Partial ROM — cutting the descent short"
             ],
-            timeline: "2-4 weeks from crunch.",
-            rank: .d
+            timeline: "2-4 weeks from crunch."
         ),
 
         // MARK: Core — Canonical hierarchy additions
@@ -3486,8 +3357,7 @@ extension SkillGraph {
                 "Partial ROM — knees stop at 90°",
                 "Shrugged shoulders under support"
             ],
-            timeline: "1-4 weeks from hollow body.",
-            rank: .d
+            timeline: "1-4 weeks from hollow body."
         ),
         .simple(
             id: "cl.leg-raise",
@@ -3509,8 +3379,7 @@ extension SkillGraph {
                 "Lumbar arching off the floor",
                 "Using momentum on the way down"
             ],
-            timeline: "2-6 weeks from knee raise.",
-            rank: .d
+            timeline: "2-6 weeks from knee raise."
         ),
         .simple(
             id: "cl.semi-straddle-l-sit",
@@ -3532,8 +3401,7 @@ extension SkillGraph {
                 "Bent knees on either leg",
                 "Shoulders shrugging up"
             ],
-            timeline: "2-6 months from clean L-sit.",
-            rank: .b
+            timeline: "2-6 months from clean L-sit."
         ),
         .simple(
             id: "cl.vertical-l-sit",
@@ -3555,8 +3423,7 @@ extension SkillGraph {
                 "Bent arms cheat the press",
                 "Hips drop below hand line"
             ],
-            timeline: "1-2 years from clean V-sit.",
-            rank: .a
+            timeline: "1-2 years from clean V-sit."
         ),
 
         // MARK: Handstand — Wall Path gaps
@@ -3579,8 +3446,7 @@ extension SkillGraph {
                 "Piked hips instead of stacked",
                 "Shrugged shoulders into the ears"
             ],
-            timeline: "Immediate to 2 weeks.",
-            rank: .e
+            timeline: "Immediate to 2 weeks."
         ),
         .simple(
             id: "hs.wall-supported-oah",
@@ -3602,8 +3468,7 @@ extension SkillGraph {
                 "Losing the line — banana-ing into the wall",
                 "Rushing the weight shift before balance is set"
             ],
-            timeline: "1-2 years from freestanding handstand.",
-            rank: .a
+            timeline: "1-2 years from freestanding handstand."
         ),
     ]
 }

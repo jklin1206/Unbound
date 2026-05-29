@@ -3,7 +3,7 @@ import SwiftUI
 // MARK: - NodeUnlockedOverlay
 //
 // Full-screen takeover that plays when a skill tree node flips to
-// `.achieved` or `.mastered`. Driven by SkillProgressService.pendingUnlock.
+// `.proven`. Driven by SkillProgressService.pendingUnlock.
 //
 // Sequence:
 //   1. Black scrim fades in
@@ -67,7 +67,7 @@ struct NodeUnlockedOverlay: View {
 
             VStack(spacing: 28) {
                 // Chip label
-                Text(event.newState == .mastered ? "MASTERED" : "NODE UNLOCKED")
+                Text("NODE UNLOCKED")
                     .font(Font.unbound.captionS)
                     .tracking(2.0)
                     .foregroundStyle(Color.unbound.impact)
@@ -201,7 +201,7 @@ struct NodeUnlockedOverlay: View {
     }
 
     private var glyph: some View {
-        Image(systemName: event.newState == .mastered ? "crown.fill" : iconForType)
+        Image(systemName: iconForType)
     }
 
     private var iconForType: String {

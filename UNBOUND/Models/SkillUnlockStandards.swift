@@ -115,14 +115,14 @@ enum SkillUnlockStandards {
             return true
         }
 
-        // Compatibility while old progress saves migrate: achieved/mastered
-        // source nodes are treated as enough for standard Forged unlocks.
+        // Compatibility while old progress saves migrate: a proven source node
+        // is treated as enough for standard Forged unlocks.
         let state = nodeStates[requirement.sourceSkillId] ?? .locked
-        return requirement.requiredTier <= .forged && (state == .achieved || state == .mastered)
+        return requirement.requiredTier <= .forged && state == .proven
     }
 
     private static func inferredTier(from parent: SkillNode?, to child: SkillNode) -> SkillTier {
-        if child.isMythic || child.rank == .s || child.tier >= 6 {
+        if child.isMythic || child.placementRank >= .unbound || child.tier >= 6 {
             return .master
         }
 

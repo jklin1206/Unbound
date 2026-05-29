@@ -172,10 +172,8 @@ struct ProgressionsTabView: View {
     private func fill(for n: SkillNode) -> Color {
         let state = nodeStates[n.id] ?? .locked
         switch state {
-        case .locked:     return Color.unbound.surface
-        case .attempting: return Color.unbound.accent.opacity(0.14)
-        case .achieved:   return Color.unbound.accent.opacity(0.22)
-        case .mastered:   return Color.unbound.impact.opacity(0.22)
+        case .locked: return Color.unbound.surface
+        case .proven: return Color.unbound.accent.opacity(0.22)
         }
     }
 
@@ -183,10 +181,8 @@ struct ProgressionsTabView: View {
         let state = nodeStates[n.id] ?? .locked
         if isCurrent { return Color.unbound.accent }
         switch state {
-        case .locked:     return Color.unbound.border
-        case .attempting: return Color.unbound.accent
-        case .achieved:   return Color.unbound.accent
-        case .mastered:   return Color.unbound.impact
+        case .locked: return Color.unbound.border
+        case .proven: return Color.unbound.accent
         }
     }
 
@@ -194,10 +190,8 @@ struct ProgressionsTabView: View {
         let state = nodeStates[n.id] ?? .locked
         if isCurrent { return n.glyph }
         switch state {
-        case .locked:     return "lock.fill"
-        case .attempting: return n.glyph
-        case .achieved:   return "checkmark"
-        case .mastered:   return "crown.fill"
+        case .locked: return "lock.fill"
+        case .proven: return "checkmark"
         }
     }
 
@@ -205,10 +199,8 @@ struct ProgressionsTabView: View {
         let state = nodeStates[n.id] ?? .locked
         if isCurrent { return Color.unbound.accent }
         switch state {
-        case .locked:     return Color.unbound.textTertiary
-        case .attempting: return Color.unbound.accent
-        case .achieved:   return Color.unbound.accent
-        case .mastered:   return Color.unbound.impact
+        case .locked: return Color.unbound.textTertiary
+        case .proven: return Color.unbound.accent
         }
     }
 
@@ -221,10 +213,8 @@ struct ProgressionsTabView: View {
         if isCurrent { return "Current skill" }
         let state = nodeStates[n.id] ?? .locked
         switch state {
-        case .locked:     return "Locked"
-        case .attempting: return "In progress"
-        case .achieved:   return "Achieved"
-        case .mastered:   return "Mastered"
+        case .locked: return "Locked"
+        case .proven: return "Proven"
         }
     }
 

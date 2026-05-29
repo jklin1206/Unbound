@@ -75,13 +75,13 @@ struct Step_SkillTreePreview: View {
 
     // MARK: V1 static preview states
     //
-    // First 2 nodes attempting (unlocked, not yet achieved); rest locked.
-    // Real state-from-logs wiring is V2 work.
+    // First 2 nodes proven (illustrative — what an earned node looks like);
+    // rest locked. Real state-from-logs wiring is V2 work.
 
     private func previewStates(for tree: SkillTree) -> [String: NodeState] {
         var states: [String: NodeState] = [:]
         for (idx, node) in tree.nodes.enumerated() {
-            states[node.id] = idx < 2 ? .attempting : .locked
+            states[node.id] = idx < 2 ? .proven : .locked
         }
         return states
     }
@@ -90,7 +90,7 @@ struct Step_SkillTreePreview: View {
 
     private var legendRow: some View {
         HStack(spacing: 16) {
-            legendBadge(state: .attempting, label: L10n.onboarding("skillTreePreview.legend.current", defaultValue: "You're here"))
+            legendBadge(state: .proven, label: L10n.onboarding("skillTreePreview.legend.current", defaultValue: "Proven"))
             legendBadge(state: .locked, label: L10n.onboarding("skillTreePreview.legend.locked", defaultValue: "Locked"))
             Spacer()
         }
@@ -101,12 +101,10 @@ struct Step_SkillTreePreview: View {
         HStack(spacing: 8) {
             ZStack {
                 Hexagon()
-                    .fill(state == .attempting
-                          ? Color.unbound.surface
-                          : Color.unbound.surface)
+                    .fill(Color.unbound.surface)
                 Hexagon()
                     .strokeBorder(
-                        state == .attempting ? Color.unbound.accent : Color.unbound.border,
+                        state == .proven ? Color.unbound.accent : Color.unbound.border,
                         lineWidth: 1.5
                     )
                 if state == .locked {
@@ -117,7 +115,7 @@ struct Step_SkillTreePreview: View {
             }
             .frame(width: 18, height: 18)
             .shadow(
-                color: state == .attempting ? Color.unbound.accent.opacity(0.4) : .clear,
+                color: state == .proven ? Color.unbound.accent.opacity(0.4) : .clear,
                 radius: 4
             )
             Text(label)

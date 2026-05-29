@@ -649,7 +649,6 @@ struct ProgramOverviewView: View {
 
     private func activeGoalCard(node: SkillNode) -> some View {
         let canTrain = skillProgress.canTrain(nodeId: node.id)
-        let sp = skillProgress.currentSkillProgress(for: node.id)
         let stateLabel = canTrain ? "Ready" : "Trained today"
         let buttonLabel = canTrain ? "TRAIN" : "VIEW"
         let asset = node.id.replacingOccurrences(of: ".", with: "_")
@@ -681,7 +680,7 @@ struct ProgramOverviewView: View {
                         .font(Font.unbound.bodyMStrong)
                         .foregroundStyle(Color.unbound.textPrimary)
                         .lineLimit(1)
-                    Text("\(node.cluster.displayName) · Lv \(sp.currentLevel) · \(stateLabel)")
+                    Text("\(node.cluster.displayName) · \(stateLabel)")
                         .font(Font.unbound.captionS)
                         .foregroundStyle(canTrain ? Color.unbound.textSecondary : Color.unbound.textTertiary)
                         .lineLimit(1)
@@ -2837,7 +2836,6 @@ private struct ProgramRankLibraryView: View {
         rows = Self.makeSkillRows(
             skillTiers: skillTiers,
             nodeStates: skillService.nodeStates,
-            skillProgress: skillService.skillProgress,
             activeGoalIds: skillService.activeGoalIds
         ) + Self.makeMovementRows(progressStates: progressStates)
         isLoading = false
@@ -2879,17 +2877,14 @@ private struct ProgramRankLibraryView: View {
     private static func makeSkillRows(
         skillTiers: UserSkillTierState,
         nodeStates: [String: NodeState],
-        skillProgress: [String: SkillProgress],
         activeGoalIds: Set<String>
     ) -> [ProgramRankLibraryRow] {
         SkillGraph.shared.nodes.map { node in
             let state = nodeStates[node.id] ?? .locked
             let tier = skillTiers.tier(for: node.id)
 
-            let progress = skillProgress[node.id]
             let status = activeGoalIds.contains(node.id) ? "TRAINING" : Self.nodeStateLabel(state)
             let detail = RankBenchmarkSummary.nextBenchmark(for: node, currentTier: tier)
-                ?? progress.map { "LV \($0.currentLevel)" }
                 ?? node.target.displayName
 
             return ProgramRankLibraryRow(
@@ -2899,14 +2894,14 @@ private struct ProgramRankLibraryView: View {
                 detail: detail,
                 metric: status,
                 tier: tier,
-                visualAssetName: Self.skillVisualAssetName(for: node, progress: progress),
+                visualAssetName: Self.skillVisualAssetName(for: node),
                 totalAP: 0,
                 source: .skill,
                 sourceId: node.id,
                 sectionTitle: "\(node.cluster.displayName) Skills",
                 sectionOrder: Self.skillSectionOrder(for: node.cluster),
                 lastActivityAt: nil,
-                earnedOverride: state == .achieved || state == .mastered || tier > .initiate
+                earnedOverride: state == .proven || tier > .initiate
             )
         }
     }
@@ -2978,7 +2973,7 @@ private struct ProgramRankLibraryView: View {
         return rows
     }
 
-    private static func skillVisualAssetName(for node: SkillNode, progress: SkillProgress?) -> String? {
+    private static func skillVisualAssetName(for node: SkillNode) -> String? {
         let base = node.id.replacingOccurrences(of: ".", with: "_")
         let candidates = [
             SkillTraditionalVisualResolver.assetName(for: node),
@@ -3004,9 +2999,7 @@ private struct ProgramRankLibraryView: View {
     private static func nodeStateLabel(_ state: NodeState) -> String {
         switch state {
         case .locked: return "LOCKED"
-        case .attempting: return "TRAINING"
-        case .achieved: return "CLEARED"
-        case .mastered: return "MASTERED"
+        case .proven: return "CLEARED"
         }
     }
 
@@ -4287,7 +4280,6 @@ private struct DayPreviewSheet: View {
     }
 
     private func skillCard(node: SkillNode) -> some View {
-        let sp = skillProgress.currentSkillProgress(for: node.id)
         let asset = node.id.replacingOccurrences(of: ".", with: "_")
 
         return Button {
@@ -4317,7 +4309,7 @@ private struct DayPreviewSheet: View {
                         .font(Font.unbound.bodyMStrong)
                         .foregroundStyle(Color.unbound.textPrimary)
                         .lineLimit(1)
-                    Text("\(node.cluster.displayName) · Lv \(sp.currentLevel)")
+                    Text("\(node.cluster.displayName) · \(node.placementRank.displayName)")
                         .font(Font.unbound.captionS)
                         .foregroundStyle(Color.unbound.textSecondary)
                         .lineLimit(1)

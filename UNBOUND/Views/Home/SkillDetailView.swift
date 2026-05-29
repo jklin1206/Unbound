@@ -114,9 +114,7 @@ struct SkillDetailView: View {
                 skillTitle: node.title,
                 defaultReps: defaultRepsForQuickLog,
                 isHoldBased: quickLogIsHoldBased,
-                holdTargetSeconds: quickLogHoldTargetSeconds,
-                skillRank: node.rank,
-                nodeState: nodeStates[node.id] ?? .locked
+                holdTargetSeconds: quickLogHoldTargetSeconds
             )
         }
         .sheet(isPresented: $isTrainChooserPresented) {
@@ -291,8 +289,7 @@ struct SkillDetailView: View {
     // MARK: - 3. Title block
 
     private var titleBlock: some View {
-        let sp = skillProgress.currentSkillProgress(for: node.id)
-        let subtitle = "\(node.cluster.displayName) · \(rankDescription(for: node.rank)) · Lv \(sp.currentLevel)"
+        let subtitle = "\(node.cluster.displayName) · \(rankDescription(for: node.placementRank))"
         return VStack(spacing: 8) {
             Text(node.title)
                 .font(.system(.title, design: .default).weight(.bold))
@@ -309,26 +306,25 @@ struct SkillDetailView: View {
         .frame(maxWidth: .infinity)
     }
 
-    /// Plain-English label for a rank — kept from the old detail screen.
-    private func rankDescription(for rank: SkillRank) -> String {
+    /// Plain-English intrinsic-difficulty label, derived from the node's fixed
+    /// `placementRank` (RankTier) rather than the retired E–S bucket.
+    private func rankDescription(for rank: RankTier) -> String {
         switch rank {
-        case .e: return "Starter"
-        case .d: return "Beginner"
-        case .c: return "Intermediate"
-        case .b: return "Advanced"
-        case .a: return "Elite"
-        case .s: return "Mythic"
+        case .initiate, .novice: return "Beginner"
+        case .apprentice, .forged: return "Intermediate"
+        case .veteran, .master: return "Advanced"
+        case .vessel, .unbound: return "Elite"
+        case .ascendant: return "Mythic"
         }
     }
 
     // MARK: - 4. Progress strip
 
     private var progressStrip: some View {
-        let sp = skillProgress.currentSkillProgress(for: node.id)
-        let fraction: Double = {
-            guard sp.xpToNextLevel > 0 else { return 0 }
-            return max(0, min(1, Double(sp.xpInLevel) / Double(sp.xpToNextLevel)))
-        }()
+        // Earned-rank progress along the 9-tier RankTier ladder (replaces the
+        // retired fake-XP bar). Fill = earned tier ordinal / Ascendant.
+        let earned = userSkillTierState.tier(for: node.id)
+        let fraction = max(0, min(1, Double(earned.rawValue) / Double(RankTier.ascendant.rawValue)))
         return VStack(spacing: 0) {
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
@@ -1111,9 +1107,8 @@ struct SkillDetailView: View {
     // MARK: - 5b. Legacy Next Beat card (kept for reference; not rendered)
 
     private var nextBeatCard: some View {
-        let sp = skillProgress.currentSkillProgress(for: node.id)
-        let state = nodeStates[node.id] ?? .locked
-        let isMastered = (state == .mastered && sp.currentLevel == 5)
+        // "Mastered" now means the skill has reached the top earned RankTier.
+        let isMastered = userSkillTierState.tier(for: node.id) == .ascendant
         return VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text("NEXT BEAT")
@@ -3800,8 +3795,6 @@ private struct QuickLogSheet: View {
     let defaultReps: Int
     var isHoldBased: Bool = false
     var holdTargetSeconds: Int = 30
-    var skillRank: SkillRank = .d
-    var nodeState: NodeState = .locked
 
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var services: ServiceContainer
@@ -4137,9 +4130,6 @@ private struct QuickLogSheet: View {
         // diff for PRs, rank-ups, badges, and first-set detection.
         let preSnapshot = await RewardComputer.shared.before(
             skillId: skillId,
-            skillRank: skillRank,
-            nodeState: nodeState,
-            currentLevel: SkillProgressService.shared.currentSkillProgress(for: skillId).currentLevel,
             isHoldBased: isHoldBased,
             userId: userId,
             badgeService: services.badges
@@ -4179,17 +4169,10 @@ private struct QuickLogSheet: View {
             trigger: .setCompleted(exerciseKey: triggerKey, reps: triggerReps)
         )
 
-        // Post-write state for rank-up diff.
-        let postLevel = SkillProgressService.shared.currentSkillProgress(for: skillId).currentLevel
-        let postState = SkillProgressService.shared.nodeStates[skillId] ?? nodeState
-
         var summary = await RewardComputer.shared.after(
             snapshot: preSnapshot,
             skillTitle: skillTitle,
             bestSet: set,
-            skillRankAfter: skillRank,
-            nodeStateAfter: postState,
-            currentLevelAfter: postLevel,
             xpGained: completionResult.skillXPGained,
             unlockedBadges: unlocked
         )

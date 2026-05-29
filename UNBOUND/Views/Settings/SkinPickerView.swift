@@ -133,9 +133,10 @@ struct SkinPickerView: View {
                 .fill(skin.mapBackground)
                 .blendMode(.screen)
             VStack(spacing: 6) {
-                ForEach(SkillRank.allCases, id: \.self) { rank in
+                // Representative difficulty ramp across the RankTier ladder.
+                ForEach([RankTier.initiate, .apprentice, .forged, .master, .vessel, .ascendant], id: \.self) { rank in
                     Capsule()
-                        .fill((rank.isAscendedTier ? skin.impactColor : skin.primaryColor).opacity(0.18 + Double(rank.difficultyOrder) * 0.05))
+                        .fill((rank >= .vessel ? skin.impactColor : skin.primaryColor).opacity(0.18 + Double(rank.rawValue) * 0.04))
                         .frame(height: 3)
                 }
             }
@@ -143,14 +144,14 @@ struct SkinPickerView: View {
             .padding(.vertical, 10)
             HStack(spacing: 8) {
                 Circle()
-                    .fill(skin.nodeFill(state: .achieved, faded: false))
+                    .fill(skin.nodeFill(state: .locked, faded: false))
                     .frame(width: 12, height: 12)
                     .overlay(Circle().strokeBorder(skin.primaryColor, lineWidth: 1))
                 Capsule()
                     .fill(skin.primaryColor.opacity(0.75))
                     .frame(width: 16, height: 2)
                 Circle()
-                    .fill(skin.nodeFill(state: .mastered, faded: false))
+                    .fill(skin.nodeFill(state: .proven, faded: false))
                     .frame(width: 12, height: 12)
                     .overlay(Circle().strokeBorder(skin.impactColor, lineWidth: 1))
             }

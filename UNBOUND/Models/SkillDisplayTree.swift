@@ -107,11 +107,10 @@ extension SkillDisplayTree {
         clusters.flatMap { graph.nodes(in: $0) }
     }
 
-    /// Count of achieved/mastered nodes across all clusters.
+    /// Count of proven nodes across all clusters.
     func achievedCount(in graph: SkillGraph, states: [String: NodeState]) -> Int {
         allNodes(in: graph).reduce(into: 0) { acc, node in
-            let s = states[node.id] ?? .locked
-            if s == .achieved || s == .mastered { acc += 1 }
+            if (states[node.id] ?? .locked) == .proven { acc += 1 }
         }
     }
 
@@ -120,11 +119,15 @@ extension SkillDisplayTree {
         allNodes(in: graph).count
     }
 
-    /// The first `.attempting` node in this display tree, walked in cluster
-    /// order. Used for the "NOW" chip on the landing card.
+    /// The first "ready to start" node in this display tree, walked in cluster
+    /// order — prereqs satisfied but not yet proven. Used for the "NOW" chip on
+    /// the landing card.
     func activeNode(in graph: SkillGraph, states: [String: NodeState]) -> SkillNode? {
         for cluster in clusters {
-            if let n = graph.nodes(in: cluster).first(where: { states[$0.id] == .attempting }) {
+            if let n = graph.nodes(in: cluster).first(where: { node in
+                (states[node.id] ?? .locked) != .proven
+                    && node.prereqsSatisfied(given: states)
+            }) {
                 return n
             }
         }
@@ -137,13 +140,12 @@ extension SkillDisplayTree {
     func farthestAchievement(in graph: SkillGraph, states: [String: NodeState]) -> SkillNode? {
         allNodes(in: graph)
             .filter { node in
-                let s = states[node.id] ?? .locked
-                return s == .achieved || s == .mastered
+                (states[node.id] ?? .locked) == .proven
             }
             .max { lhs, rhs in
                 if lhs.tier != rhs.tier { return lhs.tier < rhs.tier }
-                if lhs.rank.difficultyOrder != rhs.rank.difficultyOrder {
-                    return lhs.rank.difficultyOrder < rhs.rank.difficultyOrder
+                if lhs.placementRank != rhs.placementRank {
+                    return lhs.placementRank < rhs.placementRank
                 }
                 if lhs.isMythic != rhs.isMythic { return !lhs.isMythic && rhs.isMythic }
                 if lhs.isKeystone != rhs.isKeystone { return !lhs.isKeystone && rhs.isKeystone }
@@ -160,8 +162,7 @@ extension SkillDisplayTree {
         for cluster in clusters {
             let keystones = graph.nodes(in: cluster).filter { $0.isKeystone && !$0.isMythic }
             for ks in keystones {
-                let s = states[ks.id] ?? .locked
-                if s != .achieved && s != .mastered {
+                if (states[ks.id] ?? .locked) != .proven {
                     return ks
                 }
                 terminalKeystone = ks

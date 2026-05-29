@@ -100,12 +100,11 @@ final class TrainingCompletionService {
             }
 
             try await services.database.create(sessionLog, collection: "sessionLogs", documentId: sessionLog.id)
+            // Session XP feeds the overall/attribute level + reward display.
+            // The former per-skill 1-5 leveling (awardSessionXP) is gone — a
+            // skill's real progression is its earned RankTier from logged proof.
             if sessionLog.xpAwarded > 0 {
-                let awarded = await SkillProgressService.shared.awardSessionXP(
-                    forNodeId: sessionLog.skillId,
-                    xpAmount: sessionLog.xpAwarded
-                )
-                result.skillXPGained += awarded
+                result.skillXPGained += sessionLog.xpAwarded
             }
             result.savedSessionLogIds.append(sessionLog.id)
         }

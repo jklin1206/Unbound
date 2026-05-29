@@ -379,7 +379,7 @@ struct ClusterDetailView: View {
     }
 
     private func isUnlocked(_ s: NodeState) -> Bool {
-        s == .achieved || s == .mastered
+        s == .proven
     }
 }
 
@@ -406,7 +406,7 @@ private struct ClusterNodeHex: View {
                 Hexagon().fill(fillColor).frame(width: size, height: size)
 
                 // Live progress fill — only while attempting and progress > 0.
-                if state == .attempting, let p = progress, p > 0 {
+                if state == .locked, let p = progress, p > 0 {
                     progressFill(fraction: p)
                         .frame(width: size, height: size)
                 }
@@ -431,7 +431,7 @@ private struct ClusterNodeHex: View {
                 glyph
 
                 // Progress readout label (e.g. "7/10") over-painted for attempting nodes
-                if state == .attempting, let p = progress, p > 0 {
+                if state == .locked, let p = progress, p > 0 {
                     progressLabel(fraction: p)
                         .offset(y: size / 2 - 4)
                 }
@@ -473,15 +473,13 @@ private struct ClusterNodeHex: View {
 
     private var strokeWidth: CGFloat {
         switch state {
-        case .locked:     return node.isMythic ? 1.5 : 1
-        case .attempting: return 1.5
-        case .achieved:   return 1.5
-        case .mastered:   return 2
+        case .locked: return node.isMythic ? 1.5 : 1
+        case .proven: return 1.5
         }
     }
 
     private var outerRingColor: Color {
-        state == .mastered ? skin.impactColor : skin.primaryColor
+        skin.primaryColor
     }
 
     private var glowColor: Color {
@@ -500,12 +498,8 @@ private struct ClusterNodeHex: View {
             Image(systemName: "lock.fill")
                 .font(.system(size: fontSize - 4, weight: .semibold))
                 .foregroundStyle(Color.unbound.textTertiary)
-        case .attempting:
-            assetOrSymbol(symbolName: node.glyph, fontSize: fontSize, tint: skin.decalColor)
-        case .achieved:
+        case .proven:
             assetOrSymbol(symbolName: "checkmark", fontSize: fontSize, tint: skin.decalColor)
-        case .mastered:
-            assetOrSymbol(symbolName: "crown.fill", fontSize: fontSize, tint: skin.impactDecalColor)
         }
     }
 

@@ -108,8 +108,7 @@ struct SkillGraphView: View {
             ClusterCardView(
                 tree: tree,
                 graph: graph,
-                nodeStates: nodeStates,
-                skillProgress: skillProgress
+                nodeStates: nodeStates
             )
         }
         .buttonStyle(CardPressStyle())

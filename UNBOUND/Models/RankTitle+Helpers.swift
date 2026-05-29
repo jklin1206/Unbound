@@ -92,44 +92,4 @@ extension RankTier {
         default: return "reward_ornament_tick_bone"
         }
     }
-
-    /// Derives the user's currently-earned tier on a given skill from the
-    /// existing per-node state model.
-    ///
-    /// Mapping rules:
-    /// - locked / attempting → Initiate
-    /// - achieved at currentLevel L (1-4) → Novice/Apprentice/Forged/Veteran
-    /// - achieved at currentLevel 5      → Master
-    /// - mastered: caps boosted by intrinsic skill difficulty
-    static func derived(
-        state: NodeState,
-        currentLevel: Int,
-        skillRank: SkillRank
-    ) -> RankTier {
-        if state == .locked || state == .attempting {
-            return .initiate
-        }
-
-        let baseAchieved: RankTier = {
-            switch currentLevel {
-            case ..<2: return .novice
-            case 2:    return .apprentice
-            case 3:    return .forged
-            case 4:    return .veteran
-            default:   return .master
-            }
-        }()
-
-        if state == .achieved {
-            return baseAchieved
-        }
-
-        // mastered — bump by intrinsic difficulty
-        switch skillRank {
-        case .e, .d: return .master
-        case .c, .b: return .vessel
-        case .a:     return .unbound
-        case .s:     return .ascendant
-        }
-    }
 }

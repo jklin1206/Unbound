@@ -1406,13 +1406,10 @@ enum DevBuildBootstrapper {
         let now = Date()
         let graph = SkillGraph.shared
         let states = graph.nodes.reduce(into: [String: NodeState]()) { result, node in
-            result[node.id] = .mastered
+            result[node.id] = .proven
         }
         let dates = graph.nodes.reduce(into: [String: Date]()) { result, node in
             result[node.id] = now
-        }
-        let progress = graph.nodes.reduce(into: [String: SkillProgress]()) { result, node in
-            result[node.id] = SkillProgress(currentLevel: 5, xpInLevel: 0, xpToNextLevel: 0)
         }
         let activeGoals = Set(graph.nodes.filter { !$0.isMythic }.prefix(6).map(\.id))
         let schedule: [DayCategory?] = [.push, .pull, .legs, .core, .skills, .conditioning, .rest]
@@ -1420,11 +1417,8 @@ enum DevBuildBootstrapper {
         let payload = UserSkillProgress(
             userId: userId,
             nodeStates: states,
-            achievedAt: dates,
-            masteredAt: dates,
+            provenAt: dates,
             updatedAt: now,
-            skillProgress: progress,
-            lastTrainedAt: [:],
             bookmarkedNodeIds: activeGoals,
             activeGoalIds: activeGoals,
             weeklySchedule: schedule,
@@ -2359,10 +2353,8 @@ enum DevBuildBootstrapper {
             documentId: userId
         )) ?? .empty(userId: userId)
 
-        payload.skillProgress[skillId] = .starter
-        payload.nodeStates[skillId] = .attempting
-        payload.lastTrainedAt.removeValue(forKey: skillId)
-        payload.masteredAt.removeValue(forKey: skillId)
+        payload.nodeStates[skillId] = .locked
+        payload.provenAt.removeValue(forKey: skillId)
         payload.updatedAt = Date()
 
         try? await DatabaseService.shared.create(payload, collection: "skillProgress", documentId: userId)
@@ -2398,7 +2390,6 @@ enum DevBuildBootstrapper {
         payload.activeGoalIds = [skillId]
         payload.bookmarkedNodeIds.insert(skillId)
         payload.weeklySchedule = schedule
-        payload.lastTrainedAt.removeValue(forKey: skillId)
         payload.updatedAt = Date()
 
         try? await DatabaseService.shared.create(payload, collection: "skillProgress", documentId: userId)

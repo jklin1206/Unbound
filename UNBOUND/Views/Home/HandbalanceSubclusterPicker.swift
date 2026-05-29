@@ -74,8 +74,7 @@ struct HandbalanceSubclusterPicker: View {
         let isUnlocked = graph.isClusterUnlocked(cluster, nodeStates: nodeStates)
         let clusterNodes = graph.nodes(in: cluster)
         let achieved = clusterNodes.filter {
-            let s = nodeStates[$0.id] ?? .locked
-            return s == .achieved || s == .mastered
+            (nodeStates[$0.id] ?? .locked) == .proven
         }.count
         let total = clusterNodes.count
 

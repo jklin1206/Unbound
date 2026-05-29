@@ -468,11 +468,8 @@ private extension UserSkillProgress {
         UserSkillProgress(
             userId: userId,
             nodeStates: nodeStates,
-            achievedAt: achievedAt,
-            masteredAt: masteredAt,
+            provenAt: provenAt,
             updatedAt: updatedAt,
-            skillProgress: skillProgress,
-            lastTrainedAt: lastTrainedAt,
             bookmarkedNodeIds: bookmarkedNodeIds,
             activeGoalIds: activeGoalIds,
             weeklySchedule: weeklySchedule,
@@ -489,17 +486,10 @@ private extension UserSkillProgress {
         return UserSkillProgress(
             userId: targetUserId,
             nodeStates: legacy.nodeStates.merging(target.nodeStates) { _, target in target },
-            achievedAt: legacy.achievedAt.merging(target.achievedAt) { legacy, target in
-                legacy < target ? legacy : target
-            },
-            masteredAt: legacy.masteredAt.merging(target.masteredAt) { legacy, target in
+            provenAt: legacy.provenAt.merging(target.provenAt) { legacy, target in
                 legacy < target ? legacy : target
             },
             updatedAt: legacy.updatedAt > target.updatedAt ? legacy.updatedAt : target.updatedAt,
-            skillProgress: legacy.skillProgress.merging(target.skillProgress) { _, target in target },
-            lastTrainedAt: legacy.lastTrainedAt.merging(target.lastTrainedAt) { legacy, target in
-                legacy > target ? legacy : target
-            },
             bookmarkedNodeIds: legacy.bookmarkedNodeIds.union(target.bookmarkedNodeIds),
             activeGoalIds: legacy.activeGoalIds.union(target.activeGoalIds),
             weeklySchedule: targetWasEmpty
@@ -511,10 +501,7 @@ private extension UserSkillProgress {
 
     var isMigrationEmpty: Bool {
         nodeStates.isEmpty
-            && achievedAt.isEmpty
-            && masteredAt.isEmpty
-            && skillProgress.isEmpty
-            && lastTrainedAt.isEmpty
+            && provenAt.isEmpty
             && bookmarkedNodeIds.isEmpty
             && activeGoalIds.isEmpty
             && weeklySchedule.allSatisfy { $0 == nil }
@@ -524,11 +511,8 @@ private extension UserSkillProgress {
     func isMigrationEquivalent(to other: UserSkillProgress) -> Bool {
         userId == other.userId
             && nodeStates == other.nodeStates
-            && achievedAt == other.achievedAt
-            && masteredAt == other.masteredAt
+            && provenAt == other.provenAt
             && updatedAt == other.updatedAt
-            && skillProgress == other.skillProgress
-            && lastTrainedAt == other.lastTrainedAt
             && bookmarkedNodeIds == other.bookmarkedNodeIds
             && activeGoalIds == other.activeGoalIds
             && weeklySchedule == other.weeklySchedule

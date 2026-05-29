@@ -11,21 +11,8 @@ import Foundation
 struct UserSkillProgress: Codable {
     let userId: String
     var nodeStates: [String: NodeState]              // nodeId → state
-    var achievedAt: [String: Date]                   // nodeId → first-achieved timestamp
-    var masteredAt: [String: Date]                   // nodeId → first-mastered timestamp
+    var provenAt: [String: Date]                     // nodeId → first-proven timestamp
     var updatedAt: Date
-
-    // MARK: - Phase 1a addition (skill-tree redesign)
-    //
-    // Peer dictionary to `nodeStates`, keyed by the same nodeId, carrying
-    // the 1-5 level + XP ladder progression. Mirrored in persistence so
-    // the struct survives a round-trip without tripping Codable. Empty in
-    // Phase 1a — Phase 1b wires the XP accrual logic that populates it.
-    var skillProgress: [String: SkillProgress] = [:]
-
-    /// nodeId → last `awardSessionXP` timestamp. Used to enforce the
-    /// daily cap on the Train CTA so XP can't be grinded by tapping.
-    var lastTrainedAt: [String: Date] = [:]
 
     /// Set of node ids the user has bookmarked from the detail view.
     /// Persists across app launches so the bookmark icon survives restart.
@@ -50,11 +37,8 @@ struct UserSkillProgress: Codable {
         UserSkillProgress(
             userId: userId,
             nodeStates: [:],
-            achievedAt: [:],
-            masteredAt: [:],
+            provenAt: [:],
             updatedAt: Date(),
-            skillProgress: [:],
-            lastTrainedAt: [:],
             bookmarkedNodeIds: [],
             activeGoalIds: [],
             weeklySchedule: Array(repeating: nil, count: 7),
@@ -65,5 +49,78 @@ struct UserSkillProgress: Codable {
     /// State for a given node — falls back to .locked if not yet computed.
     func state(for nodeId: String) -> NodeState {
         nodeStates[nodeId] ?? .locked
+    }
+
+    // MARK: - Tolerant decoding (skill-tree redesign)
+    //
+    // Pre-redesign blobs split first-proof timestamps across `achievedAt` and
+    // `masteredAt`, and carried the now-deleted `skillProgress` (fake LVL) and
+    // `lastTrainedAt` dicts. Merge the two timestamp maps into `provenAt`
+    // (earliest wins) and ignore the dropped keys, so existing local saves
+    // decode without a migration.
+    enum CodingKeys: String, CodingKey {
+        case userId, nodeStates, provenAt, updatedAt
+        case bookmarkedNodeIds, activeGoalIds, weeklySchedule, currentWeekPhase
+        // Legacy-only keys, read on decode, never encoded:
+        case achievedAt, masteredAt
+    }
+
+    init(
+        userId: String,
+        nodeStates: [String: NodeState],
+        provenAt: [String: Date],
+        updatedAt: Date,
+        bookmarkedNodeIds: Set<String> = [],
+        activeGoalIds: Set<String> = [],
+        weeklySchedule: [DayCategory?] = Array(repeating: nil, count: 7),
+        currentWeekPhase: WeekPhase = .moderate
+    ) {
+        self.userId = userId
+        self.nodeStates = nodeStates
+        self.provenAt = provenAt
+        self.updatedAt = updatedAt
+        self.bookmarkedNodeIds = bookmarkedNodeIds
+        self.activeGoalIds = activeGoalIds
+        self.weeklySchedule = weeklySchedule
+        self.currentWeekPhase = currentWeekPhase
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        userId = try c.decode(String.self, forKey: .userId)
+        nodeStates = try c.decodeIfPresent([String: NodeState].self, forKey: .nodeStates) ?? [:]
+        updatedAt = try c.decodeIfPresent(Date.self, forKey: .updatedAt) ?? Date()
+
+        // Merge legacy achievedAt + masteredAt into provenAt (earliest wins),
+        // then layer any already-migrated provenAt on top.
+        var merged: [String: Date] = [:]
+        let sources = [
+            try c.decodeIfPresent([String: Date].self, forKey: .achievedAt) ?? [:],
+            try c.decodeIfPresent([String: Date].self, forKey: .masteredAt) ?? [:],
+            try c.decodeIfPresent([String: Date].self, forKey: .provenAt) ?? [:]
+        ]
+        for map in sources {
+            for (id, date) in map {
+                merged[id] = merged[id].map { min($0, date) } ?? date
+            }
+        }
+        provenAt = merged
+
+        bookmarkedNodeIds = try c.decodeIfPresent(Set<String>.self, forKey: .bookmarkedNodeIds) ?? []
+        activeGoalIds = try c.decodeIfPresent(Set<String>.self, forKey: .activeGoalIds) ?? []
+        weeklySchedule = try c.decodeIfPresent([DayCategory?].self, forKey: .weeklySchedule) ?? Array(repeating: nil, count: 7)
+        currentWeekPhase = try c.decodeIfPresent(WeekPhase.self, forKey: .currentWeekPhase) ?? .moderate
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(userId, forKey: .userId)
+        try c.encode(nodeStates, forKey: .nodeStates)
+        try c.encode(provenAt, forKey: .provenAt)
+        try c.encode(updatedAt, forKey: .updatedAt)
+        try c.encode(bookmarkedNodeIds, forKey: .bookmarkedNodeIds)
+        try c.encode(activeGoalIds, forKey: .activeGoalIds)
+        try c.encode(weeklySchedule, forKey: .weeklySchedule)
+        try c.encode(currentWeekPhase, forKey: .currentWeekPhase)
     }
 }

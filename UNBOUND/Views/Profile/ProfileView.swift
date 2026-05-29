@@ -527,22 +527,25 @@ struct ProfileView: View {
     ) {
         let skillTiers = UserSkillTierStore.shared.load(userId: userId).perSkill
         let nodeStates = SkillProgressService.shared.nodeStates
-        let clearedSkills = SkillGraph.shared.nodes.compactMap { node -> (node: SkillNode, state: NodeState)? in
-            guard let state = nodeStates[node.id], state == .achieved || state == .mastered else { return nil }
-            return (node, state)
+        let clearedSkills = SkillGraph.shared.nodes.compactMap { node -> SkillNode? in
+            guard nodeStates[node.id] == .proven else { return nil }
+            return node
         }
 
         if let bestSkill = clearedSkills.max(by: { lhs, rhs in
-            if lhs.node.rank != rhs.node.rank {
-                return lhs.node.rank.difficultyOrder < rhs.node.rank.difficultyOrder
+            if lhs.placementRank != rhs.placementRank {
+                return lhs.placementRank < rhs.placementRank
             }
-            if lhs.node.tier != rhs.node.tier {
-                return lhs.node.tier < rhs.node.tier
+            if lhs.tier != rhs.tier {
+                return lhs.tier < rhs.tier
             }
-            return Self.masteryOrder(lhs.state) < Self.masteryOrder(rhs.state)
+            // Tie-break by earned tier on the skill.
+            let lt = skillTiers[lhs.id] ?? .initiate
+            let rt = skillTiers[rhs.id] ?? .initiate
+            return lt < rt
         }) {
-            bestSkillName = bestSkill.node.title
-            bestSkillTier = skillTiers[bestSkill.node.id] ?? .initiate
+            bestSkillName = bestSkill.title
+            bestSkillTier = skillTiers[bestSkill.id] ?? .initiate
         } else {
             bestSkillName = "None yet"
             bestSkillTier = .initiate
@@ -620,10 +623,6 @@ struct ProfileView: View {
             exerciseKey: lift,
             sex: sex
         ) ?? .initiate
-    }
-
-    private static func masteryOrder(_ state: NodeState) -> Int {
-        state == .mastered ? 1 : 0
     }
 
     private func rankTitle(for tier: SkillTier) -> RankTitle {

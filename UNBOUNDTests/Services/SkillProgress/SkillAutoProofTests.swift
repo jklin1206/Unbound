@@ -10,7 +10,7 @@ import XCTest
 final class SkillAutoProofTests: XCTestCase {
 
     private func svc() async -> SkillProgressService {
-        let db = SkillProgressXPTests.InMemoryDB()
+        let db = MockDatabaseService()
         let s = SkillProgressService(database: db)
         await s.load(userId: "u")
         return s

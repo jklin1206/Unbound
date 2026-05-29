@@ -78,11 +78,10 @@ struct NodeUnlockShareCard: View {
     private var headline: some View {
         let headlineText: String = {
             if event.node.isMythic { return "MYTHIC ACHIEVED" }
-            if event.newState == .mastered { return "MASTERED" }
             if event.node.isKeystone { return "KEYSTONE UNLOCKED" }
             return "NODE UNLOCKED"
         }()
-        let tone: Color = event.node.isMythic || event.newState == .mastered
+        let tone: Color = event.node.isMythic
             ? Color.unbound.impact
             : Color.unbound.accent
         return Text(headlineText)
@@ -122,7 +121,7 @@ struct NodeUnlockShareCard: View {
                     .strokeBorder(Color.unbound.impact.opacity(0.25), lineWidth: 2)
                     .frame(width: size + 120, height: size + 120)
             }
-            Image(systemName: event.newState == .mastered ? "crown.fill" : event.node.glyph)
+            Image(systemName: event.node.glyph)
                 .font(.system(size: 180, weight: .semibold))
                 .foregroundStyle(Color.unbound.impact)
         }
@@ -228,7 +227,7 @@ enum NodeUnlockShareCardRenderer {
     NodeUnlockShareCard(
         event: NodeUnlockedEvent(
             node: SkillGraph.shared.node(id: "pp.muscle-up")!,
-            newState: .achieved,
+            newState: .proven,
             gainsAwarded: 200
         )
     )
@@ -239,7 +238,7 @@ enum NodeUnlockShareCardRenderer {
     NodeUnlockShareCard(
         event: NodeUnlockedEvent(
             node: SkillGraph.shared.node(id: "pp.one-arm-pullup")!,
-            newState: .achieved,
+            newState: .proven,
             gainsAwarded: 400
         )
     )
