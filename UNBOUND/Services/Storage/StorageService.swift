@@ -62,4 +62,40 @@ final class StorageService: StorageServiceProtocol, @unchecked Sendable {
             logger.log("Scan photo deletion failed: \(error)", level: .error)
         }
     }
+
+    // MARK: - Full photo-root teardown (account deletion)
+    //
+    // Account deletion must leave nothing on disk. `deleteUserPhotos` only
+    // handles the current Supabase UID; a user migrated from a pre-auth local
+    // UUID can also have an *old-UUID* photo directory left behind by the
+    // local→cloud migration. This additive method removes the entire on-disk
+    // photo root for every supplied UID (live + any legacy), skipping any that
+    // don't exist. A failure on one UID is logged but does not block the rest —
+    // best-effort teardown, mirroring `deleteUserPhotos`.
+
+    /// Delete the entire on-disk photo root for each given user id (live and
+    /// any legacy/old UUID). Missing directories are skipped silently.
+    func deleteAllPhotoRoots(userIds: [String]) async throws {
+        Self.deletePhotoRoots(userIds, under: rootURL, fileManager: fm, logger: logger)
+    }
+
+    /// Pure, injectable directory-teardown helper so the behavior is unit
+    /// testable without the shared singleton's Documents-backed root.
+    static func deletePhotoRoots(
+        _ userIds: [String],
+        under root: URL,
+        fileManager fm: FileManager,
+        logger: LoggingService? = nil
+    ) {
+        for userId in Set(userIds) where !userId.isEmpty {
+            let dir = root.appendingPathComponent(userId, isDirectory: true)
+            guard fm.fileExists(atPath: dir.path) else { continue }
+            do {
+                try fm.removeItem(at: dir)
+                logger?.log("Photo root deleted", level: .info, context: ["userId": userId])
+            } catch {
+                logger?.log("Photo root deletion failed: \(error)", level: .error)
+            }
+        }
+    }
 }

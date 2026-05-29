@@ -141,8 +141,16 @@ final class AuthService: NSObject, AuthServiceProtocol, @unchecked Sendable {
             return
         }
 
+        // Capture the live UID and any legacy/local UUID BEFORE sign-out clears
+        // UserDefaults. The server purges the legacy UID's Storage directory;
+        // the client purges its on-disk photo root. Without this, a migrated
+        // user's old-UUID photos would survive account deletion.
+        let liveUserId = currentUserId
+        let legacyUserId = UserDefaults.standard.string(forKey: legacyLocalUserIdKey)
+
         struct DeleteAccountBody: Encodable {
             let confirm: Bool
+            let legacy_user_id: String?
         }
         struct DeleteAccountResponse: Decodable {
             let deleted: Bool
@@ -152,7 +160,12 @@ final class AuthService: NSObject, AuthServiceProtocol, @unchecked Sendable {
             let response: DeleteAccountResponse = try await UnboundSupabase.client.functions
                 .invoke(
                     "delete_account",
-                    options: FunctionInvokeOptions(body: DeleteAccountBody(confirm: true))
+                    options: FunctionInvokeOptions(
+                        body: DeleteAccountBody(
+                            confirm: true,
+                            legacy_user_id: (legacyUserId != liveUserId) ? legacyUserId : nil
+                        )
+                    )
                 )
             guard response.deleted else {
                 throw AppError.authAccountDeletionFailed(
@@ -166,6 +179,14 @@ final class AuthService: NSObject, AuthServiceProtocol, @unchecked Sendable {
         } catch {
             logger.log("Delete account failed: \(error)", level: .error)
             throw AppError.authAccountDeletionFailed(underlying: error)
+        }
+
+        // Tear down on-disk photo roots for the live UID and any legacy UID.
+        // Best-effort: a local-FS failure must not block the (already
+        // server-confirmed) deletion or the subsequent sign-out.
+        let photoRootIds = [liveUserId, legacyUserId].compactMap { $0 }
+        if !photoRootIds.isEmpty {
+            try? await StorageService.shared.deleteAllPhotoRoots(userIds: photoRootIds)
         }
 
         try signOut()
