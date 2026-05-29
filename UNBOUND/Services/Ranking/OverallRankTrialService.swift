@@ -1844,8 +1844,11 @@ final class TrialReadinessService {
         )
 
         if definition.topAttributeCount > 0 {
+            // Gate on PEAK, not current: a rank trial unlocks on proven ceiling,
+            // so taking a break (which drifts `current` down — see AttributeDrift
+            // and the honest-staleness signal) never re-locks an earned trial.
             let qualifiedAttributes = AttributeKey.allCases
-                .map { input.attributeProfile.value(for: $0).current }
+                .map { input.attributeProfile.value(for: $0).peak }
                 .filter { $0 >= definition.topAttributeFloor }
                 .count
             lines.append(
