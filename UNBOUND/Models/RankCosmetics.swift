@@ -31,13 +31,13 @@ enum RankCosmetics {
     /// Returns the frame asset name (in Assets.xcassets/Cosmetics) for
     /// the given tier, or nil if no frame is shipped for it.
     static func avatarFrameAsset(for tier: RankTitle) -> String? {
-        let name = "avatar_frame_\(tier.rawValue)"
+        let name = "avatar_frame_\(tier.token)"
         return UIImage(named: name) != nil ? name : nil
     }
 
     /// Returns the profile background asset name, or nil if not shipped.
     static func profileBackgroundAsset(for tier: RankTitle) -> String? {
-        let name = "profile_bg_\(tier.rawValue)"
+        let name = "profile_bg_\(tier.token)"
         return UIImage(named: name) != nil ? name : nil
     }
 
@@ -92,17 +92,18 @@ enum RankCosmetics {
     private static func equippedTier(keyPrefix: String, userId: String, currentTier: SkillTier) -> RankTitle {
         let unlocked = unlockedTiers(userId: userId, currentTier: currentTier)
         let fallback = unlocked.last ?? currentTier
-        guard let raw = UserDefaults.standard.string(forKey: keyPrefix + userId),
-              let storedTitle = RankTitle.storedRawValue(raw),
-              let tier = SkillTier.allCases.first(where: { $0.rankTitle == storedTitle }),
-              unlocked.contains(tier)
-        else { return fallback.rankTitle }
-        return tier.rankTitle
+        guard let raw = UserDefaults.standard.string(forKey: keyPrefix + userId)
+        else { return fallback }
+        let tier = RankTier.fromToken(raw)
+        guard unlocked.contains(tier) else { return fallback }
+        return tier
     }
 
     private static func setEquippedTier(_ tier: SkillTier, keyPrefix: String, userId: String, currentTier: SkillTier) {
         guard unlockedTiers(userId: userId, currentTier: currentTier).contains(tier) else { return }
-        UserDefaults.standard.set(tier.rankTitle.rawValue, forKey: keyPrefix + userId)
+        // Persist the case-name token (the legacy on-disk format) so old blobs
+        // round-trip; reads go through RankTier.fromToken.
+        UserDefaults.standard.set(tier.token, forKey: keyPrefix + userId)
     }
 }
 

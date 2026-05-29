@@ -658,7 +658,7 @@ private struct DevPlayerToolsView: View {
                 Button {
                     let target = selectedRankTrialTarget
                     run(successMessage: "\(target.displayName) rank trial is ready for Dev Player.") {
-                        await DevBuildBootstrapper.seedOverallRankTrialReadyProof(targetRankRawValue: target.rawValue)
+                        await DevBuildBootstrapper.seedOverallRankTrialReadyProof(targetRankRawValue: target.token)
                     }
                 } label: {
                     Label("Make Rank Trial Ready", systemImage: "flag.checkered")
@@ -1273,7 +1273,7 @@ enum DevBuildBootstrapper {
             return targetRank
         }
         return ProcessInfo.processInfo.arguments.contains(rankTrialReadyProofArg)
-            ? RankTitle.novice.rawValue
+            ? RankTitle.novice.token
             : nil
     }
 
@@ -1697,10 +1697,10 @@ enum DevBuildBootstrapper {
         }
     }
 
-    static func seedOverallRankTrialReadyProof(targetRankRawValue: String = RankTitle.novice.rawValue) async {
+    static func seedOverallRankTrialReadyProof(targetRankRawValue: String = RankTitle.novice.token) async {
         AuthService.shared.activateDevUser(id: userId)
         let now = Date()
-        let targetRank = RankTitle.storedRawValue(targetRankRawValue) ?? .novice
+        let targetRank = RankTier.fromToken(targetRankRawValue)
         let definition = OverallRankTrialDefinitions.all.first { $0.targetRank == targetRank }
             ?? OverallRankTrialDefinitions.foundationProof
         OverallRankTrialStore.shared.save(

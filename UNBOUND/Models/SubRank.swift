@@ -50,19 +50,9 @@ enum SubRank: String, Codable, CaseIterable, Sendable, Comparable {
     /// letter-grade (e.g. Build hex phase 8+ UI).
     var rankTitleName: String { title.displayName }
 
-    var title: RankTitle {
-        switch ordinal {
-        case 0...1: return .initiate
-        case 2...3: return .novice
-        case 4...5: return .apprentice
-        case 6...7: return .forged
-        case 8...9: return .veteran
-        case 10...11: return .master
-        case 12...13: return .vessel
-        case 14...15: return .unbound
-        default: return .ascendant
-        }
-    }
+    /// Nine-tier title band. Single source of the SubRank→RankTier banding —
+    /// see `SubRank.asSkillTier` in SkillTier.swift.
+    var title: RankTier { asSkillTier }
 
     /// Letter portion only ("E", "B", "S"). Used for coarse UI / color bucketing.
     var letter: String {
@@ -122,69 +112,8 @@ enum SubRank: String, Codable, CaseIterable, Sendable, Comparable {
     }
 }
 
-enum RankTitle: String, Codable, CaseIterable, Sendable {
-    case initiate
-    case novice
-    case apprentice
-    case forged
-    case veteran
-    case master
-    case vessel
-    case unbound
-    case ascendant
-
-    var displayName: String {
-        switch self {
-        case .initiate: return "Initiate"
-        case .novice: return "Novice"
-        case .apprentice: return "Apprentice"
-        case .forged: return "Forged"
-        case .veteran: return "Veteran"
-        case .master: return "Master"
-        case .vessel: return "Vessel"
-        case .unbound: return "Unbound"
-        case .ascendant: return "Ascendant"
-        }
-    }
-
-    var assetName: String { "rank_title_\(rawValue)" }
-
-    static func storedRawValue(_ rawValue: String) -> RankTitle? {
-        if rawValue == "honed" {
-            return .master
-        }
-        return RankTitle(rawValue: rawValue)
-    }
-
-    init(from decoder: Decoder) throws {
-        let container = try decoder.singleValueContainer()
-        let rawValue = try container.decode(String.self)
-        guard let title = RankTitle.storedRawValue(rawValue) else {
-            throw DecodingError.dataCorruptedError(
-                in: container,
-                debugDescription: "Unknown rank title: \(rawValue)"
-            )
-        }
-        self = title
-    }
-
-    func encode(to encoder: Encoder) throws {
-        var container = encoder.singleValueContainer()
-        try container.encode(rawValue)
-    }
-
-    static func legacyLetterFallback(_ letter: String) -> RankTitle {
-        switch letter.uppercased().prefix(1) {
-        case "E": return .initiate
-        case "D": return .apprentice
-        case "C": return .veteran
-        case "B": return .master
-        case "A": return .unbound
-        case "S": return .ascendant
-        default: return .initiate
-        }
-    }
-}
+// `RankTitle` is now a typealias for `RankTier` (see SkillTier.swift) — the two
+// former nine-name ladders were merged in the rank-vocabulary consolidation.
 
 // MARK: - Rank-up notification payload
 

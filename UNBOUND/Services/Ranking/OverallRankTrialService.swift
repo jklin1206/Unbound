@@ -2136,7 +2136,7 @@ final class OverallRankTrialRunner {
                 name: .overallRankTrialCompleted,
                 object: record.attempt,
                 userInfo: [
-                    "targetRank": definition.targetRank.rawValue,
+                    "targetRank": definition.targetRank.token,
                     "definitionId": definition.id
                 ]
             )

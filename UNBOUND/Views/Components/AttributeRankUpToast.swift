@@ -58,7 +58,7 @@ struct AttributeRankUpToast: ViewModifier {
     @ViewBuilder
     private func toastView(for event: AttributeRankUpEvent) -> some View {
         HStack(spacing: 10) {
-            Image("rank_title_\(event.toTitle.rawValue)")
+            Image(event.toTitle.assetName)
                 .resizable()
                 .scaledToFit()
                 .frame(width: 32, height: 32)

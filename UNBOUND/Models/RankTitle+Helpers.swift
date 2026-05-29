@@ -1,46 +1,14 @@
 import Foundation
 import SwiftUI
 
-// MARK: - RankTitle helpers
+// MARK: - RankTier visual + derivation helpers
 //
-// Adds the metadata the per-skill rank system needs on top of the
-// existing 9-case `RankTitle` enum. Kept separate from the canonical
-// declaration in `SubRank.swift` so the strength-standards machinery
-// stays thin.
+// Color, ornament, and derivation metadata for the nine UNBOUND tiers. The
+// core ladder (cases, displayName, token, ordinal, next, Codable) lives in
+// SkillTier.swift; this file adds the SwiftUI-flavored surface. Kept separate
+// so the strength-standards machinery in SubRank.swift stays thin.
 
-extension RankTitle {
-    /// 1-9 ordinal — the user-facing tier number, matching the
-    /// Initiate → Ascendant ladder.
-    var ordinal: Int {
-        switch self {
-        case .initiate:   return 1
-        case .novice:     return 2
-        case .apprentice: return 3
-        case .forged:     return 4
-        case .veteran:    return 5
-        case .master:      return 6
-        case .vessel:     return 7
-        case .unbound:    return 8
-        case .ascendant:  return 9
-        }
-    }
-
-    /// "Named tiers" get the brand-flavored treatment — distinct color,
-    /// rank-up cinematic candidate, share-card eligible. The bottom four
-    /// stay quiet on purpose so the named-tier crossing feels earned.
-    var isNamedTier: Bool {
-        ordinal >= 5
-    }
-
-    /// True for the three crown tiers — Vessel/Unbound/Ascendant.
-    /// Reserved for the full chain-shatter cinematic.
-    var deservesCinematic: Bool {
-        switch self {
-        case .vessel, .unbound, .ascendant: return true
-        default: return false
-        }
-    }
-
+extension RankTier {
     /// Canonical visual tint for the nine UNBOUND title tiers. These are
     /// sampled to match the shipped `rank_title_*` badge art, then used by
     /// profile glow, avatar frames, chips, and rank-up moments.
@@ -75,8 +43,6 @@ extension RankTitle {
     }
 
     /// Foreground-safe companion color for small text/icons on dark UI.
-    /// The base reward tint stays badge-accurate for frames and glows, while
-    /// this keeps labels from dipping below readable contrast.
     var rewardTextTint: Color {
         switch self {
         case .initiate:
@@ -128,44 +94,24 @@ extension RankTitle {
         }
     }
 
-    /// Next tier up, or nil if already at Ascendant.
-    var next: RankTitle? {
-        switch self {
-        case .initiate:   return .novice
-        case .novice:     return .apprentice
-        case .apprentice: return .forged
-        case .forged:     return .veteran
-        case .veteran:    return .master
-        case .master:      return .vessel
-        case .vessel:     return .unbound
-        case .unbound:    return .ascendant
-        case .ascendant:  return nil
-        }
-    }
-
     /// Derives the user's currently-earned tier on a given skill from the
-    /// existing per-node state model. Bridge between the legacy 1-5 level
-    /// + intrinsic difficulty buckets and the 9-tier ladder shown to the user.
+    /// existing per-node state model.
     ///
     /// Mapping rules:
     /// - locked / attempting → Initiate
     /// - achieved at currentLevel L (1-4) → Novice/Apprentice/Forged/Veteran
     /// - achieved at currentLevel 5      → Master
     /// - mastered: caps boosted by intrinsic skill difficulty
-    ///   - lowest buckets  → Master
-    ///   - middle buckets  → Vessel
-    ///   - high bucket     → Unbound
-    ///   - highest bucket  → Ascendant
     static func derived(
         state: NodeState,
         currentLevel: Int,
         skillRank: SkillRank
-    ) -> RankTitle {
+    ) -> RankTier {
         if state == .locked || state == .attempting {
             return .initiate
         }
 
-        let baseAchieved: RankTitle = {
+        let baseAchieved: RankTier = {
             switch currentLevel {
             case ..<2: return .novice
             case 2:    return .apprentice
@@ -186,33 +132,5 @@ extension RankTitle {
         case .a:     return .unbound
         case .s:     return .ascendant
         }
-    }
-}
-
-extension SkillTier {
-    var rankTitle: RankTitle {
-        switch self {
-        case .initiate:   return .initiate
-        case .novice:     return .novice
-        case .apprentice: return .apprentice
-        case .forged:     return .forged
-        case .veteran:    return .veteran
-        case .master:      return .master
-        case .vessel:     return .vessel
-        case .unbound:    return .unbound
-        case .ascendant:  return .ascendant
-        }
-    }
-
-    var rewardTint: Color {
-        rankTitle.rewardTint
-    }
-
-    var rewardGlowColors: [Color] {
-        rankTitle.rewardGlowColors
-    }
-
-    var rewardTextTint: Color {
-        rankTitle.rewardTextTint
     }
 }

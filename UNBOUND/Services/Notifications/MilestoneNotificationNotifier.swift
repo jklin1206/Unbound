@@ -122,7 +122,7 @@ struct MilestoneNotificationPlanner {
 
         return genericDescriptor(
             kind: "rank",
-            subject: "\(event.exerciseKey)-\(event.toRank.title.rawValue)",
+            subject: "\(event.exerciseKey)-\(event.toRank.title.token)",
             title: "\(event.displayName) ranked up",
             body: "\(event.fromRank.title.displayName) -> \(event.toRank.title.displayName)"
         )
@@ -195,7 +195,7 @@ struct MilestoneNotificationPlanner {
 
         return genericDescriptor(
             kind: "attribute",
-            subject: "\(event.axis.rawValue)-\(event.toTitle.rawValue)",
+            subject: "\(event.axis.rawValue)-\(event.toTitle.token)",
             title: "\(event.axis.displayName) advanced",
             body: "\(event.fromTitle.displayName) -> \(event.toTitle.displayName)"
         )
