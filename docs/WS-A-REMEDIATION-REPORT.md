@@ -64,12 +64,24 @@ All three branched off a **clean `main`** (after committing the 15k-line in-prog
 ### One step that remains for you — only when you connect RevenueCat
 - **RevenueCat dashboard:** set Webhook URL → `https://xwoemvkzrnnsvtupxctu.supabase.co/functions/v1/revenuecat_webhook`, header `Authorization: Bearer <REVENUECAT_WEBHOOK_SECRET>`. (The secret value was provided in chat; it lives in Supabase secrets, not committed to the repo.) Until this is set, `is_pro` stays false for everyone and premium Edge calls return 403 — which is the correct fail-closed default pre-launch.
 
-## Still LEFT in Category A (deliberately NOT parallelized)
+## #3 + #5 — done solo (sequential, post-parallel)
 
-These two rewrite `DatabaseService` core, which every other fix calls — running them in parallel would conflict with everything. **Do them solo, sequentially, in this order:**
+These two rewrite `DatabaseService`/sync core, so they were done alone, not in the parallel fan-out.
 
-- **#3 DB write race (lost updates)** — make `DatabaseService` an actor / add locking. Proof: 100 parallel updates to one doc → 0 lost writes.
-- **#5 Sync last-write-wins** — `updated_at`/version merge on pull. Proof: 2 devices edit different fields offline → merged doc keeps both. (Best done after #3.)
+- **#3 DB write race** ✅ — `DatabaseService` `final class @unchecked Sendable` → `actor`. Zero call-site changes (protocol already async). Proof: `DatabaseServiceConcurrencyTests` — 100 concurrent updates to one doc; **red state 17/100 survived, green state 100/100**. Commit `eee4a28`.
+- **#5 Sync last-write-wins** ✅ — first built client-side field merge (`7b5b5b5`), then a **`/council` review flagged it as over-engineered AND not race-correct** (client read-merge-write still LWW under true concurrency + extra round-trip). Refactored to the correct fix: a **server-side atomic merge RPC** `sync_merge_row(table, full jsonb, changed text[])` using `INSERT … ON CONFLICT (id) DO UPDATE SET <changed cols>` under the Postgres row lock (`2ea5047`), with an `auth.uid()` ownership guard (`662a665`), and an insert-path fix so client-omitted defaulted columns keep their `DEFAULT` (`40c5806`). Kept the cheap correct pieces (`DocumentMerger`, `changedFields`, merge-on-pull); deleted the racy client read-merge-write.
+  - **Client proof:** 24 sync/db tests green (incl. red-state confirmation).
+  - **Live proof (real DB, rolled back):** two column-disjoint merges to one row → both survive (`status="A"` + `notes="B"`); RPC insert path defaults `updated_at`; ownership guard rejects a cross-user write with `ownership mismatch`.
+  - **Deployed:** migrations `20260528000002` + `20260528000003` applied to project `xwoemvkzrnnsvtupxctu`.
+
+### Process note
+The `/council` review (3 independent reviewers) + live testing caught two things the unit tests and the implementing agent missed: (1) the client read-merge-write was never race-correct (it only worked for sequential offline-then-sync); (2) the RPC's `jsonb_populate_record` insert nulled out defaulted `NOT NULL` columns, which would have broken every new-row insert in production. Both fixed before this was considered done.
+
+### Remaining follow-ups (out of scope, noted)
+- `changedFields` is top-level only; concurrent edits to sibling keys *inside* one jsonb column still merge at the column granularity (whole-column), not sub-field. Acceptable at current scale.
+- Verify each synced table's client payload includes all `NOT NULL`-without-default columns (insert path needs them). Spot-checked via the live insert path; full per-table audit deferred.
+
+**All of Category A "stop the bleeding" is now complete.**
 
 ## Minor follow-ups flagged by workers (out of scope, not changed)
 
