@@ -142,10 +142,6 @@ final class TrainingCompletionIntegrationGuardrailTests: XCTestCase {
             collection: "training_completion_records",
             documentId: log.id
         )
-        let progress: OverallLevelProgress = try await database.read(
-            collection: "overall_level_progress",
-            documentId: "mock-user-123"
-        )
 
         XCTAssertFalse(first.wasAlreadyCompleted)
         XCTAssertGreaterThan(first.totalMovementAP, 0)
@@ -154,7 +150,20 @@ final class TrainingCompletionIntegrationGuardrailTests: XCTestCase {
         XCTAssertTrue(second.wasAlreadyCompleted)
         XCTAssertEqual(second.savedPerformanceLogId, log.id)
         XCTAssertEqual(second.totalMovementAP, 0)
-        XCTAssertEqual(progress.processedSourceLogIds, [log.id])
+
+        // The legacy path is side-effect-free for progression (WS-B B2 loggers
+        // fix): it renders a preview receipt + writes the dedupe record, but must
+        // NOT persist overall-level progression — that's the canonical complete()
+        // path's job. Double-writing here previously awarded AP twice.
+        do {
+            let _: OverallLevelProgress = try await database.read(
+                collection: "overall_level_progress",
+                documentId: "mock-user-123"
+            )
+            XCTFail("Legacy path must not persist overall_level_progress")
+        } catch {
+            // Expected: no overall-level row written by the legacy path.
+        }
     }
 
     func testLegacyProgressionCompatibleWorkoutHistoryAvoidsDirectSaveCascade() async throws {
