@@ -20,6 +20,7 @@ final class SquadActivityService: SquadActivityServiceProtocol {
     private let backend: SquadActivityBackendProtocol
     private let auth: AuthServiceProtocol
     private let squadService: SquadServiceProtocol
+    private let sessionXP: SessionXPServiceProtocol
     private var observers: [NSObjectProtocol] = []
     private var recordedVowCompletionIds = Set<String>()
 
@@ -28,6 +29,7 @@ final class SquadActivityService: SquadActivityServiceProtocol {
             backend: SquadActivityBackend.shared,
             auth: AuthService.shared,
             squadService: SquadService.shared,
+            sessionXP: SessionXPService.shared,
             observesNotifications: !Self.isRunningUnderXCTest
         )
     }
@@ -36,11 +38,13 @@ final class SquadActivityService: SquadActivityServiceProtocol {
         backend: SquadActivityBackendProtocol,
         auth: AuthServiceProtocol,
         squadService: SquadServiceProtocol,
+        sessionXP: SessionXPServiceProtocol = SessionXPService.shared,
         observesNotifications: Bool = true
     ) {
         self.backend = backend
         self.auth = auth
         self.squadService = squadService
+        self.sessionXP = sessionXP
         if observesNotifications {
             observeTrialsNotifications()
         }
@@ -71,6 +75,39 @@ final class SquadActivityService: SquadActivityServiceProtocol {
     func fetchRecent(userId: String) async throws -> [SquadActivityEntry] {
         guard let squad = squadService.state(userId: userId).currentSquad else { return [] }
         return try await backend.fetchRecent(squadId: squad.id, limit: 50)
+    }
+
+    /// Sink for a detected linked session (a squadmate trained inside the user's
+    /// overlap window). Applies the +20% LV bonus through `LinkedSessionEvaluator`
+    /// and posts `.linkedSessionDetected` so `LinkedSessionToast` slides up.
+    ///
+    /// Trigger sources:
+    ///   - The `detect_linked_sessions` Edge Function inserts a `squad_activity`
+    ///     row of kind `linkedSession` and (Phase 10) pushes APNs to participants.
+    ///   - The push handler / activity-feed hydration calls this method with the
+    ///     base session XP from the user's just-recorded session.
+    ///
+    /// `baseSessionXP` is the **pre-affinity** session XP. The evaluator subtracts
+    /// any affinity bonus already applied this session so the net stays +20%.
+    func handleLinkedSessionDetected(
+        userId: String,
+        participantDisplayNames: [String],
+        baseSessionXP: Int
+    ) async {
+        await LinkedSessionEvaluator.applyLinkedXPBonus(
+            userId: userId,
+            sessionXPDelta: baseSessionXP,
+            service: sessionXP
+        )
+        let xpBonus = Int(Double(baseSessionXP) * 0.20)
+        NotificationCenter.default.post(
+            name: .linkedSessionDetected,
+            object: nil,
+            userInfo: [
+                "participantDisplayNames": participantDisplayNames,
+                "xpBonus": xpBonus
+            ]
+        )
     }
 
     // MARK: - Private
