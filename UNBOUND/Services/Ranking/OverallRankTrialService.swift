@@ -99,6 +99,26 @@ struct OverallRankTrialSkillStandard: Codable, Equatable, Sendable {
     let minimumTier: SkillTier
 }
 
+/// Path-aware "any N of" skill gate. Unlike `skillStandards` (every entry is a
+/// hard AND requirement), a group is satisfied when ANY `minimumCount` of its
+/// options are met — so a lifter and a calisthenics athlete each have a route
+/// to the same rank instead of being blocked by the other path's skills.
+struct OverallRankTrialSkillGroup: Codable, Equatable, Sendable {
+    let id: String
+    let label: String
+    let minimumCount: Int
+    let options: [OverallRankTrialSkillStandard]
+
+    /// How many of the options the user currently meets.
+    func metCount(skillTiers: [String: SkillTier]) -> Int {
+        options.filter { (skillTiers[$0.skillId] ?? .initiate) >= $0.minimumTier }.count
+    }
+
+    func isMet(skillTiers: [String: SkillTier]) -> Bool {
+        metCount(skillTiers: skillTiers) >= minimumCount
+    }
+}
+
 struct OverallRankTrialPerformanceStandard: Codable, Equatable, Sendable {
     let movementId: String
     let displayName: String
@@ -298,6 +318,7 @@ struct OverallRankTrialDefinition: Identifiable, Codable, Equatable, Sendable {
     let requiredEquipment: Set<MovementEquipment>
     let movementStandards: [OverallRankTrialMovementStandard]
     let skillStandards: [OverallRankTrialSkillStandard]
+    let skillPathGroups: [OverallRankTrialSkillGroup]
     let performanceStandards: [OverallRankTrialPerformanceStandard]
     let loadoutVariants: [TrialLoadoutVariant]
     let legacyIds: Set<String>
@@ -315,6 +336,7 @@ struct OverallRankTrialDefinition: Identifiable, Codable, Equatable, Sendable {
         requiredEquipment: Set<MovementEquipment>,
         movementStandards: [OverallRankTrialMovementStandard],
         skillStandards: [OverallRankTrialSkillStandard],
+        skillPathGroups: [OverallRankTrialSkillGroup] = [],
         performanceStandards: [OverallRankTrialPerformanceStandard],
         loadoutVariants: [TrialLoadoutVariant] = [],
         legacyIds: Set<String> = []
@@ -331,9 +353,38 @@ struct OverallRankTrialDefinition: Identifiable, Codable, Equatable, Sendable {
         self.requiredEquipment = requiredEquipment
         self.movementStandards = movementStandards
         self.skillStandards = skillStandards
+        self.skillPathGroups = skillPathGroups
         self.performanceStandards = performanceStandards
         self.loadoutVariants = loadoutVariants
         self.legacyIds = legacyIds
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case id, targetRank, displayName, subtitle, estimatedMinutes, format
+        case minOverallLevel, topAttributeCount, topAttributeFloor, requiredEquipment
+        case movementStandards, skillStandards, skillPathGroups, performanceStandards
+        case loadoutVariants, legacyIds
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        targetRank = try c.decode(RankTitle.self, forKey: .targetRank)
+        displayName = try c.decode(String.self, forKey: .displayName)
+        subtitle = try c.decode(String.self, forKey: .subtitle)
+        estimatedMinutes = try c.decode(Int.self, forKey: .estimatedMinutes)
+        format = try c.decode(RankTrialFormat.self, forKey: .format)
+        minOverallLevel = try c.decode(Int.self, forKey: .minOverallLevel)
+        topAttributeCount = try c.decode(Int.self, forKey: .topAttributeCount)
+        topAttributeFloor = try c.decode(Double.self, forKey: .topAttributeFloor)
+        requiredEquipment = try c.decode(Set<MovementEquipment>.self, forKey: .requiredEquipment)
+        movementStandards = try c.decode([OverallRankTrialMovementStandard].self, forKey: .movementStandards)
+        skillStandards = try c.decode([OverallRankTrialSkillStandard].self, forKey: .skillStandards)
+        // Additive + backward-compatible: older persisted definitions lack this.
+        skillPathGroups = try c.decodeIfPresent([OverallRankTrialSkillGroup].self, forKey: .skillPathGroups) ?? []
+        performanceStandards = try c.decode([OverallRankTrialPerformanceStandard].self, forKey: .performanceStandards)
+        loadoutVariants = try c.decodeIfPresent([TrialLoadoutVariant].self, forKey: .loadoutVariants) ?? []
+        legacyIds = try c.decodeIfPresent(Set<String>.self, forKey: .legacyIds) ?? []
     }
 
     func makeDraft(
@@ -592,6 +643,7 @@ enum OverallRankTrialDefinitions {
         topAttributeFloor: Double,
         movementStandards: [OverallRankTrialMovementStandard],
         loadoutVariants: [TrialLoadoutVariant],
+        skillPathGroups: [OverallRankTrialSkillGroup] = [],
         legacyIds: Set<String> = []
     ) -> OverallRankTrialDefinition {
         let defaultVariant = loadoutVariants.first { $0.loadout == .homeKit } ?? loadoutVariants[0]
@@ -608,6 +660,7 @@ enum OverallRankTrialDefinitions {
             requiredEquipment: defaultVariant.requiredEquipment,
             movementStandards: movementStandards,
             skillStandards: [],
+            skillPathGroups: skillPathGroups,
             performanceStandards: defaultVariant.stations.map(\.standard),
             loadoutVariants: loadoutVariants,
             legacyIds: legacyIds
@@ -1165,6 +1218,21 @@ enum OverallRankTrialDefinitions {
             home: towerStations(loadout: .homeKit),
             gym: towerStations(loadout: .gymHybrid)
         ),
+        // Representative path-aware gate (mechanism proof; full per-rank content
+        // is a balance pass to be specced separately). A pull athlete OR a
+        // single-leg-strength athlete clears it — neither path is blocked by the
+        // other's skill.
+        skillPathGroups: [
+            OverallRankTrialSkillGroup(
+                id: "master-signature-skill",
+                label: "Signature skill",
+                minimumCount: 1,
+                options: [
+                    OverallRankTrialSkillStandard(skillId: "pp.muscle-up", displayName: "Muscle-up", minimumTier: .novice),
+                    OverallRankTrialSkillStandard(skillId: "ld.pistol-squat", displayName: "Pistol squat", minimumTier: .novice)
+                ]
+            )
+        ],
         legacyIds: ["overall-rank-trial-veteran-gauntlet"]
     )
 
@@ -1887,6 +1955,23 @@ final class TrialReadinessService {
                     current: currentTier.displayName,
                     required: standard.minimumTier.displayName,
                     isMet: currentTier >= standard.minimumTier
+                )
+            )
+        }
+
+        // Path-aware "any N of" skill gates: a lifter and a calisthenics athlete
+        // each have a route — the group clears when any `minimumCount` options
+        // are met, rather than requiring every listed skill.
+        for group in definition.skillPathGroups {
+            let met = group.metCount(skillTiers: input.skillTiers)
+            lines.append(
+                OverallRankTrialRequirementLine(
+                    id: "skill-group-\(group.id)",
+                    kind: .skill,
+                    label: group.label,
+                    current: "\(met)/\(group.minimumCount)",
+                    required: "any \(group.minimumCount) of \(group.options.map(\.displayName).joined(separator: " / "))",
+                    isMet: met >= group.minimumCount
                 )
             )
         }

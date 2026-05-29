@@ -1514,9 +1514,16 @@ final class OverallRankTrialServiceTests: XCTestCase {
     private func skillTiers(
         for definition: OverallRankTrialDefinition
     ) -> [String: SkillTier] {
-        Dictionary(uniqueKeysWithValues: definition.skillStandards.map { standard in
+        var tiers = Dictionary(uniqueKeysWithValues: definition.skillStandards.map { standard in
             (standard.skillId, standard.minimumTier)
         })
+        // Satisfy each path-aware group by meeting its first `minimumCount` options.
+        for group in definition.skillPathGroups {
+            for option in group.options.prefix(group.minimumCount) {
+                tiers[option.skillId] = option.minimumTier
+            }
+        }
+        return tiers
     }
 
     private func readyEquipment() -> Set<MovementEquipment> {
