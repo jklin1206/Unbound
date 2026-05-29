@@ -14,16 +14,16 @@ final class SkillTreeViewModel {
         var id: String { pattern.rawValue }
         let pattern: MovementPattern
         let ranks: [PatternLiftEntry]
-        let aggregate: SubRank
+        let aggregate: RankTier
     }
 
     struct PatternLiftEntry: Identifiable {
         let id: String
         let displayName: String
-        let currentRank: SubRank
+        let currentRank: RankTier
     }
 
-    var aggregateRank: SubRank = .eMinus
+    var aggregateRank: RankTier = .initiate
     var sections: [PatternSection] = []
     var loading: Bool = false
 

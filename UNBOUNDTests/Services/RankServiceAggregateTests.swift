@@ -6,14 +6,14 @@ import XCTest
 final class RankServiceAggregateTests: XCTestCase {
     func testMockAggregateRankReturnsOverride() async {
         let svc = MockRankService()
-        svc.aggregateRankOverride = .b
+        svc.aggregateRankOverride = .master   // old SubRank .b → 2:1 band → master
         let rank = await svc.aggregateRank(userId: "u")
-        XCTAssertEqual(rank, .b)
+        XCTAssertEqual(rank, .master)
     }
 
-    func testMockAggregateRankDefaultsToC() async {
-        let svc = MockRankService()  // default override = .c
+    func testMockAggregateRankDefaultsToForged() async {
+        let svc = MockRankService()  // default override = .forged (old SubRank .c → forged)
         let rank = await svc.aggregateRank(userId: "u")
-        XCTAssertEqual(rank, .c)
+        XCTAssertEqual(rank, .forged)
     }
 }

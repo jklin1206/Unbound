@@ -3,7 +3,7 @@ import Foundation
 // MARK: - SessionXPRecord
 //
 // Per-user session counter. Drives streaks + badge unlocks. Does NOT drive
-// SubRank — rank is strictly strength-based. XP is participation.
+// RankTier — rank is strictly strength-based. XP is participation.
 
 struct SessionXPRecord: Codable, Sendable, Identifiable {
     var id: String { "\(userId):sessionxp" }

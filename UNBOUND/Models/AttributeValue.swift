@@ -118,11 +118,11 @@ struct AttributeValue: Codable, Sendable, Equatable {
         return daysIdle > AttributeDrift.graceDays && recentBelowLifetimePeak
     }
 
-    var subRank: SubRank {
-        SubRank.nearest(for: current / 100.0 * 17.0)
+    var rankTier: RankTier {
+        RankTier.nearest(for: current / 100.0 * 8.0)
     }
 
-    var rankTitle: RankTitle { subRank.title }
+    var rankTitle: RankTitle { rankTier }
 
     var levelRankTitle: RankTitle {
         AttributeLevelCurve.rankTitle(forLevel: level)

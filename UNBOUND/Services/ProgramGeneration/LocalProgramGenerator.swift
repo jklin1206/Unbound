@@ -49,7 +49,7 @@ enum LocalProgramGenerator {
         customExercises: [CustomExercise] = [],
         calibrations: [CalibrationBaseline] = [],
         forceDeload: Bool = false,
-        archetypeRank: SubRank = .eMinus,
+        archetypeRank: RankTier = .initiate,
         userId: String,
         scanId: String = UUID().uuidString,
         analysisId: String = UUID().uuidString
@@ -97,8 +97,8 @@ enum LocalProgramGenerator {
 
         // Generate 84 days (12 weeks). Block schedule for the final arc is
         // rank-gated: realization unlocks at B-, peaking unlocks at A-.
-        let realizationUnlocked = archetypeRank.ordinal >= SubRank.bMinus.ordinal
-        let peakingUnlocked = archetypeRank.ordinal >= SubRank.aMinus.ordinal
+        let realizationUnlocked = archetypeRank >= .veteran
+        let peakingUnlocked = archetypeRank >= .vessel
 
         var days: [ProgramDay] = []
         for day in 1...84 {
@@ -231,7 +231,7 @@ enum LocalProgramGenerator {
         gender: Gender,
         heightCm: Double,
         weightKg: Double,
-        archetypeRank: SubRank = .eMinus
+        archetypeRank: RankTier = .initiate
     ) -> ProgramRationale {
         let daysPerWeek = rampedDaysPerWeek(target: targetFrequency, current: currentFrequency)
         let minutes = adjustedSessionMinutes(
@@ -259,8 +259,8 @@ enum LocalProgramGenerator {
             weightKg: weightKg,
             targetAreas: targetAreas,
             archetypeRank: archetypeRank,
-            realizationUnlocked: archetypeRank.ordinal >= SubRank.bMinus.ordinal,
-            peakingUnlocked: archetypeRank.ordinal >= SubRank.aMinus.ordinal
+            realizationUnlocked: archetypeRank >= .veteran,
+            peakingUnlocked: archetypeRank >= .vessel
         )
     }
 
@@ -1350,7 +1350,7 @@ enum LocalProgramGenerator {
         heightCm: Double,
         weightKg: Double,
         targetAreas: Set<TargetArea>,
-        archetypeRank: SubRank = .eMinus,
+        archetypeRank: RankTier = .initiate,
         realizationUnlocked: Bool = false,
         peakingUnlocked: Bool = false
     ) -> ProgramRationale {
@@ -1486,13 +1486,13 @@ enum LocalProgramGenerator {
         )
 
         // Rank-gated block decisions. Only surface when the archetype rank
-        // is actually computed (> .eMinus) and the gate is open, so the
+        // is actually computed (> .initiate) and the gate is open, so the
         // copy doesn't lie to new users.
         if peakingUnlocked {
             decisions.append(
                 .init(
                     inputSummary: "Arc rank \(archetypeRank.displayName) — peaking unlocked",
-                    decisionApplied: "Rank A- unlocks peaking blocks. Week 11 compresses to singles and doubles at RPE 9-9.5 — PR territory.",
+                    decisionApplied: "Vessel rank unlocks peaking blocks. Week 11 compresses to singles and doubles at RPE 9-9.5 — PR territory.",
                     iconSystemName: "chart.line.uptrend.xyaxis.circle.fill"
                 )
             )
@@ -1500,11 +1500,11 @@ enum LocalProgramGenerator {
             decisions.append(
                 .init(
                     inputSummary: "Arc rank \(archetypeRank.displayName) — realization unlocked",
-                    decisionApplied: "Rank B- unlocks realization blocks. We schedule intensity peaks in weeks 9-11 so heavy singles show up on purpose.",
+                    decisionApplied: "Veteran rank unlocks realization blocks. We schedule intensity peaks in weeks 9-11 so heavy singles show up on purpose.",
                     iconSystemName: "target"
                 )
             )
-        } else if archetypeRank > .eMinus {
+        } else if archetypeRank > .initiate {
             decisions.append(
                 .init(
                     inputSummary: "Arc rank \(archetypeRank.displayName)",

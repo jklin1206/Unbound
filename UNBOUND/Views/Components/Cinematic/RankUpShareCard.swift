@@ -15,13 +15,13 @@ import SwiftUI
 // Background: base dark + diagonal gradient + grid + ember particles.
 
 struct RankUpShareCard: View {
-    let rank: SubRank
+    let rank: RankTier
     let exerciseDisplayName: String
     let buildIdentity: BuildIdentity
     let skin: SkillTreeSkin
 
     init(
-        rank: SubRank,
+        rank: RankTier,
         exerciseDisplayName: String,
         buildIdentity: BuildIdentity,
         skin: SkillTreeSkin = .violet
@@ -145,7 +145,7 @@ struct RankUpShareCard: View {
 
     // MARK: Identity presentation
 
-    private var rankTitle: RankTitle { rank.title }
+    private var rankTitle: RankTitle { rank }
 
     private var tint: Color { rankTitle.rewardTint }
 
@@ -159,7 +159,7 @@ enum RankUpShareCardRenderer {
     /// Render the share card to UIImage at scale 3 (retina social quality).
     /// `skin` defaults to the active SkinService skin when nil.
     static func render(
-        rank: SubRank,
+        rank: RankTier,
         exerciseDisplayName: String,
         buildIdentity: BuildIdentity,
         skin: SkillTreeSkin? = nil
@@ -178,11 +178,11 @@ enum RankUpShareCardRenderer {
 
     /// Auto-generated caption for the system share sheet.
     static func caption(
-        rank: SubRank,
+        rank: RankTier,
         exerciseDisplayName: String
     ) -> String {
         """
-        Just reached \(rank.title.displayName) on \(exerciseDisplayName). The arc continues. — via UNBOUND
+        Just reached \(rank.displayName) on \(exerciseDisplayName). The arc continues. — via UNBOUND
 
         #UNBOUND #RankUp
         """
@@ -191,7 +191,7 @@ enum RankUpShareCardRenderer {
 
 #Preview {
     RankUpShareCard(
-        rank: .bPlus,
+        rank: .master,
         exerciseDisplayName: "Back Squat",
         buildIdentity: BuildIdentity(primary: .power, secondary: nil, shape: .specialist),
         skin: .violet

@@ -132,14 +132,14 @@ enum AttributeIngest {
             let delta = deltas[key] ?? 0
             guard delta > 0 else { continue }
             var v = profile.value(for: key)
-            let beforeSub  = v.subRank
+            let beforeSub  = v.rankTier
             let beforeTier = v.rankTitle
             v.xp += AttributeLevelCurve.xpAwarded(forScoreDelta: delta)
             v.current = min(100, v.current + delta)
             if v.current > v.peak { v.peak = v.current }
             v.lastContributionAt = date
             profile.set(key, v)
-            let afterSub  = v.subRank
+            let afterSub  = v.rankTier
             let afterTier = v.rankTitle
             if afterSub != beforeSub {
                 let level: AttributeRankUpEvent.Level = {
@@ -178,7 +178,7 @@ enum AttributeIngest {
             var value = profile.value(for: key)
             let previousXP = value.xp
             let previousLevel = value.level
-            let previousSubRank = value.subRank
+            let previousSubRank = value.rankTier
             let previousTier = value.rankTitle
             let previousScore = value.current
 
@@ -189,7 +189,7 @@ enum AttributeIngest {
             value.lastContributionAt = date
             profile.set(key, value)
 
-            let currentSubRank = value.subRank
+            let currentSubRank = value.rankTier
             let currentTier = value.rankTitle
             if currentSubRank != previousSubRank {
                 let level: AttributeRankUpEvent.Level = {

@@ -17,18 +17,18 @@ final class AttributeValueTests: XCTestCase {
         XCTAssertEqual(v.floor, 56.0, accuracy: 0.001)
     }
 
-    func testSubRankReflectsCurrentNotPeak() {
+    func testRankTierReflectsCurrentNotPeak() {
         var v = AttributeValue.zero(at: t0)
         v.peak = 100; v.current = 0
-        XCTAssertEqual(v.subRank, SubRank.eMinus)
+        XCTAssertEqual(v.rankTier, .initiate)   // old SubRank.eMinus → 2:1 band → initiate
         v.current = 100
-        XCTAssertEqual(v.subRank, SubRank.sPlus)
+        XCTAssertEqual(v.rankTier, .ascendant)  // old SubRank.sPlus → 2:1 band → ascendant
     }
 
-    func testRankTitleMapsThroughRankTitleTable() {
+    func testRankTitleMapsThroughRankTierTable() {
         var v = AttributeValue.zero(at: t0)
         v.peak = 100
-        v.current = 50  // ordinal ~8 → cPlus → veteran (per existing SubRank.title table)
+        v.current = 50  // 50/100*8 = 4.0 → veteran (old cPlus → 2:1 band → veteran)
         XCTAssertEqual(v.rankTitle, .veteran)
     }
 }

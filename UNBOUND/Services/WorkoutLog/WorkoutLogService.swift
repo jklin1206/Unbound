@@ -45,7 +45,7 @@ final class WorkoutLogService: WorkoutLogServiceProtocol, WorkoutLogCompatibilit
             let bw = profile.weightKg
             await SkillProgressService.shared.recompute(after: log, userBodyweightKg: bw)
 
-            // SubRank system: detect sub-rank threshold crossings per lift
+            // Lift-rank system: detect RankTier threshold crossings per lift
             // and post `.rankAdvanced` for the UI cinematic.
             if let bw, bw > 0 {
                 await RankService.shared.evaluate(log: log, bodyweightKg: bw)

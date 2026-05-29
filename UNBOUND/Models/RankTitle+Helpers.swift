@@ -5,8 +5,7 @@ import SwiftUI
 //
 // Color, ornament, and derivation metadata for the nine UNBOUND tiers. The
 // core ladder (cases, displayName, token, ordinal, next, Codable) lives in
-// SkillTier.swift; this file adds the SwiftUI-flavored surface. Kept separate
-// so the strength-standards machinery in SubRank.swift stays thin.
+// SkillTier.swift; this file adds the SwiftUI-flavored surface.
 
 extension RankTier {
     /// Canonical visual tint for the nine UNBOUND title tiers. These are

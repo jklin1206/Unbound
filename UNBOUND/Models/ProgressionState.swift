@@ -12,8 +12,8 @@ import Foundation
 enum BlockType: String, Codable {
     case accumulation      // weeks 1-4: volume emphasis, RPE 7
     case intensification   // weeks 5-8: moderate volume, RPE 8
-    case realization       // weeks 9-11: low volume, heavy, RPE 9 — gated at B-
-    case peaking           // week 12 pre-PR: singles/doubles, RPE 9-9.5 — gated at A-
+    case realization       // weeks 9-11: low volume, heavy, RPE 9 — gated at Veteran
+    case peaking           // week 12 pre-PR: singles/doubles, RPE 9-9.5 — gated at Vessel
     case deload            // week 12 or as-needed: 60-70% volume
 
     var displayName: String {
@@ -52,10 +52,10 @@ enum BlockType: String, Codable {
     /// Minimum archetype aggregate rank required to include this block in
     /// a generated program. Blocks below the threshold fall back to
     /// accumulation/intensification/deload rotation.
-    var unlockRequirement: SubRank? {
+    var unlockRequirement: RankTier? {
         switch self {
-        case .realization: return .bMinus
-        case .peaking:     return .aMinus
+        case .realization: return .veteran
+        case .peaking:     return .vessel
         default:           return nil
         }
     }

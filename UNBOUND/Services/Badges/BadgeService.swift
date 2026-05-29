@@ -332,11 +332,13 @@ final class BadgeService: BadgeServiceProtocol {
 
     private func evaluateRankAdvance(advance: RankAdvance) -> [String] {
         var result: [String] = ["first_rank_up"]
-        let ordinal = advance.toRank.ordinal
-        if ordinal >= SubRank.ordinalForLetter("C") { result.append("rank_c_any") }
-        if ordinal >= SubRank.ordinalForLetter("B") { result.append("rank_b_any") }
-        if ordinal >= SubRank.ordinalForLetter("A") { result.append("rank_a_any") }
-        if ordinal >= SubRank.ordinalForLetter("S") { result.append("rank_s_any") }
+        // Letter-rank badge gates, mapped through the SubRank→RankTier 2:1
+        // banding: C(plain ord 7)→forged, B(10)→master, A(13)→vessel, S(16)→ascendant.
+        let tier = advance.toRank
+        if tier >= .forged    { result.append("rank_c_any") }
+        if tier >= .master    { result.append("rank_b_any") }
+        if tier >= .vessel    { result.append("rank_a_any") }
+        if tier >= .ascendant { result.append("rank_s_any") }
         // BW-multiple milestones are evaluated literally against working-set
         // weight in `.sessionLogged` (see evaluateBodyweightMultiples).
         // Letter-rank approximation is intentionally omitted here.

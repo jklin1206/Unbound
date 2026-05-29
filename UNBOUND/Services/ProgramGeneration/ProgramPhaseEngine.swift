@@ -97,7 +97,7 @@ final class ProgramPhaseEngine: ProgramPhaseEngineProtocol {
         recentAdvances: Int,
         plateauCount: Int,
         weeksSinceAnyAdvance: Int,
-        aggregateRank: SubRank,
+        aggregateRank: RankTier,
         recoveryCompromised: Bool,
         hasAnyLogs: Bool,
         weeklyCount: Int
@@ -108,7 +108,7 @@ final class ProgramPhaseEngine: ProgramPhaseEngineProtocol {
         }
         // Realization window — requires rank floor + clean recovery + recent
         // advances demonstrating intensification readiness.
-        if aggregateRank.ordinal >= SubRank.bMinus.ordinal
+        if aggregateRank >= .veteran
             && recentAdvances >= 2
             && plateauCount == 0 {
             return .realization
@@ -175,12 +175,12 @@ final class ProgramPhaseEngine: ProgramPhaseEngineProtocol {
         }
     }
 
-    private func nextPhaseHint(for block: BlockType, aggregateRank: SubRank) -> String {
+    private func nextPhaseHint(for block: BlockType, aggregateRank: RankTier) -> String {
         switch block {
         case .accumulation:
             return "Intensification opens when current rep ranges start to feel comfortable."
         case .intensification:
-            if aggregateRank.ordinal >= SubRank.bMinus.ordinal {
+            if aggregateRank >= .veteran {
                 return "Realization window unlocks once recovery markers stay clean for a week."
             }
             return "Realization window unlocks at rank B- with clean recovery."

@@ -91,11 +91,16 @@ final class AttributeServiceIngestTests: XCTestCase {
         XCTAssertEqual(crossings.first?.level, .aTier)
     }
 
-    func testApplyDeltasEmitsSubRankEventOnIntraTierStep() {
+    func testApplyDeltasEmitsNoEventForIntraTierStep() {
+        // Cadence coarsening (18-step SubRank → 9-tier RankTier): a small delta
+        // that stays inside one RankTier band no longer fires a rank-up. With
+        // the old SubRank ladder 0 → 6 stepped eMinus → e and emitted a silent
+        // `.subRank` event; on the 9-tier ladder both 0 and 6 map to .initiate
+        // (nearest(0) and nearest(0.48)), so no crossing is emitted.
         var p = AttributeProfile.empty(userId: "u", at: t0)
         p.set(.power, AttributeValue(peak: 50, current: 0, lastContributionAt: t0))
         let crossings = AttributeIngest.applyDeltas(&p, deltas: [.power: 6], at: t0)
-        XCTAssertEqual(crossings.first?.level, .subRank)
+        XCTAssertTrue(crossings.isEmpty)
     }
 
     func testFirstBuildIdentityResolvedTransitionDetectable() {

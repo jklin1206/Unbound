@@ -250,7 +250,7 @@ struct RankUpCinematic: View {
     }
 
     private var targetTitle: RankTitle {
-        advance.toRank.title
+        advance.toRank
     }
 
     /// Skin-driven glow matched to the actual named rank badge.

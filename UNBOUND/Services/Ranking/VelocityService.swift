@@ -12,7 +12,7 @@ import Foundation
 // a session-level bonus for returning after a layoff (comeback) plus a one-time
 // bolus when a rank/tier is crossed.
 //
-// Scope is LV only. Per-lift SubRank and skill tiers are objective performance
+// Scope is LV only. Per-lift RankTier and skill tiers are objective performance
 // standards (StrengthStandards) and stay pure — they are not touched here.
 //
 // All magnitudes are centralized constants so the feel is one-line tunable.

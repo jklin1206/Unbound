@@ -231,7 +231,7 @@ final class AttributeService: AttributeServiceProtocol {
         let now = Date()
         var prof = profile(userId: userId)
         var value = prof.value(for: axis)
-        let beforeSubRank = value.subRank
+        let beforeRankTier = value.rankTier
         value.xp += AttributeLevelCurve.xpAwarded(forScoreDelta: amount)
         value.current = min(value.current + amount, 100)
         value.peak = max(value.peak, value.current)
@@ -239,15 +239,15 @@ final class AttributeService: AttributeServiceProtocol {
         prof.set(axis, value)
         prof.computedAt = now
         store.save(prof)
-        // Fire rank-up notification if the sub-rank tier crossed.
-        let afterSubRank = value.subRank
-        if afterSubRank.ordinal > beforeSubRank.ordinal {
+        // Fire rank-up notification if the tier crossed.
+        let afterRankTier = value.rankTier
+        if afterRankTier > beforeRankTier {
             let event = AttributeRankUpEvent(
                 axis: axis,
-                fromTitle: beforeSubRank.title,
-                toTitle: afterSubRank.title,
-                fromSubRank: beforeSubRank,
-                toSubRank: afterSubRank,
+                fromTitle: beforeRankTier,
+                toTitle: afterRankTier,
+                fromSubRank: beforeRankTier,
+                toSubRank: afterRankTier,
                 level: .subRank,
                 timestamp: now
             )

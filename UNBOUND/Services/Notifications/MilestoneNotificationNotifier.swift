@@ -122,9 +122,9 @@ struct MilestoneNotificationPlanner {
 
         return genericDescriptor(
             kind: "rank",
-            subject: "\(event.exerciseKey)-\(event.toRank.title.token)",
+            subject: "\(event.exerciseKey)-\(event.toRank.token)",
             title: "\(event.displayName) ranked up",
-            body: "\(event.fromRank.title.displayName) -> \(event.toRank.title.displayName)"
+            body: "\(event.fromRank.displayName) -> \(event.toRank.displayName)"
         )
     }
 

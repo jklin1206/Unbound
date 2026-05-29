@@ -39,7 +39,7 @@ struct UnboundHomeView: View {
     @State private var sessionXP: SessionXPRecord?
 
     // Ranking + stats
-    @State private var aggregateRank: SubRank = .eMinus
+    @State private var aggregateRank: RankTier = .initiate
     @State private var aggregateTier: SkillTier = .initiate
     @State private var overallRankTrialReadiness: OverallRankTrialReadiness?
 
@@ -417,7 +417,7 @@ struct UnboundHomeView: View {
         let level = lvlValue
         let xpInLevel = lvlXPInLevel
         let fraction = lvlFraction
-        let rankColor = aggregateRank.regionTint
+        let rankColor = aggregateRank.rewardTint
 
         return VStack(alignment: .trailing, spacing: 8) {
             Text(aggregateTier.displayName.uppercased())
@@ -541,10 +541,10 @@ struct UnboundHomeView: View {
         let level = lvlValue
         let xpInLevel = lvlXPInLevel
         let fraction = lvlFraction
-        let rankColor = aggregateRank.regionTint
+        let rankColor = aggregateRank.rewardTint
 
         return HStack(alignment: .center, spacing: 14) {
-            TierBadge(tier: aggregateRank.asSkillTier)
+            TierBadge(tier: aggregateRank)
                 .frame(width: 62, height: 62)
 
             VStack(alignment: .leading, spacing: 9) {
@@ -763,11 +763,11 @@ struct UnboundHomeView: View {
         let level = lvlValue
         let xpInLevel = lvlXPInLevel
         let fraction = lvlFraction
-        let rankColor = aggregateRank.regionTint
+        let rankColor = aggregateRank.rewardTint
 
         return VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .center, spacing: 12) {
-                TierBadge(tier: aggregateRank.asSkillTier, compact: true)
+                TierBadge(tier: aggregateRank, compact: true)
 
                 VStack(alignment: .leading, spacing: 5) {
                     HStack(spacing: 7) {
@@ -822,14 +822,14 @@ struct UnboundHomeView: View {
         )
     }
 
-    private func miniStatPill(label: String, rank: SubRank) -> some View {
-        let tint = rank.regionTint
+    private func miniStatPill(label: String, rank: RankTier) -> some View {
+        let tint = rank.rewardTint
         return HStack(spacing: 5) {
             Text(label)
                 .font(.system(size: 9, weight: .bold))
                 .tracking(1.0)
                 .foregroundStyle(Color.unbound.textTertiary)
-            Text(rank.title.displayName.uppercased())
+            Text(rank.displayName.uppercased())
                 .font(.system(size: 8, weight: .heavy, design: .monospaced))
                 .tracking(0.6)
                 .foregroundStyle(tint)
@@ -863,7 +863,7 @@ struct UnboundHomeView: View {
                     label: "NEXT TITLE",
                     value: nextTitleValue(for: aggregateRank),
                     detail: nextTitleDetail(for: aggregateRank),
-                    tint: aggregateRank.advanced(by: 1).regionTint
+                    tint: aggregateRank.advanced(by: 1).rewardTint
                 )
             }
             railDivider
@@ -1023,7 +1023,7 @@ struct UnboundHomeView: View {
         return HStack(spacing: 8) {
             ZStack(alignment: .bottomTrailing) {
                 CosmeticAvatar(
-                    tier: aggregateRank.title,
+                    tier: aggregateRank,
                     size: 44,
                     image: photoStore.image(userId: services.auth.currentUserId ?? ""),
                     letterFallback: letter
@@ -1498,7 +1498,7 @@ struct UnboundHomeView: View {
         }
     }
 
-    private func loadRanks(_ userId: String) async -> (SubRank, SkillTier) {
+    private func loadRanks(_ userId: String) async -> (RankTier, SkillTier) {
         async let r = services.rank.aggregateRank(userId: userId)
         async let t = services.rank.aggregateTier(userId: userId)
         return (await r, await t)
@@ -1636,25 +1636,25 @@ struct UnboundHomeView: View {
 
     /// Player-facing rank title. The underlying ordinal ladder remains
     /// strength-based; the UI now shows titles instead of letter grades.
-    private func tierName(for rank: SubRank) -> String {
-        rank.title.displayName
+    private func tierName(for rank: RankTier) -> String {
+        rank.displayName
     }
 
-    private func nextRankMomentumLabel(for rank: SubRank) -> String {
-        let nextTitle = rank.advanced(by: 1).title
-        guard nextTitle != rank.title else { return "PROOF +1" }
+    private func nextRankMomentumLabel(for rank: RankTier) -> String {
+        let nextTitle = rank.advanced(by: 1)
+        guard nextTitle != rank else { return "PROOF +1" }
         return "TO \(nextTitle.displayName.uppercased())"
     }
 
-    private func nextTitleValue(for rank: SubRank) -> String {
+    private func nextTitleValue(for rank: RankTier) -> String {
         let next = rank.advanced(by: 1)
-        guard next.title != rank.title else { return "PROOF +1" }
-        return next.title.displayName
+        guard next != rank else { return "PROOF +1" }
+        return next.displayName
     }
 
-    private func nextTitleDetail(for rank: SubRank) -> String {
+    private func nextTitleDetail(for rank: RankTier) -> String {
         let next = rank.advanced(by: 1)
-        guard next.title != rank.title else { return rank.title.displayName }
+        guard next != rank else { return rank.displayName }
         return "next milestone"
     }
 

@@ -185,11 +185,11 @@ struct UnboundSkillTreeTabView: View {
                     Hexagon().strokeBorder(glowColor(for: rank), lineWidth: 2)
                         .shadow(color: glowColor(for: rank).opacity(0.55), radius: 10)
                     VStack(spacing: 5) {
-                        Image(rank.title.assetName)
+                        Image(rank.assetName)
                             .resizable()
                             .scaledToFit()
                             .frame(width: 36, height: 36)
-                        Text(rank.title.displayName.uppercased())
+                        Text(rank.displayName.uppercased())
                             .font(.system(size: 8, weight: .black, design: .monospaced))
                             .tracking(0.7)
                             .foregroundStyle(Color.unbound.textPrimary)
@@ -254,7 +254,7 @@ struct UnboundSkillTreeTabView: View {
                     .tracking(1.6)
                     .foregroundStyle(Color.unbound.textSecondary)
                 Spacer()
-                rankChip(section.aggregate, filled: section.aggregate >= .bPlus)
+                rankChip(section.aggregate, filled: section.aggregate >= .master)
             }
 
             VStack(spacing: 6) {
@@ -265,7 +265,7 @@ struct UnboundSkillTreeTabView: View {
                             .foregroundStyle(Color.unbound.textPrimary)
                             .lineLimit(1)
                         Spacer()
-                        rankChip(lift.currentRank, filled: lift.currentRank >= .bPlus)
+                        rankChip(lift.currentRank, filled: lift.currentRank >= .master)
                     }
                     .padding(.horizontal, 14)
                     .padding(.vertical, 10)
@@ -282,9 +282,9 @@ struct UnboundSkillTreeTabView: View {
         }
     }
 
-    private func rankChip(_ rank: SubRank, filled: Bool) -> some View {
+    private func rankChip(_ rank: RankTier, filled: Bool) -> some View {
         let style = skinService.currentSkin.rankChipStyle
-        return Text(rank.title.displayName.uppercased())
+        return Text(rank.displayName.uppercased())
             .font(.system(size: 8, weight: .heavy, design: .monospaced))
             .tracking(0.7)
             .foregroundStyle(filled ? style.text : Color.unbound.textSecondary)
@@ -302,8 +302,8 @@ struct UnboundSkillTreeTabView: View {
             )
     }
 
-    private func glowColor(for rank: SubRank) -> Color {
-        rank.title.rewardTint
+    private func glowColor(for rank: RankTier) -> Color {
+        rank.rewardTint
     }
 
     private var progressionPathsLink: some View {

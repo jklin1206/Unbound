@@ -82,6 +82,18 @@ enum RankTier: Int, CaseIterable, Sendable, Comparable {
     /// Next tier up, or nil if already at Ascendant.
     var next: RankTier? { RankTier(rawValue: rawValue + 1) }
 
+    /// Nearest tier for a fractional 0–8 ladder position.
+    static func nearest(for position: Double) -> RankTier {
+        let clamped = max(0.0, min(8.0, position))
+        return RankTier(rawValue: Int(clamped.rounded())) ?? .initiate
+    }
+
+    /// Advance by `n` tiers, capped at Ascendant.
+    func advanced(by n: Int = 1) -> RankTier { RankTier(rawValue: min(8, max(0, rawValue + n))) ?? self }
+
+    /// Decay by `n` tiers, floored at Initiate.
+    func decayed(by n: Int = 1) -> RankTier { RankTier(rawValue: min(8, max(0, rawValue - n))) ?? self }
+
     static func < (lhs: RankTier, rhs: RankTier) -> Bool {
         lhs.rawValue < rhs.rawValue
     }
@@ -169,23 +181,4 @@ extension Notification.Name {
     /// Emitted by RankService.ingest when a skill advances. The `object`
     /// payload is a `SkillTierAdvance`.
     static let skillTierAdvanced = Notification.Name("unbound.skillTierAdvanced")
-}
-
-// MARK: - SubRank → RankTier bridge
-
-extension SubRank {
-    /// Convert a SubRank to the nearest RankTier (2:1 ordinal banding).
-    var asSkillTier: RankTier {
-        switch ordinal {
-        case 0...1:   return .initiate
-        case 2...3:   return .novice
-        case 4...5:   return .apprentice
-        case 6...7:   return .forged
-        case 8...9:   return .veteran
-        case 10...11: return .master
-        case 12...13: return .vessel
-        case 14...15: return .unbound
-        default:      return .ascendant
-        }
-    }
 }

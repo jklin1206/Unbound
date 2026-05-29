@@ -94,7 +94,7 @@ enum StrengthStandards {
         liftKg: Double,
         bodyweightKg: Double,
         exerciseKey: String
-    ) -> SubRank? {
+    ) -> RankTier? {
         guard bodyweightKg > 0, liftKg > 0 else { return nil }
         guard let key = canonicalKey(for: exerciseKey) else { return nil }
 
@@ -109,40 +109,41 @@ enum StrengthStandards {
     }
 
     /// Weighted-pullup ladder uses added-kg, not a bodyweight ratio.
-    private static func subRankForWeightedPullup(addedKg: Double) -> SubRank {
+    private static func subRankForWeightedPullup(addedKg: Double) -> RankTier {
         let letters = ["E", "D", "C", "B", "A", "S"]
         let anchors = letters.compactMap { weightedPullupAddedKg[$0] }
         return interpolateLetters(value: addedKg, anchors: anchors)
     }
 
     /// Interpolate a bodyweight ratio against a letter-anchor row.
-    private static func interpolate(ratio: Double, table row: [String: Double]) -> SubRank {
+    private static func interpolate(ratio: Double, table row: [String: Double]) -> RankTier {
         let letters = ["E", "D", "C", "B", "A", "S"]
         let anchors = letters.compactMap { row[$0] }
         return interpolateLetters(value: ratio, anchors: anchors)
     }
 
     /// Shared interpolation: value → position on 0...5 letter scale, then
-    /// mapped to 0...17 sub-rank ordinals (1, 4, 7, 10, 13, 16 are anchor slots).
-    private static func interpolateLetters(value: Double, anchors: [Double]) -> SubRank {
-        guard anchors.count >= 2 else { return .eMinus }
+    /// mapped to a 0...17 ladder position (1, 4, 7, 10, 13, 16 are anchor
+    /// slots) and projected onto the 9-tier RankTier via the 2:1 banding.
+    private static func interpolateLetters(value: Double, anchors: [Double]) -> RankTier {
+        guard anchors.count >= 2 else { return .initiate }
 
         if value <= anchors[0] {
-            // Below E anchor — scale down toward E- (ordinal 0)
-            // At 50% of the E anchor or below, show E-; ramp to E (ordinal 1) at the anchor.
+            // Below E anchor — scale down toward position 0.
+            // At 50% of the E anchor or below, show position 0; ramp to 1 at the anchor.
             let halfE = anchors[0] * 0.5
-            if value <= halfE { return .eMinus }
+            if value <= halfE { return .initiate }
             let t = (value - halfE) / max(halfE, 0.0001)
-            let ordinal = min(1.0, max(0.0, t))
-            return SubRank.nearest(for: ordinal)
+            let position = min(1.0, max(0.0, t))
+            return RankTier.nearest(for: position / 2.0)
         }
 
         if value >= anchors.last! {
-            return .sPlus
+            return .ascendant
         }
 
         // Find bracket [anchors[i], anchors[i+1]] and map to letter slots.
-        // Letter i sits at sub-rank ordinal (1 + 3*i): E=1, D=4, C=7, B=10, A=13, S=16.
+        // Letter i sits at ladder position (1 + 3*i): E=1, D=4, C=7, B=10, A=13, S=16.
         for i in 0..<(anchors.count - 1) {
             let lo = anchors[i]
             let hi = anchors[i + 1]
@@ -151,26 +152,28 @@ enum StrengthStandards {
                 let loOrd = Double(1 + 3 * i)
                 let hiOrd = Double(1 + 3 * (i + 1))
                 let pos = loOrd + t * (hiOrd - loOrd)
-                return SubRank.nearest(for: pos)
+                return RankTier.nearest(for: pos / 2.0)
             }
         }
-        return .sPlus
+        return .ascendant
     }
 
     // MARK: Bodyweight-skill family mapping
 
-    /// Map a ProgressionFamilyState tier (0–7) to a representative sub-rank.
-    /// Tier 0 = E, 1 = D, 2 = C, 3 = C+ (mid), 4 = B, 5 = B+, 6 = A, 7 = S.
-    static func subRank(forFamilyTier tier: Int) -> SubRank {
+    /// Map a ProgressionFamilyState tier (0–7) to a representative RankTier.
+    /// Preserves the old per-tier sub-rank anchors projected through the 2:1
+    /// banding: E(1)→initiate, D(4)→apprentice, C(7)→forged, C+(8)→veteran,
+    /// B(10)→master, B+(11)→master, A(13)→vessel, S(16)→ascendant.
+    static func subRank(forFamilyTier tier: Int) -> RankTier {
         switch max(0, tier) {
-        case 0: return .e
-        case 1: return .d
-        case 2: return .c
-        case 3: return .cPlus
-        case 4: return .b
-        case 5: return .bPlus
-        case 6: return .a
-        default: return .s
+        case 0: return RankTier.nearest(for: 1.0 / 2.0)   // E  → initiate
+        case 1: return RankTier.nearest(for: 4.0 / 2.0)   // D  → apprentice
+        case 2: return RankTier.nearest(for: 7.0 / 2.0)   // C  → forged
+        case 3: return RankTier.nearest(for: 8.0 / 2.0)   // C+ → veteran
+        case 4: return RankTier.nearest(for: 10.0 / 2.0)  // B  → master
+        case 5: return RankTier.nearest(for: 11.0 / 2.0)  // B+ → master
+        case 6: return RankTier.nearest(for: 13.0 / 2.0)  // A  → vessel
+        default: return RankTier.nearest(for: 16.0 / 2.0) // S  → ascendant
         }
     }
 }

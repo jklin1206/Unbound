@@ -2,8 +2,8 @@ import Foundation
 
 // MARK: - RankService
 //
-// Owns per-lift SubRank state. Triggered from ProgressionEngine on every
-// ingested log. Emits `.rankAdvanced` when a lift crosses a new sub-rank
+// Owns per-lift RankTier state. Triggered from ProgressionEngine on every
+// ingested log. Emits `.rankAdvanced` when a lift crosses a new RankTier
 // threshold — the UI (RankUpCinematic) listens for this notification.
 //
 // Bodyweight-multiple lifts (squat/bench/DL/OHP) compute rank from
@@ -120,12 +120,12 @@ final class RankService: RankServiceProtocol {
         return all.max() ?? .initiate
     }
 
-    // MARK: - Legacy SubRank Compute
+    // MARK: - Legacy lift-rank Compute
 
     func computeLiftRank(
         entry: ExerciseLogEntry,
         bodyweightKg: Double
-    ) -> SubRank? {
+    ) -> RankTier? {
         let key = rankExerciseKey(for: entry)
         let workingSets = entry.sets.filter { !$0.isWarmup }
         guard !workingSets.isEmpty else { return nil }
@@ -167,7 +167,7 @@ final class RankService: RankServiceProtocol {
     // In-memory session-scoped lift rank cache.
     // LiftRank Firestore persistence removed in rank-cleanup-v1.
     // evaluate() still fires .rankAdvanced so cinematic/badge triggers work.
-    private var sessionRanks: [String: SubRank] = [:]
+    private var sessionRanks: [String: RankTier] = [:]
 
     func evaluate(log: WorkoutLog, bodyweightKg: Double) async {
         guard bodyweightKg > 0 else {
@@ -179,7 +179,7 @@ final class RankService: RankServiceProtocol {
 
             let key = rankExerciseKey(for: entry)
 
-            let existing = sessionRanks[key] ?? .eMinus
+            let existing = sessionRanks[key] ?? .initiate
             if candidate > existing {
                 let event = RankAdvance(
                     userId: log.userId,
@@ -207,27 +207,27 @@ final class RankService: RankServiceProtocol {
 
     // MARK: BuildIdentity aggregate
 
-    /// Aggregate SubRank derived from family-tier progression states.
+    /// Aggregate RankTier derived from family-tier progression states.
     /// LiftRank-based aggregation removed in rank-cleanup-v1.
-    func aggregateRank(userId: String) async -> SubRank {
-        guard let mean = await familyTierOrdinalMean(userId: userId) else { return .eMinus }
-        return SubRank.nearest(for: mean)
+    func aggregateRank(userId: String) async -> RankTier {
+        guard let mean = await familyTierRawValueMean(userId: userId) else { return .initiate }
+        return RankTier.nearest(for: mean)
     }
 
-    /// Mean SubRank ordinal derived from family-tier state. Returns nil when
-    /// the user has no family-tier records yet.
-    private func familyTierOrdinalMean(userId: String) async -> Double? {
+    /// Mean RankTier rawValue (0–8) derived from family-tier state. Returns nil
+    /// when the user has no family-tier records yet.
+    private func familyTierRawValueMean(userId: String) async -> Double? {
         let states = await ProgressionStateStore.shared.allFamilyStates(userId: userId)
         guard !states.isEmpty else { return nil }
-        let ordinals = states.map { Double(StrengthStandards.subRank(forFamilyTier: $0.unlockedTier).ordinal) }
-        return ordinals.reduce(0.0, +) / Double(ordinals.count)
+        let values = states.map { Double(StrengthStandards.subRank(forFamilyTier: $0.unlockedTier).rawValue) }
+        return values.reduce(0.0, +) / Double(values.count)
     }
 
     // MARK: Private helpers
 
     /// Rep-based ladder for bodyweight moves: anchors tuned to feel
     /// attainable at C–B and elite at S.
-    private func bodyweightRepRank(exerciseKey: String, entries: [SetLog]) -> SubRank? {
+    private func bodyweightRepRank(exerciseKey: String, entries: [SetLog]) -> RankTier? {
         let repsPeak = entries.map(\.reps).max() ?? 0
         guard repsPeak > 0 else { return nil }
 
@@ -246,8 +246,8 @@ final class RankService: RankServiceProtocol {
         guard let letters = anchors else { return nil }
 
         // Map rep count against the ladder.
-        if repsPeak <= letters[0] { return .eMinus }
-        if repsPeak >= letters.last! { return .sPlus }
+        if repsPeak <= letters[0] { return .initiate }
+        if repsPeak >= letters.last! { return .ascendant }
 
         for i in 0..<(letters.count - 1) {
             let lo = letters[i]
@@ -255,14 +255,14 @@ final class RankService: RankServiceProtocol {
             if repsPeak >= lo && repsPeak <= hi {
                 let t: Double = hi == lo ? 0 : Double(repsPeak - lo) / Double(hi - lo)
                 let pos = Double(1 + 3 * i) + t * Double(3)
-                return SubRank.nearest(for: pos)
+                return RankTier.nearest(for: pos / 2.0)
             }
         }
-        return .sPlus
+        return .ascendant
     }
 
     /// Hold-based (seconds logged in the reps column — existing convention).
-    private func holdRank(exerciseKey: String, entries: [SetLog]) -> SubRank? {
+    private func holdRank(exerciseKey: String, entries: [SetLog]) -> RankTier? {
         let peakSeconds = entries.map(\.reps).max() ?? 0
         guard peakSeconds > 0 else { return nil }
 
@@ -281,8 +281,8 @@ final class RankService: RankServiceProtocol {
         }
         guard let letters = anchors else { return nil }
 
-        if peakSeconds <= letters[0] { return .eMinus }
-        if peakSeconds >= letters.last! { return .sPlus }
+        if peakSeconds <= letters[0] { return .initiate }
+        if peakSeconds >= letters.last! { return .ascendant }
 
         for i in 0..<(letters.count - 1) {
             let lo = letters[i]
@@ -290,10 +290,10 @@ final class RankService: RankServiceProtocol {
             if peakSeconds >= lo && peakSeconds <= hi {
                 let t: Double = hi == lo ? 0 : Double(peakSeconds - lo) / Double(hi - lo)
                 let pos = Double(1 + 3 * i) + t * Double(3)
-                return SubRank.nearest(for: pos)
+                return RankTier.nearest(for: pos / 2.0)
             }
         }
-        return .sPlus
+        return .ascendant
     }
 
     private func rankExerciseKey(for entry: ExerciseLogEntry) -> String {
@@ -336,13 +336,13 @@ final class RankService: RankServiceProtocol {
 
 @MainActor
 final class MockRankService: RankServiceProtocol {
-    var aggregateRankOverride: SubRank = .c
+    var aggregateRankOverride: RankTier = .forged
 
     func computeTier(skill: SkillNode, history: [ExerciseLogEntry], bodyweightKg: Double) -> SkillTier { .initiate }
     func evaluateTierCrossings(log: WorkoutLog, userId: String) async -> [SkillTierAdvance] { [] }
     func state(userId: String) -> UserSkillTierState { .empty }
     func aggregateTier(userId: String) async -> SkillTier { .initiate }
-    func computeLiftRank(entry: ExerciseLogEntry, bodyweightKg: Double) -> SubRank? { .c }
+    func computeLiftRank(entry: ExerciseLogEntry, bodyweightKg: Double) -> RankTier? { .forged }
     func evaluate(log: WorkoutLog, bodyweightKg: Double) async {}
-    func aggregateRank(userId: String) async -> SubRank { aggregateRankOverride }
+    func aggregateRank(userId: String) async -> RankTier { aggregateRankOverride }
 }
