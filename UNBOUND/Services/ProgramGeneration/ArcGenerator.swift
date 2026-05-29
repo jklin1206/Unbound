@@ -49,19 +49,32 @@ enum ArcGenerator {
         updated.arcs.append(nextArc)
         updated.currentArcId = nextArc.id
         updated.durationDays = Arc.durationDays
-        updated.days = expandToArcDays(from: previousProgram.days, programId: previousProgram.id)
+        updated.days = expandToArcDays(
+            from: previousProgram.days,
+            programId: previousProgram.id,
+            loadBias: loadBias(for: checkpoint)
+        )
         updated.rationale = rationale(for: checkpoint)
         return updated
     }
 
+    /// Validated load-adjustment bias from a completed Checkpoint; 0 otherwise.
+    private static func loadBias(for checkpoint: CheckpointOutcome?) -> Double {
+        if case .completed(let signals) = checkpoint {
+            return signals.loadAdjustmentBias ?? 0
+        }
+        return 0
+    }
+
     private static func expandToArcDays(
         from sourceDays: [ProgramDay],
-        programId: String
+        programId: String,
+        loadBias: Double = 0
     ) -> [ProgramDay] {
         guard !sourceDays.isEmpty else { return [] }
         return (1...Arc.durationDays).map { dayNumber in
             let source = sourceDays[(dayNumber - 1) % sourceDays.count]
-            let workout = source.workout
+            let workout = source.workout.map { LoadBiasApplier.apply(to: $0, bias: loadBias) }
             return ProgramDay(
                 id: "\(programId)-arc-day-\(dayNumber)",
                 dayNumber: dayNumber,
