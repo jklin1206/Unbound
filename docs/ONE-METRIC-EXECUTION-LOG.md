@@ -38,7 +38,7 @@
 |---|---|---|---|
 | 0 | Logging actually records | BLOCKED (B1) | complete() already canonical (most of phase pre-done). Remaining = delete dead saveLog cascade + "unmatched" integrity state (needs UX decision + legacy-screen reachability check). |
 | 1 | One LVL | ✅ DONE (`b0dbbf4`) | Re-sourced to AP-derived OverallLevel; unbound.gains deleted (grep 0). Photo/routine/scan LVL drop flagged (D1). |
-| 2 | One rank ladder (kill E–S) | ✅ SubRank DONE (`c5237a7`); SkillRank remaining | MuscleGroupTier trio deleted (`212a40c`). SubRank deleted, RankTier is the one ladder, 18→9 cadence shipped + jlin-reviewed at checkpoint. SkillRank (10 consumers) = next sub-stage. |
+| 2 | One rank ladder (kill E–S) | ✅ SubRank DONE (`c5237a7`); SkillRank → Phase 4 | MuscleGroupTier trio deleted (`212a40c`). SubRank deleted, RankTier sole ladder, 18→9 reviewed. **SkillRank FINDING:** it's the per-node intrinsic *difficulty* bucket (Dormant/Awakened/…/Ascended + taglines + colors), NOT the rank ladder — that's Phase 4's placement concept. 6 buckets don't map cleanly to RankTier's 9 tiers. Deleting needs the Phase 4 placement decision + copy re-homing. Moved to Phase 4. |
 | 3 | Rank every movement by template metric | BLOCKED (B3) | Needs external public bw-relative strength dataset. LiftTierCriteria can't go until then. |
 | 4 | Skill tree placement = difficulty weight | PARTIAL (`212a40c`) | .new dupe deleted. SkillLevel (680 refs) deletion is high fan-out — staged, not started. |
 | 5 | Attributes: one number + hard-to-max hex | BLOCKED (B4) | Hex curve steepness = balance decision. |
