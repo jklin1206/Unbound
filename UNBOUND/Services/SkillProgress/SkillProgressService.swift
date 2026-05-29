@@ -497,7 +497,9 @@ final class SkillProgressService {
 
     /// Does the user's recent log pool meet `requirement` at `threshold`×?
     /// threshold 1.0 = exactly the benchmark. 2.0 = "mastered" (double).
-    private func requirementMet(
+    // Internal (not private) so the auto-proof detection can be unit-tested
+    // directly without driving the full SkillGraph prereq/cluster machinery.
+    func requirementMet(
         _ requirement: NodeRequirement,
         logs: [WorkoutLog],
         bodyweightKg: Double?,
@@ -521,11 +523,41 @@ final class SkillProgressService {
                     entry.sets.contains(where: { $0.reps >= target && !$0.isWarmup })
                 })
             })
-        case .hold, .steps, .carry, .composite:
-            // Holds, step-count, carries, and composites require explicit
-            // logging formats we don't capture in V1 WorkoutLog. Defer to
-            // the manual "I hit it" flow for these types.
-            return false
+        case .hold(let exercise, let seconds):
+            // Holds log seconds in the reps column (same convention RankService
+            // uses). Auto-advance when a working set meets the target seconds.
+            let target = Int((Double(seconds) * threshold).rounded())
+            return repsMetricMet(exercise: exercise, target: target, logs: logs)
+        case .steps(let exercise, let count):
+            let target = Int((Double(count) * threshold).rounded())
+            return repsMetricMet(exercise: exercise, target: target, logs: logs)
+        case .carry(let exercise, let seconds, _):
+            // Carry: seconds in the reps column AND the set must be loaded.
+            let target = Int((Double(seconds) * threshold).rounded())
+            return repsMetricMet(exercise: exercise, target: target, logs: logs, requireLoad: true)
+        case .composite(let parts):
+            // Every part must be proven at this threshold.
+            return parts.allSatisfy {
+                requirementMet($0, logs: logs, bodyweightKg: bodyweightKg, threshold: threshold)
+            }
+        }
+    }
+
+    /// Best non-warmup `reps` (used as the metric column for holds/steps/carries)
+    /// meets `target`, optionally requiring the set to be loaded.
+    private func repsMetricMet(
+        exercise: String,
+        target: Int,
+        logs: [WorkoutLog],
+        requireLoad: Bool = false
+    ) -> Bool {
+        logs.contains { log in
+            log.exerciseEntries.contains { entry in
+                matches(entry.exerciseName, exercise) &&
+                entry.sets.contains { set in
+                    !set.isWarmup && set.reps >= target && (!requireLoad || (set.weightKg ?? 0) > 0)
+                }
+            }
         }
     }
 
@@ -571,10 +603,25 @@ final class SkillProgressService {
             let fracs = parts.map { bestFraction($0, logs: logs, bodyweightKg: bodyweightKg) }
             return fracs.min() ?? 0
 
-        case .hold, .steps, .carry:
-            // Not captured in WorkoutLog today — depends on manual flow.
-            return 0
+        case .hold(let exercise, let seconds):
+            return repsMetricFraction(exercise: exercise, target: Double(seconds), logs: logs)
+        case .steps(let exercise, let count):
+            return repsMetricFraction(exercise: exercise, target: Double(count), logs: logs)
+        case .carry(let exercise, let seconds, _):
+            return repsMetricFraction(exercise: exercise, target: Double(seconds), logs: logs)
         }
+    }
+
+    /// Best non-warmup `reps` (metric column for holds/steps/carries) over target.
+    private func repsMetricFraction(exercise: String, target: Double, logs: [WorkoutLog]) -> Double {
+        guard target > 0 else { return 0 }
+        let best = logs.flatMap(\.exerciseEntries)
+            .filter { matches($0.exerciseName, exercise) }
+            .flatMap(\.sets)
+            .filter { !$0.isWarmup }
+            .map { Double($0.reps) }
+            .max() ?? 0
+        return best / target
     }
 
     // MARK: Gains awarded per node
