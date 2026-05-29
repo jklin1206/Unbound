@@ -69,6 +69,14 @@ SAFETY NOTE: legacy `WorkoutLoggingView` path (recordProgressionForLegacyWorkout
 - **B4 → hex maxes in YEARS**, but fills *faster the harder/more often the user trains* (steep top-end curve; rate scales with training volume). (Phase 5)
 - **B5 → Ascension ceremony: improve but keep SIMPLE.** Propose a concrete simple redesign at Phase 7 for thumbs-up; latitude given.
 
+## Brand decision — Unbound is the peak (shipped `1981104`)
+Council (4 lenses, ~unanimous): the eponymous word must be the summit. LABEL-ONLY swap — RankTier.displayName peak(.ascendant rawValue 8)="Unbound", tier7(.unbound)="Ascendant". Case names/rawValues/tokens/persistence/badge-art all unchanged. Fixed the ~4 ordering-encoded copy spots (skin hints, trial gate subtitles, onboarding label) + test. FOLLOW-UP flagged: ContentNotificationCatalog rank-up sequence has pre-existing ordering quirks + the "top 5%" superlative now belongs to Unbound — needs a holistic pass.
+
+## Phase 3 decisions (jlin) + status
+- Scope = **rank everything loaded** (build the C.3 family-default curves for accessories too; ratios are flagged estimates, tunable).
+- Defaults taken (not objected): O1 5→9 anchoring (Beg=novice…Elite=ascendant), O4 male-default when sex nil, O5 dumbbell→barbell-parent table.
+- Proposal: docs/PHASE3-STANDARDS-PROPOSAL.md. STILL NEEDS: jlin's go on the ratio table itself (the "tiers feel off" was the naming, now resolved) before wiring. Then implement (encode compounds + family-defaults + delete LiftTierCriteria + dead MovementTierStandard/MovementStandardLadder + re-point 4 readers to pass bodyweight), verify, push.
+
 ## Blockers (for the morning report)
 - **B1 (Phase 0):** legacy `WorkoutLoggingView` → `recordProgressionForLegacyWorkout` is intentionally side-effect-free (no OverallLevel/skill/rank ingest). If that screen is still reachable as a real logger, those sessions silently don't count. Plan's "unmatched — won't count" integrity state also not yet built (needs UX decision). VERIFY reachability + decide.
 - **B2 (Phase 2):** `SubRank` (109 refs) is load-bearing — surfaced in Home (`aggregateRank: SubRank`), drives StrengthStandards/PR-detection/attribute rank-up cadence. Deleting = coarsening rank-up cadence 18→9 steps = **game-balance decision**. `SkillRank` (10 live consumers incl. Views + RewardComputer) also real surgery, not the "dead" the audit claimed. NEEDS jlin's call on cadence.
