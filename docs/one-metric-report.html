@@ -81,8 +81,8 @@
     <h1>ONE METRIC<br>Progression Cleanup</h1>
     <p class="lead">Collapsing ~16 ways of measuring "how good are you" down to one rank metric. <b style="color:var(--green)">The core is done</b> — Phases 1, 2, 3, 5, 7 + 8 shipped to prod across a night of work, every change build- and test-verified, with you steering the balance/design calls at each checkpoint.</p>
     <div class="hero-stats">
-      <div class="stat"><div class="v" style="color:var(--green)">7</div><div class="l">phases shipped</div></div>
-      <div class="stat"><div class="v">19</div><div class="l">prod pushes</div></div>
+      <div class="stat"><div class="v" style="color:var(--green)">7.5</div><div class="l">phases shipped</div></div>
+      <div class="stat"><div class="v">20</div><div class="l">prod pushes</div></div>
       <div class="stat"><div class="v" style="color:var(--green)">976</div><div class="l">tests green</div></div>
       <div class="stat"><div class="v" style="color:var(--green)">✓</div><div class="l">core complete</div></div>
     </div>
@@ -206,7 +206,7 @@
       <tr><td><b>1</b> One LVL</td><td><span class="tag t-green">✓ done</span></td><td>Shipped <code>b0dbbf4</code>. grep <code>unbound.gains</code> = 0.</td></tr>
       <tr><td><b>2</b> One rank ladder</td><td><span class="tag t-green">✓ done + brand swap</span></td><td>SubRank deleted (c5237a7). UNBOUND now the PEAK tier (1981104, council-backed label swap). SkillRank → Phase 4 (it's node difficulty, not the ladder).</td></tr>
       <tr><td><b>3</b> Rank by metric</td><td><span class="tag t-green">✓ done</span></td><td>StrengthLevel bw-relative ratios shipped (1316aad): 5 compounds + 8 accessory families, unranked set, LiftTierCriteria + dead ladder engine deleted. 986 tests.</td></tr>
-      <tr><td><b>4</b> Tree placement</td><td><span class="tag t-blue">partial</span></td><td>.new dupe gone. SkillLevel (680 refs) = high fan-out, not started.</td></tr>
+      <tr><td><b>4</b> Tree placement</td><td><span class="tag t-green">✓ core done</span></td><td>Dead SkillLevel deleted + placementRank added (66abdda). Stars-difficulty redesign + NodeState/mastered cleanup deferred to a focused UI pass (jlin).</td></tr>
       <tr><td><b>5</b> Hex</td><td><span class="tag t-green">✓ done</span></td><td>One number/axis (6428420). Curve maxes in years; per-axis catch-up = build-revealing + balance-efficient. 0-100 scale/decay/display-trick deleted.</td></tr>
       <tr><td><b>6</b> Reward beat: XP + % to next rank</td><td><span class="tag t-green">✓ done</span></td><td>Post-workout, each exercise shows <b>+X XP</b> + a <b>"% → next rank"</b> bar + the rank-up moment (40be1a7). Derived live from StrengthStandards; user-facing AP=0. Eyeball the feel in-app.</td></tr>
       <tr><td><b>7</b> Overall rank</td><td><span class="tag t-green">✓ done</span></td><td>Build+difficulty-weighted accumulation + tiered Ascension ceremony (auto/benchmark/gauntlet) shipped (d73a611). Omni-max gates deleted; minOverallLevel kept; claimed rank never demotes. 974 tests.</td></tr>
