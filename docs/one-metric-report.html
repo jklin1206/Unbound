@@ -208,7 +208,7 @@
       <tr><td><b>3</b> Rank by metric</td><td><span class="tag t-green">✓ done</span></td><td>StrengthLevel bw-relative ratios shipped (1316aad): 5 compounds + 8 accessory families, unranked set, LiftTierCriteria + dead ladder engine deleted. 986 tests.</td></tr>
       <tr><td><b>4</b> Tree placement</td><td><span class="tag t-blue">partial</span></td><td>.new dupe gone. SkillLevel (680 refs) = high fan-out, not started.</td></tr>
       <tr><td><b>5</b> Hex</td><td><span class="tag t-green">✓ done</span></td><td>One number/axis (6428420). Curve maxes in years; per-axis catch-up = build-revealing + balance-efficient. 0-100 scale/decay/display-trick deleted.</td></tr>
-      <tr><td><b>6</b> AP → XP rename</td><td><span class="tag t-gold">remaining</span></td><td>The "AP" strings ARE the per-movement ledger UI → should become the derived "% to next rank" bar. The remaining UI-rename + ledger reframing. Mechanical, low-risk.</td></tr>
+      <tr><td><b>6</b> Reward beat: XP + % to next rank</td><td><span class="tag t-blue">in progress</span></td><td>The real question: does the user feel <i>rewarded</i> after a workout? Post-workout, each exercise shows <b>+X XP</b> + a <b>"% → next rank"</b> bar + the rank-up moment. (AP→XP rename is just the surface.)</td></tr>
       <tr><td><b>7</b> Overall rank</td><td><span class="tag t-green">✓ done</span></td><td>Build+difficulty-weighted accumulation + tiered Ascension ceremony (auto/benchmark/gauntlet) shipped (d73a611). Omni-max gates deleted; minOverallLevel kept; claimed rank never demotes. 974 tests.</td></tr>
       <tr><td><b>8</b> Docs/structure</td><td><span class="tag t-green">✓ map shipped</span></td><td>ARCHITECTURE.md (71727bf). Doc deletion/regroup deferred to post-3.</td></tr>
     </table>
@@ -262,7 +262,7 @@
     <div class="kicker">What's left</div>
     <h2>The core's done — here's the tail</h2>
     <ul class="clean">
-      <li><span class="dot d-gold"></span><span><b>Phase 6 — AP → XP rename + "% to next rank".</b> The remaining piece: the "AP" ledger UI becomes the derived "% to next rank" bar (now that Phase 3's metric ladders exist). Mechanical, low-risk.</span></li>
+      <li><span class="dot d-blue"></span><span><b>Phase 6 — the reward beat (in progress).</b> The real question: does the user feel rewarded for the exercises they did? Post-workout, each exercise shows <b>+X XP</b> and a derived <b>"% → next rank"</b> bar, celebrating the rank-up moment. (The AP→XP rename is just the surface.)</span></li>
       <li><span class="dot d-blue"></span><span><b>Phase 4 — `SkillLevel` deletion</b> (680 refs, high fan-out) + folding `SkillRank` (node difficulty) into `placementRank`. The one big mechanical sweep left.</span></li>
       <li><span class="dot d-blue"></span><span><b>Phase 0 — the "unmatched — won't count" integrity state</b> (a UX call) + confirming the legacy `WorkoutLoggingView` path is retired.</span></li>
       <li><span class="dot d-green"></span><span><b>Run the app once</b> and eyeball Home/Profile — the LVL, the new ranks, the hex. Unit tests (974) pass, but the live UI is the one thing they can't visually verify.</span></li>
