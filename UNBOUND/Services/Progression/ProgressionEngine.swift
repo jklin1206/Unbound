@@ -63,6 +63,10 @@ final class ProgressionEngine {
                 feedbackMode: feedbackMode
             )
         }
+
+        // Auto-deload: after states are updated, detect plateaus and deload
+        // without a Coach tap when warranted (anti-thrash inside the service).
+        await AutoDeloadService.shared.evaluate(userId: log.userId)
     }
 
     // MARK: Per-exercise evaluation
