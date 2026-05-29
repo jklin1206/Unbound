@@ -348,17 +348,16 @@ final class SkillProgressService {
                 })
             })
         case .hold(let exercise, let seconds):
-            // Holds log seconds in the reps column (same convention RankService
-            // uses). Auto-advance when a working set meets the target seconds.
+            // Hold: best logged duration meets the target seconds.
             let target = Int((Double(seconds) * threshold).rounded())
-            return repsMetricMet(exercise: exercise, target: target, logs: logs)
+            return secondsMetricMet(exercise: exercise, target: target, logs: logs)
         case .steps(let exercise, let count):
             let target = Int((Double(count) * threshold).rounded())
             return repsMetricMet(exercise: exercise, target: target, logs: logs)
         case .carry(let exercise, let seconds, _):
-            // Carry: seconds in the reps column AND the set must be loaded.
+            // Carry: target duration AND the set must be loaded.
             let target = Int((Double(seconds) * threshold).rounded())
-            return repsMetricMet(exercise: exercise, target: target, logs: logs, requireLoad: true)
+            return secondsMetricMet(exercise: exercise, target: target, logs: logs, requireLoad: true)
         case .composite(let parts):
             // Every part must be proven at this threshold.
             return parts.allSatisfy {
@@ -367,8 +366,8 @@ final class SkillProgressService {
         }
     }
 
-    /// Best non-warmup `reps` (used as the metric column for holds/steps/carries)
-    /// meets `target`, optionally requiring the set to be loaded.
+    /// Best non-warmup `reps` (used as the metric column for steps) meets
+    /// `target`, optionally requiring the set to be loaded.
     private func repsMetricMet(
         exercise: String,
         target: Int,
@@ -380,6 +379,26 @@ final class SkillProgressService {
                 matches(entry.exerciseName, exercise) &&
                 entry.sets.contains { set in
                     !set.isWarmup && set.reps >= target && (!requireLoad || (set.weightKg ?? 0) > 0)
+                }
+            }
+        }
+    }
+
+    /// Best non-warmup hold/carry duration meets `target` seconds. Reads
+    /// `durationSeconds`, falling back to `reps` for legacy reps-column holds.
+    private func secondsMetricMet(
+        exercise: String,
+        target: Int,
+        logs: [WorkoutLog],
+        requireLoad: Bool = false
+    ) -> Bool {
+        logs.contains { log in
+            log.exerciseEntries.contains { entry in
+                matches(entry.exerciseName, exercise) &&
+                entry.sets.contains { set in
+                    !set.isWarmup
+                        && (set.durationSeconds ?? set.reps) >= target
+                        && (!requireLoad || (set.weightKg ?? 0) > 0)
                 }
             }
         }
@@ -428,15 +447,15 @@ final class SkillProgressService {
             return fracs.min() ?? 0
 
         case .hold(let exercise, let seconds):
-            return repsMetricFraction(exercise: exercise, target: Double(seconds), logs: logs)
+            return secondsMetricFraction(exercise: exercise, target: Double(seconds), logs: logs)
         case .steps(let exercise, let count):
             return repsMetricFraction(exercise: exercise, target: Double(count), logs: logs)
         case .carry(let exercise, let seconds, _):
-            return repsMetricFraction(exercise: exercise, target: Double(seconds), logs: logs)
+            return secondsMetricFraction(exercise: exercise, target: Double(seconds), logs: logs)
         }
     }
 
-    /// Best non-warmup `reps` (metric column for holds/steps/carries) over target.
+    /// Best non-warmup `reps` (metric column for steps) over target.
     private func repsMetricFraction(exercise: String, target: Double, logs: [WorkoutLog]) -> Double {
         guard target > 0 else { return 0 }
         let best = logs.flatMap(\.exerciseEntries)
@@ -444,6 +463,19 @@ final class SkillProgressService {
             .flatMap(\.sets)
             .filter { !$0.isWarmup }
             .map { Double($0.reps) }
+            .max() ?? 0
+        return best / target
+    }
+
+    /// Best non-warmup hold/carry duration over target. Reads `durationSeconds`,
+    /// falling back to `reps` for legacy reps-column holds.
+    private func secondsMetricFraction(exercise: String, target: Double, logs: [WorkoutLog]) -> Double {
+        guard target > 0 else { return 0 }
+        let best = logs.flatMap(\.exerciseEntries)
+            .filter { matches($0.exerciseName, exercise) }
+            .flatMap(\.sets)
+            .filter { !$0.isWarmup }
+            .map { Double($0.durationSeconds ?? $0.reps) }
             .max() ?? 0
         return best / target
     }

@@ -453,7 +453,9 @@ final class TrainingSessionAdapterTests: XCTestCase {
 
         let workoutLog = TrainingSessionAdapters.workoutLog(from: log)
         XCTAssertEqual(workoutLog?.exerciseEntries.first?.exerciseName, "Freestanding Handstand Attempts")
-        XCTAssertEqual(workoutLog?.exerciseEntries.first?.sets.first?.reps, 18)
+        // Foundation 2: a hold maps to durationSeconds, not the reps column.
+        XCTAssertEqual(workoutLog?.exerciseEntries.first?.sets.first?.reps, 0)
+        XCTAssertEqual(workoutLog?.exerciseEntries.first?.sets.first?.durationSeconds, 18)
     }
 
     func testSkillSessionLoggedExercisesMapIntoPerformanceLog() {

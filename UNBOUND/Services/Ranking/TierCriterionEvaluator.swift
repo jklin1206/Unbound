@@ -6,9 +6,8 @@ import Foundation
 /// Exercise-name comparisons are case-insensitive and trim whitespace.
 /// Warmup sets are excluded from all calculations.
 ///
-/// NOTE on .seconds: this evaluator still only receives WorkoutLog entries,
-/// not SessionLog holdSeconds. The .seconds branch remains false until rank
-/// evaluation ingests the skill-session log stream.
+/// .seconds reads `SetLog.durationSeconds` (Foundation 2), falling back to
+/// `reps` for legacy logs that encoded hold seconds in the reps column.
 enum TierCriterionEvaluator {
 
     static func satisfied(
@@ -20,9 +19,9 @@ enum TierCriterionEvaluator {
         case .reps(let target, let exerciseName):
             return bestReps(for: exerciseName, in: history) >= target
 
-        case .seconds:
-            // No seconds tracking on SetLog — see file header comment.
-            return false
+        case .seconds(let target):
+            // History is pre-filtered to the relevant exercise by the caller.
+            return bestSeconds(in: history) >= target
 
         case .weightKg(let target):
             return bestWeight(in: history) >= target
@@ -64,6 +63,17 @@ enum TierCriterionEvaluator {
             .flatMap { $0.sets }
             .filter { !$0.isWarmup }
             .map { $0.reps }
+            .max() ?? 0
+    }
+
+    /// Best hold/carry duration across all entries (pre-filtered to the
+    /// exercise by the caller). Reads `durationSeconds`, falling back to `reps`
+    /// for legacy reps-column holds.
+    private static func bestSeconds(in history: [ExerciseLogEntry]) -> Int {
+        history
+            .flatMap { $0.sets }
+            .filter { !$0.isWarmup }
+            .map { $0.durationSeconds ?? $0.reps }
             .max() ?? 0
     }
 

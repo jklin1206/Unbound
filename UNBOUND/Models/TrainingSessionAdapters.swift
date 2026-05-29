@@ -158,9 +158,10 @@ enum TrainingSessionAdapters {
                                 id: set.id,
                                 setNumber: set.setNumber,
                                 weightKg: set.weightKg,
-                                reps: set.reps ?? set.holdSeconds ?? set.durationSeconds ?? 0,
+                                reps: set.reps ?? 0,
                                 rpe: set.rpe,
-                                isWarmup: set.isWarmup
+                                isWarmup: set.isWarmup,
+                                durationSeconds: set.holdSeconds ?? set.durationSeconds
                             )
                         },
                         skipped: exercise.skipped,

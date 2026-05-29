@@ -385,9 +385,10 @@ final class RankService: RankServiceProtocol {
         return .ascendant
     }
 
-    /// Hold-based (seconds logged in the reps column — existing convention).
+    /// Hold-based: best `durationSeconds` across sets, falling back to `reps`
+    /// for legacy logs that encoded hold seconds in the reps column.
     private func holdRank(exerciseKey: String, entries: [SetLog]) -> RankTier? {
-        let peakSeconds = entries.map(\.reps).max() ?? 0
+        let peakSeconds = entries.map { $0.durationSeconds ?? $0.reps }.max() ?? 0
         guard peakSeconds > 0 else { return nil }
 
         let anchors: [Int]?

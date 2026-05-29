@@ -54,6 +54,30 @@ final class SkillAutoProofTests: XCTestCase {
                       "60s logged ≥ 2× target → mastered")
     }
 
+    /// Foundation 2: a hold logged with real `durationSeconds` (not the reps
+    /// column) proves the node.
+    func testHoldAutoProvesFromDurationSeconds() async {
+        let s = await svc()
+        let req = NodeRequirement.hold(exercise: "l-sit", seconds: 10)
+        let holdLog = WorkoutLog(
+            id: "log-d", userId: "u", programId: "p", dayNumber: 1,
+            plannedWorkoutName: "Skill",
+            startedAt: Date(timeIntervalSince1970: 1_000),
+            completedAt: Date(timeIntervalSince1970: 2_000),
+            exerciseEntries: [
+                ExerciseLogEntry(
+                    id: "e-1", exerciseName: "l-sit", plannedSets: 1, plannedReps: "10s",
+                    sets: [SetLog(id: "s-1", setNumber: 1, weightKg: nil, reps: 0,
+                                  rpe: nil, isWarmup: false, durationSeconds: 30)],
+                    skipped: false, notes: nil
+                )
+            ],
+            overallNotes: nil, overallRPE: nil, durationMinutes: nil
+        )
+        XCTAssertTrue(s.requirementMet(req, logs: [holdLog], bodyweightKg: 70, threshold: 1.0),
+                      "30s in durationSeconds ≥ 10s target → proven")
+    }
+
     func testHoldStaysLockedBelowTarget() async {
         let s = await svc()
         let req = NodeRequirement.hold(exercise: "l-sit", seconds: 10)

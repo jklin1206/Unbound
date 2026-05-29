@@ -33,4 +33,10 @@ struct SetLog: Codable, Identifiable, Hashable {
     var reps: Int
     var rpe: Int?
     var isWarmup: Bool
+    /// Hold/carry duration in seconds. `nil` for rep-based sets. Pre-Foundation-2
+    /// logs encoded hold seconds in `reps`; readers fall back to `reps` when this
+    /// is nil so legacy holds still rank. (Optional + default keeps the
+    /// memberwise init and existing call sites source-compatible; auto-Codable
+    /// decodes a missing key as nil — no migration.)
+    var durationSeconds: Int? = nil
 }
