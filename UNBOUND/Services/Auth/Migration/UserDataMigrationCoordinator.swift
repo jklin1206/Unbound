@@ -4,13 +4,24 @@ struct UserDataMigrationSummary: Equatable, Sendable {
     var workoutLogs = UserDataMigrationCollectionSummary()
     var workingWeights = UserDataMigrationCollectionSummary()
     var skillProgress = UserDataMigrationCollectionSummary()
+    var scans = UserDataMigrationCollectionSummary()
 
     var migratedLocally: Int {
-        workoutLogs.localWrites + workingWeights.localWrites + skillProgress.localWrites
+        workoutLogs.localWrites + workingWeights.localWrites + skillProgress.localWrites + scans.localWrites
     }
 
     var remoteDeferred: Int {
         workoutLogs.remoteDeferred + workingWeights.remoteDeferred + skillProgress.remoteDeferred
+    }
+
+    /// True only when every collection finished without a recorded failure.
+    /// Gates the persisted `migrationCompleted` flag so a half-migrated state
+    /// is retried on the next launch instead of being silently abandoned.
+    var allCollectionsSucceeded: Bool {
+        workoutLogs.failures == 0
+            && workingWeights.failures == 0
+            && skillProgress.failures == 0
+            && scans.failures == 0
     }
 }
 
@@ -44,24 +55,68 @@ protocol UserDataMigrationRemoteWriting: Sendable {
     func upsertSkillProgress(_ progress: UserSkillProgress) async throws
 }
 
+/// Re-keys local scan checkpoint records from the anonymous UID to the
+/// authenticated UID. Without this, scans keyed under the pre-auth UID are
+/// orphaned on sign-in (Bug #1).
+protocol UserDataMigrationScanStoring: Sendable {
+    func scanCheckpoints(userId: String) async throws -> [ScanCheckpoint]
+    func writeScanCheckpoint(_ checkpoint: ScanCheckpoint) async throws
+}
+
+/// Moves the on-disk scan-photo directory from the anonymous UID path to the
+/// authenticated UID path. Photos are stored at `ScanPhotos/<userId>/...`, so
+/// without the move they are orphaned on sign-in (Bug #1).
+protocol UserDataMigrationPhotoMoving: Sendable {
+    func movePhotoDirectory(from legacyUserId: String, to supabaseUserId: String) async throws
+}
+
+/// Persists a per-(legacy → supabase) `migrationCompleted` flag so a migration
+/// interrupted by a crash/kill is resumed on the next launch and only treated
+/// as done once every collection has migrated cleanly (Bug #2).
+protocol UserDataMigrationFlagStoring: Sendable {
+    func isCompleted(legacyUserId: String, supabaseUserId: String) -> Bool
+    func markCompleted(legacyUserId: String, supabaseUserId: String)
+}
+
 struct UserDataMigrationCoordinator: Sendable {
     private let local: any UserDataMigrationLocalStoring
     private let remote: any UserDataMigrationRemoteWriting
+    private let scanStore: any UserDataMigrationScanStoring
+    private let photoMover: any UserDataMigrationPhotoMoving
+    private let flagStore: any UserDataMigrationFlagStoring
     private let logger: LoggingService
 
     init(
         local: any UserDataMigrationLocalStoring = ProductionUserDataMigrationLocalStore(),
         remote: any UserDataMigrationRemoteWriting = SupabaseUserDataMigrationRemoteStore(),
+        scanStore: any UserDataMigrationScanStoring = ProductionUserDataMigrationScanStore(),
+        photoMover: any UserDataMigrationPhotoMoving = StorageService.shared,
+        flagStore: any UserDataMigrationFlagStoring = UserDefaultsUserDataMigrationFlagStore(),
         logger: LoggingService = .shared
     ) {
         self.local = local
         self.remote = remote
+        self.scanStore = scanStore
+        self.photoMover = photoMover
+        self.flagStore = flagStore
         self.logger = logger
     }
 
     func migrate(legacyUserId: String, supabaseUserId: String) async -> UserDataMigrationSummary {
         guard legacyUserId != supabaseUserId else {
             logger.log("Skipped local data migration because source and destination user ids match", level: .info)
+            return UserDataMigrationSummary()
+        }
+
+        // Resume guard: if a prior run already migrated every collection
+        // cleanly, short-circuit. A half-migrated state never sets the flag,
+        // so an interrupted migration is retried here on the next launch.
+        if flagStore.isCompleted(legacyUserId: legacyUserId, supabaseUserId: supabaseUserId) {
+            logger.log(
+                "Local data migration already completed; skipping",
+                level: .info,
+                context: ["from": legacyUserId, "to": supabaseUserId]
+            )
             return UserDataMigrationSummary()
         }
 
@@ -88,12 +143,83 @@ struct UserDataMigrationCoordinator: Sendable {
             supabaseUserId: supabaseUserId,
             remoteReady: remoteReady
         )
+        let scans = await migrateScans(
+            legacyUserId: legacyUserId,
+            supabaseUserId: supabaseUserId
+        )
 
-        return UserDataMigrationSummary(
+        let summary = UserDataMigrationSummary(
             workoutLogs: workoutLogs,
             workingWeights: workingWeights,
-            skillProgress: skillProgress
+            skillProgress: skillProgress,
+            scans: scans
         )
+
+        // Only flip the persisted flag once EVERY collection migrated cleanly.
+        // A failure anywhere leaves the flag unset so the next launch resumes.
+        if summary.allCollectionsSucceeded {
+            flagStore.markCompleted(legacyUserId: legacyUserId, supabaseUserId: supabaseUserId)
+            logger.log(
+                "Local data migration marked complete",
+                level: .info,
+                context: ["from": legacyUserId, "to": supabaseUserId]
+            )
+        } else {
+            logger.log(
+                "Local data migration incomplete; will resume on next launch",
+                level: .warning,
+                context: ["from": legacyUserId, "to": supabaseUserId]
+            )
+        }
+
+        return summary
+    }
+
+    /// Re-keys every scan checkpoint from the anonymous UID to the
+    /// authenticated UID, then moves the on-disk photo directory. The photo
+    /// move runs only after all checkpoint records were re-keyed without a
+    /// failure, so a partial scan re-key never strands the photo directory.
+    private func migrateScans(
+        legacyUserId: String,
+        supabaseUserId: String
+    ) async -> UserDataMigrationCollectionSummary {
+        var summary = UserDataMigrationCollectionSummary()
+
+        do {
+            let legacyScans = try await scanStore.scanCheckpoints(userId: legacyUserId)
+            summary.scanned = legacyScans.count
+
+            for legacy in legacyScans {
+                do {
+                    let target = legacy.rekeyed(to: supabaseUserId)
+                    try await scanStore.writeScanCheckpoint(target)
+                    summary.localWrites += 1
+                } catch {
+                    summary.failures += 1
+                    logger.log(
+                        "Scan checkpoint migration failed: \(error)",
+                        level: .error,
+                        context: ["scanId": legacy.id]
+                    )
+                }
+            }
+        } catch {
+            summary.failures += 1
+            logger.log("Scan checkpoint migration failed: \(error)", level: .error)
+        }
+
+        // Move photos only if every checkpoint re-key succeeded; otherwise the
+        // next resumed run handles both the remaining records and the photos.
+        if summary.failures == 0 {
+            do {
+                try await photoMover.movePhotoDirectory(from: legacyUserId, to: supabaseUserId)
+            } catch {
+                summary.failures += 1
+                logger.log("Scan photo directory move failed: \(error)", level: .error)
+            }
+        }
+
+        return summary
     }
 
     private func migrateWorkoutLogs(
@@ -303,6 +429,21 @@ private extension WorkoutLog {
 
     var isSupabaseMigrationCompatible: Bool {
         UUID(uuidString: id) != nil && UUID(uuidString: programId) != nil
+    }
+}
+
+private extension ScanCheckpoint {
+    func rekeyed(to userId: String) -> ScanCheckpoint {
+        ScanCheckpoint(
+            id: id,
+            userId: userId,
+            createdAt: createdAt,
+            photoFilename: photoFilename,
+            buildIdentitySnapshot: buildIdentitySnapshot,
+            narrative: narrative,
+            deltaFromPrior: deltaFromPrior,
+            checkpointOutcome: checkpointOutcome
+        )
     }
 }
 

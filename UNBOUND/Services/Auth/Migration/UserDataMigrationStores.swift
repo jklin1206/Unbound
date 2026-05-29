@@ -63,6 +63,48 @@ struct ProductionUserDataMigrationLocalStore: UserDataMigrationLocalStoring {
     }
 }
 
+/// Re-keys local scan checkpoints via the filesystem-backed
+/// `ScanCheckpointStore`. Re-key is an in-place overwrite: the checkpoint id is
+/// stable, only the embedded `userId` changes, so no duplicate file is created.
+struct ProductionUserDataMigrationScanStore: UserDataMigrationScanStoring {
+    private let store: ScanCheckpointStore
+
+    init(store: ScanCheckpointStore = .shared) {
+        self.store = store
+    }
+
+    func scanCheckpoints(userId: String) async throws -> [ScanCheckpoint] {
+        try store.history(userId: userId)
+    }
+
+    func writeScanCheckpoint(_ checkpoint: ScanCheckpoint) async throws {
+        try store.save(checkpoint)
+    }
+}
+
+/// Persists the per-(legacy → supabase) migration-completed flag in
+/// UserDefaults. Local-only and survives relaunches, which is exactly what the
+/// resume guard needs.
+struct UserDefaultsUserDataMigrationFlagStore: UserDataMigrationFlagStoring {
+    private let defaults: UserDefaults
+
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+    }
+
+    private func key(legacyUserId: String, supabaseUserId: String) -> String {
+        "migrationCompleted.\(legacyUserId)->\(supabaseUserId)"
+    }
+
+    func isCompleted(legacyUserId: String, supabaseUserId: String) -> Bool {
+        defaults.bool(forKey: key(legacyUserId: legacyUserId, supabaseUserId: supabaseUserId))
+    }
+
+    func markCompleted(legacyUserId: String, supabaseUserId: String) {
+        defaults.set(true, forKey: key(legacyUserId: legacyUserId, supabaseUserId: supabaseUserId))
+    }
+}
+
 struct SupabaseUserDataMigrationRemoteStore: UserDataMigrationRemoteWriting {
     private let supabase: SupabaseDatabase
 
