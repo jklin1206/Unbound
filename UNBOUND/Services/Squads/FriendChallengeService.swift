@@ -306,11 +306,21 @@ final class FriendChallengeService: FriendChallengeServiceProtocol {
                     winnerId = challenge.challengerId
                 }
                 let patch = WinnerPatch(winner_user_id: winnerId.uuidString)
-                try await db
+                // Idempotency guard: `evaluateExpired` runs on every scenePhase
+                // .active with no throttle, so two rapid foregrounds (or two
+                // devices) can race here. Filtering on winner_user_id IS NULL
+                // makes the second settle update zero rows; we only post
+                // .friendChallengeExpired when this call actually claimed the
+                // row (returned rows is non-empty), so the toast fires once.
+                let updated: [ChallengeRow] = try await db
                     .from("friend_challenges")
                     .update(patch)
                     .eq("id", value: challenge.id.uuidString)
+                    .is("winner_user_id", value: nil)
+                    .select()
                     .execute()
+                    .value
+                guard !updated.isEmpty else { continue }
                 NotificationCenter.default.post(name: .friendChallengeExpired, object: challenge)
             }
         } catch {
