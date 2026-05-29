@@ -36,7 +36,7 @@
 ## Phase status
 | Phase | Title | State | Notes |
 |---|---|---|---|
-| 0 | Logging actually records | BLOCKED (B1) | complete() already canonical (most of phase pre-done). Remaining = delete dead saveLog cascade + "unmatched" integrity state (needs UX decision + legacy-screen reachability check). |
+| 0 | Logging actually records | ✅ DONE (`a24529a`) | complete() canonical (pre-done). Added live "Won't count toward rank or XP" badge on unmatched exercises (ExerciseLogCard + CustomExerciseBuilderView). Deleted dead WorkoutLoggingView/VM/SetLogRow + saveLog cascade + recordProgressionForLegacyWorkout. 972 tests. |
 | 1 | One LVL | ✅ DONE (`b0dbbf4`) | Re-sourced to AP-derived OverallLevel; unbound.gains deleted (grep 0). Photo/routine/scan LVL drop flagged (D1). |
 | 2 | One rank ladder (kill E–S) | ✅ SubRank DONE (`c5237a7`); SkillRank → Phase 4 | MuscleGroupTier trio deleted (`212a40c`). SubRank deleted, RankTier sole ladder, 18→9 reviewed. **SkillRank FINDING:** it's the per-node intrinsic *difficulty* bucket (Dormant/Awakened/…/Ascended + taglines + colors), NOT the rank ladder — that's Phase 4's placement concept. 6 buckets don't map cleanly to RankTier's 9 tiers. Deleting needs the Phase 4 placement decision + copy re-homing. Moved to Phase 4. |
 | 3 | Rank every movement by template metric | ✅ DONE (`1316aad`) | StrengthLevel bw-relative ratios, 5 compounds + 8 accessory families (male+female), unranked set, DB×2 rule. LiftTierCriteria + dead ladder engine deleted. App logs TOTAL load (verified). 986 tests. |
@@ -45,7 +45,10 @@
 | 6 | Reward beat: "+X XP" + "% to next rank" | NEXT (Phase 3 done → unblocked) | **GOAL (jlin reframe):** the real question is "does the user feel REWARDED for the exercises they did after a workout, with a % to the next rank." Not a rename — the post-workout reward sequence (WorkoutRewardSequenceView) shows per-exercise **+X XP** and a derived **"X% → [next rank]"** bar (current best vs next RankTier threshold via StrengthStandards, computed not stored) + the rank-up moment on crossing. AP→XP rename is the surface; the reward UX is the deliverable. Eyeball in-app (UX). |
 | 7 | Overall rank = accumulation + Ascension | ✅ DONE (`d73a611`) | aggregateRank = build+difficulty-weighted mean w/ decay + ≥4 coverage guard. Two-gate eligibility (accumulation + minOverallLevel). Tiered ceremony: auto-confirm (Novice/Apprentice) / benchmark (Forged/Veteran) / gauntlet (Master+). Omni-max gates deleted; minOverallLevel kept; highestPassedRank = claimed (never demotes) drives cosmetics. 974 tests. NOTE: barbell-compound difficulty fixed=6 (interpretive, one-line change). |
 
-## ROLL STATUS (2026-05-29) — CORE COMPLETE
+## ROLL STATUS (2026-05-29) — ✅ COMPLETE (all 8 phases shipped)
+All 8 phases (0–8) + D1 shipped to main, 972 tests green, every balance/design call jlin-checkpointed. Deferred (logged, non-blocking): skill-tree "stars" difficulty redesign + NodeState collapse + kill "mastered"/per-node Lv1-5 ladder (jlin's focused-UI-pass call); 2 tier-monotonicity flags (cl.hanging-leg-raise, cl.german-hang); internal AP-symbol rename (cosmetic, non-user-facing).
+
+### (historical) prior note — CORE COMPLETE
 SHIPPED to main (18 commits): Phase 1 (one LVL), Phase 2 (SubRank deleted + Unbound-peak swap), Phase 3 (StrengthLevel standards), Phase 5 (hex one-number + catch-up), Phase 7 (accumulation + Ascension), Phase 8 (ARCHITECTURE.md), D1 (photo/scan/routine LVL), dead-code purge. All build-green + full-test-verified + jlin-checkpointed on every balance/design call.
 REMAINING (mechanical/low-risk, not blocking): Phase 6 (AP→XP rename + derived "% to next rank" — the ledger UI reframe), Phase 4 (SkillLevel 680-ref deletion + SkillRank→placementRank), Phase 0 ("unmatched — won't count" integrity UX + retire legacy WorkoutLoggingView path).
 | 8 | Docs + file-structure | PARTIAL — `ARCHITECTURE.md` shipped | Map written (subsystem→code→planned doc). Did NOT delete superseded docs (premature — model not yet unified). Model-file regrouping deferred until Phase 2/3 land. |
