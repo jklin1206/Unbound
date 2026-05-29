@@ -336,6 +336,8 @@ final class TrainingCompletionService {
             sourceLogId: performanceLog.id,
             userId: performanceLog.userId,
             at: performanceLog.completedAt,
+            gains: movementProgress.gains,
+            rankUpEvents: attributeRankUpEventCount,
             database: services.database
         )
         result.overallLevelReward = overallLevelProgress

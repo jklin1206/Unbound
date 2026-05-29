@@ -453,6 +453,8 @@ final class OverallLevelService {
         sourceLogId: String,
         userId: String,
         at date: Date,
+        gains: [MovementAPGain] = [],
+        rankUpEvents: Int = 0,
         database: any DatabaseServiceProtocol = SyncedDatabase.shared
     ) async -> OverallLevelReward {
         var progress = await loadProgress(userId: userId, database: database)
@@ -460,7 +462,16 @@ final class OverallLevelService {
         let previousLevel = progress.level
         let previousProgress = progress.progressToNextLevel
 
-        guard rawAP > 0, !progress.processedSourceLogIds.contains(sourceLogId) else {
+        // Velocity layer: when the per-movement gains are supplied, weight LV by
+        // each movement's skill + compound factors instead of crediting flat
+        // volume. Falls back to the scalar `rawAP` for callers that don't pass
+        // gains (previews, legacy paths).
+        let effectiveAP = gains.isEmpty
+            ? rawAP
+            : VelocityWeighting.weightedAP(gains: gains)
+        let bolus = VelocityWeighting.rankUpBolus(rankUpEvents: rankUpEvents)
+
+        guard effectiveAP > 0 || bolus > 0, !progress.processedSourceLogIds.contains(sourceLogId) else {
             return OverallLevelReward(
                 xpGained: 0,
                 noveltyMultiplier: noveltyMultiplier,
@@ -473,7 +484,17 @@ final class OverallLevelService {
             )
         }
 
-        let xpGained = RewardLedgerQuantizer.wholePoints(from: rawAP * max(1.0, noveltyMultiplier))
+        // Comeback bonus only applies to a returning user (a prior session
+        // exists); a first-ever session is always neutral.
+        let comeback: Double = {
+            guard !progress.processedSourceLogIds.isEmpty else { return 1.0 }
+            let days = max(0, date.timeIntervalSince(progress.updatedAt)) / 86_400
+            return VelocityWeighting.comebackMultiplier(daysSinceLastSession: days)
+        }()
+
+        let xpGained = RewardLedgerQuantizer.wholePoints(
+            from: effectiveAP * max(1.0, noveltyMultiplier) * comeback
+        ) + bolus
         progress.apply(xpGained: xpGained, sourceLogId: sourceLogId, at: date)
         try? await database.create(progress, collection: "overall_level_progress", documentId: progress.id)
 
