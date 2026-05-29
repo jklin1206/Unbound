@@ -123,16 +123,12 @@ struct SkillNode: Identifiable, Codable, Hashable, Sendable {
 
     // MARK: - Phase 1a additions (skill-tree redesign)
     //
-    // `rank` and `levels` are introduced so every node can carry an
-    // intrinsic difficulty bucket and a 1-5 XP-gated ladder. Both default
-    // so existing content in SkillTreeContent.swift keeps compiling — the
-    // Phase 1c migration populates real values per node.
+    // `rank` is introduced so every node can carry an intrinsic difficulty
+    // bucket. Defaults so existing content in SkillTreeContent.swift keeps
+    // compiling — the Phase 1c migration populates real values per node.
 
     /// Difficulty tier shown on the node chip. Defaults to `.d`.
     var rank: SkillRank = .d
-
-    /// Ordered 1-5 ladder. Empty until Phase 1c content migration.
-    var levels: [SkillLevel] = []
 
     /// Phase 2h: named sub-chapter within the owning cluster's tree.
     /// Nodes that share a sub-chapter render beneath a horizontal
@@ -188,7 +184,6 @@ struct SkillNode: Identifiable, Codable, Hashable, Sendable {
         glyph: String? = nil,
         position: NodeGridPosition = .zero,
         rank: SkillRank = .d,
-        levels: [SkillLevel] = [],
         subChapter: String? = nil,
         isParallelToParent: Bool = false,
         tierCriteria: [SkillTier: TierCriterion] = [:]
@@ -214,7 +209,6 @@ struct SkillNode: Identifiable, Codable, Hashable, Sendable {
             glyph: glyph ?? defaultGlyph(for: type, isMythic: isMythic),
             position: position,
             rank: rank,
-            levels: levels,
             subChapter: subChapter,
             isParallelToParent: isParallelToParent,
             tierCriteria: tierCriteria
@@ -240,6 +234,12 @@ extension SkillNode {
     /// is rendered.
     /// Kept as a computed property so UI code reads it in one place.
     var displaysMythic: Bool { rank == .s || isMythic }
+
+    /// Canonical node-difficulty bucket on the 9-step RankTier scale.
+    /// Maps `tier` N → `RankTier(rawValue: N)` (tier 1 → Novice … tier 8 →
+    /// Unbound); tier 0 / locked clamps to `.initiate`. Out-of-range clamps
+    /// into 0…8. This is the single source of truth for a node's placement.
+    var placementRank: RankTier { RankTier(rawValue: min(8, max(0, tier))) ?? .initiate }
 
     /// True if at least ONE prerequisite group is fully satisfied by the given states,
     /// or the node has no prereqs. Matches the canonical OR-of-AND semantics used in
@@ -348,7 +348,6 @@ struct SkillTree: Codable, Sendable {
                     glyph: n.glyph,
                     position: NodeGridPosition(row: row, column: idx - columnOrder.count / 2),
                     rank: n.rank,
-                    levels: n.levels,
                     subChapter: n.subChapter,
                     isParallelToParent: n.isParallelToParent,
                     tierCriteria: n.tierCriteria

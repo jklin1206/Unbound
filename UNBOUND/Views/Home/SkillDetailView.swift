@@ -155,19 +155,9 @@ struct SkillDetailView: View {
         return 30
     }
 
-    /// Pull the user's current target from the next level criterion when
-    /// possible — falls back to a sane default of 5 reps.
+    /// Default rep target for the quick-log sheet. A sane default of 5 reps.
     private var defaultRepsForQuickLog: Int {
-        let sp = skillProgress.currentSkillProgress(for: node.id)
-        let nextIdx = sp.currentLevel
-        if node.levels.indices.contains(nextIdx) {
-            // Try to extract a leading integer from the criterion (e.g. "5 strict reps")
-            let criterion = node.levels[nextIdx].criterion
-            let digits = criterion.prefix { $0.isNumber || $0.isWhitespace }
-            let trimmed = digits.trimmingCharacters(in: .whitespaces)
-            if let n = Int(trimmed), n > 0 { return n }
-        }
-        return 5
+        5
     }
 
     /// Full-bleed bitmap infographic fallback for users who want the visual
@@ -898,15 +888,15 @@ struct SkillDetailView: View {
         case .initiate:
             return "Unlock and begin training this skill"
         case .novice:
-            return node.levels.first(where: { $0.level == 1 })?.criterion ?? "First clean exposure"
+            return "First clean exposure"
         case .apprentice:
-            return node.levels.first(where: { $0.level == 2 })?.criterion ?? "Build repeatable control"
+            return "Build repeatable control"
         case .forged:
-            return node.levels.first(where: { $0.level == 3 })?.criterion ?? "Own the core standard"
+            return "Own the core standard"
         case .veteran:
-            return node.levels.first(where: { $0.level == 4 })?.criterion ?? "Add volume or difficulty"
+            return "Add volume or difficulty"
         case .master:
-            return node.levels.first(where: { $0.level == 5 })?.criterion ?? "High-quality repeatability"
+            return "High-quality repeatability"
         case .vessel, .unbound, .ascendant:
             return "Advanced standard coming soon"
         }
@@ -1124,11 +1114,6 @@ struct SkillDetailView: View {
         let sp = skillProgress.currentSkillProgress(for: node.id)
         let state = nodeStates[node.id] ?? .locked
         let isMastered = (state == .mastered && sp.currentLevel == 5)
-        // currentLevel is 1-based; node.levels is 0-indexed.
-        // node.levels[currentLevel] therefore points to the NEXT level
-        // (currentLevel == 1 -> levels[1] which is level 2). Lv5 capped
-        // = no next beat.
-        let nextIdx = sp.currentLevel
         return VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text("NEXT BEAT")
@@ -1143,16 +1128,6 @@ struct SkillDetailView: View {
 
             if isMastered {
                 Text("You've mastered this skill.")
-                    .font(.system(.title3).weight(.semibold))
-                    .foregroundStyle(Color.unbound.textPrimary)
-                    .fixedSize(horizontal: false, vertical: true)
-            } else if node.levels.indices.contains(nextIdx) {
-                Text(node.levels[nextIdx].criterion)
-                    .font(.system(.title3).weight(.semibold))
-                    .foregroundStyle(Color.unbound.textPrimary)
-                    .fixedSize(horizontal: false, vertical: true)
-            } else if let last = node.levels.last {
-                Text(last.criterion)
                     .font(.system(.title3).weight(.semibold))
                     .foregroundStyle(Color.unbound.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)

@@ -76,17 +76,7 @@ struct OverviewTabView: View {
             )
         }
 
-        // Step 2: Level 1 criterion — first clean rep.
-        if let lvl1 = node.levels.first(where: { $0.level == 1 }) {
-            steps.append(
-                UnlockStep(
-                    title: "Your first rep",
-                    detail: lvl1.criterion
-                )
-            )
-        }
-
-        // Step 3: Ongoing — log sessions.
+        // Step 2: Ongoing — log sessions.
         steps.append(
             UnlockStep(
                 title: "Log sessions",
