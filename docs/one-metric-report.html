@@ -171,13 +171,13 @@
 
   <!-- 6 BEHAVIOR FLAG -->
   <section class="slide">
-    <div class="badge-num">decision 1 of 5 · D1</div>
-    <div class="kicker" style="color:var(--gold)">Behavior change I shipped — confirm or revert</div>
-    <h2>Do photos &amp; routines still grant LVL?</h2>
-    <p class="lead">Phase 1's plan says <i>"delete unbound.gains + every read/write."</i> Following that literally means: <b style="color:var(--ink)">daily-photo (+5), scan (+25), and routine (+spReward) no longer grant LVL.</b> LVL is now purely the AP-derived level from logged workouts.</p>
-    <div class="decision">
-      <div class="q">I chose Option A (delete) — the plan's explicit instruction.</div>
-      <div class="why">Option B would <i>re-route</i> those activities' XP into <code>OverallLevel</code> so they still count, from one source. That's arguably the truer "one metric" — but it's an unrequested feature the plan didn't ask for, so I didn't invent it overnight. <b style="color:var(--gold)">Your call:</b> keep A (photos/routines are cosmetic, LVL = training only), or I implement B next.</div>
+    <div class="badge-num">decision D1 · shipped 4602491</div>
+    <div class="kicker" style="color:var(--green)">Your call — implemented</div>
+    <h2>Photos &amp; routines still grant a bit of LVL</h2>
+    <p class="lead">Phase 1 deleted the legacy <code>unbound.gains</code> counter. The open question was whether daily photos, scans, and routines should still reward LVL. <b style="color:var(--ink)">You said yes — a bit.</b> So instead of deleting those rewards, they were <b style="color:var(--green)">re-routed through the one canonical source</b> (<code>OverallLevelService</code>) — no revived counter.</p>
+    <div class="decision" style="border-left-color:var(--green)">
+      <div class="q">Daily photo <b>+5</b> · scan <b>+25</b> · routine <b>+spReward</b> → all feed <code>OverallLevel</code>.</div>
+      <div class="why">Deduped by source id (one photo grant/day; routines gated by the existing 24 h cooldown). LVL stays one number — fed by logged training <i>and</i> these activities, from a single source. Amounts are one-line tunable. This is the truer "one metric": the feature was kept, just unified onto the canonical LVL rather than a parallel counter.</div>
     </div>
   </section>
 
