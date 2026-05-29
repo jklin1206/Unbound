@@ -27,6 +27,34 @@ protocol BadgeServiceProtocol: AnyObject {
 final class BadgeService: BadgeServiceProtocol {
     static let shared = BadgeService()
 
+    /// Every badge id this service can emit across all evaluators. Single
+    /// source of truth so the catalog↔service contract is testable (see
+    /// BadgeCatalogReconciliationTests). Keep in sync with the literals in
+    /// the `evaluate*` methods below.
+    static let awardableIds: Set<String> = [
+        // Onboarding / first-touch
+        "first_session", "first_scan", "calibration_complete",
+        "first_build_identity_resolved", "first_photo",
+        // Session volume
+        "sessions_10", "sessions_25", "sessions_50",
+        "sessions_100", "sessions_250", "sessions_500",
+        // Session quality
+        "clean_sweep", "hour_glass",
+        // Streaks
+        "streak_3", "streak_7", "streak_14",
+        "streak_30", "streak_60", "streak_100",
+        // Rank milestones
+        "first_rank_up", "rank_c_any", "rank_b_any", "rank_a_any", "rank_s_any",
+        // Skill firsts
+        "first_muscle_up", "first_handstand_pushup", "first_pullup",
+        "first_dip", "first_pistol_squat", "pushup_50_set",
+        // Bodyweight multiples
+        "bw_squat_2x", "bw_bench_1_5x", "bw_deadlift_3x",
+        // Scan / photo cadence
+        "scan_streak_3", "scan_archive_5", "scan_archive_10",
+        "biweekly_scan", "monthly_arc", "proof_10", "proof_25"
+    ]
+
     private let logger = LoggingService.shared
     private let defaults = UserDefaults.standard
     private let database = DatabaseService.shared
