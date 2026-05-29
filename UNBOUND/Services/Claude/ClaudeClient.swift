@@ -19,6 +19,12 @@ final class ClaudeClient: @unchecked Sendable {
 
     enum ClaudeError: LocalizedError {
         case apiError(status: Int, message: String)
+        // Server-owned entitlement denied this premium call (HTTP 403 from
+        // anthropic_proxy). The server is the source of truth: a spoofed local
+        // entitlement does NOT unlock this — surfaced distinctly so callers can
+        // route the user to the paywall instead of treating it as a generic API
+        // failure.
+        case premiumRequired
         case noToolUseInResponse
         case noTextInResponse
         case invalidResponse
@@ -27,6 +33,7 @@ final class ClaudeClient: @unchecked Sendable {
         var errorDescription: String? {
             switch self {
             case .apiError(let status, let message): return "Claude API \(status): \(message)"
+            case .premiumRequired: return "Premium subscription required"
             case .noToolUseInResponse: return "Claude did not return structured output"
             case .noTextInResponse: return "Claude returned no text"
             case .invalidResponse: return "Invalid response from Claude"
@@ -152,6 +159,10 @@ final class ClaudeClient: @unchecked Sendable {
                    (400...499).contains(status) && status != 429 {
                     throw error
                 }
+                // Entitlement denial won't change across retries — fail fast.
+                if case .premiumRequired = error {
+                    throw error
+                }
                 lastError = error
             } catch {
                 lastError = error
@@ -167,6 +178,11 @@ final class ClaudeClient: @unchecked Sendable {
 
     private func send(body: RequestBody) async throws -> ResponseBody {
         let (data, status) = try await transport.send(body)
+        // 403 = server entitlement check failed (not pro). Treat the server as
+        // the source of truth and surface a distinct, non-retryable error.
+        if status == 403 {
+            throw ClaudeError.premiumRequired
+        }
         guard (200...299).contains(status) else {
             let message = String(data: data, encoding: .utf8) ?? ""
             throw ClaudeError.apiError(status: status, message: message)

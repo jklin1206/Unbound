@@ -94,4 +94,27 @@ final class ClaudeClientTests: XCTestCase {
         XCTAssertEqual(ok, Echo(v: 2))
         XCTAssertEqual(mock429.sentBodies.count, 2, "429 must retry once then succeed")
     }
+
+    // Proof B (no local backdoor): when the server's entitlement check denies
+    // the premium call (HTTP 403 from anthropic_proxy), the client surfaces a
+    // distinct .premiumRequired error and does NOT retry or unlock — the server
+    // flag, not any local entitlement, decides access.
+    func testServer403SurfacesPremiumRequiredAndDoesNotRetry() async throws {
+        let denied = Data(#"{"error":"premium_required"}"#.utf8)
+        // Even if a follow-up call would succeed, a 403 must short-circuit.
+        let mock = MockClaudeTransport([(denied, 403), (toolUseJSON(#"{"v":9}"#), 200)])
+        let client = ClaudeClient(transport: mock)
+        let tool = ClaudeClient.Tool(name: "echo", description: "d",
+                                     inputSchema: .object([:]))
+        do {
+            let _: Echo = try await client.sendStructured(Echo.self, system: "s",
+                                                          userText: "u", tool: tool)
+            XCTFail("403 must not unlock premium content")
+        } catch let error as ClaudeClient.ClaudeError {
+            guard case .premiumRequired = error else {
+                return XCTFail("expected .premiumRequired, got \(error)")
+            }
+        }
+        XCTAssertEqual(mock.sentBodies.count, 1, "403 must NOT retry")
+    }
 }
