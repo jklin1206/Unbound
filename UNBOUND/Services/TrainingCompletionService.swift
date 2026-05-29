@@ -109,7 +109,12 @@ final class TrainingCompletionService {
         )
         result.savedPerformanceLogId = performanceLog.id
 
-        let progression = await progressionResult(from: performanceLog, services: services)
+        // MIGRATION(Phase 9): the legacy WorkoutLoggingViewModel route must NOT
+        // write attribute/movement/overall-level/body-map progression — that is
+        // the canonical complete() path's job. Double-writing here awarded AP
+        // twice. We keep a side-effect-free reward preview so the legacy receipt
+        // still renders, then persist only compatible history + the receipt.
+        let progression = previewProgression(for: performanceLog, services: services)
         result.mergeProgression(from: progression)
 
         if let compatibleWorkoutLog {
