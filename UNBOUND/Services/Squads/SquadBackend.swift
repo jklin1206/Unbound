@@ -239,4 +239,31 @@ final class SquadBackend: SquadBackendProtocol, @unchecked Sendable {
             )
             .execute()
     }
+
+    func fetchRecentLinkedSessions(squadId: UUID, limit: Int) async throws -> [LinkedSession] {
+        struct LinkedSessionRow: Codable {
+            let id: UUID
+            let squad_id: UUID
+            let user_ids: [UUID]
+            let started_at: Date
+            let ended_at: Date
+        }
+        let rows: [LinkedSessionRow] = try await db
+            .from("linked_sessions")
+            .select("id, squad_id, user_ids, started_at, ended_at")
+            .eq("squad_id", value: squadId.uuidString)
+            .order("started_at", ascending: false)
+            .limit(limit)
+            .execute()
+            .value
+        return rows.map {
+            LinkedSession(
+                id: $0.id,
+                squadId: $0.squad_id,
+                userIds: $0.user_ids,
+                startedAt: $0.started_at,
+                endedAt: $0.ended_at
+            )
+        }
+    }
 }

@@ -161,5 +161,11 @@ final class MockSquadBackend: SquadBackendProtocol, @unchecked Sendable {
     func incrementMissionProgress(squadId: UUID, delta: Int) async throws {
         missionProgressIncrements.append((squadId: squadId, delta: delta))
     }
+
+    var linkedSessions: [UUID: [LinkedSession]] = [:]   // squadId → rows
+
+    func fetchRecentLinkedSessions(squadId: UUID, limit: Int) async throws -> [LinkedSession] {
+        Array((linkedSessions[squadId] ?? []).sorted { $0.startedAt > $1.startedAt }.prefix(limit))
+    }
 }
 #endif

@@ -25,18 +25,25 @@ final class SquadService: SquadServiceProtocol {
     private let backend: SquadBackendProtocol
     private let localDirectory: LocalSquadDirectory
     private let auth: AuthServiceProtocol
+    // Resolved lazily (NOT a default-arg .shared) to avoid a static-init cycle:
+    // SquadService.shared → SquadLoopReconciler.shared → SquadActivityService.shared
+    // → SquadService.shared. Tests inject a non-nil instance.
+    private let injectedLoopReconciler: SquadLoopReconciler?
+    private var loopReconciler: SquadLoopReconciler { injectedLoopReconciler ?? .shared }
     private let logger = LoggingService.shared
 
     init(
         store: SquadStore = .shared,
         backend: SquadBackendProtocol = SquadBackend.shared,
         localDirectory: LocalSquadDirectory = .shared,
-        auth: AuthServiceProtocol = AuthService.shared
+        auth: AuthServiceProtocol = AuthService.shared,
+        loopReconciler: SquadLoopReconciler? = nil
     ) {
         self.store = store
         self.backend = backend
         self.localDirectory = localDirectory
         self.auth = auth
+        self.injectedLoopReconciler = loopReconciler
     }
 
     // MARK: - T5.5 loadCurrentSquad
@@ -84,6 +91,10 @@ final class SquadService: SquadServiceProtocol {
             // TODO(squads-impl, Phase 6): hydrate state.recentActivity via SquadActivityService.fetchRecent(squadId:).
             // TODO(squads-impl, Phase 8): hydrate state.activeRosterPresence via SquadPresenceService.snapshot(squadId:).
             store.save(s, userId: userId)
+            // Close the squad loops: process any new linked sessions (+20% bonus)
+            // and evaluate squadStreak / linkedSessions title crossings against
+            // the freshly-loaded squad. Reads its own persisted dedup state.
+            await loopReconciler.reconcile(userId: userId, userUUID: userUUID, squad: squad)
             NotificationCenter.default.post(name: .squadStateChanged, object: nil)
         } catch {
             logger.log("loadCurrentSquad failed: \(error)", level: .error)

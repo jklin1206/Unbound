@@ -106,6 +106,9 @@ struct SquadDetailView: View {
         .onReceive(NotificationCenter.default.publisher(for: .squadActivityRecorded)) { _ in
             Task { await refreshState() }
         }
+        .onReceive(NotificationCenter.default.publisher(for: .squadTitleUnlocked)) { _ in
+            Task { await refreshState() }
+        }
         .onReceive(NotificationCenter.default.publisher(for: .friendChallengeExpired)) { _ in
             Task { await refreshChallenges() }
         }
@@ -230,6 +233,20 @@ struct SquadDetailView: View {
         .allowsHitTesting(false)
     }
 
+    @ViewBuilder
+    private var squadTitlesRow: some View {
+        if !state.unlockedSquadTitles.isEmpty {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(state.unlockedSquadTitles, id: \.self) { titleId in
+                        SquadTitleBadge(titleId: titleId, compact: true)
+                    }
+                }
+            }
+            .padding(.top, 2)
+        }
+    }
+
     private func headerCard(squad: Squad) -> some View {
         ZStack(alignment: .topTrailing) {
             SquadConsoleBackground(tint: Color.unbound.accent)
@@ -287,6 +304,8 @@ struct SquadDetailView: View {
                             tint: Color.unbound.warnOrange
                         )
                     }
+
+                    squadTitlesRow
                 }
 
                 HStack(spacing: 10) {
