@@ -42,9 +42,9 @@
 | 3 | Rank every movement by template metric | BLOCKED (B3) | Needs external public bw-relative strength dataset. LiftTierCriteria can't go until then. |
 | 4 | Skill tree placement = difficulty weight | PARTIAL (`212a40c`) | .new dupe deleted. SkillLevel (680 refs) deletion is high fan-out — staged, not started. |
 | 5 | Attributes: one number + hard-to-max hex | BLOCKED (B4) | Hex curve steepness = balance decision. |
-| 6 | Rename AP → XP; split jobs | NOT STARTED | Safe part = user-facing "AP"/"Ascension Points" → "XP" rename. Ledger-as-rank-input removal depends on Phase 3 (blocked). |
-| 7 | Overall rank = accumulation + Ascension | BLOCKED (B5) | Ascension ceremony = design decision; largest surface. |
-| 8 | Docs + file-structure | NOT STARTED | Build ARCHITECTURE.md map + report. Safe to do. |
+| 6 | Rename AP → XP; split jobs | BLOCKED (depends on B3/Phase 3) | FINDING: the user-facing "AP" strings are NOT a separable display rename — they ARE the per-movement AP-ledger UI ("AP BANK"/"CHECKPOINT"/"X/Y AP"/"AP LEFT"/the AP stat tile/"most AP" sort). The plan turns that ledger into a derived "% to next rank" bar, which needs Phase 3's metric ladders. A naive AP→XP rename would mislabel the ledger and recreate the name collision. Skip until Phase 3. |
+| 7 | Overall rank = accumulation + Ascension | BLOCKED (B5) | Ascension ceremony = design decision; largest surface. Propose simple redesign at execution time. |
+| 8 | Docs + file-structure | PARTIAL — `ARCHITECTURE.md` shipped | Map written (subsystem→code→planned doc). Did NOT delete superseded docs (premature — model not yet unified). Model-file regrouping deferred until Phase 2/3 land. |
 
 ## Decisions made (record every non-trivial call here)
 - **D1 — Phase 1 LVL source = OverallLevelProgress, legacy counter deleted wholesale (Option A, not re-routed).** Plan uses explicit DELETE language ("delete unbound.gains + every read/write"). Per Simplicity/Surgical discipline I follow it literally rather than inventing an unrequested re-route of photo/routine/scan XP into OverallLevel. **Consequence (FLAGGED for jlin):** daily-photo (+5), scan (+25), routine (+spReward), and node-unlock gains will NO LONGER grant LVL. LVL becomes purely the AP-derived OverallLevel fed by logged workouts via `complete()`. If you want those activities to keep granting LVL, that's Option B (route them through `OverallLevelService` ingest) — say so and I'll do it.
@@ -61,6 +61,13 @@ Edits:
 6. `SettingsView.swift`: remove `gainsKey` dev seed (L1184 + usage).
 Verify: `grep -rn '"unbound.gains"' UNBOUND` → 0. Build + 990 tests green. senior-code-reviewer pass. Then commit (Phase 1) + push.
 SAFETY NOTE: legacy `WorkoutLoggingView` path (recordProgressionForLegacyWorkout) does NOT feed OverallLevel — if that screen is still a primary logger, LVL won't move for those sessions (Phase 0 gap). 6 modern paths DO feed it.
+
+## jlin's decisions (2026-05-29, resolved — now actionable)
+- **D1 → Option B:** photos + scans (+ routines, same category) should grant *a bit* of LVL. Re-route through `OverallLevelService.ingest` (canonical source), NOT a revived counter. Amounts tunable (start photo 5 / scan 25 / routine spReward). Dedup via sourceLogId.
+- **B2 → GO:** delete `SubRank` + `SkillRank`; 18→9 rank-up cadence accepted. (Phase 2)
+- **B3 → StrengthLevel** (strengthlevel.com/strength-standards) is the bodyweight-relative dataset source. Unblocks Phase 3 + downstream Phase 6 AP→XP/% rename.
+- **B4 → hex maxes in YEARS**, but fills *faster the harder/more often the user trains* (steep top-end curve; rate scales with training volume). (Phase 5)
+- **B5 → Ascension ceremony: improve but keep SIMPLE.** Propose a concrete simple redesign at Phase 7 for thumbs-up; latitude given.
 
 ## Blockers (for the morning report)
 - **B1 (Phase 0):** legacy `WorkoutLoggingView` → `recordProgressionForLegacyWorkout` is intentionally side-effect-free (no OverallLevel/skill/rank ingest). If that screen is still reachable as a real logger, those sessions silently don't count. Plan's "unmatched — won't count" integrity state also not yet built (needs UX decision). VERIFY reachability + decide.
