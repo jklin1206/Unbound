@@ -344,7 +344,7 @@ struct SettingsView: View {
 #endif
 }
 
-private struct NotificationSettingsView: View {
+struct NotificationSettingsView: View {
     @State private var preferences = NotificationPreferencesStore.shared.load()
     @State private var authorizationLabel = L10n.string(.notificationSettingsChecking, defaultValue: "Checking...")
 
