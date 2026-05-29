@@ -99,3 +99,52 @@ final class StorageService: StorageServiceProtocol, @unchecked Sendable {
         }
     }
 }
+
+// MARK: - Photo directory re-key (sign-in migration)
+//
+// On Sign in with Apple an anonymous user's photo directory lives at
+// ScanPhotos/<legacyUserId>/... and must move to ScanPhotos/<supabaseUserId>/...
+// or the photos are orphaned (Bug #1). Additive-only: existing methods are
+// untouched so this file merges cleanly with parallel work.
+extension StorageService: UserDataMigrationPhotoMoving {
+    /// Moves the entire on-disk photo directory from the legacy UID to the
+    /// authenticated UID. Idempotent: a no-op when the legacy directory is
+    /// absent (already moved or never existed). If a destination directory
+    /// already holds files, the legacy scan subdirectories are merged in.
+    func movePhotoDirectory(from legacyUserId: String, to supabaseUserId: String) async throws {
+        guard legacyUserId != supabaseUserId else { return }
+
+        let source = rootURL.appendingPathComponent(legacyUserId, isDirectory: true)
+        let destination = rootURL.appendingPathComponent(supabaseUserId, isDirectory: true)
+
+        guard fm.fileExists(atPath: source.path) else { return }
+
+        if !fm.fileExists(atPath: destination.path) {
+            // Fast path: no destination yet — move the whole directory.
+            try fm.moveItem(at: source, to: destination)
+            logger.log(
+                "Scan photo directory re-keyed",
+                level: .info,
+                context: ["from": legacyUserId, "to": supabaseUserId]
+            )
+            return
+        }
+
+        // Destination exists — merge each scan subdirectory across, then remove
+        // the now-empty legacy directory.
+        let entries = try fm.contentsOfDirectory(at: source, includingPropertiesForKeys: nil)
+        for entry in entries {
+            let target = destination.appendingPathComponent(entry.lastPathComponent)
+            if fm.fileExists(atPath: target.path) {
+                try fm.removeItem(at: target)
+            }
+            try fm.moveItem(at: entry, to: target)
+        }
+        try fm.removeItem(at: source)
+        logger.log(
+            "Scan photo directory merged into authenticated uid",
+            level: .info,
+            context: ["from": legacyUserId, "to": supabaseUserId]
+        )
+    }
+}

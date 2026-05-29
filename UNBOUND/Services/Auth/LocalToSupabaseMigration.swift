@@ -20,6 +20,12 @@ import Foundation
 
 enum LocalToSupabaseMigration {
 
+    /// Number of attempts before giving up within a single session. A run that
+    /// leaves any collection unmigrated does NOT persist the completion flag
+    /// (see `UserDataMigrationCoordinator`), so it is retried here with backoff
+    /// and, failing that, resumed on the next app launch.
+    private static let maxAttempts = 3
+
     static func migrate(from legacyUserId: String, to supabaseUserId: String) async {
         let logger = LoggingService.shared
         logger.log(
@@ -31,19 +37,41 @@ enum LocalToSupabaseMigration {
         // User profile: copy legacy profile → new profile keyed by Supabase UID
         await migrateUserProfile(from: legacyUserId, to: supabaseUserId, logger: logger)
 
-        let summary = await UserDataMigrationCoordinator().migrate(
-            legacyUserId: legacyUserId,
-            supabaseUserId: supabaseUserId
-        )
+        let coordinator = UserDataMigrationCoordinator()
+        var summary = UserDataMigrationSummary()
+
+        // Awaited, bounded retry with exponential backoff. The coordinator is
+        // idempotent (re-key overwrites in place; the completion flag
+        // short-circuits a finished migration), so re-running is safe.
+        for attempt in 1...maxAttempts {
+            summary = await coordinator.migrate(
+                legacyUserId: legacyUserId,
+                supabaseUserId: supabaseUserId
+            )
+            if summary.allCollectionsSucceeded { break }
+
+            if attempt < maxAttempts {
+                let backoffNanos = UInt64(attempt) * 500_000_000 // 0.5s, 1.0s
+                logger.log(
+                    "Local→cloud migration incomplete; retrying",
+                    level: .warning,
+                    context: ["attempt": attempt, "from": legacyUserId, "to": supabaseUserId]
+                )
+                try? await Task.sleep(nanoseconds: backoffNanos)
+            }
+        }
+
         logger.log(
             "Local user data migration summary",
             level: .info,
             context: [
                 "localWrites": summary.migratedLocally,
                 "remoteDeferred": summary.remoteDeferred,
+                "completed": summary.allCollectionsSucceeded,
                 "workoutLogs": summary.workoutLogs,
                 "workingWeights": summary.workingWeights,
-                "skillProgress": summary.skillProgress
+                "skillProgress": summary.skillProgress,
+                "scans": summary.scans
             ]
         )
 

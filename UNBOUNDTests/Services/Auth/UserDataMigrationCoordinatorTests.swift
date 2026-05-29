@@ -49,7 +49,9 @@ final class UserDataMigrationCoordinatorTests: XCTestCase {
         )
 
         let remote = MockMigrationRemoteStore(authenticated: true)
-        let sut = UserDataMigrationCoordinator(local: local, remote: remote)
+        // Disable the persisted completion short-circuit so this test continues
+        // to exercise the per-collection idempotency guards across two runs.
+        let sut = UserDataMigrationCoordinator(local: local, remote: remote, flagStore: NeverCompletedMigrationFlagStore())
 
         let first = await sut.migrate(legacyUserId: legacyUserId, supabaseUserId: supabaseUserId)
         let second = await sut.migrate(legacyUserId: legacyUserId, supabaseUserId: supabaseUserId)
@@ -197,6 +199,14 @@ private final class MockMigrationLocalStore: UserDataMigrationLocalStoring, @unc
     func writeSkillProgress(_ value: UserSkillProgress) async throws {
         progress[value.userId] = value
     }
+}
+
+/// Flag store that always reports "not completed" so the coordinator runs the
+/// full per-collection migration on every call. Lets the idempotency tests
+/// invoke `migrate` repeatedly without the completion short-circuit kicking in.
+private struct NeverCompletedMigrationFlagStore: UserDataMigrationFlagStoring {
+    func isCompleted(legacyUserId: String, supabaseUserId: String) -> Bool { false }
+    func markCompleted(legacyUserId: String, supabaseUserId: String) {}
 }
 
 private final class MockMigrationRemoteStore: UserDataMigrationRemoteWriting, @unchecked Sendable {
