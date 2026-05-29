@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UNBOUND · The Ladder Maze — Council Teardown</title>
+<style>
+  :root{
+    --bg:#190a0e; --bg2:#220c11; --panel:#2a0f15; --panel2:#341219;
+    --ember:#ff5a2c; --ember-soft:#ff7a4d; --gold:#FFC857;
+    --green:#5cc878; --red:#ff5566; --amber:#ffb454; --blue:#5aa9ff; --violet:#b27af4;
+    --text:#f5ece6; --text2:#cbb3ac; --text3:#8c726c;
+    --line:#54343a; --line-soft:#3a1d23;
+    --slide-pad:clamp(1.2rem,4vw,4rem);
+    --gap:clamp(.5rem,1.6vw,1.2rem);
+    --title:clamp(1.6rem,5vw,3.4rem);
+    --h2:clamp(1.15rem,3.2vw,2.1rem);
+    --body:clamp(.78rem,1.3vw,1.02rem);
+    --small:clamp(.62rem,1vw,.8rem);
+    --mono:ui-monospace,"SF Mono",Menlo,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-snap-type:y mandatory;scroll-behavior:smooth}
+  body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;line-height:1.45;-webkit-font-smoothing:antialiased}
+  .slide{position:relative;min-height:100vh;scroll-snap-align:start;display:flex;flex-direction:column;justify-content:center;padding:var(--slide-pad);overflow:hidden;border-bottom:1px solid var(--line-soft)}
+  .slide::before{content:"";position:absolute;inset:0;background-image:linear-gradient(var(--line-soft) 1px,transparent 1px),linear-gradient(90deg,var(--line-soft) 1px,transparent 1px);background-size:46px 46px;-webkit-mask-image:radial-gradient(ellipse 85% 75% at 50% 42%,#000 25%,transparent 100%);mask-image:radial-gradient(ellipse 85% 75% at 50% 42%,#000 25%,transparent 100%);opacity:.35;pointer-events:none}
+  .slide>*{position:relative;z-index:1}
+  .reveal{opacity:0;transform:translateY(16px);transition:opacity .55s ease,transform .55s ease}
+  .slide.visible .reveal{opacity:1;transform:none}
+  .slide.visible .reveal:nth-child(1){transition-delay:.04s}
+  .slide.visible .reveal:nth-child(2){transition-delay:.12s}
+  .slide.visible .reveal:nth-child(3){transition-delay:.2s}
+  .slide.visible .reveal:nth-child(4){transition-delay:.28s}
+  .slide.visible .reveal:nth-child(5){transition-delay:.36s}
+  .slide.visible .reveal:nth-child(6){transition-delay:.44s}
+  .slide.visible .reveal:nth-child(7){transition-delay:.52s}
+  .kicker{font-family:var(--mono);font-size:var(--small);letter-spacing:.28em;text-transform:uppercase;color:var(--ember);margin-bottom:.7rem}
+  h1{font-size:var(--title);font-weight:850;line-height:1.02;letter-spacing:-.02em}
+  h2{font-size:var(--h2);font-weight:800;line-height:1.08;letter-spacing:-.01em;margin-bottom:.4rem}
+  p{font-size:var(--body);color:var(--text2);max-width:60ch}
+  .lead{font-size:clamp(1rem,2vw,1.4rem);color:var(--text);max-width:30ch}
+  .em{color:var(--ember-soft)} .go{color:var(--gold)} .gr{color:var(--green)} .rd{color:var(--red)} .am{color:var(--amber)} .bl{color:var(--blue)} .vi{color:var(--violet)}
+  strong{color:var(--text);font-weight:700}
+  .grid{display:grid;gap:var(--gap)}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:var(--gap);margin-top:1rem}
+  .card{background:linear-gradient(160deg,var(--panel),var(--bg2));border:1px solid var(--line);border-radius:16px;padding:clamp(.9rem,2vw,1.4rem)}
+  .card.fire{border-color:#7a2a26;background:linear-gradient(160deg,#3a1313,#220c10)}
+  .card h3{font-size:clamp(.95rem,1.8vw,1.25rem);margin-bottom:.4rem;display:flex;align-items:center;gap:.5rem}
+  .card p{font-size:var(--small)}
+  table{width:100%;border-collapse:collapse;margin-top:.9rem;font-size:var(--small)}
+  th,td{text-align:left;padding:.42rem .6rem;border-bottom:1px solid var(--line-soft)}
+  th{font-family:var(--mono);text-transform:uppercase;letter-spacing:.12em;font-size:.62rem;color:var(--text3)}
+  td.mono{font-family:var(--mono)}
+  .tag{display:inline-block;font-family:var(--mono);font-size:.58rem;font-weight:700;letter-spacing:.08em;padding:.12rem .5rem;border-radius:999px;text-transform:uppercase}
+  .t-live{background:rgba(92,200,120,.16);color:var(--green);border:1px solid rgba(92,200,120,.4)}
+  .t-dead{background:rgba(255,85,102,.16);color:var(--red);border:1px solid rgba(255,85,102,.42)}
+  .t-leg{background:rgba(255,180,84,.14);color:var(--amber);border:1px solid rgba(255,180,84,.4)}
+  .pill{display:inline-flex;align-items:center;gap:.4rem;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:.3rem .8rem;font-size:var(--small);font-family:var(--mono)}
+  .flow{display:flex;flex-wrap:wrap;align-items:stretch;gap:.6rem;margin-top:1rem}
+  .node{flex:1;min-width:160px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:.7rem .85rem;font-size:var(--small)}
+  .node .lbl{font-family:var(--mono);font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:.3rem}
+  .node.dead{border-color:#7a2a2e;background:linear-gradient(160deg,#34131a,#220c10)}
+  .node.live{border-color:#2f6b40;background:linear-gradient(160deg,#13301c,#0e1c12)}
+  .arrow{align-self:center;color:var(--ember);font-size:1.4rem}
+  .scalerow{display:flex;flex-wrap:wrap;gap:.4rem;margin:.5rem 0}
+  .chip{font-family:var(--mono);font-size:.6rem;padding:.22rem .55rem;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--text2)}
+  .chip.bad{border-color:#7a2a2e;color:var(--red)}
+  .two{display:grid;grid-template-columns:1fr auto 1fr;gap:1rem;align-items:center;margin-top:1rem}
+  @media(max-width:720px){.two{grid-template-columns:1fr;}.two .arrow{transform:rotate(90deg);text-align:center}}
+  .big{font-size:clamp(2.4rem,9vw,6rem);font-weight:900;line-height:.9;letter-spacing:-.04em}
+  .ribbon{display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.8rem}
+  .step{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--ember);border-radius:10px;padding:.6rem .9rem;font-size:var(--small)}
+  .step.p0{border-left-color:var(--red)}
+  .step.p1{border-left-color:var(--blue)}
+  .footer{position:absolute;bottom:1rem;left:var(--slide-pad);font-family:var(--mono);font-size:.6rem;color:var(--text3);letter-spacing:.1em}
+  .num{position:absolute;top:1rem;right:var(--slide-pad);font-family:var(--mono);font-size:.62rem;color:var(--text3)}
+  .dots{position:fixed;right:14px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:9px;z-index:50}
+  .dots button{width:8px;height:8px;border-radius:50%;border:1px solid var(--line);background:transparent;cursor:pointer;padding:0;transition:all .2s}
+  .dots button.active{background:var(--ember);border-color:var(--ember);transform:scale(1.4)}
+  .hint{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);font-family:var(--mono);font-size:.58rem;color:var(--text3);letter-spacing:.12em;z-index:50;opacity:.7}
+</style>
+</head>
+<body>
+
+<!-- 1 TITLE -->
+<section class="slide" id="s0">
+  <div class="kicker reveal">Council teardown · 4 reviewers · brutal &amp; honest</div>
+  <h1 class="reveal">The Ladder<br>Maze.</h1>
+  <p class="reveal lead" style="margin-top:1rem">UNBOUND measures <span class="em">three</span> things with <span class="rd">~16</span> scoring systems that don't agree — and two of them are quietly on fire.</p>
+  <div class="ribbon reveal" style="margin-top:1.6rem">
+    <span class="pill">🔴 2 fires</span>
+    <span class="pill">🧩 ~16 scales → 4 concepts</span>
+    <span class="pill">📚 148/184 difficulties guessed</span>
+  </div>
+  <div class="footer">UNBOUND · progression model · 2026-05-29</div>
+</section>
+
+<!-- 2 THE ONE-LINER -->
+<section class="slide" id="s1">
+  <div class="num">01</div>
+  <div class="kicker reveal">State of the union</div>
+  <h2 class="reveal">Same achievement, told five different ways —<br>and none of them agree.</h2>
+  <p class="reveal" style="margin-top:.8rem">A move shows up as a <span class="bl">letter</span>, a <span class="vi">number</span>, a <span class="go">layer</span>, a <span class="em">badge</span>, and a <span class="gr">percentage</span>. "Ascendant" on a pushup means nothing like "Ascendant" on a planche. One ladder even <span class="rd">promises XP and grants none.</span></p>
+  <div class="cards reveal">
+    <div class="card"><h3>🟦 3 real concepts</h3><p>How <strong>hard</strong> a move is · whether you've <strong>proven</strong> it · how much <strong>work</strong> you've done.</p></div>
+    <div class="card"><h3 class="rd">🟥 ~16 systems</h3><p>Bolted on over time, never reconciled. The code has no single source of truth for "rank."</p></div>
+    <div class="card fire"><h3 class="rd">🔥 2 fires</h3><p>Worse than the mess: training barely <strong>records</strong>, and the level you see is the <strong>wrong number.</strong></p></div>
+  </div>
+</section>
+
+<!-- 3 FIRE 1 -->
+<section class="slide" id="s2">
+  <div class="num">02 · 🔥 FIRE 1</div>
+  <div class="kicker reveal" style="color:var(--red)">The core loop is faked</div>
+  <h2 class="reveal">You train. The reward screen celebrates. <span class="rd">Then it's thrown away.</span></h2>
+  <p class="reveal">Two logging paths exist. The <span class="gr">live</span> one records some things. The cascade with everything important is wired to a path <strong>production never calls.</strong></p>
+  <div class="flow reveal">
+    <div class="node live"><div class="lbl">✅ complete() — the live path</div>AP · attributes (hex) · Overall&nbsp;LV · body-map · squads</div>
+    <div class="arrow">›</div>
+    <div class="node dead"><div class="lbl">☠️ saveLog() — never called</div>skill-tier persistence · lift-PR ranks · weight progression / deload / tier-unlock · skill auto-detect · trials · streak · skins · badges</div>
+  </div>
+  <div class="cards reveal" style="margin-top:1rem">
+    <div class="card fire"><h3 class="rd">Skill tiers never persist</h3><p>ProofEngine computes "3 standards cleared," plays the cinematic — then discards it (vs an empty baseline + a hardcoded 70&nbsp;kg). Reopen the tree: nothing moved.</p></div>
+    <div class="card fire"><h3 class="rd">Even this session's fixes are stranded</h3><p>The auto-deload &amp; skill auto-proof just built sit on this dead path. Correct code, green tests — <strong>unreachable in production.</strong></p></div>
+  </div>
+  <p class="reveal" style="margin-top:.7rem;font-size:var(--small);color:var(--text3)">Root cause: the B2 loggers fix neutered the legacy cascade to stop double-counting AP — but never re-homed those ~8 services into <span class="mono">complete()</span>.</p>
+</section>
+
+<!-- 4 FIRE 2 -->
+<section class="slide" id="s3">
+  <div class="num">03 · 🔥 FIRE 2</div>
+  <div class="kicker reveal" style="color:var(--red)">The wrong level is the hero</div>
+  <h2 class="reveal">All the ability math feeds a number<br>the user never sees.</h2>
+  <div class="two reveal">
+    <div class="card"><h3 class="gr">What's computed</h3><p><strong>Overall LV</strong> — AP, velocity-weighted by skill / compound / comeback. The whole point of the velocity layer.</p><div class="scalerow"><span class="chip">shown only on the reward receipt</span></div></div>
+    <div class="arrow">vs</div>
+    <div class="card fire"><h3 class="rd">What's shown</h3><p><strong>unbound.gains</strong> — a flat <span class="rd">+30 per session</span> counter in UserDefaults. This is the level on Home &amp; Profile.</p><div class="scalerow"><span class="chip bad">ignores AP entirely</span></div></div>
+  </div>
+  <p class="reveal" style="margin-top:1rem">The sophisticated metric is invisible; the dumbest counter is the headline stat. <span class="em">Fix: show the AP-derived LV, retire <span class="mono">gains</span>.</span></p>
+</section>
+
+<!-- 5 CENSUS -->
+<section class="slide" id="s4">
+  <div class="num">04 · the census</div>
+  <div class="kicker reveal">~16 scales, grouped by what they redundantly measure</div>
+  <h2 class="reveal">Three questions. Fourteen answers.</h2>
+  <table class="reveal">
+    <tr><th>"How HARD is this move?" — 5 ways</th><th></th></tr>
+    <tr><td class="mono">MovementDifficulty (4) · SkillRank E–S (6) · SkillNode.tier (1–8) · StrengthStandards · tierCriteria</td><td><span class="tag t-dead">conflict</span></td></tr>
+    <tr><th>"How GOOD am I at it?" — 5 ways</th><th></th></tr>
+    <tr><td class="mono">SubRank E–S (18) · RankTier (9) · NodeState (4) · Lv1–5 levels · family tier (0–7)</td><td><span class="tag t-dead">conflict</span></td></tr>
+    <tr><th>"How much WORK have I done?" — 4 ways</th><th></th></tr>
+    <tr><td class="mono">AP / rawAP · attribute XP · Overall LV · SkillLevel.xpReward</td><td><span class="tag t-dead">redundant</span></td></tr>
+  </table>
+  <p class="reveal" style="margin-top:.8rem;font-size:var(--small)"><span class="rd">Worst offender:</span> a single skill can be <span class="mono">SkillRank.d</span> + <span class="mono">tier 3</span> + <span class="mono">.beginner</span> + 9 tierCriteria — four "hardness" claims, zero reconciliation. And <span class="mono">node.levels</span> shows a Lv1–5 XP ladder that grants <span class="rd">no XP at all.</span></p>
+</section>
+
+<!-- 6 ONE REP -->
+<section class="slide" id="s5">
+  <div class="num">05 · one rep</div>
+  <div class="kicker reveal">Coherence check</div>
+  <h2 class="reveal">One rep is scored <span class="em">5 different ways.</span></h2>
+  <div class="flow reveal" style="margin-top:1.4rem">
+    <div class="node live" style="flex:0 0 auto"><div class="lbl">1 logged set</div><strong>rawAP</strong></div>
+    <div class="arrow">→</div>
+    <div class="grid" style="flex:1;grid-template-columns:repeat(auto-fit,minmax(140px,1fr))">
+      <div class="node">→ movement <strong>AP bank</strong> <span style="color:var(--text3)">(rank gate)</span></div>
+      <div class="node">→ <strong>body-map</strong> load (heatmap)</div>
+      <div class="node">→ <strong>attribute XP</strong> (hex)</div>
+      <div class="node">→ <strong>Overall LV</strong> (weighted)</div>
+      <div class="node dead">+ a 5th flat <strong>+30 "gains"</strong> bump — the one the user actually sees</div>
+    </div>
+  </div>
+  <p class="reveal" style="margin-top:1rem">AP → bodymap / attributes / LV are fan-outs of the <em>same</em> number (by design). But the headline level is a <span class="rd">totally separate counter</span> that ignores all of it.</p>
+</section>
+
+<!-- 7 LIBRARY -->
+<section class="slide" id="s6">
+  <div class="num">06 · the data</div>
+  <div class="kicker reveal">The exercise library is built on sand</div>
+  <h2 class="reveal">The difficulty numbers are mostly fiction.</h2>
+  <div class="cards reveal">
+    <div class="card fire"><h3 class="rd">148 / 184</h3><p>exercises get difficulty from a <strong>keyword guess</strong> or a silent <span class="mono">.beginner</span> default. Only 36 have real progression data.</p></div>
+    <div class="card fire"><h3 class="rd">3 barbell tables</h3><p><span class="mono">LiftTierCriteria</span> (kg) vs <span class="mono">StrengthStandards</span> (BW ratio) vs a dead one — they disagree. <strong>The library shows a different rank than the engine awards.</strong></p></div>
+    <div class="card"><h3 class="gr">193 tier tables</h3><p>The hand-authored 9-tier skill criteria are the <strong>one high-quality asset</strong> — and already speak the 9-rank ladder.</p></div>
+  </div>
+  <p class="reveal" style="margin-top:.8rem;font-size:var(--small);color:var(--text3)">Also: a stale <span class="mono">SkillTreeContent.swift.new</span> (336&nbsp;KB) sits unreferenced next to the live file — dead, safe to delete.</p>
+</section>
+
+<!-- 8 THE FIX -->
+<section class="slide" id="s7">
+  <div class="num">07 · the fix</div>
+  <div class="kicker reveal">Collapse to what's actually real</div>
+  <h2 class="reveal">~16 scales <span class="em">→</span> 4 concepts.</h2>
+  <table class="reveal">
+    <tr><th>Concept</th><th>Owner (keep)</th><th>Kill / merge</th></tr>
+    <tr><td><strong>Difficulty of a move</strong></td><td class="mono gr">RankTier (tree placement)</td><td class="mono">MovementDifficulty · SkillRank · SkillNode.tier</td></tr>
+    <tr><td><strong>Have I proven it</strong></td><td class="mono gr">one unlock gate</td><td class="mono">Lv1–5 levels · NodeState→derived</td></tr>
+    <tr><td><strong>Overall rank</strong></td><td class="mono gr">RankTier</td><td class="mono">SubRank → internal · muscle/family tiers fold in</td></tr>
+    <tr><td><strong>Work / pacing</strong></td><td class="mono gr">AP → one LV</td><td class="mono">retire "gains" · drop dead SkillLevel XP</td></tr>
+  </table>
+  <p class="reveal" style="margin-top:.8rem">Two ladders survive: <span class="go">one RankTier</span> (Initiate→Ascendant) and <span class="go">one XP curve</span> — plus a streak counter. Everything else dies.</p>
+</section>
+
+<!-- 9 TREE = RANK -->
+<section class="slide" id="s8">
+  <div class="num">08 · the key idea</div>
+  <div class="kicker reveal">Difficulty = placement, not reps</div>
+  <h2 class="reveal">Where a move sits in the tree <span class="em">is</span> its rank.</h2>
+  <div class="two reveal">
+    <div class="card"><h3>User A</h3><p>100 pushups, nothing harder.</p><div class="scalerow"><span class="chip">pushup = a low-layer move</span></div><p style="margin-top:.4rem"><span class="go">→ Novice rank.</span> Impressive reps, easy skill.</p></div>
+    <div class="arrow">vs</div>
+    <div class="card"><h3>User B</h3><p>a planche (barely).</p><div class="scalerow"><span class="chip">planche = a top-layer move</span></div><p style="margin-top:.4rem"><span class="go">→ Ascendant rank.</span> Genuinely elite.</p></div>
+  </div>
+  <p class="reveal" style="margin-top:1rem">Today both could read "Ascendant." New model: <strong>B clearly outranks A</strong> — correctly. Your rank = the hardest moves you've proven. <span class="em">The good news: the data already exists</span> — each skill carries a difficulty <span class="mono">tier 1–8</span> that maps almost 1:1 onto Novice→Ascendant.</p>
+</section>
+
+<!-- 10 WITHIN-SKILL -->
+<section class="slide" id="s9">
+  <div class="num">09 · decision</div>
+  <div class="kicker reveal">Within-skill progression · council vote</div>
+  <h2 class="reveal">Ranking up = climbing to a harder move.</h2>
+  <p class="reveal">pushup <span class="em">→</span> diamond <span class="em">→</span> archer <span class="em">→</span> one-arm. Each is a deeper, higher-rank node — that's the real rank-up. Reps on one move just <strong>unlock the next.</strong></p>
+  <div class="cards reveal">
+    <div class="card" style="opacity:.55"><h3>(a) keep 9 sub-tiers</h3><p>status quo dressed up — a second rank ladder inside every move. Drift returns.</p></div>
+    <div class="card" style="border-color:var(--gold)"><h3 class="go">(b) one unlock threshold ✓</h3><p>One bar to open the next move. No sub-tiers. <strong>Unanimous council pick.</strong></p></div>
+    <div class="card" style="opacity:.55"><h3>(c) 3-milestone bar</h3><p>still a competing axis, still 3× authoring. Just (a) with fewer steps.</p></div>
+  </div>
+  <p class="reveal" style="margin-top:.7rem;font-size:var(--small);color:var(--text3)">"The moment the gate has internal tiers, it stops being a gate and becomes a second rank ladder — exactly the redundancy we're killing."</p>
+</section>
+
+<!-- 11 AP -->
+<section class="slide" id="s10">
+  <div class="num">10 · verdict</div>
+  <div class="kicker reveal">"What is AP, really?"</div>
+  <h2 class="reveal">A work score that should retire to one job.</h2>
+  <p class="reveal lead" style="margin-top:.6rem">AP fans into the heatmap, the hex, and LV — so as a <span class="rd">display currency it's redundant.</span> But as a <span class="gr">per-movement cumulative-work rank-gate ledger</span>, it's the one thing nothing else replaces.</p>
+  <div class="ribbon reveal" style="margin-top:1.2rem">
+    <span class="pill gr">keep: rawAP (internal)</span>
+    <span class="pill gr">keep: per-move AP bank</span>
+    <span class="pill am">unify: visible level → LV</span>
+    <span class="pill rd">retire: gains · provenTier · dead XP</span>
+  </div>
+</section>
+
+<!-- 12 PLAN -->
+<section class="slide" id="s11">
+  <div class="num">11 · the plan</div>
+  <div class="kicker reveal">Priorities flip — fix the fires first</div>
+  <h2 class="reveal">No point perfecting ladders on a loop that doesn't save.</h2>
+  <div class="grid reveal" style="margin-top:1rem;gap:.6rem">
+    <div class="step p0"><strong class="rd">P0 · Fire 1</strong> — Re-home the orphaned services into <span class="mono">complete()</span> so a workout actually records skill tiers / ranks / progression. <span class="gr">(This also revives the auto-deload &amp; skill auto-proof already built.)</span></div>
+    <div class="step p0"><strong class="rd">P0 · Fire 2</strong> — Show the AP-derived <span class="mono">OverallLevel</span> on Home/Profile. Retire <span class="mono">gains</span>.</div>
+    <div class="step p1"><strong class="bl">P1 · Consolidate</strong> — 4 concepts · tree-placement = rank · within-skill option (b).</div>
+    <div class="step p1"><strong class="bl">P1 · Library</strong> — one barbell standard · curate the 148 guessed difficulties · delete dead tables + <span class="mono">.swift.new</span>.</div>
+  </div>
+  <p class="reveal go" style="margin-top:1.1rem;font-size:clamp(.95rem,1.8vw,1.2rem)">Recommendation: start with Fire 1.</p>
+  <div class="footer">UNBOUND · ladder teardown · council of 4</div>
+</section>
+
+<div class="dots" id="dots"></div>
+<div class="hint">↓ scroll · ← → arrows · click dots</div>
+
+<script>
+(function(){
+  const slides=[...document.querySelectorAll('.slide')];
+  const dots=document.getElementById('dots');
+  let cur=0;
+  slides.forEach((s,i)=>{const b=document.createElement('button');b.setAttribute('aria-label','Slide '+(i+1));b.onclick=()=>slides[i].scrollIntoView();dots.appendChild(b);});
+  const dotEls=[...dots.children];
+  const io=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting&&e.intersectionRatio>0.5){e.target.classList.add('visible');cur=slides.indexOf(e.target);dotEls.forEach((d,i)=>d.classList.toggle('active',i===cur));}});},{threshold:[0.5]});
+  slides.forEach(s=>io.observe(s));
+  slides[0].classList.add('visible');dotEls[0].classList.add('active');
+  addEventListener('keydown',e=>{
+    if(['ArrowDown','ArrowRight',' ','PageDown'].includes(e.key)){e.preventDefault();slides[Math.min(slides.length-1,cur+1)].scrollIntoView();}
+    if(['ArrowUp','ArrowLeft','PageUp'].includes(e.key)){e.preventDefault();slides[Math.max(0,cur-1)].scrollIntoView();}
+    if(e.key==='Home')slides[0].scrollIntoView();
+    if(e.key==='End')slides[slides.length-1].scrollIntoView();
+  });
+})();
+</script>
+</body>
+</html>
