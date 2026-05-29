@@ -52,14 +52,17 @@ All three branched off a **clean `main`** (after committing the 15k-line in-prog
 
 ---
 
-## ⚠️ HUMAN STILL NEEDS TO (before paywall/deletion fixes take effect in prod)
+## Deploy status — DONE by coordinator (project `xwoemvkzrnnsvtupxctu` / Unbound)
 
-1. **Apply DB migration** `20260528000001_user_is_pro.sql` (adds `users.is_pro`, `users.is_pro_expires_at`).
-2. **Set Edge secret** `REVENUECAT_WEBHOOK_SECRET` (`supabase secrets set …`).
-3. **Deploy** `revenuecat_webhook` (`--no-verify-jwt`), and redeploy `anthropic_proxy` + `delete_account`.
-4. **RevenueCat dashboard:** set webhook URL → `…/functions/v1/revenuecat_webhook` with `Authorization: Bearer <secret>`.
-5. **Backfill** `is_pro=true` for existing active subscribers (RC only emits events on new lifecycle changes).
-6. Confirm the service role can delete objects in the `scans` Storage bucket (staging check).
+1. ✅ **DB migration applied** — `20260528000001_user_is_pro.sql` pushed to remote (`users.is_pro`, `users.is_pro_expires_at`).
+2. ✅ **Edge secret set** — `REVENUECAT_WEBHOOK_SECRET` stored in Supabase secrets.
+3. ✅ **Functions deployed + ACTIVE** — `revenuecat_webhook` (`--no-verify-jwt`), `anthropic_proxy`, `delete_account`.
+4. ✅ **Live smoke test** — deployed `revenuecat_webhook` rejects wrong/missing secret with **HTTP 401**.
+5. — **Backfill:** N/A — app not live, no existing subscribers.
+6. ✅ **Storage delete perms:** service role bypasses RLS by design.
+
+### One step that remains for you — only when you connect RevenueCat
+- **RevenueCat dashboard:** set Webhook URL → `https://xwoemvkzrnnsvtupxctu.supabase.co/functions/v1/revenuecat_webhook`, header `Authorization: Bearer <REVENUECAT_WEBHOOK_SECRET>`. (The secret value was provided in chat; it lives in Supabase secrets, not committed to the repo.) Until this is set, `is_pro` stays false for everyone and premium Edge calls return 403 — which is the correct fail-closed default pre-launch.
 
 ## Still LEFT in Category A (deliberately NOT parallelized)
 
