@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ONE METRIC — Overnight Run Report</title>
+<style>
+  :root{
+    --bg:#0a0b0f; --panel:#13151d; --panel2:#1a1d28; --line:#262a38;
+    --ink:#eef1f8; --ink2:#9aa3b8; --ink3:#646d84;
+    --ember:#ff6b3d; --gold:#ffc24b; --green:#39d98a; --red:#ff5470; --blue:#5b9dff; --violet:#a78bfa;
+    --mono:'SF Mono',ui-monospace,'JetBrains Mono',Menlo,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);overflow:hidden}
+  #deck{height:100vh;width:100vw;position:relative}
+  .slide{position:absolute;inset:0;display:none;flex-direction:column;justify-content:center;
+    padding:6vh 9vw;animation:fade .45s ease}
+  .slide.active{display:flex}
+  @keyframes fade{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+  .kicker{font-family:var(--mono);font-size:13px;letter-spacing:3px;text-transform:uppercase;color:var(--ember);margin-bottom:18px}
+  h1{font-size:clamp(34px,5.2vw,68px);line-height:1.02;font-weight:800;letter-spacing:-1.5px;margin-bottom:20px}
+  h2{font-size:clamp(26px,3.6vw,44px);font-weight:800;letter-spacing:-1px;margin-bottom:26px}
+  h2 .num{color:var(--ember);font-family:var(--mono);font-size:.62em;margin-right:14px;opacity:.85}
+  p.lead{font-size:clamp(16px,1.6vw,21px);color:var(--ink2);max-width:60ch;line-height:1.55}
+  .grid{display:grid;gap:16px;margin-top:8px}
+  .g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:repeat(3,1fr)}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px 24px}
+  .card h3{font-size:15px;letter-spacing:.5px;text-transform:uppercase;color:var(--ink3);margin-bottom:12px;font-family:var(--mono)}
+  .card .big{font-size:40px;font-weight:800;letter-spacing:-1px}
+  .stat-row{display:flex;gap:34px;flex-wrap:wrap;margin-top:10px}
+  .stat .v{font-size:46px;font-weight:800;letter-spacing:-1.5px}
+  .stat .l{font-family:var(--mono);font-size:12px;color:var(--ink3);text-transform:uppercase;letter-spacing:2px;margin-top:4px}
+  .tag{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:12px;font-weight:600;
+    padding:5px 11px;border-radius:999px;letter-spacing:.5px}
+  .t-green{background:rgba(57,217,138,.12);color:var(--green);border:1px solid rgba(57,217,138,.3)}
+  .t-red{background:rgba(255,84,112,.12);color:var(--red);border:1px solid rgba(255,84,112,.3)}
+  .t-gold{background:rgba(255,194,75,.12);color:var(--gold);border:1px solid rgba(255,194,75,.3)}
+  .t-blue{background:rgba(91,157,255,.12);color:var(--blue);border:1px solid rgba(91,157,255,.3)}
+  .t-ink{background:rgba(154,163,184,.1);color:var(--ink2);border:1px solid var(--line)}
+  ul.clean{list-style:none;margin-top:14px}
+  ul.clean li{padding:11px 0;border-bottom:1px solid var(--line);display:flex;gap:14px;align-items:flex-start;font-size:16px;color:var(--ink2);line-height:1.5}
+  ul.clean li:last-child{border-bottom:none}
+  ul.clean li b{color:var(--ink);font-weight:700}
+  .dot{flex:0 0 auto;width:9px;height:9px;border-radius:50%;margin-top:8px}
+  .d-green{background:var(--green)}.d-red{background:var(--red)}.d-gold{background:var(--gold)}.d-blue{background:var(--blue)}.d-violet{background:var(--violet)}
+  code{font-family:var(--mono);background:var(--panel2);border:1px solid var(--line);padding:2px 7px;border-radius:6px;font-size:.86em;color:var(--gold)}
+  .mono{font-family:var(--mono)}
+  table{width:100%;border-collapse:collapse;margin-top:10px;font-size:15px}
+  th,td{text-align:left;padding:11px 12px;border-bottom:1px solid var(--line)}
+  th{font-family:var(--mono);font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--ink3)}
+  td b{color:var(--ink)}
+  .ba{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:6px}
+  .ba .col{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px}
+  .ba .col.before{border-color:rgba(255,84,112,.25)}
+  .ba .col.after{border-color:rgba(57,217,138,.3)}
+  .ba .lbl{font-family:var(--mono);font-size:11px;letter-spacing:2px;text-transform:uppercase;margin-bottom:12px}
+  .ba .before .lbl{color:var(--red)}.ba .after .lbl{color:var(--green)}
+  .ba pre{font-family:var(--mono);font-size:13px;color:var(--ink2);line-height:1.6;white-space:pre-wrap}
+  .footer{position:absolute;bottom:22px;left:9vw;right:9vw;display:flex;justify-content:space-between;align-items:center;
+    font-family:var(--mono);font-size:12px;color:var(--ink3);letter-spacing:1px}
+  .progress{position:absolute;top:0;left:0;height:3px;background:linear-gradient(90deg,var(--ember),var(--gold));transition:width .35s}
+  .nav-hint{opacity:.6}
+  .pill-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+  .decision{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--gold);border-radius:10px;padding:18px 22px;margin-top:14px}
+  .decision .q{font-size:18px;font-weight:700;color:var(--ink);margin-bottom:6px}
+  .decision .why{font-size:14.5px;color:var(--ink2);line-height:1.5}
+  .badge-num{position:absolute;top:5.5vh;right:9vw;font-family:var(--mono);font-size:13px;color:var(--ink3)}
+  .hero-stats{display:flex;gap:40px;margin-top:34px;flex-wrap:wrap}
+</style>
+</head>
+<body>
+<div id="deck">
+  <div class="progress" id="prog"></div>
+
+  <!-- 1 TITLE -->
+  <section class="slide active">
+    <div class="kicker">UNBOUND · Autonomous Overnight Run · 2026-05-29</div>
+    <h1>ONE METRIC<br>Progression Cleanup</h1>
+    <p class="lead">Collapsing ~16 ways of measuring "how good are you" down to one rank metric. This deck reports what I shipped to prod overnight, the verification behind each change, and the <b style="color:var(--gold)">5 product decisions</b> that gate the rest.</p>
+    <div class="hero-stats">
+      <div class="stat"><div class="v" style="color:var(--green)">2</div><div class="l">phases shipped</div></div>
+      <div class="stat"><div class="v">3</div><div class="l">prod pushes</div></div>
+      <div class="stat"><div class="v" style="color:var(--green)">990</div><div class="l">tests green</div></div>
+      <div class="stat"><div class="v" style="color:var(--gold)">5</div><div class="l">decisions for you</div></div>
+    </div>
+  </section>
+
+  <!-- 2 EXEC SUMMARY -->
+  <section class="slide">
+    <div class="kicker">The TL;DR</div>
+    <h2>What happened overnight</h2>
+    <div class="grid g2">
+      <div class="card">
+        <h3 style="color:var(--green)">Shipped &amp; verified to prod</h3>
+        <ul class="clean">
+          <li><span class="dot d-green"></span><span><b>Dead-code purge</b> — orphaned MuscleGroupTier rank trio + a 336KB stale file that was shipping in the app bundle.</span></li>
+          <li><span class="dot d-green"></span><span><b>Phase 1 — one LVL.</b> The level you see is now the real AP-derived <code>OverallLevel</code>, not a disconnected counter. <code>unbound.gains</code> fully deleted.</span></li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3 style="color:var(--gold)">Blocked on your call</h3>
+        <ul class="clean">
+          <li><span class="dot d-gold"></span><span><b>Phases 0, 2, 3, 5, 7</b> each hit a real product/balance/data decision — not something I should guess on and push to prod unattended.</span></li>
+          <li><span class="dot d-blue"></span><span>The plan was written at design altitude; the live code is far more entangled. Every blocker below is code-grounded.</span></li>
+        </ul>
+      </div>
+    </div>
+    <p class="lead" style="margin-top:22px">Push policy you set: <b style="color:var(--ink)">full prod each phase</b>. Honored — every shipped change is committed + pushed to <code>main</code>, gated by a green build + the full 990-test suite, independently re-verified before push. No Supabase migrations were needed yet.</p>
+  </section>
+
+  <!-- 3 METHOD / BASELINE -->
+  <section class="slide">
+    <div class="kicker">How I worked</div>
+    <h2>Discipline &amp; the regression oracle</h2>
+    <div class="grid g3">
+      <div class="card"><h3>Gate per change</h3><p style="color:var(--ink2);line-height:1.55;font-size:15px">Every commit passes <code>xcodegen</code> → clean build → the <b style="color:var(--ink)">full 990-test suite</b>. No green, no push.</p></div>
+      <div class="card"><h3>Review</h3><p style="color:var(--ink2);line-height:1.55;font-size:15px">Phase 1 was executed by a subagent against a precise spec, then I <b style="color:var(--ink)">independently re-ran build + tests + grep</b> and read the full diff before pushing.</p></div>
+      <div class="card"><h3>Delete, don't park</h3><p style="color:var(--ink2);line-height:1.55;font-size:15px">Old impl + wiring removed in the same commit. git is the safety net — no dead code kept "just in case."</p></div>
+    </div>
+    <div class="stat-row" style="margin-top:28px">
+      <div class="stat"><div class="v" style="color:var(--green)">990</div><div class="l">tests, 0 failures</div></div>
+      <div class="stat"><div class="v">~6s</div><div class="l">suite runtime</div></div>
+      <div class="stat"><div class="v">iPhone 17</div><div class="l">sim destination</div></div>
+      <div class="stat"><div class="v" style="color:var(--green)">EXIT 0</div><div class="l">every build</div></div>
+    </div>
+    <p class="lead" style="margin-top:24px">State is checkpointed in <code>docs/ONE-METRIC-EXECUTION-LOG.md</code> so the run is resumable across context windows.</p>
+  </section>
+
+  <!-- 4 SHIP 1 -->
+  <section class="slide">
+    <div class="kicker">Shipped · commit 212a40c</div>
+    <h2>Dead-code purge</h2>
+    <div class="grid g2">
+      <div class="card">
+        <h3>Deleted (Phase 2 + 4 partial)</h3>
+        <ul class="clean">
+          <li><span class="dot d-green"></span><span><b>MuscleGroupTier</b> + <b>State</b> + <b>Calculator</b> — the E–S muscle <i>rank</i> cluster. Grep-verified <b>zero external consumers</b>. (The kept muscle metric, <code>MuscleHeatGroup</code> recovery/status, is untouched.)</span></li>
+          <li><span class="dot d-green"></span><span><b>SkillTreeContent.swift.new</b> — a 336KB stale duplicate. It was being copied into <code>UNBOUND.app</code> as a resource, so this also trims the shipped binary.</span></li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Why it's safe</h3>
+        <p style="color:var(--ink2);line-height:1.6;font-size:16px">No logic re-homing — these had no live callers anywhere in app or tests. Pure removal. Build green, 990/0 tests, both before and after. No persistence touched.</p>
+        <div class="pill-row"><span class="tag t-green">✓ build</span><span class="tag t-green">✓ 990 tests</span><span class="tag t-green">✓ pushed</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 SHIP 2 -->
+  <section class="slide">
+    <div class="kicker">Shipped · commit b0dbbf4 · 🔥 the #2 fire</div>
+    <h2>Phase 1 — one LVL</h2>
+    <p class="lead" style="margin-bottom:18px">The bug: your Home/Profile "level" was computed from a legacy counter <code>unbound.gains</code> — <b style="color:var(--red)">disconnected from actual training</b>. Logged workouts fed the real <code>OverallLevel</code>, but the UI never showed it.</p>
+    <div class="ba">
+      <div class="col before"><div class="lbl">Before</div><pre>level = (gains / 250) + 1
+// gains = unbound.gains counter
+// bumped by photos, scans, routines,
+// node-unlocks, and a dead +30/session.
+// Logged workouts? Not reflected.</pre></div>
+      <div class="col after"><div class="lbl">After</div><pre>level = overallLevel.level
+// OverallLevelProgress, AP-derived
+// from logged workouts via complete().
+// unbound.gains DELETED — grep: 0 refs.
+// Home (5 sites) + Profile re-sourced.</pre></div>
+    </div>
+    <p class="lead" style="margin-top:18px"><b style="color:var(--ink)">11 files.</b> Deleted: <code>PhotoXPService</code> (whole service + wiring), <code>awardGains</code> + 3 call sites, the routine gains bump, the dead <code>onSessionComplete()</code> (+30/session) and its toast machinery, the dev seed. <span class="tag t-green">✓ 990 tests</span> <span class="tag t-green">✓ re-verified independently</span></p>
+  </section>
+
+  <!-- 6 BEHAVIOR FLAG -->
+  <section class="slide">
+    <div class="badge-num">decision 1 of 5 · D1</div>
+    <div class="kicker" style="color:var(--gold)">Behavior change I shipped — confirm or revert</div>
+    <h2>Do photos &amp; routines still grant LVL?</h2>
+    <p class="lead">Phase 1's plan says <i>"delete unbound.gains + every read/write."</i> Following that literally means: <b style="color:var(--ink)">daily-photo (+5), scan (+25), and routine (+spReward) no longer grant LVL.</b> LVL is now purely the AP-derived level from logged workouts.</p>
+    <div class="decision">
+      <div class="q">I chose Option A (delete) — the plan's explicit instruction.</div>
+      <div class="why">Option B would <i>re-route</i> those activities' XP into <code>OverallLevel</code> so they still count, from one source. That's arguably the truer "one metric" — but it's an unrequested feature the plan didn't ask for, so I didn't invent it overnight. <b style="color:var(--gold)">Your call:</b> keep A (photos/routines are cosmetic, LVL = training only), or I implement B next.</div>
+    </div>
+  </section>
+
+  <!-- 7 DECISIONS BOARD -->
+  <section class="slide">
+    <div class="kicker" style="color:var(--gold)">The gate</div>
+    <h2>5 decisions only you can make</h2>
+    <table>
+      <tr><th>#</th><th>Phase</th><th>The decision</th><th>Why I didn't guess</th></tr>
+      <tr><td class="mono">B1</td><td><b>0 · Logging</b></td><td>How to surface an "unmatched — won't count" exercise state; is the legacy <code>WorkoutLoggingView</code> still a real logger?</td><td>UX + reachability call; legacy path is side-effect-free (doesn't feed LVL/rank).</td></tr>
+      <tr><td class="mono">B2</td><td><b>2 · Rank ladder</b></td><td>Deleting <code>SubRank</code> coarsens rank-up cadence <b>18 → 9 steps</b>.</td><td>Pure game-balance feel. <code>SubRank</code> is load-bearing (109 refs, on the Home screen).</td></tr>
+      <tr><td class="mono">B3</td><td><b>3 · Movement metric</b></td><td>Which public bodyweight-relative strength dataset to curate from?</td><td>External data sourcing + licensing. Blocks deleting <code>LiftTierCriteria</code>.</td></tr>
+      <tr><td class="mono">B4</td><td><b>5 · Attributes hex</b></td><td>How <i>slow/hard</i> should a maxed hex be? (months? a year?)</td><td>Balance calibration — needs a target you intend, not a guess.</td></tr>
+      <tr><td class="mono">B5</td><td><b>7 · Overall rank</b></td><td>Design of the Ascension ceremony (tiered gauntlets, eligibility gates).</td><td>Largest design surface; product design, not mechanical.</td></tr>
+    </table>
+    <p class="lead" style="margin-top:20px">Answer these and the remaining phases become mechanical execution I can run the same way.</p>
+  </section>
+
+  <!-- 8 STATUS BOARD -->
+  <section class="slide">
+    <div class="kicker">Where every phase stands</div>
+    <h2>Phase status board</h2>
+    <table>
+      <tr><th>Phase</th><th>Status</th><th>Note</th></tr>
+      <tr><td><b>0</b> Logging records</td><td><span class="tag t-gold">blocked B1</span></td><td><code>complete()</code> already canonical — most of it was pre-done. Remaining = dead cascade + integrity state.</td></tr>
+      <tr><td><b>1</b> One LVL</td><td><span class="tag t-green">✓ done</span></td><td>Shipped <code>b0dbbf4</code>. grep <code>unbound.gains</code> = 0.</td></tr>
+      <tr><td><b>2</b> One rank ladder</td><td><span class="tag t-blue">partial</span> <span class="tag t-gold">B2</span></td><td>MuscleGroupTier deleted. SubRank/SkillRank = balance surgery.</td></tr>
+      <tr><td><b>3</b> Rank by metric</td><td><span class="tag t-gold">blocked B3</span></td><td>Needs external dataset.</td></tr>
+      <tr><td><b>4</b> Tree placement</td><td><span class="tag t-blue">partial</span></td><td>.new dupe gone. SkillLevel (680 refs) = high fan-out, not started.</td></tr>
+      <tr><td><b>5</b> Hex</td><td><span class="tag t-gold">blocked B4</span></td><td>Curve steepness = balance.</td></tr>
+      <tr><td><b>6</b> AP → XP rename</td><td><span class="tag t-ink">queued</span></td><td>Safe user-facing rename — attempting next overnight.</td></tr>
+      <tr><td><b>7</b> Overall rank</td><td><span class="tag t-gold">blocked B5</span></td><td>Ascension ceremony design.</td></tr>
+      <tr><td><b>8</b> Docs/structure</td><td><span class="tag t-ink">queued</span></td><td>ARCHITECTURE.md map — attempting next overnight.</td></tr>
+    </table>
+  </section>
+
+  <!-- 9 NEXT -->
+  <section class="slide">
+    <div class="kicker">When you wake up</div>
+    <h2>Recommended next moves</h2>
+    <ul class="clean">
+      <li><span class="dot d-green"></span><span><b>Skim the two shipped commits</b> — <code>212a40c</code> (dead code) and <code>b0dbbf4</code> (Phase 1). Both on <code>main</code>, both 990/0.</span></li>
+      <li><span class="dot d-gold"></span><span><b>Answer D1</b> (photos/routines + LVL) and <b>B2–B5</b>. That single pass unblocks 4 phases.</span></li>
+      <li><span class="dot d-blue"></span><span><b>Run the app once</b> and glance at Home/Profile LVL — confirm the new AP-derived level reads sensibly. (Unit tests pass, but the LVL display is the one thing they can't visually verify.)</span></li>
+      <li><span class="dot d-violet"></span><span>If the run continued past this report: <b>Phase 6 (AP→XP rename)</b> and <b>Phase 8 (ARCHITECTURE.md)</b> may already be shipped — check the status board / git log.</span></li>
+    </ul>
+    <p class="lead" style="margin-top:24px">Full detail + the verified execution specs live in <code>docs/ONE-METRIC-EXECUTION-LOG.md</code>.</p>
+  </section>
+
+  <div class="footer">
+    <span>ONE METRIC · overnight autonomous run</span>
+    <span class="nav-hint">← → or Space to navigate · <span id="counter"></span></span>
+  </div>
+</div>
+<script>
+  const slides=[...document.querySelectorAll('.slide')];let i=0;
+  const prog=document.getElementById('prog'),counter=document.getElementById('counter');
+  function show(n){i=Math.max(0,Math.min(slides.length-1,n));
+    slides.forEach((s,k)=>s.classList.toggle('active',k===i));
+    prog.style.width=((i+1)/slides.length*100)+'%';
+    counter.textContent=(i+1)+' / '+slides.length;}
+  document.addEventListener('keydown',e=>{
+    if(e.key==='ArrowRight'||e.key===' '){show(i+1);e.preventDefault();}
+    else if(e.key==='ArrowLeft'){show(i-1);}
+    else if(e.key==='Home'){show(0);}else if(e.key==='End'){show(slides.length-1);}});
+  document.addEventListener('click',e=>{if(e.clientX>window.innerWidth*0.5)show(i+1);else show(i-1);});
+  show(0);
+</script>
+</body>
+</html>
