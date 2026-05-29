@@ -25,7 +25,6 @@ struct ProfileView: View {
     @EnvironmentObject var services: ServiceContainer
 
     @State private var profile: UserProfile?
-    @State private var aggregateRank: SubRank = .eMinus
     @State private var aggregateTier: SkillTier = .initiate
     @State private var attributeProfile: AttributeProfile = AttributeProfile.empty(userId: "", at: .now)
     @State private var bodyMapProfile: BodyMapProfile = BodyMapProfile(userId: "")
@@ -185,7 +184,6 @@ struct ProfileView: View {
             profile = nil
         }
 
-        aggregateRank = await services.rank.aggregateRank(userId: userId)
         aggregateTier = await services.rank.aggregateTier(userId: userId)
         _ = RankCosmetics.unlockedTiers(userId: userId, currentTier: aggregateTier)
         equippedFrameTier = RankCosmetics.equippedFrameTier(userId: userId, currentTier: aggregateTier)

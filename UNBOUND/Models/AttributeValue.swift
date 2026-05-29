@@ -128,12 +128,6 @@ struct AttributeValue: Codable, Sendable, Equatable {
         AttributeLevelCurve.rankTitle(forLevel: level)
     }
 
-    var peakSubRank: SubRank {
-        SubRank.nearest(for: peak / 100.0 * 17.0)
-    }
-
-    var peakRankTitle: RankTitle { peakSubRank.title }
-
     var level: Int { AttributeLevelCurve.level(forXP: xp) }
 
     var hexChartValue: Double {

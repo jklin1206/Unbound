@@ -8,6 +8,16 @@ import SwiftUI
 //
 // Letter ranks are the anchor; minus/plain/plus are 1/3-interval
 // interpolations between adjacent letters.
+//
+// INTERNAL-ONLY. The single user-facing rank ladder is `RankTier`
+// (Initiate→Ascendant). SubRank is never surfaced — the letter grade
+// ("E-"/"B+") reaches no UI; every display projects through `.title`
+// (a RankTier). SubRank survives only as the engine's fine-grained
+// computation currency: StrengthStandards interpolation, per-lift PR
+// detection, and attribute rank-up cadence (the 18 steps fire rank-ups
+// ~2× as often as the 9 RankTier bands would). Collapsing it into RankTier
+// would coarsen that cadence — a product decision, not cleanup (see
+// docs/RANK-VOCABULARY-CONSOLIDATION.md, Phase 2/3).
 
 enum SubRank: String, Codable, CaseIterable, Sendable, Comparable {
     case eMinus, e, ePlus
@@ -40,15 +50,9 @@ enum SubRank: String, Codable, CaseIterable, Sendable, Comparable {
         }
     }
 
-    /// Letter-grade label for this sub-rank ("E-", "B+", "S", etc.).
-    /// This is the primary display label used throughout the UI — e.g. rank
-    /// chips, skill nodes, share cards.  Always returns `letter + modifier`.
+    /// Letter-grade label ("E-", "B+", "S"). INTERNAL/debug only — not shown to
+    /// users (UI uses the `.title` RankTier). Always `letter + modifier`.
     var displayName: String { letter + modifier }
-
-    /// Human-readable title band ("Initiate", "Veteran", "Ascendant", etc.).
-    /// Use this for new surfaces that want the nine-tier title instead of the
-    /// letter-grade (e.g. Build hex phase 8+ UI).
-    var rankTitleName: String { title.displayName }
 
     /// Nine-tier title band. Single source of the SubRank→RankTier banding —
     /// see `SubRank.asSkillTier` in SkillTier.swift.
@@ -161,11 +165,6 @@ extension SubRank {
     /// Steady-state tint used by rank displays.
     var regionTint: Color {
         asSkillTier.rewardTint
-    }
-
-    /// True when the rank should render with a holographic shimmer (S / S+ only).
-    var usesHolographicShimmer: Bool {
-        self == .s || self == .sPlus
     }
 }
 

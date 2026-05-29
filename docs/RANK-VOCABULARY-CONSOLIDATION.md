@@ -47,7 +47,14 @@ A movement's **shared-ladder tier = f(intrinsic difficulty anchor, within-moveme
 
 **Phase 1 — Merge `RankTitle` + `SkillTier` → `RankTier`.** Mechanical (~1 day). One Int-backed, Comparable enum with a `String token` (for `rank_title_*`/`avatar_frame_*` asset names) and a **tolerant `init(from:)`** that decodes legacy Int blobs (`perSkill`, cosmetic highest) *and* legacy String blobs (trial progress, incl. `"honed"→master`) — so **no on-disk migration**. Collapse the parallel `SubRank.title`/`SubRank.asSkillTier` maps. Repoint ~20 files. No Supabase change (these live only in UserDefaults).
 
-**Phase 2 — Retire visible E−S; re-express gates on `RankTier`.** Make `StrengthStandards` output `RankTier`; convert the realization/peaking gates, `ProgressionState.unlockRequirement`, badge thresholds, and rank-up detection from `SubRank.ordinal` comparisons to `RankTier`. Delete the vestigial bits (`rankTitleName`, `peakSubRank`, `ProfileView.aggregateRank`, `usesHolographicShimmer`). SubRank becomes internal-only or removed.
+**Phase 2 — Confirm E−S is internal-only; delete the vestigial bits.** ✅ DONE.
+The audit corrected this phase's original plan in two ways:
+1. **The user-facing goal was already met by Phase 1.** The E−S letter grade is surfaced in **zero** UI — every display projects through `.title` (now a `RankTier`). So there is no visible E−S to "retire."
+2. **SubRank's 18 steps are load-bearing**, not dead: they are the engine's fine-grained computation currency for StrengthStandards interpolation, per-lift PR detection, and **attribute rank-up cadence** (`AttributeService`/`AttributeIngest` fire rank-ups on `SubRank.ordinal`, ~2× as often as the 9 `RankTier` bands would). The realization/peaking/badge gates compare `SubRank.ordinal` to thresholds (`bMinus`/`aMinus`/letter) whose boundaries don't sit on `RankTier` band edges.
+
+Therefore Phase 2 did NOT collapse SubRank or re-express the gates (doing so would *coarsen rank-up cadence and shift gate boundaries* — a **product decision**, folded into Phase 3). What Phase 2 did: deleted the genuinely-dead vestigial code (`rankTitleName`, `peakSubRank`/`peakRankTitle`, `usesHolographicShimmer`, `ProfileView.aggregateRank`), fixed the misleading `SubRank.displayName` comment, and scoped `SubRank` as **INTERNAL-ONLY** in code. Net: one user-facing ladder (`RankTier`); `SubRank` is now clearly an invisible engine detail.
+
+**Open product decision (Phase 3 input):** do we *want* rank-ups on the fine 18-step cadence (more frequent, smaller) or the 9-step cadence (rarer, bigger)? If the latter, SubRank can be fully retired then; if the former, it stays as the engine's precision layer permanently. Not a cleanup call — it changes game feel.
 
 **Phase 3 — Curate per-movement difficulty anchors + surface the 9 layers.** Replace heuristic `MovementDifficulty` with a curated `RankTier` floor/ceiling per movement; implement the shared-ladder normalization (difficulty × progress). Surface difficulty in the skill tree (the 9 layers). **This is the content/balance pass** — the part that needs your judgment on placements.
 

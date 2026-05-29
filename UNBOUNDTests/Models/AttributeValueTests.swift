@@ -31,15 +31,4 @@ final class AttributeValueTests: XCTestCase {
         v.current = 50  // ordinal ~8 → cPlus → veteran (per existing SubRank.title table)
         XCTAssertEqual(v.rankTitle, .veteran)
     }
-
-    func testPeakSubRankAndPeakRankTitleAreDrivenByPeakNotCurrent() {
-        var v = AttributeValue.zero(at: t0)
-        v.peak = 100
-        v.current = 0
-        XCTAssertEqual(v.peakSubRank, .sPlus)
-        XCTAssertEqual(v.peakRankTitle, .ascendant)
-        v.peak = 50
-        XCTAssertEqual(v.peakSubRank, .bMinus)   // 50/100*17 = 8.5 → ordinal 9 → bMinus → veteran title
-        XCTAssertEqual(v.peakRankTitle, .veteran)
-    }
 }
