@@ -153,18 +153,22 @@ struct ScanDeltaReportRow: Codable, Sendable {
     let comparisonScanId: String?
     let createdAt: Date
 
-    let shouldersBefore: Int
-    let shouldersAfter: Int
-    let chestBefore: Int
-    let chestAfter: Int
-    let armsBefore: Int
-    let armsAfter: Int
-    let coreBefore: Int
-    let coreAfter: Int
-    let legsBefore: Int
-    let legsAfter: Int
-    let overallBefore: Int
-    let overallAfter: Int
+    // Body-grade columns are intentionally never written. The app moved away
+    // from photo body grades, so the checkpoint bridge used to emit dead "5→5"
+    // values for all six parts. Those are now left NULL (columns are nullable)
+    // so the scan-delta path writes no body grades.
+    let shouldersBefore: Int?
+    let shouldersAfter: Int?
+    let chestBefore: Int?
+    let chestAfter: Int?
+    let armsBefore: Int?
+    let armsAfter: Int?
+    let coreBefore: Int?
+    let coreAfter: Int?
+    let legsBefore: Int?
+    let legsAfter: Int?
+    let overallBefore: Int?
+    let overallAfter: Int?
 
     let narrative: String
     let improvements: [String]
@@ -177,18 +181,18 @@ struct ScanDeltaReportRow: Codable, Sendable {
         self.baselineScanId = report.baselineScanId
         self.comparisonScanId = report.comparisonScanId
         self.createdAt = report.createdAt
-        self.shouldersBefore = report.shoulders.before
-        self.shouldersAfter  = report.shoulders.after
-        self.chestBefore     = report.chest.before
-        self.chestAfter      = report.chest.after
-        self.armsBefore      = report.arms.before
-        self.armsAfter       = report.arms.after
-        self.coreBefore      = report.core.before
-        self.coreAfter       = report.core.after
-        self.legsBefore      = report.legs.before
-        self.legsAfter       = report.legs.after
-        self.overallBefore   = report.overall.before
-        self.overallAfter    = report.overall.after
+        self.shouldersBefore = nil
+        self.shouldersAfter  = nil
+        self.chestBefore     = nil
+        self.chestAfter      = nil
+        self.armsBefore      = nil
+        self.armsAfter       = nil
+        self.coreBefore      = nil
+        self.coreAfter       = nil
+        self.legsBefore      = nil
+        self.legsAfter       = nil
+        self.overallBefore   = nil
+        self.overallAfter    = nil
         self.narrative       = report.narrative
         self.improvements    = report.improvements
         self.laggingAreas    = report.laggingAreas
