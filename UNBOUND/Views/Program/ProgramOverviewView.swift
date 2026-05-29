@@ -2661,7 +2661,7 @@ private struct ProgramRankLibraryView: View {
                 rankStatTile(label: "EARNED", value: "\(earnedCount)", tint: Color.unbound.accent)
                 rankStatTile(label: "STANDARDS", value: "\(rows.count)", tint: Color.unbound.coachCyan)
                 rankStatTile(label: "TOP", value: topTier.displayName.uppercased(), tint: topTier.rewardTextTint)
-                rankStatTile(label: "AP", value: "\(totalAP)", tint: Color.unbound.rankGold)
+                rankStatTile(label: "XP", value: "\(totalAP)", tint: Color.unbound.rankGold)
             }
         }
         .padding(16)
@@ -2939,7 +2939,7 @@ private struct ProgramRankLibraryView: View {
                 title: progress?.displayName ?? item.name,
                 subtitle: item.movementSlot.displayName,
                 detail: displayRow.nextBenchmarkSummary ?? displayRow.bestMetricSummary ?? item.rankTemplate.displayName,
-                metric: progress.map { "\(Int($0.totalAP.rounded())) AP" } ?? "0 AP",
+                metric: progress.map { "\(Int($0.totalAP.rounded())) XP" } ?? "0 XP",
                 tier: progress?.provenTier ?? .initiate,
                 visualAssetName: Self.exerciseVisualAssetName(for: item.id),
                 totalAP: progress?.totalAP ?? 0,
@@ -2961,7 +2961,7 @@ private struct ProgramRankLibraryView: View {
                     title: state.displayName,
                     subtitle: state.rankTemplate.displayName,
                     detail: Self.movementProgressSummary(state),
-                    metric: "\(Int(state.totalAP.rounded())) AP",
+                    metric: "\(Int(state.totalAP.rounded())) XP",
                     tier: state.provenTier,
                     visualAssetName: Self.exerciseVisualAssetName(for: state.rankStandardMovementId),
                     totalAP: state.totalAP,

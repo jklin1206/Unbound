@@ -381,8 +381,10 @@ final class UNBOUNDSmokeTest: XCTestCase {
         XCTAssertEqual(sequence.progression?.skillXPGained, 25)
     }
 
-    func testProgressionReceiptGroupsMovementAPWithBeforeAfterBankProgress() {
+    func testProgressionReceiptGroupsMovementXPWithRankProgress() {
         var completion = TrainingCompletionResult()
+        completion.bodyweightKg = 80
+        completion.biologicalSex = .male
         completion.movementAPGains = [
             MovementAPGain(
                 userId: "u-move",
@@ -395,7 +397,7 @@ final class UNBOUNDSmokeTest: XCTestCase {
                 rankTemplate: .barbellStrength,
                 rawAP: 9,
                 reps: 5,
-                loadKg: 100,
+                loadKg: 105,
                 occurredAt: Date(timeIntervalSince1970: 10)
             ),
             MovementAPGain(
@@ -409,8 +411,65 @@ final class UNBOUNDSmokeTest: XCTestCase {
                 rankTemplate: .barbellStrength,
                 rawAP: 6,
                 reps: 4,
-                loadKg: 100,
+                loadKg: 105,
                 occurredAt: Date(timeIntervalSince1970: 20)
+            )
+        ]
+        // Lifetime best 105 kg @ 80 kg bodyweight, male → ratio 1.3125. Bench
+        // male anchors put Master at 1.25× and Vessel at 1.50×, so this is
+        // Master with 25% of the way to Vessel.
+        completion.movementProgressStates = [
+            MovementProgressState(
+                userId: "u-move",
+                rankStandardMovementId: "exercise.bench-press",
+                displayName: "Bench Press",
+                rankTemplate: .barbellStrength,
+                totalAP: 40,
+                bestLoadKg: 105,
+                lastGainedAP: 15,
+                updatedAt: Date(timeIntervalSince1970: 20)
+            )
+        ]
+
+        let line = completion.progressionReceipt.movementLines.first
+
+        XCTAssertEqual(line?.id, "exercise.bench-press")
+        XCTAssertEqual(line?.xpGained ?? 0, 15, accuracy: 0.001)
+        XCTAssertEqual(line?.currentRank, .master)
+        XCTAssertEqual(line?.nextRank, .vessel)
+        XCTAssertEqual(line?.fractionToNextRank ?? -1, 0.25, accuracy: 0.001)
+        // No prior state supplied → not treated as a rank-up.
+        XCTAssertFalse(line?.didRankUp ?? true)
+    }
+
+    func testProgressionReceiptMovementRankUpWhenPriorStateRankedLower() {
+        var completion = TrainingCompletionResult()
+        completion.bodyweightKg = 80
+        completion.biologicalSex = .male
+        completion.movementAPGains = [
+            MovementAPGain(
+                userId: "u-move",
+                sourceLogId: "log-2",
+                sourceExerciseId: "set-1",
+                movementId: "exercise.bench-press",
+                rankStandardMovementId: "exercise.bench-press",
+                movementDisplayName: "Bench Press",
+                standardDisplayName: "Bench Press",
+                rankTemplate: .barbellStrength,
+                rawAP: 12,
+                reps: 3,
+                loadKg: 105,
+                occurredAt: Date(timeIntervalSince1970: 30)
+            )
+        ]
+        // Prior best 80 kg → ratio 1.0 → Veteran. New best 105 kg → Master.
+        completion.movementProgressPriorStates = [
+            "exercise.bench-press": MovementProgressState(
+                userId: "u-move",
+                rankStandardMovementId: "exercise.bench-press",
+                displayName: "Bench Press",
+                rankTemplate: .barbellStrength,
+                bestLoadKg: 80
             )
         ]
         completion.movementProgressStates = [
@@ -420,23 +479,53 @@ final class UNBOUNDSmokeTest: XCTestCase {
                 displayName: "Bench Press",
                 rankTemplate: .barbellStrength,
                 totalAP: 40,
-                lastGainedAP: 15,
-                updatedAt: Date(timeIntervalSince1970: 20)
+                bestLoadKg: 105,
+                updatedAt: Date(timeIntervalSince1970: 30)
             )
         ]
 
         let line = completion.progressionReceipt.movementLines.first
+        XCTAssertEqual(line?.currentRank, .master)
+        XCTAssertTrue(line?.didRankUp ?? false)
+    }
 
-        XCTAssertEqual(line?.id, "exercise.bench-press")
-        XCTAssertEqual(line?.apGained ?? 0, 15, accuracy: 0.001)
-        XCTAssertEqual(line?.totalAPBefore ?? 0, 25, accuracy: 0.001)
-        XCTAssertEqual(line?.totalAPAfter ?? 0, 40, accuracy: 0.001)
-        XCTAssertEqual(line?.progressBefore ?? 0, 0.25, accuracy: 0.001)
-        XCTAssertEqual(line?.progressAfter ?? 0, 0.40, accuracy: 0.001)
-        XCTAssertEqual(line?.apIntoCurrentCheckpoint ?? 0, 40, accuracy: 0.001)
-        XCTAssertEqual(line?.apNeededForCurrentCheckpoint ?? 0, 100, accuracy: 0.001)
-        XCTAssertEqual(line?.apRemainingToCheckpoint ?? 0, 60, accuracy: 0.001)
-        XCTAssertFalse(line?.didAdvanceCheckpoint ?? true)
+    func testProgressionReceiptUnrankedMovementShowsXPOnly() {
+        var completion = TrainingCompletionResult()
+        completion.bodyweightKg = 80
+        completion.biologicalSex = .male
+        completion.movementAPGains = [
+            MovementAPGain(
+                userId: "u-move",
+                sourceLogId: "log-3",
+                sourceExerciseId: "set-1",
+                movementId: "exercise.lateral-raise",
+                rankStandardMovementId: "exercise.lateral-raise",
+                movementDisplayName: "Lateral Raise (DB)",
+                standardDisplayName: "Lateral Raise (DB)",
+                rankTemplate: .unranked,
+                rawAP: 8,
+                reps: 12,
+                loadKg: 10,
+                occurredAt: Date(timeIntervalSince1970: 40)
+            )
+        ]
+        completion.movementProgressStates = [
+            MovementProgressState(
+                userId: "u-move",
+                rankStandardMovementId: "exercise.lateral-raise",
+                displayName: "Lateral Raise (DB)",
+                rankTemplate: .unranked,
+                totalAP: 8,
+                bestLoadKg: 10,
+                updatedAt: Date(timeIntervalSince1970: 40)
+            )
+        ]
+
+        let line = completion.progressionReceipt.movementLines.first
+        XCTAssertEqual(line?.xpGained ?? 0, 8, accuracy: 0.001)
+        XCTAssertNil(line?.currentRank)
+        XCTAssertNil(line?.nextRank)
+        XCTAssertFalse(line?.didRankUp ?? true)
     }
 
     func testOverallLevelRewardStartsAtDisplayedLevelOneWithRealFirstBarScale() {

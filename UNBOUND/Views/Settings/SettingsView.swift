@@ -668,7 +668,7 @@ private struct DevPlayerToolsView: View {
                 Text("Rank Trial")
                     .foregroundColor(.theme.textSecondary)
             } footer: {
-                Text("Sets the dev player's prior overall rank, level, movement AP, skill tiers, attributes, and compatible equipment so the selected rank gate unlocks.")
+                Text("Sets the dev player's prior overall rank, level, movement XP, skill tiers, attributes, and compatible equipment so the selected rank gate unlocks.")
                     .font(.caption(11))
                     .foregroundColor(.theme.textMuted)
             }

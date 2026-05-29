@@ -67,7 +67,7 @@ struct ExercisePreferenceRow: View {
             }
 
             if row.totalAP > 0 {
-                libraryPill(text: "\(formatWhole(row.totalAP)) AP", color: .theme.primary)
+                libraryPill(text: "\(formatWhole(row.totalAP)) XP", color: .theme.primary)
             }
 
             if let benchmark = row.nextBenchmarkSummary {

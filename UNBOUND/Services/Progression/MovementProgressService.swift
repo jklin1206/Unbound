@@ -338,7 +338,7 @@ final class MovementProgressService {
             database: database
         )
         let gains = MovementAPCalculator.gains(from: log, priorStates: priorStates)
-        return await persist(gains: gains, userId: log.userId, sourceLogId: log.id, database: database)
+        return await persist(gains: gains, userId: log.userId, sourceLogId: log.id, priorStates: priorStates, database: database)
     }
 
     func ingest(
@@ -351,13 +351,14 @@ final class MovementProgressService {
             database: database
         )
         let gains = MovementAPCalculator.gains(from: log, priorStates: priorStates)
-        return await persist(gains: gains, userId: log.userId, sourceLogId: log.id, database: database)
+        return await persist(gains: gains, userId: log.userId, sourceLogId: log.id, priorStates: priorStates, database: database)
     }
 
     private func persist(
         gains: [MovementAPGain],
         userId: String,
         sourceLogId: String,
+        priorStates: [String: MovementProgressState] = [:],
         database: any DatabaseServiceProtocol
     ) async -> MovementProgressIngestResult {
         let grouped = Dictionary(grouping: gains, by: \.rankStandardMovementId)
@@ -396,7 +397,11 @@ final class MovementProgressService {
             )
         }
 
-        return MovementProgressIngestResult(gains: persistedGains, updatedStates: updatedStates)
+        return MovementProgressIngestResult(
+            gains: persistedGains,
+            updatedStates: updatedStates,
+            priorStates: priorStates
+        )
     }
 
     private func loadState(

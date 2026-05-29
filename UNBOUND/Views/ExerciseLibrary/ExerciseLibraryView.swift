@@ -56,7 +56,7 @@ struct ExerciseLibraryView: View {
             HStack(spacing: 8) {
                 libraryStat("RESULTS", "\(viewModel.resultCount)", .theme.textPrimary)
                 libraryStat("RANKED", "\(viewModel.rankedCount)", .theme.primary)
-                libraryStat("WITH AP", "\(viewModel.withAPCount)", .theme.success)
+                libraryStat("WITH XP", "\(viewModel.withAPCount)", .theme.success)
             }
 
             if !viewModel.topProgressRows.isEmpty {
@@ -96,7 +96,7 @@ struct ExerciseLibraryView: View {
                     .font(.caption(9))
                     .foregroundColor((row.tier?.rewardTint ?? .theme.success))
                 if row.totalAP > 0 {
-                    Text("\(Int(row.totalAP.rounded())) AP")
+                    Text("\(Int(row.totalAP.rounded())) XP")
                         .font(.caption(9))
                         .foregroundColor(.theme.textMuted)
                         .monospacedDigit()

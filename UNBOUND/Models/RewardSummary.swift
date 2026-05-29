@@ -97,46 +97,24 @@ struct ProgressionReceipt: Equatable {
     }
 }
 
+/// Per-movement reward line: XP earned this session plus how close that
+/// movement now sits to its next RankTier (derived from the user's best metric
+/// via `StrengthStandards.progressToNextRank`). Unranked/unrecognized movements
+/// carry no rank — `currentRank == nil` → the reward shows just "+X XP".
 struct ProgressionMovementLine: Identifiable, Equatable {
     let id: String
     let name: String
-    let apGained: Double
-    var totalAPBefore: Double = 0
-    var totalAPAfter: Double = 0
+    let xpGained: Double
 
-    private var checkpointSize: Double { 100 }
-
-    var checkpointBefore: Int {
-        Int(floor(totalAPBefore / checkpointSize))
-    }
-
-    var checkpointAfter: Int {
-        Int(floor(totalAPAfter / checkpointSize))
-    }
-
-    var progressBefore: Double {
-        guard totalAPBefore > 0 else { return 0 }
-        return (totalAPBefore - Double(checkpointBefore) * checkpointSize) / checkpointSize
-    }
-
-    var progressAfter: Double {
-        guard totalAPAfter > 0 else { return min(1, max(0, apGained / checkpointSize)) }
-        return (totalAPAfter - Double(checkpointAfter) * checkpointSize) / checkpointSize
-    }
-
-    var apIntoCurrentCheckpoint: Double {
-        max(0, totalAPAfter - Double(checkpointAfter) * checkpointSize)
-    }
-
-    var apNeededForCurrentCheckpoint: Double { checkpointSize }
-
-    var apRemainingToCheckpoint: Double {
-        max(0, checkpointSize - apIntoCurrentCheckpoint)
-    }
-
-    var didAdvanceCheckpoint: Bool {
-        checkpointAfter > checkpointBefore
-    }
+    /// The movement's current RankTier, or nil if unranked (cardio, carry,
+    /// unranked accessory, free-text). nil → "+X XP" only, no rank bar.
+    var currentRank: RankTier?
+    /// The next tier up, or nil at peak ("MAXED").
+    var nextRank: RankTier?
+    /// 0…1 fill between `currentRank` and `nextRank` (1.0 at peak).
+    var fractionToNextRank: Double = 0
+    /// True when this session crossed the movement into a new tier.
+    var didRankUp: Bool = false
 }
 
 struct ProgressionAttributeLine: Identifiable, Equatable {

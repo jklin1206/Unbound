@@ -217,6 +217,9 @@ struct MovementAPGain: Codable, Identifiable, Hashable, Sendable {
 struct MovementProgressIngestResult: Hashable, Sendable {
     var gains: [MovementAPGain] = []
     var updatedStates: [MovementProgressState] = []
+    /// Per-standard state BEFORE this log was applied, keyed by standard id.
+    /// Used to derive each movement's prior RankTier for rank-up detection.
+    var priorStates: [String: MovementProgressState] = [:]
 
     var totalAP: Double {
         gains.reduce(0) { $0 + $1.rawAP }

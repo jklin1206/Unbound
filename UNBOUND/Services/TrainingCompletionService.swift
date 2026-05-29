@@ -273,12 +273,22 @@ final class TrainingCompletionService {
         services: ServiceContainer
     ) async -> TrainingCompletionResult {
         var result = TrainingCompletionResult()
+
+        // Bodyweight + sex for the per-movement "% to next rank" derivation.
+        let profile: UserProfile? = try? await services.database.read(
+            collection: "users",
+            documentId: performanceLog.userId
+        )
+        result.bodyweightKg = profile?.weightKg ?? 0
+        result.biologicalSex = profile?.biologicalSex
+
         let movementProgress = await MovementProgressService.shared.ingest(
             performanceLog,
             database: services.database
         )
         result.movementAPGains = movementProgress.gains
         result.movementProgressStates = movementProgress.updatedStates
+        result.movementProgressPriorStates = movementProgress.priorStates
         result.updatedMovementProgressIds = movementProgress.updatedStates.map(\.id)
 
         let bodyMapProgress = await BodyMapProgressService.shared.ingest(
@@ -495,6 +505,8 @@ struct TrainingCompletionResult: Sendable {
     var wasAlreadyCompleted: Bool = false
     var movementAPGains: [MovementAPGain] = []
     var movementProgressStates: [MovementProgressState] = []
+    /// Per-standard state BEFORE this log, for prior-rank (rank-up) detection.
+    var movementProgressPriorStates: [String: MovementProgressState] = [:]
     var updatedMovementProgressIds: [String] = []
     var attributeRewards: [AttributeProgressionReward] = []
     var attributeProfileBefore: AttributeProfile?
@@ -506,6 +518,11 @@ struct TrainingCompletionResult: Sendable {
     var overallLevelXPGained: Double = 0
     var skillXPGained: Int = 0
     var proofEngineResult: ProofEngineResult?
+
+    /// User bodyweight + sex at completion, captured so the per-movement reward
+    /// lines can derive each movement's "% to next rank" via StrengthStandards.
+    var bodyweightKg: Double = 0
+    var biologicalSex: BiologicalSex?
 
     var totalMovementAP: Double {
         movementAPGains.reduce(0) { $0 + $1.rawAP }
@@ -527,6 +544,7 @@ struct TrainingCompletionResult: Sendable {
     mutating func mergeProgression(from other: TrainingCompletionResult) {
         movementAPGains = other.movementAPGains
         movementProgressStates = other.movementProgressStates
+        movementProgressPriorStates = other.movementProgressPriorStates
         updatedMovementProgressIds = other.updatedMovementProgressIds
         attributeRewards = other.attributeRewards
         attributeProfileBefore = other.attributeProfileBefore
@@ -537,6 +555,8 @@ struct TrainingCompletionResult: Sendable {
         overallLevelReward = other.overallLevelReward
         overallLevelXPGained = other.overallLevelXPGained
         proofEngineResult = other.proofEngineResult
+        bodyweightKg = other.bodyweightKg
+        biologicalSex = other.biologicalSex
     }
 }
 
@@ -582,21 +602,46 @@ extension TrainingCompletionResult {
             .compactMap { standardId, gains -> ProgressionMovementLine? in
                 guard let first = gains.first else { return nil }
                 let gained = gains.reduce(0) { $0 + $1.rawAP }
-                let currentAP = statesByStandard[standardId]?.totalAP ?? gained
-                let previousAP = max(0, currentAP - gained)
+                let afterState = statesByStandard[standardId]
+                let priorState = movementProgressPriorStates[standardId]
+
+                // Current rank + "% to next" from the user's best metric for this
+                // movement (lifetime, post-log). Rank-up = current rank strictly
+                // above the rank derived from the pre-log best metric.
+                let progress = TrainingCompletionResult.rankProgress(
+                    state: afterState,
+                    template: first.rankTemplate,
+                    exerciseKey: first.standardDisplayName,
+                    bodyweightKg: bodyweightKg,
+                    sex: biologicalSex
+                )
+                let priorRank = TrainingCompletionResult.rankProgress(
+                    state: priorState,
+                    template: first.rankTemplate,
+                    exerciseKey: first.standardDisplayName,
+                    bodyweightKg: bodyweightKg,
+                    sex: biologicalSex
+                )?.current
+                let didRankUp: Bool = {
+                    guard let current = progress?.current else { return false }
+                    return current.rawValue > (priorRank?.rawValue ?? -1) && priorRank != nil
+                }()
+
                 return ProgressionMovementLine(
                     id: standardId,
                     name: first.standardDisplayName,
-                    apGained: TrainingCompletionResult.rounded(gained, places: 0),
-                    totalAPBefore: TrainingCompletionResult.rounded(previousAP, places: 0),
-                    totalAPAfter: TrainingCompletionResult.rounded(currentAP, places: 0)
+                    xpGained: TrainingCompletionResult.rounded(gained, places: 0),
+                    currentRank: progress?.current,
+                    nextRank: progress?.next,
+                    fractionToNextRank: progress?.fraction ?? 0,
+                    didRankUp: didRankUp
                 )
             }
             .sorted { lhs, rhs in
-                if lhs.apGained == rhs.apGained {
+                if lhs.xpGained == rhs.xpGained {
                     return lhs.name < rhs.name
                 }
-                return lhs.apGained > rhs.apGained
+                return lhs.xpGained > rhs.xpGained
             }
             .prefix(3)
 
@@ -655,5 +700,39 @@ extension TrainingCompletionResult {
     private static func rounded(_ value: Double, places: Int) -> Double {
         let scale = pow(10.0, Double(max(0, places)))
         return (value * scale).rounded() / scale
+    }
+
+    /// Derive a movement's current RankTier + "% to next" from its best logged
+    /// metric. The metric depends on the rank template: load for strength,
+    /// added-load for weighted bodyweight, reps for bodyweight reps, seconds for
+    /// holds. Cardio / carry / mobility / routine / unranked → nil (no rank bar).
+    static func rankProgress(
+        state: MovementProgressState?,
+        template: MovementRankTemplate,
+        exerciseKey: String,
+        bodyweightKg: Double,
+        sex: BiologicalSex?
+    ) -> (current: RankTier, next: RankTier?, fraction: Double)? {
+        guard let state else { return nil }
+        let metric: Double?
+        switch template {
+        case .barbellStrength, .machineStrength:
+            metric = state.bestLoadKg
+        case .weightedBodyweight:
+            metric = state.bestLoadKg
+        case .bodyweightReps:
+            metric = state.bestReps.map(Double.init)
+        case .holdControl:
+            metric = state.bestHoldSeconds.map(Double.init)
+        case .carrySled, .cardioPerformance, .mobilityDuration, .routineCompletion, .unranked:
+            return nil
+        }
+        guard let metric, metric > 0 else { return nil }
+        return StrengthStandards.progressToNextRank(
+            metricValue: metric,
+            bodyweightKg: bodyweightKg,
+            exerciseKey: exerciseKey,
+            sex: sex
+        )
     }
 }

@@ -403,23 +403,28 @@ struct WorkoutRewardSequenceView: View {
 
     private func movementImpactBeat(_ receipt: ProgressionReceipt) -> some View {
         let lines = Array(receipt.movementLines.prefix(3))
-        let tint = lines.first?.didAdvanceCheckpoint == true ? Color.unbound.rankGold : Color.unbound.success
+        let rankedUp = lines.contains(where: \.didRankUp)
+        let tint = rankedUp ? Color.unbound.rankGold : Color.unbound.success
 
         return RewardPanel(tint: tint, active: currentBeatKind == .rankReveal) {
             VStack(alignment: .leading, spacing: 18) {
-                beatHeader(kicker: "MOVEMENT AP", title: "LIFT CREDIT", tint: tint)
+                beatHeader(
+                    kicker: rankedUp ? "MOVEMENT RANK UP" : "MOVEMENT XP",
+                    title: rankedUp ? "TIER ASCENDED" : "EARNED THIS SESSION",
+                    tint: tint
+                )
 
                 if let topLine = lines.first {
-                    MovementAPSpotlight(
+                    MovementXPSpotlight(
                         line: topLine,
-                        tint: tint,
+                        tint: topLine.didRankUp ? Color.unbound.rankGold : tint,
                         animate: currentBeatKind == .rankReveal && pageRevealed
                     )
                 }
 
                 VStack(spacing: 12) {
                     ForEach(lines.dropFirst()) { line in
-                        MovementAPProgressRow(
+                        MovementXPProgressRow(
                             line: line,
                             tint: Color.unbound.success,
                             animate: currentBeatKind == .rankReveal && pageRevealed
@@ -541,12 +546,12 @@ struct WorkoutRewardSequenceView: View {
     private func progressionBeat(_ receipt: ProgressionReceipt) -> some View {
         RewardPanel(tint: Color.unbound.success, active: currentBeatKind == .progression) {
             VStack(alignment: .leading, spacing: 16) {
-                beatHeader(kicker: "ASCENSION LEDGER", title: "ROUTED CREDIT", tint: Color.unbound.success)
+                beatHeader(kicker: "SESSION LEDGER", title: "EARNED XP", tint: Color.unbound.success)
 
                 VStack(spacing: 12) {
                     ReceiptTotalRow(
-                        label: "Movement AP",
-                        value: "+\(formatReceiptNumber(receipt.totalMovementAP)) AP",
+                        label: "Movement XP",
+                        value: "+\(formatReceiptNumber(receipt.totalMovementAP)) XP",
                         tint: Color.unbound.success,
                         show: receipt.totalMovementAP > 0
                     )
@@ -562,10 +567,10 @@ struct WorkoutRewardSequenceView: View {
                 }
 
                 if !receipt.movementLines.isEmpty {
-                    progressionMiniSection(title: "Movement Banks") {
+                    progressionMiniSection(title: "Movements") {
                         VStack(spacing: 10) {
                             ForEach(receipt.movementLines) { line in
-                                MovementAPProgressRow(
+                                MovementXPProgressRow(
                                     line: line,
                                     tint: Color.unbound.success,
                                     animate: currentBeatKind == .progression && pageRevealed
@@ -1387,7 +1392,7 @@ private struct LiftRankSpotlight: View {
     }
 }
 
-private struct MovementAPSpotlight: View {
+private struct MovementXPSpotlight: View {
     let line: ProgressionMovementLine
     let tint: Color
     let animate: Bool
@@ -1396,12 +1401,12 @@ private struct MovementAPSpotlight: View {
         VStack(alignment: .leading, spacing: 16) {
             HStack(alignment: .center, spacing: 14) {
                 ZStack {
-                    RankPulseRings(tint: tint, hot: line.didAdvanceCheckpoint, animate: animate)
+                    RankPulseRings(tint: tint, hot: line.didRankUp, animate: animate)
                     VStack(spacing: 0) {
-                        Text("+\(formatWhole(line.apGained))")
+                        Text("+\(formatWhole(line.xpGained))")
                             .font(.system(size: 31, weight: .black, design: .monospaced))
                             .foregroundStyle(tint)
-                        Text("AP")
+                        Text("XP")
                             .font(Font.unbound.captionS.weight(.black))
                             .tracking(2.0)
                             .foregroundStyle(Color.unbound.textTertiary)
@@ -1414,28 +1419,45 @@ private struct MovementAPSpotlight: View {
                         .font(Font.unbound.bodyMStrong)
                         .tracking(1.0)
                         .foregroundStyle(Color.unbound.textPrimary)
-                    Text(line.didAdvanceCheckpoint ? "CHECKPOINT CLEARED" : "CURRENT AP BANK")
-                        .font(Font.unbound.captionS.weight(.heavy))
-                        .tracking(1.4)
-                        .foregroundStyle(tint)
-                    Text("\(formatWhole(line.apIntoCurrentCheckpoint)) / \(formatWhole(line.apNeededForCurrentCheckpoint)) AP")
-                        .font(.system(size: 27, weight: .black, design: .monospaced))
+                    if line.didRankUp, let rank = line.currentRank {
+                        Text("RANK UP → \(rank.displayName.uppercased())")
+                            .font(Font.unbound.captionS.weight(.heavy))
+                            .tracking(1.4)
+                            .foregroundStyle(tint)
+                    } else if let rank = line.currentRank {
+                        Text("RANK \(rank.displayName.uppercased())")
+                            .font(Font.unbound.captionS.weight(.heavy))
+                            .tracking(1.4)
+                            .foregroundStyle(tint)
+                    }
+                    Text(rankProgressLabel)
+                        .font(.system(size: 22, weight: .black, design: .monospaced))
                         .foregroundStyle(Color.unbound.textPrimary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
 
-            RPGStatBar(
-                from: line.didAdvanceCheckpoint ? 0 : line.progressBefore,
-                to: line.progressAfter,
-                tint: tint,
-                animate: animate,
-                height: 24,
-                segments: 10,
-                showOriginCap: true
-            )
+            if line.currentRank != nil, line.nextRank != nil {
+                RPGStatBar(
+                    from: line.didRankUp ? 0 : line.fractionToNextRank,
+                    to: line.fractionToNextRank,
+                    tint: tint,
+                    animate: animate,
+                    height: 24,
+                    segments: 10,
+                    showOriginCap: true
+                )
+            }
         }
         .padding(.vertical, 4)
+    }
+
+    private var rankProgressLabel: String {
+        guard let current = line.currentRank else { return "+XP EARNED" }
+        guard let next = line.nextRank else { return "MAXED — \(current.displayName.uppercased())" }
+        return "\(Int((line.fractionToNextRank * 100).rounded()))% → \(next.displayName.uppercased())"
     }
 }
 
@@ -1591,10 +1613,12 @@ private struct AttributeLevelProgressRow: View {
     }
 }
 
-private struct MovementAPProgressRow: View {
+private struct MovementXPProgressRow: View {
     let line: ProgressionMovementLine
     let tint: Color
     let animate: Bool
+
+    private var rowTint: Color { line.didRankUp ? Color.unbound.rankGold : tint }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 7) {
@@ -1604,43 +1628,46 @@ private struct MovementAPProgressRow: View {
                         .font(Font.unbound.bodyMStrong)
                         .tracking(0.5)
                         .foregroundStyle(Color.unbound.textPrimary)
-                    Text("AP BANK \(formatWhole(line.totalAPAfter))")
-                        .font(Font.unbound.captionS.weight(.heavy))
-                        .tracking(1.1)
-                        .foregroundStyle(line.didAdvanceCheckpoint ? tint : Color.unbound.textTertiary)
+                    if let rank = line.currentRank {
+                        Text(line.didRankUp ? "RANK UP → \(rank.displayName.uppercased())" : "RANK \(rank.displayName.uppercased())")
+                            .font(Font.unbound.captionS.weight(.heavy))
+                            .tracking(1.1)
+                            .foregroundStyle(line.didRankUp ? rowTint : Color.unbound.textTertiary)
+                    }
                 }
 
                 Spacer(minLength: 12)
 
                 VStack(alignment: .trailing, spacing: 2) {
-                    Text("+\(formatWhole(line.apGained)) AP")
+                    Text("+\(formatWhole(line.xpGained)) XP")
                         .font(Font.unbound.monoM.weight(.black))
-                        .foregroundStyle(tint)
-                    Text(line.didAdvanceCheckpoint ? "CHECKPOINT" : "\(formatWhole(line.apRemainingToCheckpoint)) AP LEFT")
-                        .font(Font.unbound.captionS.weight(.heavy))
-                        .tracking(1.0)
-                        .foregroundStyle(Color.unbound.textTertiary)
+                        .foregroundStyle(rowTint)
+                    if line.currentRank != nil {
+                        Text(toNextLabel)
+                            .font(Font.unbound.captionS.weight(.heavy))
+                            .tracking(1.0)
+                            .foregroundStyle(Color.unbound.textTertiary)
+                    }
                 }
             }
 
-            RPGStatBar(
-                from: barStart,
-                to: line.progressAfter,
-                tint: tint,
-                animate: animate,
-                height: 16,
-                segments: 5,
-                showOriginCap: false
-            )
-
-            Text("\(formatWhole(line.apIntoCurrentCheckpoint)) / \(formatWhole(line.apNeededForCurrentCheckpoint)) AP")
-                .font(Font.unbound.captionS.weight(.heavy))
-                .foregroundStyle(Color.unbound.textSecondary)
+            if line.currentRank != nil, line.nextRank != nil {
+                RPGStatBar(
+                    from: line.didRankUp ? 0 : line.fractionToNextRank,
+                    to: line.fractionToNextRank,
+                    tint: rowTint,
+                    animate: animate,
+                    height: 16,
+                    segments: 5,
+                    showOriginCap: false
+                )
+            }
         }
     }
 
-    private var barStart: Double {
-        line.checkpointAfter > line.checkpointBefore ? 0 : line.progressBefore
+    private var toNextLabel: String {
+        guard let next = line.nextRank else { return "MAXED" }
+        return "\(Int((line.fractionToNextRank * 100).rounded()))% → \(next.displayName.uppercased())"
     }
 }
 

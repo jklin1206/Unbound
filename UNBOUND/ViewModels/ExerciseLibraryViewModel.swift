@@ -13,7 +13,7 @@ enum ExerciseLibrarySort: String, CaseIterable, Identifiable {
         switch self {
         case .recommended: return "Best"
         case .bestRank: return "Rank"
-        case .mostAP: return "AP"
+        case .mostAP: return "XP"
         case .recent: return "Recent"
         case .name: return "A-Z"
         }
@@ -35,7 +35,7 @@ enum ExerciseLibraryStatusFilter: String, CaseIterable, Identifiable {
         switch self {
         case .all: return "All"
         case .ranked: return "Ranked"
-        case .hasAP: return "Has AP"
+        case .hasAP: return "Has XP"
         case .hasWeight: return "Loaded"
         case .available: return "Yes"
         case .substitute: return "Sub"

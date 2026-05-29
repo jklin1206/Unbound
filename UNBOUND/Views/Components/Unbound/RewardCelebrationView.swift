@@ -399,7 +399,7 @@ struct RewardCelebrationView: View {
 
             VStack(spacing: 8) {
                 if receipt.totalMovementAP > 0 {
-                    progressionRow("Movement AP", "+\(formatNumber(receipt.totalMovementAP)) AP")
+                    progressionRow("Movement XP", "+\(formatNumber(receipt.totalMovementAP)) XP")
                 }
                 if receipt.totalAttributeXP > 0 {
                     progressionRow("Attribute XP", "+\(formatNumber(receipt.totalAttributeXP)) XP")
@@ -421,7 +421,7 @@ struct RewardCelebrationView: View {
                     ForEach(receipt.movementLines) { line in
                         progressionDetailRow(
                             title: line.name,
-                            value: "+\(formatNumber(line.apGained)) AP"
+                            value: movementLineValue(line)
                         )
                     }
                 }
@@ -495,6 +495,17 @@ struct RewardCelebrationView: View {
 
     private func formatNumber(_ value: Double) -> String {
         "\(Int(value.rounded()))"
+    }
+
+    private func movementLineValue(_ line: ProgressionMovementLine) -> String {
+        let xp = "+\(formatNumber(line.xpGained)) XP"
+        if line.didRankUp, let rank = line.currentRank {
+            return "\(xp) · \(rank.displayName.uppercased())"
+        }
+        if let next = line.nextRank {
+            return "\(xp) · \(Int((line.fractionToNextRank * 100).rounded()))% → \(next.displayName)"
+        }
+        return xp
     }
 
     @ViewBuilder
