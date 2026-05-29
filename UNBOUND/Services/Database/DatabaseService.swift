@@ -11,7 +11,13 @@ import Foundation
 // That's fine for Day-1 scale (onboarding + a handful of scans per user);
 // when we add real backends / leaderboards we swap this out.
 
-final class DatabaseService: DatabaseServiceProtocol, @unchecked Sendable {
+// An `actor`, not a `class`: the previous `@unchecked Sendable` class asserted
+// thread-safety it did not enforce, so concurrent `update` calls to the same
+// document could interleave their read-modify-write and lose writes. Actor
+// isolation serializes every operation. All protocol methods are already
+// `async`, so callers are unchanged. Each method runs to completion without an
+// internal `await`, so a read-modify-write is atomic with respect to the actor.
+actor DatabaseService: DatabaseServiceProtocol {
     static let shared = DatabaseService()
     private let logger = LoggingService.shared
     private let fm = FileManager.default
