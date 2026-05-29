@@ -131,17 +131,19 @@ enum LdSkillTiers {
 
         // MARK: - Pistol Ladder
 
-        // ld.shrimp-squat — single-leg squat regression; anchor: 3 reps = Forged
+        // ld.shrimp-squat — single-leg squat. Reseat: bulgarian-split +
+        // assisted-shrimp on-ramp (both catalog-backed) so the bottom tiers are
+        // reachable; Forged = first clean shrimp.
         "ld.shrimp-squat": [
-            .initiate:   .reps(1,  exerciseName: "shrimp squat"),
-            .novice:     .reps(2,  exerciseName: "shrimp squat"),
-            .apprentice: .reps(3,  exerciseName: "shrimp squat"),
-            .forged:     .reps(5,  exerciseName: "shrimp squat"),
-            .veteran:    .reps(8,  exerciseName: "shrimp squat"),
-            .master:      .reps(10, exerciseName: "shrimp squat"),
-            .vessel:     .reps(12, exerciseName: "shrimp squat"),
-            .unbound:    .reps(15, exerciseName: "shrimp squat"),
-            .ascendant:  .reps(20, exerciseName: "shrimp squat"),
+            .initiate:   .reps(5,  exerciseName: "bulgarian split squat"),
+            .novice:     .reps(3,  exerciseName: "assisted shrimp squat"),
+            .apprentice: .reps(6,  exerciseName: "assisted shrimp squat"),
+            .forged:     .reps(1,  exerciseName: "shrimp squat"),
+            .veteran:    .reps(3,  exerciseName: "shrimp squat"),
+            .master:      .reps(5,  exerciseName: "shrimp squat"),
+            .vessel:     .reps(8,  exerciseName: "shrimp squat"),
+            .unbound:    .reps(12, exerciseName: "shrimp squat"),
+            .ascendant:  .reps(15, exerciseName: "shrimp squat"),
         ],
 
         // ld.assisted-pistol — banded/assisted pistol squat; anchor: 5 reps = Forged
@@ -157,17 +159,19 @@ enum LdSkillTiers {
             .ascendant:  .reps(20, exerciseName: "assisted pistol"),
         ],
 
-        // ld.pistol-squat — full pistol squat; anchor: 5 reps = Forged
+        // ld.pistol-squat — full pistol squat. Reseat: bulgarian-split +
+        // assisted-pistol on-ramp (both catalog-backed) so the bottom tiers are
+        // reachable; Forged = first clean pistol; peak = loaded pistol.
         "ld.pistol-squat": [
-            .initiate:   .reps(1,  exerciseName: "pistol squat"),
-            .novice:     .reps(2,  exerciseName: "pistol squat"),
-            .apprentice: .reps(3,  exerciseName: "pistol squat"),
-            .forged:     .reps(5,  exerciseName: "pistol squat"),
-            .veteran:    .reps(8,  exerciseName: "pistol squat"),
-            .master:      .reps(10, exerciseName: "pistol squat"),
-            .vessel:     .reps(12, exerciseName: "pistol squat"),
-            .unbound:    .reps(15, exerciseName: "pistol squat"),
-            .ascendant:  .reps(20, exerciseName: "pistol squat"),
+            .initiate:   .reps(5,  exerciseName: "bulgarian split squat"),
+            .novice:     .reps(3,  exerciseName: "assisted pistol squat"),
+            .apprentice: .reps(8,  exerciseName: "assisted pistol squat"),
+            .forged:     .reps(1,  exerciseName: "pistol squat"),
+            .veteran:    .reps(3,  exerciseName: "pistol squat"),
+            .master:      .reps(5,  exerciseName: "pistol squat"),
+            .vessel:     .reps(8,  exerciseName: "pistol squat"),
+            .unbound:    .exerciseBodyweightRatio(0.25, exerciseName: "weighted pistol"),
+            .ascendant:  .exerciseBodyweightRatio(0.50, exerciseName: "weighted pistol"),
         ],
 
         // ld.weighted-pistol — loaded pistol at 0.5× bw; lower tiers confirm any
@@ -321,31 +325,38 @@ enum LdSkillTiers {
             .ascendant:  .reps(20, exerciseName: "nordic hip hinge"),
         ],
 
-        // ld.advancing-nordic-curl — eccentric nordic curl progression;
-        // anchor: 3 reps = Forged
+        // ld.advancing-nordic-curl — the ECCENTRIC nordic stage. Re-pointed off
+        // "nordic curl" to "negative nordic curl" to fix the double-gate (it
+        // shared the exact logged name with ld.nordic-curl, so one log advanced
+        // both — and the easier node out-ran the harder one). "negative" names
+        // the regression so the matcher guard passes; it self-registers as a
+        // live-node alias (gradeable, though not yet a pickable catalog entry).
         "ld.advancing-nordic-curl": [
-            .initiate:   .reps(1, exerciseName: "nordic curl"),
-            .novice:     .reps(2, exerciseName: "nordic curl"),
-            .apprentice: .reps(3, exerciseName: "nordic curl"),
-            .forged:     .reps(4, exerciseName: "nordic curl"),
-            .veteran:    .reps(5, exerciseName: "nordic curl"),
-            .master:      .reps(6, exerciseName: "nordic curl"),
-            .vessel:     .reps(8, exerciseName: "nordic curl"),
-            .unbound:    .reps(10, exerciseName: "nordic curl"),
-            .ascendant:  .reps(12, exerciseName: "nordic curl"),
+            .initiate:   .reps(1,  exerciseName: "negative nordic curl"),
+            .novice:     .reps(2,  exerciseName: "negative nordic curl"),
+            .apprentice: .reps(3,  exerciseName: "negative nordic curl"),
+            .forged:     .reps(5,  exerciseName: "negative nordic curl"),
+            .veteran:    .reps(6,  exerciseName: "negative nordic curl"),
+            .master:      .reps(8,  exerciseName: "negative nordic curl"),
+            .vessel:     .reps(10, exerciseName: "negative nordic curl"),
+            .unbound:    .reps(12, exerciseName: "negative nordic curl"),
+            .ascendant:  .reps(15, exerciseName: "negative nordic curl"),
         ],
 
-        // ld.nordic-curl — full nordic curl (elite hamstring); anchor: 3 reps = Forged
+        // ld.nordic-curl — full nordic curl (elite hamstring). Reseat: nordic
+        // hip-hinge (backed) + negative-nordic on-ramp so the bottom is reachable;
+        // Forged = first full unassisted concentric rep (was 5 reps — an elite bar
+        // for a "first"). No longer shares its whole ladder with advancing-nordic.
         "ld.nordic-curl": [
-            .initiate:   .reps(1,  exerciseName: "nordic curl"),
-            .novice:     .reps(2,  exerciseName: "nordic curl"),
-            .apprentice: .reps(3,  exerciseName: "nordic curl"),
-            .forged:     .reps(5,  exerciseName: "nordic curl"),
-            .veteran:    .reps(7,  exerciseName: "nordic curl"),
-            .master:      .reps(10, exerciseName: "nordic curl"),
-            .vessel:     .reps(12, exerciseName: "nordic curl"),
-            .unbound:    .reps(15, exerciseName: "nordic curl"),
-            .ascendant:  .reps(20, exerciseName: "nordic curl"),
+            .initiate:   .reps(8,  exerciseName: "nordic hip hinge"),
+            .novice:     .reps(12, exerciseName: "nordic hip hinge"),
+            .apprentice: .reps(5,  exerciseName: "negative nordic curl"),
+            .forged:     .reps(1,  exerciseName: "nordic curl"),
+            .veteran:    .reps(2,  exerciseName: "nordic curl"),
+            .master:      .reps(3,  exerciseName: "nordic curl"),
+            .vessel:     .reps(5,  exerciseName: "nordic curl"),
+            .unbound:    .reps(8,  exerciseName: "nordic curl"),
+            .ascendant:  .reps(10, exerciseName: "nordic curl"),
         ],
 
         // MARK: - Glute Chain
