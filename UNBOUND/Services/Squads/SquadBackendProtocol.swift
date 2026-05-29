@@ -64,4 +64,34 @@ protocol SquadBackendProtocol: Sendable {
 
     /// Return the squadId the given user belongs to, or nil if none.
     func fetchMySquadId(userId: UUID) async throws -> UUID?
+
+    // MARK: Mission progress
+
+    /// Increment the current ISO-week mission's `current_progress` for a squad
+    /// by `delta`. RLS blocks direct client UPDATE on squad_missions (update
+    /// policy `using (false)`), so this routes through the SECURITY DEFINER
+    /// `increment_squad_mission_progress` RPC, which guards on squad membership.
+    func incrementMissionProgress(squadId: UUID, delta: Int) async throws
+
+    // MARK: Linked sessions
+
+    /// Fetch the most recent `linked_sessions` rows for a squad (newest first).
+    /// Rows are inserted server-side by the `detect_linked_sessions` Edge
+    /// Function. The client recovers which ones it has not yet processed via a
+    /// persisted processed-id set (the table carries no per-user processed flag).
+    func fetchRecentLinkedSessions(squadId: UUID, limit: Int) async throws -> [LinkedSession]
+}
+
+// MARK: - LinkedSession
+//
+// Client mirror of a `linked_sessions` row. NOTE: the table carries only
+// id / squad_id / user_ids / started_at / ended_at — there is NO workout-log
+// id and NO base-XP column, so base session XP cannot be recovered FROM this
+// row. The reconciler recovers it from the local SessionXPService instead.
+struct LinkedSession: Identifiable, Sendable, Equatable {
+    let id: UUID
+    let squadId: UUID
+    let userIds: [UUID]
+    let startedAt: Date
+    let endedAt: Date
 }

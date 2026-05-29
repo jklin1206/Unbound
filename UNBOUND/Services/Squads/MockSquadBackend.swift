@@ -24,6 +24,7 @@ final class MockSquadBackend: SquadBackendProtocol, @unchecked Sendable {
     var deletedSquads: [UUID] = []
     var deletedMembers: [(squadId: UUID, userId: UUID)] = []
     var affinityUpdates: [(squadId: UUID, axis: AttributeKey?, setAt: Date?)] = []
+    var missionProgressIncrements: [(squadId: UUID, delta: Int)] = []
 
     // MARK: Error injection
 
@@ -155,6 +156,16 @@ final class MockSquadBackend: SquadBackendProtocol, @unchecked Sendable {
 
     func fetchMySquadId(userId: UUID) async throws -> UUID? {
         members.first { _, roster in roster.contains { $0.userId == userId } }?.key
+    }
+
+    func incrementMissionProgress(squadId: UUID, delta: Int) async throws {
+        missionProgressIncrements.append((squadId: squadId, delta: delta))
+    }
+
+    var linkedSessions: [UUID: [LinkedSession]] = [:]   // squadId → rows
+
+    func fetchRecentLinkedSessions(squadId: UUID, limit: Int) async throws -> [LinkedSession] {
+        Array((linkedSessions[squadId] ?? []).sorted { $0.startedAt > $1.startedAt }.prefix(limit))
     }
 }
 #endif

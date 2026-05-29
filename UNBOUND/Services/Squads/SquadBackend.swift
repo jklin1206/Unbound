@@ -226,4 +226,44 @@ final class SquadBackend: SquadBackendProtocol, @unchecked Sendable {
             .value
         return rows.first?.squad_id
     }
+
+    func incrementMissionProgress(squadId: UUID, delta: Int) async throws {
+        struct IncrementParams: Encodable, Sendable {
+            let p_squad_id: String
+            let p_delta: Int
+        }
+        try await UnboundSupabase.client
+            .rpc(
+                "increment_squad_mission_progress",
+                params: IncrementParams(p_squad_id: squadId.uuidString, p_delta: delta)
+            )
+            .execute()
+    }
+
+    func fetchRecentLinkedSessions(squadId: UUID, limit: Int) async throws -> [LinkedSession] {
+        struct LinkedSessionRow: Codable {
+            let id: UUID
+            let squad_id: UUID
+            let user_ids: [UUID]
+            let started_at: Date
+            let ended_at: Date
+        }
+        let rows: [LinkedSessionRow] = try await db
+            .from("linked_sessions")
+            .select("id, squad_id, user_ids, started_at, ended_at")
+            .eq("squad_id", value: squadId.uuidString)
+            .order("started_at", ascending: false)
+            .limit(limit)
+            .execute()
+            .value
+        return rows.map {
+            LinkedSession(
+                id: $0.id,
+                squadId: $0.squad_id,
+                userIds: $0.user_ids,
+                startedAt: $0.started_at,
+                endedAt: $0.ended_at
+            )
+        }
+    }
 }

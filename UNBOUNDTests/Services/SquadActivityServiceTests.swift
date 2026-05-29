@@ -248,6 +248,45 @@ final class SquadActivityServiceTests: XCTestCase {
 
     // MARK: - Test 6: .titleUnlocked notification triggers record
 
+    // MARK: - Test 7: handleLinkedSessionDetected applies +20% bonus and posts event
+
+    func testLinkedSessionAppliesTwentyPercentBonusAndPostsEvent() async throws {
+        seedSquad()
+        let mockXP = MockSessionXPService()
+        let svc = SquadActivityService(
+            backend: mockBackend,
+            auth: mockAuth,
+            squadService: mockSquadService,
+            sessionXP: mockXP
+        )
+
+        var posted = false
+        var postedXP: Int? = nil
+        let expectation = XCTestExpectation(description: ".linkedSessionDetected posted")
+        let observer = NotificationCenter.default.addObserver(
+            forName: .linkedSessionDetected, object: nil, queue: .main
+        ) { note in
+            posted = true
+            postedXP = note.userInfo?["xpBonus"] as? Int
+            expectation.fulfill()
+        }
+        defer { NotificationCenter.default.removeObserver(observer) }
+
+        await svc.handleLinkedSessionDetected(
+            userId: mockAuth.currentUserId ?? "mock-user-123",
+            participantDisplayNames: ["Alex", "Maya"],
+            baseSessionXP: 100
+        )
+
+        await fulfillment(of: [expectation], timeout: 1.0)
+        XCTAssertTrue(posted, ".linkedSessionDetected should post for the toast")
+        // 20% of 100 = 20, no prior affinity → net 20.
+        XCTAssertEqual(mockXP.bonusCalls.count, 1)
+        XCTAssertEqual(mockXP.bonusCalls.first?.amount, 20)
+        XCTAssertEqual(mockXP.bonusCalls.first?.reason, "linkedSession")
+        XCTAssertEqual(postedXP, 20)
+    }
+
     func testTitleUnlockedNotificationTriggersRecord() async throws {
         let customAuth = MockAuthService()
         let customSquadService = MockSquadService()

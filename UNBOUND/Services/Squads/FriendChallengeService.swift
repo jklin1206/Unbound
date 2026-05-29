@@ -306,11 +306,21 @@ final class FriendChallengeService: FriendChallengeServiceProtocol {
                     winnerId = challenge.challengerId
                 }
                 let patch = WinnerPatch(winner_user_id: winnerId.uuidString)
-                try await db
+                // Idempotency guard: `evaluateExpired` runs on every scenePhase
+                // .active with no throttle, so two rapid foregrounds (or two
+                // devices) can race here. Filtering on winner_user_id IS NULL
+                // makes the second settle update zero rows; we only post
+                // .friendChallengeExpired when this call actually claimed the
+                // row (returned rows is non-empty), so the toast fires once.
+                let updated: [ChallengeRow] = try await db
                     .from("friend_challenges")
                     .update(patch)
                     .eq("id", value: challenge.id.uuidString)
+                    .is("winner_user_id", value: nil)
+                    .select()
                     .execute()
+                    .value
+                guard !updated.isEmpty else { continue }
                 NotificationCenter.default.post(name: .friendChallengeExpired, object: challenge)
             }
         } catch {
@@ -392,6 +402,14 @@ final class FriendChallengeService: FriendChallengeServiceProtocol {
         localChallenges.insert(challenge, at: 0)
         return challenge
     }
+
+    #if DEBUG
+    /// Test-only: seed a local challenge so expiry/winner logic can be exercised
+    /// without a backend. Not compiled into release builds.
+    func _seedLocalChallengeForTesting(_ challenge: FriendChallenge) {
+        localChallenges.insert(challenge, at: 0)
+    }
+    #endif
 
     private func evaluateExpiredLocalChallenges() {
         for index in localChallenges.indices where localChallenges[index].isExpired && localChallenges[index].winnerUserId == nil {

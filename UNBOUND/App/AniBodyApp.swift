@@ -79,6 +79,12 @@ struct UnboundApp: App {
                                     .evaluateOnForeground(userId: uid, services: services)
                             }
                         }
+                        // Friend challenges have no server cron (unlike squad
+                        // missions, which the evaluate_squad_mission cron closes).
+                        // Their winner-selection lives in Swift, so we settle any
+                        // past-deadline challenges on foreground — matching the
+                        // existing RolloverCoordinator.evaluateOnForeground pattern.
+                        Task { await services.friendChallenge.evaluateExpired() }
                     }
                 }
         }

@@ -7,6 +7,7 @@
 // Cron schedule: 0 2 * * * (2 AM UTC daily)
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+import { computeIsoWeek } from "./iso_week.ts"
 
 // ---------------------------------------------------------------------------
 // Mission catalog — mirrors SquadMissionCatalog.swift
@@ -123,19 +124,6 @@ serve(async (_req) => {
 // ---------------------------------------------------------------------------
 // Utilities
 // ---------------------------------------------------------------------------
-
-function computeIsoWeek(d: Date): string {
-  const target = new Date(d.valueOf())
-  const dayNumber = (d.getUTCDay() + 6) % 7
-  target.setUTCDate(target.getUTCDate() - dayNumber + 3)
-  const firstThursday = target.valueOf()
-  target.setUTCMonth(0, 1)
-  if (target.getUTCDay() !== 4) {
-    target.setUTCMonth(0, 1 + ((4 - target.getUTCDay()) + 7) % 7)
-  }
-  const week = 1 + Math.ceil((firstThursday - target.valueOf()) / 604800000)
-  return `${d.getUTCFullYear()}-W${week.toString().padStart(2, '0')}`
-}
 
 function simpleHash(s: string): number {
   let h = 0

@@ -1,8 +1,84 @@
 import XCTest
 @testable import UNBOUND
 
+// Minimal SquadServiceProtocol stub returning a seeded squad.
+@MainActor
+private final class StubSquadService: SquadServiceProtocol {
+    var stubbedState: SquadState = .empty
+    func loadCurrentSquad(userId: String) async {}
+    func createSquad(name: String, userId: String) async throws -> Squad { throw SquadError.backendUnavailable }
+    func joinSquad(inviteCode: String, userId: String) async throws -> Squad { throw SquadError.backendUnavailable }
+    func leaveSquad(userId: String) async throws {}
+    func setAffinity(_ axis: AttributeKey?, userId: String) async throws {}
+    func state(userId: String) -> SquadState { stubbedState }
+    func aggregateBuildHexValues(userId: String) -> [AttributeKey: Double] { [:] }
+}
+
 @MainActor
 final class SquadMissionServiceTests: XCTestCase {
+
+    private func seededSquad() -> Squad {
+        Squad(
+            id: UUID(uuidString: "BBBBBBBB-0000-0000-0000-000000000001")!,
+            name: "Mission Squad",
+            captainId: UUID(),
+            affinityAxis: nil, affinitySetAt: nil,
+            inviteCode: "MISN01", maxSize: 8,
+            squadStreakWeeks: 0, createdAt: Date()
+        )
+    }
+
+    private func makeLog(userId: String) -> WorkoutLog {
+        WorkoutLog(
+            id: "mission-progress-log",
+            userId: userId,
+            programId: "p",
+            dayNumber: 1,
+            plannedWorkoutName: "Session",
+            startedAt: Date().addingTimeInterval(-1800),
+            completedAt: Date(),
+            exerciseEntries: [],
+            overallNotes: nil,
+            overallRPE: 7,
+            durationMinutes: 30
+        )
+    }
+
+    // MARK: - recordProgress increments the active mission via backend RPC
+
+    func testRecordProgressIncrementsMissionForSquadMember() async {
+        let squad = seededSquad()
+        let stubSquad = StubSquadService()
+        stubSquad.stubbedState = SquadState(
+            currentSquad: squad, roster: [],
+            activeRosterPresence: [], recentActivity: [],
+            unlockedSquadTitles: []
+        )
+        let backend = MockSquadBackend()
+        let service = SquadMissionService(
+            backend: backend,
+            squadService: stubSquad,
+            remoteReadsEnabled: true
+        )
+
+        await service.recordProgress(log: makeLog(userId: "user-m1"), userId: "user-m1")
+
+        XCTAssertEqual(backend.missionProgressIncrements.count, 1)
+        XCTAssertEqual(backend.missionProgressIncrements.first?.squadId, squad.id)
+        XCTAssertEqual(backend.missionProgressIncrements.first?.delta, 1)
+    }
+
+    func testRecordProgressSkipsWhenNoSquad() async {
+        let stubSquad = StubSquadService()  // .empty
+        let backend = MockSquadBackend()
+        let service = SquadMissionService(
+            backend: backend,
+            squadService: stubSquad,
+            remoteReadsEnabled: true
+        )
+        await service.recordProgress(log: makeLog(userId: "user-m2"), userId: "user-m2")
+        XCTAssertTrue(backend.missionProgressIncrements.isEmpty)
+    }
 
     // MARK: - currentWeekIso format
 
