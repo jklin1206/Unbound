@@ -3678,6 +3678,15 @@ private struct RoutineCompletionFlow: View {
         RoutineHistoryStore.shared.record(record)
 
         let userId = services.auth.currentUserId ?? "anonymous"
+        if didAward {
+            await OverallLevelService.shared.ingest(
+                rawAP: Double(routine.spReward),
+                noveltyMultiplier: 1.0,
+                sourceLogId: "routine-\(routine.id)-\(Int(Date().timeIntervalSince1970))",
+                userId: userId,
+                at: Date()
+            )
+        }
         let performanceLog = TrainingSessionAdapters.performanceLogForRoutine(
             routine,
             record: record,
@@ -4105,6 +4114,16 @@ private struct RoutinePreviewSheet: View {
                         UnboundHaptics.medium()
                         let awarded = RoutineHistoryStore.shared.complete(routine)
                         if awarded {
+                            let userId = AuthService.shared.currentUserId ?? "anonymous"
+                            Task {
+                                await OverallLevelService.shared.ingest(
+                                    rawAP: Double(routine.spReward),
+                                    noveltyMultiplier: 1.0,
+                                    sourceLogId: "routine-\(routine.id)-\(Int(Date().timeIntervalSince1970))",
+                                    userId: userId,
+                                    at: Date()
+                                )
+                            }
                             withAnimation(.easeOut(duration: 0.2)) { didComplete = true }
                             DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) { dismiss() }
                         } else {

@@ -415,6 +415,13 @@ struct PhotoCaptureFlow: View {
         guard let image = capturedImage else { return }
         let userId = services.auth.currentUserId ?? "anonymous"
         let photoId = savePhotoToDatabase(image: image, userId: userId, source: .manual)
+        await OverallLevelService.shared.ingest(
+            rawAP: 5,
+            noveltyMultiplier: 1.0,
+            sourceLogId: "photo-daily-\(userId)-\(Self.dayStamp())",
+            userId: userId,
+            at: Date()
+        )
         UserDefaults.standard.set(
             Date().timeIntervalSince1970,
             forKey: "unbound.lastPhotoTimestamp"
@@ -451,6 +458,13 @@ struct PhotoCaptureFlow: View {
         // Save the photo to the library only after the checkpoint commits.
         // If the commit fails, the scan timer and scan XP do not advance.
         let photoId = savePhotoToDatabase(image: image, userId: userId, source: .scan)
+        await OverallLevelService.shared.ingest(
+            rawAP: 25,
+            noveltyMultiplier: 1.0,
+            sourceLogId: "scan-\(userId)-\(photoId)",
+            userId: userId,
+            at: Date()
+        )
 
         UserDefaults.standard.set(
             Date().timeIntervalSince1970,
@@ -484,12 +498,25 @@ struct PhotoCaptureFlow: View {
         }
         let userId = services.auth.currentUserId ?? "anonymous"
         let photoId = savePhotoToDatabase(image: image, userId: userId, source: .manual)
+        await OverallLevelService.shared.ingest(
+            rawAP: 5,
+            noveltyMultiplier: 1.0,
+            sourceLogId: "photo-daily-\(userId)-\(Self.dayStamp())",
+            userId: userId,
+            at: Date()
+        )
         UserDefaults.standard.set(
             Date().timeIntervalSince1970,
             forKey: "unbound.lastPhotoTimestamp"
         )
         NotificationCenter.default.post(name: .photoCaptured, object: nil, userInfo: ["photoId": photoId])
         onComplete(.scanDegradedToPhoto)
+    }
+
+    /// Per-day dedup key so the daily-photo LVL grant only lands once per day.
+    private static func dayStamp(_ date: Date = Date()) -> String {
+        let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; f.timeZone = .current
+        return f.string(from: date)
     }
 
     /// Persist a `ProgressPhoto` row. Returns the new id. For now the
