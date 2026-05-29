@@ -5,20 +5,36 @@ import XCTest
 /// concurrent edits to DIFFERENT fields of the same document converge to the
 /// union rather than one clobbering the other.
 ///
-/// Uses an in-memory `RemoteSync` double so flush/pull/read are deterministic
-/// and offline — no live Supabase.
+/// Uses an in-memory `RemoteSync` double that mirrors the `sync_merge_row`
+/// RPC server-side semantics, so flush/pull are deterministic and offline —
+/// no live Supabase.
 @MainActor
 final class FieldLevelMergeTests: XCTestCase {
 
-    /// In-memory remote: stores one row per (collection, docId) as raw JSON.
-    /// `read` returns the stored doc; `upsert` replaces it whole (matching the
-    /// real Postgres whole-row upsert) — so correctness depends on the engine
-    /// having merged BEFORE pushing.
+    /// In-memory remote that simulates the server-side `sync_merge_row` RPC:
+    /// `merge` applies ONLY `changedFields` from the incoming full doc onto the
+    /// stored row (inserting the row whole if it does not exist yet). An empty
+    /// `changedFields` writes the whole row (full upsert). This is the contract
+    /// the live Postgres function enforces under the row lock — the mock proves
+    /// the client sends correct deltas; true concurrency is proven against the
+    /// deployed RPC by the coordinator.
     final class InMemoryRemote: RemoteSync, @unchecked Sendable {
         var store: [String: [String: Data]] = [:]   // collection -> docId -> json
 
-        func upsert(collection: String, docId: String, json: Data) async throws {
-            store[collection, default: [:]][docId] = json
+        func merge(collection: String, docId: String,
+                   fullJSON: Data, changedFields: [String]) async throws {
+            // Insert path: no stored row, or full upsert -> take the whole doc.
+            guard let existing = store[collection]?[docId],
+                  !changedFields.isEmpty,
+                  let base = try? JSONDecoder().decode(JSONElement.self, from: existing),
+                  let incoming = try? JSONDecoder().decode(JSONElement.self, from: fullJSON) else {
+                store[collection, default: [:]][docId] = fullJSON
+                return
+            }
+            // Conflict path: overlay ONLY the changed fields onto the stored row.
+            let merged = DocumentMerger.overlay(fields: changedFields,
+                                                from: incoming, onto: base)
+            store[collection, default: [:]][docId] = (try? JSONEncoder().encode(merged)) ?? fullJSON
         }
         func delete(collection: String, docId: String) async throws {
             store[collection]?.removeValue(forKey: docId)
@@ -26,7 +42,16 @@ final class FieldLevelMergeTests: XCTestCase {
         func pull(collection: String, userId: String) async throws -> [Data] {
             Array((store[collection] ?? [:]).values)
         }
-        func read(collection: String, docId: String) async throws -> Data? {
+
+        // MARK: Test-only helpers (not part of RemoteSync)
+
+        /// Seed a row whole, bypassing merge semantics (simulates a pre-existing
+        /// synced base doc).
+        func seed(collection: String, docId: String, json: Data) {
+            store[collection, default: [:]][docId] = json
+        }
+        /// Read the stored row directly for assertions.
+        func stored(collection: String, docId: String) -> Data? {
             store[collection]?[docId]
         }
     }
@@ -83,7 +108,7 @@ final class FieldLevelMergeTests: XCTestCase {
     func test_flush_merges_concurrent_field_edits_into_remote_union() async throws {
         let remote = InMemoryRemote()
         // Seed a synced base doc on the server.
-        try await remote.upsert(collection: "programs", docId: "d1",
+        remote.seed(collection: "programs", docId: "d1",
             json: json(#"{"id":"d1","a":"base","b":"base"}"#))
 
         // Device A: independent local + outbox, SAME remote. Edits only `a`.
@@ -106,8 +131,11 @@ final class FieldLevelMergeTests: XCTestCase {
                               changed: ["b"]))
         await engineB.flush()
 
-        // BOTH edits survived: no last-write-wins.
-        let remoteDoc = try await remote.read(collection: "programs", docId: "d1")
+        // BOTH edits survived: no last-write-wins. Device A merged only ["a"]
+        // and device B only ["b"], so the stored row has both. If `merge`
+        // wrongly applied the WHOLE payload, B (the last writer) would reset
+        // a back to "base" and this assert on "A" would fail (red state).
+        let remoteDoc = remote.stored(collection: "programs", docId: "d1")
         let out = try dict(try XCTUnwrap(remoteDoc))
         XCTAssertEqual(out["a"] as? String, "A", "device A's field clobbered (LWW)")
         XCTAssertEqual(out["b"] as? String, "B", "device B's field clobbered (LWW)")
@@ -123,7 +151,7 @@ final class FieldLevelMergeTests: XCTestCase {
                                 local: MockDatabaseService(), maxAttempts: 5)
         outbox.enqueue(entry("d2", payload: json(#"{"id":"d2","a":"only"}"#), changed: ["a"]))
         await engine.flush()
-        let remoteDoc = try await remote.read(collection: "programs", docId: "d2")
+        let remoteDoc = remote.stored(collection: "programs", docId: "d2")
         let out = try dict(try XCTUnwrap(remoteDoc))
         XCTAssertEqual(out["a"] as? String, "only")
     }
@@ -133,7 +161,7 @@ final class FieldLevelMergeTests: XCTestCase {
     func test_restore_preserves_pending_local_field_over_remote() async throws {
         let remote = InMemoryRemote()
         // Remote has both fields; `a` is fresh from another device.
-        try await remote.upsert(collection: "programs", docId: "d1",
+        remote.seed(collection: "programs", docId: "d1",
             json: json(#"{"id":"d1","userId":"u1","a":"remote","b":"base"}"#))
 
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent("re-\(UUID())")
@@ -160,7 +188,7 @@ final class FieldLevelMergeTests: XCTestCase {
 
     func test_restore_takes_remote_when_no_pending_local_edit() async throws {
         let remote = InMemoryRemote()
-        try await remote.upsert(collection: "programs", docId: "d3",
+        remote.seed(collection: "programs", docId: "d3",
             json: json(#"{"id":"d3","userId":"u1","a":"remote"}"#))
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent("re2-\(UUID())")
         defer { try? FileManager.default.removeItem(at: dir) }

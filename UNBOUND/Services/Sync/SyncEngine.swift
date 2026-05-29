@@ -31,9 +31,13 @@ final class SyncEngine {
             do {
                 switch entry.op {
                 case .upsert:
-                    let merged = try await mergedUpsertPayload(for: entry)
-                    try await remote.upsert(collection: entry.collection,
-                        docId: entry.docId, json: merged)
+                    // Server-side atomic merge (bug #5): push the full document
+                    // plus the fields this entry owns; Postgres merges under the
+                    // row lock. No remote read, no client-side overlay.
+                    try await remote.merge(collection: entry.collection,
+                                           docId: entry.docId,
+                                           fullJSON: entry.payloadJSON ?? Data(),
+                                           changedFields: entry.changedFields)
                 case .delete:
                     try await remote.delete(collection: entry.collection,
                                             docId: entry.docId)
@@ -64,24 +68,6 @@ final class SyncEngine {
                 try? await local.create(merged, collection: collection, documentId: idEl)
             }
         }
-    }
-
-    /// Read-merge-write: fetch the current remote doc and overlay ONLY this
-    /// entry's changedFields from the entry payload onto it, so a whole-row
-    /// upsert preserves fields another device wrote (bug #5, LWW). When no
-    /// remote doc exists yet, the payload is pushed as-is.
-    private func mergedUpsertPayload(for entry: OutboxEntry) async throws -> Data {
-        let payload = entry.payloadJSON ?? Data()
-        guard !entry.changedFields.isEmpty,
-              let remoteData = try? await remote.read(collection: entry.collection,
-                                                      docId: entry.docId),
-              let remoteEl = try? JSONDecoder().decode(JSONElement.self, from: remoteData),
-              let entryEl = try? JSONDecoder().decode(JSONElement.self, from: payload) else {
-            return payload
-        }
-        let merged = DocumentMerger.overlay(fields: entry.changedFields,
-                                            from: entryEl, onto: remoteEl)
-        return (try? JSONEncoder().encode(merged)) ?? payload
     }
 
     /// Merge-on-pull defense: overlay any locally-pending changed fields for

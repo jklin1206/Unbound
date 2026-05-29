@@ -173,6 +173,27 @@ final class SupabaseDatabase: @unchecked Sendable {
         }
     }
 
+    // MARK: - Stored procedure (RPC)
+    //
+    // Thin passthrough to a Postgres function. Used by the sync spine for the
+    // server-side atomic field merge (sync_merge_row). The supabase-swift
+    // `rpc` builder is synchronous to build, async to `.execute()`; we discard
+    // the body (the merge function returns void).
+    func rpc<Params: Encodable & Sendable>(
+        _ function: String,
+        params: Params
+    ) async throws {
+        try await requireAuth()
+        do {
+            try await UnboundSupabase.client
+                .rpc(function, params: params)
+                .execute()
+        } catch {
+            logger.log("Supabase rpc failed: \(error)", level: .error, context: ["rpc": function])
+            throw error
+        }
+    }
+
     // MARK: - Current user id (from Supabase auth session)
 
     /// Returns the authenticated user's UUID string. Throws if not signed in.

@@ -21,13 +21,21 @@ enum SyncCollectionMap {
 
 /// Network seam. One implementation (Supabase); mockable in tests.
 protocol RemoteSync: Sendable {
-    func upsert(collection: String, docId: String, json: Data) async throws
     func delete(collection: String, docId: String) async throws
     func pull(collection: String, userId: String) async throws -> [Data]
-    /// Reads a single remote document by id, in the app's camelCase JSON shape.
-    /// `nil` when the row does not exist yet. Used by the engine to read-merge-
-    /// write so a whole-row upsert preserves fields edited on other devices.
-    func read(collection: String, docId: String) async throws -> Data?
+    /// Server-side atomic field-level merge (bug #5 fix). Sends the FULL
+    /// document plus the top-level fields this write is authoritative for to the
+    /// `sync_merge_row` Postgres function, which inserts the row if absent and,
+    /// on conflict, updates ONLY `changedFields` under the row lock — so
+    /// concurrent writes to different fields of one row both survive.
+    ///
+    /// - Parameters:
+    ///   - collection: app collection key (mapped to a table via SyncCollectionMap).
+    ///   - docId: the document's id (unused by the RPC; the id travels inside fullJSON).
+    ///   - fullJSON: the complete document in the app's camelCase JSON shape.
+    ///   - changedFields: camelCase top-level field keys this write owns; empty => full upsert.
+    func merge(collection: String, docId: String,
+               fullJSON: Data, changedFields: [String]) async throws
 }
 
 /// Adapter over SupabaseDatabase. Documents move as type-erased JSON.
@@ -48,15 +56,19 @@ final class SupabaseRemoteSync: RemoteSync, @unchecked Sendable {
         return snakeCasedJSON(data)
     }
 
-    static func snakeCasedJSON(_ data: Data) -> Data {
-        func toSnake(_ s: String) -> String {
-            var out = ""
-            for ch in s {
-                if ch.isUppercase { out += "_"; out += ch.lowercased() }
-                else { out.append(ch) }
-            }
-            return out
+    /// camelCase -> snake_case for a single identifier. Shared by the payload
+    /// walker and the changedFields conversion so column names match exactly.
+    static func snakeCasedKey(_ s: String) -> String {
+        var out = ""
+        for ch in s {
+            if ch.isUppercase { out += "_"; out += ch.lowercased() }
+            else { out.append(ch) }
         }
+        return out
+    }
+
+    static func snakeCasedJSON(_ data: Data) -> Data {
+        let toSnake = snakeCasedKey
         func walk(_ value: Any) -> Any {
             if let dict = value as? [String: Any] {
                 var result = [String: Any]()
@@ -96,13 +108,6 @@ final class SupabaseRemoteSync: RemoteSync, @unchecked Sendable {
         return out
     }
 
-    func upsert(collection: String, docId: String, json: Data) async throws {
-        guard let table = SyncCollectionMap.table(for: collection) else { return }
-        let normalized = Self.normalizedPayload(collection: collection, data: json)
-        let obj = try JSONDecoder().decode(JSONElement.self, from: normalized)
-        _ = try await supabase.upsert(obj, into: table)
-    }
-
     func delete(collection: String, docId: String) async throws {
         guard let table = SyncCollectionMap.table(for: collection) else { return }
         try await supabase.delete(from: table, keyedBy: "id", equals: docId)
@@ -118,15 +123,30 @@ final class SupabaseRemoteSync: RemoteSync, @unchecked Sendable {
         return try rows.map { try Self.camelCasedJSON(JSONEncoder().encode($0)) }
     }
 
-    func read(collection: String, docId: String) async throws -> Data? {
-        guard let table = SyncCollectionMap.table(for: collection) else { return nil }
-        guard let row: JSONElement = try await supabase.fetchOne(from: table,
-                                                                 keyedBy: "id",
-                                                                 equals: docId) else {
-            return nil
-        }
-        return try Self.camelCasedJSON(JSONEncoder().encode(row))
+    func merge(collection: String, docId: String,
+               fullJSON: Data, changedFields: [String]) async throws {
+        guard let table = SyncCollectionMap.table(for: collection) else { return }
+        // Snake-case the full payload (programs has a bespoke shaper) and decode
+        // it to a JSON object so it rides as `p_full` jsonb.
+        let normalized = Self.normalizedPayload(collection: collection, data: fullJSON)
+        let full = try JSONDecoder().decode(JSONElement.self, from: normalized)
+        // changedFields are app camelCase keys; the RPC matches against
+        // snake_case column names, so convert each one identically.
+        let changed = changedFields.map(Self.snakeCasedKey)
+        try await supabase.rpc(
+            "sync_merge_row",
+            params: SyncMergeParams(p_table: table, p_full: full, p_changed: changed)
+        )
     }
+}
+
+/// Encodable param shape for the `sync_merge_row` RPC. Keys are already
+/// snake_case so the db encoder's `.convertToSnakeCase` is a no-op on them;
+/// `p_full`'s nested object keys are pre-snaked by `normalizedPayload`.
+private struct SyncMergeParams: Encodable, Sendable {
+    let p_table: String
+    let p_full: JSONElement
+    let p_changed: [String]
 }
 
 /// Type-erased JSON value so the generic sync path can move arbitrary

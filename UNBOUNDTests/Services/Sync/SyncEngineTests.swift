@@ -7,7 +7,8 @@ final class SyncEngineTests: XCTestCase {
         var failUpsertUntilAttempt = 0
         var upserts = 0, deletes = 0
         var pullResult: [Data] = []
-        func upsert(collection: String, docId: String, json: Data) async throws {
+        func merge(collection: String, docId: String,
+                   fullJSON: Data, changedFields: [String]) async throws {
             upserts += 1
             if upserts <= failUpsertUntilAttempt { throw URLError(.notConnectedToInternet) }
         }
@@ -15,7 +16,6 @@ final class SyncEngineTests: XCTestCase {
         func pull(collection: String, userId: String) async throws -> [Data] {
             collection == "programs" ? pullResult : []
         }
-        func read(collection: String, docId: String) async throws -> Data? { nil }
     }
 
     private var dir: URL!
