@@ -64,4 +64,12 @@ protocol SquadBackendProtocol: Sendable {
 
     /// Return the squadId the given user belongs to, or nil if none.
     func fetchMySquadId(userId: UUID) async throws -> UUID?
+
+    // MARK: Mission progress
+
+    /// Increment the current ISO-week mission's `current_progress` for a squad
+    /// by `delta`. RLS blocks direct client UPDATE on squad_missions (update
+    /// policy `using (false)`), so this routes through the SECURITY DEFINER
+    /// `increment_squad_mission_progress` RPC, which guards on squad membership.
+    func incrementMissionProgress(squadId: UUID, delta: Int) async throws
 }

@@ -226,4 +226,17 @@ final class SquadBackend: SquadBackendProtocol, @unchecked Sendable {
             .value
         return rows.first?.squad_id
     }
+
+    func incrementMissionProgress(squadId: UUID, delta: Int) async throws {
+        struct IncrementParams: Encodable, Sendable {
+            let p_squad_id: String
+            let p_delta: Int
+        }
+        try await UnboundSupabase.client
+            .rpc(
+                "increment_squad_mission_progress",
+                params: IncrementParams(p_squad_id: squadId.uuidString, p_delta: delta)
+            )
+            .execute()
+    }
 }

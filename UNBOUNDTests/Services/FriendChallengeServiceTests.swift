@@ -89,6 +89,48 @@ final class FriendChallengeServiceTests: XCTestCase {
         await service.evaluateExpired()
     }
 
+    func testEvaluateExpiredClosesPastDeadlineChallengeWithWinner() async throws {
+        let challengerUserId = "dev-expire-winner"
+        AuthService.shared.activateDevUser(id: challengerUserId)
+        let challengerId = try XCTUnwrap(SquadUserIdentity.uuid(from: challengerUserId))
+        let challengedId = try XCTUnwrap(SquadUserIdentity.uuid(from: "dev-expire-loser"))
+
+        let service = FriendChallengeService(remoteBackendEnabled: true)
+        let expired = FriendChallenge(
+            id: UUID(),
+            challengerId: challengerId,
+            challengedId: challengedId,
+            squadId: UUID(),
+            kind: .mostSessions,
+            startedAt: .now.addingTimeInterval(-8 * 24 * 3600),
+            expiresAt: .now.addingTimeInterval(-1),  // already past deadline
+            acceptedAt: .now.addingTimeInterval(-7 * 24 * 3600),
+            challengerProgress: 5,
+            challengedProgress: 2,
+            winnerUserId: nil
+        )
+        service._seedLocalChallengeForTesting(expired)
+
+        var receivedWinner: UUID? = nil
+        let expectation = XCTestExpectation(description: ".friendChallengeExpired posted")
+        let token = NotificationCenter.default.addObserver(
+            forName: .friendChallengeExpired, object: nil, queue: .main
+        ) { note in
+            receivedWinner = (note.object as? FriendChallenge)?.winnerUserId
+            expectation.fulfill()
+        }
+        defer { NotificationCenter.default.removeObserver(token) }
+
+        await service.evaluateExpired()
+
+        await fulfillment(of: [expectation], timeout: 1.0)
+        // Higher progress (5 > 2) → challenger wins.
+        XCTAssertEqual(receivedWinner, challengerId)
+        // Challenge is now closed: no longer active.
+        let active = await service.activeChallenges(userId: challengerId)
+        XCTAssertTrue(active.isEmpty, "Closed challenge should not appear as active")
+    }
+
     func testEvaluateExpiredPicksHigherProgressAsWinner() {
         // With stub backend, this exercises the logic path when a winner
         // would be determined. For now verifies the model logic directly.

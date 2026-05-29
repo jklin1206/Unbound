@@ -393,6 +393,14 @@ final class FriendChallengeService: FriendChallengeServiceProtocol {
         return challenge
     }
 
+    #if DEBUG
+    /// Test-only: seed a local challenge so expiry/winner logic can be exercised
+    /// without a backend. Not compiled into release builds.
+    func _seedLocalChallengeForTesting(_ challenge: FriendChallenge) {
+        localChallenges.insert(challenge, at: 0)
+    }
+    #endif
+
     private func evaluateExpiredLocalChallenges() {
         for index in localChallenges.indices where localChallenges[index].isExpired && localChallenges[index].winnerUserId == nil {
             let challenge = localChallenges[index]

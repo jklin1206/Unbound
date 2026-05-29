@@ -125,11 +125,24 @@ final class SquadMissionService: SquadMissionServiceProtocol {
     }
 
     func recordProgress(log: WorkoutLog, userId: String) async {
-        // Generic +1 per log — mission-kind-specific refinement is a follow-up.
-        logger.log(
-            "SquadMissionService.recordProgress for user \(userId) — generic +1 (refinement pending)",
-            level: .info
-        )
+        // Increment the squad's current-week mission by +1 per workout log.
+        // RLS blocks a direct client UPDATE on squad_missions, so this goes
+        // through the increment_squad_mission_progress RPC (SECURITY DEFINER,
+        // squad-membership guarded). The evaluate_squad_mission cron then closes
+        // the mission once current_progress >= target.
+        //
+        // Generic +1 (matching FriendChallengeService's per-log model). Per-
+        // mission-kind weighting (e.g. only aligned-axis logs count) is a
+        // follow-up; the cron remains the source of truth for completion.
+        guard let squad = squadService.state(userId: userId).currentSquad else { return }
+        do {
+            try await backend.incrementMissionProgress(squadId: squad.id, delta: 1)
+        } catch {
+            logger.log(
+                "SquadMissionService.recordProgress increment failed: \(error)",
+                level: .warning
+            )
+        }
     }
 
     func evaluateCompletion(squadId: UUID) async {
