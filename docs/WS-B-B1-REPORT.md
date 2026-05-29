@@ -2,7 +2,7 @@
 
 **Date:** 2026-05-28
 **Coordinator:** main session (sequential — B1 shares the progression/ranking/generation engine, so no parallel fan-out per the impact-radius pass)
-**Result:** ✅ 5 of 6 B1 items closed with falsifiable proofs, integrated to `main` (local; not pushed). 1 item (path-aware skill gates) holds on a balance decision. Full suite: **977 tests, 0 failures.**
+**Result:** ✅ All 6 B1 items addressed with falsifiable proofs, integrated to `main` and pushed to `origin`. #4b shipped as **mechanism + one representative gate** (full per-rank skill content is a deferred balance pass, per decision). Full suite: **980 tests, 0 failures.**
 
 ---
 
@@ -29,16 +29,16 @@
 
 ---
 
-## Remaining: #4b — path-aware "any N of" skill gates (HOLDS on a decision)
+## #4b — path-aware "any N of" skill gates (mechanism shipped, content deferred)
 
-**Finding:** the skill-gating machinery exists (`OverallRankTrialService.requirementLines` gates each `skillStandard`), but **every trial definition has `skillStandards: []`** — trials literally ignore skills. The kickoff asks for *path-aware* "any N of" gates (so a lifter and a calisthenics athlete each have a route to the same rank), which needs:
-1. A new requirement type — `anyNOf(count, [skill+minTier])` — + its requirement-line + readiness logic (mechanism; ~buildable).
-2. **Which skills gate which rank, per path** — a progression-balance/content decision (e.g. what does Veteran→Master require for a lifter vs a cali athlete). This defines difficulty and is a product call, not something to invent silently.
+**Finding:** the per-skill gating machinery existed but **every trial definition had `skillStandards: []`** — trials ignored skills, and `skillStandards` is a hard AND (a lifter would be blocked by a cali skill, and vice versa).
 
-**Recommendation:** build the `anyNOf` mechanism + one or two representative gates to prove the loop end-to-end, then populate the full per-rank content with jlin. Awaiting direction.
+**Shipped (`e0ad10c`):** `OverallRankTrialSkillGroup` — an "any N of" gate satisfied when any `minimumCount` of its options are met, so each athlete path has a route. Additive/backward-compatible field; wired into `requirementLines`. The Master gate ("The Tower") carries a representative group: any 1 of {muscle-up (pull), pistol squat (legs)} at Novice+. Proven via either path.
+
+**Deferred (balance pass):** the full per-rank skill content — which skills gate which rank for each path across all mid/high gates — is a progression-balance/product decision, to be specced separately. The mechanism is ready to populate.
 
 ---
 
 ## Deploy / push status
 
-Nothing pushed, nothing deployed (no server changes in B1 — all client engine). `main` is ahead of `origin` by 8 commits.
+No server changes in B1 (all client engine) — nothing to deploy. All 10 commits pushed to `origin/main`.
