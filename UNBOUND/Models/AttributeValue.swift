@@ -105,6 +105,19 @@ struct AttributeValue: Codable, Sendable, Equatable {
     /// Decay floor — `AttributeDrift` clamps `current` to this minimum after 37d idle (peak × 70%).
     var floor: Double { peak * 0.70 }
 
+    /// Recent (possibly drifted) value sits below the lifetime peak.
+    var recentBelowLifetimePeak: Bool { current < peak }
+
+    /// Honest-signal: the axis has gone stale — idle past the drift grace
+    /// window AND recent value has fallen below the lifetime peak. `peak`,
+    /// `xp`, and the xp-derived `level` are unaffected: rank is never lost,
+    /// only honestly flagged so the displayed "recent" doesn't masquerade as
+    /// current ability.
+    func isStale(asOf date: Date) -> Bool {
+        let daysIdle = date.timeIntervalSince(lastContributionAt) / 86_400.0
+        return daysIdle > AttributeDrift.graceDays && recentBelowLifetimePeak
+    }
+
     var subRank: SubRank {
         SubRank.nearest(for: current / 100.0 * 17.0)
     }

@@ -168,7 +168,22 @@ private struct AttributeInfoSheet: View {
                 }
             }
 
-            insightMetric(label: "SCORE", value: "\(Int(value.current.rounded()))")
+            if value.isStale(asOf: Date()) {
+                // Honest signal: recent has drifted below lifetime peak after a
+                // layoff. Show both so "recent" never masquerades as ability;
+                // the rank/level above (xp-derived) is unaffected.
+                HStack(spacing: 18) {
+                    insightMetric(label: "RECENT", value: "\(Int(value.current.rounded()))")
+                    insightMetric(label: "PEAK", value: "\(Int(value.peak.rounded()))")
+                }
+                Text("RECALIBRATING — TRAIN TO RECLAIM YOUR PEAK")
+                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+                    .tracking(0.8)
+                    .foregroundStyle(key.rewardTint.opacity(0.92))
+                    .accessibilityLabel("Recalibrating: recent score \(Int(value.current.rounded())) is below your peak of \(Int(value.peak.rounded())). Train to reclaim your peak.")
+            } else {
+                insightMetric(label: "SCORE", value: "\(Int(value.current.rounded()))")
+            }
 
             Spacer(minLength: 0)
         }

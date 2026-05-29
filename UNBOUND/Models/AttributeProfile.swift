@@ -66,6 +66,17 @@ struct AttributeProfile: Codable, Sendable, Equatable {
         values[key] = value
     }
 
+    /// Axes whose recent value has honestly drifted below their lifetime peak
+    /// after a layoff. Drives the per-axis "recalibrating" signal.
+    func staleAxes(asOf date: Date) -> [AttributeKey] {
+        AttributeKey.allCases.filter { value(for: $0).isStale(asOf: date) }
+    }
+
+    /// True when any axis is stale (recent below lifetime peak after a layoff).
+    func isStale(asOf date: Date) -> Bool {
+        !staleAxes(asOf: date).isEmpty
+    }
+
     var dominant: AttributeKey {
         // Fallback unreachable: AttributeKey.allCases is never empty.
         AttributeKey.allCases.max(by: { value(for: $0).peak < value(for: $1).peak }) ?? .power
