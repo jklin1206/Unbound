@@ -187,12 +187,14 @@ enum CalSkillTiers {
             .ascendant:  .reps(15, exerciseName: "triple clap pushup"),
         ],
 
-        // cal.floating-pike-pushup — pike compression + hover; anchor: 3 reps = Forged
+        // cal.floating-pike-pushup — pike compression + hover.
+        // Reseat: elevated-pike-pushup on-ramp so Initiate/Novice are reachable
+        // before the float; Forged = first clean floating reps.
         "cal.floating-pike-pushup": [
-            .initiate:   .reps(1, exerciseName: "floating pike pushup"),
-            .novice:     .reps(2, exerciseName: "floating pike pushup"),
-            .apprentice: .reps(3, exerciseName: "floating pike pushup"),
-            .forged:     .reps(4, exerciseName: "floating pike pushup"),
+            .initiate:   .reps(5, exerciseName: "elevated pike pushup"),
+            .novice:     .reps(8, exerciseName: "elevated pike pushup"),
+            .apprentice: .reps(1, exerciseName: "floating pike pushup"),
+            .forged:     .reps(3, exerciseName: "floating pike pushup"),
             .veteran:    .reps(5, exerciseName: "floating pike pushup"),
             .master:      .reps(7, exerciseName: "floating pike pushup"),
             .vessel:     .reps(10, exerciseName: "floating pike pushup"),
@@ -413,12 +415,14 @@ enum CalSkillTiers {
         ],
 
         // cal.bent-arm-press — bent arm press to handstand; anchor: 3 reps = Forged
+        // Reseat: pike-pushup + wall-HSPU pressing-strength on-ramp so the bottom
+        // tiers are reachable before owning the press; Forged = first clean presses.
         "cal.bent-arm-press": [
-            .initiate:   .reps(1, exerciseName: "bent arm press"),
-            .novice:     .reps(2, exerciseName: "bent arm press"),
-            .apprentice: .reps(3, exerciseName: "bent arm press"),
-            .forged:     .reps(4, exerciseName: "bent arm press"),
-            .veteran:    .reps(5, exerciseName: "bent arm press"),
+            .initiate:   .reps(5, exerciseName: "pike pushup"),
+            .novice:     .reps(3, exerciseName: "wall hspu"),
+            .apprentice: .reps(1, exerciseName: "bent arm press"),
+            .forged:     .reps(3, exerciseName: "bent arm press"),
+            .veteran:    .reps(4, exerciseName: "bent arm press"),
             .master:      .reps(6, exerciseName: "bent arm press"),
             .vessel:     .reps(8, exerciseName: "bent arm press"),
             .unbound:    .reps(10, exerciseName: "bent arm press"),
@@ -457,12 +461,14 @@ enum CalSkillTiers {
 
         // cal.handstand-pushup — wall/freestanding HSPU volume under the push cluster.
         "cal.handstand-pushup": [
+            // Reseat: negatives on-ramp, Forged = first clean wall HSPU rep (was
+            // mis-anchored — first rep sat at Apprentice, Forged at 3 reps).
             .initiate:   .reps(3,  exerciseName: "wall hspu negative"),
             .novice:     .reps(5,  exerciseName: "wall hspu negative"),
-            .apprentice: .reps(1,  exerciseName: "wall hspu"),
-            .forged:     .reps(3,  exerciseName: "wall hspu"),
-            .veteran:    .reps(5,  exerciseName: "wall hspu"),
-            .master:      .reps(8,  exerciseName: "wall hspu"),
+            .apprentice: .reps(8,  exerciseName: "wall hspu negative"),
+            .forged:     .reps(1,  exerciseName: "wall hspu"),
+            .veteran:    .reps(3,  exerciseName: "wall hspu"),
+            .master:      .reps(5,  exerciseName: "wall hspu"),
             .vessel:     .compound([.reps(8, exerciseName: "wall hspu"), .reps(1, exerciseName: "deficit wall hspu")]),
             .unbound:    .compound([.reps(10, exerciseName: "wall hspu"), .reps(3, exerciseName: "deficit wall hspu")]),
             .ascendant:  .compound([.reps(12, exerciseName: "wall hspu"), .reps(1, exerciseName: "freestanding hspu")]),
@@ -511,8 +517,11 @@ enum CalSkillTiers {
         // cal.ninety-degree-pushup — planche/HSPU crossover press. It should
         // not unlock from plain pushup volume alone.
         "cal.ninety-degree-pushup": [
-            .initiate:   .variant("tuck planche"),
-            .novice:     .compound([.variant("tuck planche"), .reps(5, exerciseName: "wall hspu")]),
+            // Reseat: Initiate lowered from a tuck-planche hold (Adv/Elite, locked
+            // out a strong presser) to reachable wall-HSPU volume; planche-lean
+            // signal kept from Novice up. Forged = first 90° rep (unchanged).
+            .initiate:   .reps(5, exerciseName: "wall hspu"),
+            .novice:     .variant("tuck planche"),
             .apprentice: .compound([.variant("straddle planche"), .reps(5, exerciseName: "wall hspu")]),
             .forged:     .reps(1, exerciseName: "90-degree pushup"),
             .veteran:    .reps(2, exerciseName: "90-degree pushup"),

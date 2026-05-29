@@ -42,7 +42,6 @@ extension SkillGraph {
         case "cl":   return ClSkillTiers.table
         case "co":   return CoSkillTiers.table
         case "hs":   return HsSkillTiers.table
-        case "hspu": return HspuSkillTiers.table
         case "ld":   return LdSkillTiers.table
         case "oah":  return OahSkillTiers.table
         case "pl":   return PlSkillTiers.table
