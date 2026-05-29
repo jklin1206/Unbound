@@ -24,6 +24,10 @@ protocol RemoteSync: Sendable {
     func upsert(collection: String, docId: String, json: Data) async throws
     func delete(collection: String, docId: String) async throws
     func pull(collection: String, userId: String) async throws -> [Data]
+    /// Reads a single remote document by id, in the app's camelCase JSON shape.
+    /// `nil` when the row does not exist yet. Used by the engine to read-merge-
+    /// write so a whole-row upsert preserves fields edited on other devices.
+    func read(collection: String, docId: String) async throws -> Data?
 }
 
 /// Adapter over SupabaseDatabase. Documents move as type-erased JSON.
@@ -112,6 +116,16 @@ final class SupabaseRemoteSync: RemoteSync, @unchecked Sendable {
             equals: userId, orderBy: nil, ascending: false, limit: nil
         )
         return try rows.map { try Self.camelCasedJSON(JSONEncoder().encode($0)) }
+    }
+
+    func read(collection: String, docId: String) async throws -> Data? {
+        guard let table = SyncCollectionMap.table(for: collection) else { return nil }
+        guard let row: JSONElement = try await supabase.fetchOne(from: table,
+                                                                 keyedBy: "id",
+                                                                 equals: docId) else {
+            return nil
+        }
+        return try Self.camelCasedJSON(JSONEncoder().encode(row))
     }
 }
 

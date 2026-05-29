@@ -17,7 +17,11 @@ final class SyncedDatabase: DatabaseServiceProtocol, @unchecked Sendable {
 
     func create<T: Codable>(_ object: T, collection: String, documentId: String) async throws {
         try await local.create(object, collection: collection, documentId: documentId)
-        await enqueueUpsert(collection: collection, docId: documentId)
+        // A create authors the whole document, so every top-level field changed.
+        let changed = (try? JSONEncoder().encode(object))
+            .flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }
+            .map { Array($0.keys) } ?? []
+        await enqueueUpsert(collection: collection, docId: documentId, changedFields: changed)
     }
 
     func read<T: Codable>(collection: String, documentId: String) async throws -> T {
@@ -26,7 +30,8 @@ final class SyncedDatabase: DatabaseServiceProtocol, @unchecked Sendable {
 
     func update(_ fields: [String: Any], collection: String, documentId: String) async throws {
         try await local.update(fields, collection: collection, documentId: documentId)
-        await enqueueUpsert(collection: collection, docId: documentId)
+        await enqueueUpsert(collection: collection, docId: documentId,
+                            changedFields: Array(fields.keys))
     }
 
     func delete(collection: String, documentId: String) async throws {
@@ -49,7 +54,11 @@ final class SyncedDatabase: DatabaseServiceProtocol, @unchecked Sendable {
 
     /// Re-reads the just-written doc as raw JSON so the enqueued payload is
     /// the full, merged document (correct even after a field-level `update`).
-    private func enqueueUpsert(collection: String, docId: String) async {
+    /// `changedFields` records which top-level keys THIS edit touched so the
+    /// SyncEngine can overlay only those onto the remote doc — concurrent edits
+    /// to different fields then converge to the union instead of clobbering.
+    private func enqueueUpsert(collection: String, docId: String,
+                               changedFields: [String]) async {
         guard SyncCollectionMap.table(for: collection) != nil else { return }
         guard let el: JSONElement = try? await local.read(collection: collection,
                                                           documentId: docId),
@@ -59,6 +68,7 @@ final class SyncedDatabase: DatabaseServiceProtocol, @unchecked Sendable {
             ?? (dict?["id"]?.value as? String) ?? ""
         let entry = OutboxEntry(id: UUID(), userId: userId, collection: collection,
                                 docId: docId, op: .upsert, payloadJSON: payload,
+                                changedFields: changedFields,
                                 enqueuedAt: Date(), attempt: 0)
         await MainActor.run {
             outbox.enqueue(entry)

@@ -33,7 +33,14 @@ final class OutboxStore: @unchecked Sendable {
         if let i = pending.firstIndex(where: {
             $0.collection == entry.collection && $0.docId == entry.docId
         }) {
-            pending[i] = entry
+            // Coalesce: the new payload supersedes the old, but changedFields
+            // must UNION — otherwise a field edited only in the earlier entry
+            // would no longer be merged on flush, reintroducing data loss.
+            var merged = entry
+            let union = pending[i].changedFields + entry.changedFields
+            var seen = Set<String>()
+            merged.changedFields = union.filter { seen.insert($0).inserted }
+            pending[i] = merged
         } else {
             pending.append(entry)
         }

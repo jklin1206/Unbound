@@ -15,6 +15,7 @@ final class SyncEngineTests: XCTestCase {
         func pull(collection: String, userId: String) async throws -> [Data] {
             collection == "programs" ? pullResult : []
         }
+        func read(collection: String, docId: String) async throws -> Data? { nil }
     }
 
     private var dir: URL!

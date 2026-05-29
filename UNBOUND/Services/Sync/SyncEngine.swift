@@ -31,8 +31,9 @@ final class SyncEngine {
             do {
                 switch entry.op {
                 case .upsert:
+                    let merged = try await mergedUpsertPayload(for: entry)
                     try await remote.upsert(collection: entry.collection,
-                        docId: entry.docId, json: entry.payloadJSON ?? Data())
+                        docId: entry.docId, json: merged)
                 case .delete:
                     try await remote.delete(collection: entry.collection,
                                             docId: entry.docId)
@@ -55,11 +56,55 @@ final class SyncEngine {
         for collection in SyncCollectionMap.syncedCollections {
             let docs = (try? await remote.pull(collection: collection, userId: userId)) ?? []
             for json in docs {
-                guard let el = try? JSONDecoder().decode(JSONElement.self, from: json),
-                      let dict = el.value as? [String: JSONElement],
+                guard let remoteEl = try? JSONDecoder().decode(JSONElement.self, from: json),
+                      let dict = remoteEl.value as? [String: JSONElement],
                       let idEl = dict["id"]?.value as? String else { continue }
-                try? await local.create(el, collection: collection, documentId: idEl)
+                let merged = await mergedRestoreDoc(remote: remoteEl,
+                                                    collection: collection, docId: idEl)
+                try? await local.create(merged, collection: collection, documentId: idEl)
             }
         }
+    }
+
+    /// Read-merge-write: fetch the current remote doc and overlay ONLY this
+    /// entry's changedFields from the entry payload onto it, so a whole-row
+    /// upsert preserves fields another device wrote (bug #5, LWW). When no
+    /// remote doc exists yet, the payload is pushed as-is.
+    private func mergedUpsertPayload(for entry: OutboxEntry) async throws -> Data {
+        let payload = entry.payloadJSON ?? Data()
+        guard !entry.changedFields.isEmpty,
+              let remoteData = try? await remote.read(collection: entry.collection,
+                                                      docId: entry.docId),
+              let remoteEl = try? JSONDecoder().decode(JSONElement.self, from: remoteData),
+              let entryEl = try? JSONDecoder().decode(JSONElement.self, from: payload) else {
+            return payload
+        }
+        let merged = DocumentMerger.overlay(fields: entry.changedFields,
+                                            from: entryEl, onto: remoteEl)
+        return (try? JSONEncoder().encode(merged)) ?? payload
+    }
+
+    /// Merge-on-pull defense: overlay any locally-pending changed fields for
+    /// this doc FROM the local copy ONTO the remote doc, so a pull never
+    /// clobbers a field the user edited locally but hasn't synced yet. When
+    /// there is no pending local edit, the remote doc is taken as-is.
+    private func mergedRestoreDoc(remote remoteEl: JSONElement,
+                                  collection: String, docId: String) async -> JSONElement {
+        let pendingFields = pendingChangedFields(collection: collection, docId: docId)
+        guard !pendingFields.isEmpty,
+              let localEl: JSONElement = try? await local.read(collection: collection,
+                                                               documentId: docId) else {
+            return remoteEl
+        }
+        return DocumentMerger.overlay(fields: pendingFields, from: localEl, onto: remoteEl)
+    }
+
+    /// Union of changedFields across all pending outbox upsert entries for a doc.
+    private func pendingChangedFields(collection: String, docId: String) -> [String] {
+        var seen = Set<String>()
+        return outbox.peekBatch(limit: outbox.pendingCount)
+            .filter { $0.op == .upsert && $0.collection == collection && $0.docId == docId }
+            .flatMap(\.changedFields)
+            .filter { seen.insert($0).inserted }
     }
 }
