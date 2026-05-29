@@ -79,12 +79,12 @@
   <section class="slide active">
     <div class="kicker">UNBOUND · Autonomous Overnight Run · 2026-05-29</div>
     <h1>ONE METRIC<br>Progression Cleanup</h1>
-    <p class="lead">Collapsing ~16 ways of measuring "how good are you" down to one rank metric. This deck reports what I shipped to prod overnight, the verification behind each change, and the <b style="color:var(--gold)">5 product decisions</b> that gate the rest.</p>
+    <p class="lead">Collapsing ~16 ways of measuring "how good are you" down to one rank metric. <b style="color:var(--green)">The core is done</b> — Phases 1, 2, 3, 5, 7 + 8 shipped to prod across a night of work, every change build- and test-verified, with you steering the balance/design calls at each checkpoint.</p>
     <div class="hero-stats">
-      <div class="stat"><div class="v" style="color:var(--green)">1·2·3·5·8</div><div class="l">phases shipped</div></div>
-      <div class="stat"><div class="v">15</div><div class="l">prod pushes</div></div>
-      <div class="stat"><div class="v" style="color:var(--green)">979</div><div class="l">tests green</div></div>
-      <div class="stat"><div class="v" style="color:var(--gold)">7</div><div class="l">last phase</div></div>
+      <div class="stat"><div class="v" style="color:var(--green)">6</div><div class="l">phases shipped</div></div>
+      <div class="stat"><div class="v">17</div><div class="l">prod pushes</div></div>
+      <div class="stat"><div class="v" style="color:var(--green)">974</div><div class="l">tests green</div></div>
+      <div class="stat"><div class="v" style="color:var(--green)">✓</div><div class="l">core complete</div></div>
     </div>
   </section>
 
@@ -94,17 +94,17 @@
     <h2>What happened overnight</h2>
     <div class="grid g2">
       <div class="card">
-        <h3 style="color:var(--green)">Shipped &amp; verified to prod</h3>
+        <h3 style="color:var(--green)">Shipped &amp; verified to prod (6 phases)</h3>
         <ul class="clean">
-          <li><span class="dot d-green"></span><span><b>Dead-code purge</b> — orphaned MuscleGroupTier rank trio + a 336KB stale file that was shipping in the app bundle.</span></li>
-          <li><span class="dot d-green"></span><span><b>Phase 1 — one LVL.</b> The level you see is now the real AP-derived <code>OverallLevel</code>, not a disconnected counter. <code>unbound.gains</code> fully deleted.</span></li>
+          <li><span class="dot d-green"></span><span><b>1 — one LVL</b> · <b>2 — `SubRank` deleted</b>, RankTier the only ladder (+ Unbound made the peak) · <b>3 — StrengthLevel standards</b>, every weighted move ranks</span></li>
+          <li><span class="dot d-green"></span><span><b>5 — the hex</b>: one number, slow-to-max, build-revealing catch-up · <b>7 — overall rank</b> = accumulation + tiered Ascension · <b>8 — architecture map</b> · + dead-code purge &amp; photo/scan/routine LVL.</span></li>
         </ul>
       </div>
       <div class="card">
-        <h3 style="color:var(--gold)">Blocked on your call</h3>
+        <h3 style="color:var(--green)">Resolved with you, then shipped</h3>
         <ul class="clean">
-          <li><span class="dot d-gold"></span><span><b>Phases 0, 2, 3, 5, 7</b> each hit a real product/balance/data decision — not something I should guess on and push to prod unattended.</span></li>
-          <li><span class="dot d-blue"></span><span>The plan was written at design altitude; the live code is far more entangled. Every blocker below is code-grounded.</span></li>
+          <li><span class="dot d-green"></span><span>Every balance/design call (18→9 cadence, StrengthLevel ratios, the hex curve + catch-up, the Ascension tiers, <b>Unbound as the peak</b>) went to you at a checkpoint — then implemented + verified + pushed.</span></li>
+          <li><span class="dot d-blue"></span><span>The plan was written at design altitude; the live code was far more entangled — so each phase was scouted, proposed, and reviewed before it touched prod.</span></li>
         </ul>
       </div>
     </div>
@@ -208,23 +208,66 @@
       <tr><td><b>3</b> Rank by metric</td><td><span class="tag t-green">✓ done</span></td><td>StrengthLevel bw-relative ratios shipped (1316aad): 5 compounds + 8 accessory families, unranked set, LiftTierCriteria + dead ladder engine deleted. 986 tests.</td></tr>
       <tr><td><b>4</b> Tree placement</td><td><span class="tag t-blue">partial</span></td><td>.new dupe gone. SkillLevel (680 refs) = high fan-out, not started.</td></tr>
       <tr><td><b>5</b> Hex</td><td><span class="tag t-green">✓ done</span></td><td>One number/axis (6428420). Curve maxes in years; per-axis catch-up = build-revealing + balance-efficient. 0-100 scale/decay/display-trick deleted.</td></tr>
-      <tr><td><b>6</b> AP → XP rename</td><td><span class="tag t-gold">gated on Phase 3</span></td><td>The "AP" strings ARE the ledger UI → becomes "% to next rank" after Phase 3.</td></tr>
-      <tr><td><b>7</b> Overall rank</td><td><span class="tag t-gold">B5 — simple redesign</span></td><td>Ascension ceremony: improve but keep simple. Propose at execution.</td></tr>
+      <tr><td><b>6</b> AP → XP rename</td><td><span class="tag t-gold">remaining</span></td><td>The "AP" strings ARE the per-movement ledger UI → should become the derived "% to next rank" bar. The remaining UI-rename + ledger reframing. Mechanical, low-risk.</td></tr>
+      <tr><td><b>7</b> Overall rank</td><td><span class="tag t-green">✓ done</span></td><td>Build+difficulty-weighted accumulation + tiered Ascension ceremony (auto/benchmark/gauntlet) shipped (d73a611). Omni-max gates deleted; minOverallLevel kept; claimed rank never demotes. 974 tests.</td></tr>
       <tr><td><b>8</b> Docs/structure</td><td><span class="tag t-green">✓ map shipped</span></td><td>ARCHITECTURE.md (71727bf). Doc deletion/regroup deferred to post-3.</td></tr>
     </table>
   </section>
 
+  <!-- 8b PHASE 3 -->
+  <section class="slide">
+    <div class="kicker">Shipped · commit 1316aad</div>
+    <h2>Phase 3 — every weighted move ranks</h2>
+    <p class="lead" style="margin-bottom:16px">Three parallel strength-standard systems collapsed into one. Only 4 lifts had standards before; ~177 loaded movements were effectively unranked.</p>
+    <div class="grid g2">
+      <div class="card"><h3>Now</h3><ul class="clean">
+        <li><span class="dot d-green"></span><span><b>Bodyweight-relative ratios</b> from StrengthLevel — 5 compounds + 8 accessory families, male + female, mapped to one <code>RankTier</code>.</span></li>
+        <li><span class="dot d-green"></span><span>Honest <b>unranked set</b> (lateral raises, kickbacks, KB swing — load isn't the signal).</span></li>
+      </ul></div>
+      <div class="card"><h3>Deleted</h3><ul class="clean">
+        <li><span class="dot d-red"></span><span><code>LiftTierCriteria</code> (absolute-kg, redundant) + the dead <code>MovementCatalog</code> ladder engine.</span></li>
+        <li><span class="dot d-blue"></span><span>1.5× bench → Vessel · 2.0× → Unbound · female 1.0× curl → Unbound. Verified vs StrengthLevel.</span></li>
+      </ul></div>
+    </div>
+  </section>
+
+  <!-- 8c PHASE 5 -->
+  <section class="slide">
+    <div class="kicker">Shipped · commit 6428420</div>
+    <h2>Phase 5 — the hex: one number, slow, build-revealing</h2>
+    <p class="lead" style="margin-bottom:16px">Was: a 0–100 score running alongside permanent XP (two ranks) + a display trick that capped at 92 and never cleanly maxed. Now: one number per axis, derived from XP.</p>
+    <div class="grid g3">
+      <div class="card"><h3>Slow &amp; maxable</h3><p style="color:var(--ink2);font-size:15px;line-height:1.55">Tiny slivers (3–6%) at week 1; a maxed axis ≈ <b style="color:var(--ink)">3 yr balanced</b> heavy training. Real top cliff, clean 100%.</p></div>
+      <div class="card"><h3>Catch-up</h3><p style="color:var(--ink2);font-size:15px;line-height:1.55">Neglected axes earn <b style="color:var(--ink)">up to ×2</b>; over-fed axes slow near cap. Power can't pin; weakness-work pays off.</p></div>
+      <div class="card"><h3>Build-revealing</h3><p style="color:var(--ink2);font-size:15px;line-height:1.55">The hex shows your real shape — balanced training is the <i>efficient</i> route to a full hex.</p></div>
+    </div>
+  </section>
+
+  <!-- 8d PHASE 7 + UNBOUND PEAK -->
+  <section class="slide">
+    <div class="kicker">Shipped · commits d73a611 + 1981104</div>
+    <h2>Phase 7 — overall rank, + Unbound is the peak</h2>
+    <div class="grid g2">
+      <div class="card"><h3>Overall rank = accumulation</h3><ul class="clean">
+        <li><span class="dot d-green"></span><span><b>Build- &amp; difficulty-weighted</b> mean of your per-move ranks — a powerlifter and a calisthenics athlete both reach the top, different paths.</span></li>
+        <li><span class="dot d-green"></span><span><b>Tiered Ascension:</b> auto-confirm early · short benchmark mid · epic gauntlet at the crown tiers. Claimed rank never demotes.</span></li>
+        <li><span class="dot d-red"></span><span>Omni-max conformity gates deleted; the <code>minOverallLevel</code> tenure floor kept.</span></li>
+      </ul></div>
+      <div class="card"><h3>The council call</h3><p style="color:var(--ink2);font-size:15.5px;line-height:1.55">You flagged it: for an app named UNBOUND, "Ascendant" outranking "Unbound" felt wrong. A 4-lens council agreed — the eponymous word must be the summit. Label-only swap: the peak now reads <b style="color:var(--ink)">Unbound</b>, with "Ascendant" (rising) one below. Gold badge + all rank math untouched.</p></div>
+    </div>
+  </section>
+
   <!-- 9 NEXT -->
   <section class="slide">
-    <div class="kicker">When you wake up</div>
-    <h2>Recommended next moves</h2>
+    <div class="kicker">What's left</div>
+    <h2>The core's done — here's the tail</h2>
     <ul class="clean">
-      <li><span class="dot d-green"></span><span><b>Skim the two shipped commits</b> — <code>212a40c</code> (dead code) and <code>b0dbbf4</code> (Phase 1). Both on <code>main</code>, both 990/0.</span></li>
-      <li><span class="dot d-gold"></span><span><b>Answer D1</b> (photos/routines + LVL) and <b>B2–B5</b>. That single pass unblocks 4 phases.</span></li>
-      <li><span class="dot d-blue"></span><span><b>Run the app once</b> and glance at Home/Profile LVL — confirm the new AP-derived level reads sensibly. (Unit tests pass, but the LVL display is the one thing they can't visually verify.)</span></li>
-      <li><span class="dot d-violet"></span><span>If the run continued past this report: <b>Phase 6 (AP→XP rename)</b> and <b>Phase 8 (ARCHITECTURE.md)</b> may already be shipped — check the status board / git log.</span></li>
+      <li><span class="dot d-gold"></span><span><b>Phase 6 — AP → XP rename + "% to next rank".</b> The remaining piece: the "AP" ledger UI becomes the derived "% to next rank" bar (now that Phase 3's metric ladders exist). Mechanical, low-risk.</span></li>
+      <li><span class="dot d-blue"></span><span><b>Phase 4 — `SkillLevel` deletion</b> (680 refs, high fan-out) + folding `SkillRank` (node difficulty) into `placementRank`. The one big mechanical sweep left.</span></li>
+      <li><span class="dot d-blue"></span><span><b>Phase 0 — the "unmatched — won't count" integrity state</b> (a UX call) + confirming the legacy `WorkoutLoggingView` path is retired.</span></li>
+      <li><span class="dot d-green"></span><span><b>Run the app once</b> and eyeball Home/Profile — the LVL, the new ranks, the hex. Unit tests (974) pass, but the live UI is the one thing they can't visually verify.</span></li>
     </ul>
-    <p class="lead" style="margin-top:24px">Full detail + the verified execution specs live in <code>docs/ONE-METRIC-EXECUTION-LOG.md</code>.</p>
+    <p class="lead" style="margin-top:24px">Full detail + every verified execution spec + the per-phase decisions live in <code>docs/ONE-METRIC-EXECUTION-LOG.md</code>; the design proposals in <code>docs/PHASE3/5/7-*.md</code>.</p>
   </section>
 
   <div class="footer">
