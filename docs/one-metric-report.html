@@ -81,10 +81,10 @@
     <h1>ONE METRIC<br>Progression Cleanup</h1>
     <p class="lead">Collapsing ~16 ways of measuring "how good are you" down to one rank metric. This deck reports what I shipped to prod overnight, the verification behind each change, and the <b style="color:var(--gold)">5 product decisions</b> that gate the rest.</p>
     <div class="hero-stats">
-      <div class="stat"><div class="v" style="color:var(--green)">2</div><div class="l">phases shipped</div></div>
-      <div class="stat"><div class="v">3</div><div class="l">prod pushes</div></div>
+      <div class="stat"><div class="v" style="color:var(--green)">1·2·8</div><div class="l">phases shipped</div></div>
+      <div class="stat"><div class="v">6</div><div class="l">prod pushes</div></div>
       <div class="stat"><div class="v" style="color:var(--green)">990</div><div class="l">tests green</div></div>
-      <div class="stat"><div class="v" style="color:var(--gold)">5</div><div class="l">decisions for you</div></div>
+      <div class="stat"><div class="v" style="color:var(--gold)">2</div><div class="l">phases left (3,7)</div></div>
     </div>
   </section>
 
@@ -204,13 +204,13 @@
       <tr><th>Phase</th><th>Status</th><th>Note</th></tr>
       <tr><td><b>0</b> Logging records</td><td><span class="tag t-gold">blocked B1</span></td><td><code>complete()</code> already canonical — most of it was pre-done. Remaining = dead cascade + integrity state.</td></tr>
       <tr><td><b>1</b> One LVL</td><td><span class="tag t-green">✓ done</span></td><td>Shipped <code>b0dbbf4</code>. grep <code>unbound.gains</code> = 0.</td></tr>
-      <tr><td><b>2</b> One rank ladder</td><td><span class="tag t-blue">partial</span> <span class="tag t-gold">B2</span></td><td>MuscleGroupTier deleted. SubRank/SkillRank = balance surgery.</td></tr>
-      <tr><td><b>3</b> Rank by metric</td><td><span class="tag t-gold">blocked B3</span></td><td>Needs external dataset.</td></tr>
+      <tr><td><b>2</b> One rank ladder</td><td><span class="tag t-green">✓ SubRank done</span></td><td>SubRank deleted (c5237a7), RankTier sole ladder, 18→9 reviewed. SkillRank = next sub-stage.</td></tr>
+      <tr><td><b>3</b> Rank by metric</td><td><span class="tag t-blue">unblocked (B3→StrengthLevel)</span></td><td>Now actionable: encode bw-relative ratios from StrengthLevel. Next big work item.</td></tr>
       <tr><td><b>4</b> Tree placement</td><td><span class="tag t-blue">partial</span></td><td>.new dupe gone. SkillLevel (680 refs) = high fan-out, not started.</td></tr>
-      <tr><td><b>5</b> Hex</td><td><span class="tag t-gold">blocked B4</span></td><td>Curve steepness = balance.</td></tr>
-      <tr><td><b>6</b> AP → XP rename</td><td><span class="tag t-ink">queued</span></td><td>Safe user-facing rename — attempting next overnight.</td></tr>
-      <tr><td><b>7</b> Overall rank</td><td><span class="tag t-gold">blocked B5</span></td><td>Ascension ceremony design.</td></tr>
-      <tr><td><b>8</b> Docs/structure</td><td><span class="tag t-ink">queued</span></td><td>ARCHITECTURE.md map — attempting next overnight.</td></tr>
+      <tr><td><b>5</b> Hex</td><td><span class="tag t-blue">unblocked (B4→years/scaling)</span></td><td>Calibrate curve: maxes in years, faster with more training.</td></tr>
+      <tr><td><b>6</b> AP → XP rename</td><td><span class="tag t-gold">gated on Phase 3</span></td><td>The "AP" strings ARE the ledger UI → becomes "% to next rank" after Phase 3.</td></tr>
+      <tr><td><b>7</b> Overall rank</td><td><span class="tag t-gold">B5 — simple redesign</span></td><td>Ascension ceremony: improve but keep simple. Propose at execution.</td></tr>
+      <tr><td><b>8</b> Docs/structure</td><td><span class="tag t-green">✓ map shipped</span></td><td>ARCHITECTURE.md (71727bf). Doc deletion/regroup deferred to post-3.</td></tr>
     </table>
   </section>
 

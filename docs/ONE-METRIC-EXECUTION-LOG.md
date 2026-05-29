@@ -38,7 +38,7 @@
 |---|---|---|---|
 | 0 | Logging actually records | BLOCKED (B1) | complete() already canonical (most of phase pre-done). Remaining = delete dead saveLog cascade + "unmatched" integrity state (needs UX decision + legacy-screen reachability check). |
 | 1 | One LVL | ✅ DONE (`b0dbbf4`) | Re-sourced to AP-derived OverallLevel; unbound.gains deleted (grep 0). Photo/routine/scan LVL drop flagged (D1). |
-| 2 | One rank ladder (kill E–S) | PARTIAL (`212a40c`) + BLOCKED (B2) | MuscleGroupTier trio deleted. SubRank/SkillRank load-bearing → cadence balance decision needed. |
+| 2 | One rank ladder (kill E–S) | ✅ SubRank DONE (`c5237a7`); SkillRank remaining | MuscleGroupTier trio deleted (`212a40c`). SubRank deleted, RankTier is the one ladder, 18→9 cadence shipped + jlin-reviewed at checkpoint. SkillRank (10 consumers) = next sub-stage. |
 | 3 | Rank every movement by template metric | BLOCKED (B3) | Needs external public bw-relative strength dataset. LiftTierCriteria can't go until then. |
 | 4 | Skill tree placement = difficulty weight | PARTIAL (`212a40c`) | .new dupe deleted. SkillLevel (680 refs) deletion is high fan-out — staged, not started. |
 | 5 | Attributes: one number + hard-to-max hex | BLOCKED (B4) | Hex curve steepness = balance decision. |
@@ -84,3 +84,11 @@ SAFETY NOTE: legacy `WorkoutLoggingView` path (recordProgressionForLegacyWorkout
 - Baseline: 990 tests, 0 failures, 8 skipped ✅
 - After `212a40c`: 990 tests, 0 failures, 8 skipped ✅
 - After `b0dbbf4` (Phase 1): 990 tests, 0 failures, 8 skipped ✅ (re-verified independently)
+- After `4602491` (D1): 990 tests, 0 failures ✅
+- After `71727bf` (Phase 8 docs): n/a (docs only)
+- After `c5237a7` (Phase 2 SubRank teardown): 990 tests, 0 failures, 8 skipped ✅ (independently re-verified, no count delta; checkpoint-reviewed by jlin)
+
+## Commits (continued)
+- `4602491` — D1 photos/scans/routines → OverallLevel grants. No deploy.
+- `71727bf` — Phase 8 ARCHITECTURE.md map. Docs only.
+- `c5237a7` — Phase 2: SubRank deleted, RankTier sole ladder (18→9). No migration (SubRank was never persisted). Pushed to main.
