@@ -4,7 +4,33 @@ import Foundation
 final class TrainingCompletionService {
     static let shared = TrainingCompletionService()
 
-    private init() {}
+    private let squadMission: SquadMissionServiceProtocol
+    private let friendChallenge: FriendChallengeServiceProtocol
+
+    // Idempotency guard for the squad/challenge progress cascade. complete()
+    // already short-circuits on the persisted training_completion_records gate,
+    // but a re-flush within the same process (before that record write lands)
+    // could double-count, so we also track recorded performanceLog ids here —
+    // mirroring SquadActivityService.recordedVowCompletionIds.
+    private var recordedSquadProgressLogIds = Set<String>()
+
+    init(
+        squadMission: SquadMissionServiceProtocol = SquadMissionService.shared,
+        friendChallenge: FriendChallengeServiceProtocol = FriendChallengeService.shared
+    ) {
+        self.squadMission = squadMission
+        self.friendChallenge = friendChallenge
+    }
+
+    /// Records squad-mission + friend-challenge progress for a completed
+    /// workout, exactly once per performanceLog id. Mirrors the legacy
+    /// WorkoutLogService.saveLog cascade that is now side-effect-free.
+    func recordSquadProgress(workoutLog: WorkoutLog, performanceLogId: String) async {
+        guard !recordedSquadProgressLogIds.contains(performanceLogId) else { return }
+        recordedSquadProgressLogIds.insert(performanceLogId)
+        await squadMission.recordProgress(log: workoutLog, userId: workoutLog.userId)
+        await friendChallenge.recordProgress(log: workoutLog, userId: workoutLog.userId)
+    }
 
     @discardableResult
     func complete(
@@ -54,6 +80,13 @@ final class TrainingCompletionService {
                 log: workoutLog,
                 source: WorkoutProofSource(performanceLog.source)
             )
+
+            // Squad cluster: a real finished workout advances squad-mission and
+            // friend-challenge progress. The legacy WorkoutLogService.saveLog
+            // path that used to do this is now side-effect-free, so this is the
+            // canonical trigger. Idempotency-guarded so a re-flush of the same
+            // session can't double-count.
+            await recordSquadProgress(workoutLog: workoutLog, performanceLogId: performanceLog.id)
         }
 
         let sessionLogs = TrainingSessionAdapters.sessionLogs(from: performanceLog, xpAwarded: skillXPAwarded ?? 25)
