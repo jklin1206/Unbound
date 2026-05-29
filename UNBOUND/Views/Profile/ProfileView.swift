@@ -56,8 +56,7 @@ struct ProfileView: View {
     @State private var pickedItem: PhotosPickerItem?
     private var photoUserId: String { services.auth.currentUserId ?? "" }
 
-    @AppStorage("unbound.gains") private var gains: Int = 0
-    private let xpPerLevel: Int = 250
+    @State private var overallLevel: OverallLevelProgress?
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -196,6 +195,7 @@ struct ProfileView: View {
             .sorted { ($0.unlockedAt ?? .distantPast) > ($1.unlockedAt ?? .distantPast) }
         totalBadgeCount = BadgeCatalog.all.count
         sessionXP = services.sessionXP.record(userId: userId)
+        overallLevel = (try? await services.database.read(collection: "overall_level_progress", documentId: userId)) ?? OverallLevelProgress(userId: userId)
 
         let photos: [ProgressPhoto] = (try? await services.database.query(
             collection: "progressPhotos",
@@ -268,9 +268,9 @@ struct ProfileView: View {
     // MARK: - Header card
 
     private var trophyHeader: some View {
-        let level = (gains / xpPerLevel) + 1
-        let levelProgress = Double(gains % xpPerLevel) / Double(xpPerLevel)
-        let currentXP = gains % xpPerLevel
+        let level = overallLevel?.level ?? 0
+        let levelProgress = overallLevel?.progressToNextLevel ?? 0
+        let currentXP = { guard let p = overallLevel else { return 0 }; return max(0, Int(p.totalXP - OverallLevelCurve.xpRequired(forLevel: p.level))) }()
         let rankColor = aggregateTier.rewardTint
         let rankTextColor = aggregateTier.rewardTextTint
         let profileColor = equippedProfileColorTier.rewardTint
@@ -422,7 +422,8 @@ struct ProfileView: View {
         rankColor: Color,
         rankTextColor: Color
     ) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
+        let xpPerLevel = max(1, Int(OverallLevelCurve.xpRequired(forLevel: level + 1) - OverallLevelCurve.xpRequired(forLevel: level)))
+        return VStack(alignment: .leading, spacing: 10) {
             Button {
                 showEditProfile = true
             } label: {

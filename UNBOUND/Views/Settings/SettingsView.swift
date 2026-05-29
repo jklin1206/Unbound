@@ -1181,7 +1181,6 @@ enum DevBuildBootstrapper {
     static let userId = "dev-player"
     static let devLiftNames = ["bench press", "back squat", "deadlift", "overhead press"]
 
-    private static let gainsKey = "unbound.gains"
     private static let badgeKey = "unbound.badges.\(userId)"
     private static let sessionXPKey = "unbound.sessionxp.\(userId)"
     private static let didBootstrapKey = "unbound.dev.didBootstrapEverything"
@@ -1346,7 +1345,15 @@ enum DevBuildBootstrapper {
 
     static func applyLevel(_ level: Int) async {
         let clamped = max(1, min(80, level))
-        UserDefaults.standard.set((clamped - 1) * 250, forKey: gainsKey)
+        let progress = OverallLevelProgress(
+            userId: userId,
+            totalXP: OverallLevelCurve.xpRequired(forLevel: clamped)
+        )
+        try? await DatabaseService.shared.create(
+            progress,
+            collection: "overall_level_progress",
+            documentId: userId
+        )
     }
 
     static func unlockAllBadges() async {
@@ -2353,7 +2360,6 @@ enum DevBuildBootstrapper {
     }
 
     static func clearDevProgress() {
-        UserDefaults.standard.removeObject(forKey: gainsKey)
         UserDefaults.standard.removeObject(forKey: badgeKey)
         UserDefaults.standard.removeObject(forKey: sessionXPKey)
         UserDefaults.standard.removeObject(forKey: didBootstrapKey)

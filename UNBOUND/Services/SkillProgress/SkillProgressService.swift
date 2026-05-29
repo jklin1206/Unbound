@@ -164,7 +164,6 @@ final class SkillProgressService {
             try? await database.create(p, collection: "skillProgress", documentId: p.userId)
 
             if let unlocked {
-                awardGains(unlocked.gainsAwarded)
                 pendingUnlock = unlocked
             }
         }
@@ -189,7 +188,6 @@ final class SkillProgressService {
         try? await database.create(p, collection: "skillProgress", documentId: p.userId)
 
         let event = NodeUnlockedEvent(node: node, newState: state, gainsAwarded: gainsFor(node: node))
-        awardGains(event.gainsAwarded)
         pendingUnlock = event
     }
 
@@ -302,7 +300,6 @@ final class SkillProgressService {
                 newState: newState,
                 gainsAwarded: gainsFor(node: node)
             )
-            awardGains(event.gainsAwarded)
             pendingUnlock = event
         }
 
@@ -636,10 +633,6 @@ final class SkillProgressService {
         }
     }
 
-    private func awardGains(_ amount: Int) {
-        let current = UserDefaults.standard.integer(forKey: "unbound.gains")
-        UserDefaults.standard.set(current + amount, forKey: "unbound.gains")
-    }
 }
 
 // MARK: - NodeUnlockedEvent

@@ -31,7 +31,7 @@ struct UnboundHomeView: View {
     @State private var isLoading = true
 
     // Sessions / XP
-    @AppStorage("unbound.gains") private var gains: Int = 0
+    @State private var overallLevel: OverallLevelProgress?
     @AppStorage("unbound.streakDays") private var streakDays: Int = 0
     @AppStorage("unbound.lastScanTimestamp") private var lastScanTimestamp: Double = 0
     @AppStorage("unbound.lastPhotoTimestamp") private var lastPhotoTimestamp: Double = 0
@@ -54,8 +54,6 @@ struct UnboundHomeView: View {
     @State private var workoutReadyDraft: TrainingSessionDraft?
     @State private var showingCalibrationWorkout = false
     // navigateToCoach removed — replaced by CoachModesStrip
-    @State private var showingGainsToast = false
-    @State private var lastGainsAwarded: Int = 0
     @State private var showingNotificationSettings = false
 
     // Attribute profile (Phase 8+)
@@ -87,8 +85,18 @@ struct UnboundHomeView: View {
     @State private var trialsState: TrialsState = .empty
     @State private var showTrialPicker = false
 
-    // Level derivation: 250 XP per level. Simple, overrideable later.
-    private let xpPerLevel: Int = 250
+    // Level derivation reads the AP-sourced OverallLevelProgress.
+    private var lvlValue: Int { overallLevel?.level ?? 0 }
+    private var lvlFraction: Double { overallLevel?.progressToNextLevel ?? 0 }
+    private var lvlTotalXP: Int { Int(overallLevel?.totalXP ?? 0) }
+    private var lvlXPInLevel: Int {
+        guard let p = overallLevel else { return 0 }
+        return max(0, Int(p.totalXP - OverallLevelCurve.xpRequired(forLevel: p.level)))
+    }
+    private var lvlXPForLevel: Int {
+        let lvl = overallLevel?.level ?? 0
+        return max(1, Int(OverallLevelCurve.xpRequired(forLevel: lvl + 1) - OverallLevelCurve.xpRequired(forLevel: lvl)))
+    }
 
     // MARK: Body
 
@@ -117,16 +125,6 @@ struct UnboundHomeView: View {
                     .padding(.horizontal, 20)
                     .padding(.top, 8)
                 }
-            }
-
-            if showingGainsToast {
-                VStack {
-                    Spacer()
-                    gainsToast
-                    Spacer().frame(height: 80)
-                }
-                .transition(.move(edge: .bottom).combined(with: .opacity))
-                .zIndex(10)
             }
         }
         .task { await load() }
@@ -246,7 +244,7 @@ struct UnboundHomeView: View {
     // MARK: - Top bar
 
     private var topBar: some View {
-        let level = (gains / xpPerLevel) + 1
+        let level = lvlValue
         return HStack(alignment: .center, spacing: 10) {
             avatarBadge(level: level)
 
@@ -416,9 +414,9 @@ struct UnboundHomeView: View {
     }
 
     private var integratedRankRail: some View {
-        let level = (gains / xpPerLevel) + 1
-        let xpInLevel = gains % xpPerLevel
-        let fraction = Double(xpInLevel) / Double(xpPerLevel)
+        let level = lvlValue
+        let xpInLevel = lvlXPInLevel
+        let fraction = lvlFraction
         let rankColor = aggregateRank.regionTint
 
         return VStack(alignment: .trailing, spacing: 8) {
@@ -441,7 +439,7 @@ struct UnboundHomeView: View {
                 }
             }
             .frame(width: 5, height: 58)
-            Text("\(xpInLevel)/\(xpPerLevel) XP")
+            Text("\(xpInLevel)/\(lvlXPForLevel) XP")
                 .font(.system(size: 9, weight: .bold, design: .monospaced))
                 .foregroundStyle(Color.unbound.textTertiary)
                 .monospacedDigit()
@@ -540,9 +538,9 @@ struct UnboundHomeView: View {
     }
 
     private var rankMomentumCard: some View {
-        let level = (gains / xpPerLevel) + 1
-        let xpInLevel = gains % xpPerLevel
-        let fraction = Double(xpInLevel) / Double(xpPerLevel)
+        let level = lvlValue
+        let xpInLevel = lvlXPInLevel
+        let fraction = lvlFraction
         let rankColor = aggregateRank.regionTint
 
         return HStack(alignment: .center, spacing: 14) {
@@ -762,9 +760,9 @@ struct UnboundHomeView: View {
     }
 
     private var progressionSnapshot: some View {
-        let level = (gains / xpPerLevel) + 1
-        let xpInLevel = gains % xpPerLevel
-        let fraction = Double(xpInLevel) / Double(xpPerLevel)
+        let level = lvlValue
+        let xpInLevel = lvlXPInLevel
+        let fraction = lvlFraction
         let rankColor = aggregateRank.regionTint
 
         return VStack(alignment: .leading, spacing: 14) {
@@ -872,7 +870,7 @@ struct UnboundHomeView: View {
             HStack(spacing: 0) {
                 railMetric(label: "WEEK", value: "\(weekSessionDays.count)/\(weeklySessionTarget)", detail: "target", tint: Color.unbound.ember)
                 verticalRailDivider
-                railMetric(label: "LVL XP", value: "\(gains)", detail: "banked", tint: Color.unbound.textPrimary)
+                railMetric(label: "LVL XP", value: "\(lvlTotalXP)", detail: "banked", tint: Color.unbound.textPrimary)
             }
         }
         .padding(.vertical, 4)
@@ -1375,49 +1373,12 @@ struct UnboundHomeView: View {
                     .tracking(1.0)
                     .foregroundStyle(Color.unbound.textSecondary)
                 Spacer()
-                if lastGainsAwarded > 0 {
-                    Text("+\(lastGainsAwarded) LVL XP")
-                        .font(Font.unbound.monoS)
-                        .foregroundStyle(Color.unbound.accent)
-                        .monospacedDigit()
-                }
                 Image(systemName: "chevron.right")
                     .font(.system(size: 10, weight: .semibold))
                     .foregroundStyle(Color.unbound.textTertiary)
             }
             .padding(.horizontal, 4)
         }
-    }
-
-    // MARK: - Gains toast
-
-    private var gainsToast: some View {
-        HStack(spacing: 14) {
-            Image(systemName: "sparkles")
-                .font(.system(size: 18, weight: .semibold))
-                .foregroundStyle(Color.unbound.accent)
-            VStack(alignment: .leading, spacing: 2) {
-                Text("+\(lastGainsAwarded) LVL XP")
-                    .font(Font.unbound.bodyLStrong)
-                    .foregroundStyle(Color.unbound.textPrimary)
-                Text("Session logged. Streak: \(streakDays) day\(streakDays == 1 ? "" : "s").")
-                    .font(Font.unbound.bodyS)
-                    .foregroundStyle(Color.unbound.textSecondary)
-            }
-            Spacer()
-        }
-        .padding(16)
-        .frame(maxWidth: .infinity)
-        .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(.ultraThinMaterial)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(Color.unbound.accent.opacity(0.5), lineWidth: 1)
-        )
-        .shadow(color: Color.unbound.accent.opacity(0.3), radius: 16)
-        .padding(.horizontal, 20)
     }
 
     // MARK: - Loading
@@ -1445,6 +1406,7 @@ struct UnboundHomeView: View {
         calibrationSkipRatio = services.calibration.skipRatio(userId: userId)
         attributeProfile = services.attribute.profile(userId: userId)
         trialsState = services.trials.state(userId: userId)
+        overallLevel = (try? await services.database.read(collection: "overall_level_progress", documentId: userId)) ?? OverallLevelProgress(userId: userId)
 
         isLoading = false
         // Kick off ambient loops once content is on screen.
@@ -1620,43 +1582,6 @@ struct UnboundHomeView: View {
             dayNumber: day.dayNumber,
             date: Date()
         )
-    }
-
-    private func onSessionComplete() {
-        let today = Calendar.current.startOfDay(for: Date()).timeIntervalSince1970
-        let lastDay = Calendar.current.startOfDay(
-            for: Date(timeIntervalSince1970: lastSessionTimestamp)
-        ).timeIntervalSince1970
-
-        if today == lastDay { return }
-
-        let earned = 30
-        gains += earned
-        lastGainsAwarded = earned
-
-        let streakDecision = ProgramAwareStreakPolicy.shouldExtendStreak(
-            from: Date(timeIntervalSince1970: lastDay),
-            to: Date(),
-            currentStreak: streakDays,
-            resetWindowDays: 14,
-            activeProgram: program
-        )
-        streakDays = streakDecision.streak
-        lastSessionTimestamp = Date().timeIntervalSince1970
-
-        RankDecayService.shared.clearRecalibration()
-
-        UnboundHaptics.success()
-        withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
-            showingGainsToast = true
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
-            withAnimation(.easeOut(duration: 0.4)) {
-                showingGainsToast = false
-            }
-        }
-
-        Task { await refreshWorkoutCompletionState() }
     }
 
     // MARK: - Derived

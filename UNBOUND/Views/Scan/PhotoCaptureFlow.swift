@@ -415,7 +415,6 @@ struct PhotoCaptureFlow: View {
         guard let image = capturedImage else { return }
         let userId = services.auth.currentUserId ?? "anonymous"
         let photoId = savePhotoToDatabase(image: image, userId: userId, source: .manual)
-        _ = services.photoXP.awardDailyPhoto(userId: userId)
         UserDefaults.standard.set(
             Date().timeIntervalSince1970,
             forKey: "unbound.lastPhotoTimestamp"
@@ -453,7 +452,6 @@ struct PhotoCaptureFlow: View {
         // If the commit fails, the scan timer and scan XP do not advance.
         let photoId = savePhotoToDatabase(image: image, userId: userId, source: .scan)
 
-        services.photoXP.awardScan(userId: userId)
         UserDefaults.standard.set(
             Date().timeIntervalSince1970,
             forKey: "unbound.lastScanTimestamp"
@@ -486,7 +484,6 @@ struct PhotoCaptureFlow: View {
         }
         let userId = services.auth.currentUserId ?? "anonymous"
         let photoId = savePhotoToDatabase(image: image, userId: userId, source: .manual)
-        _ = services.photoXP.awardDailyPhoto(userId: userId)
         UserDefaults.standard.set(
             Date().timeIntervalSince1970,
             forKey: "unbound.lastPhotoTimestamp"

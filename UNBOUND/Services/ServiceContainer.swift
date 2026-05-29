@@ -28,7 +28,6 @@ final class ServiceContainer: ObservableObject {
     let badges: any BadgeServiceProtocol
     let programPhase: any ProgramPhaseEngineProtocol
     let attribute: any AttributeServiceProtocol
-    let photoXP: any PhotoXPServiceProtocol
     let userSkillTier: UserSkillTierStore
     let liftTier: LiftTierService
     let scanCheckpointStore: ScanCheckpointStore
@@ -68,7 +67,6 @@ final class ServiceContainer: ObservableObject {
         self.badges = BadgeService.shared
         self.programPhase = ProgramPhaseEngine.shared
         self.attribute = AttributeService.shared
-        self.photoXP = PhotoXPService.shared
         self.userSkillTier = UserSkillTierStore.shared
         self.liftTier = LiftTierService.shared
         self.scanCheckpointStore = ScanCheckpointStore.shared
@@ -107,8 +105,7 @@ final class ServiceContainer: ObservableObject {
         sessionXP: any SessionXPServiceProtocol,
         badges: any BadgeServiceProtocol,
         programPhase: any ProgramPhaseEngineProtocol,
-        attribute: any AttributeServiceProtocol,
-        photoXP: any PhotoXPServiceProtocol
+        attribute: any AttributeServiceProtocol
     ) {
         self.logging = LoggingService.shared
         self.auth = auth
@@ -136,7 +133,6 @@ final class ServiceContainer: ObservableObject {
         self.badges = badges
         self.programPhase = programPhase
         self.attribute = attribute
-        self.photoXP = photoXP
         self.userSkillTier = UserSkillTierStore.shared
         self.liftTier = LiftTierService.shared
         self.scanCheckpointStore = ScanCheckpointStore.shared
@@ -176,8 +172,7 @@ final class ServiceContainer: ObservableObject {
             sessionXP: MockSessionXPService(),
             badges: MockBadgeService(),
             programPhase: MockProgramPhaseEngine(),
-            attribute: MockAttributeService(),
-            photoXP: MockPhotoXPService()
+            attribute: MockAttributeService()
         )
     }
 }

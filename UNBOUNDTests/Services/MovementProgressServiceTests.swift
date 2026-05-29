@@ -900,8 +900,7 @@ final class MovementProgressServiceTests: XCTestCase {
             sessionXP: MockSessionXPService(),
             badges: MockBadgeService(),
             programPhase: MockProgramPhaseEngine(),
-            attribute: MockAttributeService(),
-            photoXP: MockPhotoXPService()
+            attribute: MockAttributeService()
         )
     }
 }

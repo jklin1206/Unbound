@@ -17,15 +17,13 @@ final class RoutineHistoryStoreTests: XCTestCase {
                    category: .challenge, spReward: sp, steps: [])
     }
 
-    func testCompleteAwardsThenCooldownBlocksWithin24h() {
+    func testCompleteThenCooldownBlocksWithin24h() {
         let (ud, dir) = freshSuite()
         let store = RoutineHistoryStore(defaults: ud, directory: dir)
         XCTAssertTrue(store.canComplete(routineId: "r1"))
         XCTAssertTrue(store.complete(routine("r1", sp: 40)))
-        XCTAssertEqual(ud.integer(forKey: "unbound.gains"), 40)
         XCTAssertFalse(store.canComplete(routineId: "r1"))
         XCTAssertFalse(store.complete(routine("r1", sp: 40)))
-        XCTAssertEqual(ud.integer(forKey: "unbound.gains"), 40)
     }
 
     func testRecordRoundTripsAndSurvivesFreshStore() {

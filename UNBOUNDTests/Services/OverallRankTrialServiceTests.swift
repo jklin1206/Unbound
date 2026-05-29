@@ -1695,8 +1695,7 @@ final class OverallRankTrialServiceTests: XCTestCase {
             sessionXP: MockSessionXPService(),
             badges: MockBadgeService(),
             programPhase: MockProgramPhaseEngine(),
-            attribute: MockAttributeService(),
-            photoXP: MockPhotoXPService()
+            attribute: MockAttributeService()
         )
     }
 }

@@ -1,10 +1,10 @@
 import Foundation
 
-/// Local-first routine completion store. The 24h-cooldown + `unbound.gains`
-/// LVL XP bump are copied byte-for-byte from the legacy `RoutineCompletionStore`
-/// (same UserDefaults keys) so call sites swap with zero behavior change.
-/// The records list is persisted as JSON to Application Support; cooldown +
-/// gains stay in UserDefaults to guarantee parity.
+/// Local-first routine completion store. The 24h-cooldown is copied
+/// byte-for-byte from the legacy `RoutineCompletionStore` (same UserDefaults
+/// key) so call sites swap with zero behavior change. The records list is
+/// persisted as JSON to Application Support; the cooldown stays in
+/// UserDefaults to guarantee parity.
 @MainActor
 final class RoutineHistoryStore {
     static let shared = RoutineHistoryStore()
@@ -12,7 +12,6 @@ final class RoutineHistoryStore {
     private let defaults: UserDefaults
     private let fileURL: URL
     private let keyPrefix = "unbound.routineLastCompleted."
-    private let gainsKey = "unbound.gains"
     private let cooldown: TimeInterval = 24 * 3600
 
     private var records: [RoutineCompletionRecord]
@@ -48,8 +47,6 @@ final class RoutineHistoryStore {
     func complete(_ routine: RoutineDef) -> Bool {
         guard canComplete(routineId: routine.id) else { return false }
         defaults.set(Date().timeIntervalSince1970, forKey: keyPrefix + routine.id)
-        let current = defaults.integer(forKey: gainsKey)
-        defaults.set(current + routine.spReward, forKey: gainsKey)
         return true
     }
 
