@@ -18,11 +18,24 @@
 --               written. Empty/absent => update ALL columns (full upsert).
 create or replace function public.sync_merge_row(p_table text, p_full jsonb, p_changed text[])
 returns void language plpgsql security definer set search_path = public as $$
-declare cols text;
+declare
+  cols text;
+  v_uid text := auth.uid()::text;   -- null for service_role / trusted backend calls
+  v_owner text;
 begin
   -- whitelist: only the synced tables may be merged
   if p_table not in ('workout_logs','programs','progression_state','exercise_preferences','program_blocks','scan_checkpoints','users') then
     raise exception 'sync_merge_row: table % not allowed', p_table;
+  end if;
+  -- Ownership guard. SECURITY DEFINER bypasses RLS, so without this an
+  -- authenticated user could overwrite ANOTHER user's row by passing their id.
+  -- For end-user (authenticated) calls the row's owner MUST be the caller.
+  -- service_role (v_uid null) is trusted and skips the check.
+  if v_uid is not null then
+    v_owner := case when p_table = 'users' then p_full->>'id' else p_full->>'user_id' end;
+    if v_owner is distinct from v_uid then
+      raise exception 'sync_merge_row: ownership mismatch (caller % may not write row owned by %)', v_uid, v_owner;
+    end if;
   end if;
   -- build "col = excluded.col" for changed columns that actually exist (excluding id).
   -- empty/absent p_changed => update ALL columns (full upsert semantics; also neutralizes
