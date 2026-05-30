@@ -239,9 +239,9 @@ struct SettingsView: View {
                 .accessibilityIdentifier("settings.devPlayerTools")
 
                 NavigationLink {
-                    StarRatingPrototypeDebugView()
+                    SkillRankPrototypeDebugView()
                 } label: {
-                    Label("Star Ratings (Pull prototype)", systemImage: "star.leadinghalf.filled")
+                    Label("Skill Rank (Pull prototype)", systemImage: "chart.bar.fill")
                         .foregroundColor(.theme.textPrimary)
                 }
 
