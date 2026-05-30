@@ -142,30 +142,57 @@ struct StarRatingPrototypeView: View {
 }
 
 #if DEBUG
-#Preview {
-    // A sample intermediate athlete: solid pull-ups, a muscle-up, some weighted work.
-    func mk(_ exercise: String, reps: Int, weightKg: Double? = nil, seconds: Int? = nil) -> WorkoutLog {
-        WorkoutLog(
-            id: UUID().uuidString, userId: "u", programId: "p", dayNumber: 1, plannedWorkoutName: "x",
-            startedAt: Date(timeIntervalSince1970: 1), completedAt: Date(timeIntervalSince1970: 2),
-            exerciseEntries: [
-                ExerciseLogEntry(id: UUID().uuidString, exerciseName: exercise, plannedSets: 1, plannedReps: "\(reps)",
-                                 sets: [SetLog(id: "s", setNumber: 1, weightKg: weightKg, reps: reps, rpe: nil, isWarmup: false, durationSeconds: seconds)],
-                                 skipped: false, notes: nil)
-            ],
-            overallNotes: nil, overallRPE: nil, durationMinutes: nil)
+// MARK: - Debug entry (Settings → Dev)
+
+/// Loads the signed-in user's real pull logs; falls back to a sample athlete so
+/// the screen is always populated. Wired into Settings → Dev for a live look.
+struct StarRatingPrototypeDebugView: View {
+    @State private var logs: [WorkoutLog] = []
+    @State private var loading = true
+
+    var body: some View {
+        Group {
+            if loading {
+                ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Color.unbound.bg.ignoresSafeArea())
+            } else {
+                StarRatingPrototypeView(logs: logs, bodyweightKg: 75)
+            }
+        }
+        .navigationTitle("Pull Stars (Prototype)")
+        .navigationBarTitleDisplayMode(.inline)
+        .task {
+            let uid = AuthService.shared.currentUserId ?? "anonymous"
+            let real = (try? await WorkoutLogService.shared.fetchRecentLogs(userId: uid, limit: 300)) ?? []
+            logs = real.isEmpty ? StarRatingPrototypeSample.logs : real
+            loading = false
+        }
     }
-    return StarRatingPrototypeView(
-        logs: [
-            mk("dead hang", reps: 0, seconds: 75),
-            mk("pullup", reps: 12),
-            mk("chin-up", reps: 14),
-            mk("wide pullup", reps: 7),
-            mk("weighted pullup", reps: 1, weightKg: 20),
-            mk("archer pullup", reps: 2),
-            mk("muscle-up", reps: 1),
-        ],
-        bodyweightKg: 75
-    )
+}
+
+/// A sample intermediate athlete — solid pull-ups, a muscle-up, some weighted work.
+enum StarRatingPrototypeSample {
+    static let logs: [WorkoutLog] = {
+        func mk(_ exercise: String, reps: Int, weightKg: Double? = nil, seconds: Int? = nil) -> WorkoutLog {
+            WorkoutLog(
+                id: exercise, userId: "u", programId: "p", dayNumber: 1, plannedWorkoutName: "x",
+                startedAt: Date(timeIntervalSince1970: 1), completedAt: Date(timeIntervalSince1970: 2),
+                exerciseEntries: [
+                    ExerciseLogEntry(id: exercise, exerciseName: exercise, plannedSets: 1, plannedReps: "\(reps)",
+                                     sets: [SetLog(id: "s", setNumber: 1, weightKg: weightKg, reps: reps, rpe: nil, isWarmup: false, durationSeconds: seconds)],
+                                     skipped: false, notes: nil)
+                ],
+                overallNotes: nil, overallRPE: nil, durationMinutes: nil)
+        }
+        return [
+            mk("dead hang", reps: 0, seconds: 75), mk("pullup", reps: 12), mk("chin-up", reps: 14),
+            mk("wide pullup", reps: 7), mk("weighted pullup", reps: 1, weightKg: 20),
+            mk("archer pullup", reps: 2), mk("muscle-up", reps: 1),
+        ]
+    }()
+}
+
+#Preview {
+    StarRatingPrototypeView(logs: StarRatingPrototypeSample.logs, bodyweightKg: 75)
 }
 #endif

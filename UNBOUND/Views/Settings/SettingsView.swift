@@ -238,6 +238,13 @@ struct SettingsView: View {
                 }
                 .accessibilityIdentifier("settings.devPlayerTools")
 
+                NavigationLink {
+                    StarRatingPrototypeDebugView()
+                } label: {
+                    Label("Star Ratings (Pull prototype)", systemImage: "star.leadinghalf.filled")
+                        .foregroundColor(.theme.textPrimary)
+                }
+
                 Toggle(isOn: Binding(
                     get: { DevFlags.shared.unlockAllFeatures },
                     set: { DevFlags.shared.unlockAllFeatures = $0 }
