@@ -1,13 +1,45 @@
 import SwiftUI
 
-// MARK: - Skill-rank prototype UI (pull family)
+// MARK: - Skill-mastery stars prototype UI (pull family)
 //
-// Each skill shows a RankTier (Initiate→Unbound) + a %-to-next-rank bar — the
-// SAME shape as a movement/lift card, computed from ONE standard. Additive
-// prototype; reachable from Settings → Dev. See docs/STAR-STANDARD-DESIGN.md.
+// Each skill shows 5 DISCRETE stars (★★★☆☆) + the next concrete goal + your PB —
+// no progress bar (reps are chunky; a bar would fake continuity). A star fills
+// on a PR; per-session dopamine is XP, which lives elsewhere. Additive prototype;
+// reachable from Settings → Dev. See docs/STAR-STANDARD-DESIGN.md.
+
+private func formatValue(_ metric: SkillMetric, _ v: Double) -> String {
+    switch metric {
+    case .reps:           return "\(Int(v)) reps"
+    case .seconds:        return "\(Int(v))s"
+    case .bodyweightRatio: return "+\(Int(v * 100))% bw"
+    }
+}
+
+/// Honest whole-number tally to the next star — "7 / 10 reps", no fractional bar.
+private func formatTally(_ metric: SkillMetric, best: Double, next: Double) -> String {
+    switch metric {
+    case .reps:            return "next star: \(Int(best)) / \(Int(next)) reps"
+    case .seconds:         return "next star: \(Int(best)) / \(Int(next))s"
+    case .bodyweightRatio: return "next star: +\(Int(best * 100)) / +\(Int(next * 100))% bw"
+    }
+}
+
+struct SkillStars: View {
+    let stars: Int   // 0…5
+    var body: some View {
+        HStack(spacing: 5) {
+            ForEach(0..<5, id: \.self) { i in
+                Image(systemName: i < stars ? "star.fill" : "star")
+                    .font(.system(size: 13))
+                    .foregroundStyle(i < stars ? Color.unbound.accent : Color.unbound.textTertiary.opacity(0.4))
+            }
+        }
+    }
+}
 
 struct SkillRankRow: View {
     let title: String
+    let metric: SkillMetric
     let result: SkillRankResult
 
     var body: some View {
@@ -17,22 +49,29 @@ struct SkillRankRow: View {
                     .font(Font.unbound.bodyMStrong)
                     .foregroundStyle(Color.unbound.textPrimary)
                 Spacer()
-                Text(result.tier.displayName.uppercased())
+                Text(result.label.uppercased())
                     .font(Font.unbound.captionS)
-                    .foregroundStyle(Color.unbound.accent)
+                    .foregroundStyle(result.isMastered ? Color.unbound.accent : Color.unbound.textSecondary)
             }
 
-            if let next = result.nextTier {
-                ProgressView(value: result.progressToNextTier)
-                    .tint(Color.unbound.accent)
-                    .scaleEffect(x: 1, y: 1.3, anchor: .center)
-                Text("\(Int(result.progressToNextTier * 100))% to \(next.displayName)")
-                    .font(Font.unbound.captionS)
-                    .foregroundStyle(Color.unbound.textTertiary)
-            } else {
-                Text("PEAK — \(result.tier.displayName)")
-                    .font(Font.unbound.captionS)
-                    .foregroundStyle(Color.unbound.accent)
+            SkillStars(stars: result.stars)
+
+            HStack {
+                if let next = result.nextThreshold {
+                    Text(formatTally(metric, best: result.best, next: next))
+                        .font(Font.unbound.captionS)
+                        .foregroundStyle(Color.unbound.textTertiary)
+                } else {
+                    Text("MASTERED")
+                        .font(Font.unbound.captionS)
+                        .foregroundStyle(Color.unbound.accent)
+                }
+                Spacer()
+                if result.best > 0 {
+                    Text("PB \(formatValue(metric, result.best))")
+                        .font(Font.unbound.captionS)
+                        .foregroundStyle(Color.unbound.textTertiary)
+                }
             }
         }
         .padding(14)
@@ -68,7 +107,7 @@ struct SkillRankPrototypeView: View {
         ScrollView {
             VStack(spacing: 12) {
                 HStack {
-                    Text("PULL — SKILL RANK (consistent with movements)")
+                    Text("PULL — SKILL MASTERY (5 stars)")
                         .font(Font.unbound.captionS)
                         .foregroundStyle(Color.unbound.textSecondary)
                     Spacer()
@@ -82,6 +121,7 @@ struct SkillRankPrototypeView: View {
                     if let std = PullSkillStandards.table[id] {
                         SkillRankRow(
                             title: titles[id] ?? id,
+                            metric: std.metric,
                             result: SkillRankEngine.rank(std, logs: logs, bodyweightKg: bodyweightKg)
                         )
                     }
@@ -107,7 +147,7 @@ struct SkillRankPrototypeDebugView: View {
                 SkillRankPrototypeView(logs: logs, bodyweightKg: 75)
             }
         }
-        .navigationTitle("Pull Skill Rank (Prototype)")
+        .navigationTitle("Pull Skill Mastery (Prototype)")
         .navigationBarTitleDisplayMode(.inline)
         .task {
             let uid = AuthService.shared.currentUserId ?? "anonymous"

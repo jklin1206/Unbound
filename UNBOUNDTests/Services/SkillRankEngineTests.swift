@@ -1,9 +1,9 @@
 import XCTest
 @testable import UNBOUND
 
-// Prototype: a skill ranks on the 9-tier RankTier from ONE standard
-// (best ÷ standard → shared band). best = standard → Forged; ≈3× → peak.
-// Same shape as a lift's RankTier from StrengthStandards.
+// Prototype: a skill is mastered through 5 DISCRETE stars from its own movement's
+// best (hand-authored ascending thresholds). A star fills when best ≥ threshold —
+// no curve, no bar. Past 5 stars it just carries the PB.
 
 final class SkillRankEngineTests: XCTestCase {
 
@@ -19,60 +19,71 @@ final class SkillRankEngineTests: XCTestCase {
             overallNotes: nil, overallRPE: nil, durationMinutes: nil)
     }
 
-    private let pullup = PullSkillStandards.table["pp.pullup"]!        // reps, standard 10
-    private let frontLeverLike = SkillRankStandard(metric: .seconds(exercise: "dead hang"), standard: 10, weight: 1)
+    private let pullup = PullSkillStandards.table["pp.pullup"]!        // reps [1,5,10,15,20]
+    private let holdLike = SkillRankStandard(metric: .seconds(exercise: "dead hang"), thresholds: [5, 10, 20, 40, 60], weight: 1)
 
-    // MARK: Band shape
+    // MARK: Stars fill on cleared thresholds
 
-    func testHittingTheStandardIsForged() {
-        // best == standard → ratio 1.0 → Forged
-        let r = SkillRankEngine.rank(pullup, logs: [log("pullup", reps: 10)], bodyweightKg: 70)
-        XCTAssertEqual(r.tier, .forged)
-    }
-
-    func testZeroLogsIsInitiate() {
+    func testZeroLogsIsZeroStars() {
         let r = SkillRankEngine.rank(pullup, logs: [], bodyweightKg: 70)
-        XCTAssertEqual(r.tier, .initiate)
-        XCTAssertEqual(r.nextTier, .novice)
+        XCTAssertEqual(r.stars, 0)
+        XCTAssertEqual(r.label, "Locked")
+        XCTAssertEqual(r.nextThreshold, 1)   // first star threshold
     }
 
-    func testBelowStandardClimbsInitiateToForged() {
-        // 5 reps of a 10-standard → ratio 0.5 → position 1.5 → Novice (+ progress)
-        let r = SkillRankEngine.rank(pullup, logs: [log("pullup", reps: 5)], bodyweightKg: 70)
-        XCTAssertEqual(r.tier, .novice)
-        XCTAssertEqual(r.progressToNextTier, 0.5, accuracy: 0.001)
+    func testFirstThresholdLearned() {
+        let r = SkillRankEngine.rank(pullup, logs: [log("pullup", reps: 1)], bodyweightKg: 70)
+        XCTAssertEqual(r.stars, 1)
+        XCTAssertEqual(r.label, "Learned")
+        XCTAssertEqual(r.nextThreshold, 5)
     }
 
-    func testEliteIsAboutThreeTimesStandard() {
-        // 30 reps of a 10-standard → ratio 3.0 → peak
-        let r = SkillRankEngine.rank(pullup, logs: [log("pullup", reps: 30)], bodyweightKg: 70)
-        XCTAssertEqual(r.tier, .ascendant)   // rawValue 8 = peak
-        XCTAssertNil(r.nextTier)
-        XCTAssertEqual(r.progressToNextTier, 1.0)
+    func testMidLadderCountsClearedThresholds() {
+        // 12 reps clears 1, 5, 10 → 3 stars; next is 15
+        let r = SkillRankEngine.rank(pullup, logs: [log("pullup", reps: 12)], bodyweightKg: 70)
+        XCTAssertEqual(r.stars, 3)
+        XCTAssertEqual(r.nextThreshold, 15)
+        XCTAssertEqual(r.best, 12)
     }
 
-    // MARK: Depth within a skill is preserved (3s vs 30s differ)
+    func testTopThresholdMasters() {
+        let r = SkillRankEngine.rank(pullup, logs: [log("pullup", reps: 20)], bodyweightKg: 70)
+        XCTAssertEqual(r.stars, 5)
+        XCTAssertTrue(r.isMastered)
+        XCTAssertEqual(r.label, "Mastered")
+        XCTAssertNil(r.nextThreshold)
+    }
+
+    func testBeyondTopStaysMasteredAndCarriesPB() {
+        // 47 reps: still 5 stars, but PB reflects the real best (the forever-flex)
+        let r = SkillRankEngine.rank(pullup, logs: [log("pullup", reps: 47)], bodyweightKg: 70)
+        XCTAssertEqual(r.stars, 5)
+        XCTAssertEqual(r.best, 47)
+        XCTAssertNil(r.nextThreshold)
+    }
+
+    // MARK: Depth within a skill (a hold's seconds drive stars)
 
     func testDepthWithinSkillDiffersByHold() {
-        let short = SkillRankEngine.rank(frontLeverLike, logs: [log("dead hang", reps: 0, seconds: 3)], bodyweightKg: 70)
-        let long = SkillRankEngine.rank(frontLeverLike, logs: [log("dead hang", reps: 0, seconds: 30)], bodyweightKg: 70)
-        XCTAssertLessThan(short.tier, long.tier)   // 3s ≪ 30s
-        XCTAssertEqual(long.tier, .ascendant)      // 30s = 3× the 10 standard = peak
+        let short = SkillRankEngine.rank(holdLike, logs: [log("dead hang", reps: 0, seconds: 4)], bodyweightKg: 70)
+        let long = SkillRankEngine.rank(holdLike, logs: [log("dead hang", reps: 0, seconds: 60)], bodyweightKg: 70)
+        XCTAssertEqual(short.stars, 0)   // 4s clears nothing
+        XCTAssertEqual(long.stars, 5)    // 60s clears all five
     }
 
     // MARK: Own-movement only (council invariant)
 
     func testDoesNotRankFromADifferentExercise() {
         let r = SkillRankEngine.rank(pullup, logs: [log("chin-up", reps: 30)], bodyweightKg: 70)
-        XCTAssertEqual(r.tier, .initiate)
+        XCTAssertEqual(r.stars, 0)
     }
 
     // MARK: Weighted points scale with difficulty
 
     func testWeightedPointsScaleWithDifficulty() {
-        let oap = PullSkillStandards.table["pp.one-arm-pullup"]!  // weight 7
-        let pu = SkillRankEngine.rank(pullup, logs: [log("pullup", reps: 10)], bodyweightKg: 70)        // Forged(3)×2 = 6
-        let oa = SkillRankEngine.rank(oap, logs: [log("one-arm pullup", reps: 1)], bodyweightKg: 70)    // Forged(3)×7 = 21
+        let oap = PullSkillStandards.table["pp.one-arm-pullup"]!  // weight 7, thresholds [1,2,3,4,5]
+        let pu = SkillRankEngine.rank(pullup, logs: [log("pullup", reps: 5)], bodyweightKg: 70)        // 2 stars × 2 = 4
+        let oa = SkillRankEngine.rank(oap, logs: [log("one-arm pullup", reps: 1)], bodyweightKg: 70)   // 1 star × 7 = 7
         XCTAssertGreaterThan(SkillRankEngine.weightedPoints(oa, weight: oap.weight),
                              SkillRankEngine.weightedPoints(pu, weight: pullup.weight))
     }

@@ -2,20 +2,11 @@ import Foundation
 
 // MARK: - SkillRankEngine (prototype)
 //
-// Pure: ranks a skill on the 9-tier RankTier from ONE standard (best ÷ standard
-// → shared band curve), reading only the skill's own movement. Same shape as a
-// lift's RankTier from StrengthStandards — one language across the app.
+// Pure: ranks a skill through 5 DISCRETE stars from its own movement's best. A star
+// fills when best ≥ that threshold — no curve, no bar. Past 5 stars it just carries
+// the PB. Own-movement only (council invariant).
 
 enum SkillRankEngine {
-
-    /// Map best÷standard into a continuous tier POSITION (0 = Initiate … 8 = peak).
-    /// ratio 1.0 (you hit the standard) → 3.0 = Forged. Below the standard spans
-    /// Initiate→Forged; above it spans Forged→peak (elite ≈ 3× the standard).
-    static func tierPosition(ratio: Double) -> Double {
-        guard ratio > 0 else { return 0 }
-        if ratio <= 1.0 { return min(3.0, 3.0 * ratio) }
-        return min(8.0, 3.0 + (ratio - 1.0) / 2.0 * 5.0)
-    }
 
     static func rank(
         _ standard: SkillRankStandard,
@@ -23,18 +14,16 @@ enum SkillRankEngine {
         bodyweightKg: Double
     ) -> SkillRankResult {
         let best = bestScore(standard.metric, logs: logs, bodyweightKg: bodyweightKg)
-        let pos = tierPosition(ratio: standard.standard > 0 ? best / standard.standard : 0)
-
-        let floorIdx = min(8, Int(pos))
-        let tier = RankTier(rawValue: floorIdx) ?? .initiate
-        let nextTier = RankTier(rawValue: floorIdx + 1)
-        let progress = nextTier == nil ? 1.0 : pos - Double(floorIdx)
-        return SkillRankResult(tier: tier, best: best, progressToNextTier: progress, nextTier: nextTier)
+        // Stars = how many ascending thresholds the best has cleared (capped at 5).
+        let stars = min(5, standard.thresholds.filter { best >= $0 }.count)
+        let nextThreshold = stars < standard.thresholds.count ? standard.thresholds[stars] : nil
+        return SkillRankResult(stars: stars, best: best, nextThreshold: nextThreshold)
     }
 
-    /// Weighted points toward the overall athlete rank = tier ordinal × weight.
+    /// Weighted points toward the overall athlete rank = stars × difficulty weight
+    /// (a star on a muscle-up counts more than a star on a pull-up).
     static func weightedPoints(_ result: SkillRankResult, weight: Int) -> Int {
-        result.tier.rawValue * weight
+        result.stars * weight
     }
 
     // MARK: Best score on a skill's own movement

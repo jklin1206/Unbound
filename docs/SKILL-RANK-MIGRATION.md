@@ -2,7 +2,14 @@
 
 **Date:** 2026-05-30 · **Status:** SCOPE (for jlin checkpoint, no migration code yet)
 
-**The locked model:** a skill ranks on the 9-tier **RankTier** (consistent with movements), computed from **ONE standard** (best ÷ the skill's standard → shared band; ratio 1.0 = Forged, ≈3× = peak) + a **%-to-next-rank bar** for depth. Deletes the per-node 9-tier `tierCriteria` tables (~1,350 criteria). Prototype shipped (`aef0eb4`, pull family).
+**The locked model (council-reviewed 2026-05-30):** a skill is mastered through **5 discrete pips** on its OWN movement (hand-authored ascending thresholds) + an **honest whole-number tally** to the next pip ("7 / 10 reps" — no fractional bar; reps are chunky). Depth-within-a-node = the metric; depth-across-difficulty = the TREE (harder variations are their own nodes), so **feat nodes keep LOW capped ceilings** (muscle-up 1/2/3/4/5, not /15) and grind nodes get higher ones. Past pip 5 → PB forever. XP→attributes stays the per-session drip, separate from pips. Deletes the per-node `tierCriteria` tables (~1,350 criteria); **keeps `TierCriterion` + `TierCriterionEvaluator`** (trials persist them). Prototype shipped + rewritten to pips (pull family).
+
+> **Council findings that corrected this plan (grounded grep):**
+> - The live skill-rank/reward path is **`ProofEngine.evaluate`** (`TrainingCompletionService.swift:79`, reads `node.tierCriteria` at `ProofEngine.swift:150/155/266`) — **not** `evaluateTierCrossings`, which is **dead** (only its own mock calls it, `RankService.swift:467`). Phase B repoints **ProofEngine**.
+> - **Keep `TierCriterion`/`TierCriterionEvaluator`**: they're a persisted Codable trial field (`TrialCapstone.swift:13`) + capstone inline literals (`CapstoneCatalog.swift:15`). Delete only the 8 `*SkillTiers.swift` tables. Trials never blocked deletion.
+> - **`PrereqClearer.swift:123` prefers `tierCriteria[requiredTier]` over `node.target`** — deleting tables silently shifts prereq thresholds. Drop the table branch deliberately in the same commit.
+> - **`aggregateRank` reads `perSkill` ordinals** (`RankService.swift:293`) written only by the dead function. Need a `pip → SkillTier` bridge to feed it; `aggregateRank` itself (reads `tier.rawValue × difficulty`) needs no change.
+> - Two competing difficulty weights: `SkillRankStandard.weight` (1–7) vs `RankService.difficultyWeight`(`node.tier`). Pick one before Phase E.
 
 ---
 
@@ -46,5 +53,10 @@ Soften hard prereq gating → visual guidance only (kills the original double-do
 4. **Difficulty weight source.** Reuse `node.tier` (1–7, already authored) as the weight, or the 1×/2×/4×/7×/12× council scale?
 5. **Prereqs (Phase F).** Soften to soft-edges now, later, or never.
 
-## Sequencing recommendation
-Pull family is the proven slice. Do **A+B+C for one family end-to-end** (pull) wired into the live skill card (extend D to real), checkpoint the feel on device, then roll the remaining families the same way — one coherent push each, exactly like the reseats. Trials adapter (open #3) gets resolved before the first deletion.
+## Sequencing recommendation (council's safe commit-by-commit order, pull family)
+1. **pip→SkillTier bridge** — additive `SkillRankResult.asSkillTier`, tests only. No deletion. Green.
+2. **Repoint ProofEngine for `pp.*` nodes** behind a per-family switch (pull routes to `SkillRankEngine`/`PullSkillStandards`, all others stay on tables). Wire pip→`perSkill`. Keep `TierCriterion`/evaluator. Build+test.
+3. **Delete `PpSkillTiers.swift` + its `count==39` assert + `PpSkillTiersTests` + the `PrereqClearer` pull-table branch — same commit.** Verify pull skill card + prereqs + rank-up beat on device.
+4. **D/E (UI + aggregate)** once the feel is blessed. Roll the remaining 7 families identically. `TierCriterion`, `TierCriterionEvaluator`, `node.target`, all trial/capstone code stay in place the whole migration.
+
+Checkpoint the device feel after step 3 of each family before pushing (persistence-adjacent + changes the live skill card).
