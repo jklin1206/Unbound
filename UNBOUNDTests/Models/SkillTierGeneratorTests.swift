@@ -71,6 +71,18 @@ final class SkillTierGeneratorTests: XCTestCase {
         XCTAssertEqual(reps(ladder[.ascendant]), 9)
     }
 
+    func testEveryPullAnchorGeneratesNineCompleteTiers() {
+        // Catches a malformed feat ladder count or any missing tier.
+        XCTAssertEqual(PullSkillAnchors.table.count, 39, "all 39 pull nodes should be authored")
+        for (id, anchor) in PullSkillAnchors.table {
+            let ladder = SkillTierGenerator.generate(anchor)
+            XCTAssertEqual(ladder.count, 9, "\(id) must generate exactly 9 tiers")
+            for tier in SkillTier.allCases {
+                XCTAssertNotNil(ladder[tier], "\(id) missing tier \(tier)")
+            }
+        }
+    }
+
     func testWeightedUsesBodyweightRatioCriterion() {
         let ladder = SkillTierGenerator.generate(PullSkillAnchors.table["pp.weighted-pullup"]!)
         guard case .exerciseBodyweightRatio(let ratio, let ex)? = ladder[.ascendant] else {
