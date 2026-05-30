@@ -10,9 +10,11 @@ import Foundation
 //
 // Depth within a NODE is the metric (reps/seconds/load) on that exact movement;
 // depth across DIFFICULTY is the tree itself — the harder variations (ring / strict
-// / weighted muscle-up) are their OWN nodes with their own stars, so a feat node's
-// rep ceiling stays LOW (muscle-up 1/2/3/4/5, not /15): you own it cleanly, then
-// climb to the next node. Grind movements (pull-up, dead hang) keep higher ceilings.
+// / weighted muscle-up) are their OWN nodes. The 5 stars map to the 5 recognized
+// strength-standard tiers (beginner → intermediate → advanced → elite → elite+), so
+// "Mastered" = elite-tier, not freak-tier (e.g. 25 strict pull-ups, not 40; data:
+// 20+ already beats 90% of gym-goers). Feat ceilings stay sane (12 muscle-ups in a
+// set is genuinely elite, given MUs are far harder than pull-ups).
 //
 // Per-session dopamine is XP→attributes, separate from stars (Liftoff keeps XP and
 // rank on separate tracks for exactly this reason). Additive prototype — does not
@@ -67,18 +69,19 @@ struct SkillRankResult: Hashable, Sendable {
 // MARK: - Pull family mastery ladders (5 hand-authored pips each)
 
 enum PullSkillStandards {
+    // Stars 1→5 = beginner → intermediate → advanced → elite → elite+ (data-grounded).
     static let table: [String: SkillRankStandard] = [
-        // Grind movements — higher rep/second/load ceilings (depth lives in the number).
-        "pp.dead-hang":        .init(metric: .seconds(exercise: "dead hang"),               thresholds: [30, 45, 60, 90, 120], weight: 1),
-        "pp.pullup":           .init(metric: .reps(exercise: "pullup"),                     thresholds: [1, 5, 10, 15, 20],    weight: 2),
-        "pp.chin-up":          .init(metric: .reps(exercise: "chin-up"),                    thresholds: [1, 5, 10, 15, 20],    weight: 2),
-        "pp.wide-pullup":      .init(metric: .reps(exercise: "wide pullup"),                thresholds: [3, 6, 10, 15, 20],    weight: 2),
-        "pp.weighted-pullup":  .init(metric: .bodyweightRatio(exercise: "weighted pullup"), thresholds: [0.1, 0.25, 0.5, 0.75, 1.0], weight: 2),
-        "pp.archer-pullup":    .init(metric: .reps(exercise: "archer pullup"),              thresholds: [1, 2, 4, 6, 10],      weight: 4),
-        // Feat nodes — LOW capped ceilings; depth comes from the next node, not rep grinding.
-        "pp.muscle-up":        .init(metric: .reps(exercise: "muscle-up"),                  thresholds: [1, 2, 3, 4, 5],       weight: 4),
-        "pp.ring-muscle-up":   .init(metric: .reps(exercise: "ring muscle-up"),             thresholds: [1, 2, 3, 4, 5],       weight: 4),
-        "pp.strict-muscle-up": .init(metric: .reps(exercise: "strict muscle-up"),           thresholds: [1, 2, 3, 4, 5],       weight: 4),
-        "pp.one-arm-pullup":   .init(metric: .reps(exercise: "one-arm pullup"),             thresholds: [1, 2, 3, 4, 5],       weight: 7),
+        "pp.dead-hang":        .init(metric: .seconds(exercise: "dead hang"),               thresholds: [30, 60, 90, 120, 180],  weight: 1),
+        "pp.pullup":           .init(metric: .reps(exercise: "pullup"),                     thresholds: [5, 10, 15, 20, 25],     weight: 2),
+        "pp.chin-up":          .init(metric: .reps(exercise: "chin-up"),                    thresholds: [6, 12, 18, 24, 30],     weight: 2),
+        "pp.wide-pullup":      .init(metric: .reps(exercise: "wide pullup"),                thresholds: [3, 8, 12, 16, 20],      weight: 2),
+        "pp.weighted-pullup":  .init(metric: .bodyweightRatio(exercise: "weighted pullup"), thresholds: [0.10, 0.30, 0.60, 0.90, 1.20], weight: 2),
+        "pp.archer-pullup":    .init(metric: .reps(exercise: "archer pullup"),              thresholds: [1, 3, 6, 9, 12],        weight: 4),
+        "pp.muscle-up":        .init(metric: .reps(exercise: "muscle-up"),                  thresholds: [1, 3, 5, 8, 12],        weight: 4),
+        "pp.ring-muscle-up":   .init(metric: .reps(exercise: "ring muscle-up"),             thresholds: [1, 2, 4, 6, 10],        weight: 4),
+        "pp.strict-muscle-up": .init(metric: .reps(exercise: "strict muscle-up"),           thresholds: [1, 2, 4, 6, 10],        weight: 4),
+        // TODO(live): one-arm pull-up wants reps→added-load above the first rep (option b);
+        // the single-metric prototype can't mix axes, so this stays a rep placeholder for now.
+        "pp.one-arm-pullup":   .init(metric: .reps(exercise: "one-arm pullup"),             thresholds: [1, 2, 3, 4, 5],         weight: 7),
     ]
 }

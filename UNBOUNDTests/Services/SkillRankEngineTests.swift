@@ -19,7 +19,7 @@ final class SkillRankEngineTests: XCTestCase {
             overallNotes: nil, overallRPE: nil, durationMinutes: nil)
     }
 
-    private let pullup = PullSkillStandards.table["pp.pullup"]!        // reps [1,5,10,15,20]
+    private let pullup = PullSkillStandards.table["pp.pullup"]!        // reps [5,10,15,20,25]
     private let holdLike = SkillRankStandard(metric: .seconds(exercise: "dead hang"), thresholds: [5, 10, 20, 40, 60], weight: 1)
 
     // MARK: Stars fill on cleared thresholds
@@ -28,26 +28,26 @@ final class SkillRankEngineTests: XCTestCase {
         let r = SkillRankEngine.rank(pullup, logs: [], bodyweightKg: 70)
         XCTAssertEqual(r.stars, 0)
         XCTAssertEqual(r.label, "Locked")
-        XCTAssertEqual(r.nextThreshold, 1)   // first star threshold
+        XCTAssertEqual(r.nextThreshold, 5)   // first star threshold
     }
 
     func testFirstThresholdLearned() {
-        let r = SkillRankEngine.rank(pullup, logs: [log("pullup", reps: 1)], bodyweightKg: 70)
+        let r = SkillRankEngine.rank(pullup, logs: [log("pullup", reps: 5)], bodyweightKg: 70)
         XCTAssertEqual(r.stars, 1)
         XCTAssertEqual(r.label, "Learned")
-        XCTAssertEqual(r.nextThreshold, 5)
+        XCTAssertEqual(r.nextThreshold, 10)
     }
 
     func testMidLadderCountsClearedThresholds() {
-        // 12 reps clears 1, 5, 10 → 3 stars; next is 15
-        let r = SkillRankEngine.rank(pullup, logs: [log("pullup", reps: 12)], bodyweightKg: 70)
+        // 16 reps clears 5, 10, 15 → 3 stars; next is 20
+        let r = SkillRankEngine.rank(pullup, logs: [log("pullup", reps: 16)], bodyweightKg: 70)
         XCTAssertEqual(r.stars, 3)
-        XCTAssertEqual(r.nextThreshold, 15)
-        XCTAssertEqual(r.best, 12)
+        XCTAssertEqual(r.nextThreshold, 20)
+        XCTAssertEqual(r.best, 16)
     }
 
     func testTopThresholdMasters() {
-        let r = SkillRankEngine.rank(pullup, logs: [log("pullup", reps: 20)], bodyweightKg: 70)
+        let r = SkillRankEngine.rank(pullup, logs: [log("pullup", reps: 25)], bodyweightKg: 70)
         XCTAssertEqual(r.stars, 5)
         XCTAssertTrue(r.isMastered)
         XCTAssertEqual(r.label, "Mastered")
@@ -82,7 +82,7 @@ final class SkillRankEngineTests: XCTestCase {
 
     func testWeightedPointsScaleWithDifficulty() {
         let oap = PullSkillStandards.table["pp.one-arm-pullup"]!  // weight 7, thresholds [1,2,3,4,5]
-        let pu = SkillRankEngine.rank(pullup, logs: [log("pullup", reps: 5)], bodyweightKg: 70)        // 2 stars × 2 = 4
+        let pu = SkillRankEngine.rank(pullup, logs: [log("pullup", reps: 5)], bodyweightKg: 70)        // 1 star × 2 = 2
         let oa = SkillRankEngine.rank(oap, logs: [log("one-arm pullup", reps: 1)], bodyweightKg: 70)   // 1 star × 7 = 7
         XCTAssertGreaterThan(SkillRankEngine.weightedPoints(oa, weight: oap.weight),
                              SkillRankEngine.weightedPoints(pu, weight: pullup.weight))
