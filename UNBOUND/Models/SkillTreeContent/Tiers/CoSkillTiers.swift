@@ -119,30 +119,30 @@ enum CoSkillTiers {
         // Upper tiers compound with pull-up rep counts — grip endurance and
         // pulling strength are tightly correlated.
         "co.dead-hang-45": [
-            .initiate:   .variant("dead hang"),
-            .novice:     .variant("dead hang"),
-            .apprentice: .variant("dead hang"),
-            .forged:     .compound([.variant("dead hang"), .reps(3, exerciseName: "pullup")]),
-            .veteran:    .compound([.variant("dead hang"), .reps(5, exerciseName: "pullup")]),
-            .master:      .compound([.variant("dead hang"), .reps(8, exerciseName: "pullup")]),
-            .vessel:     .compound([.variant("dead hang"), .reps(10, exerciseName: "pullup")]),
-            .unbound:    .compound([.variant("dead hang"), .reps(12, exerciseName: "pullup")]),
-            .ascendant:  .compound([.variant("dead hang"), .reps(15, exerciseName: "pullup")]),
+            .initiate:   .exerciseSeconds(10, exerciseName: "dead hang"),
+            .novice:     .exerciseSeconds(20, exerciseName: "dead hang"),
+            .apprentice: .exerciseSeconds(30, exerciseName: "dead hang"),
+            .forged:     .exerciseSeconds(45, exerciseName: "dead hang"),
+            .veteran:    .exerciseSeconds(60, exerciseName: "dead hang"),
+            .master:      .exerciseSeconds(75, exerciseName: "dead hang"),
+            .vessel:     .exerciseSeconds(90, exerciseName: "dead hang"),
+            .unbound:    .exerciseSeconds(105, exerciseName: "dead hang"),
+            .ascendant:  .exerciseSeconds(120, exerciseName: "dead hang"),
         ],
 
         // co.dead-hang-60 — Max Dead Hang (60 s target). Prereq: co.dead-hang-45.
         // Starts from a compound entry to confirm hang + pull-up base.
         // Upper tiers push into high-rep pull-up territory as the grip proxy.
         "co.dead-hang-60": [
-            .initiate:   .compound([.variant("dead hang"), .reps(3, exerciseName: "pullup")]),
-            .novice:     .compound([.variant("dead hang"), .reps(5, exerciseName: "pullup")]),
-            .apprentice: .compound([.variant("dead hang"), .reps(8, exerciseName: "pullup")]),
-            .forged:     .compound([.variant("dead hang"), .reps(10, exerciseName: "pullup")]),
-            .veteran:    .compound([.variant("dead hang"), .reps(12, exerciseName: "pullup")]),
-            .master:      .compound([.variant("dead hang"), .reps(15, exerciseName: "pullup")]),
-            .vessel:     .compound([.variant("dead hang"), .reps(18, exerciseName: "pullup")]),
-            .unbound:    .compound([.variant("dead hang"), .reps(20, exerciseName: "pullup")]),
-            .ascendant:  .compound([.variant("dead hang"), .reps(25, exerciseName: "pullup")]),
+            .initiate:   .exerciseSeconds(30, exerciseName: "dead hang"),
+            .novice:     .exerciseSeconds(40, exerciseName: "dead hang"),
+            .apprentice: .exerciseSeconds(50, exerciseName: "dead hang"),
+            .forged:     .exerciseSeconds(60, exerciseName: "dead hang"),
+            .veteran:    .exerciseSeconds(75, exerciseName: "dead hang"),
+            .master:      .exerciseSeconds(90, exerciseName: "dead hang"),
+            .vessel:     .exerciseSeconds(105, exerciseName: "dead hang"),
+            .unbound:    .exerciseSeconds(120, exerciseName: "dead hang"),
+            .ascendant:  .exerciseSeconds(150, exerciseName: "dead hang"),
         ],
 
         // MARK: - Engine: Rower Sprint

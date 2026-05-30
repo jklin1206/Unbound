@@ -308,15 +308,15 @@ enum CalSkillTiers {
         // confirms any l-sit log. Upper tiers compound with leg-raise to
         // confirm active hip flexor strength.
         "cal.l-sit-10": [
-            .initiate:   .variant("l-sit"),
-            .novice:     .variant("l-sit"),
-            .apprentice: .variant("l-sit"),
-            .forged:     .compound([.variant("l-sit"), .variant("leg raise")]),
-            .veteran:    .compound([.variant("l-sit"), .reps(5, exerciseName: "leg raise")]),
-            .master:      .compound([.variant("l-sit"), .reps(10, exerciseName: "leg raise")]),
-            .vessel:     .compound([.variant("l-sit"), .reps(15, exerciseName: "leg raise")]),
-            .unbound:    .compound([.variant("l-sit"), .reps(20, exerciseName: "leg raise")]),
-            .ascendant:  .compound([.variant("l-sit"), .reps(25, exerciseName: "leg raise")]),
+            .initiate:   .exerciseSeconds(5, exerciseName: "l-sit"),
+            .novice:     .exerciseSeconds(8, exerciseName: "l-sit"),
+            .apprentice: .exerciseSeconds(10, exerciseName: "l-sit"),
+            .forged:     .exerciseSeconds(15, exerciseName: "l-sit"),
+            .veteran:    .exerciseSeconds(20, exerciseName: "l-sit"),
+            .master:      .exerciseSeconds(30, exerciseName: "l-sit"),
+            .vessel:     .exerciseSeconds(40, exerciseName: "l-sit"),
+            .unbound:    .exerciseSeconds(50, exerciseName: "l-sit"),
+            .ascendant:  .exerciseSeconds(60, exerciseName: "l-sit"),
         ],
 
         // cal.l-sit-20 — extended l-sit hold; prereq: cal.l-sit-10.
