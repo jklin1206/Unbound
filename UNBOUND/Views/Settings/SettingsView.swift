@@ -238,13 +238,6 @@ struct SettingsView: View {
                 }
                 .accessibilityIdentifier("settings.devPlayerTools")
 
-                NavigationLink {
-                    SkillRankPrototypeDebugView()
-                } label: {
-                    Label("Skill Rank (Pull prototype)", systemImage: "chart.bar.fill")
-                        .foregroundColor(.theme.textPrimary)
-                }
-
                 Toggle(isOn: Binding(
                     get: { DevFlags.shared.unlockAllFeatures },
                     set: { DevFlags.shared.unlockAllFeatures = $0 }
