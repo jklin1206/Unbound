@@ -66,6 +66,36 @@ final class HoldSecondsTests: XCTestCase {
             criterion: .seconds(30), history: history, bodyweightKg: 70))
     }
 
+    // MARK: - TierCriterionEvaluator.exerciseSeconds (exercise-scoped)
+
+    func testExerciseSecondsMetByMatchingExercise() {
+        let history = [entry(reps: 0, durationSeconds: 45)]   // exercise = "l-sit"
+        XCTAssertTrue(TierCriterionEvaluator.satisfied(
+            criterion: .exerciseSeconds(30, exerciseName: "l-sit"), history: history, bodyweightKg: 70))
+    }
+
+    func testExerciseSecondsNotMetByDifferentExercise() {
+        // A 99s PLANK must NOT satisfy a 30s L-SIT hold — the whole point of
+        // exercise-scoping vs the global .seconds.
+        let plank = ExerciseLogEntry(
+            id: "p1", exerciseName: "plank", plannedSets: 1, plannedReps: "99s",
+            sets: [SetLog(id: "s1", setNumber: 1, weightKg: nil, reps: 0, rpe: nil,
+                          isWarmup: false, durationSeconds: 99)],
+            skipped: false, notes: nil
+        )
+        XCTAssertFalse(TierCriterionEvaluator.satisfied(
+            criterion: .exerciseSeconds(30, exerciseName: "l-sit"), history: [plank], bodyweightKg: 70))
+        // …whereas the global .seconds WOULD be satisfied by it (contrast).
+        XCTAssertTrue(TierCriterionEvaluator.satisfied(
+            criterion: .seconds(30), history: [plank], bodyweightKg: 70))
+    }
+
+    func testExerciseSecondsLegacyRepsFallback() {
+        let history = [entry(reps: 45, durationSeconds: nil)]
+        XCTAssertTrue(TierCriterionEvaluator.satisfied(
+            criterion: .exerciseSeconds(30, exerciseName: "l-sit"), history: history, bodyweightKg: 70))
+    }
+
     func testWarmupSetsExcludedFromSeconds() {
         let warmup = ExerciseLogEntry(
             id: "e1", exerciseName: "l-sit", plannedSets: 1, plannedReps: "30s",

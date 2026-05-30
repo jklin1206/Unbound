@@ -1527,6 +1527,8 @@ enum MovementCatalog {
         switch criterion {
         case .reps(_, let exerciseName):
             return [exerciseName]
+        case .exerciseSeconds(_, let exerciseName):
+            return [exerciseName]
         case .exerciseWeightKg(_, let exerciseName):
             return [exerciseName]
         case .exerciseBodyweightRatio(let ratio, let exerciseName):

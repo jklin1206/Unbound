@@ -275,6 +275,7 @@ private extension ProofEngine {
     ) -> Bool {
         switch criterion {
         case .reps(_, let exerciseName),
+             .exerciseSeconds(_, let exerciseName),
              .exerciseWeightKg(_, let exerciseName),
              .exerciseBodyweightRatio(_, let exerciseName),
              .variant(let exerciseName):

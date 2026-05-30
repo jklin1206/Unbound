@@ -20,8 +20,12 @@ enum TierCriterionEvaluator {
             return bestReps(for: exerciseName, in: history) >= target
 
         case .seconds(let target):
-            // History is pre-filtered to the relevant exercise by the caller.
+            // Global: best hold across ALL logged exercises. Prefer
+            // .exerciseSeconds for hold skills (history is NOT pre-filtered).
             return bestSeconds(in: history) >= target
+
+        case .exerciseSeconds(let target, let exerciseName):
+            return bestSeconds(for: exerciseName, in: history) >= target
 
         case .weightKg(let target):
             return bestWeight(in: history) >= target
@@ -66,11 +70,20 @@ enum TierCriterionEvaluator {
             .max() ?? 0
     }
 
-    /// Best hold/carry duration across all entries (pre-filtered to the
-    /// exercise by the caller). Reads `durationSeconds`, falling back to `reps`
-    /// for legacy reps-column holds.
+    /// Best hold duration across ALL entries (global — any exercise). Reads
+    /// `durationSeconds`, falling back to `reps` for legacy reps-column holds.
     private static func bestSeconds(in history: [ExerciseLogEntry]) -> Int {
         history
+            .flatMap { $0.sets }
+            .filter { !$0.isWarmup }
+            .map { $0.durationSeconds ?? $0.reps }
+            .max() ?? 0
+    }
+
+    /// Best hold duration for a single exercise. Exercise-scoped counterpart of
+    /// `bestSeconds(in:)`. Reads `durationSeconds`, legacy reps-column fallback.
+    private static func bestSeconds(for exerciseName: String, in history: [ExerciseLogEntry]) -> Int {
+        matchingEntries(exerciseName: exerciseName, in: history)
             .flatMap { $0.sets }
             .filter { !$0.isWarmup }
             .map { $0.durationSeconds ?? $0.reps }

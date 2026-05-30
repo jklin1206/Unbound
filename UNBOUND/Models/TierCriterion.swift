@@ -9,8 +9,13 @@ import Foundation
 indirect enum TierCriterion: Codable, Hashable, Sendable {
     /// Best single-set rep count for `exerciseName` ≥ n.
     case reps(Int, exerciseName: String)
-    /// Best held duration in seconds ≥ t.
+    /// Best held duration in seconds ≥ t, across ANY logged hold. Global —
+    /// prefer `exerciseSeconds` for hold skills so an unrelated hold can't rank them.
     case seconds(Int)
+    /// Best held duration in seconds for `exerciseName` ≥ t. Exercise-scoped
+    /// counterpart of `seconds` (mirrors exerciseWeightKg vs weightKg). Reads
+    /// SetLog.durationSeconds with a legacy reps-column fallback.
+    case exerciseSeconds(Int, exerciseName: String)
     /// Best working-set absolute weight in kg ≥ w.
     case weightKg(Double)
     /// Best working-set absolute weight in kg for `exerciseName` ≥ w.

@@ -447,6 +447,18 @@ private enum WeeklyVowTrainingBuilder {
                 )
             ]
 
+        case .exerciseSeconds(let seconds, let exerciseName):
+            return [
+                makePrescription(
+                    exerciseName: displayExerciseName(exerciseName),
+                    sets: sets(for: card, fallback: 3),
+                    target: .holdSeconds(max(10, seconds)),
+                    restSeconds: restSeconds(for: card, fallback: 75),
+                    rpe: rpe(for: card),
+                    notes: "Hold this movement strictly for the proof duration."
+                )
+            ]
+
         case .weightKg(let target):
             return [
                 makePrescription(

@@ -148,6 +148,13 @@ private extension PrereqClearer {
                 magnitude: Double(seconds),
                 unit: .seconds
             )
+        case .exerciseSeconds(let seconds, let exerciseName):
+            return ProofThreshold(
+                family: .hold,
+                exerciseName: exerciseName,
+                magnitude: Double(seconds),
+                unit: .seconds
+            )
         case .weightKg(let weight):
             return ProofThreshold(family: .loaded, exerciseName: nil, magnitude: weight, unit: .kilograms)
         case .exerciseWeightKg(let weight, let exerciseName):

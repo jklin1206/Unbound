@@ -69,31 +69,34 @@ enum HsSkillTiers {
         // hs.wall-plank — Wall Plank (feet on wall, body inverted at ~45°).
         // Hold-type. Gateway to wall handstand. This should remain a
         // shoulder-line / inverted brace standard, not secretly become HSPU.
+        // Honest hold-time (F2): the rep column was already seconds — read it
+        // as exercise-scoped duration so an unrelated hold can't satisfy it.
         "hs.wall-plank": [
-            .initiate:   .reps(10, exerciseName: "wall plank"),
-            .novice:     .reps(20, exerciseName: "wall plank"),
-            .apprentice: .reps(30, exerciseName: "wall plank"),
-            .forged:     .reps(45, exerciseName: "wall plank"),
-            .veteran:    .reps(60, exerciseName: "wall plank"),
-            .master:      .reps(75, exerciseName: "wall plank"),
-            .vessel:     .reps(90, exerciseName: "wall plank"),
-            .unbound:    .reps(120, exerciseName: "wall plank"),
-            .ascendant:  .reps(150, exerciseName: "wall plank"),
+            .initiate:   .exerciseSeconds(10, exerciseName: "wall plank"),
+            .novice:     .exerciseSeconds(20, exerciseName: "wall plank"),
+            .apprentice: .exerciseSeconds(30, exerciseName: "wall plank"),
+            .forged:     .exerciseSeconds(45, exerciseName: "wall plank"),
+            .veteran:    .exerciseSeconds(60, exerciseName: "wall plank"),
+            .master:      .exerciseSeconds(75, exerciseName: "wall plank"),
+            .vessel:     .exerciseSeconds(90, exerciseName: "wall plank"),
+            .unbound:    .exerciseSeconds(120, exerciseName: "wall plank"),
+            .ascendant:  .exerciseSeconds(150, exerciseName: "wall plank"),
         ],
 
         // hs.wall-handstand-30 — Wall Handstand hold target: 30 s.
         // Hold-type. Keep this as a handstand-line standard. HSPU belongs in
         // the HSPU branch, not as a requirement for holding a wall handstand.
+        // Honest hold-time (F2): rep column was already seconds.
         "hs.wall-handstand-30": [
-            .initiate:   .reps(10, exerciseName: "wall handstand"),
-            .novice:     .reps(20, exerciseName: "wall handstand"),
-            .apprentice: .reps(30, exerciseName: "wall handstand"),
-            .forged:     .reps(45, exerciseName: "wall handstand"),
-            .veteran:    .reps(60, exerciseName: "wall handstand"),
-            .master:      .reps(90, exerciseName: "wall handstand"),
-            .vessel:     .reps(120, exerciseName: "wall handstand"),
-            .unbound:    .reps(150, exerciseName: "wall handstand"),
-            .ascendant:  .reps(180, exerciseName: "wall handstand"),
+            .initiate:   .exerciseSeconds(10, exerciseName: "wall handstand"),
+            .novice:     .exerciseSeconds(20, exerciseName: "wall handstand"),
+            .apprentice: .exerciseSeconds(30, exerciseName: "wall handstand"),
+            .forged:     .exerciseSeconds(45, exerciseName: "wall handstand"),
+            .veteran:    .exerciseSeconds(60, exerciseName: "wall handstand"),
+            .master:      .exerciseSeconds(90, exerciseName: "wall handstand"),
+            .vessel:     .exerciseSeconds(120, exerciseName: "wall handstand"),
+            .unbound:    .exerciseSeconds(150, exerciseName: "wall handstand"),
+            .ascendant:  .exerciseSeconds(180, exerciseName: "wall handstand"),
         ],
 
         // hs.wall-handstand-60 — Wall Handstand Hold target: 60 s.

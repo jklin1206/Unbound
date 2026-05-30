@@ -181,6 +181,8 @@ enum RankBenchmarkSummary {
             return "\(count) \(displayExerciseName(exerciseName))"
         case .seconds(let seconds):
             return "\(seconds)-second hold"
+        case .exerciseSeconds(let seconds, let exerciseName):
+            return "\(seconds)s \(displayExerciseName(exerciseName)) hold"
         case .weightKg(let weight):
             return "\(Int(weight.rounded())) kg working set"
         case .exerciseWeightKg(let weight, let exerciseName):

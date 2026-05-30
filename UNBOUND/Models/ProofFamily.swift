@@ -65,7 +65,7 @@ extension ProofFamily {
         switch criterion {
         case .reps(_, let exerciseName):
             return inferred(fromExerciseName: exerciseName, defaultFamily: .reps)
-        case .seconds:
+        case .seconds, .exerciseSeconds:
             return .hold
         case .weightKg, .exerciseWeightKg, .bodyweightRatio, .exerciseBodyweightRatio:
             return .loaded
