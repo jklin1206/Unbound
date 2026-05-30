@@ -117,7 +117,7 @@ enum SkillTrainingPlanLibrary {
 
     private static func skillName(for skillId: String) -> String {
         switch skillId {
-        case "pp.dead-hang", "co.dead-hang-45", "co.dead-hang-60": return "Dead Hang"
+        case "pp.dead-hang", "co.dead-hang-60": return "Dead Hang"
         case "pp.chin-up": return "Chin-Up"
         case "pp.strict-chin-up": return "Strict Chin-Up"
         case "pp.wide-pullup": return "Wide Pull-Up"
@@ -197,7 +197,7 @@ enum SkillTrainingPlanLibrary {
 
     private static func hangPlan(skillId: String) -> SkillTrainingPlan {
         let name = skillName(for: skillId)
-        let seconds = skillId == "co.dead-hang-60" ? 60 : (skillId == "co.dead-hang-45" ? 45 : 30)
+        let seconds = skillId == "co.dead-hang-60" ? 60 : 30
         return SkillTrainingPlan(
             skillId: skillId,
             regressions: [
@@ -2165,7 +2165,7 @@ enum SkillTrainingPlanLibrary {
             return rowSprintPlan
         case "co.mile-sub-7", "co.5k-sub-22":
             return runPlan(skillId: skillId)
-        case "co.dead-hang-45", "co.dead-hang-60":
+        case "co.dead-hang-60":
             return hangPlan(skillId: skillId)
         default:
             return assaultBikePlan

@@ -1001,16 +1001,9 @@ enum FormPhaseLibrary {
                 phase("phase3", "2x Walk", "Use small steps and keep the trunk rigid as the load tries to pull posture apart.", "shoeprints.fill", assetName: assetName(assetPrefix, "phase3")),
                 phase("phase4", "Controlled Finish", "Hinge down and place the implements safely with posture intact.", "arrow.down.to.line", assetName: assetName(assetPrefix, "phase4"))
             ]
-        case "co.dead-hang-45":
-            return [
-                phase("phase1", "Find Bar", "Set a shoulder-width grip, wrap the thumbs if possible, and settle the body before timing.", "hand.raised.fill", assetName: assetName(assetPrefix, "phase1")),
-                phase("phase2", "Stack Time", "Build toward 45 seconds with clean clusters before testing unbroken.", "timer", assetName: assetName(assetPrefix, "phase2")),
-                phase("phase3", "Unbroken 45", "Hang for the full time without foot taps, elbow bend, or shoulder pain.", "figure.hanging", assetName: assetName(assetPrefix, "phase3")),
-                phase("phase4", "Quiet Hang", "Keep the body still and step down under control when finished.", "checkmark.seal.fill", assetName: assetName(assetPrefix, "phase4"))
-            ]
         case "co.dead-hang-60":
             return [
-                phase("phase1", "45 Base", "Own the shorter hang first. The final 15 seconds should not change the shape.", "timer", assetName: assetName(assetPrefix, "phase1")),
+                phase("phase1", "Find Bar", "Set a shoulder-width grip, wrap the thumbs if possible, and settle the body before timing.", "hand.raised.fill", assetName: assetName(assetPrefix, "phase1")),
                 phase("phase2", "Grip Reserve", "Use repeated holds to build enough grip that the minute does not become a panic fight.", "hand.raised.fill", assetName: assetName(assetPrefix, "phase2")),
                 phase("phase3", "Unbroken 60", "Hold the full minute with long arms, quiet ribs, and no kicking.", "figure.hanging", assetName: assetName(assetPrefix, "phase3")),
                 phase("phase4", "Durable Hang", "Repeat the standard without elbow or shoulder irritation.", "checkmark.seal.fill", assetName: assetName(assetPrefix, "phase4"))

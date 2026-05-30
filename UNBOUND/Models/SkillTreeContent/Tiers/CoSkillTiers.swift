@@ -4,10 +4,9 @@
 // Conditioning cluster — carries, holds, sprints. See CalSkillTiers.swift
 // for the established pattern.
 //
-// Hold-type skills (dead-hang-45, dead-hang-60):
-//   .variant("dead hang") confirms any hang training. Upper tiers compound
-//   with pull-up rep counts — grip endurance and pulling strength are tightly
-//   correlated and pull-ups are the best auto-evaluable proxy.
+// Hold-type skill (dead-hang-60):
+//   exercise-scoped .exerciseSeconds("dead hang") ladder — honest grip-hold
+//   time (F2). One node ranks the whole endurance spectrum (30→150s).
 //
 // Farmer carry ladder (bw → 1.5x → 2x):
 //   Each rank steps up .exerciseBodyweightRatio for "farmer carry" so a
@@ -29,8 +28,8 @@ import Foundation
 #if DEBUG
 private let _coCountCheck: Int = {
     assert(
-        CoSkillTiers.table.count == 10,
-        "co cluster should have 10 entries, has \(CoSkillTiers.table.count)"
+        CoSkillTiers.table.count == 9,
+        "co cluster should have 9 entries, has \(CoSkillTiers.table.count)"
     )
     for (id, tiers) in CoSkillTiers.table {
         assert(tiers.count == 9, "\(id) needs 9 tiers, has \(tiers.count)")
@@ -114,25 +113,11 @@ enum CoSkillTiers {
 
         // MARK: - Grip Engine: Dead Hang
 
-        // co.dead-hang-45 — Long Dead Hang (45 s target). Hold-type: duration
-        // not tracked per SetLog. Lower tiers confirm any dead hang training.
-        // Upper tiers compound with pull-up rep counts — grip endurance and
-        // pulling strength are tightly correlated.
-        "co.dead-hang-45": [
-            .initiate:   .exerciseSeconds(10, exerciseName: "dead hang"),
-            .novice:     .exerciseSeconds(20, exerciseName: "dead hang"),
-            .apprentice: .exerciseSeconds(30, exerciseName: "dead hang"),
-            .forged:     .exerciseSeconds(45, exerciseName: "dead hang"),
-            .veteran:    .exerciseSeconds(60, exerciseName: "dead hang"),
-            .master:      .exerciseSeconds(75, exerciseName: "dead hang"),
-            .vessel:     .exerciseSeconds(90, exerciseName: "dead hang"),
-            .unbound:    .exerciseSeconds(105, exerciseName: "dead hang"),
-            .ascendant:  .exerciseSeconds(120, exerciseName: "dead hang"),
-        ],
-
-        // co.dead-hang-60 — Max Dead Hang (60 s target). Prereq: co.dead-hang-45.
-        // Starts from a compound entry to confirm hang + pull-up base.
-        // Upper tiers push into high-rep pull-up territory as the grip proxy.
+        // co.dead-hang-60 — the single Dead Hang endurance node (prereq
+        // pp.dead-hang). Honest exercise-scoped seconds, 30→150s, Forged = 60s.
+        // (Collapsed the old 45s/60s split: one node now ranks the whole grip-
+        // endurance spectrum by hold-time — F2 made the separate -45 node dead
+        // weight.)
         "co.dead-hang-60": [
             .initiate:   .exerciseSeconds(30, exerciseName: "dead hang"),
             .novice:     .exerciseSeconds(40, exerciseName: "dead hang"),

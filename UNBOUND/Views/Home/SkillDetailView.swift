@@ -3362,8 +3362,8 @@ private enum SkillGuideLibrary {
                     SkillGuideMistake(mistake: "Overstriding and swinging the load.", fix: "Use shorter steps and keep hands close to the sides.")
                 ]
             )
-        case "co.dead-hang-45", "co.dead-hang-60":
-            let seconds = skillId == "co.dead-hang-60" ? 60 : 45
+        case "co.dead-hang-60":
+            let seconds = 60
             return SkillGuide(
                 standard: "A clean \(seconds)-second dead hang supports full bodyweight from the bar with arms fully extended, thumbs wrapped when possible, body quiet, feet off the floor, and no elbow bend or shoulder pain.",
                 scoringNote: "Passive hang can count if shoulders tolerate it, but active shoulder control is preferred. Swinging, kicking, foot taps, or sharp pain end the test.",

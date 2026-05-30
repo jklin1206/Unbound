@@ -19,7 +19,7 @@ final class UserSkillTierStateTests: XCTestCase {
         state.perSkill["pp.pullup"] = .vessel
         state.perSkill["ld.bw-front-squat"] = .forged
         state.rankUpsEarned = 12
-        state.ascendantSkills = ["co.dead-hang-45"]
+        state.ascendantSkills = ["co.dead-hang-60"]
         let data = try JSONEncoder().encode(state)
         let decoded = try JSONDecoder().decode(UserSkillTierState.self, from: data)
         XCTAssertEqual(decoded, state)

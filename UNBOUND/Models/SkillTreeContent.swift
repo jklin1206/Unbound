@@ -246,7 +246,6 @@ enum SkillSubChapterMap {
         // ──────────────────────────────────────────────────────────────
         // ENDURANCE / CONDITIONING (co)
         // ──────────────────────────────────────────────────────────────
-        "co.dead-hang-45":         "Grip Engine",
         "co.dead-hang-60":         "Grip Engine",
 
         "co.mile-sub-7":           "Distance Run",
@@ -1433,34 +1432,11 @@ extension SkillGraph {
             timeline: "1-3 years from BW farmer carry."
         ),
         .simple(
-            id: "co.dead-hang-45",
-            title: "Long Dead Hang",
-            cluster: .conditioning, tier: 2, type: .hold,
-            target: .hold(exercise: "dead hang", seconds: 45),
-            prereqs: [PrerequisiteGroup("pp.dead-hang")],
-            equipment: [.pullupBar],
-            primary: [.forearms, .lats],
-            subtitle: "Grip endurance step-up.",
-            description: "45 seconds of unbroken dead hang from a pullup bar. Active shoulders, full grip, no kipping.",
-            formCues: [
-                "Active shoulders — pull them down away from ears",
-                "All 4 fingers + thumb wrapped",
-                "Breathe normally",
-                "Legs neutral — no kipping for extra seconds"
-            ],
-            commonMistakes: [
-                "Passive shoulders as you fatigue",
-                "Gripping with 3 fingers",
-                "Dropping early instead of lowering with control"
-            ],
-            timeline: "2-6 weeks from dead hang 30s."
-        ),
-        .simple(
             id: "co.dead-hang-60",
             title: "Max Dead Hang",
-            cluster: .conditioning, tier: 3, type: .hold,
+            cluster: .conditioning, tier: 2, type: .hold,
             target: .hold(exercise: "dead hang", seconds: 60),
-            prereqs: [PrerequisiteGroup("co.dead-hang-45")],
+            prereqs: [PrerequisiteGroup("pp.dead-hang")],
             equipment: [.pullupBar],
             primary: [.forearms, .lats],
             subtitle: "Grip endurance benchmark.",
