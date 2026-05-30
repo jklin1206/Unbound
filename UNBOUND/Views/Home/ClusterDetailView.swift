@@ -505,31 +505,35 @@ private struct ClusterNodeHex: View {
 
     @ViewBuilder
     private func assetOrSymbol(symbolName: String, fontSize: CGFloat, tint: Color) -> some View {
-        let assetName = node.id.replacingOccurrences(of: ".", with: "_")
+        let assetName = SkillTraditionalVisualResolver.assetName(for: node)
+            ?? node.id.replacingOccurrences(of: ".", with: "_")
         if UIImage(named: assetName) != nil {
             let size = fontSize * 2.15
+            let usesOriginalArtwork = usesOriginalNodeArtwork(assetName)
             ZStack {
-                Circle()
-                    .fill(Color.unbound.bg.opacity(0.5))
-                    .overlay(
-                        Circle()
-                            .strokeBorder(tint.opacity(0.28), lineWidth: max(1, size * 0.025))
-                    )
-                    .frame(width: size * 0.88, height: size * 0.88)
-                    .shadow(color: Color.black.opacity(0.42), radius: 4)
+                if !usesOriginalArtwork {
+                    Circle()
+                        .fill(Color.unbound.bg.opacity(0.5))
+                        .overlay(
+                            Circle()
+                                .strokeBorder(tint.opacity(0.28), lineWidth: max(1, size * 0.025))
+                        )
+                        .frame(width: size * 0.88, height: size * 0.88)
+                        .shadow(color: Color.black.opacity(0.42), radius: 4)
+                }
 
                 Image(assetName)
-                    .renderingMode(usesOriginalNodeArtwork(assetName) ? .original : .template)
+                    .renderingMode(usesOriginalArtwork ? .original : .template)
                     .resizable()
                     .interpolation(.high)
                     .aspectRatio(contentMode: .fit)
                     .foregroundStyle(tint)
                     .frame(
-                        width: size * (usesOriginalNodeArtwork(assetName) ? 0.9 : 0.78),
-                        height: size * (usesOriginalNodeArtwork(assetName) ? 0.9 : 0.78)
+                        width: size * (usesOriginalArtwork ? 1.02 : 0.78),
+                        height: size * (usesOriginalArtwork ? 1.02 : 0.78)
                     )
                     .shadow(color: Color.black.opacity(0.72), radius: 3)
-                    .shadow(color: tint.opacity(0.5), radius: 4)
+                    .shadow(color: usesOriginalArtwork ? Color.clear : tint.opacity(0.5), radius: 4)
             }
             .frame(width: size, height: size)
         } else {
@@ -540,7 +544,7 @@ private struct ClusterNodeHex: View {
     }
 
     private func usesOriginalNodeArtwork(_ assetName: String) -> Bool {
-        assetName == "hs_tuck-handstand"
+        assetName == "hs_tuck-handstand" || assetName.hasPrefix("exercise_visual_")
     }
 
     // MARK: In-hex progress fill

@@ -1763,30 +1763,34 @@ struct ClusterStaircaseView: View {
         fallback symbolName: String,
         tint: Color
     ) -> some View {
-        let assetName = node.id.replacingOccurrences(of: ".", with: "_")
+        let assetName = SkillTraditionalVisualResolver.assetName(for: node)
+            ?? node.id.replacingOccurrences(of: ".", with: "_")
         if UIImage(named: assetName) != nil {
+            let usesOriginalArtwork = usesOriginalNodeArtwork(assetName)
             ZStack {
-                Circle()
-                    .fill(Color.unbound.bg.opacity(0.5))
-                    .overlay(
-                        Circle()
-                            .strokeBorder(tint.opacity(0.28), lineWidth: max(1, size * 0.025))
-                    )
-                    .frame(width: size * 0.88, height: size * 0.88)
-                    .shadow(color: Color.black.opacity(0.42), radius: size > 80 ? 7 : 4)
+                if !usesOriginalArtwork {
+                    Circle()
+                        .fill(Color.unbound.bg.opacity(0.5))
+                        .overlay(
+                            Circle()
+                                .strokeBorder(tint.opacity(0.28), lineWidth: max(1, size * 0.025))
+                        )
+                        .frame(width: size * 0.88, height: size * 0.88)
+                        .shadow(color: Color.black.opacity(0.42), radius: size > 80 ? 7 : 4)
+                }
 
                 Image(assetName)
-                    .renderingMode(usesOriginalNodeArtwork(assetName) ? .original : .template)
+                    .renderingMode(usesOriginalArtwork ? .original : .template)
                     .resizable()
                     .interpolation(.high)
                     .aspectRatio(contentMode: .fit)
                     .foregroundStyle(tint)
                     .frame(
-                        width: size * (usesOriginalNodeArtwork(assetName) ? 0.9 : 0.78),
-                        height: size * (usesOriginalNodeArtwork(assetName) ? 0.9 : 0.78)
+                        width: size * (usesOriginalArtwork ? 1.02 : 0.78),
+                        height: size * (usesOriginalArtwork ? 1.02 : 0.78)
                     )
                     .shadow(color: Color.black.opacity(0.72), radius: size > 80 ? 5 : 3)
-                    .shadow(color: tint.opacity(0.5), radius: size > 80 ? 8 : 4)
+                    .shadow(color: usesOriginalArtwork ? Color.clear : tint.opacity(0.5), radius: size > 80 ? 8 : 4)
             }
             .frame(width: size, height: size)
         } else {
@@ -1797,7 +1801,7 @@ struct ClusterStaircaseView: View {
     }
 
     private func usesOriginalNodeArtwork(_ assetName: String) -> Bool {
-        assetName == "hs_tuck-handstand"
+        assetName == "hs_tuck-handstand" || assetName.hasPrefix("exercise_visual_")
     }
 
     // MARK: - Section algorithm (unchanged — still used to identify role)

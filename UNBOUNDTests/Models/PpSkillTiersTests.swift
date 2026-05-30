@@ -2,8 +2,8 @@ import XCTest
 @testable import UNBOUND
 
 final class PpSkillTiersTests: XCTestCase {
-    func testPpClusterHasAll39Skills() {
-        XCTAssertEqual(PpSkillTiers.table.count, 39)
+    func testPpClusterHasAll26Skills() {
+        XCTAssertEqual(PpSkillTiers.table.count, 26)
     }
     func testEveryPpSkillHasNineTiers() {
         for (id, tiers) in PpSkillTiers.table {

@@ -47,15 +47,14 @@ final class SkillTierGeneratorTests: XCTestCase {
     }
 
     func testFeatStartsHighAndJumps() {
-        // one-arm pull-up: floor = Master. The first rep should satisfy everything up
-        // to Master (the jump); above that it climbs 2 / 3 / 5. Below the floor nothing
-        // harder than 1 rep is asked — no double-down on other exercises.
+        // one-arm pull-up: floor = Vessel — 1 rep is basically elite, so it jumps
+        // straight to Vessel; 3 / 5 climb to the peak. Below the floor nothing harder
+        // than 1 rep is asked — no double-down on other exercises.
         let ladder = SkillTierGenerator.generate(PullSkillAnchors.table["pp.one-arm-pullup"]!)
         XCTAssertEqual(ladder.count, 9)
-        for tier in [SkillTier.initiate, .novice, .apprentice, .forged, .veteran, .master] {
-            XCTAssertEqual(reps(ladder[tier]), 1, "\(tier) is the entry (1 rep → jump to Master)")
+        for tier in [SkillTier.initiate, .novice, .apprentice, .forged, .veteran, .master, .vessel] {
+            XCTAssertEqual(reps(ladder[tier]), 1, "\(tier) is the entry (1 rep → jump to Vessel)")
         }
-        XCTAssertEqual(reps(ladder[.vessel]), 2)
         XCTAssertEqual(reps(ladder[.unbound]), 3)
         XCTAssertEqual(reps(ladder[.ascendant]), 5)   // peak = elite one-arm pull-up
     }
@@ -73,7 +72,7 @@ final class SkillTierGeneratorTests: XCTestCase {
 
     func testEveryPullAnchorGeneratesNineCompleteTiers() {
         // Catches a malformed feat ladder count or any missing tier.
-        XCTAssertEqual(PullSkillAnchors.table.count, 39, "all 39 pull nodes should be authored")
+        XCTAssertEqual(PullSkillAnchors.table.count, 26, "all 26 pull nodes should be authored")
         for (id, anchor) in PullSkillAnchors.table {
             let ladder = SkillTierGenerator.generate(anchor)
             XCTAssertEqual(ladder.count, 9, "\(id) must generate exactly 9 tiers")

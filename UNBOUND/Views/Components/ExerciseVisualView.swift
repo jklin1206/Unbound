@@ -85,7 +85,7 @@ struct ExerciseVisualView: View {
                 Image(shippedAssetName)
                     .resizable()
                     .scaledToFit()
-                    .padding(size == .hero ? 12 : 6)
+                    .padding(visualPadding(for: shippedAssetName))
             } else {
                 placeholder
             }
@@ -96,6 +96,13 @@ struct ExerciseVisualView: View {
         )
         .clipShape(RoundedRectangle(cornerRadius: size.cornerRadius, style: .continuous))
         .accessibilityLabel("\(definition.displayName) visual")
+    }
+
+    private func visualPadding(for assetName: String) -> CGFloat {
+        guard assetName.hasPrefix(ExerciseVisualAsset.prefix) else {
+            return size == .hero ? 12 : 6
+        }
+        return size == .hero ? 6 : 2
     }
 
     private var placeholder: some View {

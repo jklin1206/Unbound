@@ -131,30 +131,19 @@ enum PullSkillAnchors {
         "pp.archer-pullup":    .init(exerciseName: "archer pullup",    metric: .reps, spec: .feat(floor: .apprentice, ladder: [1, 2, 3, 4, 6, 8, 9])),   // floor 2 → 7 vals
         "pp.strict-muscle-up": .init(exerciseName: "strict muscle-up", metric: .reps, spec: .feat(floor: .forged,     ladder: [1, 2, 3, 5, 8, 12])),     // floor 3 → 6 vals
         "pp.ring-muscle-up":   .init(exerciseName: "ring muscle-up",   metric: .reps, spec: .feat(floor: .veteran,    ladder: [1, 2, 4, 6, 9])),          // floor 4 → 5 vals
-        "pp.one-arm-pullup":   .init(exerciseName: "one-arm pullup",   metric: .reps, spec: .feat(floor: .master,     ladder: [1, 2, 3, 5])),             // floor 5 → 4 vals
+        "pp.one-arm-pullup":   .init(exerciseName: "one-arm pullup",   metric: .reps, spec: .feat(floor: .vessel,     ladder: [1, 3, 5])),                // floor 6 → 1 OAP = Vessel (basically elite), 5 = peak
 
         // ── Variant + lead-up nodes (added incrementally) ──
 
         // Basic pull — grind volume / tempo / ROM variants. Scale off pullup [1,6,13,23,32].
-        "pp.5-pullups":     .init(exerciseName: "pullup",              metric: .reps, spec: .full([1, 5, 9, 15, 22])),    // volume checkpoint ~5
-        "pp.10-pullups":    .init(exerciseName: "pullup",              metric: .reps, spec: .full([3, 7, 13, 19, 25])),   // elite-volume checkpoint ~10
-        "pp.strict-pullup": .init(exerciseName: "pullup",              metric: .reps, spec: .full([1, 5, 11, 19, 28])),   // strict, slightly under plain pullup
-        "pp.slow-pullup":   .init(exerciseName: "slow pullup",         metric: .reps, spec: .full([1, 4, 9, 16, 24])),    // tempo = harder, fewer reps
-        "pp.chest-to-bar":  .init(exerciseName: "chest-to-bar pullup", metric: .reps, spec: .full([1, 4, 9, 16, 24])),    // more ROM = harder
-        "pp.l-sit-pullup":  .init(exerciseName: "l-sit pullup",        metric: .reps, spec: .full([1, 3, 7, 13, 20])),    // core + pull = harder
-        "pp.negative-pullup": .init(exerciseName: "negative pullup",   metric: .reps, spec: .full([2, 5, 9, 14, 20])),    // eccentric entry, capped ceiling
+        "pp.strict-pullup": .init(exerciseName: "pullup",              metric: .reps, spec: .full([1, 6, 13, 23, 32])),   // strict ≈ plain pullup (negligible difference)
         "pp.explosive-pullup": .init(exerciseName: "explosive pullup", metric: .reps, spec: .full([1, 3, 7, 12, 18])),    // power, fewer reps
 
         // Chin chain — scale off chin-up [1,7,13,22,30].
-        "pp.strict-chin-up": .init(exerciseName: "chin-up",            metric: .reps, spec: .full([1, 5, 11, 18, 26])),   // strict, under plain chin
+        "pp.strict-chin-up": .init(exerciseName: "chin-up",            metric: .reps, spec: .full([1, 7, 13, 22, 30])),   // strict ≈ plain chin-up (negligible difference)
         "pp.l-sit-chin-up":  .init(exerciseName: "l-sit chin-up",      metric: .reps, spec: .full([1, 3, 7, 13, 20])),    // core + chin = harder
 
-        // Muscle-up volume — scale off muscle-up [1,2,7,11,17].
-        "pp.10-muscle-ups":  .init(exerciseName: "muscle-up",          metric: .reps, spec: .full([3, 6, 10, 14, 20])),   // elite-volume checkpoint ~10
-
         // Weighted — bodyweight-ratio, Elite ≈ +100% bw (1.0). Checkpoint nodes center lower.
-        "pp.weighted-pullup-0.25": .init(exerciseName: "weighted pullup",  metric: .bodyweightRatio, spec: .full([0.05, 0.15, 0.25, 0.40, 0.60])),  // +25% checkpoint
-        "pp.weighted-pullup-0.5":  .init(exerciseName: "weighted pullup",  metric: .bodyweightRatio, spec: .full([0.10, 0.25, 0.45, 0.65, 0.85])),  // +50% checkpoint
         "pp.weighted-chin-up":     .init(exerciseName: "weighted chin-up", metric: .bodyweightRatio, spec: .full([0.10, 0.30, 0.50, 0.75, 1.00])),  // chin ~+5–15% over pullup
 
         // Rows — scale off inverted-row [1,7,19,33,48]. Easier = more reps, harder = fewer.
@@ -163,18 +152,12 @@ enum PullSkillAnchors {
         "pp.tuck-row":     .init(exerciseName: "tuck row",     metric: .reps, spec: .full([1, 4, 10, 18, 28])),    // tucked lever row
         "pp.straddle-row": .init(exerciseName: "straddle row", metric: .reps, spec: .full([1, 3, 7, 13, 20])),     // straddle lever row, harder
 
-        // Holds — seconds. dead-hang-30 = the 30 s-target variant of the grip gate.
-        "pp.dead-hang-30": .init(exerciseName: "dead hang", metric: .seconds, spec: .full([15, 25, 35, 50, 70])),  // 30 s target centered
-
         // Hard feats — start high, short ladder floor…peak (count == 9 - floor.rawValue).
-        "pp.typewriter-pullup":      .init(exerciseName: "typewriter pullup",        metric: .reps, spec: .feat(floor: .forged,     ladder: [1, 2, 4, 6, 8, 10])),     // floor 3 → 6 vals
-        "pp.plyometric-pullup":      .init(exerciseName: "plyometric pullup",        metric: .reps, spec: .feat(floor: .forged,     ladder: [1, 2, 3, 5, 8, 12])),     // floor 3 → 6 vals
         "pp.clapping-pullup":        .init(exerciseName: "clapping pullup",          metric: .reps, spec: .feat(floor: .forged,     ladder: [1, 2, 3, 5, 7, 10])),     // floor 3 → 6 vals
         "pp.heighted-chin-up":       .init(exerciseName: "heighted chin-up",         metric: .reps, spec: .feat(floor: .forged,     ladder: [1, 2, 3, 5, 8, 12])),     // floor 3 → 6 vals (one-arm-assist chin)
         "pp.oap-negative":           .init(exerciseName: "one-arm pullup negative",  metric: .reps, spec: .feat(floor: .apprentice, ladder: [1, 3, 4, 5, 6, 9, 12])),  // floor 2 → 7 vals (eccentric entry)
         "pp.one-arm-row":            .init(exerciseName: "one-arm row",              metric: .reps, spec: .feat(floor: .apprentice, ladder: [3, 5, 8, 12, 16, 20, 25])), // floor 2 → 7 vals (unilateral bridge)
         "pp.tuck-front-lever-pullup":.init(exerciseName: "tuck front lever pullup",  metric: .reps, spec: .feat(floor: .veteran,    ladder: [1, 3, 5, 7, 10])),        // floor 4 → 5 vals (lever pull)
-        "pp.5-oap-side":             .init(exerciseName: "one-arm pullup",           metric: .reps, spec: .feat(floor: .master,     ladder: [1, 2, 3, 5])),            // floor 5 → 4 vals (OAP volume)
-        "pp.one-arm-chin-up":        .init(exerciseName: "one-arm chin-up",          metric: .reps, spec: .feat(floor: .master,     ladder: [1, 2, 3, 5])),            // floor 5 → 4 vals (mythic)
+        "pp.one-arm-chin-up":        .init(exerciseName: "one-arm chin-up",          metric: .reps, spec: .feat(floor: .vessel,     ladder: [1, 3, 5])),               // floor 6 → 1 OAC = Vessel, 5 = peak
     ]
 }
