@@ -112,6 +112,25 @@ final class SkillRewardSimulationTests: XCTestCase {
                              "the feat jump advances multiple rungs in one shot")
     }
 
+    // MARK: - 5b. A hold earns a personal best (seconds)
+
+    func testHoldEarnsPersonalBest() {
+        let r = evaluate([entry("plank", node: "cal.plank-30", [set(durationSeconds: 75)])])
+
+        let holdBest = r.newBests.first { $0.family == .hold }
+        XCTAssertNotNil(holdBest, "a TIME-column hold should produce a personal best")
+        XCTAssertEqual(holdBest?.unit, .seconds)
+        XCTAssertEqual(holdBest?.value, 75)
+
+        // And it surfaces in the reward beats as a "New best" line when no higher
+        // beat (standard/unlock) is present.
+        let onlyBest = evaluate([entry("wall handstand", node: "hs.wall-handstand-30",
+                                       [set(durationSeconds: 1)])])  // 1s — below every rung, no standard
+        let payload = RewardPayloadBuilder.proofPayload(from: onlyBest)
+        XCTAssertTrue(payload.beats.contains { $0.kind == .newBest },
+                      "a hold with no rank-up still celebrates a new best")
+    }
+
     // MARK: - 6. The reward sequence text the user actually sees
 
     func testRewardBeatsTextForACombinedProgramWorkout() {

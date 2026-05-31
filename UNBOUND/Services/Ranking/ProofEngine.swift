@@ -251,6 +251,22 @@ private extension ProofEngine {
                 )
             }
 
+            // Hold proof — a TIME-column hold (durationSeconds) earns a seconds
+            // best, so hold skills get personal-best beats like reps/loaded do.
+            if let bestSeconds = workingSets.compactMap(\.durationSeconds).max(), bestSeconds > 0 {
+                proofs.append(
+                    AchievedSkillProof(
+                        id: "\(entry.id):hold",
+                        skillId: entry.rankStandardMovementId,
+                        exerciseName: entry.exerciseName,
+                        family: .hold,
+                        magnitude: Double(bestSeconds),
+                        unit: .seconds,
+                        sourceEntryId: entry.id
+                    )
+                )
+            }
+
             return proofs
         }
     }
