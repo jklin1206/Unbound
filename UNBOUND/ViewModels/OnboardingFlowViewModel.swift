@@ -726,6 +726,12 @@ final class OnboardingFlowViewModel {
     @discardableResult
     func finish(userId: String) async -> Bool {
         let fields: [String: Any] = buildFirestorePayload()
+        // Onboarding runs BEFORE sign-in, so `userId` is usually the "anonymous"
+        // placeholder and this write only reaches the local store. Stash the
+        // payload so it is replayed onto the real account at sign-in (cleared
+        // there once it lands). Without this, the authed user starts blank and
+        // program generation runs on defaults.
+        PendingOnboardingProfile.stash(fields)
         do {
             try await userService.updateProfile(userId: userId, fields: fields)
             UserDefaults.standard.set(true, forKey: "onboardingCompleted")

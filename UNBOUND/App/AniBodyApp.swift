@@ -164,6 +164,20 @@ struct RootView: View {
                     DevFlags.shared.unlockAllFeatures = true
                     #endif
                     Task {
+                        // New users finish onboarding BEFORE signing in, so their
+                        // answers were stashed under the "anonymous" placeholder.
+                        // Replay them onto the authenticated profile now (the stub
+                        // was just created by createUserIfNeeded), then clear — so
+                        // the real user isn't blank and program-gen sees the real
+                        // goals/equipment/body inputs.
+                        if let pending = PendingOnboardingProfile.take() {
+                            do {
+                                try await services.user.updateProfile(userId: userId, fields: pending)
+                                PendingOnboardingProfile.clear()
+                            } catch {
+                                // Keep the stash; a later launch retries the replay.
+                            }
+                        }
                         #if DEBUG
                         if userId != DevBuildBootstrapper.userId {
                             try? await services.subscription.login(userId: userId)
