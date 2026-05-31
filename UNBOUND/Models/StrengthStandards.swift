@@ -392,58 +392,6 @@ enum StrengthStandards {
         return .ascendant
     }
 
-    // MARK: Reps / hold ladders (mirror RankService bodyweightRepRank / holdRank)
-    //
-    // Bodyweight-rep and hold movements rank off their reps/seconds ladders, not
-    // a load ratio. These anchors mirror `RankService.bodyweightRepRank` /
-    // `holdRank` exactly (6 anchors: E, D, C, B, A, S → ordinals 0,1,4,7,10,16 on
-    // the 1+3i ladder). Each anchor entry is `[6 ints]`; interpolation matches
-    // RankService's `pos = 1 + 3i + t*3`, then `nearest(for: pos/2)`.
-
-    /// Per-name reps ladder (peak reps → tier). Keyed by a name substring, in
-    /// match order. Mirrors RankService.bodyweightRepRank.
-    private static let repLadders: [(match: [String], anchors: [Int])] = [
-        (["pullup", "pull-up", "chin-up", "chinup"], [0, 1, 5, 10, 15, 20]),
-        (["pushup", "push-up"],                      [5, 15, 25, 40, 60, 80]),
-        (["dip"],                                    [0, 3, 8, 15, 25, 35])
-    ]
-
-    /// Per-name hold ladder (peak seconds → tier). Mirrors RankService.holdRank.
-    private static let holdLadders: [(match: [String], anchors: [Int])] = [
-        (["l-sit", "lsit"],     [0, 5, 10, 20, 30, 45]),
-        (["plank"],             [15, 30, 60, 90, 120, 180]),
-        (["dead hang"],         [10, 20, 30, 45, 60, 90]),
-        (["hollow hold"],       [10, 20, 30, 45, 60, 90])
-    ]
-
-    private static func ladderAnchors(for exerciseKey: String) -> [Int]? {
-        let normalized = normalize(exerciseKey)
-        for ladder in repLadders where ladder.match.contains(where: normalized.contains) {
-            return ladder.anchors
-        }
-        for ladder in holdLadders where ladder.match.contains(where: normalized.contains) {
-            return ladder.anchors
-        }
-        return nil
-    }
-
-    /// Continuous ladder position (0…8) for a reps/seconds value against a
-    /// 6-anchor ladder, matching RankService's `pos = 1 + 3i + t*3` mapping.
-    private static func ladderPosition(value: Int, anchors: [Int]) -> Double {
-        guard let last = anchors.last else { return 0 }
-        if value <= anchors[0] { return 0 }
-        if value >= last { return 8 }
-        for i in 0..<(anchors.count - 1) {
-            let lo = anchors[i]
-            let hi = anchors[i + 1]
-            if value >= lo && value <= hi {
-                let t = hi == lo ? 0 : Double(value - lo) / Double(hi - lo)
-                return min(8, (Double(1 + 3 * i) + t * 3) / 2.0)
-            }
-        }
-        return 8
-    }
-
     // MARK: Progress to next rank (the reward "% to next" bar)
     //
     // Single derivation used by the post-workout reward flow: given the user's
@@ -469,14 +417,18 @@ enum StrengthStandards {
         let normalized = normalize(exerciseKey)
         if unrankedNames.contains(normalized) { return nil }
 
-        // Reps / hold ladders — bodyweight-independent.
-        if let anchors = ladderAnchors(for: exerciseKey) {
+        // Reps / hold bodyweight skills — ranked by the skill graph's tier
+        // criteria (the single source, SkillStandards), so the reward bar
+        // matches the tier the skill tree shows. `metricValue` is reps for rep
+        // nodes and seconds for holds; SkillStandards reads whichever the node
+        // uses.
+        if SkillStandards.isBodyweightSkill(exerciseKey: exerciseKey) {
             let value = Int(metricValue.rounded())
-            let position = ladderPosition(value: value, anchors: anchors)
-            // The cleared tier is the floor of the ladder position; the fraction
-            // is the distance toward the next integer tier.
-            let current = RankTier(rawValue: Int(floor(position))) ?? .initiate
-            return progress(current: current, position: position)
+            return SkillStandards.bodyweightProgress(
+                exerciseKey: exerciseKey,
+                peakReps: value,
+                peakSeconds: value
+            )
         }
 
         // Loaded — requires bodyweight.
@@ -511,20 +463,6 @@ enum StrengthStandards {
             return (current, next, 1.0)
         }
         return (current, next, clampFraction(value: ratioNow, lo: lo, hi: hi))
-    }
-
-    /// Build the progress tuple from a continuous ladder position (reps/hold).
-    private static func progress(
-        current: RankTier,
-        position: Double
-    ) -> (current: RankTier, next: RankTier?, fraction: Double) {
-        guard let next = current.next, current.rawValue < 8 else {
-            return (current, nil, 1.0)
-        }
-        // Position is on the 0…8 ladder; the fraction between two adjacent tiers
-        // is just the fractional part toward the next integer tier.
-        let fraction = max(0.0, min(1.0, position - Double(current.rawValue)))
-        return (current, next, fraction)
     }
 
     private static func clampFraction(value: Double, lo: Double, hi: Double) -> Double {

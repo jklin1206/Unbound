@@ -159,15 +159,19 @@ final class RankService: RankServiceProtocol {
             )
         }
 
-        // Bodyweight rep lifts: map peak reps onto an E..S ladder.
-        if !isRegressionOnlyBodyweightKey(key),
-           let subRank = bodyweightRepRank(exerciseKey: key, entries: workingSets) {
-            return subRank
-        }
-
-        // Hold-based (l-sit / plank): map peak reps-as-seconds.
-        if let subRank = holdRank(exerciseKey: key, entries: workingSets) {
-            return subRank
+        // Bodyweight rep / hold skills (pull-up, push-up, dip, plank, l-sit,
+        // dead hang, hollow): ranked by the skill graph's generated tier
+        // criteria — the single source (SkillStandards), so this matches the
+        // tier `computeTier` produces for the same performance. Regressions
+        // (assisted / banded / negative …) don't rank.
+        if !isRegressionOnlyBodyweightKey(key) {
+            let peakReps = workingSets.map(\.reps).max() ?? 0
+            let peakSeconds = workingSets.map { $0.durationSeconds ?? $0.reps }.max() ?? 0
+            return SkillStandards.bodyweightRank(
+                exerciseKey: key,
+                peakReps: peakReps,
+                peakSeconds: peakSeconds
+            )
         }
 
         return nil
@@ -348,78 +352,6 @@ final class RankService: RankServiceProtocol {
     }
 
     // MARK: Private helpers
-
-    /// Rep-based ladder for bodyweight moves: anchors tuned to feel
-    /// attainable at C–B and elite at S.
-    private func bodyweightRepRank(exerciseKey: String, entries: [SetLog]) -> RankTier? {
-        let repsPeak = entries.map(\.reps).max() ?? 0
-        guard repsPeak > 0 else { return nil }
-
-        // Anchor reps at each letter: E, D, C, B, A, S.
-        let anchors: [Int]?
-        switch true {
-        case exerciseKey.contains("pullup"), exerciseKey.contains("pull-up"), exerciseKey.contains("chin-up"), exerciseKey.contains("chinup"):
-            anchors = [0, 1, 5, 10, 15, 20]
-        case exerciseKey.contains("pushup"), exerciseKey.contains("push-up"):
-            anchors = [5, 15, 25, 40, 60, 80]
-        case exerciseKey.contains("dip"):
-            anchors = [0, 3, 8, 15, 25, 35]
-        default:
-            anchors = nil
-        }
-        guard let letters = anchors else { return nil }
-
-        // Map rep count against the ladder.
-        if repsPeak <= letters[0] { return .initiate }
-        if repsPeak >= letters.last! { return .ascendant }
-
-        for i in 0..<(letters.count - 1) {
-            let lo = letters[i]
-            let hi = letters[i + 1]
-            if repsPeak >= lo && repsPeak <= hi {
-                let t: Double = hi == lo ? 0 : Double(repsPeak - lo) / Double(hi - lo)
-                let pos = Double(1 + 3 * i) + t * Double(3)
-                return RankTier.nearest(for: pos / 2.0)
-            }
-        }
-        return .ascendant
-    }
-
-    /// Hold-based: best `durationSeconds` across sets, falling back to `reps`
-    /// for legacy logs that encoded hold seconds in the reps column.
-    private func holdRank(exerciseKey: String, entries: [SetLog]) -> RankTier? {
-        let peakSeconds = entries.map { $0.durationSeconds ?? $0.reps }.max() ?? 0
-        guard peakSeconds > 0 else { return nil }
-
-        let anchors: [Int]?
-        switch true {
-        case exerciseKey.contains("l-sit"), exerciseKey.contains("lsit"):
-            anchors = [0, 5, 10, 20, 30, 45]
-        case exerciseKey.contains("plank"):
-            anchors = [15, 30, 60, 90, 120, 180]
-        case exerciseKey.contains("dead hang"):
-            anchors = [10, 20, 30, 45, 60, 90]
-        case exerciseKey.contains("hollow hold"):
-            anchors = [10, 20, 30, 45, 60, 90]
-        default:
-            anchors = nil
-        }
-        guard let letters = anchors else { return nil }
-
-        if peakSeconds <= letters[0] { return .initiate }
-        if peakSeconds >= letters.last! { return .ascendant }
-
-        for i in 0..<(letters.count - 1) {
-            let lo = letters[i]
-            let hi = letters[i + 1]
-            if peakSeconds >= lo && peakSeconds <= hi {
-                let t: Double = hi == lo ? 0 : Double(peakSeconds - lo) / Double(hi - lo)
-                let pos = Double(1 + 3 * i) + t * Double(3)
-                return RankTier.nearest(for: pos / 2.0)
-            }
-        }
-        return .ascendant
-    }
 
     private func rankExerciseKey(for entry: ExerciseLogEntry) -> String {
         if let key = canonicalMovementExerciseKey(for: entry.rankStandardMovementId) {
