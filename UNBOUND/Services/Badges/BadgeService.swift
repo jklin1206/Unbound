@@ -230,18 +230,15 @@ final class BadgeService: BadgeServiceProtocol {
 
         let xp = SessionXPService.shared.record(userId: userId)
         let total = xp.totalSessions + 1 // post-increment count; XP service increments first
-        if total >= 10 { result.append("sessions_10") }
-        if total >= 25 { result.append("sessions_25") }
-        if total >= 50 { result.append("sessions_50") }
-        if total >= 100 { result.append("sessions_100") }
-        if total >= 250 { result.append("sessions_250") }
-        if total >= 500 { result.append("sessions_500") }
+        for milestone in BadgeStandards.sessionMilestones where total >= milestone.threshold {
+            result.append(milestone.badgeId)
+        }
 
         if log.exerciseEntries.contains(where: { !$0.skipped }) &&
             log.exerciseEntries.allSatisfy({ !$0.skipped }) {
             result.append("clean_sweep")
         }
-        if (log.durationMinutes ?? 0) >= 60 {
+        if (log.durationMinutes ?? 0) >= BadgeStandards.hourGlassMinutes {
             result.append("hour_glass")
         }
 
@@ -270,7 +267,7 @@ final class BadgeService: BadgeServiceProtocol {
                 result.append("first_pistol_squat")
             }
             if (key.contains("push-up") || key.contains("pushup")) &&
-                entry.sets.contains(where: { !$0.isWarmup && $0.reps >= 50 }) {
+                entry.sets.contains(where: { !$0.isWarmup && $0.reps >= BadgeStandards.pushupSingleSetReps }) {
                 result.append("pushup_50_set")
             }
         }
@@ -310,9 +307,9 @@ final class BadgeService: BadgeServiceProtocol {
                 for set in entry.sets where !set.isWarmup && set.reps > 0 {
                     guard let w = set.weightKg, w > 0 else { continue }
                     let ratio = w / bodyweightKg
-                    if isSquat, ratio >= 2.0    { hitSquat = true }
-                    if isBench, ratio >= 1.5    { hitBench = true }
-                    if isDeadlift, ratio >= 3.0 { hitDeadlift = true }
+                    if isSquat, ratio >= BadgeStandards.squatBodyweightMultiple    { hitSquat = true }
+                    if isBench, ratio >= BadgeStandards.benchBodyweightMultiple    { hitBench = true }
+                    if isDeadlift, ratio >= BadgeStandards.deadliftBodyweightMultiple { hitDeadlift = true }
                 }
             }
         }
