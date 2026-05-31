@@ -2901,7 +2901,8 @@ private struct ProgramRankLibraryView: View {
                 sectionTitle: "\(node.cluster.displayName) Skills",
                 sectionOrder: Self.skillSectionOrder(for: node.cluster),
                 lastActivityAt: nil,
-                earnedOverride: state == .proven || tier > .initiate
+                earnedOverride: state == .proven || tier > .initiate,
+                isRankHidden: node.earnedRankIsBelowFloor(tier)
             )
         }
     }
@@ -3046,6 +3047,8 @@ private struct ProgramRankLibraryRow: Identifiable {
     let sectionOrder: Int
     let lastActivityAt: Date?
     let earnedOverride: Bool?
+    /// A not-yet feat (earned rank below its floor) has no real rank to show.
+    var isRankHidden: Bool = false
 
     var isEarned: Bool {
         earnedOverride ?? (tier > .initiate || totalAP > 0)
@@ -3229,12 +3232,20 @@ private struct ProgramRankLibraryRowView: View {
     private var rankBand: some View {
         VStack(spacing: 0) {
             Spacer(minLength: 0)
-            Image(row.tier.assetName)
-                .resizable()
-                .scaledToFit()
-                .frame(width: 35, height: 35)
-                .opacity(row.isEarned ? 1.0 : 0.42)
-                .shadow(color: tint.opacity(row.isEarned ? 0.35 : 0.12), radius: 8)
+            if row.isRankHidden {
+                // not-yet feat — no earned rank badge to show
+                Text("—")
+                    .font(Font.unbound.titleM)
+                    .foregroundStyle(Color.unbound.textTertiary)
+                    .frame(width: 35, height: 35)
+            } else {
+                Image(row.tier.assetName)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 35, height: 35)
+                    .opacity(row.isEarned ? 1.0 : 0.42)
+                    .shadow(color: tint.opacity(row.isEarned ? 0.35 : 0.12), radius: 8)
+            }
             Spacer(minLength: 0)
         }
         .frame(width: 58)
