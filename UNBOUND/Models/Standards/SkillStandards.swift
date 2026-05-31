@@ -80,14 +80,10 @@ enum SkillStandards {
         }
     }
 
-    /// Rank a bodyweight rep/hold performance against its skill node — the SAME
-    /// thresholds `computeTier` walks. Returns nil if the movement isn't a
-    /// bodyweight skill ranked here. `peakReps` = best reps across working sets;
-    /// `peakSeconds` = best hold seconds (with the legacy reps-column fallback
-    /// applied by the caller).
-    static func bodyweightRank(exerciseKey: String, peakReps: Int, peakSeconds: Int) -> RankTier? {
-        guard let criteria = criteria(forKey: exerciseKey) else { return nil }
-        guard peakReps > 0 || peakSeconds > 0 else { return nil }
+    // MARK: Criteria core (shared by the exercise-key and node-id entry points)
+
+    /// Walk a node's tier criteria high→low; first cleared tier wins (floor = initiate).
+    private static func rank(using criteria: [SkillTier: TierCriterion], peakReps: Int, peakSeconds: Int) -> RankTier {
         for tier in SkillTier.allCases.reversed() {
             guard let criterion = criteria[tier] else { continue }
             if clears(criterion, peakReps: peakReps, peakSeconds: peakSeconds) { return tier }
@@ -95,18 +91,8 @@ enum SkillStandards {
         return .initiate
     }
 
-    /// Progress toward the next rank for a bodyweight rep/hold movement: current
-    /// tier, the next tier (nil at peak), and the 0…1 fraction between their
-    /// thresholds. Single source for the reward "% to next" bar on these moves.
-    static func bodyweightProgress(
-        exerciseKey: String,
-        peakReps: Int,
-        peakSeconds: Int
-    ) -> (current: RankTier, next: RankTier?, fraction: Double)? {
-        guard let criteria = criteria(forKey: exerciseKey),
-              let current = bodyweightRank(exerciseKey: exerciseKey, peakReps: peakReps, peakSeconds: peakSeconds)
-        else { return nil }
-
+    private static func progress(using criteria: [SkillTier: TierCriterion], peakReps: Int, peakSeconds: Int) -> (current: RankTier, next: RankTier?, fraction: Double) {
+        let current = rank(using: criteria, peakReps: peakReps, peakSeconds: peakSeconds)
         guard let next = current.next, current.rawValue < 8 else { return (current, nil, 1.0) }
         // The metric that drives this node — reps for rep nodes, seconds for holds.
         let value = Double(criteria[current].flatMap(isSecondsCriterion) == true ? peakSeconds : peakReps)
@@ -114,13 +100,62 @@ enum SkillStandards {
         guard let hiInt = criteria[next].flatMap(threshold) else { return (current, next, 1.0) }
         let hi = Double(hiInt)
         guard hi > lo else { return (current, next, 1.0) }
-        let fraction = max(0.0, min(1.0, (value - lo) / (hi - lo)))
-        return (current, next, fraction)
+        return (current, next, max(0.0, min(1.0, (value - lo) / (hi - lo))))
+    }
+
+    private static func thresholdText(using criteria: [SkillTier: TierCriterion], peakReps: Int, peakSeconds: Int) -> String? {
+        let current = rank(using: criteria, peakReps: peakReps, peakSeconds: peakSeconds)
+        guard let next = current.next,
+              let nextCriterion = criteria[next],
+              let nextThreshold = threshold(nextCriterion) else { return nil }
+        let seconds = isSecondsCriterion(nextCriterion)
+        let have = seconds ? peakSeconds : peakReps
+        let remaining = max(0, nextThreshold - have)
+        if seconds { return "\(remaining)s to \(next.displayName)" }
+        return "\(remaining) \(remaining == 1 ? "rep" : "reps") to \(next.displayName)"
     }
 
     private static func isSecondsCriterion(_ criterion: TierCriterion) -> Bool {
         if case .exerciseSeconds = criterion { return true }
         return false
+    }
+
+    // MARK: Exercise-key entry points (lift rank path — the canonical bodyweight skills)
+
+    /// Rank a bodyweight rep/hold performance against its skill node — the SAME
+    /// thresholds `computeTier` walks. nil if not a bodyweight skill ranked here.
+    static func bodyweightRank(exerciseKey: String, peakReps: Int, peakSeconds: Int) -> RankTier? {
+        guard let criteria = criteria(forKey: exerciseKey) else { return nil }
+        guard peakReps > 0 || peakSeconds > 0 else { return nil }
+        return rank(using: criteria, peakReps: peakReps, peakSeconds: peakSeconds)
+    }
+
+    /// Progress toward the next rank for a bodyweight rep/hold movement.
+    static func bodyweightProgress(exerciseKey: String, peakReps: Int, peakSeconds: Int) -> (current: RankTier, next: RankTier?, fraction: Double)? {
+        guard let criteria = criteria(forKey: exerciseKey) else { return nil }
+        return progress(using: criteria, peakReps: peakReps, peakSeconds: peakSeconds)
+    }
+
+    /// Micro-target text for the reward card, e.g. "5 reps to Veteran".
+    static func nextThresholdText(exerciseKey: String, peakReps: Int, peakSeconds: Int) -> String? {
+        guard let criteria = criteria(forKey: exerciseKey) else { return nil }
+        return thresholdText(using: criteria, peakReps: peakReps, peakSeconds: peakSeconds)
+    }
+
+    // MARK: Node-id entry points (reward cards — works for ANY skill node)
+
+    /// Progress toward the next rank for a specific skill node, from the peak
+    /// reps/seconds achieved this session. Covers every node, not just the
+    /// canonical lift-path movements.
+    static func nodeProgress(skillId: String, peakReps: Int, peakSeconds: Int) -> (current: RankTier, next: RankTier?, fraction: Double)? {
+        guard let criteria = SkillGraph.shared.node(id: skillId)?.tierCriteria, !criteria.isEmpty else { return nil }
+        return progress(using: criteria, peakReps: peakReps, peakSeconds: peakSeconds)
+    }
+
+    /// Micro-target text for a specific skill node.
+    static func nodeNextThresholdText(skillId: String, peakReps: Int, peakSeconds: Int) -> String? {
+        guard let criteria = SkillGraph.shared.node(id: skillId)?.tierCriteria, !criteria.isEmpty else { return nil }
+        return thresholdText(using: criteria, peakReps: peakReps, peakSeconds: peakSeconds)
     }
 
     // MARK: - Weighted pull-up (added-load %bw)

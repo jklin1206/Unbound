@@ -36,6 +36,12 @@ struct WorkoutRewardSequenceSummary: Identifiable {
     var tally: RewardTally = .empty
     var emblemIgnition: Bool = false
 
+    /// Unified per-exercise rank cards (skills AND lifts) for the RANKS beat:
+    /// one card per movement showing the rank badge earned, progress toward the
+    /// next rank, and any PR. Replaces the old per-(skill,tier) "proof" rows and
+    /// the separate lift-rank page.
+    var exerciseRanks: [ExerciseRankReward] = []
+
     var hasShareableMoment: Bool {
         weeklyVowCallout?.completionBonus?.shareCard != nil
             || !personalRecords.isEmpty
@@ -128,6 +134,31 @@ enum LiftRewardFamily: String, CaseIterable {
         default: return "reward_ornament_tick_bone"
         }
     }
+}
+
+// MARK: - Unified per-exercise rank card
+
+/// One movement's rank outcome for a session — the macro reward (the rank badge
+/// they're at, and whether they ranked up) plus the micro reward (how close they
+/// are to the next rank) plus any PR. Works for both bodyweight skills and
+/// loaded lifts so the RANKS beat renders them identically.
+struct ExerciseRankReward: Identifiable, Hashable {
+    var id: String
+    var exerciseName: String
+    var skillId: String?          // nil for loaded lifts
+    var rank: RankTitle           // current rank — the badge to show
+    var didRankUp: Bool
+    var fromRank: RankTitle?      // prior rank, for the reveal animation
+    var progressToNext: Double    // 0…1 toward the next rank (1.0 if maxed)
+    var nextRank: RankTitle?      // nil = at peak
+    var nextThresholdText: String?  // micro target, e.g. "5 reps to Veteran"
+    var personalBestText: String?   // e.g. "New best · 75s"
+    var family: LiftRewardFamily
+
+    /// Tier-band badge art for the current rank.
+    var badgeAssetName: String { rank.assetName }
+    var tint: Color { family.tint }
+    var isMaxed: Bool { nextRank == nil }
 }
 
 struct AttributeDeltaReward: Identifiable {

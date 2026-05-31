@@ -10,7 +10,100 @@ enum RewardPayloadBuilder {
         copy.beats = payload.beats
         copy.tally = payload.tally
         copy.emblemIgnition = payload.emblemIgnition
+        copy.exerciseRanks = exerciseRanks(
+            from: result,
+            liftProgress: copy.liftProgress,
+            personalRecords: copy.personalRecords
+        )
         return copy
+    }
+
+    /// Unified per-exercise rank cards: one card per movement (skills AND lifts),
+    /// each carrying the rank badge earned, progress toward the next rank, and any
+    /// PR. Skills come from the proof result (highest tier cleared + the peak
+    /// performance for the progress bar); lifts come from `liftProgress`.
+    static func exerciseRanks(
+        from result: ProofEngineResult,
+        liftProgress: [LiftProgressReward],
+        personalRecords: [PersonalRecordReward]
+    ) -> [ExerciseRankReward] {
+        var cards: [ExerciseRankReward] = []
+
+        // ── Skills: group cleared standards by skill; the top tier is the badge.
+        let bySkill = Dictionary(grouping: result.standardsCleared, by: \.skillId)
+        for (skillId, standards) in bySkill {
+            guard let top = standards.max(by: { $0.tier < $1.tier }) else { continue }
+
+            let proofs = result.achievedProofs.filter { $0.skillId == skillId }
+            let peakReps = proofs.filter { $0.unit == .reps }.map { Int($0.magnitude.rounded()) }.max() ?? 0
+            let peakSeconds = proofs.filter { $0.unit == .seconds }.map { Int($0.magnitude.rounded()) }.max() ?? 0
+
+            let prog = SkillStandards.nodeProgress(skillId: skillId, peakReps: peakReps, peakSeconds: peakSeconds)
+            let nextText = SkillStandards.nodeNextThresholdText(skillId: skillId, peakReps: peakReps, peakSeconds: peakSeconds)
+            let fromTier = result.multiRankEvent?.skillId == skillId ? result.multiRankEvent?.fromTier : nil
+
+            cards.append(
+                ExerciseRankReward(
+                    id: "skill:\(skillId)",
+                    exerciseName: top.skillTitle,
+                    skillId: skillId,
+                    rank: top.tier,
+                    didRankUp: true,
+                    fromRank: fromTier,
+                    progressToNext: prog?.fraction ?? 1.0,
+                    nextRank: prog?.next ?? top.tier.next,
+                    nextThresholdText: nextText,
+                    personalBestText: bestText(for: top.skillTitle, in: result.newBests),
+                    family: skillFamily(skillId: skillId, title: top.skillTitle)
+                )
+            )
+        }
+        cards.sort { lhs, rhs in
+            if lhs.rank == rhs.rank { return lhs.exerciseName < rhs.exerciseName }
+            return lhs.rank.ordinal > rhs.rank.ordinal   // highest rank first
+        }
+
+        // ── Lifts: each lift band → a card with its progress to the next tier.
+        let liftCards = liftProgress.map { lift in
+            ExerciseRankReward(
+                id: "lift:\(lift.liftName)",
+                exerciseName: lift.liftName,
+                skillId: nil,
+                rank: lift.currentTier,
+                didRankUp: lift.didAdvanceTier,
+                fromRank: lift.didAdvanceTier ? lift.fromTier : nil,
+                progressToNext: lift.toProgress,
+                nextRank: lift.currentTier.next,
+                nextThresholdText: nil,
+                personalBestText: prText(for: lift.liftName, in: personalRecords),
+                family: lift.family
+            )
+        }
+
+        return cards + liftCards
+    }
+
+    private static func bestText(for exerciseName: String, in bests: [PersonalBest]) -> String? {
+        guard let best = bests.first(where: {
+            MovementCatalog.normalized($0.exerciseName) == MovementCatalog.normalized(exerciseName)
+        }) else { return nil }
+        let unit = best.unit == .seconds ? "s" : (best.unit == .reps ? " reps" : " \(best.unit.rawValue)")
+        return "New best · \(format(best.value))\(unit)"
+    }
+
+    private static func prText(for liftName: String, in records: [PersonalRecordReward]) -> String? {
+        records.first { MovementCatalog.normalized($0.liftName) == MovementCatalog.normalized(liftName) }
+            .map { "New best · \($0.valueText)" }
+    }
+
+    private static func skillFamily(skillId: String, title: String) -> LiftRewardFamily {
+        let text = "\(skillId) \(title)".lowercased()
+        if text.hasPrefix("pp.") || text.contains("pull") || text.contains("chin") || text.contains("row") { return .pull }
+        if text.hasPrefix("ld.") || text.contains("squat") || text.contains("lunge") || text.contains("pistol") || text.contains("nordic") { return .legs }
+        if text.hasPrefix("cl.") || text.contains("sit") || text.contains("lever") || text.contains("hollow") || text.contains("dragon") || text.contains("plank") { return .core }
+        if text.hasPrefix("hs.") || text.hasPrefix("pl.") || text.hasPrefix("cal.") || text.contains("handstand") || text.contains("push") || text.contains("dip") || text.contains("planche") { return .press }
+        if text.contains("jump") || text.contains("clap") || text.contains("explosive") { return .explosive }
+        return .general
     }
 
     static func proofPayload(from result: ProofEngineResult) -> ProofRewardPayload {

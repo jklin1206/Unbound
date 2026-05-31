@@ -45,11 +45,12 @@ struct WorkoutRewardSequenceView: View {
             beats.append(.rankBadge)
         }
 
-        if !summary.beats.isEmpty || summary.tally.hasAnyReward {
+        if !summary.exerciseRanks.isEmpty || !summary.beats.isEmpty || summary.tally.hasAnyReward {
             beats.append(.proof)
         }
 
-        if !summary.liftProgress.isEmpty || summary.progression?.movementLines.isEmpty == false {
+        // Movement-XP impact only — lift rank-ups now live on the RANKS page.
+        if summary.progression?.movementLines.isEmpty == false {
             beats.append(.rankReveal)
         }
 
@@ -214,7 +215,7 @@ struct WorkoutRewardSequenceView: View {
         case .rankBadge:
             rankBadgeBeat
         case .proof:
-            proofBeat
+            ranksBeat
         case .rankReveal:
             rankRevealBeat
         case .attributes:
@@ -331,64 +332,41 @@ struct WorkoutRewardSequenceView: View {
         }
     }
 
-    private var proofBeat: some View {
-        let tally = summary.tally
-        let shownBeats = summary.beats   // show every cleared standard / unlock / best
+    /// Unified RANKS page — one card per exercise (skills AND lifts) showing the
+    /// rank badge earned, a bar toward the next rank, and any PR. Replaces the old
+    /// per-(skill,tier) "proof" rows and the separate lift-rank page.
+    private var ranksBeat: some View {
+        let ranks = summary.exerciseRanks
         let tint = proofTint
-        let title = tally.ranksAdvanced > 1 ? "MULTI-RANK UP" : (tally.unlocksGained > 0 ? "SKILL UNLOCKED" : "STANDARDS CLEARED")
+        let rankUpCount = ranks.filter(\.didRankUp).count + (ranks.isEmpty ? summary.tally.ranksAdvanced : 0)
+        let title = rankUpCount > 1 ? "RANKS EARNED" : (rankUpCount == 1 ? "RANK UP" : "RANKS")
 
         return RewardPanel(tint: tint, active: currentBeatKind == .proof || summary.emblemIgnition) {
-            VStack(alignment: .leading, spacing: 20) {
-                beatHeader(kicker: "PROOF LOCKED", title: title, tint: tint)
+            VStack(alignment: .leading, spacing: 16) {
+                beatHeader(kicker: "RANKS", title: title, tint: tint)
 
-                if summary.emblemIgnition {
-                    HStack(spacing: 14) {
-                        ZStack {
-                            RankPulseRings(tint: tint, hot: true, animate: currentBeatKind == .proof && pageRevealed)
-                            Image(systemName: "sparkles")
-                                .font(.system(size: 28, weight: .black))
-                                .foregroundStyle(tint)
-                                .shadow(color: tint.opacity(0.5), radius: 18)
-                        }
-                        .frame(width: 86, height: 86)
-
-                        VStack(alignment: .leading, spacing: 5) {
-                            Text(tally.ranksAdvanced > 1 ? "\(tally.ranksAdvanced) RANKS ADVANCED" : "EMBLEM IGNITED")
-                                .font(Font.unbound.bodyMStrong)
-                                .foregroundStyle(Color.unbound.textPrimary)
-                                .lineLimit(2)
-                                .minimumScaleFactor(0.78)
-                            Text("Your logged work cleared real standards.")
-                                .font(Font.unbound.captionS)
-                                .foregroundStyle(Color.unbound.textSecondary)
-                                .lineLimit(2)
+                if !ranks.isEmpty {
+                    VStack(spacing: 10) {
+                        ForEach(ranks) { reward in
+                            ExerciseRankCard(
+                                reward: reward,
+                                animate: currentBeatKind == .proof && pageRevealed
+                            )
                         }
                     }
-                }
-
-                VStack(spacing: 10) {
-                    if !shownBeats.isEmpty {
-                        ForEach(shownBeats) { beat in
+                } else if !summary.beats.isEmpty {
+                    VStack(spacing: 10) {
+                        ForEach(summary.beats) { beat in
                             ProofRewardRow(beat: beat, tint: tint)
                         }
-                    } else {
-                        if tally.standardsCleared > 0 {
-                            rewardLine(label: "Standards cleared", value: "\(tally.standardsCleared)", tint: tint)
-                        }
-                        if tally.unlocksGained > 0 {
-                            rewardLine(label: "Unlocks gained", value: "\(tally.unlocksGained)", tint: tint)
-                        }
-                        if tally.newBests > 0 {
-                            rewardLine(label: "New bests", value: "\(tally.newBests)", tint: Color.unbound.emberGlow)
-                        }
                     }
-
-                }
-
-                HStack(spacing: 12) {
-                    proofToken(value: "\(tally.standardsCleared)", label: "STANDARDS", tint: tint)
-                    proofToken(value: "\(tally.unlocksGained)", label: "UNLOCKS", tint: Color.unbound.impact)
-                    proofToken(value: "\(tally.newBests)", label: "BESTS", tint: Color.unbound.emberGlow)
+                } else {
+                    if summary.tally.standardsCleared > 0 {
+                        rewardLine(label: "Ranks earned", value: "\(summary.tally.standardsCleared)", tint: tint)
+                    }
+                    if summary.tally.newBests > 0 {
+                        rewardLine(label: "New bests", value: "\(summary.tally.newBests)", tint: Color.unbound.emberGlow)
+                    }
                 }
             }
         }
@@ -396,34 +374,8 @@ struct WorkoutRewardSequenceView: View {
 
     @ViewBuilder
     private var rankRevealBeat: some View {
-        if !summary.liftProgress.isEmpty {
-            liftRankRevealBeat
-        } else if let receipt = summary.progression, !receipt.movementLines.isEmpty {
+        if let receipt = summary.progression, !receipt.movementLines.isEmpty {
             movementImpactBeat(receipt)
-        }
-    }
-
-    private var liftRankRevealBeat: some View {
-        let advanced = summary.liftProgress.filter(\.didAdvanceTier)
-        let shown = advanced.isEmpty ? Array(summary.liftProgress.prefix(2)) : Array(advanced.prefix(2))
-        let tint = shown.first?.currentTier.rewardTint ?? dominantLiftTint
-
-        return RewardPanel(tint: tint, active: currentBeatKind == .rankReveal) {
-            VStack(alignment: .leading, spacing: 22) {
-                beatHeader(
-                    kicker: advanced.isEmpty ? "MOVEMENT RANK" : "MOVEMENT RANK UP",
-                    title: advanced.isEmpty ? "CURRENT TIER" : "TIER ASCENDED",
-                    tint: tint
-                )
-
-                ForEach(shown) { lift in
-                    LiftRankSpotlight(
-                        lift: lift,
-                        revealed: pageRevealed,
-                        animate: currentBeatKind == .rankReveal && pageRevealed
-                    )
-                }
-            }
         }
     }
 
@@ -772,7 +724,7 @@ struct WorkoutRewardSequenceView: View {
                 let primaryXPLabel = summary.xp.total > 0 ? "LVL XP" : "SKILL XP"
                 let proofCount = summary.tally.standardsCleared + summary.tally.unlocksGained + summary.tally.newBests
                 let featCount = summary.personalRecords.count + summary.badges.count + proofCount + (summary.weeklyVowCallout == nil ? 0 : 1)
-                let featLabel = proofCount > 0 ? "PROOF" : (summary.weeklyVowCallout == nil ? "FEATS" : "VOW")
+                let featLabel = proofCount > 0 ? "RANKS" : (summary.weeklyVowCallout == nil ? "FEATS" : "VOW")
                 HStack(spacing: 20) {
                     yieldToken(value: primaryXPValue, label: primaryXPLabel, tint: Color.rewardBlue)
                     yieldToken(value: "\(summary.liftProgress.filter(\.didAdvanceTier).count + summary.tally.ranksAdvanced)", label: "RANK UPS", tint: dominantLiftTint)
@@ -850,7 +802,8 @@ struct WorkoutRewardSequenceView: View {
         #if DEBUG
         // Reward-demo recording: drive the page advances hands-free so the whole
         // sequence plays autonomously for a screen capture (no tap injection).
-        if ProcessInfo.processInfo.arguments.contains("-rewardDemo") {
+        if ProcessInfo.processInfo.arguments.contains("-rewardDemo")
+            || ProcessInfo.processInfo.environment["REWARD_DEMO"] == "1" {
             for step in 1...(maxBeat + 1) {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 2.3 * Double(step)) {
                     advanceRewardPage()
@@ -1086,29 +1039,6 @@ struct WorkoutRewardSequenceView: View {
         .frame(maxWidth: .infinity)
     }
 
-    private func proofToken(value: String, label: String, tint: Color) -> some View {
-        VStack(spacing: 4) {
-            Text(value)
-                .font(.system(size: 22, weight: .black, design: .monospaced))
-                .foregroundStyle(tint)
-            Text(label)
-                .font(Font.unbound.captionS.weight(.heavy))
-                .tracking(1.0)
-                .foregroundStyle(Color.unbound.textTertiary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.72)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 10)
-        .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(tint.opacity(0.10))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .strokeBorder(tint.opacity(0.24), lineWidth: 1)
-        )
-    }
 }
 
 // MARK: - Components
@@ -1204,6 +1134,118 @@ private struct RewardPanel<Content: View>: View {
             .padding(.vertical, 8)
             .frame(maxWidth: .infinity, alignment: .center)
             .shadow(color: active ? tint.opacity(0.18) : .clear, radius: 24, y: 8)
+    }
+}
+
+// MARK: - Unified per-exercise rank card (skills + lifts)
+
+private struct ExerciseRankCard: View {
+    let reward: ExerciseRankReward
+    var animate: Bool
+
+    @State private var fill: CGFloat = 0
+    @State private var badgePop: CGFloat = 0.7
+
+    var body: some View {
+        HStack(spacing: 13) {
+            // Rank badge earned for this exercise.
+            Image(reward.badgeAssetName)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 50, height: 50)
+                .scaleEffect(badgePop)
+                .shadow(color: reward.tint.opacity(0.55), radius: 11)
+
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 7) {
+                    Text(reward.exerciseName)
+                        .font(Font.unbound.bodyMStrong)
+                        .foregroundStyle(Color.unbound.textPrimary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+
+                    if reward.didRankUp {
+                        Text("RANK UP")
+                            .font(Font.unbound.monoS)
+                            .tracking(0.6)
+                            .foregroundStyle(Color.black)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Capsule().fill(reward.tint))
+                    }
+
+                    Spacer(minLength: 4)
+
+                    Text(reward.rank.displayName.uppercased())
+                        .font(Font.unbound.monoS)
+                        .tracking(0.8)
+                        .foregroundStyle(reward.tint)
+                        .lineLimit(1)
+                }
+
+                // Progress toward the next rank.
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        Capsule()
+                            .fill(Color.unbound.surfaceElevated)
+                            .frame(height: 6)
+                        Capsule()
+                            .fill(LinearGradient(
+                                colors: [reward.tint.opacity(0.6), reward.tint],
+                                startPoint: .leading, endPoint: .trailing
+                            ))
+                            .frame(width: max(6, geo.size.width * fill), height: 6)
+                            .shadow(color: reward.tint.opacity(0.55), radius: 4)
+                    }
+                }
+                .frame(height: 6)
+                .padding(.top, 1)
+
+                HStack(spacing: 8) {
+                    Text(microText)
+                        .font(Font.unbound.captionS)
+                        .tracking(0.3)
+                        .foregroundStyle(Color.unbound.textSecondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+
+                    Spacer(minLength: 4)
+
+                    if let pr = reward.personalBestText {
+                        Text(pr)
+                            .font(Font.unbound.captionS)
+                            .tracking(0.3)
+                            .foregroundStyle(Color.unbound.emberGlow)
+                            .lineLimit(1)
+                    }
+                }
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 15, style: .continuous)
+                .fill(Color.unbound.surface)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 15, style: .continuous)
+                        .stroke(reward.tint.opacity(reward.didRankUp ? 0.42 : 0.18), lineWidth: 1)
+                )
+        )
+        .onAppear { runIfReady() }
+        .onChange(of: animate) { _, _ in runIfReady() }
+    }
+
+    private var microText: String {
+        if reward.isMaxed { return "MAX RANK" }
+        if let t = reward.nextThresholdText { return t }
+        if let next = reward.nextRank { return "→ \(next.displayName)" }
+        return ""
+    }
+
+    private func runIfReady() {
+        guard animate else { return }
+        withAnimation(.spring(response: 0.45, dampingFraction: 0.6)) { badgePop = 1.0 }
+        withAnimation(.easeOut(duration: 0.9).delay(0.1)) { fill = CGFloat(reward.progressToNext) }
     }
 }
 
@@ -1525,59 +1567,6 @@ private struct LevelProgressHero: View {
 
     private var barStart: Double {
         levelAfter > levelBefore ? 0 : progressBefore
-    }
-}
-
-private struct LiftRankSpotlight: View {
-    let lift: LiftProgressReward
-    let revealed: Bool
-    let animate: Bool
-
-    var body: some View {
-        let rankTint = lift.currentTier.rewardTint
-        VStack(spacing: 16) {
-            HStack(alignment: .center, spacing: 16) {
-                ZStack {
-                    RankPulseRings(tint: rankTint, hot: lift.didAdvanceTier, animate: animate)
-                    Image(lift.currentTier.assetName)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 88, height: 88)
-                        .scaleEffect(revealed ? 1 : 0.72)
-                        .opacity(revealed ? 1 : 0)
-                }
-                .frame(width: 140, height: 140)
-
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(lift.liftName.uppercased())
-                        .font(Font.unbound.bodyMStrong)
-                        .tracking(1.0)
-                        .foregroundStyle(Color.unbound.textSecondary)
-                    Text(lift.currentTier.displayName.uppercased())
-                        .font(.system(size: 31, weight: .black, design: .monospaced))
-                        .tracking(0.8)
-                        .foregroundStyle(rankTint)
-                        .shadow(color: rankTint.opacity(0.52), radius: 14)
-                    Text(lift.didAdvanceTier ? "ADVANCED FROM \(lift.fromTier.displayName.uppercased())" : "\(Int(lift.toProgress * 100))% TO \(lift.nextTierName.uppercased())")
-                        .font(Font.unbound.captionS.weight(.heavy))
-                        .tracking(1.2)
-                        .foregroundStyle(Color.unbound.textTertiary)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-
-            RPGStatBar(
-                from: lift.didAdvanceTier ? 0 : lift.fromProgress,
-                to: lift.toProgress,
-                tint: rankTint,
-                animate: animate,
-                height: 22,
-                segments: 9,
-                showOriginCap: false
-            )
-            .shadow(color: rankTint.opacity(0.30), radius: 14)
-        }
-        .padding(.vertical, 4)
     }
 }
 

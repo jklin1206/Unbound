@@ -121,7 +121,8 @@ struct RootView: View {
     @ViewBuilder
     var body: some View {
         #if DEBUG
-        if ProcessInfo.processInfo.arguments.contains("-rewardDemo") {
+        if ProcessInfo.processInfo.arguments.contains("-rewardDemo")
+            || ProcessInfo.processInfo.environment["REWARD_DEMO"] == "1" {
             RewardDemoView()
         } else {
             mainContent
@@ -261,7 +262,8 @@ private enum RewardDemoScenarios {
 
     static func make(
         _ label: String, xp: Int, _ entries: [ExerciseLogEntry],
-        prs: [PersonalRecordReward] = [], badges: [BadgeUnlock] = []
+        prs: [PersonalRecordReward] = [], badges: [BadgeUnlock] = [],
+        lifts: [LiftProgressReward] = []
     ) -> RewardDemoScenario {
         let log = WorkoutLog(
             id: "demo-\(label)", userId: "demo", programId: "demo", dayNumber: 1,
@@ -273,8 +275,10 @@ private enum RewardDemoScenarios {
             workoutName: label, durationMinutes: 32, workSets: entries.count,
             volumeKg: 0, rpe: 8, xpTotal: xp, xpLabel: "Session XP",
             sourceName: "Program", badges: badges)
-        s = RewardPayloadBuilder.attachProofRewards(result, to: s)
         s.personalRecords = prs
+        s.liftProgress = lifts
+        // Build unified per-exercise rank cards (skills + lifts) from the result.
+        s = RewardPayloadBuilder.attachProofRewards(result, to: s)
         return RewardDemoScenario(label: label, summary: s)
     }
 
@@ -311,6 +315,13 @@ private enum RewardDemoScenarios {
         badges: [
             BadgeUnlock(id: "demo_clean_sweep", title: "Clean Sweep",
                         subtitle: "Every set, no misses", assetName: "badge_art_clean_sweep")
+        ],
+        lifts: [
+            // A loaded lift ranks up on the SAME unified RANKS page as the skills.
+            LiftProgressReward(liftName: "Back Squat", family: .legs, fromTier: .forged, toTier: .veteran,
+                               fromProgress: 0.84, toProgress: 0.22, xpGained: 90),
+            LiftProgressReward(liftName: "Bench Press", family: .press, fromTier: .apprentice, toTier: .apprentice,
+                               fromProgress: 0.40, toProgress: 0.68, xpGained: 60)
         ])
     ]
 }
