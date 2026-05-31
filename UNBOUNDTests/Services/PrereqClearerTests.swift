@@ -7,14 +7,14 @@ final class PrereqClearerTests: XCTestCase {
             id: "pullup-proof",
             exerciseName: "pullup",
             family: .reps,
-            magnitude: 12,
+            magnitude: 25,   // clears the generated pull-up tiers up to vessel (23)
             unit: .reps
         )
         let requirements = [
-            repRequirement(.apprentice), // 3 reps
-            repRequirement(.forged),     // 5 reps
-            repRequirement(.master),      // 8 reps
-            repRequirement(.vessel),     // 10 reps
+            repRequirement(.apprentice), // 6 reps (generated)
+            repRequirement(.forged),     // 10 reps
+            repRequirement(.master),      // 18 reps
+            repRequirement(.vessel),     // 23 reps
             SkillUnlockRequirement(
                 sourceSkillId: "pp.dead-hang",
                 requiredTier: .forged,

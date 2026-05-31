@@ -156,7 +156,7 @@ enum PullSkillAnchors {
         "pp.clapping-pullup":        .init(exerciseName: "clapping pullup",          metric: .reps, spec: .feat(floor: .forged,     ladder: [1, 2, 3, 5, 7, 10])),     // floor 3 → 6 vals
         "pp.heighted-chin-up":       .init(exerciseName: "heighted chin-up",         metric: .reps, spec: .feat(floor: .forged,     ladder: [1, 2, 3, 5, 8, 12])),     // floor 3 → 6 vals (one-arm-assist chin)
         "pp.oap-negative":           .init(exerciseName: "one-arm pullup negative",  metric: .reps, spec: .feat(floor: .apprentice, ladder: [1, 3, 4, 5, 6, 9, 12])),  // floor 2 → 7 vals (eccentric entry)
-        "pp.one-arm-row":            .init(exerciseName: "one-arm row",              metric: .reps, spec: .feat(floor: .apprentice, ladder: [3, 5, 8, 12, 16, 20, 25])), // floor 2 → 7 vals (unilateral bridge)
+        "pp.one-arm-row":            .init(exerciseName: "one-arm row",              metric: .reps, spec: .full([1, 4, 8, 14, 20])),                  // plain grind ladder
         "pp.tuck-front-lever-pullup":.init(exerciseName: "tuck front lever pullup",  metric: .reps, spec: .feat(floor: .veteran,    ladder: [1, 3, 5, 7, 10])),        // floor 4 → 5 vals (lever pull)
         "pp.one-arm-chin-up":        .init(exerciseName: "one-arm chin-up",          metric: .reps, spec: .feat(floor: .vessel,     ladder: [1, 3, 5])),               // floor 6 → 1 OAC = Vessel, 5 = peak
     ]

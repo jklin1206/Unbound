@@ -62,7 +62,7 @@ all show the entry value; ladder climbs floor→peak).
 | pp.decline-row | decline row | reps | full | 1 | 3 | 5 | 10 | 14 | 20 | 26 | 33 | 40 |
 | pp.tuck-row | tuck row | reps | full | 1 | 3 | 4 | 7 | 10 | 14 | 18 | 23 | 28 |
 | pp.straddle-row | straddle row | reps | full | 1 | 2 | 3 | 5 | 7 | 10 | 13 | 17 | 20 |
-| pp.one-arm-row | one-arm row | reps | feat(apprentice) | 3 | 3 | 3 | 5 | 8 | 12 | 16 | 20 | 25 |
+| pp.one-arm-row | one-arm row | reps | full | 1 | 3 | 4 | 6 | 8 | 11 | 14 | 17 | 20 |
 
 ## Holds (seconds)
 

@@ -687,9 +687,11 @@ final class UNBOUNDSmokeTest: XCTestCase {
             exercise("back squat", weightKg: 120, reps: 5),
         ]
 
+        // +10kg on 80kg bw = +12.5%, which clears generated Initiate (+10%) but not
+        // Novice (+20%). The 120kg back squat must NOT bleed in and lift it higher.
         XCTAssertEqual(
             RankService.shared.computeTier(skill: try XCTUnwrap(skill), history: history, bodyweightKg: 80),
-            .novice
+            .initiate
         )
     }
 
