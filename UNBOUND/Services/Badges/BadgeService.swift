@@ -101,6 +101,8 @@ final class BadgeService: BadgeServiceProtocol {
         if !newlyUnlocked.isEmpty {
             persistUnlocked(unlocked, userId: userId)
             for badge in newlyUnlocked {
+                // Each badge also grants a wearable profile title.
+                WeeklyVowsService.shared.unlockBadgeTitle(badgeId: badge.id, userId: userId)
                 let event = BadgeUnlockEvent(badge: badge)
                 NotificationCenter.default.post(
                     name: .badgeUnlocked,

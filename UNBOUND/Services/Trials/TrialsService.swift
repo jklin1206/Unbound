@@ -237,6 +237,17 @@ final class WeeklyVowsService: WeeklyVowsServiceProtocol {
         return vow
     }
 
+    /// Grant the wearable title earned by unlocking a badge. Idempotent; fires
+    /// `.titleUnlocked` for the new title so the UI can surface it.
+    func unlockBadgeTitle(badgeId: String, userId: String) {
+        let titleId = TitleID.badge(badgeId)
+        var state = store.load(userId: userId)
+        guard !state.unlockedTitles.contains(titleId) else { return }
+        state.unlockedTitles.append(titleId)
+        store.save(state, userId: userId)
+        NotificationCenter.default.post(name: .titleUnlocked, object: titleId)
+    }
+
     // MARK: - evaluateVowProofFromLog + checkVowWindow
 
     func evaluateVowProofFromLog(

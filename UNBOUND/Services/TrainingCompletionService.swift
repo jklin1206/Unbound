@@ -47,6 +47,16 @@ final class TrainingCompletionService {
 
         var result = TrainingCompletionResult()
 
+        // Day-streak: count this completed session. The policy handles calendar-
+        // day logic, the grace window, and same-day holds. Fires once per
+        // completion (this method short-circuits on the persisted gate above).
+        let streakDelta = await services.sessionXP.recordSession(
+            userId: performanceLog.userId,
+            at: performanceLog.completedAt
+        )
+        result.streakCount = streakDelta.updated.currentStreak
+        result.streakExtended = streakDelta.streakExtended
+
         try await services.database.create(
             performanceLog,
             collection: "performanceLogs",
@@ -108,6 +118,10 @@ final class TrainingCompletionService {
             }
             result.savedSessionLogIds.append(sessionLog.id)
         }
+
+        // Cosmetic unlocks earned by this session's rank progress (skill-tree
+        // skins). evaluateUnlocks is idempotent and only returns the new ones.
+        result.unlockedSkins = await services.skin.evaluateUnlocks(userId: performanceLog.userId)
 
         let record = TrainingCompletionRecord(result: result, performanceLog: performanceLog)
         try await services.database.create(
@@ -446,6 +460,15 @@ struct TrainingCompletionResult: Sendable {
     var overallLevelXPGained: Double = 0
     var skillXPGained: Int = 0
     var proofEngineResult: ProofEngineResult?
+
+    /// Day-streak after counting this session, and whether this session extended
+    /// it (false = a same-day session that holds, or already-completed).
+    var streakCount: Int = 0
+    var streakExtended: Bool = false
+
+    /// Skill-tree skins this session's rank progress unlocked (surfaced in the
+    /// reward flow instead of a silent toast).
+    var unlockedSkins: [SkillTreeSkin] = []
 
     /// User bodyweight + sex at completion, captured so the per-movement reward
     /// lines can derive each movement's "% to next rank" via StrengthStandards.

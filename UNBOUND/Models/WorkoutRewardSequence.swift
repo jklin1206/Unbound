@@ -42,6 +42,13 @@ struct WorkoutRewardSequenceSummary: Identifiable {
     /// the separate lift-rank page.
     var exerciseRanks: [ExerciseRankReward] = []
 
+    /// Day-streak reward, when this session counted toward a streak.
+    var streak: StreakReward? = nil
+
+    /// Cosmetics unlocked this session (skill-tree skins, profile frames…) so the
+    /// reward flow surfaces them instead of a silent toast later.
+    var cosmeticUnlocks: [CosmeticUnlockReward] = []
+
     var hasShareableMoment: Bool {
         weeklyVowCallout?.completionBonus?.shareCard != nil
             || !personalRecords.isEmpty
@@ -134,6 +141,13 @@ enum LiftRewardFamily: String, CaseIterable {
         default: return "reward_ornament_tick_bone"
         }
     }
+}
+
+/// Day-streak reward: the streak after this session, and whether the session
+/// extended it (vs a same-day session that holds the streak).
+struct StreakReward: Hashable {
+    var dayCount: Int
+    var didExtend: Bool
 }
 
 // MARK: - Unified per-exercise rank card
@@ -369,6 +383,18 @@ extension WorkoutRewardSequenceSummary {
         if let proofResult = completionResult?.proofEngineResult {
             summary = RewardPayloadBuilder.attachProofRewards(proofResult, to: summary)
         }
+        if let cr = completionResult, cr.streakCount > 0 {
+            summary.streak = StreakReward(dayCount: cr.streakCount, didExtend: cr.streakExtended)
+        }
+        if let cr = completionResult, !cr.unlockedSkins.isEmpty {
+            summary.cosmeticUnlocks = cr.unlockedSkins.map { skin in
+                CosmeticUnlockReward(
+                    title: "\(skin.displayName) Skin",
+                    subtitle: "Skill-tree cosmetic — equip in Appearance.",
+                    tint: Color.unbound.rankGold
+                )
+            }
+        }
         return summary
     }
 
@@ -600,19 +626,26 @@ extension WorkoutRewardSequenceSummary {
         return Dictionary(uniqueKeysWithValues: deltas.map { ($0.key, $0.currentTier) })
     }
 
+    /// The REWARD hex shows each axis's progress toward its NEXT level (0–100%),
+    /// not the absolute level/100 (that's the profile page's honest cumulative
+    /// shape). Progress moves a lot per session, so the radar visibly pushes on
+    /// the axes you trained. Axes that leveled up this session animate from empty
+    /// (the level rolled over) rather than wrapping backward.
     private static func attributeHexValues(
         profile: AttributeProfile?,
         fallbackDeltas: [AttributeDeltaReward],
         useCurrent: Bool
     ) -> [AttributeKey: Double] {
+        let leveledUp = Set(fallbackDeltas.filter(\.didIncreaseLevel).map(\.key))
         if let profile {
             return Dictionary(uniqueKeysWithValues: AttributeKey.allCases.map { key in
-                (key, profile.value(for: key).hexFill * 100)
+                if !useCurrent && leveledUp.contains(key) { return (key, 0.0) }
+                return (key, AttributeLevelCurve.progressFraction(forXP: profile.value(for: key).xp) * 100)
             })
         }
 
         return Dictionary(uniqueKeysWithValues: fallbackDeltas.map {
-            ($0.key, useCurrent ? $0.currentHexChartValue : $0.previousHexChartValue)
+            ($0.key, (useCurrent ? $0.currentProgress : $0.levelProgressStart) * 100)
         })
     }
 

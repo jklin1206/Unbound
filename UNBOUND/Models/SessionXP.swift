@@ -26,6 +26,33 @@ struct SessionXPRecord: Codable, Sendable, Identifiable {
             weekStartDate: weekStart
         )
     }
+
+    // MARK: - Streak countdown (Liftoff rule: log within a 3-day gap)
+
+    /// Days left to log a workout before the streak breaks. nil if no active
+    /// streak. `3` = logged today (full headroom), `0` = log today or lose it,
+    /// negative = already lapsed (next session starts a new run).
+    func streakDaysRemaining(asOf now: Date = Date(), calendar: Calendar = .current) -> Int? {
+        guard currentStreak > 0, let last = lastSessionDate else { return nil }
+        let gap = calendar.dateComponents(
+            [.day],
+            from: calendar.startOfDay(for: last),
+            to: calendar.startOfDay(for: now)
+        ).day ?? 0
+        return ProgramAwareStreakPolicy.maxGapDays - gap
+    }
+
+    /// True when the streak will break unless the user logs today.
+    func streakAtRisk(asOf now: Date = Date(), calendar: Calendar = .current) -> Bool {
+        guard let left = streakDaysRemaining(asOf: now, calendar: calendar) else { return false }
+        return left <= 0
+    }
+
+    /// True when a session was already logged today (streak safe, full headroom).
+    func loggedToday(asOf now: Date = Date(), calendar: Calendar = .current) -> Bool {
+        guard let last = lastSessionDate else { return false }
+        return calendar.isDate(last, inSameDayAs: now)
+    }
 }
 
 struct SessionXPDelta: Sendable {

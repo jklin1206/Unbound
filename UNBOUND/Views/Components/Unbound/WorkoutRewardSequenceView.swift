@@ -16,6 +16,8 @@ struct WorkoutRewardSequenceView: View {
     @State private var animatedXP: Int = 0
     @State private var pageRevealed = false
     @State private var attributeHexProgress: Double = 0
+    @State private var hexPrev: [AttributeKey: Double] = [:]   // phase from-map
+    @State private var hexCur: [AttributeKey: Double] = [:]    // phase to-map
     @State private var finishRequested = false
 
     private enum RewardBeatKind: Equatable {
@@ -29,6 +31,8 @@ struct WorkoutRewardSequenceView: View {
         case progression
         case rankTrial
         case weeklyVow
+        case cosmetic
+        case streak
         case final
     }
 
@@ -72,6 +76,14 @@ struct WorkoutRewardSequenceView: View {
 
         if summary.weeklyVowCallout != nil {
             beats.append(.weeklyVow)
+        }
+
+        if !summary.cosmeticUnlocks.isEmpty {
+            beats.append(.cosmetic)
+        }
+
+        if let streak = summary.streak, streak.dayCount > 0 {
+            beats.append(.streak)
         }
 
         beats.append(.final)
@@ -230,8 +242,65 @@ struct WorkoutRewardSequenceView: View {
             rankTrialBeat
         case .weeklyVow:
             weeklyVowBeat
+        case .cosmetic:
+            cosmeticBeat
+        case .streak:
+            streakBeat
         case .final:
             finalYield
+        }
+    }
+
+    private var cosmeticBeat: some View {
+        let tint = summary.cosmeticUnlocks.first?.tint ?? Color.unbound.rankGold
+        return RewardPanel(tint: tint, active: currentBeatKind == .cosmetic) {
+            VStack(alignment: .leading, spacing: 16) {
+                beatHeader(
+                    kicker: "UNLOCKED",
+                    title: summary.cosmeticUnlocks.count > 1 ? "NEW COSMETICS" : "NEW COSMETIC",
+                    tint: tint
+                )
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                VStack(spacing: 12) {
+                    ForEach(Array(summary.cosmeticUnlocks.enumerated()), id: \.offset) { _, unlock in
+                        CosmeticUnlockRow(unlock: unlock)
+                    }
+                }
+
+                Text("Equip in Settings → Appearance.")
+                    .font(Font.unbound.captionS)
+                    .foregroundStyle(Color.unbound.textTertiary)
+            }
+        }
+    }
+
+    private var streakBeat: some View {
+        let streak = summary.streak ?? StreakReward(dayCount: 1, didExtend: true)
+        let tint = Color.unbound.emberGlow
+        return RewardPanel(tint: tint, active: currentBeatKind == .streak) {
+            VStack(spacing: 14) {
+                beatHeader(kicker: "STREAK", title: "KEEP IT LIT", tint: tint)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                StreakFlame(active: currentBeatKind == .streak && pageRevealed, tint: tint)
+                    .frame(width: 150, height: 168)
+
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text("\(streak.dayCount)")
+                        .font(.system(size: 70, weight: .black, design: .monospaced))
+                        .foregroundStyle(Color.unbound.textPrimary)
+                    Text(streak.dayCount == 1 ? "DAY" : "DAYS")
+                        .font(.system(size: 26, weight: .black, design: .monospaced))
+                        .foregroundStyle(tint)
+                }
+
+                Text("Log again within 3 days to keep it alive.")
+                    .font(Font.unbound.captionS)
+                    .foregroundStyle(Color.unbound.textSecondary)
+                    .multilineTextAlignment(.center)
+            }
+            .frame(maxWidth: .infinity)
         }
     }
 
@@ -257,16 +326,14 @@ struct WorkoutRewardSequenceView: View {
                         .frame(width: 220, height: 3)
                         .shadow(color: Color.rewardBlue.opacity(0.55), radius: 10)
 
-                    HStack(alignment: .firstTextBaseline, spacing: 8) {
-                        Text(volumeText
-                            .replacingOccurrences(of: "kg", with: "")
-                            .replacingOccurrences(of: "t", with: ""))
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        Text("\(Int(summary.volumeKg.rounded()))")
                             .font(.system(size: 66, weight: .black, design: .monospaced))
                             .foregroundStyle(Color.unbound.textPrimary)
                             .shadow(color: Color.white.opacity(0.35), radius: 18)
-                        Text(summary.volumeKg >= 1000 ? "T" : "KG")
-                            .font(Font.unbound.titleS)
-                            .foregroundStyle(Color.unbound.textPrimary.opacity(0.92))
+                        Text("KG")
+                            .font(.system(size: 30, weight: .black, design: .monospaced))
+                            .foregroundStyle(Color.unbound.textPrimary.opacity(0.85))
                     }
 
                     Rectangle()
@@ -434,8 +501,8 @@ struct WorkoutRewardSequenceView: View {
                         .frame(width: 142, height: 142)
 
                         AnimatedRewardAttributeHex(
-                            previous: previousAttributeMap,
-                            current: currentAttributeMap,
+                            previous: hexPrev.isEmpty ? previousAttributeMap : hexPrev,
+                            current: hexCur.isEmpty ? currentAttributeMap : hexCur,
                             levels: currentAttributeLevels,
                             tiers: currentAttributeTiers,
                             progress: attributeHexProgress,
@@ -491,13 +558,23 @@ struct WorkoutRewardSequenceView: View {
                         HStack(spacing: 12) {
                             RewardBadgeAsset(unlock: badge, tint: badgeTint)
                                 .frame(width: 56, height: 56)
-                            VStack(alignment: .leading, spacing: 3) {
+                            VStack(alignment: .leading, spacing: 4) {
                                 Text(badge.title.uppercased())
                                     .font(Font.unbound.bodyMStrong)
                                     .foregroundStyle(badge.rankTier == nil ? Color.unbound.textPrimary : badgeTint)
                                 Text(badge.subtitle ?? "Unlocked this session.")
                                     .font(Font.unbound.captionS)
                                     .foregroundStyle(Color.unbound.textTertiary)
+                                if badge.rankTier == nil {
+                                    Text("UNLOCKS PROFILE TITLE")
+                                        .font(Font.unbound.monoS)
+                                        .tracking(0.6)
+                                        .foregroundStyle(badgeTint)
+                                        .padding(.horizontal, 6)
+                                        .padding(.vertical, 2)
+                                        .background(Capsule().fill(badgeTint.opacity(0.16)))
+                                        .padding(.top, 1)
+                                }
                             }
                             Spacer()
                         }
@@ -817,9 +894,7 @@ struct WorkoutRewardSequenceView: View {
 
     private func revealCurrentPage() {
         let revealedBeat = currentBeatKind
-        if revealedBeat == .attributes {
-            attributeHexProgress = 0
-        }
+        if revealedBeat == .attributes { attributeHexProgress = 0 }
 
         pageRevealed = false
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
@@ -827,10 +902,42 @@ struct WorkoutRewardSequenceView: View {
                 pageRevealed = true
             }
             guard revealedBeat == .attributes else { return }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
-                withAnimation(.easeOut(duration: 1.15)) {
-                    attributeHexProgress = 1
-                }
+            runHexSequence()
+        }
+    }
+
+    /// Attribute-hex reveal. Every axis fills from its prior level-progress to its
+    /// new progress; an axis that LEVELED UP this session overshoots to full,
+    /// then rolls over (snap to empty) and refills to its new (small) progress —
+    /// the same level-up feel as the XP bar, per axis.
+    private func runHexSequence() {
+        let prev = previousAttributeMap
+        let cur = currentAttributeMap
+        let leveled = Set(summary.attributeDeltas.filter(\.didIncreaseLevel).map(\.key))
+
+        // Phase 1: fill toward current; leveled axes overshoot to full.
+        var phase1 = cur
+        for key in leveled { phase1[key] = 100 }
+        hexPrev = prev
+        hexCur = phase1
+        attributeHexProgress = 0
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
+            withAnimation(.easeOut(duration: leveled.isEmpty ? 1.15 : 0.95)) {
+                attributeHexProgress = 1
+            }
+        }
+
+        guard !leveled.isEmpty else { return }
+
+        // Phase 2: leveled axes roll over — snap empty, then refill to real value.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.18 + 0.95 + 0.16) {
+            var from = cur
+            for key in leveled { from[key] = 0 }
+            hexPrev = from
+            hexCur = cur
+            attributeHexProgress = 0
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.04) {
+                withAnimation(.easeOut(duration: 0.7)) { attributeHexProgress = 1 }
             }
         }
     }
@@ -852,6 +959,8 @@ struct WorkoutRewardSequenceView: View {
     private func playSound(for kind: RewardBeatKind) {
         switch kind {
         case .sessionComplete: UnboundSound.shared.play(.sessionComplete, volume: 0.85)
+        case .cosmetic: UnboundSound.shared.play(.rankReveal, volume: 0.7)
+        case .streak: UnboundSound.shared.play(.rankReveal, volume: 0.7)
         case .final: UnboundSound.shared.play(.finish)
         default: break
         }
@@ -876,7 +985,7 @@ struct WorkoutRewardSequenceView: View {
         case .xp:
             animatedXP = 0
             UnboundHaptics.heavy()
-        case .proof, .rankReveal, .attributes, .collection, .progression, .rankTrial, .weeklyVow:
+        case .proof, .rankReveal, .attributes, .collection, .progression, .rankTrial, .weeklyVow, .cosmetic, .streak:
             UnboundHaptics.medium()
         case .sessionComplete, .final, .rankBadge:
             UnboundHaptics.soft()
@@ -903,18 +1012,20 @@ struct WorkoutRewardSequenceView: View {
         return Color.unbound.coachCyan
     }
 
+    // The reward hex shows progress toward the next level (moves a lot per
+    // session), not the absolute level/100 (that's the profile's job).
     private var previousAttributeMap: [AttributeKey: Double] {
         if !summary.attributePreviousHexValues.isEmpty {
             return summary.attributePreviousHexValues
         }
-        return Dictionary(uniqueKeysWithValues: summary.attributeDeltas.map { ($0.key, $0.previousHexChartValue) })
+        return Dictionary(uniqueKeysWithValues: summary.attributeDeltas.map { ($0.key, $0.levelProgressStart * 100) })
     }
 
     private var currentAttributeMap: [AttributeKey: Double] {
         if !summary.attributeCurrentHexValues.isEmpty {
             return summary.attributeCurrentHexValues
         }
-        return Dictionary(uniqueKeysWithValues: summary.attributeDeltas.map { ($0.key, $0.currentHexChartValue) })
+        return Dictionary(uniqueKeysWithValues: summary.attributeDeltas.map { ($0.key, $0.currentProgress * 100) })
     }
 
 
@@ -1136,6 +1247,63 @@ private struct RewardPanel<Content: View>: View {
             .padding(.vertical, 8)
             .frame(maxWidth: .infinity, alignment: .center)
             .shadow(color: active ? tint.opacity(0.18) : .clear, radius: 24, y: 8)
+    }
+}
+
+// MARK: - Streak flame
+
+private struct StreakFlame: View {
+    let active: Bool
+    let tint: Color
+
+    @State private var lit = false
+    @State private var sparkles = false
+    @State private var flicker = false
+
+    // Cohesive fire — bright gold top into deep orange-red, no off-hue.
+    private let fire = LinearGradient(
+        colors: [
+            Color(red: 1.00, green: 0.86, blue: 0.34),
+            Color(red: 1.00, green: 0.55, blue: 0.12),
+            Color(red: 0.92, green: 0.22, blue: 0.06)
+        ],
+        startPoint: .top, endPoint: .bottom
+    )
+    private let emberShadow = Color(red: 1.0, green: 0.5, blue: 0.12)
+
+    var body: some View {
+        ZStack {
+            // Sparkle burst — same flare as the rank-badge reveal.
+            ForEach(0..<12, id: \.self) { i in
+                let angle = Double(i) / 12 * 2 * .pi
+                Circle()
+                    .fill(emberShadow)
+                    .frame(width: 5, height: 5)
+                    .offset(x: sparkles ? cos(angle) * 118 : 0,
+                            y: sparkles ? sin(angle) * 118 : 0)
+                    .opacity(sparkles ? 0 : 0.95)
+            }
+
+            Image(systemName: "flame.fill")
+                .font(.system(size: 104, weight: .black))
+                .foregroundStyle(fire)
+                .shadow(color: emberShadow.opacity(flicker ? 0.85 : 0.5), radius: flicker ? 34 : 24)
+                .shadow(color: emberShadow.opacity(lit ? 0.4 : 0), radius: 60)
+                .scaleEffect(lit ? (flicker ? 1.05 : 0.98) : 0.4, anchor: .bottom)
+                .rotationEffect(.degrees(lit ? 0 : -10))
+                .opacity(lit ? 1 : 0)
+        }
+        .onChange(of: active) { _, on in if on { ignite() } }
+        .onAppear { if active { ignite() } }
+    }
+
+    private func ignite() {
+        // Spring slam-in + sparkle burst (the badge reveal), then a living flicker.
+        withAnimation(.spring(response: 0.5, dampingFraction: 0.55)) { lit = true }
+        withAnimation(.easeOut(duration: 0.8).delay(0.08)) { sparkles = true }
+        withAnimation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true).delay(0.55)) {
+            flicker = true
+        }
     }
 }
 
@@ -2199,35 +2367,13 @@ private struct RewardBadgeAsset: View {
     let tint: Color
 
     var body: some View {
-        Group {
-            if UIImage(named: unlock.assetName) != nil {
-                Image(unlock.assetName)
-                    .resizable()
-                    .scaledToFit()
-                    .shadow(color: tint.opacity(unlock.rankTier == nil ? 0.35 : 0.55), radius: unlock.rankTier == nil ? 12 : 16)
-                    .overlay {
-                        if unlock.rankTier != nil {
-                            Circle()
-                                .stroke(tint.opacity(0.55), lineWidth: 1)
-                                .blur(radius: 0.3)
-                                .scaleEffect(1.08)
-                        }
-                    }
-            } else {
-                BadgeEmblemView(
-                    badge: Badge(
-                        id: unlock.id,
-                        displayName: unlock.title,
-                        description: unlock.subtitle ?? "Unlocked this session.",
-                        iconSystemName: "rosette",
-                        rarity: .rare,
-                        unlockedAt: Date()
-                    ),
-                    size: 56,
-                    isUnlocked: true
-                )
-            }
-        }
+        let badge = BadgeCatalog.all.first { $0.id == unlock.id }
+        BadgeMedallion(
+            iconSystemName: badge?.iconSystemName ?? "rosette",
+            rarity: badge?.rarity ?? (unlock.rankTier != nil ? .legendary : .rare),
+            size: 54,
+            unlocked: true
+        )
         .accessibilityLabel(unlock.title)
     }
 }

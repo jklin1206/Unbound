@@ -287,7 +287,8 @@ private enum RewardDemoScenarios {
         _ label: String, xp xpReward: XPReward,
         entries: [ExerciseLogEntry] = [], lifts: [LiftProgressReward] = [],
         attrs: [AttributeDeltaReward] = [], prs: [PersonalRecordReward] = [],
-        badges: [BadgeUnlock] = []
+        badges: [BadgeUnlock] = [], streak: StreakReward? = nil,
+        cosmetics: [CosmeticUnlockReward] = []
     ) -> RewardDemoScenario {
         let log = WorkoutLog(
             id: "demo-\(label)", userId: "demo", programId: "demo", dayNumber: 1,
@@ -305,9 +306,32 @@ private enum RewardDemoScenarios {
         s.liftProgress = lifts
         s.attributeDeltas = attrs
         s.personalRecords = prs
+        s.streak = streak
+        s.cosmeticUnlocks = cosmetics
+        // Reward hex = progress toward NEXT level (0–1), which moves a lot per
+        // session. Untrained axes hold at a resting progress; trained axes animate
+        // from levelProgressStart (0 if it leveled up) → currentProgress. Honest
+        // values — this is the real per-level progress, not a fudge.
+        if !attrs.isEmpty {
+            var before = restingProgress
+            var after = restingProgress
+            for a in attrs {
+                before[a.key] = a.levelProgressStart
+                after[a.key] = a.currentProgress
+            }
+            s.attributePreviousHexValues = before.mapValues { $0 * 100 }
+            s.attributeCurrentHexValues = after.mapValues { $0 * 100 }
+            s.attributePreviousLevels = Dictionary(uniqueKeysWithValues: attrs.map { ($0.key, $0.previousLevel) })
+            s.attributeLevels = Dictionary(uniqueKeysWithValues: attrs.map { ($0.key, $0.currentLevel) })
+        }
         s = RewardPayloadBuilder.attachProofRewards(result, to: s)
         return RewardDemoScenario(label: label, summary: s)
     }
+
+    /// Resting level-progress (0–1) for the untrained axes; only trained axes move.
+    static let restingProgress: [AttributeKey: Double] = [
+        .power: 0.46, .control: 0.30, .endurance: 0.24, .vitality: 0.18, .mobility: 0.40, .explosiveness: 0.28
+    ]
 
     // Reusable lift/skill bits.
     static let squatUp = LiftProgressReward(liftName: "Back Squat", family: .legs, fromTier: .forged, toTier: .veteran, fromProgress: 0.86, toProgress: 0.24, xpGained: 110)
@@ -318,7 +342,8 @@ private enum RewardDemoScenarios {
         // 1 — NO level-up: bar fills part-way within a level. One skill + one lift.
         scene("NO LEVEL UP", xp: xp(60, 7, 0.30, 7, 0.62),
               entries: [entry("pushup", "cal.pushup", [set(reps: 13)])],
-              lifts: [benchProg]),
+              lifts: [benchProg],
+              streak: StreakReward(dayCount: 3, didExtend: true)),
 
         // 2 — ONE level-up: bar fills to 100, number flips 7→8, refills to carryover.
         scene("ONE LEVEL UP", xp: xp(180, 7, 0.58, 8, 0.20),
@@ -327,7 +352,8 @@ private enum RewardDemoScenarios {
                 entry("plank", "cal.plank-30", [set(seconds: 60)])
               ],
               lifts: [squatUp],
-              attrs: [attr(.power, .forged, .veteran, 4, 5, 0.7, 0.22, xp: 120)]),
+              attrs: [attr(.power, .forged, .veteran, 4, 5, 0.7, 0.22, xp: 120)],
+              streak: StreakReward(dayCount: 7, didExtend: true)),
 
         // 3 — MULTI level-up: 12 → 14 (two fills + flips), bigger XP haul.
         scene("MULTI LEVEL UP", xp: xp(520, 12, 0.42, 14, 0.35),
@@ -370,8 +396,18 @@ private enum RewardDemoScenarios {
                 PersonalRecordReward(liftName: "Deadlift", valueText: "180 kg", deltaText: "+7.5", family: .pull)
               ],
               badges: [
-                BadgeUnlock(id: "demo_clean_sweep", title: "Clean Sweep",
-                            subtitle: "Every set, no misses", assetName: "badge_art_clean_sweep")
+                BadgeUnlock(id: "first_session", title: "First Rep",
+                            subtitle: "Logged your first session.", assetName: "badge_art_first_session"),
+                BadgeUnlock(id: "streak_14", title: "Two-Week Forge",
+                            subtitle: "Held a 14-day streak.", assetName: "badge_art_streak_14"),
+                BadgeUnlock(id: "streak_100", title: "Century",
+                            subtitle: "100 days. Unbroken.", assetName: "badge_art_streak_100")
+              ],
+              streak: StreakReward(dayCount: 21, didExtend: true),
+              cosmetics: [
+                CosmeticUnlockReward(title: "Jade Skin",
+                                     subtitle: "Skill-tree cosmetic — equip in Appearance.",
+                                     tint: Color.unbound.success)
               ])
     ]
 }

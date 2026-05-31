@@ -7,6 +7,9 @@ enum TitleCatalog {
 
     static func displayName(for id: TitleID) -> String {
         switch (id.path, id.tier) {
+        // Badge titles are named by the badge itself (not the axis/tier grid).
+        case (.badge(let badgeId), _):
+            return BadgeCatalog.all.first { $0.id == badgeId }?.displayName ?? "Badge"
         // Axis Titles
         case (.axis(.power), .bronze):           return "Power Initiate"
         case (.axis(.power), .silver):           return "Power Sovereign"

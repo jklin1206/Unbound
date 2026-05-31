@@ -449,6 +449,16 @@ struct UnboundHomeView: View {
         .frame(width: 76, alignment: .trailing)
     }
 
+    /// Streak countdown chip: how long until the streak breaks (Liftoff rule —
+    /// log a workout within 3 days). nil when there's no active streak.
+    private var streakCountdown: (text: String, urgent: Bool, safe: Bool)? {
+        guard let xp = sessionXP, xp.currentStreak > 0 else { return nil }
+        if xp.loggedToday() { return ("LOGGED TODAY", false, true) }
+        guard let left = xp.streakDaysRemaining() else { return nil }
+        if left <= 0 { return ("LOG TODAY", true, false) }
+        return ("\(left)D LEFT", left <= 1, false)
+    }
+
     private var weekPath: some View {
         let todayIndex = ((Calendar.current.component(.weekday, from: Date()) + 5) % 7) + 1
         let currentStreak = sessionXP?.currentStreak ?? streakDays
@@ -501,6 +511,19 @@ struct UnboundHomeView: View {
                         .monospacedDigit()
                         .lineLimit(1)
                         .minimumScaleFactor(0.82)
+                    if let cd = streakCountdown {
+                        Text(cd.text)
+                            .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                            .tracking(1.0)
+                            .foregroundStyle(cd.urgent ? Color.unbound.alert : (cd.safe ? Color.unbound.rankGreen : Color.unbound.ember))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(
+                                Capsule().fill((cd.urgent ? Color.unbound.alert : (cd.safe ? Color.unbound.rankGreen : Color.unbound.ember)).opacity(0.14))
+                            )
+                    }
                 }
 
                 HStack(alignment: .bottom, spacing: 5) {
