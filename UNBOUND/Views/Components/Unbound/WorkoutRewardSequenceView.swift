@@ -258,7 +258,9 @@ struct WorkoutRewardSequenceView: View {
                         .shadow(color: Color.rewardBlue.opacity(0.55), radius: 10)
 
                     HStack(alignment: .firstTextBaseline, spacing: 8) {
-                        Text(volumeText.replacingOccurrences(of: "t", with: ""))
+                        Text(volumeText
+                            .replacingOccurrences(of: "kg", with: "")
+                            .replacingOccurrences(of: "t", with: ""))
                             .font(.system(size: 66, weight: .black, design: .monospaced))
                             .foregroundStyle(Color.unbound.textPrimary)
                             .shadow(color: Color.white.opacity(0.35), radius: 18)
@@ -1457,10 +1459,12 @@ private struct LevelProgressHero: View {
     let tint: Color
     let animate: Bool
 
-    @State private var levelBurst = false   // scale-pop of the LVL number
-    @State private var upPop = false         // the "UP" badge slamming in
-    @State private var flash = false         // full-bleed flash on level-up
-    @State private var burstFired = false
+    @State private var displayedLevel: Int = 0   // flips to the next level only AFTER the bar fills
+    @State private var barProgress: Double = 0    // parent-driven fill (fill→100→reset→refill)
+    @State private var flourish = false           // cap ignite + shimmer at each 100%
+    @State private var levelBurst = false         // scale-pop of the LVL number on the flip
+    @State private var flash = false              // full-bleed flash on level-up
+    @State private var started = false
 
     private var leveledUp: Bool { levelAfter > levelBefore }
 
@@ -1472,26 +1476,12 @@ private struct LevelProgressHero: View {
                         .font(Font.unbound.captionS.weight(.heavy))
                         .tracking(1.8)
                         .foregroundStyle(Color.unbound.textTertiary)
-                    HStack(alignment: .firstTextBaseline, spacing: 8) {
-                        Text("LVL \(levelAfter)")
-                            .font(.system(size: 54, weight: .black, design: .monospaced))
-                            .tracking(0)
-                            .foregroundStyle(tint)
-                            .shadow(color: tint.opacity(levelBurst ? 0.95 : 0.52), radius: levelBurst ? 34 : 20)
-                            .scaleEffect(levelBurst ? 1.22 : 1.0, anchor: .leading)
-                        if leveledUp {
-                            Text("UP")
-                                .font(Font.unbound.captionS.weight(.black))
-                                .tracking(1.8)
-                                .foregroundStyle(Color.unbound.bg)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(tint, in: Capsule())
-                                .scaleEffect(upPop ? 1.0 : 0.0)
-                                .rotationEffect(.degrees(upPop ? 0 : -25))
-                                .shadow(color: tint.opacity(0.8), radius: upPop ? 14 : 0)
-                        }
-                    }
+                    Text("LVL \(displayedLevel)")
+                        .font(.system(size: 54, weight: .black, design: .monospaced))
+                        .foregroundStyle(tint)
+                        .shadow(color: tint.opacity(levelBurst ? 0.95 : 0.52), radius: levelBurst ? 34 : 20)
+                        .scaleEffect(levelBurst ? 1.22 : 1.0, anchor: .leading)
+                        .contentTransition(.numericText())
                 }
 
                 Spacer(minLength: 12)
@@ -1500,7 +1490,7 @@ private struct LevelProgressHero: View {
                     Text("+\(formatWhole(xpGained)) XP")
                         .font(.system(size: 28, weight: .black, design: .monospaced))
                         .foregroundStyle(Color.unbound.textPrimary)
-                    Text(levelAfter > levelBefore ? "LVL \(levelBefore) -> \(levelAfter)" : "LVL \(levelAfter)")
+                    Text(leveledUp ? "LVL \(levelBefore) -> \(levelAfter)" : "LVL \(levelAfter)")
                         .font(Font.unbound.captionS.weight(.heavy))
                         .tracking(1.3)
                         .foregroundStyle(Color.unbound.textTertiary)
@@ -1508,14 +1498,16 @@ private struct LevelProgressHero: View {
             }
 
             RPGStatBar(
-                from: barStart,
+                from: 0,
                 to: progressAfter,
                 tint: tint,
-                animate: animate,
+                animate: false,
                 height: 32,
                 segments: 10,
                 showOriginCap: true,
-                celebrate: leveledUp
+                celebrate: leveledUp,
+                controlledProgress: barProgress,
+                forceFlourish: flourish
             )
             .shadow(color: tint.opacity(levelBurst ? 0.85 : 0.42), radius: levelBurst ? 30 : 20)
             .scaleEffect(levelBurst ? 1.03 : 1.0)
@@ -1533,40 +1525,70 @@ private struct LevelProgressHero: View {
         }
         .padding(.vertical, 8)
         .overlay(
-            // Full-bleed flash on the level-up beat.
             RoundedRectangle(cornerRadius: 22, style: .continuous)
                 .fill(tint.opacity(flash ? 0.22 : 0))
                 .blur(radius: 8)
                 .allowsHitTesting(false)
         )
-        .onChange(of: animate) { _, on in if on { fireBurstIfLeveled() } }
-        .onAppear { if animate { fireBurstIfLeveled() } }
-    }
-
-    /// On a level-up, punctuate the moment the bar fills: the level-up chord,
-    /// a heavy haptic, a scale-pop of the LVL number, the UP badge slamming in,
-    /// and a quick flash.
-    private func fireBurstIfLeveled() {
-        guard leveledUp, !burstFired else { return }
-        burstFired = true
-        // Land exactly as the fill reaches the end (0.18 stagger + 1.05 fill).
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.23) {
-            UnboundSound.shared.play(.levelUp)
-            UnboundHaptics.heavy()
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.45)) {
-                levelBurst = true
-                upPop = true
-            }
-            withAnimation(.easeOut(duration: 0.18)) { flash = true }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.22) {
-                withAnimation(.spring(response: 0.45, dampingFraction: 0.7)) { levelBurst = false }
-                withAnimation(.easeOut(duration: 0.5)) { flash = false }
-            }
+        .onAppear {
+            displayedLevel = levelBefore
+            barProgress = progressBefore
+            if animate { runSequence() }
         }
+        .onChange(of: animate) { _, on in if on { runSequence() } }
     }
 
-    private var barStart: Double {
-        levelAfter > levelBefore ? 0 : progressBefore
+    /// The level-up bar choreography. For each level gained, the bar fills to
+    /// 100%, the moment lands (chord + haptic + flash), the LVL number flips to
+    /// the next level, then the bar snaps empty and refills. The final fill lands
+    /// at the new level's actual XP. No level-up → one clean fill.
+    private func runSequence() {
+        guard !started else { return }
+        started = true
+        displayedLevel = levelBefore
+        barProgress = progressBefore
+
+        let gained = max(0, levelAfter - levelBefore)
+        let seg = 0.85
+        var t = 0.25
+
+        guard gained > 0 else {
+            DispatchQueue.main.asyncAfter(deadline: .now() + t) {
+                withAnimation(.easeOut(duration: seg)) { barProgress = progressAfter }
+            }
+            return
+        }
+
+        for i in 0..<gained {
+            let startVal = i == 0 ? progressBefore : 0.0
+            DispatchQueue.main.asyncAfter(deadline: .now() + t) {
+                barProgress = startVal
+                withAnimation(.easeOut(duration: seg)) { barProgress = 1.0 }
+            }
+            t += seg
+
+            let newLevel = levelBefore + i + 1
+            DispatchQueue.main.asyncAfter(deadline: .now() + t) {
+                UnboundSound.shared.play(.levelUp)
+                UnboundHaptics.heavy()
+                withAnimation(.easeOut(duration: 0.12)) { flourish = true; flash = true }
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.45)) {
+                    displayedLevel = newLevel
+                    levelBurst = true
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.28) {
+                    withAnimation(.spring(response: 0.45, dampingFraction: 0.7)) { levelBurst = false }
+                    withAnimation(.easeOut(duration: 0.4)) { flash = false; flourish = false }
+                    barProgress = 0   // snap empty for the next fill
+                }
+            }
+            t += 0.55
+        }
+
+        // Final fill into the new level's XP carryover.
+        DispatchQueue.main.asyncAfter(deadline: .now() + t) {
+            withAnimation(.easeOut(duration: seg)) { barProgress = progressAfter }
+        }
     }
 }
 
@@ -1932,17 +1954,27 @@ private struct RPGStatBar: View {
     /// Only fire the end flourish (shimmer sweep + cap ignite) on a celebratory
     /// completion — i.e. a level-up. A plain fill stays clean and readable.
     var celebrate: Bool = false
+    /// When set, the parent drives the fill directly (used by the level-up
+    /// choreography: fill→100→reset→refill). The bar skips its own staging.
+    var controlledProgress: Double? = nil
+    /// Parent-triggered flourish (cap ignite + shimmer) for the controlled path.
+    var forceFlourish: Bool = false
 
     @State private var displayedProgress: Double = 0
     @State private var reachedEnd = false
 
-    private var flourish: Bool { reachedEnd && celebrate }
+    private var flourish: Bool {
+        controlledProgress != nil ? forceFlourish : (reachedEnd && celebrate)
+    }
+    private var fillProgress: Double { controlledProgress ?? displayedProgress }
 
     var body: some View {
         GeometryReader { geo in
             let capWidth = showOriginCap ? height * 1.55 : height * 0.70
             let rightCapWidth = height * 0.86
-            let trackX = capWidth * 0.72
+            // Pull the track left so the origin diamond sits at the fill origin
+            // (otherwise the diamond floats too far left of the bar).
+            let trackX = showOriginCap ? capWidth * 0.5 : capWidth * 0.72
             let trackWidth = max(24, geo.size.width - trackX - rightCapWidth * 0.72)
             let trackHeight = height * 0.54
 
@@ -1967,7 +1999,7 @@ private struct RPGStatBar: View {
                             .frame(width: trackWidth * min(1, max(0, from)))
                     }
                     .overlay(alignment: .leading) {
-                        let fillWidth = trackWidth * min(1, max(0, displayedProgress))
+                        let fillWidth = trackWidth * min(1, max(0, fillProgress))
                         EnergyFill(tint: tint, cut: trackHeight * 0.42, sweep: flourish)
                             .frame(width: fillWidth, height: trackHeight)
                             .overlay(alignment: .trailing) {
@@ -2013,6 +2045,7 @@ private struct RPGStatBar: View {
     }
 
     private func stageFill() {
+        guard controlledProgress == nil else { return }   // parent drives the fill
         displayedProgress = min(1, max(0, from))
         reachedEnd = false
         guard animate else { return }

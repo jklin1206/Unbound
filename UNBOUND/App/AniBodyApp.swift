@@ -260,69 +260,119 @@ private enum RewardDemoScenarios {
                          plannedReps: "—", sets: sets, skipped: false, notes: nil)
     }
 
-    static func make(
-        _ label: String, xp: Int, _ entries: [ExerciseLogEntry],
-        prs: [PersonalRecordReward] = [], badges: [BadgeUnlock] = [],
-        lifts: [LiftProgressReward] = []
+    /// Explicit XP state so the level-up bar can be demonstrated at any level:
+    /// `progBefore`/`progAfter` drive the bar, `lvlBefore`/`lvlAfter` the number.
+    static func xp(_ total: Int, _ lvlBefore: Int, _ progBefore: Double, _ lvlAfter: Int, _ progAfter: Double) -> XPReward {
+        XPReward(
+            total: total,
+            previousLevel: lvlBefore, newLevel: lvlAfter,
+            previousProgress: progBefore, newProgress: progAfter,
+            previousXP: 0, currentXP: progAfter * 100,
+            levelFloorXP: 0, nextLevelXP: 100,
+            breakdown: [XPBreakdownLine(label: "Session XP", amount: total)]
+        )
+    }
+
+    static func attr(_ key: AttributeKey, _ from: RankTitle, _ to: RankTitle,
+                     _ lvlFrom: Int, _ lvlTo: Int, _ pFrom: Double, _ pTo: Double, xp: Double) -> AttributeDeltaReward {
+        AttributeDeltaReward(
+            key: key, xpGained: xp, previousXP: 0, currentXP: xp,
+            previousLevel: lvlFrom, currentLevel: lvlTo,
+            previousProgress: pFrom, currentProgress: pTo,
+            previousTier: from, currentTier: to
+        )
+    }
+
+    static func scene(
+        _ label: String, xp xpReward: XPReward,
+        entries: [ExerciseLogEntry] = [], lifts: [LiftProgressReward] = [],
+        attrs: [AttributeDeltaReward] = [], prs: [PersonalRecordReward] = [],
+        badges: [BadgeUnlock] = []
     ) -> RewardDemoScenario {
         let log = WorkoutLog(
             id: "demo-\(label)", userId: "demo", programId: "demo", dayNumber: 1,
             plannedWorkoutName: label, startedAt: Date(timeIntervalSince1970: 0),
             completedAt: Date(timeIntervalSince1970: 1920), exerciseEntries: entries,
-            overallNotes: nil, overallRPE: 8, durationMinutes: 32)
-        let result = ProofEngine.evaluate(log: log, source: .generated)
+            overallNotes: nil, overallRPE: 8, durationMinutes: 38)
+        let result = entries.isEmpty
+            ? ProofEngineResult.empty(logId: "demo-\(label)", source: .generated)
+            : ProofEngine.evaluate(log: log, source: .generated)
         var s = WorkoutRewardSequenceSummary.simpleReceipt(
-            workoutName: label, durationMinutes: 32, workSets: entries.count,
-            volumeKg: 0, rpe: 8, xpTotal: xp, xpLabel: "Session XP",
-            sourceName: "Program", badges: badges)
-        s.personalRecords = prs
+            workoutName: label, durationMinutes: 38, workSets: max(entries.count + lifts.count, 1),
+            volumeKg: lifts.isEmpty ? 0 : 4280, rpe: 8, xpTotal: xpReward.total,
+            xpLabel: "Session XP", sourceName: "Program", badges: badges)
+        s.xp = xpReward
         s.liftProgress = lifts
-        // Build unified per-exercise rank cards (skills + lifts) from the result.
+        s.attributeDeltas = attrs
+        s.personalRecords = prs
         s = RewardPayloadBuilder.attachProofRewards(result, to: s)
         return RewardDemoScenario(label: label, summary: s)
     }
 
+    // Reusable lift/skill bits.
+    static let squatUp = LiftProgressReward(liftName: "Back Squat", family: .legs, fromTier: .forged, toTier: .veteran, fromProgress: 0.86, toProgress: 0.24, xpGained: 110)
+    static let benchProg = LiftProgressReward(liftName: "Bench Press", family: .press, fromTier: .apprentice, toTier: .apprentice, fromProgress: 0.38, toProgress: 0.66, xpGained: 64)
+    static let deadliftUp = LiftProgressReward(liftName: "Deadlift", family: .pull, fromTier: .veteran, toTier: .master, fromProgress: 0.80, toProgress: 0.15, xpGained: 130)
+
     static let all: [RewardDemoScenario] = [
-        // 1 — small win: partial XP, no level-up, just a new best.
-        make("PARTIAL · NO LEVEL", xp: 55, [entry("pushup", "cal.pushup", [set(reps: 3)])]),
+        // 1 — NO level-up: bar fills part-way within a level. One skill + one lift.
+        scene("NO LEVEL UP", xp: xp(60, 7, 0.30, 7, 0.62),
+              entries: [entry("pushup", "cal.pushup", [set(reps: 13)])],
+              lifts: [benchProg]),
 
-        // 2 — single level-up, one low-tier rank (Novice badge).
-        make("LEVEL UP · 1 RANK", xp: 140, [entry("pushup", "cal.pushup", [set(reps: 13)])]),
+        // 2 — ONE level-up: bar fills to 100, number flips 7→8, refills to carryover.
+        scene("ONE LEVEL UP", xp: xp(180, 7, 0.58, 8, 0.20),
+              entries: [
+                entry("pullup", "pp.pullup", [set(reps: 13)]),
+                entry("plank", "cal.plank-30", [set(seconds: 60)])
+              ],
+              lifts: [squatUp],
+              attrs: [attr(.power, .forged, .veteran, 4, 5, 0.7, 0.22, xp: 120)]),
 
-        // 3 — multi-rank on one move: first HSPU jumps to its Veteran floor.
-        make("MULTI-RANK · 1 MOVE", xp: 165,
-             [entry("handstand pushup", "cal.handstand-pushup", [set(reps: 1)])]),
+        // 3 — MULTI level-up: 12 → 14 (two fills + flips), bigger XP haul.
+        scene("MULTI LEVEL UP", xp: xp(520, 12, 0.42, 14, 0.35),
+              entries: [
+                entry("pushup", "cal.pushup", [set(reps: 30)]),
+                entry("dip", "cal.5-dips", [set(reps: 20)])
+              ],
+              lifts: [squatUp, deadliftUp],
+              attrs: [
+                attr(.power, .veteran, .veteran, 5, 5, 0.4, 0.7, xp: 90),
+                attr(.control, .apprentice, .forged, 3, 4, 0.8, 0.3, xp: 110)
+              ]),
 
-        // 4 — many exercises, different badges per movement.
-        make("MANY EXERCISES", xp: 230, [
-            entry("pushup", "cal.pushup", [set(reps: 30)]),
-            entry("pullup", "pp.pullup", [set(reps: 13)]),
-            entry("dip", "cal.5-dips", [set(reps: 20)]),
-            entry("pistol squat", "ld.pistol-squat", [set(reps: 13)])
-        ]),
+        // 4 — LIFTS + SKILLS + STATS together on one RANKS page.
+        scene("LIFTS + SKILLS", xp: xp(240, 9, 0.50, 10, 0.30),
+              entries: [
+                entry("pullup", "pp.pullup", [set(reps: 23)]),
+                entry("pistol squat", "ld.pistol-squat", [set(reps: 13)])
+              ],
+              lifts: [squatUp, benchProg, deadliftUp],
+              attrs: [
+                attr(.power, .forged, .veteran, 4, 5, 0.6, 0.2, xp: 120),
+                attr(.endurance, .novice, .novice, 2, 2, 0.3, 0.55, xp: 70)
+              ]),
 
-        // 5 — everything: top-tier gold badge + many ranks + PRs + a badge unlock.
-        make("EVERYTHING · GOLD", xp: 360, [
-            entry("pushup", "cal.pushup", [set(reps: 90)]),
-            entry("pullup", "pp.pullup", [set(reps: 32)]),
-            entry("dip", "cal.5-dips", [set(reps: 44)]),
-            entry("muscle-up", "pp.muscle-up", [set(reps: 17)])
-        ],
-        prs: [
-            PersonalRecordReward(liftName: "Push-Up", valueText: "90 reps", deltaText: "+12", family: .press),
-            PersonalRecordReward(liftName: "Pull-Up", valueText: "32 reps", deltaText: "+5", family: .pull)
-        ],
-        badges: [
-            BadgeUnlock(id: "demo_clean_sweep", title: "Clean Sweep",
-                        subtitle: "Every set, no misses", assetName: "badge_art_clean_sweep")
-        ],
-        lifts: [
-            // A loaded lift ranks up on the SAME unified RANKS page as the skills.
-            LiftProgressReward(liftName: "Back Squat", family: .legs, fromTier: .forged, toTier: .veteran,
-                               fromProgress: 0.84, toProgress: 0.22, xpGained: 90),
-            LiftProgressReward(liftName: "Bench Press", family: .press, fromTier: .apprentice, toTier: .apprentice,
-                               fromProgress: 0.40, toProgress: 0.68, xpGained: 60)
-        ])
+        // 5 — EVERYTHING: multi level-up + top-tier skills + lifts + attrs + PRs + badge.
+        scene("EVERYTHING · GOLD", xp: xp(640, 18, 0.55, 20, 0.40),
+              entries: [
+                entry("pushup", "cal.pushup", [set(reps: 90)]),
+                entry("pullup", "pp.pullup", [set(reps: 32)]),
+                entry("muscle-up", "pp.muscle-up", [set(reps: 17)])
+              ],
+              lifts: [squatUp, deadliftUp],
+              attrs: [
+                attr(.power, .veteran, .master, 5, 6, 0.7, 0.25, xp: 160),
+                attr(.control, .forged, .veteran, 4, 5, 0.6, 0.3, xp: 120)
+              ],
+              prs: [
+                PersonalRecordReward(liftName: "Pull-Up", valueText: "32 reps", deltaText: "+5", family: .pull),
+                PersonalRecordReward(liftName: "Deadlift", valueText: "180 kg", deltaText: "+7.5", family: .pull)
+              ],
+              badges: [
+                BadgeUnlock(id: "demo_clean_sweep", title: "Clean Sweep",
+                            subtitle: "Every set, no misses", assetName: "badge_art_clean_sweep")
+              ])
     ]
 }
 #endif
