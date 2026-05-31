@@ -109,15 +109,13 @@ enum SkillTrainingPlanLibrary {
         case "hs.wall-supported-oah": return wallSupportedOahPlan
         case "oah.one-arm-handstand-5s", "oah.full-one-arm-handstand":
             return oneArmHandstandPlan(skillId: skillId)
-        case let id where id.hasPrefix("co."):
-            return conditioningPlan(skillId: id)
         default:                     return nil
         }
     }
 
     private static func skillName(for skillId: String) -> String {
         switch skillId {
-        case "pp.dead-hang", "co.dead-hang-60": return "Dead Hang"
+        case "pp.dead-hang": return "Dead Hang"
         case "pp.chin-up": return "Chin-Up"
         case "pp.strict-chin-up": return "Strict Chin-Up"
         case "pp.wide-pullup": return "Wide Pull-Up"
@@ -180,14 +178,6 @@ enum SkillTrainingPlanLibrary {
         case "cl.three-sixty-pulls": return "360 Pull"
         case "cl.dragon-flag-hip-raise": return "Dragon Flag Hip Raise"
         case "cl.dragon-flag": return "Dragon Flag"
-        case "co.bw-farmer-carry": return "Bodyweight Farmer Carry"
-        case "co.1.5x-farmer-carry": return "1.5x Bodyweight Farmer Carry"
-        case "co.2x-farmer-carry": return "2x Bodyweight Farmer Carry"
-        case "co.sled-push": return "Sled Push"
-        case "co.400m-row": return "400m Row"
-        case "co.mile-sub-7": return "Sub-7 Mile"
-        case "co.5k-sub-22": return "Sub-22 5K"
-        case "co.assault-bike-30": return "30-Calorie Assault Bike"
         default:
             return skillId
                 .split(separator: ".").last
@@ -197,7 +187,7 @@ enum SkillTrainingPlanLibrary {
 
     private static func hangPlan(skillId: String) -> SkillTrainingPlan {
         let name = skillName(for: skillId)
-        let seconds = skillId == "co.dead-hang-60" ? 60 : 30
+        let seconds = 30
         return SkillTrainingPlan(
             skillId: skillId,
             regressions: [
@@ -2155,118 +2145,4 @@ enum SkillTrainingPlanLibrary {
         )
     }
 
-    private static func conditioningPlan(skillId: String) -> SkillTrainingPlan {
-        switch skillId {
-        case "co.bw-farmer-carry", "co.1.5x-farmer-carry", "co.2x-farmer-carry":
-            return carryPlan(skillId: skillId)
-        case "co.sled-push":
-            return sledPushPlan
-        case "co.400m-row":
-            return rowSprintPlan
-        case "co.mile-sub-7", "co.5k-sub-22":
-            return runPlan(skillId: skillId)
-        case "co.dead-hang-60":
-            return hangPlan(skillId: skillId)
-        default:
-            return assaultBikePlan
-        }
-    }
-
-    private static func carryPlan(skillId: String) -> SkillTrainingPlan {
-        let name = skillName(for: skillId)
-        let heavy = skillId != "co.bw-farmer-carry"
-        return SkillTrainingPlan(
-            skillId: skillId,
-            regressions: [
-                TrainingExercise(name: "Suitcase Carry", cues: ["One side at a time", "Do not lean away"]),
-                TrainingExercise(name: "Farmer Hold", cues: ["Stand tall first", "10-20s before walking"]),
-                TrainingExercise(name: heavy ? "Previous-Load Farmer Carry" : "Half-Bodyweight Farmer Carry", cues: ["Perfect posture", "Short courses"])
-            ],
-            mainSets: [
-                TrainingPrescription(exerciseName: name, sets: heavy ? 5 : 4, target: .hold(seconds: heavy ? 20 : 40), restSeconds: heavy ? 150 : 90, notes: "Use load plus distance/time as the real standard. Shoulders level, small steps, clean set-down."),
-                TrainingPrescription(exerciseName: "Farmer Carry Intervals", sets: 4, target: .hold(seconds: 30), restSeconds: 90, notes: "Walk briskly without swinging the handles into the legs.")
-            ],
-            accessories: [
-                TrainingExercise(name: "Trap Bar Deadlift or Hinge", cues: ["Clean pickup pattern", "3-5 reps x 3"]),
-                TrainingExercise(name: "Side Plank", cues: ["Anti-lateral flexion", "20-40s per side"]),
-                TrainingExercise(name: "Forearm Extensor Opens", cues: ["Balance grip work", "15-25 x 2"])
-            ]
-        )
-    }
-
-    private static let sledPushPlan = SkillTrainingPlan(
-        skillId: "co.sled-push",
-        regressions: [
-            TrainingExercise(name: "Wall Lean March", cues: ["Strong forward angle", "Drive floor back"]),
-            TrainingExercise(name: "Light Sled March", cues: ["Smooth first steps", "No upright collapse"]),
-            TrainingExercise(name: "Short Sled Intervals", cues: ["10-15m repeats", "Same body angle every rep"])
-        ],
-        mainSets: [
-            TrainingPrescription(exerciseName: "Sled Push", sets: 6, target: .hold(seconds: 15), restSeconds: 120, notes: "Load should allow continuous motion, braced spine, and short powerful steps."),
-            TrainingPrescription(exerciseName: "Sled Push Tempo Course", sets: 4, target: .hold(seconds: 20), restSeconds: 90, notes: "Submaximal pacing for posture and repeatability.")
-        ],
-        accessories: [
-            TrainingExercise(name: "Split Squat", cues: ["Leg drive base", "6-10 per side"]),
-            TrainingExercise(name: "Plank Max Hold", cues: ["Brace under drive", "30-60s x 3"]),
-            TrainingExercise(name: "Calf Raise", cues: ["Ankle stiffness", "12-20 x 3"])
-        ]
-    )
-
-    private static let rowSprintPlan = SkillTrainingPlan(
-        skillId: "co.400m-row",
-        regressions: [
-            TrainingExercise(name: "Technique Row", cues: ["Legs, body, arms", "Recover arms, body, legs"]),
-            TrainingExercise(name: "100m Row Repeat", cues: ["Sprint rhythm", "Do not shorten stroke"]),
-            TrainingExercise(name: "Rate-Cap Row", cues: ["20-24 spm", "Powerful drive"])
-        ],
-        mainSets: [
-            TrainingPrescription(exerciseName: "400m Row", sets: 3, target: .reps(1), restSeconds: 240, notes: "Use a familiar drag setting. Full strokes beat frantic half-strokes."),
-            TrainingPrescription(exerciseName: "100m Row Repeat", sets: 6, target: .reps(1), restSeconds: 90, notes: "Practice sprint output while keeping sequence intact.")
-        ],
-        accessories: [
-            TrainingExercise(name: "Hip Hinge Drill", cues: ["Torso swing without rounding", "8-10 x 2"]),
-            TrainingExercise(name: "Hollow Body Hold", cues: ["Brace under fatigue", "20-40s x 3"]),
-            TrainingExercise(name: "Easy Technique Row", cues: ["5-10 minutes", "Nasal or relaxed breathing"])
-        ]
-    )
-
-    private static func runPlan(skillId: String) -> SkillTrainingPlan {
-        let is5k = skillId == "co.5k-sub-22"
-        let name = skillName(for: skillId)
-        return SkillTrainingPlan(
-            skillId: skillId,
-            regressions: [
-                TrainingExercise(name: "Easy Base Run", cues: ["Conversational effort", "Build weekly consistency"]),
-                TrainingExercise(name: is5k ? "Goal-Pace 1K Repeat" : "Goal-Pace 400", cues: [is5k ? "Around 4:24/km" : "Around 1:45/lap", "Recover enough to keep form"]),
-                TrainingExercise(name: "Relaxed Strides", cues: ["Fast but smooth", "10-20s reps"])
-            ],
-            mainSets: [
-                TrainingPrescription(exerciseName: name, sets: 1, target: .reps(1), restSeconds: 0, notes: is5k ? "Test on a measured 5K route or calibrated treadmill. Start controlled so kilometers 3-4 do not collapse." : "Test on a measured mile. First lap near goal pace, then protect lap three before the kick."),
-                TrainingPrescription(exerciseName: is5k ? "5 x 1K Goal-Pace Repeats" : "4 x 400m Goal-Pace Repeats", sets: is5k ? 5 : 4, target: .reps(1), restSeconds: is5k ? 150 : 120, notes: "Keep at least 48h between hard run sessions. This is pace rehearsal, not all-out racing.")
-            ],
-            accessories: [
-                TrainingExercise(name: "Tempo Run", cues: ["Comfortably hard", is5k ? "12-20 minutes" : "8-12 minutes"]),
-                TrainingExercise(name: "Easy Run", cues: ["Aerobic base", "20-40 minutes"]),
-                TrainingExercise(name: "Calf Raise", cues: ["Lower-leg durability", "12-20 x 3"])
-            ]
-        )
-    }
-
-    private static let assaultBikePlan = SkillTrainingPlan(
-        skillId: "co.assault-bike-30",
-        regressions: [
-            TrainingExercise(name: "Smooth RPM Ride", cues: ["Find rhythm", "Arms and legs share work"]),
-            TrainingExercise(name: "10-Cal Assault Bike Repeat", cues: ["Controlled launch", "No early redline"]),
-            TrainingExercise(name: "Arms/Legs Practice", cues: ["Short arms-only and legs-only blocks", "Stable torso"])
-        ],
-        mainSets: [
-            TrainingPrescription(exerciseName: "30-Calorie Assault Bike", sets: 2, target: .reps(1), restSeconds: 300, notes: "Set seat first. Hard start, quick settle, push through the final calories without coasting."),
-            TrainingPrescription(exerciseName: "10-Cal Assault Bike Repeat", sets: 5, target: .reps(1), restSeconds: 90, notes: "Repeatable power. Stop if output collapses into sloppy survival pacing.")
-        ],
-        accessories: [
-            TrainingExercise(name: "Easy Bike Flush", cues: ["5-10 minutes", "Nasal or relaxed breathing"]),
-            TrainingExercise(name: "Goblet Squat", cues: ["Leg drive base", "8-12 x 3"]),
-            TrainingExercise(name: "Plank Max Hold", cues: ["Stable trunk", "30-60s x 3"])
-        ]
-    )
 }

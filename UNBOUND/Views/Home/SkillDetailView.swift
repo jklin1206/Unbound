@@ -1320,6 +1320,10 @@ struct SkillDetailView: View {
 
     /// Infographic asset name lookup — bitmap stored under SkillInfographics/<id>_info.
     private func infographicAssetName(_ id: String) -> String {
+        let noInfographicIds: Set<String> = [
+            "cl.german-hang"
+        ]
+        if noInfographicIds.contains(id) { return "__missing_skill_infographic" }
         if id == "pp.muscle-up" { return "pp_muscle-up_info_v2" }
         if id == "hs.freestanding-hs-30" { return "hs_freestanding-hs-30_info_v2" }
         if id == "cal.pseudo-planche-pushup" || id == "cal.tuck-planche-pushup" {
@@ -2117,8 +2121,6 @@ private enum SkillGuideLibrary {
             return bentArmPressGuide()
         case let id where id.hasPrefix("ld."):
             return legGuide(skillId: id)
-        case let id where id.hasPrefix("co."):
-            return conditioningGuide(skillId: id)
         default:
             return nil
         }
@@ -3362,137 +3364,6 @@ private enum SkillGuideLibrary {
                 SkillGuideMistake(mistake: "Too many reps after power fades.", fix: "End the set when the hands barely leave the floor.")
             ]
         )
-    }
-
-    private static func conditioningGuide(skillId: String) -> SkillGuide {
-        switch skillId {
-        case "co.bw-farmer-carry", "co.1.5x-farmer-carry", "co.2x-farmer-carry":
-            let load = skillId == "co.2x-farmer-carry" ? "2x bodyweight" : (skillId == "co.1.5x-farmer-carry" ? "1.5x bodyweight" : "bodyweight")
-            let heavy = skillId != "co.bw-farmer-carry"
-            return SkillGuide(
-                standard: "A clean farmer carry uses \(load) total load split evenly between hands unless the test states otherwise. Pick the implements from a braced hinge, stand tall, shoulders level, arms long, handles quiet, and walk without leaning, resting the load, or dropping early.",
-                scoringNote: "Conditioning does not erase posture. Stop or regress if the spine rounds, shoulders tilt, grip opens unsafely, or the load starts swinging into the legs.",
-                assistance: [
-                    SkillGuideAssistance(name: heavy ? "Lighter Carry" : "Half-Bodyweight Carry", detail: heavy ? "Build from the previous carry standard with shorter courses before testing this load." : "Start around half to three-quarter bodyweight and add load after posture stays tall.", icon: "scalemass.fill"),
-                    SkillGuideAssistance(name: "Farmer Hold", detail: "Stand with the load for 10-20 seconds before walking so grip and bracing learn the demand.", icon: "pause.circle.fill"),
-                    SkillGuideAssistance(name: "Trap Bar Carry", detail: "Use a trap bar when available to keep loading symmetrical while building heavy carry tolerance.", icon: "rectangle.compress.vertical")
-                ],
-                tips: [
-                    SkillGuideTip(title: "Brace before the pick", detail: "Wedge, grip, breathe, then stand. The carry starts before the first step.", icon: "lock.fill"),
-                    SkillGuideTip(title: "Small fast steps", detail: "Short steps keep the load quiet and reduce side-to-side sway.", icon: "shoeprints.fill"),
-                    SkillGuideTip(title: "Set down cleanly", detail: "The finish is not a crash. Hinge down and place the implements where they cannot hit the feet.", icon: "arrow.down.to.line")
-                ],
-                mistakes: [
-                    SkillGuideMistake(mistake: "Rounding to lift the handles.", fix: "Reduce load and treat the pickup like a strict deadlift."),
-                    SkillGuideMistake(mistake: "Leaning or side-bending while walking.", fix: "Shorten the distance, lower load, and keep shoulders level."),
-                    SkillGuideMistake(mistake: "Overstriding and swinging the load.", fix: "Use shorter steps and keep hands close to the sides.")
-                ]
-            )
-        case "co.dead-hang-60":
-            let seconds = 60
-            return SkillGuide(
-                standard: "A clean \(seconds)-second dead hang supports full bodyweight from the bar with arms fully extended, thumbs wrapped when possible, body quiet, feet off the floor, and no elbow bend or shoulder pain.",
-                scoringNote: "Passive hang can count if shoulders tolerate it, but active shoulder control is preferred. Swinging, kicking, foot taps, or sharp pain end the test.",
-                assistance: [
-                    SkillGuideAssistance(name: "Feet-Assisted Hang", detail: "Keep toes lightly on a box to practice grip and shoulder position before full bodyweight time.", icon: "shoeprints.fill"),
-                    SkillGuideAssistance(name: "Cluster Holds", detail: "Accumulate the target in smaller chunks, such as 3 x 20 seconds, before testing unbroken.", icon: "timer"),
-                    SkillGuideAssistance(name: "Active Scap Hang", detail: "Practice pulling shoulders slightly down from the ears without bending the elbows.", icon: "arrow.down.circle.fill")
-                ],
-                tips: [
-                    SkillGuideTip(title: "Wrap and settle", detail: "Set the grip before the clock starts and let the body become still.", icon: "hand.raised.fill"),
-                    SkillGuideTip(title: "Long arms, quiet ribs", detail: "Reach long through the elbows while keeping enough trunk control to prevent swinging.", icon: "figure.hanging"),
-                    SkillGuideTip(title: "Step down", detail: "Finish by stepping to support if possible. Do not turn the end into a hard drop.", icon: "arrow.down.to.line")
-                ],
-                mistakes: [
-                    SkillGuideMistake(mistake: "Over-gripping and burning out early.", fix: "Use a firm wrap without death-gripping the first seconds."),
-                    SkillGuideMistake(mistake: "Swinging to survive.", fix: "Reset with shorter clean holds and lightly squeeze legs together."),
-                    SkillGuideMistake(mistake: "Hanging through shoulder pain.", fix: "Use feet assistance and active hang work until the shoulder position is pain-free.")
-                ]
-            )
-        case "co.sled-push":
-            return SkillGuide(
-                standard: "A clean sled push keeps a strong forward body angle, neutral spine, braced trunk, hands set on the sled, and short powerful steps that drive the floor backward. The sled should move continuously without twisting or upright collapse.",
-                scoringNote: "The benchmark counts forward progress with posture. If the spine rounds, arms pump like a sprint, or the athlete stands upright to survive, reduce load or distance.",
-                assistance: [
-                    SkillGuideAssistance(name: "Light Sled March", detail: "Use a load that allows smooth first steps and a consistent body angle.", icon: "arrow.forward"),
-                    SkillGuideAssistance(name: "Wall Lean March", detail: "Practice the forward lean and leg drive against a wall before loading the sled.", icon: "rectangle.portrait"),
-                    SkillGuideAssistance(name: "Short Intervals", detail: "Break the course into shorter pushes so cadence and posture stay intact.", icon: "timer")
-                ],
-                tips: [
-                    SkillGuideTip(title: "Push the floor behind you", detail: "Leg drive moves the sled. The arms connect you to it; they do not do the whole job.", icon: "bolt.fill"),
-                    SkillGuideTip(title: "Build speed after movement", detail: "Get the sled rolling smoothly before trying to accelerate.", icon: "speedometer"),
-                    SkillGuideTip(title: "Stay low late", detail: "Fatigue tries to pull you upright. Keep the lean and shorten steps instead.", icon: "line.diagonal")
-                ],
-                mistakes: [
-                    SkillGuideMistake(mistake: "Standing too upright.", fix: "Lower the load and rebuild the lean line."),
-                    SkillGuideMistake(mistake: "Bouncing vertically.", fix: "Shorten steps and push backward through the floor."),
-                    SkillGuideMistake(mistake: "Rounding the back.", fix: "Brace ribs and pelvis together before the sled moves.")
-                ]
-            )
-        case "co.400m-row":
-            return SkillGuide(
-                standard: "A clean 400m row starts with straps snug, monitor set, damper or drag familiar, and full strokes: legs drive first, torso swings, arms finish; recovery returns arms, body, then legs. Finish without stopping or turning into frantic half-strokes.",
-                scoringNote: "Damper at 10 is not a badge. Use a setting that lets power and stroke sequence stay clean for the whole sprint.",
-                assistance: [
-                    SkillGuideAssistance(name: "Technique Row", detail: "Row at 20-24 strokes per minute to rehearse legs-body-arms before sprinting.", icon: "metronome"),
-                    SkillGuideAssistance(name: "100m Repeats", detail: "Use 4 x 100m or 2 x 200m to build sprint rhythm without form collapse.", icon: "timer"),
-                    SkillGuideAssistance(name: "Rate Cap", detail: "Limit stroke rate until each drive stays connected and long.", icon: "speedometer")
-                ],
-                tips: [
-                    SkillGuideTip(title: "Legs, body, arms", detail: "The drive starts with the legs. Pulling early with the arms wastes the strongest part of the stroke.", icon: "arrow.right"),
-                    SkillGuideTip(title: "Recover in reverse", detail: "Hands away, body forward, then knees bend. This keeps the handle from crashing around the knees.", icon: "arrow.uturn.backward"),
-                    SkillGuideTip(title: "Last 100 with shape", detail: "Lift rate near the finish without shortening into panic strokes.", icon: "flag.checkered")
-                ],
-                mistakes: [
-                    SkillGuideMistake(mistake: "Damper set too high by default.", fix: "Use a familiar drag and focus on force through the drive."),
-                    SkillGuideMistake(mistake: "Arms pull before legs finish.", fix: "Pause-drill the sequence: legs, body, arms."),
-                    SkillGuideMistake(mistake: "Rushing the slide.", fix: "Let the recovery be quick but organized: arms, body, legs.")
-                ]
-            )
-        case "co.mile-sub-7", "co.5k-sub-22":
-            let is5k = skillId == "co.5k-sub-22"
-            return SkillGuide(
-                standard: is5k
-                    ? "A clean sub-22 5K covers 5 kilometers in 21:59 or faster, averaging slightly faster than 4:24 per kilometer or 7:05 per mile, with pacing controlled enough that the middle kilometers do not collapse."
-                    : "A clean sub-7 mile covers one mile in 6:59 or faster, averaging faster than 1:45 per 400m lap or faster than 8.57 mph on a treadmill.",
-                scoringNote: "Course, treadmill, and GPS differences matter. Use a measured route or calibrated treadmill when possible, and pace the whole effort instead of relying on one desperate finish.",
-                assistance: [
-                    SkillGuideAssistance(name: is5k ? "Goal-Pace 1K Repeats" : "Goal-Pace 400s", detail: is5k ? "Run 5 x 1K near goal pace with rest before attempting the full 5K." : "Run 4 x 400m around 1:45 with recovery before testing the mile.", icon: "timer"),
-                    SkillGuideAssistance(name: "Tempo Run", detail: "Build the ability to hold uncomfortable but controlled pace without sprint mechanics breaking.", icon: "waveform.path.ecg"),
-                    SkillGuideAssistance(name: "Relaxed Fast Strides", detail: "Use short fast strides to practice cadence, posture, and relaxed speed.", icon: "figure.run")
-                ],
-                tips: [
-                    SkillGuideTip(title: "Start controlled", detail: is5k ? "The first kilometer should feel strong, not heroic. Protect the middle of the race." : "First lap around goal pace beats a panicked opening that ruins lap three.", icon: "speedometer"),
-                    SkillGuideTip(title: "Run tall", detail: "Relax shoulders, keep arms driving forward and back, and land under the body instead of reaching.", icon: "figure.run"),
-                    SkillGuideTip(title: "Commit before the end", detail: is5k ? "The move starts before the final kilometer, not only in the last straight." : "The third lap decides whether the kick has anything to work with.", icon: "flag.checkered")
-                ],
-                mistakes: [
-                    SkillGuideMistake(mistake: "Opening too fast.", fix: "Use split targets and let the first segment feel controlled."),
-                    SkillGuideMistake(mistake: "Overstriding under fatigue.", fix: "Think quick feet under hips and relaxed shoulders."),
-                    SkillGuideMistake(mistake: "Saving all effort for the finish.", fix: is5k ? "Hold focus through kilometers 3 and 4." : "Press lap three so lap four is a close, not a rescue.")
-                ]
-            )
-        default:
-            return SkillGuide(
-                standard: "A clean 30-calorie Assault Bike effort starts with the seat adjusted so the knee has a soft bend at the bottom, torso tall, hands working the handles in sync with the legs, and calories earned continuously without coasting.",
-                scoringNote: "The bike rewards power and rhythm. A wild opening sprint that collapses into coasting is not a better benchmark than a hard sustainable effort.",
-                assistance: [
-                    SkillGuideAssistance(name: "10-Cal Repeats", detail: "Use 3 x 10 calories with rest to practice output without dying in the first attempt.", icon: "timer"),
-                    SkillGuideAssistance(name: "Smooth RPM Ride", detail: "Hold a steady cadence and learn how arms and legs share work before all-out testing.", icon: "speedometer"),
-                    SkillGuideAssistance(name: "Arms/Legs Practice", detail: "Brief legs-only and arms-only segments teach the push-pull rhythm.", icon: "arrow.left.arrow.right")
-                ],
-                tips: [
-                    SkillGuideTip(title: "Fit first", detail: "Set the seat before the clock. A cramped knee or rocking hip wastes power fast.", icon: "slider.horizontal.3"),
-                    SkillGuideTip(title: "Settle after launch", detail: "Accelerate for a few seconds, then hold a hard pace you can finish.", icon: "bolt.fill"),
-                    SkillGuideTip(title: "No coast finish", detail: "Push through the final calories until the monitor gives the result.", icon: "flag.checkered")
-                ],
-                mistakes: [
-                    SkillGuideMistake(mistake: "All-out first 15 seconds.", fix: "Open hard but controlled, then settle before the fade starts."),
-                    SkillGuideMistake(mistake: "Loose torso rocking.", fix: "Brace tall and let the limbs move around a stable trunk."),
-                    SkillGuideMistake(mistake: "Arms only pull.", fix: "Push and pull the handles in rhythm with the pedal stroke.")
-                ]
-            )
-        }
     }
 
     private static func legGuide(skillId: String) -> SkillGuide {

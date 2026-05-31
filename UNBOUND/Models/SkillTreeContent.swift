@@ -20,7 +20,6 @@ extension SkillGraph {
         // trivial to audit what's in which chapter and to rename a chapter
         // without touching 80+ lines.
         let enriched: [SkillNode] = Self.v3Nodes
-            .filter { $0.cluster != .conditioning }
             .map { node in
                 var copy = node
                 // Stamp tier criteria from the cluster-specific authoring table.
@@ -40,7 +39,6 @@ extension SkillGraph {
         switch prefix {
         case "cal":  return CalSkillTiers.table
         case "cl":   return ClSkillTiers.table
-        case "co":   return CoSkillTiers.table
         case "hs":   return HsSkillTiers.table
         case "ld":   return LdSkillTiers.table
         case "oah":  return OahSkillTiers.table
@@ -242,22 +240,6 @@ enum SkillSubChapterMap {
         "pl.half-lay-planche":      "Float",
         "pl.straddle-planche":      "Float",
         "pl.full-planche":          "Float",
-
-        // ──────────────────────────────────────────────────────────────
-        // ENDURANCE / CONDITIONING (co)
-        // ──────────────────────────────────────────────────────────────
-        "co.dead-hang-60":         "Grip Engine",
-
-        "co.mile-sub-7":           "Distance Run",
-        "co.5k-sub-22":            "Distance Run",
-
-        "co.400m-row":             "Engine",
-        "co.assault-bike-30":      "Engine",
-
-        "co.bw-farmer-carry":      "Loaded Carry",
-        "co.1.5x-farmer-carry":    "Loaded Carry",
-        "co.2x-farmer-carry":      "Loaded Carry",
-        "co.sled-push":            "Loaded Carry",
     ]
 }
 
@@ -642,7 +624,7 @@ extension SkillGraph {
             target: .hold(exercise: "plank", seconds: 30),
             primary: [.core, .shoulders],
             subtitle: "The core foundation. Cannot skip this.",
-            description: "Full-body plank on forearms or hands. Straight line head to heels, core braced, 30 seconds unbroken.",
+            description: "Full-body plank on forearms or hands. Straight line head to heels, core braced, and held without position drift.",
             formCues: [
                 "Elbows under shoulders (forearm) or hands under shoulders",
                 "Squeeze glutes HARD — prevents lower-back sag",
@@ -666,7 +648,7 @@ extension SkillGraph {
             equipment: [.parallettes, .bodyweight],
             primary: [.core, .shoulders], secondary: [.arms, .legs],
             subtitle: "The move that makes people stop scrolling.",
-            description: "Seated on parallettes or floor with hands flat, press body up, legs straight out at 90° from torso. Hold 10 seconds.",
+            description: "Seated on parallettes or floor with hands flat, press body up, legs straight out at 90° from torso, and hold the shape cleanly.",
             formCues: [
                 "Hands PRESS DOWN — shoulders depressed, not shrugged",
                 "Legs locked, toes pointed, quads engaged",
@@ -1122,7 +1104,7 @@ extension SkillGraph {
             prereqs: [PrerequisiteGroup("cal.plank-30")],
             primary: [.core], secondary: [],
             subtitle: "The universal core position behind every advanced skill.",
-            description: "Lie on your back, arms overhead, legs straight, lower back pressed to floor. Ribs tucked, chin to chest. Hold 30 seconds. Foundation for front lever, planche, dragon flag, HSPU.",
+            description: "Lie on your back, arms overhead, legs straight, lower back pressed to floor. Ribs tucked, chin to chest. Foundation for front lever, planche, dragon flag, HSPU.",
             formCues: [
                 "Lumbar spine glued to the floor",
                 "Ribs tucked, not flaring",
@@ -1379,219 +1361,6 @@ extension SkillGraph {
                 "Counting a hold that can only be entered by falling into it"
             ],
             timeline: "6-18 months from tuck back lever."
-        ),
-
-        // ────────────────────────────────────────────────────────────────
-        // CONDITIONING (co) — carries, grip, capacity
-        // ────────────────────────────────────────────────────────────────
-
-        .simple(
-            id: "co.bw-farmer-carry",
-            title: "Farmer Carry",
-            cluster: .conditioning, tier: 2, type: .skill,
-            target: .carry(exercise: "farmer carry", seconds: 60, load: "bw"),
-            prereqs: [PrerequisiteGroup("ld.goblet-20")],
-            equipment: [.dumbbells, .kettlebell],
-            primary: [.forearms, .traps, .core], secondary: [.legs],
-            subtitle: "Real-world carry density.",
-            description: "60-second unbroken farmer carry at total load = bodyweight (split evenly across both hands). Grip, traps, core, and legs all taxed together.",
-            formCues: [
-                "Chest up, shoulders packed down",
-                "Neutral spine — don't slump forward",
-                "Short, even strides",
-                "Full-hand grip (all 4 fingers + thumb)",
-                "Breathe rhythmically — don't hold breath"
-            ],
-            commonMistakes: [
-                "Slumped shoulders — shrug DOWN, not up",
-                "Dropping early = no counted rep",
-                "Uneven loading between hands"
-            ],
-            timeline: "2-6 months from BW deadlift."
-        ),
-        .simple(
-            id: "co.1.5x-farmer-carry",
-            title: "Heavy Farmer Carry",
-            cluster: .conditioning, tier: 4, type: .skill,
-            target: .carry(exercise: "farmer carry", seconds: 60, load: "1.5x bw"),
-            prereqs: [PrerequisiteGroup(["co.bw-farmer-carry"])],
-            equipment: [.dumbbells, .kettlebell],
-            primary: [.forearms, .traps, .core],
-            subtitle: "Strongman-adjacent grip.",
-            description: "60 seconds of unbroken farmer carry at 1.5× bodyweight. Grip becomes the limiter at this load.",
-            formCues: [
-                "Chalk the hands — grip is the real test",
-                "Short, fast steps to keep momentum",
-                "Full 60s or fail — no passing bells hand-to-hand",
-                "Pull shoulders down the whole walk"
-            ],
-            commonMistakes: [
-                "Dropping on second 55 because grip gives out",
-                "Forward lean under load",
-                "Mis-loading hands"
-            ],
-            timeline: "1-3 years from BW farmer carry."
-        ),
-        .simple(
-            id: "co.dead-hang-60",
-            title: "Max Dead Hang",
-            cluster: .conditioning, tier: 2, type: .hold,
-            target: .hold(exercise: "dead hang", seconds: 60),
-            prereqs: [PrerequisiteGroup("pp.dead-hang")],
-            equipment: [.pullupBar],
-            primary: [.forearms, .lats],
-            subtitle: "Grip endurance benchmark.",
-            description: "One full minute of active dead hang. Crosses from beginner grip capacity into real endurance territory.",
-            formCues: [
-                "At 60s the grip is doing real work — don't death-clench early",
-                "Controlled breathing prevents premature failure",
-                "Shoulders pack down throughout",
-                "Stay relaxed where you can — tension only where needed"
-            ],
-            commonMistakes: [
-                "Over-gripping the first 20s and burning out",
-                "Holding breath",
-                "Letting shoulders shrug as fatigue builds"
-            ],
-            timeline: "1-3 months from 45s."
-        ),
-        .simple(
-            id: "co.sled-push",
-            title: "Sled Push",
-            cluster: .conditioning, tier: 3, type: .skill,
-            target: .carry(exercise: "sled push", seconds: 30, load: "2x bw"),
-            prereqs: [PrerequisiteGroup("ld.goblet-20")],
-            equipment: [.sled],
-            primary: [.legs, .glutes],
-            subtitle: "Engine-builder.",
-            description: "30 seconds of sustained sled push at 2× bodyweight of loaded sled. Brutal on legs + cardio without the eccentric damage of running.",
-            formCues: [
-                "Forward lean — chest drives into the handles",
-                "Short, powerful strides",
-                "Arms stay straight, transferring force to the sled",
-                "Glutes drive each step"
-            ],
-            commonMistakes: [
-                "Standing too upright — losing leverage",
-                "Huge strides stall momentum",
-                "Sprinting out the first 10s and dying"
-            ],
-            timeline: "Develops naturally alongside squat programming."
-        ),
-        .simple(
-            id: "co.400m-row",
-            title: "Rower Sprint",
-            cluster: .conditioning, tier: 3, type: .skill,
-            target: .steps(exercise: "row 400m", count: 1),
-            equipment: [.rower],
-            primary: [.back, .legs], secondary: [.arms],
-            subtitle: "Short-burst conditioning.",
-            description: "400 meters on a rowing ergometer in under 1:30. Taxes legs, lungs, and back simultaneously.",
-            formCues: [
-                "Catch: shins vertical, arms straight, compressed",
-                "Drive: legs first, then hips, then arms — sequence matters",
-                "Recovery: arms out first, then hips, then legs",
-                "Long, powerful strokes — not short frantic ones"
-            ],
-            commonMistakes: [
-                "Arm-pulling too early — loses leg drive",
-                "Short strokes sacrifice distance per effort",
-                "Burning out in the first 200m"
-            ],
-            timeline: "2-6 months of rowing practice."
-        ),
-        .simple(
-            id: "co.mile-sub-7",
-            title: "Fast Mile",
-            cluster: .conditioning, tier: 3, type: .skill,
-            target: .steps(exercise: "run 1 mile", count: 1),
-            primary: [.legs], secondary: [.core],
-            subtitle: "Run a mile under 7 minutes.",
-            description: "One mile run in under 7 minutes. Aerobic capacity benchmark most lifters skip — the first test that keeps strength training honest.",
-            formCues: [
-                "Warm up 5-10 minutes easy before the effort",
-                "Even pacing beats fast-start-then-die",
-                "Cadence around 170-180 steps/min",
-                "Breathe in two, out two — find a rhythm",
-                "Relax the shoulders — tension wastes energy"
-            ],
-            commonMistakes: [
-                "Sprinting the first 400m and paying for it",
-                "No base aerobic miles in the weeks before — cramps mid-effort",
-                "Heel-striking hard — rolls into stride over midfoot"
-            ],
-            timeline: "2-4 months of 2-3 runs per week from untrained."
-        ),
-        .simple(
-            id: "co.5k-sub-22",
-            title: "Fast 5K",
-            cluster: .conditioning, tier: 4, type: .skill,
-            target: .steps(exercise: "run 5k", count: 1),
-            prereqs: [PrerequisiteGroup("co.mile-sub-7")],
-            primary: [.legs], secondary: [.core],
-            subtitle: "5 kilometers under 22 minutes.",
-            description: "5K run in under 22 minutes (~7:00/mi pace). Real aerobic engine — puts you in the top third of recreational runners.",
-            formCues: [
-                "Target a negative split — second half slightly faster",
-                "Build mileage base (15-20 mi/week) before chasing the time",
-                "Stay on pace in the first mile — don't race the start",
-                "Breathe steady, mouth + nose — keep CO2 flushed",
-                "Relaxed arms, tight core, efficient stride"
-            ],
-            commonMistakes: [
-                "Treating it like a max-effort 5K every session",
-                "No long runs in the build — blows up in mile 2",
-                "Ignoring easy days — every run hard = no adaptation"
-            ],
-            timeline: "3-9 months from sub-7 mile."
-        ),
-        .simple(
-            id: "co.2x-farmer-carry",
-            title: "Elite Farmer Carry",
-            cluster: .conditioning, tier: 5, type: .strength,
-            target: .weightMultiplier(exercise: "farmer carry", multiplier: 2.0),
-            prereqs: [PrerequisiteGroup("co.1.5x-farmer-carry")],
-            isKeystone: true,
-            equipment: [.dumbbells, .kettlebell],
-            primary: [.forearms, .traps, .core], secondary: [.legs, .back],
-            subtitle: "Two times your bodyweight, 60 seconds, no drop.",
-            description: "60 seconds of unbroken farmer carry at 2× bodyweight total load. Strongman-territory grip + postural endurance — one of the rarest carry benchmarks.",
-            formCues: [
-                "Chalk hands, hook-grip optional at this load",
-                "Brace HARD before the pickup — don't yank",
-                "Short fast steps, aggressive shoulder pack-down",
-                "Every rep of the carry is a micro-max deadlift",
-                "Set the implements down with control — no drop"
-            ],
-            commonMistakes: [
-                "Dropping at 55s because grip gave out",
-                "Picking up with a rounded back",
-                "Walking too slow — grip fails before the clock"
-            ],
-            timeline: "2-4 years from 1.5× farmer carry."
-        ),
-        .simple(
-            id: "co.assault-bike-30",
-            title: "Assault Bike Sprint",
-            cluster: .conditioning, tier: 3, type: .skill,
-            target: .steps(exercise: "assault bike 30 cal", count: 1),
-            equipment: [.bodyweight],
-            primary: [.legs, .shoulders], secondary: [.core, .back],
-            subtitle: "30 calories, under a minute.",
-            description: "30 calories on the assault bike in under 60 seconds. MetCon-style capacity test — exposes the gap between strength and sustained output.",
-            formCues: [
-                "Drive with the legs first, let the arms follow the rhythm",
-                "Stay seated — standing costs more than it gains on short efforts",
-                "Pick a sustainable cadence, don't flail",
-                "Breathe big, nose + mouth — flush the CO2",
-                "Accept the discomfort — it's a 45-60s effort, not a mile"
-            ],
-            commonMistakes: [
-                "Arm-dominant start — legs disappear by calorie 15",
-                "Holding breath through the middle",
-                "Pacing like a 5-minute effort — leaves calories on the table"
-            ],
-            timeline: "2-6 months of bike intervals."
         ),
 
         // ════════════════════════════════════════════════════════════════════
@@ -3207,7 +2976,7 @@ extension SkillGraph {
             prereqs: [PrerequisiteGroup("cal.plank-30")],
             primary: [.core, .glutes], secondary: [.back, .shoulders],
             subtitle: "Anti-rotation under tension.",
-            description: "From a full plank, extend the opposite arm and leg simultaneously. Hold 30 seconds per side without hip or shoulder drift. The anti-rotation benchmark that separates owned cores from surface-deep planks.",
+            description: "From a full plank, extend the opposite arm and leg simultaneously without hip or shoulder drift. The anti-rotation skill that separates owned cores from surface-deep planks.",
             formCues: [
                 "Plank position first — straight line, braced",
                 "Extended arm at shoulder height, leg at hip height",
@@ -3410,7 +3179,7 @@ extension SkillGraph {
             target: .hold(exercise: "wall plank", seconds: 30),
             primary: [.shoulders, .core], secondary: [.arms],
             subtitle: "Handstand starts horizontal.",
-            description: "Plank position with feet walked up the wall until shoulders stack over wrists. 30 seconds. The shared root for wall handstand, headstand, and early planche balance.",
+            description: "Plank position with feet walked up the wall until shoulders stack over wrists. The shared root for wall handstand, headstand, and early planche balance.",
             formCues: [
                 "Hands shoulder-width, fingers spread",
                 "Walk feet UP the wall until hips over shoulders",

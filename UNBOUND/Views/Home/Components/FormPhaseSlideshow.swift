@@ -416,7 +416,9 @@ enum FormPhaseLibrary {
             return lSitFamilyPhases(skillId: skillId)
         case "cl.tuck-front-lever", "cl.straddle-front-lever", "cl.full-front-lever":
             return frontLeverPhases(skillId: skillId)
-        case "cl.german-hang", "cl.skin-the-cat", "cl.straddle-back-lever", "cl.full-back-lever":
+        case "cl.german-hang":
+            return []
+        case "cl.skin-the-cat", "cl.straddle-back-lever", "cl.full-back-lever":
             return backLeverPhases(skillId: skillId)
         case "cl.three-sixty-pulls":
             return threeSixtyPullPhases()
@@ -454,8 +456,6 @@ enum FormPhaseLibrary {
             return bentArmPressPhases()
         case let id where id.hasPrefix("ld."):
             return legPhases(skillId: id)
-        case let id where id.hasPrefix("co."):
-            return conditioningPhases(skillId: id)
 
         default:
             return []  // fallback to numbered cue list
@@ -975,75 +975,6 @@ enum FormPhaseLibrary {
             phase("phase3", "Turnover", "Keep elbows close and lean the chest over the hands before momentum dies. The transition should be continuous, not pull-up, pause, panic.", "arrow.triangle.branch", assetName: assetName(assetPrefix, "phase3")),
             phase("phase4", "Press Out", "Press to full support under control. If swing created the transition, log it as regular muscle-up work instead.", "checkmark.seal.fill", assetName: assetName(assetPrefix, "phase4"))
         ]
-    }
-
-    private static func conditioningPhases(skillId: String) -> [FormPhase] {
-        let assetPrefix = skillId.replacingOccurrences(of: ".", with: "_")
-        switch skillId {
-        case "co.bw-farmer-carry":
-            return [
-                phase("phase1", "Grip Base", "Set the implements evenly, hinge to grip, and brace before standing. Handles should start quiet.", "hand.raised.fill", assetName: assetName(assetPrefix, "phase1")),
-                phase("phase2", "BW Load", "Carry total load equal to bodyweight while standing tall with shoulders level.", "scalemass.fill", assetName: assetName(assetPrefix, "phase2")),
-                phase("phase3", "Unbroken Walk", "Use short controlled steps and finish the course without drops or thigh rests.", "shoeprints.fill", assetName: assetName(assetPrefix, "phase3")),
-                phase("phase4", "Calm Carry", "Keep breathing and set the load down under control. The finish is not a crash.", "arrow.down.to.line", assetName: assetName(assetPrefix, "phase4"))
-            ]
-        case "co.1.5x-farmer-carry":
-            return [
-                phase("phase1", "Heavy Setup", "Brace before the pick and keep wrists neutral. Do not rush the first stand.", "lock.fill", assetName: assetName(assetPrefix, "phase1")),
-                phase("phase2", "Load Bridge", "Build from bodyweight toward 1.5x total load with the same tall posture.", "scalemass.fill", assetName: assetName(assetPrefix, "phase2")),
-                phase("phase3", "1.5x Standard", "Walk the prescribed course with shoulders level and handles quiet.", "shoeprints.fill", assetName: assetName(assetPrefix, "phase3")),
-                phase("phase4", "Fatigue Proof", "Finish before posture leaks. Set down safely instead of dropping from grip panic.", "checkmark.seal.fill", assetName: assetName(assetPrefix, "phase4"))
-            ]
-        case "co.2x-farmer-carry":
-            return [
-                phase("phase1", "Max Brace", "Treat the pickup like a heavy deadlift: wedge, brace, stand, then walk.", "lock.fill", assetName: assetName(assetPrefix, "phase1")),
-                phase("phase2", "Heavy Holds", "Own the load standing still before asking it to move.", "pause.circle.fill", assetName: assetName(assetPrefix, "phase2")),
-                phase("phase3", "2x Walk", "Use small steps and keep the trunk rigid as the load tries to pull posture apart.", "shoeprints.fill", assetName: assetName(assetPrefix, "phase3")),
-                phase("phase4", "Controlled Finish", "Hinge down and place the implements safely with posture intact.", "arrow.down.to.line", assetName: assetName(assetPrefix, "phase4"))
-            ]
-        case "co.dead-hang-60":
-            return [
-                phase("phase1", "Find Bar", "Set a shoulder-width grip, wrap the thumbs if possible, and settle the body before timing.", "hand.raised.fill", assetName: assetName(assetPrefix, "phase1")),
-                phase("phase2", "Grip Reserve", "Use repeated holds to build enough grip that the minute does not become a panic fight.", "hand.raised.fill", assetName: assetName(assetPrefix, "phase2")),
-                phase("phase3", "Unbroken 60", "Hold the full minute with long arms, quiet ribs, and no kicking.", "figure.hanging", assetName: assetName(assetPrefix, "phase3")),
-                phase("phase4", "Durable Hang", "Repeat the standard without elbow or shoulder irritation.", "checkmark.seal.fill", assetName: assetName(assetPrefix, "phase4"))
-            ]
-        case "co.sled-push":
-            return [
-                phase("phase1", "Lean Line", "Set hands, brace the trunk, and create a strong forward body angle before driving.", "line.diagonal", assetName: assetName(assetPrefix, "phase1")),
-                phase("phase2", "Move Sled", "Use short powerful steps to get the sled rolling without bouncing upright.", "arrow.forward", assetName: assetName(assetPrefix, "phase2")),
-                phase("phase3", "Sustain Force", "Hold cadence and push the floor behind you as fatigue builds.", "bolt.fill", assetName: assetName(assetPrefix, "phase3")),
-                phase("phase4", "Finish Strong", "Stay low through the final steps. Do not let the back round or the arms take over.", "flag.checkered", assetName: assetName(assetPrefix, "phase4"))
-            ]
-        case "co.400m-row":
-            return [
-                phase("phase1", "Set Erg", "Strap feet, choose a familiar damper or drag, and set the monitor to 400m.", "slider.horizontal.3", assetName: assetName(assetPrefix, "phase1")),
-                phase("phase2", "Find Length", "Use full strokes: legs drive, body swings, arms finish; recovery reverses that order.", "arrow.left.and.right", assetName: assetName(assetPrefix, "phase2")),
-                phase("phase3", "Sprint Control", "Row fast without shortening into half-strokes or yanking early with the arms.", "speedometer", assetName: assetName(assetPrefix, "phase3")),
-                phase("phase4", "Last 100", "Lift the rate near the finish while keeping the handle path clean.", "flag.checkered", assetName: assetName(assetPrefix, "phase4"))
-            ]
-        case "co.mile-sub-7":
-            return [
-                phase("phase1", "Pace Lock", "Learn the target: faster than 1:45 per 400m or 6:59 for the mile.", "timer", assetName: assetName(assetPrefix, "phase1")),
-                phase("phase2", "Lap Two", "Open controlled and keep the second lap steady instead of paying for a reckless start.", "speedometer", assetName: assetName(assetPrefix, "phase2")),
-                phase("phase3", "Middle Hold", "Press the third lap with tall posture, relaxed shoulders, and quick feet under hips.", "figure.run", assetName: assetName(assetPrefix, "phase3")),
-                phase("phase4", "Sub-7 Close", "Commit before the final straight and finish 6:59 or faster.", "flag.checkered", assetName: assetName(assetPrefix, "phase4"))
-            ]
-        case "co.5k-sub-22":
-            return [
-                phase("phase1", "Goal Pace", "Feel the target pace: slightly faster than 4:24 per km or 7:05 per mile.", "timer", assetName: assetName(assetPrefix, "phase1")),
-                phase("phase2", "Controlled Start", "The first 2 km should feel strong, not desperate. Avoid the adrenaline spike.", "speedometer", assetName: assetName(assetPrefix, "phase2")),
-                phase("phase3", "Midrace Hold", "Stay locked through kilometers 3 and 4 with relaxed shoulders and quick cadence.", "figure.run", assetName: assetName(assetPrefix, "phase3")),
-                phase("phase4", "Sub-22 Close", "Commit before the final kilometer and finish under 22:00.", "flag.checkered", assetName: assetName(assetPrefix, "phase4"))
-            ]
-        default:
-            return [
-                phase("phase1", "Bike Fit", "Set seat height so the knee has a soft bend at the bottom. Start tall, not cramped.", "slider.horizontal.3", assetName: assetName(assetPrefix, "phase1")),
-                phase("phase2", "Smooth RPM", "Sync arms and legs so the handles push and pull with the pedals.", "arrow.left.arrow.right", assetName: assetName(assetPrefix, "phase2")),
-                phase("phase3", "30-Cal Hold", "Settle into a hard sustainable rhythm after the opening acceleration.", "speedometer", assetName: assetName(assetPrefix, "phase3")),
-                phase("phase4", "Final Push", "Drive through the final calories and do not coast before the monitor stops.", "flag.checkered", assetName: assetName(assetPrefix, "phase4"))
-            ]
-        }
     }
 
     private static func legPhases(skillId: String) -> [FormPhase] {

@@ -218,8 +218,6 @@ final class MovementResolverTests: XCTestCase {
     func testMovementCatalogExposesFinalStateQuerySurfaces() {
         XCTAssertEqual(MovementCatalog.legacyExercises.count, ExerciseCatalog.allExercises.count)
         XCTAssertGreaterThanOrEqual(MovementCatalog.skillTargets.count, SkillGraph.shared.nodes.count)
-        XCTAssertNotNil(MovementCatalog.definition(for: "skill.co.bw-farmer-carry"))
-        XCTAssertNotNil(MovementCatalog.definition(for: "skill.co.sled-push"))
         XCTAssertGreaterThan(MovementCatalog.rankStandards.count, 100)
         XCTAssertGreaterThan(MovementCatalog.loggableVariants.count, 20)
         XCTAssertGreaterThan(MovementCatalog.loggableMovements.count, MovementCatalog.rankStandards.count)

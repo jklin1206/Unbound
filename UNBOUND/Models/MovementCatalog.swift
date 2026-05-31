@@ -271,7 +271,6 @@ struct ResolvedTrainingMovement: Hashable, Sendable {
 enum MovementCatalog {
     static let definitions: [MovementDefinition] = {
         var definitions = skillTreeDefinitions
-        definitions.append(contentsOf: conditioningSkillTargetDefinitions)
 
         definitions.append(contentsOf: ExerciseCatalog.allExercises.map { exercise in
             MovementDefinition(
@@ -1432,75 +1431,6 @@ enum MovementCatalog {
             progressionFamily: node.subChapter,
             progressionTier: node.tier,
             contraindicationTags: skillContraindicationTags(for: node)
-        )
-    }
-
-    // `SkillGraph.shared` intentionally hides conditioning nodes from the
-    // visible skill tree for V1, but Overall Rank trials can still require
-    // those authored standards. Keep these as catalog-backed skill targets so
-    // readiness and trial definitions do not fall back to raw strings.
-    private static let conditioningSkillTargetDefinitions: [MovementDefinition] = [
-        conditioningSkillTarget(
-            "co.bw-farmer-carry",
-            "Bodyweight Farmer Carry",
-            aliases: ["bw farmer carry", "bodyweight farmer carry", "farmer carry"],
-            metric: .distanceMeters,
-            equipment: [.dumbbell, .kettlebell, .openSpace]
-        ),
-        conditioningSkillTarget(
-            "co.1.5x-farmer-carry",
-            "1.5x Farmer Carry",
-            aliases: ["1.5x farmer carry", "heavy farmer carry"],
-            metric: .distanceMeters,
-            equipment: [.dumbbell, .kettlebell, .openSpace]
-        ),
-        conditioningSkillTarget(
-            "co.2x-farmer-carry",
-            "2x Farmer Carry",
-            aliases: ["2x farmer carry", "max farmer carry"],
-            metric: .distanceMeters,
-            equipment: [.dumbbell, .kettlebell, .openSpace]
-        ),
-        conditioningSkillTarget(
-            "co.sled-push",
-            "Sled Push",
-            aliases: ["sled push", "sled march"],
-            metric: .distanceMeters,
-            equipment: [.sled, .openSpace]
-        )
-    ]
-
-    private static func conditioningSkillTarget(
-        _ skillId: String,
-        _ displayName: String,
-        aliases: [String],
-        metric: TrainingMetricKind,
-        equipment: [MovementEquipment]
-    ) -> MovementDefinition {
-        MovementDefinition(
-            id: "skill.\(skillId)",
-            displayName: displayName,
-            role: .skillTarget,
-            rankable: false,
-            rankTemplate: .unranked,
-            blockKind: .skill,
-            loggerMode: .skillAttempts,
-            aliases: [skillId, displayName] + aliases,
-            attributeWeights: [.endurance: 0.35, .power: 0.25, .control: 0.25, .explosiveness: 0.15],
-            canonicalExerciseName: nil,
-            skillId: skillId,
-            cardioType: nil,
-            defaultMetric: metric,
-            equipment: equipment,
-            difficulty: .advanced,
-            muscleGroups: [.back, .legs, .glutes, .core, .arms],
-            bodyRegions: [.forearms, .traps, .abs, .obliques, .lowerBack, .quads, .hamstrings, .glutes, .calves],
-            movementSlot: .skill,
-            substitutionGroup: "skill.conditioning",
-            skillAssociations: [],
-            progressionFamily: "conditioning",
-            progressionTier: nil,
-            contraindicationTags: ["loaded-carry-control"]
         )
     }
 

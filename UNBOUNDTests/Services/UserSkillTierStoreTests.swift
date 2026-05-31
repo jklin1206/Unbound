@@ -28,7 +28,7 @@ final class UserSkillTierStoreTests: XCTestCase {
         var state = UserSkillTierState.empty
         state.perSkill["pp.pullup"] = .vessel
         state.rankUpsEarned = 7
-        state.ascendantSkills = ["co.dead-hang-60"]
+        state.ascendantSkills = ["pp.dead-hang"]
 
         store.save(state, userId: "u-1")
         XCTAssertEqual(store.load(userId: "u-1"), state)
