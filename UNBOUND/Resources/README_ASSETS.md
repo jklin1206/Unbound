@@ -2,6 +2,8 @@
 
 Generated via Gemini "nano banana" image editing. Until these land in the bundle, the onboarding screens render SF Symbol silhouette fallbacks (functional but not premium).
 
+For the current repo-wide asset map, shipped-vs-local artifact rules, and dynamic exercise visual resolver notes, see `../../docs/FILE_STRUCTURE.md`.
+
 ## Style directive (use for every generation)
 
 > Bone-white (#F5F5F4) silhouette on transparent background. Premium fitness-app body illustration with subtle anatomy shading. ~1024 px tall PNG @ 2x and 3x. No character likenesses or IP. Anime-inspired build cues through hair silhouette and stance only — insiders clock the reference, outsiders see a fitness archetype.
@@ -37,6 +39,6 @@ Asset name in code: `Archetype_<NAME>` (already referenced by `ArchetypePickerCa
 ## Bundling
 
 After generation:
-1. Drop the PNGs into an `Assets.xcassets` image set (or keep them in `Resources/` as raw files — both work with `UIImage(named:)`)
+1. Drop runtime PNGs into an `Assets.xcassets` image set. Keep only non-image bundle resources in `Resources/`.
 2. Run `xcodegen generate` to pick up new file references
 3. `UIImage(named:)` in `ArchetypePickerCard.swift` / body-type screens will automatically use the real assets when present, falling back to SF Symbols otherwise

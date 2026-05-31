@@ -1,6 +1,8 @@
 # UNBOUND — Architecture Map
 
-**Start here.** This is the one-screen index of how the app's progression model fits together: each subsystem → its current source-of-truth in code → the planned deep-dive doc. It exists so a future traversal references one map instead of re-discovering the maze.
+**Start here for product architecture.** This is the one-screen index of how the app's progression model fits together: each subsystem -> its current source-of-truth in code -> the planned deep-dive doc. It exists so a future traversal references one map instead of re-discovering the maze.
+
+For repository layout, file placement, artifact hygiene, and asset tracing, start with [FILE_STRUCTURE.md](FILE_STRUCTURE.md).
 
 > Status (2026-05-29): mid–ONE-METRIC-cleanup (see `ONE-METRIC-CLEANUP-PLAN.md` + `ONE-METRIC-EXECUTION-LOG.md`). The `architecture/*.md` deep-dives are **planned, not yet written** — until they exist, the linked **code** is the source of truth. Doc links are marked ⏳ when pending.
 

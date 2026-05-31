@@ -23,6 +23,13 @@ These rules apply to coding agents working in this repository. They merge the re
 - Keep every changed line traceable to the user's request or to verification required by that request.
 - When editing a dirty worktree, assume unrelated changes belong to the user or another agent.
 
+## Repository Structure And Artifact Hygiene
+
+- Start codebase traversal with `docs/FILE_STRUCTURE.md`; use `docs/ARCHITECTURE.md` for the progression/ranking/logging map.
+- Shipped app code and assets live under `UNBOUND/`. Durable docs live under `docs/`. Local generated output belongs in `LocalArtifacts/` or `exports/`.
+- Do not add `_trash/`, `_archive/`, `*.removed`, or root-level preview media. Git history is the archive; write a short handoff doc when context needs to survive.
+- Before deleting `exercise_visual_*` assets, run `python3 scripts/audit_exercise_visual_assets.py` and inspect dynamic resolver paths, not just exact grep hits.
+
 ## Dead-Code Discipline
 
 - Remove imports, variables, functions, files, and tests that become unused because of the current change.

@@ -64,5 +64,18 @@ UNBOUND.xcodeproj/project.xcworkspace/xcshareddata/
 .code-review-graph/
 .claude/
 LocalArtifacts/
+exports/
+generated-previews/
 gojo-wiki.yml
 sjw-wiki.yml
+
+# Local preview/export media should not land at repo root
+/reward-*.mp4
+/reward-*.gif
+/reward-*.wav
+/reward-*.m4a
+
+# Do not keep deleted source in-tree; git history is the archive
+/_trash/
+/_archive/
+*.removed
