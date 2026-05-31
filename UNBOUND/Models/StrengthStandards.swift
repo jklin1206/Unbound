@@ -24,88 +24,17 @@ import Foundation
 
 enum StrengthStandards {
 
-    // MARK: Accessory families
+    // MARK: Standard tables (single source — split by category)
+    //
+    // Compound ratio tables live in CompoundStandards; accessory families + their
+    // ratio tables + membership in AccessoryStandards; the explicit unranked set
+    // in UnrankedMovements; weighted pull-up's %bw anchors on the
+    // pp.weighted-pullup skill node (SkillStandards). This type is the resolver +
+    // ranker that reads from them.
 
-    /// Loaded accessory families (PHASE3-ACCESSORY-RATIOS §1). Each has a
-    /// 9-tier total-load ratio table, except F3 which is per-hand.
-    enum AccessoryFamily {
-        case curl            // F1 — total barbell/cable load (DB ×2 rule applies)
-        case triceps         // F2 — total stack
-        case legExtension    // F4 — total stack
-        case legCurl         // F5 — total stack
-        case calfRaise       // F6 — added load excl. bodyweight
-        case verticalPull    // F7 — machine vertical pull, total stack
-        case hipThrust       // F8 — total load incl. bar
-        case loadedAb        // F9 — total stack
-    }
-
-    // MARK: Lift keys (barbell compounds with a ratio table)
-
-    /// Compound lifts that have an explicit multiplier table (canonical keys).
-    static let liftKeys: [String] = [
-        "back squat",
-        "bench press",
-        "deadlift",
-        "overhead press",
-        "barbell row",
-        "weighted pullup"
-    ]
-
-    // MARK: Compound ratio tables (9-tier, bodyweight multiples) — §B.2
-
-    /// Per-tier bodyweight multiplier for each compound, MALE column.
-    /// Index = RankTier ordinal 0…8. Ordinal 0 is the floor (below novice).
-    private static let compoundMale: [String: [Double]] = [
-        //               0     1     2     3     4     5     6     7     8
-        "back squat":   [0.00, 0.75, 1.00, 1.25, 1.38, 1.50, 1.88, 2.25, 2.75],
-        "bench press":  [0.00, 0.50, 0.63, 0.75, 1.00, 1.25, 1.50, 1.75, 2.00],
-        "deadlift":     [0.00, 1.00, 1.25, 1.50, 1.75, 2.00, 2.25, 2.50, 3.00],
-        "overhead press":[0.00, 0.35, 0.45, 0.55, 0.68, 0.80, 0.95, 1.10, 1.40],
-        "barbell row":  [0.00, 0.50, 0.63, 0.75, 0.88, 1.00, 1.25, 1.50, 1.75]
-    ]
-
-    /// Per-tier bodyweight multiplier for each compound, FEMALE column.
-    private static let compoundFemale: [String: [Double]] = [
-        //               0     1     2     3     4     5     6     7     8
-        "back squat":   [0.00, 0.50, 0.63, 0.75, 1.00, 1.25, 1.38, 1.50, 2.00],
-        "bench press":  [0.00, 0.25, 0.38, 0.50, 0.63, 0.75, 0.88, 1.00, 1.50],
-        "deadlift":     [0.00, 0.50, 0.75, 1.00, 1.13, 1.25, 1.50, 1.75, 2.50],
-        "overhead press":[0.00, 0.20, 0.28, 0.35, 0.43, 0.50, 0.63, 0.75, 1.00],
-        "barbell row":  [0.00, 0.25, 0.33, 0.40, 0.53, 0.65, 0.78, 0.90, 1.20]
-    ]
-
-    // Weighted pullup/dip is ranked by ADDED LOAD as %bodyweight, sourced from
-    // the pp.weighted-pullup skill node (SkillStandards.weightedPullupRatioAnchors)
-    // — the single source. The old absolute-kg table lived here and was deleted.
-
-    // MARK: Accessory ratio tables (9-tier) — §3 male / §4 female
-
-    /// MALE per-tier ratios for each accessory family. Index = ordinal 0…8.
-    private static let accessoryMale: [AccessoryFamily: [Double]] = [
-        //                   0     1     2     3     4     5     6     7     8
-        .curl:           [0.00, 0.20, 0.30, 0.40, 0.50, 0.60, 0.73, 0.85, 1.15],
-        .triceps:        [0.00, 0.25, 0.38, 0.50, 0.63, 0.75, 0.88, 1.00, 1.50],
-        .legExtension:   [0.00, 0.50, 0.63, 0.75, 1.00, 1.25, 1.50, 1.75, 2.50],
-        .legCurl:        [0.00, 0.50, 0.63, 0.75, 0.88, 1.00, 1.25, 1.50, 2.00],
-        .calfRaise:      [0.00, 0.25, 0.50, 0.75, 1.00, 1.25, 1.63, 2.00, 3.00],
-        .verticalPull:   [0.00, 0.50, 0.63, 0.75, 0.88, 1.00, 1.25, 1.50, 1.75],
-        .hipThrust:      [0.00, 0.50, 0.75, 1.00, 1.38, 1.75, 2.13, 2.50, 3.50],
-        .loadedAb:       [0.00, 0.25, 0.38, 0.50, 0.75, 1.00, 1.25, 1.50, 2.25]
-    ]
-
-    /// FEMALE per-tier ratios, authored from the cited per-family female bands
-    /// (PHASE3-ACCESSORY-RATIOS §2 female / §4), same anchoring rule. Index 0…8.
-    private static let accessoryFemale: [AccessoryFamily: [Double]] = [
-        //                   0     1     2     3     4     5     6     7     8
-        .curl:           [0.00, 0.10, 0.15, 0.20, 0.30, 0.40, 0.50, 0.60, 0.85],
-        .triceps:        [0.00, 0.15, 0.20, 0.25, 0.38, 0.50, 0.63, 0.75, 1.05],
-        .legExtension:   [0.00, 0.25, 0.38, 0.50, 0.75, 1.00, 1.13, 1.25, 2.00],
-        .legCurl:        [0.00, 0.25, 0.35, 0.45, 0.60, 0.75, 0.90, 1.05, 1.45],
-        .calfRaise:      [0.00, 0.25, 0.38, 0.50, 0.75, 1.00, 1.38, 1.75, 2.50],
-        .verticalPull:   [0.00, 0.30, 0.38, 0.45, 0.58, 0.70, 0.83, 0.95, 1.30],
-        .hipThrust:      [0.00, 0.50, 0.75, 1.00, 1.25, 1.50, 1.88, 2.25, 3.00],
-        .loadedAb:       [0.00, 0.25, 0.38, 0.50, 0.75, 1.00, 1.25, 1.50, 2.25]
-    ]
+    /// Accessory family — re-exported so the public `accessoryFamily(for:)` and
+    /// the rank/ratio bodies keep their existing names.
+    typealias AccessoryFamily = AccessoryStandards.Family
 
     // MARK: Name resolution
 
@@ -177,72 +106,6 @@ enum StrengthStandards {
         "weighted dip": "weighted pullup"
     ]
 
-    /// Accessory family members, keyed by normalized exercise name.
-    private static let accessoryFamilyMap: [String: AccessoryFamily] = {
-        var map: [String: AccessoryFamily] = [:]
-        func add(_ names: [String], _ family: AccessoryFamily) {
-            for name in names { map[name] = family }
-        }
-        // F1 — biceps curl (total)
-        add([
-            "barbell curl", "ez bar curl", "dumbbell curl", "incline dumbbell curl",
-            "concentration curl", "spider curl", "cable curl", "rope cable curl",
-            "hammer curl", "rope hammer curl", "preacher curl", "machine biceps curl",
-            "band curl"
-        ], .curl)
-        // F2 — triceps extension (total)
-        add([
-            "tricep pushdown", "rope tricep pushdown", "straight bar tricep pushdown",
-            "overhead tricep extension", "rope overhead tricep extension",
-            "machine triceps extension", "band tricep extension", "skull crushers"
-        ], .triceps)
-        // F4 — leg extension (total)
-        add(["leg extension", "single-leg extension"], .legExtension)
-        // F5 — leg curl (total)
-        add(["leg curl (lying)", "leg curl (seated)", "single-leg curl"], .legCurl)
-        // F6 — calf raise (added load)
-        add([
-            "standing calf raise", "seated calf raise", "leg press calf raise",
-            "smith machine calf raise", "donkey calf raise", "tibialis raise"
-        ], .calfRaise)
-        // F7 — machine vertical pull (total)
-        add([
-            "lat pulldown", "lat pulldown (neutral)", "wide grip lat pulldown",
-            "close grip lat pulldown", "reverse grip lat pulldown", "single arm pulldown",
-            "straight arm pulldown", "machine pullover", "band lat pull",
-            "assisted pullup machine"
-        ], .verticalPull)
-        // F8 — hip thrust / glute (total incl. bar)
-        add([
-            "hip thrust", "smith machine hip thrust", "glute bridge", "cable pull through"
-        ], .hipThrust)
-        // F9 — loaded ab / trunk (total)
-        add(["cable crunch", "machine crunch"], .loadedAb)
-        return map
-    }()
-
-    /// Movements that earn XP but are explicitly NOT rank-badged (PHASE3-
-    /// ACCESSORY-RATIOS §6). They must NOT inherit a wrong parent.
-    private static let unrankedNames: Set<String> = [
-        // F3 lateral / front / upright (momentum, not strength)
-        "lateral raise (db)", "lateral raise (cable)", "machine lateral raise",
-        "dumbbell front raise", "cable front raise", "cable y raise", "upright row",
-        // F8 mis-routed isolation glute
-        "cable glute kickback", "machine glute kickback",
-        "hip abductor machine", "hip adductor machine", "cable hip abduction",
-        // F9 anti-rotation / positional
-        "pallof press", "landmine rotation",
-        // ballistic
-        "kettlebell swing"
-    ]
-
-    /// Dumbbell-pair movements logged per-hand that compare to a TOTAL-load
-    /// family table → multiply logged load ×2 (PHASE3-ACCESSORY-RATIOS §3.1).
-    /// Only F1 curls need this; F3 lateral stays per-hand (and is unranked).
-    private static let dumbbellPairCurls: Set<String> = [
-        "dumbbell curl", "incline dumbbell curl", "hammer curl"
-    ]
-
     private static func normalize(_ exerciseKey: String) -> String {
         exerciseKey.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
     }
@@ -250,12 +113,12 @@ enum StrengthStandards {
     /// Canonical compound key for lookup — exact, alias, or substring match.
     static func canonicalKey(for exerciseKey: String) -> String? {
         let normalized = normalize(exerciseKey)
-        if compoundMale[normalized] != nil { return normalized }
+        if CompoundStandards.male[normalized] != nil { return normalized }
         if normalized.contains("weighted pullup") || normalized.contains("weighted pull") {
             return "weighted pullup"
         }
         if let alias = compoundAliases[normalized] { return alias }
-        for key in compoundMale.keys where normalized.contains(key) { return key }
+        for key in CompoundStandards.male.keys where normalized.contains(key) { return key }
         return nil
     }
 
@@ -267,12 +130,12 @@ enum StrengthStandards {
 
     /// Accessory family for an exercise, or nil if it isn't a load-ranked accessory.
     static func accessoryFamily(for exerciseKey: String) -> AccessoryFamily? {
-        accessoryFamilyMap[normalize(exerciseKey)]
+        AccessoryStandards.membership[normalize(exerciseKey)]
     }
 
     /// True if the movement is explicitly unranked (earns XP, no rank badge).
     static func isUnranked(exerciseKey: String) -> Bool {
-        unrankedNames.contains(normalize(exerciseKey))
+        UnrankedMovements.contains(normalize(exerciseKey))
     }
 
     // MARK: Rank resolution
@@ -291,7 +154,7 @@ enum StrengthStandards {
         let normalized = normalize(exerciseKey)
 
         // Unranked set must not inherit a parent.
-        if unrankedNames.contains(normalized) { return nil }
+        if UnrankedMovements.contains(normalized) { return nil }
 
         // Weighted pullup / dip — added load as %bodyweight (single source:
         // pp.weighted-pullup skill node).
@@ -302,15 +165,15 @@ enum StrengthStandards {
 
         // Compound (or compound variant) — bodyweight ratio.
         if let key = canonicalKey(for: exerciseKey) {
-            let table = (sex == .female ? compoundFemale : compoundMale)
+            let table = (sex == .female ? CompoundStandards.female : CompoundStandards.male)
             guard let anchors = table[key] else { return nil }
             return interpolate(value: liftKg / bodyweightKg, anchors: anchors)
         }
 
         // Accessory family — bodyweight ratio (with DB ×2 for F1 dumbbell curls).
-        if let family = accessoryFamilyMap[normalized] {
-            let effectiveLoad = dumbbellPairCurls.contains(normalized) ? liftKg * 2 : liftKg
-            let table = (sex == .female ? accessoryFemale : accessoryMale)
+        if let family = AccessoryStandards.membership[normalized] {
+            let effectiveLoad = AccessoryStandards.dumbbellPairs.contains(normalized) ? liftKg * 2 : liftKg
+            let table = (sex == .female ? AccessoryStandards.female : AccessoryStandards.male)
             guard let anchors = table[family] else { return nil }
             return interpolate(value: effectiveLoad / bodyweightKg, anchors: anchors)
         }
@@ -326,15 +189,15 @@ enum StrengthStandards {
         let ord = tier.rawValue
         guard ord >= 1 else { return nil }
         let normalized = normalize(exerciseKey)
-        if unrankedNames.contains(normalized) { return nil }
+        if UnrankedMovements.contains(normalized) { return nil }
 
         if let key = canonicalKey(for: exerciseKey) {
             if key == "weighted pullup" { return SkillStandards.weightedPullupRatio(tier: tier) }
-            let table = (sex == .female ? compoundFemale : compoundMale)
+            let table = (sex == .female ? CompoundStandards.female : CompoundStandards.male)
             return table[key]?[ord]
         }
-        if let family = accessoryFamilyMap[normalized] {
-            let table = (sex == .female ? accessoryFemale : accessoryMale)
+        if let family = AccessoryStandards.membership[normalized] {
+            let table = (sex == .female ? AccessoryStandards.female : AccessoryStandards.male)
             return table[family]?[ord]
         }
         return nil
@@ -405,7 +268,7 @@ enum StrengthStandards {
     ) -> (current: RankTier, next: RankTier?, fraction: Double)? {
         guard metricValue > 0 else { return nil }
         let normalized = normalize(exerciseKey)
-        if unrankedNames.contains(normalized) { return nil }
+        if UnrankedMovements.contains(normalized) { return nil }
 
         // Reps / hold bodyweight skills — ranked by the skill graph's tier
         // criteria (the single source, SkillStandards), so the reward bar
