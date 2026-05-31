@@ -1895,6 +1895,58 @@ private struct ReceiptTotalRow: View {
     }
 }
 
+/// Premium animated XP fill — a dimensional energy gradient with a traveling
+/// specular shimmer and top gloss, instead of a flat solid block. Reads as
+/// flowing energy; the shimmer runs hotter while the bar is actively filling.
+private struct EnergyFill: View {
+    let tint: Color
+    let cut: CGFloat
+    let surge: Bool
+
+    var body: some View {
+        let shape = CutCornerBar(cut: cut)
+        let speed: Double = surge ? 1.05 : 1.7   // smaller = faster sweep
+        ZStack {
+            shape.fill(
+                LinearGradient(
+                    colors: [tint, tint.opacity(0.82), tint.opacity(0.95)],
+                    startPoint: .top, endPoint: .bottom
+                )
+            )
+            shape.fill(
+                LinearGradient(
+                    colors: [Color.white.opacity(0.30), .clear, tint.opacity(0.4)],
+                    startPoint: .leading, endPoint: .trailing
+                )
+            )
+            // Traveling specular band — the "charge" running through the bar.
+            TimelineView(.animation) { context in
+                let phase = (context.date.timeIntervalSinceReferenceDate
+                    .truncatingRemainder(dividingBy: speed)) / speed
+                GeometryReader { g in
+                    let w = max(1, g.size.width)
+                    shape.fill(
+                        LinearGradient(
+                            colors: [.clear, Color.white.opacity(0.6), .clear],
+                            startPoint: .leading, endPoint: .trailing
+                        )
+                    )
+                    .frame(width: max(18, w * 0.26))
+                    .offset(x: -w * 0.3 + (w * 1.32) * phase)
+                    .blendMode(.screen)
+                }
+            }
+            // Top gloss for glassy depth.
+            shape.fill(
+                LinearGradient(colors: [Color.white.opacity(0.5), .clear],
+                               startPoint: .top, endPoint: .center)
+            )
+            .blendMode(.screen)
+        }
+        .clipShape(shape)
+    }
+}
+
 private struct RPGStatBar: View {
     let from: Double
     let to: Double
@@ -1938,16 +1990,20 @@ private struct RPGStatBar: View {
                             .frame(width: trackWidth * min(1, max(0, from)))
                     }
                     .overlay(alignment: .leading) {
-                        CutCornerBar(cut: trackHeight * 0.42)
-                            .fill(
-                                LinearGradient(
-                                    colors: [tint.opacity(0.85), tint, Color.unbound.textPrimary.opacity(0.72)],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
-                            )
-                            .frame(width: trackWidth * min(1, max(0, displayedProgress)))
-                            .shadow(color: tint.opacity(0.46), radius: height * 0.35)
+                        let fillWidth = trackWidth * min(1, max(0, displayedProgress))
+                        EnergyFill(tint: tint, cut: trackHeight * 0.42, surge: animate)
+                            .frame(width: fillWidth, height: trackHeight)
+                            .overlay(alignment: .trailing) {
+                                // Glowing leading edge — a bright head that bursts on level-up.
+                                Capsule()
+                                    .fill(Color.white)
+                                    .frame(width: trackHeight * 0.5, height: trackHeight)
+                                    .blur(radius: trackHeight * 0.32)
+                                    .opacity(fillWidth > 1 ? 0.95 : 0)
+                                    .shadow(color: tint, radius: trackHeight * 0.6)
+                                    .shadow(color: tint.opacity(0.8), radius: trackHeight)
+                            }
+                            .shadow(color: tint.opacity(0.5), radius: height * 0.38)
                     }
                     .overlay {
                         HStack(spacing: 0) {
