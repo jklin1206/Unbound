@@ -2,8 +2,8 @@ import XCTest
 @testable import UNBOUND
 
 final class LdSkillTiersTests: XCTestCase {
-    func testLdClusterHasAll34Skills() {
-        XCTAssertEqual(LdSkillTiers.table.count, 34)
+    func testLdClusterHasAll24Skills() {
+        XCTAssertEqual(LdSkillTiers.table.count, 24)
     }
     func testEveryLdSkillHasNineTiers() {
         for (id, tiers) in LdSkillTiers.table {

@@ -271,23 +271,24 @@ extension SkillGraph {
 
         .simple(
             id: "ld.goblet-20",
-            title: "Half Squat",
+            title: "Goblet Squat",
             cluster: .legDominance, tier: 1, type: .skill,
-            target: .reps(exercise: "half squat", count: 15),
+            target: .reps(exercise: "goblet squat", count: 12, load: "0.25x bw"),
+            equipment: [.dumbbells],
             primary: [.legs, .glutes, .core],
-            subtitle: "The squat on-ramp.",
-            description: "Half-depth bodyweight squats — thighs to roughly parallel, knees track over toes, chest up. The squat pattern entry point every leg skill grows from.",
+            subtitle: "The loaded squat on-ramp.",
+            description: "Full-depth squats holding a dumbbell or kettlebell at the chest — elbows inside the knees, chest tall. The loaded squat pattern every leg skill grows from; rank climbs with the weight you can own (% of bodyweight), not endless reps.",
             formCues: [
+                "Hold the bell at chest height, elbows tucked in",
                 "Feet shoulder-width, toes turned out ~15°",
-                "Drop until thighs are parallel to floor",
-                "Knees track over the second/third toe; forward travel is fine if heels stay rooted",
-                "Chest up, eyes forward throughout",
+                "Sit straight down to full depth, knees tracking over toes",
+                "Chest tall, weight stays over midfoot",
                 "Drive through the heels to stand"
             ],
             commonMistakes: [
+                "Bell drifting away from the chest",
                 "Heels lifting — ankle mobility or stance too narrow",
-                "Knees caving inward on the concentric",
-                "Bouncing out of the bottom"
+                "Knees caving inward on the concentric"
             ],
             timeline: "1-3 weeks to groove the pattern."
         ),
@@ -311,7 +312,7 @@ extension SkillGraph {
                 "Pushing off the rear foot",
                 "Forward lean into a lunge pattern"
             ],
-            timeline: "1-3 weeks from half squat."
+            timeline: "1-3 weeks from goblet squat."
         ),
         .simple(
             id: "ld.bulgarian-split-squat",
