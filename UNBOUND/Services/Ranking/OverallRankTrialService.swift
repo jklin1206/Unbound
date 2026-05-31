@@ -658,8 +658,8 @@ enum OverallRankTrialDefinitions {
                 category: .lower,
                 movementId: loadout == .gymHybrid ? "exercise.leg-press" : loadout == .homeKit ? "exercise.goblet-squat" : "exercise.bodyweight-squat",
                 metric: .reps,
-                minimumValue: 20,
-                capSeconds: 14 * 60,
+                minimumValue: TrialStandards.Daily100.lowerReps,
+                capSeconds: TrialStandards.Daily100.stationCapSeconds,
                 movementOptions: movementSet(
                     loadout: loadout,
                     noGym: option("exercise.bodyweight-squat"),
@@ -673,8 +673,8 @@ enum OverallRankTrialDefinitions {
                 category: .push,
                 movementId: loadout == .gymHybrid ? "exercise.machine-chest-press" : loadout == .homeKit ? "exercise.pushup" : "exercise.incline-pushup",
                 metric: .reps,
-                minimumValue: 15,
-                capSeconds: 14 * 60,
+                minimumValue: TrialStandards.Daily100.pushReps,
+                capSeconds: TrialStandards.Daily100.stationCapSeconds,
                 movementOptions: movementSet(
                     loadout: loadout,
                     noGym: option("exercise.incline-pushup"),
@@ -688,8 +688,8 @@ enum OverallRankTrialDefinitions {
                 category: .pull,
                 movementId: loadout == .gymHybrid ? "exercise.cable-row-seated" : loadout == .homeKit ? "exercise.dumbbell-row" : "exercise.inverted-row",
                 metric: .reps,
-                minimumValue: 20,
-                capSeconds: 14 * 60,
+                minimumValue: TrialStandards.Daily100.pullReps,
+                capSeconds: TrialStandards.Daily100.stationCapSeconds,
                 movementOptions: movementSet(
                     loadout: loadout,
                     noGym: option("exercise.inverted-row"),
@@ -710,8 +710,8 @@ enum OverallRankTrialDefinitions {
                 category: .engine,
                 movementId: "exercise.step-up",
                 metric: .reps,
-                minimumValue: 20,
-                capSeconds: 14 * 60,
+                minimumValue: TrialStandards.Daily100.engineReps,
+                capSeconds: TrialStandards.Daily100.stationCapSeconds,
                 movementOptions: [option("exercise.step-up")]
             ),
             station(
@@ -720,8 +720,8 @@ enum OverallRankTrialDefinitions {
                 category: .carryCore,
                 movementId: "exercise.plank",
                 metric: .holdSeconds,
-                minimumValue: 25,
-                capSeconds: 14 * 60,
+                minimumValue: TrialStandards.Daily100.trunkHoldSeconds,
+                capSeconds: TrialStandards.Daily100.stationCapSeconds,
                 movementOptions: [option("exercise.plank")]
             )
         ]
@@ -729,15 +729,15 @@ enum OverallRankTrialDefinitions {
 
     private static func operatorStations(loadout: TrialLoadout) -> [TrialStation] {
         [
-            engineStation("operator-engine", title: "6-Minute Engine Floor", loadout: loadout, runMeters: 700, capSeconds: 6 * 60),
+            engineStation("operator-engine", title: "6-Minute Engine Floor", loadout: loadout, runMeters: TrialStandards.OperatorScreen.engineMeters, capSeconds: TrialStandards.OperatorScreen.engineCapSeconds),
             station(
                 "operator-lower",
                 title: "2-Minute Lower Floor",
                 category: .lower,
                 movementId: loadout == .gymHybrid ? "exercise.leg-press" : loadout == .homeKit ? "exercise.goblet-squat" : "exercise.step-up",
                 metric: .reps,
-                minimumValue: 30,
-                capSeconds: 2 * 60,
+                minimumValue: TrialStandards.OperatorScreen.lowerReps,
+                capSeconds: TrialStandards.OperatorScreen.stationCapSeconds,
                 movementOptions: movementSet(
                     loadout: loadout,
                     noGym: option("exercise.step-up"),
@@ -751,8 +751,8 @@ enum OverallRankTrialDefinitions {
                 category: .push,
                 movementId: loadout == .gymHybrid ? "exercise.machine-chest-press" : "exercise.pushup",
                 metric: .reps,
-                minimumValue: 18,
-                capSeconds: 2 * 60,
+                minimumValue: TrialStandards.OperatorScreen.pushReps,
+                capSeconds: TrialStandards.OperatorScreen.stationCapSeconds,
                 movementOptions: movementSet(
                     loadout: loadout,
                     noGym: option("exercise.pushup"),
@@ -766,8 +766,8 @@ enum OverallRankTrialDefinitions {
                 category: .pull,
                 movementId: loadout == .gymHybrid ? "exercise.cable-row-seated" : loadout == .homeKit ? "exercise.dumbbell-row" : "exercise.inverted-row",
                 metric: .reps,
-                minimumValue: 24,
-                capSeconds: 2 * 60,
+                minimumValue: TrialStandards.OperatorScreen.pullReps,
+                capSeconds: TrialStandards.OperatorScreen.stationCapSeconds,
                 movementOptions: movementSet(
                     loadout: loadout,
                     noGym: option("exercise.inverted-row"),
@@ -789,9 +789,9 @@ enum OverallRankTrialDefinitions {
                 category: .carryCore,
                 movementId: loadout == .noGymField ? "exercise.plank" : "carry.suitcase-carry",
                 metric: loadout == .noGymField ? .holdSeconds : .distanceMeters,
-                minimumValue: loadout == .noGymField ? 60 : 80,
-                capSeconds: 3 * 60,
-                loadPercentOfBodyweight: loadout == .noGymField ? nil : 0.20,
+                minimumValue: loadout == .noGymField ? TrialStandards.OperatorScreen.coreHoldSeconds : TrialStandards.OperatorScreen.carryMeters,
+                capSeconds: TrialStandards.OperatorScreen.carryCapSeconds,
+                loadPercentOfBodyweight: loadout == .noGymField ? nil : TrialStandards.OperatorScreen.carryLoadPercent,
                 movementOptions: movementSet(
                     loadout: loadout,
                     noGym: option("exercise.plank"),
@@ -806,11 +806,11 @@ enum OverallRankTrialDefinitions {
     }
 
     private static func finisherStations(loadout: TrialLoadout) -> [TrialStation] {
-        let reps = [21, 15, 9]
+        let reps = TrialStandards.Finisher.roundReps
         return reps.enumerated().flatMap { index, count in
             let round = index + 1
             return [
-                engineStation("finisher-r\(round)-engine", title: "Round \(round) Engine Buy-In", loadout: loadout, runMeters: 300),
+                engineStation("finisher-r\(round)-engine", title: "Round \(round) Engine Buy-In", loadout: loadout, runMeters: TrialStandards.Finisher.engineMeters),
                 station(
                     "finisher-r\(round)-hinge",
                     title: "Round \(round) Hinge \(count)",
@@ -859,7 +859,7 @@ enum OverallRankTrialDefinitions {
                     category: .carryCore,
                     movementId: loadout == .noGymField ? "carry.loaded-march" : "carry.suitcase-carry",
                     metric: .distanceMeters,
-                    minimumValue: 40,
+                    minimumValue: TrialStandards.Finisher.carryMeters,
                     movementOptions: movementSet(
                         loadout: loadout,
                         noGym: option("carry.loaded-march", "Backpack Carry", requiredEquipment: [.openSpace]),
@@ -888,7 +888,7 @@ enum OverallRankTrialDefinitions {
                     category: .push,
                     movementId: loadout == .gymHybrid ? "exercise.machine-chest-press" : "exercise.pushup",
                     metric: .reps,
-                    minimumValue: 10,
+                    minimumValue: TrialStandards.DeckOfProof.pushReps,
                     movementOptions: movementSet(
                         loadout: loadout,
                         noGym: option("exercise.pushup"),
@@ -903,7 +903,7 @@ enum OverallRankTrialDefinitions {
                     category: .lower,
                     movementId: loadout == .gymHybrid ? "exercise.leg-press" : loadout == .homeKit ? "exercise.goblet-squat" : "exercise.step-up",
                     metric: .reps,
-                    minimumValue: 12,
+                    minimumValue: TrialStandards.DeckOfProof.lowerReps,
                     movementOptions: movementSet(
                         loadout: loadout,
                         noGym: option("exercise.step-up"),
@@ -918,7 +918,7 @@ enum OverallRankTrialDefinitions {
                     category: .pull,
                     movementId: loadout == .gymHybrid ? "exercise.cable-row-seated" : loadout == .homeKit ? "exercise.dumbbell-row" : "exercise.inverted-row",
                     metric: .reps,
-                    minimumValue: 10,
+                    minimumValue: TrialStandards.DeckOfProof.pullReps,
                     movementOptions: movementSet(
                         loadout: loadout,
                         noGym: option("exercise.inverted-row"),
@@ -927,7 +927,7 @@ enum OverallRankTrialDefinitions {
                     )
                 )
             case .engine:
-                return engineStation("deck-card-\(card)", title: "Card \(card) Engine", loadout: loadout, runMeters: 200)
+                return engineStation("deck-card-\(card)", title: "Card \(card) Engine", loadout: loadout, runMeters: TrialStandards.DeckOfProof.engineMeters)
             case .carryCore:
                 return station(
                     "deck-card-\(card)",
@@ -935,8 +935,8 @@ enum OverallRankTrialDefinitions {
                     category: .carryCore,
                     movementId: loadout == .noGymField ? "exercise.plank" : "carry.suitcase-carry",
                     metric: loadout == .noGymField ? .holdSeconds : .distanceMeters,
-                    minimumValue: loadout == .noGymField ? 30 : 60,
-                    loadPercentOfBodyweight: loadout == .noGymField ? nil : 0.20,
+                    minimumValue: loadout == .noGymField ? TrialStandards.DeckOfProof.coreHoldSeconds : TrialStandards.DeckOfProof.carryMeters,
+                    loadPercentOfBodyweight: loadout == .noGymField ? nil : TrialStandards.DeckOfProof.carryLoadPercent,
                     movementOptions: movementSet(
                         loadout: loadout,
                         noGym: option("exercise.plank"),
@@ -951,7 +951,7 @@ enum OverallRankTrialDefinitions {
                     category: .mobilityControl,
                     movementId: "exercise.plank",
                     metric: .holdSeconds,
-                    minimumValue: 30
+                    minimumValue: TrialStandards.DeckOfProof.controlHoldSeconds
                 )
             }
         }
@@ -959,51 +959,51 @@ enum OverallRankTrialDefinitions {
 
     private static func towerStations(loadout: TrialLoadout) -> [TrialStation] {
         [
-            engineStation("tower-floor-01", title: "Floor 1 Engine", loadout: loadout, runMeters: 300),
-            station("tower-floor-02", title: "Floor 2 Lower", category: .lower, movementId: loadout == .gymHybrid ? "exercise.leg-press" : loadout == .homeKit ? "exercise.dumbbell-step-up" : "exercise.step-up", metric: .reps, minimumValue: 24, movementOptions: movementSet(loadout: loadout, noGym: option("exercise.step-up"), home: [option("exercise.dumbbell-step-up", requiredEquipment: [.dumbbell]), option("exercise.goblet-squat", requiredEquipment: [.dumbbell])], gym: [option("exercise.leg-press", requiredEquipment: [.machine]), option("exercise.dumbbell-step-up", requiredEquipment: [.dumbbell])])),
-            station("tower-floor-03", title: "Floor 3 Push", category: .push, movementId: loadout == .gymHybrid ? "exercise.machine-chest-press" : loadout == .homeKit ? "exercise.dumbbell-bench-press" : "exercise.pushup", metric: .reps, minimumValue: 20, movementOptions: movementSet(loadout: loadout, noGym: option("exercise.pushup"), home: [option("exercise.dumbbell-bench-press", requiredEquipment: [.dumbbell]), option("exercise.pushup")], gym: [option("exercise.machine-chest-press", requiredEquipment: [.machine]), option("exercise.dumbbell-bench-press", requiredEquipment: [.dumbbell])])),
-            station("tower-floor-04", title: "Floor 4 Pull", category: .pull, movementId: loadout == .gymHybrid ? "exercise.cable-row-seated" : loadout == .homeKit ? "exercise.dumbbell-row" : "exercise.inverted-row", metric: .reps, minimumValue: 20, movementOptions: movementSet(loadout: loadout, noGym: option("exercise.inverted-row"), home: [option("exercise.dumbbell-row", requiredEquipment: [.dumbbell]), option("exercise.band-row", requiredEquipment: [.band])], gym: [option("exercise.cable-row-seated", requiredEquipment: [.cable]), option("exercise.machine-row", requiredEquipment: [.machine])])),
-            station("tower-floor-05", title: "Floor 5 Hinge / Power", category: .hingePower, movementId: loadout == .gymHybrid ? "exercise.cable-pull-through" : loadout == .homeKit ? "exercise.dumbbell-romanian-deadlift" : "exercise.glute-bridge", metric: .reps, minimumValue: 30, movementOptions: movementSet(loadout: loadout, noGym: option("exercise.glute-bridge"), home: [option("exercise.dumbbell-romanian-deadlift", requiredEquipment: [.dumbbell]), option("exercise.kettlebell-swing", requiredEquipment: [.kettlebell])], gym: [option("exercise.cable-pull-through", requiredEquipment: [.cable]), option("exercise.dumbbell-romanian-deadlift", requiredEquipment: [.dumbbell])])),
-            station("tower-floor-06", title: "Floor 6 Carry", category: .carryCore, movementId: loadout == .noGymField ? "carry.loaded-march" : "carry.farmer-carry", metric: .distanceMeters, minimumValue: 100, loadPercentOfBodyweight: loadout == .noGymField ? 0.10 : 0.25, movementOptions: movementSet(loadout: loadout, noGym: option("carry.loaded-march", "Backpack Carry", requiredEquipment: [.openSpace]), home: [option("carry.farmer-carry", requiredEquipment: [.dumbbell, .openSpace]), option("carry.suitcase-carry", requiredEquipment: [.kettlebell, .openSpace])], gym: [option("carry.farmer-carry", requiredEquipment: [.dumbbell, .openSpace])])),
-            engineStation("tower-floor-07", title: "Floor 7 Long Engine", loadout: loadout, runMeters: 500),
-            station("tower-floor-08", title: "Floor 8 Explosive", category: .explosive, movementId: loadout == .gymHybrid ? "exercise.kettlebell-swing" : loadout == .homeKit ? "exercise.kettlebell-swing" : "exercise.step-up", metric: .reps, minimumValue: 20, movementOptions: movementSet(loadout: loadout, noGym: option("exercise.step-up"), home: [option("exercise.kettlebell-swing", requiredEquipment: [.kettlebell]), option("exercise.step-up")], gym: [option("exercise.kettlebell-swing", requiredEquipment: [.kettlebell]), option("exercise.step-up")])),
-            station("tower-floor-09-push", title: "Floor 9 Push Blend", category: .push, movementId: loadout == .gymHybrid ? "exercise.machine-chest-press" : "exercise.pushup", metric: .reps, minimumValue: 15, movementOptions: movementSet(loadout: loadout, noGym: option("exercise.pushup"), home: [option("exercise.pushup"), option("exercise.dumbbell-bench-press", requiredEquipment: [.dumbbell])], gym: [option("exercise.machine-chest-press", requiredEquipment: [.machine]), option("exercise.dumbbell-bench-press", requiredEquipment: [.dumbbell])])),
-            station("tower-floor-09-pull", title: "Floor 9 Pull Blend", category: .pull, movementId: loadout == .gymHybrid ? "exercise.cable-row-seated" : loadout == .homeKit ? "exercise.dumbbell-row" : "exercise.inverted-row", metric: .reps, minimumValue: 15, movementOptions: movementSet(loadout: loadout, noGym: option("exercise.inverted-row"), home: [option("exercise.dumbbell-row", requiredEquipment: [.dumbbell]), option("exercise.band-row", requiredEquipment: [.band])], gym: [option("exercise.cable-row-seated", requiredEquipment: [.cable]), option("exercise.machine-row", requiredEquipment: [.machine])])),
-            station("tower-floor-10", title: "Floor 10 Boss Hold", category: .carryCore, movementId: "exercise.plank", metric: .holdSeconds, minimumValue: 90, capSeconds: 5 * 60, movementOptions: [option("exercise.plank")])
+            engineStation("tower-floor-01", title: "Floor 1 Engine", loadout: loadout, runMeters: TrialStandards.Tower.floor1Meters),
+            station("tower-floor-02", title: "Floor 2 Lower", category: .lower, movementId: loadout == .gymHybrid ? "exercise.leg-press" : loadout == .homeKit ? "exercise.dumbbell-step-up" : "exercise.step-up", metric: .reps, minimumValue: TrialStandards.Tower.lowerReps, movementOptions: movementSet(loadout: loadout, noGym: option("exercise.step-up"), home: [option("exercise.dumbbell-step-up", requiredEquipment: [.dumbbell]), option("exercise.goblet-squat", requiredEquipment: [.dumbbell])], gym: [option("exercise.leg-press", requiredEquipment: [.machine]), option("exercise.dumbbell-step-up", requiredEquipment: [.dumbbell])])),
+            station("tower-floor-03", title: "Floor 3 Push", category: .push, movementId: loadout == .gymHybrid ? "exercise.machine-chest-press" : loadout == .homeKit ? "exercise.dumbbell-bench-press" : "exercise.pushup", metric: .reps, minimumValue: TrialStandards.Tower.pushReps, movementOptions: movementSet(loadout: loadout, noGym: option("exercise.pushup"), home: [option("exercise.dumbbell-bench-press", requiredEquipment: [.dumbbell]), option("exercise.pushup")], gym: [option("exercise.machine-chest-press", requiredEquipment: [.machine]), option("exercise.dumbbell-bench-press", requiredEquipment: [.dumbbell])])),
+            station("tower-floor-04", title: "Floor 4 Pull", category: .pull, movementId: loadout == .gymHybrid ? "exercise.cable-row-seated" : loadout == .homeKit ? "exercise.dumbbell-row" : "exercise.inverted-row", metric: .reps, minimumValue: TrialStandards.Tower.pullReps, movementOptions: movementSet(loadout: loadout, noGym: option("exercise.inverted-row"), home: [option("exercise.dumbbell-row", requiredEquipment: [.dumbbell]), option("exercise.band-row", requiredEquipment: [.band])], gym: [option("exercise.cable-row-seated", requiredEquipment: [.cable]), option("exercise.machine-row", requiredEquipment: [.machine])])),
+            station("tower-floor-05", title: "Floor 5 Hinge / Power", category: .hingePower, movementId: loadout == .gymHybrid ? "exercise.cable-pull-through" : loadout == .homeKit ? "exercise.dumbbell-romanian-deadlift" : "exercise.glute-bridge", metric: .reps, minimumValue: TrialStandards.Tower.hingeReps, movementOptions: movementSet(loadout: loadout, noGym: option("exercise.glute-bridge"), home: [option("exercise.dumbbell-romanian-deadlift", requiredEquipment: [.dumbbell]), option("exercise.kettlebell-swing", requiredEquipment: [.kettlebell])], gym: [option("exercise.cable-pull-through", requiredEquipment: [.cable]), option("exercise.dumbbell-romanian-deadlift", requiredEquipment: [.dumbbell])])),
+            station("tower-floor-06", title: "Floor 6 Carry", category: .carryCore, movementId: loadout == .noGymField ? "carry.loaded-march" : "carry.farmer-carry", metric: .distanceMeters, minimumValue: TrialStandards.Tower.carryMeters, loadPercentOfBodyweight: loadout == .noGymField ? TrialStandards.Tower.carryLoadPercentNoGym : TrialStandards.Tower.carryLoadPercentLoaded, movementOptions: movementSet(loadout: loadout, noGym: option("carry.loaded-march", "Backpack Carry", requiredEquipment: [.openSpace]), home: [option("carry.farmer-carry", requiredEquipment: [.dumbbell, .openSpace]), option("carry.suitcase-carry", requiredEquipment: [.kettlebell, .openSpace])], gym: [option("carry.farmer-carry", requiredEquipment: [.dumbbell, .openSpace])])),
+            engineStation("tower-floor-07", title: "Floor 7 Long Engine", loadout: loadout, runMeters: TrialStandards.Tower.longEngineMeters),
+            station("tower-floor-08", title: "Floor 8 Explosive", category: .explosive, movementId: loadout == .gymHybrid ? "exercise.kettlebell-swing" : loadout == .homeKit ? "exercise.kettlebell-swing" : "exercise.step-up", metric: .reps, minimumValue: TrialStandards.Tower.explosiveReps, movementOptions: movementSet(loadout: loadout, noGym: option("exercise.step-up"), home: [option("exercise.kettlebell-swing", requiredEquipment: [.kettlebell]), option("exercise.step-up")], gym: [option("exercise.kettlebell-swing", requiredEquipment: [.kettlebell]), option("exercise.step-up")])),
+            station("tower-floor-09-push", title: "Floor 9 Push Blend", category: .push, movementId: loadout == .gymHybrid ? "exercise.machine-chest-press" : "exercise.pushup", metric: .reps, minimumValue: TrialStandards.Tower.blendPushReps, movementOptions: movementSet(loadout: loadout, noGym: option("exercise.pushup"), home: [option("exercise.pushup"), option("exercise.dumbbell-bench-press", requiredEquipment: [.dumbbell])], gym: [option("exercise.machine-chest-press", requiredEquipment: [.machine]), option("exercise.dumbbell-bench-press", requiredEquipment: [.dumbbell])])),
+            station("tower-floor-09-pull", title: "Floor 9 Pull Blend", category: .pull, movementId: loadout == .gymHybrid ? "exercise.cable-row-seated" : loadout == .homeKit ? "exercise.dumbbell-row" : "exercise.inverted-row", metric: .reps, minimumValue: TrialStandards.Tower.blendPullReps, movementOptions: movementSet(loadout: loadout, noGym: option("exercise.inverted-row"), home: [option("exercise.dumbbell-row", requiredEquipment: [.dumbbell]), option("exercise.band-row", requiredEquipment: [.band])], gym: [option("exercise.cable-row-seated", requiredEquipment: [.cable]), option("exercise.machine-row", requiredEquipment: [.machine])])),
+            station("tower-floor-10", title: "Floor 10 Boss Hold", category: .carryCore, movementId: "exercise.plank", metric: .holdSeconds, minimumValue: TrialStandards.Tower.bossHoldSeconds, capSeconds: TrialStandards.Tower.bossHoldCapSeconds, movementOptions: [option("exercise.plank")])
         ]
     }
 
     private static func bossRushStations(loadout: TrialLoadout) -> [TrialStation] {
         [
-            engineStation("boss-engine", title: "Engine Boss", loadout: loadout, runMeters: 800, capSeconds: 6 * 60),
-            station("boss-lower", title: "Lower Boss", category: .lower, movementId: loadout == .gymHybrid ? "exercise.leg-press" : loadout == .homeKit ? "exercise.dumbbell-step-up" : "exercise.step-up", metric: .reps, minimumValue: 48, capSeconds: 6 * 60, movementOptions: movementSet(loadout: loadout, noGym: option("exercise.step-up"), home: [option("exercise.dumbbell-step-up", requiredEquipment: [.dumbbell]), option("exercise.goblet-squat", requiredEquipment: [.dumbbell])], gym: [option("exercise.leg-press", requiredEquipment: [.machine]), option("exercise.dumbbell-step-up", requiredEquipment: [.dumbbell])])),
-            station("boss-power", title: "Power Boss", category: .hingePower, movementId: loadout == .gymHybrid ? "exercise.cable-pull-through" : loadout == .homeKit ? "exercise.kettlebell-swing" : "exercise.glute-bridge", metric: .reps, minimumValue: 40, capSeconds: 6 * 60, movementOptions: movementSet(loadout: loadout, noGym: option("exercise.glute-bridge"), home: [option("exercise.kettlebell-swing", requiredEquipment: [.kettlebell]), option("exercise.dumbbell-romanian-deadlift", requiredEquipment: [.dumbbell])], gym: [option("exercise.cable-pull-through", requiredEquipment: [.cable]), option("exercise.kettlebell-swing", requiredEquipment: [.kettlebell])])),
-            station("boss-upper-push", title: "Upper Boss Push", category: .push, movementId: loadout == .gymHybrid ? "exercise.machine-chest-press" : "exercise.pushup", metric: .reps, minimumValue: 16, capSeconds: 6 * 60, movementOptions: movementSet(loadout: loadout, noGym: option("exercise.pushup"), home: [option("exercise.pushup"), option("exercise.dumbbell-bench-press", requiredEquipment: [.dumbbell])], gym: [option("exercise.machine-chest-press", requiredEquipment: [.machine]), option("exercise.dumbbell-bench-press", requiredEquipment: [.dumbbell])])),
-            station("boss-upper-pull", title: "Upper Boss Pull", category: .pull, movementId: loadout == .gymHybrid ? "exercise.cable-row-seated" : loadout == .homeKit ? "exercise.dumbbell-row" : "exercise.inverted-row", metric: .reps, minimumValue: 16, capSeconds: 6 * 60, movementOptions: movementSet(loadout: loadout, noGym: option("exercise.inverted-row"), home: [option("exercise.dumbbell-row", requiredEquipment: [.dumbbell]), option("exercise.band-row", requiredEquipment: [.band])], gym: [option("exercise.cable-row-seated", requiredEquipment: [.cable]), option("exercise.machine-row", requiredEquipment: [.machine])])),
-            station("boss-control", title: "Control Boss", category: .mobilityControl, movementId: "exercise.plank", metric: .holdSeconds, minimumValue: 60, minimumQualifyingSets: 2, plannedSets: 2, capSeconds: 6 * 60, movementOptions: [option("exercise.plank")]),
-            station("boss-carry", title: "Carry Boss", category: .carryCore, movementId: loadout == .noGymField ? "carry.loaded-march" : "carry.farmer-carry", metric: .distanceMeters, minimumValue: 200, capSeconds: 6 * 60, loadPercentOfBodyweight: loadout == .noGymField ? 0.15 : 0.30, movementOptions: movementSet(loadout: loadout, noGym: option("carry.loaded-march", "Backpack Carry", requiredEquipment: [.openSpace]), home: [option("carry.farmer-carry", requiredEquipment: [.dumbbell, .openSpace]), option("carry.suitcase-carry", requiredEquipment: [.kettlebell, .openSpace])], gym: [option("carry.farmer-carry", requiredEquipment: [.dumbbell, .openSpace])]))
+            engineStation("boss-engine", title: "Engine Boss", loadout: loadout, runMeters: TrialStandards.BossRush.engineMeters, capSeconds: TrialStandards.BossRush.stationCapSeconds),
+            station("boss-lower", title: "Lower Boss", category: .lower, movementId: loadout == .gymHybrid ? "exercise.leg-press" : loadout == .homeKit ? "exercise.dumbbell-step-up" : "exercise.step-up", metric: .reps, minimumValue: TrialStandards.BossRush.lowerReps, capSeconds: TrialStandards.BossRush.stationCapSeconds, movementOptions: movementSet(loadout: loadout, noGym: option("exercise.step-up"), home: [option("exercise.dumbbell-step-up", requiredEquipment: [.dumbbell]), option("exercise.goblet-squat", requiredEquipment: [.dumbbell])], gym: [option("exercise.leg-press", requiredEquipment: [.machine]), option("exercise.dumbbell-step-up", requiredEquipment: [.dumbbell])])),
+            station("boss-power", title: "Power Boss", category: .hingePower, movementId: loadout == .gymHybrid ? "exercise.cable-pull-through" : loadout == .homeKit ? "exercise.kettlebell-swing" : "exercise.glute-bridge", metric: .reps, minimumValue: TrialStandards.BossRush.powerReps, capSeconds: TrialStandards.BossRush.stationCapSeconds, movementOptions: movementSet(loadout: loadout, noGym: option("exercise.glute-bridge"), home: [option("exercise.kettlebell-swing", requiredEquipment: [.kettlebell]), option("exercise.dumbbell-romanian-deadlift", requiredEquipment: [.dumbbell])], gym: [option("exercise.cable-pull-through", requiredEquipment: [.cable]), option("exercise.kettlebell-swing", requiredEquipment: [.kettlebell])])),
+            station("boss-upper-push", title: "Upper Boss Push", category: .push, movementId: loadout == .gymHybrid ? "exercise.machine-chest-press" : "exercise.pushup", metric: .reps, minimumValue: TrialStandards.BossRush.pushReps, capSeconds: TrialStandards.BossRush.stationCapSeconds, movementOptions: movementSet(loadout: loadout, noGym: option("exercise.pushup"), home: [option("exercise.pushup"), option("exercise.dumbbell-bench-press", requiredEquipment: [.dumbbell])], gym: [option("exercise.machine-chest-press", requiredEquipment: [.machine]), option("exercise.dumbbell-bench-press", requiredEquipment: [.dumbbell])])),
+            station("boss-upper-pull", title: "Upper Boss Pull", category: .pull, movementId: loadout == .gymHybrid ? "exercise.cable-row-seated" : loadout == .homeKit ? "exercise.dumbbell-row" : "exercise.inverted-row", metric: .reps, minimumValue: TrialStandards.BossRush.pullReps, capSeconds: TrialStandards.BossRush.stationCapSeconds, movementOptions: movementSet(loadout: loadout, noGym: option("exercise.inverted-row"), home: [option("exercise.dumbbell-row", requiredEquipment: [.dumbbell]), option("exercise.band-row", requiredEquipment: [.band])], gym: [option("exercise.cable-row-seated", requiredEquipment: [.cable]), option("exercise.machine-row", requiredEquipment: [.machine])])),
+            station("boss-control", title: "Control Boss", category: .mobilityControl, movementId: "exercise.plank", metric: .holdSeconds, minimumValue: TrialStandards.BossRush.controlHoldSeconds, minimumQualifyingSets: TrialStandards.BossRush.controlSets, plannedSets: TrialStandards.BossRush.controlSets, capSeconds: TrialStandards.BossRush.stationCapSeconds, movementOptions: [option("exercise.plank")]),
+            station("boss-carry", title: "Carry Boss", category: .carryCore, movementId: loadout == .noGymField ? "carry.loaded-march" : "carry.farmer-carry", metric: .distanceMeters, minimumValue: TrialStandards.BossRush.carryMeters, capSeconds: TrialStandards.BossRush.stationCapSeconds, loadPercentOfBodyweight: loadout == .noGymField ? TrialStandards.BossRush.carryLoadPercentNoGym : TrialStandards.BossRush.carryLoadPercentLoaded, movementOptions: movementSet(loadout: loadout, noGym: option("carry.loaded-march", "Backpack Carry", requiredEquipment: [.openSpace]), home: [option("carry.farmer-carry", requiredEquipment: [.dumbbell, .openSpace]), option("carry.suitcase-carry", requiredEquipment: [.kettlebell, .openSpace])], gym: [option("carry.farmer-carry", requiredEquipment: [.dumbbell, .openSpace])]))
         ]
     }
 
     private static func raidStations(loadout: TrialLoadout) -> [TrialStation] {
         [
-            engineStation("raid-stage-1", title: "Stage 1 Engine Repeats", loadout: loadout, runMeters: 400, minimumQualifyingSets: 3, capSeconds: 18 * 60),
-            station("raid-stage-2-hinge", title: "Stage 2 Hinge Raid", category: .hingePower, movementId: loadout == .gymHybrid ? "exercise.cable-pull-through" : loadout == .homeKit ? "exercise.dumbbell-romanian-deadlift" : "exercise.glute-bridge", metric: .reps, minimumValue: 10, minimumQualifyingSets: 4, plannedSets: 4, capSeconds: 32 * 60, movementOptions: movementSet(loadout: loadout, noGym: option("exercise.glute-bridge"), home: [option("exercise.dumbbell-romanian-deadlift", requiredEquipment: [.dumbbell]), option("exercise.kettlebell-swing", requiredEquipment: [.kettlebell])], gym: [option("exercise.cable-pull-through", requiredEquipment: [.cable]), option("exercise.dumbbell-romanian-deadlift", requiredEquipment: [.dumbbell])])),
-            station("raid-stage-2-upper", title: "Stage 2 Press / Row Raid", category: .pull, movementId: loadout == .gymHybrid ? "exercise.cable-row-seated" : loadout == .homeKit ? "exercise.dumbbell-row" : "exercise.inverted-row", metric: .reps, minimumValue: 10, minimumQualifyingSets: 4, plannedSets: 4, capSeconds: 32 * 60, movementOptions: movementSet(loadout: loadout, noGym: option("exercise.inverted-row"), home: [option("exercise.dumbbell-row", requiredEquipment: [.dumbbell]), option("exercise.band-row", requiredEquipment: [.band])], gym: [option("exercise.cable-row-seated", requiredEquipment: [.cable]), option("exercise.machine-row", requiredEquipment: [.machine])])),
-            station("raid-stage-2-carry", title: "Stage 2 Carry Raid", category: .carryCore, movementId: loadout == .noGymField ? "carry.loaded-march" : "carry.farmer-carry", metric: .distanceMeters, minimumValue: 60, minimumQualifyingSets: 4, plannedSets: 4, capSeconds: 32 * 60, loadPercentOfBodyweight: loadout == .noGymField ? 0.15 : 0.30, movementOptions: movementSet(loadout: loadout, noGym: option("carry.loaded-march", "Backpack Carry", requiredEquipment: [.openSpace]), home: [option("carry.farmer-carry", requiredEquipment: [.dumbbell, .openSpace]), option("carry.suitcase-carry", requiredEquipment: [.kettlebell, .openSpace])], gym: [option("carry.farmer-carry", requiredEquipment: [.dumbbell, .openSpace])])),
-            station("raid-stage-3-control", title: "Stage 3 Recovery-Control Hold", category: .mobilityControl, movementId: "exercise.plank", metric: .holdSeconds, minimumValue: 120, minimumQualifyingSets: 1, plannedSets: 1, capSeconds: 15 * 60, movementOptions: [option("exercise.plank")])
+            engineStation("raid-stage-1", title: "Stage 1 Engine Repeats", loadout: loadout, runMeters: TrialStandards.Raid.engineMeters, minimumQualifyingSets: TrialStandards.Raid.engineSets, capSeconds: TrialStandards.Raid.engineCapSeconds),
+            station("raid-stage-2-hinge", title: "Stage 2 Hinge Raid", category: .hingePower, movementId: loadout == .gymHybrid ? "exercise.cable-pull-through" : loadout == .homeKit ? "exercise.dumbbell-romanian-deadlift" : "exercise.glute-bridge", metric: .reps, minimumValue: TrialStandards.Raid.workReps, minimumQualifyingSets: TrialStandards.Raid.workSets, plannedSets: TrialStandards.Raid.workSets, capSeconds: TrialStandards.Raid.workCapSeconds, movementOptions: movementSet(loadout: loadout, noGym: option("exercise.glute-bridge"), home: [option("exercise.dumbbell-romanian-deadlift", requiredEquipment: [.dumbbell]), option("exercise.kettlebell-swing", requiredEquipment: [.kettlebell])], gym: [option("exercise.cable-pull-through", requiredEquipment: [.cable]), option("exercise.dumbbell-romanian-deadlift", requiredEquipment: [.dumbbell])])),
+            station("raid-stage-2-upper", title: "Stage 2 Press / Row Raid", category: .pull, movementId: loadout == .gymHybrid ? "exercise.cable-row-seated" : loadout == .homeKit ? "exercise.dumbbell-row" : "exercise.inverted-row", metric: .reps, minimumValue: TrialStandards.Raid.workReps, minimumQualifyingSets: TrialStandards.Raid.workSets, plannedSets: TrialStandards.Raid.workSets, capSeconds: TrialStandards.Raid.workCapSeconds, movementOptions: movementSet(loadout: loadout, noGym: option("exercise.inverted-row"), home: [option("exercise.dumbbell-row", requiredEquipment: [.dumbbell]), option("exercise.band-row", requiredEquipment: [.band])], gym: [option("exercise.cable-row-seated", requiredEquipment: [.cable]), option("exercise.machine-row", requiredEquipment: [.machine])])),
+            station("raid-stage-2-carry", title: "Stage 2 Carry Raid", category: .carryCore, movementId: loadout == .noGymField ? "carry.loaded-march" : "carry.farmer-carry", metric: .distanceMeters, minimumValue: TrialStandards.Raid.carryMeters, minimumQualifyingSets: TrialStandards.Raid.workSets, plannedSets: TrialStandards.Raid.workSets, capSeconds: TrialStandards.Raid.workCapSeconds, loadPercentOfBodyweight: loadout == .noGymField ? TrialStandards.Raid.carryLoadPercentNoGym : TrialStandards.Raid.carryLoadPercentLoaded, movementOptions: movementSet(loadout: loadout, noGym: option("carry.loaded-march", "Backpack Carry", requiredEquipment: [.openSpace]), home: [option("carry.farmer-carry", requiredEquipment: [.dumbbell, .openSpace]), option("carry.suitcase-carry", requiredEquipment: [.kettlebell, .openSpace])], gym: [option("carry.farmer-carry", requiredEquipment: [.dumbbell, .openSpace])])),
+            station("raid-stage-3-control", title: "Stage 3 Recovery-Control Hold", category: .mobilityControl, movementId: "exercise.plank", metric: .holdSeconds, minimumValue: TrialStandards.Raid.controlHoldSeconds, minimumQualifyingSets: TrialStandards.Raid.controlSets, plannedSets: TrialStandards.Raid.controlSets, capSeconds: TrialStandards.Raid.controlCapSeconds, movementOptions: [option("exercise.plank")])
         ]
     }
 
     private static func finalExamStations(loadout: TrialLoadout) -> [TrialStation] {
         [
-            station("exam-part-a-explosive", title: "Part A Explosive Control", category: .explosive, movementId: loadout == .gymHybrid ? "exercise.kettlebell-swing" : loadout == .homeKit ? "exercise.kettlebell-swing" : "exercise.step-up", metric: .reps, minimumValue: 30, capSeconds: 8 * 60, movementOptions: movementSet(loadout: loadout, noGym: option("exercise.step-up"), home: [option("exercise.kettlebell-swing", requiredEquipment: [.kettlebell]), option("exercise.step-up")], gym: [option("exercise.kettlebell-swing", requiredEquipment: [.kettlebell]), option("exercise.step-up")])),
-            engineStation("exam-part-b-engine", title: "Part B Capacity", loadout: loadout, runMeters: 1200, capSeconds: 12 * 60),
-            station("exam-part-c-pull", title: "Part C Pull Volume", category: .pull, movementId: loadout == .gymHybrid ? "exercise.cable-row-seated" : loadout == .homeKit ? "exercise.dumbbell-row" : "exercise.inverted-row", metric: .reps, minimumValue: 60, capSeconds: 30 * 60, movementOptions: movementSet(loadout: loadout, noGym: option("exercise.inverted-row"), home: [option("exercise.dumbbell-row", requiredEquipment: [.dumbbell]), option("exercise.band-row", requiredEquipment: [.band])], gym: [option("exercise.cable-row-seated", requiredEquipment: [.cable]), option("exercise.machine-row", requiredEquipment: [.machine])])),
-            station("exam-part-c-push", title: "Part C Push Volume", category: .push, movementId: loadout == .gymHybrid ? "exercise.machine-chest-press" : "exercise.pushup", metric: .reps, minimumValue: 60, capSeconds: 30 * 60, movementOptions: movementSet(loadout: loadout, noGym: option("exercise.pushup"), home: [option("exercise.pushup"), option("exercise.dumbbell-bench-press", requiredEquipment: [.dumbbell])], gym: [option("exercise.machine-chest-press", requiredEquipment: [.machine]), option("exercise.pushup")])),
-            station("exam-part-c-lower", title: "Part C Lower Volume", category: .lower, movementId: loadout == .gymHybrid ? "exercise.leg-press" : loadout == .homeKit ? "exercise.goblet-squat" : "exercise.step-up", metric: .reps, minimumValue: 80, capSeconds: 30 * 60, movementOptions: movementSet(loadout: loadout, noGym: option("exercise.step-up"), home: [option("exercise.goblet-squat", requiredEquipment: [.dumbbell]), option("exercise.dumbbell-step-up", requiredEquipment: [.dumbbell])], gym: [option("exercise.leg-press", requiredEquipment: [.machine]), option("exercise.goblet-squat", requiredEquipment: [.dumbbell])])),
-            station("exam-part-c-carry", title: "Part C Carry Finish", category: .carryCore, movementId: loadout == .noGymField ? "carry.loaded-march" : "carry.farmer-carry", metric: .distanceMeters, minimumValue: 240, capSeconds: 30 * 60, loadPercentOfBodyweight: loadout == .noGymField ? 0.20 : 0.35, movementOptions: movementSet(loadout: loadout, noGym: option("carry.loaded-march", "Backpack Carry", requiredEquipment: [.openSpace]), home: [option("carry.farmer-carry", requiredEquipment: [.dumbbell, .openSpace]), option("carry.suitcase-carry", requiredEquipment: [.kettlebell, .openSpace])], gym: [option("carry.farmer-carry", requiredEquipment: [.dumbbell, .openSpace])])),
-            station("exam-part-c-trunk", title: "Part C Trunk Finish", category: .mobilityControl, movementId: "exercise.plank", metric: .holdSeconds, minimumValue: 120, capSeconds: 30 * 60, movementOptions: [option("exercise.plank")])
+            station("exam-part-a-explosive", title: "Part A Explosive Control", category: .explosive, movementId: loadout == .gymHybrid ? "exercise.kettlebell-swing" : loadout == .homeKit ? "exercise.kettlebell-swing" : "exercise.step-up", metric: .reps, minimumValue: TrialStandards.FinalExam.explosiveReps, capSeconds: TrialStandards.FinalExam.explosiveCapSeconds, movementOptions: movementSet(loadout: loadout, noGym: option("exercise.step-up"), home: [option("exercise.kettlebell-swing", requiredEquipment: [.kettlebell]), option("exercise.step-up")], gym: [option("exercise.kettlebell-swing", requiredEquipment: [.kettlebell]), option("exercise.step-up")])),
+            engineStation("exam-part-b-engine", title: "Part B Capacity", loadout: loadout, runMeters: TrialStandards.FinalExam.engineMeters, capSeconds: TrialStandards.FinalExam.engineCapSeconds),
+            station("exam-part-c-pull", title: "Part C Pull Volume", category: .pull, movementId: loadout == .gymHybrid ? "exercise.cable-row-seated" : loadout == .homeKit ? "exercise.dumbbell-row" : "exercise.inverted-row", metric: .reps, minimumValue: TrialStandards.FinalExam.pullReps, capSeconds: TrialStandards.FinalExam.volumeCapSeconds, movementOptions: movementSet(loadout: loadout, noGym: option("exercise.inverted-row"), home: [option("exercise.dumbbell-row", requiredEquipment: [.dumbbell]), option("exercise.band-row", requiredEquipment: [.band])], gym: [option("exercise.cable-row-seated", requiredEquipment: [.cable]), option("exercise.machine-row", requiredEquipment: [.machine])])),
+            station("exam-part-c-push", title: "Part C Push Volume", category: .push, movementId: loadout == .gymHybrid ? "exercise.machine-chest-press" : "exercise.pushup", metric: .reps, minimumValue: TrialStandards.FinalExam.pushReps, capSeconds: TrialStandards.FinalExam.volumeCapSeconds, movementOptions: movementSet(loadout: loadout, noGym: option("exercise.pushup"), home: [option("exercise.pushup"), option("exercise.dumbbell-bench-press", requiredEquipment: [.dumbbell])], gym: [option("exercise.machine-chest-press", requiredEquipment: [.machine]), option("exercise.pushup")])),
+            station("exam-part-c-lower", title: "Part C Lower Volume", category: .lower, movementId: loadout == .gymHybrid ? "exercise.leg-press" : loadout == .homeKit ? "exercise.goblet-squat" : "exercise.step-up", metric: .reps, minimumValue: TrialStandards.FinalExam.lowerReps, capSeconds: TrialStandards.FinalExam.volumeCapSeconds, movementOptions: movementSet(loadout: loadout, noGym: option("exercise.step-up"), home: [option("exercise.goblet-squat", requiredEquipment: [.dumbbell]), option("exercise.dumbbell-step-up", requiredEquipment: [.dumbbell])], gym: [option("exercise.leg-press", requiredEquipment: [.machine]), option("exercise.goblet-squat", requiredEquipment: [.dumbbell])])),
+            station("exam-part-c-carry", title: "Part C Carry Finish", category: .carryCore, movementId: loadout == .noGymField ? "carry.loaded-march" : "carry.farmer-carry", metric: .distanceMeters, minimumValue: TrialStandards.FinalExam.carryMeters, capSeconds: TrialStandards.FinalExam.volumeCapSeconds, loadPercentOfBodyweight: loadout == .noGymField ? TrialStandards.FinalExam.carryLoadPercentNoGym : TrialStandards.FinalExam.carryLoadPercentLoaded, movementOptions: movementSet(loadout: loadout, noGym: option("carry.loaded-march", "Backpack Carry", requiredEquipment: [.openSpace]), home: [option("carry.farmer-carry", requiredEquipment: [.dumbbell, .openSpace]), option("carry.suitcase-carry", requiredEquipment: [.kettlebell, .openSpace])], gym: [option("carry.farmer-carry", requiredEquipment: [.dumbbell, .openSpace])])),
+            station("exam-part-c-trunk", title: "Part C Trunk Finish", category: .mobilityControl, movementId: "exercise.plank", metric: .holdSeconds, minimumValue: TrialStandards.FinalExam.trunkHoldSeconds, capSeconds: TrialStandards.FinalExam.volumeCapSeconds, movementOptions: [option("exercise.plank")])
         ]
     }
 

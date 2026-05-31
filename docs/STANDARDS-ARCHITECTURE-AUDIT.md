@@ -192,6 +192,19 @@ and nothing enforced their agreement. Now locked by
 `VariantStandardConsistencyTests`: any future edit that makes a shared key
 diverge fails the build. No behavior change.
 
-### Still deferred
-- **Gates** (trial/badge/capstone thresholds) — not relocated this pass; their
-  thresholds are still inline. Folder move (Q2) deferred as low-value churn.
+### Gates done (2026-05-31, Q2)
+`Models/Standards/Gates/` now holds the pass/fail threshold standards, pulled out
+of their inline scatter:
+- `CapstoneStandards.swift` — relocated `CapstoneCatalog` + `PrestigeCapstoneCatalog`
+  (enum names unchanged → consumers untouched).
+- `BadgeStandards.swift` — `BadgeService`'s session/strength milestones, hour-glass
+  minutes, pushup single-set reps, and squat/bench/deadlift bw-multiples.
+- `TrialStandards.swift` — every Overall-Rank-Trial station floor (reps / hold-sec /
+  run+carry meters / %bw carry load / time caps / qualifying sets), one enum per
+  trial. The `OverallRankTrialService` builders keep their assembly logic and read
+  the seed floors from here.
+
+`TrialStandardsSnapshotTests` golden-locks every resolved trial floor; the full
+`OverallRankTrialServiceTests` suite + the golden both stayed green through the
+extraction, so it is behavior-neutral. Badge ratios still live next to their
+detection predicates (which is correct — they're not duplicated, just named now).
