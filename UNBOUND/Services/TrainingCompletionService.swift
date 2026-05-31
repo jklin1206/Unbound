@@ -154,13 +154,20 @@ final class TrainingCompletionService {
                 )
             }
 
-        let noveltyMultiplier = 1.0
-        result.bodyMapNoveltyMultiplier = noveltyMultiplier
         result.bodyMapRegionRewards = previewBodyRegionRewards(
             from: gains,
             trainingLoads: BodyRegionTrainingLedger.loads(for: performanceLog),
             at: performanceLog.completedAt
         )
+        // Real region-novelty from the user's last-known body-map profile (cached
+        // in memory by BodyMapProgressService) so the timed-out preview credits
+        // the same novelty bonus the live path would — not a flat 1.0.
+        let noveltyMultiplier = BodyMapProgressService.shared.previewNoveltyMultiplier(
+            for: result.bodyMapRegionRewards.map(\.region),
+            userId: performanceLog.userId,
+            at: performanceLog.completedAt
+        )
+        result.bodyMapNoveltyMultiplier = noveltyMultiplier
 
         var attributeProfile = services.attribute.snapshot(
             userId: performanceLog.userId,
@@ -195,7 +202,7 @@ final class TrainingCompletionService {
         let overallXPGained = RewardLedgerQuantizer.wholePoints(
             from: gains.reduce(0) { $0 + $1.rawAP } * noveltyMultiplier
         )
-        let previousOverallXP = 0.0
+        let previousOverallXP = OverallLevelService.shared.cachedTotalXP(userId: performanceLog.userId) ?? 0.0
         let currentOverallXP = previousOverallXP + overallXPGained
         result.overallLevelReward = OverallLevelReward(
             xpGained: overallXPGained,

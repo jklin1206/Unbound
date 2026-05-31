@@ -451,6 +451,15 @@ final class OverallLevelService {
 
     private init() {}
 
+    /// Last-known persisted progress per user, kept in memory so the reward
+    /// preview can baseline the overall-level bar correctly (instead of from 0)
+    /// when the async progression path times out.
+    private var cachedProgress: [String: OverallLevelProgress] = [:]
+
+    /// Synchronous read of the user's last-known total XP, or nil if unseen
+    /// this launch. Used only by `previewProgression`.
+    func cachedTotalXP(userId: String) -> Double? { cachedProgress[userId]?.totalXP }
+
     @discardableResult
     func ingest(
         rawAP: Double,
@@ -501,6 +510,7 @@ final class OverallLevelService {
             from: effectiveAP * max(1.0, noveltyMultiplier) * comeback
         ) + bolus
         progress.apply(xpGained: xpGained, sourceLogId: sourceLogId, at: date)
+        cachedProgress[userId] = progress
         try? await database.create(progress, collection: "overall_level_progress", documentId: progress.id)
 
         let reward = OverallLevelReward(
@@ -531,10 +541,13 @@ final class OverallLevelService {
             collection: "overall_level_progress",
             documentId: userId
         ) {
+            cachedProgress[userId] = existing
             return existing
         }
 
-        return OverallLevelProgress(userId: userId)
+        let fresh = OverallLevelProgress(userId: userId)
+        cachedProgress[userId] = fresh
+        return fresh
     }
 }
 
@@ -548,6 +561,18 @@ final class BodyMapProgressService {
     private static let maxLifetimeBaseline: Double = 0.2
 
     private init() {}
+
+    /// Last-known body-map profile per user, kept in memory so the reward
+    /// preview can compute the real region-novelty multiplier (instead of a flat
+    /// 1.0) when the async progression path times out.
+    private var cachedProfiles: [String: BodyMapProfile] = [:]
+
+    /// Synchronous novelty multiplier from the user's last-known profile, for
+    /// `previewProgression`. Returns the neutral 1.0 if unseen this launch.
+    func previewNoveltyMultiplier(for regions: [BodyRegion], userId: String, at date: Date) -> Double {
+        guard let profile = cachedProfiles[userId] else { return 1.0 }
+        return noveltyMultiplier(for: regions, profile: profile, at: date)
+    }
 
     func profile(
         userId: String,
@@ -606,6 +631,7 @@ final class BodyMapProgressService {
             profile.processedSourceLogIds.removeFirst(profile.processedSourceLogIds.count - 250)
         }
         profile.updatedAt = date
+        cachedProfiles[userId] = profile
         try? await database.create(profile, collection: "body_map_profiles", documentId: profile.id)
 
         let result = BodyMapIngestResult(
@@ -633,10 +659,13 @@ final class BodyMapProgressService {
             collection: "body_map_profiles",
             documentId: userId
         ) {
+            cachedProfiles[userId] = existing
             return existing
         }
 
-        return BodyMapProfile(userId: userId)
+        let fresh = BodyMapProfile(userId: userId)
+        cachedProfiles[userId] = fresh
+        return fresh
     }
 
     private func regionLoads(
