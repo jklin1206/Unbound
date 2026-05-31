@@ -122,4 +122,31 @@ enum SkillStandards {
         if case .exerciseSeconds = criterion { return true }
         return false
     }
+
+    // MARK: - Weighted pull-up (added-load %bw)
+
+    // Weighted pull-up / chin-up / dip are ranked by ADDED LOAD as a fraction of
+    // bodyweight — NOT absolute kg (the old StrengthStandards.weightedPullupAddedKg
+    // table, now deleted). The single source is the `pp.weighted-pullup` skill
+    // node's generated %bw criteria; StrengthStandards projects these 9 anchors
+    // into its ratio machinery so weighted pull-up ranks exactly like the skill.
+
+    private static let weightedNodeId = "pp.weighted-pullup"
+
+    /// The 9 per-tier added-load %bw thresholds (ordinal 0…8), read from the
+    /// `pp.weighted-pullup` node — the single source. nil if the node is missing.
+    static var weightedPullupRatioAnchors: [Double]? {
+        guard let criteria = SkillGraph.shared.node(id: weightedNodeId)?.tierCriteria else { return nil }
+        var anchors = [Double](repeating: 0, count: 9)
+        for tier in SkillTier.allCases {
+            guard case .exerciseBodyweightRatio(let r, _) = criteria[tier] else { return nil }
+            anchors[tier.rawValue] = r
+        }
+        return anchors
+    }
+
+    /// Added-load %bw required to reach `tier` on the weighted pull-up path.
+    static func weightedPullupRatio(tier: RankTier) -> Double? {
+        weightedPullupRatioAnchors?[tier.rawValue]
+    }
 }

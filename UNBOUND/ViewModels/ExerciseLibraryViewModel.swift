@@ -133,13 +133,9 @@ enum RankBenchmarkSummary {
         }
 
         // Loaded movements: next-tier benchmark from the bodyweight-relative
-        // StrengthStandards. Compounds/accessories use a ratio; weighted pullup
-        // uses an added-kg anchor.
+        // StrengthStandards. Compounds/accessories AND weighted pull-up all use a
+        // %bodyweight ratio (weighted pull-up = added load as %bw).
         let key = MovementCatalog.normalized(item.canonicalName)
-        if StrengthStandards.isWeightedPullup(exerciseKey: key),
-           let added = StrengthStandards.weightedPullupAdded(tier: targetTier) {
-            return "\(targetTier.displayName): +\(Int(added.rounded())) kg added"
-        }
         if let ratio = StrengthStandards.ratio(exerciseKey: key, tier: targetTier, sex: sex) {
             let ratioText = String(format: "%.2g", ratio)
             if let bodyweightKg, bodyweightKg > 0 {

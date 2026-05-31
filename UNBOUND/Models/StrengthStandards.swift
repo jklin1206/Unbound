@@ -74,10 +74,9 @@ enum StrengthStandards {
         "barbell row":  [0.00, 0.25, 0.33, 0.40, 0.53, 0.65, 0.78, 0.90, 1.20]
     ]
 
-    /// Weighted pullup/dip added-load (kg) per tier. Bodyweight alone = novice.
-    /// Index = RankTier ordinal 0…8.
-    private static let weightedPullupAddedKg: [Double] =
-        [0.0, 0.0, 5.0, 12.0, 18.0, 25.0, 32.0, 40.0, 60.0]
+    // Weighted pullup/dip is ranked by ADDED LOAD as %bodyweight, sourced from
+    // the pp.weighted-pullup skill node (SkillStandards.weightedPullupRatioAnchors)
+    // — the single source. The old absolute-kg table lived here and was deleted.
 
     // MARK: Accessory ratio tables (9-tier) — §3 male / §4 female
 
@@ -294,9 +293,11 @@ enum StrengthStandards {
         // Unranked set must not inherit a parent.
         if unrankedNames.contains(normalized) { return nil }
 
-        // Weighted pullup / dip — added-kg anchors.
+        // Weighted pullup / dip — added load as %bodyweight (single source:
+        // pp.weighted-pullup skill node).
         if canonicalKey(for: exerciseKey) == "weighted pullup" {
-            return interpolate(value: max(0, liftKg), anchors: weightedPullupAddedKg)
+            guard let anchors = SkillStandards.weightedPullupRatioAnchors else { return nil }
+            return interpolate(value: liftKg / bodyweightKg, anchors: anchors)
         }
 
         // Compound (or compound variant) — bodyweight ratio.
@@ -328,7 +329,7 @@ enum StrengthStandards {
         if unrankedNames.contains(normalized) { return nil }
 
         if let key = canonicalKey(for: exerciseKey) {
-            if key == "weighted pullup" { return nil }
+            if key == "weighted pullup" { return SkillStandards.weightedPullupRatio(tier: tier) }
             let table = (sex == .female ? compoundFemale : compoundMale)
             return table[key]?[ord]
         }
@@ -339,17 +340,6 @@ enum StrengthStandards {
         return nil
     }
 
-    /// Added-load (kg) required to reach `tier` on the weighted pullup/dip path.
-    static func weightedPullupAdded(tier: RankTier) -> Double? {
-        let ord = tier.rawValue
-        guard ord >= 1, ord < weightedPullupAddedKg.count else { return nil }
-        return weightedPullupAddedKg[ord]
-    }
-
-    /// True for the weighted-pullup added-kg path (no bodyweight ratio).
-    static func isWeightedPullup(exerciseKey: String) -> Bool {
-        canonicalKey(for: exerciseKey) == "weighted pullup"
-    }
 
     /// Back-compat shim: barbell + weighted-pullup path, male column.
     /// Retained for any caller that has no sex context.
@@ -434,21 +424,7 @@ enum StrengthStandards {
         // Loaded — requires bodyweight.
         guard bodyweightKg > 0 else { return nil }
 
-        // Weighted pullup / dip — added-kg anchors.
-        if canonicalKey(for: exerciseKey) == "weighted pullup" {
-            guard let current = rank(
-                liftKg: metricValue,
-                bodyweightKg: bodyweightKg,
-                exerciseKey: "weighted pullup",
-                sex: sex
-            ) else { return nil }
-            guard let next = current.next else { return (current, nil, 1.0) }
-            let lo = weightedPullupAdded(tier: current) ?? weightedPullupAddedKg[current.rawValue]
-            let hi = weightedPullupAdded(tier: next) ?? weightedPullupAddedKg[next.rawValue]
-            return (current, next, clampFraction(value: metricValue, lo: lo, hi: hi))
-        }
-
-        // Compound / accessory — bodyweight ratio.
+        // Compound / accessory / weighted pull-up — bodyweight ratio.
         guard let current = rank(
             liftKg: metricValue,
             bodyweightKg: bodyweightKg,
