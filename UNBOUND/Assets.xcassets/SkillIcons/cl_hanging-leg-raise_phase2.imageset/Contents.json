@@ -1,17 +1,9 @@
 {
   "images": [
     {
-      "idiom": "universal",
       "filename": "cl_hanging-leg-raise_phase2.png",
+      "idiom": "universal",
       "scale": "1x"
-    },
-    {
-      "idiom": "universal",
-      "scale": "2x"
-    },
-    {
-      "idiom": "universal",
-      "scale": "3x"
     }
   ],
   "info": {
