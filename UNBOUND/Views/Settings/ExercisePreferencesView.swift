@@ -8,8 +8,8 @@ import SwiftUI
 // Grouped by movement pattern. Top shows a compact summary ("42 / 70
 // categorized · 10 avoided"). Each row shows the pill state inline.
 //
-// Persists via ExercisePreferenceService. Consumed by LocalProgramGenerator
-// when building sessions (next chunk).
+// Persists via ExercisePreferenceService. Consumed by the deterministic
+// program-generation path when building sessions.
 
 struct ExercisePreferencesView: View {
     @EnvironmentObject var services: ServiceContainer

@@ -52,7 +52,7 @@ fileprivate enum ConceptCluster: CaseIterable, Hashable {
 
     var attemptingChip: String {
         switch self {
-        case .heavyLifting:       return "1.5× Deadlift"
+        case .heavyLifting:       return "Heavy Deadlift"
         case .legDominance:       return "100 Lunges"
         case .pullingPower:       return "10 Pullups"
         case .calisthenicControl: return "L-Sit 20s"
@@ -76,7 +76,7 @@ fileprivate struct ConceptKeystone: Identifiable {
         .init(title: "Pistol Squat",           clusterName: "Leg Dominance",       progressPct: 0.20, glyph: "figure.walk",                  achieved: false),
         .init(title: "Freestanding Handstand", clusterName: "Calisthenic Control", progressPct: 0.35, glyph: "figure.flexibility",           achieved: false),
         .init(title: "Dragon Flag",            clusterName: "Core",                progressPct: 0.10, glyph: "figure.core.training",         achieved: false),
-        .init(title: "1.5× BW Farmer Carry",    clusterName: "Conditioning",        progressPct: 0.40, glyph: "flame.fill",                   achieved: false)
+        .init(title: "Heavy Farmer Carry",      clusterName: "Conditioning",        progressPct: 0.40, glyph: "flame.fill",                   achieved: false)
     ]
 }
 

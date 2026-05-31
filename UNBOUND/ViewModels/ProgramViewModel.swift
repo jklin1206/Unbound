@@ -228,6 +228,53 @@ final class ProgramViewModel {
         await ProgramStore.shared.save(program, userId: userId)
     }
 
+    @discardableResult
+    func switchProgramFocus(
+        profile: UserProfile,
+        trainingStyle: TrainingStyle,
+        equipment: Set<Equipment>,
+        exerciseStyles: Set<ExerciseStyle>
+    ) async throws -> TrainingProgram {
+        guard let userId = services.auth.currentUserId else {
+            throw AppError.authNotAuthenticated
+        }
+
+        let sortedEquipment = equipment.sorted { $0.rawValue < $1.rawValue }
+        let sortedStyles = exerciseStyles.sorted { $0.rawValue < $1.rawValue }
+        let generated = try await ProgramGenerationService.shared.generateFromOnboarding(
+            userId: userId,
+            targetFrequency: profile.targetFrequency,
+            equipment: Set(sortedEquipment),
+            experience: profile.experience,
+            sessionLength: profile.sessionLength,
+            exerciseStyles: Set(sortedStyles),
+            targetAreas: Set(profile.targetAreas ?? []),
+            age: profile.age ?? 0,
+            gender: profile.gender ?? .unspecified,
+            heightCm: profile.heightCm ?? 0,
+            weightKg: profile.weightKg ?? 0,
+            trainingDays: profile.trainingDays,
+            trainingStyleOverride: trainingStyle,
+            trainingFeedbackMode: profile.trainingFeedbackMode,
+            cutModeActive: profile.cutMode.enabled,
+            biologicalSex: profile.biologicalSex
+        )
+
+        try await services.user.updateProfile(userId: userId, fields: [
+            "currentProgramId": generated.id,
+            "equipment": sortedEquipment.map(\.rawValue),
+            "exerciseStyles": sortedStyles.map(\.rawValue),
+            "trainingStyleOverride": trainingStyle.rawValue
+        ])
+
+        program = generated
+        state = .loaded(generated)
+        await ProgramStore.shared.save(generated, userId: userId)
+        await loadTrackingData()
+        refreshWaveAdjustments()
+        return generated
+    }
+
     func scheduleSavedWorkout(
         _ savedWorkout: SavedWorkout,
         on dayNumbers: [Int],

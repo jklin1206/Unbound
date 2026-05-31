@@ -45,6 +45,9 @@ struct ProgramOverviewView: View {
     // V3 — day-strip preview + schedule editor sheets.
     @State private var previewDay: PreviewDay?
     @State private var showScheduleEditor: Bool = false
+    @State private var focusSwitchPresentation: ProgramFocusSwitchPresentation?
+    @State private var isSwitchingProgramFocus = false
+    @State private var focusSwitchErrorMessage: String?
 
     // Program view state
     @State private var weekOffset: Int = 0 // +1 = next week, -1 = prev
@@ -255,6 +258,19 @@ struct ProgramOverviewView: View {
                 .environmentObject(services)
                 .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
+        }
+        .sheet(item: $focusSwitchPresentation) { presentation in
+            ProgramFocusSwitchSheet(
+                currentStyle: presentation.currentStyle,
+                currentEquipment: presentation.currentEquipment,
+                isApplying: isSwitchingProgramFocus,
+                errorMessage: focusSwitchErrorMessage,
+                onApply: { target in
+                    Task { await applyFocusSwitch(target) }
+                }
+            )
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
         }
         .fullScreenCover(isPresented: $showRescanFlow) {
             PhotoCaptureFlow(mode: .scan) { _ in
@@ -1359,7 +1375,7 @@ struct ProgramOverviewView: View {
     // MARK: - Block-complete copy helpers
 
     private func arcLabel(for blockNumber: Int) -> String {
-        // Mirrors LocalProgramGenerator's ((globalWeek-1)/4) % 3 + 1 cycle.
+        // Mirrors the deterministic generator's 3-arc copy cycle.
         let arc = ((max(blockNumber, 1) - 1) % 3) + 1
         switch arc {
         case 1: return "accumulation"
@@ -1424,6 +1440,7 @@ struct ProgramOverviewView: View {
             VStack(alignment: .leading, spacing: 16) {
                 weekStrip(program: program)
                 dayCard(program: program)
+                programFocusCard(program)
                 if let proposal = rolloverProposal, proposal.scanDeltaReport != nil {
                     midBlockRescanProposalCard(proposal)
                 }
@@ -1464,6 +1481,219 @@ struct ProgramOverviewView: View {
         .task(id: selectedDayDate) {
             viewModel?.refreshWaveAdjustments(asOf: selectedDayDate)
         }
+    }
+
+    private func programFocusCard(_ program: TrainingProgram) -> some View {
+        let style = effectiveTrainingStyle()
+        let isBodyweight = style == .bodyweight
+        let equipment = currentEquipmentFallback(program: program)
+        let equipmentLabel = equipmentDisplayLabel(equipment)
+
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: isBodyweight ? "figure.strengthtraining.functional" : "arrow.triangle.2.circlepath")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(isBodyweight ? Color.unbound.success : Color.unbound.coachCyan)
+                    .frame(width: 34, height: 34)
+                    .background(
+                        Circle()
+                            .fill((isBodyweight ? Color.unbound.success : Color.unbound.coachCyan).opacity(0.14))
+                    )
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("PROGRAM FOCUS")
+                        .font(Font.unbound.captionS.weight(.heavy))
+                        .tracking(1.5)
+                        .foregroundStyle(Color.unbound.textTertiary)
+                    Text(isBodyweight ? "Bodyweight focus active" : "Want to switch to calisthenics?")
+                        .font(Font.unbound.bodyLStrong)
+                        .foregroundStyle(Color.unbound.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text(isBodyweight
+                         ? "This block is already using bodyweight-first programming. You can still rebuild it as no-equipment or bar-and-band work."
+                         : "Start a new bodyweight block today. Completed sessions stay in history; future programming uses your latest logs and standards.")
+                        .font(Font.unbound.captionS)
+                        .foregroundStyle(Color.unbound.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                Spacer(minLength: 0)
+            }
+
+            HStack(spacing: 8) {
+                focusMetaPill(title: style.displayName, icon: "slider.horizontal.3")
+                focusMetaPill(title: equipmentLabel, icon: "wrench.and.screwdriver")
+            }
+
+            Button {
+                UnboundHaptics.soft()
+                focusSwitchErrorMessage = nil
+                focusSwitchPresentation = ProgramFocusSwitchPresentation(
+                    currentStyle: style,
+                    currentEquipment: equipment
+                )
+            } label: {
+                HStack(spacing: 8) {
+                    if isSwitchingProgramFocus {
+                        ProgressView()
+                            .tint(Color.unbound.textPrimary)
+                            .scaleEffect(0.78)
+                    } else {
+                        Image(systemName: "arrow.triangle.2.circlepath")
+                            .font(.system(size: 11, weight: .bold))
+                    }
+                    Text(isBodyweight ? "TUNE BODYWEIGHT BLOCK" : "SWITCH FOCUS")
+                        .font(Font.unbound.captionS.weight(.heavy))
+                        .tracking(1.2)
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 10, weight: .bold))
+                }
+                .foregroundStyle(Color.unbound.textPrimary)
+                .padding(.horizontal, 12)
+                .frame(height: 38)
+                .background(
+                    Capsule()
+                        .fill(Color.unbound.coachCyan.opacity(0.2))
+                )
+                .overlay(
+                    Capsule()
+                        .strokeBorder(Color.unbound.coachCyan.opacity(0.35), lineWidth: 1)
+                )
+            }
+            .buttonStyle(.plain)
+            .disabled(isSwitchingProgramFocus)
+            .accessibilityIdentifier("program.focusSwitch")
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(Color.unbound.surface)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(Color.unbound.coachCyan.opacity(0.25), lineWidth: 1)
+        )
+    }
+
+    private func focusMetaPill(title: String, icon: String) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.system(size: 10, weight: .bold))
+            Text(title.uppercased())
+                .font(Font.unbound.captionS.weight(.bold))
+                .tracking(0.8)
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+        }
+        .foregroundStyle(Color.unbound.textSecondary)
+        .padding(.horizontal, 10)
+        .frame(height: 30)
+        .background(
+            Capsule()
+                .fill(Color.unbound.bg.opacity(0.7))
+        )
+        .overlay(
+            Capsule()
+                .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
+        )
+    }
+
+    private func effectiveTrainingStyle() -> TrainingStyle {
+        if let override = currentProfile?.trainingStyleOverride {
+            return override
+        }
+        let equipment = currentProfile?.equipment ?? []
+        let styles = Set(currentProfile?.exerciseStyles ?? [])
+        if styles.contains(.calisthenics) || (equipment.count == 1 && equipment.contains(.bodyweight)) {
+            return .bodyweight
+        }
+        if styles.contains(.machines) || equipment.contains(.machines) {
+            return .machines
+        }
+        if styles.contains(.compoundLifts)
+            || equipment.contains(.barbell)
+            || equipment.contains(.dumbbells)
+            || equipment.contains(.bench) {
+            return .freeWeights
+        }
+        return .hybrid
+    }
+
+    private func currentEquipmentFallback(program: TrainingProgram) -> [Equipment] {
+        if let equipment = currentProfile?.equipment, !equipment.isEmpty {
+            return equipment
+        }
+        let resolved = program.requiredEquipment.compactMap { Equipment(rawValue: $0) }
+        return resolved.isEmpty ? [.bodyweight] : resolved
+    }
+
+    private func equipmentDisplayLabel(_ equipment: [Equipment]) -> String {
+        if equipment.contains(.fullGym) { return "Full gym" }
+        if equipment == [.bodyweight] { return "Bodyweight only" }
+        let labels = equipment
+            .sorted { $0.rawValue < $1.rawValue }
+            .prefix(2)
+            .map(\.displayName)
+        if labels.isEmpty { return "Equipment open" }
+        let suffix = equipment.count > 2 ? " +" : ""
+        return labels.joined(separator: " / ") + suffix
+    }
+
+    @MainActor
+    private func applyFocusSwitch(_ target: ProgramFocusSwitchTarget) async {
+        guard !isSwitchingProgramFocus else { return }
+        guard let viewModel else {
+            focusSwitchErrorMessage = "Program is still loading. Try again in a moment."
+            return
+        }
+        guard let userId = services.auth.currentUserId else {
+            focusSwitchErrorMessage = "Sign in again before changing the active block."
+            return
+        }
+
+        isSwitchingProgramFocus = true
+        focusSwitchErrorMessage = nil
+        do {
+            let profile = try await focusSwitchProfile(userId: userId)
+            let updatedStyles = target.updatedExerciseStyles(from: Set(profile.exerciseStyles ?? []))
+            let generated = try await viewModel.switchProgramFocus(
+                profile: profile,
+                trainingStyle: target.trainingStyle,
+                equipment: target.equipment,
+                exerciseStyles: updatedStyles
+            )
+
+            var updatedProfile = profile
+            updatedProfile.currentProgramId = generated.id
+            updatedProfile.trainingStyleOverride = target.trainingStyle
+            updatedProfile.equipment = target.sortedEquipment
+            updatedProfile.exerciseStyles = updatedStyles.sorted { $0.rawValue < $1.rawValue }
+            currentProfile = updatedProfile
+
+            selectedDayDate = Calendar.current.startOfDay(for: Date())
+            weekOffset = 0
+            focusSwitchPresentation = nil
+            UnboundHaptics.success()
+            await refreshHistory()
+        } catch {
+            focusSwitchErrorMessage = "Could not rebuild the block. Check your connection and try again."
+            LoggingService.shared.log(
+                "Program focus switch failed: \(error)",
+                level: .error,
+                context: ["target": target.rawValue]
+            )
+        }
+        isSwitchingProgramFocus = false
+    }
+
+    @MainActor
+    private func focusSwitchProfile(userId: String) async throws -> UserProfile {
+        if let currentProfile { return currentProfile }
+        let profile = try await services.user.fetchProfile(userId: userId)
+        currentProfile = profile
+        return profile
     }
 
     private func midBlockRescanProposalCard(_ proposal: BlockRolloverService.ProgramBlockProposal) -> some View {
@@ -2558,6 +2788,348 @@ struct ProgramOverviewView: View {
             .accessibilityIdentifier("program.retry")
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+// MARK: - Program focus switch
+
+private struct ProgramFocusSwitchPresentation: Identifiable {
+    let id = UUID()
+    let currentStyle: TrainingStyle
+    let currentEquipment: [Equipment]
+}
+
+private enum ProgramFocusSwitchTarget: String, CaseIterable, Identifiable {
+    case bodyweightOnly
+    case calisthenicsBarBands
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .bodyweightOnly: return "Bodyweight only"
+        case .calisthenicsBarBands: return "Calisthenics + bar/bands"
+        }
+    }
+
+    var subtitle: String {
+        switch self {
+        case .bodyweightOnly:
+            return "No gym, no gear. Pushups, squats, holds, control work."
+        case .calisthenicsBarBands:
+            return "Pullups, rows, dips, hangs, bands, and bodyweight progressions."
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .bodyweightOnly: return "figure.strengthtraining.functional"
+        case .calisthenicsBarBands: return "figure.climbing"
+        }
+    }
+
+    var equipment: Set<Equipment> {
+        switch self {
+        case .bodyweightOnly:
+            return [.bodyweight]
+        case .calisthenicsBarBands:
+            return [.bodyweight, .pullupBar, .bands]
+        }
+    }
+
+    var sortedEquipment: [Equipment] {
+        [.bodyweight, .pullupBar, .bands].filter { equipment.contains($0) }
+    }
+
+    var trainingStyle: TrainingStyle { .bodyweight }
+
+    func updatedExerciseStyles(from current: Set<ExerciseStyle>) -> Set<ExerciseStyle> {
+        let preservedStyles: Set<ExerciseStyle> = [
+            .cardioIntervals,
+            .steadyCardio,
+            .mobility,
+            .sports,
+            .plyometrics
+        ]
+        let preserved = current.intersection(preservedStyles)
+        return preserved.union([.calisthenics])
+    }
+}
+
+private struct ProgramFocusSwitchSheet: View {
+    let currentStyle: TrainingStyle
+    let currentEquipment: [Equipment]
+    let isApplying: Bool
+    let errorMessage: String?
+    let onApply: (ProgramFocusSwitchTarget) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var selectedTarget: ProgramFocusSwitchTarget
+
+    init(
+        currentStyle: TrainingStyle,
+        currentEquipment: [Equipment],
+        isApplying: Bool,
+        errorMessage: String?,
+        onApply: @escaping (ProgramFocusSwitchTarget) -> Void
+    ) {
+        self.currentStyle = currentStyle
+        self.currentEquipment = currentEquipment
+        self.isApplying = isApplying
+        self.errorMessage = errorMessage
+        self.onApply = onApply
+        let initial: ProgramFocusSwitchTarget = currentEquipment.contains(.pullupBar) || currentEquipment.contains(.bands)
+            ? .calisthenicsBarBands
+            : .bodyweightOnly
+        _selectedTarget = State(initialValue: initial)
+    }
+
+    var body: some View {
+        ZStack {
+            Color.unbound.bg.ignoresSafeArea()
+
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 20) {
+                    header
+                    currentSummary
+                    targetPicker
+                    consequenceCard
+                    if let errorMessage {
+                        errorRow(errorMessage)
+                    }
+                    actions
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 20)
+                .padding(.bottom, 30)
+            }
+        }
+    }
+
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("CHANGE PROGRAM FOCUS")
+                .font(Font.unbound.captionS.weight(.heavy))
+                .tracking(1.8)
+                .foregroundStyle(Color.unbound.coachCyan)
+            Text("Switch mid-block without guessing.")
+                .font(Font.unbound.titleM)
+                .foregroundStyle(Color.unbound.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+            Text("UNBOUND starts a fresh block from today using the new equipment rules. Your completed sessions, PRs, and skill progress stay in history.")
+                .font(Font.unbound.bodyM)
+                .foregroundStyle(Color.unbound.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private var currentSummary: some View {
+        HStack(spacing: 10) {
+            summaryPill(title: currentStyle.displayName, icon: "slider.horizontal.3")
+            summaryPill(title: equipmentLabel(currentEquipment), icon: "wrench.and.screwdriver")
+        }
+    }
+
+    private func summaryPill(title: String, icon: String) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.system(size: 10, weight: .bold))
+            Text(title.uppercased())
+                .font(Font.unbound.captionS.weight(.bold))
+                .tracking(0.8)
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+        }
+        .foregroundStyle(Color.unbound.textSecondary)
+        .padding(.horizontal, 10)
+        .frame(height: 30)
+        .background(Capsule().fill(Color.unbound.surface))
+        .overlay(Capsule().strokeBorder(Color.unbound.borderSubtle, lineWidth: 1))
+    }
+
+    private var targetPicker: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("NEW FOCUS")
+                .font(Font.unbound.captionS.weight(.heavy))
+                .tracking(1.4)
+                .foregroundStyle(Color.unbound.textTertiary)
+            ForEach(ProgramFocusSwitchTarget.allCases) { target in
+                targetRow(target)
+            }
+        }
+    }
+
+    private func targetRow(_ target: ProgramFocusSwitchTarget) -> some View {
+        let selected = selectedTarget == target
+        return Button {
+            guard !isApplying else { return }
+            UnboundHaptics.soft()
+            withAnimation(.easeInOut(duration: 0.16)) {
+                selectedTarget = target
+            }
+        } label: {
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: target.icon)
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(selected ? Color.unbound.textPrimary : Color.unbound.coachCyan)
+                    .frame(width: 36, height: 36)
+                    .background(
+                        Circle()
+                            .fill(selected ? Color.unbound.coachCyan : Color.unbound.coachCyan.opacity(0.14))
+                    )
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(target.title)
+                        .font(Font.unbound.bodyMStrong)
+                        .foregroundStyle(Color.unbound.textPrimary)
+                    Text(target.subtitle)
+                        .font(Font.unbound.captionS)
+                        .foregroundStyle(Color.unbound.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text(equipmentLabel(target.sortedEquipment).uppercased())
+                        .font(Font.unbound.monoS.weight(.bold))
+                        .foregroundStyle(Color.unbound.textTertiary)
+                        .padding(.top, 2)
+                }
+
+                Spacer(minLength: 0)
+
+                Image(systemName: selected ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(selected ? Color.unbound.coachCyan : Color.unbound.textTertiary)
+                    .padding(.top, 2)
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(selected ? Color.unbound.coachCyan.opacity(0.12) : Color.unbound.surface)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .strokeBorder(selected ? Color.unbound.coachCyan.opacity(0.5) : Color.unbound.borderSubtle, lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+        .disabled(isApplying)
+    }
+
+    private var consequenceCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("WHAT HAPPENS")
+                .font(Font.unbound.captionS.weight(.heavy))
+                .tracking(1.4)
+                .foregroundStyle(Color.unbound.textTertiary)
+            consequenceRow(icon: "calendar.badge.plus", title: "New block starts today", detail: "The current template is replaced going forward.")
+            consequenceRow(icon: "clock.arrow.circlepath", title: "History stays intact", detail: "Completed workouts and PR signals are not deleted.")
+            consequenceRow(icon: "target", title: "Calibration can appear", detail: "If bodyweight standards are missing, the first week finds them.")
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color.unbound.surface)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
+        )
+    }
+
+    private func consequenceRow(icon: String, title: String, detail: String) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: icon)
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(Color.unbound.coachCyan)
+                .frame(width: 16)
+                .padding(.top, 2)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(Font.unbound.captionS.weight(.bold))
+                    .tracking(0.5)
+                    .foregroundStyle(Color.unbound.textPrimary)
+                Text(detail)
+                    .font(Font.unbound.captionS)
+                    .foregroundStyle(Color.unbound.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    private func errorRow(_ message: String) -> some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 12, weight: .bold))
+            Text(message)
+                .font(Font.unbound.captionS)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .foregroundStyle(Color.unbound.alert)
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color.unbound.alert.opacity(0.1))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(Color.unbound.alert.opacity(0.25), lineWidth: 1)
+        )
+    }
+
+    private var actions: some View {
+        VStack(spacing: 10) {
+            Button {
+                onApply(selectedTarget)
+            } label: {
+                HStack(spacing: 8) {
+                    if isApplying {
+                        ProgressView()
+                            .tint(Color.unbound.textPrimary)
+                            .scaleEffect(0.82)
+                    } else {
+                        Image(systemName: "arrow.triangle.2.circlepath")
+                            .font(.system(size: 12, weight: .bold))
+                    }
+                    Text(isApplying ? "REBUILDING BLOCK" : "START BODYWEIGHT BLOCK")
+                        .font(Font.unbound.bodyMStrong)
+                        .tracking(1.3)
+                }
+                .foregroundStyle(Color.unbound.textPrimary)
+                .frame(maxWidth: .infinity)
+                .frame(height: 48)
+                .background(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .fill(Color.unbound.coachCyan)
+                )
+            }
+            .buttonStyle(.plain)
+            .disabled(isApplying)
+            .accessibilityIdentifier("program.focusSwitch.apply")
+
+            Button {
+                dismiss()
+            } label: {
+                Text("CANCEL")
+                    .font(Font.unbound.captionS.weight(.bold))
+                    .tracking(1.4)
+                    .foregroundStyle(Color.unbound.textTertiary)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 38)
+            }
+            .buttonStyle(.plain)
+            .disabled(isApplying)
+        }
+    }
+
+    private func equipmentLabel(_ equipment: [Equipment]) -> String {
+        if equipment.contains(.fullGym) { return "Full gym" }
+        if equipment == [.bodyweight] { return "Bodyweight only" }
+        let labels = equipment
+            .sorted { $0.rawValue < $1.rawValue }
+            .prefix(3)
+            .map(\.displayName)
+        return labels.isEmpty ? "Equipment open" : labels.joined(separator: " / ")
     }
 }
 

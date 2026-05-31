@@ -13,9 +13,8 @@ import Foundation
 // weights belongs to MovementCatalog.
 //
 // User marks each exercise YES/SUB/NO via `ExercisePreferenceService`. The
-// `LocalProgramGenerator` still filters against this catalog while it migrates:
-// exclude `.avoid`, prefer `.available`, apply `.substitute` replacements
-// automatically.
+// Program generation uses these preferences to exclude `.avoid`, prefer
+// `.available`, and apply `.substitute` replacements automatically.
 
 struct CatalogExercise: Identifiable, Hashable, Sendable {
     var id: String { name }
