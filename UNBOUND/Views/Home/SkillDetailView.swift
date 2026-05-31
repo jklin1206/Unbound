@@ -323,8 +323,12 @@ struct SkillDetailView: View {
     private var progressStrip: some View {
         // Earned-rank progress along the 9-tier RankTier ladder (replaces the
         // retired fake-XP bar). Fill = earned tier ordinal / Ascendant.
+        // Feat nodes whose floor hasn't been reached have earned nothing real yet
+        // (their low ranks are skipped) → empty bar, not a phantom Initiate sliver.
         let earned = userSkillTierState.tier(for: node.id)
-        let fraction = max(0, min(1, Double(earned.rawValue) / Double(RankTier.ascendant.rawValue)))
+        let fraction = node.earnedRankIsBelowFloor(earned)
+            ? 0
+            : max(0, min(1, Double(earned.rawValue) / Double(RankTier.ascendant.rawValue)))
         return VStack(spacing: 0) {
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
@@ -407,8 +411,12 @@ struct SkillDetailView: View {
 
     private var rankPathSection: some View {
         let rows = rankPathRows()
-        let active = rows.first(where: { $0.isCurrent }) ?? rows.first
+        // Skipped (below-floor) rungs aren't part of a feat's journey — focus and
+        // counts run over the achievable rows only.
+        let achievableRows = rows.filter { !$0.isSkipped }
+        let active = rows.first(where: { $0.isCurrent }) ?? achievableRows.first ?? rows.first
         let clearedCount = rows.filter(\.isCleared).count
+        let achievableCount = achievableRows.count
 
         return VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .firstTextBaseline) {
@@ -421,7 +429,7 @@ struct SkillDetailView: View {
                 }
                 Spacer()
                 VStack(alignment: .trailing, spacing: 4) {
-                    Text("\(clearedCount)/\(rows.count)")
+                    Text("\(clearedCount)/\(achievableCount)")
                         .font(.system(size: 16, weight: .heavy, design: .rounded))
                         .foregroundStyle(Color.unbound.textPrimary)
                         .monospacedDigit()
@@ -439,7 +447,7 @@ struct SkillDetailView: View {
                     }
                     UnboundHaptics.soft()
                 } label: {
-                    rankFocusCard(active, rows: rows, clearedCount: clearedCount)
+                    rankFocusCard(active, rows: achievableRows, clearedCount: clearedCount)
                 }
                 .buttonStyle(.plain)
             }
@@ -471,6 +479,10 @@ struct SkillDetailView: View {
         let isCleared: Bool
         let isCurrent: Bool
         let isFuture: Bool
+        /// Feat node: this tier sits BELOW the floor, so it isn't part of this
+        /// skill's journey (the move's first rep jumps straight to the floor).
+        /// Rendered de-emphasized — present but not achievable here.
+        let isSkipped: Bool
         let unlocks: [SkillUnlockStandards.OutgoingUnlock]
     }
 
@@ -480,7 +492,12 @@ struct SkillDetailView: View {
 
     private func rankPathRows() -> [RankPathDisplayRow] {
         let tiers = SkillTier.allCases
+        let floor = node.rankFloor
+        // For a feat node, tiers below the floor are skipped (they share the
+        // floor's entry criterion). They aren't real gates — exclude them from
+        // the "current gate" search so the focus lands on the first honest rung.
         let firstUncleared = tiers.first { tier in
+            if tier.rawValue < floor.rawValue { return false }
             guard let criterion = criterion(for: tier) else { return true }
             return !TierCriterionEvaluator.satisfied(
                 criterion: criterion,
@@ -490,21 +507,23 @@ struct SkillDetailView: View {
         }
 
         return tiers.map { tier in
+            let skipped = tier.rawValue < floor.rawValue
             let criterion = criterion(for: tier)
-            let cleared = criterion.map {
+            let cleared = !skipped && (criterion.map {
                 TierCriterionEvaluator.satisfied(
                     criterion: $0,
                     history: recentExerciseHistory,
                     bodyweightKg: 70
                 )
-            } ?? false
-            let current = firstUncleared == tier
+            } ?? false)
+            let current = !skipped && firstUncleared == tier
             return RankPathDisplayRow(
                 tier: tier,
                 detail: criterion.map(criterionSummary) ?? fallbackRankCriterion(for: tier),
                 isCleared: cleared,
                 isCurrent: current,
-                isFuture: !cleared && !current,
+                isFuture: !skipped && !cleared && !current,
+                isSkipped: skipped,
                 unlocks: outgoingUnlocks.filter { $0.requirement.requiredTier == tier }
             )
         }
@@ -663,13 +682,13 @@ struct SkillDetailView: View {
                 HStack(spacing: 8) {
                     Text(row.tier.displayName)
                         .font(Font.unbound.bodyMStrong)
-                        .foregroundStyle(row.isCurrent ? Color.unbound.accent : (row.isFuture ? Color.unbound.textSecondary : Color.unbound.textPrimary))
+                        .foregroundStyle(row.isCurrent ? Color.unbound.accent : (row.isFuture || row.isSkipped ? Color.unbound.textSecondary : Color.unbound.textPrimary))
                     statusPill(for: row)
                 }
 
-                Text(row.detail)
+                Text(row.isSkipped ? "Skipped — this skill starts at \(node.rankFloor.displayName)" : row.detail)
                     .font(Font.unbound.bodyS)
-                    .foregroundStyle(row.isFuture ? Color.unbound.textTertiary : Color.unbound.textSecondary)
+                    .foregroundStyle(row.isFuture || row.isSkipped ? Color.unbound.textTertiary : Color.unbound.textSecondary)
                     .lineLimit(row.isCurrent ? 3 : 2)
                     .fixedSize(horizontal: false, vertical: true)
 
@@ -689,12 +708,12 @@ struct SkillDetailView: View {
         }
         .padding(.horizontal, 12)
         .padding(.top, 8)
-        .opacity(row.isFuture ? 0.74 : 1)
+        .opacity(row.isSkipped ? 0.4 : (row.isFuture ? 0.74 : 1))
     }
 
     private func statusPill(for row: RankPathDisplayRow) -> some View {
-        let label = row.isCleared ? "CLEARED" : (row.isCurrent ? "NEXT" : "LOCKED")
-        let color = row.isCleared || row.isCurrent ? Color.unbound.accent : Color.unbound.textTertiary
+        let label = row.isSkipped ? "SKIPPED" : (row.isCleared ? "CLEARED" : (row.isCurrent ? "NEXT" : "LOCKED"))
+        let color = (!row.isSkipped && (row.isCleared || row.isCurrent)) ? Color.unbound.accent : Color.unbound.textTertiary
         return Text(label)
             .font(Font.unbound.captionS.weight(.heavy))
             .tracking(1.0)
@@ -1366,6 +1385,11 @@ struct SkillDetailView: View {
     private func prereqRow(_ requirement: SkillUnlockRequirement) -> some View {
         let resolved = graph.node(id: requirement.sourceSkillId)
         let currentTier = userSkillTierState.tier(for: requirement.sourceSkillId)
+        // A not-yet feat prereq (one-arm pull-up before its floor) has no real
+        // earned rank — show "—" instead of a phantom "Initiate".
+        let currentRankLabel = (resolved?.earnedRankIsBelowFloor(currentTier) ?? false)
+            ? "—"
+            : currentTier.displayName
         let met = SkillUnlockStandards.isSatisfied(
             requirement,
             nodeStates: nodeStates,
@@ -1382,7 +1406,7 @@ struct SkillDetailView: View {
                     .foregroundStyle(met ? Color.unbound.textPrimary : Color.unbound.textSecondary)
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
-                Text("Reach \(requirement.requiredTier.displayName) · current \(currentTier.displayName)")
+                Text("Reach \(requirement.requiredTier.displayName) · current \(currentRankLabel)")
                     .font(Font.unbound.captionS)
                     .foregroundStyle(met ? Color.unbound.accent : Color.unbound.textTertiary)
                     .lineLimit(2)

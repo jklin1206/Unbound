@@ -256,6 +256,34 @@ extension SkillNode {
     /// into 0…8. This is the single source of truth for a node's placement.
     var placementRank: RankTier { RankTier(rawValue: min(8, max(0, tier))) ?? .initiate }
 
+    /// The earnable FLOOR rank for this node's ladder. A hard FEAT (e.g. one-arm
+    /// pull-up) skips its low tiers: the first rep jumps straight to a high rank,
+    /// so every tier from Initiate up to the floor shares the same entry criterion.
+    /// The floor is the highest such contiguous tier. A GRIND move has no flat run
+    /// (Initiate differs from Novice) → floor is `.initiate`.
+    ///
+    /// `isFeat` is true iff `rankFloor > .initiate`. Below the floor a feat node
+    /// has earned nothing real — UI should render its current rank blank, not
+    /// "Initiate".
+    var rankFloor: SkillTier {
+        guard let base = tierCriteria[.initiate] else { return .initiate }
+        var floor = SkillTier.initiate
+        for tier in SkillTier.allCases.dropFirst() {   // novice…ascendant
+            if tierCriteria[tier] == base { floor = tier } else { break }
+        }
+        return floor
+    }
+
+    /// A hard feat whose low ranks are skipped (floor above Initiate).
+    var isFeat: Bool { rankFloor > .initiate }
+
+    /// True when the user's earned tier hasn't yet reached this feat's floor, so
+    /// the current rank should display blank instead of a real (skipped) tier.
+    /// Always false for grind moves.
+    func earnedRankIsBelowFloor(_ earned: SkillTier) -> Bool {
+        isFeat && earned.rawValue < rankFloor.rawValue
+    }
+
     /// True if at least ONE prerequisite group is fully satisfied by the given states,
     /// or the node has no prereqs. Matches the canonical OR-of-AND semantics used in
     /// `SkillTree.swift:246` and `SkillProgressService.swift:81–91`.
