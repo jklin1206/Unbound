@@ -74,6 +74,7 @@ struct ProfileView: View {
                         trophyHeader
                         ProfileBuildCard(profile: attributeProfile)
                         badgesCard
+                        rewardsCard
                         profileArchiveStrip
                         if let beforePhoto, let afterPhoto {
                             ProgressJourneyCard(dayZero: beforePhoto, now: afterPhoto)
@@ -630,6 +631,39 @@ struct ProfileView: View {
     }
 
     // MARK: - Badges card
+
+    private var rewardsCard: some View {
+        NavigationLink(destination: RewardsVaultView().environmentObject(services)) {
+            HStack(spacing: 14) {
+                Image(systemName: "trophy.fill")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundStyle(Color.unbound.accent)
+                    .frame(width: 40, height: 40)
+                    .background(Circle().fill(Color.unbound.accent.opacity(0.14)))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("REWARDS")
+                        .font(Font.unbound.captionS.weight(.bold))
+                        .tracking(1.8)
+                        .foregroundStyle(Color.unbound.textTertiary)
+                    Text("Titles, skins, cosmetics & badges")
+                        .font(Font.unbound.bodyMStrong)
+                        .foregroundStyle(Color.unbound.textPrimary)
+                    Text("See everything and how to earn it")
+                        .font(Font.unbound.captionS)
+                        .foregroundStyle(Color.unbound.textSecondary)
+                }
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(Color.unbound.textTertiary)
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(RoundedRectangle(cornerRadius: 18, style: .continuous).fill(Color.unbound.surface))
+            .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(Color.unbound.accent.opacity(0.25), lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+    }
 
     private var badgesCard: some View {
         VStack(alignment: .leading, spacing: 10) {

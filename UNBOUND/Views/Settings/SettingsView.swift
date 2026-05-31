@@ -155,6 +155,13 @@ struct SettingsView: View {
             // MARK: Appearance
             Section {
                 NavigationLink {
+                    RewardsVaultView()
+                        .environmentObject(services)
+                } label: {
+                    Label("Rewards", systemImage: "trophy.fill")
+                        .foregroundColor(.theme.textPrimary)
+                }
+                NavigationLink {
                     ProfileCosmeticsView()
                         .environmentObject(services)
                 } label: {
