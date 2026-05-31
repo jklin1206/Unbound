@@ -454,6 +454,7 @@ struct SkillDetailView: View {
 
             if isRankPathExpanded {
                 VStack(spacing: 0) {
+                    if node.isFeat { featSkipMarker }
                     let visibleRows = visibleRankRows(rows)
                     ForEach(Array(visibleRows.enumerated()), id: \.element.id) { index, row in
                         rankPathRow(row, isLast: index == visibleRows.count - 1)
@@ -530,7 +531,36 @@ struct SkillDetailView: View {
     }
 
     private func visibleRankRows(_ rows: [RankPathDisplayRow]) -> [RankPathDisplayRow] {
-        rows.filter { !$0.isCurrent }
+        // Skipped (below-floor) rungs are dropped from a feat's path — a single
+        // marker conveys the skip instead (see featSkipMarker).
+        rows.filter { !$0.isCurrent && !$0.isSkipped }
+    }
+
+    /// For a feat, one compact line noting the low ranks it skips (shown above the
+    /// achievable rungs in the expanded path).
+    @ViewBuilder
+    private var featSkipMarker: some View {
+        let belowFloor = SkillTier(rawValue: node.rankFloor.rawValue - 1) ?? .initiate
+        let ring: String = {
+            switch node.tier {
+            case ...2:  return "Beginner"
+            case 3...4: return "Intermediate"
+            case 5...6: return "Advanced"
+            default:    return "Elite"
+            }
+        }()
+        HStack(spacing: 8) {
+            Image(systemName: "arrow.turn.up.right")
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(Color.unbound.textTertiary)
+            Text("Skips Initiate → \(belowFloor.displayName) · \(ring) skill")
+                .font(Font.unbound.captionS)
+                .foregroundStyle(Color.unbound.textTertiary)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 14)
+        .padding(.top, 10)
+        .padding(.bottom, 4)
     }
 
     private func rankFocusCard(_ row: RankPathDisplayRow, rows: [RankPathDisplayRow], clearedCount: Int) -> some View {
