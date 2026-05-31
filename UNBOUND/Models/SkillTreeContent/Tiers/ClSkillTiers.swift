@@ -1,28 +1,34 @@
 // UNBOUND/Models/SkillTreeContent/Tiers/ClSkillTiers.swift
 //
-// Tier criteria for every skill with prefix `cl.` (37 skills).
-// Core / lever family. See CalSkillTiers.swift for the established pattern.
+// Tier criteria for the core / lever family (cl.*, 30 skills) — GENERATED from
+// real-data anchors (CoreSkillAnchors + SkillTierGenerator), replacing the old
+// hand-authored 9-tier-per-node tables (the source of the distribution mess).
+// Grind moves (rep core + hold core) spread real standards across the 9 tiers;
+// lever-hold stages each band their own hold-seconds at that leverage; hard feats
+// start high (the first rep jumps to a floor rank, ranks below are "not yet").
+// The node's difficulty (SkillNode.tier, used by trials) is unchanged — only the
+// per-node rank ladder is generated here. Mirrors PpSkillTiers.swift.
 //
-// Hold-type skills (hollow body, planks, l-sit, v-sit, levers, etc.):
-//   .variant("exercise-name") is used for lower tiers since holds are logged
-//   as named exercises. Upper tiers compound with a related rep progression
-//   to confirm the movement strength underlying the hold.
+// Grounding: docs/strength-standards-harvest.md (rep core) +
+// docs/standards-statics.md (holds, lever/compression stages, front-lever feat).
 //
-// Lever progressions (front lever, back lever, victorian):
-//   Cascade through tuck → straddle → full variant chain, with .compound
-//   at upper tiers requiring both the target hold variant AND a supporting
-//   compression/pulling rep progression.
-//
-// Elite/mythic skills (victorian, 360-degree pulls, dragon flag):
-//   Cascade through prerequisite variants before reaching the target.
+// 7 orphan nodes (zero consumers) are intentionally excluded: cl.ab-wheel,
+// cl.dragon-flag-negative, cl.hollow-body-60, cl.standing-plank,
+// cl.straight-crunch, cl.tuck-back-lever, cl.victorian.
+
+import Foundation
 
 import Foundation
 
 #if DEBUG
 private let _clCountCheck: Int = {
     assert(
-        ClSkillTiers.table.count == 37,
-        "cl cluster should have 37 entries, has \(ClSkillTiers.table.count)"
+        ClSkillTiers.table.count == 30,
+        "cl cluster should have 30 entries, has \(ClSkillTiers.table.count)"
+    )
+    assert(
+        CoreSkillAnchors.table.count == 30,
+        "cl anchors should have 30 entries, has \(CoreSkillAnchors.table.count)"
     )
     for (id, tiers) in ClSkillTiers.table {
         assert(tiers.count == 9, "\(id) needs 9 tiers, has \(tiers.count)")
@@ -34,543 +40,73 @@ private let _clCountCheck: Int = {
 }()
 #endif
 
-enum ClSkillTiers {
-    static let table: [String: [SkillTier: TierCriterion]] = [
+// MARK: - Core / lever family anchors (canonical nodes — real data)
+//
+// Keyed by real cl.* node ids. Grind moves use .full (5 standards spread onto
+// tiers 0/2/4/6/8); lever-hold stages use .full seconds (band = hold-seconds at
+// that leverage); the two apex feats use .feat (a floor rank + short ladder).
 
-        // MARK: - Hollow Body Core Gate
+enum CoreSkillAnchors {
+    static let table: [String: SkillAnchor] = [
 
-        // cl.hollow-body-30 — universal core gate; hold-type, duration not tracked.
-        // Lower tiers confirm any hollow body training. Upper tiers compound
-        // with hanging knee raise to confirm active core strength.
-        "cl.hollow-body-30": [
-            .initiate:   .variant("hollow body hold"),
-            .novice:     .variant("hollow body hold"),
-            .apprentice: .variant("hollow body hold"),
-            .forged:     .compound([.variant("hollow body hold"), .reps(5, exerciseName: "hanging knee raise")]),
-            .veteran:    .compound([.variant("hollow body hold"), .reps(10, exerciseName: "hanging knee raise")]),
-            .master:      .compound([.variant("hollow body hold"), .reps(15, exerciseName: "hanging knee raise")]),
-            .vessel:     .compound([.variant("hollow body hold"), .reps(20, exerciseName: "hanging knee raise")]),
-            .unbound:    .compound([.variant("hollow body hold"), .reps(25, exerciseName: "hanging knee raise")]),
-            .ascendant:  .compound([.variant("hollow body hold"), .reps(30, exerciseName: "hanging knee raise")]),
-        ],
+        // ── Rep core — GRIND, full 9-tier spread ──
 
-        // cl.hollow-body-60 — extended hollow body; prereq: cl.hollow-body-30.
-        // Starts from compound entry to confirm hollow body + knee raise base.
-        // Upper tiers escalate to hanging leg raise for stronger confirmation.
-        "cl.hollow-body-60": [
-            .initiate:   .variant("hollow body hold"),
-            .novice:     .compound([.variant("hollow body hold"), .reps(5, exerciseName: "hanging knee raise")]),
-            .apprentice: .compound([.variant("hollow body hold"), .reps(10, exerciseName: "hanging knee raise")]),
-            .forged:     .compound([.variant("hollow body hold"), .reps(5, exerciseName: "hanging leg raise")]),
-            .veteran:    .compound([.variant("hollow body hold"), .reps(8, exerciseName: "hanging leg raise")]),
-            .master:      .compound([.variant("hollow body hold"), .reps(12, exerciseName: "hanging leg raise")]),
-            .vessel:     .compound([.variant("hollow body hold"), .reps(15, exerciseName: "hanging leg raise")]),
-            .unbound:    .compound([.variant("hollow body hold"), .reps(20, exerciseName: "hanging leg raise")]),
-            .ascendant:  .compound([.variant("hollow body hold"), .reps(25, exerciseName: "hanging leg raise")]),
-        ],
+        // Ego-friendly high-rep ground core. Anchored directly to harvest data.
+        "cl.crunch":          .init(exerciseName: "crunch",            metric: .reps, spec: .full([1, 21, 54, 95, 142])),   // crunches <1/21/54/95/142
+        "cl.hanging-leg-raise":.init(exerciseName: "hanging leg raise", metric: .reps, spec: .full([1, 7, 18, 31, 46])),    // hanging-leg-raise <1/7/18/31/46
+        "cl.hanging-knee-raise":.init(exerciseName: "hanging knee raise", metric: .reps, spec: .full([1, 6, 19, 35, 52])),  // hanging-knee-raise <1/6/19/35/52
+        "cl.leg-raise":       .init(exerciseName: "leg raise",         metric: .reps, spec: .full([1, 7, 33, 67, 107])),    // lying-leg-raise <1/7/33/67/107
 
-        // MARK: - Hanging Core
+        // Rep core without a direct strengthlevel row — monotonic bands grounded in
+        // difficulty relative to the anchored moves above.
+        "cl.reverse-crunch":  .init(exerciseName: "reverse crunch",    metric: .reps, spec: .full([5, 10, 20, 35, 55])),    // harder than crunch, lower volume
+        "cl.knee-raise":      .init(exerciseName: "knee raise",        metric: .reps, spec: .full([5, 10, 18, 30, 45])),    // floor/parallel-bar, easier than hanging
+        "cl.levitation-crunch":.init(exerciseName: "levitation crunch", metric: .reps, spec: .full([3, 6, 12, 20, 30])),    // advanced hip-float crunch
+        "cl.toes-to-bar":     .init(exerciseName: "toes to bar",       metric: .reps, spec: .full([1, 5, 12, 22, 35])),     // max hip-flexion hang, harder than HLR
+        "cl.decline-situp":   .init(exerciseName: "decline sit-up",    metric: .reps, spec: .full([5, 15, 35, 60, 90])),    // sit-ups <1/23/57/99/146 scaled for decline
+        "cl.knee-ab-rollout": .init(exerciseName: "ab wheel kneeling", metric: .reps, spec: .full([2, 5, 12, 22, 35])),     // kneeling ab wheel
+        "cl.dragon-flag-hip-raise":.init(exerciseName: "dragon flag hip raise", metric: .reps, spec: .full([5, 10, 18, 30, 45])), // dragon-flag lead-up
 
-        // cl.hanging-knee-raise — entry-level hang; anchor: 10 reps = Forged
-        "cl.hanging-knee-raise": [
-            .initiate:   .reps(3,  exerciseName: "hanging knee raise"),
-            .novice:     .reps(5,  exerciseName: "hanging knee raise"),
-            .apprentice: .reps(8,  exerciseName: "hanging knee raise"),
-            .forged:     .reps(10, exerciseName: "hanging knee raise"),
-            .veteran:    .reps(15, exerciseName: "hanging knee raise"),
-            .master:      .reps(20, exerciseName: "hanging knee raise"),
-            .vessel:     .reps(25, exerciseName: "hanging knee raise"),
-            .unbound:    .reps(30, exerciseName: "hanging knee raise"),
-            .ascendant:  .reps(40, exerciseName: "hanging knee raise"),
-        ],
+        // Hard low-rep moves — run low (~[1,3,6,10,15]).
+        "cl.skin-the-cat":       .init(exerciseName: "skin the cat",       metric: .reps, spec: .full([1, 3, 6, 10, 15])),  // low-rep rotational
+        "cl.dragon-flag":        .init(exerciseName: "dragon flag",        metric: .reps, spec: .full([1, 3, 6, 10, 15])),  // full dragon flag, treated as reps
+        "cl.inverted-situp":     .init(exerciseName: "inverted sit-up",    metric: .reps, spec: .full([1, 3, 6, 10, 15])),  // inverted hang sit-up
+        "cl.standing-ab-rollout":.init(exerciseName: "standing ab rollout", metric: .reps, spec: .full([1, 3, 6, 10, 15])), // standing wheel, very hard
 
-        // cl.hanging-leg-raise — straighter legs = harder; anchor: 10 reps = Forged
-        "cl.hanging-leg-raise": [
-            .initiate:   .reps(2,  exerciseName: "hanging leg raise"),
-            .novice:     .reps(4,  exerciseName: "hanging leg raise"),
-            .apprentice: .reps(6,  exerciseName: "hanging leg raise"),
-            .forged:     .reps(10, exerciseName: "hanging leg raise"),
-            .veteran:    .reps(15, exerciseName: "hanging leg raise"),
-            .master:      .reps(20, exerciseName: "hanging leg raise"),
-            .vessel:     .reps(25, exerciseName: "hanging leg raise"),
-            .unbound:    .reps(30, exerciseName: "hanging leg raise"),
-            .ascendant:  .reps(40, exerciseName: "hanging leg raise"),
-        ],
+        // ── Hold core — GRIND seconds, full 9-tier spread ──
 
-        // cl.toes-to-bar — max hip flexion hang; anchor: 5 reps = Forged
-        "cl.toes-to-bar": [
-            .initiate:   .reps(1,  exerciseName: "toes to bar"),
-            .novice:     .reps(2,  exerciseName: "toes to bar"),
-            .apprentice: .reps(3,  exerciseName: "toes to bar"),
-            .forged:     .reps(5,  exerciseName: "toes to bar"),
-            .veteran:    .reps(8,  exerciseName: "toes to bar"),
-            .master:      .reps(12, exerciseName: "toes to bar"),
-            .vessel:     .reps(15, exerciseName: "toes to bar"),
-            .unbound:    .reps(20, exerciseName: "toes to bar"),
-            .ascendant:  .reps(25, exerciseName: "toes to bar"),
-        ],
+        "cl.hollow-body-30":  .init(exerciseName: "hollow body hold",  metric: .seconds, spec: .full([10, 20, 30, 45, 60])),  // hollow body 10/20/30/45/60
+        "cl.extended-plank":  .init(exerciseName: "extended plank",    metric: .seconds, spec: .full([20, 45, 60, 120, 180])),// plank 20/45/60/120/180
+        "cl.german-hang":     .init(exerciseName: "german hang",       metric: .seconds, spec: .full([10, 20, 30, 45, 60])),  // passive shoulder-flexion hold
+        "cl.bird-dog-plank":  .init(exerciseName: "bird dog plank",    metric: .seconds, spec: .full([15, 30, 45, 60, 90])),  // unilateral stability hold
+        "cl.superman-plank":  .init(exerciseName: "superman plank",    metric: .seconds, spec: .full([15, 30, 45, 60, 90])),  // extension hold
 
-        // cl.knee-raise — floor/parallel-bar knee raise entry before hanging work.
-        "cl.knee-raise": [
-            .initiate:   .reps(5,  exerciseName: "knee raise"),
-            .novice:     .reps(8,  exerciseName: "knee raise"),
-            .apprentice: .reps(12, exerciseName: "knee raise"),
-            .forged:     .reps(15, exerciseName: "knee raise"),
-            .veteran:    .reps(20, exerciseName: "knee raise"),
-            .master:      .reps(25, exerciseName: "knee raise"),
-            .vessel:     .compound([.reps(25, exerciseName: "knee raise"), .reps(8, exerciseName: "hanging knee raise")]),
-            .unbound:    .compound([.reps(30, exerciseName: "knee raise"), .reps(12, exerciseName: "hanging knee raise")]),
-            .ascendant:  .compound([.reps(40, exerciseName: "knee raise"), .reps(15, exerciseName: "hanging knee raise")]),
-        ],
+        // ── Lever-hold stages — each its own node; band = hold-seconds at that leverage ──
 
-        // cl.leg-raise — straight-leg ground/parallel-bar raise.
-        "cl.leg-raise": [
-            .initiate:   .reps(3,  exerciseName: "leg raise"),
-            .novice:     .reps(5,  exerciseName: "leg raise"),
-            .apprentice: .reps(8,  exerciseName: "leg raise"),
-            .forged:     .reps(12, exerciseName: "leg raise"),
-            .veteran:    .reps(15, exerciseName: "leg raise"),
-            .master:      .reps(20, exerciseName: "leg raise"),
-            .vessel:     .compound([.reps(20, exerciseName: "leg raise"), .reps(5, exerciseName: "hanging leg raise")]),
-            .unbound:    .compound([.reps(25, exerciseName: "leg raise"), .reps(8, exerciseName: "hanging leg raise")]),
-            .ascendant:  .compound([.reps(30, exerciseName: "leg raise"), .reps(10, exerciseName: "hanging leg raise")]),
-        ],
+        "cl.tuck-front-lever":    .init(exerciseName: "tuck front lever",    metric: .seconds, spec: .full([3, 5, 10, 20, 30])),  // FL tuck (statics §2)
+        "cl.straddle-front-lever":.init(exerciseName: "straddle front lever", metric: .seconds, spec: .full([2, 4, 8, 15, 25])), // FL straddle (statics §2)
+        "cl.straddle-back-lever": .init(exerciseName: "straddle back lever", metric: .seconds, spec: .full([2, 5, 10, 15, 20])), // BL straddle — back lever is easier
+        "cl.full-back-lever":     .init(exerciseName: "back lever",          metric: .seconds, spec: .feat(floor: .forged, ladder: [2, 5, 8, 12, 16, 20])), // owning a full back lever = Forged floor (one notch under full front lever's Veteran — BL is the easier family); 6 vals = 9−3
 
-        // MARK: - Wheel & Flag
+        // ── L-sit / V-sit compression holds — GRIND seconds ──
 
-        // cl.ab-wheel — standing ab wheel rollout; anchor: 5 reps = Forged
-        "cl.ab-wheel": [
-            .initiate:   .reps(1,  exerciseName: "ab wheel standing"),
-            .novice:     .reps(2,  exerciseName: "ab wheel standing"),
-            .apprentice: .reps(3,  exerciseName: "ab wheel standing"),
-            .forged:     .reps(5,  exerciseName: "ab wheel standing"),
-            .veteran:    .reps(8,  exerciseName: "ab wheel standing"),
-            .master:      .reps(12, exerciseName: "ab wheel standing"),
-            .vessel:     .reps(15, exerciseName: "ab wheel standing"),
-            .unbound:    .reps(20, exerciseName: "ab wheel standing"),
-            .ascendant:  .reps(25, exerciseName: "ab wheel standing"),
-        ],
+        "cl.semi-straddle-l-sit": .init(exerciseName: "semi straddle l-sit", metric: .seconds, spec: .full([3, 6, 12, 20, 30])),
+        "cl.straddle-l-sit":      .init(exerciseName: "straddle l-sit",      metric: .seconds, spec: .full([5, 10, 15, 25, 40])),
+        "cl.vertical-l-sit":      .init(exerciseName: "vertical l-sit",      metric: .seconds, spec: .full([2, 4, 7, 12, 20])),  // advanced compression
+        "cl.v-sit":               .init(exerciseName: "v-sit",              metric: .seconds, spec: .full([2, 4, 7, 12, 20])),  // v-sit can't/2-3/5/10/20
 
-        // cl.standing-ab-rollout — live tree ID for the standing ab-wheel rollout.
-        "cl.standing-ab-rollout": [
-            .initiate:   .reps(1,  exerciseName: "ab wheel standing"),
-            .novice:     .reps(2,  exerciseName: "ab wheel standing"),
-            .apprentice: .reps(3,  exerciseName: "ab wheel standing"),
-            .forged:     .reps(5,  exerciseName: "ab wheel standing"),
-            .veteran:    .reps(8,  exerciseName: "ab wheel standing"),
-            .master:      .reps(12, exerciseName: "ab wheel standing"),
-            .vessel:     .reps(15, exerciseName: "ab wheel standing"),
-            .unbound:    .reps(20, exerciseName: "ab wheel standing"),
-            .ascendant:  .reps(25, exerciseName: "ab wheel standing"),
-        ],
+        // ── Apex feats — start high (floor from difficulty), short ladder floor…peak ──
 
-        // cl.dragon-flag-negative — eccentric dragon flag; anchor: 3 reps = Forged.
-        // Lower tiers confirm hollow body base and kneeling rollout.
-        "cl.dragon-flag-negative": [
-            .initiate:   .reps(3,  exerciseName: "ab wheel kneeling"),
-            .novice:     .compound([.variant("hollow body hold"), .reps(5, exerciseName: "ab wheel kneeling")]),
-            .apprentice: .compound([.variant("hollow body hold"), .reps(8, exerciseName: "ab wheel kneeling")]),
-            .forged:     .reps(3,  exerciseName: "dragon flag negative"),
-            .veteran:    .reps(5,  exerciseName: "dragon flag negative"),
-            .master:      .reps(8,  exerciseName: "dragon flag negative"),
-            .vessel:     .reps(10, exerciseName: "dragon flag negative"),
-            .unbound:    .reps(12, exerciseName: "dragon flag negative"),
-            .ascendant:  .reps(15, exerciseName: "dragon flag negative"),
-        ],
-
-        // cl.dragon-flag — full dragon flag; anchor: 5 reps = Forged.
-        // Cascade: negatives → dragon flag itself.
-        "cl.dragon-flag": [
-            .initiate:   .reps(1, exerciseName: "dragon flag negative"),
-            .novice:     .reps(3, exerciseName: "dragon flag negative"),
-            .apprentice: .reps(5, exerciseName: "dragon flag negative"),
-            .forged:     .reps(5, exerciseName: "dragon flag"),
-            .veteran:    .reps(7, exerciseName: "dragon flag"),
-            .master:      .reps(10, exerciseName: "dragon flag"),
-            .vessel:     .reps(12, exerciseName: "dragon flag"),
-            .unbound:    .reps(15, exerciseName: "dragon flag"),
-            .ascendant:  .reps(20, exerciseName: "dragon flag"),
-        ],
-
-        // MARK: - Front Lever Progression
-
-        // cl.tuck-front-lever — entry lever hold; hold-type, duration not tracked.
-        // Lower tiers confirm hollow body and hanging leg raise strength.
-        "cl.tuck-front-lever": [
-            .initiate:   .variant("hollow body hold"),
-            .novice:     .exerciseSeconds(3, exerciseName: "tuck front lever"),
-            .apprentice: .exerciseSeconds(5, exerciseName: "tuck front lever"),
-            .forged:     .exerciseSeconds(10, exerciseName: "tuck front lever"),
-            .veteran:    .exerciseSeconds(15, exerciseName: "tuck front lever"),
-            .master:      .exerciseSeconds(20, exerciseName: "tuck front lever"),
-            .vessel:     .exerciseSeconds(25, exerciseName: "tuck front lever"),
-            .unbound:    .exerciseSeconds(30, exerciseName: "tuck front lever"),
-            .ascendant:  .exerciseSeconds(40, exerciseName: "tuck front lever"),
-        ],
-
-        // cl.straddle-front-lever — mid-progression; anchor: variant = Forged.
-        // Cascade: tuck front lever base → straddle variant.
-        "cl.straddle-front-lever": [
-            .initiate:   .variant("tuck front lever"),
-            .novice:     .exerciseSeconds(2, exerciseName: "straddle front lever"),
-            .apprentice: .exerciseSeconds(3, exerciseName: "straddle front lever"),
-            .forged:     .exerciseSeconds(5, exerciseName: "straddle front lever"),
-            .veteran:    .exerciseSeconds(8, exerciseName: "straddle front lever"),
-            .master:      .exerciseSeconds(12, exerciseName: "straddle front lever"),
-            .vessel:     .exerciseSeconds(15, exerciseName: "straddle front lever"),
-            .unbound:    .exerciseSeconds(20, exerciseName: "straddle front lever"),
-            .ascendant:  .exerciseSeconds(30, exerciseName: "straddle front lever"),
-        ],
-
-        // cl.full-front-lever — full horizontal hold; anchor: variant = Forged.
-        // Cascade: straddle → full front lever.
-        "cl.full-front-lever": [
-            .initiate:   .variant("straddle front lever"),
-            .novice:     .exerciseSeconds(2, exerciseName: "front lever"),
-            .apprentice: .exerciseSeconds(3, exerciseName: "front lever"),
-            .forged:     .exerciseSeconds(5, exerciseName: "front lever"),
-            .veteran:    .exerciseSeconds(8, exerciseName: "front lever"),
-            .master:      .exerciseSeconds(12, exerciseName: "front lever"),
-            .vessel:     .exerciseSeconds(15, exerciseName: "front lever"),
-            .unbound:    .exerciseSeconds(20, exerciseName: "front lever"),
-            .ascendant:  .exerciseSeconds(30, exerciseName: "front lever"),
-        ],
-
-        // MARK: - Back Lever Progression
-
-        // cl.tuck-back-lever — entry back lever; hold-type, duration not tracked.
-        // Lower tiers confirm skin-the-cat and german hang as prerequisite mobility.
-        "cl.tuck-back-lever": [
-            .initiate:   .variant("german hang"),
-            .novice:     .compound([.variant("german hang"), .reps(1, exerciseName: "skin the cat")]),
-            .apprentice: .compound([.variant("german hang"), .reps(3, exerciseName: "skin the cat")]),
-            .forged:     .variant("tuck back lever"),
-            .veteran:    .compound([.variant("tuck back lever"), .reps(3, exerciseName: "skin the cat")]),
-            .master:      .compound([.variant("tuck back lever"), .reps(5, exerciseName: "skin the cat")]),
-            .vessel:     .compound([.variant("tuck back lever"), .reps(8, exerciseName: "skin the cat")]),
-            .unbound:    .compound([.variant("tuck back lever"), .reps(10, exerciseName: "skin the cat")]),
-            .ascendant:  .compound([.variant("tuck back lever"), .reps(12, exerciseName: "skin the cat")]),
-        ],
-
-        // cl.straddle-back-lever — mid back lever; cascade from tuck.
-        "cl.straddle-back-lever": [
-            .initiate:   .variant("tuck back lever"),
-            .novice:     .exerciseSeconds(2, exerciseName: "straddle back lever"),
-            .apprentice: .exerciseSeconds(3, exerciseName: "straddle back lever"),
-            .forged:     .exerciseSeconds(5, exerciseName: "straddle back lever"),
-            .veteran:    .exerciseSeconds(8, exerciseName: "straddle back lever"),
-            .master:      .exerciseSeconds(12, exerciseName: "straddle back lever"),
-            .vessel:     .exerciseSeconds(15, exerciseName: "straddle back lever"),
-            .unbound:    .exerciseSeconds(20, exerciseName: "straddle back lever"),
-            .ascendant:  .exerciseSeconds(30, exerciseName: "straddle back lever"),
-        ],
-
-        // cl.full-back-lever — full back lever; cascade from straddle.
-        "cl.full-back-lever": [
-            .initiate:   .variant("tuck back lever"),
-            .novice:     .variant("straddle back lever"),
-            .apprentice: .exerciseSeconds(3, exerciseName: "back lever"),
-            .forged:     .exerciseSeconds(5, exerciseName: "back lever"),
-            .veteran:    .exerciseSeconds(8, exerciseName: "back lever"),
-            .master:      .exerciseSeconds(12, exerciseName: "back lever"),
-            .vessel:     .exerciseSeconds(15, exerciseName: "back lever"),
-            .unbound:    .exerciseSeconds(20, exerciseName: "back lever"),
-            .ascendant:  .exerciseSeconds(30, exerciseName: "back lever"),
-        ],
-
-        // MARK: - Victorian (Mythic Hold)
-
-        // cl.victorian — near-impossible inverted support; hold-type, duration not tracked.
-        // Cascade through full front lever + full back lever to the victorian itself.
-        // Elite mastery: target = 1 s hold.
-        "cl.victorian": [
-            .initiate:   .variant("tuck front lever"),
-            .novice:     .variant("tuck back lever"),
-            .apprentice: .compound([.variant("straddle front lever"), .variant("straddle back lever")]),
-            .forged:     .compound([.variant("front lever"), .variant("back lever")]),
-            .veteran:    .compound([.variant("front lever"), .variant("back lever")]),
-            .master:      .variant("victorian"),
-            .vessel:     .compound([.variant("victorian"), .reps(5, exerciseName: "toes to bar")]),
-            .unbound:    .compound([.variant("victorian"), .reps(10, exerciseName: "toes to bar")]),
-            .ascendant:  .compound([.variant("victorian"), .reps(15, exerciseName: "toes to bar")]),
-        ],
-
-        // MARK: - Ground Core Basics
-
-        // cl.crunch — standard crunch; anchor: 20 reps = Forged
-        "cl.crunch": [
-            .initiate:   .reps(5,  exerciseName: "crunch"),
-            .novice:     .reps(10, exerciseName: "crunch"),
-            .apprentice: .reps(15, exerciseName: "crunch"),
-            .forged:     .reps(20, exerciseName: "crunch"),
-            .veteran:    .reps(30, exerciseName: "crunch"),
-            .master:      .reps(40, exerciseName: "crunch"),
-            .vessel:     .reps(55, exerciseName: "crunch"),
-            .unbound:    .reps(70, exerciseName: "crunch"),
-            .ascendant:  .reps(100, exerciseName: "crunch"),
-        ],
-
-        // cl.reverse-crunch — posterior pelvic tilt focus; anchor: 15 reps = Forged
-        "cl.reverse-crunch": [
-            .initiate:   .reps(5,  exerciseName: "reverse crunch"),
-            .novice:     .reps(8,  exerciseName: "reverse crunch"),
-            .apprentice: .reps(10, exerciseName: "reverse crunch"),
-            .forged:     .reps(15, exerciseName: "reverse crunch"),
-            .veteran:    .reps(20, exerciseName: "reverse crunch"),
-            .master:      .reps(25, exerciseName: "reverse crunch"),
-            .vessel:     .reps(35, exerciseName: "reverse crunch"),
-            .unbound:    .reps(45, exerciseName: "reverse crunch"),
-            .ascendant:  .reps(60, exerciseName: "reverse crunch"),
-        ],
-
-        // cl.straight-crunch — straight-leg crunch; anchor: 20 reps = Forged
-        "cl.straight-crunch": [
-            .initiate:   .reps(5,  exerciseName: "straight crunch"),
-            .novice:     .reps(8,  exerciseName: "straight crunch"),
-            .apprentice: .reps(12, exerciseName: "straight crunch"),
-            .forged:     .reps(20, exerciseName: "straight crunch"),
-            .veteran:    .reps(30, exerciseName: "straight crunch"),
-            .master:      .reps(40, exerciseName: "straight crunch"),
-            .vessel:     .reps(55, exerciseName: "straight crunch"),
-            .unbound:    .reps(70, exerciseName: "straight crunch"),
-            .ascendant:  .reps(100, exerciseName: "straight crunch"),
-        ],
-
-        // cl.decline-situp — decline bench sit-up; anchor: 15 reps = Forged
-        "cl.decline-situp": [
-            .initiate:   .reps(5,  exerciseName: "decline sit-up"),
-            .novice:     .reps(8,  exerciseName: "decline sit-up"),
-            .apprentice: .reps(10, exerciseName: "decline sit-up"),
-            .forged:     .reps(15, exerciseName: "decline sit-up"),
-            .veteran:    .reps(20, exerciseName: "decline sit-up"),
-            .master:      .reps(25, exerciseName: "decline sit-up"),
-            .vessel:     .reps(35, exerciseName: "decline sit-up"),
-            .unbound:    .reps(45, exerciseName: "decline sit-up"),
-            .ascendant:  .reps(60, exerciseName: "decline sit-up"),
-        ],
-
-        // MARK: - Plank Variants (Hold-Type)
-
-        // cl.superman-plank — superman extension hold; hold-type.
-        // Lower tiers: variant confirms training. Upper tiers compound with
-        // bird dog plank for stabiliser confirmation.
-        "cl.superman-plank": [
-            .initiate:   .variant("superman plank"),
-            .novice:     .variant("superman plank"),
-            .apprentice: .variant("superman plank"),
-            .forged:     .compound([.variant("superman plank"), .variant("bird dog plank")]),
-            .veteran:    .compound([.variant("superman plank"), .reps(10, exerciseName: "crunch")]),
-            .master:      .compound([.variant("superman plank"), .reps(20, exerciseName: "crunch")]),
-            .vessel:     .compound([.variant("superman plank"), .reps(30, exerciseName: "crunch")]),
-            .unbound:    .compound([.variant("superman plank"), .reps(40, exerciseName: "crunch")]),
-            .ascendant:  .compound([.variant("superman plank"), .reps(50, exerciseName: "crunch")]),
-        ],
-
-        // cl.standing-plank — standing plank (wall/bar); hold-type.
-        // Upper tiers compound with extended plank for full-hollow confirmation.
-        "cl.standing-plank": [
-            .initiate:   .variant("standing plank"),
-            .novice:     .variant("standing plank"),
-            .apprentice: .variant("standing plank"),
-            .forged:     .compound([.variant("standing plank"), .variant("hollow body hold")]),
-            .veteran:    .compound([.variant("standing plank"), .reps(5, exerciseName: "hanging knee raise")]),
-            .master:      .compound([.variant("standing plank"), .reps(10, exerciseName: "hanging knee raise")]),
-            .vessel:     .compound([.variant("standing plank"), .reps(15, exerciseName: "hanging knee raise")]),
-            .unbound:    .compound([.variant("standing plank"), .reps(20, exerciseName: "hanging knee raise")]),
-            .ascendant:  .compound([.variant("standing plank"), .reps(25, exerciseName: "hanging knee raise")]),
-        ],
-
-        // cl.extended-plank — longer lever plank; hold-type.
-        // Upper tiers compound with ab wheel kneeling for extended compression.
-        "cl.extended-plank": [
-            .initiate:   .variant("extended plank"),
-            .novice:     .variant("extended plank"),
-            .apprentice: .variant("extended plank"),
-            .forged:     .compound([.variant("extended plank"), .reps(5, exerciseName: "ab wheel kneeling")]),
-            .veteran:    .compound([.variant("extended plank"), .reps(8, exerciseName: "ab wheel kneeling")]),
-            .master:      .compound([.variant("extended plank"), .reps(12, exerciseName: "ab wheel kneeling")]),
-            .vessel:     .compound([.variant("extended plank"), .reps(15, exerciseName: "ab wheel kneeling")]),
-            .unbound:    .compound([.variant("extended plank"), .reps(20, exerciseName: "ab wheel kneeling")]),
-            .ascendant:  .compound([.variant("extended plank"), .reps(25, exerciseName: "ab wheel kneeling")]),
-        ],
-
-        // cl.bird-dog-plank — unilateral stability hold; hold-type.
-        // Upper tiers compound with superman plank for cross-body stabiliser.
-        "cl.bird-dog-plank": [
-            .initiate:   .variant("bird dog plank"),
-            .novice:     .variant("bird dog plank"),
-            .apprentice: .variant("bird dog plank"),
-            .forged:     .compound([.variant("bird dog plank"), .variant("superman plank")]),
-            .veteran:    .compound([.variant("bird dog plank"), .reps(10, exerciseName: "reverse crunch")]),
-            .master:      .compound([.variant("bird dog plank"), .reps(15, exerciseName: "reverse crunch")]),
-            .vessel:     .compound([.variant("bird dog plank"), .reps(20, exerciseName: "reverse crunch")]),
-            .unbound:    .compound([.variant("bird dog plank"), .reps(25, exerciseName: "reverse crunch")]),
-            .ascendant:  .compound([.variant("bird dog plank"), .reps(30, exerciseName: "reverse crunch")]),
-        ],
-
-        // MARK: - Ab Rollout Variants
-
-        // cl.knee-ab-rollout — kneeling ab wheel; anchor: 8 reps = Forged
-        "cl.knee-ab-rollout": [
-            .initiate:   .reps(2,  exerciseName: "ab wheel kneeling"),
-            .novice:     .reps(4,  exerciseName: "ab wheel kneeling"),
-            .apprentice: .reps(6,  exerciseName: "ab wheel kneeling"),
-            .forged:     .reps(8,  exerciseName: "ab wheel kneeling"),
-            .veteran:    .reps(12, exerciseName: "ab wheel kneeling"),
-            .master:      .reps(15, exerciseName: "ab wheel kneeling"),
-            .vessel:     .reps(20, exerciseName: "ab wheel kneeling"),
-            .unbound:    .reps(25, exerciseName: "ab wheel kneeling"),
-            .ascendant:  .reps(30, exerciseName: "ab wheel kneeling"),
-        ],
-
-        // MARK: - Advanced Core Moves
-
-        // cl.levitation-crunch — hip-float crunch; anchor: 8 reps = Forged.
-        // Lower tiers cascade from reverse crunch.
-        "cl.levitation-crunch": [
-            .initiate:   .reps(5,  exerciseName: "reverse crunch"),
-            .novice:     .reps(8,  exerciseName: "reverse crunch"),
-            .apprentice: .reps(10, exerciseName: "reverse crunch"),
-            .forged:     .reps(8,  exerciseName: "levitation crunch"),
-            .veteran:    .reps(10, exerciseName: "levitation crunch"),
-            .master:      .reps(12, exerciseName: "levitation crunch"),
-            .vessel:     .reps(15, exerciseName: "levitation crunch"),
-            .unbound:    .reps(20, exerciseName: "levitation crunch"),
-            .ascendant:  .reps(25, exerciseName: "levitation crunch"),
-        ],
-
-        // cl.inverted-situp — inverted hang sit-up; anchor: 5 reps = Forged.
-        // Lower tiers confirm decline sit-up base.
-        "cl.inverted-situp": [
-            .initiate:   .reps(3,  exerciseName: "decline sit-up"),
-            .novice:     .reps(5,  exerciseName: "decline sit-up"),
-            .apprentice: .reps(8,  exerciseName: "decline sit-up"),
-            .forged:     .reps(5,  exerciseName: "inverted sit-up"),
-            .veteran:    .reps(8,  exerciseName: "inverted sit-up"),
-            .master:      .reps(10, exerciseName: "inverted sit-up"),
-            .vessel:     .reps(12, exerciseName: "inverted sit-up"),
-            .unbound:    .reps(15, exerciseName: "inverted sit-up"),
-            .ascendant:  .reps(20, exerciseName: "inverted sit-up"),
-        ],
-
-        // MARK: - Shoulder Mobility / Dislocates
-
-        // cl.skin-the-cat — full rotation through hang; anchor: 3 reps = Forged.
-        // Lower tiers confirm german hang mobility entry.
-        "cl.skin-the-cat": [
-            .initiate:   .reps(1, exerciseName: "german hang"),
-            .novice:     .variant("german hang"),
-            .apprentice: .variant("german hang"),
-            .forged:     .reps(3,  exerciseName: "skin the cat"),
-            .veteran:    .reps(5,  exerciseName: "skin the cat"),
-            .master:      .reps(8,  exerciseName: "skin the cat"),
-            .vessel:     .reps(10, exerciseName: "skin the cat"),
-            .unbound:    .reps(12, exerciseName: "skin the cat"),
-            .ascendant:  .reps(15, exerciseName: "skin the cat"),
-        ],
-
-        // cl.german-hang — passive shoulder flexion hold; hold-type.
-        // Lower tiers: variant confirms training. Upper tiers compound with
-        // skin-the-cat to confirm dynamic shoulder mobility.
-        "cl.german-hang": [
-            .initiate:   .exerciseSeconds(5, exerciseName: "german hang"),
-            .novice:     .exerciseSeconds(8, exerciseName: "german hang"),
-            .apprentice: .exerciseSeconds(10, exerciseName: "german hang"),
-            .forged:     .exerciseSeconds(15, exerciseName: "german hang"),
-            .veteran:    .exerciseSeconds(20, exerciseName: "german hang"),
-            .master:      .exerciseSeconds(30, exerciseName: "german hang"),
-            .vessel:     .exerciseSeconds(45, exerciseName: "german hang"),
-            .unbound:    .exerciseSeconds(60, exerciseName: "german hang"),
-            .ascendant:  .exerciseSeconds(90, exerciseName: "german hang"),
-        ],
-
-        // MARK: - Explosive Elite
-
-        // cl.three-sixty-pulls — 360° pull; anchor: 1 rep = Forged. Explosive/elite.
-        // Cascade from toes-to-bar and hanging leg raise.
-        "cl.three-sixty-pulls": [
-            .initiate:   .reps(5,  exerciseName: "hanging leg raise"),
-            .novice:     .reps(5,  exerciseName: "toes to bar"),
-            .apprentice: .reps(10, exerciseName: "toes to bar"),
-            .forged:     .reps(1,  exerciseName: "360-degree pulls"),
-            .veteran:    .reps(2,  exerciseName: "360-degree pulls"),
-            .master:      .reps(3,  exerciseName: "360-degree pulls"),
-            .vessel:     .reps(5,  exerciseName: "360-degree pulls"),
-            .unbound:    .reps(7,  exerciseName: "360-degree pulls"),
-            .ascendant:  .reps(10, exerciseName: "360-degree pulls"),
-        ],
-
-        // MARK: - Compression Holds
-
-        // cl.v-sit — v-sit hold; hold-type.
-        // Lower tiers cascade from l-sit and straddle l-sit.
-        "cl.v-sit": [
-            .initiate:   .variant("hollow body hold"),
-            .novice:     .exerciseSeconds(5, exerciseName: "v-sit"),
-            .apprentice: .exerciseSeconds(8, exerciseName: "v-sit"),
-            .forged:     .exerciseSeconds(10, exerciseName: "v-sit"),
-            .veteran:    .exerciseSeconds(15, exerciseName: "v-sit"),
-            .master:      .exerciseSeconds(20, exerciseName: "v-sit"),
-            .vessel:     .exerciseSeconds(30, exerciseName: "v-sit"),
-            .unbound:    .exerciseSeconds(40, exerciseName: "v-sit"),
-            .ascendant:  .exerciseSeconds(50, exerciseName: "v-sit"),
-        ],
-
-        // cl.straddle-l-sit — straddled l-sit hold; hold-type.
-        // Lower tiers use hollow body + hanging leg raise; upper tiers compound
-        // with toes-to-bar for hip flexor depth confirmation.
-        "cl.straddle-l-sit": [
-            .initiate:   .variant("hollow body hold"),
-            .novice:     .exerciseSeconds(5, exerciseName: "straddle l-sit"),
-            .apprentice: .exerciseSeconds(8, exerciseName: "straddle l-sit"),
-            .forged:     .exerciseSeconds(10, exerciseName: "straddle l-sit"),
-            .veteran:    .exerciseSeconds(15, exerciseName: "straddle l-sit"),
-            .master:      .exerciseSeconds(20, exerciseName: "straddle l-sit"),
-            .vessel:     .exerciseSeconds(30, exerciseName: "straddle l-sit"),
-            .unbound:    .exerciseSeconds(40, exerciseName: "straddle l-sit"),
-            .ascendant:  .exerciseSeconds(50, exerciseName: "straddle l-sit"),
-        ],
-
-        // cl.semi-straddle-l-sit — bridge between L-sit and straddle L-sit.
-        "cl.semi-straddle-l-sit": [
-            .initiate:   .variant("l-sit"),
-            .novice:     .exerciseSeconds(5, exerciseName: "semi-straddle l-sit"),
-            .apprentice: .exerciseSeconds(8, exerciseName: "semi-straddle l-sit"),
-            .forged:     .exerciseSeconds(10, exerciseName: "semi-straddle l-sit"),
-            .veteran:    .exerciseSeconds(15, exerciseName: "semi-straddle l-sit"),
-            .master:      .exerciseSeconds(20, exerciseName: "semi-straddle l-sit"),
-            .vessel:     .exerciseSeconds(30, exerciseName: "semi-straddle l-sit"),
-            .unbound:    .exerciseSeconds(40, exerciseName: "semi-straddle l-sit"),
-            .ascendant:  .exerciseSeconds(50, exerciseName: "semi-straddle l-sit"),
-        ],
-
-        // cl.vertical-l-sit — highest compression L-sit family member.
-        "cl.vertical-l-sit": [
-            .initiate:   .variant("straddle l-sit"),
-            .novice:     .exerciseSeconds(5, exerciseName: "vertical l-sit"),
-            .apprentice: .exerciseSeconds(8, exerciseName: "vertical l-sit"),
-            .forged:     .exerciseSeconds(10, exerciseName: "vertical l-sit"),
-            .veteran:    .exerciseSeconds(15, exerciseName: "vertical l-sit"),
-            .master:      .exerciseSeconds(20, exerciseName: "vertical l-sit"),
-            .vessel:     .exerciseSeconds(30, exerciseName: "vertical l-sit"),
-            .unbound:    .exerciseSeconds(40, exerciseName: "vertical l-sit"),
-            .ascendant:  .exerciseSeconds(50, exerciseName: "vertical l-sit"),
-        ],
-
-        // MARK: - Dragon Flag Hip Raise
-
-        // cl.dragon-flag-hip-raise — partial dragon flag range; anchor: 8 reps = Forged.
-        // Bridge between reverse crunch and dragon flag negatives.
-        "cl.dragon-flag-hip-raise": [
-            .initiate:   .reps(3,  exerciseName: "reverse crunch"),
-            .novice:     .reps(5,  exerciseName: "reverse crunch"),
-            .apprentice: .reps(8,  exerciseName: "reverse crunch"),
-            .forged:     .reps(8,  exerciseName: "dragon flag hip raise"),
-            .veteran:    .reps(10, exerciseName: "dragon flag hip raise"),
-            .master:      .reps(12, exerciseName: "dragon flag hip raise"),
-            .vessel:     .reps(15, exerciseName: "dragon flag hip raise"),
-            .unbound:    .reps(20, exerciseName: "dragon flag hip raise"),
-            .ascendant:  .reps(25, exerciseName: "dragon flag hip raise"),
-        ],
+        // Full front lever — elite straight-arm feat; sits above every rep anchor.
+        // floor .veteran (rawValue 4) → ladder count 9-4 = 5.
+        "cl.full-front-lever":  .init(exerciseName: "front lever",     metric: .seconds, spec: .feat(floor: .veteran, ladder: [1, 3, 6, 10, 15])),
+        // 360-degree pulls — rare dynamic feat; floor .vessel (rawValue 6) → ladder count 9-6 = 3.
+        "cl.three-sixty-pulls": .init(exerciseName: "360-degree pulls", metric: .reps,   spec: .feat(floor: .vessel,  ladder: [1, 2, 4])),
     ]
+}
+
+enum ClSkillTiers {
+    /// Generated from `CoreSkillAnchors` — each anchor's real-data ladder → 9 tiers.
+    static let table: [String: [SkillTier: TierCriterion]] =
+        CoreSkillAnchors.table.mapValues { SkillTierGenerator.generate($0) }
 }
