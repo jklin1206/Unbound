@@ -333,7 +333,7 @@ struct WorkoutRewardSequenceView: View {
 
     private var proofBeat: some View {
         let tally = summary.tally
-        let shownBeats = Array(summary.beats.prefix(6))
+        let shownBeats = summary.beats   // show every cleared standard / unlock / best
         let tint = proofTint
         let title = tally.ranksAdvanced > 1 ? "MULTI-RANK UP" : (tally.unlocksGained > 0 ? "SKILL UNLOCKED" : "STANDARDS CLEARED")
 
@@ -383,13 +383,6 @@ struct WorkoutRewardSequenceView: View {
                         }
                     }
 
-                    if summary.beats.count > shownBeats.count {
-                        rewardLine(
-                            label: "More proof",
-                            value: "+\(summary.beats.count - shownBeats.count)",
-                            tint: tint
-                        )
-                    }
                 }
 
                 HStack(spacing: 12) {
@@ -1221,13 +1214,23 @@ private struct ProofRewardRow: View {
     var body: some View {
         HStack(spacing: 12) {
             ZStack {
-                Circle()
-                    .fill(tint.opacity(0.14))
-                    .frame(width: 36, height: 36)
-                Image(systemName: iconName)
-                    .font(.system(size: 14, weight: .black))
-                    .foregroundStyle(tint)
+                if let tier = beat.tier, beat.kind != .newBest {
+                    // The actual earned rank badge for this exercise + tier.
+                    Image(tier.assetName)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 40, height: 40)
+                        .shadow(color: tier.rewardTint.opacity(0.55), radius: 6)
+                } else {
+                    Circle()
+                        .fill(tint.opacity(0.14))
+                        .frame(width: 36, height: 36)
+                    Image(systemName: iconName)
+                        .font(.system(size: 14, weight: .black))
+                        .foregroundStyle(tint)
+                }
             }
+            .frame(width: 44, height: 44)
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(beat.title.uppercased())
@@ -1249,7 +1252,7 @@ private struct ProofRewardRow: View {
                 Text(tier.displayName.uppercased())
                     .font(Font.unbound.captionS.weight(.black))
                     .tracking(1.1)
-                    .foregroundStyle(tint)
+                    .foregroundStyle(beat.kind == .newBest ? tint : tier.rewardTint)
                     .lineLimit(1)
                     .minimumScaleFactor(0.68)
             }
@@ -1328,7 +1331,6 @@ private struct RankBadgeRevealView: View {
     let active: Bool
 
     @State private var badgeIn = false
-    @State private var ring = false
     @State private var sparkles = false
     @State private var played = false
 
@@ -1341,19 +1343,7 @@ private struct RankBadgeRevealView: View {
                 .opacity(badgeIn ? 1 : 0)
 
             ZStack {
-                Circle()
-                    .stroke(tier.rewardTint.opacity(ring ? 0 : 0.55), lineWidth: 2)
-                    .frame(width: 210, height: 210)
-                    .scaleEffect(ring ? 1.55 : 0.6)
-
-                Circle()
-                    .fill(RadialGradient(
-                        colors: [tier.rewardTint.opacity(0.5), .clear],
-                        center: .center, startRadius: 8, endRadius: 150))
-                    .frame(width: 300, height: 300)
-                    .opacity(badgeIn ? 1 : 0)
-                    .blur(radius: 6)
-
+                // Sparkle burst — small particles flung outward (no ring/disc behind).
                 ForEach(0..<12, id: \.self) { i in
                     let angle = Double(i) / 12 * 2 * .pi
                     Circle()
@@ -1367,8 +1357,9 @@ private struct RankBadgeRevealView: View {
                 Image(tier.assetName)
                     .resizable()
                     .scaledToFit()
-                    .frame(width: 168, height: 168)
-                    .shadow(color: tier.rewardTint.opacity(0.7), radius: 28)
+                    .frame(width: 172, height: 172)
+                    .shadow(color: tier.rewardTint.opacity(badgeIn ? 0.85 : 0), radius: 32)
+                    .shadow(color: tier.rewardTint.opacity(badgeIn ? 0.45 : 0), radius: 64)
                     .scaleEffect(badgeIn ? 1 : 0.32)
                     .rotationEffect(.degrees(badgeIn ? 0 : -14))
                     .opacity(badgeIn ? 1 : 0)
@@ -1410,7 +1401,6 @@ private struct RankBadgeRevealView: View {
         UnboundSound.shared.play(.rankReveal)
         UnboundHaptics.heavy()
         withAnimation(.spring(response: 0.55, dampingFraction: 0.58)) { badgeIn = true }
-        withAnimation(.easeOut(duration: 0.95)) { ring = true }
         withAnimation(.easeOut(duration: 0.8).delay(0.08)) { sparkles = true }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) { UnboundHaptics.medium() }
     }
@@ -1520,8 +1510,8 @@ private struct LevelProgressHero: View {
     private func fireBurstIfLeveled() {
         guard leveledUp, !burstFired else { return }
         burstFired = true
-        // Timed to land as the bar animation reaches the cap.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.55) {
+        // Land exactly as the fill reaches the end (0.18 stagger + 1.05 fill).
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.23) {
             UnboundSound.shared.play(.levelUp)
             UnboundHaptics.heavy()
             withAnimation(.spring(response: 0.3, dampingFraction: 0.45)) {

@@ -213,50 +213,106 @@ struct RootView: View {
 }
 
 #if DEBUG
-/// Launch with `-rewardDemo` to drop straight into the post-workout reward
-/// sequence playing a real rank-up payload (push-up rank climb + a first
-/// handstand push-up jumping to its Veteran floor). Used to record the
-/// reward animation without staging a live workout. Replays on dismiss.
+/// Launch with `-rewardDemo` to drop into the post-workout reward sequence and
+/// cycle through a battery of payload variants (no level-up, single rank,
+/// multi-rank feat, many exercises with different badges, the full kitchen sink
+/// with PRs + badge). Advances to the next scenario each time the sequence is
+/// dismissed (the demo auto-advance loops it). Used to record/iterate reward UX.
 private struct RewardDemoView: View {
+    @State private var index = 0
     @State private var runID = UUID()
+    private let scenarios = RewardDemoScenarios.all
 
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
-            WorkoutRewardSequenceView(summary: Self.summary, onDismiss: { runID = UUID() })
-                .id(runID)
+            WorkoutRewardSequenceView(summary: scenarios[index].summary, onDismiss: {
+                index = (index + 1) % scenarios.count
+                runID = UUID()
+            })
+            .id(runID)
+
+            VStack {
+                Text("DEMO \(index + 1)/\(scenarios.count) · \(scenarios[index].label)")
+                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                    .foregroundStyle(.white.opacity(0.55))
+                    .padding(.top, 2)
+                Spacer()
+            }
         }
+    }
+}
+
+private struct RewardDemoScenario {
+    let label: String
+    let summary: WorkoutRewardSequenceSummary
+}
+
+private enum RewardDemoScenarios {
+    static func set(reps: Int = 0, weightKg: Double? = nil, seconds: Int? = nil) -> SetLog {
+        SetLog(id: UUID().uuidString, setNumber: 1, weightKg: weightKg, reps: reps,
+               rpe: 8, isWarmup: false, durationSeconds: seconds)
+    }
+    static func entry(_ name: String, _ node: String, _ sets: [SetLog]) -> ExerciseLogEntry {
+        ExerciseLogEntry(id: "demo-\(node)", exerciseName: name, movementId: nil,
+                         rankStandardMovementId: node, plannedSets: sets.count,
+                         plannedReps: "—", sets: sets, skipped: false, notes: nil)
     }
 
-    private static var summary: WorkoutRewardSequenceSummary {
-        func set(reps: Int = 0, weightKg: Double? = nil, seconds: Int? = nil) -> SetLog {
-            SetLog(id: UUID().uuidString, setNumber: 1, weightKg: weightKg, reps: reps,
-                   rpe: 8, isWarmup: false, durationSeconds: seconds)
-        }
-        func entry(_ name: String, node: String, _ sets: [SetLog]) -> ExerciseLogEntry {
-            ExerciseLogEntry(id: "demo-\(node)", exerciseName: name, movementId: nil,
-                             rankStandardMovementId: node, plannedSets: sets.count,
-                             plannedReps: "—", sets: sets, skipped: false, notes: nil)
-        }
+    static func make(
+        _ label: String, xp: Int, _ entries: [ExerciseLogEntry],
+        prs: [PersonalRecordReward] = [], badges: [BadgeUnlock] = []
+    ) -> RewardDemoScenario {
         let log = WorkoutLog(
-            id: "reward-demo", userId: "demo", programId: "demo", dayNumber: 1,
-            plannedWorkoutName: "Push Day", startedAt: Date(timeIntervalSince1970: 0),
-            completedAt: Date(timeIntervalSince1970: 1920),
-            exerciseEntries: [
-                entry("pushup", node: "cal.pushup", [set(reps: 40)]),
-                entry("handstand pushup", node: "cal.handstand-pushup", [set(reps: 1)]),
-                entry("plank", node: "cal.plank-30", [set(seconds: 60)])
-            ],
-            overallNotes: nil, overallRPE: 8, durationMinutes: 32
-        )
+            id: "demo-\(label)", userId: "demo", programId: "demo", dayNumber: 1,
+            plannedWorkoutName: label, startedAt: Date(timeIntervalSince1970: 0),
+            completedAt: Date(timeIntervalSince1970: 1920), exerciseEntries: entries,
+            overallNotes: nil, overallRPE: 8, durationMinutes: 32)
         let result = ProofEngine.evaluate(log: log, source: .generated)
-        var summary = WorkoutRewardSequenceSummary.simpleReceipt(
-            workoutName: "Push Day", durationMinutes: 32, workSets: 12,
-            volumeKg: 0, rpe: 8, xpTotal: 140, xpLabel: "Session XP", sourceName: "Program"
-        )
-        summary = RewardPayloadBuilder.attachProofRewards(result, to: summary)
-        return summary
+        var s = WorkoutRewardSequenceSummary.simpleReceipt(
+            workoutName: label, durationMinutes: 32, workSets: entries.count,
+            volumeKg: 0, rpe: 8, xpTotal: xp, xpLabel: "Session XP",
+            sourceName: "Program", badges: badges)
+        s = RewardPayloadBuilder.attachProofRewards(result, to: s)
+        s.personalRecords = prs
+        return RewardDemoScenario(label: label, summary: s)
     }
+
+    static let all: [RewardDemoScenario] = [
+        // 1 — small win: partial XP, no level-up, just a new best.
+        make("PARTIAL · NO LEVEL", xp: 55, [entry("pushup", "cal.pushup", [set(reps: 3)])]),
+
+        // 2 — single level-up, one low-tier rank (Novice badge).
+        make("LEVEL UP · 1 RANK", xp: 140, [entry("pushup", "cal.pushup", [set(reps: 13)])]),
+
+        // 3 — multi-rank on one move: first HSPU jumps to its Veteran floor.
+        make("MULTI-RANK · 1 MOVE", xp: 165,
+             [entry("handstand pushup", "cal.handstand-pushup", [set(reps: 1)])]),
+
+        // 4 — many exercises, different badges per movement.
+        make("MANY EXERCISES", xp: 230, [
+            entry("pushup", "cal.pushup", [set(reps: 30)]),
+            entry("pullup", "pp.pullup", [set(reps: 13)]),
+            entry("dip", "cal.5-dips", [set(reps: 20)]),
+            entry("pistol squat", "ld.pistol-squat", [set(reps: 13)])
+        ]),
+
+        // 5 — everything: top-tier gold badge + many ranks + PRs + a badge unlock.
+        make("EVERYTHING · GOLD", xp: 360, [
+            entry("pushup", "cal.pushup", [set(reps: 90)]),
+            entry("pullup", "pp.pullup", [set(reps: 32)]),
+            entry("dip", "cal.5-dips", [set(reps: 44)]),
+            entry("muscle-up", "pp.muscle-up", [set(reps: 17)])
+        ],
+        prs: [
+            PersonalRecordReward(liftName: "Push-Up", valueText: "90 reps", deltaText: "+12", family: .press),
+            PersonalRecordReward(liftName: "Pull-Up", valueText: "32 reps", deltaText: "+5", family: .pull)
+        ],
+        badges: [
+            BadgeUnlock(id: "demo_clean_sweep", title: "Clean Sweep",
+                        subtitle: "Every set, no misses", assetName: "badge_art_clean_sweep")
+        ])
+    ]
 }
 #endif
 
