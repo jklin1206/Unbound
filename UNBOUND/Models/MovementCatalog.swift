@@ -598,7 +598,13 @@ enum MovementCatalog {
         normalized(value).replacingOccurrences(of: " ", with: "-")
     }
 
-    private static let variantRankStandardNames: [String: String] = [
+    /// LAYER 1 of variant resolution: catalog variant name → canonical base
+    /// movement (consolidates machine / plate-loaded / hammer variants onto one
+    /// progress card). Layer 2 (`StrengthStandards.compoundAliases`) then ranks
+    /// the base on a bw-ratio compound. The two are sequential, not competing;
+    /// `VariantStandardConsistencyTests` locks them from diverging (dup#4).
+    /// `internal` (not private) so that test can read it.
+    static let variantRankStandardNames: [String: String] = [
         "lat pulldown neutral": "lat pulldown",
         "wide grip lat pulldown": "lat pulldown",
         "close grip lat pulldown": "lat pulldown",

@@ -40,7 +40,16 @@ enum StrengthStandards {
 
     /// Compound aliases — variants inherit the compound parent's ratio table.
     /// Keyed by normalized exercise name (space-lowercase).
-    private static let compoundAliases: [String: String] = [
+    ///
+    /// This is LAYER 2 of variant resolution: a canonical movement key →
+    /// bw-ratio compound. `MovementCatalog.variantRankStandardNames` is layer 1
+    /// (catalog variant → canonical base); a logged lift is collapsed to its
+    /// base before `computeLiftRank` reaches here. The variant-level entries
+    /// below are a fallback for free-text logs that never got a resolved
+    /// movementId. Where a key lives in BOTH maps the two paths must resolve to
+    /// the same compound — locked by `VariantStandardConsistencyTests` (dup#4).
+    /// `internal` (not private) so that test can read it.
+    static let compoundAliases: [String: String] = [
         // squat / quad-dominant barbell+machine that track the squat ratio
         "squat": "back squat",
         "barbell back squat": "back squat",

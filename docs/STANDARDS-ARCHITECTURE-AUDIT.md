@@ -60,7 +60,7 @@ The same bodyweight rep/hold thresholds are authored in **three** places:
 | 1 | bodyweight rep/hold ladders (pullup `[0,1,5,10,15,20]`, pushup `[5,15,25,40,60,80]`, dip, l-sit, plank, dead-hang, hollow) | `StrengthStandards.repLadders/holdLadders` **≡** `RankService.bodyweightRepRank/holdRank` (verbatim) | **exact dead copy** — delete one |
 | 2 | same 6 bodyweight skills ranked AGAIN with **different** numbers | dup-1 ladders **vs** skill-tree anchors (pullup ladder peak 20 vs skill 32; pushup 80 vs 90; dip 35 vs 44; dead-hang 90 vs 120) | **conflicting** — user gets different tier from `computeTier` vs `computeLiftRank` for the same set |
 | 3 | weighted pull-up | `weightedPullupAddedKg` (absolute **kg**) vs `pp.weighted-pullup` skill anchor (**bw-ratio**) | **conflicting units** — pick one |
-| 4 | variant→standard map | `variantRankStandardNames` vs `compoundAliases` (conflicting targets) | merge to one |
+| 4 | variant→standard map | `variantRankStandardNames` vs `compoundAliases` (looked conflicting) | **not a duplicate** — sequential layers (see Part 6) |
 | 5 | normalizer | `MovementCatalog.normalized` vs `StrengthStandards.normalize` vs `RankService.normalizedKey` | merge to one |
 | 6 | regression terms | duplicated 3× | merge to one |
 | 7 | accessory family membership | `accessoryFamilyMap` re-lists `ExerciseCatalog` names | derive from one |
@@ -170,10 +170,28 @@ skill card already showed, instead of the old over-generous lift ladders.
   (`MovementCatalog.normalized`) is a genuinely different rich normalizer and
   was intentionally left as its own single source.
 
-### Deliberately deferred (behavior-sensitive, needs a balance call)
-- **Variant maps** `StrengthStandards.compoundAliases` ↔
-  `MovementCatalog.variantRankStandardNames` overlap but **conflict** on some
-  entries — merging changes matching results, so it's a design decision, not a
-  mechanical dedup. Left separate.
+### dup#4 resolved — not a duplicate (2026-05-31)
+Re-traced the two variant maps end-to-end. They are **not** a conflicting
+duplicate — they are two **sequential layers** of one resolution pipeline:
+- **Layer 1** `MovementCatalog.variantRankStandardNames`: catalog variant →
+  canonical base movement (e.g. `plate loaded row → machine row`). Runs when an
+  exercise becomes a log entry (`rankStandardMovementId`).
+- **Layer 2** `StrengthStandards.compoundAliases`: canonical movement → bw-ratio
+  compound (e.g. `machine row → barbell row`). `computeLiftRank` only ever sees
+  the already-collapsed key; the variant-level entries are a free-text fallback.
+
+All **6** keys that appear in both maps resolve to the **same** compound through
+the chain (`plate loaded row`/`hammer strength row`/… → barbell row;
+`plate loaded shoulder press` → overhead press; `wide grip cable row` → barbell
+row). The original audit compared layer-1 output to layer-2 output as if they
+were alternatives — they aren't. They also can't be merged into one map: they
+resolve into different namespaces (a movement id vs a ratio-table key).
+
+The real (latent) risk was maintainability — the maps use different normalizers
+and nothing enforced their agreement. Now locked by
+`VariantStandardConsistencyTests`: any future edit that makes a shared key
+diverge fails the build. No behavior change.
+
+### Still deferred
 - **Gates** (trial/badge/capstone thresholds) — not relocated this pass; their
   thresholds are still inline. Folder move (Q2) deferred as low-value churn.

@@ -15,9 +15,16 @@ import Foundation
 //
 // NOTE: `MovementCatalog.normalized` is a DIFFERENT, richer normalizer (it also
 // strips punctuation for catalog name matching) — intentionally not folded in.
-// The compoundAliases ↔ variantRankStandardNames variant maps are also left
-// separate: they overlap but conflict on some entries, so merging them is a
-// behavior change, not a mechanical dedup.
+//
+// `MovementCatalog.variantRankStandardNames` and
+// `StrengthStandards.compoundAliases` are NOT a duplicate pair (the original
+// audit mislabeled them dup#4): they are two SEQUENTIAL layers of variant
+// resolution — variant → canonical base (layer 1), then base → bw-ratio
+// compound (layer 2) — and they resolve into different namespaces (a movement
+// id vs a ratio-table key), so they can't be one map. Where a variant appears
+// in both, the layered path and the layer-2 fallback entry resolve to the same
+// compound; `VariantStandardConsistencyTests` locks that so they can never
+// silently diverge.
 
 enum MovementResolution {
 
