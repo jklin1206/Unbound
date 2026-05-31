@@ -21,6 +21,7 @@ struct WorkoutRewardSequenceView: View {
     private enum RewardBeatKind: Equatable {
         case sessionComplete
         case xp
+        case rankBadge
         case proof
         case rankReveal
         case attributes
@@ -36,6 +37,12 @@ struct WorkoutRewardSequenceView: View {
 
         if summary.xp.total > 0 || !summary.xp.breakdown.isEmpty {
             beats.append(.xp)
+        }
+
+        // Dedicated badge reveal for the top rank earned this session — shown
+        // just before the cleared-standards breakdown.
+        if earnedBadgeTier != nil {
+            beats.append(.rankBadge)
         }
 
         if !summary.beats.isEmpty || summary.tally.hasAnyReward {
@@ -76,6 +83,18 @@ struct WorkoutRewardSequenceView: View {
 
     private var currentBeatKind: RewardBeatKind {
         rewardBeats[min(max(beat, 0), maxBeat)]
+    }
+
+    /// Highest rank tier earned this session (across all cleared/unlocked beats).
+    /// Drives the dedicated badge reveal.
+    private var earnedBadgeTier: SkillTier? {
+        summary.beats.compactMap(\.tier).max()
+    }
+
+    /// The skill whose top earned tier is being celebrated.
+    private var earnedBadgeSkillTitle: String? {
+        guard let tier = earnedBadgeTier else { return nil }
+        return summary.beats.first { $0.tier == tier }?.skillTitle
     }
 
     var body: some View {
@@ -192,6 +211,8 @@ struct WorkoutRewardSequenceView: View {
             sessionCompleteBeat
         case .xp:
             xpBeat
+        case .rankBadge:
+            rankBadgeBeat
         case .proof:
             proofBeat
         case .rankReveal:
@@ -295,6 +316,18 @@ struct WorkoutRewardSequenceView: View {
                 .padding(.top, 2)
             }
             .frame(maxWidth: .infinity)
+        }
+    }
+
+    private var rankBadgeBeat: some View {
+        let tier = earnedBadgeTier ?? .novice
+        return RewardPanel(tint: tier.rewardTint, active: currentBeatKind == .rankBadge) {
+            RankBadgeRevealView(
+                tier: tier,
+                skillTitle: earnedBadgeSkillTitle ?? "",
+                multi: summary.tally.ranksAdvanced > 1 ? summary.tally.ranksAdvanced : nil,
+                active: currentBeatKind == .rankBadge && pageRevealed
+            )
         }
     }
 
@@ -817,8 +850,21 @@ struct WorkoutRewardSequenceView: View {
     }
 
     private func startBeats() {
+        UnboundSound.shared.preloadRewardKit()
         UnboundHaptics.heavy()
+        playSound(for: currentBeatKind)
         revealCurrentPage()
+        #if DEBUG
+        // Reward-demo recording: drive the page advances hands-free so the whole
+        // sequence plays autonomously for a screen capture (no tap injection).
+        if ProcessInfo.processInfo.arguments.contains("-rewardDemo") {
+            for step in 1...(maxBeat + 1) {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2.3 * Double(step)) {
+                    advanceRewardPage()
+                }
+            }
+        }
+        #endif
     }
 
     private func revealCurrentPage() {
@@ -847,7 +893,19 @@ struct WorkoutRewardSequenceView: View {
         for step in 1...12 {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.65 + Double(step) * 0.055) {
                 animatedXP = Int(Double(total) * Double(step) / 12.0)
+                // Rising tick zips up with the count (pitch climbs as the bar fills).
+                UnboundSound.shared.play(.xpTick, volume: 0.32, rate: 1.0 + Float(step) / 12.0 * 0.7)
             }
+        }
+    }
+
+    /// Per-beat audio. XP ticks (animateXP), the level-up chord (LevelProgressHero),
+    /// and the rank stinger (RankBadgeRevealView) are fired from their own views.
+    private func playSound(for kind: RewardBeatKind) {
+        switch kind {
+        case .sessionComplete: UnboundSound.shared.play(.sessionComplete, volume: 0.85)
+        case .final: UnboundSound.shared.play(.finish)
+        default: break
         }
     }
 
@@ -864,13 +922,15 @@ struct WorkoutRewardSequenceView: View {
             beat += 1
         }
 
+        playSound(for: currentBeatKind)
+
         switch currentBeatKind {
         case .xp:
             animatedXP = 0
             UnboundHaptics.heavy()
         case .proof, .rankReveal, .attributes, .collection, .progression, .rankTrial, .weeklyVow:
             UnboundHaptics.medium()
-        case .sessionComplete, .final:
+        case .sessionComplete, .final, .rankBadge:
             UnboundHaptics.soft()
         }
     }
@@ -1257,6 +1317,105 @@ private struct AnimatedRewardAttributeHex: View, Animatable {
     }
 }
 
+/// Dedicated reveal of the top rank badge earned this session: the actual
+/// `rank_title_*` art slams in with a spring, an expanding ring + glow + sparkle
+/// burst, the tier name, and (on a multi-rung jump) a "RANKS ADVANCED" chip.
+/// Fires the rank-reveal stinger + heavy haptic on appear.
+private struct RankBadgeRevealView: View {
+    let tier: SkillTier
+    let skillTitle: String
+    let multi: Int?
+    let active: Bool
+
+    @State private var badgeIn = false
+    @State private var ring = false
+    @State private var sparkles = false
+    @State private var played = false
+
+    var body: some View {
+        VStack(spacing: 24) {
+            Text("RANK EARNED")
+                .font(Font.unbound.captionS.weight(.heavy))
+                .tracking(3)
+                .foregroundStyle(tier.rewardTint)
+                .opacity(badgeIn ? 1 : 0)
+
+            ZStack {
+                Circle()
+                    .stroke(tier.rewardTint.opacity(ring ? 0 : 0.55), lineWidth: 2)
+                    .frame(width: 210, height: 210)
+                    .scaleEffect(ring ? 1.55 : 0.6)
+
+                Circle()
+                    .fill(RadialGradient(
+                        colors: [tier.rewardTint.opacity(0.5), .clear],
+                        center: .center, startRadius: 8, endRadius: 150))
+                    .frame(width: 300, height: 300)
+                    .opacity(badgeIn ? 1 : 0)
+                    .blur(radius: 6)
+
+                ForEach(0..<12, id: \.self) { i in
+                    let angle = Double(i) / 12 * 2 * .pi
+                    Circle()
+                        .fill(tier.rewardTint)
+                        .frame(width: 5, height: 5)
+                        .offset(x: sparkles ? cos(angle) * 135 : 0,
+                                y: sparkles ? sin(angle) * 135 : 0)
+                        .opacity(sparkles ? 0 : 0.95)
+                }
+
+                Image(tier.assetName)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 168, height: 168)
+                    .shadow(color: tier.rewardTint.opacity(0.7), radius: 28)
+                    .scaleEffect(badgeIn ? 1 : 0.32)
+                    .rotationEffect(.degrees(badgeIn ? 0 : -14))
+                    .opacity(badgeIn ? 1 : 0)
+            }
+            .frame(height: 300)
+
+            VStack(spacing: 8) {
+                Text(tier.displayName.uppercased())
+                    .font(.system(size: 40, weight: .black, design: .monospaced))
+                    .foregroundStyle(tier.rewardTint)
+                    .shadow(color: tier.rewardTint.opacity(0.5), radius: 16)
+                if !skillTitle.isEmpty {
+                    Text(skillTitle.uppercased())
+                        .font(Font.unbound.captionS.weight(.heavy))
+                        .tracking(2)
+                        .foregroundStyle(Color.unbound.textSecondary)
+                        .multilineTextAlignment(.center)
+                }
+                if let multi {
+                    Text("▲ \(multi) RANKS ADVANCED")
+                        .font(Font.unbound.captionS.weight(.black))
+                        .tracking(1.4)
+                        .foregroundStyle(Color.unbound.bg)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 5)
+                        .background(tier.rewardTint, in: Capsule())
+                        .padding(.top, 4)
+                }
+            }
+            .opacity(badgeIn ? 1 : 0)
+        }
+        .onChange(of: active) { _, on in if on { reveal() } }
+        .onAppear { if active { reveal() } }
+    }
+
+    private func reveal() {
+        guard !played else { return }
+        played = true
+        UnboundSound.shared.play(.rankReveal)
+        UnboundHaptics.heavy()
+        withAnimation(.spring(response: 0.55, dampingFraction: 0.58)) { badgeIn = true }
+        withAnimation(.easeOut(duration: 0.95)) { ring = true }
+        withAnimation(.easeOut(duration: 0.8).delay(0.08)) { sparkles = true }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) { UnboundHaptics.medium() }
+    }
+}
+
 private struct LevelProgressHero: View {
     let label: String
     let levelBefore: Int
@@ -1269,6 +1428,13 @@ private struct LevelProgressHero: View {
     let progressAfter: Double
     let tint: Color
     let animate: Bool
+
+    @State private var levelBurst = false   // scale-pop of the LVL number
+    @State private var upPop = false         // the "UP" badge slamming in
+    @State private var flash = false         // full-bleed flash on level-up
+    @State private var burstFired = false
+
+    private var leveledUp: Bool { levelAfter > levelBefore }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -1283,8 +1449,9 @@ private struct LevelProgressHero: View {
                             .font(.system(size: 54, weight: .black, design: .monospaced))
                             .tracking(0)
                             .foregroundStyle(tint)
-                            .shadow(color: tint.opacity(0.52), radius: 20)
-                        if levelAfter > levelBefore {
+                            .shadow(color: tint.opacity(levelBurst ? 0.95 : 0.52), radius: levelBurst ? 34 : 20)
+                            .scaleEffect(levelBurst ? 1.22 : 1.0, anchor: .leading)
+                        if leveledUp {
                             Text("UP")
                                 .font(Font.unbound.captionS.weight(.black))
                                 .tracking(1.8)
@@ -1292,6 +1459,9 @@ private struct LevelProgressHero: View {
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 4)
                                 .background(tint, in: Capsule())
+                                .scaleEffect(upPop ? 1.0 : 0.0)
+                                .rotationEffect(.degrees(upPop ? 0 : -25))
+                                .shadow(color: tint.opacity(0.8), radius: upPop ? 14 : 0)
                         }
                     }
                 }
@@ -1318,7 +1488,8 @@ private struct LevelProgressHero: View {
                 segments: 10,
                 showOriginCap: true
             )
-            .shadow(color: tint.opacity(0.42), radius: 20)
+            .shadow(color: tint.opacity(levelBurst ? 0.85 : 0.42), radius: levelBurst ? 30 : 20)
+            .scaleEffect(levelBurst ? 1.03 : 1.0)
 
             HStack {
                 Text("\(formatWhole(xpIntoLevel)) / \(formatWhole(xpNeededForLevel)) XP")
@@ -1332,6 +1503,37 @@ private struct LevelProgressHero: View {
             }
         }
         .padding(.vertical, 8)
+        .overlay(
+            // Full-bleed flash on the level-up beat.
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(tint.opacity(flash ? 0.22 : 0))
+                .blur(radius: 8)
+                .allowsHitTesting(false)
+        )
+        .onChange(of: animate) { _, on in if on { fireBurstIfLeveled() } }
+        .onAppear { if animate { fireBurstIfLeveled() } }
+    }
+
+    /// On a level-up, punctuate the moment the bar fills: the level-up chord,
+    /// a heavy haptic, a scale-pop of the LVL number, the UP badge slamming in,
+    /// and a quick flash.
+    private func fireBurstIfLeveled() {
+        guard leveledUp, !burstFired else { return }
+        burstFired = true
+        // Timed to land as the bar animation reaches the cap.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.55) {
+            UnboundSound.shared.play(.levelUp)
+            UnboundHaptics.heavy()
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.45)) {
+                levelBurst = true
+                upPop = true
+            }
+            withAnimation(.easeOut(duration: 0.18)) { flash = true }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.22) {
+                withAnimation(.spring(response: 0.45, dampingFraction: 0.7)) { levelBurst = false }
+                withAnimation(.easeOut(duration: 0.5)) { flash = false }
+            }
+        }
     }
 
     private var barStart: Double {

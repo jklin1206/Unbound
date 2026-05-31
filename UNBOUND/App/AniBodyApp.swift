@@ -118,7 +118,20 @@ struct RootView: View {
         #endif
     }
 
+    @ViewBuilder
     var body: some View {
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("-rewardDemo") {
+            RewardDemoView()
+        } else {
+            mainContent
+        }
+        #else
+        mainContent
+        #endif
+    }
+
+    private var mainContent: some View {
         Group {
             if isCheckingAuth {
                 AppLaunchLoadingView()
@@ -198,6 +211,54 @@ struct RootView: View {
         }
     }
 }
+
+#if DEBUG
+/// Launch with `-rewardDemo` to drop straight into the post-workout reward
+/// sequence playing a real rank-up payload (push-up rank climb + a first
+/// handstand push-up jumping to its Veteran floor). Used to record the
+/// reward animation without staging a live workout. Replays on dismiss.
+private struct RewardDemoView: View {
+    @State private var runID = UUID()
+
+    var body: some View {
+        ZStack {
+            Color.black.ignoresSafeArea()
+            WorkoutRewardSequenceView(summary: Self.summary, onDismiss: { runID = UUID() })
+                .id(runID)
+        }
+    }
+
+    private static var summary: WorkoutRewardSequenceSummary {
+        func set(reps: Int = 0, weightKg: Double? = nil, seconds: Int? = nil) -> SetLog {
+            SetLog(id: UUID().uuidString, setNumber: 1, weightKg: weightKg, reps: reps,
+                   rpe: 8, isWarmup: false, durationSeconds: seconds)
+        }
+        func entry(_ name: String, node: String, _ sets: [SetLog]) -> ExerciseLogEntry {
+            ExerciseLogEntry(id: "demo-\(node)", exerciseName: name, movementId: nil,
+                             rankStandardMovementId: node, plannedSets: sets.count,
+                             plannedReps: "—", sets: sets, skipped: false, notes: nil)
+        }
+        let log = WorkoutLog(
+            id: "reward-demo", userId: "demo", programId: "demo", dayNumber: 1,
+            plannedWorkoutName: "Push Day", startedAt: Date(timeIntervalSince1970: 0),
+            completedAt: Date(timeIntervalSince1970: 1920),
+            exerciseEntries: [
+                entry("pushup", node: "cal.pushup", [set(reps: 40)]),
+                entry("handstand pushup", node: "cal.handstand-pushup", [set(reps: 1)]),
+                entry("plank", node: "cal.plank-30", [set(seconds: 60)])
+            ],
+            overallNotes: nil, overallRPE: 8, durationMinutes: 32
+        )
+        let result = ProofEngine.evaluate(log: log, source: .generated)
+        var summary = WorkoutRewardSequenceSummary.simpleReceipt(
+            workoutName: "Push Day", durationMinutes: 32, workSets: 12,
+            volumeKg: 0, rpe: 8, xpTotal: 140, xpLabel: "Session XP", sourceName: "Program"
+        )
+        summary = RewardPayloadBuilder.attachProofRewards(result, to: summary)
+        return summary
+    }
+}
+#endif
 
 private struct AppLaunchLoadingView: View {
     @State private var glow = false
