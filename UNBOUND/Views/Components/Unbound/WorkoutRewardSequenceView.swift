@@ -1212,59 +1212,55 @@ private struct ProofRewardRow: View {
     let tint: Color
 
     var body: some View {
-        HStack(spacing: 12) {
-            ZStack {
-                if let tier = beat.tier, beat.kind != .newBest {
-                    // The actual earned rank badge for this exercise + tier.
-                    Image(tier.assetName)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 40, height: 40)
-                        .shadow(color: tier.rewardTint.opacity(0.55), radius: 6)
-                } else {
-                    Circle()
-                        .fill(tint.opacity(0.14))
-                        .frame(width: 36, height: 36)
-                    Image(systemName: iconName)
-                        .font(.system(size: 14, weight: .black))
-                        .foregroundStyle(tint)
-                }
-            }
-            .frame(width: 44, height: 44)
-
-            VStack(alignment: .leading, spacing: 3) {
-                Text(beat.title.uppercased())
+        let isBest = beat.kind == .newBest
+        let rowTint = beat.tier?.rewardTint ?? tint
+        return HStack(spacing: 12) {
+            // LEFT — the exercise you trained.
+            VStack(alignment: .leading, spacing: 2) {
+                Text(beat.subtitle.uppercased())
                     .font(Font.unbound.bodyS.weight(.heavy))
                     .foregroundStyle(Color.unbound.textPrimary)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.76)
-                Text(beat.subtitle.uppercased())
+                    .minimumScaleFactor(0.7)
+                Text(isBest ? "NEW BEST" : "RANK EARNED")
                     .font(Font.unbound.captionS.weight(.semibold))
-                    .tracking(0.9)
+                    .tracking(1.0)
                     .foregroundStyle(Color.unbound.textTertiary)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.72)
             }
 
-            Spacer(minLength: 8)
+            Spacer(minLength: 10)
 
-            if let tier = beat.tier {
-                Text(tier.displayName.uppercased())
-                    .font(Font.unbound.captionS.weight(.black))
-                    .tracking(1.1)
-                    .foregroundStyle(beat.kind == .newBest ? tint : tier.rewardTint)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.68)
+            // RIGHT — the badge they earned.
+            if let tier = beat.tier, !isBest {
+                HStack(spacing: 9) {
+                    Text(tier.displayName.uppercased())
+                        .font(Font.unbound.captionS.weight(.black))
+                        .tracking(1.0)
+                        .foregroundStyle(tier.rewardTint)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                    Image(tier.assetName)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 42, height: 42)
+                        .shadow(color: tier.rewardTint.opacity(0.6), radius: 7)
+                }
+            } else {
+                Image(systemName: "flame.fill")
+                    .font(.system(size: 18, weight: .black))
+                    .foregroundStyle(Color.unbound.emberGlow)
+                    .frame(width: 42, height: 42)
             }
         }
-        .padding(12)
+        .padding(.vertical, 10)
+        .padding(.horizontal, 14)
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .fill(Color.unbound.surface.opacity(0.74))
         )
         .overlay(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .strokeBorder(tint.opacity(0.18), lineWidth: 1)
+                .strokeBorder(rowTint.opacity(0.2), lineWidth: 1)
         )
     }
 
@@ -1476,7 +1472,8 @@ private struct LevelProgressHero: View {
                 animate: animate,
                 height: 32,
                 segments: 10,
-                showOriginCap: true
+                showOriginCap: true,
+                celebrate: leveledUp
             )
             .shadow(color: tint.opacity(levelBurst ? 0.85 : 0.42), radius: levelBurst ? 30 : 20)
             .scaleEffect(levelBurst ? 1.03 : 1.0)
@@ -1943,9 +1940,14 @@ private struct RPGStatBar: View {
     var originAssetName: String? = nil
     var endpointAssetName: String? = nil
     var tickAssetName: String? = nil
+    /// Only fire the end flourish (shimmer sweep + cap ignite) on a celebratory
+    /// completion — i.e. a level-up. A plain fill stays clean and readable.
+    var celebrate: Bool = false
 
     @State private var displayedProgress: Double = 0
     @State private var reachedEnd = false
+
+    private var flourish: Bool { reachedEnd && celebrate }
 
     var body: some View {
         GeometryReader { geo in
@@ -1957,7 +1959,7 @@ private struct RPGStatBar: View {
 
             ZStack(alignment: .leading) {
                 // Left origin ornament. This is vector so it scales perfectly.
-                OriginCap(tint: tint, hot: animate, ornate: showOriginCap, assetName: originAssetName)
+                OriginCap(tint: tint, hot: flourish, ornate: showOriginCap, assetName: originAssetName)
                     .frame(width: capWidth, height: height)
                     .position(x: capWidth / 2, y: height / 2)
                     .zIndex(3)
@@ -1977,20 +1979,20 @@ private struct RPGStatBar: View {
                     }
                     .overlay(alignment: .leading) {
                         let fillWidth = trackWidth * min(1, max(0, displayedProgress))
-                        EnergyFill(tint: tint, cut: trackHeight * 0.42, sweep: reachedEnd)
+                        EnergyFill(tint: tint, cut: trackHeight * 0.42, sweep: flourish)
                             .frame(width: fillWidth, height: trackHeight)
                             .overlay(alignment: .trailing) {
-                                // Glowing head — blooms only once the bar reaches the end.
+                                // Glowing head — blooms only on a celebratory completion.
                                 Capsule()
                                     .fill(Color.white)
                                     .frame(width: trackHeight * 0.5, height: trackHeight)
                                     .blur(radius: trackHeight * 0.32)
-                                    .opacity(reachedEnd ? 0.95 : 0)
+                                    .opacity(flourish ? 0.95 : 0)
                                     .shadow(color: tint, radius: trackHeight * 0.6)
                                     .shadow(color: tint.opacity(0.8), radius: trackHeight)
-                                    .animation(.easeOut(duration: 0.25), value: reachedEnd)
+                                    .animation(.easeOut(duration: 0.25), value: flourish)
                             }
-                            .shadow(color: tint.opacity(reachedEnd ? 0.6 : 0.32), radius: height * 0.38)
+                            .shadow(color: tint.opacity(flourish ? 0.6 : 0.32), radius: height * 0.38)
                     }
                     .overlay {
                         HStack(spacing: 0) {
@@ -2008,7 +2010,7 @@ private struct RPGStatBar: View {
                     .zIndex(1)
 
                 // Right end cap — ignites when the energy reaches it.
-                EndCap(tint: tint, ignited: reachedEnd, assetName: endpointAssetName)
+                EndCap(tint: tint, ignited: flourish, assetName: endpointAssetName)
                     .frame(width: rightCapWidth, height: height * 0.78)
                     .position(x: trackX + trackWidth, y: height / 2)
                     .zIndex(2)
