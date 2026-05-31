@@ -348,7 +348,7 @@ extension WorkoutRewardSequenceSummary {
             volumeKg: volumeKg,
             rpe: averageRPE,
             xp: sequenceXP,
-            liftProgress: liftProgress(from: rewardSummary, fallbackXP: sequenceXP.total),
+            liftProgress: liftProgress(from: rewardSummary, progression: progression, fallbackXP: sequenceXP.total),
             attributeDeltas: attributeDeltas,
             attributePreviousHexValues: attributeHexValues(
                 profile: completionResult?.attributeProfileBefore,
@@ -511,17 +511,29 @@ extension WorkoutRewardSequenceSummary {
         )
     }
 
-    private static func liftProgress(from rewardSummary: RewardSummary?, fallbackXP: Int) -> [LiftProgressReward] {
+    private static func liftProgress(
+        from rewardSummary: RewardSummary?,
+        progression: ProgressionReceipt?,
+        fallbackXP: Int
+    ) -> [LiftProgressReward] {
         guard let rankUp = rewardSummary?.rankUp else { return [] }
         let fromTier = rankUp.fromTier ?? previousTier(before: rankUp.toTier)
+        // Real progress into the new tier — derived from the movement's best
+        // metric via StrengthStandards.progressToNextRank (carried on the
+        // matching ProgressionMovementLine), never a hardcoded animation value.
+        let line = progression?.movementLines.first {
+            $0.id == rankUp.skillId ||
+            MovementCatalog.normalized($0.name) == MovementCatalog.normalized(rankUp.skillTitle)
+        }
+        let fraction = line?.fractionToNextRank ?? (rankUp.toTier.next == nil ? 1.0 : 0)
         return [
             LiftProgressReward(
                 liftName: rankUp.skillTitle,
                 family: family(for: rankUp.skillTitle, skillId: rankUp.skillId),
                 fromTier: fromTier,
                 toTier: rankUp.toTier,
-                fromProgress: rankUp.toTier.ordinal > fromTier.ordinal ? 0.86 : 0.42,
-                toProgress: rankUp.toTier.ordinal > fromTier.ordinal ? 0.12 : 1.0,
+                fromProgress: fraction,
+                toProgress: fraction,
                 xpGained: max(0, rewardSummary?.xpGained ?? fallbackXP)
             )
         ]
