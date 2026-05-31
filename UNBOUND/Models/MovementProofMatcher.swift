@@ -26,7 +26,7 @@ enum MovementProofMatcher {
     static func hasRegressionMismatch(loggedName: String, requiredName: String) -> Bool {
         let logged = MovementCatalog.normalized(loggedName)
         let required = MovementCatalog.normalized(requiredName)
-        return regressionTerms.contains { term in
+        return MovementResolution.regressionTerms.contains { term in
             logged.contains(term) && !required.contains(term)
         }
     }
@@ -55,15 +55,4 @@ enum MovementProofMatcher {
         let logged = MovementResolver.resolve(loggedName)
         return logged.movementId == required.movementId
     }
-
-    private static let regressionTerms: [String] = [
-        "assisted",
-        "band",
-        "banded",
-        "machine",
-        "negative",
-        "jumping",
-        "eccentric",
-        "partial"
-    ]
 }

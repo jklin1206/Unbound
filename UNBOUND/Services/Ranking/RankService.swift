@@ -379,13 +379,12 @@ final class RankService: RankServiceProtocol {
     }
 
     private func normalizedKey(_ value: String) -> String {
-        value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        MovementResolution.normalizedKey(value)
     }
 
     private func isRegressionOnlyBodyweightKey(_ key: String) -> Bool {
         let normalized = MovementCatalog.normalized(key)
-        return ["assisted", "band", "banded", "machine", "negative", "jumping", "eccentric", "partial"]
-            .contains { normalized.contains($0) }
+        return MovementResolution.regressionTerms.contains { normalized.contains($0) }
     }
 }
 

@@ -107,7 +107,7 @@ enum StrengthStandards {
     ]
 
     private static func normalize(_ exerciseKey: String) -> String {
-        exerciseKey.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        MovementResolution.normalizedKey(exerciseKey)
     }
 
     /// Canonical compound key for lookup — exact, alias, or substring match.

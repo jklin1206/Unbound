@@ -144,3 +144,36 @@ Models/Standards/
 ### Staging
 - **Stage 1 (correctness + structure):** scaffold `Standards/`; delete conditioning; collapse dup-1/dup-2 (route bodyweight rep/hold ranking through skill anchors, delete `repLadders`/`holdLadders`/`bodyweightRepRank`/`holdRank`); weighted-pullup → bw-ratio; split skill anchors into per-family files (move `PullSkillAnchors` out); split movement tables into per-category files; move gates into `Gates/`; add the `computeTier == computeLiftRank` consistency test; full-test verify.
 - **Stage 2 (resolution layer):** merge 3 normalizers / 2 variant maps / 3 regression lists into `MovementResolution`; everything routes through it.
+
+---
+
+## Part 6 — What shipped (2026-05-31)
+
+| Stage | Commit | Result |
+|---|---|---|
+| 1a — delete conditioning skill family | `38fcb8e` | −701 lines; kept the program-gen conditioning DAY (load-bearing) |
+| 1b — single-source bodyweight rep/hold ranking | `46ff65a` | dup-1/dup-2 killed; `SkillStandards` + `SkillRankConsistencyTests` lock the two paths together |
+| 1c — weighted pull-up → %bw | `0b751fc` | dup-3 killed; ranked off `pp.weighted-pullup` node |
+| 1d — split movement standards by category | `5c127de` | `CompoundStandards` / `AccessoryStandards` / `UnrankedMovements`; `PullSkillAnchors` co-located |
+| 2 — resolution layer | (this) | `MovementResolution` (one regression list + one simple normalizer) |
+
+986 tests pass throughout. Rank shifts (1b/1c) checkpointed + approved: the
+rank-up cinematic/badges now read the data-grounded skill-tree numbers the
+skill card already showed, instead of the old over-generous lift ladders.
+
+### Corrections to the original audit
+- **Conditioning was not fully dead** — it also powered a live program-gen
+  training day; only the skill family was removed (decision: keep the day).
+- **Regression list = 2 copies, not 3** — `MovementResolver.inferAliasBase`'s
+  word-checks are bespoke alias routing, a different concern (left alone).
+- **Two "normalizers" of the three are identical** (trim+lower); the third
+  (`MovementCatalog.normalized`) is a genuinely different rich normalizer and
+  was intentionally left as its own single source.
+
+### Deliberately deferred (behavior-sensitive, needs a balance call)
+- **Variant maps** `StrengthStandards.compoundAliases` ↔
+  `MovementCatalog.variantRankStandardNames` overlap but **conflict** on some
+  entries — merging changes matching results, so it's a design decision, not a
+  mechanical dedup. Left separate.
+- **Gates** (trial/badge/capstone thresholds) — not relocated this pass; their
+  thresholds are still inline. Folder move (Q2) deferred as low-value churn.
