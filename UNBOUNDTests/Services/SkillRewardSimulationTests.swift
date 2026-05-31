@@ -1,0 +1,138 @@
+import XCTest
+@testable import UNBOUND
+
+/// End-to-end simulation of "train these exercises in a program → what ranks up,
+/// what reward beats fire, what text shows." Drives the real ProofEngine +
+/// RewardPayloadBuilder against the now-generated tier criteria (push/legs/core/
+/// handstand/planche), covering every criterion shape the generated ladders use:
+/// rep grind, weighted %bw (goblet), hold-seconds, legacy reps-fallback hold,
+/// and a floor-gated feat. If any wiring is broken, these fail loudly.
+final class SkillRewardSimulationTests: XCTestCase {
+
+    // MARK: - Builders (program-style log)
+
+    private func set(reps: Int = 0, weightKg: Double? = nil, durationSeconds: Int? = nil) -> SetLog {
+        SetLog(id: UUID().uuidString, setNumber: 1, weightKg: weightKg, reps: reps,
+               rpe: 8, isWarmup: false, durationSeconds: durationSeconds)
+    }
+
+    private func entry(_ name: String, node: String, _ sets: [SetLog]) -> ExerciseLogEntry {
+        ExerciseLogEntry(
+            id: "entry-\(node)", exerciseName: name, movementId: nil,
+            rankStandardMovementId: node, plannedSets: sets.count, plannedReps: "—",
+            sets: sets, skipped: false, notes: nil
+        )
+    }
+
+    private func log(_ entries: [ExerciseLogEntry]) -> WorkoutLog {
+        WorkoutLog(
+            id: "sim-\(UUID().uuidString)", userId: "u", programId: "p", dayNumber: 1,
+            plannedWorkoutName: "Sim Day", startedAt: Date(timeIntervalSince1970: 100),
+            completedAt: Date(timeIntervalSince1970: 1300), exerciseEntries: entries,
+            overallNotes: nil, overallRPE: 8, durationMinutes: 30
+        )
+    }
+
+    private func evaluate(_ entries: [ExerciseLogEntry], bodyweightKg: Double = 70) -> ProofEngineResult {
+        ProofEngine.evaluate(log: log(entries), source: .generated, bodyweightKg: bodyweightKg)
+    }
+
+    private func clearedTiers(_ r: ProofEngineResult, _ skillId: String) -> [SkillTier] {
+        r.standardsCleared.filter { $0.skillId == skillId }.map(\.tier).sorted { $0.rawValue < $1.rawValue }
+    }
+
+    // MARK: - 1. Rep grind (push-up), with name normalization
+
+    func testRepGrindPushupRanksUpAndNormalizesName() {
+        // Program logs "Push-Up" (display caps + hyphen) — must resolve to the
+        // criterion's "pushup".
+        let r = evaluate([entry("Push-Up", node: "cal.pushup", [set(reps: 40)])])
+        let cleared = clearedTiers(r, "cal.pushup")
+
+        XCTAssertFalse(cleared.isEmpty, "40 push-ups must clear push-up standards (name normalization)")
+        XCTAssertTrue(cleared.contains(.veteran), "40 reps should reach the Veteran rung")
+        XCTAssertNotNil(r.multiRankEvent, "clearing several rungs at once fires a rank-advance")
+        XCTAssertGreaterThan(r.multiRankEvent?.ranksAdvanced ?? 0, 1)
+    }
+
+    // MARK: - 2. Weighted goblet squat (%bw) — the load-based node
+
+    func testWeightedGobletSquatRanksByLoad() {
+        // 20 kg held @ 70 kg bw = +28.6% bw → clears the lower %bw rungs.
+        let r = evaluate([entry("goblet squat", node: "ld.goblet-20",
+                                [set(reps: 12, weightKg: 20)])])
+        let cleared = clearedTiers(r, "ld.goblet-20")
+
+        XCTAssertFalse(cleared.isEmpty, "a loaded goblet squat must rank the node by %bw")
+        XCTAssertTrue(cleared.contains(.forged), "+28.6% bw should reach the +25% (Forged) rung")
+        XCTAssertFalse(cleared.contains(.veteran), "+28.6% bw is below the +30% (Veteran) rung")
+    }
+
+    func testBodyweightGobletDoesNotRank() {
+        // No weight in hand → no %bw → goblet does not rank (load-based by design).
+        let r = evaluate([entry("goblet squat", node: "ld.goblet-20", [set(reps: 20)])])
+        XCTAssertTrue(clearedTiers(r, "ld.goblet-20").isEmpty,
+                      "an unloaded goblet squat should not clear a load-based ladder")
+    }
+
+    // MARK: - 3. Hold-seconds (plank) via the TIME column
+
+    func testHoldSecondsPlankRanksUp() {
+        let r = evaluate([entry("plank", node: "cal.plank-30",
+                                [set(durationSeconds: 60)])])
+        let cleared = clearedTiers(r, "cal.plank-30")
+        XCTAssertFalse(cleared.isEmpty, "a 60s plank hold must clear plank standards")
+        XCTAssertTrue(cleared.contains(.veteran), "60s should reach the 60s (Veteran) rung")
+    }
+
+    // MARK: - 4. Legacy reps-column hold fallback (freestanding handstand)
+
+    func testLegacyRepsFallbackHoldRanksUp() {
+        // Older logs encoded hold seconds in `reps` with no durationSeconds.
+        let r = evaluate([entry("freestanding handstand", node: "hs.freestanding-hs-30",
+                                [set(reps: 30)])])
+        XCTAssertFalse(clearedTiers(r, "hs.freestanding-hs-30").isEmpty,
+                       "a 30s handstand logged in the reps column must still rank (fallback)")
+    }
+
+    // MARK: - 5. Feat: a FIRST rep jumps straight to the floor (Veteran)
+
+    func testFeatFirstRepJumpsToFloor() {
+        // One handstand push-up: cal.handstand-pushup is a Veteran-floor feat, so
+        // tiers Initiate…Veteran all share the 1-rep entry criterion → a single
+        // rep clears all of them at once and lands the rank at Veteran.
+        let r = evaluate([entry("handstand pushup", node: "cal.handstand-pushup",
+                                [set(reps: 1)])])
+        let cleared = clearedTiers(r, "cal.handstand-pushup")
+
+        XCTAssertTrue(cleared.contains(.veteran), "the first HSPU must reach the Veteran floor")
+        XCTAssertEqual(r.multiRankEvent?.toTier, .veteran,
+                       "a first-rep feat advances straight to its floor rank")
+        XCTAssertGreaterThan(r.multiRankEvent?.ranksAdvanced ?? 0, 1,
+                             "the feat jump advances multiple rungs in one shot")
+    }
+
+    // MARK: - 6. The reward sequence text the user actually sees
+
+    func testRewardBeatsTextForACombinedProgramWorkout() {
+        // A realistic mixed program day: push-ups, a loaded goblet, a plank hold.
+        let r = evaluate([
+            entry("pushup", node: "cal.pushup", [set(reps: 40)]),
+            entry("goblet squat", node: "ld.goblet-20", [set(reps: 12, weightKg: 20)]),
+            entry("plank", node: "cal.plank-30", [set(durationSeconds: 60)])
+        ])
+        let payload = RewardPayloadBuilder.proofPayload(from: r)
+
+        XCTAssertFalse(payload.beats.isEmpty, "a productive program day must produce reward beats")
+        // Every standardCleared beat reads "<Tier> cleared" with the skill as subtitle.
+        for beat in payload.beats where beat.kind == .standardCleared {
+            XCTAssertTrue(beat.title.hasSuffix("cleared"), "beat title: \(beat.title)")
+            XCTAssertNotNil(beat.skillId)
+            XCTAssertNotNil(beat.tier)
+        }
+        XCTAssertGreaterThan(payload.tally.standardsCleared, 0)
+        XCTAssertTrue(payload.beats.contains { $0.skillId == "cal.pushup" })
+        XCTAssertTrue(payload.beats.contains { $0.skillId == "ld.goblet-20" })
+        XCTAssertTrue(payload.beats.contains { $0.skillId == "cal.plank-30" })
+    }
+}

@@ -315,6 +315,10 @@ private extension ProofEngine {
     }
 
     static func setHasWork(_ set: SetLog) -> Bool {
-        !set.isWarmup && (set.reps > 0 || (set.weightKg ?? 0) > 0)
+        // A hold logged via the TIME column has durationSeconds but reps == 0 —
+        // it is still real work, so hold-only skills (planks, L-sits, handstand
+        // holds, levers, planche) rank from it. Without this, those entries were
+        // dropped before evaluation and never ranked up.
+        !set.isWarmup && (set.reps > 0 || (set.weightKg ?? 0) > 0 || (set.durationSeconds ?? 0) > 0)
     }
 }
