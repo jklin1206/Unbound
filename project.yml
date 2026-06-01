@@ -9,7 +9,9 @@ options:
 settings:
   base:
     SWIFT_VERSION: "5.9"
-    DEVELOPMENT_TEAM: ""
+    # Justin's Apple Developer team. Persisted here so `xcodegen generate`
+    # stops resetting it to "" and wiping the Xcode team selection each run.
+    DEVELOPMENT_TEAM: "6K5R25Y398"
     CODE_SIGN_STYLE: Automatic
     INFOPLIST_KEY_NSCameraUsageDescription: "UNBOUND needs camera access to take your body scan photos"
     INFOPLIST_KEY_NSPhotoLibraryUsageDescription: "UNBOUND needs photo library access to set your profile picture"
@@ -62,8 +64,14 @@ targets:
         product: Supabase
       - package: PostHog
         product: PostHog
+      # Weak-linked so DEBUG *device* builds don't SIGABRT in dyld: HotReloading
+      # is simulator-only (Swift import is guarded by DEBUG && simulator), but the
+      # LC_LOAD_DYLIB still ships in the device binary. Weak makes dyld nil the
+      # missing framework instead of aborting at launch. MUST stay weak — xcodegen
+      # regenerates the pbxproj, so this is the only durable home for the attribute.
       - package: HotReloading
         product: HotReloading
+        weak: true
       - sdk: AppIntents.framework
 
   UNBOUNDTests:
