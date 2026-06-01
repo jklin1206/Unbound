@@ -5,6 +5,10 @@ enum AppError: LocalizedError {
     case authSignOutFailed(underlying: Error)
     case authAccountDeletionFailed(underlying: Error)
     case authNotAuthenticated
+    /// The user dismissed a sign-in sheet (e.g. tapped Cancel on the Apple
+    /// prompt). A deliberate choice, not a failure — callers suppress it and
+    /// surface nothing. Intentionally absent from `errorDescription`.
+    case authCanceled
     case networkTimeout
     case networkNoConnection
     case networkServerError(statusCode: Int, message: String?)
@@ -31,6 +35,16 @@ enum AppError: LocalizedError {
             return L10n.string(
                 .appErrorAuthNotAuthenticatedDescription,
                 defaultValue: "You need to sign in to continue."
+            )
+        case .authSignInFailed:
+            return L10n.string(
+                .appErrorAuthSignInFailedDescription,
+                defaultValue: "We couldn't sign you in. Please check your email and password, then try again."
+            )
+        case .networkTimeout:
+            return L10n.string(
+                .appErrorNetworkTimeoutDescription,
+                defaultValue: "The connection timed out. Please check your network and try again."
             )
         case .cameraAccessDenied:
             return L10n.string(
@@ -83,5 +97,21 @@ enum AppError: LocalizedError {
                 defaultValue: "If the problem persists, contact support."
             )
         }
+    }
+
+    // MARK: - Classification
+
+    /// Maps a raw error from an auth or network call into the most specific
+    /// user-facing case: an already-classified `AppError` passes through; a
+    /// `URLError` becomes connection-specific copy; anything else is treated as
+    /// a genuine auth failure. Apple's user-cancellation is detected upstream in
+    /// `AuthService` (it lives in the AuthenticationServices layer, which this
+    /// Foundation-only model deliberately does not import).
+    static func from(authError error: Error) -> AppError {
+        if let appError = error as? AppError { return appError }
+        if let urlError = error as? URLError {
+            return urlError.code == .timedOut ? .networkTimeout : .networkNoConnection
+        }
+        return .authSignInFailed(underlying: error)
     }
 }

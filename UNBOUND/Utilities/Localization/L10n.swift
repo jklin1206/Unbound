@@ -8,9 +8,11 @@ enum L10n {
         case appName = "app.name"
 
         case appErrorAuthNotAuthenticatedDescription = "app.error.auth.notAuthenticated.description"
+        case appErrorAuthSignInFailedDescription = "app.error.auth.signInFailed.description"
         case appErrorCameraAccessDeniedDescription = "app.error.camera.accessDenied.description"
         case appErrorAnalysisTimeoutDescription = "app.error.analysis.timeout.description"
         case appErrorNetworkNoConnectionDescription = "app.error.network.noConnection.description"
+        case appErrorNetworkTimeoutDescription = "app.error.network.timeout.description"
         case appErrorSubscriptionNoActiveEntitlementDescription = "app.error.subscription.noActiveEntitlement.description"
         case appErrorGenericDescription = "app.error.generic.description"
         case appErrorCameraAccessDeniedRecovery = "app.error.camera.accessDenied.recovery"

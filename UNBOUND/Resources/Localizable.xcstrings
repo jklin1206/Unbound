@@ -656,6 +656,18 @@
         }
       }
     },
+    "app.error.auth.signInFailed.description" : {
+      "comment" : "Shown when a sign-in attempt fails for a non-network reason (e.g. wrong credentials).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "We couldn't sign you in. Please check your email and password, then try again."
+          }
+        }
+      }
+    },
     "app.error.camera.accessDenied.description" : {
       "comment" : "Shown when camera permission has not been granted.",
       "extractionState" : "stale",
@@ -724,6 +736,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Connect to Wi-Fi or enable cellular data."
+          }
+        }
+      }
+    },
+    "app.error.network.timeout.description" : {
+      "comment" : "Shown when a network request times out.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The connection timed out. Please check your network and try again."
           }
         }
       }

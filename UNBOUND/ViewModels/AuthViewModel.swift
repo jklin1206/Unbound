@@ -30,6 +30,8 @@ final class AuthViewModel: ObservableObject {
             DevFlags.shared.unlockAllFeatures = true
             #endif
             analytics.track(.signInCompleted(method: "apple"))
+        } catch AppError.authCanceled {
+            // User dismissed the sign-in sheet — not a failure, surface nothing.
         } catch {
             errorMessage = error.localizedDescription
             analytics.track(.signInFailed(method: "apple", error: error.localizedDescription))

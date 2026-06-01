@@ -100,7 +100,7 @@ final class AuthService: NSObject, AuthServiceProtocol, @unchecked Sendable {
             return uid
         } catch {
             logger.log("Email sign in failed: \(error)", level: .error)
-            throw AppError.authSignInFailed(underlying: error)
+            throw AppError.from(authError: error)
         }
     }
 
@@ -113,7 +113,7 @@ final class AuthService: NSObject, AuthServiceProtocol, @unchecked Sendable {
             return uid
         } catch {
             logger.log("Email account creation failed: \(error)", level: .error)
-            throw AppError.authSignInFailed(underlying: error)
+            throw AppError.from(authError: error)
         }
     }
 
@@ -255,7 +255,7 @@ final class AuthService: NSObject, AuthServiceProtocol, @unchecked Sendable {
             appleSignInContinuation?.resume(returning: uid)
         } catch {
             logger.log("Supabase idToken auth failed: \(error)", level: .error)
-            appleSignInContinuation?.resume(throwing: AppError.authSignInFailed(underlying: error))
+            appleSignInContinuation?.resume(throwing: AppError.from(authError: error))
         }
         appleSignInContinuation = nil
         appleSignInController = nil
@@ -354,8 +354,15 @@ extension AuthService: ASAuthorizationControllerDelegate {
         controller: ASAuthorizationController,
         didCompleteWithError error: Error
     ) {
-        logger.log("Apple authorization failed: \(error)", level: .error)
-        appleSignInContinuation?.resume(throwing: AppError.authSignInFailed(underlying: error))
+        if let asError = error as? ASAuthorizationError, asError.code == .canceled {
+            // The user dismissed the Apple sheet — a deliberate choice, not a
+            // failure. Surface it as authCanceled so the UI shows nothing.
+            logger.log("Apple sign-in cancelled by user", level: .info)
+            appleSignInContinuation?.resume(throwing: AppError.authCanceled)
+        } else {
+            logger.log("Apple authorization failed: \(error)", level: .error)
+            appleSignInContinuation?.resume(throwing: AppError.from(authError: error))
+        }
         appleSignInContinuation = nil
         appleSignInController = nil
     }
