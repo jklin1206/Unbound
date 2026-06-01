@@ -50,25 +50,6 @@ final class SquadBackend: SquadBackendProtocol, @unchecked Sendable {
         }
     }
 
-    private struct MemberRow: Codable {
-        let id: UUID
-        let squad_id: UUID
-        let user_id: UUID
-        let joined_at: Date
-
-        func toMember() -> SquadMember {
-            SquadMember(
-                id: id,
-                squadId: squad_id,
-                userId: user_id,
-                joinedAt: joined_at,
-                displayName: user_id.uuidString,   // enrichment deferred
-                equippedTitle: nil,
-                buildIdentity: nil
-            )
-        }
-    }
-
     // MARK: - SquadBackendProtocol
 
     func insertSquad(
@@ -164,14 +145,50 @@ final class SquadBackend: SquadBackendProtocol, @unchecked Sendable {
     }
 
     func fetchMembers(squadId: UUID) async throws -> [SquadMember] {
-        let rows: [MemberRow] = try await db
-            .from("squad_members")
-            .select()
-            .eq("squad_id", value: squadId.uuidString)
-            .order("joined_at", ascending: true)
+        // Member names live in public.users, which is owner-only by RLS — a
+        // co-member can't read them directly. The squad_members_enriched RPC
+        // (SECURITY DEFINER, gated on is_squad_member) joins each member's
+        // display name/handle in for fellow members. Equipped title and build
+        // identity aren't stored cross-readably, so they stay nil for now.
+        struct EnrichedRow: Decodable {
+            let id: UUID
+            let squad_id: UUID
+            let user_id: UUID
+            let joined_at: Date
+            let display_name: String?
+            let display_handle: String?
+        }
+        struct Params: Encodable { let p_squad_id: String }
+        let rows: [EnrichedRow] = try await UnboundSupabase.client
+            .rpc("squad_members_enriched", params: Params(p_squad_id: squadId.uuidString))
             .execute()
             .value
-        return rows.map { $0.toMember() }
+        return rows.map { row in
+            SquadMember(
+                id: row.id,
+                squadId: row.squad_id,
+                userId: row.user_id,
+                joinedAt: row.joined_at,
+                displayName: Self.resolveDisplayName(
+                    name: row.display_name,
+                    handle: row.display_handle,
+                    userId: row.user_id
+                ),
+                equippedTitle: nil,
+                buildIdentity: nil
+            )
+        }
+    }
+
+    /// Real name → handle → a short, stable fallback. Never the raw UUID.
+    private static func resolveDisplayName(name: String?, handle: String?, userId: UUID) -> String {
+        if let name = name?.trimmingCharacters(in: .whitespacesAndNewlines), !name.isEmpty {
+            return name
+        }
+        if let handle = handle?.trimmingCharacters(in: .whitespacesAndNewlines), !handle.isEmpty {
+            return handle
+        }
+        return "Member \(userId.uuidString.prefix(4))"
     }
 
     func deleteMember(squadId: UUID, userId: UUID) async throws {
