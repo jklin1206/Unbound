@@ -32,13 +32,16 @@ enum SquadUserIdentity {
         let p3 = hex.index(p2, offsetBy: 4)
         let p4 = hex.index(p3, offsetBy: 4)
         let p5 = hex.index(p4, offsetBy: 12)
-        let uuidString = [
-            String(hex[start..<p1]),
-            String(hex[p1..<p2]),
-            String(hex[p2..<p3]),
-            String(hex[p3..<p4]),
-            String(hex[p4..<p5])
-        ].joined(separator: "-")
+        // Each segment is its own statement: the array-literal-of-String(Substring)
+        // + .joined() form below timed out the type-checker on the arm64-device
+        // arch ("unable to type-check this expression in reasonable time"), though
+        // it compiled fine for the simulator arch.
+        let g1 = String(hex[start..<p1])
+        let g2 = String(hex[p1..<p2])
+        let g3 = String(hex[p2..<p3])
+        let g4 = String(hex[p3..<p4])
+        let g5 = String(hex[p4..<p5])
+        let uuidString = "\(g1)-\(g2)-\(g3)-\(g4)-\(g5)"
         return UUID(uuidString: uuidString)!
     }
     #endif
