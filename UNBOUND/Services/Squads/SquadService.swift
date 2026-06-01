@@ -23,6 +23,7 @@ final class SquadService: SquadServiceProtocol {
 
     private let store: SquadStore
     private let backend: SquadBackendProtocol
+    private let activityBackend: SquadActivityBackendProtocol
     private let localDirectory: LocalSquadDirectory
     private let auth: AuthServiceProtocol
     // Resolved lazily (NOT a default-arg .shared) to avoid a static-init cycle:
@@ -35,12 +36,14 @@ final class SquadService: SquadServiceProtocol {
     init(
         store: SquadStore = .shared,
         backend: SquadBackendProtocol = SquadBackend.shared,
+        activityBackend: SquadActivityBackendProtocol = SquadActivityBackend.shared,
         localDirectory: LocalSquadDirectory = .shared,
         auth: AuthServiceProtocol = AuthService.shared,
         loopReconciler: SquadLoopReconciler? = nil
     ) {
         self.store = store
         self.backend = backend
+        self.activityBackend = activityBackend
         self.localDirectory = localDirectory
         self.auth = auth
         self.injectedLoopReconciler = loopReconciler
@@ -88,7 +91,13 @@ final class SquadService: SquadServiceProtocol {
             var s = store.load(userId: userId)
             s.currentSquad = squad
             s.roster = roster
-            // TODO(squads-impl, Phase 6): hydrate state.recentActivity via SquadActivityService.fetchRecent(squadId:).
+            // Hydrate the activity feed from squad_activity (its RLS lets a member
+            // read their own squad's feed; entries denormalize actor names, so no
+            // enrichment needed). Non-fatal: a feed-fetch failure must not sink the
+            // squad/roster load — keep whatever's cached.
+            if let activity = try? await activityBackend.fetchRecent(squadId: squadId, limit: 50) {
+                s.recentActivity = activity
+            }
             // TODO(squads-impl, Phase 8): hydrate state.activeRosterPresence via SquadPresenceService.snapshot(squadId:).
             store.save(s, userId: userId)
             // Close the squad loops: process any new linked sessions (+20% bonus)

@@ -9,6 +9,7 @@ final class SquadServiceTests: XCTestCase {
     private var store: SquadStore!
     private var localDirectory: LocalSquadDirectory!
     private var mockBackend: MockSquadBackend!
+    private var mockActivityBackend: MockSquadActivityBackend!
     private var auth: MockAuthService!
     private var service: SquadService!
 
@@ -22,8 +23,9 @@ final class SquadServiceTests: XCTestCase {
         store = SquadStore(defaults: defaults)
         localDirectory = LocalSquadDirectory(defaults: defaults)
         mockBackend = MockSquadBackend()
+        mockActivityBackend = MockSquadActivityBackend()
         auth = MockAuthService()
-        service = SquadService(store: store, backend: mockBackend, localDirectory: localDirectory, auth: auth)
+        service = SquadService(store: store, backend: mockBackend, activityBackend: mockActivityBackend, localDirectory: localDirectory, auth: auth)
     }
 
     override func tearDown() {
@@ -84,6 +86,41 @@ final class SquadServiceTests: XCTestCase {
         state.roster = roster
         store.save(state, userId: captainUserId ?? userId)
         return squad
+    }
+
+    // MARK: - Activity feed hydration
+
+    func testLoadCurrentSquadHydratesRecentActivityFromBackend() async throws {
+        let squad = seedSquad()   // `userId` is the captain → a member
+        let entry = SquadActivityEntry(
+            id: UUID(),
+            squadId: squad.id,
+            userId: UUID(uuidString: userId),
+            kind: .squadStreakExtended,
+            payload: .squadStreakExtended(weeks: 3),
+            createdAt: Date()
+        )
+        mockActivityBackend.stubbedFetchResult = [entry]
+
+        await service.loadCurrentSquad(userId: userId)
+
+        XCTAssertEqual(
+            service.state(userId: userId).recentActivity.map(\.id), [entry.id],
+            "loadCurrentSquad should hydrate recentActivity from the activity backend"
+        )
+    }
+
+    func testLoadCurrentSquadActivityFetchFailureIsNonFatal() async throws {
+        _ = seedSquad()
+        struct Boom: Error {}
+        mockActivityBackend.fetchError = Boom()
+
+        await service.loadCurrentSquad(userId: userId)
+
+        // Squad + roster still load; a feed-fetch failure must not sink the load.
+        let state = service.state(userId: userId)
+        XCTAssertNotNil(state.currentSquad)
+        XCTAssertTrue(state.recentActivity.isEmpty)
     }
 
     // MARK: - Task 5.2: createSquad
