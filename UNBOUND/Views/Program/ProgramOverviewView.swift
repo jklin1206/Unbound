@@ -1437,24 +1437,31 @@ struct ProgramOverviewView: View {
 
     private func programBody(_ program: TrainingProgram) -> some View {
         ScrollView(.vertical, showsIndicators: false) {
+            // AnyView-wrap the heavy section builders. Inlined, their combined
+            // `some View` generic type is deep enough that the Swift runtime
+            // overflows the stack instantiating its metadata on device
+            // (EXC_BAD_ACCESS in SubstGenericParametersFromMetadata on the
+            // Program tab; the simulator's larger budget hid it). Each AnyView
+            // caps that subtree's metadata depth. Do NOT "simplify" these back to
+            // bare calls — the crash returns.
             VStack(alignment: .leading, spacing: 16) {
-                weekStrip(program: program)
-                dayCard(program: program)
-                programFocusCard(program)
+                AnyView(weekStrip(program: program))
+                AnyView(dayCard(program: program))
+                AnyView(programFocusCard(program))
                 if let proposal = rolloverProposal, proposal.scanDeltaReport != nil {
-                    midBlockRescanProposalCard(proposal)
+                    AnyView(midBlockRescanProposalCard(proposal))
                 }
                 if !ProgramScheduler.shared.todaysSkillSessions().isEmpty {
-                    todaysTrainingSection
+                    AnyView(todaysTrainingSection)
                 }
                 CoachActionsRow(
                     program: program,
                     todayDay: programDay(for: Date(), in: program)
                 )
                 .environmentObject(services)
-                programHeader(program)
+                AnyView(programHeader(program))
                 if !services.entitlement.isEntitled {
-                    subscriptionBanner
+                    AnyView(subscriptionBanner)
                 }
                 Spacer().frame(height: 118)
             }
