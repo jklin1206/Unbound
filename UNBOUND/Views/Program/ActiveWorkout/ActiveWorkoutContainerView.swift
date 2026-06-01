@@ -146,6 +146,14 @@ struct ActiveWorkoutContainerView: View {
         .task {
             await RestNotifier.shared.requestAuthIfNeeded()
         }
+        .task {
+            // Broadcast squad presence while this workout is open so squadmates
+            // see "live now". The server row auto-expires after 3h; complete()
+            // clears it on finish.
+            guard let uid = services.auth.currentUserId,
+                  let squadId = services.squads.state(userId: uid).currentSquad?.id else { return }
+            await services.squadPresence.markInWorkout(userId: uid, squadId: squadId)
+        }
         .interactiveDismissDisabled(true)
         // Always-available escape hatch — the draft is autosaved on every
         // mutation, so leaving keeps the workout resumable. Without this the
@@ -563,6 +571,9 @@ struct ActiveWorkoutContainerView: View {
             HapticManager.notification(.success)
             restTimer.stop()
             draftStore.clear()
+            // Finished training — drop squad presence so squadmates stop seeing
+            // us as live (best-effort; the row also auto-expires after 3h).
+            Task { await services.squadPresence.clearPresence(userId: uid) }
 
             let summary = makeRewardSequenceSummary(
                 performanceLog: performanceLog,

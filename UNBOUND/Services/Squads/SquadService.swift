@@ -98,7 +98,9 @@ final class SquadService: SquadServiceProtocol {
             if let activity = try? await activityBackend.fetchRecent(squadId: squadId, limit: 50) {
                 s.recentActivity = activity
             }
-            // TODO(squads-impl, Phase 8): hydrate state.activeRosterPresence via SquadPresenceService.snapshot(squadId:).
+            // (activeRosterPresence is hydrated separately by
+            // SquadPresenceService.subscribeToSquadPresence, which fetches a
+            // snapshot immediately on subscribe and persists it here.)
             store.save(s, userId: userId)
             // Close the squad loops: process any new linked sessions (+20% bonus)
             // and evaluate squadStreak / linkedSessions title crossings against

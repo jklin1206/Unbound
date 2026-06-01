@@ -12,14 +12,26 @@ private struct SquadPresenceRow: Codable {
     let workout_started_at: String   // ISO8601
     let expires_at: String           // ISO8601
 
-    private static let iso8601Formatter = ISO8601DateFormatter()
+    // PostgREST returns timestamptz with fractional seconds; the value we write
+    // has none. Parse tolerantly so a row never silently drops on a format
+    // mismatch (which would leave the presence roster mysteriously empty).
+    private static let iso8601WithFraction: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return f
+    }()
+    private static let iso8601Plain = ISO8601DateFormatter()
+
+    private static func parseISO8601(_ string: String) -> Date? {
+        iso8601WithFraction.date(from: string) ?? iso8601Plain.date(from: string)
+    }
 
     var toModel: SquadPresence? {
         guard
             let userId = UUID(uuidString: user_id),
             let squadId = UUID(uuidString: squad_id),
-            let startedAt = Self.iso8601Formatter.date(from: workout_started_at),
-            let expiresAt = Self.iso8601Formatter.date(from: expires_at)
+            let startedAt = Self.parseISO8601(workout_started_at),
+            let expiresAt = Self.parseISO8601(expires_at)
         else { return nil }
         return SquadPresence(
             userId: userId,
@@ -107,6 +119,9 @@ final class SquadPresenceService: SquadPresenceServiceProtocol {
         //
         // Polling fallback at 30s cadence until Realtime is verified.
         pollTimer?.cancel()
+        // Fetch once immediately so the roster lights up on open instead of
+        // staying blank for the first 30s poll interval.
+        await refreshPresence(squadId: squadId)
         pollTimer = Task { @MainActor [weak self] in
             while !Task.isCancelled {
                 try? await Task.sleep(nanoseconds: 30_000_000_000)
@@ -131,7 +146,17 @@ final class SquadPresenceService: SquadPresenceServiceProtocol {
                 .eq("squad_id", value: squadId.uuidString)
                 .execute()
                 .value
-            let models = rows.compactMap(\.toModel)
+            let models = rows.compactMap(\.toModel).filter(\.isActive)
+            // Persist into the viewer's squad state. SquadDetailView reads
+            // state.activeRosterPresence (and refreshes on .squadPresenceChanged),
+            // so without this the fetched set was broadcast and immediately
+            // dropped — the roster never showed who was live. Storing it also
+            // makes presence survive the view's other refreshState() reloads.
+            if let userId = AuthService.shared.currentUserId {
+                var s = SquadStore.shared.load(userId: userId)
+                s.activeRosterPresence = models
+                SquadStore.shared.save(s, userId: userId)
+            }
             NotificationCenter.default.post(name: .squadPresenceChanged, object: models)
         } catch {
             logger.log("SquadPresence.refresh error: \(error)", level: .warning)
