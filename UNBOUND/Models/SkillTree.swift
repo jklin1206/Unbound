@@ -4,17 +4,17 @@ import Foundation
 //
 // One shared SkillGraph for all users. Nodes are tagged with a cluster,
 // a tier (1-7 where 7 = Mythic), and flags for keystone/mythic status.
-// Archetype identity emerges from which nodes are seeded as `.attempting`
-// at spawn (see ArchetypeSpawnPoints).
+// Archetype identity emerges from which nodes are reachable early in the
+// graph, not from a separate stored state machine.
 //
-// 4-state progression kept intact: locked → attempting → achieved → mastered.
+// Two stored states: locked -> proven.
 // Volume benchmarks (1 muscle-up vs 10 muscle-ups) are MODELED AS SEPARATE
 // NODES rather than rep sub-states. Keeps the state machine tiny and every
 // node has exactly one clear target.
 //
 // Prerequisites support OR-logic: a node may have multiple PrerequisiteGroups,
 // and satisfying ANY of them opens the node. Inside a group, ALL node-ids
-// must be achieved.
+// must be proven.
 //
 // The old SkillTree per-archetype wrapper is kept as a compatibility view
 // over SkillGraph — callers that haven't migrated to SkillGraph yet still
@@ -326,7 +326,7 @@ struct SkillGraph: Codable, Sendable {
     //
     // Some clusters (e.g. HSPU, One-Arm Handstand) are staged behind the
     // keystone(s) of a prerequisite cluster. Returns true when the cluster
-    // has no prereq or all keystones of its prereq cluster are achieved.
+    // has no prereq or all keystones of its prereq cluster are proven.
     // If the required cluster has no keystones defined, the gate stays CLOSED
     // — a cluster that requires a prereq with no achievable keystones remains
     // locked until content is added. This preserves the intended progression

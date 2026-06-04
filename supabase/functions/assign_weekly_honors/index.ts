@@ -7,13 +7,23 @@
 // Cron schedule: 0 23 * * 0 (11 PM UTC every Sunday)
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2"
+import { requireEmptyJsonObjectBody, requirePost, requireServiceFunctionAuth } from "../_shared/service_auth.ts"
+import { computeIsoWeek } from "./iso_week.ts"
+import { persistWeeklyHonors, type WeeklyHonorRow } from "./persistence.ts"
 
 const HONOR_KINDS = [
   "mostConsistent", "ironWill", "clutchPerformer", "mostImproved",
   "comebackArc", "earlyBird", "nightGrinder", "trialFinisher", "supportBuff"
 ]
 
-serve(async (_req) => {
+serve(async (req) => {
+  const methodError = requirePost(req)
+  if (methodError) return methodError
+  const authError = requireServiceFunctionAuth(req)
+  if (authError) return authError
+  const bodyError = await requireEmptyJsonObjectBody(req)
+  if (bodyError) return bodyError
+
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
@@ -57,9 +67,7 @@ serve(async (_req) => {
     const metrics = await computeMetrics(supabase, userIds, weekStart, weekEnd)
 
     const assigned = new Set<string>()  // user_ids already given an honor
-    const honors: Array<{
-      squad_id: string, week_iso: string, honor_kind: string, recipient_user_id: string
-    }> = []
+    const honors: WeeklyHonorRow[] = []
 
     // Rotate through honor kinds in a deterministic order seeded by squad id
     const shuffled = deterministicShuffle(HONOR_KINDS, squad.id + weekIso)
@@ -98,13 +106,7 @@ serve(async (_req) => {
       })
     }
 
-    if (honors.length > 0) {
-      // Use upsert to avoid duplicate rows if the cron runs twice
-      await supabase.from("squad_weekly_honors").upsert(honors, {
-        onConflict: "squad_id,week_iso,honor_kind",
-        ignoreDuplicates: true
-      })
-    }
+    await persistWeeklyHonors(supabase, honors)
   }
 
   return new Response("ok", { status: 200 })
@@ -316,19 +318,6 @@ async function computeMetrics(
 // ---------------------------------------------------------------------------
 // Utilities
 // ---------------------------------------------------------------------------
-
-function computeIsoWeek(d: Date): string {
-  const target = new Date(d.valueOf())
-  const dayNumber = (d.getUTCDay() + 6) % 7
-  target.setUTCDate(target.getUTCDate() - dayNumber + 3)
-  const firstThursday = target.valueOf()
-  target.setUTCMonth(0, 1)
-  if (target.getUTCDay() !== 4) {
-    target.setUTCMonth(0, 1 + ((4 - target.getUTCDay()) + 7) % 7)
-  }
-  const week = 1 + Math.ceil((firstThursday - target.valueOf()) / 604800000)
-  return `${d.getUTCFullYear()}-W${week.toString().padStart(2, '0')}`
-}
 
 function getIsoWeekStart(d: Date): Date {
   const day = (d.getUTCDay() + 6) % 7  // Mon=0

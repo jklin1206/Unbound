@@ -100,8 +100,15 @@ struct WorkoutDetailView: View {
             }
         }
         .sheet(isPresented: $showWorkoutReady) {
-            WorkoutReadyView(draft: readyDraft)
-                .environmentObject(services)
+            if let readyDraft {
+                WorkoutReadyView(draft: readyDraft)
+                    .environmentObject(services)
+            } else {
+                Text("Sign in before starting a workout.")
+                    .font(.body)
+                    .foregroundStyle(Color.unbound.textSecondary)
+                    .padding()
+            }
         }
         .sheet(item: Binding(
             get: { swapTargetExerciseId.map(SwapTarget.init(id:)) },
@@ -145,8 +152,8 @@ struct WorkoutDetailView: View {
         return copy
     }
 
-    private var readyDraft: TrainingSessionDraft {
-        let userId = services.auth.currentUserId ?? "anonymous"
+    private var readyDraft: TrainingSessionDraft? {
+        guard let userId = services.auth.currentUserId else { return nil }
         return DailyWorkoutResolver.programDraft(
             from: liveWorkout,
             userId: userId,
@@ -194,7 +201,8 @@ struct WorkoutDetailView: View {
     }
 
     private func inferredTrainingStyle(for equipment: [Equipment]) -> TrainingStyle {
-        if equipment.count == 1, equipment.contains(.bodyweight) {
+        let bodyweightGear: Set<Equipment> = [.bodyweight, .pullupBar, .bands, .dipStation, .rings]
+        if !equipment.isEmpty && Set(equipment).isSubset(of: bodyweightGear) {
             return .bodyweight
         }
         if equipment.contains(.machines), !equipment.contains(.fullGym) {

@@ -1,0 +1,207 @@
+{
+  "source_images": {
+    "front": "/Users/jlin/Downloads/frontmap.png",
+    "back": "/Users/jlin/Downloads/backmap.png"
+  },
+  "palette": [
+    {
+      "key": "red",
+      "hex": "#ed1c24",
+      "default_region": "chest_traps"
+    },
+    {
+      "key": "green",
+      "hex": "#22b14c",
+      "default_region": "shoulders_triceps"
+    },
+    {
+      "key": "orange",
+      "hex": "#ff7f27",
+      "default_region": "biceps_lats"
+    },
+    {
+      "key": "yellow",
+      "hex": "#fff200",
+      "default_region": "quads_forearms"
+    },
+    {
+      "key": "blue",
+      "hex": "#3f48cc",
+      "default_region": "abs_core"
+    },
+    {
+      "key": "cyan",
+      "hex": "#00a2e8",
+      "default_region": "lower_back"
+    },
+    {
+      "key": "purple",
+      "hex": "#a349a4",
+      "default_region": "obliques_glutes"
+    },
+    {
+      "key": "maroon",
+      "hex": "#880015",
+      "default_region": "forearms_hamstrings"
+    },
+    {
+      "key": "pink",
+      "hex": "#ffaec9",
+      "default_region": "calves"
+    }
+  ],
+  "views": {
+    "front": {
+      "width": 1280,
+      "height": 1908,
+      "regions": {
+        "red": "chest",
+        "green": "deltoids",
+        "orange": "biceps",
+        "yellow": "quads",
+        "blue": "abs",
+        "cyan": "lower_back",
+        "purple": "obliques",
+        "maroon": "forearms",
+        "pink": "calves"
+      },
+      "colored_pixel_counts": {
+        "red": 13265,
+        "green": 14082,
+        "orange": 11503,
+        "yellow": 27562,
+        "blue": 22620,
+        "cyan": 0,
+        "purple": 16943,
+        "maroon": 22806,
+        "pink": 16417
+      }
+    },
+    "back": {
+      "width": 1280,
+      "height": 1908,
+      "regions": {
+        "red": "traps_upper_back",
+        "green": "triceps",
+        "orange": "lats",
+        "yellow": "forearms",
+        "blue": "abs_core",
+        "cyan": "lower_back",
+        "purple": "glutes",
+        "maroon": "hamstrings",
+        "pink": "calves"
+      },
+      "colored_pixel_counts": {
+        "red": 14130,
+        "green": 14462,
+        "orange": 16103,
+        "yellow": 16886,
+        "blue": 0,
+        "cyan": 8663,
+        "purple": 16461,
+        "maroon": 24050,
+        "pink": 16479
+      }
+    }
+  },
+  "clean_symmetric": {
+    "width": 1280,
+    "height": 1908,
+    "front_regions": [
+      "deltoids",
+      "chest",
+      "biceps",
+      "forearms",
+      "obliques",
+      "abs",
+      "quads",
+      "calves"
+    ],
+    "back_regions": [
+      "traps_upper_back",
+      "triceps",
+      "lats",
+      "forearms",
+      "lower_back",
+      "glutes",
+      "hamstrings",
+      "calves"
+    ],
+    "mirror_axis_x": 640
+  },
+  "clean_detailed": {
+    "width": 724,
+    "height": 1448,
+    "front_parts": [
+      "abs",
+      "biceps",
+      "calves",
+      "chest",
+      "deltoids",
+      "forearm",
+      "obliques",
+      "quadriceps",
+      "tibialis"
+    ],
+    "back_parts": [
+      "calves",
+      "deltoids",
+      "forearm",
+      "gluteal",
+      "hamstring",
+      "lower-back",
+      "trapezius",
+      "triceps",
+      "upper-back"
+    ],
+    "source": "body_paths.json anatomy contours styled with the supplied sketch color map"
+  },
+  "character_clean": {
+    "width": 1280,
+    "height": 1908,
+    "front_base": "UNBOUND/Resources/BodyMap/source_frontmap_character_base.png",
+    "back_base": "UNBOUND/Resources/BodyMap/source_backmap_character_base.png",
+    "source": "supplied PNG character with marker colors inpainted, plus cleaned SVG heatmap regions"
+  },
+  "character_crisp": {
+    "width": 1280,
+    "height": 1908,
+    "front_file": "UNBOUND/Resources/BodyMap/source_frontmap_character_crisp.svg",
+    "back_file": "UNBOUND/Resources/BodyMap/source_backmap_character_crisp.svg",
+    "pair_preview": "UNBOUND/Resources/BodyMap/source_bodymap_character_crisp_pair_preview.svg",
+    "front_base": "UNBOUND/Resources/BodyMap/source_frontmap_character_base.png",
+    "back_base": "UNBOUND/Resources/BodyMap/source_backmap_character_base.png",
+    "source": "supplied PNG character with marker colors inpainted, plus crisp SVG contour heatmap regions"
+  },
+  "character_trace": {
+    "width": 1280,
+    "height": 1908,
+    "front_file": "UNBOUND/Resources/BodyMap/source_frontmap_character_trace.svg",
+    "back_file": "UNBOUND/Resources/BodyMap/source_backmap_character_trace.svg",
+    "source": "supplied PNG character with marker colors inpainted, plus vectorized marker-style SVG regions"
+  },
+  "character_mirrored_trace": {
+    "width": 1280,
+    "height": 1908,
+    "front_file": "UNBOUND/Resources/BodyMap/source_frontmap_character_mirrored_trace.svg",
+    "back_file": "UNBOUND/Resources/BodyMap/source_backmap_character_mirrored_trace.svg",
+    "pair_preview": "UNBOUND/Resources/BodyMap/source_bodymap_character_mirrored_trace_pair_preview.svg",
+    "source_halves": {
+      "front": "right",
+      "back": "right"
+    },
+    "source": "supplied marker strokes vectorized after mirroring the selected half for consistency"
+  },
+  "character_mirrored_filled": {
+    "width": 1280,
+    "height": 1908,
+    "front_file": "UNBOUND/Resources/BodyMap/source_frontmap_character_mirrored_filled.svg",
+    "back_file": "UNBOUND/Resources/BodyMap/source_backmap_character_mirrored_filled.svg",
+    "pair_preview": "UNBOUND/Resources/BodyMap/source_bodymap_character_mirrored_filled_pair_preview.svg",
+    "source_halves": {
+      "front": "right",
+      "back": "right"
+    },
+    "source": "supplied marker strokes filled after mirroring the selected half for consistency"
+  }
+}

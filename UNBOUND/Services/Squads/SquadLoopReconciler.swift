@@ -49,11 +49,20 @@ final class SquadLoopReconciler {
     private let store: SquadLoopStore
     private let logger = LoggingService.shared
 
+    convenience init() {
+        self.init(
+            backend: SquadBackend.shared,
+            activityService: SquadActivityService.shared,
+            titleService: .shared,
+            store: .shared
+        )
+    }
+
     init(
-        backend: SquadBackendProtocol = SquadBackend.shared,
-        activityService: SquadActivityServiceProtocol = SquadActivityService.shared,
-        titleService: SquadTitleService = .shared,
-        store: SquadLoopStore = .shared
+        backend: SquadBackendProtocol,
+        activityService: SquadActivityServiceProtocol,
+        titleService: SquadTitleService,
+        store: SquadLoopStore
     ) {
         self.backend = backend
         self.activityService = activityService

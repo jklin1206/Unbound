@@ -126,6 +126,29 @@ final class ActiveWorkoutSessionTests: XCTestCase {
         XCTAssertNotNil(log.completedAt)
         XCTAssertNotNil(log.durationMinutes)
     }
+
+    func test_assembleLogsUseExplicitCompletionDateForDevSimulation() throws {
+        let s = ActiveWorkoutSession(workout: workout(), programId: "p", dayNumber: 1)
+        s.confirmAsPlanned(exerciseIndex: 0, setIndex: 0)
+        let completedAt = try XCTUnwrap(Calendar.current.date(from: DateComponents(
+            year: 2026,
+            month: 6,
+            day: 10,
+            hour: 15,
+            minute: 30
+        )))
+
+        let workoutLog = s.assembleWorkoutLog(userId: "u", completedAt: completedAt)
+        let performanceLog = s.assemblePerformanceLog(userId: "u", completedAt: completedAt)
+
+        XCTAssertEqual(workoutLog.completedAt, completedAt)
+        XCTAssertEqual(performanceLog.completedAt, completedAt)
+        XCTAssertLessThanOrEqual(workoutLog.startedAt, completedAt)
+        XCTAssertLessThanOrEqual(performanceLog.startedAt, completedAt)
+        XCTAssertLessThan(completedAt.timeIntervalSince(workoutLog.startedAt), 60)
+        XCTAssertLessThan(completedAt.timeIntervalSince(performanceLog.startedAt), 60)
+    }
+
     func test_snapshotRoundTrip() throws {
         let s = ActiveWorkoutSession(workout: workout(), programId: "p", dayNumber: 1)
         s.logCurrentSet(weightKg: 80, reps: 8)

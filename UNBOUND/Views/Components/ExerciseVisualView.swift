@@ -1,11 +1,75 @@
 import SwiftUI
 import UIKit
 
+enum ExerciseVisualAssetSet: String, CaseIterable, Identifiable {
+    case jot
+    case legacy
+    case current
+
+    static let userDefaultsKey = "UNBOUNDExerciseVisualAssetSet"
+    static let environmentKey = "UNBOUND_EXERCISE_VISUAL_SET"
+    static let defaultSet: ExerciseVisualAssetSet = .current
+
+    var id: String { rawValue }
+
+    static var active: ExerciseVisualAssetSet {
+        if let override = ProcessInfo.processInfo.environment[environmentKey],
+           let set = ExerciseVisualAssetSet(rawValue: override.lowercased()) {
+            return set
+        }
+
+        if let stored = UserDefaults.standard.string(forKey: userDefaultsKey),
+           let set = ExerciseVisualAssetSet(rawValue: stored.lowercased()) {
+            if set == .jot {
+                return .legacy
+            }
+            return set
+        }
+
+        return defaultSet
+    }
+
+    var displayName: String {
+        switch self {
+        case .jot: return "JOT"
+        case .legacy: return "Legacy"
+        case .current: return "Current"
+        }
+    }
+
+    fileprivate var assetPrefixComponent: String? {
+        switch self {
+        case .jot: return "jot"
+        case .legacy: return "legacy"
+        case .current: return nil
+        }
+    }
+}
+
 enum ExerciseVisualAsset {
     static let prefix = "exercise_visual_"
 
+    private static let visualAliasBaseAssetNames: [String: [String]] = [
+        "assisted-squat": ["exercise_visual_exercise_bodyweight-squat"],
+        "parallel-squat": ["exercise_visual_exercise_bodyweight-squat"],
+        "deep-step-up": ["exercise_visual_exercise_step-up"],
+        "partial-pistol-squat": [
+            "exercise_visual_exercise_assisted-pistol-squat",
+            "exercise_visual_exercise_pistol-squat"
+        ],
+        "beginner-shrimp-squat": ["exercise_visual_exercise_shrimp-squat"],
+        "intermediate-shrimp-squat": ["exercise_visual_exercise_shrimp-squat"],
+        "two-hand-shrimp-squat": ["exercise_visual_exercise_shrimp-squat"],
+        "elevated-two-hand-shrimp-squat": ["exercise_visual_exercise_shrimp-squat"],
+        "nordic-curl-negative": ["exercise_visual_exercise_nordic-curl"],
+        "nordic-curl-arms-overhead": ["exercise_visual_exercise_nordic-curl"],
+        "tuck-one-leg-nordic-curl": ["exercise_visual_exercise_nordic-curl"],
+        "one-leg-nordic-curl": ["exercise_visual_exercise_nordic-curl"],
+        "bodyweight-leg-extension": ["exercise_visual_exercise_leg-extensions"]
+    ]
+
     static func assetName(for definition: MovementDefinition) -> String {
-        prefix + sanitized(definition.id)
+        assetNameCandidates(forMovementId: definition.id).first ?? prefix + sanitized(definition.id)
     }
 
     static func existingAssetName(for definition: MovementDefinition) -> String? {
@@ -13,7 +77,35 @@ enum ExerciseVisualAsset {
     }
 
     static func existingAssetName(forMovementId movementId: String) -> String? {
-        assetNameCandidates(forMovementId: movementId).first { UIImage(named: $0) != nil }
+        let candidates = assetNameCandidates(forMovementId: movementId)
+
+        if movementId.hasPrefix("carry.") {
+            for candidate in candidates where UIImage(named: candidate) != nil {
+                return candidate
+            }
+        }
+
+        for candidate in candidates {
+            if let existing = existingAssetName(forBaseAssetName: candidate) {
+                return existing
+            }
+        }
+        return nil
+    }
+
+    static func existingAssetName(forBaseAssetName baseAssetName: String) -> String? {
+        assetNameCandidates(forBaseAssetName: baseAssetName).first { UIImage(named: $0) != nil }
+    }
+
+    static func image(named assetName: String) -> UIImage? {
+        guard let resolved = existingAssetName(forBaseAssetName: assetName) else {
+            return nil
+        }
+        return UIImage(named: resolved)
+    }
+
+    static func setScopedAssetName(_ baseAssetName: String, in set: ExerciseVisualAssetSet) -> String {
+        assetName(baseAssetName, in: set)
     }
 
     private static func sanitized(_ value: String) -> String {
@@ -28,12 +120,61 @@ enum ExerciseVisualAsset {
         let rawName = movementId
             .replacingOccurrences(of: "exercise.", with: "")
             .replacingOccurrences(of: "exercise_", with: "")
+        let rawSlug = MovementCatalog.slug(rawName)
         let slugged = "\(prefix)exercise_\(MovementCatalog.slug(rawName))"
         let underscored = "\(prefix)exercise_\(MovementCatalog.normalized(rawName).replacingOccurrences(of: " ", with: "_"))"
-        return [direct, slugged, underscored].reduce(into: []) { result, candidate in
+
+        var candidates: [String] = []
+        if movementId.hasPrefix("carry.") {
+            let carryName = movementId.replacingOccurrences(of: "carry.", with: "")
+            let carrySlug = MovementCatalog.slug(carryName)
+            candidates.append("\(prefix)exercise_\(carrySlug)")
+            if carrySlug == "farmer-carry" {
+                candidates.append("\(prefix)exercise_heavy-farmer-carry")
+            }
+            candidates.append("\(prefix)carry_\(carrySlug)")
+        }
+
+        if let aliases = visualAliasBaseAssetNames[rawSlug] {
+            candidates.append(contentsOf: aliases)
+        }
+        candidates.append(contentsOf: [direct, slugged, underscored])
+
+        return candidates.reduce(into: []) { result, candidate in
             guard !result.contains(candidate) else { return }
             result.append(candidate)
         }
+    }
+
+    private static func assetNameCandidates(forBaseAssetName baseAssetName: String) -> [String] {
+        guard baseAssetName.hasPrefix(prefix) else {
+            return [baseAssetName]
+        }
+
+        let activeSet = ExerciseVisualAssetSet.active
+        let candidates: [String]
+        switch activeSet {
+        case .jot:
+            candidates = [baseAssetName, assetName(baseAssetName, in: .jot)]
+        case .legacy:
+            candidates = [baseAssetName, assetName(baseAssetName, in: .legacy)]
+        case .current:
+            candidates = [baseAssetName]
+        }
+
+        return candidates.reduce(into: []) { result, candidate in
+            guard !result.contains(candidate) else { return }
+            result.append(candidate)
+        }
+    }
+
+    private static func assetName(_ baseAssetName: String, in set: ExerciseVisualAssetSet) -> String {
+        guard let component = set.assetPrefixComponent,
+              baseAssetName.hasPrefix(prefix)
+        else { return baseAssetName }
+
+        let suffix = baseAssetName.dropFirst(prefix.count)
+        return "\(prefix)\(component)_\(suffix)"
     }
 }
 

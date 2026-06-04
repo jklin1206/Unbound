@@ -321,18 +321,29 @@ final class ProgramGenerationService: ProgramGenerationServiceProtocol, @uncheck
         equipment: [Equipment],
         exerciseStyles: Set<ExerciseStyle>
     ) -> TrainingStyle {
-        if buildIdentity.programTemplateKey == "control"
+        let bodyweightGear: Set<Equipment> = [.bodyweight, .pullupBar, .bands, .dipStation, .rings]
+        let selectedEquipment = Set(equipment)
+        let wantsCalisthenics = buildIdentity.programTemplateKey == "control"
             || exerciseStyles.contains(.calisthenics)
-            || (equipment.count == 1 && equipment.contains(.bodyweight)) {
-            return .bodyweight
-        }
-        if exerciseStyles.contains(.machines) || equipment.contains(.machines) {
-            return .machines
-        }
-        if exerciseStyles.contains(.compoundLifts)
+        let wantsMachines = exerciseStyles.contains(.machines) || equipment.contains(.machines)
+        let wantsFreeWeights = exerciseStyles.contains(.compoundLifts)
             || equipment.contains(.barbell)
             || equipment.contains(.dumbbells)
-            || equipment.contains(.bench) {
+            || equipment.contains(.bench)
+
+        if wantsCalisthenics && (wantsFreeWeights || wantsMachines) {
+            return .hybrid
+        }
+        if wantsCalisthenics || (!selectedEquipment.isEmpty && selectedEquipment.isSubset(of: bodyweightGear)) {
+            return .bodyweight
+        }
+        if wantsMachines && wantsFreeWeights {
+            return .hybrid
+        }
+        if wantsMachines {
+            return .machines
+        }
+        if wantsFreeWeights {
             return .freeWeights
         }
         return .hybrid

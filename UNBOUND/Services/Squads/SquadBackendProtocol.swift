@@ -68,10 +68,10 @@ protocol SquadBackendProtocol: Sendable {
     // MARK: Mission progress
 
     /// Increment the current ISO-week mission's `current_progress` for a squad
-    /// by `delta`. RLS blocks direct client UPDATE on squad_missions (update
-    /// policy `using (false)`), so this routes through the SECURITY DEFINER
-    /// `increment_squad_mission_progress` RPC, which guards on squad membership.
-    func incrementMissionProgress(squadId: UUID, delta: Int) async throws
+    /// by `delta` once per completed performance log. RLS blocks direct client
+    /// UPDATE on squad_missions, so this routes through a SECURITY DEFINER RPC
+    /// that guards on squad membership and dedupes by `sourceLogId`.
+    func incrementMissionProgress(squadId: UUID, delta: Int, sourceLogId: String) async throws
 
     // MARK: Linked sessions
 

@@ -8,10 +8,8 @@ import SwiftUI
 // RankBadge language.
 //
 // Node states visualized:
-//   - locked:     bone-white dim hexagon, small lock glyph inside
-//   - attempting: violet outline, title visible, soft violet pulse
-//   - achieved:   violet filled hexagon, checkmark glyph
-//   - mastered:   impact-violet filled + outer glow + crown glyph
+//   - locked: bone-white dim hexagon, small lock glyph inside
+//   - proven: violet filled hexagon, checkmark glyph
 //
 // Tap a node to see its requirement in a floating detail card.
 

@@ -66,9 +66,22 @@ final class RPESessionService {
         guard let plan = SkillTrainingPlanLibrary.plan(for: skillId) else {
             throw RPESessionError.noAuthoredPlan(skillId: skillId)
         }
+        let lastReview = await SkillTrainingReviewStore.shared.latestReview(
+            skillId: skillId,
+            userId: userId,
+            database: database
+        )
+        guard let decision = SkillRungResolver.resolve(
+            skillId: skillId,
+            isTrainable: SkillProgressService.shared.isNodeTrainable(nodeId: skillId),
+            plan: plan,
+            lastReview: lastReview
+        ) else {
+            throw RPESessionError.noAuthoredPlan(skillId: skillId)
+        }
 
         let lastLog = await fetchLastSessionLog(skillId: skillId, userId: userId)
-        let exercises = plan.mainSets.map { rx in
+        let exercises = decision.prescriptions.map { rx in
             adjustedExercise(from: rx, lastLog: lastLog, isAccessory: false)
         }
         let accessories = plan.accessories.map { acc in
@@ -86,9 +99,12 @@ final class RPESessionService {
 
         let session = AISession(
             skillId: skillId,
-            generatedAt: Date(),
-            summary: planSummary(skill: plan, lastLog: lastLog),
-            estimatedDurationMinutes: estimatedDuration(for: plan),
+            selectedRungId: decision.selectedRungId,
+            selectedRungSource: decision.source,
+            selectedRungReason: decision.reason,
+            generatedAt: sessionNow,
+            summary: planSummary(decision: decision, lastLog: lastLog),
+            estimatedDurationMinutes: estimatedDuration(for: decision, accessories: plan.accessories),
             exercises: exercises + accessories,
             isAIGenerated: false
         )
@@ -255,27 +271,43 @@ final class RPESessionService {
 
     // MARK: - Helpers
 
-    private func planSummary(skill: SkillTrainingPlan, lastLog: SessionLog?) -> String {
-        let setsCount = skill.mainSets.reduce(0) { $0 + $1.sets }
+    private func planSummary(decision: SkillTrainingRungDecision, lastLog: SessionLog?) -> String {
+        let setsCount = decision.prescriptions.reduce(0) { $0 + $1.sets }
         if let last = lastLog {
-            let days = max(1, Calendar.current.dateComponents([.day], from: last.createdAt, to: Date()).day ?? 1)
-            return "\(setsCount) working sets · \(days)d since last session — RPE-tuned to your last log."
+            let days = max(1, Calendar.current.dateComponents([.day], from: last.createdAt, to: sessionNow).day ?? 1)
+            return "\(setsCount) working sets · \(decision.selectedRungTitle) · \(days)d since last session — RPE-tuned to your last log."
         }
-        return "\(setsCount) working sets · first session — log RPE for next-session overload."
+        return "\(setsCount) working sets · \(decision.selectedRungTitle) · first session — log RPE for next-session overload."
     }
 
-    private func estimatedDuration(for plan: SkillTrainingPlan) -> Int {
-        let mainSeconds = plan.mainSets.reduce(0) { acc, rx in
+    private func estimatedDuration(for decision: SkillTrainingRungDecision, accessories: [TrainingExercise]) -> Int {
+        let mainSeconds = decision.prescriptions.reduce(0) { acc, rx in
             acc + (rx.sets * 45) + (rx.sets * rx.restSeconds)
         }
-        let accessorySeconds = plan.accessories.count * 240
+        let accessorySeconds = accessories.count * 240
         return max(15, (mainSeconds + accessorySeconds) / 60)
     }
 
     private func todayCacheKey(skillId: String) -> String {
         let fmt = DateFormatter()
         fmt.dateFormat = "yyyy-MM-dd"
-        return "\(skillId).\(fmt.string(from: Date()))"
+        return "\(skillId).\(fmt.string(from: sessionToday))"
+    }
+
+    private var sessionNow: Date {
+        #if DEBUG
+        return DevProgramClock.now
+        #else
+        return Date()
+        #endif
+    }
+
+    private var sessionToday: Date {
+        #if DEBUG
+        return DevProgramClock.today
+        #else
+        return Calendar.current.startOfDay(for: Date())
+        #endif
     }
 }
 

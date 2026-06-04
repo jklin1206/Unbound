@@ -34,6 +34,9 @@ struct Step13_TargetFrequency: View {
     }
 }
 
+#if DEBUG
 #Preview {
     Step13_TargetFrequency(flow: OnboardingFlowViewModel(), progress: 0.43, onBack: {}, onContinue: {})
 }
+
+#endif

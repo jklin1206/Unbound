@@ -73,9 +73,13 @@ enum SkillTrainingPlanLibrary {
             return ninetyDegreePushPlan
         case "cal.bent-arm-press":
             return bentArmPressPlan
-        case "cal.5-dips", "cal.bench-dip": return dipPlan
+        case "cal.5-dips":         return dipPlan
+        case "cal.bench-dip":      return benchDipPlan
         case "cal.ring-dip":         return ringDipPlan
         case "ld.pistol-squat":      return pistolSquatPlan
+        case "ld.shrimp-squat":      return shrimpSquatPlan
+        case "ld.weighted-pistol":   return weightedPistolPlan
+        case "ld.nordic-curl":       return nordicCurlPlan
         case let id where id.hasPrefix("ld."):
             return legBranchPlan(skillId: id)
         case "cal.plank-30":         return plankPlan
@@ -93,7 +97,7 @@ enum SkillTrainingPlanLibrary {
             return lSitFamilyPlan(skillId: skillId)
         case "cl.tuck-front-lever", "cl.straddle-front-lever", "cl.full-front-lever":
             return frontLeverPlan(skillId: skillId)
-        case "cl.german-hang", "cl.skin-the-cat", "cl.straddle-back-lever", "cl.full-back-lever":
+        case "cl.german-hang", "cl.skin-the-cat", "cl.tuck-back-lever", "cl.straddle-back-lever", "cl.full-back-lever":
             return backLeverPlan(skillId: skillId)
         case "cl.three-sixty-pulls":
             return threeSixtyPullPlan
@@ -173,9 +177,10 @@ enum SkillTrainingPlanLibrary {
         case "cl.full-front-lever": return "Full Front Lever"
         case "cl.german-hang": return "German Hang"
         case "cl.skin-the-cat": return "Skin the Cat"
+        case "cl.tuck-back-lever": return "Tuck Back Lever"
         case "cl.straddle-back-lever": return "Straddle Back Lever"
         case "cl.full-back-lever": return "Full Back Lever"
-        case "cl.three-sixty-pulls": return "360 Pull"
+        case "cl.three-sixty-pulls": return "360 Ring Pull"
         case "cl.dragon-flag-hip-raise": return "Dragon Flag Hip Raise"
         case "cl.dragon-flag": return "Dragon Flag"
         default:
@@ -1089,6 +1094,54 @@ enum SkillTrainingPlanLibrary {
 
     private static func planchePushPlan(skillId: String) -> SkillTrainingPlan {
         let isTuck = skillId == "cal.tuck-planche-pushup"
+        if isTuck {
+            return SkillTrainingPlan(
+                skillId: skillId,
+                regressions: [
+                    TrainingExercise(name: "Tuck Planche Hold", cues: [
+                        "Own the float before bending the elbows",
+                        "Locked elbows, protracted shoulders"
+                    ]),
+                    TrainingExercise(name: "Band-Assisted Tuck Planche Push-Up", cues: [
+                        "Band supports hips, not feet",
+                        "Same tuck line on every inch"
+                    ]),
+                    TrainingExercise(name: "Tuck Planche Negative", cues: [
+                        "Lower 3-5s without feet touching",
+                        "Step down before the tuck collapses"
+                    ])
+                ],
+                mainSets: [
+                    TrainingPrescription(
+                        exerciseName: "Tuck Planche Push-Up",
+                        sets: 6,
+                        target: .repsRange(1, 3),
+                        restSeconds: 180,
+                        notes: "Feet never touch. Keep the same tuck planche lean through the descent and press."
+                    ),
+                    TrainingPrescription(
+                        exerciseName: "Tuck Planche Hold",
+                        sets: 5,
+                        target: .hold(seconds: 5),
+                        restSeconds: 120,
+                        notes: "Rebuild the straight-arm float between bent-arm sets."
+                    )
+                ],
+                accessories: [
+                    TrainingExercise(name: "Pseudo-Planche Lean", cues: [
+                        "Measurable forward lean",
+                        "Wrists warmed first"
+                    ]),
+                    TrainingExercise(name: "Scapular Push-Up", cues: [
+                        "Straight-arm protraction strength"
+                    ]),
+                    TrainingExercise(name: "Hollow Body Hold", cues: [
+                        "Ribs down, pelvis tucked"
+                    ])
+                ]
+            )
+        }
+
         return SkillTrainingPlan(
             skillId: skillId,
             regressions: [
@@ -1197,10 +1250,10 @@ enum SkillTrainingPlanLibrary {
             mainSets: [
                 TrainingPrescription(
                     exerciseName: isTriple ? "Triple-Clap Push-Up" : (isClap ? "Clapping Push-Up" : "Explosive Push-Up"),
-                    sets: 5,
-                    target: isTriple ? .repsRange(1, 3) : .repsRange(3, 5),
+                    sets: isTriple ? 6 : 5,
+                    target: isTriple ? .reps(1) : .repsRange(3, 5),
                     restSeconds: isTriple ? 150 : 120,
-                    notes: "Power only. Stop when airtime or landing quality drops."
+                    notes: isTriple ? "Singles only. Full reset between attempts; stop when airtime or landing quality drops." : "Power only. Stop when airtime or landing quality drops."
                 ),
                 TrainingPrescription(
                     exerciseName: "Tempo Push-Up",
@@ -1267,6 +1320,54 @@ enum SkillTrainingPlanLibrary {
             ]),
             TrainingExercise(name: "Pseudo-Planche Lean", cues: [
                 "20s × 3"
+            ])
+        ]
+    )
+
+    private static let benchDipPlan: SkillTrainingPlan = SkillTrainingPlan(
+        skillId: "cal.bench-dip",
+        regressions: [
+            TrainingExercise(name: "Assisted Bench Dip", cues: [
+                "Feet close, legs help only as needed",
+                "Shoulders stay down and back"
+            ]),
+            TrainingExercise(name: "Short-Range Bench Dip", cues: [
+                "Pain-free depth first",
+                "Add range slowly"
+            ]),
+            TrainingExercise(name: "Bench Support Hold", cues: [
+                "Arms straight, hips close to bench",
+                "Hold without shoulder roll"
+            ])
+        ],
+        mainSets: [
+            TrainingPrescription(
+                exerciseName: "Bench Dip",
+                sets: 4,
+                target: .repsRange(6, 10),
+                restSeconds: 75,
+                notes: "Keep hips close to the bench. Descend only as far as the shoulders stay controlled and pain-free."
+            ),
+            TrainingPrescription(
+                exerciseName: "Tempo Bench Dip",
+                sets: 3,
+                target: .tempo(reps: 5, eccentric: 3, hold: 1, concentric: 1),
+                restSeconds: 75,
+                notes: "Tempo exposes shoulder roll and leg push before they become habits."
+            )
+        ],
+        accessories: [
+            TrainingExercise(name: "Close-Grip Push-Up", cues: [
+                "Elbows track back",
+                "Lockout strength"
+            ]),
+            TrainingExercise(name: "Band Tricep Extension", cues: [
+                "Elbows still",
+                "Full lockout"
+            ]),
+            TrainingExercise(name: "Scapular Push-Up", cues: [
+                "Shoulder control",
+                "10-15 clean reps"
             ])
         ]
     )
@@ -1435,8 +1536,8 @@ enum SkillTrainingPlanLibrary {
 
         let mainTarget: PrescriptionTarget = {
             if isHold { return .hold(seconds: 60) }
-            if isPower { return .repsRange(2, 5) }
-            if isNordic { return .repsRange(3, 6) }
+            if isPower { return .repsRange(1, 3) }
+            if isNordic { return .repsRange(1, 3) }
             if isAccessory { return .repsRange(10, 15) }
             if isWeighted { return .repsRange(5, 8) }
             return .repsRange(6, 12)
@@ -1465,7 +1566,7 @@ enum SkillTrainingPlanLibrary {
                 TrainingPrescription(
                     exerciseName: isHold ? "Deep Squat Pry" : (isPower ? "Landing Practice" : "Tempo \(skillName)"),
                     sets: 3,
-                    target: isHold ? .hold(seconds: 30) : (isPower ? .repsRange(3, 5) : .tempo(reps: 5, eccentric: 3, hold: 1, concentric: 1)),
+                    target: isHold ? .hold(seconds: 30) : (isPower ? .repsRange(2, 3) : (isNordic ? .tempo(reps: 3, eccentric: 4, hold: 1, concentric: 1) : .tempo(reps: 5, eccentric: 3, hold: 1, concentric: 1))),
                     restSeconds: isPower ? 120 : 75,
                     notes: isPower ? "Keep contacts quiet and aligned." : "Tempo exposes compensation before volume hides it."
                 )
@@ -1490,35 +1591,33 @@ enum SkillTrainingPlanLibrary {
     private static let pistolSquatPlan: SkillTrainingPlan = SkillTrainingPlan(
         skillId: "ld.pistol-squat",
         regressions: [
-            TrainingExercise(name: "Deep Goblet Squat Hold", cues: [
-                "KB or DB at chest, 60s × 3, build mobility"
+            TrainingExercise(name: "Parallel Squat", cues: [
+                "Own flat-foot depth",
+                "Knees track over toes"
             ]),
-            TrainingExercise(name: "Rear-Foot Elevated Lunge", cues: [
-                "Rear foot on bench, 8-10 per leg × 3"
+            TrainingExercise(name: "Cossack Squat", cues: [
+                "Shift hips side to side",
+                "Keep the working foot rooted"
             ]),
-            TrainingExercise(name: "Skater Squat", cues: [
-                "Single leg, opposite leg back not forward",
-                "5-8 per leg × 3"
+            TrainingExercise(name: "Partial Pistol Squat", cues: [
+                "Use a box or target",
+                "Pause before standing"
             ]),
-            TrainingExercise(name: "Box Pistol (sit-to-stand)", cues: [
-                "Sit to box on one leg, stand without using other",
-                "5 per leg × 3"
-            ]),
-            TrainingExercise(name: "Counterbalance Pistol (KB held forward)", cues: [
-                "Hold 5-10kg straight out — easier, not harder",
-                "3-5 per leg × 3"
+            TrainingExercise(name: "Assisted Pistol Squat", cues: [
+                "Use rail or strap lightly",
+                "Same knee path as the strict rep"
             ])
         ],
         mainSets: [
             TrainingPrescription(
-                exerciseName: "Pistol Squat (per leg)",
+                exerciseName: "Pistol Squat",
                 sets: 5,
                 target: .reps(3),
                 restSeconds: 120,
                 notes: "Heel down, full depth, controlled descent"
             ),
             TrainingPrescription(
-                exerciseName: "Tempo Pistol (per leg)",
+                exerciseName: "Tempo Pistol Squat",
                 sets: 3,
                 target: .tempo(reps: 5, eccentric: 3, hold: 1, concentric: 1),
                 restSeconds: 90,
@@ -1534,6 +1633,156 @@ enum SkillTrainingPlanLibrary {
             ]),
             TrainingExercise(name: "Cossack Squat", cues: [
                 "Lateral mobility, 5 per side × 3"
+            ])
+        ]
+    )
+
+    private static let shrimpSquatPlan: SkillTrainingPlan = SkillTrainingPlan(
+        skillId: "ld.shrimp-squat",
+        regressions: [
+            TrainingExercise(name: "Assisted Shrimp Squat", cues: [
+                "Use a light hand assist",
+                "Rear knee touches softly"
+            ]),
+            TrainingExercise(name: "Beginner Shrimp Squat", cues: [
+                "Keep one hand free for balance",
+                "Own the eccentric before adding depth"
+            ]),
+            TrainingExercise(name: "Intermediate Shrimp Squat", cues: [
+                "Less assistance, same knee line",
+                "Working heel stays down"
+            ])
+        ],
+        mainSets: [
+            TrainingPrescription(
+                exerciseName: "Shrimp Squat",
+                sets: 5,
+                target: .repsRange(1, 3),
+                restSeconds: 150,
+                notes: "Rear knee kisses the floor; no bounce, no heel lift."
+            ),
+            TrainingPrescription(
+                exerciseName: "Two-Hand Shrimp Squat",
+                sets: 4,
+                target: .repsRange(1, 3),
+                restSeconds: 150,
+                notes: "Treat this as the advanced shrimp line after strict reps are controlled."
+            ),
+            TrainingPrescription(
+                exerciseName: "Elevated Two-Hand Shrimp Squat",
+                sets: 3,
+                target: .repsRange(1, 2),
+                restSeconds: 180,
+                notes: "Use only when the two-hand version is smooth and pain-free."
+            )
+        ],
+        accessories: [
+            TrainingExercise(name: "Pistol Squat", cues: [
+                "Keep single-leg strength fresh",
+                "2-3 controlled back-off sets"
+            ]),
+            TrainingExercise(name: "Bulgarian Split Squat", cues: [
+                "Front heel rooted",
+                "8-10 reps per side"
+            ]),
+            TrainingExercise(name: "Ankle And Hip Prep", cues: [
+                "2-4 minutes before attempts",
+                "No sharp knee sensation"
+            ])
+        ]
+    )
+
+    private static let weightedPistolPlan: SkillTrainingPlan = SkillTrainingPlan(
+        skillId: "ld.weighted-pistol",
+        regressions: [
+            TrainingExercise(name: "Pistol Squat", cues: [
+                "Own clean bodyweight reps first",
+                "No bounce at the bottom"
+            ]),
+            TrainingExercise(name: "Light Weighted Pistol Squat", cues: [
+                "Hold a small kettlebell at chest",
+                "Load stays quiet"
+            ])
+        ],
+        mainSets: [
+            TrainingPrescription(
+                exerciseName: "Weighted Pistol Squat",
+                sets: 5,
+                target: .repsRange(1, 3),
+                restSeconds: 180,
+                notes: "Add load only if the rep still looks like a bodyweight pistol."
+            ),
+            TrainingPrescription(
+                exerciseName: "Pistol Squat",
+                sets: 3,
+                target: .repsRange(3, 5),
+                restSeconds: 120,
+                notes: "Back-off volume keeps depth and balance honest."
+            )
+        ],
+        accessories: [
+            TrainingExercise(name: "Deep Step Up", cues: [
+                "High box, full foot planted",
+                "Control the eccentric"
+            ]),
+            TrainingExercise(name: "Cossack Squat", cues: [
+                "Keep lateral range alive",
+                "5 reps per side"
+            ])
+        ]
+    )
+
+    private static let nordicCurlPlan: SkillTrainingPlan = SkillTrainingPlan(
+        skillId: "ld.nordic-curl",
+        regressions: [
+            TrainingExercise(name: "Nordic Curl Negative", cues: [
+                "Lower slowly",
+                "Hands catch before collapse"
+            ]),
+            TrainingExercise(name: "Nordic Curl", cues: [
+                "Pull back up without pushing",
+                "Body stays one line"
+            ]),
+            TrainingExercise(name: "Nordic Curl Arms Overhead", cues: [
+                "Arms stay long",
+                "Same strict body line"
+            ])
+        ],
+        mainSets: [
+            TrainingPrescription(
+                exerciseName: "Nordic Curl",
+                sets: 4,
+                target: .repsRange(1, 3),
+                restSeconds: 180,
+                notes: "Quality reps only; stop before the catch becomes a fall."
+            ),
+            TrainingPrescription(
+                exerciseName: "Tuck One-Leg Nordic Curl",
+                sets: 3,
+                target: .repsRange(1, 2),
+                restSeconds: 180,
+                notes: "Use after full Nordic reps are repeatable."
+            ),
+            TrainingPrescription(
+                exerciseName: "One-Leg Nordic Curl",
+                sets: 3,
+                target: .reps(1),
+                restSeconds: 210,
+                notes: "Peak variation. Keep range tiny until control is real."
+            )
+        ],
+        accessories: [
+            TrainingExercise(name: "Glute Bridge", cues: [
+                "Posterior chain warm-up",
+                "2-3 clean sets"
+            ]),
+            TrainingExercise(name: "Leg Curl (Lying)", cues: [
+                "Hamstring volume without max tension",
+                "8-12 reps"
+            ]),
+            TrainingExercise(name: "Hip Hinge Mobility", cues: [
+                "Easy range",
+                "No hamstring cramp chasing"
             ])
         ]
     )
@@ -1600,7 +1849,7 @@ enum SkillTrainingPlanLibrary {
                 sets: 5,
                 target: .hold(seconds: 10),
                 restSeconds: 90,
-                notes: "Push to break in form. Total time-under-tension target 30-60s."
+                notes: "Stop at the first form break. Accumulate 30-60s of clean total time."
             ),
             TrainingPrescription(
                 exerciseName: "L-Sit Cluster (5s on / 5s off)",
@@ -1798,17 +2047,56 @@ enum SkillTrainingPlanLibrary {
 
     private static func backLeverPlan(skillId: String) -> SkillTrainingPlan {
         let name = skillName(for: skillId)
-        let passThrough = skillId == "cl.german-hang" || skillId == "cl.skin-the-cat"
+        if skillId == "cl.german-hang" {
+            return SkillTrainingPlan(
+                skillId: skillId,
+                regressions: [
+                    TrainingExercise(name: "Feet-Assisted German Hang", cues: ["Dose shoulder extension", "No sharp pain"]),
+                    TrainingExercise(name: "Box-Assisted Skin the Cat", cues: ["Use feet to control depth", "Reverse the path slowly"]),
+                    TrainingExercise(name: "Reverse Plank Shoulder Extension", cues: ["Open chest", "Do not force range"])
+                ],
+                mainSets: [
+                    TrainingPrescription(exerciseName: "German Hang Hold", sets: 4, target: .hold(seconds: 10), restSeconds: 120, notes: "Use assisted depth until the shoulders feel open, not jammed. No dropping into the bottom."),
+                    TrainingPrescription(exerciseName: "Assisted German Hang Depth", sets: 3, target: .hold(seconds: 10), restSeconds: 90, notes: "Increase range only if you can reverse out smoothly.")
+                ],
+                accessories: [
+                    TrainingExercise(name: "Ring Support and Reverse Plank", cues: ["Shoulder-extension prep", "2-3 sets"]),
+                    TrainingExercise(name: "Shoulder Dislocates (band/dowel)", cues: ["Gentle range", "Straight arms"]),
+                    TrainingExercise(name: "Active Bar Hang", cues: ["Shoulders organized", "20-30s x 3"])
+                ]
+            )
+        }
+
+        if skillId == "cl.skin-the-cat" {
+            return SkillTrainingPlan(
+                skillId: skillId,
+                regressions: [
+                    TrainingExercise(name: "Box-Assisted Skin the Cat", cues: ["Feet keep the path slow", "No shoulder drop"]),
+                    TrainingExercise(name: "Tuck Pass-Through", cues: ["Tight tuck", "Straight arms"]),
+                    TrainingExercise(name: "Feet-Assisted German Hang", cues: ["Own the bottom", "Reverse with control"])
+                ],
+                mainSets: [
+                    TrainingPrescription(exerciseName: "Skin the Cat", sets: 4, target: .repsRange(2, 4), restSeconds: 120, notes: "Controlled pass-through and controlled return. The rep fails if you drop into the German hang."),
+                    TrainingPrescription(exerciseName: "German Hang Hold", sets: 3, target: .hold(seconds: 8), restSeconds: 90, notes: "Short holds teach the shoulder-extension endpoint without turning it into a pain stretch.")
+                ],
+                accessories: [
+                    TrainingExercise(name: "Ring Support and Reverse Plank", cues: ["Shoulder-extension prep", "2-3 sets"]),
+                    TrainingExercise(name: "Hollow Body Hold", cues: ["Ribs down", "20-40s x 3"]),
+                    TrainingExercise(name: "Active Bar Hang", cues: ["Shoulders organized", "20-30s x 3"])
+                ]
+            )
+        }
+
         return SkillTrainingPlan(
             skillId: skillId,
             regressions: [
                 TrainingExercise(name: "Feet-Assisted German Hang", cues: ["Dose shoulder extension", "No sharp pain"]),
-                TrainingExercise(name: passThrough ? "Tuck Pass-Through" : "Tuck Back Lever", cues: ["Straight arms", "Move slowly"]),
+                TrainingExercise(name: "Tuck Back Lever", cues: ["Straight arms", "Move slowly"]),
                 TrainingExercise(name: "Skin the Cat Negative", cues: ["Control into and out of range", "Use low rings"])
             ],
             mainSets: [
-                TrainingPrescription(exerciseName: name, sets: passThrough ? 4 : 6, target: passThrough ? .repsRange(2, 5) : .hold(seconds: 5), restSeconds: 120, notes: "Shoulder extension is earned. No dropping into German hang, no pain holds."),
-                TrainingPrescription(exerciseName: passThrough ? "German Hang Hold" : "Back Lever Negative", sets: 3, target: passThrough ? .hold(seconds: 10) : .tempo(reps: 2, eccentric: 4, hold: 1, concentric: 0), restSeconds: 120, notes: "Use assisted range that can be reversed cleanly.")
+                TrainingPrescription(exerciseName: name, sets: 6, target: .hold(seconds: 5), restSeconds: 120, notes: "Shoulder extension is earned. No dropping into German hang, no pain holds."),
+                TrainingPrescription(exerciseName: "Back Lever Negative", sets: 3, target: .tempo(reps: 2, eccentric: 4, hold: 1, concentric: 0), restSeconds: 120, notes: "Use assisted range that can be reversed cleanly.")
             ],
             accessories: [
                 TrainingExercise(name: "Ring Support and Reverse Plank", cues: ["Shoulder-extension prep", "2-3 sets"]),
@@ -1821,18 +2109,18 @@ enum SkillTrainingPlanLibrary {
     private static let threeSixtyPullPlan = SkillTrainingPlan(
         skillId: "cl.three-sixty-pulls",
         regressions: [
-            TrainingExercise(name: "Explosive Chest-to-Bar Pull-Up", cues: ["Height before rotation", "Full rest"]),
-            TrainingExercise(name: "Bar Release Drill", cues: ["Small release", "Active re-catch"]),
-            TrainingExercise(name: "Tuck Rotation Practice", cues: ["Spot the landing", "Use mats and supervision"])
+            TrainingExercise(name: "Skin the Cat", cues: ["Controlled pass-through", "Reverse slowly"]),
+            TrainingExercise(name: "Front Lever Pull", cues: ["Straight arms", "Lift through the lats"]),
+            TrainingExercise(name: "Assisted 360 Ring Arc", cues: ["Feet or band assist", "No release"])
         ],
         mainSets: [
-            TrainingPrescription(exerciseName: "360 Pull", sets: 6, target: .reps(1), restSeconds: 180, notes: "Elite release practice only with safe landing space. Stop on blind catches or shoulder shock."),
-            TrainingPrescription(exerciseName: "Bar Release Re-Grip", sets: 4, target: .repsRange(1, 3), restSeconds: 150, notes: "Own the catch before adding rotation.")
+            TrainingPrescription(exerciseName: "360 Ring Pull", sets: 5, target: .reps(1), restSeconds: 180, notes: "Move through front-lever and back-lever lanes with straight arms. Do not release the rings."),
+            TrainingPrescription(exerciseName: "Partial 360 Ring Arc", sets: 4, target: .repsRange(1, 3), restSeconds: 150, notes: "Use only the arc length you can reverse under control.")
         ],
         accessories: [
-            TrainingExercise(name: "Active Bar Hang", cues: ["Catch prepared", "20-30s x 3"]),
-            TrainingExercise(name: "Hollow Body Hold", cues: ["Tuck control", "30s x 3"]),
-            TrainingExercise(name: "Scapular Pulls", cues: ["Shoulder readiness", "8-12 x 3"])
+            TrainingExercise(name: "German Hang Hold", cues: ["Shoulder-extension ownership", "Short pain-free holds"]),
+            TrainingExercise(name: "Tuck Front Lever Hold", cues: ["Ribs down", "Lats on"]),
+            TrainingExercise(name: "Tuck Back Lever", cues: ["Straight arms", "Pelvis tucked"])
         ]
     )
 
@@ -2000,7 +2288,7 @@ enum SkillTrainingPlanLibrary {
                 sets: 5,
                 target: .hold(seconds: 20),
                 restSeconds: 75,
-                notes: "Weight shared through hands, neck long, legs lift slowly from tuck."
+                notes: "Palms carry active pressure, head contact stays light, neck long, legs lift slowly from tuck."
             ),
             TrainingPrescription(
                 exerciseName: "Headstand Tuck Extension",
@@ -2086,8 +2374,8 @@ enum SkillTrainingPlanLibrary {
         skillId: "hs.wall-supported-oah",
         regressions: [
             TrainingExercise(name: "Wall Handstand 60s", cues: ["Tight two-hand line first", "Breathe without rib flare"]),
-            TrainingExercise(name: "Wall Shoulder Tap", cues: ["Shift fully before tapping", "5 per side x 3"]),
-            TrainingExercise(name: "Fingertip Weight Shift", cues: ["Free hand gets lighter", "No shoulder sink"])
+            TrainingExercise(name: "Close-Hand Straddle Handstand", cues: ["Hands closer than normal", "Open legs before shifting"]),
+            TrainingExercise(name: "One-Arm Handstand Weight Shift", cues: ["Shift fully before tapping", "No shoulder sink"])
         ],
         mainSets: [
             TrainingPrescription(
@@ -2098,7 +2386,7 @@ enum SkillTrainingPlanLibrary {
                 notes: "Working arm straight, shoulder tall, free hand light. Wall is feedback, not a crutch."
             ),
             TrainingPrescription(
-                exerciseName: "Wall One-Arm Weight Shift",
+                exerciseName: "One-Arm Handstand Weight Shift",
                 sets: 4,
                 target: .hold(seconds: 10),
                 restSeconds: 120,
@@ -2118,27 +2406,36 @@ enum SkillTrainingPlanLibrary {
             skillId: skillId,
             regressions: [
                 TrainingExercise(name: "Straddle Handstand Hold", cues: ["Stable two-hand balance", "Legs quiet"]),
-                TrainingExercise(name: "Wall-Supported One-Arm Handstand", cues: ["Free hand on fingertips", "Shoulder tall"]),
-                TrainingExercise(name: "One-Arm Fingertip Hover", cues: ["Lift free hand briefly", "Exit before shoulder sinks"])
+                TrainingExercise(name: "Close-Hand Straddle Handstand", cues: ["Hands close enough to make shifting honest", "Keep both shoulders tall"]),
+                TrainingExercise(name: "Two-Finger Tent", cues: ["Free hand helps lightly", "Build time without shoulder sink"]),
+                TrainingExercise(name: "One-Finger Tent", cues: ["Less off-hand pressure", "Same body line as the real hold"]),
+                TrainingExercise(name: "Off-Hand Float", cues: ["Brief fingertip lift", "Exit before the working shoulder drops"])
             ],
             mainSets: [
                 TrainingPrescription(
                     exerciseName: full ? "Full One-Arm Handstand" : "One-Arm Handstand",
-                    sets: 8,
+                    sets: full ? 8 : 5,
                     target: .hold(seconds: full ? 5 : 3),
                     restSeconds: 180,
                     notes: "Advanced skill practice only: fresh attempts, long rest, no bent-arm saves."
                 ),
                 TrainingPrescription(
-                    exerciseName: "One-Arm Handstand Assisted Hold",
+                    exerciseName: full ? "One-Arm Handstand Assisted Hold" : "Off-Hand Float",
                     sets: 4,
-                    target: .hold(seconds: 8),
+                    target: .hold(seconds: full ? 8 : 5),
                     restSeconds: 150,
-                    notes: "Use wall or fingertip support to keep the line clean after max attempts."
+                    notes: full ? "Use wall or fingertip support to keep the line clean after max attempts." : "Free hand floats briefly; log assisted or form-break context honestly."
+                ),
+                TrainingPrescription(
+                    exerciseName: full ? "One-Finger Tent" : "Two-Finger Tent",
+                    sets: 4,
+                    target: .hold(seconds: 10),
+                    restSeconds: 120,
+                    notes: "Accumulate clean time under balance before chasing longer unsupported holds."
                 )
             ],
             accessories: [
-                TrainingExercise(name: "Wall One-Arm Weight Shift", cues: ["3-5 clean shifts per side", "No hip dump"]),
+                TrainingExercise(name: "One-Arm Handstand Weight Shift", cues: ["3-5 clean shifts per side", "No hip dump"]),
                 TrainingExercise(name: "Freestanding Handstand Attempts", cues: ["Maintain two-hand base", "Stop before fatigue"]),
                 TrainingExercise(name: "Wrist Conditioning", cues: ["One-arm load prep", "Daily if tolerated"])
             ]

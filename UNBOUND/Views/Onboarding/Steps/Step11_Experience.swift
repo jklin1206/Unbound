@@ -33,6 +33,9 @@ struct Step11_Experience: View {
     }
 }
 
+#if DEBUG
 #Preview {
     Step11_Experience(flow: OnboardingFlowViewModel(), progress: 0.36, onBack: {}, onContinue: {})
 }
+
+#endif

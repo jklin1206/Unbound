@@ -15,8 +15,6 @@ import Foundation
 // DatabaseService). SquadBackendProtocol isolates the Supabase calls so
 // tests can run fully in-memory via MockSquadBackend.
 //
-// ServiceContainer wiring is deferred to Phase 16.
-
 @MainActor
 final class SquadService: SquadServiceProtocol {
     static let shared = SquadService()
@@ -49,70 +47,29 @@ final class SquadService: SquadServiceProtocol {
         self.injectedLoopReconciler = loopReconciler
     }
 
-    // MARK: - T5.5 loadCurrentSquad
+    // MARK: - Loading
 
     func loadCurrentSquad(userId: String) async {
-        if SquadUserIdentity.usesLocalOnlySquad(for: userId) {
-            guard let userUUID = SquadUserIdentity.uuid(from: userId) else {
-                store.save(.empty, userId: userId)
-                NotificationCenter.default.post(name: .squadStateChanged, object: nil)
-                return
+        guard let userUUID = SquadUserIdentity.uuid(from: userId) else {
+            if SquadUserIdentity.usesLocalOnlySquad(for: userId) {
+                clearState(userId: userId)
             }
-            if let local = localDirectory.squadForUser(userUUID) {
-                saveLocalState(squad: local.squad, roster: local.members, userId: userId)
-                return
-            }
-
-            let cached = store.load(userId: userId)
-            if let squad = cached.currentSquad {
-                let roster = normalizedLocalRoster(cached.roster, squad: squad, userUUID: userUUID)
-                localDirectory.adoptCachedSquad(squad, members: roster)
-                saveLocalState(squad: squad, roster: roster, userId: userId)
-                return
-            }
-
-            store.save(.empty, userId: userId)
-            NotificationCenter.default.post(name: .squadStateChanged, object: nil)
             return
         }
-        guard let userUUID = SquadUserIdentity.uuid(from: userId) else { return }
+
+        if SquadUserIdentity.usesLocalOnlySquad(for: userId) {
+            loadLocalOnlySquad(userId: userId, userUUID: userUUID)
+            return
+        }
+
         do {
-            guard let squadId = try await backend.fetchMySquadId(userId: userUUID) else {
-                // User is not in any squad — persist empty state.
-                var s = store.load(userId: userId)
-                s.currentSquad = nil
-                s.roster = []
-                store.save(s, userId: userId)
-                NotificationCenter.default.post(name: .squadStateChanged, object: nil)
-                return
-            }
-            let squad = try await backend.fetchSquad(byId: squadId)
-            let roster = try await backend.fetchMembers(squadId: squadId)
-            var s = store.load(userId: userId)
-            s.currentSquad = squad
-            s.roster = roster
-            // Hydrate the activity feed from squad_activity (its RLS lets a member
-            // read their own squad's feed; entries denormalize actor names, so no
-            // enrichment needed). Non-fatal: a feed-fetch failure must not sink the
-            // squad/roster load — keep whatever's cached.
-            if let activity = try? await activityBackend.fetchRecent(squadId: squadId, limit: 50) {
-                s.recentActivity = activity
-            }
-            // (activeRosterPresence is hydrated separately by
-            // SquadPresenceService.subscribeToSquadPresence, which fetches a
-            // snapshot immediately on subscribe and persists it here.)
-            store.save(s, userId: userId)
-            // Close the squad loops: process any new linked sessions (+20% bonus)
-            // and evaluate squadStreak / linkedSessions title crossings against
-            // the freshly-loaded squad. Reads its own persisted dedup state.
-            await loopReconciler.reconcile(userId: userId, userUUID: userUUID, squad: squad)
-            NotificationCenter.default.post(name: .squadStateChanged, object: nil)
+            try await loadRemoteSquad(userId: userId, userUUID: userUUID)
         } catch {
             logger.log("loadCurrentSquad failed: \(error)", level: .error)
         }
     }
 
-    // MARK: - T5.2 createSquad
+    // MARK: - Create
 
     func createSquad(name: String, userId: String) async throws -> Squad {
         let trimmed = name.trimmingCharacters(in: .whitespaces)
@@ -131,8 +88,6 @@ final class SquadService: SquadServiceProtocol {
             return try createLocalOnlySquad(name: trimmed, userId: userId, userUUID: userUUID)
         }
 
-        // Generate a unique 6-char A-Z0-9 invite code with up to 10 retries
-        // on backend collision (UNIQUE constraint on invite_code column).
         var squad: Squad?
         var lastError: Error?
         for _ in 0..<10 {
@@ -149,9 +104,6 @@ final class SquadService: SquadServiceProtocol {
                 break
             } catch {
                 lastError = error
-                // Retry only on invite-code collision; surface other errors immediately.
-                // A production Postgres unique-violation comes back as a specific code
-                // (23505). For now we retry on any error and bail after 10 attempts.
                 continue
             }
         }
@@ -163,7 +115,7 @@ final class SquadService: SquadServiceProtocol {
         return created
     }
 
-    // MARK: - T5.3 joinSquad
+    // MARK: - Join
 
     func joinSquad(inviteCode: String, userId: String) async throws -> Squad {
         guard let userUUID = SquadUserIdentity.uuid(from: userId) else {
@@ -171,56 +123,31 @@ final class SquadService: SquadServiceProtocol {
         }
         let current = store.load(userId: userId)
         if SquadUserIdentity.usesLocalOnlySquad(for: userId) {
-            if let local = localDirectory.squadForUser(userUUID) {
-                saveLocalState(squad: local.squad, roster: local.members, userId: userId)
-                if local.squad.inviteCode.uppercased() == inviteCode.uppercased() {
-                    return local.squad
-                }
-                throw SquadError.alreadyInSquad
-            }
-            if let squad = current.currentSquad {
-                let roster = normalizedLocalRoster(current.roster, squad: squad, userUUID: userUUID)
-                localDirectory.adoptCachedSquad(squad, members: roster)
-                saveLocalState(squad: squad, roster: roster, userId: userId)
-                if squad.inviteCode.uppercased() == inviteCode.uppercased() {
-                    return squad
-                }
-                throw SquadError.alreadyInSquad
-            }
-            let joined = try localDirectory.joinSquad(inviteCode: inviteCode, userUUID: userUUID)
-            saveLocalState(squad: joined.squad, roster: joined.members, userId: userId)
-            return joined.squad
+            return try joinLocalOnlySquad(
+                inviteCode: inviteCode,
+                userId: userId,
+                userUUID: userUUID,
+                cached: current
+            )
         }
         if current.currentSquad != nil {
             throw SquadError.alreadyInSquad
         }
-        // Delegates validation + insert + activity to the join_squad Edge Function.
-        // SquadError cases (invalidInviteCode, squadFull, alreadyInSquad) bubble up directly.
         let joined = try await backend.invokeJoinSquadEdgeFunction(inviteCode: inviteCode, userId: userUUID)
         await loadCurrentSquad(userId: userId)
         NotificationCenter.default.post(name: .squadStateChanged, object: nil)
-        // TODO: SquadActivityService.record(.memberJoined, ...) — Phase 6
         return joined
     }
 
-    // MARK: - T5.4 leaveSquad
+    // MARK: - Leave
 
     func leaveSquad(userId: String) async throws {
-        // COMMENT: This is a multi-step client-side operation (check → maybe updateCaptain
-        // → deleteMember / deleteSquad). There is a race if the captain leaves at the same
-        // time as another member. For v1 we accept this risk — a simultaneous leave is
-        // rare and non-catastrophic (at worst the DB ends up without a valid captain_id
-        // reference, which the DB FK will reject). The correct fix is a server-side
-        // `leave_squad` Edge Function that wraps the whole sequence in a Postgres
-        // transaction. Deferred to a future sub-project.
-
         if SquadUserIdentity.usesLocalOnlySquad(for: userId) {
             guard let userUUID = SquadUserIdentity.uuid(from: userId) else {
                 throw SquadError.notInSquad
             }
             _ = try localDirectory.leaveSquad(userUUID: userUUID)
-            store.save(.empty, userId: userId)
-            NotificationCenter.default.post(name: .squadStateChanged, object: nil)
+            clearState(userId: userId)
             return
         }
 
@@ -232,34 +159,11 @@ final class SquadService: SquadServiceProtocol {
             throw SquadError.notInSquad
         }
 
-        let isCaptain = squad.captainId == userUUID
-
-        if isCaptain {
-            let allMembers = try await backend.fetchMembers(squadId: squad.id)
-            let others = allMembers.filter { $0.userId != userUUID }
-            if others.isEmpty {
-                // Last member — delete the squad; cascade removes everything.
-                try await backend.deleteSquad(squadId: squad.id)
-            } else {
-                // Transfer captaincy to the longest-tenured remaining member
-                // (fetchMembers returns rows ordered by joined_at ASC, so index 0
-                //  is the longest-tenured).
-                let newCaptain = others[0]
-                try await backend.updateCaptain(squadId: squad.id, newCaptainId: newCaptain.userId)
-                try await backend.deleteMember(squadId: squad.id, userId: userUUID)
-            }
-        } else {
-            try await backend.deleteMember(squadId: squad.id, userId: userUUID)
-        }
-
-        var s = store.load(userId: userId)
-        s.currentSquad = nil
-        s.roster = []
-        store.save(s, userId: userId)
-        NotificationCenter.default.post(name: .squadStateChanged, object: nil)
+        try await leaveRemoteSquad(squad: squad, userUUID: userUUID)
+        clearState(userId: userId)
     }
 
-    // MARK: - T5.5 setAffinity
+    // MARK: - Affinity
 
     func setAffinity(_ axis: AttributeKey?, userId: String) async throws {
         let current = store.load(userId: userId)
@@ -278,22 +182,11 @@ final class SquadService: SquadServiceProtocol {
         // Update local cache.
         var s = store.load(userId: userId)
         if var sq = s.currentSquad {
-            sq = Squad(
-                id: sq.id,
-                name: sq.name,
-                captainId: sq.captainId,
-                affinityAxis: axis,
-                affinitySetAt: setAt,
-                inviteCode: sq.inviteCode,
-                maxSize: sq.maxSize,
-                squadStreakWeeks: sq.squadStreakWeeks,
-                createdAt: sq.createdAt
-            )
+            sq = sq.replacingAffinity(axis: axis, setAt: setAt)
             s.currentSquad = sq
         }
         store.save(s, userId: userId)
         NotificationCenter.default.post(name: .squadStateChanged, object: nil)
-        // TODO: SquadActivityService.record(.affinityChanged, ...) — Phase 6
     }
 
     // MARK: - state
@@ -302,7 +195,7 @@ final class SquadService: SquadServiceProtocol {
         store.load(userId: userId)
     }
 
-    // MARK: - T5.5 aggregateBuildHexValues
+    // MARK: - Aggregate Build
 
     /// Returns a per-axis 0–80 value representing the squad's collective Build.
     ///
@@ -337,6 +230,90 @@ final class SquadService: SquadServiceProtocol {
         })
     }
 
+    private func loadLocalOnlySquad(userId: String, userUUID: UUID) {
+        if let local = localDirectory.squadForUser(userUUID) {
+            saveLocalState(squad: local.squad, roster: local.members, userId: userId)
+            return
+        }
+
+        let cached = store.load(userId: userId)
+        if let squad = cached.currentSquad {
+            let roster = normalizedLocalRoster(cached.roster, squad: squad, userUUID: userUUID)
+            localDirectory.adoptCachedSquad(squad, members: roster)
+            saveLocalState(squad: squad, roster: roster, userId: userId)
+            return
+        }
+
+        clearState(userId: userId)
+    }
+
+    private func loadRemoteSquad(userId: String, userUUID: UUID) async throws {
+        guard let squadId = try await backend.fetchMySquadId(userId: userUUID) else {
+            clearState(userId: userId)
+            return
+        }
+
+        let squad = try await backend.fetchSquad(byId: squadId)
+        let roster = try await backend.fetchMembers(squadId: squadId)
+        var state = store.load(userId: userId)
+        state.currentSquad = squad
+        state.roster = roster
+        if let activity = try? await activityBackend.fetchRecent(squadId: squadId, limit: 50) {
+            state.recentActivity = activity
+        }
+        store.save(state, userId: userId)
+        await loopReconciler.reconcile(userId: userId, userUUID: userUUID, squad: squad)
+        NotificationCenter.default.post(name: .squadStateChanged, object: nil)
+    }
+
+    private func joinLocalOnlySquad(
+        inviteCode: String,
+        userId: String,
+        userUUID: UUID,
+        cached: SquadState
+    ) throws -> Squad {
+        let normalizedInviteCode = inviteCode.uppercased()
+
+        if let local = localDirectory.squadForUser(userUUID) {
+            saveLocalState(squad: local.squad, roster: local.members, userId: userId)
+            guard local.squad.inviteCode.uppercased() == normalizedInviteCode else {
+                throw SquadError.alreadyInSquad
+            }
+            return local.squad
+        }
+
+        if let squad = cached.currentSquad {
+            let roster = normalizedLocalRoster(cached.roster, squad: squad, userUUID: userUUID)
+            localDirectory.adoptCachedSquad(squad, members: roster)
+            saveLocalState(squad: squad, roster: roster, userId: userId)
+            guard squad.inviteCode.uppercased() == normalizedInviteCode else {
+                throw SquadError.alreadyInSquad
+            }
+            return squad
+        }
+
+        let joined = try localDirectory.joinSquad(inviteCode: inviteCode, userUUID: userUUID)
+        saveLocalState(squad: joined.squad, roster: joined.members, userId: userId)
+        return joined.squad
+    }
+
+    private func leaveRemoteSquad(squad: Squad, userUUID: UUID) async throws {
+        guard squad.captainId == userUUID else {
+            try await backend.deleteMember(squadId: squad.id, userId: userUUID)
+            return
+        }
+
+        let remainingMembers = try await backend.fetchMembers(squadId: squad.id)
+            .filter { $0.userId != userUUID }
+        guard let newCaptain = remainingMembers.first else {
+            try await backend.deleteSquad(squadId: squad.id)
+            return
+        }
+
+        try await backend.updateCaptain(squadId: squad.id, newCaptainId: newCaptain.userId)
+        try await backend.deleteMember(squadId: squad.id, userId: userUUID)
+    }
+
     private func createLocalOnlySquad(name: String, userId: String, userUUID: UUID) throws -> Squad {
         var lastError: Error?
         for _ in 0..<10 {
@@ -356,6 +333,14 @@ final class SquadService: SquadServiceProtocol {
             }
         }
         throw lastError ?? SquadError.backendUnavailable
+    }
+
+    private func clearState(userId: String) {
+        var state = store.load(userId: userId)
+        state.currentSquad = nil
+        state.roster = []
+        store.save(state, userId: userId)
+        NotificationCenter.default.post(name: .squadStateChanged, object: nil)
     }
 
     private func saveLocalState(squad: Squad, roster: [SquadMember], userId: String) {

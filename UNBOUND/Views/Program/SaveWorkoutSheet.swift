@@ -37,7 +37,6 @@ struct SaveWorkoutSheet: View {
                         if !partnerCandidates.isEmpty {
                             partnerPicker
                         }
-                        phoneStorageNote
                         saveButton
                     }
                     .padding(.horizontal, 20)
@@ -60,17 +59,18 @@ struct SaveWorkoutSheet: View {
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 7) {
+        HStack(spacing: 10) {
             Text("SAVE WORKOUT")
                 .font(Font.unbound.captionS.weight(.heavy))
                 .tracking(1.6)
                 .foregroundStyle(Color.unbound.coachCyan)
-            Text("Keep this session as a reusable workout.")
-                .font(Font.unbound.titleM)
-                .foregroundStyle(Color.unbound.textPrimary)
-            Text("\(exerciseCount) exercises will be saved with their current sets, targets, RPE, and order.")
-                .font(Font.unbound.bodyS)
-                .foregroundStyle(Color.unbound.textSecondary)
+            Spacer()
+            Text("\(exerciseCount)")
+                .font(Font.unbound.monoS.weight(.bold))
+                .foregroundStyle(Color.unbound.bg)
+                .padding(.horizontal, 9)
+                .frame(height: 24)
+                .background(Capsule().fill(Color.unbound.coachCyan))
         }
     }
 
@@ -178,23 +178,6 @@ struct SaveWorkoutSheet: View {
         }
     }
 
-    private var phoneStorageNote: some View {
-        HStack(alignment: .top, spacing: 10) {
-            Image(systemName: "iphone")
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(Color.unbound.textTertiary)
-                .frame(width: 22)
-            Text("Saved Workouts live on this phone in v1. Cloud sync comes later.")
-                .font(Font.unbound.captionS)
-                .foregroundStyle(Color.unbound.textSecondary)
-        }
-        .padding(12)
-        .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color.unbound.surface.opacity(0.72))
-        )
-    }
-
     private var saveButton: some View {
         Button {
             let saved = SavedWorkout.from(
@@ -208,7 +191,7 @@ struct SaveWorkoutSheet: View {
             onSave(copy)
             dismiss()
         } label: {
-            Label("SAVE WORKOUT", systemImage: "square.and.arrow.down.fill")
+            Label("SAVE", systemImage: "square.and.arrow.down.fill")
                 .font(Font.unbound.bodyMStrong)
                 .tracking(1.2)
                 .foregroundStyle(Color.unbound.textPrimary)

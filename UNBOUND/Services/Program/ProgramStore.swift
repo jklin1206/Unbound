@@ -86,15 +86,26 @@ final class ProgramStore {
         if let json = try? JSONEncoder.unbound.encode(program) {
             outbox.enqueue(OutboxEntry(id: UUID(), userId: userId,
                 collection: "programs", docId: program.id, op: .upsert,
-                payloadJSON: json, enqueuedAt: Date(), attempt: 0))
+                payloadJSON: json,
+                changedFields: Self.topLevelKeys(in: json),
+                enqueuedAt: Date(), attempt: 0))
         }
         if let patch = try? JSONSerialization.data(withJSONObject:
-            ["id": userId, "current_program_id": program.id]) {
+            ["id": userId, "currentProgramId": program.id]) {
             outbox.enqueue(OutboxEntry(id: UUID(), userId: userId,
                 collection: "users", docId: userId, op: .upsert,
-                payloadJSON: patch, enqueuedAt: Date(), attempt: 0))
+                payloadJSON: patch,
+                changedFields: ["currentProgramId"],
+                enqueuedAt: Date(), attempt: 0))
         }
         NotificationCenter.default.post(name: .outboxDidEnqueue, object: nil)
+    }
+
+    private static func topLevelKeys(in json: Data) -> [String] {
+        guard let object = try? JSONSerialization.jsonObject(with: json),
+              let dictionary = object as? [String: Any]
+        else { return [] }
+        return Array(dictionary.keys)
     }
 
     /// Monthly-replacement / restore pull: if the expected program differs

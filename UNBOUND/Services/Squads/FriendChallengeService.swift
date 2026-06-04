@@ -6,7 +6,7 @@ protocol FriendChallengeServiceProtocol: Sendable {
     func createChallenge(challengedId: UUID, kind: FriendChallenge.Kind, squadId: UUID) async throws -> FriendChallenge
     func activeChallenges(userId: UUID) async -> [FriendChallenge]
     func accept(_ challengeId: UUID) async throws
-    func recordProgress(log: WorkoutLog, userId: String) async
+    func recordProgress(log: WorkoutLog, userId: String, sourceLogId: String) async
     func evaluateExpired() async
 }
 
@@ -17,6 +17,7 @@ final class FriendChallengeService: FriendChallengeServiceProtocol {
     private let remoteBackendEnabled: Bool
     private let logger = LoggingService.shared
     private var localChallenges: [FriendChallenge] = []
+    private var localProgressReceipts: Set<String> = []
 
     init(
         backend: SquadBackendProtocol = SquadBackend.shared,
@@ -72,16 +73,14 @@ final class FriendChallengeService: FriendChallengeServiceProtocol {
         let accepted_at: String
     }
 
-    // Separate patch structs so we never accidentally zero out the other side's progress.
-    private struct ChallengerProgressPatch: Encodable {
-        let challenger_progress: Int
-    }
-    private struct ChallengedProgressPatch: Encodable {
-        let challenged_progress: Int
+    private struct ProgressIncrementParams: Encodable, Sendable {
+        let p_challenge_id: String
+        let p_delta: Int
+        let p_source_log_id: String
     }
 
-    private struct WinnerPatch: Encodable {
-        let winner_user_id: String
+    private struct SettleChallengeParams: Encodable, Sendable {
+        let p_challenge_id: String
     }
 
     private var db: PostgrestClient { UnboundSupabase.client.schema("public") }
@@ -94,6 +93,13 @@ final class FriendChallengeService: FriendChallengeServiceProtocol {
         kind: FriendChallenge.Kind,
         squadId: UUID
     ) async throws -> FriendChallenge {
+        guard kind.isSupportedForCreation else {
+            logger.log(
+                "FriendChallengeService.createChallenge skipped unsupported kind: \(kind.rawValue)",
+                level: .warning
+            )
+            throw SquadError.unsupportedChallengeKind
+        }
         guard remoteBackendEnabled else {
             throw SquadError.backendUnavailable
         }
@@ -205,77 +211,28 @@ final class FriendChallengeService: FriendChallengeServiceProtocol {
         NotificationCenter.default.post(name: .friendChallengeAccepted, object: challengeId)
     }
 
-    func recordProgress(log: WorkoutLog, userId: String) async {
+    func recordProgress(log: WorkoutLog, userId: String, sourceLogId: String) async {
         guard let uid = UUID(uuidString: userId) ?? SquadUserIdentity.uuid(from: userId) else { return }
         let active = await activeChallenges(userId: uid)
         guard !active.isEmpty else { return }
 
         for challenge in active {
             let isChallenger = challenge.challengerId == uid
-            switch challenge.kind {
-
-            case .mostSessions:
-                // +1 for this workout log
-                await incrementProgress(
-                    challengeId: challenge.id,
-                    isChallenger: isChallenger,
-                    current: isChallenger ? challenge.challengerProgress : challenge.challengedProgress,
-                    delta: 1
-                )
-
-            case .noMissedDays:
-                // Recompute streak from log dates. For now use the running progress
-                // as a consecutive-day streak counter and +1 for today's log only
-                // if it's a new calendar day vs the last log.
-                // Full streak recomputation would require fetching all logs — deferred.
-                await incrementProgress(
-                    challengeId: challenge.id,
-                    isChallenger: isChallenger,
-                    current: isChallenger ? challenge.challengerProgress : challenge.challengedProgress,
-                    delta: 1
-                )
-
-            case .firstToFinishTrial:
-                // A capstone is detected by completedAt being non-nil and the log
-                // having a capstone activity kind. Placeholder: if the log has no
-                // exerciseEntries it's treated as a capstone completion (this is a
-                // signal from the call-site in SquadActivityService).
-                // Real detection would check TrialsState. Deferred.
-                break
-
-            case .mostAlignedSessions:
-                // +1 if the log's RPE > 0 (proxy for an aligned effort — the real check
-                // would be log.trialAxisTag == challenge's trial axis).
-                // Deferred: requires WorkoutLog to carry axis metadata.
-                if (log.overallRPE ?? 0) > 0 {
-                    await incrementProgress(
-                        challengeId: challenge.id,
-                        isChallenger: isChallenger,
-                        current: isChallenger ? challenge.challengerProgress : challenge.challengedProgress,
-                        delta: 1
-                    )
-                }
-
-            case .earlyRiser:
-                // +1 if startedAt is before 8am in the local timezone
-                let cal = Calendar.current
-                let hour = cal.component(.hour, from: log.startedAt)
-                if hour < 8 {
-                    await incrementProgress(
-                        challengeId: challenge.id,
-                        isChallenger: isChallenger,
-                        current: isChallenger ? challenge.challengerProgress : challenge.challengedProgress,
-                        delta: 1
-                    )
-                }
-
-            case .proteinGoal:
-                // Nutrition tracking is out of scope. Log a warning and skip.
+            if let reason = FriendChallengeProgressPolicy.unsupportedReason(for: challenge.kind) {
                 logger.log(
-                    "FriendChallengeService: proteinGoal progress deferred (nutrition tracking not in scope)",
-                    level: .warning
+                    "FriendChallengeService.recordProgress skipped \(challenge.kind.rawValue): \(reason)",
+                    level: .debug
                 )
+                continue
             }
+            let delta = FriendChallengeProgressPolicy.progressDelta(for: challenge.kind, log: log)
+            guard delta > 0 else { continue }
+            await incrementProgress(
+                challengeId: challenge.id,
+                isChallenger: isChallenger,
+                delta: delta,
+                sourceLogId: sourceLogId
+            )
         }
     }
 
@@ -296,32 +253,15 @@ final class FriendChallengeService: FriendChallengeServiceProtocol {
 
             for row in rows {
                 guard let challenge = row.toModel() else { continue }
-                let winnerId: UUID
-                if challenge.challengerProgress > challenge.challengedProgress {
-                    winnerId = challenge.challengerId
-                } else if challenge.challengedProgress > challenge.challengerProgress {
-                    winnerId = challenge.challengedId
-                } else {
-                    // Tie → challenger wins
-                    winnerId = challenge.challengerId
-                }
-                let patch = WinnerPatch(winner_user_id: winnerId.uuidString)
-                // Idempotency guard: `evaluateExpired` runs on every scenePhase
-                // .active with no throttle, so two rapid foregrounds (or two
-                // devices) can race here. Filtering on winner_user_id IS NULL
-                // makes the second settle update zero rows; we only post
-                // .friendChallengeExpired when this call actually claimed the
-                // row (returned rows is non-empty), so the toast fires once.
-                let updated: [ChallengeRow] = try await db
-                    .from("friend_challenges")
-                    .update(patch)
-                    .eq("id", value: challenge.id.uuidString)
-                    .is("winner_user_id", value: nil)
-                    .select()
+                let updated: [ChallengeRow] = try await UnboundSupabase.client
+                    .rpc(
+                        "settle_friend_challenge",
+                        params: SettleChallengeParams(p_challenge_id: challenge.id.uuidString)
+                    )
                     .execute()
                     .value
-                guard !updated.isEmpty else { continue }
-                NotificationCenter.default.post(name: .friendChallengeExpired, object: challenge)
+                guard let settled = updated.first?.toModel() else { continue }
+                NotificationCenter.default.post(name: .friendChallengeExpired, object: settled)
             }
         } catch {
             logger.log("FriendChallengeService.evaluateExpired error: \(error)", level: .warning)
@@ -333,10 +273,13 @@ final class FriendChallengeService: FriendChallengeServiceProtocol {
     private func incrementProgress(
         challengeId: UUID,
         isChallenger: Bool,
-        current: Int,
-        delta: Int
+        delta: Int,
+        sourceLogId: String
     ) async {
         if let index = localChallenges.firstIndex(where: { $0.id == challengeId }) {
+            let receiptKey = "\(challengeId.uuidString):\(sourceLogId)"
+            guard !localProgressReceipts.contains(receiptKey) else { return }
+            localProgressReceipts.insert(receiptKey)
             if isChallenger {
                 localChallenges[index].challengerProgress += delta
             } else {
@@ -345,23 +288,17 @@ final class FriendChallengeService: FriendChallengeServiceProtocol {
             return
         }
         guard remoteBackendEnabled else { return }
-        let newValue = current + delta
         do {
-            if isChallenger {
-                let patch = ChallengerProgressPatch(challenger_progress: newValue)
-                try await db
-                    .from("friend_challenges")
-                    .update(patch)
-                    .eq("id", value: challengeId.uuidString)
-                    .execute()
-            } else {
-                let patch = ChallengedProgressPatch(challenged_progress: newValue)
-                try await db
-                    .from("friend_challenges")
-                    .update(patch)
-                    .eq("id", value: challengeId.uuidString)
-                    .execute()
-            }
+            try await UnboundSupabase.client
+                .rpc(
+                    "increment_friend_challenge_progress",
+                    params: ProgressIncrementParams(
+                        p_challenge_id: challengeId.uuidString,
+                        p_delta: delta,
+                        p_source_log_id: sourceLogId
+                    )
+                )
+                .execute()
         } catch {
             logger.log(
                 "FriendChallengeService.incrementProgress error: \(error)",

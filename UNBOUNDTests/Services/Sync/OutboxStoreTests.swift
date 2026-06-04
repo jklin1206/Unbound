@@ -15,8 +15,9 @@ final class OutboxStoreTests: XCTestCase {
     }
 
     private func entry(_ docId: String, _ col: String = "c",
-                       op: OutboxEntry.Op = .upsert) -> OutboxEntry {
-        OutboxEntry(id: UUID(), userId: "u1", collection: col, docId: docId,
+                       op: OutboxEntry.Op = .upsert,
+                       userId: String = "u1") -> OutboxEntry {
+        OutboxEntry(id: UUID(), userId: userId, collection: col, docId: docId,
                     op: op, payloadJSON: Data("x".utf8),
                     enqueuedAt: Date(), attempt: 0)
     }
@@ -33,6 +34,16 @@ final class OutboxStoreTests: XCTestCase {
         let docs = s.peekBatch(limit: 10).map(\.docId)
         XCTAssertEqual(docs.filter { $0 == "a" }.count, 1)
         XCTAssertTrue(docs.contains("b"))
+    }
+
+    func test_enqueue_doesNotCoalesceAcrossUsers() {
+        let s = OutboxStore(directory: dir)
+        s.enqueue(entry("a", userId: "u1"))
+        s.enqueue(entry("a", userId: "u2"))
+
+        let entries = s.peekBatch(limit: 10)
+        XCTAssertEqual(entries.map(\.userId), ["u1", "u2"])
+        XCTAssertEqual(entries.map(\.docId), ["a", "a"])
     }
 
     func test_ack_removes_entry() {

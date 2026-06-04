@@ -1,5 +1,7 @@
 # ONE METRIC — Progression Cleanup Plan
 
+> Current status (2026-06-01): this is the historical cleanup plan, not the live task queue. Use `docs/ARCHITECTURE.md` for active subsystem ownership and `docs/SIMPLIFICATION-AUDIT.md` for the current simplification backlog.
+
 **Date:** 2026-05-29 · **Supersedes:** `RANK-VOCABULARY-CONSOLIDATION.md`
 **Mandate (from jlin):** the app measures "how good are you at a movement/skill" ~16 different ways. Collapse to **ONE rank metric.** Every phase **deletes the old code and its wiring in the same change** — no parked "safety nets" (git is the safety net). Each phase ends with an extensive test pass, a stated completion metric, and a **push to prod**.
 

@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2680 1908" role="img" aria-labelledby="character-crisp-pair-title character-crisp-pair-desc">
+  <title id="character-crisp-pair-title">Crisp body heatmap on supplied character pair</title>
+  <desc id="character-crisp-pair-desc">Front and back crisp SVG heatmap contours over the supplied character images.</desc>
+  <style>
+    .character-base { opacity: 1; }
+    .character-crisp-region-group path { shape-rendering: geometricPrecision; vector-effect: non-scaling-stroke; }
+  </style>
+  <g id="character-crisp-front-map">
+<image class="character-base" href="./source_frontmap_character_base.png" x="0" y="0" width="1280" height="1908" preserveAspectRatio="xMidYMid meet" />
+  <g id="character-crisp-front-deltoids" class="character-crisp-region-group" data-view="front" data-region="deltoids">
+    <g id="character-crisp-front-deltoids-left-1" data-view="front" data-region="deltoids" data-side="left">
+      <path class="character-crisp-halo" fill="none" stroke="#f6f8f8" stroke-opacity="0.32" stroke-width="5.4" stroke-linejoin="round" stroke-linecap="round" d="M 505 341 C 460 326 405 346 365 386 C 329 421 323 467 349 501 C 381 490 407 457 421 414 C 434 374 466 350 505 341 Z" />
+      <path class="character-crisp-line" fill="none" stroke="#22b14c" stroke-opacity="0.98" stroke-width="3.4" stroke-linejoin="round" stroke-linecap="round" d="M 505 341 C 460 326 405 346 365 386 C 329 421 323 467 349 501 C 381 490 407 457 421 414 C 434 374 466 350 505 341 Z" />
+    </g>
+    <g id="character-crisp-front-deltoids-right-101" data-view="front" data-region="deltoids" data-side="right" transform="translate(1280 0) scale(-1 1)">
+      <path class="character-crisp-halo" fill="none" stroke="#f6f8f8" stroke-opacity="0.32" stroke-width="5.4" stroke-linejoin="round" stroke-linecap="round" d="M 505 341 C 460 326 405 346 365 386 C 329 421 323 467 349 501 C 381 490 407 457 421 414 C 434 374 466 350 505 341 Z" />
+      <path class="character-crisp-line" fill="none" stroke="#22b14c" stroke-opacity="0.98" stroke-width="3.4" stroke-linejoin="round" stroke-linecap="round" d="M 505 341 C 460 326 405 346 365 386 C 329 421 323 467 349 501 C 381 490 407 457 421 414 C 434 374 466 350 505 341 Z" />
+    </g>
+  </g>
+  <g id="character-crisp-front-chest" class="character-crisp-region-group" data-view="front" data-region="chest">
+    <g id="character-crisp-front-chest-left-1" data-view="front" data-region="chest" data-side="left">
+      <path class="character-crisp-halo" fill="none" stroke="#f6f8f8" stroke-opacity="0.32" stroke-width="5.4" stroke-linejoin="round" stroke-linecap="round" d="M 498 376 C 454 378 417 400 402 437 C 384 482 411 523 457 541 C 508 561 571 534 614 488 C 626 461 621 416 594 393 C 567 380 530 374 498 376 Z" />
+      <path class="character-crisp-line" fill="none" stroke="#ed1c24" stroke-opacity="0.98" stroke-width="3.4" stroke-linejoin="round" stroke-linecap="round" d="M 498 376 C 454 378 417 400 402 437 C 384 482 411 523 457 541 C 508 561 571 534 614 488 C 626 461 621 416 594 393 C 567 380 530 374 498 376 Z" />
+    </g>
+    <g id="character-crisp-front-chest-right-101" data-view="front" data-region="chest" data-side="right" transform="translate(1280 0) scale(-1 1)">
+      <path class="character-crisp-halo" fill="none" stroke="#f6f8f8" stroke-opacity="0.32" stroke-width="5.4" stroke-linejoin="round" stroke-linecap="round" d="M 498 376 C 454 378 417 400 402 437 C 384 482 411 523 457 541 C 508 561 571 534 614 488 C 626 461 621 416 594 393 C 567 380 530 374 498 376 Z" />
+      <path class="character-crisp-line" fill="none" stroke="#ed1c24" stroke-opacity="0.98" stroke-width="3.4" stroke-linejoin="round" stroke-linecap="round" d="M 498 376 C 454 378 417 400 402 437 C 384 482 411 523 457 541 C 508 561 571 534 614 488 C 626 461 621 416 594 393 C 567 380 530 374 498 376 Z" />
+    </g>
+  </g>
+  <g id="character-crisp-front-biceps" class="character-crisp-region-group" data-view="front" data-region="biceps">
+    <g id="character-crisp-front-biceps-left-1" data-view="front" data-region="biceps" data-side="left">
+      <path class="character-crisp-halo" fill="none" stroke="#f6f8f8" stroke-opacity="0.32" stroke-width="5.4" stroke-linejoin="round" stroke-linecap="round" d="M 356 466 C 323 496 306 558 314 613 C 322 652 360 661 394 623 C 428 580 433 516 398 478 C 386 466 370 461 356 466 Z" />
+      <path class="character-crisp-line" fill="none" stroke="#ff7f27" stroke-opacity="0.98" stroke-width="3.4" stroke-linejoin="round" stroke-linecap="round" d="M 356 466 C 323 496 306 558 314 613 C 322 652 360 661 394 623 C 428 580 433 516 398 478 C 386 466 370 461 356 466 Z" />
+    </g>
+    <g id="character-crisp-front-biceps-right-101" data-view="front" data-region="biceps" data-side="right" transform="translate(1280 0) scale(-1 1)">
+      <path class="character-crisp-halo" fill="none" stroke="#f6f8f8" stroke-opacity="0.32" stroke-width="5.4" stroke-linejoin="round" stroke-linecap="round" d="M 356 466 C 323 496 306 558 314 613 C 322 652 360 661 394 623 C 428 580 433 516 398 478 C 386 466 370 461 356 466 Z" />
+      <path class="character-crisp-line" fill="none" stroke="#ff7f27" stroke-opacity="0.98" stroke-width="3.4" stroke-linejoin="round" stroke-linecap="round" d="M 356 466 C 323 496 306 558 314 613 C 322 652 360 661 394 623 C 428 580 433 516 398 478 C 386 466 370 461 356 466 Z" />
+    </g>
+  </g>
+  <g id="character-crisp-front-forearms" class="character-crisp-region-group" data-view="front" data-region="forearms">
+    <g id="character-crisp-front-forearms-left-1" data-view="front" data-region="forearms" data-side="left">
+      <path class="character-crisp-halo" fill="none" stroke="#f6f8f8" stroke-opacity="0.32" stroke-width="5.4" stroke-linejoin="round" stroke-linecap="round" d="M 286 593 C 254 660 247 782 274 884 C 302 903 348 868 363 805 C 374 731 353 641 316 592 C 304 578 293 580 286 593 Z" />
+      <path class="character-crisp-line" fill="none" stroke="#880015" stroke-opacity="0.98" stroke-width="3.4" stroke-linejoin="round" stroke-linecap="round" d="M 286 593 C 254 660 247 782 274 884 C 302 903 348 868 363 805 C 374 731 353 641 316 592 C 304 578 293 580 286 593 Z" />
+    </g>
+    <g id="character-crisp-front-forearms-right-101" data-view="front" data-region="forearms" data-side="right" transform="translate(1280 0) scale(-1 1)">
+      <path class="character-crisp-halo" fill="none" stroke="#f6f8f8" stroke-opacity="0.32" stroke-width="5.4" stroke-linejoin="round" stroke-linecap="round" d="M 286 593 C 254 660 247 782 274 884 C 302 903 348 868 363 805 C 374 731 353 641 316 592 C 304 578 293 580 286 593 Z" />
+      <path class="character-crisp-line" fill="none" stroke="#880015" stroke-opacity="0.98" stroke-width="3.4" stroke-linejoin="round" stroke-linecap="round" d="M 286 593 C 254 660 247 782 274 884 C 302 903 348 868 363 805 C 374 731 353 641 316 592 C 304 578 293 580 286 593 Z" />
+    </g>
+  </g>
+  <g id="character-crisp-front-obliques" class="character-crisp-region-group" data-view="front" data-region="obliques">
+    <g id="character-crisp-front-obliques-left-1" data-view="front" data-region="obliques" data-side="left">
+      <path class="character-crisp-halo" fill="none" stroke="#f6f8f8" stroke-opacity="0.32" stroke-width="5.4" stroke-linejoin="round" stroke-linecap="round" d="M 438 520 C 472 545 498 588 508 641 C 519 699 498 758 462 797 C 426 765 405 706 403 650 C 401 594 415 549 438 520 Z" />
+      <path class="character-crisp-line" fill="none" stroke="#a349a4" stroke-opacity="0.98" stroke-width="3.4" stroke-linejoin="round" stroke-linecap="round" d="M 438 520 C 472 545 498 588 508 641 C 519 699 498 758 462 797 C 426 765 405 706 403 650 C 401 594 415 549 438 520 Z" />
+    </g>
+    <g id="character-crisp-front-obliques-right-101" data-view="front" data-region="obliques" data-side="right" transform="translate(1280 0) scale(-1 1)">
+      <path class="character-crisp-halo" fill="none" stroke="#f6f8f8" stroke-opacity="0.32" stroke-width="5.4" stroke-linejoin="round" stroke-linecap="round" d="M 438 520 C 472 545 498 588 508 641 C 519 699 498 758 462 797 C 426 765 405 706 403 650 C 401 594 415 549 438 520 Z" />
+      <path class="character-crisp-line" fill="none" stroke="#a349a4" stroke-opacity="0.98" stroke-width="3.4" stroke-linejoin="round" stroke-linecap="round" d="M 438 520 C 472 545 498 588 508 641 C 519 699 498 758 462 797 C 426 765 405 706 403 650 C 401 594 415 549 438 520 Z" />
+    </g>
+  </g>
+  <g id="character-crisp-front-abs" class="character-crisp-region-group" data-view="front" data-region="abs">
+    <g id="character-crisp-front-abs-outer-1" data-view="front" data-region="abs" data-side="outer">
+      <path class="character-crisp-halo" fill="none" stroke="#f6f8f8" stroke-opacity="0.32" stroke-width="5.4" stroke-linejoin="round" stroke-linecap="round" d="M 515 523 C 556 504 606 506 640 529 C 674 506 724 504 765 523 C 767 640 752 745 718 822 C 691 857 667 871 640 875 C 613 871 589 857 562 822 C 528 745 513 640 515 523 Z" />
+      <path class="character-crisp-line" fill="none" stroke="#3f48cc" stroke-opacity="0.98" stroke-width="3.4" stroke-linejoin="round" stroke-linecap="round" d="M 515 523 C 556 504 606 506 640 529 C 674 506 724 504 765 523 C 767 640 752 745 718 822 C 691 857 667 871 640 875 C 613 871 589 857 562 822 C 528 745 513 640 515 523 Z" />
+    </g>
+    <g id="character-crisp-front-abs-left-top-2" data-view="front" data-region="abs" data-side="left-top">
+      <path class="character-crisp-halo" fill="none" stroke="#f6f8f8" stroke-opacity="0.32" stroke-width="5.4" stroke-linejoin="round" stroke-linecap="round" d="M 525 541 C 557 525 594 528 624 543 L 619 598 C 585 593 552 585 524 569 Z" />
+      <path class="character-crisp-line" fill="none" stroke="#3f48cc" stroke-opacity="0.98" stroke-width="3.4" stroke-linejoin="round" stroke-linecap="round" d="M 525 541 C 557 525 594 528 624 543 L 619 598 C 585 593 552 585 524 569 Z" />
+    </g>
+    <g id="character-crisp-front-abs-right-top-3" data-view="front" data-region="abs" data-side="right-top">
+      <path class="character-crisp-halo" fill="none" stroke="#f6f8f8" stroke-opacity="0.32" stroke-width="5.4" stroke-linejoin="round" stroke-linecap="round" d="M 755 541 C 723 525 686 528 656 543 L 661 598 C 695 593 728 585 756 569 Z" />
+      <path class="character-crisp-line" fill="none" stroke="#3f48cc" stroke-opacity="0.98" stroke-width="3.4" stroke-linejoin="round" stroke-linecap="round" d="M 755 541 C 723 525 686 528 656 543 L 661 598 C 695 593 728 585 756 569 Z" />
+    </g>
+    <g id="character-crisp-front-abs-left-mid-4" data-view="front" data-region="abs" data-side="left-mid">
+      <path class="character-crisp-halo" fill="none" stroke="#f6f8f8" stroke-opacity="0.32" stroke-width="5.4" stroke-linejoin="round" stroke-linecap="round" d="M 520 618 C 553 609 587 611 621 623 L 621 681 C 586 684 553 676 522 661 Z" />
+      <path class="character-crisp-line" fill="none" stroke="#3f48cc" stroke-opacity="0.98" stroke-width="3.4" stroke-linejoin="round" stroke-linecap="round" d="M 520 618 C 553 609 587 611 621 623 L 621 681 C 586 684 553 676 522 661 Z" />
+    </g>
+    <g id="character-crisp-front-abs-right-mid-5" data-view="front" data-region="abs" data-side="right-mid">
+      <path class="character-crisp-halo" fill="none" stroke="#f6f8f8" stroke-opacity="0.32" stroke-width="5.4" stroke-linejoin="round" stroke-linecap="round" d="M 760 618 C 727 609 693 611 659 623 L 659 681 C 694 684 727 676 758 661 Z" />
+      <path class="character-crisp-line" fill="none" stroke="#3f48cc" stroke-opacity="0.98" stroke-width="3.4" stroke-linejoin="round" stroke-linecap="round" d="M 760 618 C 727 609 693 611 659 623 L 659 681 C 694 684 727 676 758 661 Z" />
+    </g>
+    <g id="character-crisp-front-abs-left-low-6" data-view="front" data-region="abs" data-side="left-low">
+      <path class="character-crisp-halo" fill="none" stroke="#f6f8f8" stroke-opacity="0.32" stroke-width="5.4" stroke-linejoin="round" stroke-linecap="round" d="M 526 705 C 557 697 590 700 621 714 L 620 773 C 590 769 562 756 535 733 Z" />
+      <path class="character-crisp-line" fill="none" stroke="#3f48cc" stroke-opacity="0.98" stroke-width="3.4" stroke-linejoin="round" stroke-linecap="round" d="M 526 705 C 557 697 590 700 621 714 L 620 773 C 590 769 562 756 535 733 Z" />
+    </g>
+    <g id="character-crisp-front-abs-right-low-7" data-view="front" data-region="abs" data-side="right-low">
+      <path class="character-crisp-halo" fill="none" stroke="#f6f8f8" stroke-opacity="0.32" stroke-width="5.4" stroke-linejoin="round" stroke-linecap="round" d="M 754 705 C 723 697 690 700 659 714 L 660 773 C 690 769 718 756 745 733 Z" />
+      <path class="character-crisp-line" fill="none" stroke="#3f48cc" stroke-opacity="0.98" stroke-width="3.4" stroke-linejoin="round" stroke-linecap="round" d="M 754 705 C 723 697 690 700 659 714 L 660 773 C 690 769 718 756 745 733 Z" />
+    </g>
+  </g>
+  <g id="character-crisp-front-quads" class="character-crisp-region-group" data-view="front" data-region="quads">
+    <g id="character-crisp-front-quads-left-1" data-view="front" data-region="quads" data-side="left">
+      <path class="character-crisp-halo" fill="none" stroke="#f6f8f8" stroke-opacity="0.32" stroke-width="5.4" stroke-linejoin="round" stroke-linecap="round" d="M 478 811 C 430 873 403 980 398 1085 C 394 1178 428 1254 470 1270 C 506 1264 539 1222 548 1162 C 547 1054 522 925 478 811 Z" />
+      <path class="character-crisp-line" fill="none" stroke="#fff200" stroke-opacity="0.98" stroke-width="3.4" stroke-linejoin="round" stroke-linecap="round" d="M 478 811 C 430 873 403 980 398 1085 C 394 1178 428 1254 470 1270 C 506 1264 539 1222 548 1162 C 547 1054 522 925 478 811 Z" />
+    </g>
+    <g id="character-crisp-front-quads-right-101" data-view="front" data-region="quads" data-side="right" transform="translate(1280 0) scale(-1 1)">
+      <path class="character-crisp-halo" fill="none" stroke="#f6f8f8" stroke-opacity="0.32" stroke-width="5.4" stroke-linejoin="round" stroke-linecap="round" d="M 478 811 C 430 873 403 980 398 1085 C 394 1178 428 1254 470 1270 C 506 1264 539 1222 548 1162 C 547 1054 522 925 478 811 Z" />
+      <path class="character-crisp-line" fill="none" stroke="#fff200" stroke-opacity="0.98" stroke-width="3.4" stroke-linejoin="round" stroke-linecap="round" d="M 478 811 C 430 873 403 980 398 1085 C 394 1178 428 1254 470 1270 C 506 1264 539 1222 548 1162 C 547 1054 522 925 478 811 Z" />
+    </g>
+  </g>
+  <g id="character-crisp-front-calves" class="character-crisp-region-group" data-view="front" data-region="calves">
+    <g id="character-crisp-front-calves-left-1" data-view="front" data-region="calves" data-side="left">
+      <path class="character-crisp-halo" fill="none" stroke="#f6f8f8" stroke-opacity="0.32" stroke-width="5.4" stroke-linejoin="round" stroke-linecap="round" d="M 519 1324 C 555 1387 569 1498 543 1595 C 525 1653 470 1680 459 1618 C 465 1517 484 1406 519 1324 Z" />
+      <path class="character-crisp-line" fill="none" stroke="#ffaec9" stroke-opacity="0.98" stroke-width="3.4" stroke-linejoin="round" stroke-linecap="round" d="M 519 1324 C 555 1387 569 1498 543 1595 C 525 1653 470 1680 459 1618 C 465 1517 484 1406 519 1324 Z" />
+    </g>
+    <g id="character-crisp-front-calves-right-101" data-view="front" data-region="calves" data-side="right" transform="translate(1280 0) scale(-1 1)">
+      <path class="character-crisp-halo" fill="none" stroke="#f6f8f8" stroke-opacity="0.32" stroke-width="5.4" stroke-linejoin="round" stroke-linecap="round" d="M 519 1324 C 555 1387 569 1498 543 1595 C 525 1653 470 1680 459 1618 C 465 1517 484 1406 519 1324 Z" />
+      <path class="character-crisp-line" fill="none" stroke="#ffaec9" stroke-opacity="0.98" stroke-width="3.4" stroke-linejoin="round" stroke-linecap="round" d="M 519 1324 C 555 1387 569 1498 543 1595 C 525 1653 470 1680 459 1618 C 465 1517 484 1406 519 1324 Z" />
+    </g>
+  </g>
+  </g>
+  <g id="character-crisp-back-map" transform="translate(1400 0)">
+<image class="character-base" href="./source_backmap_character_base.png" x="0" y="0" width="1280" height="1908" preserveAspectRatio="xMidYMid meet" />
+  <g id="character-crisp-back-traps_upper_back" class="character-crisp-region-group" data-view="back" data-region="traps_upper_back">
+    <g id="character-crisp-back-traps_upper_back-center-1" data-view="back" data-region="traps_upper_back" data-side="center">
+      <path class="character-crisp-halo" fill="none" stroke="#f6f8f8" stroke-opacity="0.32" stroke-width="5.4" stroke-linejoin="round" stroke-linecap="round" d="M 584 320 L 540 322 C 505 345 451 371 400 402 C 361 426 333 449 321 473 C 373 493 421 522 458 568 C 498 618 529 684 608 714 C 627 722 653 722 672 714 C 751 684 782 618 822 568 C 859 522 907 493 959 473 C 947 449 919 426 880 402 C 829 371 775 345 740 322 L 696 320 C 690 362 672 405 640 452 C 608 405 590 362 584 320 Z" />
+      <path class="character-crisp-line" fill="none" stroke="#ed1c24" stroke-opacity="0.98" stroke-width="3.4" stroke-linejoin="round" stroke-linecap="round" d="M 584 320 L 540 322 C 505 345 451 371 400 402 C 361 426 333 449 321 473 C 373 493 421 522 458 568 C 498 618 529 684 608 714 C 627 722 653 722 672 714 C 751 684 782 618 822 568 C 859 522 907 493 959 473 C 947 449 919 426 880 402 C 829 371 775 345 740 322 L 696 320 C 690 362 672 405 640 452 C 608 405 590 362 584 320 Z" />
+    </g>
+  </g>
+  <g id="character-crisp-back-triceps" class="character-crisp-region-group" data-view="back" data-region="triceps">
+    <g id="character-crisp-back-triceps-left-1" data-view="back" data-region="triceps" data-side="left">
+      <path class="character-crisp-halo" fill="none" stroke="#f6f8f8" stroke-opacity="0.32" stroke-width="5.4" stroke-linejoin="round" stroke-linecap="round" d="M 405 443 C 352 454 317 513 313 590 C 310 649 342 681 385 658 C 420 601 435 515 405 443 Z" />
+      <path class="character-crisp-line" fill="none" stroke="#22b14c" stroke-opacity="0.98" stroke-width="3.4" stroke-linejoin="round" stroke-linecap="round" d="M 405 443 C 352 454 317 513 313 590 C 310 649 342 681 385 658 C 420 601 435 515 405 443 Z" />
+    </g>
+    <g id="character-crisp-back-triceps-right-101" data-view="back" data-region="triceps" data-side="right" transform="translate(1280 0) scale(-1 1)">
+      <path class="character-crisp-halo" fill="none" stroke="#f6f8f8" stroke-opacity="0.32" stroke-width="5.4" stroke-linejoin="round" stroke-linecap="round" d="M 405 443 C 352 454 317 513 313 590 C 310 649 342 681 385 658 C 420 601 435 515 405 443 Z" />
+      <path class="character-crisp-line" fill="none" stroke="#22b14c" stroke-opacity="0.98" stroke-width="3.4" stroke-linejoin="round" stroke-linecap="round" d="M 405 443 C 352 454 317 513 313 590 C 310 649 342 681 385 658 C 420 601 435 515 405 443 Z" />
+    </g>
+  </g>
+  <g id="character-crisp-back-lats" class="character-crisp-region-group" data-view="back" data-region="lats">
+    <g id="character-crisp-back-lats-left-1" data-view="back" data-region="lats" data-side="left">
+      <path class="character-crisp-halo" fill="none" stroke="#f6f8f8" stroke-opacity="0.32" stroke-width="5.4" stroke-linejoin="round" stroke-linecap="round" d="M 430 520 C 478 542 540 543 590 518 C 603 620 577 733 510 825 C 463 761 426 638 430 520 Z" />
+      <path class="character-crisp-line" fill="none" stroke="#ff7f27" stroke-opacity="0.98" stroke-width="3.4" stroke-linejoin="round" stroke-linecap="round" d="M 430 520 C 478 542 540 543 590 518 C 603 620 577 733 510 825 C 463 761 426 638 430 520 Z" />
+    </g>
+    <g id="character-crisp-back-lats-right-101" data-view="back" data-region="lats" data-side="right" transform="translate(1280 0) scale(-1 1)">
+      <path class="character-crisp-halo" fill="none" stroke="#f6f8f8" stroke-opacity="0.32" stroke-width="5.4" stroke-linejoin="round" stroke-linecap="round" d="M 430 520 C 478 542 540 543 590 518 C 603 620 577 733 510 825 C 463 761 426 638 430 520 Z" />
+      <path class="character-crisp-line" fill="none" stroke="#ff7f27" stroke-opacity="0.98" stroke-width="3.4" stroke-linejoin="round" stroke-linecap="round" d="M 430 520 C 478 542 540 543 590 518 C 603 620 577 733 510 825 C 463 761 426 638 430 520 Z" />
+    </g>
+  </g>
+  <g id="character-crisp-back-forearms" class="character-crisp-region-group" data-view="back" data-region="forearms">
+    <g id="character-crisp-back-forearms-left-1" data-view="back" data-region="forearms" data-side="left">
+      <path class="character-crisp-halo" fill="none" stroke="#f6f8f8" stroke-opacity="0.32" stroke-width="5.4" stroke-linejoin="round" stroke-linecap="round" d="M 294 650 C 334 684 359 766 360 850 C 360 922 333 970 289 956 C 268 876 265 745 294 650 Z" />
+      <path class="character-crisp-line" fill="none" stroke="#fff200" stroke-opacity="0.98" stroke-width="3.4" stroke-linejoin="round" stroke-linecap="round" d="M 294 650 C 334 684 359 766 360 850 C 360 922 333 970 289 956 C 268 876 265 745 294 650 Z" />
+    </g>
+    <g id="character-crisp-back-forearms-right-101" data-view="back" data-region="forearms" data-side="right" transform="translate(1280 0) scale(-1 1)">
+      <path class="character-crisp-halo" fill="none" stroke="#f6f8f8" stroke-opacity="0.32" stroke-width="5.4" stroke-linejoin="round" stroke-linecap="round" d="M 294 650 C 334 684 359 766 360 850 C 360 922 333 970 289 956 C 268 876 265 745 294 650 Z" />
+      <path class="character-crisp-line" fill="none" stroke="#fff200" stroke-opacity="0.98" stroke-width="3.4" stroke-linejoin="round" stroke-linecap="round" d="M 294 650 C 334 684 359 766 360 850 C 360 922 333 970 289 956 C 268 876 265 745 294 650 Z" />
+    </g>
+  </g>
+  <g id="character-crisp-back-lower_back" class="character-crisp-region-group" data-view="back" data-region="lower_back">
+    <g id="character-crisp-back-lower_back-center-1" data-view="back" data-region="lower_back" data-side="center">
+      <path class="character-crisp-halo" fill="none" stroke="#f6f8f8" stroke-opacity="0.32" stroke-width="5.4" stroke-linejoin="round" stroke-linecap="round" d="M 571 624 C 612 608 668 608 709 624 C 744 685 733 761 680 824 C 658 846 622 846 600 824 C 547 761 536 685 571 624 Z" />
+      <path class="character-crisp-line" fill="none" stroke="#00a2e8" stroke-opacity="0.98" stroke-width="3.4" stroke-linejoin="round" stroke-linecap="round" d="M 571 624 C 612 608 668 608 709 624 C 744 685 733 761 680 824 C 658 846 622 846 600 824 C 547 761 536 685 571 624 Z" />
+    </g>
+  </g>
+  <g id="character-crisp-back-glutes" class="character-crisp-region-group" data-view="back" data-region="glutes">
+    <g id="character-crisp-back-glutes-left-1" data-view="back" data-region="glutes" data-side="left">
+      <path class="character-crisp-halo" fill="none" stroke="#f6f8f8" stroke-opacity="0.32" stroke-width="5.4" stroke-linejoin="round" stroke-linecap="round" d="M 637 810 C 557 806 488 855 452 936 C 482 1008 559 1037 637 1001 C 652 951 653 862 637 810 Z" />
+      <path class="character-crisp-line" fill="none" stroke="#a349a4" stroke-opacity="0.98" stroke-width="3.4" stroke-linejoin="round" stroke-linecap="round" d="M 637 810 C 557 806 488 855 452 936 C 482 1008 559 1037 637 1001 C 652 951 653 862 637 810 Z" />
+    </g>
+    <g id="character-crisp-back-glutes-right-101" data-view="back" data-region="glutes" data-side="right" transform="translate(1280 0) scale(-1 1)">
+      <path class="character-crisp-halo" fill="none" stroke="#f6f8f8" stroke-opacity="0.32" stroke-width="5.4" stroke-linejoin="round" stroke-linecap="round" d="M 637 810 C 557 806 488 855 452 936 C 482 1008 559 1037 637 1001 C 652 951 653 862 637 810 Z" />
+      <path class="character-crisp-line" fill="none" stroke="#a349a4" stroke-opacity="0.98" stroke-width="3.4" stroke-linejoin="round" stroke-linecap="round" d="M 637 810 C 557 806 488 855 452 936 C 482 1008 559 1037 637 1001 C 652 951 653 862 637 810 Z" />
+    </g>
+  </g>
+  <g id="character-crisp-back-hamstrings" class="character-crisp-region-group" data-view="back" data-region="hamstrings">
+    <g id="character-crisp-back-hamstrings-left-1" data-view="back" data-region="hamstrings" data-side="left">
+      <path class="character-crisp-halo" fill="none" stroke="#f6f8f8" stroke-opacity="0.32" stroke-width="5.4" stroke-linejoin="round" stroke-linecap="round" d="M 421 960 C 478 986 536 1036 552 1107 C 568 1192 538 1289 505 1368 C 458 1369 407 1337 395 1276 C 381 1178 386 1047 421 960 Z" />
+      <path class="character-crisp-line" fill="none" stroke="#880015" stroke-opacity="0.98" stroke-width="3.4" stroke-linejoin="round" stroke-linecap="round" d="M 421 960 C 478 986 536 1036 552 1107 C 568 1192 538 1289 505 1368 C 458 1369 407 1337 395 1276 C 381 1178 386 1047 421 960 Z" />
+    </g>
+    <g id="character-crisp-back-hamstrings-right-101" data-view="back" data-region="hamstrings" data-side="right" transform="translate(1280 0) scale(-1 1)">
+      <path class="character-crisp-halo" fill="none" stroke="#f6f8f8" stroke-opacity="0.32" stroke-width="5.4" stroke-linejoin="round" stroke-linecap="round" d="M 421 960 C 478 986 536 1036 552 1107 C 568 1192 538 1289 505 1368 C 458 1369 407 1337 395 1276 C 381 1178 386 1047 421 960 Z" />
+      <path class="character-crisp-line" fill="none" stroke="#880015" stroke-opacity="0.98" stroke-width="3.4" stroke-linejoin="round" stroke-linecap="round" d="M 421 960 C 478 986 536 1036 552 1107 C 568 1192 538 1289 505 1368 C 458 1369 407 1337 395 1276 C 381 1178 386 1047 421 960 Z" />
+    </g>
+  </g>
+  <g id="character-crisp-back-calves" class="character-crisp-region-group" data-view="back" data-region="calves">
+    <g id="character-crisp-back-calves-left-1" data-view="back" data-region="calves" data-side="left">
+      <path class="character-crisp-halo" fill="none" stroke="#f6f8f8" stroke-opacity="0.32" stroke-width="5.4" stroke-linejoin="round" stroke-linecap="round" d="M 468 1326 C 429 1385 413 1517 439 1605 C 458 1660 525 1665 544 1607 C 563 1504 538 1378 468 1326 Z" />
+      <path class="character-crisp-line" fill="none" stroke="#ffaec9" stroke-opacity="0.98" stroke-width="3.4" stroke-linejoin="round" stroke-linecap="round" d="M 468 1326 C 429 1385 413 1517 439 1605 C 458 1660 525 1665 544 1607 C 563 1504 538 1378 468 1326 Z" />
+    </g>
+    <g id="character-crisp-back-calves-right-101" data-view="back" data-region="calves" data-side="right" transform="translate(1280 0) scale(-1 1)">
+      <path class="character-crisp-halo" fill="none" stroke="#f6f8f8" stroke-opacity="0.32" stroke-width="5.4" stroke-linejoin="round" stroke-linecap="round" d="M 468 1326 C 429 1385 413 1517 439 1605 C 458 1660 525 1665 544 1607 C 563 1504 538 1378 468 1326 Z" />
+      <path class="character-crisp-line" fill="none" stroke="#ffaec9" stroke-opacity="0.98" stroke-width="3.4" stroke-linejoin="round" stroke-linecap="round" d="M 468 1326 C 429 1385 413 1517 439 1605 C 458 1660 525 1665 544 1607 C 563 1504 538 1378 468 1326 Z" />
+    </g>
+  </g>
+  </g>
+</svg>

@@ -218,7 +218,7 @@ private extension ProofEngine {
 
     static func proofs(from entries: [ExerciseLogEntry]) -> [AchievedSkillProof] {
         entries.flatMap { entry -> [AchievedSkillProof] in
-            let workingSets = entry.sets.filter { !$0.isWarmup && setHasWork($0) }
+            let workingSets = entry.sets.filter(setHasWork)
             guard !workingSets.isEmpty else { return [] }
 
             var proofs: [AchievedSkillProof] = []
@@ -335,6 +335,8 @@ private extension ProofEngine {
         // it is still real work, so hold-only skills (planks, L-sits, handstand
         // holds, levers, planche) rank from it. Without this, those entries were
         // dropped before evaluation and never ranked up.
-        !set.isWarmup && (set.reps > 0 || (set.weightKg ?? 0) > 0 || (set.durationSeconds ?? 0) > 0)
+        !set.isWarmup
+            && set.isProofEligible
+            && (set.reps > 0 || (set.weightKg ?? 0) > 0 || (set.durationSeconds ?? 0) > 0)
     }
 }

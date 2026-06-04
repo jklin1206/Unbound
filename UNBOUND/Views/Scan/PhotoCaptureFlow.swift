@@ -53,6 +53,11 @@ struct PhotoCaptureFlow: View {
         case payoff         // scan only
     }
 
+    private enum PersistenceError: Error {
+        case missingJPEG
+        case missingDocumentsDirectory
+    }
+
     var body: some View {
         ZStack {
             Color.unbound.bg.ignoresSafeArea()
@@ -347,7 +352,11 @@ struct PhotoCaptureFlow: View {
     private func confirm() {
         switch mode {
         case .photo:
-            Task { await savePhoto(); onComplete(.photoSaved) }
+            Task {
+                if await savePhoto() {
+                    onComplete(.photoSaved)
+                }
+            }
         case .scan:
             stage = .analyzing
             Task { await runScan() }
@@ -411,17 +420,28 @@ struct PhotoCaptureFlow: View {
     // MARK: - Flow logic
 
     @MainActor
-    private func savePhoto() async {
-        guard let image = capturedImage else { return }
-        let userId = services.auth.currentUserId ?? "anonymous"
-        let photoId = savePhotoToDatabase(image: image, userId: userId, source: .manual)
-        await OverallLevelService.shared.ingest(
-            rawAP: 5,
-            noveltyMultiplier: 1.0,
-            sourceLogId: "photo-daily-\(userId)-\(Self.dayStamp())",
-            userId: userId,
-            at: Date()
-        )
+    private func savePhoto() async -> Bool {
+        guard let image = capturedImage else { return false }
+        guard let userId = requireAuthenticatedUserId() else { return false }
+        let photoId: String
+        do {
+            photoId = try await savePhotoToDatabase(image: image, userId: userId, source: .manual)
+            _ = try await OverallLevelService.shared.ingestStrict(
+                rawAP: 5,
+                noveltyMultiplier: 1.0,
+                sourceLogId: "photo-daily-\(userId)-\(Self.dayStamp())",
+                userId: userId,
+                at: Date()
+            )
+        } catch {
+            LoggingService.shared.log(
+                "Photo capture persistence failed before XP award: \(error)",
+                level: .error,
+                context: ["userId": userId]
+            )
+            onComplete(.cancelled)
+            return false
+        }
         UserDefaults.standard.set(
             Date().timeIntervalSince1970,
             forKey: "unbound.lastPhotoTimestamp"
@@ -429,12 +449,13 @@ struct PhotoCaptureFlow: View {
         services.badges.bind(userId: userId)
         _ = await services.badges.evaluate(trigger: .photoCaptured)
         NotificationCenter.default.post(name: .photoCaptured, object: nil, userInfo: ["photoId": photoId])
+        return true
     }
 
     @MainActor
     private func runScan() async {
         guard let image = capturedImage else { return }
-        let userId = services.auth.currentUserId ?? "anonymous"
+        guard let userId = requireAuthenticatedUserId() else { return }
         guard let photoData = image.jpegData(compressionQuality: 0.85) else {
             await degradeToPhoto()
             return
@@ -457,14 +478,25 @@ struct PhotoCaptureFlow: View {
 
         // Save the photo to the library only after the checkpoint commits.
         // If the commit fails, the scan timer and scan XP do not advance.
-        let photoId = savePhotoToDatabase(image: image, userId: userId, source: .scan)
-        await OverallLevelService.shared.ingest(
-            rawAP: 25,
-            noveltyMultiplier: 1.0,
-            sourceLogId: "scan-\(userId)-\(photoId)",
-            userId: userId,
-            at: Date()
-        )
+        let photoId: String
+        do {
+            photoId = try await savePhotoToDatabase(image: image, userId: userId, source: .scan)
+            _ = try await OverallLevelService.shared.ingestStrict(
+                rawAP: 25,
+                noveltyMultiplier: 1.0,
+                sourceLogId: "scan-\(userId)-\(photoId)",
+                userId: userId,
+                at: Date()
+            )
+        } catch {
+            LoggingService.shared.log(
+                "Scan photo persistence failed before XP award: \(error)",
+                level: .error,
+                context: ["userId": userId]
+            )
+            onComplete(.cancelled)
+            return
+        }
 
         UserDefaults.standard.set(
             Date().timeIntervalSince1970,
@@ -496,15 +528,26 @@ struct PhotoCaptureFlow: View {
             onComplete(.scanDegradedToPhoto)
             return
         }
-        let userId = services.auth.currentUserId ?? "anonymous"
-        let photoId = savePhotoToDatabase(image: image, userId: userId, source: .manual)
-        await OverallLevelService.shared.ingest(
-            rawAP: 5,
-            noveltyMultiplier: 1.0,
-            sourceLogId: "photo-daily-\(userId)-\(Self.dayStamp())",
-            userId: userId,
-            at: Date()
-        )
+        guard let userId = requireAuthenticatedUserId() else { return }
+        let photoId: String
+        do {
+            photoId = try await savePhotoToDatabase(image: image, userId: userId, source: .manual)
+            _ = try await OverallLevelService.shared.ingestStrict(
+                rawAP: 5,
+                noveltyMultiplier: 1.0,
+                sourceLogId: "photo-daily-\(userId)-\(Self.dayStamp())",
+                userId: userId,
+                at: Date()
+            )
+        } catch {
+            LoggingService.shared.log(
+                "Degraded scan photo persistence failed before XP award: \(error)",
+                level: .error,
+                context: ["userId": userId]
+            )
+            onComplete(.cancelled)
+            return
+        }
         UserDefaults.standard.set(
             Date().timeIntervalSince1970,
             forKey: "unbound.lastPhotoTimestamp"
@@ -523,30 +566,47 @@ struct PhotoCaptureFlow: View {
     /// storage URL is a local Documents path — Supabase Storage upload
     /// lands in task #44.
     @MainActor
-    private func savePhotoToDatabase(image: UIImage, userId: String, source: ProgressPhoto.Source) -> String {
+    private func savePhotoToDatabase(image: UIImage, userId: String, source: ProgressPhoto.Source) async throws -> String {
         let id = UUID().uuidString
-        let jpeg = image.jpegData(compressionQuality: 0.85)
-        let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
-        var storedPath = "local://\(id)"
-        if let jpeg, let docs {
-            let fileURL = docs.appendingPathComponent("progress_\(id).jpg")
-            try? jpeg.write(to: fileURL, options: [.atomic])
-            storedPath = fileURL.path
+        guard let jpeg = image.jpegData(compressionQuality: 0.85) else {
+            throw PersistenceError.missingJPEG
         }
+        guard let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
+            throw PersistenceError.missingDocumentsDirectory
+        }
+        let fileURL = docs.appendingPathComponent("progress_\(id).jpg")
+        try jpeg.write(to: fileURL, options: [.atomic])
+
         let photo = ProgressPhoto(
             id: id,
             userId: userId,
-            storageUrl: storedPath,
+            storageUrl: fileURL.path,
             capturedAt: Date(),
             note: nil,
             angle: .front,
             blockNumber: nil,
             source: source
         )
-        Task {
-            try? await services.database.create(photo, collection: "progressPhotos", documentId: id)
+        do {
+            try await services.database.create(photo, collection: "progressPhotos", documentId: id)
+        } catch {
+            try? FileManager.default.removeItem(at: fileURL)
+            throw error
         }
         return id
+    }
+
+    @MainActor
+    private func requireAuthenticatedUserId() -> String? {
+        guard let userId = services.auth.currentUserId else {
+            LoggingService.shared.log(
+                "Blocked scan/photo write without an authenticated user",
+                level: .warning
+            )
+            onComplete(.cancelled)
+            return nil
+        }
+        return userId
     }
 }
 

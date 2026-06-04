@@ -463,8 +463,9 @@ extension WorkoutRewardSequenceSummary {
         sourceName: String
     ) -> XPReward {
         var breakdown: [XPBreakdownLine] = []
-        let overallXP = Int((progression?.overallLevelXPGained ?? 0).rounded())
-        let skillXP = rewardSummary?.xpGained ?? (overallXP > 0 ? (completionResult?.skillXPGained ?? 0) : 0)
+        let hasCanonicalCompletion = completionResult != nil
+        let overallXP = Int(((completionResult?.overallLevelXPGained ?? progression?.overallLevelXPGained) ?? 0).rounded())
+        let skillXP = completionResult?.skillXPGained ?? rewardSummary?.xpGained ?? 0
 
         if skillXP > 0 {
             breakdown.append(XPBreakdownLine(label: "Skill XP", amount: skillXP))
@@ -472,16 +473,18 @@ extension WorkoutRewardSequenceSummary {
         if overallXP > 0 {
             breakdown.append(XPBreakdownLine(label: "Level XP", amount: overallXP))
         }
-        if fallbackXP > 0 && breakdown.isEmpty {
+        if !hasCanonicalCompletion && fallbackXP > 0 && breakdown.isEmpty {
             breakdown.append(XPBreakdownLine(label: "\(sourceName) logged", amount: fallbackXP))
         }
 
-        let totalXP = max(
-            fallbackXP,
-            overallXP,
-            progression == nil ? (rewardSummary?.xpGained ?? 0) : 0,
-            breakdown.reduce(0) { $0 + $1.amount }
-        )
+        let totalXP = hasCanonicalCompletion
+            ? breakdown.reduce(0) { $0 + $1.amount }
+            : max(
+                fallbackXP,
+                overallXP,
+                progression == nil ? (rewardSummary?.xpGained ?? 0) : 0,
+                breakdown.reduce(0) { $0 + $1.amount }
+            )
         if totalXP > 0 && breakdown.isEmpty {
             breakdown.append(XPBreakdownLine(label: "Session logged", amount: totalXP))
         }

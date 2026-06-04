@@ -10,6 +10,7 @@ struct WorkoutReadyView: View {
     @State private var showingBlockBuilder = false
     @State private var editingBlock: BlockEditDraft?
     @State private var recentDrafts: [TrainingSessionDraft] = []
+    @State private var isLaunchingWorkout = false
 
     init(draft: TrainingSessionDraft) {
         _draft = State(initialValue: draft)
@@ -67,7 +68,9 @@ struct WorkoutReadyView: View {
                 SkillSessionView(skillId: launch.skillId, skillTitle: launch.title)
                     .environmentObject(services)
             }
-            .fullScreenCover(item: $activeWorkoutDraft) { draft in
+            .fullScreenCover(item: $activeWorkoutDraft, onDismiss: {
+                isLaunchingWorkout = false
+            }) { draft in
                 ActiveWorkoutContainerView(
                     draft: draft,
                     services: services,
@@ -154,11 +157,7 @@ struct WorkoutReadyView: View {
 
             ForEach(Array(weeklyProofPrescriptions.prefix(4))) { prescription in
                 HStack(spacing: 10) {
-                    Image(systemName: "target")
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundStyle(weeklyProofTint)
-                        .frame(width: 28, height: 28)
-                        .background(Circle().fill(weeklyProofTint.opacity(0.12)))
+                    prescriptionVisual(for: prescription, tint: weeklyProofTint, size: 42)
 
                     VStack(alignment: .leading, spacing: 3) {
                         Text(prescription.exerciseName)
@@ -189,7 +188,7 @@ struct WorkoutReadyView: View {
                 ZStack {
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
                         .fill(tint.opacity(0.14))
-                    Image(systemName: "seal.fill")
+                    Image(systemName: rankTrialHeaderIconName)
                         .font(.system(size: 22, weight: .black))
                         .foregroundStyle(tint)
                 }
@@ -214,7 +213,7 @@ struct WorkoutReadyView: View {
                 .layoutPriority(1)
             }
 
-            Text("Official fixed protocol. Clear every station; pain or form-break flags fail the station.")
+            Text(rankTrialHeaderSubtitle)
                 .font(Font.unbound.captionS.weight(.semibold))
                 .foregroundStyle(Color.unbound.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -251,7 +250,7 @@ struct WorkoutReadyView: View {
             }
 
             if !categories.isEmpty {
-                Text(categories.joined(separator: " / "))
+                Text(rankTrialMovementSummary(categories))
                     .font(Font.unbound.captionS)
                     .foregroundStyle(Color.unbound.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -268,6 +267,21 @@ struct WorkoutReadyView: View {
             .padding(10)
             .background(cardBackground)
         }
+    }
+
+    private func rankTrialMovementSummary(_ categories: [String]) -> String {
+        if isDeckTrialDraft {
+            return deckExampleSummary
+        }
+        if isTowerTrialDraft {
+            return "10-floor ascent / 11 official stations / Floor 10 boss hold"
+        }
+
+        return categories.joined(separator: " / ")
+    }
+
+    private var deckExampleSummary: String {
+        "A♥ 11 pushups · 7♦ 7 squats · J♣ 10 pullups · 4♠ 4 sit-ups"
     }
 
     private var weeklyVowKind: WeeklyVowKind {
@@ -305,15 +319,76 @@ struct WorkoutReadyView: View {
 
     private var blockList: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(draft.isWeeklyVowDraft ? "VOW BLOCKS" : isRankTrialDraft ? "TRIAL STATIONS" : "BLOCKS")
+            Text(blockListTitle)
                 .font(Font.unbound.captionS.weight(.bold))
                 .tracking(1.4)
                 .foregroundStyle(Color.unbound.textTertiary)
 
-            ForEach(Array(draft.blocks.enumerated()), id: \.element.id) { index, block in
-                blockRow(block, index: index)
+            if isDeckTrialDraft {
+                deckExampleGrid
+            } else if let rankTrialDefinition {
+                rankTrialReadyPreview(for: rankTrialDefinition)
+            } else {
+                ForEach(Array(draft.blocks.enumerated()), id: \.element.id) { index, block in
+                    blockRow(block, index: index)
+                }
             }
         }
+    }
+
+    @ViewBuilder
+    private func rankTrialReadyPreview(for definition: OverallRankTrialDefinition) -> some View {
+        let tint = definition.targetRank.rewardTextTint
+        switch definition.format {
+        case .daily100:
+            Daily100TrialReadyPreview(blocks: draft.blocks, tint: tint)
+        case .operatorScreen:
+            OperatorScreenTrialReadyPreview(blocks: draft.blocks, tint: tint)
+        case .finisher:
+            FinisherTrialReadyPreview(blocks: draft.blocks, tint: tint)
+        case .fixedDeck:
+            deckExampleGrid
+        case .tower:
+            TowerTrialReadyPreview(blocks: draft.blocks, tint: tint)
+        case .bossRush:
+            BossRushTrialReadyPreview(blocks: draft.blocks, tint: tint)
+        case .raid:
+            ThresholdRaidTrialReadyPreview(blocks: draft.blocks, tint: tint)
+        case .finalExam:
+            FinalExamTrialReadyPreview(blocks: draft.blocks, tint: tint)
+        }
+    }
+
+    private var deckExampleGrid: some View {
+        LazyVGrid(columns: deckColumns, alignment: .center, spacing: 10) {
+            ForEach(Array(deckExampleCards.enumerated()), id: \.element.block.id) { exampleIndex, item in
+                deckCard(
+                    item.block,
+                    index: item.index,
+                    label: "EXAMPLE \(cardNumber(for: exampleIndex))"
+                )
+            }
+        }
+        .accessibilityIdentifier("workoutReady.deckExamples")
+    }
+
+    private var deckExampleCards: [(index: Int, block: TrainingBlock)] {
+        let cards = Array(draft.blocks.enumerated()).map { (index: $0.offset, block: $0.element) }
+        let preferredSuits = ["H", "D", "C", "S"]
+        let examples = preferredSuits.compactMap { suit in
+            cards.first { item in
+                let cardCode = originalDeckCardNumber(for: item.block) ?? cardNumber(for: item.index)
+                return deckSuitCode(for: cardCode) == suit
+            }
+        }
+        return examples.count == preferredSuits.count ? examples : Array(cards.prefix(4))
+    }
+
+    private var deckColumns: [GridItem] {
+        [
+            GridItem(.flexible(), spacing: 10),
+            GridItem(.flexible(), spacing: 10)
+        ]
     }
 
     @ViewBuilder
@@ -354,11 +429,7 @@ struct WorkoutReadyView: View {
 
     private func blockRow(_ block: TrainingBlock, index: Int) -> some View {
         HStack(alignment: .top, spacing: 12) {
-            Image(systemName: icon(for: block.kind))
-                .font(.system(size: 17, weight: .bold))
-                .foregroundStyle(color(for: block.kind))
-                .frame(width: 30, height: 30)
-                .background(Circle().fill(Color.unbound.surfaceElevated))
+            blockVisual(for: block, size: 54)
 
             VStack(alignment: .leading, spacing: 5) {
                 Text(block.title)
@@ -440,6 +511,121 @@ struct WorkoutReadyView: View {
         .accessibilityIdentifier("workoutReady.block.\(block.kind.rawValue).\(index)")
     }
 
+    private func deckCard(_ block: TrainingBlock, index: Int, label: String? = nil) -> some View {
+        let originalNumber = originalDeckCardNumber(for: block) ?? cardNumber(for: index)
+        let tint = deckSuitTint(forCardCode: originalNumber, fallbackIndex: index)
+        let title = deckCardTitle(for: block, index: index)
+
+        return VStack(alignment: .leading, spacing: 9) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(label ?? "DRAW \(cardNumber(for: index))")
+                        .font(Font.unbound.captionS.weight(.heavy))
+                        .tracking(1.4)
+                    Text("CARD \(originalNumber)")
+                        .font(.system(size: 8, weight: .heavy, design: .monospaced))
+                        .tracking(1.1)
+                        .foregroundStyle(tint.opacity(0.88))
+                }
+                Spacer(minLength: 8)
+                Image(systemName: deckSuitSymbol(forCardCode: originalNumber, fallbackIndex: index))
+                    .font(.system(size: 14, weight: .black))
+            }
+            .foregroundStyle(tint)
+
+            deckCardVisual(for: block)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title.uppercased())
+                    .font(Font.unbound.captionS.weight(.heavy))
+                    .tracking(1)
+                    .foregroundStyle(tint)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+
+                Text(primaryExerciseName(for: block))
+                    .font(Font.unbound.bodyS.weight(.bold))
+                    .foregroundStyle(Color.unbound.textPrimary)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.74)
+
+                Text(prescriptionSummary(block))
+                    .font(Font.unbound.captionS)
+                    .foregroundStyle(Color.unbound.textPrimary.opacity(0.78))
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.72)
+            }
+        }
+        .frame(maxWidth: .infinity, minHeight: 210, alignment: .topLeading)
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color.unbound.surfaceElevated)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .strokeBorder(tint.opacity(0.62), lineWidth: 1)
+        )
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("workoutReady.deckCard.\(index)")
+    }
+
+    @ViewBuilder
+    private func deckCardVisual(for block: TrainingBlock) -> some View {
+        if let definition = movementDefinition(for: block) {
+            ExerciseVisualView(definition: definition, size: .thumbnail)
+                .frame(height: 92)
+                .frame(maxWidth: .infinity)
+                .accessibilityHidden(true)
+        } else {
+            ZStack {
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(Color.unbound.surfaceElevated)
+                Image(systemName: icon(for: block.kind))
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundStyle(color(for: block.kind))
+            }
+            .frame(height: 92)
+            .frame(maxWidth: .infinity)
+            .accessibilityHidden(true)
+        }
+    }
+
+    @ViewBuilder
+    private func blockVisual(for block: TrainingBlock, size: CGFloat) -> some View {
+        if let definition = movementDefinition(for: block) {
+            ExerciseVisualView(definition: definition, size: .thumbnail)
+                .frame(width: size, height: size)
+                .accessibilityHidden(true)
+        } else {
+            ZStack {
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(Color.unbound.surfaceElevated)
+                Image(systemName: icon(for: block.kind))
+                    .font(.system(size: 17, weight: .bold))
+                    .foregroundStyle(color(for: block.kind))
+            }
+            .frame(width: size, height: size)
+            .accessibilityHidden(true)
+        }
+    }
+
+    @ViewBuilder
+    private func prescriptionVisual(for prescription: TrainingBlockPrescription, tint: Color, size: CGFloat) -> some View {
+        if let definition = movementDefinition(for: prescription) {
+            ExerciseVisualView(definition: definition, size: .thumbnail)
+                .frame(width: size, height: size)
+                .accessibilityHidden(true)
+        } else {
+            Image(systemName: "target")
+                .font(.system(size: 13, weight: .bold))
+                .foregroundStyle(tint)
+                .frame(width: size, height: size)
+                .background(Circle().fill(tint.opacity(0.12)))
+                .accessibilityHidden(true)
+        }
+    }
+
     private var addControls: some View {
         let nextSkill = nextScheduledSkillId
         return VStack(spacing: 10) {
@@ -479,8 +665,13 @@ struct WorkoutReadyView: View {
             }
 
             Button {
+                guard hasWorkoutCompatibleBlocks, !isLaunchingWorkout else { return }
+                isLaunchingWorkout = true
                 saveRecentDraftIfCustom()
-                activeWorkoutDraft = draft
+                let launchDraft = draft
+                DispatchQueue.main.async {
+                    activeWorkoutDraft = launchDraft
+                }
             } label: {
                 Label(startButtonTitle, systemImage: "play.fill")
                     .frame(maxWidth: .infinity)
@@ -517,8 +708,168 @@ struct WorkoutReadyView: View {
         draft.source == .overallRankTrial
     }
 
+    private var isDeckTrialDraft: Bool {
+        rankTrialDefinition?.format == .fixedDeck
+    }
+
+    private var isTowerTrialDraft: Bool {
+        rankTrialDefinition?.format == .tower
+    }
+
     private var rankTrialDefinition: OverallRankTrialDefinition? {
         draft.programId.flatMap(OverallRankTrialDefinitions.definition)
+    }
+
+    private var rankTrialHeaderIconName: String {
+        switch rankTrialDefinition?.format {
+        case .daily100:
+            return "checkmark.seal.fill"
+        case .operatorScreen:
+            return "scope"
+        case .finisher:
+            return "timer"
+        case .fixedDeck:
+            return "rectangle.stack.fill"
+        case .tower:
+            return "building.columns.fill"
+        case .bossRush:
+            return "flame.fill"
+        case .raid:
+            return "point.3.connected.trianglepath.dotted"
+        case .finalExam:
+            return "graduationcap.fill"
+        default:
+            return "seal.fill"
+        }
+    }
+
+    private var rankTrialHeaderSubtitle: String {
+        switch rankTrialDefinition?.format {
+        case .daily100:
+            return "Hit every checkpoint. One clean hundred earns the gate."
+        case .operatorScreen:
+            return "Clear the screen lane by lane under field-test standards."
+        case .finisher:
+            return "Descend the rounds fast, clean, and without form breaks."
+        case .fixedDeck:
+            return "Flip each card, do the reps, then tap into the next draw."
+        case .tower:
+            return "Climb floor by floor. Clear every station; Floor 10 is the boss hold."
+        case .bossRush:
+            return "Take down each encounter in order. No skipped bosses."
+        case .raid:
+            return "Breach each phase: engine, work, then control."
+        case .finalExam:
+            return "Pass every part. The final verdict comes from the full session."
+        default:
+            return "Official fixed protocol. Clear every station; pain or form-break flags fail the station."
+        }
+    }
+
+    private var blockListTitle: String {
+        if draft.isWeeklyVowDraft { return "VOW BLOCKS" }
+        switch rankTrialDefinition?.format {
+        case .daily100: return "CHECKPOINTS"
+        case .operatorScreen: return "READINESS LANES"
+        case .finisher: return "DESCENDING ROUNDS"
+        case .fixedDeck: return "EXAMPLE DRAWS"
+        case .tower: return "TOWER ASCENT"
+        case .bossRush: return "ENCOUNTERS"
+        case .raid: return "RAID PHASES"
+        case .finalExam: return "EXAM PARTS"
+        case nil: break
+        }
+        if isRankTrialDraft { return "TRIAL STATIONS" }
+        return "BLOCKS"
+    }
+
+    private func movementDefinition(for block: TrainingBlock) -> MovementDefinition? {
+        block.prescriptions.compactMap { movementDefinition(for: $0) }.first
+    }
+
+    private func movementDefinition(for prescription: TrainingBlockPrescription) -> MovementDefinition? {
+        MovementCatalog.resolvedTrainingMovement(
+            name: prescription.exerciseName,
+            movementId: prescription.movementId,
+            rankStandardMovementId: prescription.rankStandardMovementId
+        )?.exact
+    }
+
+    private func primaryExerciseName(for block: TrainingBlock) -> String {
+        block.prescriptions.first?.exerciseName ?? block.title
+    }
+
+    private func deckCardTitle(for block: TrainingBlock, index: Int) -> String {
+        if let descriptor = deckCardDescriptor(for: block) {
+            return descriptor.title
+        }
+        return block.subtitle ?? block.title
+    }
+
+    private func originalDeckCardNumber(for block: TrainingBlock) -> String? {
+        deckCardDescriptor(for: block)?.number
+    }
+
+    private func deckCardDescriptor(for block: TrainingBlock) -> (number: String, title: String)? {
+        let prefix = "Card "
+        guard block.title.hasPrefix(prefix) else { return nil }
+
+        let remainder = block.title.dropFirst(prefix.count)
+        let parts = remainder.split(separator: " ", maxSplits: 1, omittingEmptySubsequences: true)
+        guard let number = parts.first else { return nil }
+        let title = parts.dropFirst().first.map(String.init) ?? block.title
+        return (String(number), title)
+    }
+
+    private func cardNumber(for index: Int) -> String {
+        let value = index + 1
+        return value < 10 ? "0\(value)" : "\(value)"
+    }
+
+    private func deckSuitSymbol(for index: Int) -> String {
+        switch index % 4 {
+        case 0: return "suit.spade.fill"
+        case 1: return "suit.heart.fill"
+        case 2: return "suit.diamond.fill"
+        default: return "suit.club.fill"
+        }
+    }
+
+    private func deckSuitTint(for index: Int) -> Color {
+        switch index % 4 {
+        case 0, 3:
+            return Color.unbound.coachCyan
+        default:
+            return Color.unbound.emberGlow
+        }
+    }
+
+    private func deckSuitSymbol(forCardCode cardCode: String, fallbackIndex: Int) -> String {
+        switch deckSuitCode(for: cardCode) {
+        case "S": return "suit.spade.fill"
+        case "H": return "suit.heart.fill"
+        case "D": return "suit.diamond.fill"
+        case "C": return "suit.club.fill"
+        default:
+            return deckSuitSymbol(for: fallbackIndex)
+        }
+    }
+
+    private func deckSuitTint(forCardCode cardCode: String, fallbackIndex: Int) -> Color {
+        switch deckSuitCode(for: cardCode) {
+        case "S", "C":
+            return Color.unbound.coachCyan
+        case "H", "D":
+            return Color.unbound.emberGlow
+        default:
+            return deckSuitTint(for: fallbackIndex)
+        }
+    }
+
+    private func deckSuitCode(for cardCode: String) -> String? {
+        guard let last = cardCode.last else { return nil }
+        let code = String(last).uppercased()
+        return ["S", "H", "D", "C"].contains(code) ? code : nil
     }
 
     private var rankTrialLoadoutLabel: String? {
@@ -999,7 +1350,7 @@ struct WorkoutReadyView: View {
     }
 }
 
-private extension String {
+extension String {
     var nilIfEmpty: String? {
         isEmpty ? nil : self
     }

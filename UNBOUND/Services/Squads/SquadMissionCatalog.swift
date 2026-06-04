@@ -18,10 +18,7 @@ enum SquadMissionCatalog {
     ]
 
     static func generate(squadId: UUID, weekIso: String, memberCount: Int) -> (kind: SquadMission.Kind, target: Int) {
-        var hasher = Hasher()
-        hasher.combine(squadId)
-        hasher.combine(weekIso)
-        let idx = abs(hasher.finalize()) % templates.count
+        let idx = templateIndex(squadId: squadId, weekIso: weekIso)
         let t = templates[idx]
         let target: Int
         switch t.kind {
@@ -33,5 +30,15 @@ enum SquadMissionCatalog {
             target = t.targetMultiplier * memberCount
         }
         return (t.kind, target)
+    }
+
+    private static func templateIndex(squadId: UUID, weekIso: String) -> Int {
+        // Keep this in parity with the SQL/Edge Function simpleHash(squad_id || week_iso).
+        let seed = squadId.uuidString.lowercased() + weekIso
+        var hash: Int32 = 0
+        for byte in seed.utf8 {
+            hash = hash &* 31 &+ Int32(byte)
+        }
+        return Int(hash.magnitude) % templates.count
     }
 }

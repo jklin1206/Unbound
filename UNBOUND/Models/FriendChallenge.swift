@@ -25,6 +25,15 @@ struct FriendChallenge: Codable, Identifiable, Equatable, Sendable {
         case earlyRiser
         case proteinGoal
 
+        static let creationOptions: [Kind] = [
+            .mostSessions,
+            .earlyRiser
+        ]
+
+        var isSupportedForCreation: Bool {
+            Self.creationOptions.contains(self)
+        }
+
         var displayName: String {
             switch self {
             case .mostSessions: return "Most Sessions"
@@ -45,6 +54,22 @@ struct FriendChallenge: Codable, Identifiable, Equatable, Sendable {
             case .earlyRiser: return "Most workouts before 8 AM."
             case .proteinGoal: return "Most days hitting protein target."
             }
+        }
+
+        var systemImage: String {
+            switch self {
+            case .mostSessions: return "calendar.badge.checkmark"
+            case .noMissedDays: return "flame.fill"
+            case .firstToFinishTrial: return "flag.checkered"
+            case .mostAlignedSessions: return "scope"
+            case .earlyRiser: return "sunrise.fill"
+            case .proteinGoal: return "fork.knife"
+            }
+        }
+
+        func progressLabel(for value: Int) -> String {
+            let noun = value == 1 ? "session" : "sessions"
+            return "\(value) \(noun)"
         }
     }
 }

@@ -58,8 +58,9 @@ struct MovementProgressState: Codable, Identifiable, Hashable, Sendable {
     var displayName: String
     var rankTemplate: MovementRankTemplate
 
-    /// Whole-number Ascension Points earned for this ranked movement standard.
-    /// AP is a work ledger; it does not grant a movement rank by itself.
+    /// Whole-number workout ledger earned for this ranked movement standard.
+    /// The stored field still uses the legacy AP name; it does not grant a
+    /// movement rank by itself.
     var totalAP: Double
     var provenTier: SkillTier
 
@@ -143,6 +144,14 @@ struct MovementProgressState: Codable, Identifiable, Hashable, Sendable {
         updatedAt = Date()
     }
 
+    mutating func refreshProvenTier(bodyweightKg: Double?, sex: BiologicalSex?) {
+        provenTier = MovementProgressTierResolver.provenTier(
+            for: self,
+            bodyweightKg: bodyweightKg,
+            sex: sex
+        )
+    }
+
     private func maxOptional<T: Comparable>(_ lhs: T?, _ rhs: T?) -> T? {
         switch (lhs, rhs) {
         case let (l?, r?): return max(l, r)
@@ -151,6 +160,57 @@ struct MovementProgressState: Codable, Identifiable, Hashable, Sendable {
         case (nil, nil): return nil
         }
     }
+}
+
+enum MovementProgressTierResolver {
+    static func provenTier(
+        for state: MovementProgressState,
+        bodyweightKg: Double?,
+        sex: BiologicalSex?
+    ) -> SkillTier {
+        guard let derived = derivedTier(for: state, bodyweightKg: bodyweightKg, sex: sex) else {
+            return state.provenTier
+        }
+        return max(state.provenTier, derived)
+    }
+
+    static func derivedTier(
+        for state: MovementProgressState,
+        bodyweightKg: Double?,
+        sex: BiologicalSex?
+    ) -> SkillTier? {
+        guard let metric = metricValue(for: state) else { return nil }
+        return StrengthStandards.progressToNextRank(
+            metricValue: metric,
+            bodyweightKg: bodyweightKg ?? 0,
+            exerciseKey: state.displayName,
+            sex: sex
+        )?.current
+    }
+
+    private static func metricValue(for state: MovementProgressState) -> Double? {
+        switch state.rankTemplate {
+        case .barbellStrength, .machineStrength, .weightedBodyweight:
+            return state.bestEstimatedOneRepMaxKg ?? state.bestLoadKg
+        case .bodyweightReps:
+            return state.bestReps.map(Double.init)
+        case .holdControl:
+            return (state.bestHoldSeconds ?? state.bestDurationSeconds).map(Double.init)
+        case .carrySled, .cardioPerformance, .mobilityDuration, .routineCompletion, .unranked:
+            return nil
+        }
+    }
+}
+
+struct MovementProgressSourceReceipt: Codable, Identifiable, Hashable, Sendable {
+    var id: String { "\(sourceLogId):\(rankStandardMovementId)" }
+
+    let sourceLogId: String
+    let userId: String
+    let rankStandardMovementId: String
+    let gains: [MovementAPGain]
+    let priorState: MovementProgressState
+    let updatedState: MovementProgressState
 }
 
 struct MovementAPGain: Codable, Identifiable, Hashable, Sendable {
@@ -272,6 +332,7 @@ struct OverallLevelProgress: Codable, Identifiable, Hashable, Sendable {
     var totalXP: Double
     var lastGainedXP: Double
     var processedSourceLogIds: [String]
+    var processedSourceRewards: [String: OverallLevelReward]
     var updatedAt: Date
 
     init(
@@ -279,13 +340,39 @@ struct OverallLevelProgress: Codable, Identifiable, Hashable, Sendable {
         totalXP: Double = 0,
         lastGainedXP: Double = 0,
         processedSourceLogIds: [String] = [],
+        processedSourceRewards: [String: OverallLevelReward] = [:],
         updatedAt: Date = Date()
     ) {
         self.userId = userId
         self.totalXP = totalXP
         self.lastGainedXP = lastGainedXP
         self.processedSourceLogIds = processedSourceLogIds
+        self.processedSourceRewards = processedSourceRewards
         self.updatedAt = updatedAt
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case userId, totalXP, lastGainedXP, processedSourceLogIds, processedSourceRewards, updatedAt
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        userId = try c.decode(String.self, forKey: .userId)
+        totalXP = try c.decode(Double.self, forKey: .totalXP)
+        lastGainedXP = try c.decode(Double.self, forKey: .lastGainedXP)
+        processedSourceLogIds = try c.decodeIfPresent([String].self, forKey: .processedSourceLogIds) ?? []
+        processedSourceRewards = try c.decodeIfPresent([String: OverallLevelReward].self, forKey: .processedSourceRewards) ?? [:]
+        updatedAt = try c.decode(Date.self, forKey: .updatedAt)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(userId, forKey: .userId)
+        try c.encode(totalXP, forKey: .totalXP)
+        try c.encode(lastGainedXP, forKey: .lastGainedXP)
+        try c.encode(processedSourceLogIds, forKey: .processedSourceLogIds)
+        try c.encode(processedSourceRewards, forKey: .processedSourceRewards)
+        try c.encode(updatedAt, forKey: .updatedAt)
     }
 
     var level: Int {
@@ -303,7 +390,12 @@ struct OverallLevelProgress: Codable, Identifiable, Hashable, Sendable {
             processedSourceLogIds.append(sourceLogId)
         }
         if processedSourceLogIds.count > 250 {
-            processedSourceLogIds.removeFirst(processedSourceLogIds.count - 250)
+            let overflow = processedSourceLogIds.count - 250
+            let removed = processedSourceLogIds.prefix(overflow)
+            processedSourceLogIds.removeFirst(overflow)
+            for source in removed {
+                processedSourceRewards.removeValue(forKey: source)
+            }
         }
         updatedAt = date
     }
@@ -475,6 +567,23 @@ struct BodyMapIngestResult: Codable, Hashable, Sendable {
 
     var updatedRegions: [BodyRegion] {
         regionRewards.map(\.region)
+    }
+}
+
+struct BodyMapSourceReceipt: Codable, Identifiable, Hashable, Sendable {
+    var id: String { sourceLogId }
+
+    let sourceLogId: String
+    let userId: String
+    let noveltyMultiplier: Double
+    let regionRewards: [BodyMapRegionReward]
+
+    var result: BodyMapIngestResult {
+        BodyMapIngestResult(
+            noveltyMultiplier: noveltyMultiplier,
+            regionRewards: regionRewards,
+            wasDuplicate: true
+        )
     }
 }
 

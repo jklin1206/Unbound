@@ -61,11 +61,16 @@ final class SquadMissionServiceTests: XCTestCase {
             remoteReadsEnabled: true
         )
 
-        await service.recordProgress(log: makeLog(userId: "user-m1"), userId: "user-m1")
+        await service.recordProgress(
+            log: makeLog(userId: "user-m1"),
+            userId: "user-m1",
+            sourceLogId: "source-m1"
+        )
 
         XCTAssertEqual(backend.missionProgressIncrements.count, 1)
         XCTAssertEqual(backend.missionProgressIncrements.first?.squadId, squad.id)
         XCTAssertEqual(backend.missionProgressIncrements.first?.delta, 1)
+        XCTAssertEqual(backend.missionProgressIncrements.first?.sourceLogId, "source-m1")
     }
 
     func testRecordProgressSkipsWhenNoSquad() async {
@@ -76,7 +81,11 @@ final class SquadMissionServiceTests: XCTestCase {
             squadService: stubSquad,
             remoteReadsEnabled: true
         )
-        await service.recordProgress(log: makeLog(userId: "user-m2"), userId: "user-m2")
+        await service.recordProgress(
+            log: makeLog(userId: "user-m2"),
+            userId: "user-m2",
+            sourceLogId: "source-m2"
+        )
         XCTAssertTrue(backend.missionProgressIncrements.isEmpty)
     }
 

@@ -26,6 +26,7 @@ enum SquadError: Error, Equatable {
     case notInSquad
     case notCaptain
     case backendUnavailable
+    case unsupportedChallengeKind
 }
 
 // NOTE: Notification.Name squad extensions are defined in AttributeRankUpEvent.swift (Phase 7.2).

@@ -5,7 +5,7 @@ import Supabase
 protocol SquadMissionServiceProtocol: Sendable {
     func generateThisWeek(squadId: UUID) async throws -> SquadMission
     func currentMission(squadId: UUID) async -> SquadMission?
-    func recordProgress(log: WorkoutLog, userId: String) async
+    func recordProgress(log: WorkoutLog, userId: String, sourceLogId: String) async
     func evaluateCompletion(squadId: UUID) async
 }
 
@@ -124,7 +124,7 @@ final class SquadMissionService: SquadMissionServiceProtocol {
         }
     }
 
-    func recordProgress(log: WorkoutLog, userId: String) async {
+    func recordProgress(log: WorkoutLog, userId: String, sourceLogId: String) async {
         // Increment the squad's current-week mission by +1 per workout log.
         // RLS blocks a direct client UPDATE on squad_missions, so this goes
         // through the increment_squad_mission_progress RPC (SECURITY DEFINER,
@@ -136,7 +136,11 @@ final class SquadMissionService: SquadMissionServiceProtocol {
         // follow-up; the cron remains the source of truth for completion.
         guard let squad = squadService.state(userId: userId).currentSquad else { return }
         do {
-            try await backend.incrementMissionProgress(squadId: squad.id, delta: 1)
+            try await backend.incrementMissionProgress(
+                squadId: squad.id,
+                delta: 1,
+                sourceLogId: sourceLogId
+            )
         } catch {
             logger.log(
                 "SquadMissionService.recordProgress increment failed: \(error)",

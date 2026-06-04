@@ -233,7 +233,8 @@ final class ProgramViewModel {
         profile: UserProfile,
         trainingStyle: TrainingStyle,
         equipment: Set<Equipment>,
-        exerciseStyles: Set<ExerciseStyle>
+        exerciseStyles: Set<ExerciseStyle>,
+        experience: Experience? = nil
     ) async throws -> TrainingProgram {
         guard let userId = services.auth.currentUserId else {
             throw AppError.authNotAuthenticated
@@ -241,11 +242,12 @@ final class ProgramViewModel {
 
         let sortedEquipment = equipment.sorted { $0.rawValue < $1.rawValue }
         let sortedStyles = exerciseStyles.sorted { $0.rawValue < $1.rawValue }
+        let resolvedExperience = experience ?? profile.experience
         let generated = try await ProgramGenerationService.shared.generateFromOnboarding(
             userId: userId,
             targetFrequency: profile.targetFrequency,
             equipment: Set(sortedEquipment),
-            experience: profile.experience,
+            experience: resolvedExperience,
             sessionLength: profile.sessionLength,
             exerciseStyles: Set(sortedStyles),
             targetAreas: Set(profile.targetAreas ?? []),
@@ -260,12 +262,16 @@ final class ProgramViewModel {
             biologicalSex: profile.biologicalSex
         )
 
-        try await services.user.updateProfile(userId: userId, fields: [
+        var fields: [String: Any] = [
             "currentProgramId": generated.id,
             "equipment": sortedEquipment.map(\.rawValue),
             "exerciseStyles": sortedStyles.map(\.rawValue),
             "trainingStyleOverride": trainingStyle.rawValue
-        ])
+        ]
+        if let resolvedExperience {
+            fields["experience"] = resolvedExperience.rawValue
+        }
+        try await services.user.updateProfile(userId: userId, fields: fields)
 
         program = generated
         state = .loaded(generated)

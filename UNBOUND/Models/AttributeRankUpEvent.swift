@@ -14,6 +14,16 @@ struct AttributeRankUpEvent: Equatable, Sendable {
     let toTitle: RankTitle
     let level: Level
     let timestamp: Date
+
+    static var placeholder: AttributeRankUpEvent {
+        AttributeRankUpEvent(
+            axis: .power,
+            fromTitle: .initiate,
+            toTitle: .initiate,
+            level: .tier,
+            timestamp: Date(timeIntervalSince1970: 0)
+        )
+    }
 }
 
 extension Notification.Name {

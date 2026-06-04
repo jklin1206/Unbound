@@ -43,6 +43,9 @@ struct Step16_SessionLength: View {
     }
 }
 
+#if DEBUG
 #Preview {
     Step16_SessionLength(flow: OnboardingFlowViewModel(), progress: 0.53, onBack: {}, onContinue: {})
 }
+
+#endif

@@ -52,8 +52,8 @@ enum MovementAPCalculator {
     ) -> [MovementAPGain] {
         var gains: [MovementAPGain] = []
 
-        for block in log.blocks {
-            for exercise in block.exercises where !exercise.skipped {
+        for (blockIndex, block) in log.blocks.enumerated() {
+            for (exerciseIndex, exercise) in block.exercises.enumerated() where !exercise.skipped {
                 let resolved = resolveMovement(
                     name: exercise.name,
                     movementId: exercise.movementId,
@@ -71,6 +71,17 @@ enum MovementAPCalculator {
 
                     gains.append(
                         MovementAPGain(
+                            id: gainId(
+                                sourceLogId: log.id,
+                                sourceExerciseId: exercise.id,
+                                rankStandardMovementId: resolved.standard.id,
+                                sourceSlotId: sourceSlotId(
+                                    blockIndex: blockIndex,
+                                    exerciseIndex: exerciseIndex,
+                                    movementId: resolved.exact.id
+                                ),
+                                ordinal: set.setNumber
+                            ),
                             userId: log.userId,
                             sourceLogId: log.id,
                             sourceExerciseId: exercise.id,
@@ -94,7 +105,7 @@ enum MovementAPCalculator {
             }
 
             if block.exercises.isEmpty,
-               let blockGain = gain(fromMetricOnlyBlock: block, log: log, priorStates: priorStates) {
+               let blockGain = gain(fromMetricOnlyBlock: block, blockIndex: blockIndex, log: log, priorStates: priorStates) {
                 gains.append(blockGain)
             }
         }
@@ -109,7 +120,7 @@ enum MovementAPCalculator {
         let completedAt = log.completedAt ?? log.startedAt
         var gains: [MovementAPGain] = []
 
-        for entry in log.exerciseEntries where !entry.skipped {
+        for (entryIndex, entry) in log.exerciseEntries.enumerated() where !entry.skipped {
             let resolved = resolveMovement(
                 name: entry.exerciseName,
                 movementId: entry.movementId,
@@ -129,6 +140,17 @@ enum MovementAPCalculator {
 
                 gains.append(
                     MovementAPGain(
+                        id: gainId(
+                            sourceLogId: log.id,
+                            sourceExerciseId: entry.id,
+                            rankStandardMovementId: resolved.standard.id,
+                            sourceSlotId: sourceSlotId(
+                                blockIndex: 0,
+                                exerciseIndex: entryIndex,
+                                movementId: resolved.exact.id
+                            ),
+                            ordinal: set.setNumber
+                        ),
                         userId: log.userId,
                         sourceLogId: log.id,
                         sourceExerciseId: entry.id,
@@ -152,6 +174,7 @@ enum MovementAPCalculator {
 
     private static func gain(
         fromMetricOnlyBlock block: PerformanceBlock,
+        blockIndex: Int,
         log: PerformanceLog,
         priorStates: [String: MovementProgressState]
     ) -> MovementAPGain? {
@@ -183,6 +206,13 @@ enum MovementAPCalculator {
         guard let rawAP, rawAP > 0 else { return nil }
 
         return MovementAPGain(
+            id: gainId(
+                sourceLogId: log.id,
+                sourceExerciseId: block.id,
+                rankStandardMovementId: standard.id,
+                sourceSlotId: "block-\(blockIndex):metric:\(exact.id)",
+                ordinal: 0
+            ),
             userId: log.userId,
             sourceLogId: log.id,
             sourceExerciseId: block.id,
@@ -197,6 +227,25 @@ enum MovementAPCalculator {
             calories: block.calories,
             occurredAt: log.completedAt
         )
+    }
+
+    private static func gainId(
+        sourceLogId: String,
+        sourceExerciseId: String?,
+        rankStandardMovementId: String,
+        sourceSlotId: String,
+        ordinal: Int
+    ) -> String {
+        [
+            sourceLogId,
+            rankStandardMovementId,
+            sourceSlotId,
+            String(ordinal)
+        ].joined(separator: ":")
+    }
+
+    private static func sourceSlotId(blockIndex: Int, exerciseIndex: Int, movementId: String) -> String {
+        "block-\(blockIndex):exercise-\(exerciseIndex):\(movementId)"
     }
 
     private static func rawAP(
@@ -300,6 +349,7 @@ enum MovementAPCalculator {
     private static func estimatedOneRepMaxKg(weightKg: Double?, reps: Int?) -> Double? {
         guard let weightKg, weightKg > 0 else { return nil }
         let reps = max(reps ?? 1, 1)
+        guard reps > 1 else { return weightKg }
         return weightKg * (1.0 + Double(reps) / 30.0)
     }
 
@@ -322,6 +372,11 @@ enum MovementAPCalculator {
     }
 }
 
+private enum ProgressionPersistenceMode {
+    case bestEffort
+    case strict
+}
+
 @MainActor
 final class MovementProgressService {
     static let shared = MovementProgressService()
@@ -332,26 +387,88 @@ final class MovementProgressService {
         _ log: PerformanceLog,
         database: any DatabaseServiceProtocol = SyncedDatabase.shared
     ) async -> MovementProgressIngestResult {
+        do {
+            return try await ingest(log, database: database, persistenceMode: .bestEffort)
+        } catch {
+            LoggingService.shared.log(
+                "Movement progress best-effort ingest failed: \(error)",
+                level: .warning,
+                context: ["sourceLogId": log.id]
+            )
+            return MovementProgressIngestResult()
+        }
+    }
+
+    func ingestStrict(
+        _ log: PerformanceLog,
+        database: any DatabaseServiceProtocol = SyncedDatabase.shared
+    ) async throws -> MovementProgressIngestResult {
+        try await ingest(log, database: database, persistenceMode: .strict)
+    }
+
+    private func ingest(
+        _ log: PerformanceLog,
+        database: any DatabaseServiceProtocol,
+        persistenceMode: ProgressionPersistenceMode
+    ) async throws -> MovementProgressIngestResult {
         let priorStates = await loadPriorStates(
             userId: log.userId,
             standardIds: MovementAPCalculator.rankStandardMovementIds(from: log),
             database: database
         )
         let gains = MovementAPCalculator.gains(from: log, priorStates: priorStates)
-        return await persist(gains: gains, userId: log.userId, sourceLogId: log.id, priorStates: priorStates, database: database)
+        return try await persist(
+            gains: gains,
+            userId: log.userId,
+            sourceLogId: log.id,
+            priorStates: priorStates,
+            database: database,
+            persistenceMode: persistenceMode
+        )
     }
 
     func ingest(
         _ log: WorkoutLog,
         database: any DatabaseServiceProtocol = SyncedDatabase.shared
     ) async -> MovementProgressIngestResult {
+        do {
+            return try await ingest(log, database: database, persistenceMode: .bestEffort)
+        } catch {
+            LoggingService.shared.log(
+                "Movement progress best-effort ingest failed: \(error)",
+                level: .warning,
+                context: ["sourceLogId": log.id]
+            )
+            return MovementProgressIngestResult()
+        }
+    }
+
+    func ingestStrict(
+        _ log: WorkoutLog,
+        database: any DatabaseServiceProtocol = SyncedDatabase.shared
+    ) async throws -> MovementProgressIngestResult {
+        try await ingest(log, database: database, persistenceMode: .strict)
+    }
+
+    private func ingest(
+        _ log: WorkoutLog,
+        database: any DatabaseServiceProtocol,
+        persistenceMode: ProgressionPersistenceMode
+    ) async throws -> MovementProgressIngestResult {
         let priorStates = await loadPriorStates(
             userId: log.userId,
             standardIds: MovementAPCalculator.rankStandardMovementIds(from: log),
             database: database
         )
         let gains = MovementAPCalculator.gains(from: log, priorStates: priorStates)
-        return await persist(gains: gains, userId: log.userId, sourceLogId: log.id, priorStates: priorStates, database: database)
+        return try await persist(
+            gains: gains,
+            userId: log.userId,
+            sourceLogId: log.id,
+            priorStates: priorStates,
+            database: database,
+            persistenceMode: persistenceMode
+        )
     }
 
     private func persist(
@@ -359,11 +476,14 @@ final class MovementProgressService {
         userId: String,
         sourceLogId: String,
         priorStates: [String: MovementProgressState] = [:],
-        database: any DatabaseServiceProtocol
-    ) async -> MovementProgressIngestResult {
+        database: any DatabaseServiceProtocol,
+        persistenceMode: ProgressionPersistenceMode
+    ) async throws -> MovementProgressIngestResult {
         let grouped = Dictionary(grouping: gains, by: \.rankStandardMovementId)
         var updatedStates: [MovementProgressState] = []
         var persistedGains: [MovementAPGain] = []
+        var replayPriorStates = priorStates
+        let profile = await loadUserProfile(userId: userId, database: database)
 
         for (standardId, standardGains) in grouped {
             guard let first = standardGains.first else { continue }
@@ -375,15 +495,48 @@ final class MovementProgressService {
             )
 
             if state.processedSourceLogIds.contains(sourceLogId) {
+                if persistenceMode == .strict {
+                    if let receipt = await loadPersistedMovementReceipt(
+                        sourceLogId: sourceLogId,
+                        standardId: standardId,
+                        database: database
+                    ) {
+                        replayPriorStates[standardId] = receipt.priorState
+                        updatedStates.append(receipt.updatedState)
+                        persistedGains.append(contentsOf: receipt.gains)
+                    } else {
+                        let replayGains = await loadPersistedGains(
+                            fallbackGains: standardGains,
+                            database: database
+                        )
+                        if let replayPriorState = await loadPersistedPriorState(
+                            sourceLogId: sourceLogId,
+                            standardId: standardId,
+                            database: database
+                        ) {
+                            replayPriorStates[standardId] = replayPriorState
+                        }
+                        updatedStates.append(state)
+                        persistedGains.append(contentsOf: replayGains)
+                    }
+                }
                 continue
             }
 
+            let priorState = state
             state.apply(gains: standardGains, sourceLogId: sourceLogId)
-            try? await database.create(state, collection: "movement_progress", documentId: state.id)
-
-            for gain in standardGains {
-                try? await database.create(gain, collection: "movement_ap_gains", documentId: gain.id)
-            }
+            state.refreshProvenTier(
+                bodyweightKg: profile?.weightKg,
+                sex: profile?.biologicalSex
+            )
+            try await persistMovementArtifacts(
+                priorState: priorState,
+                state: state,
+                gains: standardGains,
+                sourceLogId: sourceLogId,
+                database: database,
+                persistenceMode: persistenceMode
+            )
 
             updatedStates.append(state)
             persistedGains.append(contentsOf: standardGains)
@@ -400,8 +553,113 @@ final class MovementProgressService {
         return MovementProgressIngestResult(
             gains: persistedGains,
             updatedStates: updatedStates,
-            priorStates: priorStates
+            priorStates: replayPriorStates
         )
+    }
+
+    private func persistMovementArtifacts(
+        priorState: MovementProgressState,
+        state: MovementProgressState,
+        gains: [MovementAPGain],
+        sourceLogId: String,
+        database: any DatabaseServiceProtocol,
+        persistenceMode: ProgressionPersistenceMode
+    ) async throws {
+        switch persistenceMode {
+        case .strict:
+            try await database.create(
+                priorState,
+                collection: "movement_progress_prior_states",
+                documentId: movementPriorStateDocumentId(
+                    sourceLogId: sourceLogId,
+                    standardId: state.rankStandardMovementId
+                )
+            )
+            for gain in gains {
+                try await database.create(gain, collection: "movement_ap_gains", documentId: gain.id)
+            }
+            try await database.create(
+                MovementProgressSourceReceipt(
+                    sourceLogId: sourceLogId,
+                    userId: state.userId,
+                    rankStandardMovementId: state.rankStandardMovementId,
+                    gains: gains,
+                    priorState: priorState,
+                    updatedState: state
+                ),
+                collection: "movement_progress_source_receipts",
+                documentId: movementPriorStateDocumentId(
+                    sourceLogId: sourceLogId,
+                    standardId: state.rankStandardMovementId
+                )
+            )
+            try await database.create(state, collection: "movement_progress", documentId: state.id)
+        case .bestEffort:
+            do {
+                try await database.create(state, collection: "movement_progress", documentId: state.id)
+            } catch {
+                LoggingService.shared.log(
+                    "Movement progress state write failed: \(error)",
+                    level: .warning,
+                    context: ["documentId": state.id]
+                )
+            }
+            for gain in gains {
+                do {
+                    try await database.create(gain, collection: "movement_ap_gains", documentId: gain.id)
+                } catch {
+                    LoggingService.shared.log(
+                        "Movement AP gain write failed: \(error)",
+                        level: .warning,
+                        context: ["documentId": gain.id]
+                    )
+                }
+            }
+        }
+    }
+
+    private func loadPersistedPriorState(
+        sourceLogId: String,
+        standardId: String,
+        database: any DatabaseServiceProtocol
+    ) async -> MovementProgressState? {
+        try? await database.read(
+            collection: "movement_progress_prior_states",
+            documentId: movementPriorStateDocumentId(sourceLogId: sourceLogId, standardId: standardId)
+        )
+    }
+
+    private func loadPersistedMovementReceipt(
+        sourceLogId: String,
+        standardId: String,
+        database: any DatabaseServiceProtocol
+    ) async -> MovementProgressSourceReceipt? {
+        try? await database.read(
+            collection: "movement_progress_source_receipts",
+            documentId: movementPriorStateDocumentId(sourceLogId: sourceLogId, standardId: standardId)
+        )
+    }
+
+    private func movementPriorStateDocumentId(sourceLogId: String, standardId: String) -> String {
+        "\(sourceLogId):\(standardId)"
+    }
+
+    private func loadPersistedGains(
+        fallbackGains: [MovementAPGain],
+        database: any DatabaseServiceProtocol
+    ) async -> [MovementAPGain] {
+        var gains: [MovementAPGain] = []
+        for fallback in fallbackGains {
+            if let persisted: MovementAPGain = try? await database.read(
+                collection: "movement_ap_gains",
+                documentId: fallback.id
+            ) {
+                gains.append(persisted)
+            } else {
+                gains.append(fallback)
+            }
+        }
+        return gains
     }
 
     private func loadState(
@@ -411,10 +669,15 @@ final class MovementProgressService {
         database: any DatabaseServiceProtocol
     ) async -> MovementProgressState {
         let documentId = "\(userId):\(standardId)"
-        if let existing: MovementProgressState = try? await database.read(
+        if var existing: MovementProgressState = try? await database.read(
             collection: "movement_progress",
             documentId: documentId
         ) {
+            if existing.displayName != fallback.standardDisplayName || existing.rankTemplate != fallback.rankTemplate {
+                existing.displayName = fallback.standardDisplayName
+                existing.rankTemplate = fallback.rankTemplate
+                existing.updatedAt = Date()
+            }
             return existing
         }
 
@@ -424,6 +687,13 @@ final class MovementProgressService {
             displayName: fallback.standardDisplayName,
             rankTemplate: fallback.rankTemplate
         )
+    }
+
+    private func loadUserProfile(
+        userId: String,
+        database: any DatabaseServiceProtocol
+    ) async -> UserProfile? {
+        try? await database.read(collection: "users", documentId: userId)
     }
 
     private func loadPriorStates(
@@ -471,6 +741,72 @@ final class OverallLevelService {
         rankUpEvents: Int = 0,
         database: any DatabaseServiceProtocol = SyncedDatabase.shared
     ) async -> OverallLevelReward {
+        do {
+            return try await ingest(
+                rawAP: rawAP,
+                noveltyMultiplier: noveltyMultiplier,
+                sourceLogId: sourceLogId,
+                userId: userId,
+                at: date,
+                gains: gains,
+                rankUpEvents: rankUpEvents,
+                database: database,
+                persistenceMode: .bestEffort
+            )
+        } catch {
+            LoggingService.shared.log(
+                "Overall level best-effort ingest failed: \(error)",
+                level: .warning,
+                context: ["sourceLogId": sourceLogId]
+            )
+            return OverallLevelReward(
+                xpGained: 0,
+                noveltyMultiplier: noveltyMultiplier,
+                previousXP: 0,
+                currentXP: 0,
+                previousLevel: 0,
+                currentLevel: 0,
+                previousProgressToNextLevel: 0,
+                currentProgressToNextLevel: 0
+            )
+        }
+    }
+
+    @discardableResult
+    func ingestStrict(
+        rawAP: Double,
+        noveltyMultiplier: Double,
+        sourceLogId: String,
+        userId: String,
+        at date: Date,
+        gains: [MovementAPGain] = [],
+        rankUpEvents: Int = 0,
+        database: any DatabaseServiceProtocol = SyncedDatabase.shared
+    ) async throws -> OverallLevelReward {
+        try await ingest(
+            rawAP: rawAP,
+            noveltyMultiplier: noveltyMultiplier,
+            sourceLogId: sourceLogId,
+            userId: userId,
+            at: date,
+            gains: gains,
+            rankUpEvents: rankUpEvents,
+            database: database,
+            persistenceMode: .strict
+        )
+    }
+
+    private func ingest(
+        rawAP: Double,
+        noveltyMultiplier: Double,
+        sourceLogId: String,
+        userId: String,
+        at date: Date,
+        gains: [MovementAPGain],
+        rankUpEvents: Int,
+        database: any DatabaseServiceProtocol,
+        persistenceMode: ProgressionPersistenceMode
+    ) async throws -> OverallLevelReward {
         var progress = await loadProgress(userId: userId, database: database)
         let previousXP = progress.totalXP
         let previousLevel = progress.level
@@ -485,7 +821,27 @@ final class OverallLevelService {
             : VelocityWeighting.weightedAP(gains: gains)
         let bolus = VelocityWeighting.rankUpBolus(rankUpEvents: rankUpEvents)
 
-        guard effectiveAP > 0 || bolus > 0, !progress.processedSourceLogIds.contains(sourceLogId) else {
+        if progress.processedSourceLogIds.contains(sourceLogId) {
+            if persistenceMode == .strict {
+                return progress.processedSourceRewards[sourceLogId]
+                    ?? duplicateReward(
+                        from: progress,
+                        noveltyMultiplier: noveltyMultiplier
+                    )
+            }
+            return OverallLevelReward(
+                xpGained: 0,
+                noveltyMultiplier: noveltyMultiplier,
+                previousXP: previousXP,
+                currentXP: previousXP,
+                previousLevel: previousLevel,
+                currentLevel: previousLevel,
+                previousProgressToNextLevel: previousProgress,
+                currentProgressToNextLevel: previousProgress
+            )
+        }
+
+        guard effectiveAP > 0 || bolus > 0 else {
             return OverallLevelReward(
                 xpGained: 0,
                 noveltyMultiplier: noveltyMultiplier,
@@ -510,8 +866,6 @@ final class OverallLevelService {
             from: effectiveAP * max(1.0, noveltyMultiplier) * comeback
         ) + bolus
         progress.apply(xpGained: xpGained, sourceLogId: sourceLogId, at: date)
-        cachedProgress[userId] = progress
-        try? await database.create(progress, collection: "overall_level_progress", documentId: progress.id)
 
         let reward = OverallLevelReward(
             xpGained: xpGained,
@@ -523,6 +877,13 @@ final class OverallLevelService {
             previousProgressToNextLevel: previousProgress,
             currentProgressToNextLevel: progress.progressToNextLevel
         )
+        progress.processedSourceRewards[sourceLogId] = reward
+        try await persistOverallProgress(
+            progress,
+            database: database,
+            persistenceMode: persistenceMode
+        )
+        cachedProgress[userId] = progress
 
         NotificationCenter.default.post(
             name: .overallLevelProgressUpdated,
@@ -531,6 +892,53 @@ final class OverallLevelService {
         )
 
         return reward
+    }
+
+    private func duplicateReward(
+        from progress: OverallLevelProgress,
+        noveltyMultiplier: Double
+    ) -> OverallLevelReward {
+        let xpGained = max(0, progress.lastGainedXP)
+        let previousXP = max(0, progress.totalXP - xpGained)
+        return OverallLevelReward(
+            xpGained: xpGained,
+            noveltyMultiplier: noveltyMultiplier,
+            previousXP: previousXP,
+            currentXP: progress.totalXP,
+            previousLevel: OverallLevelCurve.level(forXP: previousXP),
+            currentLevel: progress.level,
+            previousProgressToNextLevel: OverallLevelCurve.progressFraction(forXP: previousXP),
+            currentProgressToNextLevel: progress.progressToNextLevel
+        )
+    }
+
+    private func persistOverallProgress(
+        _ progress: OverallLevelProgress,
+        database: any DatabaseServiceProtocol,
+        persistenceMode: ProgressionPersistenceMode
+    ) async throws {
+        switch persistenceMode {
+        case .strict:
+            try await database.create(
+                progress,
+                collection: "overall_level_progress",
+                documentId: progress.id
+            )
+        case .bestEffort:
+            do {
+                try await database.create(
+                    progress,
+                    collection: "overall_level_progress",
+                    documentId: progress.id
+                )
+            } catch {
+                LoggingService.shared.log(
+                    "Overall level progress write failed: \(error)",
+                    level: .warning,
+                    context: ["documentId": progress.id]
+                )
+            }
+        }
     }
 
     private func loadProgress(
@@ -590,10 +998,73 @@ final class BodyMapProgressService {
         trainingLoads: [BodyRegionTrainingLoad] = [],
         database: any DatabaseServiceProtocol = SyncedDatabase.shared
     ) async -> BodyMapIngestResult {
+        do {
+            return try await ingest(
+                movementAPGains: gains,
+                userId: userId,
+                sourceLogId: sourceLogId,
+                at: date,
+                trainingLoads: trainingLoads,
+                database: database,
+                persistenceMode: .bestEffort
+            )
+        } catch {
+            LoggingService.shared.log(
+                "Body-map best-effort ingest failed: \(error)",
+                level: .warning,
+                context: ["sourceLogId": sourceLogId]
+            )
+            return BodyMapIngestResult()
+        }
+    }
+
+    @discardableResult
+    func ingestStrict(
+        movementAPGains gains: [MovementAPGain],
+        userId: String,
+        sourceLogId: String,
+        at date: Date,
+        trainingLoads: [BodyRegionTrainingLoad] = [],
+        database: any DatabaseServiceProtocol = SyncedDatabase.shared
+    ) async throws -> BodyMapIngestResult {
+        try await ingest(
+            movementAPGains: gains,
+            userId: userId,
+            sourceLogId: sourceLogId,
+            at: date,
+            trainingLoads: trainingLoads,
+            database: database,
+            persistenceMode: .strict
+        )
+    }
+
+    private func ingest(
+        movementAPGains gains: [MovementAPGain],
+        userId: String,
+        sourceLogId: String,
+        at date: Date,
+        trainingLoads: [BodyRegionTrainingLoad],
+        database: any DatabaseServiceProtocol,
+        persistenceMode: ProgressionPersistenceMode
+    ) async throws -> BodyMapIngestResult {
         guard !gains.isEmpty || !trainingLoads.isEmpty else { return BodyMapIngestResult() }
 
         var profile = await loadProfile(userId: userId, database: database)
         if profile.processedSourceLogIds.contains(sourceLogId) {
+            if persistenceMode == .strict {
+                if let receipt = await loadPersistedBodyMapReceipt(
+                    sourceLogId: sourceLogId,
+                    database: database
+                ) {
+                    return receipt.result
+                }
+                return duplicateResult(
+                    from: profile,
+                    gains: gains,
+                    trainingLoads: trainingLoads,
+                    at: date
+                )
+            }
             return BodyMapIngestResult(wasDuplicate: true)
         }
 
@@ -631,14 +1102,32 @@ final class BodyMapProgressService {
             profile.processedSourceLogIds.removeFirst(profile.processedSourceLogIds.count - 250)
         }
         profile.updatedAt = date
-        cachedProfiles[userId] = profile
-        try? await database.create(profile, collection: "body_map_profiles", documentId: profile.id)
 
         let result = BodyMapIngestResult(
             noveltyMultiplier: novelty,
             regionRewards: rewards.sorted { $0.region.rawValue < $1.region.rawValue },
             wasDuplicate: false
         )
+
+        if persistenceMode == .strict {
+            try await database.create(
+                BodyMapSourceReceipt(
+                    sourceLogId: sourceLogId,
+                    userId: userId,
+                    noveltyMultiplier: result.noveltyMultiplier,
+                    regionRewards: result.regionRewards
+                ),
+                collection: "body_map_source_receipts",
+                documentId: sourceLogId
+            )
+        }
+
+        try await persistBodyMapProfile(
+            profile,
+            database: database,
+            persistenceMode: persistenceMode
+        )
+        cachedProfiles[userId] = profile
 
         if !rewards.isEmpty {
             NotificationCenter.default.post(
@@ -649,6 +1138,88 @@ final class BodyMapProgressService {
         }
 
         return result
+    }
+
+    private func loadPersistedBodyMapReceipt(
+        sourceLogId: String,
+        database: any DatabaseServiceProtocol
+    ) async -> BodyMapSourceReceipt? {
+        try? await database.read(
+            collection: "body_map_source_receipts",
+            documentId: sourceLogId
+        )
+    }
+
+    private func persistBodyMapProfile(
+        _ profile: BodyMapProfile,
+        database: any DatabaseServiceProtocol,
+        persistenceMode: ProgressionPersistenceMode
+    ) async throws {
+        switch persistenceMode {
+        case .strict:
+            try await database.create(
+                profile,
+                collection: "body_map_profiles",
+                documentId: profile.id
+            )
+        case .bestEffort:
+            do {
+                try await database.create(
+                    profile,
+                    collection: "body_map_profiles",
+                    documentId: profile.id
+                )
+            } catch {
+                LoggingService.shared.log(
+                    "Body-map profile write failed: \(error)",
+                    level: .warning,
+                    context: ["documentId": profile.id]
+                )
+            }
+        }
+    }
+
+    private func duplicateResult(
+        from profile: BodyMapProfile,
+        gains: [MovementAPGain],
+        trainingLoads: [BodyRegionTrainingLoad],
+        at date: Date
+    ) -> BodyMapIngestResult {
+        let loadsByRegion = regionLoads(from: gains, trainingLoads: trainingLoads)
+        guard !loadsByRegion.isEmpty else {
+            return BodyMapIngestResult(wasDuplicate: true)
+        }
+
+        var approximatePrior = profile
+        for (region, loadAdded) in loadsByRegion {
+            var load = approximatePrior.load(for: region)
+            load.recentLoad = max(0, load.recentLoad - loadAdded)
+            load.lifetimeLoad = max(0, load.lifetimeLoad - loadAdded)
+            approximatePrior.setLoad(load, for: region)
+        }
+        let novelty = noveltyMultiplier(
+            for: Array(loadsByRegion.keys),
+            profile: approximatePrior,
+            at: date
+        )
+
+        let rewards = loadsByRegion.map { region, loadAdded in
+            let load = profile.load(for: region)
+            return BodyMapRegionReward(
+                region: region,
+                loadAdded: (loadAdded * 10).rounded() / 10,
+                recentLoad: (load.recentLoad * 10).rounded() / 10,
+                lifetimeLoad: (load.lifetimeLoad * 10).rounded() / 10,
+                lastTrainedAt: load.lastTrainedAt ?? date
+            )
+        }
+        .sorted { $0.region.rawValue < $1.region.rawValue }
+
+        return BodyMapIngestResult(
+            noveltyMultiplier: novelty,
+            regionRewards: rewards,
+            wasDuplicate: true
+        )
     }
 
     private func loadProfile(

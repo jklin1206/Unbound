@@ -51,14 +51,9 @@ enum TrialStandards {
 
     /// Deck of Proof — Forged → Veteran (`reckoning`, fixedDeck).
     enum DeckOfProof {
-        static let pushReps = 10
-        static let lowerReps = 12
-        static let pullReps = 10
-        static let engineMeters = 200
-        static let coreHoldSeconds = 30          // no-gym plank
-        static let carryMeters = 60              // loaded suitcase carry
-        static let carryLoadPercent = 0.20
-        static let controlHoldSeconds = 30       // defensive fallback card
+        static let aceReps = 11
+        static let faceCardReps = 10
+        static let restSeconds = 30
     }
 
     /// The Tower — Veteran → Master (`gauntlet`, tower).

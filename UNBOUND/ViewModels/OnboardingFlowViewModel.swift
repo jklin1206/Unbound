@@ -757,7 +757,6 @@ final class OnboardingFlowViewModel {
             workoutTime: workoutTime,
             trainingDays: trainingDays
         )
-        await NotificationService.scheduleRescanReminder()
     }
 
     func buildFirestorePayload() -> [String: Any] {

@@ -55,6 +55,7 @@ struct Step_TrainingDays: View {
     }
 }
 
+#if DEBUG
 #Preview {
     Step_TrainingDays(
         flow: OnboardingFlowViewModel(),
@@ -63,3 +64,5 @@ struct Step_TrainingDays: View {
         onContinue: {}
     )
 }
+
+#endif

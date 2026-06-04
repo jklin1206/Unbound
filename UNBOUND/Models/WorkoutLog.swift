@@ -12,6 +12,7 @@ struct WorkoutLog: Codable, Identifiable, Hashable {
     var overallNotes: String?
     var overallRPE: Int?
     var durationMinutes: Int?
+    var localStartHour: Int? = nil
 }
 
 struct ExerciseLogEntry: Codable, Identifiable, Hashable {
@@ -39,4 +40,21 @@ struct SetLog: Codable, Identifiable, Hashable {
     /// memberwise init and existing call sites source-compatible; auto-Codable
     /// decodes a missing key as nil — no migration.)
     var durationSeconds: Int? = nil
+    /// Quality metadata copied from the unified performance log when available.
+    /// Missing legacy values are treated as proof-eligible unless a later log
+    /// explicitly marks assisted, form break, partial range, or pain.
+    var qualityFlags: Set<PerformanceQualityFlag>? = nil
+    var notes: String? = nil
+
+    var effectiveQualityFlags: Set<PerformanceQualityFlag> {
+        qualityFlags ?? []
+    }
+
+    var isProofEligible: Bool {
+        let flags = effectiveQualityFlags
+        return !flags.contains(.assisted)
+            && !flags.contains(.formBreak)
+            && !flags.contains(.partialRange)
+            && !flags.contains(.pain)
+    }
 }

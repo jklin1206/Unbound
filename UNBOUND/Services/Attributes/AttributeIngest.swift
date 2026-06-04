@@ -253,6 +253,8 @@ struct AttributeAPApplyResult: Sendable {
 struct AttributeAPIngestResult: Sendable {
     var rewards: [AttributeProgressionReward] = []
     var rankUpEvents: [AttributeRankUpEvent] = []
+    var profileBefore: AttributeProfile?
+    var profileAfter: AttributeProfile?
 
     var totalXPGained: Double {
         rewards.reduce(0) { $0 + $1.xpGained }
@@ -263,7 +265,7 @@ struct AttributeAPIngestResult: Sendable {
     }
 }
 
-struct AttributeProgressionReward: Sendable {
+struct AttributeProgressionReward: Codable, Hashable, Sendable {
     var key: AttributeKey
     var xpGained: Double
     var previousXP: Double

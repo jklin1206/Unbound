@@ -85,13 +85,13 @@ enum SkillCluster: String, Codable, CaseIterable, Sendable, Identifiable {
         }
     }
 
-    /// If set, this cluster stays LOCKED until the listed cluster's keystone
-    /// node(s) are `.achieved` or `.mastered`. Used to stage the Handstand →
-    /// HSPU → One-Arm Handstand progression.
+    /// If set, this cluster stays locked until the listed cluster's keystone
+    /// node(s) are proven. One-arm handstand gates from the handstand cluster
+    /// directly because the app no longer ships handstand-pushup nodes.
     var requiresClusterKeystone: SkillCluster? {
         switch self {
         case .handstandPushup: return .handstand
-        case .oneArmHandstand: return .handstandPushup
+        case .oneArmHandstand: return .handstand
         default:               return nil
         }
     }

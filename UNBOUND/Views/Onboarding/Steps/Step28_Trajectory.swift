@@ -290,6 +290,7 @@ struct Step28_Trajectory: View {
     }
 }
 
+#if DEBUG
 #Preview {
     Step28_PreviewHarness()
 }
@@ -305,3 +306,5 @@ private struct Step28_PreviewHarness: View {
         Step28_Trajectory(flow: vm, progress: 0.93, onBack: {}, onContinue: {})
     }
 }
+
+#endif

@@ -16,6 +16,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 APP = ROOT / "UNBOUND"
 ASSET_ROOT = APP / "Assets.xcassets"
+SWITCH_PREFIXES = ("exercise_visual_jot_", "exercise_visual_legacy_")
 
 
 def normalized(value: str) -> str:
@@ -147,8 +148,18 @@ def collect_candidates() -> dict[str, set[str]]:
     return candidates
 
 
-def collect_assets() -> list[str]:
-    return sorted(path.name.removesuffix(".imageset") for path in ASSET_ROOT.glob("exercise_visual_*.imageset"))
+def is_switch_variant(asset: str) -> bool:
+    return asset.startswith(SWITCH_PREFIXES)
+
+
+def collect_assets() -> list[tuple[str, Path]]:
+    return sorted(
+        (
+            path.name.removesuffix(".imageset"),
+            path.relative_to(ROOT),
+        )
+        for path in ASSET_ROOT.rglob("exercise_visual_*.imageset")
+    )
 
 
 def main() -> int:
@@ -158,15 +169,22 @@ def main() -> int:
 
     assets = collect_assets()
     candidates = collect_candidates()
-    orphan_candidates = [asset for asset in assets if asset not in candidates]
+    root_assets = [asset for asset, _ in assets if not is_switch_variant(asset)]
+    switch_assets = [asset for asset, _ in assets if is_switch_variant(asset)]
+    orphan_candidates = [
+        (asset, path)
+        for asset, path in assets
+        if not is_switch_variant(asset) and asset not in candidates
+    ]
 
-    print(f"exercise_visual asset sets: {len(assets)}")
-    print(f"covered by known resolver candidates: {len(assets) - len(orphan_candidates)}")
+    print(f"exercise_visual root asset sets: {len(root_assets)}")
+    print(f"exercise_visual switch variants: {len(switch_assets)}")
+    print(f"covered root resolver candidates: {len(root_assets) - len(orphan_candidates)}")
 
     if orphan_candidates:
         print("\nLikely orphan candidates:")
-        for asset in orphan_candidates:
-            print(f"- UNBOUND/Assets.xcassets/{asset}.imageset")
+        for _, path in orphan_candidates:
+            print(f"- {path}")
         print("\nReview exact names and semantic slugs before deleting.")
         return 1 if args.strict else 0
 

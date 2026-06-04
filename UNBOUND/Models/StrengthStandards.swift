@@ -293,6 +293,13 @@ enum StrengthStandards {
             )
         }
 
+        if let bodyweightProgress = bodyweightProgress(
+            metricValue: metricValue,
+            exerciseKey: exerciseKey
+        ) {
+            return bodyweightProgress
+        }
+
         // Loaded — requires bodyweight.
         guard bodyweightKg > 0 else { return nil }
 
@@ -304,13 +311,291 @@ enum StrengthStandards {
             sex: sex
         ) else { return nil }
         guard let next = current.next else { return (current, nil, 1.0) }
-        let ratioNow = metricValue / bodyweightKg
+        let effectiveMetric = effectiveLoadedMetric(metricValue, exerciseKey: exerciseKey)
+        let ratioNow = effectiveMetric / bodyweightKg
         // Initiate (ordinal 0) has no ratio anchor; treat its floor as 0.
         let lo = ratio(exerciseKey: exerciseKey, tier: current, sex: sex) ?? 0
         guard let hi = ratio(exerciseKey: exerciseKey, tier: next, sex: sex) else {
             return (current, next, 1.0)
         }
         return (current, next, clampFraction(value: ratioNow, lo: lo, hi: hi))
+    }
+
+    private static func effectiveLoadedMetric(_ metricValue: Double, exerciseKey: String) -> Double {
+        let normalized = normalize(exerciseKey)
+        return AccessoryStandards.dumbbellPairs.contains(normalized) ? metricValue * 2 : metricValue
+    }
+
+    // MARK: Bodyweight exercise fallback
+
+    private enum BodyweightMetricKind {
+        case reps
+        case seconds
+    }
+
+    /// Rankable exercise-library bodyweight reps/holds that are not part of the
+    /// canonical SkillStandards subset still need a real ladder. Prefer authored
+    /// skill-node criteria when the exercise maps cleanly; otherwise use
+    /// conservative movement-family ladders.
+    private static func bodyweightProgress(
+        metricValue: Double,
+        exerciseKey: String
+    ) -> (current: RankTier, next: RankTier?, fraction: Double)? {
+        let resolved = MovementResolver.resolve(exerciseKey)
+        guard resolved.rankable else { return nil }
+
+        let metricKind: BodyweightMetricKind
+        switch resolved.rankTemplate {
+        case .bodyweightReps:
+            metricKind = .reps
+        case .holdControl:
+            metricKind = .seconds
+        default:
+            return nil
+        }
+
+        if let criteria = matchingBodyweightSkillCriteria(
+            for: exerciseKey,
+            metricKind: metricKind
+        ) {
+            return progress(metricValue: metricValue, criteria: criteria, metricKind: metricKind)
+        }
+
+        let definition = MovementCatalog.definition(for: resolved.rankStandardMovementId)
+            ?? MovementCatalog.definition(for: resolved.movementId)
+        guard let anchors = fallbackBodyweightAnchors(
+            for: exerciseKey,
+            definition: definition,
+            metricKind: metricKind
+        ) else { return nil }
+
+        return progress(metricValue: metricValue, anchors: anchors)
+    }
+
+    private static func matchingBodyweightSkillCriteria(
+        for exerciseKey: String,
+        metricKind: BodyweightMetricKind
+    ) -> [SkillTier: TierCriterion]? {
+        for node in SkillGraph.shared.nodes {
+            let criteria = node.tierCriteria
+            guard !criteria.isEmpty,
+                  criteriaContainsMetric(criteria, metricKind: metricKind),
+                  criteriaReferencesExercise(criteria, exerciseKey: exerciseKey, metricKind: metricKind)
+            else { continue }
+            return criteria
+        }
+        return nil
+    }
+
+    private static func criteriaContainsMetric(
+        _ criteria: [SkillTier: TierCriterion],
+        metricKind: BodyweightMetricKind
+    ) -> Bool {
+        criteria.values.contains { threshold($0, metricKind: metricKind) != nil }
+    }
+
+    private static func criteriaReferencesExercise(
+        _ criteria: [SkillTier: TierCriterion],
+        exerciseKey: String,
+        metricKind: BodyweightMetricKind
+    ) -> Bool {
+        criteria.values.contains {
+            criterionReferencesExercise($0, exerciseKey: exerciseKey, metricKind: metricKind)
+        }
+    }
+
+    private static func criterionReferencesExercise(
+        _ criterion: TierCriterion,
+        exerciseKey: String,
+        metricKind: BodyweightMetricKind
+    ) -> Bool {
+        switch criterion {
+        case .reps(_, let exerciseName) where metricKind == .reps:
+            return exerciseNameMatches(logged: exerciseKey, required: exerciseName)
+        case .exerciseSeconds(_, let exerciseName) where metricKind == .seconds:
+            return exerciseNameMatches(logged: exerciseKey, required: exerciseName)
+        case .compound(let criteria):
+            return criteria.contains {
+                criterionReferencesExercise($0, exerciseKey: exerciseKey, metricKind: metricKind)
+            }
+        default:
+            return false
+        }
+    }
+
+    private static let bodyweightCriterionAliases: [String: Set<String>] = [
+        "ab wheel kneeling": ["ab wheel", "kneeling ab wheel"],
+        "decline sit up": ["decline situp"],
+        "inverted sit up": ["inverted situp", "roman chair situp"],
+        "jumping squat": ["jump squat", "squat jump"],
+        "bodyweight leg extension": ["bodyweight leg extensions", "reverse nordic", "reverse nordic curl", "kneeling leg extension"],
+        "weighted pistol": ["weighted pistol squat"],
+        "row": ["inverted row", "bodyweight row", "ring row", "australian row"]
+    ]
+
+    private static func exerciseNameMatches(logged: String, required: String) -> Bool {
+        if MovementProofMatcher.namesMatch(logged: logged, required: required) {
+            return true
+        }
+
+        let loggedKey = MovementCatalog.normalized(logged)
+        let requiredKey = MovementCatalog.normalized(required)
+        if loggedKey == requiredKey { return true }
+
+        if bodyweightCriterionAliases[requiredKey]?.contains(loggedKey) == true {
+            return true
+        }
+        if bodyweightCriterionAliases[loggedKey]?.contains(requiredKey) == true {
+            return true
+        }
+        return false
+    }
+
+    private static let namedRepFallbackLevels: [String: [Double]] = [
+        "bodyweight squat": [1, 17, 56, 107, 167],
+        "assisted squat": [5, 12, 25, 45, 70],
+        "parallel squat": [5, 15, 35, 60, 90],
+        "walking lunge": [1, 11, 37, 69, 105],
+        "split squat": [5, 14, 30, 50, 75],
+        "deep step up": [5, 12, 24, 40, 60],
+        "cossack squat": [3, 8, 16, 30, 50],
+        "partial pistol squat": [3, 6, 12, 20, 32],
+        "assisted pistol squat": [3, 8, 15, 25, 40],
+        "assisted shrimp squat": [3, 8, 15, 25, 40],
+        "beginner shrimp squat": [2, 5, 10, 18, 28],
+        "intermediate shrimp squat": [1, 3, 7, 12, 20],
+        "two-hand shrimp squat": [1, 2, 4, 8, 12],
+        "elevated two-hand shrimp squat": [1, 2, 3, 5, 8],
+        "nordic curl negative": [1, 3, 5, 8, 12],
+        "nordic curl arms overhead": [1, 2, 3, 5, 8],
+        "tuck one-leg nordic curl": [1, 2, 3, 4, 6],
+        "one-leg nordic curl": [1, 2, 3, 4, 6],
+        "captains chair knee raise": [5, 10, 18, 30, 45],
+        "captains chair leg raise": [1, 4, 8, 12, 20],
+        "hollow rock": [5, 12, 25, 45, 70],
+        "roman chair situp": [3, 10, 25, 45, 70]
+    ]
+
+    private static func fallbackBodyweightAnchors(
+        for exerciseKey: String,
+        definition: MovementDefinition?,
+        metricKind: BodyweightMetricKind
+    ) -> [Double]? {
+        var lookupKeys = [MovementCatalog.normalized(exerciseKey)]
+        if let canonical = definition?.canonicalExerciseName {
+            lookupKeys.append(MovementCatalog.normalized(canonical))
+        }
+        if let displayName = definition?.displayName {
+            lookupKeys.append(MovementCatalog.normalized(displayName))
+        }
+
+        switch metricKind {
+        case .reps:
+            for key in lookupKeys {
+                if let levels = namedRepFallbackLevels[key] {
+                    return tierAnchors(from: levels)
+                }
+            }
+            return tierAnchors(from: genericRepLevels(for: definition))
+        case .seconds:
+            return tierAnchors(from: genericHoldLevels(for: definition))
+        }
+    }
+
+    private static func genericRepLevels(for definition: MovementDefinition?) -> [Double] {
+        switch definition?.difficulty ?? .beginner {
+        case .beginner:
+            return [5, 12, 25, 45, 70]
+        case .intermediate:
+            return [3, 8, 16, 28, 45]
+        case .advanced:
+            return [1, 3, 7, 12, 20]
+        case .elite:
+            return [1, 2, 4, 7, 12]
+        }
+    }
+
+    private static func genericHoldLevels(for definition: MovementDefinition?) -> [Double] {
+        switch definition?.difficulty ?? .beginner {
+        case .beginner:
+            return [10, 20, 45, 90, 150]
+        case .intermediate:
+            return [5, 15, 30, 60, 120]
+        case .advanced:
+            return [3, 8, 15, 30, 60]
+        case .elite:
+            return [2, 5, 10, 20, 45]
+        }
+    }
+
+    private static func tierAnchors(from levels: [Double]) -> [Double]? {
+        guard levels.count == 5 else { return nil }
+        return SkillTierGenerator.interpolate(levels: levels).map { max(1, $0.rounded()) }
+    }
+
+    private static func progress(
+        metricValue: Double,
+        criteria: [SkillTier: TierCriterion],
+        metricKind: BodyweightMetricKind
+    ) -> (current: RankTier, next: RankTier?, fraction: Double)? {
+        let current = rank(metricValue: metricValue, criteria: criteria, metricKind: metricKind)
+        guard let next = current.next else { return (current, nil, 1.0) }
+        let lo = current == .initiate ? 0 : (criteria[current].flatMap { threshold($0, metricKind: metricKind) } ?? 0)
+        guard let hi = criteria[next].flatMap({ threshold($0, metricKind: metricKind) }) else {
+            return (current, next, 1.0)
+        }
+        return (current, next, clampFraction(value: metricValue, lo: lo, hi: hi))
+    }
+
+    private static func rank(
+        metricValue: Double,
+        criteria: [SkillTier: TierCriterion],
+        metricKind: BodyweightMetricKind
+    ) -> RankTier {
+        for tier in SkillTier.allCases.reversed() {
+            guard let criterion = criteria[tier],
+                  let value = threshold(criterion, metricKind: metricKind),
+                  metricValue >= value
+            else { continue }
+            return tier
+        }
+        return .initiate
+    }
+
+    private static func threshold(
+        _ criterion: TierCriterion,
+        metricKind: BodyweightMetricKind
+    ) -> Double? {
+        switch criterion {
+        case .reps(let value, _) where metricKind == .reps:
+            return Double(value)
+        case .exerciseSeconds(let value, _) where metricKind == .seconds:
+            return Double(value)
+        case .compound(let criteria):
+            let thresholds = criteria.compactMap { threshold($0, metricKind: metricKind) }
+            return thresholds.isEmpty ? nil : thresholds.max()
+        default:
+            return nil
+        }
+    }
+
+    private static func progress(
+        metricValue: Double,
+        anchors: [Double]
+    ) -> (current: RankTier, next: RankTier?, fraction: Double)? {
+        guard anchors.count == 9 else { return nil }
+        let current = rank(metricValue: metricValue, anchors: anchors)
+        guard let next = current.next else { return (current, nil, 1.0) }
+        let lo = current == .initiate ? 0 : anchors[current.rawValue]
+        let hi = anchors[next.rawValue]
+        return (current, next, clampFraction(value: metricValue, lo: lo, hi: hi))
+    }
+
+    private static func rank(metricValue: Double, anchors: [Double]) -> RankTier {
+        for tier in RankTier.allCases.reversed() where metricValue >= anchors[tier.rawValue] {
+            return tier
+        }
+        return .initiate
     }
 
     private static func clampFraction(value: Double, lo: Double, hi: Double) -> Double {

@@ -7,28 +7,18 @@ protocol RestNotifying: Sendable {
     func cancelPending()
 }
 
-/// Thin wrapper over UNUserNotificationCenter. Behaviour is exercised via the
-/// RestTimerModel tests using a spy; this concrete impl is build-verified.
+/// Keeps rest timers in-app only. Older builds scheduled a lock-screen alert
+/// for every rest period, so this concrete impl now just clears stale requests.
 final class RestNotifier: RestNotifying, @unchecked Sendable {
     static let shared = RestNotifier()
     private let id = "unbound.rest.timer"
     private let center = UNUserNotificationCenter.current()
 
     func requestAuthIfNeeded() async {
-        let settings = await center.notificationSettings()
-        guard settings.authorizationStatus == .notDetermined else { return }
-        _ = try? await center.requestAuthorization(options: [.alert, .sound])
     }
 
-    func schedule(after seconds: TimeInterval, title: String, body: String) {
+    func schedule(after _: TimeInterval, title _: String, body _: String) {
         center.removePendingNotificationRequests(withIdentifiers: [id])
-        let content = UNMutableNotificationContent()
-        content.title = title
-        content.body = body
-        content.sound = .default
-        let trigger = UNTimeIntervalNotificationTrigger(
-            timeInterval: max(1, seconds), repeats: false)
-        center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
     }
 
     func cancelPending() {

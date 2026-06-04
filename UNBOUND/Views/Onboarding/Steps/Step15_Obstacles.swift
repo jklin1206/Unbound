@@ -28,6 +28,9 @@ struct Step15_Obstacles: View {
     }
 }
 
+#if DEBUG
 #Preview {
     Step15_Obstacles(flow: OnboardingFlowViewModel(), progress: 0.5, onBack: {}, onContinue: {})
 }
+
+#endif

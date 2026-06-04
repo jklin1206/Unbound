@@ -18,9 +18,9 @@ struct UserSkillProgress: Codable {
     /// Persists across app launches so the bookmark icon survives restart.
     var bookmarkedNodeIds: Set<String> = []
 
-    /// Skills the user has explicitly opted into training. Distinct from
-    /// `bookmarkedNodeIds` (passive save). Active goals drive the Program
-    /// tab's TODAY'S TRAINING section.
+    /// Skills the user has explicitly opted into training. Product copy calls
+    /// these Program Focuses. The persisted key stays `activeGoalIds` so
+    /// existing saved progress continues decoding without a migration.
     var activeGoalIds: Set<String> = []
 
     /// User's customized weekly schedule. Index 0 = Monday, 6 = Sunday.

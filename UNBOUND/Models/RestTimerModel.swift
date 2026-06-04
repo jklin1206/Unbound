@@ -2,8 +2,8 @@ import Foundation
 import Combine
 
 /// Owns rest-countdown state. Survives its own UI dismissal (isVisible vs
-/// isActive). Drives a haptic + local notification at zero. The view starts a
-/// 1s Timer and calls `tick()`; the model is otherwise pure and unit-tested.
+/// isActive). The view starts a 1s Timer and calls `tick()`; the model is
+/// otherwise pure and unit-tested.
 @MainActor
 final class RestTimerModel: ObservableObject {
     @Published private(set) var remaining: Int = 0

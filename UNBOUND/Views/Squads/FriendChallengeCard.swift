@@ -84,10 +84,12 @@ struct FriendChallengeCard: View {
             }
             .frame(height: 5)
 
-            Text("\(progress)")
+            Text(challenge.kind.progressLabel(for: progress))
                 .font(.system(size: 11, weight: .semibold, design: .monospaced))
                 .foregroundStyle(isOwn ? Color.unbound.textPrimary : Color.unbound.textSecondary)
-                .frame(width: 24, alignment: .trailing)
+                .frame(width: 122, alignment: .trailing)
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
         }
     }
 

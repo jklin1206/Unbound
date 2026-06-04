@@ -64,7 +64,7 @@ struct UserSkillEquipmentProfile: Codable, Sendable {
 
     static let `default` = UserSkillEquipmentProfile(
         hasFullGym: false,
-        available: [.bodyweight, .pullupBar]
+        available: [.bodyweight]
     )
 
     func has(_ e: SkillEquipment) -> Bool {

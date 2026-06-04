@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct SkillBlockPickerSheet: View {
-    var activeGoalIDs: [String]
+    var programFocusIDs: [String]
     var onPick: (SkillNode, SkillBlockKind) -> Void
     var onDismiss: () -> Void
 
@@ -86,10 +86,10 @@ struct SkillBlockPickerSheet: View {
     }
 
     private var sortedNodes: [SkillNode] {
-        let active = Set(activeGoalIDs)
+        let focused = Set(programFocusIDs)
         return SkillGraph.shared.nodes.sorted { lhs, rhs in
-            let lhsActive = active.contains(lhs.id)
-            let rhsActive = active.contains(rhs.id)
+            let lhsActive = focused.contains(lhs.id)
+            let rhsActive = focused.contains(rhs.id)
             if lhsActive != rhsActive { return lhsActive && !rhsActive }
             if lhs.cluster.displayName != rhs.cluster.displayName {
                 return lhs.cluster.displayName < rhs.cluster.displayName
@@ -117,8 +117,8 @@ struct SkillBlockPickerSheet: View {
                             .font(Font.unbound.bodyS.weight(.heavy))
                             .foregroundStyle(Color.unbound.textPrimary)
                             .lineLimit(1)
-                        if activeGoalIDs.contains(node.id) {
-                            Text("ACTIVE")
+                        if programFocusIDs.contains(node.id) {
+                            Text("FOCUS")
                                 .font(Font.unbound.captionS.weight(.black))
                                 .tracking(0.8)
                                 .foregroundStyle(Color.unbound.bg)
@@ -156,7 +156,7 @@ struct SkillBlockPickerSheet: View {
     }
 
     private func rowTint(for node: SkillNode) -> Color {
-        activeGoalIDs.contains(node.id) ? Color.unbound.coachCyan : Color.unbound.accent
+        programFocusIDs.contains(node.id) ? Color.unbound.coachCyan : Color.unbound.accent
     }
 
     private func shortLabel(for kind: SkillBlockKind) -> String {

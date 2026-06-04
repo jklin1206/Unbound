@@ -8,6 +8,9 @@ import Foundation
 
 struct AISession: Codable, Equatable {
     let skillId: String
+    var selectedRungId: String? = nil
+    var selectedRungSource: SkillTrainingRungSource? = nil
+    var selectedRungReason: String? = nil
     let generatedAt: Date
 
     /// One-line overview, e.g. "Today: pull-up volume + grip strength".

@@ -29,12 +29,28 @@ enum RankTrialFormat: String, Codable, CaseIterable, Equatable, Sendable {
         case .daily100: return "Daily 100"
         case .operatorScreen: return "Operator Screen"
         case .finisher: return "Finisher"
-        case .fixedDeck: return "Fixed Deck"
+        case .fixedDeck: return "Random Deck"
         case .tower: return "Tower"
         case .bossRush: return "Boss Rush"
         case .raid: return "Raid"
         case .finalExam: return "Final Exam"
         }
+    }
+}
+
+private struct DeckDrawRandomNumberGenerator: RandomNumberGenerator {
+    private var state: UInt64
+
+    init(seed: UInt64) {
+        state = seed == 0 ? 0x9E37_79B9_7F4A_7C15 : seed
+    }
+
+    mutating func next() -> UInt64 {
+        state &+= 0x9E37_79B9_7F4A_7C15
+        var value = state
+        value = (value ^ (value >> 30)) &* 0xBF58_476D_1CE4_E5B9
+        value = (value ^ (value >> 27)) &* 0x94D0_49BB_1331_11EB
+        return value ^ (value >> 31)
     }
 }
 
@@ -390,14 +406,18 @@ struct OverallRankTrialDefinition: Identifiable, Codable, Equatable, Sendable {
         resolvedTrial: ResolvedRankTrial,
         bodyweightKg: Double?
     ) -> TrainingSessionDraft {
-        TrainingSessionDraft(
+        let draftId = UUID().uuidString
+        let stations = stationsForDraft(resolvedTrial.stations, draftId: draftId, userId: userId, date: date)
+
+        return TrainingSessionDraft(
+            id: draftId,
             userId: userId,
             source: .overallRankTrial,
             title: displayName,
             date: date,
             estimatedMinutes: estimatedMinutes,
             programId: id,
-            blocks: resolvedTrial.stations.map { station in
+            blocks: stations.map { station in
                 let selected = station.selectedMovement
                 let standard = station.standard
                 let movement = MovementCatalog.definition(for: selected.movementId)
@@ -430,6 +450,31 @@ struct OverallRankTrialDefinition: Identifiable, Codable, Equatable, Sendable {
                 )
             }
         )
+    }
+
+    private func stationsForDraft(
+        _ stations: [ResolvedTrialStation],
+        draftId: String,
+        userId: String,
+        date: Date
+    ) -> [ResolvedTrialStation] {
+        guard format == .fixedDeck, stations.count > 1 else { return stations }
+
+        var generator = DeckDrawRandomNumberGenerator(seed: deckDrawSeed(draftId: draftId, userId: userId, date: date))
+        var dealt = stations.shuffled(using: &generator)
+        if dealt.map(\.id) == stations.map(\.id) {
+            dealt.append(dealt.removeFirst())
+        }
+        return dealt
+    }
+
+    private func deckDrawSeed(draftId: String, userId: String, date: Date) -> UInt64 {
+        var hasher = Hasher()
+        hasher.combine(id)
+        hasher.combine(draftId)
+        hasher.combine(userId)
+        hasher.combine(date.timeIntervalSince1970.bitPattern)
+        return UInt64(bitPattern: Int64(hasher.finalize()))
     }
 
     private func blockTitle(for kind: TrainingBlockKind) -> String {
@@ -649,6 +694,36 @@ enum OverallRankTrialDefinitions {
         case .gymHybrid: return gym
         }
     }
+
+    private struct DeckRankSpec {
+        let code: String
+        let reps: Int
+    }
+
+    private struct DeckSuitSpec {
+        let code: String
+        let title: String
+        let category: TrialMovementCategory
+        let movementId: String
+        let displayName: String
+        let movementOptions: [TrialMovementOption]
+    }
+
+    private static let deckRanks: [DeckRankSpec] = [
+        DeckRankSpec(code: "A", reps: TrialStandards.DeckOfProof.aceReps),
+        DeckRankSpec(code: "2", reps: 2),
+        DeckRankSpec(code: "3", reps: 3),
+        DeckRankSpec(code: "4", reps: 4),
+        DeckRankSpec(code: "5", reps: 5),
+        DeckRankSpec(code: "6", reps: 6),
+        DeckRankSpec(code: "7", reps: 7),
+        DeckRankSpec(code: "8", reps: 8),
+        DeckRankSpec(code: "9", reps: 9),
+        DeckRankSpec(code: "10", reps: 10),
+        DeckRankSpec(code: "J", reps: TrialStandards.DeckOfProof.faceCardReps),
+        DeckRankSpec(code: "Q", reps: TrialStandards.DeckOfProof.faceCardReps),
+        DeckRankSpec(code: "K", reps: TrialStandards.DeckOfProof.faceCardReps)
+    ]
 
     private static func daily100Stations(loadout: TrialLoadout) -> [TrialStation] {
         [
@@ -872,89 +947,87 @@ enum OverallRankTrialDefinitions {
     }
 
     private static func deckStations(loadout: TrialLoadout) -> [TrialStation] {
-        let categories: [TrialMovementCategory] = [
-            .push, .lower, .pull, .engine, .push, .lower,
-            .pull, .carryCore, .push, .lower, .pull, .engine,
-            .push, .lower, .pull, .engine, .push, .lower,
-            .pull, .carryCore, .push, .lower, .pull, .engine
-        ]
-        return categories.enumerated().map { index, category in
-            let card = String(format: "%02d", index + 1)
-            switch category {
-            case .push:
+        let suits = deckSuitSpecs(loadout: loadout)
+
+        return suits.enumerated().flatMap { suitIndex, suit in
+            deckRanks.enumerated().map { rankIndex, rank in
+                let cardNumber = String(format: "%02d", suitIndex * deckRanks.count + rankIndex + 1)
+                let cardCode = "\(rank.code)\(suit.code)"
                 return station(
-                    "deck-card-\(card)",
-                    title: "Card \(card) Push",
-                    category: .push,
-                    movementId: loadout == .gymHybrid ? "exercise.machine-chest-press" : "exercise.pushup",
+                    "deck-card-\(cardNumber)",
+                    title: "Card \(cardCode) \(suit.title)",
+                    category: suit.category,
+                    movementId: suit.movementId,
+                    displayName: suit.displayName,
                     metric: .reps,
-                    minimumValue: TrialStandards.DeckOfProof.pushReps,
-                    movementOptions: movementSet(
-                        loadout: loadout,
-                        noGym: option("exercise.pushup"),
-                        home: [option("exercise.pushup"), option("exercise.dumbbell-bench-press", requiredEquipment: [.dumbbell])],
-                        gym: [option("exercise.machine-chest-press", requiredEquipment: [.machine]), option("exercise.pushup")]
-                    )
-                )
-            case .lower:
-                return station(
-                    "deck-card-\(card)",
-                    title: "Card \(card) Lower",
-                    category: .lower,
-                    movementId: loadout == .gymHybrid ? "exercise.leg-press" : loadout == .homeKit ? "exercise.goblet-squat" : "exercise.step-up",
-                    metric: .reps,
-                    minimumValue: TrialStandards.DeckOfProof.lowerReps,
-                    movementOptions: movementSet(
-                        loadout: loadout,
-                        noGym: option("exercise.step-up"),
-                        home: [option("exercise.goblet-squat", requiredEquipment: [.dumbbell]), option("exercise.dumbbell-step-up", requiredEquipment: [.dumbbell])],
-                        gym: [option("exercise.leg-press", requiredEquipment: [.machine]), option("exercise.goblet-squat", requiredEquipment: [.dumbbell])]
-                    )
-                )
-            case .pull:
-                return station(
-                    "deck-card-\(card)",
-                    title: "Card \(card) Pull",
-                    category: .pull,
-                    movementId: loadout == .gymHybrid ? "exercise.cable-row-seated" : loadout == .homeKit ? "exercise.dumbbell-row" : "exercise.inverted-row",
-                    metric: .reps,
-                    minimumValue: TrialStandards.DeckOfProof.pullReps,
-                    movementOptions: movementSet(
-                        loadout: loadout,
-                        noGym: option("exercise.inverted-row"),
-                        home: [option("exercise.dumbbell-row", requiredEquipment: [.dumbbell]), option("exercise.band-row", requiredEquipment: [.band])],
-                        gym: [option("exercise.cable-row-seated", requiredEquipment: [.cable]), option("exercise.machine-row", requiredEquipment: [.machine])]
-                    )
-                )
-            case .engine:
-                return engineStation("deck-card-\(card)", title: "Card \(card) Engine", loadout: loadout, runMeters: TrialStandards.DeckOfProof.engineMeters)
-            case .carryCore:
-                return station(
-                    "deck-card-\(card)",
-                    title: "Card \(card) Carry / Core",
-                    category: .carryCore,
-                    movementId: loadout == .noGymField ? "exercise.plank" : "carry.suitcase-carry",
-                    metric: loadout == .noGymField ? .holdSeconds : .distanceMeters,
-                    minimumValue: loadout == .noGymField ? TrialStandards.DeckOfProof.coreHoldSeconds : TrialStandards.DeckOfProof.carryMeters,
-                    loadPercentOfBodyweight: loadout == .noGymField ? nil : TrialStandards.DeckOfProof.carryLoadPercent,
-                    movementOptions: movementSet(
-                        loadout: loadout,
-                        noGym: option("exercise.plank"),
-                        home: [option("carry.suitcase-carry", requiredEquipment: [.dumbbell, .openSpace]), option("carry.suitcase-carry", requiredEquipment: [.kettlebell, .openSpace])],
-                        gym: [option("carry.farmer-carry", requiredEquipment: [.dumbbell, .openSpace])]
-                    )
-                )
-            case .hingePower, .explosive, .mobilityControl:
-                return station(
-                    "deck-card-\(card)",
-                    title: "Card \(card) Control",
-                    category: .mobilityControl,
-                    movementId: "exercise.plank",
-                    metric: .holdSeconds,
-                    minimumValue: TrialStandards.DeckOfProof.controlHoldSeconds
+                    minimumValue: rank.reps,
+                    restSeconds: TrialStandards.DeckOfProof.restSeconds,
+                    movementOptions: suit.movementOptions,
+                    restRule: "Short rest, then flip the next card."
                 )
             }
         }
+    }
+
+    private static func deckSuitSpecs(loadout: TrialLoadout) -> [DeckSuitSpec] {
+        let pullup = option("exercise.pullup", "Pull-Up", requiredEquipment: [.pullupBar])
+        let rowFallback = option("exercise.inverted-row", "Inverted Row")
+        let situp = option("exercise.decline-situp", "Sit-Up", requiredEquipment: [.bodyweight])
+
+        let pullOptions: [TrialMovementOption]
+        switch loadout {
+        case .noGymField:
+            pullOptions = [pullup, rowFallback]
+        case .homeKit:
+            pullOptions = [
+                pullup,
+                rowFallback,
+                option("exercise.dumbbell-row", requiredEquipment: [.dumbbell]),
+                option("exercise.band-row", requiredEquipment: [.band])
+            ]
+        case .gymHybrid:
+            pullOptions = [
+                pullup,
+                option("exercise.cable-row-seated", requiredEquipment: [.cable]),
+                option("exercise.machine-row", requiredEquipment: [.machine]),
+                rowFallback
+            ]
+        }
+
+        return [
+            DeckSuitSpec(
+                code: "H",
+                title: "Pushups",
+                category: .push,
+                movementId: "exercise.pushup",
+                displayName: "Push-Up",
+                movementOptions: [option("exercise.pushup", "Push-Up")]
+            ),
+            DeckSuitSpec(
+                code: "D",
+                title: "Squats",
+                category: .lower,
+                movementId: "exercise.bodyweight-squat",
+                displayName: "Bodyweight Squat",
+                movementOptions: [option("exercise.bodyweight-squat")]
+            ),
+            DeckSuitSpec(
+                code: "C",
+                title: "Pullups",
+                category: .pull,
+                movementId: "exercise.pullup",
+                displayName: "Pull-Up",
+                movementOptions: pullOptions
+            ),
+            DeckSuitSpec(
+                code: "S",
+                title: "Sit-Ups",
+                category: .carryCore,
+                movementId: "exercise.decline-situp",
+                displayName: "Sit-Up",
+                movementOptions: [situp]
+            )
+        ]
     }
 
     private static func towerStations(loadout: TrialLoadout) -> [TrialStation] {
@@ -1720,6 +1793,10 @@ final class TrialReadinessService {
                 result.formUnion([.bench, .bodyweight])
             case .pullupBar:
                 result.formUnion([.pullupBar, .bodyweight])
+            case .dipStation:
+                result.formUnion([.dipStation, .bodyweight])
+            case .rings:
+                result.formUnion([.rings, .bodyweight])
             case .bodyweight:
                 result.insert(.bodyweight)
             case .bands:

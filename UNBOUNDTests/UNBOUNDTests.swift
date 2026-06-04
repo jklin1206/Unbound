@@ -140,6 +140,7 @@ final class UNBOUNDSmokeTest: XCTestCase {
         XCTAssertEqual(sequence.workoutName, "Run Session")
         XCTAssertEqual(sequence.workSets, 1)
         XCTAssertEqual(sequence.rpe, 7)
+        XCTAssertEqual(sequence.xp.total, 12)
         XCTAssertEqual(sequence.progression?.movementLines.first?.name, "Run")
     }
 
@@ -847,6 +848,20 @@ final class AuthViewModelDevEntitlementTests: XCTestCase {
         XCTAssertTrue(DevFlags.shared.unlockAllFeatures)
         #else
         XCTAssertFalse(DevFlags.shared.unlockAllFeatures)
+        #endif
+    }
+
+    func testEntitlementServiceHonorsDevUnlockOnlyInDebug() {
+        DevFlags.shared.unlockAllFeatures = false
+        defer { DevFlags.shared.unlockAllFeatures = false }
+
+        DevFlags.shared.unlockAllFeatures = true
+        let entitlement = EntitlementService(subscription: MockSubscriptionService())
+
+        #if DEBUG
+        XCTAssertTrue(entitlement.isEntitled)
+        #else
+        XCTAssertFalse(entitlement.isEntitled)
         #endif
     }
 }

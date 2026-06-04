@@ -38,7 +38,7 @@ final class SquadActivityService: SquadActivityServiceProtocol {
         backend: SquadActivityBackendProtocol,
         auth: AuthServiceProtocol,
         squadService: SquadServiceProtocol,
-        sessionXP: SessionXPServiceProtocol = SessionXPService.shared,
+        sessionXP: SessionXPServiceProtocol,
         observesNotifications: Bool = true
     ) {
         self.backend = backend
@@ -48,6 +48,21 @@ final class SquadActivityService: SquadActivityServiceProtocol {
         if observesNotifications {
             observeTrialsNotifications()
         }
+    }
+
+    convenience init(
+        backend: SquadActivityBackendProtocol,
+        auth: AuthServiceProtocol,
+        squadService: SquadServiceProtocol,
+        observesNotifications: Bool = true
+    ) {
+        self.init(
+            backend: backend,
+            auth: auth,
+            squadService: squadService,
+            sessionXP: SessionXPService.shared,
+            observesNotifications: observesNotifications
+        )
     }
 
     deinit {

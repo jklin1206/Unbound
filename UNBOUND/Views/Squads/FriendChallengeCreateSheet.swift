@@ -118,7 +118,7 @@ struct FriendChallengeCreateSheet: View {
         VStack(alignment: .leading, spacing: 12) {
             sectionHeader("CHALLENGE TYPE", icon: "bolt.fill")
             VStack(spacing: 8) {
-                ForEach(FriendChallenge.Kind.allCases, id: \.self) { kind in
+                ForEach(FriendChallenge.Kind.creationOptions, id: \.self) { kind in
                     kindRow(kind)
                 }
             }
@@ -133,6 +133,10 @@ struct FriendChallengeCreateSheet: View {
             }
         } label: {
             HStack(spacing: 12) {
+                Image(systemName: kind.systemImage)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(isSelected ? Color.unbound.accent : Color.unbound.textTertiary)
+                    .frame(width: 22)
                 VStack(alignment: .leading, spacing: 3) {
                     Text(kind.displayName)
                         .font(.system(size: 14, weight: .semibold))
@@ -140,7 +144,7 @@ struct FriendChallengeCreateSheet: View {
                     Text(kind.subtitle)
                         .font(.system(size: 11))
                         .foregroundStyle(Color.unbound.textSecondary)
-                        .lineLimit(1)
+                        .lineLimit(2)
                 }
                 Spacer()
                 if isSelected {

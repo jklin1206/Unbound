@@ -3,10 +3,34 @@ import SwiftUI
 struct ScheduleSavedWorkoutSheet: View {
     let savedWorkout: SavedWorkout
     let program: TrainingProgram
+    let minimumDayNumber: Int?
+    let preselectedDayNumbers: Set<Int>
     let onSchedule: ([Int]) -> Void
     let onDismiss: () -> Void
 
     @State private var selectedDayNumbers: Set<Int> = []
+
+    init(
+        savedWorkout: SavedWorkout,
+        program: TrainingProgram,
+        minimumDayNumber: Int? = nil,
+        preselectedDayNumbers: Set<Int> = [],
+        onSchedule: @escaping ([Int]) -> Void,
+        onDismiss: @escaping () -> Void
+    ) {
+        self.savedWorkout = savedWorkout
+        self.program = program
+        self.minimumDayNumber = minimumDayNumber
+        self.preselectedDayNumbers = preselectedDayNumbers
+        self.onSchedule = onSchedule
+        self.onDismiss = onDismiss
+        let allowedSelections = preselectedDayNumbers.filter { dayNumber in
+            guard let day = program.days.first(where: { $0.dayNumber == dayNumber }) else { return false }
+            let isPast = minimumDayNumber.map { day.dayNumber < $0 } ?? false
+            return !day.isRestDay && !isPast
+        }
+        _selectedDayNumbers = State(initialValue: Set(allowedSelections))
+    }
 
     var body: some View {
         NavigationStack {
@@ -23,7 +47,7 @@ struct ScheduleSavedWorkoutSheet: View {
                     .padding(.bottom, 24)
                 }
             }
-            .navigationTitle("Schedule")
+            .navigationTitle("Plan")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Close", action: onDismiss)
@@ -34,15 +58,20 @@ struct ScheduleSavedWorkoutSheet: View {
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        HStack(spacing: 10) {
             Text(savedWorkout.title.uppercased())
                 .font(Font.unbound.captionS.weight(.heavy))
                 .tracking(1.4)
                 .foregroundStyle(Color.unbound.coachCyan)
-            Text("Pick the remaining Arc days where this Saved Workout should replace the generated session.")
-                .font(Font.unbound.captionS)
-                .foregroundStyle(Color.unbound.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+            Spacer()
+            Text("\(savedWorkout.exerciseCount)")
+                .font(Font.unbound.monoS.weight(.bold))
+                .foregroundStyle(Color.unbound.bg)
+                .padding(.horizontal, 9)
+                .frame(height: 24)
+                .background(Capsule().fill(Color.unbound.coachCyan))
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -62,7 +91,8 @@ struct ScheduleSavedWorkoutSheet: View {
 
     private func dayButton(_ day: ProgramDay) -> some View {
         let selected = selectedDayNumbers.contains(day.dayNumber)
-        let disabled = day.isRestDay
+        let isPast = minimumDayNumber.map { day.dayNumber < $0 } ?? false
+        let disabled = day.isRestDay || isPast
         return Button {
             if selected {
                 selectedDayNumbers.remove(day.dayNumber)
@@ -99,7 +129,7 @@ struct ScheduleSavedWorkoutSheet: View {
         Button {
             onSchedule(Array(selectedDayNumbers).sorted())
         } label: {
-            Text(selectedDayNumbers.isEmpty ? "PICK DAYS" : "SCHEDULE \(selectedDayNumbers.count) DAY\(selectedDayNumbers.count == 1 ? "" : "S")")
+            Text(selectedDayNumbers.isEmpty ? "PICK DAY" : "SCHEDULE")
                 .font(Font.unbound.bodyMStrong)
                 .tracking(1.4)
                 .foregroundStyle(Color.unbound.textPrimary)

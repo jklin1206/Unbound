@@ -7,14 +7,6 @@ import Supabase
 // Wraps UnboundSupabase.client for all squad-table operations.
 // Tests never touch this file — they use MockSquadBackend.
 //
-// NOTE: supabase-swift SDK table-query semantics are confirmed from
-// the existing codebase usage (SupabaseClient.swift, AuthService.swift).
-// The table operations below use the standard `.from(_:).select()` /
-// `.insert(_:)` / `.update(_:)` / `.delete()` query-builder pattern.
-// TODO(squads-impl): confirm exact column name casing with the live migration
-// before merging to main. RLS policies must be applied via CLI before the
-// production impl runs end-to-end.
-
 final class SquadBackend: SquadBackendProtocol, @unchecked Sendable {
 
     static let shared = SquadBackend()
@@ -59,7 +51,6 @@ final class SquadBackend: SquadBackendProtocol, @unchecked Sendable {
         inviteCode: String,
         maxSize: Int
     ) async throws -> Squad {
-        // TODO(squads-impl): wire concrete Supabase insert once SDK confirmed
         struct Insert: Encodable {
             let id: String
             let name: String
@@ -244,15 +235,20 @@ final class SquadBackend: SquadBackendProtocol, @unchecked Sendable {
         return rows.first?.squad_id
     }
 
-    func incrementMissionProgress(squadId: UUID, delta: Int) async throws {
+    func incrementMissionProgress(squadId: UUID, delta: Int, sourceLogId: String) async throws {
         struct IncrementParams: Encodable, Sendable {
             let p_squad_id: String
             let p_delta: Int
+            let p_source_log_id: String
         }
         try await UnboundSupabase.client
             .rpc(
                 "increment_squad_mission_progress",
-                params: IncrementParams(p_squad_id: squadId.uuidString, p_delta: delta)
+                params: IncrementParams(
+                    p_squad_id: squadId.uuidString,
+                    p_delta: delta,
+                    p_source_log_id: sourceLogId
+                )
             )
             .execute()
     }

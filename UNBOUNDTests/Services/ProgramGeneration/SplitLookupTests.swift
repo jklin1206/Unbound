@@ -45,6 +45,15 @@ final class SplitLookupTests: XCTestCase {
         XCTAssertEqual(split.trainingDayTemplates, [.push, .pull, .legs, .push, .pull, .legs])
     }
 
+    func testBodyweightTrainingStyleForcesCalisthenicSplitForAnyIdentity() {
+        let split = SplitLookup.split(
+            buildIdentity: Self.powerHybrid,
+            frequency: .five,
+            trainingStyle: .bodyweight
+        )
+        XCTAssertEqual(split.trainingDayTemplates, [.push, .pull, .legs, .skill, .weakPoint])
+    }
+
     func testBalancedAthleteThreeIsUpperLowerFull() {
         let split = SplitLookup.split(buildIdentity: Self.balancedAthlete, frequency: .three)
         XCTAssertEqual(split.trainingDayTemplates, [.upper, .lower, .fullBody])

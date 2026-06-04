@@ -8,6 +8,8 @@ build/
 DerivedData/
 .derivedData/
 .derivedData-*/
+.test-results/
+*.xcresult
 .module-cache/
 *.pbxuser
 *.mode1v3
@@ -28,6 +30,11 @@ xcuserdata/
 .build/
 Packages/
 Package.resolved
+!UNBOUND.xcodeproj/project.xcworkspace/xcshareddata/
+UNBOUND.xcodeproj/project.xcworkspace/xcshareddata/*
+!UNBOUND.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/
+UNBOUND.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/*
+!UNBOUND.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
 
 # CocoaPods
 Pods/
@@ -49,11 +56,17 @@ fastlane/test_output
 UNBOUND.xcodeproj/project.pbxproj
 UNBOUND.xcodeproj/xcuserdata/
 UNBOUND.xcodeproj/project.xcworkspace/xcuserdata/
-UNBOUND.xcodeproj/project.xcworkspace/xcshareddata/
+!UNBOUND.xcodeproj/project.xcworkspace/xcshareddata/
+UNBOUND.xcodeproj/project.xcworkspace/xcshareddata/*
+!UNBOUND.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/
+UNBOUND.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/*
+!UNBOUND.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
 
 # Environment
 *.env
 .env.local
+supabase/.temp/
+UNBOUND/Services/Secrets/Secrets.swift
 
 # Superpowers workspace (local only)
 .superpowers/
@@ -63,6 +76,10 @@ UNBOUND.xcodeproj/project.xcworkspace/xcshareddata/
 .unbound-content-scout/
 .code-review-graph/
 .claude/
+.tmp/
+outputs/
+__pycache__/
+*.pyc
 LocalArtifacts/
 exports/
 generated-previews/

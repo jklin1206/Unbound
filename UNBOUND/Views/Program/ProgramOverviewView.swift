@@ -18,7 +18,7 @@ struct ProgramOverviewView: View {
     @EnvironmentObject var services: ServiceContainer
 
     /// Observe the singleton so TODAY'S TRAINING refreshes when the user
-    /// flips a goal from the skill detail screen. `@Bindable` here would
+    /// flips a Program Focus from the skill detail screen. `@Bindable` here would
     /// require a @State container — using direct singleton access via
     /// `@Bindable var` on a property is the same pattern the skill detail
     /// view uses for SkillProgressService.
@@ -33,13 +33,16 @@ struct ProgramOverviewView: View {
     @State private var workoutReadyDraft: TrainingSessionDraft?
     @State private var activeWorkoutDraft: TrainingSessionDraft?
     @State private var sessionEditorDraft: TrainingSessionDraft?
+    @State private var planningWorkoutDraft: TrainingSessionDraft?
     @State private var showSavedWorkouts = false
     @State private var schedulingSavedWorkout: SavedWorkout?
+    @State private var schedulingDefaultDayNumbers: Set<Int> = []
+    @State private var planningTargetDayNumber: Int?
     @State private var savedWorkoutScheduleError: SavedWorkoutScheduleError?
     @State private var recoveryRewardSequence: WorkoutRewardSequenceSummary?
     @State private var isCompletingRecoveryDay = false
 
-    // Active-goal detail launcher state.
+    // Program Focus detail launcher state.
     @State private var pushedSkillNode: SkillNode?
 
     // V3 — day-strip preview + schedule editor sheets.
@@ -51,7 +54,10 @@ struct ProgramOverviewView: View {
 
     // Program view state
     @State private var weekOffset: Int = 0 // +1 = next week, -1 = prev
-    @State private var selectedDayDate: Date = Calendar.current.startOfDay(for: Date())
+    @State private var selectedDayDate: Date = Self.initialSelectedDayDate()
+    #if DEBUG
+    @State private var devDayOffset: Int = DevProgramClock.dayOffset
+    #endif
 
     // Completed-log cache. Still feeds checkpoint/recovery context even
     // though the old calendar tab is no longer surfaced.
@@ -83,10 +89,41 @@ struct ProgramOverviewView: View {
 
     // Resume draft affordance.
     @State private var resumeDraft: ActiveWorkoutSession?
-    @State private var showResume = false
     private let draftStore = WorkoutDraftStore()
 
     enum Tab: Hashable { case program, routines, ranks }
+
+    private static func initialSelectedDayDate() -> Date {
+        #if DEBUG
+        return DevProgramClock.today
+        #else
+        return Calendar.current.startOfDay(for: Date())
+        #endif
+    }
+
+    private var programToday: Date {
+        #if DEBUG
+        return DevProgramClock.today(offset: devDayOffset)
+        #else
+        return Calendar.current.startOfDay(for: Date())
+        #endif
+    }
+
+    private var programNow: Date {
+        #if DEBUG
+        return DevProgramClock.now(offset: devDayOffset)
+        #else
+        return Date()
+        #endif
+    }
+
+    private func isProgramToday(_ date: Date) -> Bool {
+        Calendar.current.isDate(date, inSameDayAs: programToday)
+    }
+
+    private func isProgramPast(_ date: Date) -> Bool {
+        date < programToday && !isProgramToday(date)
+    }
 
     var body: some View {
         ZStack {
@@ -150,12 +187,19 @@ struct ProgramOverviewView: View {
         }
         .sheet(isPresented: $showSavedWorkouts) {
             SavedWorkoutsListView(
+                onCreateNew: {
+                    showSavedWorkouts = false
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
+                        openPlanAheadEditor()
+                    }
+                },
                 onReplaceToday: { workout in
                     showSavedWorkouts = false
                     replaceTodayWithSavedWorkout(workout)
                 },
                 onSchedule: { workout in
                     showSavedWorkouts = false
+                    schedulingDefaultDayNumbers = []
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
                         schedulingSavedWorkout = workout
                     }
@@ -170,8 +214,11 @@ struct ProgramOverviewView: View {
                 ScheduleSavedWorkoutSheet(
                     savedWorkout: workout,
                     program: program,
+                    minimumDayNumber: currentProgramDayNumber(in: program),
+                    preselectedDayNumbers: schedulingDefaultDayNumbers,
                     onSchedule: { dayNumbers in
                         schedulingSavedWorkout = nil
+                        schedulingDefaultDayNumbers = []
                         scheduleSavedWorkout(
                             workout,
                             dayNumbers: dayNumbers,
@@ -180,6 +227,7 @@ struct ProgramOverviewView: View {
                     },
                     onDismiss: {
                         schedulingSavedWorkout = nil
+                        schedulingDefaultDayNumbers = []
                     }
                 )
             }
@@ -209,6 +257,12 @@ struct ProgramOverviewView: View {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.22) {
                     activeWorkoutDraft = editedDraft
                 }
+            }
+            .environmentObject(services)
+        }
+        .fullScreenCover(item: $planningWorkoutDraft) { draft in
+            SessionEditorView(draft: draft, mode: .planAhead) { editedDraft in
+                savePlannedWorkoutAndOpenSchedule(editedDraft)
             }
             .environmentObject(services)
         }
@@ -263,10 +317,11 @@ struct ProgramOverviewView: View {
             ProgramFocusSwitchSheet(
                 currentStyle: presentation.currentStyle,
                 currentEquipment: presentation.currentEquipment,
+                currentExperience: presentation.currentExperience,
                 isApplying: isSwitchingProgramFocus,
                 errorMessage: focusSwitchErrorMessage,
-                onApply: { target in
-                    Task { await applyFocusSwitch(target) }
+                onApply: { selection in
+                    Task { await applyFocusSwitch(selection) }
                 }
             )
             .presentationDetents([.large])
@@ -382,12 +437,12 @@ struct ProgramOverviewView: View {
         _ = await historyDone
         _ = await travelDone
 
-        // Prefetch today's session for every active goal so tapping
+        // Prefetch today's session for every Program Focus so tapping
         // TRAIN is instant. Each in its own detached task.
-        for goalId in skillProgress.activeGoalIds {
+        for focusId in skillProgress.programFocusIds {
             Task.detached { @MainActor in
                 await RPESessionService.shared.prefetch(
-                    skillId: goalId,
+                    skillId: focusId,
                     userId: userId
                 )
             }
@@ -407,9 +462,9 @@ struct ProgramOverviewView: View {
         let message: String
     }
 
-    // MARK: - TODAY'S TRAINING (active goals)
+    // MARK: - TODAY'S TRAINING (Program Focuses)
     //
-    // V1: surfaces every active goal every day. Each row launches the
+    // V1: surfaces every Program Focus every day. Each row launches the
     // existing deterministic `SkillSessionView` directly — tapping the
     // card body navigates into `SkillDetailView` instead. State copy is
     // computed live from `SkillProgressService.canTrain` so the row
@@ -417,22 +472,23 @@ struct ProgramOverviewView: View {
 
     private var todaysTrainingSection: some View {
         let scheduler = ProgramScheduler.shared
-        let skillIds = scheduler.todaysSkillSessions()
+        let todayDate = programToday
+        let skillIds = scheduler.todaysSkillSessions(on: todayDate)
         let routedCount = skillIds.count
-        let totalGoals = skillProgress.activeGoalIds.count
-        let todayCat = scheduler.category(for: Date())
-        let week = scheduler.weeklyOverview()
+        let totalFocuses = skillProgress.programFocusIds.count
+        let todayCat = scheduler.category(for: todayDate)
+        let week = scheduler.weeklyOverview(startingAt: todayDate)
 
         return VStack(alignment: .leading, spacing: 8) {
             // Header — 2-line: "MONDAY · PULL DAY" + count summary, plus
             // an EDIT SCHEDULE pill on the right (V3).
             HStack(alignment: .top, spacing: 10) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(headerLine1(for: Date(), category: todayCat))
+                    Text(headerLine1(for: todayDate, category: todayCat))
                         .font(Font.unbound.captionS.weight(.bold))
                         .tracking(1.6)
                         .foregroundStyle(Color.unbound.accent)
-                    Text(headerLine2(routedCount: routedCount, totalGoals: totalGoals, category: todayCat))
+                    Text(headerLine2(routedCount: routedCount, totalFocuses: totalFocuses, category: todayCat))
                         .font(Font.unbound.captionS)
                         .tracking(0.6)
                         .foregroundStyle(Color.unbound.textTertiary)
@@ -441,14 +497,14 @@ struct ProgramOverviewView: View {
                 editScheduleButton
             }
 
-            // Body — either routed goal cards, or a quiet empty state.
+            // Body — either routed focus cards, or a quiet empty state.
             if skillIds.isEmpty {
                 routedEmptyState(category: todayCat, week: week)
             } else {
                 VStack(spacing: 8) {
                     ForEach(skillIds, id: \.self) { id in
                         if let node = SkillGraph.shared.node(id: id) {
-                            activeGoalCard(node: node)
+                            programFocusCard(node: node)
                         }
                     }
                 }
@@ -482,15 +538,15 @@ struct ProgramOverviewView: View {
         return "\(weekday) · \(category.displayName.uppercased()) DAY"
     }
 
-    private func headerLine2(routedCount: Int, totalGoals: Int, category: DayCategory) -> String {
-        if totalGoals == 0 {
-            return "No active goals yet"
+    private func headerLine2(routedCount: Int, totalFocuses: Int, category: DayCategory) -> String {
+        if totalFocuses == 0 {
+            return "No Program Focuses yet"
         }
         if category == .rest {
             return "Recovery is the work"
         }
-        let goalWord = totalGoals == 1 ? "goal" : "goals"
-        return "\(routedCount) of \(totalGoals) \(goalWord) routed today"
+        let focusWord = totalFocuses == 1 ? "focus" : "focuses"
+        return "\(routedCount) of \(totalFocuses) \(focusWord) routed today"
     }
 
     @ViewBuilder
@@ -503,7 +559,7 @@ struct ProgramOverviewView: View {
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(Color.unbound.textTertiary)
             VStack(alignment: .leading, spacing: 2) {
-                Text(category == .rest ? "Rest day" : "No goals routed to \(category.displayName) day")
+                Text(category == .rest ? "Rest day" : "No focuses routed to \(category.displayName) day")
                     .font(Font.unbound.captionS.weight(.bold))
                     .tracking(0.4)
                     .foregroundStyle(Color.unbound.textSecondary)
@@ -534,15 +590,15 @@ struct ProgramOverviewView: View {
         if category == .rest {
             return "Recover hard so tomorrow lands."
         }
-        // Find next routed day with at least one goal.
+        // Find next routed day with at least one focus.
         let next = week.dropFirst().first(where: { $0.count > 0 })
         guard let next else {
-            return "Add goals from any skill detail screen."
+            return "Add Program Focuses from any skill detail screen."
         }
         let f = DateFormatter()
         f.dateFormat = "EEEE"
         let weekday = f.string(from: next.date)
-        return "Your \(next.category.displayName) goals resume \(weekday)."
+        return "Your \(next.category.displayName) focuses resume \(weekday)."
     }
 
     // MARK: - 7-day strip
@@ -559,7 +615,7 @@ struct ProgramOverviewView: View {
 
     private func dayStripChip(date: Date, category: DayCategory, count: Int) -> some View {
         let cal = Calendar.current
-        let isToday = cal.isDateInToday(date)
+        let isToday = isProgramToday(date)
         let letter = singleLetterWeekday(for: date)
         let isRest = category == .rest
 
@@ -663,11 +719,12 @@ struct ProgramOverviewView: View {
         }
     }
 
-    private func activeGoalCard(node: SkillNode) -> some View {
+    private func programFocusCard(node: SkillNode) -> some View {
         let canTrain = skillProgress.canTrain(nodeId: node.id)
         let stateLabel = canTrain ? "Ready" : "Trained today"
         let buttonLabel = canTrain ? "TRAIN" : "VIEW"
-        let asset = node.id.replacingOccurrences(of: ".", with: "_")
+        let asset = SkillTraditionalVisualResolver.assetName(for: node)
+        let usesExistingCharacterArt = asset?.hasPrefix("exercise_visual_") == true
 
         return Button {
             UnboundHaptics.soft()
@@ -676,13 +733,14 @@ struct ProgramOverviewView: View {
             HStack(spacing: 12) {
                 ZStack {
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(Color.unbound.surfaceElevated)
+                        .fill(usesExistingCharacterArt ? Color.white : Color.unbound.surfaceElevated)
                         .frame(width: 56, height: 56)
-                    if UIImage(named: asset) != nil {
+                    if let asset, UIImage(named: asset) != nil {
                         Image(asset)
                             .resizable()
                             .interpolation(.high)
                             .aspectRatio(contentMode: .fit)
+                            .padding(usesExistingCharacterArt ? 5 : 0)
                             .frame(width: 48, height: 48)
                     } else {
                         Image(systemName: node.glyph)
@@ -706,7 +764,11 @@ struct ProgramOverviewView: View {
 
                 Button {
                     UnboundHaptics.medium()
-                    launchSkillReadyDraft(node)
+                    if canTrain {
+                        launchSkillReadyDraft(node)
+                    } else {
+                        pushedSkillNode = node
+                    }
                 } label: {
                     HStack(spacing: 4) {
                         Text(buttonLabel)
@@ -768,14 +830,15 @@ struct ProgramOverviewView: View {
             .accessibilityIdentifier("program.savedWorkouts")
             Button {
                 UnboundHaptics.soft()
-                workoutReadyDraft = emptyCustomWorkoutDraft()
+                openPlanAheadEditor()
             } label: {
-                Image(systemName: "plus.square.on.square")
+                Image(systemName: "calendar.badge.plus")
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(Color.unbound.textSecondary)
                     .frame(width: 34, height: 34)
             }
             .buttonStyle(.plain)
+            .accessibilityLabel("Plan Workout Ahead")
             .accessibilityIdentifier("program.customWorkout")
             Button {
                 UnboundHaptics.soft()
@@ -793,20 +856,71 @@ struct ProgramOverviewView: View {
         .padding(.bottom, 4)
     }
 
-    private func emptyCustomWorkoutDraft() -> TrainingSessionDraft {
-        TrainingSessionDraft(
-            userId: services.auth.currentUserId ?? "local",
+    private func emptyCustomWorkoutDraft(
+        title: String = "Planned Workout",
+        date: Date? = nil
+    ) -> TrainingSessionDraft? {
+        guard let userId = services.auth.currentUserId else {
+            LoggingService.shared.log(
+                "Custom workout launch skipped without authenticated user",
+                level: .warning
+            )
+            return nil
+        }
+        return TrainingSessionDraft(
+            userId: userId,
             source: .custom,
-            title: "Custom Workout",
-            date: Date(),
+            title: title,
+            date: date ?? programToday,
             estimatedMinutes: 10,
-            blocks: []
+            blocks: [
+                TrainingBlock(
+                    kind: .strength,
+                    title: "Main Work",
+                    prescriptions: []
+                )
+            ]
         )
+    }
+
+    private func openPlanAheadEditor() {
+        guard let draft = emptyCustomWorkoutDraft(date: planningDraftDate()) else { return }
+        planningTargetDayNumber = planningDefaultDayNumber()
+        planningWorkoutDraft = draft
+    }
+
+    private func planningDraftDate() -> Date {
+        isProgramPast(selectedDayDate) ? programToday : selectedDayDate
+    }
+
+    private func planningDefaultDayNumber() -> Int? {
+        guard let program = viewModel?.program,
+              !isProgramPast(selectedDayDate),
+              let day = programDay(for: selectedDayDate, in: program),
+              !day.isRestDay
+        else { return nil }
+        return day.dayNumber
+    }
+
+    private func savePlannedWorkoutAndOpenSchedule(_ draft: TrainingSessionDraft) {
+        var cleanDraft = draft
+        let title = cleanDraft.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        cleanDraft.title = title.isEmpty ? "Planned Workout" : title
+
+        let savedWorkout = SavedWorkout.from(cleanDraft, title: cleanDraft.title, now: Date())
+        SavedWorkoutStore.shared.save(savedWorkout)
+        schedulingDefaultDayNumbers = planningTargetDayNumber.map { Set([$0]) } ?? []
+        planningTargetDayNumber = nil
+        planningWorkoutDraft = nil
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.22) {
+            schedulingSavedWorkout = savedWorkout
+        }
     }
 
     private func replaceTodayWithSavedWorkout(_ workout: SavedWorkout) {
         guard let program = viewModel?.program,
-              let day = programDay(for: Date(), in: program)
+              let day = programDay(for: programToday, in: program)
         else {
             savedWorkoutScheduleError = SavedWorkoutScheduleError(message: "No active Program day was available.")
             return
@@ -842,7 +956,15 @@ struct ProgramOverviewView: View {
     }
 
     private func launchSkillReadyDraft(_ node: SkillNode) {
-        let userId = services.auth.currentUserId ?? "local"
+        guard let userId = services.auth.currentUserId else {
+            LoggingService.shared.log(
+                "Blocked skill-ready draft launch without an authenticated user",
+                level: .warning,
+                context: ["skillId": node.id]
+            )
+            pushedSkillNode = node
+            return
+        }
         workoutReadyDraft = DailyWorkoutResolver.skillOnlyDraft(skillId: node.id, userId: userId)
     }
 
@@ -932,8 +1054,15 @@ struct ProgramOverviewView: View {
         .accessibilityIdentifier("program.recoveryCompleting")
     }
 
-    private func programDraft(from workout: Workout, day: ProgramDay, date: Date) -> TrainingSessionDraft {
-        let userId = services.auth.currentUserId ?? "local"
+    private func programDraft(from workout: Workout, day: ProgramDay, date: Date) -> TrainingSessionDraft? {
+        guard let userId = services.auth.currentUserId else {
+            LoggingService.shared.log(
+                "Program draft launch skipped without authenticated user",
+                level: .warning,
+                context: ["dayNumber": day.dayNumber]
+            )
+            return nil
+        }
         return DailyWorkoutResolver.programDraft(
             from: workout,
             userId: userId,
@@ -984,6 +1113,240 @@ struct ProgramOverviewView: View {
         .buttonStyle(.plain)
     }
 
+    #if DEBUG
+    private var devDaySimulatorCard: some View {
+        HStack(spacing: 10) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("DEV DAY SIM")
+                    .font(Font.unbound.captionS.weight(.heavy))
+                    .tracking(1.7)
+                    .foregroundStyle(Color.unbound.accent)
+                HStack(spacing: 6) {
+                    Text(devDayOffsetLabel)
+                        .font(Font.unbound.monoS.weight(.bold))
+                        .foregroundStyle(Color.unbound.textPrimary)
+                    Text(devDayDateLabel)
+                        .font(Font.unbound.captionS)
+                        .tracking(0.5)
+                        .foregroundStyle(Color.unbound.textTertiary)
+                }
+            }
+
+            Spacer(minLength: 8)
+
+            HStack(spacing: 6) {
+                devDayButton(systemName: "chevron.left", identifier: "program.devDaySim.previous") {
+                    moveSimulatedDay(by: -1)
+                }
+                Button {
+                    resetSimulatedDay()
+                } label: {
+                    Text("RESET")
+                        .font(Font.unbound.captionS.weight(.heavy))
+                        .tracking(1.1)
+                        .foregroundStyle(Color.unbound.textSecondary)
+                        .frame(width: 58, height: 34)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .fill(Color.unbound.surfaceElevated)
+                        )
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("program.devDaySim.reset")
+                devDayButton(systemName: "chevron.right", identifier: "program.devDaySim.next") {
+                    moveSimulatedDay(by: 1)
+                }
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color.unbound.surface.opacity(0.94))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(
+                    DevProgramClock.isSimulating
+                        ? Color.unbound.accent.opacity(0.45)
+                        : Color.unbound.borderSubtle,
+                    lineWidth: 1
+                )
+        )
+        .accessibilityIdentifier("program.devDaySim")
+    }
+
+    private var devDayOffsetLabel: String {
+        if devDayOffset == 0 { return "REAL TODAY" }
+        return devDayOffset > 0 ? "D+\(devDayOffset)" : "D\(devDayOffset)"
+    }
+
+    private var devDayDateLabel: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "EEE, MMM d"
+        return formatter.string(from: programToday).uppercased()
+    }
+
+    private func devDayButton(
+        systemName: String,
+        identifier: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Image(systemName: systemName)
+                .font(.system(size: 13, weight: .bold))
+                .foregroundStyle(Color.unbound.textPrimary)
+                .frame(width: 34, height: 34)
+                .background(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(Color.unbound.surfaceElevated)
+                )
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier(identifier)
+    }
+
+    private func moveSimulatedDay(by days: Int) {
+        UnboundHaptics.soft()
+        devDayOffset = DevProgramClock.advance(days: days)
+        syncSelectedDayToSimulatedToday()
+    }
+
+    private func resetSimulatedDay() {
+        UnboundHaptics.soft()
+        devDayOffset = DevProgramClock.reset()
+        syncSelectedDayToSimulatedToday()
+    }
+
+    private func syncSelectedDayToSimulatedToday() {
+        let today = programToday
+        withAnimation(.easeInOut(duration: 0.18)) {
+            selectedDayDate = today
+            weekOffset = 0
+        }
+        viewModel?.refreshWaveAdjustments(asOf: today)
+        Task {
+            await refreshHistory()
+            await refreshTravelOverride()
+        }
+    }
+    #endif
+
+    private var savedWorkoutsEntryCard: some View {
+        let workouts = SavedWorkoutStore.shared.all()
+        let latest = workouts.first
+        let count = workouts.count
+
+        return VStack(spacing: 10) {
+            Button {
+                UnboundHaptics.soft()
+                showSavedWorkouts = true
+            } label: {
+                HStack(spacing: 12) {
+                    savedWorkoutEntryVisual(for: latest)
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack(spacing: 7) {
+                            Text("SAVED WORKOUTS")
+                                .font(Font.unbound.captionS.weight(.heavy))
+                                .tracking(1.5)
+                                .foregroundStyle(Color.unbound.coachCyan)
+                            Text(count == 0 ? "EMPTY" : "\(count)")
+                                .font(Font.unbound.monoS.weight(.bold))
+                                .foregroundStyle(Color.unbound.textPrimary)
+                                .padding(.horizontal, 7)
+                                .frame(height: 20)
+                                .background(Capsule().fill(Color.unbound.coachCyan.opacity(0.14)))
+                        }
+                        Text(latest?.title ?? "Saved")
+                            .font(Font.unbound.bodyMStrong)
+                            .foregroundStyle(Color.unbound.textPrimary)
+                            .lineLimit(1)
+                    }
+
+                    Spacer(minLength: 8)
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(Color.unbound.textTertiary)
+                }
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("program.savedWorkouts.open")
+
+            HStack(spacing: 10) {
+                Button {
+                    UnboundHaptics.soft()
+                    openPlanAheadEditor()
+                } label: {
+                    Label("Plan", systemImage: "calendar.badge.plus")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(ProgramQuickActionButtonStyle(tint: Color.unbound.accent))
+                .accessibilityIdentifier("program.planAhead")
+
+                Button {
+                    UnboundHaptics.soft()
+                    showSavedWorkouts = true
+                } label: {
+                    Label("Saved", systemImage: "tray.full")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(ProgramQuickActionButtonStyle(tint: Color.unbound.coachCyan))
+            }
+        }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color.unbound.surface)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(Color.unbound.coachCyan.opacity(0.22), lineWidth: 1)
+        )
+        .accessibilityIdentifier("program.savedWorkouts.card")
+    }
+
+    @ViewBuilder
+    private func savedWorkoutEntryVisual(for workout: SavedWorkout?) -> some View {
+        if let definition = workout?.primaryMovementDefinition {
+            ExerciseVisualView(definition: definition, size: .thumbnail)
+                .frame(width: 54, height: 54)
+        } else {
+            ZStack {
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(Color.unbound.surfaceElevated)
+                Image(systemName: "tray.full")
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundStyle(Color.unbound.coachCyan)
+            }
+            .frame(width: 54, height: 54)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
+            )
+        }
+    }
+
+    private struct ProgramQuickActionButtonStyle: ButtonStyle {
+        let tint: Color
+
+        func makeBody(configuration: Configuration) -> some View {
+            configuration.label
+                .font(Font.unbound.captionS.weight(.heavy))
+                .foregroundStyle(tint)
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+                .frame(height: 38)
+                .background(
+                    Capsule().fill(tint.opacity(configuration.isPressed ? 0.18 : 0.10))
+                )
+                .overlay(
+                    Capsule().strokeBorder(tint.opacity(configuration.isPressed ? 0.36 : 0.24), lineWidth: 1)
+                )
+        }
+    }
+
     // MARK: - PROGRAM tab
 
     @ViewBuilder
@@ -991,7 +1354,8 @@ struct ProgramOverviewView: View {
         if let vm = viewModel {
             let surfaceState = ProgramSurfaceState.resolve(
                 state: vm.state,
-                selectedDate: selectedDayDate
+                selectedDate: selectedDayDate,
+                now: programNow
             )
             switch surfaceState.kind {
             case .noProgram:
@@ -1445,18 +1809,22 @@ struct ProgramOverviewView: View {
             // caps that subtree's metadata depth. Do NOT "simplify" these back to
             // bare calls — the crash returns.
             VStack(alignment: .leading, spacing: 16) {
+                #if DEBUG
+                AnyView(devDaySimulatorCard)
+                #endif
+                AnyView(savedWorkoutsEntryCard)
                 AnyView(weekStrip(program: program))
                 AnyView(dayCard(program: program))
                 AnyView(programFocusCard(program))
                 if let proposal = rolloverProposal, proposal.scanDeltaReport != nil {
                     AnyView(midBlockRescanProposalCard(proposal))
                 }
-                if !ProgramScheduler.shared.todaysSkillSessions().isEmpty {
+                if !ProgramScheduler.shared.todaysSkillSessions(on: programToday).isEmpty {
                     AnyView(todaysTrainingSection)
                 }
                 CoachActionsRow(
                     program: program,
-                    todayDay: programDay(for: Date(), in: program)
+                    todayDay: programDay(for: programToday, in: program)
                 )
                 .environmentObject(services)
                 AnyView(programHeader(program))
@@ -1468,17 +1836,19 @@ struct ProgramOverviewView: View {
             .padding(.horizontal, 20)
             .padding(.top, 8)
         }
-        .fullScreenCover(isPresented: $showResume, onDismiss: { resumeDraft = nil }) {
-            if let draft = resumeDraft {
-                ActiveWorkoutContainerView(
-                    workout: Workout(name: "", targetMuscleGroups: [], warmup: [],
-                                    mainExercises: [], cooldown: [], estimatedMinutes: 0,
-                                    notes: nil, blockType: nil),
-                    programId: "",
-                    dayNumber: 0,
-                    services: services,
-                    resuming: draft
-                )
+        .fullScreenCover(item: $resumeDraft) { draft in
+            ActiveWorkoutContainerView(
+                workout: Workout(name: "", targetMuscleGroups: [], warmup: [],
+                                mainExercises: [], cooldown: [], estimatedMinutes: 0,
+                                notes: nil, blockType: nil),
+                programId: "",
+                dayNumber: 0,
+                services: services,
+                resuming: draft
+            ) {
+                UserDefaults.standard.set(0, forKey: "unbound.shortSessionDate")
+                resumeDraft = nil
+                Task { await refreshHistory() }
             }
         }
         .task(id: program.id) {
@@ -1537,7 +1907,8 @@ struct ProgramOverviewView: View {
                 focusSwitchErrorMessage = nil
                 focusSwitchPresentation = ProgramFocusSwitchPresentation(
                     currentStyle: style,
-                    currentEquipment: equipment
+                    currentEquipment: equipment,
+                    currentExperience: currentProfile?.experience
                 )
             } label: {
                 HStack(spacing: 8) {
@@ -1613,16 +1984,28 @@ struct ProgramOverviewView: View {
         }
         let equipment = currentProfile?.equipment ?? []
         let styles = Set(currentProfile?.exerciseStyles ?? [])
-        if styles.contains(.calisthenics) || (equipment.count == 1 && equipment.contains(.bodyweight)) {
-            return .bodyweight
-        }
-        if styles.contains(.machines) || equipment.contains(.machines) {
-            return .machines
-        }
-        if styles.contains(.compoundLifts)
+        let bodyweightGear: Set<Equipment> = [.bodyweight, .pullupBar, .bands, .dipStation, .rings]
+        let selectedEquipment = Set(equipment)
+        let wantsCalisthenics = styles.contains(.calisthenics)
+        let wantsMachines = styles.contains(.machines) || equipment.contains(.machines)
+        let wantsFreeWeights = styles.contains(.compoundLifts)
             || equipment.contains(.barbell)
             || equipment.contains(.dumbbells)
-            || equipment.contains(.bench) {
+            || equipment.contains(.bench)
+
+        if wantsCalisthenics && (wantsFreeWeights || wantsMachines) {
+            return .hybrid
+        }
+        if wantsCalisthenics || (!selectedEquipment.isEmpty && selectedEquipment.isSubset(of: bodyweightGear)) {
+            return .bodyweight
+        }
+        if wantsMachines && wantsFreeWeights {
+            return .hybrid
+        }
+        if wantsMachines {
+            return .machines
+        }
+        if wantsFreeWeights {
             return .freeWeights
         }
         return .hybrid
@@ -1649,7 +2032,7 @@ struct ProgramOverviewView: View {
     }
 
     @MainActor
-    private func applyFocusSwitch(_ target: ProgramFocusSwitchTarget) async {
+    private func applyFocusSwitch(_ selection: ProgramFocusSwitchSelection) async {
         guard !isSwitchingProgramFocus else { return }
         guard let viewModel else {
             focusSwitchErrorMessage = "Program is still loading. Try again in a moment."
@@ -1664,22 +2047,24 @@ struct ProgramOverviewView: View {
         focusSwitchErrorMessage = nil
         do {
             let profile = try await focusSwitchProfile(userId: userId)
-            let updatedStyles = target.updatedExerciseStyles(from: Set(profile.exerciseStyles ?? []))
+            let updatedStyles = selection.updatedExerciseStyles(from: Set(profile.exerciseStyles ?? []))
             let generated = try await viewModel.switchProgramFocus(
                 profile: profile,
-                trainingStyle: target.trainingStyle,
-                equipment: target.equipment,
-                exerciseStyles: updatedStyles
+                trainingStyle: selection.trainingStyle,
+                equipment: selection.equipment,
+                exerciseStyles: updatedStyles,
+                experience: selection.abilityLevel.experience
             )
 
             var updatedProfile = profile
             updatedProfile.currentProgramId = generated.id
-            updatedProfile.trainingStyleOverride = target.trainingStyle
-            updatedProfile.equipment = target.sortedEquipment
+            updatedProfile.trainingStyleOverride = selection.trainingStyle
+            updatedProfile.equipment = selection.sortedEquipment
             updatedProfile.exerciseStyles = updatedStyles.sorted { $0.rawValue < $1.rawValue }
+            updatedProfile.experience = selection.abilityLevel.experience
             currentProfile = updatedProfile
 
-            selectedDayDate = Calendar.current.startOfDay(for: Date())
+            selectedDayDate = programToday
             weekOffset = 0
             focusSwitchPresentation = nil
             UnboundHaptics.success()
@@ -1689,7 +2074,10 @@ struct ProgramOverviewView: View {
             LoggingService.shared.log(
                 "Program focus switch failed: \(error)",
                 level: .error,
-                context: ["target": target.rawValue]
+                context: [
+                    "equipment": selection.sortedEquipment.map(\.rawValue).joined(separator: ","),
+                    "ability": selection.abilityLevel.rawValue
+                ]
             )
         }
         isSwitchingProgramFocus = false
@@ -1809,8 +2197,8 @@ struct ProgramOverviewView: View {
     private var weekStart: Date {
         var cal = Calendar.current
         cal.firstWeekday = 2 // Monday
-        let comps = cal.dateComponents([.yearForWeekOfYear, .weekOfYear], from: Date())
-        let base = cal.date(from: comps) ?? cal.startOfDay(for: Date())
+        let comps = cal.dateComponents([.yearForWeekOfYear, .weekOfYear], from: programToday)
+        let base = cal.date(from: comps) ?? programToday
         return cal.date(byAdding: .day, value: weekOffset * 7, to: base) ?? base
     }
 
@@ -1866,9 +2254,9 @@ struct ProgramOverviewView: View {
 
     private func dayTile(date: Date, program: TrainingProgram) -> some View {
         let cal = Calendar.current
-        let isToday = cal.isDateInToday(date)
+        let isToday = isProgramToday(date)
         let isSelected = cal.isDate(selectedDayDate, inSameDayAs: date)
-        let isPast = date < cal.startOfDay(for: Date()) && !isToday
+        let isPast = isProgramPast(date)
 
         let day = programDay(for: date, in: program)
         let status = tileStatus(isToday: isToday, isPast: isPast, day: day, program: program)
@@ -1964,8 +2352,8 @@ struct ProgramOverviewView: View {
     private func dayCard(program: TrainingProgram) -> some View {
         let day = programDay(for: selectedDayDate, in: program)
         let cal = Calendar.current
-        let isToday = cal.isDateInToday(selectedDayDate)
-        let isPast = selectedDayDate < cal.startOfDay(for: Date()) && !isToday
+        let isToday = isProgramToday(selectedDayDate)
+        let isPast = isProgramPast(selectedDayDate)
 
         return VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .top, spacing: 12) {
@@ -2001,6 +2389,7 @@ struct ProgramOverviewView: View {
             }
 
             if let day, !day.isRestDay, let workout = day.workout {
+                workoutVisualPreview(workout: workout)
                 modifierSummary(for: day, workout: workout)
                 waveAdjustmentPanel(for: day)
                 exerciseList(workout: workout)
@@ -2019,7 +2408,6 @@ struct ProgramOverviewView: View {
                         } else if isToday, !day.isRestDay, day.workout != nil {
                             if let draft = resumableDraft(for: day) {
                                 resumeDraft = draft
-                                showResume = true
                             } else {
                                 launchActiveWorkout(for: day, date: selectedDayDate)
                             }
@@ -2231,7 +2619,9 @@ struct ProgramOverviewView: View {
     }
 
     private func programModifierSummary(for day: ProgramDay, workout: Workout) -> ProgramModifierSummary {
-        let draft = programDraft(from: workout, day: day, date: selectedDayDate)
+        guard let draft = programDraft(from: workout, day: day, date: selectedDayDate) else {
+            return ProgramModifierSummary(lines: [], visibleLimit: 3)
+        }
         return ProgramModifierSummary.summarize(
             draft: draft,
             isTravelDay: activeTravelOverride?.day(for: selectedDayDate) != nil
@@ -2321,41 +2711,119 @@ struct ProgramOverviewView: View {
         }
     }
 
-    private func exerciseList(workout: Workout) -> some View {
-        VStack(alignment: .leading, spacing: 7) {
-            ForEach(Array(workout.mainExercises.prefix(5).enumerated()), id: \.offset) { _, ex in
-                HStack(spacing: 8) {
-                    Image(systemName: "circle.hexagongrid.fill")
-                        .font(.system(size: 9, weight: .bold))
-                        .foregroundStyle(Color.unbound.coachCyan.opacity(0.86))
-                        .frame(width: 14)
-                    Text(ex.name.uppercased())
-                        .font(Font.unbound.captionS.weight(.bold))
-                        .tracking(0.7)
+    private func workoutVisualPreview(workout: Workout) -> some View {
+        let primary = workout.mainExercises.first
+        let primaryDefinition = primary.flatMap { movementDefinition(for: $0) }
+
+        return HStack(alignment: .center, spacing: 12) {
+            workoutExerciseVisual(definition: primaryDefinition, size: .hero)
+                .frame(width: 104, height: 104)
+
+            VStack(alignment: .leading, spacing: 9) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("WORKOUT")
+                        .font(Font.unbound.captionS.weight(.heavy))
+                        .tracking(1.6)
+                        .foregroundStyle(Color.unbound.coachCyan)
+                    Text(primary?.name.uppercased() ?? workout.name.uppercased())
+                        .font(Font.unbound.bodyMStrong)
+                        .tracking(0.3)
                         .foregroundStyle(Color.unbound.textPrimary)
-                        .lineLimit(1)
-                    Spacer()
-                    Text("\(ex.sets)×\(ex.reps)")
-                        .font(Font.unbound.monoS)
-                        .foregroundStyle(Color.unbound.textTertiary)
-                        .monospacedDigit()
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.78)
                 }
-                .padding(.horizontal, 10)
-                .frame(height: 28)
-                .background(
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(Color.unbound.bg.opacity(0.54))
-                )
+
+                HStack(spacing: 8) {
+                    todayStatPill(value: "\(workout.mainExercises.count)", label: "MOVES")
+                    todayStatPill(value: durationLabel(for: workout), label: "TIME")
+                }
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
+    private func exerciseList(workout: Workout) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(Array(workout.mainExercises.prefix(5).enumerated()), id: \.offset) { index, ex in
+                visualExerciseRow(ex, isLastVisible: index == min(workout.mainExercises.count, 5) - 1)
             }
             if workout.mainExercises.count > 5 {
                 Text("+\(workout.mainExercises.count - 5) more")
                     .font(Font.unbound.captionS)
                     .tracking(0.6)
                     .foregroundStyle(Color.unbound.textTertiary)
-                    .padding(.leading, 12)
+                    .padding(.top, 8)
+                    .padding(.leading, 2)
             }
         }
         .padding(.vertical, 2)
+    }
+
+    private func visualExerciseRow(_ exercise: Exercise, isLastVisible: Bool) -> some View {
+        HStack(spacing: 10) {
+            workoutExerciseVisual(definition: movementDefinition(for: exercise), size: .thumbnail)
+                .frame(width: 46, height: 46)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(exercise.name.uppercased())
+                    .font(Font.unbound.captionS.weight(.bold))
+                    .tracking(0.7)
+                    .foregroundStyle(Color.unbound.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+                Text(exercise.muscleGroups.prefix(2).map(\.displayName).joined(separator: " / ").uppercased())
+                    .font(Font.unbound.monoS)
+                    .foregroundStyle(Color.unbound.textTertiary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+            }
+
+            Spacer(minLength: 8)
+
+            Text("\(exercise.sets)×\(exercise.reps)")
+                .font(Font.unbound.monoS.weight(.bold))
+                .foregroundStyle(Color.unbound.textSecondary)
+                .monospacedDigit()
+        }
+        .padding(.vertical, 8)
+        .overlay(alignment: .bottom) {
+            if !isLastVisible {
+                Rectangle()
+                    .fill(Color.unbound.borderSubtle.opacity(0.72))
+                    .frame(height: 1)
+                    .padding(.leading, 56)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func workoutExerciseVisual(
+        definition: MovementDefinition?,
+        size: ExerciseVisualView.Size
+    ) -> some View {
+        if let definition {
+            ExerciseVisualView(definition: definition, size: size)
+        } else {
+            ZStack {
+                RoundedRectangle(cornerRadius: size.cornerRadius, style: .continuous)
+                    .fill(Color.unbound.surfaceElevated)
+                Image(systemName: "dumbbell.fill")
+                    .font(.system(size: size.iconSize * 0.65, weight: .semibold))
+                    .foregroundStyle(Color.unbound.coachCyan)
+            }
+            .overlay(
+                RoundedRectangle(cornerRadius: size.cornerRadius, style: .continuous)
+                    .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
+            )
+        }
+    }
+
+    private func movementDefinition(for exercise: Exercise) -> MovementDefinition? {
+        MovementCatalog.canonicalExercise(named: exercise.name)
+    }
+
+    private func durationLabel(for workout: Workout) -> String {
+        "~\(workout.estimatedMinutes)M"
     }
 
     // MARK: - ROUTINES tab
@@ -2363,7 +2831,7 @@ struct ProgramOverviewView: View {
     private var routinesTab: some View {
         ScrollView(.vertical, showsIndicators: false) {
             VStack(alignment: .leading, spacing: 22) {
-                Text("Pick a side mission when the main plan is not the move. Each routine earns LVL XP.")
+                Text("Pick a side mission when the main plan is not the move. Rewards come from the work you log.")
                     .font(Font.unbound.captionS)
                     .foregroundStyle(Color.unbound.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -2527,7 +2995,7 @@ struct ProgramOverviewView: View {
                         .foregroundStyle(Color.unbound.textSecondary)
                 }
                 Spacer()
-                Text("+\(routine.spReward) LVL XP")
+                Text("PROOF-GATED XP")
                     .font(Font.unbound.monoS.weight(.bold))
                     .foregroundStyle(routine.category.color)
                     .monospacedDigit()
@@ -2551,14 +3019,14 @@ struct ProgramOverviewView: View {
 
     @MainActor
     private func refreshHistory() async {
-        let userId = services.auth.currentUserId ?? "anonymous"
+        guard let userId = services.auth.currentUserId else { return }
         let logs = (try? await services.workoutLog.fetchRecentLogs(userId: userId, limit: 40)) ?? []
         pastLogs = logs.filter { $0.completedAt != nil }
     }
 
     @MainActor
     private func refreshTravelOverride() async {
-        let userId = services.auth.currentUserId ?? "anonymous"
+        guard let userId = services.auth.currentUserId else { return }
         activeTravelOverride = await TravelOverrideStore.shared.activeOverride(for: userId)
     }
 
@@ -2573,7 +3041,7 @@ struct ProgramOverviewView: View {
     private var checkpointNutritionContext: NutritionContext {
         let hardSessionWithin24Hours = pastLogs.contains { log in
             guard let completedAt = log.completedAt else { return false }
-            return Date().timeIntervalSince(completedAt) <= 86_400
+            return programNow.timeIntervalSince(completedAt) <= 86_400
         }
         return NutritionTargetCalculator().calculate(
             input: NutritionTargetCalculator.Input(
@@ -2585,7 +3053,7 @@ struct ProgramOverviewView: View {
 
     private var checkpointMissedSessionSignal: MissedSessionSignal {
         guard let program = viewModel?.program else { return .onTrack }
-        let now = Date()
+        let now = programNow
         let sessions = scheduledAttendance(for: program, now: now)
         let result = MissedSessionMetric.evaluate(sessions: sessions, now: now)
         return MissedSessionSignal.fromScheduledSessions(
@@ -2604,7 +3072,7 @@ struct ProgramOverviewView: View {
             guard let scheduledAt = calendar.date(
                 byAdding: .day,
                 value: day.dayNumber - 1,
-                to: calendar.startOfDay(for: program.createdAt)
+                to: calendar.startOfDay(for: BlockRolloverScheduler.activeStartDate(for: program))
             ) else {
                 return nil
             }
@@ -2627,11 +3095,22 @@ struct ProgramOverviewView: View {
             return travelProgramDay(from: tday, on: date)
         }
         guard !program.days.isEmpty else { return nil }
+        let anchorDate = BlockRolloverScheduler.activeStartDate(for: program)
         let daysSinceStart = Calendar.current.dateComponents(
-            [.day], from: program.createdAt, to: date
+            [.day], from: anchorDate, to: date
         ).day ?? 0
         let idx = ((daysSinceStart % program.days.count) + program.days.count) % program.days.count
         return program.days[idx]
+    }
+
+    private func currentProgramDayNumber(in program: TrainingProgram) -> Int? {
+        guard !program.days.isEmpty else { return nil }
+        let anchorDate = BlockRolloverScheduler.activeStartDate(for: program)
+        let daysSinceStart = Calendar.current.dateComponents(
+            [.day], from: anchorDate, to: programToday
+        ).day ?? 0
+        let idx = ((daysSinceStart % program.days.count) + program.days.count) % program.days.count
+        return program.days[idx].dayNumber
     }
 
     /// Synthesize a ProgramDay from a travel override day so the rest of
@@ -2798,1055 +3277,6 @@ struct ProgramOverviewView: View {
     }
 }
 
-// MARK: - Program focus switch
-
-private struct ProgramFocusSwitchPresentation: Identifiable {
-    let id = UUID()
-    let currentStyle: TrainingStyle
-    let currentEquipment: [Equipment]
-}
-
-private enum ProgramFocusSwitchTarget: String, CaseIterable, Identifiable {
-    case bodyweightOnly
-    case calisthenicsBarBands
-
-    var id: String { rawValue }
-
-    var title: String {
-        switch self {
-        case .bodyweightOnly: return "Bodyweight only"
-        case .calisthenicsBarBands: return "Calisthenics + bar/bands"
-        }
-    }
-
-    var subtitle: String {
-        switch self {
-        case .bodyweightOnly:
-            return "No gym, no gear. Pushups, squats, holds, control work."
-        case .calisthenicsBarBands:
-            return "Pullups, rows, dips, hangs, bands, and bodyweight progressions."
-        }
-    }
-
-    var icon: String {
-        switch self {
-        case .bodyweightOnly: return "figure.strengthtraining.functional"
-        case .calisthenicsBarBands: return "figure.climbing"
-        }
-    }
-
-    var equipment: Set<Equipment> {
-        switch self {
-        case .bodyweightOnly:
-            return [.bodyweight]
-        case .calisthenicsBarBands:
-            return [.bodyweight, .pullupBar, .bands]
-        }
-    }
-
-    var sortedEquipment: [Equipment] {
-        [.bodyweight, .pullupBar, .bands].filter { equipment.contains($0) }
-    }
-
-    var trainingStyle: TrainingStyle { .bodyweight }
-
-    func updatedExerciseStyles(from current: Set<ExerciseStyle>) -> Set<ExerciseStyle> {
-        let preservedStyles: Set<ExerciseStyle> = [
-            .cardioIntervals,
-            .steadyCardio,
-            .mobility,
-            .sports,
-            .plyometrics
-        ]
-        let preserved = current.intersection(preservedStyles)
-        return preserved.union([.calisthenics])
-    }
-}
-
-private struct ProgramFocusSwitchSheet: View {
-    let currentStyle: TrainingStyle
-    let currentEquipment: [Equipment]
-    let isApplying: Bool
-    let errorMessage: String?
-    let onApply: (ProgramFocusSwitchTarget) -> Void
-
-    @Environment(\.dismiss) private var dismiss
-    @State private var selectedTarget: ProgramFocusSwitchTarget
-
-    init(
-        currentStyle: TrainingStyle,
-        currentEquipment: [Equipment],
-        isApplying: Bool,
-        errorMessage: String?,
-        onApply: @escaping (ProgramFocusSwitchTarget) -> Void
-    ) {
-        self.currentStyle = currentStyle
-        self.currentEquipment = currentEquipment
-        self.isApplying = isApplying
-        self.errorMessage = errorMessage
-        self.onApply = onApply
-        let initial: ProgramFocusSwitchTarget = currentEquipment.contains(.pullupBar) || currentEquipment.contains(.bands)
-            ? .calisthenicsBarBands
-            : .bodyweightOnly
-        _selectedTarget = State(initialValue: initial)
-    }
-
-    var body: some View {
-        ZStack {
-            Color.unbound.bg.ignoresSafeArea()
-
-            ScrollView(.vertical, showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 20) {
-                    header
-                    currentSummary
-                    targetPicker
-                    consequenceCard
-                    if let errorMessage {
-                        errorRow(errorMessage)
-                    }
-                    actions
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 20)
-                .padding(.bottom, 30)
-            }
-        }
-    }
-
-    private var header: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("CHANGE PROGRAM FOCUS")
-                .font(Font.unbound.captionS.weight(.heavy))
-                .tracking(1.8)
-                .foregroundStyle(Color.unbound.coachCyan)
-            Text("Switch mid-block without guessing.")
-                .font(Font.unbound.titleM)
-                .foregroundStyle(Color.unbound.textPrimary)
-                .fixedSize(horizontal: false, vertical: true)
-            Text("UNBOUND starts a fresh block from today using the new equipment rules. Your completed sessions, PRs, and skill progress stay in history.")
-                .font(Font.unbound.bodyM)
-                .foregroundStyle(Color.unbound.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-    }
-
-    private var currentSummary: some View {
-        HStack(spacing: 10) {
-            summaryPill(title: currentStyle.displayName, icon: "slider.horizontal.3")
-            summaryPill(title: equipmentLabel(currentEquipment), icon: "wrench.and.screwdriver")
-        }
-    }
-
-    private func summaryPill(title: String, icon: String) -> some View {
-        HStack(spacing: 6) {
-            Image(systemName: icon)
-                .font(.system(size: 10, weight: .bold))
-            Text(title.uppercased())
-                .font(Font.unbound.captionS.weight(.bold))
-                .tracking(0.8)
-                .lineLimit(1)
-                .minimumScaleFactor(0.72)
-        }
-        .foregroundStyle(Color.unbound.textSecondary)
-        .padding(.horizontal, 10)
-        .frame(height: 30)
-        .background(Capsule().fill(Color.unbound.surface))
-        .overlay(Capsule().strokeBorder(Color.unbound.borderSubtle, lineWidth: 1))
-    }
-
-    private var targetPicker: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("NEW FOCUS")
-                .font(Font.unbound.captionS.weight(.heavy))
-                .tracking(1.4)
-                .foregroundStyle(Color.unbound.textTertiary)
-            ForEach(ProgramFocusSwitchTarget.allCases) { target in
-                targetRow(target)
-            }
-        }
-    }
-
-    private func targetRow(_ target: ProgramFocusSwitchTarget) -> some View {
-        let selected = selectedTarget == target
-        return Button {
-            guard !isApplying else { return }
-            UnboundHaptics.soft()
-            withAnimation(.easeInOut(duration: 0.16)) {
-                selectedTarget = target
-            }
-        } label: {
-            HStack(alignment: .top, spacing: 12) {
-                Image(systemName: target.icon)
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundStyle(selected ? Color.unbound.textPrimary : Color.unbound.coachCyan)
-                    .frame(width: 36, height: 36)
-                    .background(
-                        Circle()
-                            .fill(selected ? Color.unbound.coachCyan : Color.unbound.coachCyan.opacity(0.14))
-                    )
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(target.title)
-                        .font(Font.unbound.bodyMStrong)
-                        .foregroundStyle(Color.unbound.textPrimary)
-                    Text(target.subtitle)
-                        .font(Font.unbound.captionS)
-                        .foregroundStyle(Color.unbound.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Text(equipmentLabel(target.sortedEquipment).uppercased())
-                        .font(Font.unbound.monoS.weight(.bold))
-                        .foregroundStyle(Color.unbound.textTertiary)
-                        .padding(.top, 2)
-                }
-
-                Spacer(minLength: 0)
-
-                Image(systemName: selected ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundStyle(selected ? Color.unbound.coachCyan : Color.unbound.textTertiary)
-                    .padding(.top, 2)
-            }
-            .padding(14)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(selected ? Color.unbound.coachCyan.opacity(0.12) : Color.unbound.surface)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .strokeBorder(selected ? Color.unbound.coachCyan.opacity(0.5) : Color.unbound.borderSubtle, lineWidth: 1)
-            )
-        }
-        .buttonStyle(.plain)
-        .disabled(isApplying)
-    }
-
-    private var consequenceCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("WHAT HAPPENS")
-                .font(Font.unbound.captionS.weight(.heavy))
-                .tracking(1.4)
-                .foregroundStyle(Color.unbound.textTertiary)
-            consequenceRow(icon: "calendar.badge.plus", title: "New block starts today", detail: "The current template is replaced going forward.")
-            consequenceRow(icon: "clock.arrow.circlepath", title: "History stays intact", detail: "Completed workouts and PR signals are not deleted.")
-            consequenceRow(icon: "target", title: "Calibration can appear", detail: "If bodyweight standards are missing, the first week finds them.")
-        }
-        .padding(14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color.unbound.surface)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
-        )
-    }
-
-    private func consequenceRow(icon: String, title: String, detail: String) -> some View {
-        HStack(alignment: .top, spacing: 10) {
-            Image(systemName: icon)
-                .font(.system(size: 11, weight: .bold))
-                .foregroundStyle(Color.unbound.coachCyan)
-                .frame(width: 16)
-                .padding(.top, 2)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(Font.unbound.captionS.weight(.bold))
-                    .tracking(0.5)
-                    .foregroundStyle(Color.unbound.textPrimary)
-                Text(detail)
-                    .font(Font.unbound.captionS)
-                    .foregroundStyle(Color.unbound.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-    }
-
-    private func errorRow(_ message: String) -> some View {
-        HStack(alignment: .top, spacing: 8) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 12, weight: .bold))
-            Text(message)
-                .font(Font.unbound.captionS)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .foregroundStyle(Color.unbound.alert)
-        .padding(12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color.unbound.alert.opacity(0.1))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .strokeBorder(Color.unbound.alert.opacity(0.25), lineWidth: 1)
-        )
-    }
-
-    private var actions: some View {
-        VStack(spacing: 10) {
-            Button {
-                onApply(selectedTarget)
-            } label: {
-                HStack(spacing: 8) {
-                    if isApplying {
-                        ProgressView()
-                            .tint(Color.unbound.textPrimary)
-                            .scaleEffect(0.82)
-                    } else {
-                        Image(systemName: "arrow.triangle.2.circlepath")
-                            .font(.system(size: 12, weight: .bold))
-                    }
-                    Text(isApplying ? "REBUILDING BLOCK" : "START BODYWEIGHT BLOCK")
-                        .font(Font.unbound.bodyMStrong)
-                        .tracking(1.3)
-                }
-                .foregroundStyle(Color.unbound.textPrimary)
-                .frame(maxWidth: .infinity)
-                .frame(height: 48)
-                .background(
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .fill(Color.unbound.coachCyan)
-                )
-            }
-            .buttonStyle(.plain)
-            .disabled(isApplying)
-            .accessibilityIdentifier("program.focusSwitch.apply")
-
-            Button {
-                dismiss()
-            } label: {
-                Text("CANCEL")
-                    .font(Font.unbound.captionS.weight(.bold))
-                    .tracking(1.4)
-                    .foregroundStyle(Color.unbound.textTertiary)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 38)
-            }
-            .buttonStyle(.plain)
-            .disabled(isApplying)
-        }
-    }
-
-    private func equipmentLabel(_ equipment: [Equipment]) -> String {
-        if equipment.contains(.fullGym) { return "Full gym" }
-        if equipment == [.bodyweight] { return "Bodyweight only" }
-        let labels = equipment
-            .sorted { $0.rawValue < $1.rawValue }
-            .prefix(3)
-            .map(\.displayName)
-        return labels.isEmpty ? "Equipment open" : labels.joined(separator: " / ")
-    }
-}
-
-// MARK: - Program rank library
-
-private struct ProgramRankLibraryView: View {
-    @EnvironmentObject private var services: ServiceContainer
-
-    @State private var rows: [ProgramRankLibraryRow] = []
-    @State private var searchText = ""
-    @State private var selectedFilter: ProgramRankLibraryFilter = .all
-    @State private var isLoading = true
-
-    private var filteredRows: [ProgramRankLibraryRow] {
-        rows
-            .filter(matchesSearchAndFilter)
-            .sorted(by: sortRankRows)
-    }
-
-    private var groupedSections: [ProgramRankLibrarySection] {
-        if selectedFilter != .all || !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return filteredRows.isEmpty ? [] : [ProgramRankLibrarySection(title: "Results", rows: filteredRows)]
-        }
-
-        let grouped = Dictionary(grouping: filteredRows, by: \.sectionTitle)
-        return grouped.map { title, rows in
-            ProgramRankLibrarySection(
-                title: title,
-                rows: rows.sorted(by: sortRowsWithinSection)
-            )
-        }
-        .sorted {
-            ($0.rows.first?.sectionOrder ?? Int.max) < ($1.rows.first?.sectionOrder ?? Int.max)
-        }
-    }
-
-    private var earnedCount: Int {
-        rows.filter(\.isEarned).count
-    }
-
-    private var topTier: SkillTier {
-        rows.map(\.tier).max() ?? .initiate
-    }
-
-    private var totalAP: Int {
-        Int(rows.reduce(0) { $0 + $1.totalAP }.rounded())
-    }
-
-    var body: some View {
-        ScrollView(.vertical, showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 14) {
-                rankLibraryHeader
-                rankSearchField
-                rankFilterRail
-
-                if isLoading {
-                    loadingState
-                } else if groupedSections.isEmpty {
-                    emptyState
-                } else {
-                    ForEach(groupedSections) { section in
-                        rankSection(section)
-                    }
-                }
-
-                Spacer().frame(height: 28)
-            }
-            .padding(.horizontal, 20)
-            .padding(.top, 12)
-        }
-        .task {
-            await loadRanks()
-        }
-    }
-
-    private var rankLibraryHeader: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .center, spacing: 10) {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("RANK LIBRARY")
-                        .font(Font.unbound.captionS.weight(.bold))
-                        .tracking(1.8)
-                        .foregroundStyle(Color.unbound.textTertiary)
-                    Text("Every standard you can prove")
-                        .font(Font.unbound.titleS)
-                        .tracking(0.7)
-                        .foregroundStyle(Color.unbound.textPrimary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.72)
-                }
-                Spacer(minLength: 0)
-                Image(topTier.assetName)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 40, height: 40)
-                    .shadow(color: topTier.rewardTextTint.opacity(0.35), radius: 10)
-            }
-
-            HStack(spacing: 8) {
-                rankStatTile(label: "EARNED", value: "\(earnedCount)", tint: Color.unbound.accent)
-                rankStatTile(label: "STANDARDS", value: "\(rows.count)", tint: Color.unbound.coachCyan)
-                rankStatTile(label: "TOP", value: topTier.displayName.uppercased(), tint: topTier.rewardTextTint)
-                rankStatTile(label: "XP", value: "\(totalAP)", tint: Color.unbound.rankGold)
-            }
-        }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color.unbound.surface)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(topTier.rewardTextTint.opacity(0.24), lineWidth: 1)
-        )
-        .accessibilityIdentifier("program.rankLibrary.header")
-    }
-
-    private func rankStatTile(label: String, value: String, tint: Color) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Text(label)
-                .font(.system(size: 8, weight: .heavy, design: .monospaced))
-                .tracking(1.0)
-                .foregroundStyle(Color.unbound.textTertiary)
-            Text(value)
-                .font(Font.unbound.monoS.weight(.black))
-                .foregroundStyle(tint)
-                .lineLimit(1)
-                .minimumScaleFactor(0.58)
-                .monospacedDigit()
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 10)
-        .padding(.vertical, 9)
-        .background(
-            RoundedRectangle(cornerRadius: 11, style: .continuous)
-                .fill(Color.unbound.bg.opacity(0.68))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 11, style: .continuous)
-                .strokeBorder(tint.opacity(0.18), lineWidth: 1)
-        )
-    }
-
-    private var rankSearchField: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "magnifyingglass")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(Color.unbound.textTertiary)
-
-            TextField("Search ranks", text: $searchText)
-                .font(Font.unbound.bodyS)
-                .foregroundStyle(Color.unbound.textPrimary)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-        }
-        .padding(.horizontal, 12)
-        .frame(height: 42)
-        .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color.unbound.surface)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
-        )
-    }
-
-    private var rankFilterRail: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(ProgramRankLibraryFilter.allCases) { filter in
-                    rankFilterChip(filter)
-                }
-            }
-        }
-    }
-
-    private func rankFilterChip(_ filter: ProgramRankLibraryFilter) -> some View {
-        let isSelected = selectedFilter == filter
-        return Button {
-            UnboundHaptics.soft()
-            withAnimation(.easeInOut(duration: 0.16)) {
-                selectedFilter = filter
-            }
-        } label: {
-            Text(filter.displayName)
-                .font(Font.unbound.captionS.weight(.heavy))
-                .tracking(1.0)
-                .foregroundStyle(isSelected ? Color.unbound.textPrimary : Color.unbound.textTertiary)
-                .padding(.horizontal, 12)
-                .frame(height: 30)
-                .background(
-                    Capsule()
-                        .fill(isSelected ? Color.unbound.accent.opacity(0.24) : Color.unbound.surface)
-                )
-                .overlay(
-                    Capsule()
-                        .strokeBorder(isSelected ? Color.unbound.accent.opacity(0.36) : Color.unbound.borderSubtle, lineWidth: 1)
-                )
-        }
-        .buttonStyle(.plain)
-    }
-
-    private var loadingState: some View {
-        VStack(spacing: 10) {
-            ProgressView()
-                .tint(Color.unbound.accent)
-            Text("LOADING RANKS")
-                .font(Font.unbound.captionS.weight(.heavy))
-                .tracking(1.6)
-                .foregroundStyle(Color.unbound.textTertiary)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 44)
-    }
-
-    private var emptyState: some View {
-        VStack(spacing: 10) {
-            Image(systemName: "seal")
-                .font(.system(size: 28, weight: .regular))
-                .foregroundStyle(Color.unbound.textTertiary)
-            Text("No ranks match those filters")
-                .font(Font.unbound.bodyMStrong)
-                .foregroundStyle(Color.unbound.textSecondary)
-            Text("Clear the search or log a ranked movement.")
-                .font(Font.unbound.captionS)
-                .foregroundStyle(Color.unbound.textTertiary)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 44)
-    }
-
-    private func rankSection(_ section: ProgramRankLibrarySection) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .firstTextBaseline) {
-                Text(section.title.uppercased())
-                    .font(Font.unbound.captionS.weight(.heavy))
-                    .tracking(1.5)
-                    .foregroundStyle(Color.unbound.textTertiary)
-                Spacer(minLength: 0)
-                Text("\(section.rows.count)")
-                    .font(Font.unbound.monoS.weight(.bold))
-                    .foregroundStyle(Color.unbound.textTertiary)
-                    .monospacedDigit()
-            }
-
-            VStack(spacing: 8) {
-                ForEach(section.rows) { row in
-                    ProgramRankLibraryRowView(row: row)
-                }
-            }
-        }
-    }
-
-    @MainActor
-    private func loadRanks() async {
-        isLoading = true
-        guard let userId = services.auth.currentUserId else {
-            rows = []
-            isLoading = false
-            return
-        }
-
-        let progressStates: [MovementProgressState] = (try? await services.database.query(
-            collection: "movement_progress",
-            field: "userId",
-            isEqualTo: userId,
-            orderBy: nil,
-            descending: true,
-            limit: nil
-        )) ?? []
-
-        let skillTiers = UserSkillTierStore.shared.load(userId: userId)
-        let skillService = SkillProgressService.shared
-        rows = Self.makeSkillRows(
-            skillTiers: skillTiers,
-            nodeStates: skillService.nodeStates,
-            activeGoalIds: skillService.activeGoalIds
-        ) + Self.makeMovementRows(progressStates: progressStates)
-        isLoading = false
-    }
-
-    private func matchesSearchAndFilter(_ row: ProgramRankLibraryRow) -> Bool {
-        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-        let matchesSearch = query.isEmpty
-            || row.searchText.localizedCaseInsensitiveContains(query)
-            || Self.searchKey(row.searchText).contains(Self.searchKey(query))
-        guard matchesSearch else { return false }
-
-        switch selectedFilter {
-        case .all:
-            return true
-        case .earned:
-            return row.isEarned
-        case .skills:
-            return row.source == .skill
-        case .exercises:
-            return row.source == .exercise
-        case .top:
-            return row.tier.rawValue >= SkillTier.veteran.rawValue
-        }
-    }
-
-    private func sortRankRows(_ lhs: ProgramRankLibraryRow, _ rhs: ProgramRankLibraryRow) -> Bool {
-        if lhs.tier != rhs.tier { return lhs.tier > rhs.tier }
-        if lhs.totalAP != rhs.totalAP { return lhs.totalAP > rhs.totalAP }
-        if lhs.source != rhs.source { return lhs.source.sortOrder < rhs.source.sortOrder }
-        return lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedAscending
-    }
-
-    private func sortRowsWithinSection(_ lhs: ProgramRankLibraryRow, _ rhs: ProgramRankLibraryRow) -> Bool {
-        if lhs.isEarned != rhs.isEarned { return lhs.isEarned && !rhs.isEarned }
-        return sortRankRows(lhs, rhs)
-    }
-
-    private static func makeSkillRows(
-        skillTiers: UserSkillTierState,
-        nodeStates: [String: NodeState],
-        activeGoalIds: Set<String>
-    ) -> [ProgramRankLibraryRow] {
-        SkillGraph.shared.nodes.map { node in
-            let state = nodeStates[node.id] ?? .locked
-            let tier = skillTiers.tier(for: node.id)
-
-            let status = activeGoalIds.contains(node.id) ? "TRAINING" : Self.nodeStateLabel(state)
-            let detail = RankBenchmarkSummary.nextBenchmark(for: node, currentTier: tier)
-                ?? node.target.displayName
-
-            return ProgramRankLibraryRow(
-                id: "skill-\(node.id)",
-                title: node.title,
-                subtitle: "\(node.cluster.displayName) skill",
-                detail: detail,
-                metric: status,
-                tier: tier,
-                visualAssetName: Self.skillVisualAssetName(for: node),
-                totalAP: 0,
-                source: .skill,
-                sourceId: node.id,
-                sectionTitle: "\(node.cluster.displayName) Skills",
-                sectionOrder: Self.skillSectionOrder(for: node.cluster),
-                lastActivityAt: nil,
-                earnedOverride: state == .proven || tier > .initiate,
-                isRankHidden: node.earnedRankIsBelowFloor(tier)
-            )
-        }
-    }
-
-    private static func skillSectionOrder(for cluster: SkillCluster) -> Int {
-        1 + (SkillCluster.allCases.firstIndex(of: cluster) ?? 0)
-    }
-
-    private static func makeMovementRows(progressStates: [MovementProgressState]) -> [ProgramRankLibraryRow] {
-        let progressByStandard = progressStates.reduce(into: [String: MovementProgressState]()) { result, state in
-            result[state.rankStandardMovementId] = state
-        }
-
-        var seenStandards: Set<String> = []
-        var rows: [ProgramRankLibraryRow] = ExerciseLibrary.all.compactMap { item in
-            guard item.isRankable,
-                  seenStandards.insert(item.rankStandardMovementId).inserted
-            else { return nil }
-
-            let progress = progressByStandard[item.rankStandardMovementId]
-            let displayRow = ExerciseLibraryDisplayRow(
-                item: item,
-                preferenceStatus: nil,
-                movementProgress: progress,
-                workingWeight: nil
-            )
-
-            return ProgramRankLibraryRow(
-                id: "movement-\(item.rankStandardMovementId)",
-                title: progress?.displayName ?? item.name,
-                subtitle: item.movementSlot.displayName,
-                detail: displayRow.nextBenchmarkSummary ?? displayRow.bestMetricSummary ?? item.rankTemplate.displayName,
-                metric: progress.map { "\(Int($0.totalAP.rounded())) XP" } ?? "0 XP",
-                tier: progress?.provenTier ?? .initiate,
-                visualAssetName: Self.exerciseVisualAssetName(for: item.id),
-                totalAP: progress?.totalAP ?? 0,
-                source: .exercise,
-                sourceId: item.rankStandardMovementId,
-                sectionTitle: item.movementSlot.displayName,
-                sectionOrder: 20 + ExerciseLibrary.slotOrder(item.movementSlot),
-                lastActivityAt: progress?.lastLoggedAt ?? progress?.updatedAt,
-                earnedOverride: nil
-            )
-        }
-
-        let representedStandards = Set(rows.map(\.sourceId))
-        let extraRows = progressStates
-            .filter { !representedStandards.contains($0.rankStandardMovementId) }
-            .map { state in
-                ProgramRankLibraryRow(
-                    id: "movement-\(state.rankStandardMovementId)",
-                    title: state.displayName,
-                    subtitle: state.rankTemplate.displayName,
-                    detail: Self.movementProgressSummary(state),
-                    metric: "\(Int(state.totalAP.rounded())) XP",
-                    tier: state.provenTier,
-                    visualAssetName: Self.exerciseVisualAssetName(for: state.rankStandardMovementId),
-                    totalAP: state.totalAP,
-                    source: .exercise,
-                    sourceId: state.rankStandardMovementId,
-                    sectionTitle: "Other Standards",
-                    sectionOrder: 80,
-                    lastActivityAt: state.lastLoggedAt ?? state.updatedAt,
-                    earnedOverride: nil
-                )
-            }
-
-        rows.append(contentsOf: extraRows)
-        return rows
-    }
-
-    private static func skillVisualAssetName(for node: SkillNode) -> String? {
-        let base = node.id.replacingOccurrences(of: ".", with: "_")
-        let candidates = [
-            SkillTraditionalVisualResolver.assetName(for: node),
-            base,
-            "\(base)_f2"
-        ].compactMap { $0 }
-        return candidates.first { UIImage(named: $0) != nil }
-    }
-
-    private static func exerciseVisualAssetName(for movementId: String) -> String? {
-        ExerciseVisualAsset.existingAssetName(forMovementId: movementId)
-    }
-
-    private static func searchKey(_ value: String) -> String {
-        value
-            .lowercased()
-            .unicodeScalars
-            .filter { CharacterSet.alphanumerics.contains($0) }
-            .map(String.init)
-            .joined()
-    }
-
-    private static func nodeStateLabel(_ state: NodeState) -> String {
-        switch state {
-        case .locked: return "LOCKED"
-        case .proven: return "CLEARED"
-        }
-    }
-
-    private static func movementProgressSummary(_ state: MovementProgressState) -> String {
-        if let estimated = state.bestEstimatedOneRepMaxKg {
-            let unit = WeightPlatePolicy.currentUnit
-            return "Est. 1RM \(WeightPlatePolicy.formatLoggedWeight(estimated, unit: unit))\(unit.shortLabel)"
-        }
-        if let load = state.bestLoadKg {
-            let unit = WeightPlatePolicy.currentUnit
-            if let reps = state.bestReps {
-                return "\(WeightPlatePolicy.formatLoggedWeight(load, unit: unit))\(unit.shortLabel) x \(reps)"
-            }
-            return "\(WeightPlatePolicy.formatLoggedWeight(load, unit: unit))\(unit.shortLabel)"
-        }
-        if let reps = state.bestReps { return "\(reps) reps" }
-        if let seconds = state.bestHoldSeconds { return "\(seconds)s hold" }
-        if let seconds = state.bestDurationSeconds { return "\(seconds / 60)m \(seconds % 60)s" }
-        if let meters = state.bestDistanceMeters { return "\(meters)m" }
-        if let calories = state.bestCalories { return "\(calories) cal" }
-        return state.rankTemplate.displayName
-    }
-}
-
-private struct ProgramRankLibrarySection: Identifiable {
-    let title: String
-    let rows: [ProgramRankLibraryRow]
-
-    var id: String { title }
-}
-
-private struct ProgramRankLibraryRow: Identifiable {
-    let id: String
-    let title: String
-    let subtitle: String
-    let detail: String
-    let metric: String
-    let tier: SkillTier
-    let visualAssetName: String?
-    let totalAP: Double
-    let source: ProgramRankLibrarySource
-    let sourceId: String
-    let sectionTitle: String
-    let sectionOrder: Int
-    let lastActivityAt: Date?
-    let earnedOverride: Bool?
-    /// A not-yet feat (earned rank below its floor) has no real rank to show.
-    var isRankHidden: Bool = false
-
-    var isEarned: Bool {
-        earnedOverride ?? (tier > .initiate || totalAP > 0)
-    }
-
-    var searchText: String {
-        [
-            title,
-            subtitle,
-            detail,
-            metric,
-            tier.displayName,
-            source.displayName,
-            sectionTitle
-        ].joined(separator: " ")
-    }
-}
-
-private enum ProgramRankLibrarySource: Equatable {
-    case skill
-    case exercise
-
-    var displayName: String {
-        switch self {
-        case .skill: return "Skill"
-        case .exercise: return "Exercise"
-        }
-    }
-
-    var systemImage: String {
-        switch self {
-        case .skill: return "sparkles"
-        case .exercise: return "dumbbell.fill"
-        }
-    }
-
-    var sortOrder: Int {
-        switch self {
-        case .skill: return 0
-        case .exercise: return 1
-        }
-    }
-}
-
-private enum ProgramRankLibraryFilter: String, CaseIterable, Identifiable {
-    case all
-    case earned
-    case skills
-    case exercises
-    case top
-
-    var id: String { rawValue }
-
-    var displayName: String {
-        switch self {
-        case .all: return "All"
-        case .earned: return "Earned"
-        case .skills: return "Skills"
-        case .exercises: return "Exercises"
-        case .top: return "Top"
-        }
-    }
-}
-
-private struct ProgramRankLibraryRowView: View {
-    let row: ProgramRankLibraryRow
-
-    private var tint: Color { row.tier.rewardTextTint }
-    private var usesHighlightArt: Bool {
-        row.visualAssetName?.hasSuffix("_highlight") == true
-    }
-    private var usesTraditionalExerciseArt: Bool {
-        row.visualAssetName?.hasPrefix("exercise_visual_") == true
-    }
-
-    var body: some View {
-        HStack(spacing: 0) {
-            HStack(alignment: .center, spacing: 12) {
-                artwork
-
-                VStack(alignment: .leading, spacing: 7) {
-                    HStack(spacing: 6) {
-                        Image(systemName: row.source.systemImage)
-                            .font(.system(size: 9, weight: .bold))
-                            .foregroundStyle(tint)
-                        Text(row.source.displayName.uppercased())
-                            .font(.system(size: 8, weight: .heavy, design: .monospaced))
-                            .tracking(1.0)
-                            .foregroundStyle(Color.unbound.textTertiary)
-                        Spacer(minLength: 0)
-                        Text(row.metric)
-                            .font(.system(size: 8, weight: .heavy, design: .monospaced))
-                            .tracking(0.8)
-                            .foregroundStyle(tint.opacity(row.isEarned ? 0.95 : 0.58))
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.65)
-                    }
-
-                    Text(row.title.uppercased())
-                        .font(Font.unbound.bodyMStrong)
-                        .foregroundStyle(Color.unbound.textPrimary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.68)
-
-                    Text("\(row.subtitle) - \(row.detail)")
-                        .font(Font.unbound.captionS)
-                        .foregroundStyle(Color.unbound.textSecondary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.74)
-                }
-            }
-            .padding(.leading, 12)
-            .padding(.vertical, 11)
-            .padding(.trailing, 10)
-            .frame(maxWidth: .infinity, alignment: .leading)
-
-            rankBand
-        }
-        .frame(maxWidth: .infinity, minHeight: 96, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color.unbound.surface)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .strokeBorder(tint.opacity(row.isEarned ? 0.22 : 0.10), lineWidth: 1)
-        )
-        .opacity(row.isEarned ? 1 : 0.68)
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .accessibilityLabel("\(row.title), \(row.tier.displayName), \(row.metric)")
-    }
-
-    @ViewBuilder
-    private var artwork: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(artworkBackground)
-
-            if let assetName = row.visualAssetName {
-                Image(assetName)
-                    .renderingMode(.original)
-                    .resizable()
-                    .interpolation(.high)
-                    .scaledToFit()
-                    .scaleEffect(assetName.hasSuffix("_highlight") ? 1.34 : 1.0)
-                    .padding((row.source == .exercise || usesTraditionalExerciseArt) ? 5 : (assetName.hasSuffix("_highlight") ? 0 : 4))
-                    .opacity(row.isEarned ? 1.0 : 0.52)
-            } else {
-                Image(systemName: row.source.systemImage)
-                    .font(.system(size: 22, weight: .semibold))
-                    .foregroundStyle(tint.opacity(row.isEarned ? 0.9 : 0.46))
-            }
-        }
-        .frame(width: 58, height: 58)
-        .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .strokeBorder(tint.opacity(row.isEarned ? 0.30 : 0.12), lineWidth: 1)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-    }
-
-    private var artworkBackground: some ShapeStyle {
-        if row.source == .exercise || usesTraditionalExerciseArt {
-            return AnyShapeStyle(Color.white)
-        }
-        if usesHighlightArt {
-            return AnyShapeStyle(
-                LinearGradient(
-                    colors: [
-                        Color(red: 0.36, green: 0.25, blue: 0.15),
-                        Color(red: 0.18, green: 0.13, blue: 0.10)
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            )
-        }
-        return AnyShapeStyle(tint.opacity(row.isEarned ? 0.16 : 0.08))
-    }
-
-    private var rankBand: some View {
-        VStack(spacing: 0) {
-            Spacer(minLength: 0)
-            if row.isRankHidden {
-                // not-yet feat — no earned rank badge to show
-                Text("—")
-                    .font(Font.unbound.titleM)
-                    .foregroundStyle(Color.unbound.textTertiary)
-                    .frame(width: 35, height: 35)
-            } else {
-                Image(row.tier.assetName)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 35, height: 35)
-                    .opacity(row.isEarned ? 1.0 : 0.42)
-                    .shadow(color: tint.opacity(row.isEarned ? 0.35 : 0.12), radius: 8)
-            }
-            Spacer(minLength: 0)
-        }
-        .frame(width: 58)
-        .frame(maxHeight: .infinity)
-        .background(
-            ZStack {
-                tint.opacity(row.isEarned ? 0.16 : 0.06)
-                LinearGradient(
-                    colors: [Color.white.opacity(0.05), Color.black.opacity(0.08)],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-            }
-        )
-        .overlay(alignment: .leading) {
-            Rectangle()
-                .fill(tint.opacity(row.isEarned ? 0.22 : 0.10))
-                .frame(width: 1)
-        }
-    }
-}
-
 // MARK: - Routine step preview helper
 
 private func routineStepPreview(_ step: RoutineStep) -> String {
@@ -3950,7 +3380,7 @@ private struct RoutineChallengeCard: View {
                 HStack(spacing: 8) {
                     metricPill(value: routine.durationLabel, label: "TIME")
                     rankMetricPill(tier: routine.difficultyTier)
-                    metricPill(value: "+\(routine.spReward)", label: "LVL XP")
+                    metricPill(value: "PROOF", label: "LVL XP")
                 }
 
                 HStack(spacing: 12) {
@@ -4257,19 +3687,16 @@ private struct RoutineCompletionFlow: View {
 
     @MainActor
     private func complete(_ record: RoutineCompletionRecord) async {
-        let didAward = RoutineHistoryStore.shared.complete(routine)
-        RoutineHistoryStore.shared.record(record)
-
-        let userId = services.auth.currentUserId ?? "anonymous"
-        if didAward {
-            await OverallLevelService.shared.ingest(
-                rawAP: Double(routine.spReward),
-                noveltyMultiplier: 1.0,
-                sourceLogId: "routine-\(routine.id)-\(Int(Date().timeIntervalSince1970))",
-                userId: userId,
-                at: Date()
+        guard let userId = services.auth.currentUserId else {
+            LoggingService.shared.log(
+                "Routine completion skipped without authenticated user",
+                level: .warning,
+                context: ["routineId": routine.id, "recordId": record.id]
             )
+            isCompleting = false
+            return
         }
+
         let performanceLog = TrainingSessionAdapters.performanceLogForRoutine(
             routine,
             record: record,
@@ -4284,18 +3711,22 @@ private struct RoutineCompletionFlow: View {
             )
         } catch {
             LoggingService.shared.log(
-                "Routine unified completion failed; using progression preview: \(error)",
+                "Routine canonical completion failed: \(error)",
                 level: .warning,
                 context: ["routineId": routine.id, "recordId": record.id]
             )
-            completionResult = TrainingCompletionService.shared.previewProgression(
-                for: performanceLog,
-                services: services
-            )
+            isCompleting = false
+            return
+        }
+
+        let canClaimRoutineReward = RoutineHistoryStore.shared.canComplete(routineId: routine.id)
+        RoutineHistoryStore.shared.record(record)
+
+        if canClaimRoutineReward, completionResult.overallLevelXPGained > 0 {
+            RoutineHistoryStore.shared.complete(routine)
         }
 
         var rewardSummary = RewardSummary()
-        rewardSummary.xpGained = didAward ? routine.spReward : 0
         rewardSummary.progression = completionResult.progressionReceipt
 
         UnboundHaptics.success()
@@ -4304,7 +3735,7 @@ private struct RoutineCompletionFlow: View {
             performanceLog: performanceLog,
             completionResult: completionResult,
             rewardSummary: rewardSummary,
-            fallbackXP: didAward ? routine.spReward : 0,
+            fallbackXP: 0,
             sourceName: routine.category.label
         )
     }
@@ -4389,7 +3820,7 @@ private struct RoutineReadyFace: View {
                     .font(Font.unbound.captionS.weight(.bold))
                     .tracking(1.5)
                 Spacer()
-                Text(canEarnLevelXP ? "+\(routine.spReward) LVL XP" : "XP CLAIMED")
+                Text(canEarnLevelXP ? "PROOF-GATED XP" : "PROOF LOGGED")
                     .font(Font.unbound.monoS.weight(.heavy))
                     .foregroundStyle(canEarnLevelXP ? routine.category.color : Color.unbound.textTertiary)
             }
@@ -4447,7 +3878,7 @@ private struct RoutineReadyFace: View {
             statPill(value: routine.durationLabel, label: "TIME", icon: "clock")
             statPill(value: routine.difficultyTier.displayName.uppercased(), label: "RANK", icon: "shield.lefthalf.filled")
             statPill(value: "\(runCount)", label: "STEPS", icon: "list.bullet")
-            statPill(value: canEarnLevelXP ? "+\(routine.spReward)" : "0", label: "LVL XP", icon: "sparkles")
+            statPill(value: canEarnLevelXP ? "PROOF" : "LOGGED", label: "LVL XP", icon: "sparkles")
         }
     }
 
@@ -4526,7 +3957,7 @@ private struct RoutineReadyFace: View {
             .buttonStyle(.plain)
             .accessibilityIdentifier("routine.ready.start")
 
-            Text(canEarnLevelXP ? "Completion uses the shared rewards screen." : "You can repeat it, but LVL XP is already claimed today.")
+            Text(canEarnLevelXP ? "Completion uses the shared rewards screen and actual logged work." : "You can repeat it; only new proof can add LVL XP.")
                 .font(Font.unbound.captionS)
                 .foregroundStyle(Color.unbound.textTertiary)
                 .multilineTextAlignment(.center)
@@ -4602,7 +4033,7 @@ private struct RoutinePreviewSheet: View {
                                 .foregroundStyle(Color.unbound.textTertiary)
                             Text("·")
                                 .foregroundStyle(Color.unbound.textTertiary)
-                            Text("+\(routine.spReward) LVL XP")
+                            Text("PROOF-GATED XP")
                                 .font(Font.unbound.monoM.weight(.bold))
                                 .foregroundStyle(routine.category.color)
                         }
@@ -4683,35 +4114,19 @@ private struct RoutinePreviewSheet: View {
 
                     let canComplete = RoutineHistoryStore.shared.canComplete(routineId: routine.id)
                     let label: String = {
-                        if didComplete { return "+\(routine.spReward) LVL XP LOCKED IN" }
+                        if didComplete { return "PROOF LOGGED" }
                         if !canComplete { return "DONE TODAY · COME BACK TOMORROW" }
-                        return "COMPLETE FEAT · +\(routine.spReward) LVL XP"
+                        return "CLOSE PREVIEW"
                     }()
                     let icon: String = {
                         if didComplete || !canComplete { return "checkmark.seal.fill" }
-                        return "arrow.right"
+                        return "xmark"
                     }()
                     let isDisabled = didComplete || !canComplete
 
                     Button {
                         UnboundHaptics.medium()
-                        let awarded = RoutineHistoryStore.shared.complete(routine)
-                        if awarded {
-                            let userId = AuthService.shared.currentUserId ?? "anonymous"
-                            Task {
-                                await OverallLevelService.shared.ingest(
-                                    rawAP: Double(routine.spReward),
-                                    noveltyMultiplier: 1.0,
-                                    sourceLogId: "routine-\(routine.id)-\(Int(Date().timeIntervalSince1970))",
-                                    userId: userId,
-                                    at: Date()
-                                )
-                            }
-                            withAnimation(.easeOut(duration: 0.2)) { didComplete = true }
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) { dismiss() }
-                        } else {
-                            dismiss()
-                        }
+                        dismiss()
                     } label: {
                         HStack(spacing: 10) {
                             Text(label)
@@ -4743,7 +4158,7 @@ private struct RoutinePreviewSheet: View {
 
 // MARK: - DayPreviewSheet (V3)
 //
-// Modal sheet showing the routed goals for any day in the 7-day strip.
+// Modal sheet showing the routed Program Focuses for any day in the 7-day strip.
 // Reuses the same launchers as TODAY'S TRAINING — tap card body to open
 // SkillDetailView, tap the right-side button to launch the AI session.
 // Doesn't filter by canTrain, so the user can preview future-day plans.
@@ -4769,7 +4184,7 @@ private struct DayPreviewSheet: View {
                 if category == .rest {
                     restEmptyState
                 } else if skillIds.isEmpty {
-                    noGoalsEmptyState(category: category)
+                    noFocusesEmptyState(category: category)
                 } else {
                     ScrollView(.vertical, showsIndicators: false) {
                         VStack(spacing: 8) {
@@ -4843,11 +4258,11 @@ private struct DayPreviewSheet: View {
         )
     }
 
-    private func noGoalsEmptyState(category: DayCategory) -> some View {
+    private func noFocusesEmptyState(category: DayCategory) -> some View {
         emptyState(
             icon: "calendar.badge.clock",
-            title: "No goals routed",
-            subtitle: "No active goals match \(category.displayName) day yet. Add one from any skill detail screen."
+            title: "No focuses routed",
+            subtitle: "No Program Focuses match \(category.displayName) day yet. Add one from any skill detail screen."
         )
     }
 
@@ -4870,7 +4285,8 @@ private struct DayPreviewSheet: View {
     }
 
     private func skillCard(node: SkillNode) -> some View {
-        let asset = node.id.replacingOccurrences(of: ".", with: "_")
+        let asset = SkillTraditionalVisualResolver.assetName(for: node)
+        let usesExistingCharacterArt = asset?.hasPrefix("exercise_visual_") == true
 
         return Button {
             UnboundHaptics.soft()
@@ -4879,13 +4295,14 @@ private struct DayPreviewSheet: View {
             HStack(spacing: 12) {
                 ZStack {
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(Color.unbound.surfaceElevated)
+                        .fill(usesExistingCharacterArt ? Color.white : Color.unbound.surfaceElevated)
                         .frame(width: 56, height: 56)
-                    if UIImage(named: asset) != nil {
+                    if let asset, UIImage(named: asset) != nil {
                         Image(asset)
                             .resizable()
                             .interpolation(.high)
                             .aspectRatio(contentMode: .fit)
+                            .padding(usesExistingCharacterArt ? 5 : 0)
                             .frame(width: 48, height: 48)
                     } else {
                         Image(systemName: node.glyph)
@@ -4948,7 +4365,7 @@ private struct DayPreviewSheet: View {
 //      pinned (Mon-Sun); the user reorders the CATEGORIES, so dragging
 //      Pull from Mon to Sun swaps the categories on those rows. Drag
 //      handles stay visible via `.environment(\.editMode, .active)`.
-//   2. OPTIMIZE SPLIT — deterministic 7-day split from active goals;
+//   2. OPTIMIZE SPLIT — deterministic 7-day split from Program Focuses;
 //      populates the draft (no auto-save).
 //   3. WEEK PHASE picker — chip + bottom sheet (heavy/moderate/light/
 //      deload). Persists immediately via setWeekPhase.
@@ -5254,12 +4671,12 @@ private struct WeeklyScheduleEditorSheet: View {
 
     private func runSuggest() async {
         guard !isSuggesting else { return }
-        let goals = skillProgress.activeGoalIds
+        let programFocusIds = skillProgress.programFocusIds
         withAnimation(.easeInOut(duration: 0.15)) {
             isSuggesting = true
             suggestErrorVisible = false
         }
-        let suggested = ProgramScheduler.shared.optimizedWeeklySchedule(activeGoalIds: goals)
+        let suggested = ProgramScheduler.shared.optimizedWeeklySchedule(programFocusIds: programFocusIds)
         if suggested.count == 7 {
             draft = suggested
             UnboundHaptics.medium()

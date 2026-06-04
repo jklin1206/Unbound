@@ -42,6 +42,9 @@ struct Step19_Stress: View {
     }
 }
 
+#if DEBUG
 #Preview {
     Step19_Stress(flow: OnboardingFlowViewModel(), progress: 0.63, onBack: {}, onContinue: {})
 }
+
+#endif

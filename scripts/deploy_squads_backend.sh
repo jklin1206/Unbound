@@ -7,7 +7,9 @@
 #   - You are logged in: `supabase login` (browser opens)
 #   - The UNBOUND project is linked: `supabase link --project-ref <ref>`
 #     (Get <ref> from Supabase Dashboard → Project Settings → Reference ID)
-#   - SUPABASE_SERVICE_ROLE_KEY set in your shell OR Supabase Dashboard secrets
+#   - SQUAD_CRON_SECRET set in your shell. This is a dedicated shared secret
+#     for server-only cron/webhook Edge Function calls. Do not use the Supabase
+#     service-role key as this bearer secret.
 #
 # Run:
 #   cd /Users/jlin/Documents/toji/UNBOUND
@@ -29,19 +31,33 @@ if [ ! -d "supabase/migrations" ]; then
     exit 1
 fi
 
+SERVICE_FUNCTION_SECRET="${SQUAD_CRON_SECRET:-}"
+
+if [ -z "$SERVICE_FUNCTION_SECRET" ]; then
+    echo "ERROR: SQUAD_CRON_SECRET is not set."
+    echo "Generate a dedicated random secret for cron/webhook callers; do not use the Supabase service-role key."
+    exit 1
+fi
+
 # --- Step 1: Apply migrations ---
-echo "==> Applying 5 squad migrations..."
+echo "==> Applying Supabase migrations..."
 supabase db push
 
-# Migrations applied:
+# Key squad migrations applied:
 #   20260514130000_squad_schema.sql
 #   20260514130001_squad_activity_nullable_user.sql
 #   20260514130002_squad_missions.sql
 #   20260514130003_squad_weekly_honors.sql
 #   20260514130004_friend_challenges.sql
+#   20260514130005_squad_cron_and_webhook.sql
+#   20260601081000_squad_backend_auth_forward_fix.sql
+#   20260601083000_squad_weekly_honors_unique_conflict_target.sql
+#   20260601084000_squad_progress_source_ledgers.sql
 
 # --- Step 2: Deploy 5 Edge Functions ---
 echo "==> Deploying 5 Edge Functions..."
+
+supabase secrets set SQUAD_CRON_SECRET="$SERVICE_FUNCTION_SECRET"
 
 supabase functions deploy join_squad
 supabase functions deploy detect_linked_sessions --no-verify-jwt
@@ -50,53 +66,25 @@ supabase functions deploy evaluate_squad_mission --no-verify-jwt
 supabase functions deploy assign_weekly_honors --no-verify-jwt
 
 # --no-verify-jwt: these are server-only crons + webhooks invoked by Supabase
-# itself, not by authenticated users. The `join_squad` function DOES need JWT
-# (called by the iOS client with the user's auth token).
+# itself, not by authenticated users. They still require
+# SQUAD_CRON_SECRET through Authorization: Bearer <secret>.
+# The `join_squad` function DOES need JWT (called by the iOS client with the
+# user's auth token).
 
-# --- Step 3: Configure webhooks + cron (manual via Dashboard) ---
+# --- Step 3: Configure DB secret + deployment-only manual items ---
 echo ""
 echo "==> MANUAL STEPS REMAINING:"
 echo ""
-echo "1. Webhook on workout_logs INSERT → detect_linked_sessions"
-echo "   Dashboard → Database → Webhooks → Create"
-echo "   - Table: workout_logs"
-echo "   - Events: INSERT"
-echo "   - URL: https://<project-ref>.supabase.co/functions/v1/detect_linked_sessions"
-echo "   - Headers: Authorization: Bearer <service-role-key>"
+echo "1. Configure the DB-side copy of the service-function secret"
+echo "   Dashboard → SQL editor:"
+echo "   alter database postgres"
+echo "   set app.settings.service_function_secret = '<same value as SQUAD_CRON_SECRET>';"
 echo ""
-echo "2. pg_cron schedules — run this SQL in the Dashboard SQL editor:"
-echo ""
-cat <<'SQL'
--- Run daily 03:00 UTC: weekly streak rollup
-select cron.schedule(
-  'evaluate_squad_streak_daily',
-  '0 3 * * *',
-  $$select net.http_post(
-    url := 'https://<project-ref>.supabase.co/functions/v1/evaluate_squad_streak',
-    headers := '{"Authorization": "Bearer <service-role-key>"}'::jsonb
-  ) as request_id;$$
-);
-
--- Run daily 04:00 UTC: mission progress + Monday generation
-select cron.schedule(
-  'evaluate_squad_mission_daily',
-  '0 4 * * *',
-  $$select net.http_post(
-    url := 'https://<project-ref>.supabase.co/functions/v1/evaluate_squad_mission',
-    headers := '{"Authorization": "Bearer <service-role-key>"}'::jsonb
-  ) as request_id;$$
-);
-
--- Run Sunday 23:00 UTC: weekly honors assignment
-select cron.schedule(
-  'assign_weekly_honors_sunday',
-  '0 23 * * 0',
-  $$select net.http_post(
-    url := 'https://<project-ref>.supabase.co/functions/v1/assign_weekly_honors',
-    headers := '{"Authorization": "Bearer <service-role-key>"}'::jsonb
-  ) as request_id;$$
-);
-SQL
+echo "2. Squad automation is installed by migrations"
+echo "   - pg_cron schedules call evaluate_squad_* and assign_weekly_honors"
+echo "   - public.workout_logs_detect_linked_sessions calls detect_linked_sessions"
+echo "   Do not create a Dashboard Database Webhook for detect_linked_sessions;"
+echo "   the DB trigger is authoritative and a Dashboard webhook would double-fire."
 echo ""
 echo "3. AASA file for Universal Links (/squad/<code>)"
 echo "   Deploy at https://unboundapp.com/.well-known/apple-app-site-association"

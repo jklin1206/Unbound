@@ -538,6 +538,9 @@ struct TrainingBlock: Codable, Identifiable, Hashable, Sendable {
     var title: String
     var subtitle: String?
     var skillId: String?
+    var selectedRungId: String?
+    var selectedRungSource: SkillTrainingRungSource?
+    var selectedRungReason: String?
     var routineId: String?
     var cardioType: CardioType?
     var prescriptions: [TrainingBlockPrescription]
@@ -549,6 +552,9 @@ struct TrainingBlock: Codable, Identifiable, Hashable, Sendable {
         title: String,
         subtitle: String? = nil,
         skillId: String? = nil,
+        selectedRungId: String? = nil,
+        selectedRungSource: SkillTrainingRungSource? = nil,
+        selectedRungReason: String? = nil,
         routineId: String? = nil,
         cardioType: CardioType? = nil,
         prescriptions: [TrainingBlockPrescription],
@@ -559,6 +565,9 @@ struct TrainingBlock: Codable, Identifiable, Hashable, Sendable {
         self.title = title
         self.subtitle = subtitle
         self.skillId = skillId
+        self.selectedRungId = selectedRungId
+        self.selectedRungSource = selectedRungSource
+        self.selectedRungReason = selectedRungReason
         self.routineId = routineId
         self.cardioType = cardioType
         self.prescriptions = prescriptions

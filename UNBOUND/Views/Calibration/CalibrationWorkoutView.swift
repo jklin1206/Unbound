@@ -10,6 +10,8 @@ struct CalibrationWorkoutView: View {
     @State private var equipment: Set<Equipment> = [.bodyweight]
     @State private var isSaving = false
     @State private var isLoading = true
+    @State private var showError = false
+    @State private var errorMessage = ""
 
     var body: some View {
         ZStack {
@@ -58,6 +60,11 @@ struct CalibrationWorkoutView: View {
             }
         }
         .task { await bootstrap() }
+        .alert("Calibration was not saved", isPresented: $showError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(errorMessage)
+        }
     }
 
     private var topBar: some View {
@@ -110,7 +117,11 @@ struct CalibrationWorkoutView: View {
 
     @MainActor
     private func bootstrap() async {
-        let userId = services.auth.currentUserId ?? "anonymous"
+        guard let userId = services.auth.currentUserId else {
+            entries = []
+            isLoading = false
+            return
+        }
         if let profile = try? await services.user.fetchProfile(userId: userId) {
             equipment = Set(profile.equipment ?? [.bodyweight])
         }
@@ -119,7 +130,16 @@ struct CalibrationWorkoutView: View {
     }
 
     private func buildEntries(userId: String) -> [CalibrationEntry] {
-        let useCalisthenic = equipment == [.bodyweight]
+        if Equipment.isFloorOnlySelection(equipment) {
+            return [
+                CalibrationEntry(userId: userId, exerciseKey: "pushup", name: "Pushup", kind: .reps),
+                CalibrationEntry(userId: userId, exerciseKey: "bodyweight squat", name: "Bodyweight Squat", kind: .reps),
+                CalibrationEntry(userId: userId, exerciseKey: "glute bridge", name: "Glute Bridge", kind: .reps),
+                CalibrationEntry(userId: userId, exerciseKey: "reverse crunch", name: "Reverse Crunch", kind: .reps)
+            ]
+        }
+        let bodyweightGear: Set<Equipment> = [.bodyweight, .pullupBar, .bands, .dipStation, .rings]
+        let useCalisthenic = !equipment.isEmpty && equipment.isSubset(of: bodyweightGear)
         if useCalisthenic {
             return [
                 CalibrationEntry(userId: userId, exerciseKey: "pushup", name: "Pushup", kind: .reps),
@@ -141,7 +161,14 @@ struct CalibrationWorkoutView: View {
     private func complete() {
         isSaving = true
         Task {
-            let userId = services.auth.currentUserId ?? "anonymous"
+            guard let userId = services.auth.currentUserId else {
+                await MainActor.run {
+                    isSaving = false
+                    errorMessage = "Sign in before completing calibration."
+                    showError = true
+                }
+                return
+            }
             let baselines = entries.map { entry in
                 CalibrationBaseline(
                     userId: userId,
@@ -153,12 +180,25 @@ struct CalibrationWorkoutView: View {
                     isKnown: true
                 )
             }
-            try? await services.calibration.save(baselines, userId: userId)
-            await MainActor.run {
-                UnboundHaptics.success()
-                isSaving = false
-                onComplete()
-                dismiss()
+            do {
+                try await services.calibration.save(baselines, userId: userId)
+                await MainActor.run {
+                    UnboundHaptics.success()
+                    isSaving = false
+                    onComplete()
+                    dismiss()
+                }
+            } catch {
+                LoggingService.shared.log(
+                    "Calibration workout save failed: \(error)",
+                    level: .error,
+                    context: ["userId": userId]
+                )
+                await MainActor.run {
+                    isSaving = false
+                    errorMessage = "Try again in a moment. Calibration was not completed."
+                    showError = true
+                }
             }
         }
     }

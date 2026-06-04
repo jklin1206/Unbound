@@ -39,7 +39,12 @@ enum MovementResolution {
         "negative",
         "jumping",
         "eccentric",
-        "partial"
+        "partial",
+        "beginner",
+        "intermediate",
+        "two hand",
+        "two-hand",
+        "2h"
     ]
 
     /// Simple key normalizer: trim + lowercase, punctuation preserved.

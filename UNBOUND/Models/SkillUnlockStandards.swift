@@ -203,7 +203,7 @@ enum SkillUnlockStandards {
 
         // Planche: the next lever opens at ownership; elite dynamic branches
         // require repeatable control.
-        "pl.tuck-planche->pl.tuck-planche-pushup": .forged,
+        "pl.tuck-planche->cal.tuck-planche-pushup": .forged,
         "pl.straddle-planche->pl.full-planche": .veteran,
         "pl.full-planche->pl.full-planche-pushup": .veteran,
         "pl.full-planche->pl.one-arm-planche": .master,
@@ -214,7 +214,8 @@ enum SkillUnlockStandards {
         // length, repeatable ownership before dynamic or mythic work.
         "cl.tuck-front-lever->cl.straddle-front-lever": .forged,
         "cl.straddle-front-lever->cl.full-front-lever": .veteran,
-        "cl.skin-the-cat->cl.straddle-back-lever": .forged,
+        "cl.tuck-front-lever->pp.tuck-front-lever-pullup": .veteran,
+        "cl.tuck-back-lever->cl.straddle-back-lever": .forged,
         "cl.straddle-back-lever->cl.full-back-lever": .veteran,
         "cl.skin-the-cat->cl.three-sixty-pulls": .master,
 

@@ -370,7 +370,7 @@ final class OverallRankTrialServiceTests: XCTestCase {
         assertDraftPassesAndFails(draft, against: definition)
     }
 
-    func testDeckOfProofDraftMapsToDeterministicFixedDeck() throws {
+    func testDeckOfProofDraftDealsRandomDrawOrder() throws {
         let definition = OverallRankTrialDefinitions.reckoning
         let resolved = try XCTUnwrap(resolvedTrial(for: definition, loadout: .homeKit))
         let draft = OverallRankTrialRunner.shared.draft(
@@ -383,14 +383,24 @@ final class OverallRankTrialServiceTests: XCTestCase {
         XCTAssertEqual(definition.format, .fixedDeck)
         XCTAssertEqual(draft.title, "Deck of Proof")
         XCTAssertEqual(draft.estimatedMinutes, 42)
-        XCTAssertEqual(resolved.stations.count, 24)
-        XCTAssertEqual(resolved.stations.filter { $0.category == .push }.count, 6)
-        XCTAssertEqual(resolved.stations.filter { $0.category == .lower }.count, 6)
-        XCTAssertEqual(resolved.stations.filter { $0.category == .pull }.count, 6)
-        XCTAssertEqual(resolved.stations.filter { $0.category == .engine }.count, 4)
-        XCTAssertEqual(resolved.stations.filter { $0.category == .carryCore }.count, 2)
+        XCTAssertEqual(resolved.stations.count, 52)
+        XCTAssertEqual(resolved.stations.filter { $0.category == .push }.count, 13)
+        XCTAssertEqual(resolved.stations.filter { $0.category == .lower }.count, 13)
+        XCTAssertEqual(resolved.stations.filter { $0.category == .pull }.count, 13)
+        XCTAssertEqual(resolved.stations.filter { $0.category == .engine }.count, 0)
+        XCTAssertEqual(resolved.stations.filter { $0.category == .carryCore }.count, 13)
         XCTAssertEqual(Array(resolved.stations.map(\.id).prefix(3)), ["deck-card-01", "deck-card-02", "deck-card-03"])
-        assertDraft(draft, matches: definition, resolvedTrial: resolved)
+        XCTAssertEqual(Array(resolved.stations.map(\.station.title).prefix(3)), ["Card AH Pushups", "Card 2H Pushups", "Card 3H Pushups"])
+        XCTAssertEqual(resolved.stations.first?.standard.minimumValue, 11)
+        XCTAssertEqual(Set(resolved.stations.map(\.standard.restSeconds)), [TrialStandards.DeckOfProof.restSeconds])
+        XCTAssertEqual(resolved.stations.first { $0.station.title == "Card QC Pullups" }?.standard.minimumValue, 10)
+        XCTAssertEqual(draft.blocks.count, resolved.stations.count)
+        XCTAssertNotEqual(draft.blocks.map(\.title), resolved.stations.map { $0.station.title })
+        XCTAssertEqual(draft.blocks.map(\.title).sorted(), resolved.stations.map { $0.station.title }.sorted())
+        XCTAssertEqual(
+            draft.blocks.flatMap(\.prescriptions).map(\.movementId).compactMap { $0 }.sorted(),
+            resolved.stations.map(\.selectedMovement.movementId).sorted()
+        )
         assertDraftPassesAndFails(draft, against: definition)
     }
 
@@ -443,6 +453,43 @@ final class OverallRankTrialServiceTests: XCTestCase {
             assertCatalogBacked(definition)
             assertDraft(draft, matches: definition, resolvedTrial: resolved)
             assertDraftPassesAndFails(draft, against: definition)
+        }
+    }
+
+    func testAllRankTrialsCanBeCompletedThroughActiveWorkoutSessionTapThrough() throws {
+        for definition in OverallRankTrialDefinitions.all {
+            for loadout in TrialLoadout.allCases {
+                let resolved = try XCTUnwrap(
+                    resolvedTrial(for: definition, loadout: loadout),
+                    "\(definition.displayName) / \(loadout.displayName)"
+                )
+                let draft = OverallRankTrialRunner.shared.draft(
+                    for: definition,
+                    userId: "u1",
+                    date: Date(timeIntervalSince1970: 100),
+                    resolvedTrial: resolved,
+                    bodyweightKg: 82
+                )
+                let session = ActiveWorkoutSession(trainingDraft: draft)
+
+                for exerciseIndex in session.exercises.indices {
+                    for setIndex in session.exercises[exerciseIndex].sets.indices {
+                        session.confirmAsPlanned(exerciseIndex: exerciseIndex, setIndex: setIndex)
+                    }
+                }
+
+                let progress = session.progressSummary
+                let performanceLog = session.assemblePerformanceLog(userId: "u1")
+                let evaluation = OverallRankTrialRunner.shared.evaluateDetailed(performanceLog, against: definition)
+
+                XCTAssertEqual(session.source, .overallRankTrial, definition.displayName)
+                XCTAssertEqual(session.programId, definition.id, definition.displayName)
+                XCTAssertFalse(session.hasUnloggedWorkingSets, "\(definition.displayName) / \(loadout.displayName)")
+                XCTAssertEqual(progress.loggedWorkingSets, progress.totalWorkingSets, "\(definition.displayName) / \(loadout.displayName)")
+                XCTAssertEqual(performanceLog.blocks.count, draft.blocks.count, "\(definition.displayName) / \(loadout.displayName)")
+                XCTAssertTrue(evaluation.passed, "\(definition.displayName) / \(loadout.displayName): \(evaluation.failedStation?.failureReason ?? "failed")")
+                XCTAssertNil(evaluation.failedStation, "\(definition.displayName) / \(loadout.displayName)")
+            }
         }
     }
 

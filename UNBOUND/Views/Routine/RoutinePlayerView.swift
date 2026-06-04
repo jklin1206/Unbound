@@ -9,7 +9,7 @@ import SwiftUI
 //               rep stepper, LOG SET button, next-up preview.
 // Rest stage:   full-screen rest timer with a draining circular ring,
 //               skip and +30s affordances.
-// Complete:     summary card with total time + sets + LVL XP awarded.
+// Complete:     summary card with total time + sets logged.
 
 struct SideQuestPlayerView: View {
     let routine: SideQuest
@@ -156,7 +156,7 @@ struct SideQuestPlayerView: View {
 
             Spacer()
 
-            Text("\(routine.spReward) LVL XP")
+            Text("SIDE QUEST")
                 .font(Font.unbound.captionS.weight(.bold))
                 .tracking(1.4)
                 .foregroundStyle(categoryColor)
@@ -581,7 +581,7 @@ struct SideQuestPlayerView: View {
                     Divider()
                         .frame(height: 32)
                         .background(Color.unbound.border)
-                    statPill(value: "+\(routine.spReward)", label: "LVL XP")
+                    statPill(value: "\(setLogs.count)", label: "SETS LOGGED")
                 }
                 .padding(16)
                 .background(
@@ -684,15 +684,16 @@ struct SideQuestPlayerView: View {
         repsDone = currentExercise.defaultRepCount
     }
 
-    private func buildLog() -> SideQuestLog {
-        SideQuestLog(
+    private func buildLog() -> SideQuestLog? {
+        guard let userId = services.auth.currentUserId else { return nil }
+        return SideQuestLog(
             id: UUID().uuidString,
-            userId: services.auth.currentUserId ?? "anonymous",
+            userId: userId,
             questId: routine.id,
             startedAt: startedAt,
             completedAt: Date(),
             setLogs: setLogs,
-            spAwarded: routine.spReward
+            spAwarded: 0
         )
     }
 }

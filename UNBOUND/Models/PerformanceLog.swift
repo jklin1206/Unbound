@@ -48,6 +48,9 @@ struct PerformanceBlock: Codable, Identifiable, Hashable, Sendable {
     var kind: TrainingBlockKind
     var title: String
     var skillId: String?
+    var selectedRungId: String?
+    var selectedRungSource: SkillTrainingRungSource?
+    var selectedRungReason: String?
     var routineId: String?
     var cardioType: CardioType?
     var exercises: [PerformanceExercise]
@@ -61,6 +64,9 @@ struct PerformanceBlock: Codable, Identifiable, Hashable, Sendable {
         kind: TrainingBlockKind,
         title: String,
         skillId: String? = nil,
+        selectedRungId: String? = nil,
+        selectedRungSource: SkillTrainingRungSource? = nil,
+        selectedRungReason: String? = nil,
         routineId: String? = nil,
         cardioType: CardioType? = nil,
         exercises: [PerformanceExercise],
@@ -73,6 +79,9 @@ struct PerformanceBlock: Codable, Identifiable, Hashable, Sendable {
         self.kind = kind
         self.title = title
         self.skillId = skillId
+        self.selectedRungId = selectedRungId
+        self.selectedRungSource = selectedRungSource
+        self.selectedRungReason = selectedRungReason
         self.routineId = routineId
         self.cardioType = cardioType
         self.exercises = exercises

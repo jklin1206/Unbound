@@ -6,8 +6,9 @@ import Foundation
 // this on every WorkoutLog save. Views (home, session, coach context)
 // read it to render current working weights, rep targets, and block info.
 //
-// Persisted via DatabaseService (local JSON for V1, mirrored to Supabase
-// `progression_states` when auth is established).
+// Persisted via DatabaseService local JSON for V1. It is intentionally
+// local-only until the Supabase `progression_states` schema is migrated to
+// this composite-key model.
 
 enum BlockType: String, Codable {
     case accumulation      // weeks 1-4: volume emphasis, RPE 7
@@ -166,6 +167,7 @@ enum ExerciseClassification: String, Codable {
             "pullup", "pull-up", "chin-up", "chinup",
             "pushup", "push-up", "dip",
             "bodyweight squat", "cossack squat", "pistol squat", "shrimp squat",
+            "bodyweight leg extension", "reverse nordic",
             "l-sit", "lsit", "plank", "dragon flag",
             "dead hang", "muscle-up", "muscle up",
             "hanging knee raise", "hanging leg raise",
@@ -257,7 +259,7 @@ extension Notification.Name {
 // MARK: - ProgressionFamilyState — per-user tier unlocks
 //
 // Chunk 2B. Tracks the highest-unlocked tier + currently-trained tier for
-// each progression family (push / pull / legs-single / core-lever). The
+// each progression family (push / pull / legs-single / legs-nordic / core-lever). The
 // engine auto-unlocks the next tier when the user hits the criterion on
 // the current tier's exercise.
 

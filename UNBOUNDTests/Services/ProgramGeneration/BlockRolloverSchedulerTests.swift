@@ -56,9 +56,30 @@ final class BlockRolloverSchedulerTests: XCTestCase {
         XCTAssertEqual(BlockRolloverScheduler.currentDayNumber(program: done, now: now), 7)
     }
 
+    func testCurrentArcStartControlsRolloverAfterGeneratedNextArc() {
+        let now = Date(timeIntervalSince1970: 1_700_000_000)
+        let originalStart = now.addingTimeInterval(-60 * 86400)
+        let currentArcStart = now.addingTimeInterval(-3 * 86400)
+        let arc = Arc(id: "arc-2", programId: "p-1", startDate: currentArcStart)
+        let program = makeProgram(
+            createdAt: originalStart,
+            arcs: [arc],
+            currentArcId: arc.id
+        )
+
+        XCTAssertFalse(BlockRolloverScheduler.shouldRollover(program: program, now: now))
+        XCTAssertEqual(BlockRolloverScheduler.currentDayNumber(program: program, now: now), 4)
+        XCTAssertEqual(BlockRolloverScheduler.daysRemaining(program: program, now: now), 25)
+    }
+
     // MARK: helper
 
-    private func makeProgram(createdAt: Date, durationDays: Int = 28) -> TrainingProgram {
+    private func makeProgram(
+        createdAt: Date,
+        durationDays: Int = 28,
+        arcs: [Arc] = [],
+        currentArcId: String? = nil
+    ) -> TrainingProgram {
         TrainingProgram(
             id: "p-1",
             scanId: "s-1",
@@ -78,7 +99,9 @@ final class BlockRolloverSchedulerTests: XCTestCase {
             difficultyLevel: .intermediate,
             requiredEquipment: [],
             estimatedDailyMinutes: 45,
-            rationale: nil
+            rationale: nil,
+            arcs: arcs,
+            currentArcId: currentArcId
         )
     }
 }

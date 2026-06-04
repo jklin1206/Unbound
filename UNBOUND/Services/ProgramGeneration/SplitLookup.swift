@@ -14,10 +14,15 @@ struct Split: Equatable {
 ///
 /// Calisthenic branch gated on `.primary == .control` (precision / bodyweight mastery).
 enum SplitLookup {
-    static func split(buildIdentity: BuildIdentity, frequency: TargetFrequency) -> Split {
+    static func split(
+        buildIdentity: BuildIdentity,
+        frequency: TargetFrequency,
+        trainingStyle: TrainingStyle? = nil
+    ) -> Split {
         // Control-primary specialist = calisthenic branch — move your own bodyweight
         // like a weapon.
-        let isCalisthenic = (buildIdentity.primary == .control && buildIdentity.shape == .specialist)
+        let isCalisthenic = trainingStyle == .bodyweight
+            || (buildIdentity.primary == .control && buildIdentity.shape == .specialist)
             || buildIdentity.programTemplateKey == "control"
         return Split(trainingDayTemplates: templates(isCalisthenic: isCalisthenic, frequency: frequency))
     }

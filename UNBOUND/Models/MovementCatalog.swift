@@ -473,7 +473,7 @@ enum MovementCatalog {
         style: TrainingStyle,
         userEquipment: [Equipment]
     ) -> [MovementDefinition] {
-        legacyExercises
+        programCandidateDefinitions(for: style)
             .filter { isProgramCompatible($0, style: style, userEquipment: userEquipment) }
             .sorted { lhs, rhs in
                 let lhsScore = programScore(lhs, style: style)
@@ -544,7 +544,7 @@ enum MovementCatalog {
         style: TrainingStyle,
         userEquipment: [Equipment]
     ) -> Bool {
-        guard definition.role == .canonicalExercise else { return false }
+        guard isProgramEligibleRole(definition.role) else { return false }
 
         let equipment = userEquipment.isEmpty ? [.bodyweight] : userEquipment
         let required = requiredProgramEquipment(for: definition)
@@ -572,6 +572,24 @@ enum MovementCatalog {
 
         let capabilities = movementCapabilities(for: equipment)
         return required.isSubset(of: capabilities)
+    }
+
+    private static func programCandidateDefinitions(for style: TrainingStyle) -> [MovementDefinition] {
+        switch style {
+        case .bodyweight:
+            return definitions.filter { isProgramEligibleRole($0.role) }
+        case .freeWeights, .hybrid, .machines:
+            return legacyExercises
+        }
+    }
+
+    private static func isProgramEligibleRole(_ role: MovementRole) -> Bool {
+        switch role {
+        case .canonicalExercise, .skillDrill, .skillTarget:
+            return true
+        case .alias, .cardioModality, .carrySled, .mobilityDuration, .routineContainer, .routineStep:
+            return false
+        }
     }
 
     static func rankStandard(for definition: MovementDefinition) -> MovementDefinition? {
@@ -809,7 +827,11 @@ enum MovementCatalog {
             case .bench:
                 capabilities.insert(.bench)
             case .pullupBar:
-                capabilities.formUnion([.pullupBar, .dipStation, .rings])
+                capabilities.insert(.pullupBar)
+            case .dipStation:
+                capabilities.insert(.dipStation)
+            case .rings:
+                capabilities.insert(.rings)
             case .bodyweight:
                 capabilities.formUnion([.bodyweight, .openSpace])
             case .bands:
@@ -817,7 +839,7 @@ enum MovementCatalog {
             case .homeWeights:
                 capabilities.formUnion([
                     .bodyweight, .openSpace, .barbell, .dumbbell, .kettlebell,
-                    .bench, .box, .band, .pullupBar, .dipStation
+                    .bench, .box, .band, .pullupBar
                 ])
             }
         }
@@ -852,9 +874,14 @@ enum MovementCatalog {
             "plank", "hollow hold", "l sit tucked", "l sit", "tuck front lever",
             "advanced tuck front lever", "dragon flag", "hanging knee raise", "hanging leg raise",
             "captains chair knee raise", "captains chair leg raise", "bodyweight squat",
-            "walking lunge", "step up", "cossack squat", "pistol squat", "shrimp squat",
-            "nordic curl", "inverted row", "ab wheel", "decline situp", "roman chair situp",
-            "hollow rock", "jump squat", "assisted pistol squat", "assisted shrimp squat"
+            "assisted squat", "parallel squat", "split squat", "walking lunge", "step up",
+            "deep step up", "cossack squat", "partial pistol squat", "assisted pistol squat",
+            "pistol squat", "weighted pistol", "assisted shrimp squat", "beginner shrimp squat",
+            "intermediate shrimp squat", "shrimp squat", "two-hand shrimp squat",
+            "elevated two-hand shrimp squat", "nordic curl negative", "nordic curl",
+            "nordic curl arms overhead", "tuck one-leg nordic curl", "one-leg nordic curl",
+            "bodyweight leg extension", "inverted row", "ab wheel", "decline situp", "roman chair situp",
+            "hollow rock", "jump squat"
         ]
         if bodyweightNames.contains(name) {
             return .bodyweight
@@ -871,11 +898,18 @@ enum MovementCatalog {
         if name == "hollow rock" {
             return .bodyweightReps
         }
+        let bodyweightRepControlNames: Set<String> = [
+            "dragon flag", "hanging knee raise", "hanging leg raise",
+            "captains chair knee raise", "captains chair leg raise"
+        ]
+        if bodyweightRepControlNames.contains(name) {
+            return .bodyweightReps
+        }
         let holdControlNames: Set<String> = [
             "plank", "hollow hold", "l sit tucked", "l sit", "tuck front lever",
-            "advanced tuck front lever", "dragon flag", "hanging leg raise"
+            "advanced tuck front lever"
         ]
-        if display.contains("plank") || display.contains("hang") || display.contains("hold") || display.contains("hollow") || holdControlNames.contains(name) {
+        if display.contains("plank") || display.contains("hold") || display.contains("hollow") || holdControlNames.contains(name) || (display.contains("hang") && !bodyweightRepControlNames.contains(name)) {
             return .holdControl
         }
         if blockKind(for: exercise) == .bodyweight {
@@ -898,6 +932,8 @@ enum MovementCatalog {
             || name.contains("cable")
             || name.contains("plate loaded")
             || name.contains("hammer strength")
+        let isBodyweightLegExtension = name.contains("bodyweight leg extension")
+            || name.contains("reverse nordic")
 
         if name.contains("smith") { equipment.insert(.smithMachine) }
         if !isBandVariant,
@@ -911,14 +947,16 @@ enum MovementCatalog {
            name.contains("deadlift") || name.contains("bench press") || name.contains("overhead press") || name.contains("hip thrust") {
             equipment.insert(.barbell)
         }
-        if name.contains("dumbbell") || name.contains("arnold press") || name.contains("goblet") || name.contains("hammer curl") || name.contains("lateral raise") || name.contains("fly") { equipment.insert(.dumbbell) }
+        if name.contains("dumbbell") || name.contains("arnold press") || name.contains("goblet") || name.contains("hammer curl") || name.contains("lateral raise") || name.contains("fly") || name.contains("weighted pistol") { equipment.insert(.dumbbell) }
+        if name.contains("weighted pistol") { equipment.insert(.kettlebell) }
         if name.contains("kettlebell") { equipment.insert(.kettlebell) }
         if !isBandVariant,
            name.contains("cable") || name.contains("pulldown") || name.contains("pushdown") || name.contains("face pull") || name.contains("pallof") {
             equipment.insert(.cable)
         }
-        if name.contains("machine") || name.contains("plate loaded") || name.contains("hammer strength") || name.contains("converging") || name.contains("leg press") || name.contains("hack squat") || name.contains("pendulum") || name.contains("v squat") || name.contains("pec deck") || name.contains("leg curl") || name.contains("leg extension") || name.contains("reverse hyper") || name.contains("glute ham") || name.contains("captain") { equipment.insert(.machine) }
+        if name.contains("machine") || name.contains("plate loaded") || name.contains("hammer strength") || name.contains("converging") || name.contains("leg press") || name.contains("hack squat") || name.contains("pendulum") || name.contains("v squat") || name.contains("pec deck") || name.contains("leg curl") || (!isBodyweightLegExtension && name.contains("leg extension")) || name.contains("reverse hyper") || name.contains("glute ham") || name.contains("captain") { equipment.insert(.machine) }
         if name.contains("pullup") || name.contains("chin up") || name.contains("hanging") { equipment.insert(.pullupBar) }
+        if name.contains("ab wheel") { equipment.insert(.mobilityTool) }
         if name.contains("dip") { equipment.insert(.dipStation) }
         if name.contains("ring") { equipment.insert(.rings) }
         if name.contains("bench") || name.contains("incline") || name.contains("decline") || name.contains("chest supported") { equipment.insert(.bench) }
@@ -948,7 +986,7 @@ enum MovementCatalog {
         }
 
         let name = normalized(exercise.displayName + " " + exercise.name)
-        if name.contains("one arm") || name.contains("planche") || name.contains("nordic") || name.contains("pistol") || name.contains("shrimp") || name.contains("handstand") {
+        if name.contains("one arm") || name.contains("one-leg") || name.contains("planche") || name.contains("nordic") || name.contains("pistol") || name.contains("shrimp") || name.contains("handstand") {
             return .advanced
         }
         if name.contains("deadlift") || name.contains("barbell") || name.contains("front squat") || name.contains("overhead press") || name.contains("dip") || name.contains("pullup") {
@@ -1070,11 +1108,30 @@ enum MovementCatalog {
         if name.contains("pushup") || name.contains("bench") || name.contains("chest press") {
             skills.insert("cal.pushup")
         }
-        if name.contains("pistol") || name.contains("shrimp") || name.contains("split squat") || name.contains("step up") {
+        if name == "assisted squat" || name == "parallel squat" || name == "bodyweight squat" || name == "cossack squat" {
+            skills.insert("ld.deep-squat")
+        }
+        if name.contains("step up") {
+            skills.insert("ld.step-up")
+        }
+        if name.contains("bulgarian split squat") {
+            skills.formUnion(["ld.bulgarian-split-squat", "ld.pistol-squat"])
+        } else if name.contains("split squat") {
+            skills.formUnion(["ld.split-squat", "ld.pistol-squat"])
+        }
+        if name.contains("weighted pistol") {
+            skills.insert("ld.weighted-pistol")
+        } else if name.contains("pistol") {
             skills.insert("ld.pistol-squat")
+        }
+        if name.contains("shrimp") {
+            skills.insert("ld.shrimp-squat")
         }
         if name.contains("nordic") || name.contains("leg curl") {
             skills.insert("ld.nordic-curl")
+        }
+        if name == "bodyweight leg extension" {
+            skills.insert("ld.leg-extensions")
         }
         if name.contains("plank") || name.contains("hollow") || name.contains("leg raise") || name.contains("knee raise") || name.contains("situp") {
             skills.insert("cl.hollow-body-30")
@@ -1136,6 +1193,40 @@ enum MovementCatalog {
             aliases += ["captain chair knee raise", "captain's chair knee raise"]
         case "hanging leg raise":
             aliases += ["captain chair leg raise", "captain's chair leg raise"]
+        case "bodyweight squat":
+            aliases += ["full squat", "air squat", "strict squat"]
+        case "assisted squat":
+            aliases += ["supported squat"]
+        case "parallel squat":
+            aliases += ["squat to parallel"]
+        case "split squat":
+            aliases += ["stationary lunge"]
+        case "deep step up":
+            aliases += ["high step up", "deep step-up", "high step-up"]
+        case "partial pistol squat":
+            aliases += ["box pistol", "box pistol squat", "partial pistol"]
+        case "assisted pistol squat":
+            aliases += ["pistol squat assisted", "supported pistol squat"]
+        case "weighted pistol":
+            aliases += ["weighted pistol squat", "loaded pistol squat"]
+        case "beginner shrimp squat":
+            aliases += ["beginner shrimp"]
+        case "intermediate shrimp squat":
+            aliases += ["int shrimp squat", "intermediate shrimp", "int shrimp"]
+        case "two-hand shrimp squat":
+            aliases += ["2-hand shrimp squat", "two hand shrimp squat", "2h shrimp squat"]
+        case "elevated two-hand shrimp squat":
+            aliases += ["elevated 2-hand shrimp squat", "elevated 2h shrimp squat", "deficit two-hand shrimp squat"]
+        case "nordic curl negative":
+            aliases += ["nordic negative", "negative nordic curl", "eccentric nordic curl"]
+        case "nordic curl arms overhead":
+            aliases += ["arms-overhead nordic curl", "overhead nordic curl"]
+        case "tuck one-leg nordic curl":
+            aliases += ["tuck one leg nordic curl", "tuck single-leg nordic curl"]
+        case "one-leg nordic curl":
+            aliases += ["one leg nordic curl", "single-leg nordic curl", "single leg nordic curl"]
+        case "bodyweight leg extension":
+            aliases += ["bodyweight leg extensions", "reverse nordic", "reverse-nordic", "reverse nordic curl", "kneeling leg extension"]
         case "plank":
             aliases += ["plank hold", "plank max hold"]
         default:
@@ -1409,6 +1500,21 @@ enum MovementCatalog {
         skillDrill("crow-pose", "Crow Pose", aliases: ["crow pose", "one-foot crow float"], skillId: "hs.crow-pose"),
         skillDrill("headstand", "Headstand", aliases: ["headstand", "tripod base hold", "tuck headstand"], skillId: "hs.headstand"),
         skillDrill("planche-lean", "Planche Lean", aliases: ["planche lean", "planche lean hold", "feet-elevated planche lean"], skillId: "pl.tuck-planche"),
+        skillDrill("frog-stand", "Frog Stand", aliases: ["frog stand", "frog stand hold"], skillId: "pl.tuck-planche"),
+        skillDrill("band-assisted-tuck-planche", "Band-Assisted Tuck Planche", aliases: ["band-assisted tuck planche", "band assisted tuck planche", "banded tuck planche"], skillId: "pl.tuck-planche"),
+        skillDrill("advanced-tuck-planche", "Advanced Tuck Planche", aliases: ["advanced tuck planche", "advanced tuck planche hold"], skillId: "pl.straddle-planche"),
+        skillDrill("band-assisted-full-planche", "Band-Assisted Full Planche", aliases: ["band-assisted full planche", "band assisted full planche", "banded full planche"], skillId: "pl.full-planche"),
+        skillDrill("tuck-l-sit", "Tuck L-Sit", aliases: ["tuck l-sit"], skillId: "cal.l-sit-10"),
+        skillDrill("single-leg-l-sit", "Single-Leg L-Sit", aliases: ["single-leg l-sit", "one-leg l-sit", "one leg l-sit"], skillId: "cal.l-sit-10"),
+        skillDrill("foot-supported-l-sit", "Foot-Supported L-Sit", aliases: ["foot-supported l-sit", "foot supported l-sit"], skillId: "cal.l-sit-10"),
+        skillDrill("one-leg-front-lever", "One-Leg Front Lever", aliases: ["one-leg front lever", "one leg front lever"], skillId: "cl.straddle-front-lever"),
+        skillDrill("advanced-tuck-back-lever", "Advanced Tuck Back Lever", aliases: ["advanced tuck back lever", "advanced tuck back lever hold"], skillId: "cl.straddle-back-lever"),
+        skillDrill("one-leg-back-lever", "One-Leg Back Lever", aliases: ["one-leg back lever", "one leg back lever"], skillId: "cl.straddle-back-lever"),
+        skillDrill("close-hand-straddle-handstand", "Close-Hand Straddle Handstand", aliases: ["close-hand straddle handstand", "close hand straddle handstand"], skillId: "hs.wall-supported-oah"),
+        skillDrill("one-arm-handstand-weight-shift", "One-Arm Handstand Weight Shift", aliases: ["one-arm handstand weight shift", "wall one-arm weight shift", "wall oah weight shift"], skillId: "hs.wall-supported-oah"),
+        skillDrill("two-finger-tent", "Two-Finger Tent", aliases: ["2-finger tent", "two-finger tent", "two finger tent"], skillId: "oah.one-arm-handstand-5s"),
+        skillDrill("one-finger-tent", "One-Finger Tent", aliases: ["1-finger tent", "one-finger tent", "one finger tent"], skillId: "oah.one-arm-handstand-5s"),
+        skillDrill("off-hand-float", "Off-Hand Float", aliases: ["off-hand float", "off hand float", "fingertip-lift", "fingertip lift", "one-arm fingertip hover"], skillId: "oah.one-arm-handstand-5s"),
         skillDrill("hollow-body-hold", "Hollow Body Hold", aliases: ["hollow body hold", "banana hold"], skillId: "cl.hollow-body-30")
     ]
 
@@ -1719,8 +1825,7 @@ enum MovementCatalogValidation {
             "exercise.l-sit",
             "exercise.l-sit-tucked",
             "exercise.tuck-front-lever",
-            "exercise.advanced-tuck-front-lever",
-            "exercise.dragon-flag"
+            "exercise.advanced-tuck-front-lever"
         ]
         for id in holdIds {
             guard let definition = byId[id] else { continue }

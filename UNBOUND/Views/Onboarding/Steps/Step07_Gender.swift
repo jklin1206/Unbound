@@ -32,6 +32,9 @@ struct Step07_Gender: View {
     }
 }
 
+#if DEBUG
 #Preview {
     Step07_Gender(flow: OnboardingFlowViewModel(), progress: 0.23, onBack: {}, onContinue: {})
 }
+
+#endif

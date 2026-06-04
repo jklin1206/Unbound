@@ -2,6 +2,50 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 struct SessionEditorView: View {
+    enum Mode: Equatable {
+        case startSession
+        case planAhead
+
+        var headerTitle: String {
+            switch self {
+            case .startSession: return "EDIT WORKOUT"
+            case .planAhead: return "PLAN WORKOUT"
+            }
+        }
+
+        var summaryEyebrow: String {
+            switch self {
+            case .startSession: return "WORKOUT"
+            case .planAhead: return "PLAN"
+            }
+        }
+
+        var footerLabel: String {
+            switch self {
+            case .startSession: return "TODAY ONLY"
+            case .planAhead: return "SAVED WORKOUT"
+            }
+        }
+
+        var primaryTitle: String {
+            switch self {
+            case .startSession: return "START"
+            case .planAhead: return "SCHEDULE"
+            }
+        }
+
+        var primaryIcon: String {
+            switch self {
+            case .startSession: return "play.fill"
+            case .planAhead: return "calendar.badge.plus"
+            }
+        }
+
+        var allowsTitleEditing: Bool { self == .planAhead }
+        var showsPersistenceStrip: Bool { self == .startSession }
+        var showsSaveWorkoutAction: Bool { self == .startSession }
+    }
+
     @State private var draft: TrainingSessionDraft
     @State private var pickerRoute: PickerRoute?
     @State private var customRoute: CustomRoute?
@@ -22,11 +66,13 @@ struct SessionEditorView: View {
     @Environment(\.dismiss) private var dismiss
 
     private let originalDraft: TrainingSessionDraft
+    private let mode: Mode
     let onStart: (TrainingSessionDraft) -> Void
 
-    init(draft: TrainingSessionDraft, onStart: @escaping (TrainingSessionDraft) -> Void) {
+    init(draft: TrainingSessionDraft, mode: Mode = .startSession, onStart: @escaping (TrainingSessionDraft) -> Void) {
         _draft = State(initialValue: draft)
         self.originalDraft = draft
+        self.mode = mode
         self.onStart = onStart
     }
 
@@ -39,9 +85,10 @@ struct SessionEditorView: View {
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 16) {
                         summaryCard
-                        saveWorkoutAction
-                        skillBlockAction
-                        compactPersistenceStrip
+                        editorActionBar
+                        if mode.showsPersistenceStrip {
+                            compactPersistenceStrip
+                        }
                         blocksList
                     }
                     .padding(.horizontal, 20)
@@ -106,7 +153,7 @@ struct SessionEditorView: View {
         }
         .sheet(isPresented: $showSkillBlockPicker) {
             SkillBlockPickerSheet(
-                activeGoalIDs: Array(SkillProgressService.shared.activeGoalIds),
+                programFocusIDs: Array(SkillProgressService.shared.programFocusIds),
                 onPick: { node, kind in
                     draft = SkillBlockRouter.insert(
                         skillID: node.id,
@@ -163,7 +210,7 @@ struct SessionEditorView: View {
 
             Spacer()
 
-            Text("SESSION EDITOR")
+            Text(mode.headerTitle)
                 .font(Font.unbound.captionS.weight(.heavy))
                 .tracking(2.0)
                 .foregroundStyle(Color.unbound.textPrimary)
@@ -189,31 +236,68 @@ struct SessionEditorView: View {
     }
 
     private var summaryCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("TODAY'S PLAN")
-                        .font(Font.unbound.captionS.weight(.heavy))
-                        .tracking(1.5)
-                        .foregroundStyle(Color.unbound.coachCyan)
-                    Text(draft.title)
-                        .font(Font.unbound.titleM)
-                        .foregroundStyle(Color.unbound.textPrimary)
+        let prescriptions = flattenedPrescriptions
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 12) {
+                sessionPrimaryVisual(prescriptions.first, size: 108)
+
+                VStack(alignment: .leading, spacing: 7) {
+                    HStack(spacing: 8) {
+                        Text(mode.summaryEyebrow)
+                            .font(Font.unbound.captionS.weight(.heavy))
+                            .tracking(1.5)
+                            .foregroundStyle(Color.unbound.coachCyan)
+                        Spacer(minLength: 0)
+                        Text("\(exerciseCount)")
+                            .font(Font.unbound.monoS.weight(.bold))
+                            .foregroundStyle(Color.unbound.bg)
+                            .padding(.horizontal, 10)
+                            .frame(height: 28)
+                            .background(Capsule().fill(Color.unbound.coachCyan))
+                    }
+
+                    if mode.allowsTitleEditing {
+                        TextField("Workout name", text: $draft.title)
+                            .font(Font.unbound.titleM)
+                            .foregroundStyle(Color.unbound.textPrimary)
+                            .textInputAutocapitalization(.words)
+                            .submitLabel(.done)
+                            .padding(.horizontal, 10)
+                            .frame(minHeight: 42)
+                            .background(
+                                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                    .fill(Color.unbound.bg.opacity(0.74))
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                    .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
+                            )
+                            .accessibilityIdentifier("sessionEditor.workoutName")
+                    } else {
+                        Text(draft.title)
+                            .font(Font.unbound.titleM)
+                            .foregroundStyle(Color.unbound.textPrimary)
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.82)
+                    }
+
+                    Text(primaryExerciseLabel(from: prescriptions))
+                        .font(Font.unbound.captionS.weight(.semibold))
+                        .foregroundStyle(Color.unbound.textSecondary)
                         .lineLimit(2)
+                        .minimumScaleFactor(0.78)
                 }
-                Spacer()
-                Text("\(exerciseCount)")
-                    .font(Font.unbound.monoS.weight(.bold))
-                    .foregroundStyle(Color.unbound.bg)
-                    .padding(.horizontal, 10)
-                    .frame(height: 28)
-                    .background(Capsule().fill(Color.unbound.coachCyan))
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
 
             HStack(spacing: 8) {
                 summaryPill("\(draft.blocks.count)", "BLOCKS")
                 summaryPill("~\(draft.estimatedMinutes)M", "TIME")
                 summaryPill(editCountLabel, "CHANGES")
+            }
+
+            if !prescriptions.isEmpty {
+                sessionVisualRail(prescriptions)
             }
         }
         .padding(14)
@@ -239,6 +323,70 @@ struct SessionEditorView: View {
         )
     }
 
+    @ViewBuilder
+    private func sessionPrimaryVisual(_ prescription: TrainingBlockPrescription?, size: CGFloat) -> some View {
+        if let prescription {
+            prescriptionVisual(prescription, size: size)
+        } else {
+            fallbackExerciseVisual(systemName: "plus", size: size, tint: Color.unbound.coachCyan)
+        }
+    }
+
+    private func primaryExerciseLabel(from prescriptions: [TrainingBlockPrescription]) -> String {
+        guard let first = prescriptions.first else {
+            return "Add exercise"
+        }
+        return "\(first.exerciseName) · \(first.sets) x \(first.displayTargetText)"
+    }
+
+    private func sessionVisualRail(_ prescriptions: [TrainingBlockPrescription]) -> some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(Array(prescriptions.prefix(6).enumerated()), id: \.element.id) { index, prescription in
+                    sessionVisualToken(prescription, index: index)
+                }
+
+                if prescriptions.count > 6 {
+                    Text("+\(prescriptions.count - 6)")
+                        .font(Font.unbound.monoS.weight(.bold))
+                        .foregroundStyle(Color.unbound.textSecondary)
+                        .frame(width: 46, height: 46)
+                        .background(
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .fill(Color.unbound.bg.opacity(0.74))
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
+                        )
+                }
+            }
+        }
+    }
+
+    private func sessionVisualToken(_ prescription: TrainingBlockPrescription, index: Int) -> some View {
+        VStack(spacing: 5) {
+            ZStack(alignment: .topLeading) {
+                prescriptionVisual(prescription, size: 52)
+                Text("\(index + 1)")
+                    .font(Font.unbound.monoS.weight(.bold))
+                    .foregroundStyle(Color.unbound.bg)
+                    .frame(width: 18, height: 18)
+                    .background(Circle().fill(Color.unbound.coachCyan))
+                    .offset(x: -3, y: -3)
+            }
+
+            Text(prescription.exerciseName)
+                .font(Font.unbound.captionS.weight(.semibold))
+                .foregroundStyle(Color.unbound.textSecondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+                .frame(width: 62)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(index + 1). \(prescription.exerciseName)")
+    }
+
     private func summaryPill(_ value: String, _ label: String) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(value)
@@ -258,86 +406,52 @@ struct SessionEditorView: View {
         )
     }
 
-    private var saveWorkoutAction: some View {
-        Button {
-            guard exerciseCount > 0 else {
-                showEmptyWorkoutWarning = true
-                return
-            }
-            UnboundHaptics.soft()
-            showSaveWorkoutSheet = true
-        } label: {
-            HStack(spacing: 12) {
-                Image(systemName: "square.and.arrow.down")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(Color.unbound.coachCyan)
-                    .frame(width: 30, height: 30)
-                    .background(Circle().fill(Color.unbound.coachCyan.opacity(0.13)))
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Save Workout")
-                        .font(Font.unbound.bodyS.weight(.heavy))
-                        .foregroundStyle(Color.unbound.textPrimary)
-                    Text("Store this edited session as a reusable Saved Workout.")
-                        .font(Font.unbound.captionS)
-                        .foregroundStyle(Color.unbound.textSecondary)
-                        .lineLimit(2)
+    private var editorActionBar: some View {
+        HStack(spacing: 10) {
+            if mode.showsSaveWorkoutAction {
+                editorActionButton("Save", systemName: "square.and.arrow.down", tint: Color.unbound.coachCyan) {
+                    guard exerciseCount > 0 else {
+                        showEmptyWorkoutWarning = true
+                        return
+                    }
+                    UnboundHaptics.soft()
+                    showSaveWorkoutSheet = true
                 }
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(Color.unbound.textTertiary)
+                .accessibilityIdentifier("sessionEditor.saveWorkout")
             }
-            .padding(12)
-            .background(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(Color.unbound.surface)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
-            )
+
+            editorActionButton("Skill", systemName: "sparkles", tint: Color.unbound.accent) {
+                UnboundHaptics.soft()
+                showSkillBlockPicker = true
+            }
+            .accessibilityIdentifier("sessionEditor.addSkillBlock")
         }
-        .buttonStyle(.plain)
-        .accessibilityIdentifier("sessionEditor.saveWorkout")
     }
 
-    private var skillBlockAction: some View {
-        Button {
-            UnboundHaptics.soft()
-            showSkillBlockPicker = true
-        } label: {
-            HStack(spacing: 12) {
-                Image(systemName: "sparkles")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(Color.unbound.accent)
-                    .frame(width: 30, height: 30)
-                    .background(Circle().fill(Color.unbound.accent.opacity(0.13)))
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Add Skill Block")
-                        .font(Font.unbound.bodyS.weight(.heavy))
-                        .foregroundStyle(Color.unbound.textPrimary)
-                    Text("Insert primer, main, accessory, or mobility skill work into this session.")
-                        .font(Font.unbound.captionS)
-                        .foregroundStyle(Color.unbound.textSecondary)
-                        .lineLimit(2)
-                }
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(Color.unbound.textTertiary)
-            }
-            .padding(12)
-            .background(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(Color.unbound.surface)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
-            )
+    private func editorActionButton(
+        _ title: String,
+        systemName: String,
+        tint: Color,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Label(title, systemImage: systemName)
+                .font(Font.unbound.bodyS.weight(.heavy))
+                .foregroundStyle(tint)
+                .lineLimit(1)
+                .minimumScaleFactor(0.78)
+                .frame(maxWidth: .infinity)
+                .frame(height: 42)
+                .background(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(tint.opacity(0.10))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .strokeBorder(tint.opacity(0.24), lineWidth: 1)
+                )
         }
         .buttonStyle(.plain)
-        .accessibilityIdentifier("sessionEditor.addSkillBlock")
     }
 
     private var compactPersistenceStrip: some View {
@@ -354,10 +468,6 @@ struct SessionEditorView: View {
                         .font(Font.unbound.captionS.weight(.heavy))
                         .tracking(1.2)
                         .foregroundStyle(Color.unbound.textPrimary)
-                    Text(summary.details.isEmpty ? "Drag exercises to reorder. Tap one to swap. Use the menu to remove." : summary.details.joined(separator: " · "))
-                        .font(Font.unbound.captionS)
-                        .foregroundStyle(Color.unbound.textSecondary)
-                        .lineLimit(2)
                 }
             }
 
@@ -468,6 +578,8 @@ struct SessionEditorView: View {
             if block.prescriptions.isEmpty {
                 emptyBlockRow(blockId: block.id)
             } else {
+                blockVisualStrip(block)
+
                 VStack(spacing: 0) {
                     ForEach(Array(block.prescriptions.enumerated()), id: \.element.id) { prescriptionIndex, prescription in
                         prescriptionRow(
@@ -510,6 +622,97 @@ struct SessionEditorView: View {
         .buttonStyle(.plain)
     }
 
+    private func blockVisualStrip(_ block: TrainingBlock) -> some View {
+        HStack(spacing: 8) {
+            ForEach(Array(block.prescriptions.prefix(4).enumerated()), id: \.element.id) { index, prescription in
+                ZStack(alignment: .bottomTrailing) {
+                    prescriptionVisual(prescription, size: 48)
+                    Text("\(index + 1)")
+                        .font(Font.unbound.monoS.weight(.bold))
+                        .foregroundStyle(Color.unbound.textPrimary)
+                        .frame(width: 18, height: 18)
+                        .background(Circle().fill(Color.unbound.bg.opacity(0.88)))
+                        .overlay(Circle().strokeBorder(Color.unbound.borderSubtle, lineWidth: 1))
+                        .offset(x: 3, y: 3)
+                }
+            }
+
+            if block.prescriptions.count > 4 {
+                Text("+\(block.prescriptions.count - 4)")
+                    .font(Font.unbound.monoS.weight(.bold))
+                    .foregroundStyle(Color.unbound.textSecondary)
+                    .frame(width: 48, height: 48)
+                    .background(
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .fill(Color.unbound.bg.opacity(0.74))
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
+                    )
+            }
+
+            Spacer(minLength: 0)
+
+            Text("\(block.prescriptions.count) moves")
+                .font(Font.unbound.captionS.weight(.semibold))
+                .foregroundStyle(Color.unbound.textTertiary)
+                .lineLimit(1)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 9)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color.unbound.bg.opacity(0.52))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
+        )
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(block.title), \(block.prescriptions.count) exercises")
+    }
+
+    private func prescriptionMetaPill(_ text: String) -> some View {
+        Text(text.uppercased())
+            .font(Font.unbound.captionS.weight(.bold))
+            .tracking(0.5)
+            .foregroundStyle(Color.unbound.textSecondary)
+            .lineLimit(1)
+            .minimumScaleFactor(0.62)
+            .padding(.horizontal, 7)
+            .frame(height: 22)
+            .background(Capsule().fill(Color.unbound.bg.opacity(0.76)))
+            .overlay(Capsule().strokeBorder(Color.unbound.borderSubtle, lineWidth: 1))
+    }
+
+    @ViewBuilder
+    private func prescriptionVisual(_ prescription: TrainingBlockPrescription, size: CGFloat) -> some View {
+        if let definition = movementDefinition(for: prescription) {
+            ExerciseVisualView(definition: definition, size: size >= 96 ? .hero : .thumbnail)
+                .frame(width: size, height: size)
+                .accessibilityHidden(true)
+        } else {
+            fallbackExerciseVisual(systemName: "dumbbell.fill", size: size, tint: Color.unbound.accent)
+        }
+    }
+
+    private func fallbackExerciseVisual(systemName: String, size: CGFloat, tint: Color) -> some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: size >= 96 ? 18 : 10, style: .continuous)
+                .fill(Color.unbound.surfaceElevated)
+            Image(systemName: systemName)
+                .font(.system(size: size >= 96 ? 32 : 18, weight: .bold))
+                .foregroundStyle(tint)
+        }
+        .frame(width: size, height: size)
+        .overlay(
+            RoundedRectangle(cornerRadius: size >= 96 ? 18 : 10, style: .continuous)
+                .strokeBorder(tint.opacity(0.24), lineWidth: 1)
+        )
+        .accessibilityHidden(true)
+    }
+
     private func prescriptionRow(
         _ prescription: TrainingBlockPrescription,
         blockIndex: Int,
@@ -528,20 +731,29 @@ struct SessionEditorView: View {
                             .font(.system(size: 13, weight: .bold))
                             .foregroundStyle(Color.unbound.textTertiary)
                             .frame(width: 18)
-                        Text("\(prescriptionIndex + 1)")
-                            .font(Font.unbound.monoS.weight(.bold))
-                            .foregroundStyle(isFocused ? Color.unbound.bg : Color.unbound.textTertiary)
-                            .frame(width: 26, height: 26)
-                            .background(Circle().fill(isFocused ? Color.unbound.coachCyan : Color.unbound.bg.opacity(0.82)))
+                        ZStack(alignment: .topLeading) {
+                            prescriptionVisual(prescription, size: 58)
+                            Text("\(prescriptionIndex + 1)")
+                                .font(Font.unbound.monoS.weight(.bold))
+                                .foregroundStyle(isFocused ? Color.unbound.bg : Color.unbound.textPrimary)
+                                .frame(width: 21, height: 21)
+                                .background(
+                                    Circle().fill(isFocused ? Color.unbound.coachCyan : Color.unbound.bg.opacity(0.88))
+                                )
+                                .overlay(Circle().strokeBorder(Color.unbound.borderSubtle, lineWidth: isFocused ? 0 : 1))
+                                .offset(x: -3, y: -3)
+                        }
                         VStack(alignment: .leading, spacing: 3) {
                             Text(prescription.exerciseName)
                                 .font(Font.unbound.bodyMStrong)
                                 .foregroundStyle(Color.unbound.textPrimary)
-                                .lineLimit(1)
-                            Text("\(prescription.sets) x \(prescription.displayTargetText) · \(mmss(prescription.restSeconds)) rest")
-                                .font(Font.unbound.captionS)
-                                .foregroundStyle(Color.unbound.textSecondary)
-                                .lineLimit(1)
+                                .lineLimit(2)
+                                .minimumScaleFactor(0.78)
+                            HStack(spacing: 6) {
+                                prescriptionMetaPill("\(prescription.sets) sets")
+                                prescriptionMetaPill(prescription.displayTargetText)
+                                prescriptionMetaPill("\(mmss(prescription.restSeconds)) rest")
+                            }
                         }
                         Spacer()
                     }
@@ -614,7 +826,7 @@ struct SessionEditorView: View {
     private var bottomStartBar: some View {
         VStack(spacing: 8) {
             HStack(spacing: 8) {
-                Text(selectedPersistence.displayName.uppercased())
+                Text(mode.showsPersistenceStrip ? selectedPersistence.displayName.uppercased() : mode.footerLabel)
                     .font(Font.unbound.captionS.weight(.heavy))
                     .tracking(1.1)
                     .foregroundStyle(Color.unbound.textSecondary)
@@ -643,14 +855,16 @@ struct SessionEditorView: View {
             }
             UnboundHaptics.heavy()
             Task {
-                await persistSelectedEditsIfNeeded()
+                if mode.showsPersistenceStrip {
+                    await persistSelectedEditsIfNeeded()
+                }
                 onStart(draft)
             }
         } label: {
             HStack(spacing: 10) {
-                Image(systemName: isPersistingEdits ? "arrow.triangle.2.circlepath" : "play.fill")
+                Image(systemName: isPersistingEdits ? "arrow.triangle.2.circlepath" : mode.primaryIcon)
                     .font(.system(size: 13, weight: .bold))
-                Text(isPersistingEdits ? "SAVING EDITS" : "START EDITED SESSION")
+                Text(isPersistingEdits ? "SAVING EDITS" : mode.primaryTitle)
                     .font(Font.unbound.bodyMStrong)
                     .tracking(1.5)
             }
@@ -665,12 +879,16 @@ struct SessionEditorView: View {
         }
         .buttonStyle(.plain)
         .disabled(isPersistingEdits)
-        .accessibilityLabel("Start edited session")
+        .accessibilityLabel(mode.primaryTitle.capitalized)
         .accessibilityIdentifier("sessionEditor.start")
     }
 
     private var allCatalogExercises: [CatalogExercise] {
         MovementCatalog.legacyExercises.compactMap(MovementCatalog.catalogExercise(for:))
+    }
+
+    private var flattenedPrescriptions: [TrainingBlockPrescription] {
+        draft.blocks.flatMap(\.prescriptions)
     }
 
     private var exerciseCount: Int {
@@ -763,6 +981,14 @@ struct SessionEditorView: View {
     private func alternatives(for target: PrescriptionTarget) -> [CatalogExercise] {
         guard let prescription = prescription(at: target) else { return [] }
         return MovementCatalog.catalogAlternatives(to: prescription.exerciseName)
+    }
+
+    private func movementDefinition(for prescription: TrainingBlockPrescription) -> MovementDefinition? {
+        MovementCatalog.resolvedTrainingMovement(
+            name: prescription.exerciseName,
+            movementId: prescription.movementId,
+            rankStandardMovementId: prescription.rankStandardMovementId
+        )?.exact
     }
 
     private func replacePrescription(at target: PrescriptionTarget, with exercise: CatalogExercise) {

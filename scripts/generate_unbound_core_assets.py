@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import math
+import sys
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
@@ -10,8 +11,8 @@ from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parents[1]
 ASSETS = ROOT / "UNBOUND" / "Assets.xcassets"
-INFO_ROOT = ASSETS / "SkillInfographics"
-ICON_ROOT = ASSETS / "SkillIcons"
+JOT_ROOT = ASSETS / "ExerciseVisualsJot"
+LEGACY_ROOT = ASSETS / "ExerciseVisualsLegacy"
 
 SHEET = 1254
 PANEL = 625
@@ -19,10 +20,10 @@ GAP = 4
 BG = (5, 8, 10)
 PANEL_BG = (9, 14, 17)
 CYAN = (68, 231, 224)
-CYAN_DARK = (22, 105, 112)
+CYAN_DARK = (34, 150, 156)
 WHITE = (228, 245, 242)
 SKIN = (207, 154, 104)
-CLOTH = (12, 15, 18)
+CLOTH = (22, 27, 31)
 SHOE = (20, 23, 26)
 HAIR = (8, 10, 12)
 
@@ -43,6 +44,56 @@ def font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont:
 
 FONT_LABEL = font(38, True)
 FONT_NUM = font(22, True)
+AA_SCALE = 4
+
+
+class AntiAliasDraw:
+    def __init__(self, image: Image.Image, scale: int) -> None:
+        self._draw = ImageDraw.Draw(image)
+        self._scale = scale
+
+    def _value(self, value):
+        if isinstance(value, tuple):
+            return tuple(self._value(v) for v in value)
+        if isinstance(value, list):
+            return [self._value(v) for v in value]
+        if isinstance(value, (int, float)):
+            return value * self._scale
+        return value
+
+    def _font(self, value):
+        try:
+            return value.font_variant(size=int(value.size * self._scale))
+        except AttributeError:
+            return value
+
+    def line(self, xy, fill=None, width=1, joint=None):
+        self._draw.line(self._value(xy), fill=fill, width=max(1, int(width * self._scale)), joint=joint)
+
+    def ellipse(self, xy, fill=None, outline=None, width=1):
+        self._draw.ellipse(self._value(xy), fill=fill, outline=outline, width=max(1, int(width * self._scale)))
+
+    def rounded_rectangle(self, xy, radius=0, fill=None, outline=None, width=1):
+        self._draw.rounded_rectangle(
+            self._value(xy),
+            radius=int(radius * self._scale),
+            fill=fill,
+            outline=outline,
+            width=max(1, int(width * self._scale)),
+        )
+
+    def rectangle(self, xy, fill=None, outline=None, width=1):
+        self._draw.rectangle(self._value(xy), fill=fill, outline=outline, width=max(1, int(width * self._scale)))
+
+    def polygon(self, xy, fill=None, outline=None):
+        self._draw.polygon(self._value(xy), fill=fill, outline=outline)
+
+    def text(self, xy, text, fill=None, font=None, anchor=None, **kwargs):
+        self._draw.text(self._value(xy), text, fill=fill, font=self._font(font) if font else None, anchor=anchor, **kwargs)
+
+
+def downsample(image: Image.Image, size: tuple[int, int]) -> Image.Image:
+    return image.resize(size, Image.Resampling.LANCZOS)
 
 
 def contents(filename: str) -> dict:
@@ -59,6 +110,13 @@ def contents(filename: str) -> dict:
 def ensure_imageset(path: Path, filename: str) -> None:
     path.mkdir(parents=True, exist_ok=True)
     (path / "Contents.json").write_text(json.dumps(contents(filename), indent=2) + "\n")
+
+
+def ensure_asset_group(path: Path) -> None:
+    path.mkdir(parents=True, exist_ok=True)
+    group_contents = path / "Contents.json"
+    if not group_contents.exists():
+        group_contents.write_text(json.dumps({"info": {"author": "xcode", "version": 1}}, indent=2) + "\n")
 
 
 def panel_origin(index: int) -> tuple[int, int]:
@@ -127,6 +185,18 @@ def apparatus(draw: ImageDraw.ImageDraw, ox: int, oy: int, kind: str) -> None:
             for x in (ox + 235, ox + 390):
                 draw.line((x, y, x, y + 110), fill=(95, 102, 105), width=4)
                 draw.ellipse((x - 30, y + 100, x + 30, y + 160), outline=(150, 154, 154), width=7)
+    elif kind == "lowbar":
+        y = oy + 190
+        draw.line((ox + 80, y, ox + PANEL - 80, y), fill=(80, 90, 95), width=10)
+        draw.line((ox + 80, y - 8, ox + PANEL - 80, y - 8), fill=CYAN_DARK, width=2)
+        for x in (ox + 92, ox + PANEL - 92):
+            draw.rounded_rectangle((x - 10, y - 26, x + 10, oy + 535), radius=5, fill=(45, 51, 54), outline=CYAN_DARK, width=2)
+    elif kind == "lowrings":
+        y = oy + 112
+        draw.line((ox + 95, y, ox + PANEL - 95, y), fill=(80, 90, 95), width=7)
+        for x in (ox + 255, ox + 375):
+            draw.line((x, y, x, y + 118), fill=(95, 102, 105), width=4)
+            draw.ellipse((x - 26, y + 108, x + 26, y + 160), outline=(150, 154, 154), width=7)
     elif kind == "parallettes":
         for x1, x2 in ((ox + 170, ox + 300), (ox + 345, ox + 475)):
             y = oy + 425
@@ -215,19 +285,108 @@ def pose_points(ox: int, oy: int, family: str, phase: int) -> dict[str, tuple[fl
     if family == "row":
         top = phase == 2
         brace = phase == 1
-        neck_x = ox + (275 if top else 235)
+        neck_x = ox + (305 if top else 245)
         hip_x = ox + 385
-        y = oy + (315 if not brace else 325)
+        y = oy + (330 if not brace else 342)
         return {
             "head": (neck_x - 35, y - 12),
             "neck": (neck_x, y),
             "hip": (hip_x, y + 42),
-            "lhand": (ox + 268, oy + 118),
-            "rhand": (ox + 346, oy + 118),
+            "lhand": (ox + 270, oy + 190),
+            "rhand": (ox + 350, oy + 190),
             "lknee": (ox + 465, y + 66),
             "rknee": (ox + 470, y + 80),
             "lfoot": (ox + 555, y + 116),
             "rfoot": (ox + 558, y + 132),
+        }
+    if family == "incline_row":
+        top = phase == 2
+        neck_x = ox + (318 if top else 258)
+        return {
+            "head": (neck_x - 38, oy + 350),
+            "neck": (neck_x, oy + 365),
+            "hip": (ox + 392, oy + 430),
+            "lhand": (ox + 270, oy + 190),
+            "rhand": (ox + 350, oy + 190),
+            "lknee": (ox + 472, oy + 470),
+            "rknee": (ox + 476, oy + 486),
+            "lfoot": (ox + 560, oy + 535),
+            "rfoot": (ox + 562, oy + 550),
+        }
+    if family == "decline_row":
+        top = phase == 2
+        neck_x = ox + (314 if top else 254)
+        return {
+            "head": (neck_x - 36, oy + 302),
+            "neck": (neck_x, oy + 318),
+            "hip": (ox + 390, oy + 338),
+            "lhand": (ox + 270, oy + 190),
+            "rhand": (ox + 350, oy + 190),
+            "lknee": (ox + 470, oy + 352),
+            "rknee": (ox + 475, oy + 368),
+            "lfoot": (ox + 558, oy + 355),
+            "rfoot": (ox + 560, oy + 373),
+        }
+    if family == "one_arm_row":
+        top = phase == 2
+        neck_x = ox + (315 if top else 250)
+        free_x = ox + (205 if top else 185)
+        return {
+            "head": (neck_x - 38, oy + 325),
+            "neck": (neck_x, oy + 340),
+            "hip": (ox + 395, oy + 375),
+            "lhand": (ox + 315, oy + 190),
+            "rhand": (free_x, oy + (315 if top else 365)),
+            "lknee": (ox + 478, oy + 410),
+            "rknee": (ox + 482, oy + 426),
+            "lfoot": (ox + 562, oy + 475),
+            "rfoot": (ox + 565, oy + 492),
+        }
+    if family == "tuck_row":
+        top = phase == 2
+        hold = phase in {1, 3}
+        neck_x = ox + (305 if top else 255)
+        y = oy + (318 if hold else 330)
+        return {
+            "head": (neck_x - 38, y - 10),
+            "neck": (neck_x, y),
+            "hip": (ox + 385, y + 28),
+            "lhand": (ox + 270, oy + 190),
+            "rhand": (ox + 350, oy + 190),
+            "lknee": (ox + 445, y - 10),
+            "rknee": (ox + 455, y + 16),
+            "lfoot": (ox + 406, y + 62),
+            "rfoot": (ox + 432, y + 78),
+        }
+    if family == "straddle_row":
+        top = phase == 2
+        neck_x = ox + (306 if top else 252)
+        y = oy + 324
+        return {
+            "head": (neck_x - 38, y - 10),
+            "neck": (neck_x, y),
+            "hip": (ox + 382, y + 24),
+            "lhand": (ox + 270, oy + 190),
+            "rhand": (ox + 350, oy + 190),
+            "lknee": (ox + 480, y - 42),
+            "rknee": (ox + 482, y + 72),
+            "lfoot": (ox + 575, y - 82),
+            "rfoot": (ox + 575, y + 118),
+        }
+    if family == "lever_pullup":
+        progress = [0.0, 0.45, 1.0, 0.08][phase]
+        neck_x = ox + 248 + (58 * progress)
+        y = oy + 328 - (28 * progress)
+        return {
+            "head": (neck_x - 35, y + 4),
+            "neck": (neck_x, y),
+            "hip": (ox + 380, y + 16 - (8 * progress)),
+            "lhand": (ox + 270, oy + 118),
+            "rhand": (ox + 350, oy + 118),
+            "lknee": (ox + 445, y - 8),
+            "rknee": (ox + 456, y + 18),
+            "lfoot": (ox + 412, y + 68),
+            "rfoot": (ox + 438, y + 84),
         }
     if family == "forearm_plank":
         y = oy + 390
@@ -499,7 +658,13 @@ def pose_points(ox: int, oy: int, family: str, phase: int) -> dict[str, tuple[fl
 
 
 ASSET_SPECS = [
-    ("pp_row", "row", "bar", ["SET ANGLE", "BRACE", "ROW", "LOWER"]),
+    ("pp_incline-row", "incline_row", "lowbar", ["SET ANGLE", "BRACE", "ROW", "LOWER"]),
+    ("pp_row", "row", "lowbar", ["SET ANGLE", "BRACE", "ROW", "LOWER"]),
+    ("pp_decline-row", "decline_row", "lowbar", ["FEET HIGH", "BRACE", "ROW", "LOWER"]),
+    ("pp_one-arm-row", "one_arm_row", "lowbar", ["ONE HAND", "ANTI-ROTATE", "ROW", "LOWER"]),
+    ("pp_tuck-row", "tuck_row", "lowbar", ["TUCK SET", "HOLD SHAPE", "ROW", "RETURN"]),
+    ("pp_straddle-row", "straddle_row", "lowbar", ["STRADDLE SET", "HOLD LINE", "ROW", "RETURN"]),
+    ("pp_tuck-front-lever-pullup", "lever_pullup", "bar", ["TUCK LEVER", "PULL", "CHEST TO BAR", "LOWER"]),
     ("cal_plank-30", "forearm_plank", "floor", ["STACK", "BRACE", "HOLD", "EXIT"]),
     ("cl_crunch", "crunch", "floor", ["SET", "EXHALE", "CURL", "UNCURL"]),
     ("cl_reverse-crunch", "reverse_crunch", "floor", ["TABLETOP", "BRACE", "CURL", "CONTROL"]),
@@ -537,6 +702,7 @@ ASSET_SPECS = [
     ("cl_full-front-lever", "front", "bar", ["TUCK", "OPEN TUCK", "STRADDLE", "FULL LEVER"]),
     ("cl_german-hang", "german", "rings", ["ENTER", "OPEN", "BREATHE", "EXIT"]),
     ("cl_skin-the-cat", "skin", "rings", ["HANG", "INVERT", "PASS", "RETURN"]),
+    ("cl_tuck-back-lever", "back", "rings", ["GERMAN HANG", "TUCK", "CONTROL", "EXIT"]),
     ("cl_straddle-back-lever", "back", "rings", ["GERMAN HANG", "TUCK", "STRADDLE", "EXIT"]),
     ("cl_full-back-lever", "back", "rings", ["GERMAN HANG", "TUCK", "STRADDLE", "FULL LEVER"]),
     ("cl_three-sixty-pulls", "three", "bar", ["LOAD", "EXPLODE", "ROTATE", "RE-CATCH"]),
@@ -545,9 +711,45 @@ ASSET_SPECS = [
 ]
 
 
+EXERCISE_VISUAL_SPECS = [
+    ("exercise_visual_exercise_incline-row", "incline_row", "lowbar", 2, "pp_incline-row"),
+    ("exercise_visual_exercise_inverted-row", "row", "lowbar", 2, "pp_row"),
+    ("exercise_visual_exercise_decline-row", "decline_row", "lowbar", 2, "pp_decline-row"),
+    ("exercise_visual_exercise_one-arm-row", "one_arm_row", "lowbar", 2, "pp_one-arm-row"),
+    ("exercise_visual_exercise_one-arm-inverted-row", "one_arm_row", "lowbar", 2, "pp_one-arm-row"),
+    ("exercise_visual_exercise_tuck-row", "tuck_row", "lowbar", 2, "pp_tuck-row"),
+    ("exercise_visual_exercise_straddle-row", "straddle_row", "lowbar", 2, "pp_straddle-row"),
+    ("exercise_visual_exercise_tuck-front-lever-pull-up", "lever_pullup", "bar", 2, "pp_tuck-front-lever-pullup"),
+    ("exercise_visual_exercise_tuck-front-lever-pullup", "lever_pullup", "bar", 2, "pp_tuck-front-lever-pullup"),
+    ("exercise_visual_exercise_tuck-front-lever", "front", "bar", 0, "cl_tuck-front-lever"),
+    ("exercise_visual_exercise_straddle-front-lever", "front", "bar", 2, "cl_straddle-front-lever"),
+    ("exercise_visual_exercise_full-front-lever", "front", "bar", 3, "cl_full-front-lever"),
+    ("exercise_visual_exercise_tuck-back-lever", "back", "rings", 1, "cl_tuck-back-lever"),
+    ("exercise_visual_exercise_straddle-back-lever", "back", "rings", 2, "cl_straddle-back-lever"),
+    ("exercise_visual_exercise_full-back-lever", "back", "rings", 3, "cl_full-back-lever"),
+]
+
+
+ICON_VISUAL_SPECS = [
+    ("pp_incline-row", "incline_row", "lowbar", 2),
+    ("pp_row", "row", "lowbar", 2),
+    ("pp_decline-row", "decline_row", "lowbar", 2),
+    ("pp_one-arm-row", "one_arm_row", "lowbar", 2),
+    ("pp_tuck-row", "tuck_row", "lowbar", 2),
+    ("pp_straddle-row", "straddle_row", "lowbar", 2),
+    ("pp_tuck-front-lever-pullup", "lever_pullup", "bar", 2),
+    ("cl_tuck-front-lever", "front", "bar", 0),
+    ("cl_straddle-front-lever", "front", "bar", 2),
+    ("cl_full-front-lever", "front", "bar", 3),
+    ("cl_tuck-back-lever", "back", "rings", 1),
+    ("cl_straddle-back-lever", "back", "rings", 2),
+    ("cl_full-back-lever", "back", "rings", 3),
+]
+
+
 def draw_sheet(prefix: str, family: str, app: str, labels: list[str]) -> Image.Image:
-    img = Image.new("RGB", (SHEET, SHEET), BG)
-    draw = ImageDraw.Draw(img)
+    img = Image.new("RGB", (SHEET * AA_SCALE, SHEET * AA_SCALE), BG)
+    draw = AntiAliasDraw(img, AA_SCALE)
     for i, text in enumerate(labels):
         ox, oy = panel_origin(i)
         draw.rectangle((ox, oy, ox + PANEL, oy + PANEL), fill=PANEL_BG)
@@ -557,28 +759,80 @@ def draw_sheet(prefix: str, family: str, app: str, labels: list[str]) -> Image.I
         label(draw, ox, oy, text, i + 1)
     draw.line((PANEL + 2, 0, PANEL + 2, SHEET), fill=(11, 30, 34), width=4)
     draw.line((0, PANEL + 2, SHEET, PANEL + 2), fill=(11, 30, 34), width=4)
-    return img
+    return downsample(img, (SHEET, SHEET))
+
+
+def draw_single_visual(family: str, app: str, phase: int) -> Image.Image:
+    panel = Image.new("RGBA", (PANEL * AA_SCALE, PANEL * AA_SCALE), (0, 0, 0, 0))
+    draw = AntiAliasDraw(panel, AA_SCALE)
+    apparatus(draw, 0, 0, app)
+    athlete(draw, pose_points(0, 0, family, phase))
+    bbox = panel.getbbox()
+    if bbox:
+        panel = panel.crop(bbox)
+    canvas = Image.new("RGBA", (1024 * AA_SCALE, 1024 * AA_SCALE), (0, 0, 0, 0))
+    panel.thumbnail((920 * AA_SCALE, 920 * AA_SCALE), Image.Resampling.LANCZOS)
+    x = (canvas.width - panel.width) // 2
+    y = (canvas.height - panel.height) // 2
+    canvas.alpha_composite(panel, (x, y))
+    return downsample(canvas, (1024, 1024))
 
 
 def write_asset(prefix: str, family: str, app: str, labels: list[str]) -> None:
-    sheet = draw_sheet(prefix, family, app, labels)
-    info_dir = INFO_ROOT / f"{prefix}_info.imageset"
-    info_name = f"{prefix}_info.png"
-    ensure_imageset(info_dir, info_name)
-    sheet.save(info_dir / info_name)
+    raise RuntimeError("SkillInfographics and SkillIcons are retired; generate exercise_visual assets instead.")
 
-    crops = [(0, 0), (PANEL + GAP, 0), (0, PANEL + GAP), (PANEL + GAP, PANEL + GAP)]
-    for i, (x, y) in enumerate(crops, start=1):
-        phase_dir = ICON_ROOT / f"{prefix}_phase{i}.imageset"
-        phase_name = f"{prefix}_phase{i}.png"
-        ensure_imageset(phase_dir, phase_name)
-        sheet.crop((x, y, x + PANEL, y + PANEL)).save(phase_dir / phase_name)
+
+def write_exercise_visual(asset_name: str, family: str, app: str, phase: int) -> None:
+    image = draw_single_visual(family, app, phase)
+    image_dir = ASSETS / f"{asset_name}.imageset"
+    image_name = f"{asset_name}.png"
+    ensure_imageset(image_dir, image_name)
+    image.save(image_dir / image_name)
+
+
+def scoped_exercise_asset_name(asset_name: str, scope: str) -> str:
+    expected = "exercise_visual_"
+    if not asset_name.startswith(expected):
+        raise ValueError(f"Unexpected exercise visual asset name: {asset_name}")
+    return f"{expected}{scope}_{asset_name.removeprefix(expected)}"
+
+
+def write_scoped_exercise_visual(asset_name: str, family: str, app: str, phase: int, scope: str) -> None:
+    group = {"legacy": LEGACY_ROOT, "jot": JOT_ROOT}[scope]
+    ensure_asset_group(group)
+    scoped_name = scoped_exercise_asset_name(asset_name, scope)
+    image = draw_single_visual(family, app, phase)
+    image_dir = group / f"{scoped_name}.imageset"
+    image_name = f"{scoped_name}.png"
+    ensure_imageset(image_dir, image_name)
+    image.save(image_dir / image_name)
+
+
+def write_skill_icon(prefix: str, family: str, app: str, phase: int) -> None:
+    raise RuntimeError("SkillIcons are retired; generate exercise_visual assets instead.")
 
 
 def main() -> None:
-    for spec in ASSET_SPECS:
-        write_asset(*spec)
-    print(f"Generated {len(ASSET_SPECS)} UNBOUND core/lever sheets and {len(ASSET_SPECS) * 4} phase panels.")
+    flags = {arg for arg in sys.argv[1:] if arg.startswith("--")}
+    selected = {arg for arg in sys.argv[1:] if not arg.startswith("--")}
+    exercise_visuals_only = "--exercise-visuals-only" in flags
+    legacy_copy = "--legacy-copy" in flags
+    jot_copy = "--jot-copy" in flags
+    # SkillIcons and SkillInfographics were retired from the shipped app
+    # catalog; this generator now only emits exercise_visual assets.
+    exercise_specs = [
+        spec for spec in EXERCISE_VISUAL_SPECS
+        if not selected or spec[0] in selected or spec[4] in selected
+    ]
+    for asset_name, family, app, phase, _ in exercise_specs:
+        write_exercise_visual(asset_name, family, app, phase)
+        if legacy_copy:
+            write_scoped_exercise_visual(asset_name, family, app, phase, "legacy")
+        if jot_copy:
+            write_scoped_exercise_visual(asset_name, family, app, phase, "jot")
+    print(
+        f"Generated {len(exercise_specs)} exercise visuals."
+    )
 
 
 if __name__ == "__main__":

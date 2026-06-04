@@ -32,6 +32,9 @@ struct Step18_Sleep: View {
     }
 }
 
+#if DEBUG
 #Preview {
     Step18_Sleep(flow: OnboardingFlowViewModel(), progress: 0.6, onBack: {}, onContinue: {})
 }
+
+#endif

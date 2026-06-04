@@ -36,6 +36,7 @@ struct SkillSessionView: View {
     @State private var isDiscardAlertPresented: Bool = false
     @State private var isFinishing: Bool = false
     @State private var finishErrorMessage: String? = nil
+    @State private var pendingCompletionLogId: String? = nil
 
     // Program-style reward sequence shown after every completed skill session.
     @State private var rewardSequence: WorkoutRewardSequenceSummary? = nil
@@ -57,7 +58,7 @@ struct SkillSessionView: View {
         self.draft = TrainingSessionAdapters.draft(
             forSkillId: skillId,
             title: skillTitle,
-            userId: AuthService.shared.currentUserId ?? "anonymous",
+            userId: AuthService.shared.currentUserId ?? "",
             plan: SkillTrainingPlanLibrary.plan(for: skillId)
         )
     }
@@ -637,9 +638,20 @@ struct SkillSessionView: View {
         finishErrorMessage = nil
         stopTimer()
 
-        let now = Date()
-        let duration = Int(now.timeIntervalSince(sessionStart))
-        let userId = AuthService.shared.currentUserId ?? "anonymous"
+        let realNow = Date()
+        #if DEBUG
+        let now = DevProgramClock.now
+        #else
+        let now = realNow
+        #endif
+        let duration = Int(realNow.timeIntervalSince(sessionStart))
+        let adjustedSessionStart = now.addingTimeInterval(-TimeInterval(duration))
+        guard let userId = AuthService.shared.currentUserId else {
+            isFinishing = false
+            finishErrorMessage = "Sign in before finishing a skill session."
+            HapticManager.notification(.error)
+            return
+        }
 
         // Build LoggedExercise entries grouped by exercise name. Pull from
         // every exercise that has at least one logged slot — mains AND any
@@ -676,15 +688,21 @@ struct SkillSessionView: View {
             badgeService: services.badges
         )
 
+        let completionLogId = pendingCompletionLogId ?? UUID().uuidString
+        pendingCompletionLogId = completionLogId
+
         let performanceLog = TrainingSessionAdapters.performanceLogForSkillSession(
-            id: UUID().uuidString,
+            id: completionLogId,
             userId: userId,
             skillId: skillId,
             skillTitle: skillTitle,
-            startedAt: sessionStart,
+            startedAt: adjustedSessionStart,
             completedAt: now,
             durationSeconds: duration,
-            exercises: loggedExercises
+            exercises: loggedExercises,
+            selectedRungId: aiSession?.selectedRungId,
+            selectedRungSource: aiSession?.selectedRungSource,
+            selectedRungReason: aiSession?.selectedRungReason
         )
 
         let completionResult: TrainingCompletionResult
@@ -727,6 +745,7 @@ struct SkillSessionView: View {
         summary.progression = completionResult.progressionReceipt
 
         UnboundHaptics.medium()
+        pendingCompletionLogId = nil
 
         rewardSequence = WorkoutRewardSequenceSummary.trainingReceipt(
             performanceLog: performanceLog,
@@ -763,7 +782,11 @@ struct SkillSessionView: View {
     /// the session is replaced so the slot strip rehydrates against fresh
     /// prescriptions.
     private func loadSession(forceRefresh: Bool) async {
-        let userId = AuthService.shared.currentUserId ?? "anonymous"
+        guard let userId = AuthService.shared.currentUserId else {
+            isLoadingSession = false
+            loadError = "Sign in before starting a skill session."
+            return
+        }
         isLoadingSession = true
         loadError = nil
         if forceRefresh {
@@ -1119,6 +1142,8 @@ private struct SetLoggerSheet: View {
     @State private var weightKg: Double = 0
     @State private var rpe: Int = 0    // 0 = unspecified
     @State private var holdSeconds: Int = 0
+    @State private var qualityFlags: Set<PerformanceQualityFlag> = [.clean]
+    @State private var setNotes: String = ""
 
     // Hold timer state
     @State private var isTimerRunning: Bool = false
@@ -1135,10 +1160,10 @@ private struct SetLoggerSheet: View {
                     VStack(spacing: 16) {
                         setCombatHeader
                         primaryInput
-                        if !isHoldTarget {
-                            weightInput
-                        }
+                        weightInput
                         rpeInput
+                        qualityInput
+                        notesInput
                         Spacer().frame(height: 96)
                     }
                     .padding(.horizontal, 20)
@@ -1157,7 +1182,9 @@ private struct SetLoggerSheet: View {
                         reps: reps,
                         holdSeconds: isHoldTarget ? holdSeconds : nil,
                         weightKg: weightKg > 0 ? weightKg : nil,
-                        rpe: rpe > 0 ? rpe : nil
+                        rpe: rpe > 0 ? rpe : nil,
+                        qualityFlags: qualityFlags,
+                        notes: trimmedSetNotes
                     )
                     onSave(logged)
                 }
@@ -1257,8 +1284,9 @@ private struct SetLoggerSheet: View {
 
             HStack(spacing: 8) {
                 setStat(label: "INPUT", value: isHoldTarget ? "TIME" : "REPS")
-                setStat(label: "LOAD", value: isHoldTarget ? "BW" : (weightKg > 0 ? formatKg(weightKg) : "BW"))
+                setStat(label: "LOAD", value: weightKg > 0 ? formatKg(weightKg) : "BW")
                 setStat(label: "EFFORT", value: rpe == 0 ? "OPEN" : "RPE \(rpe)")
+                setStat(label: "QUALITY", value: qualityStatLabel)
             }
         }
         .padding(16)
@@ -1517,6 +1545,92 @@ private struct SetLoggerSheet: View {
         .background(roundedCard)
     }
 
+    private var qualityInput: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("QUALITY")
+                    .font(Font.unbound.captionS.weight(.heavy))
+                    .tracking(1.4)
+                    .foregroundStyle(Color.unbound.textSecondary)
+                Spacer()
+                Text(qualityStatLabel)
+                    .font(Font.unbound.bodyMStrong)
+                    .foregroundStyle(qualityHasWarning ? Color.unbound.alert : Color.unbound.textPrimary)
+            }
+
+            LazyVGrid(
+                columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3),
+                spacing: 8
+            ) {
+                qualityChip(.clean, label: "Clean", icon: "checkmark.seal.fill")
+                qualityChip(.assisted, label: "Assisted", icon: "lifepreserver.fill")
+                qualityChip(.formBreak, label: "Form", icon: "exclamationmark.triangle.fill")
+                qualityChip(.partialRange, label: "Partial", icon: "arrow.left.and.right")
+                qualityChip(.pain, label: "Pain", icon: "heart.slash.fill")
+            }
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(roundedCard)
+    }
+
+    private var notesInput: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("NOTES")
+                .font(Font.unbound.captionS.weight(.heavy))
+                .tracking(1.4)
+                .foregroundStyle(Color.unbound.textSecondary)
+
+            TextField("Band, wall, finger assist...", text: $setNotes, axis: .vertical)
+                .font(Font.unbound.bodyM)
+                .foregroundStyle(Color.unbound.textPrimary)
+                .lineLimit(2...4)
+                .padding(12)
+                .background(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(Color.unbound.bg.opacity(0.72))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
+                )
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(roundedCard)
+    }
+
+    private func qualityChip(
+        _ flag: PerformanceQualityFlag,
+        label: String,
+        icon: String
+    ) -> some View {
+        let isOn = qualityFlags.contains(flag)
+        let color = qualityWarningFlags.contains(flag) ? Color.unbound.alert : Color.unbound.accent
+        return Button {
+            toggleQuality(flag)
+            UnboundHaptics.soft()
+        } label: {
+            HStack(spacing: 5) {
+                Image(systemName: icon)
+                    .font(.system(size: 10, weight: .bold))
+                Text(label)
+                    .font(Font.unbound.captionS.weight(.heavy))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+            }
+            .foregroundStyle(isOn ? Color.unbound.bg : Color.unbound.textSecondary)
+            .frame(maxWidth: .infinity)
+            .frame(height: 32)
+            .background(
+                Capsule()
+                    .fill(isOn ? color : Color.unbound.surfaceElevated)
+            )
+            .overlay(Capsule().strokeBorder(isOn ? Color.clear : Color.unbound.border, lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+    }
+
     // MARK: - Hydration
 
     private func hydrate() {
@@ -1525,6 +1639,8 @@ private struct SetLoggerSheet: View {
             weightKg = existing.weightKg ?? 0
             rpe = existing.rpe ?? 0
             holdSeconds = existing.holdSeconds ?? 0
+            qualityFlags = existing.effectiveQualityFlags.isEmpty ? [.clean] : existing.effectiveQualityFlags
+            setNotes = existing.notes ?? ""
             return
         }
         // Defaults from prescription target
@@ -1569,6 +1685,47 @@ private struct SetLoggerSheet: View {
     private func resetTimer() {
         stopTimer()
         holdSeconds = 0
+    }
+
+    // MARK: - Quality
+
+    private var qualityProofBlockingFlags: Set<PerformanceQualityFlag> {
+        [.assisted, .formBreak, .partialRange, .pain]
+    }
+
+    private var qualityWarningFlags: Set<PerformanceQualityFlag> {
+        [.formBreak, .partialRange, .pain]
+    }
+
+    private var qualityHasWarning: Bool {
+        !qualityFlags.intersection(qualityWarningFlags).isEmpty
+    }
+
+    private var qualityStatLabel: String {
+        if qualityHasWarning { return "REVIEW" }
+        if qualityFlags.contains(.assisted) { return "ASSIST" }
+        return "CLEAN"
+    }
+
+    private var trimmedSetNotes: String? {
+        setNotes.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
+    }
+
+    private func toggleQuality(_ flag: PerformanceQualityFlag) {
+        if qualityFlags.contains(flag) {
+            qualityFlags.remove(flag)
+            if qualityFlags.isEmpty {
+                qualityFlags.insert(.clean)
+            }
+            return
+        }
+
+        qualityFlags.insert(flag)
+        if flag == .clean {
+            qualityFlags.subtract(qualityProofBlockingFlags)
+        } else if qualityProofBlockingFlags.contains(flag) {
+            qualityFlags.remove(.clean)
+        }
     }
 
     // MARK: - Helpers

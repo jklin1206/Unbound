@@ -331,8 +331,8 @@ final class BadgeService: BadgeServiceProtocol {
 
     private func evaluateRankAdvance(advance: RankAdvance) -> [String] {
         var result: [String] = ["first_rank_up"]
-        // Letter-rank badge gates, mapped through the SubRank→RankTier 2:1
-        // banding: C(plain ord 7)→forged, B(10)→master, A(13)→vessel, S(16)→ascendant.
+        // Badge ids still use their original letter names, but gates now read
+        // directly from RankTier thresholds.
         let tier = advance.toRank
         if tier >= .forged    { result.append("rank_c_any") }
         if tier >= .master    { result.append("rank_b_any") }

@@ -84,6 +84,7 @@ struct TierUnlockToast: View {
         case "push": return "push"
         case "pull": return "pull"
         case "legs-single": return "single-leg"
+        case "legs-nordic": return "nordic"
         case "core-lever": return "core"
         default: return event.family
         }

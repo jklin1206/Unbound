@@ -108,7 +108,7 @@ extension SkillDisplayTree {
     }
 
     /// Count of proven nodes across all clusters.
-    func achievedCount(in graph: SkillGraph, states: [String: NodeState]) -> Int {
+    func provenCount(in graph: SkillGraph, states: [String: NodeState]) -> Int {
         allNodes(in: graph).reduce(into: 0) { acc, node in
             if (states[node.id] ?? .locked) == .proven { acc += 1 }
         }
@@ -134,10 +134,10 @@ extension SkillDisplayTree {
         return nil
     }
 
-    /// The farthest completed node in this display tree. Landing cards use
+    /// The farthest proven node in this display tree. Landing cards use
     /// this as the compact achievement signal because terminal keystones can
     /// be years away and read oddly before the user is close to them.
-    func farthestAchievement(in graph: SkillGraph, states: [String: NodeState]) -> SkillNode? {
+    func farthestProvenNode(in graph: SkillGraph, states: [String: NodeState]) -> SkillNode? {
         allNodes(in: graph)
             .filter { node in
                 (states[node.id] ?? .locked) == .proven
@@ -154,8 +154,8 @@ extension SkillDisplayTree {
     }
 
     /// The keystone preview for the landing card. Walks clusters in order
-    /// and returns the first keystone that is NOT yet achieved. If every
-    /// keystone is achieved, returns the terminal keystone of the last
+    /// and returns the first keystone that is NOT yet proven. If every
+    /// keystone is proven, returns the terminal keystone of the last
     /// cluster.
     func previewKeystone(in graph: SkillGraph, states: [String: NodeState]) -> SkillNode? {
         var terminalKeystone: SkillNode?

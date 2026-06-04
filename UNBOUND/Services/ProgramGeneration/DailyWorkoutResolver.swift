@@ -73,7 +73,7 @@ enum DailyWorkoutResolver {
         if isShortSessionActive(on: date) {
             effectiveContext.shortSessionActive = true
         }
-        let skillBlocks = scheduledSkillIds.compactMap(skillBlock)
+        let skillBlocks = scheduledSkillIds.compactMap { skillBlock(skillId: $0, userId: userId) }
         let adjustedWorkout = adjustedWorkout(
             workout,
             for: skillBlocks,
@@ -84,7 +84,7 @@ enum DailyWorkoutResolver {
             userId: userId,
             programId: programId,
             dayNumber: dayNumber,
-            scheduledSkillIds: skillBlocks.compactMap(\.skillId)
+            scheduledSkillBlocks: skillBlocks
         )
         draft.date = date
         draft.estimatedMinutes = estimatedMinutes(for: draft.blocks, fallback: adjustedWorkout.estimatedMinutes)
@@ -101,7 +101,7 @@ enum DailyWorkoutResolver {
         if isShortSessionActive(on: date) {
             effectiveContext.shortSessionActive = true
         }
-        let skillBlocks = scheduledSkillIds.compactMap(skillBlock)
+        let skillBlocks = scheduledSkillIds.compactMap { skillBlock(skillId: $0, userId: nil) }
         return adjustedWorkout(
             workout,
             for: skillBlocks,
@@ -124,7 +124,7 @@ enum DailyWorkoutResolver {
         title: String = "Skill Training",
         date: Date = Date()
     ) -> TrainingSessionDraft? {
-        let blocks = skillIds.compactMap(skillBlock)
+        let blocks = skillIds.compactMap { skillBlock(skillId: $0, userId: userId) }
         guard !blocks.isEmpty else { return nil }
         return TrainingSessionDraft(
             userId: userId,
@@ -199,7 +199,7 @@ enum DailyWorkoutResolver {
     ) -> CatalogExercise? {
         guard let current = MovementCatalog.canonicalExercise(named: exercise.name) else { return nil }
         let equipment = modifierContext.availableEquipment ?? [.fullGym]
-        let style: TrainingStyle = equipment == [.bodyweight] ? .bodyweight : .hybrid
+        let style = inferredStyle(for: equipment)
         let excluded = Set(
             [current.displayName, current.canonicalExerciseName ?? exercise.name]
                 + modifierContext.avoidedMovementIds.map { $0 }
@@ -317,9 +317,20 @@ enum DailyWorkoutResolver {
         }
     }
 
-    private static func skillBlock(skillId: String) -> TrainingBlock? {
+    private static func skillBlock(skillId: String, userId: String?) -> TrainingBlock? {
         guard let node = SkillGraph.shared.node(id: skillId) else { return nil }
-        return TrainingSessionAdapters.skillBlock(skillId: node.id, title: node.title)
+        let isTrainable = SkillProgressService.shared.isNodeTrainable(nodeId: node.id)
+        let lastReview = userId.flatMap {
+            SkillTrainingReviewStore.shared.cachedLatestReview(skillId: node.id, userId: $0)
+        }
+        guard let decision = SkillRungResolver.resolve(
+            skillId: node.id,
+            isTrainable: isTrainable,
+            lastReview: lastReview
+        ) else {
+            return nil
+        }
+        return TrainingSessionAdapters.skillBlock(decision: decision)
     }
 
     private static func taperedWorkout(_ workout: Workout, for skillBlocks: [TrainingBlock]) -> Workout {
@@ -373,8 +384,16 @@ enum DailyWorkoutResolver {
         modifierContext: DailyWorkoutModifierContext
     ) -> Bool {
         guard let equipment = modifierContext.availableEquipment else { return true }
-        let style: TrainingStyle = equipment == [.bodyweight] ? .bodyweight : .hybrid
+        let style = inferredStyle(for: equipment)
         return MovementCatalog.isProgramCompatible(definition, style: style, userEquipment: equipment)
+    }
+
+    private static func inferredStyle(for equipment: [Equipment]) -> TrainingStyle {
+        let bodyweightGear: Set<Equipment> = [.bodyweight, .pullupBar, .bands, .dipStation, .rings]
+        if !equipment.isEmpty && Set(equipment).isSubset(of: bodyweightGear) {
+            return .bodyweight
+        }
+        return .hybrid
     }
 
     private static func trialPrepExercise(for definition: MovementDefinition) -> Exercise {

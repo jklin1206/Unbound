@@ -69,7 +69,11 @@ enum DeterministicProgramGenerator {
 
     static func generate(input: ProgramGeneratorInput) throws -> TrainingProgram {
         let bias = WeakPointBiaser.bias(from: input.focusAreas)
-        let split = SplitLookup.split(buildIdentity: input.buildIdentity, frequency: input.targetFrequency)
+        let split = SplitLookup.split(
+            buildIdentity: input.buildIdentity,
+            frequency: input.targetFrequency,
+            trainingStyle: input.trainingStyle
+        )
         let durationDays = input.calibration.requiresLearningWeek
             ? calibrationDurationDays
             : standardArcDurationDays
@@ -297,7 +301,23 @@ enum DeterministicProgramGenerator {
             targetGroupsFor: { $0.muscleGroups }
         )
 
-        var picked = primaries + accessoriesBiased
+        let pickedForTemplate: [MovementDefinition]
+        if template == .skill {
+            let skillPicks = Array(
+                rotationFiltered(
+                    eligiblePool.filter { $0.movementSlot == .skill },
+                    input: input
+                )
+                .prefix(2)
+            )
+            let supportPicks = (primaries + accessoriesBiased)
+                .filter { $0.movementSlot != .skill }
+            pickedForTemplate = skillPicks + supportPicks
+        } else {
+            pickedForTemplate = primaries + accessoriesBiased
+        }
+
+        var picked = pickedForTemplate
 
         // Safety net: if both primaries and accessories were empty (very
         // unlikely given the fallback above), at least grab the first few
@@ -404,9 +424,30 @@ enum DeterministicProgramGenerator {
         sessionIndex: Int,
         input: ProgramGeneratorInput
     ) -> (name: String, slots: [MovementSlot], fallbackMuscleGroups: [MuscleGroup]) {
-        let bodyweightOnly = input.trainingStyle == .bodyweight || input.equipment == [.bodyweight]
-        let plans: [(String, [MovementSlot], [MuscleGroup])] = bodyweightOnly
-            ? [
+        let floorOnly = Equipment.isFloorOnlySelection(Set(input.equipment))
+        let bodyweightOnly = input.trainingStyle == .bodyweight || floorOnly
+        let plans: [(String, [MovementSlot], [MuscleGroup])]
+
+        if floorOnly {
+            plans = [
+                (
+                    "Calibration: Floor Push + Core Standard",
+                    [.horizontalPush, .squat, .core],
+                    [.chest, .legs, .core]
+                ),
+                (
+                    "Calibration: Floor Legs + Hinge Standard",
+                    [.squat, .hinge, .core],
+                    [.legs, .glutes, .core]
+                ),
+                (
+                    "Calibration: Full-Body Floor Standard",
+                    [.horizontalPush, .squat, .hinge, .core],
+                    [.chest, .legs, .glutes, .core]
+                )
+            ]
+        } else if bodyweightOnly {
+            plans = [
                 (
                     "Calibration: Push + Pull Standard",
                     [.horizontalPush, .verticalPull, .core],
@@ -423,7 +464,8 @@ enum DeterministicProgramGenerator {
                     [.chest, .back, .legs, .core]
                 )
             ]
-            : [
+        } else {
+            plans = [
                 (
                     "Calibration: Upper Standard",
                     [.horizontalPush, .horizontalPull, .verticalPush, .verticalPull],
@@ -445,6 +487,7 @@ enum DeterministicProgramGenerator {
                     [.back, .lats, .glutes, .core]
                 )
             ]
+        }
 
         return plans[sessionIndex % plans.count]
     }
@@ -500,7 +543,7 @@ enum DeterministicProgramGenerator {
             restSeconds = 90
         case .reps:
             sets = 2
-            targetReps = isBodyweight ? "AMRAP" : "6-8"
+            targetReps = isBodyweight ? "6-10 clean" : "6-8"
             restSeconds = isBodyweight ? 90 : 120
         }
 
@@ -512,7 +555,9 @@ enum DeterministicProgramGenerator {
             reps: targetReps,
             restSeconds: restSeconds,
             rpe: 7,
-            notes: "Calibration set: choose a load or variation you can control at RPE 6-7. Stop before form breaks.",
+            notes: isBodyweight
+                ? "Calibration set: use the easiest variation that lets every rep or hold stay strict at RPE 6-7. Stop before form breaks."
+                : "Calibration set: choose a load or variation you can control at RPE 6-7. Stop before form breaks.",
             substitution: nil
         )
     }
@@ -536,7 +581,58 @@ enum DeterministicProgramGenerator {
                 input: input
             )
         }
-        return uniqueDefinitions(resolved)
+        let equipmentFiltered = Equipment.isFloorOnlySelection(Set(input.equipment))
+            ? resolved.filter(isFloorOnlyProgramMovement)
+            : resolved
+        return uniqueDefinitions(experienceFiltered(equipmentFiltered, input: input))
+    }
+
+    private static func isFloorOnlyProgramMovement(_ definition: MovementDefinition) -> Bool {
+        switch definition.movementSlot {
+        case .horizontalPull, .verticalPull, .carry:
+            return false
+        case .squat, .hinge, .horizontalPush, .verticalPush, .arms, .core, .calves, .cardio, .mobility, .routine, .skill:
+            break
+        }
+
+        let name = MovementCatalog.normalized(
+            "\(definition.displayName) \(definition.canonicalExerciseName ?? "")"
+        )
+        let setupRequiredTerms = [
+            "ab wheel",
+            "chin up",
+            "chin-up",
+            "dip",
+            "hanging",
+            "inverted row",
+            "pullup",
+            "pull-up",
+            "ring"
+        ]
+        return !setupRequiredTerms.contains { name.contains($0) }
+    }
+
+    private static func experienceFiltered(
+        _ definitions: [MovementDefinition],
+        input: ProgramGeneratorInput
+    ) -> [MovementDefinition] {
+        definitions.filter { definition in
+            difficultyAllowed(definition.difficulty, for: input.experience)
+        }
+    }
+
+    private static func difficultyAllowed(
+        _ difficulty: MovementDifficulty,
+        for experience: Experience
+    ) -> Bool {
+        switch experience {
+        case .never:
+            return difficulty == .beginner
+        case .tried:
+            return difficulty == .beginner || difficulty == .intermediate
+        case .used, .current:
+            return difficulty != .elite
+        }
     }
 
     private static func applyPreference(
@@ -705,7 +801,9 @@ enum DeterministicProgramGenerator {
             for: blockType,
             state: state,
             isPrimary: primary,
-            fallbackRPE: input.trainingFeedbackMode.defaultTargetRPE
+            fallbackRPE: input.trainingFeedbackMode.defaultTargetRPE,
+            definition: definition,
+            input: input
         )
         let substitute = MovementCatalog.catalogDefaultSubstitute(
             for: definition.displayName,
@@ -748,8 +846,20 @@ enum DeterministicProgramGenerator {
         for blockType: BlockType,
         state: ProgressionState?,
         isPrimary: Bool,
-        fallbackRPE: Int
+        fallbackRPE: Int,
+        definition: MovementDefinition,
+        input: ProgramGeneratorInput
     ) -> (sets: Int, reps: String, restSeconds: Int, rpe: Int, note: String?) {
+        if usesCalisthenicsPrescription(definition: definition, input: input) {
+            return calisthenicsPrescription(
+                for: blockType,
+                state: state,
+                isPrimary: isPrimary,
+                fallbackRPE: fallbackRPE,
+                definition: definition
+            )
+        }
+
         switch blockType {
         case .accumulation:
             let reps = state.map { "\($0.targetRepMin)-\($0.targetRepMax)" } ?? "8-12"
@@ -783,6 +893,98 @@ enum DeterministicProgramGenerator {
                 restSeconds: 60,
                 rpe: 6,
                 note: "Deload. Move well and keep reps easy."
+            )
+        }
+    }
+
+    private static func usesCalisthenicsPrescription(
+        definition: MovementDefinition,
+        input: ProgramGeneratorInput
+    ) -> Bool {
+        guard input.trainingStyle == .bodyweight else { return false }
+        let loadedEquipment: Set<MovementEquipment> = [
+            .barbell, .dumbbell, .kettlebell, .cable, .machine, .smithMachine, .sled, .cardioMachine
+        ]
+        return Set(definition.equipment).isDisjoint(with: loadedEquipment)
+    }
+
+    private static func calisthenicsPrescription(
+        for blockType: BlockType,
+        state: ProgressionState?,
+        isPrimary: Bool,
+        fallbackRPE: Int,
+        definition: MovementDefinition
+    ) -> (sets: Int, reps: String, restSeconds: Int, rpe: Int, note: String?) {
+        if definition.defaultMetric == .holdSeconds || definition.defaultMetric == .durationSeconds {
+            switch blockType {
+            case .accumulation:
+                return (
+                    sets: isPrimary ? 4 : 3,
+                    reps: "15-25s",
+                    restSeconds: isPrimary ? 105 : 75,
+                    rpe: max(7, state?.targetRPE ?? fallbackRPE),
+                    note: "Accumulate clean time. End the set when shape, shoulder position, or breathing breaks."
+                )
+            case .intensification:
+                return (
+                    sets: isPrimary ? 4 : 3,
+                    reps: "10-20s",
+                    restSeconds: isPrimary ? 120 : 90,
+                    rpe: 8,
+                    note: "Harder variation, shorter holds. Keep the line strict before extending time."
+                )
+            case .realization, .peaking:
+                return (
+                    sets: isPrimary ? 3 : 2,
+                    reps: "8-15s",
+                    restSeconds: isPrimary ? 150 : 90,
+                    rpe: blockType == .peaking ? 9 : 8,
+                    note: "Proof-quality holds only. Stop the attempt the moment position drifts."
+                )
+            case .deload:
+                return (
+                    sets: 2,
+                    reps: "10-20s easy",
+                    restSeconds: 60,
+                    rpe: 6,
+                    note: "Deload. Use an easier shape and leave every hold crisp."
+                )
+            }
+        }
+
+        switch blockType {
+        case .accumulation:
+            let reps = state.map { "\($0.targetRepMin)-\($0.targetRepMax) clean" } ?? (isPrimary ? "4-8 clean" : "6-10 clean")
+            return (
+                sets: isPrimary ? 4 : 3,
+                reps: reps,
+                restSeconds: isPrimary ? 120 : 75,
+                rpe: max(7, state?.targetRPE ?? fallbackRPE),
+                note: "Build repeatable strict reps. Progress the variation only while range and tempo stay honest."
+            )
+        case .intensification:
+            return (
+                sets: isPrimary ? 4 : 3,
+                reps: isPrimary ? "3-6 clean" : "5-8 clean",
+                restSeconds: isPrimary ? 150 : 90,
+                rpe: 8,
+                note: "Use a harder leverage or assistance level, not sloppy reps. No kipping unless the skill asks for it."
+            )
+        case .realization, .peaking:
+            return (
+                sets: isPrimary ? 3 : 2,
+                reps: isPrimary ? "2-5 strict" : "4-6 clean",
+                restSeconds: isPrimary ? 180 : 90,
+                rpe: blockType == .peaking ? 9 : 8,
+                note: "Proof-quality reps. Stop before partial range, swinging, or joint pain enters."
+            )
+        case .deload:
+            return (
+                sets: 2,
+                reps: "5-8 easy",
+                restSeconds: 60,
+                rpe: 6,
+                note: "Deload. Use an easier variation and keep every rep smooth."
             )
         }
     }
@@ -876,6 +1078,10 @@ enum DeterministicProgramGenerator {
         for template: DayTemplate,
         input: ProgramGeneratorInput
     ) -> [Exercise] {
+        if Equipment.isFloorOnlySelection(Set(input.equipment)) {
+            return floorOnlyWarmupExercises(for: template)
+        }
+
         let isAdvancedStrength = input.experience == .current && input.trainingStyle != .bodyweight
         let base: [Exercise]
 
@@ -918,6 +1124,38 @@ enum DeterministicProgramGenerator {
             return base
         }
         return base + [ramp]
+    }
+
+    private static func floorOnlyWarmupExercises(for template: DayTemplate) -> [Exercise] {
+        switch template {
+        case .legs, .lower:
+            return [
+                warmupExercise("World's Greatest Stretch", groups: [.legs, .glutes, .back, .core], reps: "45s"),
+                warmupExercise("Bodyweight Squat", groups: [.legs, .glutes, .core], reps: "10")
+            ]
+        case .push:
+            return [
+                warmupExercise("Wrist Prep Flow", groups: [.forearms], reps: "45s"),
+                warmupExercise("Pushup Plank", groups: [.chest, .shoulders, .arms, .core], reps: "20s")
+            ]
+        case .pull, .upper:
+            return [
+                warmupExercise("Prone Y-T-W", groups: [.back, .shoulders], reps: "8"),
+                warmupExercise("Hollow Hold", groups: [.core], reps: "20s")
+            ]
+        case .fullBody, .weakPoint:
+            return [
+                warmupExercise("World's Greatest Stretch", groups: [.legs, .glutes, .back, .core], reps: "45s"),
+                warmupExercise("Glute Bridge", groups: [.glutes, .legs, .core], reps: "10")
+            ]
+        case .skill:
+            return [
+                warmupExercise("Wrist Prep Flow", groups: [.forearms], reps: "45s"),
+                warmupExercise("Hollow Hold", groups: [.core], reps: "20s")
+            ]
+        case .rest:
+            return []
+        }
     }
 
     private static func calibrationWarmup(

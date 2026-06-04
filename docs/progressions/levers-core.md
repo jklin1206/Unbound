@@ -130,14 +130,15 @@ Sources: [Heavyweight Cali](https://heavyweightcali.com/en/front-lever-progressi
 
 ## BACK LEVER — `cl.straddle-back-lever` / `cl.full-back-lever`
 
-Tree nodes (existing): straddle (T5, `hold "straddle back lever" 5s`, prereq `cl.skin-the-cat`),
-full (T5, `hold "back lever" 5s`). **`cl.tuck-back-lever` HAS a tier table in `ClSkillTiers.swift`
-(lines 243-253) but NO node in `SkillTreeContent.swift`** — orphan table / missing node (gap).
-Adv-tuck and one-leg also absent.
+Tree nodes (existing): tuck (T4, `hold "tuck back lever" 10s`, prereq `cl.skin-the-cat`),
+straddle (T5, `hold "straddle back lever" 5s`, prereq `cl.tuck-back-lever`), and
+full (T5, `hold "back lever" 5s`). **Resolved 2026-06-02:** `cl.tuck-back-lever`
+now has both a tier table and a live node, so the prior orphan-table gap is closed. Adv-tuck and
+one-leg are still absent.
 Sources: [Calisthenics Hub](https://www.calisthenics-hub.com/guides/back-lever-tutorial),
 [The Movement Athlete](https://themovementathlete.com/back-lever-workout/).
 
-### `cl.tuck-back-lever` (NEW node — table exists, node missing)
+### `cl.tuck-back-lever` (LIVE node)
 | tier | variant | seconds |
 |---|---|---|
 | Initiate | german hang | 5 |
@@ -258,8 +259,9 @@ Sources: [GMB](https://gmb.io/l-sit/), [Antranik](https://antranik.org/advanced-
 
 ## SHOULDER STATIC — `cl.german-hang`
 
-Tree node (existing): T3, `hold "german hang" 10s`, prereq `cl.tuck-front-lever`. This is a
-mobility hold; tuck-front-lever (also a hold) is the tree's tuck-back-lever on-ramp. There is no
+Tree node (existing): T3, `hold "german hang" 10s`, prereq `pp.dead-hang`. This is a
+mobility hold; it is the shoulder-extension on-ramp into skin-the-cat and back-lever work, not a
+front-lever-dependent skill. There is no
 "easier german hang variant" — graduation here is purely seconds at increasing shoulder depth,
 then crossing into skin-the-cat reps. Source:
 [Steven Low fundamentals](https://stevenlow.org/the-fundamentals-of-bodyweight-strength-training/).
@@ -344,8 +346,7 @@ scope for a seconds metric; their existing `.exerciseBodyweightRatio` / `.varian
    tier tables as `.variant("advanced tuck front lever")` etc. (no new nodes — cheapest), or
    (b) add real nodes. Missing:
    - **advanced-tuck front lever**, **one-leg front lever** — no node;
-   - **tuck back lever** — **has a tier table (`ClSkillTiers.swift:243`) but no node** (orphan;
-     either add the node or delete the table to keep them in sync);
+   - **tuck back lever** — resolved 2026-06-02; now a live node plus tier table;
    - **advanced-tuck / one-leg back lever** — no node;
    - **foot-supported L-sit**, **tuck L-sit**, **one-leg L-sit** — no nodes (the L-sit on-ramp).
    Whichever variant strings get used in tables must also exist as loggable exercises /
@@ -364,7 +365,7 @@ scope for a seconds metric; their existing `.exerciseBodyweightRatio` / `.varian
 ## Skills covered (11 hold skills across 3 families)
 
 - **Front lever (3):** `cl.tuck-front-lever`, `cl.straddle-front-lever`, `cl.full-front-lever`
-- **Back lever (3):** `cl.tuck-back-lever` *(table-only, node missing)*, `cl.straddle-back-lever`, `cl.full-back-lever`
+- **Back lever (3):** `cl.tuck-back-lever`, `cl.straddle-back-lever`, `cl.full-back-lever`
 - **L-sit family (5):** `cal.l-sit-10`, `cl.semi-straddle-l-sit`, `cl.straddle-l-sit`, `cl.v-sit`, `cl.vertical-l-sit`
 - **German hang (1):** `cl.german-hang`
 - **Conditioning holds (2):** `co.dead-hang-45`, `co.dead-hang-60`

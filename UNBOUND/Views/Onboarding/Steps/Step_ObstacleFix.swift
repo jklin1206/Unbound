@@ -265,11 +265,17 @@ private struct ObstacleFix {
     let detail: String
 }
 
+#if DEBUG
 #Preview {
-    let flow = OnboardingFlowViewModel()
-    flow.obstacles = [.consistency]
-    flow.targetFrequency = .four
-    flow.sessionLength = .fortyFive
-    flow.targetAreas = [.chest]
-    return Step_ObstacleFix(flow: flow, progress: 0.72, onBack: {}, onContinue: {})
+    let flow: OnboardingFlowViewModel = {
+        let flow = OnboardingFlowViewModel()
+        flow.obstacles = [.consistency]
+        flow.targetFrequency = .four
+        flow.sessionLength = .fortyFive
+        flow.targetAreas = [.chest]
+        return flow
+    }()
+    Step_ObstacleFix(flow: flow, progress: 0.72, onBack: {}, onContinue: {})
 }
+
+#endif

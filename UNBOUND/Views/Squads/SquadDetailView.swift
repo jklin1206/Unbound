@@ -8,10 +8,8 @@ struct SquadDetailView: View {
     @State private var memberDetailTarget: SquadMember?
     @State private var showLeaveConfirm = false
     @State private var leaveError: String?
-    @State private var showChat = false
     @State private var showChallengeCreate = false
     @State private var activeChallenges: [FriendChallenge] = []
-    @State private var messages: [SquadMessage] = []
     @State private var memberProfiles: [UUID: UserProfile] = [:]
     @State private var memberFrameTiers: [UUID: RankTitle] = [:]
 
@@ -28,10 +26,8 @@ struct SquadDetailView: View {
                 VStack(alignment: .leading, spacing: 22) {
                     if let squad = state.currentSquad {
                         headerCard(squad: squad)
-                        crewStreakBadge(squad: squad)
-                        crewSection
                         challengesSection
-                        recentSection
+                        crewSection
                         footerSection
                     } else {
                         emptyStateView
@@ -50,21 +46,6 @@ struct SquadDetailView: View {
                 SquadMemberDetailView(member: member, roster: state.roster)
             }
         }
-        .sheet(isPresented: $showChat) {
-            if let squad = state.currentSquad {
-                NavigationStack {
-                    SquadChatView(
-                        squad: squad,
-                        roster: state.roster,
-                        initialMessages: messages,
-                        currentUserId: currentUserId,
-                        onMessagesChanged: { updated in
-                            messages = updated
-                        }
-                    )
-                }
-            }
-        }
         .sheet(isPresented: $showChallengeCreate) {
             if let squad = state.currentSquad {
                 FriendChallengeCreateSheet(
@@ -72,21 +53,6 @@ struct SquadDetailView: View {
                     roster: state.roster,
                     onCreated: { challenge in
                         activeChallenges.append(challenge)
-                        messages.insert(
-                            SquadMessage(
-                                id: UUID(),
-                                squadId: squad.id,
-                                authorUserId: currentUserId,
-                                kind: .challengeEvent(.init(
-                                    title: "Co-op challenge created",
-                                    detail: "\(displayName(for: challenge.challengerId)) invited \(displayName(for: challenge.challengedId))",
-                                    challengeId: challenge.id
-                                )),
-                                reactions: [],
-                                createdAt: Date()
-                            ),
-                            at: 0
-                        )
                     }
                 )
             }
@@ -133,8 +99,6 @@ struct SquadDetailView: View {
         await refreshMemberProfiles()
         await refreshMemberFrameTiers()
         await refreshChallenges()
-        rebuildMessages()
-        await refreshMessages()
     }
 
     @MainActor
@@ -143,8 +107,6 @@ struct SquadDetailView: View {
         state = services.squads.state(userId: userId)
         await refreshMemberProfiles()
         await refreshMemberFrameTiers()
-        rebuildMessages()
-        await refreshMessages()
     }
 
     @MainActor
@@ -152,19 +114,6 @@ struct SquadDetailView: View {
         if let me = currentUserId {
             activeChallenges = await services.friendChallenge.activeChallenges(userId: me)
         }
-    }
-
-    @MainActor
-    private func refreshMessages() async {
-        guard let squad = state.currentSquad else {
-            messages = []
-            return
-        }
-        messages = await SquadMessageService.shared.fetchRecent(
-            squadId: squad.id,
-            fallbackMessages: messages,
-            limit: 80
-        )
     }
 
     @MainActor
@@ -284,7 +233,7 @@ struct SquadDetailView: View {
                         .lineLimit(1)
                         .minimumScaleFactor(0.58)
 
-                    Text("Crew chat, linked sessions, and weekly heat live here.")
+                    Text("Challenge friends, compare ranks, stay accountable.")
                         .font(Font.unbound.bodyM)
                         .foregroundStyle(Color.unbound.textSecondary)
                         .lineLimit(2)
@@ -310,13 +259,13 @@ struct SquadDetailView: View {
 
                 HStack(spacing: 10) {
                     Button {
-                        showChat = true
+                        showChallengeCreate = true
                     } label: {
                         HStack(spacing: 10) {
-                            Text("OPEN CHAT")
+                            Text("NEW CHALLENGE")
                                 .font(Font.unbound.bodyMStrong)
                                 .tracking(1.2)
-                            Image(systemName: "bubble.left.and.bubble.right.fill")
+                            Image(systemName: "flag.checkered")
                                 .font(.system(size: 13, weight: .bold))
                         }
                         .foregroundStyle(Color.unbound.textPrimary)
@@ -374,47 +323,12 @@ struct SquadDetailView: View {
         .shadow(color: Color.black.opacity(0.28), radius: 24, y: 14)
     }
 
-    private func crewStreakBadge(squad: Squad) -> some View {
-        let badge = CrewStreakBadgeState(
-            squadId: squad.id,
-            consecutiveWeeks: squad.squadStreakWeeks,
-            weekIsoLast: nil
-        )
-        return VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .center, spacing: 13) {
-                badgeMedallion(tier: badge.currentTier, systemImage: "flame.fill", tint: Color.unbound.warnOrange)
-
-                VStack(alignment: .leading, spacing: 5) {
-                    sectionHeader("CREW STREAK")
-                    Text(badge.currentTier == .none ? "No badge yet" : "Tier \(badge.currentTier.roman)")
-                        .font(Font.unbound.titleS)
-                        .foregroundStyle(Color.unbound.textPrimary)
-                    Text(streakProgressCopy(badge))
-                        .font(Font.unbound.bodyM)
-                        .foregroundStyle(Color.unbound.textSecondary)
-                        .lineLimit(2)
-                }
-
-                Spacer(minLength: 0)
-
-                Text("\(badge.consecutiveWeeks)")
-                    .font(.system(size: 34, weight: .black, design: .rounded))
-                    .foregroundStyle(Color.unbound.textPrimary.opacity(0.92))
-                    .monospacedDigit()
-            }
-
-            squadProgressBar(value: badge.progressToNextTier, tint: Color.unbound.warnOrange)
-        }
-        .padding(16)
-        .squadPanel(cornerRadius: 20, tint: Color.unbound.warnOrange)
-    }
-
     private var crewSection: some View {
         let columns = [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)]
         let presenceMap = Dictionary(uniqueKeysWithValues: state.activeRosterPresence.map { ($0.userId, $0) })
         return VStack(alignment: .leading, spacing: 10) {
             HStack {
-                sectionHeader("CREW")
+                sectionHeader("CREW RANKS")
                 Spacer()
                 if !state.activeRosterPresence.isEmpty {
                     Text("\(state.activeRosterPresence.count) LIVE")
@@ -464,43 +378,11 @@ struct SquadDetailView: View {
             }
 
             if activeChallenges.isEmpty {
-                emptySlab("No active challenges. Start a co-op pair challenge with a crewmate.", icon: "flag.checkered")
+                emptySlab("No active challenges. Start a simple 1v1 challenge with a crewmate.", icon: "flag.checkered")
             } else {
                 VStack(spacing: 10) {
                     ForEach(activeChallenges) { challenge in
                         ChallengeDashboardRow(challenge: challenge, roster: state.roster, currentUserId: currentUserId)
-                    }
-                }
-            }
-        }
-    }
-
-    private var recentSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                sectionHeader("RECENT")
-                Spacer()
-                Button {
-                    showChat = true
-                } label: {
-                    HStack(spacing: 4) {
-                        Text("SEE ALL")
-                        Image(systemName: "arrow.right")
-                    }
-                    .font(.system(size: 10, weight: .heavy, design: .monospaced))
-                    .tracking(1.0)
-                    .foregroundStyle(Color.unbound.accent)
-                }
-                .buttonStyle(.plain)
-            }
-
-            let recent = messages.prefix(3)
-            if recent.isEmpty {
-                emptySlab("The crew chat is quiet. Workouts and challenge moments will appear here.", icon: "bubble.left.and.bubble.right.fill")
-            } else {
-                VStack(spacing: 8) {
-                    ForEach(Array(recent)) { message in
-                        SquadMessagePreviewRow(message: message, authorName: displayName(for: message.authorUserId))
                     }
                 }
             }
@@ -568,21 +450,6 @@ struct SquadDetailView: View {
         .squadPanel(cornerRadius: 18, tint: Color.unbound.textTertiary)
     }
 
-    private func badgeMedallion(tier: SquadBadgeTier, systemImage: String, tint: Color) -> some View {
-        ZStack {
-            Circle().fill(tint.opacity(0.14))
-            Circle().strokeBorder(tint.opacity(0.48), lineWidth: 1)
-            Image(systemName: systemImage)
-                .font(.system(size: 18, weight: .bold))
-                .foregroundStyle(tint)
-            Text(tier.roman)
-                .font(.system(size: 8, weight: .heavy, design: .monospaced))
-                .foregroundStyle(Color.unbound.textPrimary)
-                .offset(y: 20)
-        }
-        .frame(width: 54, height: 54)
-    }
-
     private func sectionHeader(_ label: String) -> some View {
         HStack(spacing: 8) {
             Capsule()
@@ -629,26 +496,6 @@ struct SquadDetailView: View {
         .padding(.vertical, 7)
         .background(Capsule().fill(Color.unbound.bg.opacity(0.46)))
         .overlay(Capsule().strokeBorder(tint.opacity(0.28), lineWidth: 1))
-    }
-
-    private func squadProgressBar(value: Double, tint: Color) -> some View {
-        GeometryReader { proxy in
-            ZStack(alignment: .leading) {
-                Capsule()
-                    .fill(Color.white.opacity(0.08))
-                Capsule()
-                    .fill(tint)
-                    .frame(width: proxy.size.width * CGFloat(min(max(value, 0), 1)))
-                    .shadow(color: tint.opacity(0.34), radius: 8)
-            }
-        }
-        .frame(height: 6)
-    }
-
-    private func streakProgressCopy(_ badge: CrewStreakBadgeState) -> String {
-        guard let target = badge.nextTierTarget else { return "\(badge.consecutiveWeeks) consecutive weeks. Max tier earned." }
-        let remaining = max(0, target - badge.consecutiveWeeks)
-        return "\(badge.consecutiveWeeks)/\(target) weeks. \(remaining) to next tier."
     }
 
     private func accountabilityBadge(for userId: UUID) -> AccountabilityBadgeState {
@@ -699,32 +546,6 @@ struct SquadDetailView: View {
     private func isCurrentMember(_ member: SquadMember) -> Bool {
         guard let current = services.auth.currentUserId else { return false }
         return SquadUserIdentity.uuid(from: current) == member.userId
-    }
-
-    private func rebuildMessages() {
-        guard let squad = state.currentSquad else {
-            messages = []
-            return
-        }
-        let activityMessages = state.recentActivity.map { entry in
-            SquadMessage(
-                id: entry.id,
-                squadId: entry.squadId,
-                authorUserId: entry.userId,
-                kind: entry.messageKind,
-                reactions: [],
-                createdAt: entry.createdAt
-            )
-        }
-        let migration = SquadMessage(
-            id: UUID(uuidString: "00000000-0000-0000-0000-000000000101") ?? UUID(),
-            squadId: squad.id,
-            authorUserId: nil,
-            kind: .system(.init(body: "Squads moved to one crew chat. Active missions, honors, affinity, and squad titles have been reset.")),
-            reactions: [],
-            createdAt: squad.createdAt.addingTimeInterval(1)
-        )
-        messages = ([migration] + activityMessages).sorted { $0.createdAt > $1.createdAt }
     }
 
     @MainActor
@@ -845,25 +666,6 @@ private struct SquadPanelStyle: ViewModifier {
 private extension View {
     func squadPanel(cornerRadius: CGFloat = 18, tint: Color = Color.unbound.accent) -> some View {
         modifier(SquadPanelStyle(cornerRadius: cornerRadius, tint: tint))
-    }
-}
-
-private extension SquadActivityEntry {
-    var messageKind: SquadMessage.Kind {
-        switch payload {
-        case .trialCompleted(let trialName, _):
-            return .workout(.init(title: trialName, durationMinutes: nil))
-        case .titleUnlocked(let titleId):
-            return .pr(.init(title: "Title unlocked", detail: titleId.displayName))
-        case .linkedSession(let participantUserIds, let durationMinutes):
-            return .workout(.init(title: "\(participantUserIds.count) crewmates trained together", durationMinutes: durationMinutes))
-        case .memberJoined(let memberDisplayName):
-            return .system(.init(body: "\(memberDisplayName) joined the crew."))
-        case .affinityChanged:
-            return .system(.init(body: "Crew affinity was retired in the Squads v1 redesign."))
-        case .squadStreakExtended(let weeks):
-            return .challengeEvent(.init(title: "Crew streak extended", detail: "\(weeks) weeks", challengeId: nil))
-        }
     }
 }
 

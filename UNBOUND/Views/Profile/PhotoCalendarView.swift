@@ -379,7 +379,10 @@ struct PhotoCalendarView: View {
 
     private var isScanEligible: Bool {
         guard lastScanTimestamp > 0 else { return true }
-        return Date().timeIntervalSince1970 - lastScanTimestamp >= 28 * 24 * 3600
+        return ScanCadenceState.compute(
+            lastScanAt: Date(timeIntervalSince1970: lastScanTimestamp),
+            now: .now
+        ).isUnlocked
     }
 
     // MARK: - Data

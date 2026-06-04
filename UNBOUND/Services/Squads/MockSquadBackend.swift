@@ -24,7 +24,7 @@ final class MockSquadBackend: SquadBackendProtocol, @unchecked Sendable {
     var deletedSquads: [UUID] = []
     var deletedMembers: [(squadId: UUID, userId: UUID)] = []
     var affinityUpdates: [(squadId: UUID, axis: AttributeKey?, setAt: Date?)] = []
-    var missionProgressIncrements: [(squadId: UUID, delta: Int)] = []
+    var missionProgressIncrements: [(squadId: UUID, delta: Int, sourceLogId: String)] = []
 
     // MARK: Error injection
 
@@ -90,33 +90,13 @@ final class MockSquadBackend: SquadBackendProtocol, @unchecked Sendable {
 
     func updateCaptain(squadId: UUID, newCaptainId: UUID) async throws {
         guard let existing = squads[squadId] else { throw SquadError.backendUnavailable }
-        squads[squadId] = Squad(
-            id: existing.id,
-            name: existing.name,
-            captainId: newCaptainId,
-            affinityAxis: existing.affinityAxis,
-            affinitySetAt: existing.affinitySetAt,
-            inviteCode: existing.inviteCode,
-            maxSize: existing.maxSize,
-            squadStreakWeeks: existing.squadStreakWeeks,
-            createdAt: existing.createdAt
-        )
+        squads[squadId] = existing.replacingCaptain(newCaptainId)
         captainUpdates.append((squadId: squadId, newCaptainId: newCaptainId))
     }
 
     func updateAffinity(squadId: UUID, axis: AttributeKey?, setAt: Date?) async throws {
         guard let existing = squads[squadId] else { throw SquadError.backendUnavailable }
-        squads[squadId] = Squad(
-            id: existing.id,
-            name: existing.name,
-            captainId: existing.captainId,
-            affinityAxis: axis,
-            affinitySetAt: setAt,
-            inviteCode: existing.inviteCode,
-            maxSize: existing.maxSize,
-            squadStreakWeeks: existing.squadStreakWeeks,
-            createdAt: existing.createdAt
-        )
+        squads[squadId] = existing.replacingAffinity(axis: axis, setAt: setAt)
         affinityUpdates.append((squadId: squadId, axis: axis, setAt: setAt))
     }
 
@@ -158,8 +138,8 @@ final class MockSquadBackend: SquadBackendProtocol, @unchecked Sendable {
         members.first { _, roster in roster.contains { $0.userId == userId } }?.key
     }
 
-    func incrementMissionProgress(squadId: UUID, delta: Int) async throws {
-        missionProgressIncrements.append((squadId: squadId, delta: delta))
+    func incrementMissionProgress(squadId: UUID, delta: Int, sourceLogId: String) async throws {
+        missionProgressIncrements.append((squadId: squadId, delta: delta, sourceLogId: sourceLogId))
     }
 
     var linkedSessions: [UUID: [LinkedSession]] = [:]   // squadId → rows

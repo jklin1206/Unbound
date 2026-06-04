@@ -12,8 +12,8 @@ final class SkillClusterUnlockTests: XCTestCase {
         XCTAssertEqual(SkillCluster.handstandPushup.requiresClusterKeystone, .handstand)
     }
 
-    func testOneArmHandstandRequiresHandstandPushup() {
-        XCTAssertEqual(SkillCluster.oneArmHandstand.requiresClusterKeystone, .handstandPushup)
+    func testOneArmHandstandRequiresHandstand() {
+        XCTAssertEqual(SkillCluster.oneArmHandstand.requiresClusterKeystone, .handstand)
     }
 
     // MARK: - SkillGraph.isClusterUnlocked
@@ -27,10 +27,10 @@ final class SkillClusterUnlockTests: XCTestCase {
         // HSPU requires Handstand keystone — gated at spawn.
         XCTAssertFalse(graph.isClusterUnlocked(.handstandPushup, nodeStates: emptyStates))
 
-        // After cracking the Handstand keystone, HSPU opens up.
+        // After cracking the Handstand keystone, HSPU and OAH clusters open.
+        // OAH still has node-level prerequisites before the skill can be trained.
         let unlockedStates: [String: NodeState] = ["hs.freestanding-hs-30": .proven]
         XCTAssertTrue(graph.isClusterUnlocked(.handstandPushup, nodeStates: unlockedStates))
-        // One-Arm Handstand still waits on HSPU.
-        XCTAssertFalse(graph.isClusterUnlocked(.oneArmHandstand, nodeStates: unlockedStates))
+        XCTAssertTrue(graph.isClusterUnlocked(.oneArmHandstand, nodeStates: unlockedStates))
     }
 }

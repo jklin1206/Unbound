@@ -50,6 +50,9 @@ struct Step09_Weight: View {
     }
 }
 
+#if DEBUG
 #Preview {
     Step09_Weight(flow: OnboardingFlowViewModel(), progress: 0.3, onBack: {}, onContinue: {})
 }
+
+#endif

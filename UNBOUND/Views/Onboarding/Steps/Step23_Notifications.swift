@@ -48,9 +48,9 @@ struct Step23_Notifications: View {
                 }
 
                 VStack(spacing: 12) {
-                    hudBenefitRow(icon: "flame.fill", text: L10n.onboarding("notifications.benefit.streak", defaultValue: "Never break a streak"))
-                    hudBenefitRow(icon: "calendar", text: L10n.onboarding("notifications.benefit.schedule", defaultValue: "Session reminders that work with your schedule"))
-                    hudBenefitRow(icon: "chart.line.uptrend.xyaxis", text: L10n.onboarding("notifications.benefit.monthly", defaultValue: "Monthly moments to see what changed"))
+                    hudBenefitRow(icon: "flame.fill", text: L10n.onboarding("notifications.benefit.streak", defaultValue: "A clean nudge when it is time to train"))
+                    hudBenefitRow(icon: "calendar", text: L10n.onboarding("notifications.benefit.schedule", defaultValue: "Gym reminders that match your schedule"))
+                    hudBenefitRow(icon: "bell.slash", text: L10n.onboarding("notifications.benefit.monthly", defaultValue: "No extra progress or streak alerts by default"))
                 }
 
                 Spacer().frame(height: 8)
@@ -73,7 +73,7 @@ struct Step23_Notifications: View {
             onContinue()
             return
         }
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { _, _ in
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in
             DispatchQueue.main.async {
                 flow.notificationsRequested = true
                 onContinue()
@@ -99,6 +99,9 @@ struct Step23_Notifications: View {
     }
 }
 
+#if DEBUG
 #Preview {
     Step23_Notifications(flow: OnboardingFlowViewModel(), progress: 0.76, onBack: {}, onContinue: {})
 }
+
+#endif

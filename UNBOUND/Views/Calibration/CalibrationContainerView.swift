@@ -6,6 +6,7 @@ struct CalibrationContainerView: View {
     @EnvironmentObject var services: ServiceContainer
     @State private var vm: CalibrationViewModel?
     @State private var isLoading = true
+    @State private var errorMessage: String?
 
     var body: some View {
         Group {
@@ -16,6 +17,15 @@ struct CalibrationContainerView: View {
                     Color.unbound.bg.ignoresSafeArea()
                     ProgressView()
                         .tint(Color.unbound.accent)
+                }
+            } else if let errorMessage {
+                ZStack {
+                    Color.unbound.bg.ignoresSafeArea()
+                    Text(errorMessage)
+                        .font(Font.unbound.bodyM)
+                        .foregroundStyle(Color.unbound.textSecondary)
+                        .multilineTextAlignment(.center)
+                        .padding(24)
                 }
             } else {
                 ZStack { Color.unbound.bg.ignoresSafeArea() }
@@ -57,8 +67,13 @@ struct CalibrationContainerView: View {
             case .complete:
                 Step_Cal04_Complete(onContinue: {
                     Task {
-                        await vm.finish()
-                        onComplete()
+                        do {
+                            try await vm.finish()
+                            onComplete()
+                        } catch {
+                            self.vm = nil
+                            errorMessage = "Calibration could not be saved. Try again in a moment."
+                        }
                     }
                 })
                 .transition(.opacity)
@@ -70,7 +85,11 @@ struct CalibrationContainerView: View {
     @MainActor
     private func bootstrap() async {
         guard vm == nil else { return }
-        let userId = services.auth.currentUserId ?? "anonymous"
+        guard let userId = services.auth.currentUserId else {
+            errorMessage = "Sign in before calibration."
+            isLoading = false
+            return
+        }
 
         var equipment: Set<Equipment> = [.bodyweight]
         var experience: Experience? = nil

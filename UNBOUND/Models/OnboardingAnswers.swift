@@ -128,12 +128,18 @@ enum Equipment: String, Codable, CaseIterable, Identifiable {
     case dumbbells
     case bench
     case pullupBar
+    case dipStation
+    case rings
     case bodyweight
     case bands
     // Legacy — kept for backward compat with pre-redesign stored profiles:
     case homeWeights
 
     var id: String { rawValue }
+
+    static func isFloorOnlySelection(_ equipment: Set<Equipment>) -> Bool {
+        equipment.subtracting([.bodyweight]).isEmpty
+    }
 
     var displayName: String {
         switch self {
@@ -143,6 +149,8 @@ enum Equipment: String, Codable, CaseIterable, Identifiable {
         case .dumbbells: return L10n.onboardingAnswer(group: "equipment", id: rawValue, field: "displayName", defaultValue: "Dumbbells")
         case .bench: return L10n.onboardingAnswer(group: "equipment", id: rawValue, field: "displayName", defaultValue: "Bench")
         case .pullupBar: return L10n.onboardingAnswer(group: "equipment", id: rawValue, field: "displayName", defaultValue: "Pull-up bar")
+        case .dipStation: return L10n.onboardingAnswer(group: "equipment", id: rawValue, field: "displayName", defaultValue: "Dip station")
+        case .rings: return L10n.onboardingAnswer(group: "equipment", id: rawValue, field: "displayName", defaultValue: "Gymnastic rings")
         case .bodyweight: return L10n.onboardingAnswer(group: "equipment", id: rawValue, field: "displayName", defaultValue: "Bodyweight only")
         case .bands: return L10n.onboardingAnswer(group: "equipment", id: rawValue, field: "displayName", defaultValue: "Resistance bands")
         case .homeWeights: return L10n.onboardingAnswer(group: "equipment", id: rawValue, field: "displayName", defaultValue: "Home weights")
@@ -157,6 +165,8 @@ enum Equipment: String, Codable, CaseIterable, Identifiable {
         case .dumbbells: return "dumbbell"
         case .bench: return "bed.double.fill"
         case .pullupBar: return "figure.play"
+        case .dipStation: return "figure.strengthtraining.functional"
+        case .rings: return "link.circle"
         case .bodyweight: return "figure.arms.open"
         case .bands: return "line.diagonal"
         case .homeWeights: return "house.fill"

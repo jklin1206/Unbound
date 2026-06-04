@@ -14,8 +14,11 @@ struct LogCardioView: View {
     @State private var notes: String = ""
     @State private var isSaving = false
     @State private var rewardSequence: WorkoutRewardSequenceSummary?
+    @State private var pendingRewardAfterHistoryFailure: WorkoutRewardSequenceSummary?
     @State private var showError = false
+    @State private var errorTitle = "Cardio was not completed"
     @State private var errorMessage = ""
+    @State private var pendingCardioSessionId = UUID()
 
     private let gridColumns = [
         GridItem(.flexible(), spacing: 10),
@@ -61,7 +64,7 @@ struct LogCardioView: View {
             }
             .interactiveDismissDisabled(true)
         }
-        .alert("Cardio was not saved", isPresented: $showError) {
+        .alert(errorTitle, isPresented: $showError) {
             Button("OK", role: .cancel) {}
         } message: {
             Text(errorMessage)
@@ -261,11 +264,17 @@ struct LogCardioView: View {
     }
 
     private func save() {
-        let userId = services.auth.currentUserId ?? "anonymous"
+        guard let userId = services.auth.currentUserId else {
+            errorTitle = "Cardio was not completed"
+            errorMessage = "Sign in before logging cardio. Nothing was awarded."
+            showError = true
+            return
+        }
         let distance = Double(distanceKm.trimmingCharacters(in: .whitespaces))
         let hr = Int(avgHR.trimmingCharacters(in: .whitespaces))
 
         let session = CardioSession(
+            id: pendingCardioSessionId,
             userId: userId,
             type: type,
             durationMinutes: durationMinutes,
@@ -278,44 +287,52 @@ struct LogCardioView: View {
         isSaving = true
         Task {
             do {
-                try await services.cardioLog.log(session: session)
                 let performanceLog = TrainingSessionAdapters.performanceLogForCardioSession(session)
-                let completionResult: TrainingCompletionResult
+                let completionResult = try await TrainingCompletionService.shared.complete(
+                    performanceLog,
+                    services: services
+                )
+                let reward = WorkoutRewardSequenceSummary.trainingReceipt(
+                    performanceLog: performanceLog,
+                    completionResult: completionResult,
+                    fallbackXP: cardioXP,
+                    sourceName: "Cardio"
+                )
                 do {
-                    completionResult = try await TrainingCompletionService.shared.complete(
-                        performanceLog,
-                        services: services
-                    )
+                    try await services.cardioLog.log(session: session)
                 } catch {
                     LoggingService.shared.log(
-                        "Cardio unified completion failed; using progression preview: \(error)",
-                        level: .warning,
+                        "Cardio history save failed after completion: \(error)",
+                        level: .error,
                         context: ["cardioSessionId": session.id.uuidString]
                     )
-                    completionResult = TrainingCompletionService.shared.previewProgression(
-                        for: performanceLog,
-                        services: services
-                    )
+                    await MainActor.run {
+                        isSaving = false
+                        pendingRewardAfterHistoryFailure = reward
+                        errorTitle = "Cardio history was not saved"
+                        errorMessage = "Rewards were saved. Try again to save this same session to cardio history; no extra rewards will be granted."
+                        showError = true
+                    }
+                    return
                 }
                 UnboundHaptics.success()
                 await MainActor.run {
                     isSaving = false
+                    pendingCardioSessionId = UUID()
+                    let rewardToShow = pendingRewardAfterHistoryFailure ?? reward
+                    pendingRewardAfterHistoryFailure = nil
                     onLogged?(session)
-                    rewardSequence = WorkoutRewardSequenceSummary.trainingReceipt(
-                        performanceLog: performanceLog,
-                        completionResult: completionResult,
-                        fallbackXP: cardioXP,
-                        sourceName: "Cardio"
-                    )
+                    rewardSequence = rewardToShow
                 }
             } catch {
                 LoggingService.shared.log(
-                    "Cardio save failed: \(error)",
+                    "Cardio completion failed: \(error)",
                     level: .error,
                     context: ["cardioType": session.type.rawValue]
                 )
                 await MainActor.run {
                     isSaving = false
+                    errorTitle = "Cardio was not completed"
                     errorMessage = "Try again in a moment. Nothing was awarded."
                     showError = true
                 }

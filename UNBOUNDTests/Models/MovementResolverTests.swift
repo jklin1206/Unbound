@@ -537,12 +537,29 @@ final class MovementResolverTests: XCTestCase {
         XCTAssertTrue(bodyweightOnly.contains { $0.displayName == "Bodyweight Squat" })
         XCTAssertFalse(bodyweightOnly.contains { $0.displayName == "Lat Pulldown (Bar)" })
         XCTAssertFalse(bodyweightOnly.contains { $0.displayName == "Pull-Up (Bodyweight)" })
+        XCTAssertFalse(bodyweightOnly.contains { $0.displayName == "Ab Wheel" })
 
         let bodyweightWithBar = MovementCatalog.programDefinitions(
             style: .bodyweight,
             userEquipment: [.bodyweight, .pullupBar]
         )
         XCTAssertTrue(bodyweightWithBar.contains { $0.displayName == "Pull-Up (Bodyweight)" })
+        XCTAssertFalse(bodyweightWithBar.contains { $0.displayName == "Dip (Tricep)" })
+        XCTAssertFalse(bodyweightWithBar.contains { $0.displayName == "Straight Bar Dip" })
+
+        let bodyweightWithDipStation = MovementCatalog.programDefinitions(
+            style: .bodyweight,
+            userEquipment: [.bodyweight, .dipStation]
+        )
+        XCTAssertTrue(bodyweightWithDipStation.contains { $0.displayName == "Dip (Tricep)" })
+        XCTAssertTrue(bodyweightWithDipStation.contains { $0.displayName == "Straight Bar Dip" })
+
+        let bodyweightWithRings = MovementCatalog.programDefinitions(
+            style: .bodyweight,
+            userEquipment: [.bodyweight, .rings]
+        )
+        XCTAssertTrue(bodyweightWithRings.contains { $0.displayName == "Ring Dip" })
+        XCTAssertTrue(bodyweightWithRings.contains { $0.displayName == "Inverted Row" })
 
         let machines = MovementCatalog.programDefinitions(
             style: .machines,
@@ -619,6 +636,31 @@ final class MovementResolverTests: XCTestCase {
         XCTAssertEqual(canonicalExercise.canonicalExerciseName, "muscle-up")
     }
 
+    func testCalisthenicsDrillRailsResolveToOwningSkills() {
+        let drills: [(String, String)] = [
+            ("Two-Finger Tent", "oah.one-arm-handstand-5s"),
+            ("Off-Hand Float", "oah.one-arm-handstand-5s"),
+            ("Band-Assisted Full Planche", "pl.full-planche"),
+            ("Advanced Tuck Back Lever", "cl.straddle-back-lever"),
+            ("Tuck L-Sit", "cal.l-sit-10"),
+            ("Foot-Supported L-Sit", "cal.l-sit-10")
+        ]
+
+        for (name, skillId) in drills {
+            let resolved = MovementResolver.resolve(name)
+            XCTAssertEqual(resolved.role, .skillDrill, name)
+            XCTAssertEqual(resolved.skillId, skillId, name)
+            XCTAssertEqual(resolved.blockKind, .skill, name)
+        }
+
+        let tuckedLSitExercise = MovementResolver.resolve("L-Sit (Tucked)")
+        XCTAssertEqual(tuckedLSitExercise.role, .canonicalExercise)
+        XCTAssertEqual(tuckedLSitExercise.loggerMode, .hold)
+
+        let genericWeightShift = MovementResolver.resolve("Weight Shift")
+        XCTAssertNotEqual(genericWeightShift.skillId, "hs.wall-supported-oah")
+    }
+
     func testRepresentativeGymExercisesHaveExpectedTemplatesAndSlots() {
         let bench = MovementResolver.resolve("Bench Press")
         XCTAssertEqual(bench.rankTemplate, .barbellStrength)
@@ -631,6 +673,20 @@ final class MovementResolverTests: XCTestCase {
         XCTAssertEqual(legPress.movementSlot, .squat)
         XCTAssertTrue(legPress.bodyRegions.contains(.quads))
         XCTAssertTrue(legPress.bodyRegions.contains(.glutes))
+
+        let machineLegExtension = MovementResolver.resolve("Leg Extension")
+        XCTAssertEqual(machineLegExtension.rankTemplate, .machineStrength)
+        XCTAssertEqual(machineLegExtension.blockKind, .strength)
+
+        let bodyweightLegExtension = MovementResolver.resolve("Bodyweight Leg Extension")
+        XCTAssertEqual(bodyweightLegExtension.movementId, "exercise.bodyweight-leg-extension")
+        XCTAssertEqual(bodyweightLegExtension.rankTemplate, .bodyweightReps)
+        XCTAssertEqual(bodyweightLegExtension.blockKind, .bodyweight)
+        XCTAssertEqual(bodyweightLegExtension.loggerMode, .bodyweightSets)
+        XCTAssertEqual(bodyweightLegExtension.skillId, nil)
+        XCTAssertEqual(bodyweightLegExtension.rankStandardMovementId, "exercise.bodyweight-leg-extension")
+        XCTAssertFalse(MovementCatalog.definition(for: "exercise.bodyweight-leg-extension")?.equipment.contains(.machine) ?? true)
+        XCTAssertTrue(MovementCatalog.definition(for: "exercise.bodyweight-leg-extension")?.skillAssociations.contains("ld.leg-extensions") ?? false)
 
         let neutralPulldown = MovementResolver.resolve("Lat Pulldown (Neutral)")
         XCTAssertEqual(neutralPulldown.rankTemplate, .machineStrength)
@@ -667,13 +723,24 @@ final class MovementResolverTests: XCTestCase {
             "L-Sit",
             "L-Sit (Tucked)",
             "Tuck Front Lever",
-            "Advanced Tuck Front Lever",
-            "Dragon Flag"
+            "Advanced Tuck Front Lever"
         ]
         for movement in holdMovements {
             let resolved = MovementResolver.resolve(movement)
             XCTAssertEqual(resolved.rankTemplate, .holdControl, "\(movement) should use hold/control ranking")
             XCTAssertEqual(resolved.loggerMode, .hold, "\(movement) should use the hold timer")
+        }
+
+        let repControlMovements = [
+            "Dragon Flag",
+            "Hanging Leg Raise",
+            "Hanging Knee Raise",
+            "Captain's Chair Leg Raise"
+        ]
+        for movement in repControlMovements {
+            let resolved = MovementResolver.resolve(movement)
+            XCTAssertEqual(resolved.rankTemplate, .bodyweightReps, "\(movement) should rank by reps")
+            XCTAssertEqual(resolved.loggerMode, .bodyweightSets, "\(movement) should use bodyweight rep logging")
         }
 
         let hollowRock = MovementResolver.resolve("Hollow Rock")
@@ -753,5 +820,35 @@ final class MovementResolverTests: XCTestCase {
         XCTAssertEqual(plank.rankTemplate, .holdControl)
         XCTAssertEqual(plank.movementSlot, .core)
         XCTAssertTrue(plank.bodyRegions.contains(.abs))
+    }
+
+    func testRankableBodyweightLibraryExercisesDeriveRanksFromLoggedReps() throws {
+        let rowLow = try XCTUnwrap(StrengthStandards.progressToNextRank(
+            metricValue: 1,
+            bodyweightKg: 0,
+            exerciseKey: "Inverted Row",
+            sex: nil
+        ))
+        let rowHigh = try XCTUnwrap(StrengthStandards.progressToNextRank(
+            metricValue: 50,
+            bodyweightKg: 0,
+            exerciseKey: "Inverted Row",
+            sex: nil
+        ))
+        XCTAssertGreaterThan(rowHigh.current.rawValue, rowLow.current.rawValue)
+
+        let squatLow = try XCTUnwrap(StrengthStandards.progressToNextRank(
+            metricValue: 5,
+            bodyweightKg: 0,
+            exerciseKey: "Bodyweight Squat",
+            sex: nil
+        ))
+        let squatHigh = try XCTUnwrap(StrengthStandards.progressToNextRank(
+            metricValue: 120,
+            bodyweightKg: 0,
+            exerciseKey: "Bodyweight Squat",
+            sex: nil
+        ))
+        XCTAssertGreaterThan(squatHigh.current.rawValue, squatLow.current.rawValue)
     }
 }

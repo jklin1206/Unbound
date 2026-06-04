@@ -3,6 +3,7 @@ import UserNotifications
 
 protocol LocalNotificationScheduling: AnyObject {
     func notificationSettings() async -> UNNotificationSettings
+    func pendingNotificationRequests() async -> [UNNotificationRequest]
     func add(_ request: UNNotificationRequest) async throws
     func removePendingNotificationRequests(withIdentifiers identifiers: [String])
 }
@@ -15,19 +16,16 @@ final class NotificationCoordinator {
     private let store: NotificationPreferencesStore
     private let center: any LocalNotificationScheduling
     private let trainTimeScheduler: TrainTimeNotificationScheduler
-    private let retentionScheduler: RetentionNudgeScheduler
     private let milestoneNotifier: MilestoneNotificationNotifier
 
     init(
         store: NotificationPreferencesStore = .shared,
         center: any LocalNotificationScheduling = UNUserNotificationCenter.current(),
-        trainTimeScheduler: TrainTimeNotificationScheduler = TrainTimeNotificationScheduler(),
-        retentionScheduler: RetentionNudgeScheduler = RetentionNudgeScheduler()
+        trainTimeScheduler: TrainTimeNotificationScheduler = TrainTimeNotificationScheduler()
     ) {
         self.store = store
         self.center = center
         self.trainTimeScheduler = trainTimeScheduler
-        self.retentionScheduler = retentionScheduler
         self.milestoneNotifier = MilestoneNotificationNotifier(
             store: store,
             center: center
@@ -39,22 +37,25 @@ final class NotificationCoordinator {
     }
 
     func applyStoredPreferences() async {
-        startMilestoneNotifier()
-        let preferences = store.load()
+        let preferences = trainingOnlyPreferences()
+        milestoneNotifier.stop()
+        await cancelNonWorkoutNotifications()
         await schedule(plan: trainTimeScheduler.plan(preferences: preferences))
-        await schedule(plan: retentionScheduler.plan(preferences: preferences))
     }
 
     func scheduleWorkoutReminders(
         workoutTime: WorkoutTime,
         trainingDays: Set<Weekday>
     ) async {
-        startMilestoneNotifier()
         let preferences = store.update { preferences in
             preferences.workoutReminders.isEnabled = true
             preferences.workoutReminders.workoutTime = workoutTime
             preferences.workoutReminders.trainingDays = trainingDays
+            preferences.retentionNudges.isEnabled = false
+            preferences.milestones.isEnabled = false
         }
+        milestoneNotifier.stop()
+        await cancelNonWorkoutNotifications()
         await schedule(plan: trainTimeScheduler.plan(preferences: preferences))
     }
 
@@ -71,13 +72,7 @@ final class NotificationCoordinator {
         anchorDate: Date = Date(),
         daysAfterAnchor: Int = 30
     ) async {
-        startMilestoneNotifier()
-        let preferences = store.update { preferences in
-            preferences.retentionNudges.isEnabled = true
-            preferences.retentionNudges.anchorDate = anchorDate
-            preferences.retentionNudges.daysAfterAnchor = daysAfterAnchor
-        }
-        await schedule(plan: retentionScheduler.plan(preferences: preferences))
+        cancelRetentionNudge()
     }
 
     func cancelRetentionNudge() {
@@ -100,6 +95,56 @@ final class NotificationCoordinator {
         for descriptor in plan.requests {
             try? await center.add(descriptor.makeRequest())
         }
+    }
+
+    private func trainingOnlyPreferences() -> NotificationPreferences {
+        let preferences = store.load()
+        guard preferences.retentionNudges.isEnabled || preferences.milestones.isEnabled else {
+            return preferences
+        }
+
+        return store.update { preferences in
+            preferences.retentionNudges.isEnabled = false
+            preferences.milestones.isEnabled = false
+        }
+    }
+
+    private func cancelNonWorkoutNotifications() async {
+        var identifiers = Set(knownNonWorkoutNotificationIdentifiers)
+
+        let stalePendingIdentifiers = await center.pendingNotificationRequests()
+            .map(\.identifier)
+            .filter { identifier in
+                nonWorkoutNotificationPrefixes.contains { prefix in
+                    identifier.hasPrefix(prefix)
+                }
+            }
+        identifiers.formUnion(stalePendingIdentifiers)
+
+        if !identifiers.isEmpty {
+            center.removePendingNotificationRequests(withIdentifiers: Array(identifiers))
+        }
+    }
+
+    private var knownNonWorkoutNotificationIdentifiers: [String] {
+        [
+            RetentionNudgeScheduler.identifier,
+            "unbound.weekly-vow.monday-picker",
+            "unbound.weekly-vow.saturday-unlock",
+            "unbound.weekly-vow.sunday-closing",
+            "unbound.trial.monday-picker",
+            "unbound.trial.saturday-unlock",
+            "unbound.trial.sunday-closing",
+            "unbound.rest.timer"
+        ]
+    }
+
+    private var nonWorkoutNotificationPrefixes: [String] {
+        [
+            "\(MilestoneNotificationPlanner.identifierPrefix).",
+            "unbound.weekly-vow.",
+            "unbound.trial."
+        ]
     }
 }
 

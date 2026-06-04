@@ -46,7 +46,7 @@ struct RetentionNudgeNotificationPreferences: Codable, Equatable {
     var minute: Int
 
     init(
-        isEnabled: Bool = true,
+        isEnabled: Bool = false,
         anchorDate: Date? = nil,
         daysAfterAnchor: Int = 30,
         hour: Int = 9,
@@ -63,7 +63,7 @@ struct RetentionNudgeNotificationPreferences: Codable, Equatable {
 struct MilestoneNotificationPreferences: Codable, Equatable {
     var isEnabled: Bool
 
-    init(isEnabled: Bool = true) {
+    init(isEnabled: Bool = false) {
         self.isEnabled = isEnabled
     }
 }

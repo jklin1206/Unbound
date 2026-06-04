@@ -44,6 +44,7 @@ enum TierCriterionEvaluator {
         case .variant(let name):
             return history.contains { entry in
                 MovementProofMatcher.entry(entry, satisfies: name)
+                    && entry.sets.contains { !$0.isWarmup && $0.isProofEligible }
             }
 
         case .compound(let subs):
@@ -64,8 +65,7 @@ enum TierCriterionEvaluator {
 
     private static func bestReps(for exerciseName: String, in history: [ExerciseLogEntry]) -> Int {
         matchingEntries(exerciseName: exerciseName, in: history)
-            .flatMap { $0.sets }
-            .filter { !$0.isWarmup }
+            .flatMap { proofSets(from: $0) }
             .map { $0.reps }
             .max() ?? 0
     }
@@ -74,8 +74,7 @@ enum TierCriterionEvaluator {
     /// `durationSeconds`, falling back to `reps` for legacy reps-column holds.
     private static func bestSeconds(in history: [ExerciseLogEntry]) -> Int {
         history
-            .flatMap { $0.sets }
-            .filter { !$0.isWarmup }
+            .flatMap { proofSets(from: $0) }
             .map { $0.durationSeconds ?? $0.reps }
             .max() ?? 0
     }
@@ -84,16 +83,14 @@ enum TierCriterionEvaluator {
     /// `bestSeconds(in:)`. Reads `durationSeconds`, legacy reps-column fallback.
     private static func bestSeconds(for exerciseName: String, in history: [ExerciseLogEntry]) -> Int {
         matchingEntries(exerciseName: exerciseName, in: history)
-            .flatMap { $0.sets }
-            .filter { !$0.isWarmup }
+            .flatMap { proofSets(from: $0) }
             .map { $0.durationSeconds ?? $0.reps }
             .max() ?? 0
     }
 
     private static func bestWeight(for exerciseName: String, in history: [ExerciseLogEntry]) -> Double {
         matchingEntries(exerciseName: exerciseName, in: history)
-            .flatMap { $0.sets }
-            .filter { !$0.isWarmup }
+            .flatMap { proofSets(from: $0) }
             .compactMap { $0.weightKg }
             .max() ?? 0
     }
@@ -104,9 +101,12 @@ enum TierCriterionEvaluator {
     /// `.bodyweightRatio` criteria can be satisfied by an unrelated lift.
     private static func bestWeight(in history: [ExerciseLogEntry]) -> Double {
         history
-            .flatMap { $0.sets }
-            .filter { !$0.isWarmup }
+            .flatMap { proofSets(from: $0) }
             .compactMap { $0.weightKg }
             .max() ?? 0
+    }
+
+    private static func proofSets(from entry: ExerciseLogEntry) -> [SetLog] {
+        entry.sets.filter { !$0.isWarmup && $0.isProofEligible }
     }
 }

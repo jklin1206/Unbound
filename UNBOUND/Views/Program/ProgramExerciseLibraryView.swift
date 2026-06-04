@@ -320,13 +320,7 @@ struct ProgramExerciseLibraryView: View {
             onDismiss()
         }, label: {
             HStack(spacing: 12) {
-                Image(systemName: mode == .add ? "plus" : "arrow.left.arrow.right")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(compatibility.isSelectable ? compatibilityColor(compatibility) : Color.unbound.textTertiary)
-                    .frame(width: 32, height: 32)
-                    .background(
-                        Circle().fill(compatibilityColor(compatibility).opacity(0.12))
-                    )
+                libraryRowVisual(alt, compatibility: compatibility)
                 VStack(alignment: .leading, spacing: 3) {
                     Text(alt.displayName)
                         .font(Font.unbound.bodyLStrong)
@@ -374,6 +368,38 @@ struct ProgramExerciseLibraryView: View {
         .buttonStyle(.plain)
         .disabled(!compatibility.isSelectable)
         .opacity(compatibility.isSelectable ? 1 : 0.72)
+    }
+
+    @ViewBuilder
+    private func libraryRowVisual(
+        _ alt: CatalogExercise,
+        compatibility: ExerciseLibraryCompatibilityState
+    ) -> some View {
+        let tint = compatibility.isSelectable ? compatibilityColor(compatibility) : Color.unbound.textTertiary
+        ZStack(alignment: .bottomTrailing) {
+            if let definition = MovementCatalog.canonicalExercise(named: alt.name) {
+                ExerciseVisualView(definition: definition, size: .thumbnail)
+                    .frame(width: 62, height: 62)
+            } else {
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(Color.unbound.surfaceElevated)
+                    .frame(width: 62, height: 62)
+                    .overlay(
+                        Image(systemName: "dumbbell.fill")
+                            .font(.system(size: 18, weight: .bold))
+                            .foregroundStyle(tint)
+                    )
+            }
+
+            Image(systemName: mode == .add ? "plus" : "arrow.left.arrow.right")
+                .font(.system(size: 10, weight: .bold))
+                .foregroundStyle(Color.unbound.bg)
+                .frame(width: 22, height: 22)
+                .background(Circle().fill(tint))
+                .overlay(Circle().strokeBorder(Color.unbound.bg.opacity(0.78), lineWidth: 1))
+                .offset(x: 4, y: 4)
+        }
+        .accessibilityHidden(true)
     }
 
     private func contextBadge(_ title: String) -> some View {

@@ -30,6 +30,13 @@ enum SkillStandards {
         (["pull-up", "pullup"],            "pp.pullup"),
         (["push-up", "pushup"],            "cal.pushup"),
         (["dip"],                          "cal.5-dips"),
+        (["bulgarian split squat"],         "ld.bulgarian-split-squat"),
+        (["split squat"],                   "ld.split-squat"),
+        (["step-up", "step up"],           "ld.step-up"),
+        (["bodyweight leg extension", "reverse nordic", "kneeling leg extension"], "ld.leg-extensions"),
+        (["pistol squat", "pistol"],        "ld.pistol-squat"),
+        (["shrimp squat"],                  "ld.shrimp-squat"),
+        (["nordic curl"],                   "ld.nordic-curl"),
         // Holds
         (["l-sit", "lsit"],                "cal.l-sit-10"),
         (["plank"],                        "cal.plank-30"),
@@ -72,7 +79,18 @@ enum SkillStandards {
     }
 
     /// True when `peakReps`/`peakSeconds` clears the criterion's threshold.
-    private static func clears(_ criterion: TierCriterion, peakReps: Int, peakSeconds: Int) -> Bool {
+    private static func clears(
+        _ criterion: TierCriterion,
+        exerciseKey: String? = nil,
+        peakReps: Int,
+        peakSeconds: Int
+    ) -> Bool {
+        if let exerciseKey,
+           let requiredName = exerciseName(in: criterion),
+           !MovementProofMatcher.namesMatch(logged: exerciseKey, required: requiredName) {
+            return false
+        }
+
         switch criterion {
         case .reps(let n, _):            return peakReps >= n
         case .exerciseSeconds(let n, _): return peakSeconds >= n
@@ -83,17 +101,29 @@ enum SkillStandards {
     // MARK: Criteria core (shared by the exercise-key and node-id entry points)
 
     /// Walk a node's tier criteria high→low; first cleared tier wins (floor = initiate).
-    private static func rank(using criteria: [SkillTier: TierCriterion], peakReps: Int, peakSeconds: Int) -> RankTier {
+    private static func rank(
+        using criteria: [SkillTier: TierCriterion],
+        exerciseKey: String? = nil,
+        peakReps: Int,
+        peakSeconds: Int
+    ) -> RankTier {
         for tier in SkillTier.allCases.reversed() {
             guard let criterion = criteria[tier] else { continue }
-            if clears(criterion, peakReps: peakReps, peakSeconds: peakSeconds) { return tier }
+            if clears(criterion, exerciseKey: exerciseKey, peakReps: peakReps, peakSeconds: peakSeconds) { return tier }
         }
         return .initiate
     }
 
-    private static func progress(using criteria: [SkillTier: TierCriterion], peakReps: Int, peakSeconds: Int) -> (current: RankTier, next: RankTier?, fraction: Double) {
-        let current = rank(using: criteria, peakReps: peakReps, peakSeconds: peakSeconds)
-        guard let next = current.next, current.rawValue < 8 else { return (current, nil, 1.0) }
+    private static func progress(
+        using criteria: [SkillTier: TierCriterion],
+        exerciseKey: String? = nil,
+        peakReps: Int,
+        peakSeconds: Int
+    ) -> (current: RankTier, next: RankTier?, fraction: Double) {
+        let current = rank(using: criteria, exerciseKey: exerciseKey, peakReps: peakReps, peakSeconds: peakSeconds)
+        guard let next = nextEligibleTier(after: current, criteria: criteria, exerciseKey: exerciseKey) else {
+            return (current, nil, 1.0)
+        }
         // The metric that drives this node — reps for rep nodes, seconds for holds.
         let value = Double(criteria[current].flatMap(isSecondsCriterion) == true ? peakSeconds : peakReps)
         let lo = Double(criteria[current].flatMap(threshold) ?? 0)
@@ -103,9 +133,14 @@ enum SkillStandards {
         return (current, next, max(0.0, min(1.0, (value - lo) / (hi - lo))))
     }
 
-    private static func thresholdText(using criteria: [SkillTier: TierCriterion], peakReps: Int, peakSeconds: Int) -> String? {
-        let current = rank(using: criteria, peakReps: peakReps, peakSeconds: peakSeconds)
-        guard let next = current.next,
+    private static func thresholdText(
+        using criteria: [SkillTier: TierCriterion],
+        exerciseKey: String? = nil,
+        peakReps: Int,
+        peakSeconds: Int
+    ) -> String? {
+        let current = rank(using: criteria, exerciseKey: exerciseKey, peakReps: peakReps, peakSeconds: peakSeconds)
+        guard let next = nextEligibleTier(after: current, criteria: criteria, exerciseKey: exerciseKey),
               let nextCriterion = criteria[next],
               let nextThreshold = threshold(nextCriterion) else { return nil }
         let seconds = isSecondsCriterion(nextCriterion)
@@ -113,6 +148,35 @@ enum SkillStandards {
         let remaining = max(0, nextThreshold - have)
         if seconds { return "\(remaining)s to \(next.displayName)" }
         return "\(remaining) \(remaining == 1 ? "rep" : "reps") to \(next.displayName)"
+    }
+
+    private static func exerciseName(in criterion: TierCriterion) -> String? {
+        switch criterion {
+        case .reps(_, let exerciseName),
+             .exerciseSeconds(_, let exerciseName),
+             .exerciseWeightKg(_, let exerciseName),
+             .exerciseBodyweightRatio(_, let exerciseName):
+            return exerciseName
+        case .variant(let name):
+            return name
+        case .compound, .seconds, .weightKg, .bodyweightRatio:
+            return nil
+        }
+    }
+
+    private static func nextEligibleTier(
+        after current: RankTier,
+        criteria: [SkillTier: TierCriterion],
+        exerciseKey: String?
+    ) -> RankTier? {
+        guard current.rawValue < SkillTier.ascendant.rawValue else { return nil }
+        return SkillTier.allCases
+            .filter { $0.rawValue > current.rawValue }
+            .first { tier in
+                guard let criterion = criteria[tier] else { return false }
+                guard let exerciseKey, let requiredName = exerciseName(in: criterion) else { return true }
+                return MovementProofMatcher.namesMatch(logged: exerciseKey, required: requiredName)
+            }
     }
 
     private static func isSecondsCriterion(_ criterion: TierCriterion) -> Bool {
@@ -127,19 +191,19 @@ enum SkillStandards {
     static func bodyweightRank(exerciseKey: String, peakReps: Int, peakSeconds: Int) -> RankTier? {
         guard let criteria = criteria(forKey: exerciseKey) else { return nil }
         guard peakReps > 0 || peakSeconds > 0 else { return nil }
-        return rank(using: criteria, peakReps: peakReps, peakSeconds: peakSeconds)
+        return rank(using: criteria, exerciseKey: exerciseKey, peakReps: peakReps, peakSeconds: peakSeconds)
     }
 
     /// Progress toward the next rank for a bodyweight rep/hold movement.
     static func bodyweightProgress(exerciseKey: String, peakReps: Int, peakSeconds: Int) -> (current: RankTier, next: RankTier?, fraction: Double)? {
         guard let criteria = criteria(forKey: exerciseKey) else { return nil }
-        return progress(using: criteria, peakReps: peakReps, peakSeconds: peakSeconds)
+        return progress(using: criteria, exerciseKey: exerciseKey, peakReps: peakReps, peakSeconds: peakSeconds)
     }
 
     /// Micro-target text for the reward card, e.g. "5 reps to Veteran".
     static func nextThresholdText(exerciseKey: String, peakReps: Int, peakSeconds: Int) -> String? {
         guard let criteria = criteria(forKey: exerciseKey) else { return nil }
-        return thresholdText(using: criteria, peakReps: peakReps, peakSeconds: peakSeconds)
+        return thresholdText(using: criteria, exerciseKey: exerciseKey, peakReps: peakReps, peakSeconds: peakSeconds)
     }
 
     // MARK: Node-id entry points (reward cards — works for ANY skill node)

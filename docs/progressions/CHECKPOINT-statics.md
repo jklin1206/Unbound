@@ -189,11 +189,9 @@ lever` ALREADY resolves (catalog alias, `MovementCatalog.swift:848,871`).
 ### BACK LEVER
 - `cl.straddle-back-lever` (T5, node), `cl.full-back-lever` (T5, node): same `.variant`+skin-the-cat-rep
   pattern, GOOD structure, convert to `.seconds`.
-- **`cl.tuck-back-lever` = ORPHAN TABLE, NO NODE** (`ClSkillTiers.swift:243-253`, no `id:"cl.tuck-back-lever"`
-  in SkillTreeContent — verified node_count=0). Its tiers never stamp; and `cl.straddle-back-lever` /
-  `cl.full-back-lever` reference `.variant("tuck back lever")` which therefore **self-registers nowhere** →
-  see B1. Either add the node (recommended — it's the canonical BL on-ramp) or delete the orphan table AND
-  the dangling `tuck back lever` references.
+- **`cl.tuck-back-lever` = RESOLVED LIVE NODE + TABLE** (added 2026-06-02). It is now the canonical
+  BL on-ramp and `cl.straddle-back-lever` gates through it directly. Adv-tuck / one-leg back lever
+  remain proposed variant rungs, not live nodes.
 
 ### L-SIT FAMILY
 - **`cal.l-sit-10`** (T4, node — **`cal` prefix, edit `CalSkillTiers.swift:308`**, easy to miss): Forged =
@@ -210,12 +208,10 @@ lever` ALREADY resolves (catalog alias, `MovementCatalog.swift:848,871`).
 | Forged | german hang + reps 1 skin the cat |
 | Veteran..Ascendant | german hang + reps 3/5/8/10/12 skin the cat |
 
-**Diagnosis + MONOTONICITY/DOUBLE-GATE FLAG (confirmed):** german-hang is a pure-seconds skill (no easier
-variant) yet ladders on **skin-the-cat reps**, and there is a **prereq inversion**: `cl.german-hang` (T3)
-prereq = `cl.tuck-front-lever` (**T4**), AND its Forged criterion needs `skin the cat` reps while
-`cl.skin-the-cat` (**T4**) has `cl.german-hang` as ITS prereq → **circular T3↔T4 gate** (the `german-hang
-t3<t4` flag). PROPOSED: pure `.seconds` ladder 5/8/**10(on-ramp)**/15/20/30/45/60/90s; drop the skin-the-cat
-double-gate; fix the prereq to a ≤T3 skill.
+**Resolution:** german-hang is now reseated under `pp.dead-hang`, so the back-lever route no longer
+inherits the front-lever path. The pure-seconds ladder remains in place; the old T3→T4 prereq inversion
+is resolved. Follow-up: decide whether to expand the seconds ladder beyond the current 10/20/30/45/60s
+table toward the proposed 5/8/**10(on-ramp)**/15/20/30/45/60/90s spread.
 
 ### `cl.hanging-leg-raise` (T3, node) — MONOTONICITY FLAG (confirmed, rep skill not a hold)
 Own ladder is monotone (2/4/6/**10**/15/20/25/30/40 reps). The `t3<t5 prereq` flag is a **downstream-consumption
@@ -230,7 +226,7 @@ Post-F2 → true grip-hold `.seconds` ladders (levers-core.md §co): dh-45 10/20
 dh-60 30/45/50/**60**/75/90/105/120/150s.
 
 ### `cl.victorian` = ORPHAN TABLE, NO NODE (`ClSkillTiers.swift:286`, node_count=0). Out of static scope but
-flagged: another cl orphan alongside tuck-back-lever.
+flagged: remaining cl orphan after tuck-back-lever was promoted.
 
 ---
 
@@ -241,9 +237,8 @@ table, so self-registers via no live node, and is not a catalog alias):
 - `frog pose` — only in orphan `hs.frog-pose` table.
 - `one-arm planche` — only in orphan `pl.one-arm-planche` table.
 - `reverse-hand plank` — only in orphan `hs.wrist-conditioning` table.
-- `tuck back lever` — Forged of orphan `cl.tuck-back-lever`; also referenced by LIVE `cl.straddle-back-lever`
-  / `cl.full-back-lever` (`.variant("tuck back lever")`) → **this one DOES bite a live node**: straddle/full
-  BL Initiate/Novice tiers can never match their tuck-BL gate. **Highest-impact B1.**
+- `tuck back lever` — resolved 2026-06-02 by promoting `cl.tuck-back-lever` to a live node. It no
+  longer bites straddle/full back-lever gating on this branch.
 
 *(`frog pose`/`one-arm planche`/`reverse-hand plank` are inert today because their tables are orphans/never
 stamped — they only matter if those tables get wired to nodes.)*
@@ -253,7 +248,7 @@ before authoring, or `.variant` never matches):**
 `frog stand`, `advanced tuck planche`, `band-assisted full planche`, `chest-to-wall handstand`,
 `close-hand straddle handstand`, `weight shift`, `2-finger tent`, `1-finger tent`, `fingertip-lift`,
 `off-hand float`, `one-leg front lever`, `advanced tuck back lever`, `one-leg back lever`,
-`foot-supported l-sit`, `tuck l-sit`, `one-leg l-sit`, `tuck back lever` (if node added).
+`foot-supported l-sit`, `tuck l-sit`, `one-leg l-sit`.
 **Already resolve (no action):** `planche lean`, `advanced tuck front lever`, `crow pose`, `headstand`,
 `wall handstand`, `freestanding handstand`, `frog pose`→only via NEW (current is orphan).
 
@@ -268,8 +263,8 @@ at 45/60s have **no backing node** (freestanding-hs-10/60 are orphan tables, not
 rungs inside the existing node.
 
 **Orphan tables (entry exists, NO live node — tiers never stamped):**
-- `cl.tuck-back-lever` (`ClSkillTiers.swift:243`) — **canonical BL on-ramp; recommend ADD node** (also fixes
-  the `tuck back lever` B1 that bites straddle/full BL).
+- `cl.tuck-back-lever` (`ClSkillTiers.swift:243`) — **resolved 2026-06-02** by adding the canonical
+  BL on-ramp node.
 - `cl.victorian` (`ClSkillTiers.swift:286`) — mythic; out of static scope, flagged.
 - `pl.pseudo-planche-pushup`, `pl.tuck-planche-pushup`, `pl.full-planche-pushup`, `pl.ninety-degree-pushup` —
   duplicates; real nodes are `cal.*`. **Recommend DELETE** the pl duplicates (keep cal).
@@ -278,8 +273,8 @@ rungs inside the existing node.
   `hs.handstand-walk-10m`, `hs.wrist-conditioning` — no live node; dead tables (delete or wire to nodes).
 
 **Monotonicity / double-gate flags (both CONFIRMED):**
-- `cl.german-hang` **t3<t4 + circular**: node is T3, prereq is `cl.tuck-front-lever` (T4); Forged needs
-  `skin the cat` reps but `cl.skin-the-cat` (T4) requires german-hang → fix prereq + drop skin-the-cat gate.
+- `cl.german-hang` **resolved 2026-06-02**: node is T3 and now gates from `pp.dead-hang`, breaking the
+  inherited front-lever dependency.
 - `cl.hanging-leg-raise` **t3<t5 downstream**: HLR rep-counts consumed by T4+ front-lever/hollow-body tiers
   before the HLR node ranks them; graph-consistency flag, not a hold.
 
@@ -308,13 +303,14 @@ and adding an OAH node bumps Oah 2→ and the live-node count the SkillGraph ass
 | hs.tuck/straddle/press-to-handstand | GOOD (rep skills) — leave |
 | oah.one-arm-handstand-5s / full | **RESEAT + 4 NEW NODES** — strength-proxy, no balance chain |
 | cl.tuck/straddle/full-front-lever | GOOD structure → convert to `.seconds` |
-| cl.straddle/full-back-lever | GOOD structure → convert to `.seconds` (+ tuck-BL B1) |
+| cl.straddle/full-back-lever | GOOD structure → convert to `.seconds` |
 | cal.l-sit-10, cl.semi-straddle/straddle/vertical-l-sit, cl.v-sit | GOOD structure → `.seconds` |
-| cl.german-hang | **RESEAT** — circular gate + skin-the-cat double-gate |
+| cl.german-hang | **RESEATED** — now gates from `pp.dead-hang`; no front-lever dependency |
 | co.dead-hang-45 / -60 | **RESEAT** — pull-up reps → `.seconds` |
 
 ### (b) Full B1 token list
-- **Bites a live node today:** `tuck back lever` (breaks straddle/full back-lever Initiate/Novice).
+- **Resolved on this branch:** `tuck back lever` no longer breaks straddle/full back-lever gating; `cl.german-hang`
+  no longer gates from `cl.tuck-front-lever`.
 - **Inert (orphan-only) today:** `frog pose`, `one-arm planche`, `reverse-hand plank`.
 - **Must add before the proposed reseat uses them:** `frog stand`, `advanced tuck planche`,
   `band-assisted full planche`, `chest-to-wall handstand`, `close-hand straddle handstand`, `weight shift`,
@@ -325,11 +321,11 @@ and adding an OAH node bumps Oah 2→ and the live-node count the SkillGraph ass
 ### (c) B3 issues
 - **OAH gap:** add 4 nodes (close-hand-straddle+shift, 2-finger tent, 1-finger tent, fingertip-float) + their
   catalog tokens.
-- **Orphan tables:** `cl.tuck-back-lever` (ADD node — also B1 fix), `cl.victorian`, `pl.one-arm-planche`,
+- **Orphan tables:** `cl.victorian`, `pl.one-arm-planche`,
   duplicate `pl.{pseudo,tuck,full}-planche-pushup` + `pl.ninety-degree-pushup` (DELETE — `cal.*` is live),
   `hs.{freestanding-hs-10, freestanding-hs-60, wall-handstand-60, frog-pose, handstand-walk-10m,
   wrist-conditioning}` (no node).
-- **Monotonicity (both confirmed):** `cl.german-hang` T3-prereq-is-T4 + circular skin-the-cat; 
+- **Monotonicity:** `cl.german-hang` T3-prereq-is-T4 was resolved by reseating under `pp.dead-hang`; 
   `cl.hanging-leg-raise` downstream rep-consumption.
 - **Asserts:** all correct (no stale assert).
 - **Double-gating:** statics pair hold `.variant` with foreign rep proxies; replace with
@@ -341,8 +337,8 @@ and adding an OAH node bumps Oah 2→ and the live-node count the SkillGraph ass
 2. **Which holds convert to `.seconds`** (all are now technically possible post-F2): front lever ×3, back
    lever ×2, L-sit family ×5 (incl. `cal.l-sit-10`), german hang, dead-hang ×2, planche ×4, handstand keystone
    + wall holds. Pick the priority set vs leaving `.variant` for low-traffic poses.
-3. **Orphan tables:** ADD `cl.tuck-back-lever` node (recommended) vs delete; DELETE the `pl.*-pushup`
+3. **Orphan tables:** `cl.tuck-back-lever` is resolved; DELETE the `pl.*-pushup`
    duplicates vs keep; decide on `pl.one-arm-planche` / hs orphan tables.
-4. **german-hang prereq fix** (break the T3↔T4 circular gate) and whether to drop foreign-rep double-gates.
+4. **german-hang ladder follow-up**: decide whether to widen the seconds ladder beyond the current compact table.
 5. **Advanced-tuck / one-leg / tuck-L-sit:** author as `.variant` tokens inside tables (cheap, no node) vs
    real nodes (tree-shape change). Docs assume tokens; both work once the catalog tokens exist.

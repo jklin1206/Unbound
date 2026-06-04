@@ -40,6 +40,9 @@ struct Step21_Commitment: View {
     }
 }
 
+#if DEBUG
 #Preview {
     Step21_Commitment(flow: OnboardingFlowViewModel(), progress: 0.7, onBack: {}, onContinue: {})
 }
+
+#endif

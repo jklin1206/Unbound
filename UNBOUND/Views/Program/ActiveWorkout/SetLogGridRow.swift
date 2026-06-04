@@ -1,9 +1,9 @@
 import SwiftUI
 
 /// One set row. SUGGESTED while `!logged` (program values shown dim,
-/// trailing hollow ring = "log as planned"); LOGGED once `logged`
-/// (actual values solid, filled ✓ status glyph). Editing a cell pre-seeds
-/// the editor to actual-or-suggested.
+/// trailing hollow ring = manual confirmation); LOGGED once `logged`
+/// (actual values solid, quiet ✓ status glyph). Editing a cell pre-seeds
+/// the editor to actual-or-suggested without auto-confirming the set.
 struct SetLogGridRow: View {
     let setNumber: Int
     let weightKg: Double?
@@ -72,23 +72,15 @@ struct SetLogGridRow: View {
                 confirmControl.frame(width: 40)
             }
 
-            if logged || !qualityFlags.isEmpty {
-                HStack(spacing: 8) {
-                    Spacer().frame(width: 26)
-                    qualityButton(.formBreak, icon: "exclamationmark.triangle.fill")
-                    qualityButton(.pain, icon: "heart.slash.fill")
-                    Spacer()
-                }
-            }
         }
         .padding(.vertical, 8)
         .padding(.horizontal, isCurrent ? 8 : 0)
         .background {
             if isCurrent {
                 RoundedRectangle(cornerRadius: 14)
-                    .fill(Color.unbound.coachCyan.opacity(0.09))
+                    .fill(Color.unbound.surfaceElevated.opacity(0.42))
                     .overlay(RoundedRectangle(cornerRadius: 14)
-                        .strokeBorder(Color.unbound.coachCyan.opacity(0.26), lineWidth: 1))
+                        .strokeBorder(Color.unbound.coachCyan.opacity(0.18), lineWidth: 1))
             }
         }
         .animation(reduceMotion ? nil
@@ -111,26 +103,6 @@ struct SetLogGridRow: View {
         }
     }
 
-    private func qualityButton(_ flag: PerformanceQualityFlag, icon: String) -> some View {
-        let isOn = qualityFlags.contains(flag)
-        return Button {
-            onToggleQualityFlag(flag)
-        } label: {
-            Image(systemName: icon)
-                .font(.system(size: 12, weight: .bold))
-                .foregroundStyle(isOn ? Color.unbound.bg : Color.unbound.textTertiary)
-                .frame(width: 30, height: 26)
-                .background(
-                    Capsule().fill(isOn ? Color.unbound.alert : Color.unbound.surfaceElevated)
-                )
-                .overlay(
-                    Capsule().strokeBorder(isOn ? Color.unbound.alert : Color.unbound.borderSubtle, lineWidth: 1)
-                )
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(flag == .pain ? "Toggle pain flag" : "Toggle form break flag")
-    }
-
     private var metricSuggested: String? {
         switch metricKind {
         case .reps:
@@ -149,10 +121,13 @@ struct SetLogGridRow: View {
     @ViewBuilder private var confirmControl: some View {
         if logged {
             ZStack {
-                Circle().fill(Color.unbound.success).frame(width: 30, height: 30)
+                Circle()
+                    .fill(Color.unbound.success.opacity(0.14))
+                    .frame(width: 30, height: 30)
+                    .overlay(Circle().strokeBorder(Color.unbound.success.opacity(0.72), lineWidth: 1.5))
                 Image(systemName: "checkmark")
                     .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(Color.unbound.bg)
+                    .foregroundStyle(Color.unbound.success)
             }
             .accessibilityLabel("Set \(setNumber) logged")
         } else {

@@ -6,13 +6,36 @@ enum SyncCollectionMap {
     private static let tables: [String: String] = [
         "workoutLogs": "workout_logs",
         "programs": "programs",
-        "progressionState": "progression_state",
         "exercisePreferences": "exercise_preferences",
-        "programBlocks": "program_blocks",
+        "program_blocks": "program_blocks",
         "scanCheckpoints": "scan_checkpoints",
+        "bodyWeightLogs": "body_weight_logs",
         "users": "users",
     ]
+
+    /// Durable local collections intentionally not mirrored by the generic
+    /// sync RPC because their current local models do not match live table
+    /// schemas yet. Keeping them explicit prevents silent remote drops from
+    /// masquerading as synced state.
+    static let localOnlyCollections: Set<String> = [
+        "progression_states",
+        "progression_families",
+        "movement_progress",
+        "movement_ap_gains",
+        "movement_progress_prior_states",
+        "movement_progress_source_receipts",
+        "overall_level_progress",
+        "body_map_profiles",
+        "body_map_source_receipts",
+        "training_completion_records",
+        "training_completion_replay_receipts",
+        "training_completion_progression_receipts",
+    ]
+
     static func table(for collection: String) -> String? { tables[collection] }
+    static func isLocalOnly(_ collection: String) -> Bool {
+        localOnlyCollections.contains(collection)
+    }
     static func userColumn(for collection: String) -> String {
         collection == "users" ? "id" : "user_id"
     }
@@ -53,7 +76,22 @@ final class SupabaseRemoteSync: RemoteSync, @unchecked Sendable {
            let programData = try? ProgramSupabasePayload.encodedJSON(fromProgramJSON: data) {
             return programData
         }
-        return snakeCasedJSON(data)
+        let normalized = snakeCasedJSON(data)
+        if collection == "workoutLogs" {
+            return workoutLogPayloadForSupabase(normalized)
+        }
+        return normalized
+    }
+
+    private static func workoutLogPayloadForSupabase(_ data: Data) -> Data {
+        guard let object = try? JSONSerialization.jsonObject(with: data),
+              var payload = object as? [String: Any] else {
+            return data
+        }
+        if let programId = payload["program_id"] as? String, UUID(uuidString: programId) == nil {
+            payload["program_id"] = NSNull()
+        }
+        return (try? JSONSerialization.data(withJSONObject: payload)) ?? data
     }
 
     /// camelCase -> snake_case for a single identifier. Shared by the payload
@@ -108,6 +146,25 @@ final class SupabaseRemoteSync: RemoteSync, @unchecked Sendable {
         return out
     }
 
+    static func localPayload(collection: String, data: Data) -> Data {
+        let local = camelCasedJSON(data)
+        if collection == "workoutLogs" {
+            return workoutLogPayloadForLocalRestore(local)
+        }
+        return local
+    }
+
+    private static func workoutLogPayloadForLocalRestore(_ data: Data) -> Data {
+        guard let object = try? JSONSerialization.jsonObject(with: data),
+              var payload = object as? [String: Any] else {
+            return data
+        }
+        if payload["programId"] is NSNull {
+            payload["programId"] = ""
+        }
+        return (try? JSONSerialization.data(withJSONObject: payload)) ?? data
+    }
+
     func delete(collection: String, docId: String) async throws {
         guard let table = SyncCollectionMap.table(for: collection) else { return }
         try await supabase.delete(from: table, keyedBy: "id", equals: docId)
@@ -120,7 +177,9 @@ final class SupabaseRemoteSync: RemoteSync, @unchecked Sendable {
             whereColumn: SyncCollectionMap.userColumn(for: collection),
             equals: userId, orderBy: nil, ascending: false, limit: nil
         )
-        return try rows.map { try Self.camelCasedJSON(JSONEncoder().encode($0)) }
+        return try rows.map {
+            try Self.localPayload(collection: collection, data: JSONEncoder().encode($0))
+        }
     }
 
     func merge(collection: String, docId: String,

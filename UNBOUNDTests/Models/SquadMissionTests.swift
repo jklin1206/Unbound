@@ -36,4 +36,25 @@ final class SquadMissionTests: XCTestCase {
             XCTAssertFalse(kind.subtitle.isEmpty)
         }
     }
+
+    func testCatalogMatchesServerSimpleHashFixtures() throws {
+        let cases: [(id: String, week: String, members: Int, kind: SquadMission.Kind, target: Int)] = [
+            ("00000000-0000-0000-0000-000000000001", "2026-W23", 4, .focusSessions, 24),
+            ("11111111-1111-1111-1111-111111111111", "2026-W23", 3, .perfectAttendance, 3),
+            ("9f4d8610-13fa-42e0-81b3-32a79a9e4c0f", "2026-W01", 5, .capstonesTogether, 5),
+            ("9f4d8610-13fa-42e0-81b3-32a79a9e4c0f", "2026-W02", 5, .alignedSessions, 20),
+            ("00000000-0000-0000-0000-000000000007", "2026-W23", 9, .linkedSessions, 3),
+        ]
+
+        for testCase in cases {
+            let id = try XCTUnwrap(UUID(uuidString: testCase.id))
+            let generated = SquadMissionCatalog.generate(
+                squadId: id,
+                weekIso: testCase.week,
+                memberCount: testCase.members
+            )
+            XCTAssertEqual(generated.kind, testCase.kind, "\(testCase.id) \(testCase.week)")
+            XCTAssertEqual(generated.target, testCase.target, "\(testCase.id) \(testCase.week)")
+        }
+    }
 }

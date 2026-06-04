@@ -5,8 +5,16 @@
 // post squadStreakExtended activity on increment.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+import { requireEmptyJsonObjectBody, requirePost, requireServiceFunctionAuth } from "../_shared/service_auth.ts"
 
-serve(async (_req) => {
+serve(async (req) => {
+  const methodError = requirePost(req)
+  if (methodError) return methodError
+  const authError = requireServiceFunctionAuth(req)
+  if (authError) return authError
+  const bodyError = await requireEmptyJsonObjectBody(req)
+  if (bodyError) return bodyError
+
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!

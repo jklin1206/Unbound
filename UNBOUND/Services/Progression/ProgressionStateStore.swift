@@ -3,15 +3,18 @@ import Foundation
 @MainActor
 final class ProgressionStateStore {
     static let shared = ProgressionStateStore()
-    private let database: any DatabaseServiceProtocol = SyncedDatabase.shared
+    private let database: any DatabaseServiceProtocol
     private let logger = LoggingService.shared
+    private let collection = "progression_states"
 
-    private init() {}
+    init(database: any DatabaseServiceProtocol = SyncedDatabase.shared) {
+        self.database = database
+    }
 
     func fetchAll(userId: String) async -> [ProgressionState] {
         do {
             let states: [ProgressionState] = try await database.query(
-                collection: "progression_states",
+                collection: collection,
                 field: "userId",
                 isEqualTo: userId,
                 orderBy: "updatedAt",
@@ -27,15 +30,15 @@ final class ProgressionStateStore {
 
     func fetch(userId: String, exerciseKey: String) async -> ProgressionState? {
         let id = "\(userId):\(exerciseKey.lowercased())"
-        return try? await database.read(collection: "progression_states", documentId: id)
+        return try? await database.read(collection: collection, documentId: id)
     }
 
     func save(_ state: ProgressionState) async {
-        try? await database.create(state, collection: "progression_states", documentId: state.id)
+        try? await database.create(state, collection: collection, documentId: state.id)
     }
 
     func delete(_ state: ProgressionState) async {
-        try? await database.delete(collection: "progression_states", documentId: state.id)
+        try? await database.delete(collection: collection, documentId: state.id)
     }
 
     // MARK: Family state — chunk 2B

@@ -24,7 +24,7 @@ The families pass = reseat each skill's low/mid `tierCriteria` onto real assiste
 - **Pull:** `false grip ring row`, `banded ring muscle-up`, `negative muscle-up`, `archer chin-up`, `one-arm chin-up negative`, `typewriter pullup`
 - **Push:** `pike HeSPU`, `tripod-to-tuck negative`, `bent arm press (kick-assisted)`, `straddle planche pushup` (opt); use existing `wall handstand` instead of `wall handstand hold`
 - **Legs (10):** box pistol, negative pistol, box shrimp squat, counterbalance shrimp, elevated shrimp squat, weighted shrimp squat, band/partial/negative/weighted nordic curl — **plus** 3 that look "EXISTS" but are orphan-only (`assisted pistol`, `elevated pistol`, `dragon pistol` — catalog only has the different string `assisted pistol squat`)
-- **Statics:** `tuck back lever` (bites a LIVE node — gates straddle/full back-lever Initiate/Novice → currently un-rankable). Inert orphan-only: `frog pose`, `one-arm planche`, `reverse-hand plank`.
+- **Statics:** `tuck back lever` was the live-node blocker; resolved 2026-06-02 by promoting `cl.tuck-back-lever` to a real node. Inert orphan-only: `frog pose`, `one-arm planche`, `reverse-hand plank`.
 
 ### 2. Forged mis-anchors to fix (Forged should = first clean rep/hold, not N reps)
 Pull: 7 nodes (ring-MU, archer, clapping, heighted-chin, strict-MU, OAC, OAP). Push: `cal.handstand-pushup` (Forged=3). Legs: pistol/shrimp/nordic (Forged=5). Statics: planche low tiers are pushup-rep proxies.
@@ -32,7 +32,7 @@ Pull: 7 nodes (ring-MU, archer, clapping, heighted-chin, strict-MU, OAC, OAP). P
 ### 3. B3 — bugs & structural (some are near-pure fixes, but all touch gating → your call)
 - **Pull:** reconcile the stale `PpSkillTiers` assert (38→39).
 - **Legs:** **nordic double-gate** — `ld.advancing-nordic-curl` + `ld.nordic-curl` both gate on `nordic curl`; the *easier* node reaches 12 reps while the *harder* Forges at 5 (inversion). Needs distinct logged names or re-gating.
-- **Statics:** `cl.german-hang` **circular prereq** — it's T3 but its prereq `cl.tuck-front-lever` is T4, and its Forged needs skin-the-cat (T4, which itself needs german-hang). `cl.hanging-leg-raise` monotonicity (T4+ tiers consume rep counts before its node ranks them).
+- **Statics:** `cl.german-hang` circular prereq was resolved 2026-06-02 by reseating it under `pp.dead-hang`; remaining statics flag: `cl.hanging-leg-raise` monotonicity (T4+ tiers consume rep counts before its node ranks them).
 - **Dead code (delete-in-same-commit per [[delete-old-code-on-change]]):** `HspuSkillTiers` fully dead (10 keys, 0 nodes, dispatch wired at `SkillTreeContent.swift:45`). **But** several orphan `pl.*`/`hs.*`/`ld.*`/`cl.*` tables are candidates to *promote to nodes* in the reseat, not delete — so **orphan add-vs-delete is a per-family content call**, not a blanket purge.
 
 ### 4. Design gaps needing your input

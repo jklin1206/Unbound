@@ -14,6 +14,7 @@ This is the first map to read before traversing the repo. It explains what each 
 | `scripts/` | Local maintenance and generation scripts | Scripts should be repeatable and safe to run from the repo root. |
 | `supabase/` | Supabase project config and migrations | Keep database changes traceable here. |
 | `trailer/` | Separate trailer/remotion-style web project | Treat as its own sub-project. |
+| `docs/legacy/` | Archived code/docs kept only for historical context | Nothing here is active app source. Move old platform code here instead of leaving it under `UNBOUND/`. |
 | `generated-reward-assets/` | Checked-in reward asset source/output set | Do not mix one-off previews here unless they are meant to ship. |
 | `generated-skill-media/` | Checked-in skill media source/output set | Keep naming aligned with `SkillIcons` and skill IDs. |
 | `onboarding-preview/` | Preview/support media for onboarding | Promote only intentional shipped assets into `UNBOUND/Assets.xcassets`. |
@@ -32,14 +33,13 @@ This is the first map to read before traversing the repo. It explains what each 
 | `UNBOUND/Utilities/` | Small shared helpers, extensions, localization helpers. Avoid turning this into a second services layer. |
 | `UNBOUND/Assets.xcassets/` | Shipped image/color asset catalog. Every asset here should have a resolver or direct `UIImage/Image` load path. |
 | `UNBOUND/Resources/` | Localized strings, sounds, raw resource files, and resource-specific docs. |
-| `UNBOUND/CloudFunctions/` | App-adjacent cloud function code/config that ships with this project. |
 | `UNBOUND/assets/brand/` | Brand source assets outside the Xcode asset catalog. Promote only runtime-needed files into `Assets.xcassets`. |
 
 ## Active Source Of Truth
 
 | System | Primary files |
 | --- | --- |
-| App shell | `UNBOUND/App/AniBodyApp.swift` |
+| App shell | `UNBOUND/App/UnboundApp.swift` |
 | Movement library | `UNBOUND/Models/MovementCatalog.swift`, with legacy gym seeds in `UNBOUND/Models/ExerciseCatalog.swift` |
 | Skill tree | `UNBOUND/Models/SkillTree.swift`, `UNBOUND/Models/SkillTreeContent.swift`, `UNBOUND/Models/SkillTreeContent/Tiers/` |
 | Skill progress | `UNBOUND/Services/SkillProgress/SkillProgressService.swift` |
@@ -49,7 +49,7 @@ This is the first map to read before traversing the repo. It explains what each 
 | Program state | `UNBOUND/Services/Program/ProgramStore.swift`, `UNBOUND/ViewModels/ProgramViewModel.swift` |
 | Progression | `UNBOUND/Services/Progression/ProgressionEngine.swift`, `MovementProgressService.swift`, `AutoDeloadService.swift` |
 | Attributes | `UNBOUND/Services/Attributes/AttributeService.swift`, `AttributeIngest.swift` |
-| Rewards | `UNBOUND/Models/WorkoutRewardSequence.swift`, `UNBOUND/Views/Components/Unbound/WorkoutRewardSequenceView.swift` |
+| Rewards | `UNBOUND/Models/WorkoutRewardSequence.swift`, `UNBOUND/Views/Components/Unbound/WorkoutRewardSequenceView.swift`, `UNBOUND/Views/Components/Unbound/WorkoutRewardComponents.swift` |
 | Routines | `UNBOUND/Models/Routine.swift`, `RoutineStep.swift`, `UNBOUND/Services/Routine/` |
 | Localization | `UNBOUND/Resources/Localizable.xcstrings`, `UNBOUND/Utilities/Localization/` |
 
@@ -72,7 +72,7 @@ Plain grep is not enough for `exercise_visual_*` assets. The app builds names dy
 
 - `MovementCatalog` IDs such as `exercise.*`, `cardio.*`, `carry.*`, `mobility.*`, and `skill-drill.*`
 - `ExerciseVisualAsset.assetNameCandidates(forMovementId:)`
-- `SkillTraditionalVisualResolver` in `UNBOUND/Views/Home/SkillDetailView.swift`
+- `SkillTraditionalVisualResolver` in `UNBOUND/Views/Home/SkillTraditionalVisualResolver.swift`
 - Exact fallback strings in routine and skill-detail code
 
 Run this before deleting exercise visuals:
@@ -98,7 +98,7 @@ Do not add `_trash/`, `_archive/`, `*.removed`, or root-level preview media. Git
 
 ## Historical Docs
 
-`docs/superpowers/specs`, `docs/superpowers/plans`, and `docs/superpowers/handoff` contain dated implementation context. They are useful for why something exists, but they are not proof that a code path is still active. Prefer these sources in order:
+`docs/superpowers/specs`, `docs/superpowers/plans`, `docs/superpowers/handoff`, `docs/legacy/`, root `docs/PHASE*`, root `docs/WS-*`, and proposal docs contain dated implementation context unless they are linked from [ARCHITECTURE.md](ARCHITECTURE.md). They are useful for why something exists, but they are not proof that a code path is still active. Prefer these sources in order:
 
 1. Current source code.
 2. `docs/FILE_STRUCTURE.md` and `docs/ARCHITECTURE.md`.

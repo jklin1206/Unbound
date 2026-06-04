@@ -15,7 +15,7 @@ enum RepRange {
 }
 
 @MainActor
-final class ActiveWorkoutSession: ObservableObject {
+final class ActiveWorkoutSession: ObservableObject, Identifiable {
     struct ProgressSummary: Equatable, Sendable {
         let loggedWorkingSets: Int
         let totalWorkingSets: Int
@@ -135,6 +135,9 @@ final class ActiveWorkoutSession: ObservableObject {
         var blockId: String?
         var blockTitle: String?
         var skillId: String?
+        var selectedRungId: String?
+        var selectedRungSource: SkillTrainingRungSource?
+        var selectedRungReason: String?
         var routineId: String?
         var cardioType: CardioType?
         var tracksHold: Bool
@@ -153,6 +156,9 @@ final class ActiveWorkoutSession: ObservableObject {
              blockId: String? = nil,
              blockTitle: String? = nil,
              skillId: String? = nil,
+             selectedRungId: String? = nil,
+             selectedRungSource: SkillTrainingRungSource? = nil,
+             selectedRungReason: String? = nil,
              routineId: String? = nil,
              cardioType: CardioType? = nil,
              tracksHold: Bool = false,
@@ -172,6 +178,9 @@ final class ActiveWorkoutSession: ObservableObject {
             self.blockId = blockId
             self.blockTitle = blockTitle
             self.skillId = skillId
+            self.selectedRungId = selectedRungId
+            self.selectedRungSource = selectedRungSource
+            self.selectedRungReason = selectedRungReason
             self.routineId = routineId
             self.cardioType = cardioType
             self.tracksHold = tracksHold
@@ -185,7 +194,7 @@ final class ActiveWorkoutSession: ObservableObject {
             case muscleGroups, sets, skipped, notes
             case movementId, rankStandardMovementId
             case targetRPE, formCues, substitution
-            case blockKind, blockId, blockTitle, skillId, routineId, cardioType, tracksHold, metricKind, startedAt, completedAt
+            case blockKind, blockId, blockTitle, skillId, selectedRungId, selectedRungSource, selectedRungReason, routineId, cardioType, tracksHold, metricKind, startedAt, completedAt
         }
 
         init(from decoder: Decoder) throws {
@@ -209,6 +218,9 @@ final class ActiveWorkoutSession: ObservableObject {
             blockId = try c.decodeIfPresent(String.self, forKey: .blockId)
             blockTitle = try c.decodeIfPresent(String.self, forKey: .blockTitle)
             skillId = try c.decodeIfPresent(String.self, forKey: .skillId)
+            selectedRungId = try c.decodeIfPresent(String.self, forKey: .selectedRungId)
+            selectedRungSource = try c.decodeIfPresent(SkillTrainingRungSource.self, forKey: .selectedRungSource)
+            selectedRungReason = try c.decodeIfPresent(String.self, forKey: .selectedRungReason)
             routineId = try c.decodeIfPresent(String.self, forKey: .routineId)
             cardioType = try c.decodeIfPresent(CardioType.self, forKey: .cardioType)
             tracksHold = try c.decodeIfPresent(Bool.self, forKey: .tracksHold) ?? false
@@ -249,7 +261,12 @@ final class ActiveWorkoutSession: ObservableObject {
         self.startedAt = Date()
         self.source = source
         self.exercises = workout.mainExercises.map { ex in
-            ActiveExercise(
+            let definition = Self.movementDefinition(for: ex.name)
+            let metricKind = Self.metricKind(
+                for: ex.reps,
+                definitionDefault: definition?.defaultMetric
+            )
+            return ActiveExercise(
                 id: ex.id,
                 name: ex.name,
                 plannedSets: ex.sets,
@@ -260,15 +277,25 @@ final class ActiveWorkoutSession: ObservableObject {
                     ActiveSet(id: UUID().uuidString, weightKg: nil, reps: nil,
                               rpe: nil, isWarmup: false, logged: false,
                               suggestedWeightKg: nil,
-                              suggestedReps: RepRange.lowerBound(ex.reps),
+                              suggestedReps: metricKind == .reps ? RepRange.lowerBound(ex.reps) : nil,
+                              suggestedHoldSeconds: metricKind == .holdSeconds ? RepRange.lowerBound(ex.reps) : nil,
+                              suggestedDurationSeconds: metricKind == .durationSeconds ? RepRange.lowerBound(ex.reps) : nil,
+                              suggestedDistanceMeters: metricKind == .distanceMeters ? RepRange.lowerBound(ex.reps) : nil,
+                              suggestedCalories: metricKind == .calories ? RepRange.lowerBound(ex.reps) : nil,
                               suggestedRPE: ex.rpe)
                 },
                 skipped: false,
                 notes: "",
+                movementId: definition?.id,
+                rankStandardMovementId: definition?.rankStandardMovementId,
                 targetRPE: ex.rpe,
                 formCues: ex.notes,
                 substitution: ex.substitution,
-                blockKind: .strength
+                blockKind: definition?.blockKind ?? .strength,
+                skillId: definition?.skillId,
+                cardioType: definition?.cardioType,
+                tracksHold: definition?.blockKind == .carry || metricKind == .holdSeconds || metricKind == .durationSeconds,
+                metricKind: metricKind
             )
         }
         markCurrentExerciseStarted(at: startedAt)
@@ -289,7 +316,7 @@ final class ActiveWorkoutSession: ObservableObject {
 
     convenience init(trainingDraft draft: TrainingSessionDraft) {
         self.init(workout: TrainingSessionAdapters.workout(from: draft),
-                  programId: draft.programId ?? draft.source.rawValue,
+                  programId: draft.programId ?? "",
                   dayNumber: draft.dayNumber ?? 0,
                   source: draft.source)
         self.exercises = Self.activeExercises(from: draft)
@@ -465,41 +492,63 @@ final class ActiveWorkoutSession: ObservableObject {
         }
     }
 
-    /// One-tap "did it as planned": copy the program's suggestion into the
-    /// actual values and log. No-op if already logged or indices invalid.
+    /// One-tap confirmation: preserve any values the user entered, fill only
+    /// missing fields from the plan, then mark the set logged.
     func confirmAsPlanned(exerciseIndex ei: Int, setIndex si: Int) {
         guard exercises.indices.contains(ei),
               exercises[ei].sets.indices.contains(si),
               !exercises[ei].sets[si].logged else { return }
         objectWillChange.send()
         markExerciseStarted(exerciseIndex: ei)
-        exercises[ei].sets[si].weightKg = exercises[ei].sets[si].suggestedWeightKg
-        exercises[ei].sets[si].reps = exercises[ei].sets[si].suggestedReps
-        exercises[ei].sets[si].holdSeconds = exercises[ei].sets[si].suggestedHoldSeconds
-        exercises[ei].sets[si].durationSeconds = exercises[ei].sets[si].suggestedDurationSeconds
-        exercises[ei].sets[si].distanceMeters = exercises[ei].sets[si].suggestedDistanceMeters
-        exercises[ei].sets[si].calories = exercises[ei].sets[si].suggestedCalories
-        exercises[ei].sets[si].rpe = exercises[ei].sets[si].suggestedRPE
+        if exercises[ei].sets[si].weightKg == nil {
+            exercises[ei].sets[si].weightKg = exercises[ei].sets[si].suggestedWeightKg
+        }
+        if exercises[ei].sets[si].reps == nil {
+            exercises[ei].sets[si].reps = exercises[ei].sets[si].suggestedReps
+        }
+        if exercises[ei].sets[si].holdSeconds == nil {
+            exercises[ei].sets[si].holdSeconds = exercises[ei].sets[si].suggestedHoldSeconds
+        }
+        if exercises[ei].sets[si].durationSeconds == nil {
+            exercises[ei].sets[si].durationSeconds = exercises[ei].sets[si].suggestedDurationSeconds
+        }
+        if exercises[ei].sets[si].distanceMeters == nil {
+            exercises[ei].sets[si].distanceMeters = exercises[ei].sets[si].suggestedDistanceMeters
+        }
+        if exercises[ei].sets[si].calories == nil {
+            exercises[ei].sets[si].calories = exercises[ei].sets[si].suggestedCalories
+        }
+        if exercises[ei].sets[si].rpe == nil {
+            exercises[ei].sets[si].rpe = exercises[ei].sets[si].suggestedRPE
+        }
         exercises[ei].sets[si].logged = true
         markExerciseCompletedIfReady(exerciseIndex: ei)
         advanceAfterLogging(exerciseIndex: ei, setIndex: si)
     }
 
-    /// Implicit logging: a set is logged once weight AND reps are both set.
-    /// Never un-logs. Returns true only on the false→true edge so the caller
-    /// can fire the haptic + rest exactly once.
+    /// Implicit logging follows the set's required fields. Returns true only
+    /// on the false→true edge so the caller can fire haptic/rest once.
     @discardableResult
     func recomputeLogged(exerciseIndex ei: Int, setIndex si: Int) -> Bool {
         guard exercises.indices.contains(ei),
               exercises[ei].sets.indices.contains(si) else { return false }
         let was = exercises[ei].sets[si].logged
-        let complete = exercises[ei].sets[si].hasMetric(exercises[ei].metricKind)
+        let complete = exercises[ei].sets[si].hasRequiredLogFields(exercises[ei].metricKind)
         if complete {
             objectWillChange.send()
             markExerciseStarted(exerciseIndex: ei)
+            if exercises[ei].sets[si].rpe == nil {
+                exercises[ei].sets[si].rpe = exercises[ei].sets[si].suggestedRPE
+            }
             exercises[ei].sets[si].logged = true
             markExerciseCompletedIfReady(exerciseIndex: ei)
-            advanceAfterLogging(exerciseIndex: ei, setIndex: si)
+            if !was {
+                advanceAfterLogging(exerciseIndex: ei, setIndex: si)
+            }
+        } else if was {
+            objectWillChange.send()
+            exercises[ei].sets[si].logged = false
+            exercises[ei].completedAt = nil
         }
         return complete && !was
     }
@@ -526,7 +575,86 @@ final class ActiveWorkoutSession: ObservableObject {
         exercises[ei].sets.removeLast()
     }
 
-    func assembleWorkoutLog(userId: String) -> WorkoutLog {
+    func appendCustomExercise(_ custom: CustomExercise) {
+        let plannedSets = Self.defaultSetCount(for: custom.classification)
+        let plannedReps = "\(custom.defaultRepMin)-\(custom.defaultRepMax)"
+        let targetRPE = 8
+        let exercise = ActiveExercise(
+            id: custom.id.uuidString,
+            name: custom.displayName,
+            plannedSets: plannedSets,
+            plannedReps: plannedReps,
+            restSeconds: Self.defaultRestSeconds(for: custom.classification),
+            muscleGroups: Self.muscleGroups(for: custom.pattern),
+            sets: (0..<plannedSets).map { _ in
+                ActiveSet(
+                    id: UUID().uuidString,
+                    weightKg: nil,
+                    reps: nil,
+                    rpe: nil,
+                    isWarmup: false,
+                    logged: false,
+                    suggestedReps: custom.defaultRepMin,
+                    suggestedRPE: targetRPE
+                )
+            },
+            skipped: false,
+            notes: custom.notes ?? "",
+            targetRPE: targetRPE,
+            substitution: "Custom exercise",
+            blockKind: custom.classification == .bodyweightSkill ? .bodyweight : .strength,
+            metricKind: .reps
+        )
+
+        objectWillChange.send()
+        exercises.append(exercise)
+    }
+
+    func replaceExercise(at index: Int, with alternative: CatalogExercise) {
+        guard exercises.indices.contains(index) else { return }
+        let previousName = exercises[index].name
+        let definition = Self.movementDefinition(for: alternative.displayName)
+            ?? MovementCatalog.canonicalExercise(named: alternative.name)
+        let resolved = MovementResolver.resolve(alternative.displayName)
+        let metricKind = Self.metricKind(
+            for: exercises[index].plannedReps,
+            definitionDefault: definition?.defaultMetric
+        )
+
+        objectWillChange.send()
+        exercises[index].name = alternative.displayName
+        exercises[index].movementId = definition?.id ?? resolved.movementId
+        exercises[index].rankStandardMovementId = definition?.rankStandardMovementId ?? resolved.rankStandardMovementId
+        exercises[index].muscleGroups = alternative.muscleGroups
+        exercises[index].blockKind = definition?.blockKind ?? exercises[index].blockKind
+        exercises[index].skillId = definition?.skillId
+        exercises[index].cardioType = definition?.cardioType
+        exercises[index].metricKind = metricKind
+        exercises[index].tracksHold = definition?.blockKind == .carry || metricKind == .holdSeconds || metricKind == .durationSeconds
+        exercises[index].substitution = "Swapped from \(previousName)"
+
+        for setIndex in exercises[index].sets.indices where !exercises[index].sets[setIndex].logged {
+            exercises[index].sets[setIndex].suggestedReps = metricKind == .reps
+                ? RepRange.lowerBound(exercises[index].plannedReps)
+                : nil
+            exercises[index].sets[setIndex].suggestedHoldSeconds = metricKind == .holdSeconds
+                ? RepRange.lowerBound(exercises[index].plannedReps)
+                : nil
+            exercises[index].sets[setIndex].suggestedDurationSeconds = metricKind == .durationSeconds
+                ? RepRange.lowerBound(exercises[index].plannedReps)
+                : nil
+            exercises[index].sets[setIndex].suggestedDistanceMeters = metricKind == .distanceMeters
+                ? RepRange.lowerBound(exercises[index].plannedReps)
+                : nil
+            exercises[index].sets[setIndex].suggestedCalories = metricKind == .calories
+                ? RepRange.lowerBound(exercises[index].plannedReps)
+                : nil
+        }
+    }
+
+    func assembleWorkoutLog(userId: String, completedAt: Date = Date()) -> WorkoutLog {
+        let elapsedSeconds = max(0, Date().timeIntervalSince(startedAt))
+        let adjustedStartedAt = completedAt.addingTimeInterval(-elapsedSeconds)
         let entries = exercises.map { ex in
             ExerciseLogEntry(
                 id: UUID().uuidString,
@@ -541,9 +669,13 @@ final class ActiveWorkoutSession: ObservableObject {
                         id: set.id,
                         setNumber: i + 1,
                         weightKg: set.weightKg,
-                        reps: set.reps ?? 0,
+                        reps: set.reps ?? set.holdSeconds ?? set.durationSeconds ?? 0,
                         rpe: set.rpe,
-                        isWarmup: set.isWarmup
+                        isWarmup: set.isWarmup,
+                        durationSeconds: ex.metricKind == .holdSeconds ? set.holdSeconds : (
+                            ex.metricKind == .durationSeconds ? set.durationSeconds : nil
+                        ),
+                        qualityFlags: set.qualityFlags.isEmpty ? nil : set.qualityFlags
                     )
                 },
                 skipped: ex.skipped,
@@ -556,24 +688,27 @@ final class ActiveWorkoutSession: ObservableObject {
             programId: programId,
             dayNumber: dayNumber,
             plannedWorkoutName: plannedWorkoutName,
-            startedAt: startedAt,
-            completedAt: Date(),
+            startedAt: adjustedStartedAt,
+            completedAt: completedAt,
             exerciseEntries: entries,
             overallNotes: nil,
             overallRPE: nil,
-            durationMinutes: max(0, Int(Date().timeIntervalSince(startedAt) / 60))
+            durationMinutes: max(0, Int(elapsedSeconds / 60)),
+            localStartHour: Calendar.current.component(.hour, from: adjustedStartedAt)
         )
     }
 
-    func assemblePerformanceLog(userId: String) -> PerformanceLog {
+    func assemblePerformanceLog(userId: String, completedAt: Date = Date()) -> PerformanceLog {
+        let elapsedSeconds = max(0, Date().timeIntervalSince(startedAt))
+        let adjustedStartedAt = completedAt.addingTimeInterval(-elapsedSeconds)
         return PerformanceLog(
             id: id,
             userId: userId,
             source: source,
             title: plannedWorkoutName,
-            startedAt: startedAt,
-            completedAt: Date(),
-            programId: programId,
+            startedAt: adjustedStartedAt,
+            completedAt: completedAt,
+            programId: programId.isEmpty ? nil : programId,
             dayNumber: dayNumber,
             blocks: performanceBlocks()
         )
@@ -598,6 +733,9 @@ final class ActiveWorkoutSession: ObservableObject {
                 kind: first.blockKind,
                 title: title,
                 skillId: first.skillId,
+                selectedRungId: first.selectedRungId,
+                selectedRungSource: first.selectedRungSource,
+                selectedRungReason: first.selectedRungReason,
                 routineId: first.routineId,
                 cardioType: first.cardioType,
                 exercises: group.map { exercise in
@@ -698,6 +836,9 @@ final class ActiveWorkoutSession: ObservableObject {
                     blockId: block.id,
                     blockTitle: block.title,
                     skillId: block.skillId,
+                    selectedRungId: block.selectedRungId,
+                    selectedRungSource: block.selectedRungSource,
+                    selectedRungReason: block.selectedRungReason,
                     routineId: block.routineId,
                     cardioType: block.cardioType,
                     tracksHold: block.kind == .carry || metricKind == .holdSeconds || metricKind == .durationSeconds,
@@ -715,12 +856,72 @@ final class ActiveWorkoutSession: ObservableObject {
         let resolved = MovementResolver.resolve(prescription.exerciseName)
         return MovementCatalog.definition(for: resolved.movementId)
     }
+
+    private static func movementDefinition(for exerciseName: String) -> MovementDefinition? {
+        let resolved = MovementResolver.resolve(exerciseName)
+        return MovementCatalog.definition(for: resolved.movementId)
+    }
+
+    private static func metricKind(
+        for plannedReps: String,
+        definitionDefault: TrainingMetricKind?
+    ) -> TrainingMetricKind {
+        let lowercased = plannedReps.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if lowercased.contains("cal") {
+            return .calories
+        }
+        if lowercased.contains("meter")
+            || lowercased.range(of: #"\d\s*m\b"#, options: .regularExpression) != nil {
+            return .distanceMeters
+        }
+        if lowercased.contains("sec")
+            || lowercased.contains("second")
+            || lowercased.range(of: #"\d\s*s\b"#, options: .regularExpression) != nil {
+            return definitionDefault == .durationSeconds ? .durationSeconds : .holdSeconds
+        }
+        return definitionDefault ?? .reps
+    }
+
+    private static func defaultSetCount(for classification: ExerciseClassification) -> Int {
+        switch classification {
+        case .upperCompound, .lowerCompound, .bodyweightSkill:
+            return 3
+        case .accessory:
+            return 2
+        }
+    }
+
+    private static func defaultRestSeconds(for classification: ExerciseClassification) -> Int {
+        switch classification {
+        case .upperCompound, .lowerCompound:
+            return 120
+        case .bodyweightSkill:
+            return 90
+        case .accessory:
+            return 75
+        }
+    }
+
+    private static func muscleGroups(for pattern: MovementPattern) -> [MuscleGroup] {
+        switch pattern {
+        case .legsQuad, .legsPosterior, .calves:
+            return [.legs, .glutes]
+        case .pushHorizontal, .pushVertical, .arms:
+            return [.chest, .shoulders, .arms]
+        case .pullHorizontal, .pullVertical:
+            return [.back, .arms]
+        case .core:
+            return [.core]
+        }
+    }
 }
 
 private extension ActiveWorkoutSession.ActiveSet {
-    func hasMetric(_ metricKind: TrainingMetricKind) -> Bool {
+    func hasRequiredLogFields(_ metricKind: TrainingMetricKind) -> Bool {
         switch metricKind {
-        case .reps: return reps != nil
+        case .reps:
+            guard reps != nil else { return false }
+            return suggestedWeightKg == nil || weightKg != nil
         case .holdSeconds: return holdSeconds != nil
         case .durationSeconds: return durationSeconds != nil
         case .distanceMeters: return distanceMeters != nil

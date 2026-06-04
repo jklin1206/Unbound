@@ -1,4 +1,5 @@
 import XCTest
+import Combine
 @testable import UNBOUND
 
 /// Bug #5 (sync last-write-wins) regression suite. Proves field-level merge:
@@ -69,6 +70,39 @@ final class FieldLevelMergeTests: XCTestCase {
                     enqueuedAt: Date(), attempt: 0)
     }
 
+    final class TestAuth: AuthServiceProtocol, @unchecked Sendable {
+        var currentUserId: String?
+        var isAuthenticated: Bool { currentUserId != nil }
+        var authStatePublisher: AnyPublisher<String?, Never> {
+            Just(currentUserId).eraseToAnyPublisher()
+        }
+
+        init(currentUserId: String?) {
+            self.currentUserId = currentUserId
+        }
+
+        func signInWithApple() async throws -> String { currentUserId ?? "" }
+        func signInWithEmail(email: String, password: String) async throws -> String { currentUserId ?? "" }
+        func createAccountWithEmail(email: String, password: String) async throws -> String { currentUserId ?? "" }
+        func signOut() throws { currentUserId = nil }
+        func deleteAccount() async throws { currentUserId = nil }
+    }
+
+    private func engine(
+        outbox: OutboxStore,
+        remote: any RemoteSync,
+        local: any DatabaseServiceProtocol,
+        userId: String = "u1"
+    ) -> SyncEngine {
+        SyncEngine(
+            outbox: outbox,
+            remote: remote,
+            local: local,
+            maxAttempts: 5,
+            auth: TestAuth(currentUserId: userId)
+        )
+    }
+
     // MARK: - Proof C: pure merge primitive
 
     func test_overlay_replaces_only_listed_fields() throws {
@@ -116,7 +150,7 @@ final class FieldLevelMergeTests: XCTestCase {
         defer { try? FileManager.default.removeItem(at: dirA) }
         let outboxA = OutboxStore(directory: dirA)
         let localA = MockDatabaseService()
-        let engineA = SyncEngine(outbox: outboxA, remote: remote, local: localA, maxAttempts: 5)
+        let engineA = engine(outbox: outboxA, remote: remote, local: localA)
         outboxA.enqueue(entry("d1", payload: json(#"{"id":"d1","a":"A","b":"base"}"#),
                               changed: ["a"]))
         await engineA.flush()
@@ -126,7 +160,7 @@ final class FieldLevelMergeTests: XCTestCase {
         defer { try? FileManager.default.removeItem(at: dirB) }
         let outboxB = OutboxStore(directory: dirB)
         let localB = MockDatabaseService()
-        let engineB = SyncEngine(outbox: outboxB, remote: remote, local: localB, maxAttempts: 5)
+        let engineB = engine(outbox: outboxB, remote: remote, local: localB)
         outboxB.enqueue(entry("d1", payload: json(#"{"id":"d1","a":"base","b":"B"}"#),
                               changed: ["b"]))
         await engineB.flush()
@@ -147,8 +181,7 @@ final class FieldLevelMergeTests: XCTestCase {
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent("fl0-\(UUID())")
         defer { try? FileManager.default.removeItem(at: dir) }
         let outbox = OutboxStore(directory: dir)
-        let engine = SyncEngine(outbox: outbox, remote: remote,
-                                local: MockDatabaseService(), maxAttempts: 5)
+        let engine = engine(outbox: outbox, remote: remote, local: MockDatabaseService())
         outbox.enqueue(entry("d2", payload: json(#"{"id":"d2","a":"only"}"#), changed: ["a"]))
         await engine.flush()
         let remoteDoc = remote.stored(collection: "programs", docId: "d2")
@@ -168,7 +201,7 @@ final class FieldLevelMergeTests: XCTestCase {
         defer { try? FileManager.default.removeItem(at: dir) }
         let outbox = OutboxStore(directory: dir)
         let local = MockDatabaseService()
-        let engine = SyncEngine(outbox: outbox, remote: remote, local: local, maxAttempts: 5)
+        let engine = engine(outbox: outbox, remote: remote, local: local)
 
         // Local has an UNSYNCED edit to `b` (pending outbox upsert, changedFields ["b"]).
         try await local.create(JSONElement.object([
@@ -186,14 +219,49 @@ final class FieldLevelMergeTests: XCTestCase {
         XCTAssertEqual(out["b"] as? String, "local", "pending local b must be preserved")
     }
 
+    func test_restore_ignoresPendingLocalFieldForDifferentUser() async throws {
+        let remote = InMemoryRemote()
+        remote.seed(collection: "programs", docId: "d1",
+            json: json(#"{"id":"d1","userId":"u1","a":"remote","b":"remote"}"#))
+
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("re-user-\(UUID())")
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let outbox = OutboxStore(directory: dir)
+        let local = MockDatabaseService()
+        let engine = engine(outbox: outbox, remote: remote, local: local)
+
+        try await local.create(JSONElement.object([
+            "id": .string("d1"), "userId": .string("u2"),
+            "a": .string("base"), "b": .string("local")
+        ]), collection: "programs", documentId: "d1")
+        outbox.enqueue(OutboxEntry(
+            id: UUID(),
+            userId: "u2",
+            collection: "programs",
+            docId: "d1",
+            op: .upsert,
+            payloadJSON: json(#"{"id":"d1","userId":"u2","a":"base","b":"local"}"#),
+            changedFields: ["b"],
+            enqueuedAt: Date(),
+            attempt: 0
+        ))
+
+        try await engine.restore(userId: "u1")
+
+        let localDoc: JSONElement = try await local.read(collection: "programs", documentId: "d1")
+        let out = try dict(try JSONEncoder().encode(localDoc))
+        XCTAssertEqual(out["a"] as? String, "remote")
+        XCTAssertEqual(out["b"] as? String, "remote", "pending edits from another user must not overlay restore")
+    }
+
     func test_restore_takes_remote_when_no_pending_local_edit() async throws {
         let remote = InMemoryRemote()
         remote.seed(collection: "programs", docId: "d3",
             json: json(#"{"id":"d3","userId":"u1","a":"remote"}"#))
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent("re2-\(UUID())")
         defer { try? FileManager.default.removeItem(at: dir) }
-        let engine = SyncEngine(outbox: OutboxStore(directory: dir), remote: remote,
-                                local: MockDatabaseService(), maxAttempts: 5)
+        let engine = engine(outbox: OutboxStore(directory: dir), remote: remote,
+                            local: MockDatabaseService())
         try await engine.restore(userId: "u1")
         // No pending edit -> remote as-is (just assert it didn't throw / wrote).
     }

@@ -1,4 +1,6 @@
+import Foundation
 import SwiftUI
+import UIKit
 
 // MARK: - UnboundHomeView
 //
@@ -28,12 +30,13 @@ struct UnboundHomeView: View {
     // Profile + program
     @State private var profile: UserProfile?
     @State private var program: TrainingProgram?
+    @State private var bodyWeightLogs: [BodyWeightLog] = []
     @State private var isLoading = true
+    @AppStorage(WeightPlatePolicy.unitDefaultsKey) private var weightUnitRaw: String = TrainingWeightUnit.localeDefault.rawValue
 
     // Sessions / XP
     @State private var overallLevel: OverallLevelProgress?
     @AppStorage("unbound.streakDays") private var streakDays: Int = 0
-    @AppStorage("unbound.lastScanTimestamp") private var lastScanTimestamp: Double = 0
     @AppStorage("unbound.lastPhotoTimestamp") private var lastPhotoTimestamp: Double = 0
     @AppStorage("unbound.lastSessionDate") private var lastSessionTimestamp: Double = 0
     @State private var sessionXP: SessionXPRecord?
@@ -49,12 +52,18 @@ struct UnboundHomeView: View {
     @State private var hasLoggedAnyWorkout: Bool = false
     @State private var lastLog: WorkoutLog?
     @State private var weekSessionDays: Set<Int> = [] // Mon=1...Sun=7
+    @State private var bodyRegionLoads: [BodyRegion: Double] = [:]
 
     // Modal state
     @State private var workoutReadyDraft: TrainingSessionDraft?
     @State private var showingCalibrationWorkout = false
     // navigateToCoach removed — replaced by CoachModesStrip
     @State private var showingNotificationSettings = false
+    @State private var showingBodyWeightLog = false
+    @State private var showingBodyWeightHistory = false
+    @State private var bodyWeightJustLogged = false
+    @State private var isSavingBodyWeight = false
+    @State private var bodyWeightSaveError: String?
 
     // Attribute profile (Phase 8+)
     @State private var attributeProfile: AttributeProfile = AttributeProfile.empty(userId: "", at: .now)
@@ -65,10 +74,14 @@ struct UnboundHomeView: View {
     @State private var xpShimmerPhase: CGFloat = -1
     @State private var statsRendered = false
 
-    // Daily Quest — the card displays and starts the SAME real SideQuest.
-    // Rotation service lands later; until then it's a fixed library entry.
-    @State private var activeRoutine: SideQuest = SideQuestLibrary.pushProtocol
+    // Daily Quest — launches the same canonical routine completion path as
+    // the routine library. Rotation service lands later; fixed entry for now.
+    @State private var activeRoutine: RoutineDef = Self.defaultDailyQuestRoutine
     @State private var showRoutinePlayer = false
+    @State private var dailyQuestRewardSequence: WorkoutRewardSequenceSummary?
+    @State private var isCompletingDailyQuest = false
+    @State private var pendingDailyQuestCompletionRecord: RoutineCompletionRecord?
+    @State private var dailyQuestCompletionError: String?
 
     // Photo/Scan capture flow presentation
     @State private var captureMode: PhotoCaptureFlow.Mode?
@@ -85,7 +98,7 @@ struct UnboundHomeView: View {
     @State private var trialsState: TrialsState = .empty
     @State private var showTrialPicker = false
 
-    // Level derivation reads the AP-sourced OverallLevelProgress.
+    // Level derivation reads the XP-backed OverallLevelProgress.
     private var lvlValue: Int { overallLevel?.level ?? 0 }
     private var lvlFraction: Double { overallLevel?.progressToNextLevel ?? 0 }
     private var lvlTotalXP: Int { Int(overallLevel?.totalXP ?? 0) }
@@ -98,6 +111,19 @@ struct UnboundHomeView: View {
         return max(1, Int(OverallLevelCurve.xpRequired(forLevel: lvl + 1) - OverallLevelCurve.xpRequired(forLevel: lvl)))
     }
 
+    private static let defaultDailyQuestRoutine: RoutineDef = {
+        RoutineLibrary.placeholderRoutines.first { $0.id == "daily-quest" }
+            ?? RoutineDef(
+                id: "daily-quest",
+                title: "Daily Quest",
+                subtitle: "Show up and log the work you actually complete.",
+                durationLabel: "~20 MIN",
+                category: .challenge,
+                spReward: 0,
+                steps: []
+            )
+    }()
+
     // MARK: Body
 
     var body: some View {
@@ -108,16 +134,13 @@ struct UnboundHomeView: View {
                 HomeLoadingSkeleton()
             } else {
                 ScrollView(.vertical, showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: 22) {
+                    VStack(alignment: .leading, spacing: 16) {
                         topBar
                         homeBriefing
                         trainingConsole
-                        homeLoadRailCard
-                        homeMomentumCard
+                        homeStatusPanel
+                        BodyLoadHeatmapView(loads: bodyRegionLoads, plannedRegions: todayPlannedBodyRegions)
                         contextualStack
-                        HomeBuildChipCard(profile: attributeProfile) {
-                            NotificationCenter.default.post(name: .requestNavigateToProfileTab, object: nil)
-                        }
                         lastSessionRecap
                         Spacer().frame(height: 118)
                     }
@@ -143,8 +166,7 @@ struct UnboundHomeView: View {
             Task {
                 await refreshSessionXP()
                 await refreshRanksAndStats()
-                await refreshLastLog()
-                await refreshWeeklyRhythm()
+                await refreshRecentTrainingSignals()
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .attributeRankUp)) { _ in
@@ -179,10 +201,29 @@ struct UnboundHomeView: View {
         .background(
             EmptyView()
                 .fullScreenCover(isPresented: $showRoutinePlayer) {
-                    SideQuestPlayerView(routine: activeRoutine) { _ in
-                        showRoutinePlayer = false
+                    ZStack {
+                        if let dailyQuestRewardSequence {
+                            WorkoutRewardSequenceView(summary: dailyQuestRewardSequence) {
+                                UnboundHaptics.medium()
+                                self.dailyQuestRewardSequence = nil
+                                showRoutinePlayer = false
+                                Task { await refreshRanksAndStats() }
+                            }
+                            .interactiveDismissDisabled(true)
+                        } else if let pendingRecord = pendingDailyQuestCompletionRecord,
+                                  dailyQuestCompletionError != nil {
+                            dailyQuestRetryOverlay(record: pendingRecord)
+                        } else if isCompletingDailyQuest {
+                            dailyQuestCompletionOverlay
+                        } else {
+                            RoutinePlayerView(routine: activeRoutine) { record in
+                                let stableRecord = pendingDailyQuestCompletionRecord ?? record
+                                pendingDailyQuestCompletionRecord = stableRecord
+                                Task { await completeDailyQuest(stableRecord) }
+                            }
+                            .environmentObject(services)
+                        }
                     }
-                    .environmentObject(services)
                 }
         )
         .sheet(isPresented: $showingNotificationSettings) {
@@ -197,9 +238,43 @@ struct UnboundHomeView: View {
                     }
             }
         }
+        .sheet(isPresented: $showingBodyWeightLog) {
+            BodyWeightLogSheet(
+                initialWeightKg: latestBodyWeightKg,
+                unit: selectedWeightUnit,
+                isSaving: isSavingBodyWeight,
+                errorMessage: bodyWeightSaveError,
+                onSave: { weightKg, note in
+                    await saveBodyWeight(weightKg: weightKg, note: note)
+                }
+            )
+            .presentationDetents([.height(430), .medium])
+            .presentationDragIndicator(.visible)
+        }
+        .sheet(isPresented: $showingBodyWeightHistory, onDismiss: {
+            bodyWeightJustLogged = false
+        }) {
+            NavigationStack {
+                BodyWeightHistoryScreen(
+                    logs: bodyWeightLogs,
+                    latestWeightKg: latestBodyWeightKg,
+                    unit: selectedWeightUnit,
+                    didJustLog: bodyWeightJustLogged,
+                    onLog: {
+                        showingBodyWeightHistory = false
+                        bodyWeightSaveError = nil
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                            showingBodyWeightLog = true
+                        }
+                    }
+                )
+            }
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
+        }
         .fullScreenCover(isPresented: $showScanCaptureFlow, onDismiss: {
             // Refresh cadence after a scan completes
-            let userId = services.auth.currentUserId ?? "anonymous"
+            guard let userId = services.auth.currentUserId else { return }
             let history = (try? ScanCheckpointStore.shared.history(userId: userId)) ?? []
             lastScanAt = history.last?.createdAt
             scanCadence = ScanCadenceState.compute(lastScanAt: lastScanAt, now: .now)
@@ -463,6 +538,7 @@ struct UnboundHomeView: View {
         let todayIndex = ((Calendar.current.component(.weekday, from: Date()) + 5) % 7) + 1
         let currentStreak = sessionXP?.currentStreak ?? streakDays
         let completedCount = weekSessionDays.count
+        let weekdayLabels = ["MO", "TU", "WE", "TH", "FR", "SA", "SU"]
 
         return HStack(alignment: .center, spacing: 16) {
             ZStack(alignment: .leading) {
@@ -528,41 +604,64 @@ struct UnboundHomeView: View {
 
                 HStack(alignment: .bottom, spacing: 5) {
                     ForEach(0..<7, id: \.self) { index in
-                        weekHeatSlash(
+                        weekHeatFlame(
+                            dayLabel: weekdayLabels[index],
                             hasSession: weekSessionDays.contains(index + 1),
                             isToday: (index + 1) == todayIndex
                         )
                     }
                 }
-                .frame(height: 34, alignment: .bottom)
+                .frame(height: 44, alignment: .bottom)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(.vertical, 2)
     }
 
-    private func weekHeatSlash(hasSession: Bool, isToday: Bool) -> some View {
-        let fill = hasSession
-            ? Color.unbound.rankGreen
-            : (isToday ? Color.unbound.ember : Color.white.opacity(0.11))
-        let height: CGFloat = hasSession ? 32 : (isToday ? 26 : 16)
+    private func weekHeatFlame(dayLabel: String, hasSession: Bool, isToday: Bool) -> some View {
+        let flameColor = hasSession
+            ? Color.unbound.ember
+            : (isToday ? Color.unbound.ember.opacity(0.82) : Color.unbound.textTertiary.opacity(0.48))
+        let labelColor = isToday ? Color.unbound.textPrimary : Color.unbound.textTertiary
 
-        return StreakSlashShape()
-            .fill(fill)
-            .frame(width: 13)
-            .frame(height: height)
-            .overlay(
-                StreakSlashShape()
-                    .stroke(Color.white.opacity(hasSession || isToday ? 0.24 : 0.07), lineWidth: 0.7)
-            )
-            .shadow(color: fill.opacity(hasSession || isToday ? 0.30 : 0), radius: 7, y: 2)
+        return VStack(spacing: 3) {
+            ZStack {
+                Circle()
+                    .fill(isToday ? Color.unbound.ember.opacity(0.13) : Color.clear)
+                    .frame(width: 28, height: 28)
+
+                Image(systemName: hasSession ? "flame.fill" : "flame")
+                    .font(.system(size: hasSession ? 22 : 19, weight: .black))
+                    .foregroundStyle(flameColor)
+                    .shadow(
+                        color: hasSession ? Color.unbound.ember.opacity(0.48) : Color.clear,
+                        radius: hasSession ? 7 : 0,
+                        y: hasSession ? 2 : 0
+                    )
+
+                if hasSession {
+                    Image(systemName: "flame.fill")
+                        .font(.system(size: 10, weight: .black))
+                        .foregroundStyle(Color.unbound.rankGold.opacity(0.92))
+                        .offset(y: 4)
+                }
+            }
+            .frame(width: 28, height: 28)
+
+            Text(dayLabel)
+                .font(.system(size: 8, weight: .heavy, design: .monospaced))
+                .tracking(0.7)
+                .foregroundStyle(labelColor)
+                .lineLimit(1)
+        }
+        .frame(width: 28)
+        .accessibilityLabel("\(dayLabel) \(hasSession ? "lit" : "unlit")")
             .animation(.spring(response: 0.28, dampingFraction: 0.82), value: hasSession)
             .animation(.spring(response: 0.28, dampingFraction: 0.82), value: isToday)
     }
 
     private var rankMomentumCard: some View {
         let level = lvlValue
-        let xpInLevel = lvlXPInLevel
         let fraction = lvlFraction
         let rankColor = aggregateRank.rewardTint
 
@@ -674,7 +773,7 @@ struct UnboundHomeView: View {
 
                 Spacer(minLength: 0)
 
-                Text("+\(activeRoutine.spReward) LVL XP")
+                Text("PROOF-GATED XP")
                     .font(Font.unbound.monoS.weight(.bold))
                     .foregroundStyle(categoryColor)
                     .monospacedDigit()
@@ -757,12 +856,7 @@ struct UnboundHomeView: View {
     }
 
     private var questColor: Color {
-        switch activeRoutine.category {
-        case .cardio:   return Color.unbound.coachCyan
-        case .mobility: return Color.unbound.rankGreen
-        case .activity: return Color.unbound.warnOrange
-        case .circuit:  return Color.unbound.accent
-        }
+        activeRoutine.category.color
     }
 
     private func protocolStatusPill(label: String, value: String, tint: Color) -> some View {
@@ -784,7 +878,6 @@ struct UnboundHomeView: View {
 
     private var progressionSnapshot: some View {
         let level = lvlValue
-        let xpInLevel = lvlXPInLevel
         let fraction = lvlFraction
         let rankColor = aggregateRank.rewardTint
 
@@ -869,95 +962,6 @@ struct UnboundHomeView: View {
         )
     }
 
-    private var readinessRail: some View {
-        VStack(spacing: 0) {
-            railMetric(label: "LOAD", value: readinessValue, detail: readinessDetail, tint: readinessTint)
-            railDivider
-            if let readiness = overallRankTrialReadiness,
-               readiness.definition != nil {
-                railMetric(
-                    label: "RANK TRIAL",
-                    value: rankTrialRailValue(readiness),
-                    detail: rankTrialRailDetail(readiness),
-                    tint: rankGatePulseTint(readiness)
-                )
-            } else {
-                railMetric(
-                    label: "NEXT TITLE",
-                    value: nextTitleValue(for: aggregateRank),
-                    detail: nextTitleDetail(for: aggregateRank),
-                    tint: aggregateRank.advanced(by: 1).rewardTint
-                )
-            }
-            railDivider
-            HStack(spacing: 0) {
-                railMetric(label: "WEEK", value: "\(weekSessionDays.count)/\(weeklySessionTarget)", detail: "target", tint: Color.unbound.ember)
-                verticalRailDivider
-                railMetric(label: "LVL XP", value: "\(lvlTotalXP)", detail: "banked", tint: Color.unbound.textPrimary)
-            }
-        }
-        .padding(.vertical, 4)
-        .overlay(alignment: .leading) {
-            Rectangle()
-                .fill(Color.unbound.ember.opacity(0.82))
-                .frame(width: 2)
-        }
-    }
-
-    private var homeLoadRailCard: some View {
-        readinessRail
-            .padding(16)
-            .background(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(Color.unbound.surface)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
-            )
-    }
-
-    private func railMetric(label: String, value: String, detail: String, tint: Color) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 12) {
-            Text(label)
-                .font(Font.unbound.captionS.weight(.bold))
-                .tracking(1.5)
-                .foregroundStyle(Color.unbound.textTertiary)
-                .frame(width: 86, alignment: .leading)
-
-            Text(value)
-                .font(Font.unbound.monoM.weight(.semibold))
-                .foregroundStyle(tint)
-                .monospacedDigit()
-                .lineLimit(1)
-                .minimumScaleFactor(0.72)
-
-            Spacer(minLength: 10)
-
-            Text(detail)
-                .font(Font.unbound.captionS)
-                .foregroundStyle(Color.unbound.textSecondary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.72)
-        }
-        .padding(.leading, 16)
-        .padding(.vertical, 10)
-        .frame(maxWidth: .infinity)
-    }
-
-    private var railDivider: some View {
-        Rectangle()
-            .fill(Color.unbound.borderSubtle)
-            .frame(height: 0.5)
-            .padding(.leading, 16)
-    }
-
-    private var verticalRailDivider: some View {
-        Rectangle()
-            .fill(Color.unbound.borderSubtle)
-            .frame(width: 0.5, height: 42)
-    }
-
     private var briefingTitle: String {
         if let name = profile?.displayName,
            !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
@@ -976,65 +980,6 @@ struct UnboundHomeView: View {
             }
         }
         return "No session is queued. Open Program to plan today's work or use a quick action below."
-    }
-
-    private var readinessValue: String {
-        if !plateaus.isEmpty { return "WATCH" }
-        if shouldShowCalibrationCard { return "CAL" }
-        if todayProgramDay?.isRestDay == true { return "REST" }
-        if !hasLoggedAnyWorkout { return "START" }
-        if weekSessionDays.count >= weeklySessionTarget { return "FULL" }
-        if daysSinceLastSession >= 3 { return "MISS" }
-        return "ON"
-    }
-
-    private var readinessDetail: String {
-        if let first = plateaus.first {
-            return "\(first.displayName) stalled"
-        }
-        if shouldShowCalibrationCard {
-            return "baseline"
-        }
-        if todayProgramDay?.isRestDay == true {
-            return "recovery"
-        }
-        if !hasLoggedAnyWorkout {
-            return "first log"
-        }
-        if weekSessionDays.count >= weeklySessionTarget {
-            return "\(weekSessionDays.count)/\(weeklySessionTarget) sessions"
-        }
-        if daysSinceLastSession >= 3 {
-            return "\(daysSinceLastSession)d since log"
-        }
-        return todayProgramDay?.workout?.blockType?.displayName ?? "on track"
-    }
-
-    private var readinessTint: Color {
-        if !plateaus.isEmpty { return Color.unbound.warnOrange }
-        if shouldShowCalibrationCard { return Color.unbound.ember }
-        if todayProgramDay?.isRestDay == true { return Color.unbound.coachCyan }
-        if !hasLoggedAnyWorkout { return Color.unbound.accent }
-        if weekSessionDays.count >= weeklySessionTarget { return Color.unbound.success }
-        if daysSinceLastSession >= 3 { return Color.unbound.warnOrange }
-        return Color.unbound.success
-    }
-
-    private var weeklySessionTarget: Int {
-        if let count = profile?.targetFrequency?.numericCount {
-            return max(1, count)
-        }
-        if let program {
-            let weeks = max(1, Int(ceil(Double(program.durationDays) / 7.0)))
-            let sessions = program.days.filter { !$0.isRestDay }.count
-            return max(1, Int(ceil(Double(sessions) / Double(weeks))))
-        }
-        return 4
-    }
-
-    private var daysSinceLastSession: Int {
-        guard let startedAt = lastLog?.startedAt else { return 99 }
-        return max(0, Calendar.current.dateComponents([.day], from: startedAt, to: Date()).day ?? 0)
     }
 
     /// Placeholder avatar: initials in a chamfered charcoal circle with a
@@ -1118,53 +1063,14 @@ struct UnboundHomeView: View {
         .shadow(color: fireOrange.opacity(0.25), radius: 8)
     }
 
-    // MARK: - Momentum + quick actions
+    // MARK: - Bodyweight quick log
 
-    private var homeMomentumCard: some View {
-        VStack(alignment: .leading, spacing: 16) {
+    private var homeStatusPanel: some View {
+        VStack(alignment: .leading, spacing: 10) {
             weekPath
-
-            HStack(spacing: 0) {
-                homeCommandButton(
-                    title: "Quest",
-                    subtitle: "+\(activeRoutine.spReward) LVL XP",
-                    icon: "bolt.fill",
-                    tint: questColor
-                ) {
-                    activeRoutine = SideQuestLibrary.pushProtocol
-                    showRoutinePlayer = true
-                }
-
-                commandDivider
-
-                homeCommandButton(
-                    title: shouldShowScanEligibility ? "Scan" : "Photo",
-                    subtitle: shouldShowScanEligibility ? "+25 LVL XP" : "+5 LVL XP",
-                    icon: shouldShowScanEligibility ? "sparkle.magnifyingglass" : "camera.fill",
-                    tint: shouldShowScanEligibility ? Color.unbound.accent : Color.unbound.ember
-                ) {
-                    captureMode = shouldShowScanEligibility ? .scan : .photo
-                }
-
-                commandDivider
-
-                homeCommandButton(
-                    title: "Program",
-                    subtitle: "Plan",
-                    icon: "calendar.badge.plus",
-                    tint: Color.unbound.textSecondary
-                ) {
-                    NotificationCenter.default.post(name: .requestNavigateToProgramTab, object: nil)
-                }
-            }
-            .frame(height: 54)
-            .overlay(alignment: .top) {
-                Rectangle()
-                    .fill(Color.unbound.borderSubtle.opacity(0.55))
-                    .frame(height: 0.5)
-            }
+            bodyWeightQuickLogRow
         }
-        .padding(16)
+        .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color.unbound.surface.opacity(0.42))
         .overlay(alignment: .top) {
@@ -1179,49 +1085,80 @@ struct UnboundHomeView: View {
         }
     }
 
-    private var commandDivider: some View {
-        Rectangle()
-            .fill(Color.unbound.borderSubtle.opacity(0.65))
-            .frame(width: 0.5, height: 30)
-            .padding(.horizontal, 8)
-    }
+    private var bodyWeightQuickLogRow: some View {
+        HStack(alignment: .center, spacing: 12) {
+            Button {
+                UnboundHaptics.medium()
+                showingBodyWeightHistory = true
+            } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: hasLoggedBodyWeightToday ? "checkmark.circle.fill" : "scalemass.fill")
+                        .font(.system(size: 16, weight: .black))
+                        .foregroundStyle(bodyWeightStatusColor)
+                        .frame(width: 24, height: 24)
 
-    private func homeCommandButton(
-        title: String,
-        subtitle: String,
-        icon: String,
-        tint: Color,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button {
-            UnboundHaptics.medium()
-            action()
-        } label: {
-            HStack(spacing: 8) {
-                Image(systemName: icon)
-                    .font(.system(size: 13, weight: .black))
-                    .foregroundStyle(tint)
-                    .frame(width: 16, height: 16)
+                    VStack(alignment: .leading, spacing: 3) {
+                        HStack(alignment: .firstTextBaseline, spacing: 5) {
+                            Text(bodyWeightValueText)
+                                .font(.system(size: 18, weight: .black, design: .rounded))
+                                .foregroundStyle(Color.unbound.textPrimary)
+                                .monospacedDigit()
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.72)
 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(title.uppercased())
+                            Text(selectedWeightUnit.shortLabel.uppercased())
+                                .font(.system(size: 9, weight: .black, design: .monospaced))
+                                .tracking(0.8)
+                                .foregroundStyle(Color.unbound.textSecondary)
+                        }
+
+                        Text(bodyWeightRecencyText)
+                            .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                            .tracking(0.8)
+                            .foregroundStyle(bodyWeightStatusColor)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.76)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Open bodyweight history")
+
+            Button {
+                bodyWeightSaveError = nil
+                UnboundHaptics.medium()
+                showingBodyWeightLog = true
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: hasLoggedBodyWeightToday ? "checkmark" : "plus")
+                        .font(.system(size: 10, weight: .black))
+                    Text(hasLoggedBodyWeightToday ? "LOGGED" : "LOG")
                         .font(.system(size: 10, weight: .heavy, design: .monospaced))
                         .tracking(1.0)
-                        .foregroundStyle(Color.unbound.textPrimary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.78)
-                    Text(subtitle.uppercased())
-                        .font(.system(size: 9, weight: .bold, design: .monospaced))
-                        .tracking(0.8)
-                        .foregroundStyle(tint)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.72)
                 }
+                .foregroundStyle(Color.unbound.textPrimary)
+                .padding(.horizontal, 12)
+                .frame(height: 32)
+                .background(
+                    Capsule()
+                        .fill(bodyWeightStatusColor.opacity(hasLoggedBodyWeightToday ? 0.20 : 0.92))
+                )
+                .overlay(
+                    Capsule()
+                        .strokeBorder(bodyWeightStatusColor.opacity(0.40), lineWidth: 1)
+                )
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-            .contentShape(Rectangle())
+            .buttonStyle(.plain)
+            .accessibilityLabel("Log bodyweight")
         }
-        .buttonStyle(.plain)
+        .padding(.vertical, 11)
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill(Color.unbound.borderSubtle.opacity(0.62))
+                .frame(height: 0.5)
+        }
     }
 
     // MARK: - Contextual stack
@@ -1357,24 +1294,6 @@ struct UnboundHomeView: View {
         return Color.unbound.rankGold
     }
 
-    private func rankTrialRailValue(_ readiness: OverallRankTrialReadiness) -> String {
-        if readiness.isReady { return "READY" }
-        if readiness.status == .attempted { return "REBUILD" }
-        return readiness.targetRank?.displayName ?? "Trial"
-    }
-
-    private func rankTrialRailDetail(_ readiness: OverallRankTrialReadiness) -> String {
-        let met = readiness.requirements.filter(\.isMet).count
-        let total = max(1, readiness.requirements.count)
-        if readiness.isReady {
-            return readiness.targetRank.map { "\($0.displayName) trial" } ?? "trial"
-        }
-        if let next = readiness.missingRequirements.first {
-            return "\(met)/\(total) · \(next.label)"
-        }
-        return "\(met)/\(total) proofs"
-    }
-
     // MARK: - Stats grid
 
 
@@ -1408,7 +1327,14 @@ struct UnboundHomeView: View {
 
     @MainActor
     private func load() async {
-        let userId = services.auth.currentUserId ?? "anonymous"
+        guard let userId = services.auth.currentUserId else {
+            LoggingService.shared.log(
+                "Home load skipped without authenticated user",
+                level: .warning
+            )
+            isLoading = false
+            return
+        }
         services.badges.bind(userId: userId)
 
         // ── Phase 1: essentials → paint ASAP ─────────────────────────────
@@ -1446,6 +1372,7 @@ struct UnboundHomeView: View {
         }()
         async let profileProgram: (UserProfile?, TrainingProgram?) = loadProfileAndProgram(userId)
         async let recentLogs: [WorkoutLog] = fetchRecentLogsSafe(userId: userId, limit: 40)
+        async let weightLogs: [BodyWeightLog] = fetchBodyWeightLogsSafe(userId: userId, limit: 30)
         async let travel: TravelOverride? = TravelOverrideStore.shared.activeOverride(for: userId)
 
         _ = await skillLoad
@@ -1459,6 +1386,7 @@ struct UnboundHomeView: View {
         }
 
         applyRecentLogs(await recentLogs)
+        bodyWeightLogs = await weightLogs
         activeTravelOverride = await travel
 
         let history = (try? ScanCheckpointStore.shared.history(userId: userId)) ?? []
@@ -1531,42 +1459,130 @@ struct UnboundHomeView: View {
         (try? await services.workoutLog.fetchRecentLogs(userId: userId, limit: limit)) ?? []
     }
 
+    private func fetchBodyWeightLogsSafe(userId: String, limit: Int) async -> [BodyWeightLog] {
+        let logs: [BodyWeightLog] = (try? await services.database.query(
+            collection: "bodyWeightLogs",
+            field: "userId",
+            isEqualTo: userId,
+            orderBy: "loggedAt",
+            descending: true,
+            limit: limit
+        )) ?? []
+        return logs.sorted { $0.loggedAt > $1.loggedAt }
+    }
+
     @MainActor
     private func applyRecentLogs(_ logs: [WorkoutLog]) {
         lastLog = HomeLoadDerivations.lastLog(logs)
         hasLoggedAnyWorkout = HomeLoadDerivations.hasLogged(logs)
         weekSessionDays = HomeLoadDerivations.weekSessionDays(logs.map(\.startedAt))
+        bodyRegionLoads = HomeLoadDerivations.bodyRegionLoads(logs)
     }
 
     @MainActor
     private func refreshRanksAndStats() async {
-        let userId = services.auth.currentUserId ?? "anonymous"
+        guard let userId = services.auth.currentUserId else { return }
         aggregateRank = await services.rank.aggregateRank(userId: userId)
         aggregateTier = await services.rank.aggregateTier(userId: userId)
     }
 
     @MainActor
     private func refreshTravelOverride() async {
-        let userId = services.auth.currentUserId ?? "anonymous"
+        guard let userId = services.auth.currentUserId else { return }
         activeTravelOverride = await TravelOverrideStore.shared.activeOverride(for: userId)
     }
 
     @MainActor
+    private func refreshRecentTrainingSignals() async {
+        guard let userId = services.auth.currentUserId else { return }
+        applyRecentLogs(await fetchRecentLogsSafe(userId: userId, limit: 40))
+    }
+
+    @MainActor
+    private func refreshBodyWeightLogs() async {
+        guard let userId = services.auth.currentUserId else { return }
+        bodyWeightLogs = await fetchBodyWeightLogsSafe(userId: userId, limit: 30)
+    }
+
+    @MainActor
+    private func saveBodyWeight(weightKg: Double, note: String?) async {
+        guard let userId = services.auth.currentUserId else {
+            bodyWeightSaveError = "Sign in before logging bodyweight."
+            return
+        }
+        guard weightKg.isFinite, weightKg > 0 else {
+            bodyWeightSaveError = "Enter a valid bodyweight."
+            return
+        }
+
+        let trimmedNote = note?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalizedNote = trimmedNote?.isEmpty == false ? trimmedNote : nil
+        let log = BodyWeightLog(
+            userId: userId,
+            weightKg: weightKg,
+            loggedAt: Date(),
+            note: normalizedNote
+        )
+
+        isSavingBodyWeight = true
+        bodyWeightSaveError = nil
+        defer { isSavingBodyWeight = false }
+
+        do {
+            try await services.database.create(log, collection: "bodyWeightLogs", documentId: log.id)
+        } catch {
+            bodyWeightSaveError = "Could not save bodyweight."
+            LoggingService.shared.log(
+                "Bodyweight log save failed: \(error)",
+                level: .error,
+                context: ["userId": userId]
+            )
+            return
+        }
+
+        do {
+            try await services.user.updateProfile(userId: userId, fields: ["weightKg": weightKg])
+        } catch {
+            LoggingService.shared.log(
+                "Profile bodyweight refresh failed: \(error)",
+                level: .warning,
+                context: ["userId": userId]
+            )
+        }
+
+        if var currentProfile = profile {
+            currentProfile.weightKg = weightKg
+            profile = currentProfile
+        }
+        bodyWeightLogs = Array(
+            ([log] + bodyWeightLogs.filter { $0.id != log.id })
+                .sorted { $0.loggedAt > $1.loggedAt }
+                .prefix(30)
+        )
+        bodyWeightJustLogged = true
+        showingBodyWeightLog = false
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.28) {
+            showingBodyWeightHistory = true
+        }
+        UnboundHaptics.medium()
+    }
+
+    @MainActor
     private func refreshWeeklyRhythm() async {
-        let userId = services.auth.currentUserId ?? "anonymous"
+        guard let userId = services.auth.currentUserId else { return }
         let logs = (try? await services.workoutLog.fetchRecentLogs(userId: userId, limit: 14)) ?? []
         weekSessionDays = HomeLoadDerivations.weekSessionDays(logs.map(\.startedAt))
     }
 
     @MainActor
     private func refreshSessionXP() async {
-        let userId = services.auth.currentUserId ?? "anonymous"
+        guard let userId = services.auth.currentUserId else { return }
         sessionXP = services.sessionXP.record(userId: userId)
     }
 
     @MainActor
     private func refreshCalibrationState() async {
-        let userId = services.auth.currentUserId ?? "anonymous"
+        guard let userId = services.auth.currentUserId else { return }
         calibrationSkipRatio = services.calibration.skipRatio(userId: userId)
         let logs = (try? await services.workoutLog.fetchRecentLogs(userId: userId, limit: 1)) ?? []
         hasLoggedAnyWorkout = !logs.isEmpty
@@ -1574,7 +1590,7 @@ struct UnboundHomeView: View {
 
     @MainActor
     private func refreshLastLog() async {
-        let userId = services.auth.currentUserId ?? "anonymous"
+        guard let userId = services.auth.currentUserId else { return }
         let logs = (try? await services.workoutLog.fetchRecentLogs(userId: userId, limit: 1)) ?? []
         lastLog = logs.first
         hasLoggedAnyWorkout = !logs.isEmpty
@@ -1584,8 +1600,7 @@ struct UnboundHomeView: View {
     private func refreshWorkoutCompletionState() async {
         await refreshSessionXP()
         await refreshRanksAndStats()
-        await refreshLastLog()
-        await refreshWeeklyRhythm()
+        await refreshRecentTrainingSignals()
     }
 
     // MARK: - Session flow
@@ -1597,7 +1612,13 @@ struct UnboundHomeView: View {
             NotificationCenter.default.post(name: .requestNavigateToProgramTab, object: nil)
             return
         }
-        let userId = services.auth.currentUserId ?? "anonymous"
+        guard let userId = services.auth.currentUserId else {
+            LoggingService.shared.log(
+                "Today session launch skipped without authenticated user",
+                level: .warning
+            )
+            return
+        }
         workoutReadyDraft = DailyWorkoutResolver.programDraft(
             from: workout,
             userId: userId,
@@ -1641,6 +1662,46 @@ struct UnboundHomeView: View {
         )
     }
 
+    private var todayPlannedBodyRegions: [BodyRegion] {
+        guard let day = todayProgramDay,
+              !day.isRestDay,
+              let workout = day.workout
+        else { return [] }
+        return BodyRegionTrainingLedger.loads(for: workout).map(\.region)
+    }
+
+    private var selectedWeightUnit: TrainingWeightUnit {
+        TrainingWeightUnit(rawValue: weightUnitRaw) ?? .localeDefault
+    }
+
+    private var latestBodyWeightKg: Double? {
+        bodyWeightLogs.first?.weightKg ?? profile?.weightKg
+    }
+
+    private var bodyWeightValueText: String {
+        guard let latestBodyWeightKg else { return "--" }
+        return WeightPlatePolicy.formatLoggedWeight(latestBodyWeightKg, unit: selectedWeightUnit)
+    }
+
+    private var bodyWeightRecencyText: String {
+        if let loggedAt = bodyWeightLogs.first?.loggedAt {
+            return "LOGGED \(dayWord(for: loggedAt))"
+        }
+        if latestBodyWeightKg != nil {
+            return "FROM PROFILE"
+        }
+        return "NO ENTRIES YET"
+    }
+
+    private var hasLoggedBodyWeightToday: Bool {
+        guard let loggedAt = bodyWeightLogs.first?.loggedAt else { return false }
+        return Calendar.current.isDateInToday(loggedAt)
+    }
+
+    private var bodyWeightStatusColor: Color {
+        hasLoggedBodyWeightToday ? Color.unbound.success : Color.unbound.accent
+    }
+
     private var shouldShowCalibrationCard: Bool {
         calibrationSkipRatio > 0.5 && !hasLoggedAnyWorkout
     }
@@ -1649,12 +1710,10 @@ struct UnboundHomeView: View {
     /// point, not just a rescan nudge.
     private var shouldShowScanCTA: Bool { true }
 
-    /// True when ≥14 days since last successful scan (or never scanned).
-    /// Swaps the card's label from PHOTO +5 → SCAN +25.
+    /// Swaps the card's label from PHOTO +5 to SCAN +25 using the same
+    /// monthly cadence rule as the scan gate.
     private var shouldShowScanEligibility: Bool {
-        guard lastScanTimestamp > 0 else { return true }
-        let secondsSince = Date().timeIntervalSince1970 - lastScanTimestamp
-        return secondsSince >= 14 * 24 * 3600
+        scanCadence.isUnlocked
     }
 
     /// Player-facing rank title. The underlying ordinal ladder remains
@@ -1667,18 +1726,6 @@ struct UnboundHomeView: View {
         let nextTitle = rank.advanced(by: 1)
         guard nextTitle != rank else { return "PROOF +1" }
         return "TO \(nextTitle.displayName.uppercased())"
-    }
-
-    private func nextTitleValue(for rank: RankTier) -> String {
-        let next = rank.advanced(by: 1)
-        guard next != rank else { return "PROOF +1" }
-        return next.displayName
-    }
-
-    private func nextTitleDetail(for rank: RankTier) -> String {
-        let next = rank.advanced(by: 1)
-        guard next != rank else { return rank.displayName }
-        return "next milestone"
     }
 
     private func dayWord(for date: Date) -> String {
@@ -1712,14 +1759,7 @@ struct UnboundHomeView: View {
     }
 
     private func dailyQuestCard(isHero: Bool) -> some View {
-        let categoryColor: Color = {
-            switch activeRoutine.category {
-            case .cardio:   return Color.unbound.coachCyan
-            case .mobility: return Color.unbound.rankGreen
-            case .activity: return Color.unbound.warnOrange
-            case .circuit:  return Color.unbound.accent
-            }
-        }()
+        let categoryColor = questColor
 
         return VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
@@ -1735,7 +1775,7 @@ struct UnboundHomeView: View {
                     .tracking(1.2)
                     .foregroundStyle(Color.unbound.textTertiary)
                 Spacer()
-                Text("+\(activeRoutine.spReward) LVL XP")
+                Text("PROOF-GATED XP")
                     .font(Font.unbound.monoS.weight(.bold))
                     .foregroundStyle(categoryColor)
                     .monospacedDigit()
@@ -1754,7 +1794,7 @@ struct UnboundHomeView: View {
 
             Button {
                 UnboundHaptics.medium()
-                activeRoutine = SideQuestLibrary.pushProtocol
+                activeRoutine = Self.defaultDailyQuestRoutine
                 showRoutinePlayer = true
             } label: {
                 HStack(spacing: 10) {
@@ -1798,6 +1838,142 @@ struct UnboundHomeView: View {
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .strokeBorder(categoryColor.opacity(isHero ? 0.40 : 0.22), lineWidth: 1)
         )
+    }
+
+    private var dailyQuestCompletionOverlay: some View {
+        ZStack {
+            Color.unbound.bg.ignoresSafeArea()
+            VStack(spacing: 12) {
+                ProgressView()
+                    .tint(questColor)
+                    .scaleEffect(1.12)
+                Text("LOCKING IN")
+                    .font(Font.unbound.captionS.weight(.heavy))
+                    .tracking(2.0)
+                    .foregroundStyle(questColor)
+            }
+            .padding(.horizontal, 24)
+            .padding(.vertical, 18)
+            .background(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(Color.unbound.surface)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .strokeBorder(questColor.opacity(0.32), lineWidth: 1)
+            )
+        }
+        .accessibilityIdentifier("home.dailyQuest.completing")
+    }
+
+    private func dailyQuestRetryOverlay(record: RoutineCompletionRecord) -> some View {
+        ZStack {
+            Color.unbound.bg.ignoresSafeArea()
+            VStack(spacing: 16) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: 30, weight: .bold))
+                    .foregroundStyle(questColor)
+                Text("COULD NOT LOCK IN")
+                    .font(Font.unbound.captionS.weight(.heavy))
+                    .tracking(2.0)
+                    .foregroundStyle(questColor)
+                if let dailyQuestCompletionError {
+                    Text(dailyQuestCompletionError)
+                        .font(Font.unbound.bodyS)
+                        .foregroundStyle(Color.unbound.textSecondary)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Button {
+                    Task { await completeDailyQuest(record) }
+                } label: {
+                    Text("TRY AGAIN")
+                        .font(Font.unbound.bodyMStrong)
+                        .tracking(1.4)
+                        .foregroundStyle(Color.unbound.textPrimary)
+                        .frame(width: 180, height: 44)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .fill(questColor)
+                        )
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 24)
+            .padding(.vertical, 22)
+            .background(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(Color.unbound.surface)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .strokeBorder(questColor.opacity(0.32), lineWidth: 1)
+            )
+            .padding(.horizontal, 28)
+        }
+        .accessibilityIdentifier("home.dailyQuest.retry")
+    }
+
+    @MainActor
+    private func completeDailyQuest(_ record: RoutineCompletionRecord) async {
+        guard !isCompletingDailyQuest, dailyQuestRewardSequence == nil else { return }
+        pendingDailyQuestCompletionRecord = pendingDailyQuestCompletionRecord ?? record
+        dailyQuestCompletionError = nil
+        isCompletingDailyQuest = true
+
+        guard let userId = services.auth.currentUserId else {
+            LoggingService.shared.log(
+                "Daily Quest completion skipped without authenticated user",
+                level: .warning,
+                context: ["routineId": activeRoutine.id, "recordId": record.id]
+            )
+            isCompletingDailyQuest = false
+            pendingDailyQuestCompletionRecord = nil
+            showRoutinePlayer = false
+            return
+        }
+
+        let routine = activeRoutine
+        let canClaimDailyReward = RoutineHistoryStore.shared.canComplete(routineId: routine.id)
+
+        let performanceLog = TrainingSessionAdapters.performanceLogForRoutine(
+            routine,
+            record: record,
+            userId: userId
+        )
+
+        do {
+            let completionResult = try await TrainingCompletionService.shared.complete(
+                performanceLog,
+                services: services
+            )
+            RoutineHistoryStore.shared.record(record)
+            if canClaimDailyReward, completionResult.overallLevelXPGained > 0 {
+                RoutineHistoryStore.shared.complete(routine)
+            }
+
+            var rewardSummary = RewardSummary()
+            rewardSummary.progression = completionResult.progressionReceipt
+
+            dailyQuestRewardSequence = WorkoutRewardSequenceSummary.trainingReceipt(
+                performanceLog: performanceLog,
+                completionResult: completionResult,
+                rewardSummary: rewardSummary,
+                fallbackXP: 0,
+                sourceName: "Daily Quest"
+            )
+            pendingDailyQuestCompletionRecord = nil
+            dailyQuestCompletionError = nil
+            isCompletingDailyQuest = false
+        } catch {
+            LoggingService.shared.log(
+                "Daily Quest canonical completion failed",
+                level: .warning,
+                context: ["routineId": routine.id, "recordId": record.id, "error": "\(error)"]
+            )
+            isCompletingDailyQuest = false
+            dailyQuestCompletionError = "Unable to save this quest. Try again."
+        }
     }
 
     // MARK: - Ambient animations
@@ -1923,6 +2099,615 @@ private struct TopographicLines: Shape {
             }
         }
         return path
+    }
+}
+
+private struct BodyWeightOverTimeChart: View {
+    let logs: [BodyWeightLog]
+    let unit: TrainingWeightUnit
+
+    private var orderedLogs: [BodyWeightLog] {
+        Array(logs.prefix(30).reversed())
+    }
+
+    private var values: [Double] {
+        orderedLogs.map { unit.displayValue(fromKilograms: $0.weightKg) }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text("OVER TIME")
+                    .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                    .tracking(1.1)
+                    .foregroundStyle(Color.unbound.textTertiary)
+
+                Spacer()
+
+                Text(changeSummary)
+                    .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                    .tracking(0.7)
+                    .foregroundStyle(changeColor)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.74)
+            }
+
+            GeometryReader { proxy in
+                chartBody(size: proxy.size)
+            }
+
+            HStack {
+                Text(startDateText)
+                Spacer()
+                Text(endDateText)
+            }
+            .font(.system(size: 9, weight: .bold, design: .monospaced))
+            .tracking(0.7)
+            .foregroundStyle(Color.unbound.textTertiary)
+        }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color.unbound.bg.opacity(0.28))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(Color.unbound.borderSubtle.opacity(0.72), lineWidth: 1)
+        )
+        .accessibilityLabel("Bodyweight over time")
+    }
+
+    private var changeSummary: String {
+        guard values.count >= 2,
+              let first = values.first,
+              let latest = values.last
+        else {
+            let count = values.count
+            if count == 1 { return "1 LOG" }
+            return "NO LOGS"
+        }
+
+        let delta = latest - first
+        if abs(delta) < 0.05 {
+            return "STEADY · \(values.count) LOGS"
+        }
+        let sign = delta > 0 ? "+" : "-"
+        let formatted = WeightPlatePolicy.formatDisplayValue(abs(delta))
+        return "\(sign)\(formatted) \(unit.shortLabel.uppercased()) · \(values.count) LOGS"
+    }
+
+    private var changeColor: Color {
+        guard values.count >= 2,
+              let first = values.first,
+              let latest = values.last,
+              abs(latest - first) >= 0.05
+        else { return Color.unbound.textSecondary }
+
+        return latest > first ? Color.unbound.success : Color.unbound.coachCyan
+    }
+
+    private var startDateText: String {
+        guard let first = orderedLogs.first else { return "START" }
+        return Self.shortDateFormatter.string(from: first.loggedAt).uppercased()
+    }
+
+    private var endDateText: String {
+        guard let latest = orderedLogs.last else { return "NOW" }
+        return Self.shortDateFormatter.string(from: latest.loggedAt).uppercased()
+    }
+
+    private func chartBody(size: CGSize) -> some View {
+        let points = chartPoints(in: size)
+        return ZStack {
+            gridPath(in: size)
+                .stroke(Color.unbound.borderSubtle.opacity(0.65), style: StrokeStyle(lineWidth: 0.6, dash: [3, 5]))
+
+            if points.count >= 2 {
+                linePath(points: points)
+                    .stroke(
+                        LinearGradient(
+                            colors: [Color.unbound.coachCyan, Color.unbound.accent],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        ),
+                        style: StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round)
+                    )
+
+                ForEach(points.indices, id: \.self) { index in
+                    Circle()
+                        .fill(index == points.count - 1 ? Color.unbound.accent : Color.unbound.textSecondary)
+                        .frame(width: index == points.count - 1 ? 7 : 4, height: index == points.count - 1 ? 7 : 4)
+                        .position(points[index])
+                        .shadow(color: Color.unbound.accent.opacity(index == points.count - 1 ? 0.38 : 0), radius: 5)
+                }
+            } else {
+                Text(values.isEmpty ? "NO CHECK-INS" : "ONE CHECK-IN")
+                    .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                    .tracking(1.0)
+                    .foregroundStyle(Color.unbound.textTertiary)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+            }
+        }
+    }
+
+    private func chartPoints(in size: CGSize) -> [CGPoint] {
+        guard !values.isEmpty else { return [] }
+        guard let minValue = values.min(), let maxValue = values.max() else { return [] }
+
+        let padding = max((maxValue - minValue) * 0.14, 0.5)
+        let lowerBound = minValue - padding
+        let upperBound = maxValue + padding
+        let span = max(upperBound - lowerBound, 1)
+
+        return values.enumerated().map { index, value in
+            let x = values.count == 1
+                ? size.width / 2
+                : CGFloat(index) / CGFloat(values.count - 1) * size.width
+            let normalized = (value - lowerBound) / span
+            let y = size.height - CGFloat(normalized) * size.height
+            return CGPoint(x: x, y: y)
+        }
+    }
+
+    private func gridPath(in size: CGSize) -> Path {
+        Path { path in
+            for row in 0...2 {
+                let y = size.height * CGFloat(row) / 2
+                path.move(to: CGPoint(x: 0, y: y))
+                path.addLine(to: CGPoint(x: size.width, y: y))
+            }
+        }
+    }
+
+    private func linePath(points: [CGPoint]) -> Path {
+        Path { path in
+            guard let first = points.first else { return }
+            path.move(to: first)
+            points.dropFirst().forEach { path.addLine(to: $0) }
+        }
+    }
+
+    private static let shortDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM d"
+        return formatter
+    }()
+}
+
+private struct BodyWeightHistoryScreen: View {
+    let logs: [BodyWeightLog]
+    let latestWeightKg: Double?
+    let unit: TrainingWeightUnit
+    let didJustLog: Bool
+    let onLog: () -> Void
+
+    @Environment(\.dismiss) private var dismiss
+
+    private var latestLog: BodyWeightLog? {
+        logs.first
+    }
+
+    private var recentLogs: [BodyWeightLog] {
+        Array(logs.prefix(8))
+    }
+
+    private var latestValueText: String {
+        guard let latestWeightKg else { return "--" }
+        return WeightPlatePolicy.formatLoggedWeight(latestWeightKg, unit: unit)
+    }
+
+    private var latestDateText: String {
+        guard let loggedAt = latestLog?.loggedAt else { return "FROM PROFILE" }
+        if Calendar.current.isDateInToday(loggedAt) { return "TODAY" }
+        if Calendar.current.isDateInYesterday(loggedAt) { return "YESTERDAY" }
+        return Self.dateFormatter.string(from: loggedAt).uppercased()
+    }
+
+    var body: some View {
+        ScrollView(.vertical, showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 18) {
+                if didJustLog {
+                    loggedConfirmation
+                }
+
+                latestPanel
+
+                BodyWeightOverTimeChart(logs: logs, unit: unit)
+                    .frame(height: 250)
+
+                recentLogsSection
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 12)
+            .padding(.bottom, 34)
+        }
+        .background(Color.unbound.bg.ignoresSafeArea())
+        .navigationTitle("Bodyweight")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Done") {
+                    dismiss()
+                }
+                .foregroundStyle(Color.unbound.textSecondary)
+            }
+            ToolbarItem(placement: .confirmationAction) {
+                Button {
+                    onLog()
+                } label: {
+                    Label("Log", systemImage: "plus")
+                }
+                .foregroundStyle(Color.unbound.accent)
+            }
+        }
+    }
+
+    private var loggedConfirmation: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 18, weight: .black))
+                .foregroundStyle(Color.unbound.success)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("LOGGED")
+                    .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                    .tracking(1.4)
+                    .foregroundStyle(Color.unbound.success)
+                Text("Your bodyweight trend updated below.")
+                    .font(Font.unbound.monoS.weight(.semibold))
+                    .foregroundStyle(Color.unbound.textSecondary)
+            }
+
+            Spacer()
+        }
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color.unbound.success.opacity(0.10))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(Color.unbound.success.opacity(0.28), lineWidth: 1)
+        )
+    }
+
+    private var latestPanel: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(latestValueText)
+                    .font(.system(size: 52, weight: .black, design: .rounded))
+                    .foregroundStyle(Color.unbound.textPrimary)
+                    .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.68)
+
+                Text(unit.shortLabel.uppercased())
+                    .font(.system(size: 13, weight: .black, design: .monospaced))
+                    .tracking(1.1)
+                    .foregroundStyle(Color.unbound.textSecondary)
+
+                Spacer()
+            }
+
+            HStack(spacing: 8) {
+                metricPill(title: latestDateText, icon: "calendar")
+                metricPill(title: "\(logs.count) LOG\(logs.count == 1 ? "" : "S")", icon: "list.bullet")
+            }
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(Color.unbound.surface)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
+        )
+    }
+
+    private var recentLogsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("RECENT CHECK-INS")
+                    .font(Font.unbound.captionS.weight(.black))
+                    .tracking(1.6)
+                    .foregroundStyle(Color.unbound.textTertiary)
+                Spacer()
+            }
+
+            if logs.isEmpty {
+                Text("Log your first bodyweight to start the graph.")
+                    .font(Font.unbound.monoS.weight(.semibold))
+                    .foregroundStyle(Color.unbound.textSecondary)
+                    .padding(.vertical, 8)
+            } else {
+                VStack(spacing: 0) {
+                    ForEach(recentLogs.indices, id: \.self) { index in
+                        recentLogRow(recentLogs[index])
+
+                        if index < recentLogs.count - 1 {
+                            Rectangle()
+                                .fill(Color.unbound.borderSubtle)
+                                .frame(height: 0.5)
+                                .padding(.leading, 2)
+                        }
+                    }
+                }
+                .background(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .fill(Color.unbound.surface.opacity(0.66))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
+                )
+            }
+        }
+    }
+
+    private func recentLogRow(_ log: BodyWeightLog) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(Self.dateFormatter.string(from: log.loggedAt).uppercased())
+                    .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                    .tracking(1.0)
+                    .foregroundStyle(Color.unbound.textSecondary)
+                if let note = log.note, !note.isEmpty {
+                    Text(note)
+                        .font(Font.unbound.monoS)
+                        .foregroundStyle(Color.unbound.textTertiary)
+                        .lineLimit(1)
+                }
+            }
+
+            Spacer()
+
+            Text("\(WeightPlatePolicy.formatLoggedWeight(log.weightKg, unit: unit)) \(unit.shortLabel.uppercased())")
+                .font(Font.unbound.monoS.weight(.bold))
+                .foregroundStyle(Color.unbound.textPrimary)
+                .monospacedDigit()
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+    }
+
+    private func metricPill(title: String, icon: String) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.system(size: 10, weight: .black))
+            Text(title)
+                .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                .tracking(0.8)
+        }
+        .foregroundStyle(Color.unbound.textSecondary)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
+        .background(
+            Capsule()
+                .fill(Color.unbound.surfaceElevated)
+        )
+    }
+
+    private static let dateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM d"
+        return formatter
+    }()
+}
+
+private struct BodyWeightLogSheet: View {
+    let unit: TrainingWeightUnit
+    let isSaving: Bool
+    let errorMessage: String?
+    let onSave: (Double, String?) async -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var weightText: String
+    @State private var note: String = ""
+
+    private let fallbackDisplayWeight: Double
+
+    init(
+        initialWeightKg: Double?,
+        unit: TrainingWeightUnit,
+        isSaving: Bool,
+        errorMessage: String?,
+        onSave: @escaping (Double, String?) async -> Void
+    ) {
+        self.unit = unit
+        self.isSaving = isSaving
+        self.errorMessage = errorMessage
+        self.onSave = onSave
+
+        let displayWeight = initialWeightKg.map {
+            WeightPlatePolicy.editingValue(fromKilograms: $0, unit: unit)
+        } ?? Self.defaultDisplayWeight(for: unit)
+        self.fallbackDisplayWeight = displayWeight
+        _weightText = State(initialValue: WeightPlatePolicy.formatDisplayValue(displayWeight))
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("LOG BODYWEIGHT")
+                        .font(Font.unbound.captionS.weight(.black))
+                        .tracking(1.8)
+                        .foregroundStyle(Color.unbound.accent)
+                    Text("TODAY")
+                        .font(Font.unbound.monoS.weight(.bold))
+                        .tracking(1.0)
+                        .foregroundStyle(Color.unbound.textTertiary)
+                }
+
+                Spacer()
+
+                Button {
+                    dismiss()
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 12, weight: .black))
+                        .foregroundStyle(Color.unbound.textSecondary)
+                        .frame(width: 34, height: 34)
+                        .background(Circle().fill(Color.unbound.surfaceElevated))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Close")
+            }
+
+            HStack(alignment: .center, spacing: 12) {
+                adjustmentButton(systemName: "minus", delta: -stepSize)
+
+                VStack(spacing: 2) {
+                    HStack(alignment: .firstTextBaseline, spacing: 7) {
+                        TextField("0", text: $weightText)
+                            .font(.system(size: 44, weight: .black, design: .rounded))
+                            .foregroundStyle(Color.unbound.textPrimary)
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.center)
+                            .monospacedDigit()
+                            .frame(minWidth: 104, maxWidth: 170)
+
+                        Text(unit.shortLabel.uppercased())
+                            .font(.system(size: 13, weight: .black, design: .monospaced))
+                            .tracking(1.0)
+                            .foregroundStyle(Color.unbound.textSecondary)
+                    }
+
+                    Text(validityText)
+                        .font(Font.unbound.monoS.weight(.semibold))
+                        .tracking(0.5)
+                        .foregroundStyle(parsedWeightKg == nil ? Color.unbound.alert : Color.unbound.textTertiary)
+                        .lineLimit(1)
+                }
+                .frame(maxWidth: .infinity)
+
+                adjustmentButton(systemName: "plus", delta: stepSize)
+            }
+            .padding(.vertical, 10)
+            .background(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(Color.unbound.surface)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
+            )
+
+            TextField("Optional note", text: $note)
+                .font(Font.unbound.bodyM)
+                .foregroundStyle(Color.unbound.textPrimary)
+                .tint(Color.unbound.accent)
+                .padding(.horizontal, 14)
+                .frame(height: 46)
+                .background(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(Color.unbound.surface)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
+                )
+
+            if let errorMessage {
+                Text(errorMessage)
+                    .font(Font.unbound.monoS.weight(.bold))
+                    .foregroundStyle(Color.unbound.alert)
+                    .lineLimit(2)
+            }
+
+            Button {
+                guard let parsedWeightKg else { return }
+                Task { await onSave(parsedWeightKg, note) }
+            } label: {
+                HStack(spacing: 10) {
+                    if isSaving {
+                        ProgressView()
+                            .tint(Color.unbound.textPrimary)
+                    } else {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 13, weight: .black))
+                    }
+                    Text(isSaving ? "SAVING" : "SAVE WEIGHT")
+                        .font(Font.unbound.bodyMStrong)
+                        .tracking(1.5)
+                }
+                .foregroundStyle(Color.unbound.textPrimary)
+                .frame(maxWidth: .infinity)
+                .frame(height: 50)
+                .background(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(parsedWeightKg == nil ? Color.unbound.border : Color.unbound.accent)
+                )
+            }
+            .buttonStyle(.plain)
+            .disabled(parsedWeightKg == nil || isSaving)
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .background(Color.unbound.bg.ignoresSafeArea())
+    }
+
+    private var stepSize: Double {
+        unit == .pounds ? 0.5 : 0.25
+    }
+
+    private var displayWeightRange: ClosedRange<Double> {
+        unit == .pounds ? 40...700 : 20...320
+    }
+
+    private var parsedDisplayWeight: Double? {
+        let raw = weightText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !raw.isEmpty else { return nil }
+
+        let formatter = NumberFormatter()
+        formatter.locale = .current
+        formatter.numberStyle = .decimal
+
+        let fallback = Double(raw.replacingOccurrences(of: ",", with: "."))
+        guard let value = formatter.number(from: raw)?.doubleValue ?? fallback,
+              displayWeightRange.contains(value)
+        else { return nil }
+        return value
+    }
+
+    private var parsedWeightKg: Double? {
+        parsedDisplayWeight.map { unit.kilograms(fromDisplayValue: $0) }
+    }
+
+    private var validityText: String {
+        parsedWeightKg == nil ? "OUT OF RANGE" : "READY TO LOG"
+    }
+
+    private static func defaultDisplayWeight(for unit: TrainingWeightUnit) -> Double {
+        unit == .pounds ? 180 : 82
+    }
+
+    private func adjustmentButton(systemName: String, delta: Double) -> some View {
+        Button {
+            adjust(by: delta)
+        } label: {
+            Image(systemName: systemName)
+                .font(.system(size: 14, weight: .black))
+                .foregroundStyle(Color.unbound.textPrimary)
+                .frame(width: 46, height: 46)
+                .background(
+                    Circle()
+                        .fill(Color.unbound.surfaceElevated)
+                )
+                .overlay(
+                    Circle()
+                        .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
+                )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func adjust(by delta: Double) {
+        let current = parsedDisplayWeight ?? fallbackDisplayWeight
+        let next = min(max(current + delta, displayWeightRange.lowerBound), displayWeightRange.upperBound)
+        weightText = WeightPlatePolicy.formatDisplayValue(next)
     }
 }
 
@@ -2079,5 +2864,544 @@ private struct HomeLoadingSkeleton: View {
         Capsule()
             .fill(Color.unbound.surfaceElevated)
             .frame(width: width, height: height)
+    }
+}
+
+private struct BodyLoadHeatmapView: View {
+    let loads: [BodyRegion: Double]
+    let plannedRegions: [BodyRegion]
+
+    private var readings: [BodyLoadRegionReading] {
+        loads
+            .filter { $0.value > 0.05 }
+            .map { BodyLoadRegionReading(region: $0.key, load: $0.value) }
+            .sorted { lhs, rhs in
+                if lhs.load == rhs.load { return lhs.region.displayName < rhs.region.displayName }
+                return lhs.load > rhs.load
+            }
+    }
+
+    private var topReading: BodyLoadRegionReading? {
+        readings.first
+    }
+
+    private var plannedSummary: String? {
+        let regions = Array(Set(plannedRegions))
+            .sorted { $0.displayName < $1.displayName }
+        guard !regions.isEmpty else { return nil }
+
+        let names = regions.prefix(2).map(\.displayName)
+        if regions.count > names.count {
+            return names.joined(separator: " + ") + " +\(regions.count - names.count)"
+        }
+        return names.joined(separator: " + ")
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            header
+
+            HStack(alignment: .top, spacing: 12) {
+                BodyLoadFigure(side: .front, loads: loads)
+                BodyLoadFigure(side: .back, loads: loads)
+            }
+
+            footer
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(Color.unbound.surface)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
+        )
+    }
+
+    private var header: some View {
+        HStack(alignment: .center, spacing: 12) {
+            if let topReading {
+                VStack(alignment: .leading, spacing: 5) {
+                    Text("BODY LOAD")
+                        .font(Font.unbound.captionS.weight(.black))
+                        .tracking(1.8)
+                        .foregroundStyle(Color.unbound.textTertiary)
+                    Text(topReading.region.displayName.uppercased())
+                        .font(.system(size: 24, weight: .black))
+                        .foregroundStyle(Color.unbound.textPrimary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.72)
+                    Text("Last 7 days")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(Color.unbound.textTertiary)
+                }
+
+                Spacer(minLength: 8)
+
+                BodyLoadBandPill(band: topReading.band)
+            } else {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("BODY LOAD")
+                        .font(Font.unbound.captionS.weight(.black))
+                        .tracking(1.8)
+                        .foregroundStyle(Color.unbound.textTertiary)
+                    Text("NO RECENT LOAD")
+                        .font(.system(size: 23, weight: .black))
+                        .foregroundStyle(Color.unbound.textPrimary)
+                }
+                Spacer()
+            }
+        }
+    }
+
+    private var footer: some View {
+        HStack(alignment: .center, spacing: 10) {
+            miniLegend
+
+            Spacer(minLength: 8)
+
+            if let plannedSummary {
+                HStack(spacing: 5) {
+                    Image(systemName: "calendar")
+                        .font(.system(size: 10, weight: .semibold))
+                    Text(plannedSummary.uppercased())
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                }
+                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                .tracking(0.5)
+                .foregroundStyle(Color.unbound.textTertiary)
+            }
+        }
+    }
+
+    private var miniLegend: some View {
+        HStack(spacing: 5) {
+            ForEach(BodyLoadBand.allCases) { band in
+                RoundedRectangle(cornerRadius: 3, style: .continuous)
+                    .fill(band.tint)
+                    .frame(width: 16, height: 6)
+            }
+            Text("FRESH TO HEAVY")
+                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                .tracking(0.6)
+                .foregroundStyle(Color.unbound.textTertiary)
+        }
+    }
+}
+
+private struct BodyLoadFigure: View {
+    let side: BodyMapSide
+    let loads: [BodyRegion: Double]
+
+    var body: some View {
+        VStack(spacing: 8) {
+            BodyLoadFigureCanvas(
+                side: side,
+                loads: loads
+            )
+            .overlay(alignment: .topTrailing) {
+                Text(side.shortTitle)
+                    .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                    .tracking(1.0)
+                    .foregroundStyle(Color.unbound.textTertiary)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 4)
+                    .background(
+                        Capsule()
+                            .fill(Color.unbound.bg.opacity(0.62))
+                    )
+                    .padding(5)
+            }
+        }
+        .frame(maxWidth: .infinity)
+    }
+}
+
+private struct BodyLoadFigureCanvas: View {
+    let side: BodyMapSide
+    let loads: [BodyRegion: Double]
+
+    var body: some View {
+        GeometryReader { proxy in
+            let viewBox = BodyLoadSVGRegionAsset.viewBox(for: side)
+            let drawRect = Self.drawRect(in: proxy.size, viewBox: viewBox)
+            ZStack {
+                if let baseImage = BodyLoadImageAsset.image(for: side) {
+                    Image(uiImage: baseImage)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: drawRect.width, height: drawRect.height)
+                        .position(x: drawRect.midX, y: drawRect.midY)
+                        .opacity(1)
+                }
+
+                ZStack {
+                    ForEach(BodyLoadSVGRegionAsset.paths(for: side)) { spec in
+                        let load = loads[spec.region] ?? 0
+
+                        spec.path(in: drawRect, viewBox: viewBox)
+                            .fill(
+                                BodyLoadHeatColor.color(
+                                    forLoad: load,
+                                    kind: spec.kind
+                                ),
+                                style: FillStyle(eoFill: spec.usesEvenOdd)
+                            )
+                            .blendMode(spec.kind == .fill ? .multiply : .normal)
+                            .shadow(
+                                color: BodyLoadHeatColor.color(forLoad: load, kind: .stroke)
+                                    .opacity(load > 0.5 ? 0.20 : 0),
+                                radius: spec.kind == .stroke ? 2 : 0
+                            )
+                    }
+                }
+            }
+            .frame(width: proxy.size.width, height: proxy.size.height)
+        }
+        .aspectRatio(BodyLoadSVGRegionAsset.viewBox(for: side).width / BodyLoadSVGRegionAsset.viewBox(for: side).height, contentMode: .fit)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color.unbound.bg.opacity(0.28))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(Color.white.opacity(0.06), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    private static func drawRect(in size: CGSize, viewBox: CGSize) -> CGRect {
+        let scale = min(size.width / viewBox.width, size.height / viewBox.height)
+        let width = viewBox.width * scale
+        let height = viewBox.height * scale
+        return CGRect(
+            x: (size.width - width) / 2,
+            y: (size.height - height) / 2,
+            width: width,
+            height: height
+        )
+    }
+}
+
+private enum BodyLoadSVGRegionAsset {
+    static let defaultViewBox = CGSize(width: 1280, height: 1908)
+    private static let frontAsset = load(side: .front)
+    private static let backAsset = load(side: .back)
+
+    static func viewBox(for side: BodyMapSide) -> CGSize {
+        switch side {
+        case .front:
+            return frontAsset.viewBox
+        case .back:
+            return backAsset.viewBox
+        }
+    }
+
+    static func paths(for side: BodyMapSide) -> [BodyLoadRegionSpec] {
+        switch side {
+        case .front:
+            return frontAsset.paths
+        case .back:
+            return backAsset.paths
+        }
+    }
+
+    private static func load(side: BodyMapSide) -> Loaded {
+        guard let url = Bundle.main.url(
+            forResource: side.bodyLoadSVGName,
+            withExtension: "svg",
+            subdirectory: "BodyMap"
+        ) ?? Bundle.main.url(
+            forResource: side.bodyLoadSVGName,
+            withExtension: "svg"
+        ),
+              let data = try? Data(contentsOf: url)
+        else {
+            return Loaded(viewBox: defaultViewBox, paths: [])
+        }
+
+        let parser = BodyLoadSVGRegionParser(side: side)
+        let xmlParser = XMLParser(data: data)
+        xmlParser.delegate = parser
+        _ = xmlParser.parse()
+        return Loaded(viewBox: parser.viewBox ?? defaultViewBox, paths: parser.paths)
+    }
+
+    private struct Loaded {
+        let viewBox: CGSize
+        let paths: [BodyLoadRegionSpec]
+    }
+}
+
+private final class BodyLoadSVGRegionParser: NSObject, XMLParserDelegate {
+    let side: BodyMapSide
+    var viewBox: CGSize?
+    var paths: [BodyLoadRegionSpec] = []
+
+    init(side: BodyMapSide) {
+        self.side = side
+    }
+
+    func parser(_ parser: XMLParser,
+                didStartElement elementName: String,
+                namespaceURI: String?,
+                qualifiedName qName: String?,
+                attributes attributeDict: [String: String] = [:]) {
+        if elementName == "svg", let rawViewBox = attributeDict["viewBox"] {
+            viewBox = Self.parseViewBox(rawViewBox)
+            return
+        }
+
+        guard elementName == "path",
+              let rawRegion = attributeDict["data-region"],
+              let region = BodyLoadSVGRegionMapper.region(from: rawRegion),
+              let pathData = attributeDict["d"]
+        else { return }
+
+        let id = attributeDict["id"] ?? "\(side.shortTitle)-\(rawRegion)-\(paths.count)"
+        let className = attributeDict["class"] ?? ""
+        let kind: BodyLoadPathKind = id.contains("-stroke") || className.contains("stroke")
+            ? .stroke
+            : .fill
+
+        paths.append(
+            BodyLoadRegionSpec(
+                id: id,
+                region: region,
+                kind: kind,
+                pathData: pathData,
+                usesEvenOdd: attributeDict["fill-rule"] == "evenodd"
+            )
+        )
+    }
+
+    private static func parseViewBox(_ rawValue: String) -> CGSize? {
+        let values = rawValue
+            .split { $0 == " " || $0 == "," }
+            .compactMap { Double($0) }
+        guard values.count == 4 else { return nil }
+        return CGSize(width: CGFloat(values[2]), height: CGFloat(values[3]))
+    }
+}
+
+private struct BodyLoadRegionSpec: Identifiable {
+    let id: String
+    let region: BodyRegion
+    let kind: BodyLoadPathKind
+    let pathData: String
+    let usesEvenOdd: Bool
+
+    func path(in rect: CGRect, viewBox: CGSize) -> Path {
+        let scale = rect.width / viewBox.width
+        let transform = CGAffineTransform(
+            a: scale,
+            b: 0,
+            c: 0,
+            d: scale,
+            tx: rect.minX,
+            ty: rect.minY
+        )
+        return SVGPathParser.path(from: pathData).applying(transform)
+    }
+}
+
+private enum BodyLoadSVGRegionMapper {
+    static func region(from rawValue: String) -> BodyRegion? {
+        switch rawValue {
+        case "deltoids":
+            return .shoulders
+        case "traps_upper_back":
+            return .traps
+        case "lower_back":
+            return .lowerBack
+        default:
+            return BodyRegion(rawValue: rawValue)
+        }
+    }
+}
+
+private enum BodyLoadImageAsset {
+    static func image(for side: BodyMapSide) -> UIImage? {
+        switch side {
+        case .front:
+            return frontImage
+        case .back:
+            return backImage
+        }
+    }
+
+    private static let frontImage = load(side: .front)
+    private static let backImage = load(side: .back)
+
+    private static func load(side: BodyMapSide) -> UIImage? {
+        if let url = Bundle.main.url(
+            forResource: side.bodyLoadBaseImageName,
+            withExtension: "png",
+            subdirectory: "BodyMap"
+        ) ?? Bundle.main.url(
+            forResource: side.bodyLoadBaseImageName,
+            withExtension: "png"
+        ),
+           let image = UIImage(contentsOfFile: url.path) {
+            return image
+        }
+        return UIImage(named: side.bodyLoadBaseImageName)
+    }
+}
+
+private enum BodyLoadPathKind {
+    case fill
+    case stroke
+}
+
+private enum BodyLoadHeatColor {
+    static func color(forLoad load: Double, kind: BodyLoadPathKind) -> Color {
+        guard load >= 0.5 else {
+            return Color.clear
+        }
+
+        let band = BodyLoadBand.band(for: load)
+        let intensity = min(1, max(0.18, load / BodyLoadBand.heavyThreshold))
+
+        switch kind {
+        case .fill:
+            return band.tint.opacity(0.20 + intensity * 0.36)
+        case .stroke:
+            return band.tint.opacity(0.62 + intensity * 0.28)
+        }
+    }
+}
+
+private struct BodyLoadRegionReading: Identifiable {
+    var id: BodyRegion { region }
+    let region: BodyRegion
+    let load: Double
+
+    var band: BodyLoadBand {
+        BodyLoadBand.band(for: load)
+    }
+
+    var loadText: String {
+        if load < 1 {
+            return "<1"
+        }
+        return "\(Int(load.rounded()))"
+    }
+}
+
+private struct BodyLoadBandPill: View {
+    let band: BodyLoadBand
+
+    var body: some View {
+        Text(band.label.uppercased())
+            .font(.system(size: 11, weight: .heavy, design: .monospaced))
+            .tracking(0.7)
+            .foregroundStyle(band.tint)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 7)
+            .background(
+                Capsule()
+                    .fill(band.tint.opacity(0.13))
+            )
+            .overlay(
+                Capsule()
+                    .strokeBorder(band.tint.opacity(0.28), lineWidth: 1)
+            )
+    }
+}
+
+private enum BodyLoadBand: CaseIterable, Identifiable {
+    case fresh
+    case steady
+    case high
+    case heavy
+
+    static let heavyThreshold: Double = 22
+
+    var id: String { label }
+
+    static func band(for load: Double) -> BodyLoadBand {
+        let displayedLoad = load < 1 ? load : Double(Int(load.rounded()))
+        switch displayedLoad {
+        case ..<6:
+            return .fresh
+        case ..<13:
+            return .steady
+        case ..<heavyThreshold:
+            return .high
+        default:
+            return .heavy
+        }
+    }
+
+    var label: String {
+        switch self {
+        case .fresh:
+            return "Fresh"
+        case .steady:
+            return "Steady"
+        case .high:
+            return "High"
+        case .heavy:
+            return "Heavy"
+        }
+    }
+
+    var rangeLabel: String {
+        switch self {
+        case .fresh:
+            return "0-5"
+        case .steady:
+            return "6-12"
+        case .high:
+            return "13-21"
+        case .heavy:
+            return "22+"
+        }
+    }
+
+    var tint: Color {
+        switch self {
+        case .fresh:
+            return Color.unbound.rankGreen
+        case .steady:
+            return Color.unbound.rankAmber
+        case .high:
+            return Color.unbound.warnOrange
+        case .heavy:
+            return Color.unbound.alert
+        }
+    }
+}
+
+private extension BodyMapSide {
+    var shortTitle: String {
+        switch self {
+        case .front:
+            return "FRONT"
+        case .back:
+            return "BACK"
+        }
+    }
+
+    var bodyLoadBaseImageName: String {
+        switch self {
+        case .front:
+            return "heatmap_front"
+        case .back:
+            return "heatmap_back"
+        }
+    }
+
+    var bodyLoadSVGName: String {
+        switch self {
+        case .front:
+            return "source_frontmap_character_mirrored_filled"
+        case .back:
+            return "source_backmap_character_mirrored_filled"
+        }
     }
 }

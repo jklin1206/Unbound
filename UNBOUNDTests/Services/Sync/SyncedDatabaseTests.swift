@@ -9,6 +9,17 @@ final class SyncedDatabaseTests: XCTestCase {
     private var sut: SyncedDatabase!
 
     struct Doc: Codable, Equatable { var id: String; var userId: String; var n: Int }
+    struct SnakeDoc: Codable, Equatable {
+        var id: String
+        var userId: String
+        var n: Int
+
+        enum CodingKeys: String, CodingKey {
+            case id
+            case userId = "user_id"
+            case n
+        }
+    }
 
     override func setUp() {
         super.setUp()
@@ -33,17 +44,64 @@ final class SyncedDatabaseTests: XCTestCase {
         XCTAssertEqual(q[0].docId, "d1")
     }
 
+    func test_create_usesSnakeCaseUserIdForOutboxOwnership() async throws {
+        try await sut.create(SnakeDoc(id: "d1", userId: "u1", n: 1),
+                             collection: "exercisePreferences", documentId: "d1")
+
+        let entry = try XCTUnwrap(outbox.peekBatch(limit: 10).first)
+        XCTAssertEqual(entry.userId, "u1")
+        XCTAssertEqual(entry.docId, "d1")
+    }
+
     func test_delete_enqueues_delete() async throws {
         try await sut.create(Doc(id: "d1", userId: "u1", n: 1),
                               collection: "programs", documentId: "d1")
         try await sut.delete(collection: "programs", documentId: "d1")
         let q = outbox.peekBatch(limit: 10)
         XCTAssertEqual(q.last?.op, .delete)
+        XCTAssertEqual(q.last?.userId, "u1")
     }
 
     func test_unsynced_collection_does_not_enqueue() async throws {
         try await sut.create(Doc(id: "d1", userId: "u1", n: 1),
                               collection: "transientCache", documentId: "d1")
+        XCTAssertEqual(outbox.pendingCount, 0)
+    }
+
+    func test_programBlockStore_save_enqueues_canonical_programBlocks_collection() async throws {
+        let store = ProgramBlockStore(database: sut)
+        let block = ProgramBlock(
+            id: "block-1",
+            userId: "u1",
+            programId: "program-1",
+            blockNumber: 1,
+            startedAt: Date(timeIntervalSince1970: 1_700_000_000),
+            scanId: nil
+        )
+
+        await store.save(block)
+
+        let entry = try XCTUnwrap(outbox.peekBatch(limit: 10).first)
+        XCTAssertEqual(entry.collection, "program_blocks")
+        XCTAssertEqual(entry.op, .upsert)
+        XCTAssertEqual(entry.docId, block.id)
+    }
+
+    func test_progressionStateStore_save_isExplicitlyLocalOnly() async throws {
+        let store = ProgressionStateStore(database: sut)
+        let state = ProgressionState.seed(
+            userId: "u1",
+            exercise: "Bench Press",
+            startingWeightKg: 80
+        )
+
+        await store.save(state)
+
+        let saved: ProgressionState = try await local.read(
+            collection: "progression_states",
+            documentId: state.id
+        )
+        XCTAssertEqual(saved.exerciseKey, state.exerciseKey)
         XCTAssertEqual(outbox.pendingCount, 0)
     }
 

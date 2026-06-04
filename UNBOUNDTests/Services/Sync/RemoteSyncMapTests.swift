@@ -5,9 +5,25 @@ final class RemoteSyncMapTests: XCTestCase {
     func test_known_collections_map_to_tables() {
         XCTAssertEqual(SyncCollectionMap.table(for: "workoutLogs"), "workout_logs")
         XCTAssertEqual(SyncCollectionMap.table(for: "exercisePreferences"), "exercise_preferences")
+        XCTAssertEqual(SyncCollectionMap.table(for: "program_blocks"), "program_blocks")
         XCTAssertEqual(SyncCollectionMap.userColumn(for: "users"), "id")
         XCTAssertEqual(SyncCollectionMap.userColumn(for: "programs"), "user_id")
     }
+
+    func test_synced_collections_include_canonical_program_block_but_not_localOnlyProgressionKeys() {
+        XCTAssertTrue(SyncCollectionMap.syncedCollections.contains("program_blocks"))
+        XCTAssertFalse(SyncCollectionMap.syncedCollections.contains("progression_states"))
+        XCTAssertTrue(SyncCollectionMap.isLocalOnly("progression_states"))
+        XCTAssertTrue(SyncCollectionMap.isLocalOnly("movement_progress"))
+        XCTAssertTrue(SyncCollectionMap.isLocalOnly("movement_progress_source_receipts"))
+        XCTAssertTrue(SyncCollectionMap.isLocalOnly("body_map_profiles"))
+        XCTAssertTrue(SyncCollectionMap.isLocalOnly("body_map_source_receipts"))
+        XCTAssertTrue(SyncCollectionMap.isLocalOnly("training_completion_replay_receipts"))
+        XCTAssertTrue(SyncCollectionMap.isLocalOnly("training_completion_progression_receipts"))
+        XCTAssertFalse(SyncCollectionMap.syncedCollections.contains("programBlocks"))
+        XCTAssertFalse(SyncCollectionMap.syncedCollections.contains("progressionState"))
+    }
+
     func test_unknown_collection_returns_nil_table() {
         XCTAssertNil(SyncCollectionMap.table(for: "notSynced"))
     }
@@ -41,6 +57,61 @@ final class RemoteSyncMapTests: XCTestCase {
         XCTAssertNotNil(payload["recovery_plan"])
     }
 
+    func test_workout_log_payload_allows_non_program_remote_sources() throws {
+        let log = WorkoutLog(
+            id: UUID().uuidString,
+            userId: UUID().uuidString,
+            programId: "",
+            dayNumber: 0,
+            plannedWorkoutName: "Wall Handstand",
+            startedAt: Date(timeIntervalSince1970: 1_700_000_000),
+            completedAt: Date(timeIntervalSince1970: 1_700_000_600),
+            exerciseEntries: [],
+            overallNotes: nil,
+            overallRPE: nil,
+            durationMinutes: 10
+        )
+
+        let normalized = SupabaseRemoteSync.normalizedPayload(
+            collection: "workoutLogs",
+            data: try JSONEncoder.unbound.encode(log)
+        )
+        let payload = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: normalized) as? [String: Any]
+        )
+
+        XCTAssertTrue(payload["program_id"] is NSNull)
+        XCTAssertEqual(payload["day_number"] as? Int, 0)
+        XCTAssertEqual(payload["planned_workout_name"] as? String, "Wall Handstand")
+    }
+
+    func test_workout_log_payload_preserves_uuid_program_id() throws {
+        let programId = UUID().uuidString
+        let log = WorkoutLog(
+            id: UUID().uuidString,
+            userId: UUID().uuidString,
+            programId: programId,
+            dayNumber: 2,
+            plannedWorkoutName: "Program Day",
+            startedAt: Date(timeIntervalSince1970: 1_700_000_000),
+            completedAt: Date(timeIntervalSince1970: 1_700_000_600),
+            exerciseEntries: [],
+            overallNotes: nil,
+            overallRPE: nil,
+            durationMinutes: 10
+        )
+
+        let normalized = SupabaseRemoteSync.normalizedPayload(
+            collection: "workoutLogs",
+            data: try JSONEncoder.unbound.encode(log)
+        )
+        let payload = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: normalized) as? [String: Any]
+        )
+
+        XCTAssertEqual(payload["program_id"] as? String, programId)
+    }
+
     func test_pull_payload_is_camel_cased_for_local_restore() throws {
         let remote = """
         {
@@ -67,5 +138,30 @@ final class RemoteSyncMapTests: XCTestCase {
         XCTAssertEqual(payload["currentProgramId"] as? String, "program-1")
         XCTAssertEqual(days.first?["dayNumber"] as? Int, 1)
         XCTAssertNotNil(days.first?["recoveryActivities"])
+    }
+
+    func test_workout_log_pull_payload_restores_null_program_id_as_empty_string() throws {
+        let remote = """
+        {
+          "id": "log-1",
+          "user_id": "user-1",
+          "program_id": null,
+          "day_number": 0,
+          "planned_workout_name": "Wall Handstand",
+          "started_at": "2026-06-01T10:00:00Z",
+          "completed_at": "2026-06-01T10:10:00Z",
+          "duration_minutes": 10,
+          "overall_rpe": null,
+          "overall_notes": null,
+          "exercise_entries": []
+        }
+        """.data(using: .utf8)!
+
+        let local = SupabaseRemoteSync.localPayload(collection: "workoutLogs", data: remote)
+        let log = try JSONDecoder.unbound.decode(WorkoutLog.self, from: local)
+
+        XCTAssertEqual(log.programId, "")
+        XCTAssertEqual(log.dayNumber, 0)
+        XCTAssertEqual(log.plannedWorkoutName, "Wall Handstand")
     }
 }

@@ -55,6 +55,8 @@ final class ProgramStoreTests: XCTestCase {
         let q = ob.peekBatch(limit: 10)
         XCTAssertTrue(q.contains { $0.collection == "programs" && $0.docId == "p-9" && $0.op == .upsert })
         XCTAssertTrue(q.contains { $0.collection == "users" && $0.docId == "u-1" })
+        XCTAssertFalse(q.first { $0.collection == "programs" }?.changedFields.isEmpty ?? true)
+        XCTAssertEqual(q.first { $0.collection == "users" }?.changedFields, ["currentProgramId"])
     }
 
     func test_save_localStillReads_beforeFlush() async {

@@ -1,0 +1,1425 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>UNBOUND Program Design Review</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #f6f4ee;
+      --muted: #b8b5aa;
+      --soft: #827f75;
+      --bg: #111210;
+      --panel: #1b1d19;
+      --panel-2: #22251f;
+      --line: #34382f;
+      --cyan: #45d0c3;
+      --green: #8bd36c;
+      --gold: #d7b35f;
+      --coral: #df745d;
+      --shadow: rgba(0, 0, 0, 0.28);
+      --radius: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      background:
+        linear-gradient(180deg, rgba(69, 208, 195, 0.05), transparent 26rem),
+        radial-gradient(circle at top left, rgba(139, 211, 108, 0.09), transparent 24rem),
+        var(--bg);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.45;
+      letter-spacing: 0;
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    .deck-shell {
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      padding: 20px;
+      gap: 16px;
+    }
+
+    .topbar,
+    .controls {
+      width: min(1180px, 100%);
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .brand strong {
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--cyan);
+      white-space: nowrap;
+    }
+
+    .brand span {
+      color: var(--muted);
+      font-size: 0.9rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .counter {
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    main {
+      width: min(1180px, 100%);
+      margin: 0 auto;
+      position: relative;
+      min-height: 0;
+      display: grid;
+    }
+
+    .slide {
+      display: none;
+      min-height: min(760px, calc(100vh - 156px));
+      padding: clamp(22px, 3vw, 42px);
+      background:
+        linear-gradient(145deg, rgba(255, 255, 255, 0.04), transparent 42%),
+        var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: 0 28px 80px var(--shadow);
+      overflow: hidden;
+    }
+
+    .slide.active {
+      display: grid;
+      align-content: start;
+      gap: 24px;
+    }
+
+    .eyebrow {
+      margin: 0 0 12px;
+      color: var(--green);
+      font-size: 0.76rem;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      font-weight: 800;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin-top: 0;
+    }
+
+    h1 {
+      max-width: 960px;
+      margin-bottom: 18px;
+      font-size: clamp(2.4rem, 5vw, 5.4rem);
+      line-height: 0.96;
+      letter-spacing: 0;
+    }
+
+    h2 {
+      max-width: 980px;
+      margin-bottom: 12px;
+      font-size: clamp(1.8rem, 3.4vw, 3.6rem);
+      line-height: 1.02;
+      letter-spacing: 0;
+    }
+
+    h3 {
+      margin-bottom: 8px;
+      font-size: 1rem;
+      line-height: 1.2;
+      letter-spacing: 0;
+    }
+
+    .lead {
+      max-width: 860px;
+      color: var(--muted);
+      font-size: clamp(1rem, 1.5vw, 1.28rem);
+    }
+
+    .big-verdict {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(260px, 0.45fr);
+      gap: 18px;
+      align-items: stretch;
+    }
+
+    .verdict-panel {
+      display: grid;
+      align-content: center;
+      gap: 10px;
+      min-height: 170px;
+      padding: 20px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel-2);
+    }
+
+    .verdict-panel strong {
+      font-size: clamp(1.3rem, 2vw, 2rem);
+      line-height: 1.08;
+    }
+
+    .verdict-panel span {
+      color: var(--muted);
+    }
+
+    .tag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      padding: 5px 9px;
+      border: 1px solid rgba(69, 208, 195, 0.32);
+      border-radius: 999px;
+      color: var(--ink);
+      background: rgba(69, 208, 195, 0.08);
+      font-size: 0.8rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .tag.warn {
+      border-color: rgba(223, 116, 93, 0.38);
+      background: rgba(223, 116, 93, 0.1);
+    }
+
+    .tag.good {
+      border-color: rgba(139, 211, 108, 0.4);
+      background: rgba(139, 211, 108, 0.1);
+    }
+
+    .grid {
+      display: grid;
+      gap: 12px;
+    }
+
+    .grid.two {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .grid.three {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .grid.four {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .card {
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(34, 37, 31, 0.86);
+    }
+
+    .card p,
+    .card li {
+      color: var(--muted);
+    }
+
+    .card h3 {
+      color: var(--ink);
+    }
+
+    .accent-left {
+      border-left: 4px solid var(--cyan);
+    }
+
+    .accent-green {
+      border-left-color: var(--green);
+    }
+
+    .accent-gold {
+      border-left-color: var(--gold);
+    }
+
+    .accent-coral {
+      border-left-color: var(--coral);
+    }
+
+    ul,
+    ol {
+      margin: 0;
+      padding-left: 1.1rem;
+    }
+
+    li + li {
+      margin-top: 7px;
+    }
+
+    code {
+      padding: 0.06rem 0.3rem;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 5px;
+      background: rgba(0, 0, 0, 0.22);
+      color: #e8dfbd;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      font-size: 0.86em;
+    }
+
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 10px;
+      align-items: stretch;
+    }
+
+    .flow .step {
+      position: relative;
+      min-height: 116px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(20, 22, 19, 0.84);
+    }
+
+    .flow .step::after {
+      content: ">";
+      position: absolute;
+      right: -10px;
+      top: 50%;
+      width: 18px;
+      height: 18px;
+      transform: translateY(-50%);
+      display: grid;
+      place-items: center;
+      color: var(--soft);
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: 50%;
+      font-size: 0.72rem;
+      z-index: 2;
+    }
+
+    .flow .step:last-child::after {
+      display: none;
+    }
+
+    .step small,
+    .source small,
+    .mini {
+      color: var(--soft);
+      font-size: 0.78rem;
+      line-height: 1.35;
+    }
+
+    .step strong {
+      display: block;
+      margin-bottom: 6px;
+      line-height: 1.14;
+    }
+
+    .step span {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .matrix {
+      display: grid;
+      grid-template-columns: minmax(150px, 0.65fr) minmax(0, 1fr) minmax(0, 1fr);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .matrix > div {
+      padding: 12px;
+      border-right: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      min-height: 58px;
+    }
+
+    .matrix > div:nth-child(3n) {
+      border-right: 0;
+    }
+
+    .matrix > div:nth-last-child(-n+3) {
+      border-bottom: 0;
+    }
+
+    .matrix .head {
+      background: rgba(69, 208, 195, 0.08);
+      color: var(--ink);
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 0.75rem;
+    }
+
+    .matrix .label {
+      color: var(--ink);
+      font-weight: 800;
+    }
+
+    .matrix .text {
+      color: var(--muted);
+    }
+
+    .status-table {
+      display: grid;
+      grid-template-columns: minmax(150px, 0.55fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .status-table > div {
+      padding: 11px;
+      border-right: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      color: var(--muted);
+    }
+
+    .status-table > div:nth-child(4n) {
+      border-right: 0;
+    }
+
+    .status-table > div:nth-last-child(-n+4) {
+      border-bottom: 0;
+    }
+
+    .status-table .head {
+      color: var(--ink);
+      background: rgba(139, 211, 108, 0.08);
+      font-weight: 800;
+      font-size: 0.76rem;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+    }
+
+    .status-table .label {
+      color: var(--ink);
+      font-weight: 800;
+    }
+
+    .source-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .source {
+      padding: 10px 12px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: var(--radius);
+      background: rgba(0, 0, 0, 0.18);
+    }
+
+    .source strong {
+      display: block;
+      margin-bottom: 2px;
+      font-size: 0.86rem;
+    }
+
+    .split {
+      display: grid;
+      grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+      gap: 16px;
+      align-items: start;
+    }
+
+    .numbered-list {
+      counter-reset: item;
+      display: grid;
+      gap: 10px;
+    }
+
+    .numbered-list div {
+      position: relative;
+      min-height: 58px;
+      padding: 12px 12px 12px 48px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(0, 0, 0, 0.16);
+    }
+
+    .numbered-list div::before {
+      counter-increment: item;
+      content: counter(item);
+      position: absolute;
+      left: 12px;
+      top: 12px;
+      width: 24px;
+      height: 24px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: var(--cyan);
+      color: #07110f;
+      font-weight: 900;
+      font-size: 0.78rem;
+    }
+
+    .numbered-list strong {
+      display: block;
+      margin-bottom: 3px;
+    }
+
+    .numbered-list span {
+      color: var(--muted);
+    }
+
+    .quote {
+      margin: 0;
+      padding: 18px 20px;
+      border-left: 4px solid var(--gold);
+      background: rgba(215, 179, 95, 0.09);
+      color: var(--ink);
+      border-radius: var(--radius);
+      font-size: clamp(1.05rem, 1.7vw, 1.45rem);
+      line-height: 1.28;
+    }
+
+    .controls {
+      align-items: center;
+    }
+
+    .nav-buttons {
+      display: flex;
+      gap: 10px;
+    }
+
+    .nav-button {
+      min-width: 92px;
+      min-height: 38px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel-2);
+      color: var(--ink);
+      cursor: pointer;
+      transition: transform 120ms ease, border-color 120ms ease, background 120ms ease;
+    }
+
+    .nav-button:hover {
+      transform: translateY(-1px);
+      border-color: rgba(69, 208, 195, 0.5);
+      background: #282c25;
+    }
+
+    .nav-button:disabled {
+      cursor: not-allowed;
+      opacity: 0.4;
+      transform: none;
+    }
+
+    .progress {
+      flex: 1;
+      height: 8px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(0, 0, 0, 0.22);
+      overflow: hidden;
+    }
+
+    .progress span {
+      display: block;
+      width: 0;
+      height: 100%;
+      background: linear-gradient(90deg, var(--cyan), var(--green), var(--gold));
+      transition: width 160ms ease;
+    }
+
+    .toc {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .toc button {
+      min-height: 42px;
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(0, 0, 0, 0.18);
+      color: var(--muted);
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .toc button.active {
+      color: var(--ink);
+      border-color: rgba(69, 208, 195, 0.55);
+      background: rgba(69, 208, 195, 0.1);
+    }
+
+    @media (max-width: 940px) {
+      .deck-shell {
+        padding: 12px;
+      }
+
+      .slide {
+        min-height: calc(100vh - 134px);
+      }
+
+      .big-verdict,
+      .split,
+      .grid.two,
+      .grid.three,
+      .grid.four,
+      .source-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .flow {
+        grid-template-columns: 1fr;
+      }
+
+      .flow .step::after {
+        content: "v";
+        right: 50%;
+        top: auto;
+        bottom: -10px;
+        transform: translateX(50%);
+      }
+
+      .matrix,
+      .status-table {
+        display: block;
+      }
+
+      .matrix > div,
+      .status-table > div {
+        border-right: 0;
+      }
+
+      .matrix .head,
+      .status-table .head {
+        display: none;
+      }
+
+      .toc {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media print {
+      body {
+        background: #fff;
+        color: #111;
+      }
+
+      .deck-shell {
+        display: block;
+        padding: 0;
+      }
+
+      .topbar,
+      .controls {
+        display: none;
+      }
+
+      main {
+        width: 100%;
+      }
+
+      .slide,
+      .slide.active {
+        display: block;
+        min-height: auto;
+        page-break-after: always;
+        border: 0;
+        box-shadow: none;
+        color: #111;
+        background: #fff;
+      }
+
+      .card,
+      .step,
+      .source,
+      .numbered-list div {
+        border-color: #ccc;
+        background: #fff;
+      }
+
+      p,
+      li,
+      .card p,
+      .card li,
+      .step span,
+      .matrix .text,
+      .status-table > div {
+        color: #333;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="deck-shell">
+    <header class="topbar" aria-label="Deck header">
+      <div class="brand">
+        <strong>UNBOUND</strong>
+        <span>Program design review and smart regression proposal</span>
+      </div>
+      <div class="counter" id="counter">1 / 22</div>
+    </header>
+
+    <main aria-live="polite">
+      <section class="slide active" data-title="Verdict">
+        <div>
+          <p class="eyebrow">Design review</p>
+          <h1>The Program is close to being smart. It is not yet regression-aware.</h1>
+          <p class="lead">Current Program Focuses route selected skills into the weekly split and feed workouts into a strong logging and reward pipeline. The missing design layer is the decision engine that chooses the right prerequisite, regression, or progression rung before prescribing the session.</p>
+        </div>
+        <div class="big-verdict">
+          <div class="verdict-panel">
+            <strong>What already works</strong>
+            <span>Scheduling, workout editing, RPE logging, autosaved active sessions, quick logs, performance persistence, proof evaluation, XP, streaks, and reward sequence output.</span>
+          </div>
+          <div class="verdict-panel">
+            <strong>What needs design</strong>
+            <span>A smart regression resolver that turns "I want the muscle-up" into "today you train strict pull-up volume, transition drills, or a deload because that is your current rung."</span>
+          </div>
+        </div>
+        <div class="tag-row">
+          <span class="tag good">Strong logging surface</span>
+          <span class="tag good">Authored skill plans exist</span>
+          <span class="tag warn">Regressions not selected programmatically</span>
+          <span class="tag warn">Tier state wiring needs audit</span>
+        </div>
+      </section>
+
+      <section class="slide" data-title="Map">
+        <div>
+          <p class="eyebrow">Current system map</p>
+          <h2>Three routes feed the same completion engine.</h2>
+          <p class="lead">Program workouts, skill sessions, and quick logs eventually become a `PerformanceLog`, then pass through `TrainingCompletionService`.</p>
+        </div>
+        <div class="flow">
+          <div class="step">
+            <strong>Skill Detail</strong>
+            <span>Add Program Focus, start a skill session, or quick-log a set.</span>
+            <small>SkillDetailView</small>
+          </div>
+          <div class="step">
+            <strong>Scheduler</strong>
+            <span>Maps focused skill clusters to pull, push, legs, core, skills, or conditioning days.</span>
+            <small>ProgramScheduler</small>
+          </div>
+          <div class="step">
+            <strong>Daily Draft</strong>
+            <span>Injects scheduled skill blocks into the planned workout day.</span>
+            <small>DailyWorkoutResolver</small>
+          </div>
+          <div class="step">
+            <strong>Ready Screen</strong>
+            <span>User edits blocks, adds scheduled skill work, then starts.</span>
+            <small>WorkoutReadyView</small>
+          </div>
+          <div class="step">
+            <strong>Active Log</strong>
+            <span>Set grid records reps, weight, RPE, quality, and added sets.</span>
+            <small>ActiveWorkoutContainerView</small>
+          </div>
+          <div class="step">
+            <strong>Completion</strong>
+            <span>Persists logs, progression, proofs, XP, streaks, rewards.</span>
+            <small>TrainingCompletionService</small>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" data-title="Vocabulary">
+        <div>
+          <p class="eyebrow">Vocabulary cleanup</p>
+          <h2>There are multiple "goal" and "focus" concepts. They should not share labels.</h2>
+          <p class="lead">This is a product design issue, not just naming polish. If the user cannot tell what a focus does, the smart training model will feel like magic instead of coaching.</p>
+        </div>
+        <div class="grid three">
+          <div class="card accent-left">
+            <h3>Onboarding goals</h3>
+            <p>Profile-level intent such as build muscle, lose fat, get stronger, or athletic. These should influence program generation and tone, not day-to-day skill routing directly.</p>
+            <code>Goal</code>
+          </div>
+          <div class="card accent-left accent-green">
+            <h3>Skill Program Focuses</h3>
+            <p>The selected skills the user wants woven into the Program tab. These are persisted under `activeGoalIds` for compatibility and exposed as `programFocusIds`.</p>
+            <code>UserSkillProgress.activeGoalIds</code>
+          </div>
+          <div class="card accent-left accent-coral">
+            <h3>Program focus card</h3>
+            <p>The current Program tab also uses "PROGRAM FOCUS" for whole-program style changes such as bodyweight vs equipment. Rename this to Training Mode or Program Mode.</p>
+            <code>programFocusCard(_ program:)</code>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" data-title="Program Focus">
+        <div>
+          <p class="eyebrow">How Program Focuses work today</p>
+          <h2>A Program Focus is a scheduling pin, not a skill-level intelligence system yet.</h2>
+        </div>
+        <div class="numbered-list">
+          <div>
+            <strong>User taps Add Program Focus.</strong>
+            <span>`SkillDetailView` calls `SkillProgressService.toggleProgramFocus(nodeId:)` if the node is trainable and the cap has room.</span>
+          </div>
+          <div>
+            <strong>The service persists the selected skill id.</strong>
+            <span>It still writes `activeGoalIds`, while view code reads the alias `programFocusIds`.</span>
+          </div>
+          <div>
+            <strong>It prefetches the authored RPE session.</strong>
+            <span>On add, `RPESessionService.prefetch` warms the skill session for the current user.</span>
+          </div>
+          <div>
+            <strong>The scheduler routes it to the right day type.</strong>
+            <span>`ProgramScheduler.category(for: node.cluster)` maps clusters to pull, push, legs, core, skills, or conditioning.</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" data-title="Workout Injection">
+        <div>
+          <p class="eyebrow">Workout injection</p>
+          <h2>Scheduled skills become `TrainingBlock(kind: .skill)` before the workout starts.</h2>
+          <p class="lead">This is the exact place where smart regression should plug in. Today it only inserts the main prescription for the selected skill.</p>
+        </div>
+        <div class="split">
+          <div class="card accent-left">
+            <h3>Current call path</h3>
+            <ul>
+              <li>`ProgramOverviewView.programDraft` builds a draft for the selected day.</li>
+              <li>`DailyWorkoutResolver.programDraft` asks `ProgramScheduler.shared.skillIds(forDate:)` for routed focuses.</li>
+              <li>`TrainingSessionAdapters.skillBlock` converts each skill id into a skill block.</li>
+              <li>The block uses `plan.mainSets.prefix(3)`, not `plan.regressions`.</li>
+            </ul>
+          </div>
+          <div class="card accent-left accent-coral">
+            <h3>Design implication</h3>
+            <p>If the user selects muscle-up but their actual current need is false-grip rows or strict pull-ups, the daily draft currently has no resolver step that would choose that lower rung.</p>
+            <p>The fix is not to make the scheduler smarter. The scheduler should route the focus. A separate resolver should decide the training prescription.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" data-title="Skill Plans">
+        <div>
+          <p class="eyebrow">Skill plan anatomy</p>
+          <h2>The data already hints at regression-aware training, but the app does not fully consume it.</h2>
+        </div>
+        <div class="grid three">
+          <div class="card accent-left accent-coral">
+            <h3>Regressions</h3>
+            <p>Lower-skill options for users who are below the standard or need a safer step. Used in Skill Detail's "Train this next" suggestions.</p>
+            <code>plan.regressions</code>
+          </div>
+          <div class="card accent-left">
+            <h3>Main sets</h3>
+            <p>The formal prescription. These are what scheduled Program skill blocks and RPE skill sessions primarily use today.</p>
+            <code>plan.mainSets</code>
+          </div>
+          <div class="card accent-left accent-green">
+            <h3>Accessories</h3>
+            <p>Supporting work. RPE skill sessions append these as accessory exercises, usually fixed at two sets of eight.</p>
+            <code>plan.accessories</code>
+          </div>
+        </div>
+        <blockquote class="quote">The regression library exists. The product decision that is missing is: "Which one should this user do today, and why?"</blockquote>
+      </section>
+
+      <section class="slide" data-title="Session Tuning">
+        <div>
+          <p class="eyebrow">RPE session behavior</p>
+          <h2>The current intelligence is load and rep tuning from the last session.</h2>
+          <p class="lead">This is useful autoregulation, but it answers a narrower question than smart regression.</p>
+        </div>
+        <div class="grid two">
+          <div class="card accent-left accent-green">
+            <h3>What it can do</h3>
+            <ul>
+              <li>Fetch the last `SessionLog` for the skill.</li>
+              <li>For weighted work, adjust load by 2.5 percent per RPE point of headroom.</li>
+              <li>For bodyweight work, suggest adding one rep when RPE is low enough.</li>
+              <li>Show "Last..." notes so the user sees continuity.</li>
+            </ul>
+          </div>
+          <div class="card accent-left accent-coral">
+            <h3>What it does not decide</h3>
+            <ul>
+              <li>Whether the user should regress from the target skill.</li>
+              <li>Whether a prerequisite should replace the target skill for now.</li>
+              <li>Whether a failed or ugly set should trigger a hold, deload, or easier variation.</li>
+              <li>Whether equipment constraints require a different rung.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" data-title="Logging Routes">
+        <div>
+          <p class="eyebrow">How people log through it</p>
+          <h2>There are three natural logging paths.</h2>
+        </div>
+        <div class="matrix">
+          <div class="head">Path</div>
+          <div class="head">User behavior</div>
+          <div class="head">Code path</div>
+
+          <div class="label">Program workout</div>
+          <div class="text">User opens today's program, reviews blocks, edits if needed, starts the workout, logs set by set, then completes.</div>
+          <div class="text">`ProgramOverviewView` -> `WorkoutReadyView` -> `ActiveWorkoutContainerView` -> `TrainingCompletionService`</div>
+
+          <div class="label">Skill session</div>
+          <div class="text">User opens a skill, starts an authored RPE-tuned session, and logs a focused practice block.</div>
+          <div class="text">`SkillDetailView` -> `RPESessionService.session` -> `SkillSessionView` -> completion pipeline</div>
+
+          <div class="label">Quick log</div>
+          <div class="text">User logs one proof or practice set fast, including reps or hold seconds, load, RPE, flags, and notes.</div>
+          <div class="text">`SkillQuickLogSheet.submit` -> `TrainingSessionAdapters.performanceLogForSkillSession` -> completion pipeline</div>
+        </div>
+      </section>
+
+      <section class="slide" data-title="Active Workout">
+        <div>
+          <p class="eyebrow">Active workout logging</p>
+          <h2>The set grid is a real training surface, not just a checkbox flow.</h2>
+          <p class="lead">This matters because the smart regression layer needs high-quality signals. The app already records many of them.</p>
+        </div>
+        <div class="grid four">
+          <div class="card accent-left">
+            <h3>Confirm as planned</h3>
+            <p>Fast path for a clean set that matches the prescription.</p>
+          </div>
+          <div class="card accent-left accent-green">
+            <h3>Edit metrics</h3>
+            <p>Weight, reps, duration, distance, and calories can be edited through set-specific sheets.</p>
+          </div>
+          <div class="card accent-left accent-gold">
+            <h3>RPE</h3>
+            <p>Each set can carry effort data, which is the best lightweight readiness signal.</p>
+          </div>
+          <div class="card accent-left accent-coral">
+            <h3>Quality flags</h3>
+            <p>Clean, assisted, pain, form break, or other flags can decide whether a set counts as proof.</p>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Important product strength</h3>
+          <p>`ActiveWorkoutContainerView` autosaves drafts after mutations, includes a rest timer, assembles a `PerformanceLog`, records trial work, clears drafts after completion, and shows rewards. The logging layer is mature enough to support adaptive decisions.</p>
+        </div>
+      </section>
+
+      <section class="slide" data-title="Completion">
+        <div>
+          <p class="eyebrow">Completion goal</p>
+          <h2>Goal: every completed session should decide the user's next best rung.</h2>
+          <p class="lead">When a user finishes a program workout, skill session, or quick log, UNBOUND should review the evidence, choose progress, hold, regress, or deload, save that decision, and explain the next prescription.</p>
+        </div>
+        <div class="flow">
+          <div class="step">
+            <strong>Completed session</strong>
+            <span>Program workout, skill session, or quick log.</span>
+          </div>
+          <div class="step">
+            <strong>Evidence bundle</strong>
+            <span>Reps, load, hold time, RPE, quality flags, source rung.</span>
+          </div>
+          <div class="step">
+            <strong>Agent reviews</strong>
+            <span>Progression, safety, and context checks.</span>
+          </div>
+          <div class="step">
+            <strong>Decision</strong>
+            <span>Promote, hold, regress, deload, or block.</span>
+          </div>
+          <div class="step">
+            <strong>Persistence</strong>
+            <span>Store the decision beside proof, session, and reward output.</span>
+          </div>
+          <div class="step">
+            <strong>Next prescription</strong>
+            <span>The next Program draft uses the updated rung.</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" data-title="Agent Reviews">
+        <div>
+          <p class="eyebrow">Agent reviews</p>
+          <h2>Three structured reviews happen after completion.</h2>
+          <p class="lead">Here "agent reviews" means deterministic post-session checks. They can be implemented as small services before any AI layer is added.</p>
+        </div>
+        <div class="grid two">
+          <div class="card accent-left accent-green">
+            <h3>Progression review</h3>
+            <p>Did the user earn the next rung through clean repeated evidence, or should the app hold the current prescription?</p>
+          </div>
+          <div class="card accent-left">
+            <h3>Safety review</h3>
+            <p>Were there pain, assistance, form-break, high-RPE, missed-range, or fatigue signals that should block proof or reduce difficulty?</p>
+          </div>
+          <div class="card accent-left accent-gold">
+            <h3>Context review</h3>
+            <p>Do equipment, schedule, travel, missed sessions, or the user's weekly split change the next prescription?</p>
+          </div>
+          <div class="card accent-left accent-coral">
+            <h3>Example result</h3>
+            <p>Goal: muscle-up. Current rung: strict pull-up volume. Completed: 3x5 clean at RPE 7 with no pain. Review result: promote to chest-to-bar prep next pull day.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" data-title="Where Are They">
+        <div>
+          <p class="eyebrow">How does it know where they are?</p>
+          <h2>There are enough signals, but they are not yet unified into a progression decision.</h2>
+        </div>
+        <div class="status-table">
+          <div class="head">Signal</div>
+          <div class="head">Exists</div>
+          <div class="head">Useful for</div>
+          <div class="head">Gap</div>
+
+          <div class="label">Workout history</div>
+          <div>Yes</div>
+          <div>Proof standards, volume, consistency, recency.</div>
+          <div>Needs rung-level attribution.</div>
+
+          <div class="label">RPE</div>
+          <div>Yes</div>
+          <div>Promotion, hold, deload, fatigue detection.</div>
+          <div>Currently tunes load/reps, not variation selection.</div>
+
+          <div class="label">Quality flags</div>
+          <div>Yes</div>
+          <div>Blocking proof when reps are assisted, painful, or ugly.</div>
+          <div>Should become part of promotion criteria.</div>
+
+          <div class="label">Tier criteria</div>
+          <div>Yes</div>
+          <div>Knowing whether a skill standard is actually met.</div>
+          <div>`evaluateTierCrossings` appears underused in production completion.</div>
+
+          <div class="label">Node state</div>
+          <div>Yes</div>
+          <div>Unlocking skill tree nodes.</div>
+          <div>`SkillProgressService.recompute` needs a clear completion hook audit.</div>
+        </div>
+      </section>
+
+      <section class="slide" data-title="Smart Resolver">
+        <div>
+          <p class="eyebrow">Smart regression feasibility</p>
+          <h2>Yes, this is doable programmatically. Add a resolver between scheduler and draft creation.</h2>
+          <p class="lead">The scheduler should answer "when do we train this focus?" The resolver should answer "what is the correct version for this user today?"</p>
+        </div>
+        <div class="flow">
+          <div class="step">
+            <strong>Aspirational target</strong>
+            <span>User selects muscle-up, planche, L-sit, or another goal skill.</span>
+          </div>
+          <div class="step">
+            <strong>Skill graph</strong>
+            <span>Read prerequisites, tier criteria, cluster, and unlock state.</span>
+          </div>
+          <div class="step">
+            <strong>Training rungs</strong>
+            <span>Combine regressions, prerequisites, main sets, and accessories into ordered options.</span>
+          </div>
+          <div class="step">
+            <strong>User evidence</strong>
+            <span>Use logs, RPE, flags, recency, equipment, pain, bodyweight.</span>
+          </div>
+          <div class="step">
+            <strong>Resolver decision</strong>
+            <span>Choose rung, prescription, reason, confidence, next promotion test.</span>
+          </div>
+          <div class="step">
+            <strong>Program block</strong>
+            <span>Daily draft receives the right exercise now, not just the dream skill.</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" data-title="Decision Rules">
+        <div>
+          <p class="eyebrow">Decision model</p>
+          <h2>Promotion should be earned by clean repeated evidence, not a single heroic set.</h2>
+        </div>
+        <div class="grid two">
+          <div class="card accent-left accent-green">
+            <h3>Promote to harder rung when...</h3>
+            <ul>
+              <li>Target reps or hold time are met for 2 of the last 3 exposures.</li>
+              <li>Average or top-set RPE is at or below the threshold, usually 8.</li>
+              <li>Quality flags are clean and no pain/form-break flags appear.</li>
+              <li>Rest time and range standards match the rung definition.</li>
+              <li>The next rung is compatible with available equipment.</li>
+            </ul>
+          </div>
+          <div class="card accent-left accent-coral">
+            <h3>Hold, deload, or regress when...</h3>
+            <ul>
+              <li>RPE is repeatedly above target or reps fall below the minimum.</li>
+              <li>Quality flags show pain, assistance, uncontrolled reps, or range loss.</li>
+              <li>The user returns after a long break.</li>
+              <li>The target skill is locked by prerequisites.</li>
+              <li>The selected equipment cannot support the current rung safely.</li>
+            </ul>
+          </div>
+        </div>
+        <blockquote class="quote">The smart move is not always harder. Sometimes "smart" means hold the rung until it is clean enough to count.</blockquote>
+      </section>
+
+      <section class="slide" data-title="Data Model">
+        <div>
+          <p class="eyebrow">Data model proposal</p>
+          <h2>Add explicit training rungs and persist the resolver's decision.</h2>
+          <p class="lead">Right now `TrainingExercise` options are human-readable candidates. A smart coach needs structured rungs with criteria, equipment, and logging identity.</p>
+        </div>
+        <div class="grid two">
+          <div class="card accent-left">
+            <h3>`SkillTrainingRung`</h3>
+            <ul>
+              <li>`id`, `skillId`, `title`, `levelIndex`</li>
+              <li>`source`: prerequisite, regression, main, accessory, deload</li>
+              <li>`prescriptions`: sets, target, rest, notes</li>
+              <li>`equipmentRequirements` and substitution options</li>
+              <li>`promotionCriteria` and `regressionCriteria`</li>
+            </ul>
+          </div>
+          <div class="card accent-left accent-green">
+            <h3>`SkillProgressionDecision`</h3>
+            <ul>
+              <li>`targetSkillId` and `selectedRungId`</li>
+              <li>`state`: learning, ready, proving, deload, blocked</li>
+              <li>`reason`: why this exercise today</li>
+              <li>`confidence` and evidence summary</li>
+              <li>`nextCheck`: what would promote or hold the user</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" data-title="Use Cases">
+        <div>
+          <p class="eyebrow">Use case review</p>
+          <h2>Smart regression changes the experience in concrete ways.</h2>
+        </div>
+        <div class="matrix">
+          <div class="head">Use case</div>
+          <div class="head">Expected behavior</div>
+          <div class="head">Why it matters</div>
+
+          <div class="label">Aspirational locked skill</div>
+          <div class="text">User can choose muscle-up as the focus, but the Program prescribes the first unmet prerequisite or regression.</div>
+          <div class="text">The app honors the user's goal while keeping training realistic.</div>
+
+          <div class="label">Ready to advance</div>
+          <div class="text">After repeated clean sets at low enough RPE, next session moves from rows to strict pull-ups, or strict pull-ups to chest-to-bar.</div>
+          <div class="text">Progress feels earned and visible, not random.</div>
+
+          <div class="label">Bad day or pain flag</div>
+          <div class="text">The next prescription holds, reduces load, or chooses a safer variation with a clear reason.</div>
+          <div class="text">Regression becomes coaching, not punishment.</div>
+
+          <div class="label">Travel or equipment mismatch</div>
+          <div class="text">Resolver filters rungs by equipment and substitutes a compatible drill.</div>
+          <div class="text">The program stays usable outside the ideal gym.</div>
+
+          <div class="label">Manual edit</div>
+          <div class="text">Edits are preserved as user intent, but completion still records actual evidence against the selected rung.</div>
+          <div class="text">The app learns from reality without fighting the user.</div>
+        </div>
+      </section>
+
+      <section class="slide" data-title="UX Changes">
+        <div>
+          <p class="eyebrow">UX recommendations</p>
+          <h2>The UI should explain the decision without making the user study the algorithm.</h2>
+        </div>
+        <div class="grid two">
+          <div class="card accent-left">
+            <h3>Program tab</h3>
+            <ul>
+              <li>Show Program Focuses even when none route today, with "next focus day" visibility.</li>
+              <li>Rename whole-program focus switching to Training Mode.</li>
+              <li>For each focus, show "Working on: strict pull-up" under "Goal: muscle-up."</li>
+              <li>Keep the weekly schedule editor as the user's routing control.</li>
+            </ul>
+          </div>
+          <div class="card accent-left accent-green">
+            <h3>Logging surface</h3>
+            <ul>
+              <li>Show one concise reason: "You hit 3 clean sets at RPE 7 last time."</li>
+              <li>Ask for RPE and quality flags on skill rungs because those drive decisions.</li>
+              <li>When the resolver holds or regresses, name the reason plainly.</li>
+              <li>Let the user override, but mark it as an override in the decision record.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" data-title="Risks">
+        <div>
+          <p class="eyebrow">Current risks</p>
+          <h2>The biggest risks are not technical difficulty. They are consistency and trust.</h2>
+        </div>
+        <div class="grid three">
+          <div class="card accent-left accent-coral">
+            <h3>Hidden focuses</h3>
+            <p>`todaysTrainingSection` is only shown when routed focus sessions exist today, so the empty state inside the section may not appear. A user can have focuses and not see them on a non-focus day.</p>
+          </div>
+          <div class="card accent-left accent-coral">
+            <h3>Locked aspiration conflict</h3>
+            <p>`toggleProgramFocus` requires `isNodeTrainable`, but smart progression often starts with a locked aspiration and trains the prerequisite path.</p>
+          </div>
+          <div class="card accent-left accent-coral">
+            <h3>State wiring audit</h3>
+            <p>`RankService.evaluateTierCrossings` and `SkillProgressService.recompute` appear to have limited production call coverage. Smart decisions need a reliable post-completion update hook.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" data-title="Review Findings">
+        <div>
+          <p class="eyebrow">Agent review findings</p>
+          <h2>The reviews agree on the loop: choose the rung before training, update the rung after completion.</h2>
+          <p class="lead">Product review tightened the story. Technical review checked the code path and guardrails.</p>
+        </div>
+        <div class="grid two">
+          <div class="card accent-left accent-green">
+            <h3>Product review</h3>
+            <ul>
+              <li>Lead with "the app learns from every completed session."</li>
+              <li>Define reviews as structured checks, not mysterious external reviewers.</li>
+              <li>Keep the user model simple: goal, current rung, review.</li>
+              <li>Separate pre-workout selection from post-workout review.</li>
+            </ul>
+          </div>
+          <div class="card accent-left">
+            <h3>Technical review</h3>
+            <ul>
+              <li>Current Program Focuses are scheduling pins, not smart regression goals.</li>
+              <li>The insertion point is before `TrainingSessionAdapters.skillBlock` builds prescriptions.</li>
+              <li>Use the same resolver in Program drafts and standalone RPE skill sessions.</li>
+              <li>Completion must explicitly store rung evidence and wire tier/node persistence.</li>
+            </ul>
+          </div>
+          <div class="card accent-left accent-gold">
+            <h3>Shared recommendation</h3>
+            <p>Add `SkillRungResolver` between scheduler and adapters. Feed it authored regressions, main sets, accessories, logs, quality flags, RPE, equipment, and current tier/node state.</p>
+          </div>
+          <div class="card accent-left accent-coral">
+            <h3>Claims to avoid</h3>
+            <p>Do not claim smart regression exists today, locked skills can be Program Focuses today, regression work proves the strict parent skill, or skill-only focus work completes a Program day.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" data-title="Roadmap">
+        <div>
+          <p class="eyebrow">Implementation roadmap</p>
+          <h2>Build the smart layer in thin slices.</h2>
+        </div>
+        <div class="numbered-list">
+          <div>
+            <strong>Introduce structured rungs.</strong>
+            <span>Convert `regressions`, prerequisites, and main sets into ordered `SkillTrainingRung` records without changing UI behavior yet.</span>
+          </div>
+          <div>
+            <strong>Add `SkillProgressionResolver`.</strong>
+            <span>Given target skill, user id, date, equipment, logs, and quality history, return a `SkillProgressionDecision`.</span>
+          </div>
+          <div>
+            <strong>Inject decisions into Program and skill sessions.</strong>
+            <span>Replace `TrainingSessionAdapters.skillBlock(skillId:title:)` with a decision-aware block builder, and use the same resolver in `RPESessionService`.</span>
+          </div>
+          <div>
+            <strong>Run agent reviews on completion.</strong>
+            <span>Attach rung IDs to logs, review evidence, persist the progression decision, and update the next scheduled skill block.</span>
+          </div>
+          <div>
+            <strong>Expose reasons in the UI.</strong>
+            <span>Show current rung, why it was selected, and what unlocks the next rung.</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" data-title="Build Goal">
+        <div>
+          <p class="eyebrow">Build goal</p>
+          <h2>Keep the user model simple: goal, current rung, review.</h2>
+          <p class="lead">The deck and implementation should both teach the same model: goal is where I want to go, current rung is what I train today, review is why it changes.</p>
+        </div>
+        <div class="grid two">
+          <div class="card accent-left">
+            <h3>Definition of done</h3>
+            <ul>
+              <li>Every skill block has a target skill id and selected rung id.</li>
+              <li>Completion records reps, load, hold time, RPE, flags, and source rung.</li>
+              <li>The next Program draft reflects the latest decision.</li>
+              <li>The UI explains the decision in one short reason.</li>
+            </ul>
+          </div>
+          <div class="card accent-left accent-green">
+            <h3>First-slice non-goals</h3>
+            <ul>
+              <li>No fully generative AI exercise writing.</li>
+              <li>No demotion of already earned rank proof.</li>
+              <li>No hidden auto-advance without logged evidence.</li>
+              <li>No changing the weekly scheduler's routing job.</li>
+            </ul>
+          </div>
+          <div class="card accent-left accent-gold">
+            <h3>Pass condition</h3>
+            <p>The implementation goal is ready when technical and product review agree on the same loop: resolver before workout chooses today's rung; completion after workout updates tomorrow's rung.</p>
+          </div>
+          <div class="card accent-left accent-coral">
+            <h3>Block condition</h3>
+            <p>Do not implement if completion cannot reliably attach actual logged evidence to the selected rung. Without that link, the resolver cannot learn from the user.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" data-title="Source Notes">
+        <div>
+          <p class="eyebrow">Source notes</p>
+          <h2>Review anchors in the codebase.</h2>
+          <p class="lead">These are the files and line regions this deck is based on.</p>
+        </div>
+        <div class="source-grid">
+          <div class="source">
+            <strong>Program surface</strong>
+            <small>ProgramOverviewView.swift: Program tabs, today's training, ready/active/editor covers, daily draft.</small>
+          </div>
+          <div class="source">
+            <strong>Scheduling</strong>
+            <small>ProgramScheduler.swift: cluster-to-category routing, effective weekly schedule, focused skill ids.</small>
+          </div>
+          <div class="source">
+            <strong>Draft creation</strong>
+            <small>DailyWorkoutResolver.swift and TrainingSessionAdapters.swift: scheduled skill ids become skill blocks.</small>
+          </div>
+          <div class="source">
+            <strong>Skill plans</strong>
+            <small>SkillTrainingPlanLibrary.swift: authored regressions, main sets, and accessories.</small>
+          </div>
+          <div class="source">
+            <strong>RPE tuning</strong>
+            <small>RPESessionService.swift: last-session load and rep suggestions.</small>
+          </div>
+          <div class="source">
+            <strong>Logging</strong>
+            <small>WorkoutReadyView.swift, ActiveWorkoutContainerView.swift, SkillQuickLogSheet.swift.</small>
+          </div>
+          <div class="source">
+            <strong>Completion</strong>
+            <small>TrainingCompletionService.swift: performance logs, workout logs, progression, proof, session logs, rewards.</small>
+          </div>
+          <div class="source">
+            <strong>Ranks and proof</strong>
+            <small>ProofEngine.swift, RankService.swift, SkillProgressService.swift: tier criteria and node state update paths.</small>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="controls" aria-label="Deck controls">
+      <div class="nav-buttons">
+        <button class="nav-button" type="button" id="prev">Previous</button>
+        <button class="nav-button" type="button" id="next">Next</button>
+      </div>
+      <div class="progress" aria-hidden="true"><span id="progress"></span></div>
+    </footer>
+  </div>
+
+  <script>
+    const slides = Array.from(document.querySelectorAll(".slide"));
+    const prevButton = document.getElementById("prev");
+    const nextButton = document.getElementById("next");
+    const counter = document.getElementById("counter");
+    const progress = document.getElementById("progress");
+    let index = 0;
+
+    function clamp(value) {
+      return Math.max(0, Math.min(value, slides.length - 1));
+    }
+
+    function updateHash() {
+      const slideNumber = index + 1;
+      if (location.hash !== `#${slideNumber}`) {
+        history.replaceState(null, "", `#${slideNumber}`);
+      }
+    }
+
+    function showSlide(nextIndex) {
+      index = clamp(nextIndex);
+      slides.forEach((slide, i) => {
+        slide.classList.toggle("active", i === index);
+      });
+      prevButton.disabled = index === 0;
+      nextButton.disabled = index === slides.length - 1;
+      counter.textContent = `${index + 1} / ${slides.length}`;
+      progress.style.width = `${((index + 1) / slides.length) * 100}%`;
+      document.title = `${slides[index].dataset.title} - UNBOUND Program Design Review`;
+      updateHash();
+    }
+
+    prevButton.addEventListener("click", () => showSlide(index - 1));
+    nextButton.addEventListener("click", () => showSlide(index + 1));
+
+    window.addEventListener("keydown", event => {
+      if (event.key === "ArrowRight" || event.key === "PageDown" || event.key === " ") {
+        event.preventDefault();
+        showSlide(index + 1);
+      }
+      if (event.key === "ArrowLeft" || event.key === "PageUp") {
+        event.preventDefault();
+        showSlide(index - 1);
+      }
+      if (event.key === "Home") {
+        event.preventDefault();
+        showSlide(0);
+      }
+      if (event.key === "End") {
+        event.preventDefault();
+        showSlide(slides.length - 1);
+      }
+    });
+
+    window.addEventListener("hashchange", () => {
+      const parsed = Number(location.hash.replace("#", ""));
+      if (Number.isFinite(parsed)) {
+        showSlide(parsed - 1);
+      }
+    });
+
+    const initial = Number(location.hash.replace("#", ""));
+    showSlide(Number.isFinite(initial) && initial > 0 ? initial - 1 : 0);
+  </script>
+</body>
+</html>

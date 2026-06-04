@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 1908" role="img" aria-labelledby="front-source-title front-source-desc">
+  <title id="front-source-title">Front source bodymap filled region trace</title>
+  <desc id="front-source-desc">Vectorized marker-color layers traced from the supplied front PNG.</desc>
+  <style>
+    .source-reference { opacity: 0.24; }
+    .source-region { stroke: none; shape-rendering: geometricPrecision; }
+  </style>
+  <path id="front-red-chest" class="source-region" data-view="front" data-color="red" data-region="chest" fill="#ed1c24" fill-opacity="0.58" fill-rule="evenodd" d="M 439 450 L 443 476 L 463 510 L 482 528 L 511 541 L 548 541 L 581 522 L 617 512 L 626 500 L 650 500 L 662 516 L 713 524 L 709 520 L 674 511 L 661 497 L 658 486 L 658 445 L 665 380 L 673 375 L 718 366 L 772 362 L 798 387 L 812 411 L 830 433 L 835 443 L 835 473 L 819 496 L 803 511 L 772 530 L 746 532 L 752 534 L 757 541 L 762 541 L 805 517 L 819 513 L 837 492 L 848 465 L 847 443 L 840 427 L 795 367 L 778 352 L 767 350 L 659 364 L 655 367 L 653 378 L 629 378 L 619 368 L 589 356 L 545 348 L 509 347 L 505 350 L 505 365 L 486 375 L 457 406 L 446 426 L 446 435 Z">
+    <title>Front chest</title>
+  </path>
+  <path id="front-green-deltoids" class="source-region" data-view="front" data-color="green" data-region="deltoids" fill="#22b14c" fill-opacity="0.58" fill-rule="evenodd" d="M 778 338 L 774 343 L 775 348 L 795 361 L 842 424 L 848 452 L 896 466 L 919 484 L 930 505 L 941 504 L 957 468 L 956 414 L 944 381 L 927 358 L 894 340 L 852 330 L 805 330 Z M 503 340 L 476 327 L 415 331 L 373 348 L 352 368 L 331 410 L 326 435 L 327 472 L 345 509 L 358 510 L 389 472 L 439 459 L 444 428 L 457 402 L 477 380 L 508 363 L 509 355 Z">
+    <title>Front deltoids</title>
+  </path>
+  <path id="front-orange-biceps" class="source-region" data-view="front" data-color="orange" data-region="biceps" fill="#ff7f27" fill-opacity="0.58" fill-rule="evenodd" d="M 429 463 L 406 468 L 386 477 L 352 519 L 339 555 L 333 590 L 334 635 L 346 653 L 379 655 L 404 643 L 421 618 L 449 543 L 448 494 L 441 470 Z M 858 458 L 847 467 L 838 490 L 834 512 L 835 560 L 855 606 L 876 634 L 894 652 L 909 655 L 918 663 L 925 663 L 941 647 L 950 619 L 952 560 L 936 513 L 911 479 L 885 463 Z">
+    <title>Front biceps</title>
+  </path>
+  <path id="front-yellow-quads" class="source-region" data-view="front" data-color="yellow" data-region="quads" fill="#fff200" fill-opacity="0.58" fill-rule="evenodd" d="M 481 768 L 453 841 L 451 861 L 431 920 L 410 1015 L 391 1069 L 385 1104 L 385 1162 L 407 1226 L 418 1244 L 437 1247 L 448 1242 L 474 1242 L 494 1261 L 529 1265 L 547 1248 L 572 1194 L 577 1164 L 573 1071 L 565 1023 L 541 924 L 538 829 L 528 790 L 522 784 L 492 774 L 488 768 Z M 802 765 L 790 766 L 750 796 L 730 856 L 723 917 L 691 1030 L 689 1111 L 694 1137 L 695 1175 L 705 1216 L 718 1248 L 741 1270 L 760 1270 L 771 1265 L 795 1242 L 819 1242 L 830 1248 L 849 1247 L 861 1226 L 880 1171 L 882 1116 L 872 1016 L 852 932 L 829 866 L 818 817 L 816 792 Z">
+    <title>Front quads</title>
+  </path>
+  <path id="front-blue-abs" class="source-region" data-view="front" data-color="blue" data-region="abs" fill="#3f48cc" fill-opacity="0.58" fill-rule="evenodd" d="M 617 513 L 583 523 L 556 538 L 536 538 L 531 546 L 543 570 L 552 571 L 555 575 L 559 624 L 562 629 L 562 693 L 567 760 L 579 806 L 596 853 L 614 865 L 673 870 L 687 854 L 724 781 L 722 705 L 737 682 L 734 597 L 742 556 L 756 541 L 751 535 L 726 526 L 682 522 L 644 513 Z">
+    <title>Front abs</title>
+  </path>
+  <path id="front-purple-obliques" class="source-region" data-view="front" data-color="purple" data-region="obliques" fill="#a349a4" fill-opacity="0.58" fill-rule="evenodd" d="M 465 517 L 462 521 L 462 548 L 467 583 L 475 607 L 489 681 L 493 688 L 493 713 L 485 745 L 489 755 L 501 765 L 541 783 L 551 783 L 560 759 L 558 717 L 561 701 L 561 629 L 558 624 L 554 575 L 550 571 L 530 573 L 526 593 L 483 593 L 474 553 L 474 521 L 471 517 Z M 819 516 L 808 517 L 753 546 L 743 556 L 735 597 L 738 713 L 726 758 L 728 777 L 742 787 L 757 788 L 793 764 L 801 754 L 797 631 L 813 577 L 821 527 Z">
+    <title>Front obliques</title>
+  </path>
+  <path id="front-maroon-forearms" class="source-region" data-view="front" data-color="maroon" data-region="forearms" fill="#880015" fill-opacity="0.58" fill-rule="evenodd" d="M 312 602 L 304 603 L 280 652 L 263 736 L 259 778 L 260 829 L 268 887 L 274 904 L 305 902 L 335 878 L 349 836 L 377 785 L 392 743 L 393 695 L 388 664 L 384 661 L 366 661 L 360 666 L 334 666 L 324 612 L 315 608 Z M 967 596 L 949 628 L 946 644 L 938 661 L 914 661 L 907 656 L 894 655 L 895 711 L 903 758 L 931 820 L 936 841 L 952 876 L 960 881 L 961 893 L 979 896 L 986 894 L 996 881 L 1015 834 L 1018 734 L 1014 700 L 1000 650 L 980 607 Z">
+    <title>Front forearms</title>
+  </path>
+  <path id="front-pink-calves" class="source-region" data-view="front" data-color="pink" data-region="calves" fill="#ffaec9" fill-opacity="0.58" fill-rule="evenodd" d="M 528 1333 L 516 1334 L 503 1356 L 479 1416 L 453 1527 L 451 1634 L 456 1640 L 465 1636 L 469 1615 L 485 1573 L 524 1500 L 536 1466 L 532 1336 Z M 758 1329 L 751 1339 L 750 1380 L 742 1426 L 742 1464 L 751 1511 L 799 1601 L 808 1639 L 822 1644 L 826 1640 L 826 1595 L 830 1572 L 830 1477 L 825 1438 L 804 1372 L 792 1351 L 783 1342 L 775 1342 L 765 1329 Z">
+    <title>Front calves</title>
+  </path>
+</svg>

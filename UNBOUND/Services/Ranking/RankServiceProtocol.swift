@@ -36,17 +36,18 @@ protocol RankServiceProtocol: AnyObject {
         sex: BiologicalSex?
     ) -> RankTier?
 
-    /// Evaluate every entry in a log against persisted LiftRank state.
-    /// Posts `.rankAdvanced` + persists per-lift updates. Called from
-    /// ProgressionEngine after normal progression ingest. `sex` selects the
-    /// male/female strength-standard column (male default when nil).
+    /// Evaluate every entry in a log for session-time lift-rank advances.
+    /// The modern path posts `.rankAdvanced` from an in-memory session cache;
+    /// persisted movement progress is owned by `MovementProgressService`.
+    /// `sex` selects the male/female strength-standard column (male default
+    /// when nil).
     func evaluate(log: WorkoutLog, bodyweightKg: Double, sex: BiologicalSex?) async
 
-    /// Aggregate RankTier across the user's BuildIdentity primary axis (or
-    /// top-3 axes for balanced/hybridAthlete). Reads the user's
-    /// AttributeProfile via ServiceContainer.shared.attribute, derives
+    /// Compute the user's current build-weighted rank. This is different from
+    /// `aggregateTier(userId:)`, which returns the highest rank ever unlocked.
+    /// The weighted rank reads the user's AttributeProfile, derives
     /// BuildIdentity, then averages currentRank across the relevant
-    /// AttributeKey.emphasisLifts. Replaces archetypeRank in Phase 2c.
+    /// AttributeKey.emphasisLifts.
     func aggregateRank(userId: String) async -> RankTier
 
 }

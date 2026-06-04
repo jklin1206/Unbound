@@ -16,7 +16,6 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         }
         AuthService.shared.autoProvisionIfNeeded()
         SubscriptionService.shared.configure()
-        NotificationService.startMilestoneNotifier()
         Task { await NotificationService.applyStoredPreferences() }
         return true
     }

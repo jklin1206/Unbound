@@ -1,5 +1,7 @@
 # ONE METRIC — Autonomous Execution Log
 
+> Current status (2026-06-01): this file is a chronological execution log. It intentionally preserves old decisions and blockers as history. The active architecture map is `docs/ARCHITECTURE.md`; the current simplification backlog is `docs/SIMPLIFICATION-AUDIT.md`.
+
 **Goal:** Execute as much of `docs/ONE-METRIC-CLEANUP-PLAN.md` as possible, overnight, autonomously.
 **Started:** 2026-05-29 (overnight run, self-paced via /loop + ScheduleWakeup).
 **Push policy (jlin, durable auth):** FULL PROD each phase — commit + push to `main` AND deploy Supabase migrations/functions to prod per phase, unattended. No users exist → git revert + forward migration is the safety net.

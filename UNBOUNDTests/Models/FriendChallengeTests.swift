@@ -2,6 +2,25 @@ import XCTest
 @testable import UNBOUND
 
 final class FriendChallengeTests: XCTestCase {
+    private func makeLog(
+        localStartHour: Int? = nil
+    ) -> WorkoutLog {
+        WorkoutLog(
+            id: UUID().uuidString,
+            userId: "user",
+            programId: "program",
+            dayNumber: 1,
+            plannedWorkoutName: "Session",
+            startedAt: Date(timeIntervalSince1970: 1_700_000_000),
+            completedAt: Date(timeIntervalSince1970: 1_700_001_800),
+            exerciseEntries: [],
+            overallNotes: nil,
+            overallRPE: 7,
+            durationMinutes: 30,
+            localStartHour: localStartHour
+        )
+    }
+
     func testCodableRoundtrip() throws {
         let c = FriendChallenge(
             id: UUID(),
@@ -74,5 +93,38 @@ final class FriendChallengeTests: XCTestCase {
 
     func testSixKindsPresent() {
         XCTAssertEqual(FriendChallenge.Kind.allCases.count, 6)
+    }
+
+    func testCreationOptionsExposeOnlySupportedSimpleKinds() {
+        XCTAssertEqual(
+            FriendChallenge.Kind.creationOptions,
+            [.mostSessions, .earlyRiser]
+        )
+        XCTAssertTrue(FriendChallenge.Kind.mostSessions.isSupportedForCreation)
+        XCTAssertTrue(FriendChallenge.Kind.earlyRiser.isSupportedForCreation)
+        XCTAssertFalse(FriendChallenge.Kind.noMissedDays.isSupportedForCreation)
+        XCTAssertFalse(FriendChallenge.Kind.firstToFinishTrial.isSupportedForCreation)
+        XCTAssertFalse(FriendChallenge.Kind.mostAlignedSessions.isSupportedForCreation)
+        XCTAssertFalse(FriendChallenge.Kind.proteinGoal.isSupportedForCreation)
+    }
+
+    func testProgressPolicyDeltasAreExplicit() {
+        var log = makeLog(localStartHour: 7)
+        XCTAssertEqual(FriendChallengeProgressPolicy.progressDelta(for: .mostSessions, log: log), 1)
+        XCTAssertEqual(FriendChallengeProgressPolicy.progressDelta(for: .earlyRiser, log: log), 1)
+
+        log.localStartHour = 8
+        XCTAssertEqual(FriendChallengeProgressPolicy.progressDelta(for: .earlyRiser, log: log), 0)
+
+        let unsupported: [FriendChallenge.Kind] = [
+            .noMissedDays,
+            .firstToFinishTrial,
+            .mostAlignedSessions,
+            .proteinGoal
+        ]
+        for kind in unsupported {
+            XCTAssertEqual(FriendChallengeProgressPolicy.progressDelta(for: kind, log: log), 0)
+            XCTAssertNotNil(FriendChallengeProgressPolicy.unsupportedReason(for: kind))
+        }
     }
 }

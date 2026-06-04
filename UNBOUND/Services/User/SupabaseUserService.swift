@@ -29,6 +29,12 @@ final class SupabaseUserService: UserServiceProtocol, @unchecked Sendable {
     // MARK: - createUserIfNeeded
 
     func createUserIfNeeded(userId: String, email: String?) async throws -> UserProfile {
+        #if DEBUG
+        if userId == "dev-player" {
+            return try await local.createUserIfNeeded(userId: userId, email: email)
+        }
+        #endif
+
         do {
             if let existing: UserProfile = try await supabase.fetchOne(
                 from: "users",
@@ -56,6 +62,12 @@ final class SupabaseUserService: UserServiceProtocol, @unchecked Sendable {
     // MARK: - fetchProfile
 
     func fetchProfile(userId: String) async throws -> UserProfile {
+        #if DEBUG
+        if userId == "dev-player" {
+            return try await local.fetchProfile(userId: userId)
+        }
+        #endif
+
         do {
             guard let profile: UserProfile = try await supabase.fetchOne(
                 from: "users",
@@ -74,6 +86,13 @@ final class SupabaseUserService: UserServiceProtocol, @unchecked Sendable {
     // MARK: - updateProfile
 
     func updateProfile(userId: String, fields: [String: Any]) async throws {
+        #if DEBUG
+        if userId == "dev-player" {
+            try await local.updateProfile(userId: userId, fields: fields)
+            return
+        }
+        #endif
+
         do {
             let snakeFields = Self.mapFieldsToSnakeCase(fields)
             let payload = Self.toAnyJSON(snakeFields)

@@ -1,0 +1,1798 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>UNBOUND Codebase Onboarding Deck</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #090b10;
+      --bg-2: #10151f;
+      --panel: #151b27;
+      --panel-2: #1d2533;
+      --ink: #f2f6ff;
+      --muted: #a9b7cc;
+      --soft: #75849a;
+      --line: #2c3748;
+      --accent: #28d6c2;
+      --accent-2: #ffcf5a;
+      --danger: #ff6b7d;
+      --ok: #71e48e;
+      --blue: #78a7ff;
+      --violet: #b99bff;
+      --shadow: 0 24px 90px rgba(0, 0, 0, 0.45);
+      --radius: 8px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--sans);
+      letter-spacing: 0;
+    }
+
+    body {
+      overflow: hidden;
+    }
+
+    .deck-shell {
+      display: grid;
+      grid-template-rows: 1fr auto;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 18% 12%, rgba(40, 214, 194, 0.12), transparent 34%),
+        radial-gradient(circle at 80% 18%, rgba(120, 167, 255, 0.11), transparent 32%),
+        linear-gradient(135deg, #090b10 0%, #0c111a 52%, #10151f 100%);
+    }
+
+    .slides {
+      position: relative;
+      height: calc(100vh - 72px);
+      overflow: hidden;
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      display: none;
+      padding: 54px 66px 46px;
+      overflow: auto;
+    }
+
+    .slide.active {
+      display: block;
+      animation: fadeIn 180ms ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .slide-content {
+      max-width: 1180px;
+      margin: 0 auto;
+    }
+
+    h1, h2, h3, p {
+      margin-top: 0;
+    }
+
+    h1 {
+      max-width: 960px;
+      font-size: clamp(42px, 6.2vw, 78px);
+      line-height: 0.95;
+      letter-spacing: 0;
+      margin-bottom: 20px;
+    }
+
+    h2 {
+      font-size: clamp(30px, 3.8vw, 48px);
+      line-height: 1.02;
+      letter-spacing: 0;
+      margin-bottom: 18px;
+    }
+
+    h3 {
+      font-size: 19px;
+      line-height: 1.2;
+      letter-spacing: 0;
+      margin-bottom: 10px;
+    }
+
+    p, li {
+      font-size: 18px;
+      line-height: 1.48;
+      color: var(--muted);
+    }
+
+    ul, ol {
+      margin: 0;
+      padding-left: 22px;
+    }
+
+    li + li {
+      margin-top: 8px;
+    }
+
+    code, .path, .pill, .mono {
+      font-family: var(--mono);
+    }
+
+    code {
+      color: #d7f7f2;
+      background: rgba(40, 214, 194, 0.09);
+      border: 1px solid rgba(40, 214, 194, 0.18);
+      border-radius: 5px;
+      padding: 2px 5px;
+      font-size: 0.88em;
+    }
+
+    pre {
+      margin: 0;
+      padding: 16px 18px;
+      overflow: auto;
+      background: #070a0f;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    }
+
+    pre code {
+      display: block;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: #dbe7ff;
+      font-size: 13px;
+      line-height: 1.45;
+      white-space: pre;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+      color: var(--accent);
+      text-transform: uppercase;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+    }
+
+    .lede {
+      max-width: 940px;
+      color: #d6e0ef;
+      font-size: 22px;
+      line-height: 1.38;
+      margin-bottom: 28px;
+    }
+
+    .muted {
+      color: var(--soft);
+    }
+
+    .grid {
+      display: grid;
+      gap: 16px;
+    }
+
+    .grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .grid.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+    .card {
+      background: linear-gradient(180deg, rgba(21, 27, 39, 0.96), rgba(14, 19, 28, 0.96));
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 18px;
+      box-shadow: var(--shadow);
+    }
+
+    .card.compact {
+      padding: 14px;
+      box-shadow: none;
+    }
+
+    .card h3 {
+      color: #ffffff;
+    }
+
+    .card p {
+      margin-bottom: 0;
+      font-size: 16px;
+    }
+
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(16, 21, 31, 0.88);
+    }
+
+    .table th, .table td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+      text-align: left;
+      font-size: 15px;
+      line-height: 1.4;
+    }
+
+    .table th {
+      color: #ffffff;
+      background: rgba(255, 255, 255, 0.04);
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .table td {
+      color: var(--muted);
+    }
+
+    .table tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .path {
+      display: inline-block;
+      color: #d7f7f2;
+      font-size: 13px;
+      background: rgba(40, 214, 194, 0.08);
+      border: 1px solid rgba(40, 214, 194, 0.18);
+      border-radius: 5px;
+      padding: 3px 6px;
+      overflow-wrap: anywhere;
+    }
+
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .pill {
+      color: #dce8ff;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 26px;
+    }
+
+    .stat {
+      padding: 18px;
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.045);
+    }
+
+    .stat strong {
+      display: block;
+      color: #ffffff;
+      font-size: 31px;
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+
+    .stat span {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.3;
+    }
+
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 10px;
+      align-items: stretch;
+      margin-top: 24px;
+    }
+
+    .flow .step {
+      position: relative;
+      min-height: 130px;
+      padding: 14px;
+      border-radius: var(--radius);
+      border: 1px solid rgba(40, 214, 194, 0.24);
+      background: rgba(40, 214, 194, 0.08);
+    }
+
+    .flow .step:after {
+      content: ">";
+      position: absolute;
+      right: -12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--accent);
+      font-family: var(--mono);
+      font-weight: 900;
+    }
+
+    .flow .step:last-child:after {
+      content: "";
+    }
+
+    .flow .step b {
+      display: block;
+      color: #ffffff;
+      margin-bottom: 8px;
+      font-size: 15px;
+    }
+
+    .flow .step span {
+      display: block;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .callout {
+      border-left: 4px solid var(--accent-2);
+      background: rgba(255, 207, 90, 0.08);
+      padding: 15px 18px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      color: #ffeab0;
+      font-size: 17px;
+      line-height: 1.45;
+      margin: 18px 0;
+    }
+
+    .danger {
+      border-left-color: var(--danger);
+      background: rgba(255, 107, 125, 0.08);
+      color: #ffd6dc;
+    }
+
+    .ok {
+      border-left-color: var(--ok);
+      background: rgba(113, 228, 142, 0.08);
+      color: #d9ffe4;
+    }
+
+    .split {
+      display: grid;
+      grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+      gap: 22px;
+      align-items: start;
+    }
+
+    .stack {
+      display: grid;
+      gap: 12px;
+    }
+
+    .mini {
+      font-size: 14px;
+      line-height: 1.38;
+    }
+
+    .timeline {
+      display: grid;
+      gap: 10px;
+      counter-reset: item;
+    }
+
+    .timeline .row {
+      display: grid;
+      grid-template-columns: 42px 1fr;
+      gap: 12px;
+      align-items: start;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.035);
+    }
+
+    .timeline .row:before {
+      counter-increment: item;
+      content: counter(item);
+      width: 32px;
+      height: 32px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      color: #001713;
+      background: var(--accent);
+      font-weight: 900;
+    }
+
+    .timeline b {
+      display: block;
+      color: #ffffff;
+      margin-bottom: 4px;
+    }
+
+    .timeline span {
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.38;
+    }
+
+    .controls {
+      height: 72px;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 18px;
+      padding: 0 22px;
+      border-top: 1px solid var(--line);
+      background: rgba(9, 11, 16, 0.92);
+      backdrop-filter: blur(16px);
+    }
+
+    .btn {
+      min-width: 42px;
+      height: 42px;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      color: var(--ink);
+      border-radius: 6px;
+      font: 800 16px var(--mono);
+      cursor: pointer;
+    }
+
+    .btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .progress-wrap {
+      display: grid;
+      gap: 8px;
+    }
+
+    .progress-meta {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      color: var(--muted);
+      font-size: 13px;
+      font-family: var(--mono);
+    }
+
+    .progress-track {
+      height: 7px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      overflow: hidden;
+    }
+
+    .progress-bar {
+      height: 100%;
+      width: 0;
+      background: linear-gradient(90deg, var(--accent), var(--blue));
+      transition: width 160ms ease-out;
+    }
+
+    .kbd {
+      display: inline-flex;
+      align-items: center;
+      min-width: 24px;
+      justify-content: center;
+      padding: 3px 7px;
+      border-radius: 5px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.06);
+      color: #ffffff;
+      font: 700 12px var(--mono);
+    }
+
+    .two-col-list {
+      columns: 2;
+      column-gap: 36px;
+    }
+
+    .two-col-list li {
+      break-inside: avoid;
+    }
+
+    .tag {
+      display: inline-block;
+      color: #07100f;
+      background: var(--accent);
+      border-radius: 5px;
+      padding: 3px 7px;
+      font-size: 12px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-right: 7px;
+    }
+
+    .tag.warn { background: var(--accent-2); }
+    .tag.hot { background: var(--danger); color: #220006; }
+    .tag.blue { background: var(--blue); color: #061027; }
+
+    .toc {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .toc a {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 42px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      color: var(--muted);
+      background: rgba(255, 255, 255, 0.035);
+      text-decoration: none;
+      font-size: 15px;
+    }
+
+    .toc a:hover {
+      color: #ffffff;
+      border-color: var(--accent);
+    }
+
+    .toc .num {
+      color: var(--accent);
+      font-family: var(--mono);
+      font-weight: 900;
+    }
+
+    .print-note {
+      display: none;
+    }
+
+    @media (max-width: 900px) {
+      body { overflow: auto; }
+      .slides { height: auto; overflow: visible; }
+      .slide {
+        position: static;
+        display: block;
+        padding: 34px 22px;
+        border-bottom: 1px solid var(--line);
+      }
+      .slide:not(.active) { display: block; }
+      .controls { position: sticky; bottom: 0; }
+      .grid.two, .grid.three, .grid.four, .split, .stat-grid, .flow, .toc {
+        grid-template-columns: 1fr;
+      }
+      .flow .step:after { content: ""; }
+      .two-col-list { columns: 1; }
+    }
+
+    @media print {
+      body { overflow: visible; background: #ffffff; color: #111111; }
+      .deck-shell { background: #ffffff; }
+      .slides { height: auto; overflow: visible; }
+      .slide {
+        position: relative;
+        display: block !important;
+        page-break-after: always;
+        min-height: 100vh;
+        background: #ffffff;
+        color: #111111;
+      }
+      .card, pre, .table, .stat, .timeline .row {
+        box-shadow: none;
+        background: #ffffff;
+        color: #111111;
+      }
+      p, li, .table td, .muted, .timeline span { color: #333333; }
+      h1, h2, h3, .card h3, .timeline b { color: #111111; }
+      .controls { display: none; }
+      .print-note { display: block; }
+    }
+  </style>
+</head>
+<body>
+  <main class="deck-shell">
+    <div class="slides" id="slides">
+      <section class="slide active" data-title="Cover">
+        <div class="slide-content">
+          <div class="eyebrow">UNBOUND onboarding deck</div>
+          <h1>Codebase tour for a fast junior engineer ramp</h1>
+          <p class="lede">
+            This is a technical slideshow for understanding how the iOS app is built,
+            where the important domain rules live, and which paths to touch when adding
+            or debugging features.
+          </p>
+          <div class="stat-grid">
+            <div class="stat"><strong>769</strong><span>Swift files across app and tests</span></div>
+            <div class="stat"><strong>130k</strong><span>App Swift lines, including large catalogs and screens</span></div>
+            <div class="stat"><strong>23.6k</strong><span>Test Swift lines covering the domain surface</span></div>
+            <div class="stat"><strong>iOS 17</strong><span>Minimum deployment target from <code>project.yml</code></span></div>
+          </div>
+          <div class="callout ok">
+            Current confidence signal from the simplification audit: simulator test suite completed with
+            1030 tests, 0 failures, 8 skipped, plus Home and Program simulator smoke screenshots.
+          </div>
+          <p class="muted mini">Use arrow keys, space, Home, and End. Print to PDF if you want a static review copy.</p>
+        </div>
+      </section>
+
+      <section class="slide" data-title="How to Read">
+        <div class="slide-content">
+          <div class="eyebrow">Read this first</div>
+          <h2>The fastest way to understand UNBOUND is not by opening random views</h2>
+          <p class="lede">
+            Start from the product loop and the completion pipeline. Most screens are just
+            ways to collect input for that pipeline or display the results it writes.
+          </p>
+          <div class="grid three">
+            <div class="card">
+              <h3>1. Learn the nouns</h3>
+              <p>Rank, LVL, streak, attributes, recovery, movement AP, skill proof, program block, squad mission.</p>
+            </div>
+            <div class="card">
+              <h3>2. Learn the write path</h3>
+              <p><code>TrainingCompletionService.complete()</code> is the canonical event cascade for finished training.</p>
+            </div>
+            <div class="card">
+              <h3>3. Then read screens</h3>
+              <p>Home, Program, Skills, Squad, and Profile are better understood after the domain services are clear.</p>
+            </div>
+          </div>
+          <div class="callout danger">
+            Junior engineer trap: treating SwiftUI views as the source of truth. In this app, views should render snapshots
+            and send typed commands. The business rules belong in models, services, catalogs, and stores.
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" data-title="Product Loop">
+        <div class="slide-content">
+          <div class="eyebrow">Mental model</div>
+          <h2>The app is a training game loop</h2>
+          <p class="lede">
+            UNBOUND takes goals and body inputs, generates training, records proof,
+            awards progression, adapts the next plan, and optionally turns the work into squad progress.
+          </p>
+          <div class="flow">
+            <div class="step"><b>Collect intent</b><span>Onboarding, profile, equipment, goals, scan checkpoints.</span></div>
+            <div class="step"><b>Prescribe</b><span>Program generation chooses blocks, days, sessions, and alternatives.</span></div>
+            <div class="step"><b>Train</b><span>Active workout, routine player, quick log, cardio log, recovery completion.</span></div>
+            <div class="step"><b>Prove</b><span>Logs feed movement AP, rank proof, skills, attributes, streak, rewards.</span></div>
+            <div class="step"><b>Adapt</b><span>Progression engines and recovery context tune tomorrow's work.</span></div>
+            <div class="step"><b>Socialize</b><span>Squad missions, friend challenges, honors, activity, presence.</span></div>
+          </div>
+          <div class="callout">
+            If a change does not fit into this loop, ask whether it is a product feature, a debug tool, or leftover complexity.
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" data-title="Repo Topography">
+        <div class="slide-content">
+          <div class="eyebrow">Repository map</div>
+          <h2>Top-level folders and what they mean</h2>
+          <table class="table">
+            <thead>
+              <tr><th>Path</th><th>Role</th><th>How to think about it</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><span class="path">UNBOUND/</span></td><td>App target source</td><td>SwiftUI app, domain models, services, view models, resources, assets.</td></tr>
+              <tr><td><span class="path">UNBOUNDTests/</span></td><td>Unit tests</td><td>Domain-heavy suite. Use it as executable docs for ranking, programs, squads, sync, rewards, and adapters.</td></tr>
+              <tr><td><span class="path">project.yml</span></td><td>XcodeGen source of truth</td><td>Defines targets, packages, bundle ids, excluded files, deployment target, Swift version.</td></tr>
+              <tr><td><span class="path">UNBOUND.xcodeproj/</span></td><td>Generated Xcode project</td><td>Do not hand-curate project membership when XcodeGen owns it.</td></tr>
+              <tr><td><span class="path">docs/</span></td><td>Architecture and audit docs</td><td>Read <code>ARCHITECTURE.md</code>, <code>FILE_STRUCTURE.md</code>, and <code>architecture/*.md</code> first.</td></tr>
+              <tr><td><span class="path">supabase/</span></td><td>Backend functions and migrations</td><td>Edge functions, SQL schema, RLS hardening, squad cron logic, webhook handling.</td></tr>
+              <tr><td><span class="path">scripts/</span></td><td>Local maintenance</td><td>Asset audits, generation helpers, validation scripts.</td></tr>
+              <tr><td><span class="path">docs/legacy/</span></td><td>Historical archive</td><td>Old Firebase V1 and historical docs live here so active app code stays cleaner.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="slide" data-title="Build System">
+        <div class="slide-content">
+          <div class="eyebrow">Build system</div>
+          <h2><code>project.yml</code> is the control plane</h2>
+          <div class="split">
+            <div class="stack">
+              <div class="card">
+                <h3>Target shape</h3>
+                <ul>
+                  <li>Project name: <code>UNBOUND</code>.</li>
+                  <li>App target: <code>UNBOUND</code>.</li>
+                  <li>Unit test target: <code>UNBOUNDTests</code>.</li>
+                  <li>iOS deployment target: <code>17.0</code>.</li>
+                  <li>Swift version: <code>5.9</code>.</li>
+                </ul>
+              </div>
+              <div class="card">
+                <h3>Packages</h3>
+                <p>RevenueCat, Supabase, PostHog, HotReloading for debug simulator iteration, and AppIntents.</p>
+              </div>
+            </div>
+            <pre><code># Core commands you will actually use
+xcodegen generate
+
+xcodebuild test \
+  -project UNBOUND.xcodeproj \
+  -scheme UNBOUND \
+  -destination 'platform=iOS Simulator,name=iPhone 16'
+
+# Common focused shape
+xcodebuild test \
+  -project UNBOUND.xcodeproj \
+  -scheme UNBOUND \
+  -destination 'platform=iOS Simulator,id=&lt;UDID&gt;' \
+  -only-testing:UNBOUNDTests/ProofEngineTests</code></pre>
+          </div>
+          <div class="callout danger">
+            Do not treat <code>UNBOUND.xcodeproj</code> edits as durable architecture. If source membership or package wiring changes,
+            update <code>project.yml</code> and regenerate.
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" data-title="App Entry">
+        <div class="slide-content">
+          <div class="eyebrow">App shell</div>
+          <h2>The app starts in <code>UNBOUND/App/UnboundApp.swift</code></h2>
+          <div class="split">
+            <div>
+              <p class="lede">
+                <code>UnboundApp</code> creates the shared service container, pins dark mode, listens for universal links,
+                starts sync triggers, flushes sync on foreground, applies notification preferences, runs rollover checks,
+                and settles expired friend challenges.
+              </p>
+              <div class="timeline">
+                <div class="row"><div><b>WindowGroup</b><span>Installs <code>RootView()</code> with <code>.environmentObject(services)</code>.</span></div></div>
+                <div class="row"><div><b>Universal links</b><span>Handles <code>/squad/&lt;code&gt;</code> and posts <code>.squadInviteCodeReceived</code>.</span></div></div>
+                <div class="row"><div><b>Foreground work</b><span>Tracks app opened, flushes sync, applies notifications, evaluates rollover and friend challenges.</span></div></div>
+                <div class="row"><div><b>Auth routing</b><span><code>RootView</code> chooses loading, onboarding, auth, or <code>HomeTabView</code>.</span></div></div>
+              </div>
+            </div>
+            <pre><code>@main
+struct UnboundApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    @StateObject private var services = ServiceContainer()
+    @Environment(\.scenePhase) private var scenePhase
+
+    var body: some Scene {
+        WindowGroup {
+            RootView()
+                .environmentObject(services)
+                .preferredColorScheme(.dark)
+                .onContinueUserActivity(NSUserActivityTypeBrowsingWeb) { activity in
+                    // /squad/&lt;invite-code&gt;
+                }
+                .task { SyncTriggers.shared.start() }
+        }
+    }
+}</code></pre>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" data-title="Root Routing">
+        <div class="slide-content">
+          <div class="eyebrow">Root routing</div>
+          <h2><code>RootView</code> is the launch gate</h2>
+          <div class="grid two">
+            <div class="card">
+              <h3>Routing order</h3>
+              <ol>
+                <li>Show <code>AppLaunchLoadingView</code> while auth state is loading.</li>
+                <li>Show <code>OnboardingContainerView</code> until <code>onboardingCompleted</code> is true.</li>
+                <li>Show <code>AuthContainerView</code> if onboarding is done but user is signed out.</li>
+                <li>Show <code>HomeTabView().subscriptionGate()</code> when signed in.</li>
+              </ol>
+            </div>
+            <div class="card">
+              <h3>Sign-in side effects</h3>
+              <ul>
+                <li>Identify analytics user.</li>
+                <li>Replay pending onboarding profile onto authenticated user.</li>
+                <li>Login to subscription service.</li>
+                <li>Backfill attributes from old logs.</li>
+                <li>Ensure current trial week.</li>
+                <li>Restore program cache if missing.</li>
+                <li>Migrate skill tier state from historical logs once.</li>
+              </ul>
+            </div>
+          </div>
+          <div class="callout">
+            If onboarding, auth, subscription, sync restore, or initial program state feels weird, start in <code>RootView</code>
+            and follow the async tasks from there.
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" data-title="Dependencies">
+        <div class="slide-content">
+          <div class="eyebrow">Dependency graph</div>
+          <h2><code>ServiceContainer</code> is the app's dependency registry</h2>
+          <p class="lede">
+            The container is installed as a SwiftUI environment object and exposes protocol-typed services for production,
+            test, and preview paths. It still contains many singletons, but the view-facing API is consolidated.
+          </p>
+          <div class="grid three">
+            <div class="card">
+              <h3>Platform and account</h3>
+              <p><code>auth</code>, <code>database</code>, <code>analytics</code>, <code>subscription</code>, <code>paywall</code>, <code>storage</code>, <code>network</code>, <code>user</code>.</p>
+            </div>
+            <div class="card">
+              <h3>Training domain</h3>
+              <p><code>programGeneration</code>, <code>programPhase</code>, <code>workoutLog</code>, <code>workingWeight</code>, <code>cardioLog</code>, <code>calibration</code>, <code>health</code>.</p>
+            </div>
+            <div class="card">
+              <h3>Game systems</h3>
+              <p><code>rank</code>, <code>skin</code>, <code>sessionXP</code>, <code>badges</code>, <code>attribute</code>, <code>userSkillTier</code>, <code>trials</code>.</p>
+            </div>
+            <div class="card">
+              <h3>Scan</h3>
+              <p><code>bodyAnalysis</code>, <code>imageCapture</code>, <code>scanCheckpointStore</code>, <code>scanCheckpointService</code>.</p>
+            </div>
+            <div class="card">
+              <h3>Personalization</h3>
+              <p><code>exercisePreference</code>, <code>customExercise</code>, <code>liftTier</code>, <code>entitlement</code>.</p>
+            </div>
+            <div class="card">
+              <h3>Squads</h3>
+              <p><code>squads</code>, <code>squadActivity</code>, <code>squadPresence</code>, <code>squadMission</code>, <code>squadHonors</code>, <code>friendChallenge</code>.</p>
+            </div>
+          </div>
+          <div class="callout danger">
+            The container is useful, but it is not a license for views to orchestrate business rules. Inject services into views,
+            then call focused methods that own the rules.
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" data-title="Tabs">
+        <div class="slide-content">
+          <div class="eyebrow">Navigation</div>
+          <h2><code>HomeTabView</code> defines the five main product surfaces</h2>
+          <table class="table">
+            <thead>
+              <tr><th>Tab</th><th>Root view</th><th>Job</th><th>Common launch hook</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Home</td><td><span class="path">Views/Home/UnboundHomeView.swift</span></td><td>Dashboard, skill highlights, scan prompts, reward routes.</td><td><code>--unbound-open-cardio-log</code></td></tr>
+              <tr><td>Program</td><td><span class="path">Views/Program/ProgramOverviewView.swift</span></td><td>Today's training, week preview, routines, ranks, active workout launch.</td><td><code>--unbound-open-program</code></td></tr>
+              <tr><td>Skills</td><td><span class="path">Views/Home/UnboundSkillTreeTabView.swift</span></td><td>Skill graph and detail launch.</td><td><code>--unbound-open-skills</code></td></tr>
+              <tr><td>Squad</td><td><span class="path">Views/Squads/SquadTabView.swift</span></td><td>Squad social loop, missions, activity, invites.</td><td><code>--unbound-open-squad</code></td></tr>
+              <tr><td>Profile</td><td><span class="path">Views/Profile/ProfileView.swift</span></td><td>Identity, progress, rank gate, settings entry.</td><td><code>--unbound-open-profile</code></td></tr>
+            </tbody>
+          </table>
+          <div class="callout">
+            The tab view also owns global overlays: rank-up cinematic, skin unlock toast, and badge unlock toast.
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" data-title="Domain Terms">
+        <div class="slide-content">
+          <div class="eyebrow">Vocabulary</div>
+          <h2>The app has several progress systems. Do not merge them mentally.</h2>
+          <table class="table">
+            <thead>
+              <tr><th>Concept</th><th>Means</th><th>Primary owners</th><th>Do not confuse with</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Rank</td><td>Actual movement or skill ability on the shared <code>RankTier</code> ladder.</td><td><code>RankTier</code>, <code>RankService</code>, <code>StrengthStandards</code>, <code>ProofEngine</code>.</td><td>LVL, streak, old per-skill XP.</td></tr>
+              <tr><td>LVL</td><td>Total training effort over time.</td><td><code>OverallLevelProgress</code>, <code>OverallLevelService</code>, <code>SessionXPService</code>.</td><td>Rank. LVL is not ability proof.</td></tr>
+              <tr><td>Streak</td><td>Consistency and session cadence.</td><td><code>SessionXPService</code>, program-aware streak policy.</td><td>Progression quality.</td></tr>
+              <tr><td>Attributes</td><td>Six-axis training profile: strength, power, endurance, mobility, coordination, balance.</td><td><code>AttributeValue</code>, <code>AttributeService</code>, <code>AttributeIngest</code>.</td><td>Old 0-100 stat scores.</td></tr>
+              <tr><td>Recovery</td><td>Muscle/body region readiness and heat.</td><td><code>MuscleHeatGroup</code>, body map progress, recovery views.</td><td>Rank or attributes.</td></tr>
+              <tr><td>AP</td><td>Movement progress points used to update movement progress states.</td><td><code>MovementAPCalculator</code>, <code>MovementProgressService</code>.</td><td>XP shown in reward UI.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="slide" data-title="File Counts">
+        <div class="slide-content">
+          <div class="eyebrow">Scale map</div>
+          <h2>Where the code is heaviest today</h2>
+          <div class="grid two">
+            <div class="card">
+              <h3>Highest-line app files</h3>
+              <ul class="mini">
+                <li><code>ProgramOverviewView.swift</code>: 4422 lines.</li>
+                <li><code>SkillTreeContent.swift</code>: 3230 lines.</li>
+                <li><code>OverallRankTrialService.swift</code>: 2410 lines.</li>
+                <li><code>UnboundHomeView.swift</code>: 2251 lines.</li>
+                <li><code>SkillTrainingPlanLibrary.swift</code>: 2148 lines.</li>
+                <li><code>ClusterStaircaseView.swift</code>: 2106 lines.</li>
+                <li><code>SkillGuideLibrary.swift</code>: 2018 lines.</li>
+                <li><code>MovementCatalog.swift</code>: 1986 lines.</li>
+              </ul>
+            </div>
+            <div class="card">
+              <h3>Highest-line test files</h3>
+              <ul class="mini">
+                <li><code>DeterministicProgramGeneratorTests.swift</code>: 2006 lines.</li>
+                <li><code>OverallRankTrialServiceTests.swift</code>: 1632 lines.</li>
+                <li><code>MovementProgressServiceTests.swift</code>: 1322 lines.</li>
+                <li><code>TrainingSessionAdapterTests.swift</code>: 1099 lines.</li>
+                <li><code>UNBOUNDTests.swift</code>: 867 lines.</li>
+                <li><code>MovementResolverTests.swift</code>: 772 lines.</li>
+              </ul>
+            </div>
+          </div>
+          <div class="callout danger">
+            Big files are not automatically bad. Catalogs can be big. Screens and services become risky when they mix rendering,
+            routing, persistence, business rules, and debug affordances in one place.
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" data-title="Completion Pipeline">
+        <div class="slide-content">
+          <div class="eyebrow">Most important flow</div>
+          <h2><code>TrainingCompletionService.complete()</code> is the canonical write path</h2>
+          <p class="lede">
+            When a real training session is finished, this service writes the source log and fans out to progression,
+            proof, rewards, streak, skins, squads, and idempotency receipts.
+          </p>
+          <div class="timeline">
+            <div class="row"><div><b>Guard duplicate active completion</b><span>Uses in-memory <code>activeCompletionLogIds</code> and waiters for same-process re-entry.</span></div></div>
+            <div class="row"><div><b>Check persisted completion record</b><span>If <code>training_completion_records</code> already exists, return already-completed result.</span></div></div>
+            <div class="row"><div><b>Replay partial receipts</b><span>If replay or progression receipts exist, resume instead of double-writing.</span></div></div>
+            <div class="row"><div><b>Create <code>performanceLogs</code></b><span>Source event is persisted before progression work.</span></div></div>
+            <div class="row"><div><b>Run progression</b><span>Movement AP, body region rewards, attributes, bodyweight, program-aware updates.</span></div></div>
+            <div class="row"><div><b>Compatible workout log</b><span>Adapter creates old-compatible <code>WorkoutLog</code> shape for systems that still need it.</span></div></div>
+            <div class="row"><div><b>Proof engine</b><span>Evaluates skill/rank proof against current tier state and bodyweight.</span></div></div>
+            <div class="row"><div><b>Squad progress</b><span>Records squad mission and friend challenge progress exactly once per performance log id.</span></div></div>
+            <div class="row"><div><b>Session logs and reward state</b><span>Saves <code>sessionLogs</code>, skin unlocks, streak, replay receipt, final completion record.</span></div></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" data-title="Completion Owners">
+        <div class="slide-content">
+          <div class="eyebrow">Write ownership</div>
+          <h2>What completion is allowed to update</h2>
+          <div class="grid three">
+            <div class="card">
+              <h3>Primary persistence</h3>
+              <p><code>performanceLogs</code>, <code>training_completion_progression_receipts</code>, <code>training_completion_replay_receipts</code>, <code>training_completion_records</code>.</p>
+            </div>
+            <div class="card">
+              <h3>Compatibility logs</h3>
+              <p><code>TrainingSessionAdapters.workoutLog(from:)</code> bridges new training sessions into older systems that still consume <code>WorkoutLog</code>.</p>
+            </div>
+            <div class="card">
+              <h3>Rank proof</h3>
+              <p><code>ProofEngine.evaluate()</code> compares completed work against tier criteria and current <code>UserSkillTierState</code>.</p>
+            </div>
+            <div class="card">
+              <h3>Level and streak</h3>
+              <p><code>SessionXPService.recordSession()</code> owns streak state and effort leveling. This is not skill rank.</p>
+            </div>
+            <div class="card">
+              <h3>Cosmetics</h3>
+              <p><code>SkinService.evaluateUnlocks()</code> returns newly earned skins after rank progress.</p>
+            </div>
+            <div class="card">
+              <h3>Squads</h3>
+              <p><code>recordSquadProgress()</code> calls squad mission and friend challenge services with a source id guard.</p>
+            </div>
+          </div>
+          <div class="callout danger">
+            If a feature wants to respond to a completed workout, resist adding another random save hook. Prefer a typed output
+            from completion or a service called from the canonical completion path.
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" data-title="Data Models">
+        <div class="slide-content">
+          <div class="eyebrow">Model map</div>
+          <h2>The core data shapes you should recognize</h2>
+          <table class="table">
+            <thead>
+              <tr><th>Model</th><th>Role</th><th>Typical producer</th><th>Typical consumer</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>PerformanceLog</code></td><td>Canonical new training completion input.</td><td>Active workout, routine, quick log adapters.</td><td><code>TrainingCompletionService</code>.</td></tr>
+              <tr><td><code>WorkoutLog</code></td><td>Compatibility and legacy-shaped exercise log.</td><td><code>TrainingSessionAdapters</code>.</td><td>Proof, squads, historical log screens.</td></tr>
+              <tr><td><code>ExerciseLogEntry</code></td><td>Exercise set/rep/weight evidence.</td><td>Workout and quick log flows.</td><td>Proof, movement AP, standards.</td></tr>
+              <tr><td><code>MovementProgressState</code></td><td>Accumulated movement AP and rank template context.</td><td><code>MovementProgressService</code>.</td><td>Reward UI, profile, movement progress surfaces.</td></tr>
+              <tr><td><code>UserSkillTierState</code></td><td>User's earned skill tiers.</td><td><code>ProofEngine</code>, migration.</td><td>Skill detail, rank library, gates.</td></tr>
+              <tr><td><code>TrainingProgram</code></td><td>User's generated plan/block.</td><td>Program generation and rollover.</td><td>Program tab, sync restore, daily resolver.</td></tr>
+              <tr><td><code>WorkoutRewardSequenceSummary</code></td><td>Display receipt for reward animation.</td><td>Reward payload builder/completion output.</td><td><code>WorkoutRewardSequenceView</code>.</td></tr>
+              <tr><td><code>SquadMission</code></td><td>Backend-backed weekly squad objective.</td><td>Supabase functions and squad services.</td><td>Squad tab, honors, activity.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="slide" data-title="Ranking">
+        <div class="slide-content">
+          <div class="eyebrow">Ranking</div>
+          <h2>Rank is ability proof, not effort</h2>
+          <div class="split">
+            <div>
+              <p class="lede">
+                <code>RankTier</code> is the single ladder. Movement standards use templates, bodyweight-relative
+                thresholds, bodyweight rep ladders, hold ladders, and proof criteria.
+              </p>
+              <div class="grid two">
+                <div class="card compact"><h3>Skill rank</h3><p>Earned from logged proof in <code>UserSkillTierState</code>, evaluated by <code>ProofEngine</code>.</p></div>
+                <div class="card compact"><h3>Movement rank</h3><p>Derived from movement standards and <code>StrengthStandards</code> templates.</p></div>
+                <div class="card compact"><h3>Overall rank</h3><p>Aggregated through <code>RankService</code> and rank trial logic.</p></div>
+                <div class="card compact"><h3>Deprecated ideas</h3><p>Do not reintroduce E-S, sub-rank, muscle rank, or per-skill XP levels.</p></div>
+              </div>
+            </div>
+            <pre><code>// Where to read first
+UNBOUND/Models/SkillTier.swift
+UNBOUND/Models/Standards/StrengthStandards.swift
+UNBOUND/Services/Ranking/ProofEngine.swift
+UNBOUND/Services/Ranking/RankService.swift
+UNBOUND/Services/Ranking/OverallRankTrialService.swift
+
+// Good tests
+UNBOUNDTests/Services/ProofEngineTests.swift
+UNBOUNDTests/Services/RankServiceAggregateTests.swift
+UNBOUNDTests/Services/OverallRankTrialServiceTests.swift
+UNBOUNDTests/Models/UserSkillTierStateTests.swift</code></pre>
+          </div>
+          <div class="callout">
+            When debugging "why did I not rank up?", inspect the evidence log, the matching movement/skill criteria,
+            bodyweight, current tier state, and proof source.
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" data-title="Movement Catalog">
+        <div class="slide-content">
+          <div class="eyebrow">Movement library</div>
+          <h2><code>MovementCatalog</code> and <code>ExerciseCatalog</code> define what can be trained</h2>
+          <p class="lede">
+            Catalogs are data-heavy by design. They connect exercises to rank templates, aliases,
+            rollups, body regions, attributes, skill links, and asset references.
+          </p>
+          <div class="grid three">
+            <div class="card">
+              <h3>Identity and aliases</h3>
+              <p>Resolve user-facing exercise names, variant spellings, and old ids into rank-standard movement ids.</p>
+            </div>
+            <div class="card">
+              <h3>Training metadata</h3>
+              <p>Body regions, equipment, skill links, progression families, and attribute contribution weights.</p>
+            </div>
+            <div class="card">
+              <h3>Visual assets</h3>
+              <p>Exercise visuals are dynamically resolved. Do not delete imagesets without running the asset audit script.</p>
+            </div>
+          </div>
+          <pre><code># Before deleting or renaming exercise visuals
+python3 scripts/audit_exercise_visual_assets.py</code></pre>
+          <div class="callout danger">
+            Catalog duplication can silently break progression. If you add an exercise, think through resolver aliases,
+            proof matching, rank template, body region, attributes, and visual asset naming in one pass.
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" data-title="Skills">
+        <div class="slide-content">
+          <div class="eyebrow">Skill system</div>
+          <h2>The skill tree is a graph plus earned proof state</h2>
+          <table class="table">
+            <thead>
+              <tr><th>Piece</th><th>Purpose</th><th>Important nuance</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>SkillNode</code></td><td>Static graph node: title, target, prerequisites, cluster, visuals.</td><td>Its tier is placement difficulty, not necessarily user-earned rank.</td></tr>
+              <tr><td><code>SkillGraph</code></td><td>Graph queries and relationships.</td><td>Use graph APIs instead of manually walking arrays in views.</td></tr>
+              <tr><td><code>NodeState</code></td><td>Legacy display progress state.</td><td>Only locked/proven should survive as truthy state. Legacy decode exists.</td></tr>
+              <tr><td><code>UserSkillTierState</code></td><td>Earned skill rank state.</td><td>This is the real user proof state for skill rank.</td></tr>
+              <tr><td><code>SkillProgressService</code></td><td>Bookmarks, goals, old node state coordination.</td><td>Still used by Program to react to goal changes.</td></tr>
+              <tr><td><code>SkillTierGenerator</code></td><td>Builds tier criteria.</td><td>Backed by consistency tests for skill standards.</td></tr>
+            </tbody>
+          </table>
+          <div class="callout">
+            The user-facing phrase "skill progress" can mean graph unlock state, active goal state, or earned rank proof.
+            Name the exact concept in code reviews.
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" data-title="Skill Detail">
+        <div class="slide-content">
+          <div class="eyebrow">Skill screen</div>
+          <h2><code>SkillDetailView</code> is now a single-scroll training surface</h2>
+          <div class="split">
+            <div class="timeline">
+              <div class="row"><div><b>Top nav</b><span>Back and bookmark. Bookmark writes through <code>SkillProgressService</code>.</span></div></div>
+              <div class="row"><div><b>Hero and title</b><span>Uses skill visual resolvers and stable silhouette assets.</span></div></div>
+              <div class="row"><div><b>Progress and rank path</b><span>Reads <code>UserSkillTierState</code> and criteria.</span></div></div>
+              <div class="row"><div><b>Guide section</b><span>Tabs for form, standards, and training guidance.</span></div></div>
+              <div class="row"><div><b>Sticky action</b><span>Opens typed <code>SkillDetailSheet</code>: session, quick log, or train chooser.</span></div></div>
+            </div>
+            <div class="card">
+              <h3>Why this mattered in the audit</h3>
+              <p>
+                The previous shape had too many implicit sheet booleans and mixed concerns. The current version uses
+                one <code>presentedSheet</code> enum and moves guide/quick-log helpers toward dedicated components.
+              </p>
+              <div class="pill-row">
+                <span class="pill">Sheet enum</span>
+                <span class="pill">Guide tabs</span>
+                <span class="pill">Quick log</span>
+                <span class="pill">Rank path</span>
+                <span class="pill">Visual resolver</span>
+              </div>
+            </div>
+          </div>
+          <div class="callout danger">
+            Avoid adding another local state boolean for every new modal. If the screen can present one thing at a time,
+            use a typed enum.
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" data-title="Program System">
+        <div class="slide-content">
+          <div class="eyebrow">Program generation</div>
+          <h2>The Program layer answers "what should the user do next?"</h2>
+          <div class="grid two">
+            <div class="card">
+              <h3>Generation and scheduling</h3>
+              <ul>
+                <li><code>DeterministicProgramGenerator</code> builds reproducible blocks from goals, profile, equipment, and constraints.</li>
+                <li><code>ProgramPhaseEngine</code> understands block/phase context.</li>
+                <li><code>DailyWorkoutResolver</code> chooses the correct workout for a date/day.</li>
+                <li><code>BlockRolloverService</code> prepares the next block and checkpoint flow.</li>
+              </ul>
+            </div>
+            <div class="card">
+              <h3>State and UI</h3>
+              <ul>
+                <li><code>ProgramStore</code> persists local/adopted program state.</li>
+                <li><code>ProgramViewModel</code> shapes program data for the surface.</li>
+                <li><code>ProgramOverviewView</code> renders program, routines, and ranks tabs.</li>
+                <li><code>ActiveWorkoutContainerView</code> turns a draft into completion input.</li>
+              </ul>
+            </div>
+          </div>
+          <div class="callout">
+            Program code should decide prescription. Completion code should decide what was earned. Keep that boundary clean.
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" data-title="Program Overview">
+        <div class="slide-content">
+          <div class="eyebrow">Program screen</div>
+          <h2><code>ProgramOverviewView</code> was simplified, but the shell is still large</h2>
+          <p class="lede">
+            The simplification pass did break out meaningful pieces around the Program surface. The remaining issue is that
+            <code>ProgramOverviewView.swift</code> itself is still the biggest active view at 4422 lines, so it is not fully
+            decomposed into small ownership units yet.
+          </p>
+          <div class="grid three">
+            <div class="card">
+              <h3>What was broken out</h3>
+              <p><code>ProgramRankLibraryView</code>, <code>ProgramFocusSwitchSheet</code>, <code>SavedWorkoutsListView</code>, <code>ScheduleSavedWorkoutSheet</code>, active workout components, and reward components now live outside the main file.</p>
+            </div>
+            <div class="card">
+              <h3>What remains inside</h3>
+              <p>Tab coordination, program preview, routines state, saved workout routing, active workout launch, recovery day completion, checkpoint/rollover, and resume draft orchestration.</p>
+            </div>
+            <div class="card">
+              <h3>Review stance</h3>
+              <p>Treat the file as an orchestration shell. Do not add business logic here; put new rules in <code>ProgramViewModel</code>, a Program service, or a small presenter model.</p>
+            </div>
+          </div>
+          <div class="callout danger">
+            If explaining a Program change requires a paragraph of "this state triggers that sheet unless this overlay is active,"
+            the state model probably needs another pass.
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" data-title="Progression">
+        <div class="slide-content">
+          <div class="eyebrow">Progression</div>
+          <h2>Progression decides adaptation, not social proof</h2>
+          <table class="table">
+            <thead>
+              <tr><th>Owner</th><th>Question it answers</th><th>Change here when...</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>ProgressionEngine</code></td><td>How should training load advance?</td><td>Session performance should alter future prescription.</td></tr>
+              <tr><td><code>MovementProgressService</code></td><td>How did movement AP and rank movement state change?</td><td>AP gains, standards, or movement history behavior changes.</td></tr>
+              <tr><td><code>AutoDeloadService</code></td><td>When should the plan back off?</td><td>Fatigue/recovery logic needs to reduce load.</td></tr>
+              <tr><td><code>ProgramStore</code></td><td>What program is active locally?</td><td>Program adoption, local cache, or restore behavior changes.</td></tr>
+              <tr><td><code>WaveAdjuster</code></td><td>How should wave loading adjust?</td><td>Generated loading needs a systematic weekly adjustment.</td></tr>
+            </tbody>
+          </table>
+          <div class="callout">
+            Look at <code>UNBOUNDTests/Services/Progression/</code>, <code>MovementProgressServiceTests</code>, and
+            program generation tests before changing adaptation rules.
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" data-title="Home">
+        <div class="slide-content">
+          <div class="eyebrow">Home surface</div>
+          <h2>Home is the dashboard and launch surface</h2>
+          <div class="grid two">
+            <div class="card">
+              <h3>Main jobs</h3>
+              <ul>
+                <li>Summarize user state: rank, streak, level, body progress, scan cadence.</li>
+                <li>Expose training entry points: active skill, cardio, program route, profile route.</li>
+                <li>Show skill graph concepts, cluster surfaces, coach modes, and reward-ish progress context.</li>
+              </ul>
+            </div>
+            <div class="card">
+              <h3>Audit note</h3>
+              <p>
+                Home had scan cadence and load derivation complexity. Tests now cover home load derivations and scan cadence gates.
+                Keep these as derivations, not loose UI side effects.
+              </p>
+              <div class="pill-row">
+                <span class="pill">HomeLoadDerivationsTests</span>
+                <span class="pill">ScanCadenceGateTests</span>
+                <span class="pill">UnboundHomeViewSessionFlowTests</span>
+              </div>
+            </div>
+          </div>
+          <pre><code>UNBOUND/Views/Home/UnboundHomeView.swift
+UNBOUND/Views/Home/HomeTabView.swift
+UNBOUND/Views/Home/ClusterStaircaseView.swift
+UNBOUND/Views/Home/CoachModesStrip.swift
+UNBOUNDTests/Views/HomeLoadDerivationsTests.swift
+UNBOUNDTests/Views/ScanCadenceGateTests.swift</code></pre>
+        </div>
+      </section>
+
+      <section class="slide" data-title="Workout Flow">
+        <div class="slide-content">
+          <div class="eyebrow">Workout session</div>
+          <h2>Training moves through drafts, active sessions, adapters, completion</h2>
+          <div class="flow">
+            <div class="step"><b>Program day</b><span>User chooses today's session, saved workout, routine, or skill plan.</span></div>
+            <div class="step"><b>Draft</b><span><code>TrainingSessionDraft</code> captures exercises and intent before start.</span></div>
+            <div class="step"><b>Ready view</b><span><code>WorkoutReadyView</code> previews and confirms launch.</span></div>
+            <div class="step"><b>Active session</b><span><code>ActiveWorkoutContainerView</code> records sets, timing, completion.</span></div>
+            <div class="step"><b>Adapter</b><span><code>TrainingSessionAdapters</code> creates <code>PerformanceLog</code> and compatibility shapes.</span></div>
+            <div class="step"><b>Completion</b><span><code>TrainingCompletionService.complete()</code> persists and awards.</span></div>
+          </div>
+          <div class="callout danger">
+            If you add a new way to finish training, the hard question is not "can it save a row?"
+            It is "does it produce a valid <code>PerformanceLog</code> that flows through canonical completion?"
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" data-title="Rewards">
+        <div class="slide-content">
+          <div class="eyebrow">Rewards</div>
+          <h2>Reward UI visualizes a receipt, it should not invent progression</h2>
+          <div class="grid two">
+            <div class="card">
+              <h3>Core files</h3>
+              <ul>
+                <li><code>Models/WorkoutRewardSequence.swift</code></li>
+                <li><code>Views/Components/Unbound/WorkoutRewardSequenceView.swift</code></li>
+                <li><code>Views/Components/Unbound/WorkoutRewardComponents.swift</code></li>
+                <li><code>Services/Rewards/RewardPayloadBuilder.swift</code></li>
+              </ul>
+            </div>
+            <div class="card">
+              <h3>Current rule</h3>
+              <p>
+                Reward components present gains computed elsewhere: movement AP, body region rewards,
+                attribute gains, level/streak state, skins, and completion summary. The view should stay display-only.
+              </p>
+            </div>
+          </div>
+          <div class="callout">
+            Naming still has some cleanup pressure: AP and XP have both appeared in reward language. Be explicit in user copy
+            and code names about whether something is movement AP, session XP, or display reward points.
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" data-title="Attributes">
+        <div class="slide-content">
+          <div class="eyebrow">Attributes and body map</div>
+          <h2>Attributes are a six-axis training profile</h2>
+          <div class="grid three">
+            <div class="card">
+              <h3>Axis model</h3>
+              <p><code>AttributeKey</code> and <code>AttributeValue</code> cover strength, power, endurance, mobility, coordination, and balance.</p>
+            </div>
+            <div class="card">
+              <h3>Ingest</h3>
+              <p><code>AttributeIngest</code> converts logged training into axis contributions using catalogs and evidence.</p>
+            </div>
+            <div class="card">
+              <h3>Service</h3>
+              <p><code>AttributeService</code> snapshots, backfills, boosts, drift, and persistence behavior.</p>
+            </div>
+          </div>
+          <div class="grid two" style="margin-top:16px;">
+            <div class="card compact">
+              <h3>Body/recovery</h3>
+              <p><code>MuscleHeatGroup</code>, body region ledgers, and recovery views model readiness and fatigue context.</p>
+            </div>
+            <div class="card compact">
+              <h3>Tests</h3>
+              <p><code>AttributeServiceIngestTests</code>, <code>AttributeServiceDriftTests</code>, <code>AttributeContributionCatalogTests</code>, <code>RegionFatigueBudgetTests</code>.</p>
+            </div>
+          </div>
+          <div class="callout danger">
+            Do not bring back generic "stat score 0-100" logic. Attribute values mean training profile contribution,
+            not arbitrary game stats.
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" data-title="Scan">
+        <div class="slide-content">
+          <div class="eyebrow">Scan and calibration</div>
+          <h2>Scan is profile input, checkpoint cadence, and body analysis</h2>
+          <table class="table">
+            <thead>
+              <tr><th>Area</th><th>Files</th><th>Role</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Photo capture</td><td><code>Views/Scan/PhotoCaptureFlow.swift</code>, <code>Services/ImageCapture/</code></td><td>Collects images for analysis/checkpoints.</td></tr>
+              <tr><td>Body analysis</td><td><code>Services/BodyAnalysis/</code>, <code>Services/Claude/</code></td><td>Interprets images and returns profile/body signals.</td></tr>
+              <tr><td>Checkpoint store</td><td><code>ScanCheckpointStore</code>, <code>ScanCheckpointService</code></td><td>Tracks cadence and checkpoint availability.</td></tr>
+              <tr><td>Calibration</td><td><code>Views/Calibration/</code>, <code>Services/Calibration/</code></td><td>Initial movement/ability inputs and calibration workout flow.</td></tr>
+              <tr><td>Tests</td><td><code>CheckpointSignalsTests</code>, <code>ScanCadenceGateTests</code>, <code>CheckpointValidatorTests</code></td><td>Prevents scan cadence drift.</td></tr>
+            </tbody>
+          </table>
+          <div class="callout">
+            Scan results feed profile and program context. They should not directly bypass program/progression services.
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" data-title="Squads">
+        <div class="slide-content">
+          <div class="eyebrow">Squads</div>
+          <h2>Squads are social/accountability, not core progression</h2>
+          <p class="lede">
+            Squad code listens to completed training and backend state. The backend remains authoritative for weekly missions,
+            enriched members, ledgers, honors, and cron-closed mission lifecycle.
+          </p>
+          <div class="grid three">
+            <div class="card">
+              <h3>iOS services</h3>
+              <p><code>SquadService</code>, <code>SquadActivityService</code>, <code>SquadPresenceService</code>, <code>SquadMissionService</code>, <code>SquadHonorsService</code>, <code>FriendChallengeService</code>.</p>
+            </div>
+            <div class="card">
+              <h3>Models</h3>
+              <p><code>Squad</code>, <code>SquadMember</code>, <code>SquadMission</code>, <code>SquadActivityEntry</code>, <code>FriendChallenge</code>, <code>WeeklyHonor</code>.</p>
+            </div>
+            <div class="card">
+              <h3>Supabase</h3>
+              <p><code>join_squad</code>, <code>evaluate_squad_mission</code>, <code>evaluate_squad_streak</code>, <code>assign_weekly_honors</code>, squad migrations and RPCs.</p>
+            </div>
+          </div>
+          <div class="callout danger">
+            Squad progress must be source-idempotent. The current canonical trigger is <code>TrainingCompletionService.recordSquadProgress()</code>.
+            Do not re-add progress writes to random save paths.
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" data-title="Sync Backend">
+        <div class="slide-content">
+          <div class="eyebrow">Sync and backend</div>
+          <h2>Supabase and local sync sit under most user state</h2>
+          <div class="grid two">
+            <div class="card">
+              <h3>iOS sync layer</h3>
+              <ul>
+                <li><code>SyncedDatabase</code> and <code>DatabaseServiceProtocol</code> abstract reads/writes.</li>
+                <li><code>SyncEngine</code> flushes queued writes and restores data.</li>
+                <li><code>SyncTriggers</code> starts automatic sync behavior.</li>
+                <li>Root foreground path calls <code>SyncEngine.shared.flush()</code>.</li>
+              </ul>
+            </div>
+            <div class="card">
+              <h3>Backend surface</h3>
+              <ul>
+                <li>SQL migrations define schema and security posture.</li>
+                <li>Edge functions handle Anthropic proxy, RevenueCat webhook, delete account, squad join, squad evaluation, honors.</li>
+                <li>Recent migrations harden sync merge RPC security and squad backend auth forwarding.</li>
+              </ul>
+            </div>
+          </div>
+          <pre><code>supabase/functions/
+  anthropic_proxy/
+  revenuecat_webhook/
+  delete_account/
+  join_squad/
+  evaluate_squad_mission/
+  evaluate_squad_streak/
+  assign_weekly_honors/
+
+supabase/migrations/
+  *_initial_schema.sql
+  *_squad_schema.sql
+  *_sync_merge_rpc*.sql
+  *_squad_progress_source_ledgers.sql</code></pre>
+        </div>
+      </section>
+
+      <section class="slide" data-title="Entitlements">
+        <div class="slide-content">
+          <div class="eyebrow">Paywall and analytics</div>
+          <h2>Commercial/platform services are present but should stay thin</h2>
+          <table class="table">
+            <thead>
+              <tr><th>Area</th><th>Primary files</th><th>Notes</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Subscription</td><td><code>Services/Subscription/</code></td><td>RevenueCat integration and user login. Root calls subscription login after sign-in.</td></tr>
+              <tr><td>Entitlement</td><td><code>Services/Entitlement/</code>, <code>subscriptionGate()</code></td><td>Feature access boundary. Keep entitlement checks centralized.</td></tr>
+              <tr><td>Paywall</td><td><code>Services/Paywall/</code>, <code>Views/Paywall/</code></td><td>Presentation and paywall service. Avoid scattering purchase logic.</td></tr>
+              <tr><td>Analytics</td><td><code>Services/Analytics/</code></td><td>PostHog-backed event tracking. Tabs track selection; root tracks app opened.</td></tr>
+              <tr><td>Notifications</td><td><code>Services/Notifications/</code></td><td>Root foreground path applies stored notification preferences.</td></tr>
+            </tbody>
+          </table>
+          <div class="callout">
+            Commercial checks should answer "is this allowed?" They should not decide training correctness.
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" data-title="Localization Assets">
+        <div class="slide-content">
+          <div class="eyebrow">Resources</div>
+          <h2>Assets and localization are active product infrastructure</h2>
+          <div class="grid two">
+            <div class="card">
+              <h3>Assets</h3>
+              <p>
+                <code>Assets.xcassets</code> contains app icons, badge art, cinematic tiers, cosmetics,
+                rank titles, reward art, skill icons, infographics, squad crest, and hundreds of exercise visuals.
+              </p>
+            </div>
+            <div class="card">
+              <h3>Localization</h3>
+              <p>
+                <code>Resources/Localizable.xcstrings</code> and <code>Utilities/Localization/</code> own string localization.
+                <code>LocalizationTests</code> should catch obvious drift.
+              </p>
+            </div>
+          </div>
+          <div class="callout danger">
+            A missing asset can look like a UI bug. Before changing asset names, search dynamic resolver usage and run asset audits.
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" data-title="Testing">
+        <div class="slide-content">
+          <div class="eyebrow">Testing strategy</div>
+          <h2>The test suite is domain-oriented, not snapshot-only</h2>
+          <table class="table">
+            <thead>
+              <tr><th>Area</th><th>Representative tests</th><th>Why you care</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Completion/logging</td><td><code>TrainingCompletionSquadProgressTests</code>, <code>TrainingSessionAdapterTests</code>, <code>ProgramAwareLoggingTests</code></td><td>Prevents duplicate writes and adapter breakage.</td></tr>
+              <tr><td>Proof/rank</td><td><code>ProofEngineTests</code>, <code>MovementResolverTests</code>, <code>SkillAutoProofTests</code>, <code>SkillStandardConsistencyTests</code></td><td>Protects the ability-proof contract.</td></tr>
+              <tr><td>Programs</td><td><code>DeterministicProgramGeneratorTests</code>, <code>DailyWorkoutResolverTests</code>, <code>ProgramStoreTests</code></td><td>Protects plan generation and daily workout behavior.</td></tr>
+              <tr><td>Progression</td><td><code>MovementProgressServiceTests</code>, <code>ProgressionEngineBehaviorTests</code>, <code>WaveAdjusterTests</code></td><td>Protects progression and adaptation rules.</td></tr>
+              <tr><td>Squads</td><td><code>SquadServiceTests</code>, <code>SquadMissionServiceTests</code>, <code>FriendChallengeServiceTests</code></td><td>Protects social/accountability behavior and idempotency.</td></tr>
+              <tr><td>Sync</td><td><code>FieldLevelMergeTests</code>, <code>RemoteSyncMapTests</code>, <code>SyncedDatabaseTests</code></td><td>Protects local/remote data consistency.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="slide" data-title="Simulator">
+        <div class="slide-content">
+          <div class="eyebrow">Simulator verification</div>
+          <h2>Use launch arguments to enter specific surfaces quickly</h2>
+          <div class="grid two">
+            <pre><code># Build/test full suite on a known simulator
+xcodebuild test \
+  -project /Users/jlin/Documents/toji/UNBOUND/UNBOUND.xcodeproj \
+  -scheme UNBOUND \
+  -destination 'platform=iOS Simulator,id=&lt;UDID&gt;' \
+  -derivedDataPath /Users/jlin/Documents/toji/UNBOUND/.derivedData \
+  -test-timeouts-enabled NO
+
+# Fast tab targeting in DEBUG
+--unbound-open-program
+--unbound-open-skills
+--unbound-open-squad
+--unbound-open-profile
+--unbound-open-cardio-log</code></pre>
+            <div class="card">
+              <h3>What to smoke after refactors</h3>
+              <ul>
+                <li>Cold launch through <code>RootView</code> to Home.</li>
+                <li>Program tab renders current week and day detail.</li>
+                <li>Active workout can launch and complete.</li>
+                <li>Skill detail opens, quick log sheet presents, criteria render.</li>
+                <li>Squad tab loads without duplicate mission progress.</li>
+                <li>Profile and settings route without breaking rank gate.</li>
+              </ul>
+            </div>
+          </div>
+          <div class="callout ok">
+            Most recent audit verification included full simulator tests and visual smoke screenshots for Home and Program.
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" data-title="Debugging Recipes">
+        <div class="slide-content">
+          <div class="eyebrow">Debugging recipes</div>
+          <h2>Where to start based on the symptom</h2>
+          <table class="table">
+            <thead>
+              <tr><th>Symptom</th><th>Start here</th><th>Then inspect</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Workout completion did not award progress</td><td><code>TrainingCompletionService.complete()</code></td><td><code>PerformanceLog</code>, progression receipt, proof result, session logs.</td></tr>
+              <tr><td>Skill did not unlock/rank up</td><td><code>ProofEngine</code></td><td>Exercise matching, skill criteria, bodyweight, current <code>UserSkillTierState</code>.</td></tr>
+              <tr><td>Program day looks wrong</td><td><code>DailyWorkoutResolver</code>, <code>ProgramViewModel</code></td><td>Program block, selected date, saved workout overrides, travel override.</td></tr>
+              <tr><td>Home says scan is due incorrectly</td><td>Scan cadence derivations</td><td><code>ScanCheckpointStore</code>, <code>ScanCadenceGateTests</code>.</td></tr>
+              <tr><td>Squad mission double-counted</td><td><code>TrainingCompletionService.recordSquadProgress()</code></td><td>Source log id ledgers, Supabase squad progress RPC, friend challenge source ids.</td></tr>
+              <tr><td>Data missing after sign-in</td><td><code>RootView</code> sign-in tasks</td><td>Pending onboarding replay, restore path, program cache, sync queue.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="slide" data-title="Complexity Hotspots">
+        <div class="slide-content">
+          <div class="eyebrow">Current architecture pressure</div>
+          <h2>These areas deserve extra skepticism in reviews</h2>
+          <div class="grid two">
+            <div class="card">
+              <h3><span class="tag hot">Hot</span>Program overview</h3>
+              <p>Still a giant surface with many presentation states. Add components and presenter models before adding more local state.</p>
+            </div>
+            <div class="card">
+              <h3><span class="tag hot">Hot</span>Overall rank trial</h3>
+              <p>Large service and tests. Keep rank-trial behavior explicit, heavily tested, and isolated from UI desires.</p>
+            </div>
+            <div class="card">
+              <h3><span class="tag warn">Watch</span>Catalog size</h3>
+              <p>Large catalogs are acceptable, but drift between movement catalog, standards, visuals, and skill links is dangerous.</p>
+            </div>
+            <div class="card">
+              <h3><span class="tag warn">Watch</span>Adapters</h3>
+              <p>New session models and old-compatible logs overlap. Delete compatibility only when all consumers have moved.</p>
+            </div>
+            <div class="card">
+              <h3><span class="tag warn">Watch</span>Reward language</h3>
+              <p>AP, XP, LVL, and rank must stay distinct in both code and UI copy.</p>
+            </div>
+            <div class="card">
+              <h3><span class="tag blue">OK</span>Docs now point to active truth</h3>
+              <p>Architecture docs and file structure docs now explain current owners. Historical docs are marked as history.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" data-title="Change Patterns">
+        <div class="slide-content">
+          <div class="eyebrow">Safe edits</div>
+          <h2>How to make changes without turning the app into spaghetti</h2>
+          <div class="grid two">
+            <div class="card">
+              <h3>When adding a screen feature</h3>
+              <ol>
+                <li>Find the owning domain service first.</li>
+                <li>Add a small view model or derived state if needed.</li>
+                <li>Keep SwiftUI state for presentation only.</li>
+                <li>Add a focused test for the rule, not just the button.</li>
+              </ol>
+            </div>
+            <div class="card">
+              <h3>When adding training logic</h3>
+              <ol>
+                <li>Decide whether it is prescription, completion, proof, or social.</li>
+                <li>Put the rule in that owner.</li>
+                <li>Make adapters produce canonical inputs.</li>
+                <li>Protect idempotency if persistence or social progress is involved.</li>
+              </ol>
+            </div>
+          </div>
+          <div class="callout">
+            Good review question: "Can I explain this change as one sentence in the product loop?" If not, the design may be
+            mixing responsibilities.
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" data-title="First Week">
+        <div class="slide-content">
+          <div class="eyebrow">Junior engineer ramp</div>
+          <h2>Your first-week code reading plan</h2>
+          <div class="timeline">
+            <div class="row"><div><b>Day 1: App skeleton</b><span>Read <code>UnboundApp.swift</code>, <code>ServiceContainer.swift</code>, <code>HomeTabView.swift</code>, and <code>docs/ARCHITECTURE.md</code>.</span></div></div>
+            <div class="row"><div><b>Day 2: Completion</b><span>Read <code>TrainingCompletionService.swift</code>, <code>TrainingSessionAdapters.swift</code>, and completion/logging tests.</span></div></div>
+            <div class="row"><div><b>Day 3: Rank and skills</b><span>Read <code>SkillTier.swift</code>, <code>ProofEngine.swift</code>, <code>UserSkillTierState</code>, and skill standards tests.</span></div></div>
+            <div class="row"><div><b>Day 4: Program</b><span>Read generator, resolver, store, view model, then skim <code>ProgramOverviewView</code> with a map in hand.</span></div></div>
+            <div class="row"><div><b>Day 5: Squads and sync</b><span>Read squad docs/services, Supabase functions/migrations, and sync tests.</span></div></div>
+            <div class="row"><div><b>Day 6: Run simulator</b><span>Launch each tab with debug args. Complete one training flow if fixtures allow.</span></div></div>
+            <div class="row"><div><b>Day 7: Make a tiny change</b><span>Pick a test-backed text or rule change. Trace where data comes from and where it is persisted.</span></div></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" data-title="Glossary">
+        <div class="slide-content">
+          <div class="eyebrow">Glossary</div>
+          <h2>Terms you will see constantly</h2>
+          <ul class="two-col-list">
+            <li><b>AP:</b> movement progress points, not the same as session XP.</li>
+            <li><b>Block:</b> a generated chunk of a training program.</li>
+            <li><b>Checkpoint:</b> scan/profile milestone used for program/body context.</li>
+            <li><b>Criteria:</b> proof requirement for a skill or rank tier.</li>
+            <li><b>Draft:</b> pre-session training plan object before active workout.</li>
+            <li><b>Evidence:</b> logged exercise data used by proof and progression.</li>
+            <li><b>LVL:</b> total training effort level.</li>
+            <li><b>Node:</b> static skill graph item.</li>
+            <li><b>Proof:</b> logged performance satisfying a criterion.</li>
+            <li><b>RankTier:</b> shared ability ladder.</li>
+            <li><b>Receipt:</b> persisted idempotency/progression result for a completion.</li>
+            <li><b>Resolver:</b> code that chooses the correct item from context.</li>
+            <li><b>Squad mission:</b> weekly backend-authoritative group objective.</li>
+            <li><b>Streak:</b> consistency counter from session recording.</li>
+            <li><b>UserSkillTierState:</b> real earned skill rank state.</li>
+            <li><b>WorkoutLog:</b> compatibility log shape still consumed by several systems.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="slide" data-title="Appendix Paths">
+        <div class="slide-content">
+          <div class="eyebrow">Appendix</div>
+          <h2>Key files by responsibility</h2>
+          <table class="table">
+            <thead>
+              <tr><th>Responsibility</th><th>Start here</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>App shell</td><td><span class="path">UNBOUND/App/UnboundApp.swift</span>, <span class="path">UNBOUND/App/AppDelegate.swift</span></td></tr>
+              <tr><td>Dependencies</td><td><span class="path">UNBOUND/Services/ServiceContainer.swift</span></td></tr>
+              <tr><td>Home tabs</td><td><span class="path">UNBOUND/Views/Home/HomeTabView.swift</span></td></tr>
+              <tr><td>Completion</td><td><span class="path">UNBOUND/Services/TrainingCompletionService.swift</span></td></tr>
+              <tr><td>Adapters</td><td><span class="path">UNBOUND/Models/TrainingSessionAdapters.swift</span>, <span class="path">UNBOUND/Models/TrainingSessionDraft.swift</span></td></tr>
+              <tr><td>Rank/proof</td><td><span class="path">UNBOUND/Services/Ranking/ProofEngine.swift</span>, <span class="path">UNBOUND/Services/Ranking/RankService.swift</span></td></tr>
+              <tr><td>Skills</td><td><span class="path">UNBOUND/Models/SkillTree.swift</span>, <span class="path">UNBOUND/Models/SkillTreeContent.swift</span>, <span class="path">UNBOUND/Views/Home/SkillDetailView.swift</span></td></tr>
+              <tr><td>Movements</td><td><span class="path">UNBOUND/Models/MovementCatalog.swift</span>, <span class="path">UNBOUND/Models/ExerciseCatalog.swift</span>, <span class="path">UNBOUND/Models/Standards/StrengthStandards.swift</span></td></tr>
+              <tr><td>Programs</td><td><span class="path">UNBOUND/Services/ProgramGeneration/DeterministicProgramGenerator.swift</span>, <span class="path">UNBOUND/Services/ProgramGeneration/DailyWorkoutResolver.swift</span>, <span class="path">UNBOUND/ViewModels/ProgramViewModel.swift</span></td></tr>
+              <tr><td>Program UI</td><td><span class="path">UNBOUND/Views/Program/ProgramOverviewView.swift</span>, <span class="path">UNBOUND/Views/Program/ActiveWorkout/ActiveWorkoutContainerView.swift</span></td></tr>
+              <tr><td>Rewards</td><td><span class="path">UNBOUND/Models/WorkoutRewardSequence.swift</span>, <span class="path">UNBOUND/Views/Components/Unbound/WorkoutRewardSequenceView.swift</span></td></tr>
+              <tr><td>Squads</td><td><span class="path">UNBOUND/Services/Squads/</span>, <span class="path">UNBOUND/Models/Squad*.swift</span>, <span class="path">supabase/functions/evaluate_squad_mission/</span></td></tr>
+              <tr><td>Backend</td><td><span class="path">UNBOUND/Services/Sync/</span>, <span class="path">UNBOUND/Services/Supabase/</span>, <span class="path">supabase/migrations/</span></td></tr>
+              <tr><td>Architecture docs</td><td><span class="path">docs/ARCHITECTURE.md</span>, <span class="path">docs/FILE_STRUCTURE.md</span>, <span class="path">docs/architecture/*.md</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="slide" data-title="Closing">
+        <div class="slide-content">
+          <div class="eyebrow">Final mental model</div>
+          <h2>UNBOUND is complex because training proof touches many systems, but the spine is simple</h2>
+          <p class="lede">
+            Screens collect intent and render status. Catalogs define trainable reality. Program services prescribe.
+            Completion services award. Proof services rank. Sync and Supabase persist. Squads react to completed work.
+          </p>
+          <div class="grid three">
+            <div class="card"><h3>Best first question</h3><p>Which product-loop phase owns this change?</p></div>
+            <div class="card"><h3>Best second question</h3><p>Is this a view concern, a service rule, catalog data, or persistence?</p></div>
+            <div class="card"><h3>Best review question</h3><p>Can this be tested without rendering the whole app?</p></div>
+          </div>
+          <div class="callout ok">
+            If you keep the canonical training completion path clean, most of the codebase stays explainable.
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <nav class="controls" aria-label="Slideshow controls">
+      <div>
+        <button class="btn" id="prev" aria-label="Previous slide">&lt;</button>
+        <button class="btn" id="next" aria-label="Next slide">&gt;</button>
+      </div>
+      <div class="progress-wrap">
+        <div class="progress-meta">
+          <span id="slideTitle">Cover</span>
+          <span><span id="slideNumber">1</span> / <span id="slideTotal">1</span> <span class="muted">| keys:</span> <span class="kbd">&larr;</span> <span class="kbd">&rarr;</span> <span class="kbd">space</span></span>
+        </div>
+        <div class="progress-track"><div class="progress-bar" id="progressBar"></div></div>
+      </div>
+      <button class="btn" id="print" aria-label="Print deck">PDF</button>
+    </nav>
+  </main>
+
+  <script>
+    const slides = Array.from(document.querySelectorAll(".slide"));
+    const titleEl = document.getElementById("slideTitle");
+    const numberEl = document.getElementById("slideNumber");
+    const totalEl = document.getElementById("slideTotal");
+    const progressEl = document.getElementById("progressBar");
+    const prevBtn = document.getElementById("prev");
+    const nextBtn = document.getElementById("next");
+    const printBtn = document.getElementById("print");
+    let index = 0;
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function showSlide(nextIndex) {
+      index = clamp(nextIndex, 0, slides.length - 1);
+      slides.forEach((slide, i) => {
+        slide.classList.toggle("active", i === index);
+      });
+      const current = slides[index];
+      titleEl.textContent = current.dataset.title || `Slide ${index + 1}`;
+      numberEl.textContent = String(index + 1);
+      totalEl.textContent = String(slides.length);
+      progressEl.style.width = `${((index + 1) / slides.length) * 100}%`;
+      history.replaceState(null, "", `#${index + 1}`);
+    }
+
+    function fromHash() {
+      const raw = Number(window.location.hash.replace("#", ""));
+      if (Number.isFinite(raw) && raw > 0) {
+        showSlide(raw - 1);
+      } else {
+        showSlide(0);
+      }
+    }
+
+    prevBtn.addEventListener("click", () => showSlide(index - 1));
+    nextBtn.addEventListener("click", () => showSlide(index + 1));
+    printBtn.addEventListener("click", () => window.print());
+    window.addEventListener("hashchange", fromHash);
+    window.addEventListener("keydown", (event) => {
+      if (event.target && ["INPUT", "TEXTAREA", "SELECT"].includes(event.target.tagName)) return;
+      if (event.key === "ArrowRight" || event.key === " " || event.key === "PageDown") {
+        event.preventDefault();
+        showSlide(index + 1);
+      }
+      if (event.key === "ArrowLeft" || event.key === "PageUp") {
+        event.preventDefault();
+        showSlide(index - 1);
+      }
+      if (event.key === "Home") {
+        event.preventDefault();
+        showSlide(0);
+      }
+      if (event.key === "End") {
+        event.preventDefault();
+        showSlide(slides.length - 1);
+      }
+    });
+
+    fromHash();
+  </script>
+</body>
+</html>

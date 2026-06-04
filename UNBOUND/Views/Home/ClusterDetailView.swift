@@ -505,23 +505,11 @@ private struct ClusterNodeHex: View {
 
     @ViewBuilder
     private func assetOrSymbol(symbolName: String, fontSize: CGFloat, tint: Color) -> some View {
-        let assetName = SkillTraditionalVisualResolver.assetName(for: node)
-            ?? node.id.replacingOccurrences(of: ".", with: "_")
-        if UIImage(named: assetName) != nil {
+        if let assetName = SkillTraditionalVisualResolver.assetName(for: node),
+           UIImage(named: assetName) != nil {
             let size = fontSize * 2.15
             let usesOriginalArtwork = usesOriginalNodeArtwork(assetName)
             ZStack {
-                if !usesOriginalArtwork {
-                    Circle()
-                        .fill(Color.unbound.bg.opacity(0.5))
-                        .overlay(
-                            Circle()
-                                .strokeBorder(tint.opacity(0.28), lineWidth: max(1, size * 0.025))
-                        )
-                        .frame(width: size * 0.88, height: size * 0.88)
-                        .shadow(color: Color.black.opacity(0.42), radius: 4)
-                }
-
                 Image(assetName)
                     .renderingMode(usesOriginalArtwork ? .original : .template)
                     .resizable()
@@ -529,8 +517,8 @@ private struct ClusterNodeHex: View {
                     .aspectRatio(contentMode: .fit)
                     .foregroundStyle(tint)
                     .frame(
-                        width: size * (usesOriginalArtwork ? 1.02 : 0.78),
-                        height: size * (usesOriginalArtwork ? 1.02 : 0.78)
+                        width: size * (usesOriginalArtwork ? 1.12 : 0.82),
+                        height: size * (usesOriginalArtwork ? 1.12 : 0.82)
                     )
                     .shadow(color: Color.black.opacity(0.72), radius: 3)
                     .shadow(color: usesOriginalArtwork ? Color.clear : tint.opacity(0.5), radius: 4)

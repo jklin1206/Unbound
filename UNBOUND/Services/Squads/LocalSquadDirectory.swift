@@ -124,17 +124,7 @@ final class LocalSquadDirectory {
         }
 
         if record.squad.captainId == userUUID, let newCaptain = record.members.first {
-            record.squad = Squad(
-                id: record.squad.id,
-                name: record.squad.name,
-                captainId: newCaptain.userId,
-                affinityAxis: record.squad.affinityAxis,
-                affinitySetAt: record.squad.affinitySetAt,
-                inviteCode: record.squad.inviteCode,
-                maxSize: record.squad.maxSize,
-                squadStreakWeeks: record.squad.squadStreakWeeks,
-                createdAt: record.squad.createdAt
-            )
+            record.squad = record.squad.replacingCaptain(newCaptain.userId)
         }
 
         records[code] = record
@@ -155,17 +145,7 @@ final class LocalSquadDirectory {
         var records = records()
         guard let pair = records.first(where: { $0.value.squad.id == squadId }) else { return }
         var record = pair.value
-        record.squad = Squad(
-            id: record.squad.id,
-            name: record.squad.name,
-            captainId: record.squad.captainId,
-            affinityAxis: axis,
-            affinitySetAt: setAt,
-            inviteCode: record.squad.inviteCode,
-            maxSize: record.squad.maxSize,
-            squadStreakWeeks: record.squad.squadStreakWeeks,
-            createdAt: record.squad.createdAt
-        )
+        record.squad = record.squad.replacingAffinity(axis: axis, setAt: setAt)
         records[pair.key] = record
         save(records)
     }
@@ -174,17 +154,7 @@ final class LocalSquadDirectory {
         var records = records()
         guard let pair = records.first(where: { $0.value.squad.id == squadId }) else { return }
         var record = pair.value
-        record.squad = Squad(
-            id: record.squad.id,
-            name: record.squad.name,
-            captainId: record.squad.captainId,
-            affinityAxis: record.squad.affinityAxis,
-            affinitySetAt: record.squad.affinitySetAt,
-            inviteCode: record.squad.inviteCode,
-            maxSize: record.squad.maxSize,
-            squadStreakWeeks: max(0, weeks),
-            createdAt: record.squad.createdAt
-        )
+        record.squad = record.squad.replacingStreakWeeks(weeks)
         records[pair.key] = record
         save(records)
     }

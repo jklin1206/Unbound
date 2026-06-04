@@ -38,6 +38,9 @@ struct Step_Goals: View {
     }
 }
 
+#if DEBUG
 #Preview {
     Step_Goals(flow: OnboardingFlowViewModel(), progress: 0.18, onBack: {}, onContinue: {})
 }
+
+#endif

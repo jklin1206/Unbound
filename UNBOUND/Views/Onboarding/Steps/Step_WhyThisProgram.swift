@@ -129,6 +129,7 @@ struct Step_WhyThisProgram: View {
     }
 }
 
+#if DEBUG
 #Preview {
     Step_WhyThisProgram(
         flow: OnboardingFlowViewModel(),
@@ -137,3 +138,5 @@ struct Step_WhyThisProgram: View {
         onContinue: {}
     )
 }
+
+#endif

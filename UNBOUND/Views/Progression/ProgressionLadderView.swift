@@ -11,6 +11,7 @@ struct ProgressionLadderView: View {
         ("push", "Push", "figure.arms.open"),
         ("pull", "Pull", "figure.climbing"),
         ("legs-single", "Single-Leg", "figure.strengthtraining.functional"),
+        ("legs-nordic", "Nordic", "figure.strengthtraining.traditional"),
         ("core-lever", "Core / Lever", "figure.core.training")
     ]
 

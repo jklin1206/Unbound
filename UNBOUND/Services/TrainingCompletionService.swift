@@ -13,10 +13,19 @@ final class TrainingCompletionService {
     // could double-count, so we also track recorded performanceLog ids here —
     // mirroring SquadActivityService.recordedVowCompletionIds.
     private var recordedSquadProgressLogIds = Set<String>()
+    private var activeCompletionLogIds = Set<String>()
+    private var completionWaiters: [String: [CheckedContinuation<TrainingCompletionResult, Error>]] = [:]
+
+    convenience init() {
+        self.init(
+            squadMission: SquadMissionService.shared,
+            friendChallenge: FriendChallengeService.shared
+        )
+    }
 
     init(
-        squadMission: SquadMissionServiceProtocol = SquadMissionService.shared,
-        friendChallenge: FriendChallengeServiceProtocol = FriendChallengeService.shared
+        squadMission: SquadMissionServiceProtocol,
+        friendChallenge: FriendChallengeServiceProtocol
     ) {
         self.squadMission = squadMission
         self.friendChallenge = friendChallenge
@@ -28,12 +37,45 @@ final class TrainingCompletionService {
     func recordSquadProgress(workoutLog: WorkoutLog, performanceLogId: String) async {
         guard !recordedSquadProgressLogIds.contains(performanceLogId) else { return }
         recordedSquadProgressLogIds.insert(performanceLogId)
-        await squadMission.recordProgress(log: workoutLog, userId: workoutLog.userId)
-        await friendChallenge.recordProgress(log: workoutLog, userId: workoutLog.userId)
+        await squadMission.recordProgress(
+            log: workoutLog,
+            userId: workoutLog.userId,
+            sourceLogId: performanceLogId
+        )
+        await friendChallenge.recordProgress(
+            log: workoutLog,
+            userId: workoutLog.userId,
+            sourceLogId: performanceLogId
+        )
     }
 
     @discardableResult
     func complete(
+        _ performanceLog: PerformanceLog,
+        services: ServiceContainer,
+        skillXPAwarded: Int? = nil
+    ) async throws -> TrainingCompletionResult {
+        if activeCompletionLogIds.contains(performanceLog.id) {
+            let completed = try await waitForActiveCompletion(performanceLogId: performanceLog.id)
+            return alreadyCompletedResult(from: completed)
+        }
+
+        activeCompletionLogIds.insert(performanceLog.id)
+        do {
+            let result = try await completeOnce(
+                performanceLog,
+                services: services,
+                skillXPAwarded: skillXPAwarded
+            )
+            finishActiveCompletion(performanceLogId: performanceLog.id, result: .success(result))
+            return result
+        } catch {
+            finishActiveCompletion(performanceLogId: performanceLog.id, result: .failure(error))
+            throw error
+        }
+    }
+
+    private func completeOnce(
         _ performanceLog: PerformanceLog,
         services: ServiceContainer,
         skillXPAwarded: Int? = nil
@@ -44,40 +86,58 @@ final class TrainingCompletionService {
         ) {
             return TrainingCompletionResult(record: existing, wasAlreadyCompleted: true)
         }
-
-        var result = TrainingCompletionResult()
-
-        // Day-streak: count this completed session. The policy handles calendar-
-        // day logic, the grace window, and same-day holds. Fires once per
-        // completion (this method short-circuits on the persisted gate above).
-        let streakDelta = await services.sessionXP.recordSession(
-            userId: performanceLog.userId,
-            at: performanceLog.completedAt
-        )
-        result.streakCount = streakDelta.updated.currentStreak
-        result.streakExtended = streakDelta.streakExtended
-
-        try await services.database.create(
-            performanceLog,
-            collection: "performanceLogs",
+        if let receipt: TrainingCompletionReplayReceipt = try? await services.database.read(
+            collection: "training_completion_replay_receipts",
             documentId: performanceLog.id
-        )
-        result.savedPerformanceLogId = performanceLog.id
-
-        do {
-            let progression = try await runWithTimeout(seconds: 8, step: "progression persistence") {
-                await self.progressionResult(from: performanceLog, services: services)
-            }
-            result.mergeProgression(from: progression)
-        } catch {
-            let preview = previewProgression(for: performanceLog, services: services)
-            result.mergeProgression(from: preview)
-            LoggingService.shared.log(
-                "TrainingCompletionService progression persistence timed out; using reward preview: \(error)",
-                level: .warning,
-                context: ["performanceLogId": performanceLog.id]
+        ) {
+            let replayed = TrainingCompletionResult(receipt: receipt, wasAlreadyCompleted: false)
+            let record = TrainingCompletionRecord(result: replayed, performanceLog: performanceLog)
+            try await services.database.create(
+                record,
+                collection: "training_completion_records",
+                documentId: record.id
             )
+            return replayed
         }
+
+        let resumedOrFreshResult: TrainingCompletionResult
+        if let progressionReceipt: TrainingCompletionProgressionReceipt = try? await services.database.read(
+            collection: "training_completion_progression_receipts",
+            documentId: performanceLog.id
+        ) {
+            resumedOrFreshResult = TrainingCompletionResult(progressionReceipt: progressionReceipt, wasAlreadyCompleted: false)
+        } else {
+            var seededResult = TrainingCompletionResult()
+
+            try await services.database.create(
+                performanceLog,
+                collection: "performanceLogs",
+                documentId: performanceLog.id
+            )
+            seededResult.savedPerformanceLogId = performanceLog.id
+
+            do {
+                let progression = try await runWithTimeout(seconds: 8, step: "progression persistence") {
+                    try await self.progressionResult(from: performanceLog, services: services)
+                }
+                seededResult.mergeProgression(from: progression)
+                try await services.database.create(
+                    TrainingCompletionProgressionReceipt(result: seededResult, performanceLog: performanceLog),
+                    collection: "training_completion_progression_receipts",
+                    documentId: performanceLog.id
+                )
+                resumedOrFreshResult = seededResult
+            } catch {
+                LoggingService.shared.log(
+                    "TrainingCompletionService progression persistence failed: \(error)",
+                    level: .error,
+                    context: ["performanceLogId": performanceLog.id]
+                )
+                throw error
+            }
+        }
+
+        var result = resumedOrFreshResult
 
         if let workoutLog = TrainingSessionAdapters.workoutLog(from: performanceLog) {
             try await saveCompatibleWorkoutLog(
@@ -85,10 +145,18 @@ final class TrainingCompletionService {
                 performanceLogId: performanceLog.id,
                 services: services
             )
+            try await recordLoadProgression(
+                workoutLog: workoutLog,
+                performanceLog: performanceLog,
+                services: services
+            )
             result.savedWorkoutLogId = workoutLog.id
+            let currentTierState = services.userSkillTier.load(userId: performanceLog.userId)
             result.proofEngineResult = ProofEngine.evaluate(
                 log: workoutLog,
-                source: WorkoutProofSource(performanceLog.source)
+                source: WorkoutProofSource(performanceLog.source),
+                currentTierState: currentTierState,
+                bodyweightKg: result.bodyweightKg
             )
 
             // Squad cluster: a real finished workout advances squad-mission and
@@ -105,6 +173,9 @@ final class TrainingCompletionService {
                 collection: "sessionLogs",
                 documentId: sessionLog.id
             ) {
+                if existing.xpAwarded > 0 {
+                    result.skillXPGained += existing.xpAwarded
+                }
                 result.savedSessionLogIds.append(existing.id)
                 continue
             }
@@ -119,9 +190,32 @@ final class TrainingCompletionService {
             result.savedSessionLogIds.append(sessionLog.id)
         }
 
+        result.skillTrainingReviews = try await recordSkillTrainingReviews(
+            performanceLog: performanceLog,
+            services: services
+        )
+
         // Cosmetic unlocks earned by this session's rank progress (skill-tree
         // skins). evaluateUnlocks is idempotent and only returns the new ones.
         result.unlockedSkins = await services.skin.evaluateUnlocks(userId: performanceLog.userId)
+
+        // Session/streak state is source-idempotent so retries after partial
+        // persistence can replay the original streak outcome without counting
+        // another session.
+        let streakDelta = await services.sessionXP.recordSession(
+            userId: performanceLog.userId,
+            at: performanceLog.completedAt,
+            sourceId: performanceLog.id
+        )
+        result.streakCount = streakDelta.updated.currentStreak
+        result.streakExtended = streakDelta.streakExtended
+
+        let receipt = TrainingCompletionReplayReceipt(result: result, performanceLog: performanceLog)
+        try await services.database.create(
+            receipt,
+            collection: "training_completion_replay_receipts",
+            documentId: receipt.id
+        )
 
         let record = TrainingCompletionRecord(result: result, performanceLog: performanceLog)
         try await services.database.create(
@@ -222,7 +316,7 @@ final class TrainingCompletionService {
     private func progressionResult(
         from performanceLog: PerformanceLog,
         services: ServiceContainer
-    ) async -> TrainingCompletionResult {
+    ) async throws -> TrainingCompletionResult {
         var result = TrainingCompletionResult()
 
         // Bodyweight + sex for the per-movement "% to next rank" derivation.
@@ -233,7 +327,7 @@ final class TrainingCompletionService {
         result.bodyweightKg = profile?.weightKg ?? 0
         result.biologicalSex = profile?.biologicalSex
 
-        let movementProgress = await MovementProgressService.shared.ingest(
+        let movementProgress = try await MovementProgressService.shared.ingestStrict(
             performanceLog,
             database: services.database
         )
@@ -242,7 +336,7 @@ final class TrainingCompletionService {
         result.movementProgressPriorStates = movementProgress.priorStates
         result.updatedMovementProgressIds = movementProgress.updatedStates.map(\.id)
 
-        let bodyMapProgress = await BodyMapProgressService.shared.ingest(
+        let bodyMapProgress = try await BodyMapProgressService.shared.ingestStrict(
             movementAPGains: movementProgress.gains,
             userId: performanceLog.userId,
             sourceLogId: performanceLog.id,
@@ -261,10 +355,12 @@ final class TrainingCompletionService {
             movementAPGains: movementProgress.gains,
             userId: performanceLog.userId,
             at: performanceLog.completedAt,
-            noveltyMultiplier: bodyMapProgress.noveltyMultiplier
+            noveltyMultiplier: bodyMapProgress.noveltyMultiplier,
+            sourceId: "movement:\(performanceLog.id)"
         )
         var attributeRewards = attributeProgress.rewards
         var attributeRankUpEventCount = attributeProgress.rankUpEvents.count
+        var attributeProfileAfter = attributeProgress.profileAfter
         let vitalityAward = await VitalityRewardPolicy.award(
             for: performanceLog,
             database: services.database
@@ -273,25 +369,27 @@ final class TrainingCompletionService {
             let vitalityProgress = await services.attribute.applyXPDeltas(
                 [.vitality: vitalityAward.totalXP],
                 userId: performanceLog.userId,
-                at: performanceLog.completedAt
+                at: performanceLog.completedAt,
+                sourceId: "vitality:\(performanceLog.id)"
             )
             attributeRewards.append(contentsOf: vitalityProgress.rewards)
             attributeRankUpEventCount += vitalityProgress.rankUpEvents.count
+            attributeProfileAfter = vitalityProgress.profileAfter ?? attributeProfileAfter
             await VitalityRewardPolicy.record(
                 award: vitalityAward,
                 performanceLog: performanceLog,
                 database: services.database
             )
         }
-        result.attributeProfileBefore = attributeProfileBefore
-        result.attributeProfileAfter = services.attribute.snapshot(
+        result.attributeProfileBefore = attributeProgress.profileBefore ?? attributeProfileBefore
+        result.attributeProfileAfter = attributeProfileAfter ?? services.attribute.snapshot(
             userId: performanceLog.userId,
             asOf: performanceLog.completedAt
         )
         result.attributeRewards = attributeRewards
         result.attributeRankUpEventCount = attributeRankUpEventCount
 
-        let overallLevelProgress = await OverallLevelService.shared.ingest(
+        let overallLevelProgress = try await OverallLevelService.shared.ingestStrict(
             rawAP: movementProgress.totalAP,
             noveltyMultiplier: bodyMapProgress.noveltyMultiplier,
             sourceLogId: performanceLog.id,
@@ -304,6 +402,34 @@ final class TrainingCompletionService {
         result.overallLevelReward = overallLevelProgress
         result.overallLevelXPGained = overallLevelProgress.xpGained
         return result
+    }
+
+    private func waitForActiveCompletion(performanceLogId: String) async throws -> TrainingCompletionResult {
+        try await withCheckedThrowingContinuation { continuation in
+            completionWaiters[performanceLogId, default: []].append(continuation)
+        }
+    }
+
+    private func finishActiveCompletion(
+        performanceLogId: String,
+        result: Result<TrainingCompletionResult, Error>
+    ) {
+        activeCompletionLogIds.remove(performanceLogId)
+        let waiters = completionWaiters.removeValue(forKey: performanceLogId) ?? []
+        for waiter in waiters {
+            switch result {
+            case .success(let completion):
+                waiter.resume(returning: completion)
+            case .failure(let error):
+                waiter.resume(throwing: error)
+            }
+        }
+    }
+
+    private func alreadyCompletedResult(from result: TrainingCompletionResult) -> TrainingCompletionResult {
+        var completed = result
+        completed.wasAlreadyCompleted = true
+        return completed
     }
 
     private func previewBodyRegionRewards(
@@ -408,6 +534,47 @@ final class TrainingCompletionService {
         )
     }
 
+    private func recordLoadProgression(
+        workoutLog: WorkoutLog,
+        performanceLog: PerformanceLog,
+        services: ServiceContainer
+    ) async throws {
+        if let _: TrainingCompletionOverloadReceipt = try? await services.database.read(
+            collection: "training_completion_overload_receipts",
+            documentId: performanceLog.id
+        ) {
+            return
+        }
+
+        try await services.database.create(
+            TrainingCompletionOverloadReceipt(performanceLog: performanceLog, workoutLog: workoutLog),
+            collection: "training_completion_overload_receipts",
+            documentId: performanceLog.id
+        )
+
+        let profile: UserProfile? = try? await services.database.read(
+            collection: "users",
+            documentId: performanceLog.userId
+        )
+        await ProgressionEngine.shared.ingest(
+            log: workoutLog,
+            mode: profile?.cutMode.enabled == true ? .preserve : .advance,
+            feedbackMode: profile?.trainingFeedbackMode
+        )
+        try await services.workingWeight.updateFromLog(workoutLog, userId: workoutLog.userId)
+    }
+
+    private func recordSkillTrainingReviews(
+        performanceLog: PerformanceLog,
+        services: ServiceContainer
+    ) async throws -> [SkillTrainingAgentReview] {
+        let reviews = SkillTrainingReviewAgent.evaluate(performanceLog: performanceLog)
+        for review in reviews {
+            try await SkillTrainingReviewStore.shared.record(review, database: services.database)
+        }
+        return reviews
+    }
+
     private func runWithTimeout<T: Sendable>(
         seconds: TimeInterval,
         step: String,
@@ -467,6 +634,7 @@ struct TrainingCompletionResult: Sendable {
     var overallLevelXPGained: Double = 0
     var skillXPGained: Int = 0
     var proofEngineResult: ProofEngineResult?
+    var skillTrainingReviews: [SkillTrainingAgentReview] = []
 
     /// Day-streak after counting this session, and whether this session extended
     /// it (false = a same-day session that holds, or already-completed).
@@ -496,7 +664,47 @@ struct TrainingCompletionResult: Sendable {
         self.savedPerformanceLogId = record.performanceLogId
         self.savedWorkoutLogId = record.workoutLogId
         self.savedSessionLogIds = record.sessionLogIds
+        if let replay = record.replay {
+            self.apply(replay: replay)
+        }
         self.wasAlreadyCompleted = wasAlreadyCompleted
+    }
+
+    init(receipt: TrainingCompletionReplayReceipt, wasAlreadyCompleted: Bool) {
+        self.savedPerformanceLogId = receipt.performanceLogId
+        self.savedWorkoutLogId = receipt.workoutLogId
+        self.savedSessionLogIds = receipt.sessionLogIds
+        self.apply(replay: receipt.replay)
+        self.wasAlreadyCompleted = wasAlreadyCompleted
+    }
+
+    init(progressionReceipt: TrainingCompletionProgressionReceipt, wasAlreadyCompleted: Bool) {
+        self.savedPerformanceLogId = progressionReceipt.performanceLogId
+        self.apply(replay: progressionReceipt.replay)
+        self.wasAlreadyCompleted = wasAlreadyCompleted
+    }
+
+    mutating func apply(replay: TrainingCompletionReplay) {
+        movementAPGains = replay.movementAPGains
+        movementProgressStates = replay.movementProgressStates
+        movementProgressPriorStates = replay.movementProgressPriorStates
+        updatedMovementProgressIds = replay.updatedMovementProgressIds
+        attributeRewards = replay.attributeRewards
+        attributeProfileBefore = replay.attributeProfileBefore
+        attributeProfileAfter = replay.attributeProfileAfter
+        attributeRankUpEventCount = replay.attributeRankUpEventCount
+        bodyMapNoveltyMultiplier = replay.bodyMapNoveltyMultiplier
+        bodyMapRegionRewards = replay.bodyMapRegionRewards
+        overallLevelReward = replay.overallLevelReward
+        overallLevelXPGained = replay.overallLevelXPGained
+        skillXPGained = replay.skillXPGained
+        proofEngineResult = replay.proofEngineResult
+        skillTrainingReviews = replay.skillTrainingReviews ?? []
+        streakCount = replay.streakCount
+        streakExtended = replay.streakExtended
+        unlockedSkins = replay.unlockedSkins
+        bodyweightKg = replay.bodyweightKg
+        biologicalSex = replay.biologicalSex
     }
 
     mutating func mergeProgression(from other: TrainingCompletionResult) {
@@ -513,6 +721,7 @@ struct TrainingCompletionResult: Sendable {
         overallLevelReward = other.overallLevelReward
         overallLevelXPGained = other.overallLevelXPGained
         proofEngineResult = other.proofEngineResult
+        skillTrainingReviews = other.skillTrainingReviews
         bodyweightKg = other.bodyweightKg
         biologicalSex = other.biologicalSex
     }
@@ -542,6 +751,7 @@ struct TrainingCompletionRecord: Codable, Identifiable, Sendable {
     let completedAt: Date
     let workoutLogId: String?
     let sessionLogIds: [String]
+    let replay: TrainingCompletionReplay?
 
     init(result: TrainingCompletionResult, performanceLog: PerformanceLog) {
         self.id = performanceLog.id
@@ -550,6 +760,105 @@ struct TrainingCompletionRecord: Codable, Identifiable, Sendable {
         self.completedAt = performanceLog.completedAt
         self.workoutLogId = result.savedWorkoutLogId
         self.sessionLogIds = result.savedSessionLogIds
+        self.replay = TrainingCompletionReplay(result: result)
+    }
+}
+
+struct TrainingCompletionReplayReceipt: Codable, Identifiable, Sendable {
+    let id: String
+    let performanceLogId: String
+    let userId: String
+    let completedAt: Date
+    let workoutLogId: String?
+    let sessionLogIds: [String]
+    let replay: TrainingCompletionReplay
+
+    init(result: TrainingCompletionResult, performanceLog: PerformanceLog) {
+        self.id = performanceLog.id
+        self.performanceLogId = performanceLog.id
+        self.userId = performanceLog.userId
+        self.completedAt = performanceLog.completedAt
+        self.workoutLogId = result.savedWorkoutLogId
+        self.sessionLogIds = result.savedSessionLogIds
+        self.replay = TrainingCompletionReplay(result: result)
+    }
+}
+
+struct TrainingCompletionProgressionReceipt: Codable, Identifiable, Sendable {
+    let id: String
+    let performanceLogId: String
+    let userId: String
+    let completedAt: Date
+    let replay: TrainingCompletionReplay
+
+    init(result: TrainingCompletionResult, performanceLog: PerformanceLog) {
+        self.id = performanceLog.id
+        self.performanceLogId = performanceLog.id
+        self.userId = performanceLog.userId
+        self.completedAt = performanceLog.completedAt
+        self.replay = TrainingCompletionReplay(result: result)
+    }
+}
+
+struct TrainingCompletionOverloadReceipt: Codable, Identifiable, Sendable {
+    let id: String
+    let performanceLogId: String
+    let workoutLogId: String
+    let userId: String
+    let completedAt: Date
+
+    init(performanceLog: PerformanceLog, workoutLog: WorkoutLog) {
+        self.id = performanceLog.id
+        self.performanceLogId = performanceLog.id
+        self.workoutLogId = workoutLog.id
+        self.userId = performanceLog.userId
+        self.completedAt = performanceLog.completedAt
+    }
+}
+
+struct TrainingCompletionReplay: Codable, Sendable {
+    var movementAPGains: [MovementAPGain]
+    var movementProgressStates: [MovementProgressState]
+    var movementProgressPriorStates: [String: MovementProgressState]
+    var updatedMovementProgressIds: [String]
+    var attributeRewards: [AttributeProgressionReward]
+    var attributeProfileBefore: AttributeProfile?
+    var attributeProfileAfter: AttributeProfile?
+    var attributeRankUpEventCount: Int
+    var bodyMapNoveltyMultiplier: Double
+    var bodyMapRegionRewards: [BodyMapRegionReward]
+    var overallLevelReward: OverallLevelReward?
+    var overallLevelXPGained: Double
+    var skillXPGained: Int
+    var proofEngineResult: ProofEngineResult?
+    var skillTrainingReviews: [SkillTrainingAgentReview]?
+    var streakCount: Int
+    var streakExtended: Bool
+    var unlockedSkins: [SkillTreeSkin]
+    var bodyweightKg: Double
+    var biologicalSex: BiologicalSex?
+
+    init(result: TrainingCompletionResult) {
+        movementAPGains = result.movementAPGains
+        movementProgressStates = result.movementProgressStates
+        movementProgressPriorStates = result.movementProgressPriorStates
+        updatedMovementProgressIds = result.updatedMovementProgressIds
+        attributeRewards = result.attributeRewards
+        attributeProfileBefore = result.attributeProfileBefore
+        attributeProfileAfter = result.attributeProfileAfter
+        attributeRankUpEventCount = result.attributeRankUpEventCount
+        bodyMapNoveltyMultiplier = result.bodyMapNoveltyMultiplier
+        bodyMapRegionRewards = result.bodyMapRegionRewards
+        overallLevelReward = result.overallLevelReward
+        overallLevelXPGained = result.overallLevelXPGained
+        skillXPGained = result.skillXPGained
+        proofEngineResult = result.proofEngineResult
+        skillTrainingReviews = result.skillTrainingReviews
+        streakCount = result.streakCount
+        streakExtended = result.streakExtended
+        unlockedSkins = result.unlockedSkins
+        bodyweightKg = result.bodyweightKg
+        biologicalSex = result.biologicalSex
     }
 }
 
@@ -675,9 +984,9 @@ extension TrainingCompletionResult {
         let metric: Double?
         switch template {
         case .barbellStrength, .machineStrength:
-            metric = state.bestLoadKg
+            metric = state.bestEstimatedOneRepMaxKg ?? state.bestLoadKg
         case .weightedBodyweight:
-            metric = state.bestLoadKg
+            metric = state.bestEstimatedOneRepMaxKg ?? state.bestLoadKg
         case .bodyweightReps:
             metric = state.bestReps.map(Double.init)
         case .holdControl:

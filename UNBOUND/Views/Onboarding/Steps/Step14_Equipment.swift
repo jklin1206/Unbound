@@ -36,6 +36,9 @@ struct Step14_Equipment: View {
     }
 }
 
+#if DEBUG
 #Preview {
     Step14_Equipment(flow: OnboardingFlowViewModel(), progress: 0.46, onBack: {}, onContinue: {})
 }
+
+#endif

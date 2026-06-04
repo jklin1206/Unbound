@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2680 1908" role="img" aria-labelledby="clean-pair-title clean-pair-desc">
+  <title id="clean-pair-title">Clean symmetric body heatmap pair</title>
+  <desc id="clean-pair-desc">Front and back cleaned heatmap regions over faint references from the supplied PNGs.</desc>
+  <style>
+    .source-reference { opacity: 0.18; }
+    .clean-region-group path { shape-rendering: geometricPrecision; vector-effect: non-scaling-stroke; }
+  </style>
+  <g id="clean-front-map">
+<image class="source-reference" href="./source_frontmap.png" x="0" y="0" width="1280" height="1908" preserveAspectRatio="xMidYMid meet" />
+  <g id="clean-front-deltoids" class="clean-region-group" data-view="front" data-region="deltoids">
+    <path id="clean-front-deltoids-left-1" data-view="front" data-region="deltoids" data-side="left" fill="#22b14c" fill-opacity="0.78" stroke="rgba(255,255,255,0.72)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round" d="M 510 340 C 462 323 410 343 374 380 C 341 414 333 462 355 495 C 385 486 409 455 421 417 C 434 377 469 350 510 340 Z" />
+    <path id="clean-front-deltoids-right-101" data-view="front" data-region="deltoids" data-side="right" fill="#22b14c" fill-opacity="0.78" stroke="rgba(255,255,255,0.72)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round" transform="translate(1280 0) scale(-1 1)" d="M 510 340 C 462 323 410 343 374 380 C 341 414 333 462 355 495 C 385 486 409 455 421 417 C 434 377 469 350 510 340 Z" />
+  </g>
+  <g id="clean-front-chest" class="clean-region-group" data-view="front" data-region="chest">
+    <path id="clean-front-chest-left-1" data-view="front" data-region="chest" data-side="left" fill="#ed1c24" fill-opacity="0.78" stroke="rgba(255,255,255,0.72)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round" d="M 501 373 C 458 374 424 397 410 434 C 395 473 416 509 455 528 C 499 548 560 526 608 482 C 621 464 621 415 600 391 C 572 376 535 371 501 373 Z" />
+    <path id="clean-front-chest-right-101" data-view="front" data-region="chest" data-side="right" fill="#ed1c24" fill-opacity="0.78" stroke="rgba(255,255,255,0.72)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round" transform="translate(1280 0) scale(-1 1)" d="M 501 373 C 458 374 424 397 410 434 C 395 473 416 509 455 528 C 499 548 560 526 608 482 C 621 464 621 415 600 391 C 572 376 535 371 501 373 Z" />
+  </g>
+  <g id="clean-front-biceps" class="clean-region-group" data-view="front" data-region="biceps">
+    <path id="clean-front-biceps-left-1" data-view="front" data-region="biceps" data-side="left" fill="#ff7f27" fill-opacity="0.74" stroke="rgba(255,255,255,0.72)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round" d="M 346 471 C 315 506 303 570 317 621 C 332 649 374 632 398 582 C 421 534 410 487 379 468 C 367 462 356 464 346 471 Z" />
+    <path id="clean-front-biceps-right-101" data-view="front" data-region="biceps" data-side="right" fill="#ff7f27" fill-opacity="0.74" stroke="rgba(255,255,255,0.72)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round" transform="translate(1280 0) scale(-1 1)" d="M 346 471 C 315 506 303 570 317 621 C 332 649 374 632 398 582 C 421 534 410 487 379 468 C 367 462 356 464 346 471 Z" />
+  </g>
+  <g id="clean-front-forearms" class="clean-region-group" data-view="front" data-region="forearms">
+    <path id="clean-front-forearms-left-1" data-view="front" data-region="forearms" data-side="left" fill="#880015" fill-opacity="0.78" stroke="rgba(255,255,255,0.72)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round" d="M 286 614 C 258 684 254 789 279 870 C 300 889 342 858 357 802 C 365 726 344 647 313 609 C 302 596 292 600 286 614 Z" />
+    <path id="clean-front-forearms-right-101" data-view="front" data-region="forearms" data-side="right" fill="#880015" fill-opacity="0.78" stroke="rgba(255,255,255,0.72)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round" transform="translate(1280 0) scale(-1 1)" d="M 286 614 C 258 684 254 789 279 870 C 300 889 342 858 357 802 C 365 726 344 647 313 609 C 302 596 292 600 286 614 Z" />
+  </g>
+  <g id="clean-front-obliques" class="clean-region-group" data-view="front" data-region="obliques">
+    <path id="clean-front-obliques-left-1" data-view="front" data-region="obliques" data-side="left" fill="#a349a4" fill-opacity="0.62" stroke="rgba(255,255,255,0.72)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round" d="M 434 548 C 474 576 497 617 503 666 C 509 722 488 765 456 792 C 423 764 406 704 405 654 C 403 604 414 568 434 548 Z" />
+    <path id="clean-front-obliques-right-101" data-view="front" data-region="obliques" data-side="right" fill="#a349a4" fill-opacity="0.62" stroke="rgba(255,255,255,0.72)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round" transform="translate(1280 0) scale(-1 1)" d="M 434 548 C 474 576 497 617 503 666 C 509 722 488 765 456 792 C 423 764 406 704 405 654 C 403 604 414 568 434 548 Z" />
+  </g>
+  <g id="clean-front-abs" class="clean-region-group" data-view="front" data-region="abs">
+    <path id="clean-front-abs-left-top-1" data-view="front" data-region="abs" data-side="left-top" fill="#3f48cc" fill-opacity="0.66" stroke="rgba(255,255,255,0.72)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round" d="M 523 533 C 555 519 594 522 625 536 L 619 587 C 584 582 551 575 523 562 Z" />
+    <path id="clean-front-abs-right-top-2" data-view="front" data-region="abs" data-side="right-top" fill="#3f48cc" fill-opacity="0.66" stroke="rgba(255,255,255,0.72)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round" d="M 757 533 C 725 519 686 522 655 536 L 661 587 C 696 582 729 575 757 562 Z" />
+    <path id="clean-front-abs-left-mid-3" data-view="front" data-region="abs" data-side="left-mid" fill="#3f48cc" fill-opacity="0.66" stroke="rgba(255,255,255,0.72)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round" d="M 521 612 C 552 604 587 606 620 617 L 620 668 C 586 670 553 663 522 649 Z" />
+    <path id="clean-front-abs-right-mid-4" data-view="front" data-region="abs" data-side="right-mid" fill="#3f48cc" fill-opacity="0.66" stroke="rgba(255,255,255,0.72)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round" d="M 759 612 C 728 604 693 606 660 617 L 660 668 C 694 670 727 663 758 649 Z" />
+    <path id="clean-front-abs-left-low-5" data-view="front" data-region="abs" data-side="left-low" fill="#3f48cc" fill-opacity="0.66" stroke="rgba(255,255,255,0.72)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round" d="M 524 702 C 556 695 589 699 620 711 L 619 763 C 588 760 560 748 533 728 Z" />
+    <path id="clean-front-abs-right-low-6" data-view="front" data-region="abs" data-side="right-low" fill="#3f48cc" fill-opacity="0.66" stroke="rgba(255,255,255,0.72)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round" d="M 756 702 C 724 695 691 699 660 711 L 661 763 C 692 760 720 748 747 728 Z" />
+    <path id="clean-front-abs-center-low-7" data-view="front" data-region="abs" data-side="center-low" fill="#3f48cc" fill-opacity="0.66" stroke="rgba(255,255,255,0.72)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round" d="M 560 785 C 588 801 615 809 640 809 C 665 809 692 801 720 785 C 704 823 678 847 640 854 C 602 847 576 823 560 785 Z" />
+  </g>
+  <g id="clean-front-quads" class="clean-region-group" data-view="front" data-region="quads">
+    <path id="clean-front-quads-left-1" data-view="front" data-region="quads" data-side="left" fill="#fff200" fill-opacity="0.70" stroke="rgba(255,255,255,0.72)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round" d="M 478 826 C 435 889 407 984 402 1082 C 397 1170 429 1246 470 1253 C 503 1265 536 1240 545 1186 C 550 1081 522 940 478 826 Z" />
+    <path id="clean-front-quads-right-101" data-view="front" data-region="quads" data-side="right" fill="#fff200" fill-opacity="0.70" stroke="rgba(255,255,255,0.72)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round" transform="translate(1280 0) scale(-1 1)" d="M 478 826 C 435 889 407 984 402 1082 C 397 1170 429 1246 470 1253 C 503 1265 536 1240 545 1186 C 550 1081 522 940 478 826 Z" />
+  </g>
+  <g id="clean-front-calves" class="clean-region-group" data-view="front" data-region="calves">
+    <path id="clean-front-calves-left-1" data-view="front" data-region="calves" data-side="left" fill="#ffaec9" fill-opacity="0.70" stroke="rgba(255,255,255,0.72)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round" d="M 518 1348 C 550 1411 561 1504 539 1583 C 522 1642 474 1667 464 1616 C 469 1527 487 1421 518 1348 Z" />
+    <path id="clean-front-calves-right-101" data-view="front" data-region="calves" data-side="right" fill="#ffaec9" fill-opacity="0.70" stroke="rgba(255,255,255,0.72)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round" transform="translate(1280 0) scale(-1 1)" d="M 518 1348 C 550 1411 561 1504 539 1583 C 522 1642 474 1667 464 1616 C 469 1527 487 1421 518 1348 Z" />
+  </g>
+  </g>
+  <g id="clean-back-map" transform="translate(1400 0)">
+<image class="source-reference" href="./source_backmap.png" x="0" y="0" width="1280" height="1908" preserveAspectRatio="xMidYMid meet" />
+  <g id="clean-back-traps_upper_back" class="clean-region-group" data-view="back" data-region="traps_upper_back">
+    <path id="clean-back-traps_upper_back-center-1" data-view="back" data-region="traps_upper_back" data-side="center" fill="#ed1c24" fill-opacity="0.72" stroke="rgba(255,255,255,0.72)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round" d="M 580 244 C 560 287 511 318 458 348 C 414 373 376 395 344 416 C 386 432 424 456 455 489 C 498 535 563 562 625 565 L 640 587 L 655 565 C 717 562 782 535 825 489 C 856 456 894 432 936 416 C 904 395 866 373 822 348 C 769 318 720 287 700 244 C 665 236 615 236 580 244 Z" />
+  </g>
+  <g id="clean-back-triceps" class="clean-region-group" data-view="back" data-region="triceps">
+    <path id="clean-back-triceps-left-1" data-view="back" data-region="triceps" data-side="left" fill="#22b14c" fill-opacity="0.74" stroke="rgba(255,255,255,0.72)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round" d="M 407 439 C 351 449 315 511 311 588 C 309 646 342 678 384 657 C 420 598 436 511 407 439 Z" />
+    <path id="clean-back-triceps-right-101" data-view="back" data-region="triceps" data-side="right" fill="#22b14c" fill-opacity="0.74" stroke="rgba(255,255,255,0.72)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round" transform="translate(1280 0) scale(-1 1)" d="M 407 439 C 351 449 315 511 311 588 C 309 646 342 678 384 657 C 420 598 436 511 407 439 Z" />
+  </g>
+  <g id="clean-back-lats" class="clean-region-group" data-view="back" data-region="lats">
+    <path id="clean-back-lats-left-1" data-view="back" data-region="lats" data-side="left" fill="#ff7f27" fill-opacity="0.66" stroke="rgba(255,255,255,0.72)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round" d="M 432 548 C 477 565 532 566 580 548 C 586 633 560 735 509 808 C 463 750 427 642 432 548 Z" />
+    <path id="clean-back-lats-right-101" data-view="back" data-region="lats" data-side="right" fill="#ff7f27" fill-opacity="0.66" stroke="rgba(255,255,255,0.72)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round" transform="translate(1280 0) scale(-1 1)" d="M 432 548 C 477 565 532 566 580 548 C 586 633 560 735 509 808 C 463 750 427 642 432 548 Z" />
+  </g>
+  <g id="clean-back-forearms" class="clean-region-group" data-view="back" data-region="forearms">
+    <path id="clean-back-forearms-left-1" data-view="back" data-region="forearms" data-side="left" fill="#fff200" fill-opacity="0.70" stroke="rgba(255,255,255,0.72)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round" d="M 298 694 C 333 725 352 791 351 856 C 350 913 327 950 292 939 C 276 866 274 765 298 694 Z" />
+    <path id="clean-back-forearms-right-101" data-view="back" data-region="forearms" data-side="right" fill="#fff200" fill-opacity="0.70" stroke="rgba(255,255,255,0.72)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round" transform="translate(1280 0) scale(-1 1)" d="M 298 694 C 333 725 352 791 351 856 C 350 913 327 950 292 939 C 276 866 274 765 298 694 Z" />
+  </g>
+  <g id="clean-back-lower_back" class="clean-region-group" data-view="back" data-region="lower_back">
+    <path id="clean-back-lower_back-center-1" data-view="back" data-region="lower_back" data-side="center" fill="#00a2e8" fill-opacity="0.66" stroke="rgba(255,255,255,0.72)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round" d="M 576 650 C 614 636 666 636 704 650 C 733 704 724 765 677 815 C 657 834 623 834 603 815 C 556 765 547 704 576 650 Z" />
+  </g>
+  <g id="clean-back-glutes" class="clean-region-group" data-view="back" data-region="glutes">
+    <path id="clean-back-glutes-left-1" data-view="back" data-region="glutes" data-side="left" fill="#a349a4" fill-opacity="0.68" stroke="rgba(255,255,255,0.72)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round" d="M 631 852 C 558 853 495 890 457 953 C 484 1008 561 1030 631 994 C 641 950 642 892 631 852 Z" />
+    <path id="clean-back-glutes-right-101" data-view="back" data-region="glutes" data-side="right" fill="#a349a4" fill-opacity="0.68" stroke="rgba(255,255,255,0.72)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round" transform="translate(1280 0) scale(-1 1)" d="M 631 852 C 558 853 495 890 457 953 C 484 1008 561 1030 631 994 C 641 950 642 892 631 852 Z" />
+  </g>
+  <g id="clean-back-hamstrings" class="clean-region-group" data-view="back" data-region="hamstrings">
+    <path id="clean-back-hamstrings-left-1" data-view="back" data-region="hamstrings" data-side="left" fill="#880015" fill-opacity="0.72" stroke="rgba(255,255,255,0.72)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round" d="M 421 1034 C 478 1049 526 1095 540 1152 C 550 1228 528 1313 499 1359 C 456 1356 416 1328 407 1273 C 394 1187 398 1104 421 1034 Z" />
+    <path id="clean-back-hamstrings-right-101" data-view="back" data-region="hamstrings" data-side="right" fill="#880015" fill-opacity="0.72" stroke="rgba(255,255,255,0.72)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round" transform="translate(1280 0) scale(-1 1)" d="M 421 1034 C 478 1049 526 1095 540 1152 C 550 1228 528 1313 499 1359 C 456 1356 416 1328 407 1273 C 394 1187 398 1104 421 1034 Z" />
+  </g>
+  <g id="clean-back-calves" class="clean-region-group" data-view="back" data-region="calves">
+    <path id="clean-back-calves-left-1" data-view="back" data-region="calves" data-side="left" fill="#ffaec9" fill-opacity="0.70" stroke="rgba(255,255,255,0.72)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round" d="M 470 1360 C 435 1423 423 1517 446 1599 C 464 1648 515 1652 532 1598 C 547 1507 525 1409 470 1360 Z" />
+    <path id="clean-back-calves-right-101" data-view="back" data-region="calves" data-side="right" fill="#ffaec9" fill-opacity="0.70" stroke="rgba(255,255,255,0.72)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round" transform="translate(1280 0) scale(-1 1)" d="M 470 1360 C 435 1423 423 1517 446 1599 C 464 1648 515 1652 532 1598 C 547 1507 525 1409 470 1360 Z" />
+  </g>
+  </g>
+</svg>

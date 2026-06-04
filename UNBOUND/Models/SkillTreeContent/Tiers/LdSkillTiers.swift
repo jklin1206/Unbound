@@ -11,8 +11,8 @@
 //   bodyweight squat  < 1 / 17 / 56 / 107 / 167   (Beginner "< 1" → 1)
 //   pistol squat      < 1 / 3 / 13 / 25 / 38
 //   lunge             < 1 / 11 / 37 / 69 / 105
-//   squat jump        < 1 / 8 / 34 / 68 / 108
-//   nordic curl       < 1 / < 1 / 11 / 24 / 39
+//   squat jump        source rows exist, but app ladder caps it as low-rep power
+//   nordic curl       source rows exist, but app ladder caps it as high-tension reps
 //   weighted (added %bw, docs/standards-weighted.md): pistol 0–15/15–30/30–50/50–70/90%+
 //
 // Legs rep out — there are no true "1-rep-only world-class" feats in this list,
@@ -73,16 +73,16 @@ enum LegsSkillAnchors {
         // Deep squat — HOLD (seconds). Squat-hold mobility ladder.
         "ld.deep-squat":              .init(exerciseName: "deep squat",              metric: .seconds, spec: .full([30, 60, 90, 120, 180])),
 
-        // Box jump — power/plyo, low-rep quality reps, scale off squat-jump shape
-        // but capped low (max-effort box jumps don't rep out like jump squats).
-        "ld.box-jump":                .init(exerciseName: "box jump",                metric: .reps, spec: .full([3, 6, 12, 20, 30])),
+        // Box jump — power/plyo, low-rep quality reps. Stop once landing or
+        // height fades; this is not an endurance ladder.
+        "ld.box-jump":                .init(exerciseName: "box jump",                metric: .reps, spec: .full([1, 2, 3, 4, 5])),
 
-        // Jumping squat — squat jump standard, verbatim.
-        "ld.jumping-squat":           .init(exerciseName: "jumping squat",           metric: .reps, spec: .full([1, 8, 34, 68, 108])),
+        // Jumping squat — power quality with a modest ceiling, not a 100-rep grind.
+        "ld.jumping-squat":           .init(exerciseName: "jumping squat",           metric: .reps, spec: .full([1, 3, 5, 8, 10])),
 
-        // Flying kickback / leg extension — quad/glute isolation accessories.
+        // Flying kickback / bodyweight leg extension — quad/glute isolation accessories.
         "ld.flying-kickback":         .init(exerciseName: "leg kickback",            metric: .reps, spec: .full([8, 18, 35, 55, 80])),
-        "ld.leg-extensions":          .init(exerciseName: "leg extensions",          metric: .reps, spec: .full([10, 20, 35, 55, 80])),
+        "ld.leg-extensions":          .init(exerciseName: "bodyweight leg extension", metric: .reps, spec: .full([10, 20, 35, 55, 80])),
 
         // Nordic hip hinge — nordic lead-up (assisted/short-ROM), sits below the
         // full nordic curl ceiling (39) — an accessible posterior-chain grinder.
@@ -94,9 +94,9 @@ enum LegsSkillAnchors {
         // Shrimp squat — harder single-leg than pistol → fewer reps than pistol.
         "ld.shrimp-squat":            .init(exerciseName: "shrimp squat",            metric: .reps, spec: .full([1, 3, 9, 18, 28])),
 
-        // Advancing (advanced) nordic curl — harder nordic stage; below full nordic
-        // curl (39) but above the hip-hinge lead-up. GRIND — nordic reps out.
-        "ld.advancing-nordic-curl":   .init(exerciseName: "advanced nordic hip hinge", metric: .reps, spec: .full([1, 4, 11, 20, 30])),
+        // Advancing (advanced) nordic curl — high-tension hamstring work. Keep
+        // the ladder low enough that each rep stays controlled.
+        "ld.advancing-nordic-curl":   .init(exerciseName: "advanced nordic hip hinge", metric: .reps, spec: .full([1, 2, 3, 4, 6])),
 
         // Floor-to-ceiling squat — deep-ROM mobility squat. Default GRIND building
         // reps (per rubric), modest ceiling for a slow controlled ROM movement.
@@ -105,8 +105,9 @@ enum LegsSkillAnchors {
         // Sissy squat — quad-dominant, extreme knee flexion. Moderate ceiling.
         "ld.sissy-squat":             .init(exerciseName: "sissy squat",             metric: .reps, spec: .full([2, 6, 14, 24, 35])),
 
-        // Nordic curl — full nordic hamstring curl standard, verbatim (GRIND to 39).
-        "ld.nordic-curl":             .init(exerciseName: "nordic curl",             metric: .reps, spec: .full([1, 3, 11, 24, 39])),
+        // Nordic curl — full high-tension hamstring curl. Quality reps beat
+        // heroic volume.
+        "ld.nordic-curl":             .init(exerciseName: "nordic curl",             metric: .reps, spec: .full([1, 2, 3, 5, 8])),
 
         // ── WEIGHTED — added %bw as decimals (docs/standards-weighted.md) ──
 
@@ -124,6 +125,47 @@ enum LegsSkillAnchors {
 
 enum LdSkillTiers {
     /// Generated from `LegsSkillAnchors` — each anchor's real-data ladder → 9 tiers.
-    static let table: [String: [SkillTier: TierCriterion]] =
-        LegsSkillAnchors.table.mapValues { SkillTierGenerator.generate($0) }
+    /// A few calisthenics leg goals use authored variant ladders so the tree
+    /// honors the real progression flow instead of ranking every tier on the
+    /// final movement only.
+    static let table: [String: [SkillTier: TierCriterion]] = {
+        let generated = LegsSkillAnchors.table.mapValues { SkillTierGenerator.generate($0) }
+        return generated.merging(authoredVariantLadders) { _, authored in authored }
+    }()
+
+    private static let authoredVariantLadders: [String: [SkillTier: TierCriterion]] = [
+        "ld.pistol-squat": [
+            .initiate: .reps(3, exerciseName: "partial pistol squat"),
+            .novice: .reps(8, exerciseName: "partial pistol squat"),
+            .apprentice: .reps(5, exerciseName: "assisted pistol squat"),
+            .forged: .reps(1, exerciseName: "pistol squat"),
+            .veteran: .reps(3, exerciseName: "pistol squat"),
+            .master: .reps(8, exerciseName: "pistol squat"),
+            .vessel: .reps(13, exerciseName: "pistol squat"),
+            .unbound: .reps(25, exerciseName: "pistol squat"),
+            .ascendant: .reps(38, exerciseName: "pistol squat")
+        ],
+        "ld.shrimp-squat": [
+            .initiate: .reps(3, exerciseName: "assisted shrimp squat"),
+            .novice: .reps(3, exerciseName: "beginner shrimp squat"),
+            .apprentice: .reps(3, exerciseName: "intermediate shrimp squat"),
+            .forged: .reps(1, exerciseName: "shrimp squat"),
+            .veteran: .reps(3, exerciseName: "shrimp squat"),
+            .master: .reps(6, exerciseName: "shrimp squat"),
+            .vessel: .reps(9, exerciseName: "shrimp squat"),
+            .unbound: .reps(3, exerciseName: "two-hand shrimp squat"),
+            .ascendant: .reps(3, exerciseName: "elevated two-hand shrimp squat")
+        ],
+        "ld.nordic-curl": [
+            .initiate: .reps(1, exerciseName: "nordic curl negative"),
+            .novice: .reps(3, exerciseName: "nordic curl negative"),
+            .apprentice: .reps(5, exerciseName: "nordic curl negative"),
+            .forged: .reps(1, exerciseName: "nordic curl"),
+            .veteran: .reps(2, exerciseName: "nordic curl"),
+            .master: .reps(3, exerciseName: "nordic curl"),
+            .vessel: .reps(2, exerciseName: "nordic curl arms overhead"),
+            .unbound: .reps(1, exerciseName: "tuck one-leg nordic curl"),
+            .ascendant: .reps(1, exerciseName: "one-leg nordic curl")
+        ]
+    ]
 }

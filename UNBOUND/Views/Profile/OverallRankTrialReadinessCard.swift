@@ -113,7 +113,7 @@ struct OverallRankTrialReadinessCard: View {
                     .foregroundStyle(Color.unbound.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
 
-                Text(readiness.blockerSummary ?? resolved.nextPrepAction)
+                Text(readiness.blockerSummary ?? prepSummary(resolved))
                     .font(Font.unbound.captionS.weight(.semibold))
                     .foregroundStyle(readiness.blockerSummary == nil ? Color.unbound.textPrimary : Color.unbound.warnOrange)
                     .fixedSize(horizontal: false, vertical: true)
@@ -183,7 +183,23 @@ struct OverallRankTrialReadinessCard: View {
     }
 
     private func categorySummary(_ resolved: ResolvedRankTrial) -> String {
-        resolved.categoriesTested.map(\.displayName).joined(separator: " / ")
+        if readiness.definition?.format == .fixedDeck {
+            return deckExampleSummary
+        }
+
+        return resolved.categoriesTested.map(\.displayName).joined(separator: " / ")
+    }
+
+    private func prepSummary(_ resolved: ResolvedRankTrial) -> String {
+        if readiness.definition?.format == .fixedDeck {
+            return "Draw a card. Do the reps. Tap next."
+        }
+
+        return resolved.nextPrepAction
+    }
+
+    private var deckExampleSummary: String {
+        "A♥ 11 pushups · 7♦ 7 squats · J♣ 10 pullups · 4♠ 4 sit-ups"
     }
 
     private func requirementIcon(for kind: OverallRankTrialRequirementKind) -> String {

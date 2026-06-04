@@ -1,7 +1,4 @@
 // UNBOUND/Views/Squads/JoinSquadSheet.swift
-//
-// Note: uses SquadService.shared + AuthService.shared directly.
-// ServiceContainer wiring deferred to Phase 16.
 import SwiftUI
 
 struct JoinSquadSheet: View {
@@ -9,6 +6,7 @@ struct JoinSquadSheet: View {
     var prefilledCode: String? = nil
     var onCompleted: (() -> Void)?
 
+    @EnvironmentObject var services: ServiceContainer
     @Environment(\.dismiss) var dismiss
     @State private var code = ""
     @State private var error: String?
@@ -113,14 +111,14 @@ struct JoinSquadSheet: View {
 
     @MainActor
     private func join() async {
-        guard let userId = AuthService.shared.currentUserId else {
+        guard let userId = services.auth.currentUserId else {
             error = "Sign in to join a squad."
             return
         }
         isJoining = true
         defer { isJoining = false }
         do {
-            _ = try await SquadService.shared.joinSquad(inviteCode: code, userId: userId)
+            _ = try await services.squads.joinSquad(inviteCode: code, userId: userId)
             onCompleted?()
             dismiss()
         } catch SquadError.invalidInviteCode {
@@ -137,8 +135,10 @@ struct JoinSquadSheet: View {
 
 #Preview {
     JoinSquadSheet()
+        .environmentObject(ServiceContainer.mock)
 }
 
 #Preview("Prefilled") {
     JoinSquadSheet(prefilledCode: "ABC123")
+        .environmentObject(ServiceContainer.mock)
 }

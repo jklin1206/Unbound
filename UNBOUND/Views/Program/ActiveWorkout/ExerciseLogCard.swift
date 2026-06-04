@@ -9,6 +9,7 @@ struct ExerciseLogCard: View {
     let muscleGroups: [MuscleGroup]
     let formCues: String?
     let substitution: String?
+    var movementId: String? = nil
     var blockKind: TrainingBlockKind = .strength
     var metricKind: TrainingMetricKind = .reps
     var tracksHold: Bool = false
@@ -25,6 +26,7 @@ struct ExerciseLogCard: View {
     let onConfirmAsPlanned: (Int) -> Void
     let onToggleQualityFlag: (Int, PerformanceQualityFlag) -> Void
     let onAddSet: () -> Void
+    var rankTrialStyle: Bool = false
     var allowsProtocolEditing: Bool = true
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -32,7 +34,9 @@ struct ExerciseLogCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 10) {
+            HStack(alignment: .top, spacing: 12) {
+                exerciseThumbnail
+
                 Button(action: onToggleExpand) {
                     HStack(spacing: 8) {
                         if isCurrent {
@@ -48,15 +52,19 @@ struct ExerciseLogCard: View {
                             .font(Font.unbound.titleM)
                             .foregroundStyle(Color.unbound.textPrimary)
                             .multilineTextAlignment(.leading)
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.78)
                         Image(systemName: "chevron.down")
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundStyle(Color.unbound.textTertiary)
                             .rotationEffect(.degrees(isExpanded ? 180 : 0))
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                Spacer()
+                .layoutPriority(1)
+
                 if allowsProtocolEditing {
                     ExerciseOverflowMenu(isWarmup: isWarmupCurrent, onIntent: onIntent)
                 }
@@ -154,11 +162,16 @@ struct ExerciseLogCard: View {
                 compactProgressRow
             }
         }
-        .padding(18)
+        .padding(rankTrialStyle ? 15 : 18)
         .background(cardBackground)
-        .overlay(RoundedRectangle(cornerRadius: 18)
-            .strokeBorder(isCurrent ? Color.unbound.coachCyan.opacity(0.62) : Color.unbound.border, lineWidth: 1))
-        .shadow(color: isCurrent ? Color.unbound.coachCyan.opacity(0.18) : Color.clear, radius: 18, y: 4)
+        .overlay(cardBorder)
+        .shadow(
+            color: isCurrent
+                ? Color.black.opacity(rankTrialStyle ? 0.10 : 0.14)
+                : Color.clear,
+            radius: rankTrialStyle ? 8 : 12,
+            y: rankTrialStyle ? 2 : 3
+        )
         .animation(reduceMotion ? nil : .spring(response: 0.34, dampingFraction: 0.85),
                    value: isExpanded)
         .animation(reduceMotion ? nil : .spring(response: 0.34, dampingFraction: 0.85),
@@ -169,27 +182,93 @@ struct ExerciseLogCard: View {
         isCurrent || isExpanded
     }
 
-    private var isUnmatched: Bool {
-        MovementResolver.resolve(name).isUnmatched
+    private var movementDefinition: MovementDefinition? {
+        MovementCatalog.resolvedTrainingMovement(
+            name: name,
+            movementId: movementId
+        )?.exact
     }
 
-    private var cardBackground: some View {
-        RoundedRectangle(cornerRadius: 18, style: .continuous)
-            .fill(Color.unbound.surface)
-            .overlay {
-                if isCurrent {
-                    LinearGradient(
-                        colors: [
-                            Color.unbound.coachCyan.opacity(0.18),
-                            Color.unbound.accent.opacity(0.10),
-                            Color.clear
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                }
+    private var isUnmatched: Bool {
+        if movementDefinition != nil { return false }
+        return MovementResolver.resolve(name).isUnmatched
+    }
+
+    @ViewBuilder
+    private var exerciseThumbnail: some View {
+        if let definition = movementDefinition {
+            ExerciseVisualView(definition: definition, size: .thumbnail)
+                .frame(width: 58, height: 58)
+                .accessibilityHidden(true)
+        } else {
+            ZStack {
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(Color.unbound.surfaceElevated)
+                Image(systemName: fallbackExerciseIcon)
+                    .font(.system(size: 19, weight: .bold))
+                    .foregroundStyle(Color.unbound.textSecondary)
             }
+            .frame(width: 58, height: 58)
+            .accessibilityHidden(true)
+        }
+    }
+
+    private var fallbackExerciseIcon: String {
+        switch blockKind {
+        case .strength, .custom: return "dumbbell.fill"
+        case .bodyweight: return "figure.strengthtraining.traditional"
+        case .skill: return "figure.gymnastics"
+        case .cardio: return "figure.run"
+        case .carry: return "shippingbox.fill"
+        case .routine: return "timer"
+        }
+    }
+
+    @ViewBuilder
+    private var cardBackground: some View {
+        if rankTrialStyle {
+            RankTrialActionDockShape()
+                .fill(isCurrent ? Color.unbound.surface.opacity(0.94) : Color.unbound.surface.opacity(0.82))
+                .overlay(alignment: .leading) {
+                    Rectangle()
+                        .fill(isCurrent ? Color.unbound.coachCyan : Color.unbound.borderSubtle)
+                        .frame(width: 3)
+                        .opacity(isCurrent ? 0.95 : 0.34)
+                        .padding(.vertical, 12)
+                }
+        } else {
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(Color.unbound.surface)
+                .overlay(alignment: .leading) {
+                    if isCurrent {
+                        Rectangle()
+                            .fill(Color.unbound.coachCyan)
+                            .frame(width: 3)
+                            .opacity(0.9)
+                            .padding(.vertical, 14)
+                    }
+                }
+                .overlay {
+                    if isCurrent {
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .fill(Color.unbound.coachCyan.opacity(0.035))
+                    }
+                }
+        }
+    }
+
+    @ViewBuilder
+    private var cardBorder: some View {
+        if rankTrialStyle {
+            RankTrialActionDockShape()
+                .strokeBorder(
+                    isCurrent ? Color.unbound.coachCyan.opacity(0.54) : Color.unbound.borderSubtle,
+                    lineWidth: 1
+                )
+        } else {
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(isCurrent ? Color.unbound.coachCyan.opacity(0.38) : Color.unbound.border, lineWidth: 1)
+        }
     }
 
     private func targetPill(_ text: String, icon: String) -> some View {
@@ -201,7 +280,7 @@ struct ExerciseLogCard: View {
             .padding(.horizontal, 8)
             .frame(height: 26)
             .background(Capsule().fill(Color.unbound.surfaceElevated.opacity(isCurrent ? 1.0 : 0.72)))
-            .overlay(Capsule().strokeBorder(isCurrent ? Color.unbound.coachCyan.opacity(0.24) : Color.unbound.borderSubtle, lineWidth: 1))
+            .overlay(Capsule().strokeBorder(isCurrent ? Color.unbound.coachCyan.opacity(0.16) : Color.unbound.borderSubtle, lineWidth: 1))
     }
 
     private var compactProgressRow: some View {
@@ -240,5 +319,43 @@ struct ExerciseLogCard: View {
 
     private static func mmss(_ s: Int) -> String {
         "\(s / 60):" + String(format: "%02d", s % 60)
+    }
+}
+
+private struct RankTrialActionDockShape: InsettableShape {
+    var insetAmount: CGFloat = 0
+
+    func path(in rect: CGRect) -> Path {
+        let rect = rect.insetBy(dx: insetAmount, dy: insetAmount)
+        let cut = min(rect.width * 0.08, 24)
+        let radius: CGFloat = 12
+        var path = Path()
+
+        path.move(to: CGPoint(x: rect.minX + radius, y: rect.minY))
+        path.addLine(to: CGPoint(x: rect.maxX - cut, y: rect.minY))
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.minY + cut))
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY - radius))
+        path.addQuadCurve(
+            to: CGPoint(x: rect.maxX - radius, y: rect.maxY),
+            control: CGPoint(x: rect.maxX, y: rect.maxY)
+        )
+        path.addLine(to: CGPoint(x: rect.minX + radius, y: rect.maxY))
+        path.addQuadCurve(
+            to: CGPoint(x: rect.minX, y: rect.maxY - radius),
+            control: CGPoint(x: rect.minX, y: rect.maxY)
+        )
+        path.addLine(to: CGPoint(x: rect.minX, y: rect.minY + radius))
+        path.addQuadCurve(
+            to: CGPoint(x: rect.minX + radius, y: rect.minY),
+            control: CGPoint(x: rect.minX, y: rect.minY)
+        )
+        path.closeSubpath()
+        return path
+    }
+
+    func inset(by amount: CGFloat) -> some InsettableShape {
+        var copy = self
+        copy.insetAmount += amount
+        return copy
     }
 }

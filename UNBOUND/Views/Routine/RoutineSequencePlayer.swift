@@ -34,6 +34,7 @@ struct RoutinePlayerView: View {
     @State private var bursts: [Int] = []
     @State private var performanceEntries: [RoutinePerformanceEntry] = []
     @State private var capturedStepIds: Set<Int> = []
+    @State private var pendingCompletionRecordId: String? = nil
 
     private let clock = Timer.publish(every: 1, on: .main, in: .common)
         .autoconnect()
@@ -353,7 +354,7 @@ struct RoutinePlayerView: View {
                 Divider().frame(height: 32).background(Color.unbound.border)
                 completeStat(historyLabel, "HISTORY")
                 Divider().frame(height: 32).background(Color.unbound.border)
-                completeStat("+\(routine.spReward)", "LVL XP")
+                completeStat(hasRewardableWork ? "PENDING" : "0", "LVL XP")
             }
             .padding(16)
             .background(RoundedRectangle(cornerRadius: 14, style: .continuous)
@@ -506,26 +507,51 @@ struct RoutinePlayerView: View {
 
     private func buildRecord() -> RoutineCompletionRecord {
         let allBursts = performanceEntries.flatMap(\.bursts).filter { $0 > 0 }
-        let hasRep = !allBursts.isEmpty || run.contains {
+        let hasRepTarget = run.contains {
             if case .repTarget = $0.kind { return true }
             return false
         }
 
         let metric: RoutineMetric
-        if hasRep {
+        if hasRepTarget {
             metric = .repCount(total: allBursts.reduce(0, +), bursts: allBursts)
         } else if isTimerDominant {
             metric = .time(seconds: elapsedSeconds)
         } else {
             metric = .steps(done: run.count, total: run.count)
         }
+        let recordId = pendingCompletionRecordId ?? UUID().uuidString
+        pendingCompletionRecordId = recordId
+
         return RoutineCompletionRecord(
+            id: recordId,
             routineId: routine.id,
             completedAt: Date(),
             elapsedSeconds: elapsedSeconds,
             primaryMetric: metric,
-            spAwarded: routine.spReward,
-            performanceEntries: performanceEntries)
+            spAwarded: 0,
+            performanceEntries: completionPerformanceEntries)
+    }
+
+    private var completionPerformanceEntries: [RoutinePerformanceEntry] {
+        if !performanceEntries.isEmpty { return performanceEntries }
+        return [
+            RoutinePerformanceEntry(
+                source: .instruction,
+                name: "No logged routine work",
+                notes: "Completion captured no rewardable metrics."
+            )
+        ]
+    }
+
+    private var hasRewardableWork: Bool {
+        performanceEntries.contains { entry in
+            (entry.reps ?? 0) > 0 ||
+            (entry.holdSeconds ?? 0) > 0 ||
+            (entry.durationSeconds ?? 0) > 0 ||
+            (entry.distanceMeters ?? 0) > 0 ||
+            (entry.calories ?? 0) > 0
+        }
     }
 
     private func captureCurrentStep() {
@@ -645,9 +671,9 @@ struct RoutinePlayerView: View {
 
     private func exerciseVisualAssetName(for text: String) -> String? {
         guard let assetName = RoutineStepVisualLibrary.assetName(for: text),
-              UIImage(named: assetName) != nil
+              let resolved = ExerciseVisualAsset.existingAssetName(forBaseAssetName: assetName)
         else { return nil }
-        return assetName
+        return resolved
     }
 
     private var headlineValue: String {
@@ -677,7 +703,7 @@ struct RoutineExerciseVisualCard: View {
     var compact: Bool = false
 
     private var image: UIImage? {
-        UIImage(named: assetName)
+        ExerciseVisualAsset.image(named: assetName)
     }
 
     var body: some View {

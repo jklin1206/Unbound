@@ -1,10 +1,8 @@
 import Foundation
 import Combine
 
-// Dev-only feature flags persisted to UserDefaults. The UI that flips these
-// is compiled out of Release builds — the flags themselves stay readable in
-// Release (in case we want to ship a hidden-gesture developer menu later),
-// but by default they default to false and there's no way to turn them on.
+// Dev-only feature flags persisted to UserDefaults for DEBUG builds.
+// Release builds never honor persisted debug flags.
 
 final class DevFlags: @unchecked Sendable {
     static let shared = DevFlags()
@@ -19,9 +17,21 @@ final class DevFlags: @unchecked Sendable {
     var unlockAllFeaturesPublisher: AnyPublisher<Void, Never> { subject.eraseToAnyPublisher() }
 
     var unlockAllFeatures: Bool {
-        get { defaults.bool(forKey: Keys.unlockAllFeatures) }
+        get {
+            #if DEBUG
+            defaults.bool(forKey: Keys.unlockAllFeatures)
+            #else
+            false
+            #endif
+        }
         set {
+            #if DEBUG
             defaults.set(newValue, forKey: Keys.unlockAllFeatures)
+            #else
+            if defaults.object(forKey: Keys.unlockAllFeatures) != nil {
+                defaults.removeObject(forKey: Keys.unlockAllFeatures)
+            }
+            #endif
             subject.send(())
         }
     }

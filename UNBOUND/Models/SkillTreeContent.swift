@@ -202,6 +202,7 @@ enum SkillSubChapterMap {
         "cl.straddle-front-lever": "Front Lever",
         "cl.full-front-lever":     "Front Lever",
 
+        "cl.tuck-back-lever":      "Back Lever",
         "cl.straddle-back-lever":  "Back Lever",
         "cl.full-back-lever":      "Back Lever",
 
@@ -325,10 +326,10 @@ extension SkillGraph {
             title: "Shrimp Squat",
             cluster: .legDominance, tier: 4, type: .skill,
             target: .reps(exercise: "shrimp squat", count: 3),
-            prereqs: [PrerequisiteGroup("ld.bulgarian-split-squat")],
+            prereqs: [PrerequisiteGroup("ld.pistol-squat")],
             primary: [.legs, .glutes], secondary: [.core],
-            subtitle: "Single-leg gateway to pistol.",
-            description: "Single-leg squat where you grab the rear ankle with the opposite hand and sit down until the rear knee touches the floor. 3 clean reps per leg.",
+            subtitle: "Single-leg strength after pistol.",
+            description: "Single-leg squat where you grab the rear ankle with the opposite hand and sit down until the rear knee touches the floor. The path runs through assisted, beginner, and intermediate shrimp before the strict rep. 3 clean reps per leg.",
             formCues: [
                 "Grip rear ankle firmly, other arm out for balance",
                 "Descend slow — rear knee lightly touches floor",
@@ -347,7 +348,7 @@ extension SkillGraph {
             title: "Pistol Squat",
             cluster: .legDominance, tier: 4, type: .skill,
             target: .reps(exercise: "pistol squat", count: 5),
-            prereqs: [PrerequisiteGroup("ld.deep-squat")],
+            prereqs: [PrerequisiteGroup(["ld.deep-squat", "ld.bulgarian-split-squat"])],
             isKeystone: true,
             primary: [.legs, .glutes], secondary: [.core],
             subtitle: "Single-leg mastery.",
@@ -403,7 +404,7 @@ extension SkillGraph {
             equipment: [.pullupBar],
             primary: [.forearms, .lats],
             subtitle: "Before you pull, you learn to hang.",
-            description: "Passive hang from a pullup bar, straight arms, shoulders engaged. Grip and shoulder foundation every pulling skill sits on.",
+            description: "Controlled active hang from a pullup bar: straight arms, shoulders organized, ribs quiet, and no swinging. Grip and shoulder foundation every pulling skill sits on.",
             formCues: [
                 "Active shoulders — pull them down away from ears",
                 "Straight arms, no bent-elbow cheat",
@@ -526,15 +527,15 @@ extension SkillGraph {
             subtitle: "Lower yourself with one arm — the bridge to the full one-arm.",
             description: "3 strict 5s eccentric one-arm pull-up negatives per side. Slow lower from the top, no jerk.",
             formCues: [
-                "Start at chin-over-bar with one arm",
-                "Lower under control — 5s minimum",
-                "No jerking or dropping",
-                "Free arm across chest, no assist"
+                "Start at chin-over-bar with measurable assistance if needed",
+                "Lower every inch under control — 5s minimum",
+                "Keep shoulder active; no jerking or tendon-yanking drops",
+                "Stop on rising elbow, biceps, or shoulder pain"
             ],
             commonMistakes: [
-                "Dropping out of the negative",
-                "Free hand assisting",
-                "Cutting eccentric short of full extension"
+                "Dropping out of the negative once the hard range appears",
+                "Using secret free-hand assistance instead of a measurable band/towel/pulley assist",
+                "Training through tendon pain or cutting the eccentric short"
             ],
             timeline: "6-12 months of dedicated pull work."
         ),
@@ -554,12 +555,13 @@ extension SkillGraph {
                 "Pull elbow DOWN aggressively — think curl at the top",
                 "Body angled slightly toward the working side",
                 "Free arm provides no momentum — across chest or behind back",
-                "Explosive intent on the concentric, slow eccentric"
+                "Stop attempts if elbow or biceps tendon pain rises"
             ],
             commonMistakes: [
                 "Kipping — legs swinging forward for lift",
                 "Free hand gripping shirt/bar/body as secret assist",
-                "Partial ROM — chin not fully over bar"
+                "Partial ROM — chin not fully over bar",
+                "Grinding daily max attempts instead of low-volume assisted practice"
             ],
             timeline: "3-5+ years of dedicated pull programming."
         ),
@@ -573,16 +575,16 @@ extension SkillGraph {
             equipment: [.pullupBar],
             primary: [.lats, .chest, .arms], secondary: [.core, .shoulders],
             subtitle: "The gateway between pulling and pushing.",
-            description: "Explosive high-pull transitioning over the bar into a clean dip lockout.",
+            description: "Bar muscle-up: explosive high pull, close bar path, chest over hands, then a clean straight-bar dip lockout. A controlled hollow-to-arch swing or hip drive is allowed here; strict zero-momentum reps belong to the strict muscle-up node.",
             formCues: [
-                "False-grip BEFORE starting, not mid-rep",
+                "High wrist or false-grip helps, but clean height matters more",
                 "Pull explosive to low chest — not chin",
-                "Fast hip drive to get chest over bar",
-                "Catch in a deep dip, then press out",
+                "Use controlled hip drive, not a knee bicycle or wild kip",
+                "Turn both elbows through together — no chicken wing",
                 "Lock elbows fully at top"
             ],
             commonMistakes: [
-                "Kipping — legs flying forward for momentum",
+                "Chaotic kip — legs flying forward instead of controlled rhythm",
                 "Chicken-winging (one arm transitions first, the other lags)",
                 "Stopping at bar-level instead of pressing through to full lockout"
             ],
@@ -764,16 +766,16 @@ extension SkillGraph {
             prereqs: [PrerequisiteGroup("cal.decline-pushup")],
             primary: [.shoulders, .chest, .arms], secondary: [.core],
             subtitle: "Planche prep.",
-            description: "Pushup with hands at hips (fingers pointing back toward feet), leaning weight forward so shoulders travel past the hands. 5 reps.",
+            description: "Pushup with hands low near the ribs or hips, leaning weight forward so shoulders travel past the hands. Hand angle is tolerance-based: slightly out, forward, or backward if wrists and shoulders allow.",
             formCues: [
-                "Hands pointed BACKWARD at hip level",
+                "Hands low near ribs/hips; turn fingers only as tolerated",
                 "Lean weight forward — shoulders over/past hands",
-                "Body rigid like plank, not piked",
-                "Protract scaps — shoulders spread apart"
+                "Elbow pits forward, elbows track back",
+                "Protract scaps, ribs down, glutes tight"
             ],
             commonMistakes: [
                 "Not enough forward lean — just a pushup",
-                "Hands not turned backward enough — shoulder strain",
+                "Forcing a painful hand angle instead of scaling with parallettes or turnout",
                 "Piking hips to cheat the lean"
             ],
             timeline: "1-3 months from diamond pushup."
@@ -807,7 +809,7 @@ extension SkillGraph {
             title: "Tuck Planche Push-Up",
             cluster: .calisthenicControl, tier: 5, type: .skill,
             target: .reps(exercise: "tuck planche pushup", count: 3),
-            prereqs: [PrerequisiteGroup("cal.pseudo-planche-pushup")],
+            prereqs: [PrerequisiteGroup(["cal.pseudo-planche-pushup", "pl.tuck-planche"])],
             equipment: [.parallettes],
             primary: [.shoulders, .chest, .core],
             subtitle: "Planche meets press.",
@@ -837,9 +839,10 @@ extension SkillGraph {
             description: "Planche with legs split wide and extended — reduces the lever compared to full planche but still demands horizontal hold. 5 seconds.",
             formCues: [
                 "Start from the tuck and extend legs wide, NOT straight back",
+                "Elbows locked, scapulae protracted and depressed",
                 "Wider split = easier; tighten gradually over months",
-                "Point toes, squeeze legs even though they're split",
-                "Hips stay at shoulder height"
+                "Point toes, squeeze legs, ribs down",
+                "Hips stay level with shoulders"
             ],
             commonMistakes: [
                 "Legs drooping below shoulder line",
@@ -861,7 +864,7 @@ extension SkillGraph {
             description: "Full horizontal hold. Body straight and parallel to the ground, supported only by straight arms.",
             formCues: [
                 "Protract shoulders HARD — scaps apart",
-                "Hips above shoulder height (piking = failure)",
+                "Hips level with shoulders — body roughly parallel",
                 "Point toes, squeeze glutes, hollow body",
                 "Hands turned outward for shoulder safety",
                 "Breathe — don't brace statically"
@@ -882,11 +885,11 @@ extension SkillGraph {
             isKeystone: true,
             primary: [.shoulders, .arms], secondary: [.core, .chest],
             subtitle: "Pressing your bodyweight from upside down.",
-            description: "One strict handstand push-up — wall-supported acceptable for the early levels, freestanding for mastery. Forehead lightly contacts ground at the bottom, arms lock at the top.",
+            description: "One strict handstand push-up — wall-supported acceptable for the early levels, freestanding for mastery. Hands and crown/head pad form a tripod at the bottom, then arms press to a tall lockout.",
             formCues: [
                 "Wall-supported is fine for L1-L3, freestanding for L4-L5",
                 "Hands shoulder-width, fingers spread for balance",
-                "Forehead touches floor lightly at the bottom",
+                "Crown or head pad touches lightly on a tripod path",
                 "Drive evenly through both palms — no favored side",
                 "Lockout at the top with ribs tucked, no banana arch"
             ],
@@ -933,9 +936,9 @@ extension SkillGraph {
             description: "One freestanding handstand push-up explosive enough that the hands leave the floor and clap before catching. Power-to-weight on a different planet.",
             formCues: [
                 "Start from a stable freestanding handstand",
-                "Descend with control to forehead-on-floor",
+                "Descend with control to a crown/head-pad tripod target",
                 "Drive explosively — hands fully leave the ground",
-                "Clap once at the bottom of the airborne phase",
+                "Clap close to the support line, then return hands fast",
                 "Catch with slightly bent elbows and rebalance"
             ],
             commonMistakes: [
@@ -959,10 +962,10 @@ extension SkillGraph {
             prereqs: [PrerequisiteGroup("cal.diamond-pushup")],
             primary: [.shoulders, .arms], secondary: [.core],
             subtitle: "The vertical pressing pattern HSPU will test.",
-            description: "10 strict pike pushups. Hips high, back rounded, head descends between hands. Trains the HSPU motor pattern without the balance demand.",
+            description: "10 strict pike pushups. Hips high, shoulders active, ribs controlled, and head descends between the hands on a tripod-like path. Trains the HSPU motor pattern without the balance demand.",
             formCues: [
                 "Hips over shoulders, not over hips",
-                "Head lowers between hands, not in front",
+                "Head lowers between hands toward a tripod target",
                 "Elbows track around 45°, not flared",
                 "Full ROM — top of head kisses floor"
             ],
@@ -1057,18 +1060,18 @@ extension SkillGraph {
             isMythic: true,
             primary: [.shoulders, .core],
             subtitle: "Balance at the limit.",
-            description: "Freestanding handstand on a single hand, body vertical, 5 seconds held. Balance requirement is higher than the strength requirement.",
+            description: "Freestanding straddle one-arm handstand held for 5 seconds. The support shoulder stays tall over the hand while the free hand comes off only after close-hand shifts, fingertip tents, and side-bend control are owned.",
             formCues: [
-                "Start from a rock-solid two-hand handstand (60s+)",
-                "Shift weight GRADUALLY to the working hand over weeks of drilling",
-                "Finger-pressure corrections — the entire hand is your rudder",
-                "Free arm counterbalances, doesn't touch the floor",
-                "Practice daily, most days in the learning phase"
+                "Prereq: quiet 60-90s handstand plus controlled straddle/tuck shape changes",
+                "Close-hand straddle first, then shift hips over the support hand",
+                "Support shoulder stays tall; no bent-arm save",
+                "Free hand tapers: fingertips, two-finger, one-finger, then float",
+                "Exit before shoulder sink, hip dump, or heavy wall lean"
             ],
             commonMistakes: [
-                "Attempting before 60s+ two-hand freestanding",
-                "Jumping into it rather than progressive weight shifts",
-                "Not letting body re-learn balance — rushes the nervous system"
+                "Attempting before the two-hand line and straddle balance are boring",
+                "Jumping into it rather than progressive weight shifts and tent drills",
+                "Letting the support shoulder sink or the hips dump sideways"
             ],
             timeline: "3-7 years of daily handstand work."
         ),
@@ -1081,12 +1084,18 @@ extension SkillGraph {
             isMythic: true,
             primary: [.shoulders, .core],
             subtitle: "Free balance on one hand.",
-            description: "5+ seconds freestanding on one arm — body straight, vertical line through wrist, no wall contact. Years of practice.",
+            description: "A strict one-arm handstand with the line narrowed toward legs-together/full-line control, no wall or fingertip support, and a calm exit. This is above the straddle 5s standard, not just another short hover.",
             formCues: [
-                "Body stacked over the support hand",
-                "Free shoulder pulled up away from floor",
+                "Body stacked over the support hand with shoulder tall",
+                "Narrow the legs only after straddle one-arm balance is stable",
+                "Finger pressure steers; no bent support elbow",
                 "Long line from wrist through heels",
-                "Breathe through the hold"
+                "Exit intentionally before the line breaks"
+            ],
+            commonMistakes: [
+                "Calling a wide straddle hover the full-line standard",
+                "Narrowing legs before the support shoulder can stay tall",
+                "Saving with a bent elbow or uncontrolled fall"
             ],
             timeline: "5-10+ years of daily handstand work. Aspirational."
         ),
@@ -1128,12 +1137,12 @@ extension SkillGraph {
             equipment: [.pullupBar],
             primary: [.core], secondary: [.lats, .forearms],
             subtitle: "Where visible abs start.",
-            description: "10 hanging knee raises. Dead hang from the bar, raise knees to chest, lower with control.",
+            description: "10 hanging knee raises. Active hang from the bar, raise knees to chest, curl the pelvis, then lower with control.",
             formCues: [
-                "Start from a full dead hang — no swinging",
+                "Start from a still active hang — no swinging",
                 "Raise knees to chest, not just to waist",
-                "Control the descent — no freefall",
-                "Squeeze core at the top of each rep"
+                "Curl tailbone toward ribs at the top",
+                "Lower slowly enough that the descent does not create the next swing"
             ],
             commonMistakes: [
                 "Swinging to use momentum",
@@ -1145,18 +1154,19 @@ extension SkillGraph {
         .simple(
             id: "cl.hanging-leg-raise",
             title: "Hanging Leg Raise",
-            cluster: .coreLever, tier: 3, type: .skill,
+            cluster: .coreLever, tier: 6, type: .skill,
             target: .reps(exercise: "hanging leg raise", count: 10),
             prereqs: [PrerequisiteGroup("cl.hanging-knee-raise")],
             equipment: [.pullupBar],
             primary: [.core], secondary: [.lats],
-            subtitle: "Full lower-ab control.",
+            subtitle: "Strict hanging compression.",
             description: "10 hanging leg raises. Straight legs from dead hang to parallel or higher.",
             formCues: [
+                "Start from a still active hang",
                 "Legs straight throughout — locked knees",
                 "Raise legs to parallel minimum, higher for clean reps",
-                "Toes pointed",
-                "Controlled 2s descent"
+                "Curl pelvis; do not throw feet for momentum",
+                "Controlled 2s descent with no swing reload"
             ],
             commonMistakes: [
                 "Bent knees mid-rep — that's a knee raise",
@@ -1177,7 +1187,8 @@ extension SkillGraph {
             subtitle: "Compression test.",
             description: "5 strict toes-to-bar reps. Legs straight, toes touch the bar between your hands at the top.",
             formCues: [
-                "Initiate with a lat pull to stabilize",
+                "Start from a still active hang, not a pendulum",
+                "Initiate with a lat pull and pelvic curl",
                 "Legs straight, compress hips to bring toes up",
                 "Toes CONTACT the bar, not just near it",
                 "Control the descent"
@@ -1312,11 +1323,36 @@ extension SkillGraph {
             timeline: "1-3 years from tuck front lever."
         ),
         .simple(
+            id: "cl.tuck-back-lever",
+            title: "Tuck Back Lever",
+            cluster: .pullingPower, tier: 4, type: .hold,
+            target: .hold(exercise: "tuck back lever", seconds: 10),
+            prereqs: [PrerequisiteGroup("cl.skin-the-cat")],
+            equipment: [.pullupBar, .gymnasticRings],
+            primary: [.shoulders, .chest, .core], secondary: [.lats, .arms],
+            subtitle: "Back lever starts compact.",
+            description: "A straight-arm tuck back lever from a controlled skin-the-cat route. Knees stay tight, shoulders tolerate extension, elbows stay locked, and the body pauses face-down before any straddle or full lever attempt.",
+            formCues: [
+                "Enter through German hang or skin the cat slowly",
+                "Lock elbows before lowering toward horizontal",
+                "Tuck knees tight to shorten the lever",
+                "Keep shoulders active instead of dropping into the joint",
+                "Exit under control through the same path"
+            ],
+            commonMistakes: [
+                "Dropping into shoulder extension",
+                "Bending elbows to survive the hold",
+                "Opening the tuck before the shoulder line is calm",
+                "Counting painful range as progress"
+            ],
+            timeline: "3-9 months from controlled skin-the-cat."
+        ),
+        .simple(
             id: "cl.straddle-back-lever",
             title: "Straddle Back Lever",
             cluster: .pullingPower, tier: 5, type: .hold,
             target: .hold(exercise: "straddle back lever", seconds: 5),
-            prereqs: [PrerequisiteGroup("cl.skin-the-cat")],
+            prereqs: [PrerequisiteGroup("cl.tuck-back-lever")],
             equipment: [.pullupBar],
             primary: [.shoulders, .chest, .core], secondary: [.lats, .arms],
             subtitle: "Legs split. Lever longer.",
@@ -1477,12 +1513,12 @@ extension SkillGraph {
             equipment: [.pullupBar],
             primary: [.lats, .back], secondary: [.arms],
             subtitle: "Wider grip, more lat.",
-            description: "Strict pullups with hands set well outside shoulder width. Lat-dominant — emphasizes back width over arm pull.",
+            description: "Strict pullups with hands set outside shoulder width only as far as the shoulders stay smooth. Lat-dominant — emphasizes back width without turning width into joint strain.",
             formCues: [
-                "Grip 1.5× shoulder width, palms facing away",
+                "Grip slightly to moderately outside shoulder width, palms away",
                 "Drive elbows DOWN to the ribs",
                 "Chest to the bar, not chin",
-                "Full dead hang each rep"
+                "Return to a straight-arm active hang each rep"
             ],
             commonMistakes: [
                 "Going too wide — shoulders grind",
@@ -1760,7 +1796,7 @@ extension SkillGraph {
                 "Explode from a rigid plank",
                 "Clap three times at chest level mid-air",
                 "Catch with soft elbows, reset in plank",
-                "Only program once clapping pushup is trivial"
+                "Train as singles with full reset — never as sloppy volume"
             ],
             commonMistakes: [
                 "Landing with locked arms — shoulder injury risk",
@@ -1861,7 +1897,8 @@ extension SkillGraph {
             commonMistakes: [
                 "Partial depth between jumps",
                 "Landing stiff — joints take a beating",
-                "Forward lean on the concentric"
+                "Forward lean on the concentric",
+                "Continuing after jump height or landing quality fades"
             ],
             timeline: "1-3 weeks from deep squat."
         ),
@@ -1883,7 +1920,7 @@ extension SkillGraph {
             ],
             commonMistakes: [
                 "Load too heavy too fast — form decays",
-                "Front knee tracking past toes",
+                "Front heel lifts, knee caves inward, or knee travel exceeds control",
                 "Pushing off the rear foot"
             ],
             timeline: "2-4 weeks from bodyweight split squat."
@@ -1956,23 +1993,23 @@ extension SkillGraph {
         ),
         .simple(
             id: "ld.leg-extensions",
-            title: "Leg Extensions",
+            title: "Bodyweight Leg Extension",
             cluster: .legDominance, tier: 4, type: .skill,
-            target: .reps(exercise: "leg extensions", count: 15),
+            target: .reps(exercise: "bodyweight leg extension", count: 8),
             prereqs: [PrerequisiteGroup("ld.deep-squat")],
             primary: [.legs], secondary: [.core],
-            subtitle: "Quad isolation.",
-            description: "15 strict bodyweight or banded leg extensions — knee stays still, lower leg moves through full ROM, controlled descent.",
+            subtitle: "Reverse-Nordic quad isolation.",
+            description: "Kneeling bodyweight leg extension / reverse-Nordic pattern: hips stay open, ribs down, knees bend as the body leans back in one line, then quads extend the body tall again through a pain-free arc.",
             formCues: [
-                "Knee stays put",
-                "Full extension at top",
-                "Slow eccentric (3s)",
-                "No swinging"
+                "Kneel tall with hips open and ribs down",
+                "Lean back from the knees; do not sit the hips back",
+                "Use a pain-free arc and slow eccentric",
+                "Drive tall through the quads without lumbar arch"
             ],
             commonMistakes: [
-                "Knee drifting during the rep",
-                "Bouncing out of the bottom",
-                "Cutting ROM short at the top"
+                "Turning it into a hip hinge or sissy squat",
+                "Dropping into sharp anterior knee pain",
+                "Arching the low back to escape the quad load"
             ],
             timeline: "1-3 weeks."
         ),
@@ -2212,7 +2249,7 @@ extension SkillGraph {
             title: "German Hang",
             cluster: .pullingPower, tier: 3, type: .hold,
             target: .hold(exercise: "german hang", seconds: 10),
-            prereqs: [PrerequisiteGroup("cl.tuck-front-lever")],
+            prereqs: [PrerequisiteGroup("pp.dead-hang")],
             equipment: [.gymnasticRings],
             primary: [.shoulders, .chest], secondary: [.core, .arms],
             subtitle: "The rings position only mobile shoulders own.",
@@ -2230,31 +2267,31 @@ extension SkillGraph {
                 "Holding through shoulder pain",
                 "Dropping too deep because the rings are set too high"
             ],
-            timeline: "3-9 months from tuck front lever.",
+            timeline: "2-6 months from a calm dead hang.",
             isParallelToParent: true
         ),
         .simple(
             id: "cl.three-sixty-pulls",
             title: "360-Degree Pulls",
             cluster: .pullingPower, tier: 6, type: .skill,
-            target: .reps(exercise: "360-degree pulls", count: 1),
+            target: .reps(exercise: "360 ring pull", count: 1),
             prereqs: [PrerequisiteGroup("cl.skin-the-cat")],
             equipment: [.gymnasticRings, .pullupBar],
             primary: [.lats, .arms, .core], secondary: [.back, .shoulders],
-            subtitle: "Pull, release, rotate 360°, re-grip, pull again.",
-            description: "From a pullup, release with enough height to rotate 360° in the air before re-catching the bar, then continue into the next pullup. Power plus spatial control.",
+            subtitle: "A full ring arc through front and back lever lanes.",
+            description: "Controlled straight-arm ring pull through a 360-degree arc: active hang, front-lever lane, inverted hang, back-lever lane, German hang, then reverse under control. No release or re-catch.",
             formCues: [
-                "Only train over a safe mat with a spotter or controlled progression",
-                "Load from an active hang and pull explosively above bar height",
-                "Tuck hard once airborne to speed rotation",
-                "Spot the bar early and reach with prepared shoulders",
-                "Absorb the re-catch with active lats; do not slam into a dead hang"
+                "Use rings set low enough to bail or toe-assist safely",
+                "Start from active hang with elbows locked",
+                "Pull through the front-lever side toward inverted hang",
+                "Move into the back-lever/German-hang side without dumping shoulders",
+                "Reverse the same path; only count range you can bring home"
             ],
             commonMistakes: [
-                "Missing the re-catch and dropping",
-                "Under-rotating and landing sideways",
-                "Shrugged shoulders on the re-catch",
-                "Trying it without first owning high pulls, release drills, and safe landing practice"
+                "Treating it like a bar release/re-catch trick",
+                "Bending elbows to muscle through the arc",
+                "Dropping into German hang or holding through shoulder pain",
+                "Owning the descent but not the reverse path"
             ],
             timeline: "5+ years of dedicated explosive pulling. Very rare."
         ),
@@ -2270,18 +2307,19 @@ extension SkillGraph {
             target: .hold(exercise: "headstand", seconds: 30),
             prereqs: [PrerequisiteGroup("hs.wall-plank")],
             primary: [.shoulders, .core], secondary: [.arms],
-            subtitle: "The easier inversion.",
-            description: "30-second headstand — tripod on hands and head against a wall, body stacked vertical. First real taste of inverted balance.",
+            subtitle: "The inversion that still respects your neck.",
+            description: "30-second tripod or supported headstand with active hands, light head contact, long neck, and body stacked vertical. First real taste of inverted balance without treating the neck like the base.",
             formCues: [
-                "Tripod: hands and head form a triangle",
-                "Bodyweight distributed across all three contact points",
-                "Body stacked vertical against or near a wall",
-                "Breathe through the hold"
+                "Tripod: hands and crown form a stable triangle",
+                "Press through the palms so the head stays light",
+                "Neck long, shoulders active, ribs controlled",
+                "Enter from a tuck or controlled wall setup — no hard kick"
             ],
             commonMistakes: [
                 "All weight on the head — neck strain",
                 "Arching the spine to stay up",
-                "Kicking up too hard against the wall"
+                "Kicking up too hard against the wall",
+                "Staying in the hold with neck compression, tingling, or headache"
             ],
             timeline: "1-4 weeks from wall plank."
         ),
@@ -2523,6 +2561,7 @@ extension SkillGraph {
             description: "3-second half-lay planche — straddle planche with legs narrowed toward the full position. The bridge between straddle and full planche.",
             formCues: [
                 "Start from rock-solid straddle planche",
+                "Elbows locked, shoulders protracted and depressed",
                 "Close the legs halfway toward parallel",
                 "Hips stay at shoulder height",
                 "Toes pointed, legs squeeze even at narrower angle"
@@ -2606,7 +2645,7 @@ extension SkillGraph {
                 "Feet on bench or box at hip height",
                 "Body in a hollow straight line, no sag",
                 "Pull chest to bar — not the chin",
-                "Full dead hang at the bottom each rep"
+                "Return to straight arms with shoulders still active"
             ],
             commonMistakes: [
                 "Hips piking up as you pull",
@@ -2626,34 +2665,35 @@ extension SkillGraph {
             subtitle: "Pull your bodyweight on one arm.",
             description: "Strict one-arm rows on rings or a low bar — bodyweight horizontal, single arm pulls chest to the implement, control the descent.",
             formCues: [
-                "Body straight head-to-heels",
-                "Free arm tucked or held out",
-                "Pull elbow to ribs, no twist",
-                "Squeeze shoulder blade at top"
+                "Set handle height and foot width so torso stays square",
+                "Start with straight arm plus active shoulder, not a loose hang",
+                "Pull lower ribs/chest to the handle without torso twist",
+                "Free hand may assist lightly on the strap, but pressure must be obvious"
             ],
             commonMistakes: [
-                "Twisting torso to cheat",
-                "Bent body instead of straight",
-                "Partial ROM"
+                "Twisting torso or hips to turn the rep into rotation",
+                "Using hidden free-hand pressure instead of a measurable assist",
+                "Partial ROM or losing the straight-arm bottom"
             ],
             timeline: "2-6 months from decline row.",
             isParallelToParent: true
         ),
         .simple(
             id: "pp.tuck-row",
-            title: "Tuck Row",
+            title: "Tuck Lever Row",
             cluster: .pullingPower, tier: 4, type: .skill,
             target: .reps(exercise: "tuck row", count: 8),
             prereqs: [PrerequisiteGroup("pp.decline-row")],
             equipment: [.pullupBar],
             primary: [.back, .lats], secondary: [.arms, .core],
             subtitle: "The front-lever on-ramp.",
-            description: "Inverted row with knees tucked tight to chest, body parallel to floor. 8 reps. Builds the lat-and-core coordination that every front lever progression depends on.",
+            description: "Low-bar or ring row with knees tucked tight to chest and hips high. 8 reps. Builds the lat-and-core coordination that every front lever progression depends on.",
             formCues: [
-                "Knees pulled tight to chest throughout",
-                "Body parallel to the floor — not angled",
+                "Set the tuck lever before rowing",
+                "Knees pulled tight and hips near shoulder height",
+                "Shoulders stay depressed; ribs down, pelvis tucked",
                 "Pull sternum to bar",
-                "Full extension at the bottom before next rep"
+                "Return to the same lever shape on the eccentric"
             ],
             commonMistakes: [
                 "Feet drifting down instead of tucked",
@@ -2675,11 +2715,12 @@ extension SkillGraph {
             formCues: [
                 "Wide straddle — legs locked and pointing out",
                 "Hollow hold — ribs tucked, no lumbar arch",
+                "Hips stay level with shoulders through the row",
                 "Pull sternum to bar",
-                "Stable body throughout — no rotation"
+                "Same straddle lever on the eccentric — no vertical pullup"
             ],
             commonMistakes: [
-                "Legs drifting together (reverts to full lever row)",
+                "Legs not actually opening into a straddle",
                 "Hips dropping to cheat",
                 "Kipping to squeeze late reps"
             ],
@@ -2690,16 +2731,16 @@ extension SkillGraph {
             title: "Tuck Front Lever Pull-Up",
             cluster: .pullingPower, tier: 5, type: .skill,
             target: .reps(exercise: "tuck front lever pullup", count: 3),
-            prereqs: [PrerequisiteGroup("pp.one-arm-row")],
+            prereqs: [PrerequisiteGroup(["pp.one-arm-row", "cl.tuck-front-lever"])],
             equipment: [.pullupBar],
             primary: [.lats, .arms, .core], secondary: [.back],
             subtitle: "Pull-up while holding the front lever.",
-            description: "Pull-ups performed while holding a tuck front lever — body horizontal, knees tucked. Combines pulling strength with lever core demand.",
+            description: "Hanging pull-up performed while holding a tuck front lever — body horizontal, knees tucked. Harder and stricter than the low-bar tuck lever row.",
             formCues: [
                 "Enter tuck front lever before initiating the pull",
-                "Hold knees tight to chest throughout",
+                "Hold knees tight, hips level, ribs down",
                 "Pull sternum to bar, body stays horizontal",
-                "Slow eccentric — re-load the lever"
+                "Slow eccentric returns to the same tuck lever"
             ],
             commonMistakes: [
                 "Losing the lever shape mid-rep",
@@ -2749,12 +2790,13 @@ extension SkillGraph {
                 "Free arm across chest or behind back — no assist",
                 "Pull elbow DOWN aggressively",
                 "Body angled slightly toward the working side",
-                "Slow eccentric, no drop"
+                "Stop on wrist, elbow, or biceps-tendon pain"
             ],
             commonMistakes: [
                 "Kipping for momentum",
                 "Free hand grabbing shirt/wrist as secret assist",
-                "Chin not fully clearing the bar"
+                "Chin not fully clearing the bar",
+                "Ignoring tendon pain because the rep is close"
             ],
             timeline: "3-5+ years of dedicated pull work."
         ),
@@ -2771,8 +2813,9 @@ extension SkillGraph {
             description: "Muscle-up with zero lower-body contribution — legs stay dead straight, hips pass through the bar from pure upper-body strength. 1 clean rep.",
             formCues: [
                 "Legs locked straight throughout — no knee bend, no hip thrust",
-                "Pull from dead hang to chest-to-bar before transition",
-                "Slow turnover — strength over speed",
+                "Use high wrist/false grip if needed to shorten the turnover",
+                "Pull from dead hang toward low chest before transition",
+                "Elbows stay close through a smooth turnover",
                 "Press to full lockout at the top"
             ],
             commonMistakes: [
@@ -3156,17 +3199,17 @@ extension SkillGraph {
             prereqs: [PrerequisiteGroup("cl.v-sit")],
             primary: [.core, .arms], secondary: [.shoulders],
             subtitle: "Legs go past vertical.",
-            description: "5s hold with hands pressed on parallel bars or floor, legs lifted past vertical so the body forms a V — extreme compression and pressing strength. Beyond V-sit.",
+            description: "5s compression hold with hands pressed on parallel bars or floor and legs lifted beyond the regular V-sit line toward the face. The standard is visible extra compression, not a vague almost-vertical raise.",
             formCues: [
                 "Arms locked, shoulders depressed",
-                "Compress hard — torso folds toward thighs",
-                "Legs lift past vertical, not just to vertical",
+                "Chest stays tall while ribs stay braced",
+                "Legs lift beyond the V-sit line toward the face",
                 "Toes pointed, no bend in knees"
             ],
             commonMistakes: [
-                "Legs only at vertical (that's a V-sit)",
+                "Calling a normal V-sit the vertical standard",
                 "Bent arms cheat the press",
-                "Hips drop below hand line"
+                "Hips drop below hand line or chest collapses"
             ],
             timeline: "1-2 years from clean V-sit."
         ),
@@ -3183,13 +3226,13 @@ extension SkillGraph {
             formCues: [
                 "Hands shoulder-width, fingers spread",
                 "Walk feet UP the wall until hips over shoulders",
-                "Shoulders stacked over wrists",
-                "Core tight, ribs tucked"
+                "Push the floor away until shoulders elevate and elbows stay locked",
+                "Core tight, ribs tucked, neck long"
             ],
             commonMistakes: [
                 "Hands too far from the wall — sags the position",
                 "Piked hips instead of stacked",
-                "Shrugged shoulders into the ears"
+                "Collapsed shoulders or neck swallowed by a soft push"
             ],
             timeline: "Immediate to 2 weeks."
         ),
@@ -3201,17 +3244,17 @@ extension SkillGraph {
             prereqs: [PrerequisiteGroup("hs.freestanding-hs-30")],
             primary: [.shoulders, .core], secondary: [.forearms, .arms],
             subtitle: "One arm. Wall for insurance.",
-            description: "One-arm handstand with the back against the wall providing light balance insurance. 5 seconds per side. The bridge between freestanding handstand and a freestanding one-arm handstand.",
+            description: "One-arm handstand drill using chest-to-wall, side-wall, or fingertip wall feedback so the working arm carries the stack without a banana-back lean. The bridge between freestanding handstand and a freestanding one-arm handstand.",
             formCues: [
-                "Back to wall — touches only as safety, not a lean",
-                "Shift weight slow to the working arm",
-                "Free arm stays tight to body or out to counterbalance",
-                "Ribs tucked, glutes squeezed — rigid tower"
+                "Build a chest-to-wall or side-wall line first",
+                "Open to straddle before shifting weight to one hand",
+                "Free hand unloads to fingertips; wall is feedback, not support",
+                "Support shoulder stays tall, ribs tucked, glutes on"
             ],
             commonMistakes: [
                 "Leaning into the wall for active support",
                 "Losing the line — banana-ing into the wall",
-                "Rushing the weight shift before balance is set"
+                "Rushing the weight shift before fingertip pressure is light"
             ],
             timeline: "1-2 years from freestanding handstand."
         ),

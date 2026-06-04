@@ -1,0 +1,1031 @@
+[
+  {
+    "base": "exercise_visual_exercise_ab-wheel",
+    "jot": "exercise_visual_jot_exercise_ab-wheel",
+    "legacy": "exercise_visual_legacy_exercise_ab-wheel",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_ab-wheel.imageset/exercise_visual_exercise_ab-wheel.png"
+  },
+  {
+    "base": "exercise_visual_exercise_advanced-tuck-front-lever",
+    "jot": "exercise_visual_jot_exercise_advanced-tuck-front-lever",
+    "legacy": "exercise_visual_legacy_exercise_advanced-tuck-front-lever",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_advanced-tuck-front-lever.imageset/exercise_visual_exercise_advanced-tuck-front-lever.png"
+  },
+  {
+    "base": "exercise_visual_exercise_arnold-press",
+    "jot": "exercise_visual_jot_exercise_arnold-press",
+    "legacy": "exercise_visual_legacy_exercise_arnold-press",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_arnold-press.imageset/exercise_visual_exercise_arnold-press.png"
+  },
+  {
+    "base": "exercise_visual_exercise_assisted-dip-machine",
+    "jot": "exercise_visual_jot_exercise_assisted-dip-machine",
+    "legacy": "exercise_visual_legacy_exercise_assisted-dip-machine",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_assisted-dip-machine.imageset/exercise_visual_exercise_assisted-dip-machine.png"
+  },
+  {
+    "base": "exercise_visual_exercise_assisted-pistol-squat",
+    "jot": "exercise_visual_jot_exercise_assisted-pistol-squat",
+    "legacy": "exercise_visual_legacy_exercise_assisted-pistol-squat",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_assisted-pistol-squat.imageset/exercise_visual_exercise_assisted-pistol-squat.png"
+  },
+  {
+    "base": "exercise_visual_exercise_assisted-pullup-band",
+    "jot": "exercise_visual_jot_exercise_assisted-pullup-band",
+    "legacy": "exercise_visual_legacy_exercise_assisted-pullup-band",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_assisted-pullup-band.imageset/exercise_visual_exercise_assisted-pullup-band.png"
+  },
+  {
+    "base": "exercise_visual_exercise_assisted-pullup-machine",
+    "jot": "exercise_visual_jot_exercise_assisted-pullup-machine",
+    "legacy": "exercise_visual_legacy_exercise_assisted-pullup-machine",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_assisted-pullup-machine.imageset/exercise_visual_exercise_assisted-pullup-machine.png"
+  },
+  {
+    "base": "exercise_visual_exercise_assisted-shrimp-squat",
+    "jot": "exercise_visual_jot_exercise_assisted-shrimp-squat",
+    "legacy": "exercise_visual_legacy_exercise_assisted-shrimp-squat",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_assisted-shrimp-squat.imageset/exercise_visual_exercise_assisted-shrimp-squat.png"
+  },
+  {
+    "base": "exercise_visual_exercise_assisted-turnover-freeze",
+    "jot": "exercise_visual_jot_exercise_assisted-turnover-freeze",
+    "legacy": "exercise_visual_legacy_exercise_assisted-turnover-freeze",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_assisted-turnover-freeze.imageset/exercise_visual_exercise_assisted-turnover-freeze.png"
+  },
+  {
+    "base": "exercise_visual_exercise_back-extension",
+    "jot": "exercise_visual_jot_exercise_back-extension",
+    "legacy": "exercise_visual_legacy_exercise_back-extension",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_back-extension.imageset/exercise_visual_exercise_back-extension.png"
+  },
+  {
+    "base": "exercise_visual_exercise_back-squat",
+    "jot": "exercise_visual_jot_exercise_back-squat",
+    "legacy": "exercise_visual_legacy_exercise_back-squat",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_back-squat.imageset/exercise_visual_exercise_back-squat.png"
+  },
+  {
+    "base": "exercise_visual_exercise_band-curl",
+    "jot": "exercise_visual_jot_exercise_band-curl",
+    "legacy": "exercise_visual_legacy_exercise_band-curl",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_band-curl.imageset/exercise_visual_exercise_band-curl.png"
+  },
+  {
+    "base": "exercise_visual_exercise_band-lat-pull",
+    "jot": "exercise_visual_jot_exercise_band-lat-pull",
+    "legacy": "exercise_visual_legacy_exercise_band-lat-pull",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_band-lat-pull.imageset/exercise_visual_exercise_band-lat-pull.png"
+  },
+  {
+    "base": "exercise_visual_exercise_band-row",
+    "jot": "exercise_visual_jot_exercise_band-row",
+    "legacy": "exercise_visual_legacy_exercise_band-row",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_band-row.imageset/exercise_visual_exercise_band-row.png"
+  },
+  {
+    "base": "exercise_visual_exercise_band-tricep-extension",
+    "jot": "exercise_visual_jot_exercise_band-tricep-extension",
+    "legacy": "exercise_visual_legacy_exercise_band-tricep-extension",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_band-tricep-extension.imageset/exercise_visual_exercise_band-tricep-extension.png"
+  },
+  {
+    "base": "exercise_visual_exercise_banded-muscle-up",
+    "jot": "exercise_visual_jot_exercise_banded-muscle-up",
+    "legacy": "exercise_visual_legacy_exercise_banded-muscle-up",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_banded-muscle-up.imageset/exercise_visual_exercise_banded-muscle-up.png"
+  },
+  {
+    "base": "exercise_visual_exercise_barbell-curl",
+    "jot": "exercise_visual_jot_exercise_barbell-curl",
+    "legacy": "exercise_visual_legacy_exercise_barbell-curl",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_barbell-curl.imageset/exercise_visual_exercise_barbell-curl.png"
+  },
+  {
+    "base": "exercise_visual_exercise_belt-squat",
+    "jot": "exercise_visual_jot_exercise_belt-squat",
+    "legacy": "exercise_visual_legacy_exercise_belt-squat",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_belt-squat.imageset/exercise_visual_exercise_belt-squat.png"
+  },
+  {
+    "base": "exercise_visual_exercise_bench-press",
+    "jot": "exercise_visual_jot_exercise_bench-press",
+    "legacy": "exercise_visual_legacy_exercise_bench-press",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_bench-press.imageset/exercise_visual_exercise_bench-press.png"
+  },
+  {
+    "base": "exercise_visual_exercise_bent-over-row",
+    "jot": "exercise_visual_jot_exercise_bent-over-row",
+    "legacy": "exercise_visual_legacy_exercise_bent-over-row",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_bent-over-row.imageset/exercise_visual_exercise_bent-over-row.png"
+  },
+  {
+    "base": "exercise_visual_exercise_cable-crunch",
+    "jot": "exercise_visual_jot_exercise_cable-crunch",
+    "legacy": "exercise_visual_legacy_exercise_cable-crunch",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_cable-crunch.imageset/exercise_visual_exercise_cable-crunch.png"
+  },
+  {
+    "base": "exercise_visual_exercise_cable-curl",
+    "jot": "exercise_visual_jot_exercise_cable-curl",
+    "legacy": "exercise_visual_legacy_exercise_cable-curl",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_cable-curl.imageset/exercise_visual_exercise_cable-curl.png"
+  },
+  {
+    "base": "exercise_visual_exercise_cable-fly",
+    "jot": "exercise_visual_jot_exercise_cable-fly",
+    "legacy": "exercise_visual_legacy_exercise_cable-fly",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_cable-fly.imageset/exercise_visual_exercise_cable-fly.png"
+  },
+  {
+    "base": "exercise_visual_exercise_cable-front-raise",
+    "jot": "exercise_visual_jot_exercise_cable-front-raise",
+    "legacy": "exercise_visual_legacy_exercise_cable-front-raise",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_cable-front-raise.imageset/exercise_visual_exercise_cable-front-raise.png"
+  },
+  {
+    "base": "exercise_visual_exercise_cable-glute-kickback",
+    "jot": "exercise_visual_jot_exercise_cable-glute-kickback",
+    "legacy": "exercise_visual_legacy_exercise_cable-glute-kickback",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_cable-glute-kickback.imageset/exercise_visual_exercise_cable-glute-kickback.png"
+  },
+  {
+    "base": "exercise_visual_exercise_cable-hip-abduction",
+    "jot": "exercise_visual_jot_exercise_cable-hip-abduction",
+    "legacy": "exercise_visual_legacy_exercise_cable-hip-abduction",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_cable-hip-abduction.imageset/exercise_visual_exercise_cable-hip-abduction.png"
+  },
+  {
+    "base": "exercise_visual_exercise_cable-pull-through",
+    "jot": "exercise_visual_jot_exercise_cable-pull-through",
+    "legacy": "exercise_visual_legacy_exercise_cable-pull-through",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_cable-pull-through.imageset/exercise_visual_exercise_cable-pull-through.png"
+  },
+  {
+    "base": "exercise_visual_exercise_cable-row-seated",
+    "jot": "exercise_visual_jot_exercise_cable-row-seated",
+    "legacy": "exercise_visual_legacy_exercise_cable-row-seated",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_cable-row-seated.imageset/exercise_visual_exercise_cable-row-seated.png"
+  },
+  {
+    "base": "exercise_visual_exercise_cable-y-raise",
+    "jot": "exercise_visual_jot_exercise_cable-y-raise",
+    "legacy": "exercise_visual_legacy_exercise_cable-y-raise",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_cable-y-raise.imageset/exercise_visual_exercise_cable-y-raise.png"
+  },
+  {
+    "base": "exercise_visual_exercise_captains-chair-knee-raise",
+    "jot": "exercise_visual_jot_exercise_captains-chair-knee-raise",
+    "legacy": "exercise_visual_legacy_exercise_captains-chair-knee-raise",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_captains-chair-knee-raise.imageset/exercise_visual_exercise_captains-chair-knee-raise.png"
+  },
+  {
+    "base": "exercise_visual_exercise_captains-chair-leg-raise",
+    "jot": "exercise_visual_jot_exercise_captains-chair-leg-raise",
+    "legacy": "exercise_visual_legacy_exercise_captains-chair-leg-raise",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_captains-chair-leg-raise.imageset/exercise_visual_exercise_captains-chair-leg-raise.png"
+  },
+  {
+    "base": "exercise_visual_exercise_chest-supported-row",
+    "jot": "exercise_visual_jot_exercise_chest-supported-row",
+    "legacy": "exercise_visual_legacy_exercise_chest-supported-row",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_chest-supported-row.imageset/exercise_visual_exercise_chest-supported-row.png"
+  },
+  {
+    "base": "exercise_visual_exercise_chest-to-bar-pullup",
+    "jot": "exercise_visual_jot_exercise_chest-to-bar-pullup",
+    "legacy": "exercise_visual_legacy_exercise_chest-to-bar-pullup",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_chest-to-bar-pullup.imageset/exercise_visual_exercise_chest-to-bar-pullup.png"
+  },
+  {
+    "base": "exercise_visual_exercise_close-grip-bench-press",
+    "jot": "exercise_visual_jot_exercise_close-grip-bench-press",
+    "legacy": "exercise_visual_legacy_exercise_close-grip-bench-press",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_close-grip-bench-press.imageset/exercise_visual_exercise_close-grip-bench-press.png"
+  },
+  {
+    "base": "exercise_visual_exercise_close-grip-lat-pulldown",
+    "jot": "exercise_visual_jot_exercise_close-grip-lat-pulldown",
+    "legacy": "exercise_visual_legacy_exercise_close-grip-lat-pulldown",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_close-grip-lat-pulldown.imageset/exercise_visual_exercise_close-grip-lat-pulldown.png"
+  },
+  {
+    "base": "exercise_visual_exercise_concentration-curl",
+    "jot": "exercise_visual_jot_exercise_concentration-curl",
+    "legacy": "exercise_visual_legacy_exercise_concentration-curl",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_concentration-curl.imageset/exercise_visual_exercise_concentration-curl.png"
+  },
+  {
+    "base": "exercise_visual_exercise_converging-chest-press",
+    "jot": "exercise_visual_jot_exercise_converging-chest-press",
+    "legacy": "exercise_visual_legacy_exercise_converging-chest-press",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_converging-chest-press.imageset/exercise_visual_exercise_converging-chest-press.png"
+  },
+  {
+    "base": "exercise_visual_exercise_cossack-squat",
+    "jot": "exercise_visual_jot_exercise_cossack-squat",
+    "legacy": "exercise_visual_legacy_exercise_cossack-squat",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_cossack-squat.imageset/exercise_visual_exercise_cossack-squat.png"
+  },
+  {
+    "base": "exercise_visual_exercise_deadlift",
+    "jot": "exercise_visual_jot_exercise_deadlift",
+    "legacy": "exercise_visual_legacy_exercise_deadlift",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_deadlift.imageset/exercise_visual_exercise_deadlift.png"
+  },
+  {
+    "base": "exercise_visual_exercise_decline-bench-press",
+    "jot": "exercise_visual_jot_exercise_decline-bench-press",
+    "legacy": "exercise_visual_legacy_exercise_decline-bench-press",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_decline-bench-press.imageset/exercise_visual_exercise_decline-bench-press.png"
+  },
+  {
+    "base": "exercise_visual_exercise_decline-row",
+    "jot": "exercise_visual_jot_exercise_decline-row",
+    "legacy": null,
+    "legacyAvailable": false,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_decline-row.imageset/exercise_visual_exercise_decline-row.png"
+  },
+  {
+    "base": "exercise_visual_exercise_dip-machine",
+    "jot": "exercise_visual_jot_exercise_dip-machine",
+    "legacy": "exercise_visual_legacy_exercise_dip-machine",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_dip-machine.imageset/exercise_visual_exercise_dip-machine.png"
+  },
+  {
+    "base": "exercise_visual_exercise_donkey-calf-raise",
+    "jot": "exercise_visual_jot_exercise_donkey-calf-raise",
+    "legacy": "exercise_visual_legacy_exercise_donkey-calf-raise",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_donkey-calf-raise.imageset/exercise_visual_exercise_donkey-calf-raise.png"
+  },
+  {
+    "base": "exercise_visual_exercise_dumbbell-bench-press",
+    "jot": "exercise_visual_jot_exercise_dumbbell-bench-press",
+    "legacy": "exercise_visual_legacy_exercise_dumbbell-bench-press",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_dumbbell-bench-press.imageset/exercise_visual_exercise_dumbbell-bench-press.png"
+  },
+  {
+    "base": "exercise_visual_exercise_dumbbell-curl",
+    "jot": "exercise_visual_jot_exercise_dumbbell-curl",
+    "legacy": "exercise_visual_legacy_exercise_dumbbell-curl",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_dumbbell-curl.imageset/exercise_visual_exercise_dumbbell-curl.png"
+  },
+  {
+    "base": "exercise_visual_exercise_dumbbell-fly",
+    "jot": "exercise_visual_jot_exercise_dumbbell-fly",
+    "legacy": "exercise_visual_legacy_exercise_dumbbell-fly",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_dumbbell-fly.imageset/exercise_visual_exercise_dumbbell-fly.png"
+  },
+  {
+    "base": "exercise_visual_exercise_dumbbell-front-raise",
+    "jot": "exercise_visual_jot_exercise_dumbbell-front-raise",
+    "legacy": "exercise_visual_legacy_exercise_dumbbell-front-raise",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_dumbbell-front-raise.imageset/exercise_visual_exercise_dumbbell-front-raise.png"
+  },
+  {
+    "base": "exercise_visual_exercise_dumbbell-overhead-press",
+    "jot": "exercise_visual_jot_exercise_dumbbell-overhead-press",
+    "legacy": "exercise_visual_legacy_exercise_dumbbell-overhead-press",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_dumbbell-overhead-press.imageset/exercise_visual_exercise_dumbbell-overhead-press.png"
+  },
+  {
+    "base": "exercise_visual_exercise_dumbbell-romanian-deadlift",
+    "jot": "exercise_visual_jot_exercise_dumbbell-romanian-deadlift",
+    "legacy": "exercise_visual_legacy_exercise_dumbbell-romanian-deadlift",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_dumbbell-romanian-deadlift.imageset/exercise_visual_exercise_dumbbell-romanian-deadlift.png"
+  },
+  {
+    "base": "exercise_visual_exercise_dumbbell-row",
+    "jot": "exercise_visual_jot_exercise_dumbbell-row",
+    "legacy": "exercise_visual_legacy_exercise_dumbbell-row",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_dumbbell-row.imageset/exercise_visual_exercise_dumbbell-row.png"
+  },
+  {
+    "base": "exercise_visual_exercise_dumbbell-step-up",
+    "jot": "exercise_visual_jot_exercise_dumbbell-step-up",
+    "legacy": "exercise_visual_legacy_exercise_dumbbell-step-up",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_dumbbell-step-up.imageset/exercise_visual_exercise_dumbbell-step-up.png"
+  },
+  {
+    "base": "exercise_visual_exercise_ez-bar-curl",
+    "jot": "exercise_visual_jot_exercise_ez-bar-curl",
+    "legacy": "exercise_visual_legacy_exercise_ez-bar-curl",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_ez-bar-curl.imageset/exercise_visual_exercise_ez-bar-curl.png"
+  },
+  {
+    "base": "exercise_visual_exercise_face-pull",
+    "jot": "exercise_visual_jot_exercise_face-pull",
+    "legacy": "exercise_visual_legacy_exercise_face-pull",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_face-pull.imageset/exercise_visual_exercise_face-pull.png"
+  },
+  {
+    "base": "exercise_visual_exercise_front-squat",
+    "jot": "exercise_visual_jot_exercise_front-squat",
+    "legacy": "exercise_visual_legacy_exercise_front-squat",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_front-squat.imageset/exercise_visual_exercise_front-squat.png"
+  },
+  {
+    "base": "exercise_visual_exercise_full-back-lever",
+    "jot": "exercise_visual_jot_exercise_full-back-lever",
+    "legacy": "exercise_visual_legacy_exercise_full-back-lever",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_full-back-lever.imageset/exercise_visual_exercise_full-back-lever.png"
+  },
+  {
+    "base": "exercise_visual_exercise_full-front-lever",
+    "jot": "exercise_visual_jot_exercise_full-front-lever",
+    "legacy": "exercise_visual_legacy_exercise_full-front-lever",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_full-front-lever.imageset/exercise_visual_exercise_full-front-lever.png"
+  },
+  {
+    "base": "exercise_visual_exercise_glute-ham-raise",
+    "jot": "exercise_visual_jot_exercise_glute-ham-raise",
+    "legacy": "exercise_visual_legacy_exercise_glute-ham-raise",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_glute-ham-raise.imageset/exercise_visual_exercise_glute-ham-raise.png"
+  },
+  {
+    "base": "exercise_visual_exercise_good-morning",
+    "jot": "exercise_visual_jot_exercise_good-morning",
+    "legacy": "exercise_visual_legacy_exercise_good-morning",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_good-morning.imageset/exercise_visual_exercise_good-morning.png"
+  },
+  {
+    "base": "exercise_visual_exercise_hack-squat",
+    "jot": "exercise_visual_jot_exercise_hack-squat",
+    "legacy": "exercise_visual_legacy_exercise_hack-squat",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_hack-squat.imageset/exercise_visual_exercise_hack-squat.png"
+  },
+  {
+    "base": "exercise_visual_exercise_hammer-curl",
+    "jot": "exercise_visual_jot_exercise_hammer-curl",
+    "legacy": "exercise_visual_legacy_exercise_hammer-curl",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_hammer-curl.imageset/exercise_visual_exercise_hammer-curl.png"
+  },
+  {
+    "base": "exercise_visual_exercise_hammer-strength-chest-press",
+    "jot": "exercise_visual_jot_exercise_hammer-strength-chest-press",
+    "legacy": "exercise_visual_legacy_exercise_hammer-strength-chest-press",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_hammer-strength-chest-press.imageset/exercise_visual_exercise_hammer-strength-chest-press.png"
+  },
+  {
+    "base": "exercise_visual_exercise_hammer-strength-high-row",
+    "jot": "exercise_visual_jot_exercise_hammer-strength-high-row",
+    "legacy": "exercise_visual_legacy_exercise_hammer-strength-high-row",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_hammer-strength-high-row.imageset/exercise_visual_exercise_hammer-strength-high-row.png"
+  },
+  {
+    "base": "exercise_visual_exercise_hammer-strength-low-row",
+    "jot": "exercise_visual_jot_exercise_hammer-strength-low-row",
+    "legacy": "exercise_visual_legacy_exercise_hammer-strength-low-row",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_hammer-strength-low-row.imageset/exercise_visual_exercise_hammer-strength-low-row.png"
+  },
+  {
+    "base": "exercise_visual_exercise_hammer-strength-row",
+    "jot": "exercise_visual_jot_exercise_hammer-strength-row",
+    "legacy": "exercise_visual_legacy_exercise_hammer-strength-row",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_hammer-strength-row.imageset/exercise_visual_exercise_hammer-strength-row.png"
+  },
+  {
+    "base": "exercise_visual_exercise_high-to-low-cable-fly",
+    "jot": "exercise_visual_jot_exercise_high-to-low-cable-fly",
+    "legacy": "exercise_visual_legacy_exercise_high-to-low-cable-fly",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_high-to-low-cable-fly.imageset/exercise_visual_exercise_high-to-low-cable-fly.png"
+  },
+  {
+    "base": "exercise_visual_exercise_hip-abductor-machine",
+    "jot": "exercise_visual_jot_exercise_hip-abductor-machine",
+    "legacy": "exercise_visual_legacy_exercise_hip-abductor-machine",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_hip-abductor-machine.imageset/exercise_visual_exercise_hip-abductor-machine.png"
+  },
+  {
+    "base": "exercise_visual_exercise_hip-adductor-machine",
+    "jot": "exercise_visual_jot_exercise_hip-adductor-machine",
+    "legacy": "exercise_visual_legacy_exercise_hip-adductor-machine",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_hip-adductor-machine.imageset/exercise_visual_exercise_hip-adductor-machine.png"
+  },
+  {
+    "base": "exercise_visual_exercise_hip-thrust",
+    "jot": "exercise_visual_jot_exercise_hip-thrust",
+    "legacy": "exercise_visual_legacy_exercise_hip-thrust",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_hip-thrust.imageset/exercise_visual_exercise_hip-thrust.png"
+  },
+  {
+    "base": "exercise_visual_exercise_hollow-rock",
+    "jot": "exercise_visual_jot_exercise_hollow-rock",
+    "legacy": "exercise_visual_legacy_exercise_hollow-rock",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_hollow-rock.imageset/exercise_visual_exercise_hollow-rock.png"
+  },
+  {
+    "base": "exercise_visual_exercise_incline-bench-press",
+    "jot": "exercise_visual_jot_exercise_incline-bench-press",
+    "legacy": "exercise_visual_legacy_exercise_incline-bench-press",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_incline-bench-press.imageset/exercise_visual_exercise_incline-bench-press.png"
+  },
+  {
+    "base": "exercise_visual_exercise_incline-dumbbell-curl",
+    "jot": "exercise_visual_jot_exercise_incline-dumbbell-curl",
+    "legacy": "exercise_visual_legacy_exercise_incline-dumbbell-curl",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_incline-dumbbell-curl.imageset/exercise_visual_exercise_incline-dumbbell-curl.png"
+  },
+  {
+    "base": "exercise_visual_exercise_incline-dumbbell-press",
+    "jot": "exercise_visual_jot_exercise_incline-dumbbell-press",
+    "legacy": "exercise_visual_legacy_exercise_incline-dumbbell-press",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_incline-dumbbell-press.imageset/exercise_visual_exercise_incline-dumbbell-press.png"
+  },
+  {
+    "base": "exercise_visual_exercise_incline-row",
+    "jot": "exercise_visual_jot_exercise_incline-row",
+    "legacy": "exercise_visual_legacy_exercise_incline-row",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_incline-row.imageset/exercise_visual_exercise_incline-row.png"
+  },
+  {
+    "base": "exercise_visual_exercise_inverted-row",
+    "jot": "exercise_visual_jot_exercise_inverted-row",
+    "legacy": "exercise_visual_legacy_exercise_inverted-row",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_inverted-row.imageset/exercise_visual_exercise_inverted-row.png"
+  },
+  {
+    "base": "exercise_visual_exercise_kettlebell-swing",
+    "jot": "exercise_visual_jot_exercise_kettlebell-swing",
+    "legacy": "exercise_visual_legacy_exercise_kettlebell-swing",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_kettlebell-swing.imageset/exercise_visual_exercise_kettlebell-swing.png"
+  },
+  {
+    "base": "exercise_visual_exercise_l-sit-tucked",
+    "jot": "exercise_visual_jot_exercise_l-sit-tucked",
+    "legacy": "exercise_visual_legacy_exercise_l-sit-tucked",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_l-sit-tucked.imageset/exercise_visual_exercise_l-sit-tucked.png"
+  },
+  {
+    "base": "exercise_visual_exercise_landmine-press",
+    "jot": "exercise_visual_jot_exercise_landmine-press",
+    "legacy": "exercise_visual_legacy_exercise_landmine-press",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_landmine-press.imageset/exercise_visual_exercise_landmine-press.png"
+  },
+  {
+    "base": "exercise_visual_exercise_landmine-rotation",
+    "jot": "exercise_visual_jot_exercise_landmine-rotation",
+    "legacy": "exercise_visual_legacy_exercise_landmine-rotation",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_landmine-rotation.imageset/exercise_visual_exercise_landmine-rotation.png"
+  },
+  {
+    "base": "exercise_visual_exercise_landmine-row",
+    "jot": "exercise_visual_jot_exercise_landmine-row",
+    "legacy": "exercise_visual_legacy_exercise_landmine-row",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_landmine-row.imageset/exercise_visual_exercise_landmine-row.png"
+  },
+  {
+    "base": "exercise_visual_exercise_lat-pulldown-neutral",
+    "jot": "exercise_visual_jot_exercise_lat-pulldown-neutral",
+    "legacy": "exercise_visual_legacy_exercise_lat-pulldown-neutral",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_lat-pulldown-neutral.imageset/exercise_visual_exercise_lat-pulldown-neutral.png"
+  },
+  {
+    "base": "exercise_visual_exercise_lat-pulldown",
+    "jot": "exercise_visual_jot_exercise_lat-pulldown",
+    "legacy": "exercise_visual_legacy_exercise_lat-pulldown",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_lat-pulldown.imageset/exercise_visual_exercise_lat-pulldown.png"
+  },
+  {
+    "base": "exercise_visual_exercise_lateral-raise-cable",
+    "jot": "exercise_visual_jot_exercise_lateral-raise-cable",
+    "legacy": "exercise_visual_legacy_exercise_lateral-raise-cable",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_lateral-raise-cable.imageset/exercise_visual_exercise_lateral-raise-cable.png"
+  },
+  {
+    "base": "exercise_visual_exercise_lateral-raise-db",
+    "jot": "exercise_visual_jot_exercise_lateral-raise-db",
+    "legacy": "exercise_visual_legacy_exercise_lateral-raise-db",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_lateral-raise-db.imageset/exercise_visual_exercise_lateral-raise-db.png"
+  },
+  {
+    "base": "exercise_visual_exercise_leg-curl-lying",
+    "jot": "exercise_visual_jot_exercise_leg-curl-lying",
+    "legacy": "exercise_visual_legacy_exercise_leg-curl-lying",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_leg-curl-lying.imageset/exercise_visual_exercise_leg-curl-lying.png"
+  },
+  {
+    "base": "exercise_visual_exercise_leg-curl-seated",
+    "jot": "exercise_visual_jot_exercise_leg-curl-seated",
+    "legacy": "exercise_visual_legacy_exercise_leg-curl-seated",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_leg-curl-seated.imageset/exercise_visual_exercise_leg-curl-seated.png"
+  },
+  {
+    "base": "exercise_visual_exercise_leg-press-calf-raise",
+    "jot": "exercise_visual_jot_exercise_leg-press-calf-raise",
+    "legacy": "exercise_visual_legacy_exercise_leg-press-calf-raise",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_leg-press-calf-raise.imageset/exercise_visual_exercise_leg-press-calf-raise.png"
+  },
+  {
+    "base": "exercise_visual_exercise_leg-press",
+    "jot": "exercise_visual_jot_exercise_leg-press",
+    "legacy": "exercise_visual_legacy_exercise_leg-press",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_leg-press.imageset/exercise_visual_exercise_leg-press.png"
+  },
+  {
+    "base": "exercise_visual_exercise_low-bar-muscle-up-transition",
+    "jot": "exercise_visual_jot_exercise_low-bar-muscle-up-transition",
+    "legacy": "exercise_visual_legacy_exercise_low-bar-muscle-up-transition",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_low-bar-muscle-up-transition.imageset/exercise_visual_exercise_low-bar-muscle-up-transition.png"
+  },
+  {
+    "base": "exercise_visual_exercise_low-to-high-cable-fly",
+    "jot": "exercise_visual_jot_exercise_low-to-high-cable-fly",
+    "legacy": "exercise_visual_legacy_exercise_low-to-high-cable-fly",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_low-to-high-cable-fly.imageset/exercise_visual_exercise_low-to-high-cable-fly.png"
+  },
+  {
+    "base": "exercise_visual_exercise_machine-biceps-curl",
+    "jot": "exercise_visual_jot_exercise_machine-biceps-curl",
+    "legacy": "exercise_visual_legacy_exercise_machine-biceps-curl",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_machine-biceps-curl.imageset/exercise_visual_exercise_machine-biceps-curl.png"
+  },
+  {
+    "base": "exercise_visual_exercise_machine-chest-press",
+    "jot": "exercise_visual_jot_exercise_machine-chest-press",
+    "legacy": "exercise_visual_legacy_exercise_machine-chest-press",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_machine-chest-press.imageset/exercise_visual_exercise_machine-chest-press.png"
+  },
+  {
+    "base": "exercise_visual_exercise_machine-chest-supported-row",
+    "jot": "exercise_visual_jot_exercise_machine-chest-supported-row",
+    "legacy": "exercise_visual_legacy_exercise_machine-chest-supported-row",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_machine-chest-supported-row.imageset/exercise_visual_exercise_machine-chest-supported-row.png"
+  },
+  {
+    "base": "exercise_visual_exercise_machine-crunch",
+    "jot": "exercise_visual_jot_exercise_machine-crunch",
+    "legacy": "exercise_visual_legacy_exercise_machine-crunch",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_machine-crunch.imageset/exercise_visual_exercise_machine-crunch.png"
+  },
+  {
+    "base": "exercise_visual_exercise_machine-glute-kickback",
+    "jot": "exercise_visual_jot_exercise_machine-glute-kickback",
+    "legacy": "exercise_visual_legacy_exercise_machine-glute-kickback",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_machine-glute-kickback.imageset/exercise_visual_exercise_machine-glute-kickback.png"
+  },
+  {
+    "base": "exercise_visual_exercise_machine-incline-chest-press",
+    "jot": "exercise_visual_jot_exercise_machine-incline-chest-press",
+    "legacy": "exercise_visual_legacy_exercise_machine-incline-chest-press",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_machine-incline-chest-press.imageset/exercise_visual_exercise_machine-incline-chest-press.png"
+  },
+  {
+    "base": "exercise_visual_exercise_machine-lateral-raise",
+    "jot": "exercise_visual_jot_exercise_machine-lateral-raise",
+    "legacy": "exercise_visual_legacy_exercise_machine-lateral-raise",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_machine-lateral-raise.imageset/exercise_visual_exercise_machine-lateral-raise.png"
+  },
+  {
+    "base": "exercise_visual_exercise_machine-pullover",
+    "jot": "exercise_visual_jot_exercise_machine-pullover",
+    "legacy": "exercise_visual_legacy_exercise_machine-pullover",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_machine-pullover.imageset/exercise_visual_exercise_machine-pullover.png"
+  },
+  {
+    "base": "exercise_visual_exercise_machine-row",
+    "jot": "exercise_visual_jot_exercise_machine-row",
+    "legacy": "exercise_visual_legacy_exercise_machine-row",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_machine-row.imageset/exercise_visual_exercise_machine-row.png"
+  },
+  {
+    "base": "exercise_visual_exercise_machine-triceps-extension",
+    "jot": "exercise_visual_jot_exercise_machine-triceps-extension",
+    "legacy": "exercise_visual_legacy_exercise_machine-triceps-extension",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_machine-triceps-extension.imageset/exercise_visual_exercise_machine-triceps-extension.png"
+  },
+  {
+    "base": "exercise_visual_exercise_meadows-row",
+    "jot": "exercise_visual_jot_exercise_meadows-row",
+    "legacy": "exercise_visual_legacy_exercise_meadows-row",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_meadows-row.imageset/exercise_visual_exercise_meadows-row.png"
+  },
+  {
+    "base": "exercise_visual_exercise_one-arm-inverted-row",
+    "jot": "exercise_visual_jot_exercise_one-arm-inverted-row",
+    "legacy": "exercise_visual_legacy_exercise_one-arm-inverted-row",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_one-arm-inverted-row.imageset/exercise_visual_exercise_one-arm-inverted-row.png"
+  },
+  {
+    "base": "exercise_visual_exercise_one-arm-row",
+    "jot": "exercise_visual_jot_exercise_one-arm-row",
+    "legacy": "exercise_visual_legacy_exercise_one-arm-row",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_one-arm-row.imageset/exercise_visual_exercise_one-arm-row.png"
+  },
+  {
+    "base": "exercise_visual_exercise_overhead-press",
+    "jot": "exercise_visual_jot_exercise_overhead-press",
+    "legacy": "exercise_visual_legacy_exercise_overhead-press",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_overhead-press.imageset/exercise_visual_exercise_overhead-press.png"
+  },
+  {
+    "base": "exercise_visual_exercise_overhead-tricep-extension",
+    "jot": "exercise_visual_jot_exercise_overhead-tricep-extension",
+    "legacy": "exercise_visual_legacy_exercise_overhead-tricep-extension",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_overhead-tricep-extension.imageset/exercise_visual_exercise_overhead-tricep-extension.png"
+  },
+  {
+    "base": "exercise_visual_exercise_pallof-press",
+    "jot": "exercise_visual_jot_exercise_pallof-press",
+    "legacy": "exercise_visual_legacy_exercise_pallof-press",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_pallof-press.imageset/exercise_visual_exercise_pallof-press.png"
+  },
+  {
+    "base": "exercise_visual_exercise_pec-dec",
+    "jot": "exercise_visual_jot_exercise_pec-dec",
+    "legacy": "exercise_visual_legacy_exercise_pec-dec",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_pec-dec.imageset/exercise_visual_exercise_pec-dec.png"
+  },
+  {
+    "base": "exercise_visual_exercise_pendlay-row",
+    "jot": "exercise_visual_jot_exercise_pendlay-row",
+    "legacy": "exercise_visual_legacy_exercise_pendlay-row",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_pendlay-row.imageset/exercise_visual_exercise_pendlay-row.png"
+  },
+  {
+    "base": "exercise_visual_exercise_pendulum-squat",
+    "jot": "exercise_visual_jot_exercise_pendulum-squat",
+    "legacy": "exercise_visual_legacy_exercise_pendulum-squat",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_pendulum-squat.imageset/exercise_visual_exercise_pendulum-squat.png"
+  },
+  {
+    "base": "exercise_visual_exercise_plate-loaded-chest-press",
+    "jot": "exercise_visual_jot_exercise_plate-loaded-chest-press",
+    "legacy": "exercise_visual_legacy_exercise_plate-loaded-chest-press",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_plate-loaded-chest-press.imageset/exercise_visual_exercise_plate-loaded-chest-press.png"
+  },
+  {
+    "base": "exercise_visual_exercise_plate-loaded-row",
+    "jot": "exercise_visual_jot_exercise_plate-loaded-row",
+    "legacy": "exercise_visual_legacy_exercise_plate-loaded-row",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_plate-loaded-row.imageset/exercise_visual_exercise_plate-loaded-row.png"
+  },
+  {
+    "base": "exercise_visual_exercise_plate-loaded-shoulder-press",
+    "jot": "exercise_visual_jot_exercise_plate-loaded-shoulder-press",
+    "legacy": "exercise_visual_legacy_exercise_plate-loaded-shoulder-press",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_plate-loaded-shoulder-press.imageset/exercise_visual_exercise_plate-loaded-shoulder-press.png"
+  },
+  {
+    "base": "exercise_visual_exercise_preacher-curl",
+    "jot": "exercise_visual_jot_exercise_preacher-curl",
+    "legacy": "exercise_visual_legacy_exercise_preacher-curl",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_preacher-curl.imageset/exercise_visual_exercise_preacher-curl.png"
+  },
+  {
+    "base": "exercise_visual_exercise_rear-delt-fly-db",
+    "jot": "exercise_visual_jot_exercise_rear-delt-fly-db",
+    "legacy": "exercise_visual_legacy_exercise_rear-delt-fly-db",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_rear-delt-fly-db.imageset/exercise_visual_exercise_rear-delt-fly-db.png"
+  },
+  {
+    "base": "exercise_visual_exercise_rear-delt-fly-machine",
+    "jot": "exercise_visual_jot_exercise_rear-delt-fly-machine",
+    "legacy": "exercise_visual_legacy_exercise_rear-delt-fly-machine",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_rear-delt-fly-machine.imageset/exercise_visual_exercise_rear-delt-fly-machine.png"
+  },
+  {
+    "base": "exercise_visual_exercise_reverse-grip-lat-pulldown",
+    "jot": "exercise_visual_jot_exercise_reverse-grip-lat-pulldown",
+    "legacy": "exercise_visual_legacy_exercise_reverse-grip-lat-pulldown",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_reverse-grip-lat-pulldown.imageset/exercise_visual_exercise_reverse-grip-lat-pulldown.png"
+  },
+  {
+    "base": "exercise_visual_exercise_reverse-hyper",
+    "jot": "exercise_visual_jot_exercise_reverse-hyper",
+    "legacy": "exercise_visual_legacy_exercise_reverse-hyper",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_reverse-hyper.imageset/exercise_visual_exercise_reverse-hyper.png"
+  },
+  {
+    "base": "exercise_visual_exercise_roman-chair-situp",
+    "jot": "exercise_visual_jot_exercise_roman-chair-situp",
+    "legacy": "exercise_visual_legacy_exercise_roman-chair-situp",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_roman-chair-situp.imageset/exercise_visual_exercise_roman-chair-situp.png"
+  },
+  {
+    "base": "exercise_visual_exercise_romanian-deadlift",
+    "jot": "exercise_visual_jot_exercise_romanian-deadlift",
+    "legacy": "exercise_visual_legacy_exercise_romanian-deadlift",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_romanian-deadlift.imageset/exercise_visual_exercise_romanian-deadlift.png"
+  },
+  {
+    "base": "exercise_visual_exercise_rope-cable-curl",
+    "jot": "exercise_visual_jot_exercise_rope-cable-curl",
+    "legacy": "exercise_visual_legacy_exercise_rope-cable-curl",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_rope-cable-curl.imageset/exercise_visual_exercise_rope-cable-curl.png"
+  },
+  {
+    "base": "exercise_visual_exercise_rope-hammer-curl",
+    "jot": "exercise_visual_jot_exercise_rope-hammer-curl",
+    "legacy": "exercise_visual_legacy_exercise_rope-hammer-curl",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_rope-hammer-curl.imageset/exercise_visual_exercise_rope-hammer-curl.png"
+  },
+  {
+    "base": "exercise_visual_exercise_rope-overhead-tricep-extension",
+    "jot": "exercise_visual_jot_exercise_rope-overhead-tricep-extension",
+    "legacy": "exercise_visual_legacy_exercise_rope-overhead-tricep-extension",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_rope-overhead-tricep-extension.imageset/exercise_visual_exercise_rope-overhead-tricep-extension.png"
+  },
+  {
+    "base": "exercise_visual_exercise_rope-tricep-pushdown",
+    "jot": "exercise_visual_jot_exercise_rope-tricep-pushdown",
+    "legacy": "exercise_visual_legacy_exercise_rope-tricep-pushdown",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_rope-tricep-pushdown.imageset/exercise_visual_exercise_rope-tricep-pushdown.png"
+  },
+  {
+    "base": "exercise_visual_exercise_safety-bar-squat",
+    "jot": "exercise_visual_jot_exercise_safety-bar-squat",
+    "legacy": "exercise_visual_legacy_exercise_safety-bar-squat",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_safety-bar-squat.imageset/exercise_visual_exercise_safety-bar-squat.png"
+  },
+  {
+    "base": "exercise_visual_exercise_seated-calf-raise",
+    "jot": "exercise_visual_jot_exercise_seated-calf-raise",
+    "legacy": "exercise_visual_legacy_exercise_seated-calf-raise",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_seated-calf-raise.imageset/exercise_visual_exercise_seated-calf-raise.png"
+  },
+  {
+    "base": "exercise_visual_exercise_seated-machine-press",
+    "jot": "exercise_visual_jot_exercise_seated-machine-press",
+    "legacy": "exercise_visual_legacy_exercise_seated-machine-press",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_seated-machine-press.imageset/exercise_visual_exercise_seated-machine-press.png"
+  },
+  {
+    "base": "exercise_visual_exercise_single-arm-cable-row",
+    "jot": "exercise_visual_jot_exercise_single-arm-cable-row",
+    "legacy": "exercise_visual_legacy_exercise_single-arm-cable-row",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_single-arm-cable-row.imageset/exercise_visual_exercise_single-arm-cable-row.png"
+  },
+  {
+    "base": "exercise_visual_exercise_single-arm-pulldown",
+    "jot": "exercise_visual_jot_exercise_single-arm-pulldown",
+    "legacy": "exercise_visual_legacy_exercise_single-arm-pulldown",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_single-arm-pulldown.imageset/exercise_visual_exercise_single-arm-pulldown.png"
+  },
+  {
+    "base": "exercise_visual_exercise_single-leg-curl",
+    "jot": "exercise_visual_jot_exercise_single-leg-curl",
+    "legacy": "exercise_visual_legacy_exercise_single-leg-curl",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_single-leg-curl.imageset/exercise_visual_exercise_single-leg-curl.png"
+  },
+  {
+    "base": "exercise_visual_exercise_single-leg-extension",
+    "jot": "exercise_visual_jot_exercise_single-leg-extension",
+    "legacy": "exercise_visual_legacy_exercise_single-leg-extension",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_single-leg-extension.imageset/exercise_visual_exercise_single-leg-extension.png"
+  },
+  {
+    "base": "exercise_visual_exercise_single-leg-rdl",
+    "jot": "exercise_visual_jot_exercise_single-leg-rdl",
+    "legacy": "exercise_visual_legacy_exercise_single-leg-rdl",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_single-leg-rdl.imageset/exercise_visual_exercise_single-leg-rdl.png"
+  },
+  {
+    "base": "exercise_visual_exercise_skull-crushers",
+    "jot": "exercise_visual_jot_exercise_skull-crushers",
+    "legacy": "exercise_visual_legacy_exercise_skull-crushers",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_skull-crushers.imageset/exercise_visual_exercise_skull-crushers.png"
+  },
+  {
+    "base": "exercise_visual_exercise_smith-machine-bench-press",
+    "jot": "exercise_visual_jot_exercise_smith-machine-bench-press",
+    "legacy": "exercise_visual_legacy_exercise_smith-machine-bench-press",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_smith-machine-bench-press.imageset/exercise_visual_exercise_smith-machine-bench-press.png"
+  },
+  {
+    "base": "exercise_visual_exercise_smith-machine-calf-raise",
+    "jot": "exercise_visual_jot_exercise_smith-machine-calf-raise",
+    "legacy": "exercise_visual_legacy_exercise_smith-machine-calf-raise",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_smith-machine-calf-raise.imageset/exercise_visual_exercise_smith-machine-calf-raise.png"
+  },
+  {
+    "base": "exercise_visual_exercise_smith-machine-hip-thrust",
+    "jot": "exercise_visual_jot_exercise_smith-machine-hip-thrust",
+    "legacy": "exercise_visual_legacy_exercise_smith-machine-hip-thrust",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_smith-machine-hip-thrust.imageset/exercise_visual_exercise_smith-machine-hip-thrust.png"
+  },
+  {
+    "base": "exercise_visual_exercise_smith-machine-incline-press",
+    "jot": "exercise_visual_jot_exercise_smith-machine-incline-press",
+    "legacy": "exercise_visual_legacy_exercise_smith-machine-incline-press",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_smith-machine-incline-press.imageset/exercise_visual_exercise_smith-machine-incline-press.png"
+  },
+  {
+    "base": "exercise_visual_exercise_smith-machine-reverse-lunge",
+    "jot": "exercise_visual_jot_exercise_smith-machine-reverse-lunge",
+    "legacy": "exercise_visual_legacy_exercise_smith-machine-reverse-lunge",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_smith-machine-reverse-lunge.imageset/exercise_visual_exercise_smith-machine-reverse-lunge.png"
+  },
+  {
+    "base": "exercise_visual_exercise_smith-machine-romanian-deadlift",
+    "jot": "exercise_visual_jot_exercise_smith-machine-romanian-deadlift",
+    "legacy": "exercise_visual_legacy_exercise_smith-machine-romanian-deadlift",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_smith-machine-romanian-deadlift.imageset/exercise_visual_exercise_smith-machine-romanian-deadlift.png"
+  },
+  {
+    "base": "exercise_visual_exercise_smith-machine-shoulder-press",
+    "jot": "exercise_visual_jot_exercise_smith-machine-shoulder-press",
+    "legacy": "exercise_visual_legacy_exercise_smith-machine-shoulder-press",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_smith-machine-shoulder-press.imageset/exercise_visual_exercise_smith-machine-shoulder-press.png"
+  },
+  {
+    "base": "exercise_visual_exercise_smith-machine-split-squat",
+    "jot": "exercise_visual_jot_exercise_smith-machine-split-squat",
+    "legacy": "exercise_visual_legacy_exercise_smith-machine-split-squat",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_smith-machine-split-squat.imageset/exercise_visual_exercise_smith-machine-split-squat.png"
+  },
+  {
+    "base": "exercise_visual_exercise_straddle-back-lever",
+    "jot": "exercise_visual_jot_exercise_straddle-back-lever",
+    "legacy": "exercise_visual_legacy_exercise_straddle-back-lever",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_straddle-back-lever.imageset/exercise_visual_exercise_straddle-back-lever.png"
+  },
+  {
+    "base": "exercise_visual_exercise_straddle-front-lever",
+    "jot": "exercise_visual_jot_exercise_straddle-front-lever",
+    "legacy": "exercise_visual_legacy_exercise_straddle-front-lever",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_straddle-front-lever.imageset/exercise_visual_exercise_straddle-front-lever.png"
+  },
+  {
+    "base": "exercise_visual_exercise_straddle-row",
+    "jot": "exercise_visual_jot_exercise_straddle-row",
+    "legacy": null,
+    "legacyAvailable": false,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_straddle-row.imageset/exercise_visual_exercise_straddle-row.png"
+  },
+  {
+    "base": "exercise_visual_exercise_tuck-back-lever",
+    "jot": "exercise_visual_jot_exercise_tuck-back-lever",
+    "legacy": null,
+    "legacyAvailable": false,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_tuck-back-lever.imageset/exercise_visual_exercise_tuck-back-lever.png"
+  },
+  {
+    "base": "exercise_visual_exercise_tuck-front-lever-pull-up",
+    "jot": "exercise_visual_jot_exercise_tuck-front-lever-pull-up",
+    "legacy": "exercise_visual_legacy_exercise_tuck-front-lever-pull-up",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_tuck-front-lever-pull-up.imageset/exercise_visual_exercise_tuck-front-lever-pull-up.png"
+  },
+  {
+    "base": "exercise_visual_exercise_tuck-front-lever-pullup",
+    "jot": "exercise_visual_jot_exercise_tuck-front-lever-pullup",
+    "legacy": "exercise_visual_legacy_exercise_tuck-front-lever-pullup",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_tuck-front-lever-pullup.imageset/exercise_visual_exercise_tuck-front-lever-pullup.png"
+  },
+  {
+    "base": "exercise_visual_exercise_tuck-front-lever",
+    "jot": "exercise_visual_jot_exercise_tuck-front-lever",
+    "legacy": "exercise_visual_legacy_exercise_tuck-front-lever",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_tuck-front-lever.imageset/exercise_visual_exercise_tuck-front-lever.png"
+  },
+  {
+    "base": "exercise_visual_exercise_tuck-row",
+    "jot": "exercise_visual_jot_exercise_tuck-row",
+    "legacy": "exercise_visual_legacy_exercise_tuck-row",
+    "legacyAvailable": true,
+    "source": "UNBOUND/Assets.xcassets/exercise_visual_exercise_tuck-row.imageset/exercise_visual_exercise_tuck-row.png"
+  }
+]

@@ -54,6 +54,9 @@ struct Step22_Name: View {
     }
 }
 
+#if DEBUG
 #Preview {
     Step22_Name(flow: OnboardingFlowViewModel(), progress: 0.73, onBack: {}, onContinue: {})
 }
+
+#endif

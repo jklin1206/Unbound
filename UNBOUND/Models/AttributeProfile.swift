@@ -4,6 +4,22 @@ struct AttributeProfile: Codable, Sendable, Equatable {
     let userId: String
     var values: [AttributeKey: AttributeValue]
     var computedAt: Date
+    var processedSourceIds: [String]
+    var processedSourceReceipts: [String: AttributeSourceReceipt]
+
+    init(
+        userId: String,
+        values: [AttributeKey: AttributeValue],
+        computedAt: Date,
+        processedSourceIds: [String] = [],
+        processedSourceReceipts: [String: AttributeSourceReceipt] = [:]
+    ) {
+        self.userId = userId
+        self.values = values
+        self.computedAt = computedAt
+        self.processedSourceIds = processedSourceIds
+        self.processedSourceReceipts = processedSourceReceipts
+    }
 
     static func empty(userId: String, at date: Date) -> AttributeProfile {
         let v = AttributeValue.zero(at: date)
@@ -36,6 +52,29 @@ struct AttributeProfile: Codable, Sendable, Equatable {
 
     mutating func set(_ key: AttributeKey, _ value: AttributeValue) {
         values[key] = value
+    }
+
+    mutating func markProcessed(_ sourceId: String?, receipt: AttributeSourceReceipt? = nil) {
+        guard let sourceId, !sourceId.isEmpty else { return }
+        if !processedSourceIds.contains(sourceId) {
+            processedSourceIds.append(sourceId)
+        }
+        if let receipt {
+            processedSourceReceipts[sourceId] = receipt
+        }
+        if processedSourceIds.count > 250 {
+            let overflow = processedSourceIds.count - 250
+            let removed = processedSourceIds.prefix(overflow)
+            processedSourceIds.removeFirst(overflow)
+            for source in removed {
+                processedSourceReceipts.removeValue(forKey: source)
+            }
+        }
+    }
+
+    func hasProcessed(_ sourceId: String?) -> Bool {
+        guard let sourceId, !sourceId.isEmpty else { return false }
+        return processedSourceIds.contains(sourceId)
     }
 
     /// Axes whose recent value has honestly drifted below their lifetime peak
@@ -100,4 +139,72 @@ struct AttributeProfile: Codable, Sendable, Equatable {
     /// `buildIdentity` directly; this alias keeps existing call sites
     /// working in the meantime.
     var buildName: String { buildIdentity.displayName }
+
+    private enum CodingKeys: String, CodingKey {
+        case userId
+        case values
+        case computedAt
+        case processedSourceIds
+        case processedSourceReceipts
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        userId = try container.decode(String.self, forKey: .userId)
+        values = try container.decode([AttributeKey: AttributeValue].self, forKey: .values)
+        computedAt = try container.decode(Date.self, forKey: .computedAt)
+        processedSourceIds = try container.decodeIfPresent([String].self, forKey: .processedSourceIds) ?? []
+        processedSourceReceipts = try container.decodeIfPresent(
+            [String: AttributeSourceReceipt].self,
+            forKey: .processedSourceReceipts
+        ) ?? [:]
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(userId, forKey: .userId)
+        try container.encode(values, forKey: .values)
+        try container.encode(computedAt, forKey: .computedAt)
+        try container.encode(processedSourceIds, forKey: .processedSourceIds)
+        try container.encode(processedSourceReceipts, forKey: .processedSourceReceipts)
+    }
+}
+
+struct AttributeProfileSnapshot: Codable, Sendable, Equatable {
+    let userId: String
+    let values: [AttributeKey: AttributeValue]
+    let computedAt: Date
+    let processedSourceIds: [String]
+
+    init(_ profile: AttributeProfile) {
+        self.userId = profile.userId
+        self.values = profile.values
+        self.computedAt = profile.computedAt
+        self.processedSourceIds = profile.processedSourceIds
+    }
+
+    var profile: AttributeProfile {
+        AttributeProfile(
+            userId: userId,
+            values: values,
+            computedAt: computedAt,
+            processedSourceIds: processedSourceIds
+        )
+    }
+}
+
+struct AttributeSourceReceipt: Codable, Sendable, Equatable {
+    let rewards: [AttributeProgressionReward]
+    let rankUpEventCount: Int
+    let profileBefore: AttributeProfileSnapshot
+    let profileAfter: AttributeProfileSnapshot
+
+    var result: AttributeAPIngestResult {
+        AttributeAPIngestResult(
+            rewards: rewards,
+            rankUpEvents: Array(repeating: AttributeRankUpEvent.placeholder, count: rankUpEventCount),
+            profileBefore: profileBefore.profile,
+            profileAfter: profileAfter.profile
+        )
+    }
 }

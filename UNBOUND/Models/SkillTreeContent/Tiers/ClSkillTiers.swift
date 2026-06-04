@@ -1,6 +1,6 @@
 // UNBOUND/Models/SkillTreeContent/Tiers/ClSkillTiers.swift
 //
-// Tier criteria for the core / lever family (cl.*, 30 skills) — GENERATED from
+// Tier criteria for the core / lever family (cl.*, 31 skills) — GENERATED from
 // real-data anchors (CoreSkillAnchors + SkillTierGenerator), replacing the old
 // hand-authored 9-tier-per-node tables (the source of the distribution mess).
 // Grind moves (rep core + hold core) spread real standards across the 9 tiers;
@@ -12,9 +12,9 @@
 // Grounding: docs/strength-standards-harvest.md (rep core) +
 // docs/standards-statics.md (holds, lever/compression stages, front-lever feat).
 //
-// 7 orphan nodes (zero consumers) are intentionally excluded: cl.ab-wheel,
+// 6 orphan nodes (zero consumers) are intentionally excluded: cl.ab-wheel,
 // cl.dragon-flag-negative, cl.hollow-body-60, cl.standing-plank,
-// cl.straight-crunch, cl.tuck-back-lever, cl.victorian.
+// cl.straight-crunch, cl.victorian.
 
 import Foundation
 
@@ -23,12 +23,12 @@ import Foundation
 #if DEBUG
 private let _clCountCheck: Int = {
     assert(
-        ClSkillTiers.table.count == 30,
-        "cl cluster should have 30 entries, has \(ClSkillTiers.table.count)"
+        ClSkillTiers.table.count == 31,
+        "cl cluster should have 31 entries, has \(ClSkillTiers.table.count)"
     )
     assert(
-        CoreSkillAnchors.table.count == 30,
-        "cl anchors should have 30 entries, has \(CoreSkillAnchors.table.count)"
+        CoreSkillAnchors.table.count == 31,
+        "cl anchors should have 31 entries, has \(CoreSkillAnchors.table.count)"
     )
     for (id, tiers) in ClSkillTiers.table {
         assert(tiers.count == 9, "\(id) needs 9 tiers, has \(tiers.count)")
@@ -53,8 +53,8 @@ enum CoreSkillAnchors {
 
         // Ego-friendly high-rep ground core. Anchored directly to harvest data.
         "cl.crunch":          .init(exerciseName: "crunch",            metric: .reps, spec: .full([1, 21, 54, 95, 142])),   // crunches <1/21/54/95/142
-        "cl.hanging-leg-raise":.init(exerciseName: "hanging leg raise", metric: .reps, spec: .full([1, 7, 18, 31, 46])),    // hanging-leg-raise <1/7/18/31/46
-        "cl.hanging-knee-raise":.init(exerciseName: "hanging knee raise", metric: .reps, spec: .full([1, 6, 19, 35, 52])),  // hanging-knee-raise <1/6/19/35/52
+        "cl.hanging-leg-raise":.init(exerciseName: "hanging leg raise", metric: .reps, spec: .full([1, 4, 8, 12, 20])),     // strict hanging leg raise, no swing reload
+        "cl.hanging-knee-raise":.init(exerciseName: "hanging knee raise", metric: .reps, spec: .full([1, 5, 10, 18, 30])),  // strict active-hang knee raise
         "cl.leg-raise":       .init(exerciseName: "leg raise",         metric: .reps, spec: .full([1, 7, 33, 67, 107])),    // lying-leg-raise <1/7/33/67/107
 
         // Rep core without a direct strengthlevel row — monotonic bands grounded in
@@ -85,6 +85,7 @@ enum CoreSkillAnchors {
 
         "cl.tuck-front-lever":    .init(exerciseName: "tuck front lever",    metric: .seconds, spec: .full([3, 5, 10, 20, 30])),  // FL tuck (statics §2)
         "cl.straddle-front-lever":.init(exerciseName: "straddle front lever", metric: .seconds, spec: .full([2, 4, 8, 15, 25])), // FL straddle (statics §2)
+        "cl.tuck-back-lever":     .init(exerciseName: "tuck back lever",     metric: .seconds, spec: .full([3, 5, 10, 15, 20])), // BL tuck — canonical first horizontal pause
         "cl.straddle-back-lever": .init(exerciseName: "straddle back lever", metric: .seconds, spec: .full([2, 5, 10, 15, 20])), // BL straddle — back lever is easier
         "cl.full-back-lever":     .init(exerciseName: "back lever",          metric: .seconds, spec: .feat(floor: .forged, ladder: [2, 5, 8, 12, 16, 20])), // owning a full back lever = Forged floor (one notch under full front lever's Veteran — BL is the easier family); 6 vals = 9−3
 
@@ -100,8 +101,9 @@ enum CoreSkillAnchors {
         // Full front lever — elite straight-arm feat; sits above every rep anchor.
         // floor .veteran (rawValue 4) → ladder count 9-4 = 5.
         "cl.full-front-lever":  .init(exerciseName: "front lever",     metric: .seconds, spec: .feat(floor: .veteran, ladder: [1, 3, 6, 10, 15])),
-        // 360-degree pulls — rare dynamic feat; floor .vessel (rawValue 6) → ladder count 9-6 = 3.
-        "cl.three-sixty-pulls": .init(exerciseName: "360-degree pulls", metric: .reps,   spec: .feat(floor: .vessel,  ladder: [1, 2, 4])),
+        // 360 ring pulls — rare straight-arm ring arc; floor .vessel (rawValue 6)
+        // -> ladder count 9-6 = 3.
+        "cl.three-sixty-pulls": .init(exerciseName: "360 ring pulls", metric: .reps,   spec: .feat(floor: .vessel,  ladder: [1, 2, 4])),
     ]
 }
 

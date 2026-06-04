@@ -41,6 +41,10 @@
       "power": 0.2,
       "mobility": 0.1
     },
+    "assisted squat": {
+      "control": 0.6,
+      "endurance": 0.4
+    },
     "assisted turnover freeze": {
       "control": 0.75,
       "explosiveness": 0.25
@@ -53,6 +57,10 @@
     "back squat": {
       "power": 0.85,
       "explosiveness": 0.15
+    },
+    "beginner shrimp squat": {
+      "control": 0.8,
+      "power": 0.2
     },
     "band curl": {
       "endurance": 0.6,
@@ -101,6 +109,11 @@
       "mobility": 0.55,
       "control": 0.25,
       "endurance": 0.2
+    },
+    "bodyweight leg extension": {
+      "control": 0.55,
+      "power": 0.25,
+      "mobility": 0.2
     },
     "bulgarian split squat": {
       "power": 0.7143,
@@ -215,6 +228,10 @@
       "endurance": 0.2,
       "power": 0.1
     },
+    "deep step up": {
+      "control": 0.6,
+      "power": 0.4
+    },
     "diamond pushup": {
       "power": 0.7368,
       "control": 0.2632
@@ -276,6 +293,10 @@
       "power": 0.5,
       "control": 0.3,
       "endurance": 0.2
+    },
+    "elevated two-hand shrimp squat": {
+      "control": 0.8,
+      "power": 0.2
     },
     "ez bar curl": {
       "endurance": 0.45,
@@ -398,6 +419,11 @@
     "incline pushup": {
       "endurance": 0.7368,
       "control": 0.2632
+    },
+    "intermediate shrimp squat": {
+      "control": 0.76,
+      "power": 0.19,
+      "mobility": 0.05
     },
     "inverted row": {
       "control": 0.75,
@@ -549,6 +575,18 @@
       "control": 0.75,
       "power": 0.25
     },
+    "nordic curl arms overhead": {
+      "control": 0.76,
+      "power": 0.24
+    },
+    "nordic curl negative": {
+      "control": 0.78,
+      "power": 0.22
+    },
+    "one-leg nordic curl": {
+      "control": 0.72,
+      "power": 0.28
+    },
     "overhead press": {
       "power": 0.85,
       "explosiveness": 0.15
@@ -561,6 +599,14 @@
     "pallof press": {
       "control": 0.8182,
       "endurance": 0.1818
+    },
+    "parallel squat": {
+      "control": 0.55,
+      "endurance": 0.45
+    },
+    "partial pistol squat": {
+      "control": 0.8,
+      "power": 0.2
     },
     "pec dec": {
       "control": 0.75,
@@ -716,6 +762,11 @@
       "power": 0.7222,
       "control": 0.2778
     },
+    "split squat": {
+      "control": 0.5,
+      "power": 0.3,
+      "endurance": 0.2
+    },
     "smith machine bench press": {
       "power": 0.5,
       "endurance": 0.3,
@@ -816,6 +867,14 @@
       "control": 0.8,
       "power": 0.2
     },
+    "tuck one-leg nordic curl": {
+      "control": 0.74,
+      "power": 0.26
+    },
+    "two-hand shrimp squat": {
+      "control": 0.8,
+      "power": 0.2
+    },
     "upright row": {
       "power": 0.62,
       "control": 0.2,
@@ -832,6 +891,10 @@
       "control": 0.45,
       "endurance": 0.35,
       "power": 0.2
+    },
+    "weighted pistol": {
+      "power": 0.7,
+      "control": 0.3
     },
     "wall handstand pushup": {
       "control": 0.66,

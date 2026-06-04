@@ -30,6 +30,9 @@ final class DailyWorkoutResolverTests: XCTestCase {
         let strength = draft.blocks.first { $0.kind == .strength }
         let skill = draft.blocks.first { $0.kind == .skill }
         XCTAssertEqual(skill?.skillId, "pp.pullup")
+        XCTAssertNotNil(skill?.selectedRungId)
+        XCTAssertNotNil(skill?.selectedRungSource)
+        XCTAssertNotNil(skill?.selectedRungReason)
         XCTAssertEqual(strength?.prescriptions.first { $0.exerciseName == "lat pulldown" }?.sets, 3)
         XCTAssertEqual(strength?.prescriptions.first { $0.exerciseName == "cable row (seated)" }?.sets, 3)
         XCTAssertTrue(strength?.prescriptions.first { $0.exerciseName == "lat pulldown" }?.notes?.contains("scheduled skill work") == true)
@@ -426,6 +429,20 @@ final class DailyWorkoutResolverTests: XCTestCase {
         XCTAssertTrue(prescriptions.allSatisfy { $0.notes?.contains("Short mode") == true })
         let summary = ProgramModifierSummary.summarize(draft: draft)
         XCTAssertTrue(summary.lines.contains { $0.kind == .shortSession })
+    }
+
+    func testProgramSchedulerWeeklyOverviewStartsAtSuppliedDate() {
+        let calendar = Calendar.current
+        let start = calendar.date(from: DateComponents(year: 2026, month: 6, day: 9))!
+        let overview = ProgramScheduler.shared.weeklyOverview(days: 3, startingAt: start)
+
+        XCTAssertEqual(overview.count, 3)
+        XCTAssertEqual(overview.first?.date, calendar.startOfDay(for: start))
+        XCTAssertEqual(overview.first?.category, ProgramScheduler.shared.category(for: start))
+        XCTAssertEqual(
+            overview.last?.date,
+            calendar.date(byAdding: .day, value: 2, to: calendar.startOfDay(for: start))
+        )
     }
 
     private func exercise(_ name: String, sets: Int, reps: String = "8-10") -> Exercise {

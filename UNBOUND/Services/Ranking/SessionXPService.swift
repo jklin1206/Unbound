@@ -12,6 +12,12 @@ protocol SessionXPServiceProtocol: AnyObject {
     @discardableResult
     func recordSession(userId: String, at: Date) async -> SessionXPDelta
 
+    /// Source-idempotent variant for canonical completion flows that may retry
+    /// after partial persistence. Duplicate source ids replay the original
+    /// streak flags without incrementing counters again.
+    @discardableResult
+    func recordSession(userId: String, at: Date, sourceId: String?) async -> SessionXPDelta
+
     /// Apply an out-of-band XP bonus (e.g. linked-session +20%, affinity +10%).
     /// Posts `.sessionXPBonusAdded` with the amount and reason.
     func addBonus(userId: String, amount: Int, reason: String) async
@@ -37,6 +43,13 @@ protocol SessionXPServiceProtocol: AnyObject {
         catalog: AttributeCatalogProtocol,
         squadService: SquadServiceProtocol
     ) async -> SessionXPDelta
+}
+
+extension SessionXPServiceProtocol {
+    @discardableResult
+    func recordSession(userId: String, at date: Date, sourceId: String?) async -> SessionXPDelta {
+        await recordSession(userId: userId, at: date)
+    }
 }
 
 // MARK: - SessionXPBonusEntry
@@ -75,8 +88,27 @@ final class SessionXPService: SessionXPServiceProtocol {
 
     @discardableResult
     func recordSession(userId: String, at date: Date) async -> SessionXPDelta {
+        await recordSession(userId: userId, at: date, sourceId: nil)
+    }
+
+    @discardableResult
+    func recordSession(userId: String, at date: Date, sourceId: String?) async -> SessionXPDelta {
         var current = record(userId: userId)
         let previous = current
+
+        if let receipt = current.processedReceipt(for: sourceId) {
+            var replayed = current
+            if receipt.streakCountAfter > 0 {
+                replayed.currentStreak = receipt.streakCountAfter
+                replayed.longestStreak = max(replayed.longestStreak, receipt.streakCountAfter)
+            }
+            return SessionXPDelta(
+                previous: current,
+                updated: replayed,
+                streakExtended: receipt.streakExtended,
+                streakBroken: receipt.streakBroken
+            )
+        }
 
         current.totalSessions += 1
 
@@ -113,6 +145,15 @@ final class SessionXPService: SessionXPServiceProtocol {
         } else {
             current.weeklyCount += 1
         }
+
+        current.markProcessed(
+            sourceId: sourceId,
+            receipt: SessionXPSourceReceipt(
+                streakExtended: extended,
+                streakBroken: broken,
+                streakCountAfter: current.currentStreak
+            )
+        )
 
         persist(current)
 
@@ -247,13 +288,39 @@ final class MockSessionXPService: SessionXPServiceProtocol {
 
     @discardableResult
     func recordSession(userId: String, at: Date) async -> SessionXPDelta {
+        await recordSession(userId: userId, at: at, sourceId: nil)
+    }
+
+    @discardableResult
+    func recordSession(userId: String, at: Date, sourceId: String?) async -> SessionXPDelta {
         var r = record(userId: userId)
         let previous = r
+        if let receipt = r.processedReceipt(for: sourceId) {
+            var replayed = r
+            if receipt.streakCountAfter > 0 {
+                replayed.currentStreak = receipt.streakCountAfter
+                replayed.longestStreak = max(replayed.longestStreak, receipt.streakCountAfter)
+            }
+            return SessionXPDelta(
+                previous: r,
+                updated: replayed,
+                streakExtended: receipt.streakExtended,
+                streakBroken: receipt.streakBroken
+            )
+        }
         r.totalSessions += 1
         r.currentStreak += 1
         r.longestStreak = max(r.longestStreak, r.currentStreak)
         r.lastSessionDate = at
         r.weeklyCount += 1
+        r.markProcessed(
+            sourceId: sourceId,
+            receipt: SessionXPSourceReceipt(
+                streakExtended: true,
+                streakBroken: false,
+                streakCountAfter: r.currentStreak
+            )
+        )
         records[userId] = r
         return SessionXPDelta(previous: previous, updated: r, streakExtended: true, streakBroken: false)
     }

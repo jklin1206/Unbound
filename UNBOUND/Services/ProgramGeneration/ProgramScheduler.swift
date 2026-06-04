@@ -2,18 +2,18 @@ import Foundation
 
 // MARK: - ProgramScheduler
 //
-// V3 — Active goals route to a weekly Push / Pull / Legs / Core / Skills /
-// Conditioning / Rest split based on each goal's skill cluster. The user
-// can now customize the weekly schedule (persisted via SkillProgressService).
+// V3 — Program Focuses route to a weekly Push / Pull / Legs / Core / Skills /
+// Conditioning / Rest split based on each focus skill's cluster. The user
+// can customize the weekly schedule (persisted via SkillProgressService).
 // Tappable day chips in the Program tab let the user preview any day's
-// routed goals.
+// routed focuses.
 //
 // Ordering rules (within a day):
 //   1) NOT yet trained today (canTrain == true) FIRST — actionable work
 //      lands at the top.
 //   2) Stable alphabetical tiebreak by node id.
 
-/// Body-part / movement category for a training day. Active goals route
+/// Body-part / movement category for a training day. Program Focuses route
 /// to matching days based on the skill's cluster. Codable so user-authored
 /// weekly schedules persist round-trip.
 enum DayCategory: String, CaseIterable, Identifiable, Hashable, Codable {
@@ -92,7 +92,7 @@ final class ProgramScheduler {
 
     // MARK: - Cluster → Category mapping
 
-    /// Maps skill clusters to body-part categories so active goals route to
+    /// Maps skill clusters to body-part categories so Program Focuses route to
     /// the right days. Cluster IDs come from SkillCluster enum.
     static func category(for cluster: SkillCluster) -> DayCategory {
         switch cluster {
@@ -108,8 +108,8 @@ final class ProgramScheduler {
         }
     }
 
-    func optimizedWeeklySchedule(activeGoalIds: Set<String>) -> [DayCategory] {
-        let categories = activeGoalIds.compactMap { id -> DayCategory? in
+    func optimizedWeeklySchedule(programFocusIds: Set<String>) -> [DayCategory] {
+        let categories = programFocusIds.compactMap { id -> DayCategory? in
             guard let node = SkillGraph.shared.node(id: id) else { return nil }
             return Self.category(for: node.cluster)
         }
@@ -136,6 +136,10 @@ final class ProgramScheduler {
         }
         schedule[6] = .rest
         return smoothBackToBackRepeats(schedule)
+    }
+
+    func optimizedWeeklySchedule(activeGoalIds: Set<String>) -> [DayCategory] {
+        optimizedWeeklySchedule(programFocusIds: activeGoalIds)
     }
 
     private func categoryPriority(_ category: DayCategory) -> Int {
@@ -222,22 +226,23 @@ final class ProgramScheduler {
 
     // MARK: - Today's training
 
-    /// Returns active goals routed to TODAY based on cluster→category match.
-    /// On a rest day, returns []. Sort: NOT-trained-today first.
-    func todaysSkillSessions() -> [String] {
-        let today = category(for: Date())
+    /// Returns Program Focuses routed to the supplied day based on
+    /// cluster→category match. On a rest day, returns [].
+    /// Sort: NOT-trained-today first.
+    func todaysSkillSessions(on date: Date = Date()) -> [String] {
+        let today = category(for: date)
         if today == .rest { return [] }
         return skillIds(forCategory: today)
     }
 
-    /// Active goals matching a given category. Used by the day strip to
+    /// Program Focuses matching a given category. Used by the day strip to
     /// count each day's load.
     func skillIds(forCategory cat: DayCategory) -> [String] {
         let progress = SkillProgressService.shared
         let graph = SkillGraph.shared
-        let goals = Array(progress.activeGoalIds)
+        let focusIds = Array(progress.programFocusIds)
 
-        let matching = goals.filter {
+        let matching = focusIds.filter {
             guard let node = graph.node(id: $0) else { return false }
             return Self.category(for: node.cluster) == cat
         }
@@ -250,7 +255,7 @@ final class ProgramScheduler {
         }
     }
 
-    /// Returns the goals routed to a specific date. Used by the day-preview
+    /// Returns the Program Focuses routed to a specific date. Used by the day-preview
     /// sheet — not filtered by canTrain status.
     func skillIds(forDate date: Date) -> [String] {
         let cat = category(for: date)
@@ -259,8 +264,8 @@ final class ProgramScheduler {
     }
 
     /// First date whose program category can host the given skill. This is
-    /// the bridge from Skill Detail's "Add to Program" action to the Program
-    /// tab's next eligible Workout Ready draft.
+    /// the bridge from Skill Detail's "Add Program Focus" action to the
+    /// Program tab's next eligible Workout Ready draft.
     func nextEligibleDate(
         forSkillId skillId: String,
         from startDate: Date = Date(),
@@ -286,9 +291,12 @@ final class ProgramScheduler {
 
     /// Returns the upcoming N days' (date, category, skillCount) tuples.
     /// Used by the 7-day horizontal strip.
-    func weeklyOverview(days: Int = 7) -> [(date: Date, category: DayCategory, count: Int)] {
+    func weeklyOverview(
+        days: Int = 7,
+        startingAt startDate: Date = Date()
+    ) -> [(date: Date, category: DayCategory, count: Int)] {
         let cal = Calendar.current
-        let start = cal.startOfDay(for: Date())
+        let start = cal.startOfDay(for: startDate)
         return (0..<days).compactMap { offset in
             guard let date = cal.date(byAdding: .day, value: offset, to: start) else { return nil }
             let cat = category(for: date)
@@ -298,17 +306,21 @@ final class ProgramScheduler {
     }
 
     /// Quick helper — does the user have anything to train today?
-    func hasTodaysTraining() -> Bool {
-        !todaysSkillSessions().isEmpty
+    func hasTodaysTraining(on date: Date = Date()) -> Bool {
+        !todaysSkillSessions(on: date).isEmpty
     }
 
     /// Returns just the count for badge display. Reflects routing.
-    func todaysSkillCount() -> Int { todaysSkillSessions().count }
+    func todaysSkillCount(on date: Date = Date()) -> Int { todaysSkillSessions(on: date).count }
 
-    /// Whether the user has any active goals at all (independent of
+    /// Whether the user has any Program Focuses at all (independent of
     /// routing). Drives whether the TODAY'S TRAINING card shows at all.
+    func hasProgramFocuses() -> Bool {
+        !SkillProgressService.shared.programFocusIds.isEmpty
+    }
+
     func hasActiveGoals() -> Bool {
-        !SkillProgressService.shared.activeGoalIds.isEmpty
+        hasProgramFocuses()
     }
 }
 

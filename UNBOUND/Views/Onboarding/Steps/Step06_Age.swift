@@ -30,6 +30,9 @@ struct Step06_Age: View {
     }
 }
 
+#if DEBUG
 #Preview {
     Step06_Age(flow: OnboardingFlowViewModel(), progress: 0.2, onBack: {}, onContinue: {})
 }
+
+#endif

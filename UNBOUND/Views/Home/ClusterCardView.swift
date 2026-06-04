@@ -5,9 +5,9 @@ import SwiftUI
 // Rich, full-width card for one display tree on the Skill Map landing
 // screen. Shows:
 //   • Header: glyph + display name (uppercased, tracked) + tagline
-//   • Progress: achieved / total + thin bar
-//   • NOW chip: current `.attempting` node + level (if any)
-//   • Farthest achievement: completed node title + rank chip
+//   • Progress: proven / total + thin bar
+//   • NOW chip: first reachable unproven node
+//   • Farthest proof: completed node title + rank chip
 //   • Locked state: 40% opacity, dashed border, REQUIRES caption
 //
 // Tap handling is owned by the parent view. Display trees drill directly
@@ -19,16 +19,24 @@ struct ClusterCardView: View {
     let nodeStates: [String: NodeState]
 
     private var total: Int { tree.totalCount(in: graph) }
-    private var achieved: Int { tree.achievedCount(in: graph, states: nodeStates) }
+    private var proven: Int { tree.provenCount(in: graph, states: nodeStates) }
     private var progressPct: Double {
-        total == 0 ? 0 : Double(achieved) / Double(total)
+        total == 0 ? 0 : Double(proven) / Double(total)
     }
     private var activeNode: SkillNode? {
         tree.activeNode(in: graph, states: nodeStates)
     }
+    private var representativeNode: SkillNode? {
+        tree.farthestProvenNode(in: graph, states: nodeStates)
+            ?? activeNode
+            ?? tree.previewKeystone(in: graph, states: nodeStates)
+    }
+    private var representativeAssetName: String? {
+        representativeNode.flatMap { SkillTraditionalVisualResolver.assetName(for: $0) }
+    }
     private var achievementPreview: AchievementPreview? {
-        if let achievedNode = tree.farthestAchievement(in: graph, states: nodeStates) {
-            return AchievementPreview(node: achievedNode, label: "FARTHEST", icon: "trophy.fill", isAchieved: true)
+        if let provenNode = tree.farthestProvenNode(in: graph, states: nodeStates) {
+            return AchievementPreview(node: provenNode, label: "FARTHEST", icon: "trophy.fill", isAchieved: true)
         }
         if let activeNode {
             return AchievementPreview(node: activeNode, label: "CHASING", icon: "scope", isAchieved: false)
@@ -126,13 +134,8 @@ struct ClusterCardView: View {
 
     private var headerRow: some View {
         HStack(alignment: .center, spacing: 12) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(Color.unbound.surfaceElevated)
-                SkillTreeIconMark(tree: tree, isLocked: isLocked)
-                    .padding(5)
-            }
-            .frame(width: 44, height: 44)
+            skillArtworkMark
+                .frame(width: 58, height: 58)
 
             VStack(alignment: .leading, spacing: 2) {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
@@ -158,6 +161,47 @@ struct ClusterCardView: View {
                 subClusterPill
             }
         }
+    }
+
+    private var skillArtworkMark: some View {
+        let assetName = representativeAssetName
+
+        return ZStack(alignment: .bottomTrailing) {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color.unbound.surfaceElevated)
+
+            if let assetName, UIImage(named: assetName) != nil {
+                Image(assetName)
+                    .renderingMode(.original)
+                    .resizable()
+                    .interpolation(.high)
+                    .aspectRatio(contentMode: .fit)
+                    .padding(3)
+                    .opacity(isLocked ? 0.58 : 1)
+                    .saturation(isLocked ? 0.45 : 1)
+                    .shadow(color: Color.black.opacity(isLocked ? 0.16 : 0.34), radius: 5, x: 0, y: 3)
+            } else {
+                SkillTreeIconMark(tree: tree, isLocked: isLocked)
+                    .padding(7)
+            }
+
+            if isLocked {
+                Image(systemName: "lock.fill")
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundStyle(Color.unbound.textTertiary)
+                    .frame(width: 18, height: 18)
+                    .background(Circle().fill(Color.unbound.bg.opacity(0.86)))
+                    .padding(4)
+            }
+        }
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(
+                    isLocked ? Color.unbound.border : Color.unbound.accent.opacity(0.30),
+                    lineWidth: 1
+                )
+        )
+        .accessibilityHidden(true)
     }
 
     private var subClusterPill: some View {
@@ -193,7 +237,7 @@ struct ClusterCardView: View {
                     .tracking(1.6)
                     .foregroundStyle(Color.unbound.textTertiary)
                 Spacer()
-                Text("\(achieved) / \(total)")
+                Text("\(proven) / \(total)")
                     .font(Font.unbound.monoS)
                     .foregroundStyle(Color.unbound.textSecondary)
             }
@@ -293,58 +337,25 @@ private struct SkillTreeIconMark: View {
     }
 
     var body: some View {
-        Group {
-            if UIImage(named: representativeAssetName) != nil {
-                Image(representativeAssetName)
-                    .renderingMode(representativeAssetName.hasSuffix("_highlight") ? .original : .template)
-                    .resizable()
-                    .interpolation(.high)
-                    .scaledToFit()
-                    .foregroundStyle(primary)
-                    .scaleEffect(representativeAssetName.hasSuffix("_highlight") ? 1.22 : 1.0)
-                    .shadow(color: Color.black.opacity(isLocked ? 0.1 : 0.45), radius: 2)
-                    .shadow(color: accent.opacity(isLocked ? 0 : 0.45), radius: 5)
-                    .overlay(alignment: .bottom) {
-                        Capsule()
-                            .fill(accent.opacity(isLocked ? 0.18 : 0.5))
-                            .frame(width: 19, height: 2)
-                            .offset(y: 3)
-                    }
-            } else {
-                Canvas { context, size in
-                    drawGuideLines(in: &context, size: size)
+        Canvas { context, size in
+            drawGuideLines(in: &context, size: size)
 
-                    switch tree {
-                    case .pull:
-                        drawPull(in: &context, size: size)
-                    case .push:
-                        drawPush(in: &context, size: size)
-                    case .legs:
-                        drawLegs(in: &context, size: size)
-                    case .coreLevers:
-                        drawCore(in: &context, size: size)
-                    case .handstand:
-                        drawHandstand(in: &context, size: size)
-                    case .planche:
-                        drawPlanche(in: &context, size: size)
-                    }
-                }
+            switch tree {
+            case .pull:
+                drawPull(in: &context, size: size)
+            case .push:
+                drawPush(in: &context, size: size)
+            case .legs:
+                drawLegs(in: &context, size: size)
+            case .coreLevers:
+                drawCore(in: &context, size: size)
+            case .handstand:
+                drawHandstand(in: &context, size: size)
+            case .planche:
+                drawPlanche(in: &context, size: size)
             }
         }
         .accessibilityHidden(true)
-    }
-
-    private var representativeAssetName: String {
-        let base: String = switch tree {
-        case .pull: "pp_pullup"
-        case .push: "cal_pushup"
-        case .legs: "ld_pistol-squat"
-        case .coreLevers: "cl_vertical-l-sit"
-        case .handstand: "hs_handstand"
-        case .planche: "pl_full-planche"
-        }
-        let highlight = "\(base)_highlight"
-        return UIImage(named: highlight) == nil ? base : highlight
     }
 
     private func point(_ x: CGFloat, _ y: CGFloat, in size: CGSize) -> CGPoint {
@@ -458,4 +469,3 @@ private struct SkillTreeIconMark: View {
         line(point(0.55, 0.48, in: size), point(0.62, 0.76, in: size), in: &context, color: primary)
     }
 }
-

@@ -66,7 +66,7 @@ struct ProductionUserDataMigrationLocalStore: UserDataMigrationLocalStoring {
 /// Re-keys local scan checkpoints via the filesystem-backed
 /// `ScanCheckpointStore`. Re-key is an in-place overwrite: the checkpoint id is
 /// stable, only the embedded `userId` changes, so no duplicate file is created.
-struct ProductionUserDataMigrationScanStore: UserDataMigrationScanStoring {
+struct ProductionUserDataMigrationScanStore: UserDataMigrationScanStoring, @unchecked Sendable {
     private let store: ScanCheckpointStore
 
     init(store: ScanCheckpointStore = .shared) {
@@ -85,7 +85,7 @@ struct ProductionUserDataMigrationScanStore: UserDataMigrationScanStoring {
 /// Persists the per-(legacy → supabase) migration-completed flag in
 /// UserDefaults. Local-only and survives relaunches, which is exactly what the
 /// resume guard needs.
-struct UserDefaultsUserDataMigrationFlagStore: UserDataMigrationFlagStoring {
+struct UserDefaultsUserDataMigrationFlagStore: UserDataMigrationFlagStoring, @unchecked Sendable {
     private let defaults: UserDefaults
 
     init(defaults: UserDefaults = .standard) {

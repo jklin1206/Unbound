@@ -35,15 +35,26 @@ final class SyncedDatabase: DatabaseServiceProtocol, @unchecked Sendable {
     }
 
     func delete(collection: String, documentId: String) async throws {
+        let userId = await userIdForDocument(collection: collection, documentId: documentId)
         try await local.delete(collection: collection, documentId: documentId)
         guard SyncCollectionMap.table(for: collection) != nil else { return }
-        let entry = OutboxEntry(id: UUID(), userId: "", collection: collection,
+        let entry = OutboxEntry(id: UUID(), userId: userId, collection: collection,
                                 docId: documentId, op: .delete, payloadJSON: nil,
                                 enqueuedAt: Date(), attempt: 0)
         await MainActor.run {
             outbox.enqueue(entry)
             NotificationCenter.default.post(name: .outboxDidEnqueue, object: nil)
         }
+    }
+
+    private func userIdForDocument(collection: String, documentId: String) async -> String {
+        if collection == "users" { return documentId }
+        guard let el: JSONElement = try? await local.read(collection: collection, documentId: documentId),
+              let dict = el.value as? [String: JSONElement]
+        else { return "" }
+        return (dict["userId"]?.value as? String)
+            ?? (dict["user_id"]?.value as? String)
+            ?? ""
     }
 
     func query<T: Codable>(collection: String, field: String, isEqualTo value: Any,
@@ -59,12 +70,16 @@ final class SyncedDatabase: DatabaseServiceProtocol, @unchecked Sendable {
     /// to different fields then converge to the union instead of clobbering.
     private func enqueueUpsert(collection: String, docId: String,
                                changedFields: [String]) async {
-        guard SyncCollectionMap.table(for: collection) != nil else { return }
+        guard SyncCollectionMap.table(for: collection) != nil else {
+            if SyncCollectionMap.isLocalOnly(collection) { return }
+            return
+        }
         guard let el: JSONElement = try? await local.read(collection: collection,
                                                           documentId: docId),
               let payload = try? JSONEncoder().encode(el) else { return }
         let dict = el.value as? [String: JSONElement]
         let userId = (dict?["userId"]?.value as? String)
+            ?? (dict?["user_id"]?.value as? String)
             ?? (dict?["id"]?.value as? String) ?? ""
         let entry = OutboxEntry(id: UUID(), userId: userId, collection: collection,
                                 docId: docId, op: .upsert, payloadJSON: payload,

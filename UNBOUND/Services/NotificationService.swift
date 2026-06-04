@@ -23,9 +23,7 @@ enum NotificationService {
     }
 
     static func scheduleRescanReminder() async {
-        await NotificationCoordinator.shared.scheduleRetentionNudge(
-            daysAfterAnchor: 30
-        )
+        NotificationCoordinator.shared.cancelRetentionNudge()
     }
 
     static func cancelRescanReminder() {

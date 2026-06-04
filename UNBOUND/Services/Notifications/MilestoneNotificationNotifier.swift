@@ -23,6 +23,10 @@ final class MilestoneNotificationNotifier {
     }
 
     func start() {
+        guard store.load().milestones.isEnabled else {
+            stop()
+            return
+        }
         guard tokens.isEmpty else { return }
 
         let names: [Notification.Name] = [
@@ -71,7 +75,7 @@ final class MilestoneNotificationNotifier {
 }
 
 struct MilestoneNotificationPlanner {
-    private let identifierPrefix = "com.unbound.milestone"
+    static let identifierPrefix = "com.unbound.milestone"
 
     func descriptor(for notification: Notification) -> LocalNotificationRequestDescriptor? {
         switch notification.name {
@@ -216,7 +220,7 @@ struct MilestoneNotificationPlanner {
     }
 
     private func identifier(kind: String, subject: String) -> String {
-        "\(identifierPrefix).\(sanitized(kind)).\(sanitized(subject))"
+        "\(Self.identifierPrefix).\(sanitized(kind)).\(sanitized(subject))"
     }
 
     private func sanitized(_ raw: String) -> String {

@@ -160,6 +160,57 @@ final class DeterministicProgramGeneratorTests: XCTestCase {
         XCTAssertTrue(restRoles.allSatisfy { $0 == .rest })
     }
 
+    func testBodyweightOverrideCreatesActualSkillDayForNonControlIdentity() throws {
+        let input = makeInput(
+            frequency: .five,
+            trainingDays: [.monday, .tuesday, .wednesday, .thursday, .friday],
+            buildIdentity: BuildIdentity(primary: .power, secondary: nil, shape: .hybrid),
+            trainingStyle: .bodyweight,
+            equipment: [.bodyweight, .pullupBar]
+        )
+
+        let program = try DeterministicProgramGenerator.generate(input: input)
+        let skillDay = try XCTUnwrap(program.days.first { $0.sessionRole == .skillOnly })
+        let workout = try XCTUnwrap(skillDay.workout)
+        let firstExercise = try XCTUnwrap(workout.mainExercises.first)
+        let firstDefinition = try XCTUnwrap(
+            MovementCatalog.definition(for: MovementResolver.resolve(firstExercise.name).movementId)
+        )
+
+        XCTAssertEqual(firstDefinition.movementSlot, .skill)
+        XCTAssertTrue(workout.mainExercises.contains { exercise in
+            guard let definition = MovementCatalog.definition(
+                for: MovementResolver.resolve(exercise.name).movementId
+            ) else { return false }
+            return definition.movementSlot == .skill
+        })
+    }
+
+    func testBodyweightFoundationExperienceGatesOutAdvancedCalisthenics() throws {
+        let input = makeInput(
+            frequency: .five,
+            trainingDays: [.monday, .tuesday, .wednesday, .thursday, .friday],
+            buildIdentity: BuildIdentity(primary: .power, secondary: nil, shape: .hybrid),
+            trainingStyle: .bodyweight,
+            equipment: [.bodyweight, .pullupBar, .dipStation, .rings],
+            experience: .never
+        )
+
+        let program = try DeterministicProgramGenerator.generate(input: input)
+        let definitions = program.days
+            .compactMap(\.workout)
+            .flatMap(\.mainExercises)
+            .compactMap { exercise in
+                MovementCatalog.definition(for: MovementResolver.resolve(exercise.name).movementId)
+            }
+
+        XCTAssertFalse(definitions.isEmpty)
+        XCTAssertTrue(definitions.allSatisfy { $0.difficulty == .beginner })
+        XCTAssertFalse(definitions.contains {
+            $0.displayName.contains("Dip") || $0.displayName == "Muscle-Up"
+        })
+    }
+
     func testCutModeShiftsNutrition() throws {
         var maintenance = makeInput(frequency: .four, trainingDays: [.monday, .tuesday, .thursday, .friday])
         maintenance.cutModeActive = false
@@ -190,8 +241,20 @@ final class DeterministicProgramGeneratorTests: XCTestCase {
         let program = try DeterministicProgramGenerator.generate(input: input)
         let allNames = program.days
             .compactMap { $0.workout }
-            .flatMap { $0.mainExercises }
+            .flatMap { $0.warmup + $0.mainExercises + $0.cooldown }
             .map { $0.name.lowercased() }
+        let equipmentRequiredTerms = [
+            "band",
+            "pull-up",
+            "pullup",
+            "chin-up",
+            "chin up",
+            "dip",
+            "incline",
+            "inverted row",
+            "ab wheel",
+            "hanging"
+        ]
         for name in allNames {
             XCTAssertFalse(name.contains("barbell"),
                            "Bodyweight user shouldn't have a barbell exercise; saw \(name)")
@@ -199,6 +262,12 @@ final class DeterministicProgramGeneratorTests: XCTestCase {
                            "Bodyweight user shouldn't get back squat; saw \(name)")
             XCTAssertFalse(name.contains("deadlift"),
                            "Bodyweight user shouldn't get deadlift; saw \(name)")
+            for term in equipmentRequiredTerms {
+                XCTAssertFalse(
+                    name.contains(term),
+                    "Bodyweight-only user shouldn't get equipment-required movement \(term); saw \(name)"
+                )
+            }
         }
     }
 
@@ -365,7 +434,8 @@ final class DeterministicProgramGeneratorTests: XCTestCase {
         trainingDays: Set<Weekday>,
         buildIdentity: BuildIdentity = BuildIdentity(primary: .control, secondary: nil, shape: .specialist),
         trainingStyle: TrainingStyle = .bodyweight,
-        equipment: [Equipment] = [.bodyweight]
+        equipment: [Equipment] = [.bodyweight],
+        experience: Experience = .current
     ) -> ProgramGeneratorInput {
         ProgramGeneratorInput(
             userId: "u-1",
@@ -376,7 +446,7 @@ final class DeterministicProgramGeneratorTests: XCTestCase {
             equipment: equipment,
             targetFrequency: frequency,
             trainingDays: trainingDays,
-            experience: .current,
+            experience: experience,
             focusAreas: [],
             cutModeActive: false,
             trainingFeedbackMode: .quick,

@@ -107,6 +107,56 @@ final class MovementProgressServiceTests: XCTestCase {
         XCTAssertGreaterThan(state.totalAP, 0)
     }
 
+    func testExistingProgressStateRefreshesCurrentRankTemplateBeforeTierDerivation() async throws {
+        let database = MockDatabaseService()
+        let service = MovementProgressService.shared
+        let stale = MovementProgressState(
+            userId: "u1",
+            rankStandardMovementId: "exercise.hanging-leg-raise",
+            displayName: "Hanging Leg Raise",
+            rankTemplate: .holdControl,
+            provenTier: .initiate
+        )
+        try await database.create(
+            stale,
+            collection: "movement_progress",
+            documentId: "u1:exercise.hanging-leg-raise"
+        )
+
+        let log = PerformanceLog(
+            id: "perf-hlr-refresh",
+            userId: "u1",
+            source: .custom,
+            title: "Core",
+            startedAt: Date(timeIntervalSince1970: 100),
+            completedAt: Date(timeIntervalSince1970: 200),
+            blocks: [
+                PerformanceBlock(
+                    kind: .bodyweight,
+                    title: "Core",
+                    exercises: [
+                        PerformanceExercise(
+                            name: "Hanging Leg Raise",
+                            plannedSets: 1,
+                            plannedTarget: "20 reps",
+                            sets: [PerformanceSet(setNumber: 1, reps: 20, rpe: 8)]
+                        )
+                    ]
+                )
+            ]
+        )
+
+        _ = await service.ingest(log, database: database)
+        let state: MovementProgressState = try await database.read(
+            collection: "movement_progress",
+            documentId: "u1:exercise.hanging-leg-raise"
+        )
+
+        XCTAssertEqual(state.rankTemplate, .bodyweightReps)
+        XCTAssertEqual(state.bestReps, 20)
+        XCTAssertGreaterThan(state.provenTier.rawValue, stale.provenTier.rawValue)
+    }
+
     func testRepeatedSourceLogDoesNotDoubleCountAP() async throws {
         let database = MockDatabaseService()
         let service = MovementProgressService.shared
@@ -361,6 +411,208 @@ final class MovementProgressServiceTests: XCTestCase {
         XCTAssertEqual(workoutLog.logs.count, 1)
         XCTAssertEqual(record.performanceLogId, "perf-complete-once")
         XCTAssertEqual(second.savedWorkoutLogId, first.savedWorkoutLogId)
+        XCTAssertEqual(second.overallLevelXPGained, first.overallLevelXPGained, accuracy: 0.001)
+        XCTAssertEqual(second.movementAPGains, first.movementAPGains)
+    }
+
+    func testConcurrentTrainingCompletionDoesNotReplayCompletionCascade() async throws {
+        let database = TestProgressionDatabase(delayMissingCompletionRecordReads: true)
+        let workoutLog = MockWorkoutLogService()
+        let services = makeServices(database: database, workoutLog: workoutLog)
+        let sessionXP = try XCTUnwrap(services.sessionXP as? MockSessionXPService)
+        let service = TrainingCompletionService(
+            squadMission: NoOpSquadMissionService(),
+            friendChallenge: NoOpFriendChallengeService()
+        )
+        let log = benchPerformanceLog(id: "perf-concurrent-once")
+
+        async let first = service.complete(log, services: services)
+        async let second = service.complete(log, services: services)
+        let (firstResult, secondResult) = try await (first, second)
+        let completionRecord: TrainingCompletionRecord = try await database.read(
+            collection: "training_completion_records",
+            documentId: "perf-concurrent-once"
+        )
+        let alreadyCompletedCount = [firstResult.wasAlreadyCompleted, secondResult.wasAlreadyCompleted]
+            .filter { $0 }
+            .count
+
+        XCTAssertEqual(alreadyCompletedCount, 1)
+        XCTAssertEqual(workoutLog.compatibleHistorySaveCallCount, 1)
+        XCTAssertEqual(sessionXP.record(userId: "mock-user-123").totalSessions, 1)
+        XCTAssertEqual(completionRecord.performanceLogId, "perf-concurrent-once")
+    }
+
+    func testTrainingCompletionDoesNotFinalizeWhenMovementProgressPersistenceFails() async throws {
+        let database = TestProgressionDatabase(failingCreateCollections: ["movement_progress"])
+        let services = makeServices(database: database, workoutLog: MockWorkoutLogService())
+        let service = TrainingCompletionService(
+            squadMission: NoOpSquadMissionService(),
+            friendChallenge: NoOpFriendChallengeService()
+        )
+        let log = benchPerformanceLog(id: "perf-progress-write-failure")
+
+        do {
+            _ = try await service.complete(log, services: services)
+            XCTFail("Completion should fail when critical movement progression persistence fails")
+        } catch {
+            // Expected: the strict progression path must propagate the write error.
+        }
+
+        do {
+            let _: TrainingCompletionRecord = try await database.read(
+                collection: "training_completion_records",
+                documentId: "perf-progress-write-failure"
+            )
+            XCTFail("Completion record must not be written after progression persistence failure")
+        } catch {
+            // Expected: no finalized completion record.
+        }
+    }
+
+    func testTrainingCompletionRetriesAfterMovementAPGainPersistenceFailure() async throws {
+        try await assertCompletionRetriesAfterSingleCreateFailure(in: "movement_ap_gains")
+    }
+
+    func testTrainingCompletionRetriesAfterBodyMapPersistenceFailure() async throws {
+        try await assertCompletionRetriesAfterSingleCreateFailure(in: "body_map_profiles")
+    }
+
+    func testTrainingCompletionRetriesAfterOverallLevelPersistenceFailure() async throws {
+        try await assertCompletionRetriesAfterSingleCreateFailure(in: "overall_level_progress")
+    }
+
+    func testTrainingCompletionRetryAfterCompletionRecordFailureReusesCanonicalRewards() async throws {
+        let database = TestProgressionDatabase(failingCreateAttempts: ["training_completion_records": 1])
+        let services = makeServices(database: database, workoutLog: MockWorkoutLogService())
+        let attribute = try XCTUnwrap(services.attribute as? MockAttributeService)
+        let sessionXP = try XCTUnwrap(services.sessionXP as? MockSessionXPService)
+        let service = TrainingCompletionService(
+            squadMission: NoOpSquadMissionService(),
+            friendChallenge: NoOpFriendChallengeService()
+        )
+        let log = TrainingSessionAdapters.performanceLogForSkillSession(
+            id: "perf-retry-completion-record",
+            userId: "mock-user-123",
+            skillId: "hs.wall-handstand-30",
+            skillTitle: "Wall Handstand",
+            startedAt: Date(timeIntervalSince1970: 100),
+            completedAt: Date(timeIntervalSince1970: 200),
+            durationSeconds: 300,
+            exercises: [
+                LoggedExercise(
+                    name: "Wall Handstand Hold",
+                    sets: [LoggedSet(reps: 0, holdSeconds: 30, weightKg: nil, rpe: 7)]
+                )
+            ]
+        )
+
+        do {
+            _ = try await service.complete(log, services: services, skillXPAwarded: 25)
+            XCTFail("First completion should fail at the final completion record")
+        } catch {
+            // Expected: all strict reward writes happened, but no canonical record exists yet.
+        }
+
+        let profileAfterFailedAttempt = attribute.profile(userId: "mock-user-123")
+        let failedReceipt: TrainingCompletionReplayReceipt = try await database.read(
+            collection: "training_completion_replay_receipts",
+            documentId: log.id
+        )
+        XCTAssertEqual(sessionXP.record(userId: "mock-user-123").totalSessions, 1)
+
+        let interleaved = try await service.complete(
+            benchPerformanceLog(id: "perf-interleaved-after-failed-skill"),
+            services: services
+        )
+        XCTAssertGreaterThan(interleaved.overallLevelXPGained, 0)
+
+        let retryLog = TrainingSessionAdapters.performanceLogForSkillSession(
+            id: log.id,
+            userId: "mock-user-123",
+            skillId: "hs.wall-handstand-30",
+            skillTitle: "Wall Handstand",
+            startedAt: Date(timeIntervalSince1970: 100),
+            completedAt: Date(timeIntervalSince1970: 200),
+            durationSeconds: 300,
+            exercises: [
+                LoggedExercise(
+                    name: "Wall Handstand Hold",
+                    sets: [LoggedSet(reps: 0, holdSeconds: 30, weightKg: nil, rpe: 7)]
+                )
+            ]
+        )
+
+        let result = try await service.complete(retryLog, services: services, skillXPAwarded: 25)
+        let profileAfterRetry = attribute.profile(userId: "mock-user-123")
+        let record: TrainingCompletionRecord = try await database.read(
+            collection: "training_completion_records",
+            documentId: log.id
+        )
+
+        XCTAssertFalse(result.wasAlreadyCompleted)
+        XCTAssertEqual(record.performanceLogId, log.id)
+        XCTAssertGreaterThan(profileAfterRetry.value(for: .power).xp, profileAfterFailedAttempt.value(for: .power).xp)
+        XCTAssertEqual(result.attributeProfileAfter, failedReceipt.replay.attributeProfileAfter)
+        XCTAssertEqual(result.overallLevelReward, failedReceipt.replay.overallLevelReward)
+        XCTAssertGreaterThan(result.attributeRewards.reduce(0) { $0 + $1.xpGained }, 0)
+        XCTAssertGreaterThan(result.bodyMapRegionRewards.count, 0)
+        XCTAssertGreaterThan(result.overallLevelXPGained, 0)
+        XCTAssertEqual(result.skillXPGained, 25)
+        XCTAssertEqual(result.streakCount, 1)
+        XCTAssertTrue(result.streakExtended)
+        XCTAssertEqual(sessionXP.record(userId: "mock-user-123").totalSessions, 2)
+        let retrySessionLogCount = await database.countKeys(prefix: "sessionLogs/\(log.id):hs.wall-handstand-30:session")
+        XCTAssertEqual(retrySessionLogCount, 1)
+        XCTAssertNotNil(record.replay)
+    }
+
+    func testTrainingCompletionRetryAfterReplayReceiptFailureUsesProgressionCheckpoint() async throws {
+        let database = TestProgressionDatabase(failingCreateAttempts: ["training_completion_replay_receipts": 1])
+        let services = makeServices(database: database, workoutLog: MockWorkoutLogService())
+        let sessionXP = try XCTUnwrap(services.sessionXP as? MockSessionXPService)
+        let service = TrainingCompletionService(
+            squadMission: NoOpSquadMissionService(),
+            friendChallenge: NoOpFriendChallengeService()
+        )
+        let log = benchPerformanceLog(id: "perf-retry-missing-replay-receipt")
+
+        do {
+            _ = try await service.complete(log, services: services)
+            XCTFail("First completion should fail while writing the replay receipt")
+        } catch {
+            // Expected: progression/session side effects may have landed, but no final record exists.
+        }
+
+        let checkpoint: TrainingCompletionProgressionReceipt = try await database.read(
+            collection: "training_completion_progression_receipts",
+            documentId: log.id
+        )
+        XCTAssertEqual(sessionXP.record(userId: "mock-user-123").totalSessions, 1)
+
+        let interleaved = try await service.complete(
+            benchPerformanceLog(id: "perf-interleaved-after-missing-replay"),
+            services: services
+        )
+        XCTAssertGreaterThan(interleaved.overallLevelXPGained, 0)
+        XCTAssertEqual(sessionXP.record(userId: "mock-user-123").totalSessions, 2)
+
+        let retry = try await service.complete(log, services: services)
+        let record: TrainingCompletionRecord = try await database.read(
+            collection: "training_completion_records",
+            documentId: log.id
+        )
+
+        XCTAssertFalse(retry.wasAlreadyCompleted)
+        XCTAssertEqual(record.performanceLogId, log.id)
+        XCTAssertEqual(retry.movementAPGains, checkpoint.replay.movementAPGains)
+        XCTAssertEqual(retry.movementProgressStates, checkpoint.replay.movementProgressStates)
+        XCTAssertEqual(retry.attributeRewards, checkpoint.replay.attributeRewards)
+        XCTAssertEqual(retry.attributeProfileAfter, checkpoint.replay.attributeProfileAfter)
+        XCTAssertEqual(retry.bodyMapRegionRewards, checkpoint.replay.bodyMapRegionRewards)
+        XCTAssertEqual(retry.overallLevelReward, checkpoint.replay.overallLevelReward)
+        XCTAssertEqual(retry.streakCount, 1)
+        XCTAssertEqual(sessionXP.record(userId: "mock-user-123").totalSessions, 2)
     }
 
     func testTrainingCompletionQuarantinesCompatibleWorkoutLogWhenWriterIsMissing() async throws {
@@ -435,9 +687,10 @@ final class MovementProgressServiceTests: XCTestCase {
 
         XCTAssertFalse(first.wasAlreadyCompleted)
         XCTAssertTrue(second.wasAlreadyCompleted)
-        XCTAssertEqual(sessionLogKeys, ["sessionLogs/perf-skill-once:skill-block:session"])
+        XCTAssertEqual(sessionLogKeys, ["sessionLogs/perf-skill-once:hs.wall-handstand-30:session"])
         XCTAssertEqual(second.savedSessionLogIds, first.savedSessionLogIds)
-        XCTAssertEqual(second.skillXPGained, 0)
+        XCTAssertEqual(second.skillXPGained, first.skillXPGained)
+        XCTAssertEqual(second.progressionReceipt.skillXPGained, first.progressionReceipt.skillXPGained)
     }
 
     func testQuickLogShapedSkillCompletionWritesUnifiedAndCompatibleHistory() async throws {
@@ -829,6 +1082,31 @@ final class MovementProgressServiceTests: XCTestCase {
         )
     }
 
+    private func benchPerformanceLog(id: String, userId: String = "mock-user-123") -> PerformanceLog {
+        PerformanceLog(
+            id: id,
+            userId: userId,
+            source: .program,
+            title: "Push",
+            startedAt: Date(timeIntervalSince1970: 100),
+            completedAt: Date(timeIntervalSince1970: 200),
+            blocks: [
+                PerformanceBlock(
+                    kind: .strength,
+                    title: "Push",
+                    exercises: [
+                        PerformanceExercise(
+                            name: "Bench Press",
+                            plannedSets: 1,
+                            plannedTarget: "5 reps",
+                            sets: [PerformanceSet(setNumber: 1, reps: 5, weightKg: 100, rpe: 8)]
+                        )
+                    ]
+                )
+            ]
+        )
+    }
+
     private func workoutLog(
         id: String,
         exerciseName: String,
@@ -876,7 +1154,7 @@ final class MovementProgressServiceTests: XCTestCase {
     }
 
     private func makeServices(
-        database: MockDatabaseService,
+        database: any DatabaseServiceProtocol,
         workoutLog: any WorkoutLogServiceProtocol
     ) -> ServiceContainer {
         ServiceContainer(
@@ -906,6 +1184,40 @@ final class MovementProgressServiceTests: XCTestCase {
             attribute: MockAttributeService()
         )
     }
+
+    private func assertCompletionRetriesAfterSingleCreateFailure(
+        in collection: String,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) async throws {
+        let database = TestProgressionDatabase(failingCreateAttempts: [collection: 1])
+        let services = makeServices(database: database, workoutLog: MockWorkoutLogService())
+        let sessionXP = try XCTUnwrap(services.sessionXP as? MockSessionXPService, file: file, line: line)
+        let service = TrainingCompletionService(
+            squadMission: NoOpSquadMissionService(),
+            friendChallenge: NoOpFriendChallengeService()
+        )
+        let log = benchPerformanceLog(id: "perf-retry-\(collection)")
+
+        do {
+            _ = try await service.complete(log, services: services)
+            XCTFail("First completion should fail for \(collection)", file: file, line: line)
+        } catch {
+            XCTAssertEqual(sessionXP.record(userId: "mock-user-123").totalSessions, 0, file: file, line: line)
+        }
+
+        let result = try await service.complete(log, services: services)
+        let record: TrainingCompletionRecord = try await database.read(
+            collection: "training_completion_records",
+            documentId: log.id
+        )
+
+        XCTAssertFalse(result.wasAlreadyCompleted, file: file, line: line)
+        XCTAssertEqual(record.performanceLogId, log.id, file: file, line: line)
+        XCTAssertGreaterThan(result.movementAPGains.reduce(0) { $0 + $1.rawAP }, 0, file: file, line: line)
+        XCTAssertGreaterThan(result.overallLevelXPGained, 0, file: file, line: line)
+        XCTAssertEqual(sessionXP.record(userId: "mock-user-123").totalSessions, 1, file: file, line: line)
+    }
 }
 
 private final class ScanContextUserService: UserServiceProtocol, @unchecked Sendable {
@@ -931,6 +1243,106 @@ private final class ScanContextUserService: UserServiceProtocol, @unchecked Send
             totalScans: 0
         )
     }
+}
+
+private enum TestProgressionDatabaseError: Error {
+    case forcedCreateFailure(collection: String)
+    case notFound(collection: String, documentId: String)
+}
+
+private actor TestProgressionDatabase: DatabaseServiceProtocol {
+    private var store: [String: [String: Any]] = [:]
+    private let delayMissingCompletionRecordReads: Bool
+    private let failingCreateCollections: Set<String>
+    private var failingCreateAttempts: [String: Int]
+
+    init(
+        delayMissingCompletionRecordReads: Bool = false,
+        failingCreateCollections: Set<String> = [],
+        failingCreateAttempts: [String: Int] = [:]
+    ) {
+        self.delayMissingCompletionRecordReads = delayMissingCompletionRecordReads
+        self.failingCreateCollections = failingCreateCollections
+        self.failingCreateAttempts = failingCreateAttempts
+    }
+
+    func create<T: Codable>(_ object: T, collection: String, documentId: String) async throws {
+        if failingCreateCollections.contains(collection) {
+            throw TestProgressionDatabaseError.forcedCreateFailure(collection: collection)
+        }
+        if let remaining = failingCreateAttempts[collection], remaining > 0 {
+            failingCreateAttempts[collection] = remaining - 1
+            throw TestProgressionDatabaseError.forcedCreateFailure(collection: collection)
+        }
+        let data = try JSONEncoder().encode(object)
+        let dict = try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+        store[key(collection: collection, documentId: documentId)] = dict
+    }
+
+    func read<T: Codable>(collection: String, documentId: String) async throws -> T {
+        let key = key(collection: collection, documentId: documentId)
+        if delayMissingCompletionRecordReads,
+           collection == "training_completion_records",
+           store[key] == nil {
+            try await Task.sleep(nanoseconds: 50_000_000)
+        }
+        guard let dict = store[key] else {
+            throw TestProgressionDatabaseError.notFound(collection: collection, documentId: documentId)
+        }
+        let data = try JSONSerialization.data(withJSONObject: dict)
+        return try JSONDecoder().decode(T.self, from: data)
+    }
+
+    func update(_ fields: [String: Any], collection: String, documentId: String) async throws {
+        let key = key(collection: collection, documentId: documentId)
+        var existing = store[key] ?? [:]
+        for (field, value) in fields {
+            existing[field] = value
+        }
+        store[key] = existing
+    }
+
+    func delete(collection: String, documentId: String) async throws {
+        store.removeValue(forKey: key(collection: collection, documentId: documentId))
+    }
+
+    func query<T: Codable>(
+        collection: String,
+        field: String,
+        isEqualTo value: Any,
+        orderBy: String?,
+        descending: Bool,
+        limit: Int?
+    ) async throws -> [T] {
+        []
+    }
+
+    func countKeys(prefix: String) -> Int {
+        store.keys.filter { $0.hasPrefix(prefix) }.count
+    }
+
+    private func key(collection: String, documentId: String) -> String {
+        "\(collection)/\(documentId)"
+    }
+}
+
+@MainActor
+private final class NoOpSquadMissionService: SquadMissionServiceProtocol {
+    func generateThisWeek(squadId: UUID) async throws -> SquadMission { throw SquadError.backendUnavailable }
+    func currentMission(squadId: UUID) async -> SquadMission? { nil }
+    func recordProgress(log: WorkoutLog, userId: String, sourceLogId: String) async {}
+    func evaluateCompletion(squadId: UUID) async {}
+}
+
+@MainActor
+private final class NoOpFriendChallengeService: FriendChallengeServiceProtocol {
+    func createChallenge(challengedId: UUID, kind: FriendChallenge.Kind, squadId: UUID) async throws -> FriendChallenge {
+        throw SquadError.backendUnavailable
+    }
+    func activeChallenges(userId: UUID) async -> [FriendChallenge] { [] }
+    func accept(_ challengeId: UUID) async throws {}
+    func recordProgress(log: WorkoutLog, userId: String, sourceLogId: String) async {}
+    func evaluateExpired() async {}
 }
 
 /// A WorkoutLogServiceProtocol impl that deliberately does NOT conform to

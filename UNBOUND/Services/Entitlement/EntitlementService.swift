@@ -2,7 +2,7 @@ import Foundation
 import Combine
 
 // Single source of truth for whether the user has unlocked the app.
-// `isEntitled` = real subscription active OR dev override flag on.
+// `isEntitled` = real subscription active OR DEBUG-only dev override flag on.
 //
 // Views gate on this (NOT on SubscriptionService.hasActiveSubscription
 // directly) so the dev override works uniformly across the app.
@@ -48,6 +48,10 @@ final class EntitlementService: ObservableObject, EntitlementServiceProtocol {
     }
 
     private func computeEntitled() -> Bool {
+        #if DEBUG
         subscription.hasActiveSubscription || devFlags.unlockAllFeatures
+        #else
+        subscription.hasActiveSubscription
+        #endif
     }
 }

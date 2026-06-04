@@ -1,4 +1,5 @@
 import XCTest
+import Combine
 @testable import UNBOUND
 
 @MainActor
@@ -18,10 +19,29 @@ final class SyncEngineTests: XCTestCase {
         }
     }
 
+    final class TestAuth: AuthServiceProtocol, @unchecked Sendable {
+        var currentUserId: String?
+        var isAuthenticated: Bool { currentUserId != nil }
+        var authStatePublisher: AnyPublisher<String?, Never> {
+            Just(currentUserId).eraseToAnyPublisher()
+        }
+
+        init(currentUserId: String?) {
+            self.currentUserId = currentUserId
+        }
+
+        func signInWithApple() async throws -> String { currentUserId ?? "" }
+        func signInWithEmail(email: String, password: String) async throws -> String { currentUserId ?? "" }
+        func createAccountWithEmail(email: String, password: String) async throws -> String { currentUserId ?? "" }
+        func signOut() throws { currentUserId = nil }
+        func deleteAccount() async throws { currentUserId = nil }
+    }
+
     private var dir: URL!
     private var outbox: OutboxStore!
     private var remote: MockRemote!
     private var local: MockDatabaseService!
+    private var auth: TestAuth!
     private var sut: SyncEngine!
 
     override func setUp() {
@@ -30,7 +50,8 @@ final class SyncEngineTests: XCTestCase {
         outbox = OutboxStore(directory: dir)
         remote = MockRemote()
         local = MockDatabaseService()
-        sut = SyncEngine(outbox: outbox, remote: remote, local: local, maxAttempts: 5)
+        auth = TestAuth(currentUserId: "u1")
+        sut = SyncEngine(outbox: outbox, remote: remote, local: local, maxAttempts: 5, auth: auth)
     }
     override func tearDown() { try? FileManager.default.removeItem(at: dir); super.tearDown() }
 
@@ -59,6 +80,17 @@ final class SyncEngineTests: XCTestCase {
         enq("p1")
         for _ in 0..<5 { await sut.flush() }
         XCTAssertEqual(outbox.pendingCount, 0)
+    }
+
+    func test_flush_refusesEntryForDifferentAuthenticatedUser() async {
+        enq("p1")
+        auth.currentUserId = "u2"
+
+        await sut.flush()
+
+        XCTAssertEqual(remote.upserts, 0)
+        XCTAssertEqual(outbox.pendingCount, 1)
+        XCTAssertEqual(outbox.peekBatch(limit: 1).first?.attempt, 0)
     }
 
     func test_restore_writes_pulled_docs_local() async throws {

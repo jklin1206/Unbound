@@ -46,6 +46,128 @@ final class TrainingSessionAdapterTests: XCTestCase {
         XCTAssertEqual(TrainingSessionEditPersistence.todayOnly.displayName, "Today only")
     }
 
+    func testSkillRungResolverChoosesRegressionWhenSkillIsNotTrainable() throws {
+        let decision = try XCTUnwrap(
+            SkillRungResolver.resolve(skillId: "pp.muscle-up", isTrainable: false)
+        )
+
+        XCTAssertEqual(decision.targetSkillId, "pp.muscle-up")
+        XCTAssertEqual(decision.source, .regression)
+        XCTAssertEqual(decision.selectedRungTitle, "10 Strict Pull-Ups")
+        XCTAssertEqual(decision.prescriptions.first?.exerciseName, "10 Strict Pull-Ups")
+        XCTAssertTrue(decision.reason.contains("Build toward"))
+    }
+
+    func testDecisionSkillBlockCarriesSelectedRungMetadata() throws {
+        let decision = try XCTUnwrap(
+            SkillRungResolver.resolve(skillId: "pp.muscle-up", isTrainable: false)
+        )
+        let block = TrainingSessionAdapters.skillBlock(decision: decision)
+
+        XCTAssertEqual(block.kind, .skill)
+        XCTAssertEqual(block.skillId, "pp.muscle-up")
+        XCTAssertEqual(block.selectedRungId, decision.selectedRungId)
+        XCTAssertEqual(block.selectedRungSource, .regression)
+        XCTAssertEqual(block.selectedRungReason, decision.reason)
+        XCTAssertEqual(block.subtitle, "10 Strict Pull-Ups")
+        XCTAssertEqual(block.prescriptions.first?.exerciseName, "10 Strict Pull-Ups")
+    }
+
+    func testSkillTrainingReviewPromotesCleanCompletedRegressionToNextRung() throws {
+        let firstRungId = SkillRungResolver.regressionRungId(
+            skillId: "pp.muscle-up",
+            name: "10 Strict Pull-Ups"
+        )
+        let log = makeSkillRungPerformanceLog(
+            skillId: "pp.muscle-up",
+            skillTitle: "Muscle-Up",
+            rungId: firstRungId,
+            exerciseName: "10 Strict Pull-Ups",
+            sets: [
+                PerformanceSet(setNumber: 1, reps: 8, rpe: 7, qualityFlags: [.clean]),
+                PerformanceSet(setNumber: 2, reps: 8, rpe: 7, qualityFlags: [.clean]),
+                PerformanceSet(setNumber: 3, reps: 8, rpe: 8, qualityFlags: [.clean])
+            ]
+        )
+
+        let review = try XCTUnwrap(SkillTrainingReviewAgent.evaluate(performanceLog: log).first)
+        XCTAssertEqual(review.outcome, .promote)
+        XCTAssertEqual(review.selectedRungId, firstRungId)
+        XCTAssertEqual(review.completedSets, 3)
+        XCTAssertEqual(review.cleanSetRatio, 1.0)
+
+        let next = try XCTUnwrap(
+            SkillRungResolver.resolve(
+                skillId: "pp.muscle-up",
+                isTrainable: false,
+                lastReview: review
+            )
+        )
+        XCTAssertEqual(next.selectedRungTitle, "10 Strict Dips")
+        XCTAssertTrue(next.reason.contains("Advance one regression rung"))
+    }
+
+    func testSkillTrainingReviewHoldsAssistedRegression() throws {
+        let rungId = SkillRungResolver.regressionRungId(
+            skillId: "pp.muscle-up",
+            name: "10 Strict Pull-Ups"
+        )
+        let log = makeSkillRungPerformanceLog(
+            skillId: "pp.muscle-up",
+            skillTitle: "Muscle-Up",
+            rungId: rungId,
+            exerciseName: "10 Strict Pull-Ups",
+            sets: [
+                PerformanceSet(setNumber: 1, reps: 8, rpe: 7, qualityFlags: [.assisted]),
+                PerformanceSet(setNumber: 2, reps: 8, rpe: 7, qualityFlags: [.assisted]),
+                PerformanceSet(setNumber: 3, reps: 8, rpe: 8, qualityFlags: [.assisted])
+            ]
+        )
+
+        let review = try XCTUnwrap(SkillTrainingReviewAgent.evaluate(performanceLog: log).first)
+        XCTAssertEqual(review.outcome, .hold)
+        XCTAssertTrue(review.reason.contains("assistance"))
+
+        let next = try XCTUnwrap(
+            SkillRungResolver.resolve(
+                skillId: "pp.muscle-up",
+                isTrainable: false,
+                lastReview: review
+            )
+        )
+        XCTAssertEqual(next.selectedRungTitle, "10 Strict Pull-Ups")
+    }
+
+    func testSkillTrainingReviewRegressesPainFromCurrentRung() throws {
+        let secondRungId = SkillRungResolver.regressionRungId(
+            skillId: "pp.muscle-up",
+            name: "10 Strict Dips"
+        )
+        let log = makeSkillRungPerformanceLog(
+            skillId: "pp.muscle-up",
+            skillTitle: "Muscle-Up",
+            rungId: secondRungId,
+            exerciseName: "10 Strict Dips",
+            sets: [
+                PerformanceSet(setNumber: 1, reps: 8, rpe: 7, qualityFlags: [.clean]),
+                PerformanceSet(setNumber: 2, reps: 5, rpe: 9, qualityFlags: [.pain])
+            ]
+        )
+
+        let review = try XCTUnwrap(SkillTrainingReviewAgent.evaluate(performanceLog: log).first)
+        XCTAssertEqual(review.outcome, .regress)
+        XCTAssertTrue(review.reason.contains("Pain"))
+
+        let next = try XCTUnwrap(
+            SkillRungResolver.resolve(
+                skillId: "pp.muscle-up",
+                isTrainable: false,
+                lastReview: review
+            )
+        )
+        XCTAssertEqual(next.selectedRungTitle, "10 Strict Pull-Ups")
+    }
+
     func testTrainingSessionEditPreferenceBuilderCreatesRecurringAndAvailablePreferences() throws {
         let original = makeDraft(["Bench Press", "Lat Pulldown"])
         var edited = original
@@ -447,7 +569,7 @@ final class TrainingSessionAdapterTests: XCTestCase {
 
         let sessionLogs = TrainingSessionAdapters.sessionLogs(from: log)
         XCTAssertEqual(sessionLogs.count, 1)
-        XCTAssertEqual(sessionLogs[0].id, "perf-skill-handstand:block-handstand:session")
+        XCTAssertEqual(sessionLogs[0].id, "perf-skill-handstand:hs.freestanding-hs-30:session")
         XCTAssertEqual(sessionLogs[0].skillId, "hs.freestanding-hs-30")
         XCTAssertEqual(sessionLogs[0].exercises[0].sets[0].holdSeconds, 18)
 
@@ -469,7 +591,14 @@ final class TrainingSessionAdapterTests: XCTestCase {
                 LoggedExercise(
                     name: "Wall Handstand Hold",
                     sets: [
-                        LoggedSet(reps: 0, holdSeconds: 32, weightKg: nil, rpe: 7),
+                        LoggedSet(
+                            reps: 0,
+                            holdSeconds: 32,
+                            weightKg: nil,
+                            rpe: 7,
+                            qualityFlags: [.clean],
+                            notes: "Chest-to-wall, quiet toes"
+                        ),
                         LoggedSet(reps: 0, holdSeconds: 28, weightKg: nil, rpe: 8)
                     ]
                 ),
@@ -479,20 +608,38 @@ final class TrainingSessionAdapterTests: XCTestCase {
                         LoggedSet(reps: 4, holdSeconds: nil, weightKg: 5, rpe: 8)
                     ]
                 )
-            ]
+            ],
+            selectedRungId: "hs.wall-handstand-30.main",
+            selectedRungSource: .main,
+            selectedRungReason: "Train direct Wall Handstand work."
         )
 
         XCTAssertEqual(log.source, .skill)
+        XCTAssertEqual(log.blocks.first?.id, "\(log.id):hs.wall-handstand-30:block")
         XCTAssertEqual(log.blocks.first?.skillId, "hs.wall-handstand-30")
+        XCTAssertEqual(log.blocks.first?.selectedRungId, "hs.wall-handstand-30.main")
+        XCTAssertEqual(log.blocks.first?.selectedRungSource, .main)
+        XCTAssertEqual(log.blocks.first?.selectedRungReason, "Train direct Wall Handstand work.")
         XCTAssertEqual(log.blocks.first?.durationSeconds, 300)
         XCTAssertEqual(log.blocks.first?.exercises[0].sets[0].holdSeconds, 32)
+        XCTAssertEqual(log.blocks.first?.exercises[0].sets[0].qualityFlags, Set([.clean]))
+        XCTAssertEqual(log.blocks.first?.exercises[0].sets[0].notes, "Chest-to-wall, quiet toes")
         XCTAssertEqual(log.blocks.first?.exercises[1].sets[0].reps, 4)
         XCTAssertEqual(log.blocks.first?.exercises[1].sets[0].weightKg, 5)
         XCTAssertEqual(log.blocks.first?.exercises[1].sets[0].rpe, 8)
 
         let sessionLogs = TrainingSessionAdapters.sessionLogs(from: log, xpAwarded: 12)
         XCTAssertEqual(sessionLogs.first?.xpAwarded, 12)
+        XCTAssertEqual(sessionLogs.first?.selectedRungId, "hs.wall-handstand-30.main")
+        XCTAssertEqual(sessionLogs.first?.selectedRungSource, .main)
+        XCTAssertEqual(sessionLogs.first?.selectedRungReason, "Train direct Wall Handstand work.")
         XCTAssertEqual(sessionLogs.first?.exercises[0].sets[0].holdSeconds, 32)
+        XCTAssertEqual(sessionLogs.first?.exercises[0].sets[0].effectiveQualityFlags, Set([.clean]))
+        XCTAssertEqual(sessionLogs.first?.exercises[0].sets[0].notes, "Chest-to-wall, quiet toes")
+
+        let workoutLog = TrainingSessionAdapters.workoutLog(from: log)
+        XCTAssertEqual(workoutLog?.exerciseEntries[0].sets[0].qualityFlags, Set([.clean]))
+        XCTAssertEqual(workoutLog?.exerciseEntries[0].sets[0].notes, "Chest-to-wall, quiet toes")
     }
 
     @MainActor
@@ -521,6 +668,9 @@ final class TrainingSessionAdapterTests: XCTestCase {
                     kind: .skill,
                     title: "Handstand",
                     skillId: "hs.wall-handstand-30",
+                    selectedRungId: "hs.wall-handstand-30.main",
+                    selectedRungSource: .main,
+                    selectedRungReason: "Train direct Handstand work.",
                     prescriptions: [
                         TrainingBlockPrescription(
                             exerciseName: "Wall Handstand Hold",
@@ -547,6 +697,9 @@ final class TrainingSessionAdapterTests: XCTestCase {
         XCTAssertEqual(log.blocks.count, 2)
         XCTAssertEqual(log.blocks[1].kind, .skill)
         XCTAssertEqual(log.blocks[1].skillId, "hs.wall-handstand-30")
+        XCTAssertEqual(log.blocks[1].selectedRungId, "hs.wall-handstand-30.main")
+        XCTAssertEqual(log.blocks[1].selectedRungSource, .main)
+        XCTAssertEqual(log.blocks[1].selectedRungReason, "Train direct Handstand work.")
         XCTAssertEqual(log.blocks[0].exercises[0].movementId, "exercise.pullup")
         XCTAssertEqual(log.blocks[0].exercises[0].rankStandardMovementId, "exercise.pullup")
         XCTAssertEqual(log.blocks[1].exercises[0].movementId, "skill-drill.wall-handstand")
@@ -555,6 +708,9 @@ final class TrainingSessionAdapterTests: XCTestCase {
 
         let sessionLogs = TrainingSessionAdapters.sessionLogs(from: log, xpAwarded: 20)
         XCTAssertEqual(sessionLogs.first?.skillId, "hs.wall-handstand-30")
+        XCTAssertEqual(sessionLogs.first?.selectedRungId, "hs.wall-handstand-30.main")
+        XCTAssertEqual(sessionLogs.first?.selectedRungSource, .main)
+        XCTAssertEqual(sessionLogs.first?.selectedRungReason, "Train direct Handstand work.")
         XCTAssertEqual(sessionLogs.first?.exercises[0].sets[0].holdSeconds, 34)
     }
 
@@ -741,7 +897,7 @@ final class TrainingSessionAdapterTests: XCTestCase {
             completedAt: Date(timeIntervalSince1970: 2_500),
             elapsedSeconds: 2700,
             primaryMetric: .repCount(total: 310, bursts: [40, 30, 30, 100, 100, 10]),
-            spAwarded: routine.spReward,
+            spAwarded: 0,
             performanceEntries: [
                 RoutinePerformanceEntry(
                     stepId: 0,
@@ -767,7 +923,8 @@ final class TrainingSessionAdapterTests: XCTestCase {
                 RoutinePerformanceEntry(
                     stepId: 3,
                     source: .instruction,
-                    name: "10 km run — any pace, no stopping"
+                    name: "Run",
+                    distanceMeters: 10_000
                 )
             ]
         )
@@ -790,6 +947,36 @@ final class TrainingSessionAdapterTests: XCTestCase {
         XCTAssertEqual(run?.sets.first?.distanceMeters, 10_000)
         XCTAssertTrue(gains.contains { $0.rankStandardMovementId == "exercise.pushup" })
         XCTAssertTrue(gains.contains { $0.rankStandardMovementId == "cardio.run" })
+    }
+
+    func testRoutineAdapterDoesNotInferCapturedInstructionOnlyWork() {
+        let routine = RoutineLibrary.placeholderRoutines.first { $0.id == "daily-quest" }!
+        let record = RoutineCompletionRecord(
+            id: "instruction-only-routine-record",
+            routineId: routine.id,
+            completedAt: Date(timeIntervalSince1970: 2_600),
+            elapsedSeconds: 120,
+            primaryMetric: .steps(done: 1, total: 1),
+            spAwarded: 0,
+            performanceEntries: [
+                RoutinePerformanceEntry(
+                    stepId: 3,
+                    source: .instruction,
+                    name: "2 km run (or 12-min treadmill walk/jog)"
+                )
+            ]
+        )
+
+        let log = TrainingSessionAdapters.performanceLogForRoutine(
+            routine,
+            record: record,
+            userId: "u1"
+        )
+        let exercises = log.blocks.first?.exercises ?? []
+        let gains = MovementAPCalculator.gains(from: log)
+
+        XCTAssertTrue(exercises.isEmpty)
+        XCTAssertEqual(gains.reduce(0) { $0 + $1.rawAP }, 0)
     }
 
     @MainActor
@@ -962,6 +1149,36 @@ final class TrainingSessionAdapterTests: XCTestCase {
         XCTAssertNil(TrainingSessionAdapters.workoutLog(from: incomplete))
     }
 
+    func testCompatibleWorkoutLogDoesNotInventProgramIdForSkillSource() {
+        let performanceLog = PerformanceLog(
+            id: "perf-skill-source",
+            userId: "u1",
+            source: .skill,
+            title: "Handstand",
+            startedAt: Date(timeIntervalSince1970: 100),
+            completedAt: Date(timeIntervalSince1970: 700),
+            blocks: [
+                PerformanceBlock(
+                    kind: .skill,
+                    title: "Handstand",
+                    skillId: "hs.wall-handstand-30",
+                    exercises: [
+                        PerformanceExercise(
+                            name: "Wall Walk",
+                            plannedSets: 1,
+                            plannedTarget: "4 reps",
+                            sets: [PerformanceSet(setNumber: 1, reps: 4)]
+                        )
+                    ]
+                )
+            ]
+        )
+
+        let workoutLog = TrainingSessionAdapters.workoutLog(from: performanceLog)
+        XCTAssertEqual(workoutLog?.programId, "")
+        XCTAssertEqual(workoutLog?.dayNumber, 0)
+    }
+
     func testSessionLogsRequireCompletedSkillSets() {
         let log = PerformanceLog(
             id: "perf-skill-partial",
@@ -1032,6 +1249,43 @@ final class TrainingSessionAdapterTests: XCTestCase {
             restSeconds: 120,
             muscleGroups: [.chest],
             rpe: 8
+        )
+    }
+
+    private func makeSkillRungPerformanceLog(
+        skillId: String,
+        skillTitle: String,
+        rungId: String,
+        exerciseName: String,
+        sets: [PerformanceSet]
+    ) -> PerformanceLog {
+        PerformanceLog(
+            id: "perf-\(rungId)",
+            userId: "u1",
+            source: .skill,
+            title: skillTitle,
+            startedAt: Date(timeIntervalSince1970: 100),
+            completedAt: Date(timeIntervalSince1970: 700),
+            blocks: [
+                PerformanceBlock(
+                    id: "skill-block",
+                    kind: .skill,
+                    title: skillTitle,
+                    skillId: skillId,
+                    selectedRungId: rungId,
+                    selectedRungSource: .regression,
+                    selectedRungReason: "Test review path.",
+                    exercises: [
+                        PerformanceExercise(
+                            name: exerciseName,
+                            plannedSets: 3,
+                            plannedTarget: "5-8 reps",
+                            sets: sets
+                        )
+                    ],
+                    durationSeconds: 600
+                )
+            ]
         )
     }
 }

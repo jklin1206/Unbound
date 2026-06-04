@@ -6,7 +6,8 @@ enum TrainingSessionAdapters {
         userId: String,
         programId: String?,
         dayNumber: Int?,
-        scheduledSkillIds: [String] = []
+        scheduledSkillIds: [String] = [],
+        scheduledSkillBlocks: [TrainingBlock] = []
     ) -> TrainingSessionDraft {
         var blocks: [TrainingBlock] = []
 
@@ -16,11 +17,13 @@ enum TrainingSessionAdapters {
 
         blocks.append(exerciseBlock(title: workout.name, kind: .strength, exercises: workout.mainExercises))
 
-        for skillId in scheduledSkillIds {
-            if let skill = SkillGraph.shared.node(id: skillId) {
-                blocks.append(skillBlock(skillId: skill.id, title: skill.title))
+        let skillBlocks = scheduledSkillBlocks.isEmpty
+            ? scheduledSkillIds.compactMap { skillId -> TrainingBlock? in
+                guard let skill = SkillGraph.shared.node(id: skillId) else { return nil }
+                return skillBlock(skillId: skill.id, title: skill.title)
             }
-        }
+            : scheduledSkillBlocks
+        blocks.append(contentsOf: skillBlocks)
 
         if !workout.cooldown.isEmpty {
             blocks.append(exerciseBlock(title: "Cooldown", kind: .routine, exercises: workout.cooldown))
@@ -88,8 +91,20 @@ enum TrainingSessionAdapters {
     }
 
     static func skillBlock(skillId: String, title: String) -> TrainingBlock {
-        let plan = SkillTrainingPlanLibrary.plan(for: skillId)
-        let prescriptions = plan?.mainSets.prefix(3).map { prescription in
+        if let decision = SkillRungResolver.resolve(skillId: skillId, isTrainable: true) {
+            return skillBlock(decision: decision)
+        }
+        return TrainingBlock(
+            kind: .skill,
+            title: title,
+            subtitle: "Scheduled skill work",
+            skillId: skillId,
+            prescriptions: []
+        )
+    }
+
+    static func skillBlock(decision: SkillTrainingRungDecision) -> TrainingBlock {
+        let prescriptions = decision.prescriptions.prefix(3).map { prescription in
             TrainingBlockPrescription(
                 exerciseName: prescription.exerciseName,
                 sets: prescription.sets,
@@ -97,12 +112,15 @@ enum TrainingSessionAdapters {
                 restSeconds: prescription.restSeconds,
                 notes: prescription.notes
             )
-        } ?? []
+        }
         return TrainingBlock(
             kind: .skill,
-            title: title,
-            subtitle: "Scheduled skill work",
-            skillId: skillId,
+            title: decision.targetSkillTitle,
+            subtitle: decision.selectedRungTitle,
+            skillId: decision.targetSkillId,
+            selectedRungId: decision.selectedRungId,
+            selectedRungSource: decision.source,
+            selectedRungReason: decision.reason,
             prescriptions: Array(prescriptions)
         )
     }
@@ -161,7 +179,9 @@ enum TrainingSessionAdapters {
                                 reps: set.reps ?? 0,
                                 rpe: set.rpe,
                                 isWarmup: set.isWarmup,
-                                durationSeconds: set.holdSeconds ?? set.durationSeconds
+                                durationSeconds: set.holdSeconds ?? set.durationSeconds,
+                                qualityFlags: set.qualityFlags.isEmpty ? nil : set.qualityFlags,
+                                notes: set.notes
                             )
                         },
                         skipped: exercise.skipped,
@@ -175,7 +195,7 @@ enum TrainingSessionAdapters {
         return WorkoutLog(
             id: log.id,
             userId: log.userId,
-            programId: log.programId ?? log.source.rawValue,
+            programId: log.programId ?? "",
             dayNumber: log.dayNumber ?? 0,
             plannedWorkoutName: log.title,
             startedAt: log.startedAt,
@@ -183,7 +203,8 @@ enum TrainingSessionAdapters {
             exerciseEntries: entries,
             overallNotes: log.notes,
             overallRPE: log.overallRPE,
-            durationMinutes: max(0, Int(log.completedAt.timeIntervalSince(log.startedAt) / 60))
+            durationMinutes: max(0, Int(log.completedAt.timeIntervalSince(log.startedAt) / 60)),
+            localStartHour: Calendar.current.component(.hour, from: log.startedAt)
         )
     }
 
@@ -197,7 +218,9 @@ enum TrainingSessionAdapters {
                         reps: set.reps ?? 0,
                         holdSeconds: set.holdSeconds,
                         weightKg: set.weightKg,
-                        rpe: set.rpe
+                        rpe: set.rpe,
+                        qualityFlags: set.qualityFlags,
+                        notes: set.notes
                     )
                 }
                 guard !completedSets.isEmpty else { return nil }
@@ -208,9 +231,12 @@ enum TrainingSessionAdapters {
             }
             guard !exercises.isEmpty else { return nil }
             return SessionLog(
-                id: "\(log.id):\(block.id):session",
+                id: "\(log.id):\(skillId):session",
                 userId: log.userId,
                 skillId: skillId,
+                selectedRungId: block.selectedRungId,
+                selectedRungSource: block.selectedRungSource,
+                selectedRungReason: block.selectedRungReason,
                 createdAt: log.completedAt,
                 durationSeconds: block.durationSeconds ?? Int(log.completedAt.timeIntervalSince(log.startedAt)),
                 exercises: exercises,
@@ -228,6 +254,9 @@ enum TrainingSessionAdapters {
         completedAt: Date = Date(),
         durationSeconds: Int,
         exercises: [LoggedExercise],
+        selectedRungId: String? = nil,
+        selectedRungSource: SkillTrainingRungSource? = nil,
+        selectedRungReason: String? = nil,
         source: TrainingSessionSource = .skill
     ) -> PerformanceLog {
         PerformanceLog(
@@ -239,9 +268,13 @@ enum TrainingSessionAdapters {
             completedAt: completedAt,
             blocks: [
                 PerformanceBlock(
+                    id: "\(id):\(skillId):block",
                     kind: .skill,
                     title: skillTitle,
                     skillId: skillId,
+                    selectedRungId: selectedRungId,
+                    selectedRungSource: selectedRungSource,
+                    selectedRungReason: selectedRungReason,
                     exercises: exercises.map { exercise in
                         let resolved = MovementResolver.resolve(exercise.name)
                         return PerformanceExercise(
@@ -256,7 +289,9 @@ enum TrainingSessionAdapters {
                                     reps: set.reps,
                                     weightKg: set.weightKg,
                                     holdSeconds: set.holdSeconds,
-                                    rpe: set.rpe
+                                    rpe: set.rpe,
+                                    qualityFlags: set.effectiveQualityFlags,
+                                    notes: set.notes
                                 )
                             }
                         )
@@ -342,20 +377,16 @@ enum TrainingSessionAdapters {
     ) -> [PerformanceExercise] {
         var orderedNames: [String] = []
         var grouped: [String: [RoutinePerformanceEntry]] = [:]
-        var inferredExercises: [PerformanceExercise] = []
 
         for entry in entries {
             if entry.hasDirectMetric {
                 let name = cleanRoutineExerciseName(entry.name)
                 if grouped[name] == nil { orderedNames.append(name) }
                 grouped[name, default: []].append(entry)
-            } else if entry.source == .instruction,
-                      let inferred = instructionRoutineExercise(from: entry.name) {
-                inferredExercises.append(inferred)
             }
         }
 
-        var exercises = orderedNames.compactMap { name -> PerformanceExercise? in
+        let exercises = orderedNames.compactMap { name -> PerformanceExercise? in
             guard let group = grouped[name] else { return nil }
             let sets = group.flatMap { performanceSets(from: $0) }
             guard !sets.isEmpty else { return nil }
@@ -368,7 +399,6 @@ enum TrainingSessionAdapters {
             )
         }
 
-        exercises.append(contentsOf: inferredExercises)
         return exercises.filter { exercise in
             exercise.sets.contains { set in
                 (set.reps ?? 0) > 0

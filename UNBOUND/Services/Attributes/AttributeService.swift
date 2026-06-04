@@ -17,15 +17,16 @@ protocol AttributeServiceProtocol: AnyObject {
     @discardableResult
     func ingest(session: WorkoutLog, userId: String) async -> AttributeProfile
 
-    /// Apply canonical AP-derived attribute XP from a completed performance
-    /// log. This is the migration path defined in PROGRESSION.md: movement AP
+    /// Apply canonical workout-derived attribute XP from a completed performance
+    /// log. This is the migration path defined in PROGRESSION.md: movement work
     /// fans into permanent attribute XP through each movement's vector.
     @discardableResult
     func ingest(
         movementAPGains gains: [MovementAPGain],
         userId: String,
         at date: Date,
-        noveltyMultiplier: Double
+        noveltyMultiplier: Double,
+        sourceId: String?
     ) async -> AttributeAPIngestResult
 
     /// Apply direct permanent attribute XP for non-movement rewards such as
@@ -34,7 +35,8 @@ protocol AttributeServiceProtocol: AnyObject {
     func applyXPDeltas(
         _ xpDeltas: [AttributeKey: Double],
         userId: String,
-        at date: Date
+        at date: Date,
+        sourceId: String?
     ) async -> AttributeAPIngestResult
 
     /// Apply onboarding seed. Each selected key starts at L0 (xp = 0).
@@ -53,6 +55,33 @@ protocol AttributeServiceProtocol: AnyObject {
     /// Apply a flat boost to a single axis (trial capstone payoff).
     /// Clamps to 100. Posts `.attributeRankUp` if a rank tier is crossed.
     func applyBoost(axis: AttributeKey, amount: Double, userId: String)
+}
+
+extension AttributeServiceProtocol {
+    @discardableResult
+    func ingest(
+        movementAPGains gains: [MovementAPGain],
+        userId: String,
+        at date: Date,
+        noveltyMultiplier: Double
+    ) async -> AttributeAPIngestResult {
+        await ingest(
+            movementAPGains: gains,
+            userId: userId,
+            at: date,
+            noveltyMultiplier: noveltyMultiplier,
+            sourceId: nil
+        )
+    }
+
+    @discardableResult
+    func applyXPDeltas(
+        _ xpDeltas: [AttributeKey: Double],
+        userId: String,
+        at date: Date
+    ) async -> AttributeAPIngestResult {
+        await applyXPDeltas(xpDeltas, userId: userId, at: date, sourceId: nil)
+    }
 }
 
 // MARK: - AttributeService (real)
@@ -113,7 +142,8 @@ final class AttributeService: AttributeServiceProtocol {
         movementAPGains gains: [MovementAPGain],
         userId: String,
         at date: Date,
-        noveltyMultiplier: Double = 1.0
+        noveltyMultiplier: Double = 1.0,
+        sourceId: String? = nil
     ) async -> AttributeAPIngestResult {
         guard !gains.isEmpty else { return AttributeAPIngestResult() }
 
@@ -125,9 +155,25 @@ final class AttributeService: AttributeServiceProtocol {
             noveltyMultiplier: noveltyMultiplier
         )
         guard !xpDeltas.isEmpty else { return AttributeAPIngestResult() }
+        if profile.hasProcessed(sourceId) {
+            if let sourceId, let receipt = profile.processedSourceReceipts[sourceId] {
+                return receipt.result
+            }
+            return reconstructedAttributeResult(profileAfter: profile, xpDeltas: xpDeltas, at: date)
+        }
 
+        let profileBefore = profile
         let applied = AttributeIngest.applyXPDeltas(&profile, xpDeltas: xpDeltas, at: date)
         profile.computedAt = date
+        profile.markProcessed(
+            sourceId,
+            receipt: AttributeSourceReceipt(
+                rewards: applied.rewards,
+                rankUpEventCount: applied.rankUpEvents.count,
+                profileBefore: AttributeProfileSnapshot(profileBefore),
+                profileAfter: AttributeProfileSnapshot(profile)
+            )
+        )
         store.save(profile)
 
         for event in applied.rankUpEvents {
@@ -143,7 +189,9 @@ final class AttributeService: AttributeServiceProtocol {
 
         return AttributeAPIngestResult(
             rewards: applied.rewards,
-            rankUpEvents: applied.rankUpEvents
+            rankUpEvents: applied.rankUpEvents,
+            profileBefore: profileBefore,
+            profileAfter: profile
         )
     }
 
@@ -151,16 +199,33 @@ final class AttributeService: AttributeServiceProtocol {
     func applyXPDeltas(
         _ xpDeltas: [AttributeKey: Double],
         userId: String,
-        at date: Date
+        at date: Date,
+        sourceId: String? = nil
     ) async -> AttributeAPIngestResult {
         guard !xpDeltas.isEmpty else { return AttributeAPIngestResult() }
 
         var profile = AttributeDrift.project(profile(userId: userId), to: date)
         let beforeShape = profile.buildIdentity.shape
+        if profile.hasProcessed(sourceId) {
+            if let sourceId, let receipt = profile.processedSourceReceipts[sourceId] {
+                return receipt.result
+            }
+            return reconstructedAttributeResult(profileAfter: profile, xpDeltas: xpDeltas, at: date)
+        }
+        let profileBefore = profile
         let applied = AttributeIngest.applyXPDeltas(&profile, xpDeltas: xpDeltas, at: date)
         guard !applied.rewards.isEmpty else { return AttributeAPIngestResult() }
 
         profile.computedAt = date
+        profile.markProcessed(
+            sourceId,
+            receipt: AttributeSourceReceipt(
+                rewards: applied.rewards,
+                rankUpEventCount: applied.rankUpEvents.count,
+                profileBefore: AttributeProfileSnapshot(profileBefore),
+                profileAfter: AttributeProfileSnapshot(profile)
+            )
+        )
         store.save(profile)
 
         for event in applied.rankUpEvents {
@@ -176,7 +241,9 @@ final class AttributeService: AttributeServiceProtocol {
 
         return AttributeAPIngestResult(
             rewards: applied.rewards,
-            rankUpEvents: applied.rankUpEvents
+            rankUpEvents: applied.rankUpEvents,
+            profileBefore: profileBefore,
+            profileAfter: profile
         )
     }
 
@@ -255,6 +322,56 @@ final class AttributeService: AttributeServiceProtocol {
     }
 }
 
+private func reconstructedAttributeResult(
+    profileAfter: AttributeProfile,
+    xpDeltas: [AttributeKey: Double],
+    at date: Date
+) -> AttributeAPIngestResult {
+    var rewards: [AttributeProgressionReward] = []
+    var rankUpEvents: [AttributeRankUpEvent] = []
+
+    for key in AttributeKey.allCases {
+        guard let xpGained = xpDeltas[key], xpGained > 0 else { continue }
+        let currentValue = profileAfter.value(for: key)
+        let previousXP = max(0, currentValue.xp - xpGained)
+        let previousLevel = AttributeLevelCurve.level(forXP: previousXP)
+        let currentLevel = currentValue.level
+        let previousTier = AttributeLevelCurve.rankTitle(forLevel: previousLevel)
+        let currentTier = currentValue.rankTitle
+        rewards.append(
+            AttributeProgressionReward(
+                key: key,
+                xpGained: xpGained,
+                previousXP: previousXP,
+                currentXP: currentValue.xp,
+                previousLevel: previousLevel,
+                currentLevel: currentLevel,
+                previousTier: previousTier,
+                currentTier: currentTier
+            )
+        )
+        if currentTier > previousTier {
+            let crownBand: Set<RankTitle> = [.vessel, .unbound, .ascendant]
+            rankUpEvents.append(
+                AttributeRankUpEvent(
+                    axis: key,
+                    fromTitle: previousTier,
+                    toTitle: currentTier,
+                    level: crownBand.contains(currentTier) ? .aTier : .tier,
+                    timestamp: date
+                )
+            )
+        }
+    }
+
+    return AttributeAPIngestResult(
+        rewards: rewards,
+        rankUpEvents: rankUpEvents,
+        profileBefore: nil,
+        profileAfter: profileAfter
+    )
+}
+
 // MARK: - MockAttributeService
 
 @MainActor
@@ -280,7 +397,8 @@ final class MockAttributeService: AttributeServiceProtocol {
         movementAPGains gains: [MovementAPGain],
         userId: String,
         at date: Date,
-        noveltyMultiplier: Double = 1.0
+        noveltyMultiplier: Double = 1.0,
+        sourceId: String? = nil
     ) async -> AttributeAPIngestResult {
         guard !gains.isEmpty else { return AttributeAPIngestResult() }
         var prof = profileByUser[userId] ?? .empty(userId: userId, at: date)
@@ -289,23 +407,66 @@ final class MockAttributeService: AttributeServiceProtocol {
             catalog: AttributeCatalog.shared,
             noveltyMultiplier: noveltyMultiplier
         )
+        if prof.hasProcessed(sourceId) {
+            if let sourceId, let receipt = prof.processedSourceReceipts[sourceId] {
+                return receipt.result
+            }
+            return reconstructedAttributeResult(profileAfter: prof, xpDeltas: xpDeltas, at: date)
+        }
+        let profileBefore = prof
         let applied = AttributeIngest.applyXPDeltas(&prof, xpDeltas: xpDeltas, at: date)
         prof.computedAt = date
+        prof.markProcessed(
+            sourceId,
+            receipt: AttributeSourceReceipt(
+                rewards: applied.rewards,
+                rankUpEventCount: applied.rankUpEvents.count,
+                profileBefore: AttributeProfileSnapshot(profileBefore),
+                profileAfter: AttributeProfileSnapshot(prof)
+            )
+        )
         profileByUser[userId] = prof
-        return AttributeAPIngestResult(rewards: applied.rewards, rankUpEvents: applied.rankUpEvents)
+        return AttributeAPIngestResult(
+            rewards: applied.rewards,
+            rankUpEvents: applied.rankUpEvents,
+            profileBefore: profileBefore,
+            profileAfter: prof
+        )
     }
     @discardableResult
     func applyXPDeltas(
         _ xpDeltas: [AttributeKey: Double],
         userId: String,
-        at date: Date
+        at date: Date,
+        sourceId: String? = nil
     ) async -> AttributeAPIngestResult {
         guard !xpDeltas.isEmpty else { return AttributeAPIngestResult() }
         var prof = profileByUser[userId] ?? .empty(userId: userId, at: date)
+        if prof.hasProcessed(sourceId) {
+            if let sourceId, let receipt = prof.processedSourceReceipts[sourceId] {
+                return receipt.result
+            }
+            return reconstructedAttributeResult(profileAfter: prof, xpDeltas: xpDeltas, at: date)
+        }
+        let profileBefore = prof
         let applied = AttributeIngest.applyXPDeltas(&prof, xpDeltas: xpDeltas, at: date)
         prof.computedAt = date
+        prof.markProcessed(
+            sourceId,
+            receipt: AttributeSourceReceipt(
+                rewards: applied.rewards,
+                rankUpEventCount: applied.rankUpEvents.count,
+                profileBefore: AttributeProfileSnapshot(profileBefore),
+                profileAfter: AttributeProfileSnapshot(prof)
+            )
+        )
         profileByUser[userId] = prof
-        return AttributeAPIngestResult(rewards: applied.rewards, rankUpEvents: applied.rankUpEvents)
+        return AttributeAPIngestResult(
+            rewards: applied.rewards,
+            rankUpEvents: applied.rankUpEvents,
+            profileBefore: profileBefore,
+            profileAfter: prof
+        )
     }
     func applySeed(_ seeded: Set<AttributeKey>, userId: String) {
         seededFor[userId] = seeded

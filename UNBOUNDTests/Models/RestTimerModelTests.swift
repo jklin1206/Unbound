@@ -12,7 +12,7 @@ final class SpyRestNotifier: RestNotifying, @unchecked Sendable {
 
 @MainActor
 final class RestTimerModelTests: XCTestCase {
-    func test_start_schedulesNotification_andCountsDown() {
+    func test_start_schedulesNotifier_andCountsDown() {
         let spy = SpyRestNotifier()
         let m = RestTimerModel(notifier: spy)
         m.start(seconds: 90, nextLabel: "Bench")

@@ -107,9 +107,15 @@ struct ActiveWorkoutContainerView: View {
                 onEditReps:   { ei, si in editing = EditTarget(ei: ei, si: si, isWeight: false) },
                 onPickRPE: { ei, si in rpeTarget = RPETarget(ei: ei, si: si) },
                 onConfirmAsPlanned: { ei, si in
+                    let shouldUseDeckFlow = isDeckTrial
                     session.confirmAsPlanned(exerciseIndex: ei, setIndex: si)
                     try? draftStore.save(session)
-                    transition(ei: ei)
+                    if shouldUseDeckFlow && !session.hasUnloggedWorkingSets {
+                        restTimer.stop()
+                        Task { await complete() }
+                    } else {
+                        transition(ei: ei)
+                    }
                 },
                 onToggleQualityFlag: { ei, si, flag in
                     session.toggleQualityFlag(flag, exerciseIndex: ei, setIndex: si)
@@ -121,7 +127,11 @@ struct ActiveWorkoutContainerView: View {
                 }
             )
 
-            completionFooter
+            if isDeckTrial {
+                deckRestFooter
+            } else {
+                completionFooter
+            }
         }
         .overlay(alignment: .topLeading) {
             Button {
@@ -199,9 +209,7 @@ struct ActiveWorkoutContainerView: View {
                 si: t.si,
                 isWeight: t.isWeight,
                 onCommitted: {
-                    let didLog = session.recomputeLogged(exerciseIndex: t.ei, setIndex: t.si)
                     try? draftStore.save(session)
-                    if didLog { transition(ei: t.ei) }
                 }
             )
         }
@@ -229,10 +237,7 @@ struct ActiveWorkoutContainerView: View {
                 currentExerciseName: session.exercises[ctx.index].name,
                 alternatives: swapAlternatives,
                 onSelect: { alt in
-                    // Mutate the exercise name in the session directly
-                    if session.exercises.indices.contains(ctx.index) {
-                        session.exercises[ctx.index].name = alt.displayName
-                    }
+                    session.replaceExercise(at: ctx.index, with: alt)
                     swapExerciseIndex = nil
                     try? draftStore.save(session)
                 },
@@ -244,7 +249,10 @@ struct ActiveWorkoutContainerView: View {
         }
         // Custom exercise builder
         .sheet(isPresented: $showingCustomBuilder) {
-            CustomExerciseBuilderView()
+            CustomExerciseBuilderView { exercise in
+                session.appendCustomExercise(exercise)
+                try? draftStore.save(session)
+            }
                 .environmentObject(services)
         }
         // Notes editing sheet — simple inline text entry
@@ -286,6 +294,20 @@ struct ActiveWorkoutContainerView: View {
 
     private var isRankTrial: Bool {
         rankTrialDefinition != nil
+    }
+
+    private var isDeckTrial: Bool {
+        rankTrialDefinition?.format == .fixedDeck
+    }
+
+    private var deckRestFooter: some View {
+        RestTimerPill(
+            model: restTimer,
+            onAddThirty: { restTimer.addThirty() },
+            onDismiss: { restTimer.dismiss() }
+        )
+        .padding(.bottom, 16)
+        .allowsHitTesting(restTimer.isVisible)
     }
 
     private var completionFooter: some View {
@@ -399,11 +421,12 @@ struct ActiveWorkoutContainerView: View {
         for ei in session.exercises.indices {
             for si in session.exercises[ei].sets.indices
             where session.exercises[ei].sets[si].suggestedWeightKg == nil {
+                let fallbackWeight = ei == session.currentExerciseIndex ? workingWeightKg : nil
                 if let g = SetPrefill.ghost(
                     exerciseName: session.exercises[ei].name,
                     setIndex: si,
                     priorEntries: priorEntries,
-                    workingWeightKg: workingWeightKg) {
+                    workingWeightKg: fallbackWeight) {
                     session.exercises[ei].sets[si].suggestedWeightKg = g.weightKg.map {
                         WeightPlatePolicy.snappedSuggestionKilograms(
                             $0,
@@ -556,7 +579,11 @@ struct ActiveWorkoutContainerView: View {
             return
         }
         saving = true
+        #if DEBUG
+        let performanceLog = session.assemblePerformanceLog(userId: uid, completedAt: DevProgramClock.now)
+        #else
         let performanceLog = session.assemblePerformanceLog(userId: uid)
+        #endif
         do {
             let completionResult = try await TrainingCompletionService.shared.complete(performanceLog, services: services)
             let weeklyVowReceipt = services.trials.recordCompletedVowWork(
@@ -807,11 +834,13 @@ private struct EditorSheet: View {
             return
         }
         if isWeight {
+            session.objectWillChange.send()
             session.exercises[ei].sets[si].weightKg = value > 0
                 ? WeightPlatePolicy.kilograms(fromDisplayValue: value, unit: weightUnit)
                 : nil
         } else {
             let intValue = Int(value)
+            session.objectWillChange.send()
             switch session.exercises[ei].metricKind {
             case .reps:
                 session.exercises[ei].sets[si].reps = intValue > 0 ? intValue : nil

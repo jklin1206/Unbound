@@ -3,17 +3,20 @@ import SwiftUI
 struct SavedWorkoutsListView: View {
     @State private var workouts: [SavedWorkout]
 
+    let onCreateNew: () -> Void
     let onReplaceToday: (SavedWorkout) -> Void
     let onSchedule: (SavedWorkout) -> Void
     let onDismiss: () -> Void
 
     init(
         workouts: [SavedWorkout] = SavedWorkoutStore.shared.all(),
+        onCreateNew: @escaping () -> Void,
         onReplaceToday: @escaping (SavedWorkout) -> Void,
         onSchedule: @escaping (SavedWorkout) -> Void,
         onDismiss: @escaping () -> Void
     ) {
         _workouts = State(initialValue: workouts)
+        self.onCreateNew = onCreateNew
         self.onReplaceToday = onReplaceToday
         self.onSchedule = onSchedule
         self.onDismiss = onDismiss
@@ -44,6 +47,15 @@ struct SavedWorkoutsListView: View {
                     Button("Close", action: onDismiss)
                         .foregroundStyle(Color.unbound.textSecondary)
                 }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        onCreateNew()
+                    } label: {
+                        Label("Plan", systemImage: "calendar.badge.plus")
+                    }
+                    .foregroundStyle(Color.unbound.accent)
+                    .accessibilityIdentifier("savedWorkouts.plan")
+                }
             }
         }
     }
@@ -56,17 +68,29 @@ struct SavedWorkoutsListView: View {
             Text("No Saved Workouts")
                 .font(Font.unbound.bodyMStrong)
                 .foregroundStyle(Color.unbound.textPrimary)
-            Text("Save an edited session first. Saved Workouts live on this phone in v1.")
-                .font(Font.unbound.captionS)
-                .foregroundStyle(Color.unbound.textSecondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 32)
+            Button {
+                onCreateNew()
+            } label: {
+                Label("Plan", systemImage: "calendar.badge.plus")
+                    .font(Font.unbound.bodyMStrong)
+                    .foregroundStyle(Color.unbound.textPrimary)
+                    .padding(.horizontal, 18)
+                    .frame(height: 46)
+                    .background(
+                        Capsule().fill(Color.unbound.accent)
+                    )
+            }
+            .buttonStyle(.plain)
+            .padding(.top, 4)
+            .accessibilityIdentifier("savedWorkouts.empty.plan")
         }
     }
 
     private func savedWorkoutRow(_ workout: SavedWorkout) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .top, spacing: 12) {
+                savedWorkoutVisualStrip(workout)
+
                 VStack(alignment: .leading, spacing: 4) {
                     Text(workout.title)
                         .font(Font.unbound.bodyMStrong)
@@ -103,7 +127,7 @@ struct SavedWorkoutsListView: View {
                 Button {
                     onSchedule(workout)
                 } label: {
-                    Label("Schedule", systemImage: "calendar.badge.plus")
+                    Label("Plan", systemImage: "calendar.badge.plus")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(SavedWorkoutActionButtonStyle(tint: Color.unbound.accent))
@@ -118,6 +142,38 @@ struct SavedWorkoutsListView: View {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
         )
+    }
+
+    @ViewBuilder
+    private func savedWorkoutVisualStrip(_ workout: SavedWorkout) -> some View {
+        let definitions = workout.previewMovementDefinitions
+        if definitions.isEmpty {
+            ZStack {
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(Color.unbound.surfaceElevated)
+                Image(systemName: "tray.full")
+                    .font(.system(size: 19, weight: .semibold))
+                    .foregroundStyle(Color.unbound.coachCyan)
+            }
+            .frame(width: 58, height: 58)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
+            )
+        } else {
+            HStack(spacing: -12) {
+                ForEach(Array(definitions.prefix(3).enumerated()), id: \.offset) { index, definition in
+                    ExerciseVisualView(definition: definition, size: .thumbnail)
+                        .frame(width: 54, height: 54)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .strokeBorder(Color.unbound.bg.opacity(0.82), lineWidth: index == 0 ? 0 : 2)
+                        )
+                        .zIndex(Double(3 - index))
+                }
+            }
+            .frame(width: 76, alignment: .leading)
+        }
     }
 
     private func roleText(_ workout: SavedWorkout) -> String {
@@ -139,5 +195,23 @@ private struct SavedWorkoutActionButtonStyle: ButtonStyle {
                 Capsule().fill(tint.opacity(configuration.isPressed ? 0.18 : 0.10))
             )
             .overlay(Capsule().strokeBorder(tint.opacity(0.26), lineWidth: 1))
+    }
+}
+
+extension SavedWorkout {
+    var primaryMovementDefinition: MovementDefinition? {
+        previewMovementDefinitions.first
+    }
+
+    var previewMovementDefinitions: [MovementDefinition] {
+        blocks
+            .flatMap(\.prescriptions)
+            .compactMap { prescription in
+                MovementCatalog.resolvedTrainingMovement(
+                    name: prescription.exerciseName,
+                    movementId: prescription.movementId,
+                    rankStandardMovementId: prescription.rankStandardMovementId
+                )?.exact
+            }
     }
 }

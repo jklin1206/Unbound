@@ -62,6 +62,9 @@ struct Step08_Height: View {
     }
 }
 
+#if DEBUG
 #Preview {
     Step08_Height(flow: OnboardingFlowViewModel(), progress: 0.26, onBack: {}, onContinue: {})
 }
+
+#endif

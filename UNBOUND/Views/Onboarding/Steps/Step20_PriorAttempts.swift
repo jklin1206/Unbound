@@ -28,6 +28,9 @@ struct Step20_PriorAttempts: View {
     }
 }
 
+#if DEBUG
 #Preview {
     Step20_PriorAttempts(flow: OnboardingFlowViewModel(), progress: 0.66, onBack: {}, onContinue: {})
 }
+
+#endif

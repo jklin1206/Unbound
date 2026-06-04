@@ -1,15 +1,30 @@
 import SwiftUI
 
 struct AuthContainerView: View {
-    @EnvironmentObject var services: ServiceContainer
+    @EnvironmentObject private var services: ServiceContainer
+
+    var body: some View {
+        AuthContainerContentView(
+            auth: services.auth,
+            user: services.user,
+            analytics: services.analytics
+        )
+        .id(ObjectIdentifier(services))
+    }
+}
+
+private struct AuthContainerContentView: View {
     @StateObject private var viewModel: AuthViewModel
 
-    init() {
-        // Temporary placeholder — real VM built from services in task 12 pattern
+    init(
+        auth: any AuthServiceProtocol,
+        user: any UserServiceProtocol,
+        analytics: any AnalyticsServiceProtocol
+    ) {
         _viewModel = StateObject(wrappedValue: AuthViewModel(
-            auth: AuthService.shared,
-            user: UserService.shared,
-            analytics: AnalyticsService.shared
+            auth: auth,
+            user: user,
+            analytics: analytics
         ))
     }
 

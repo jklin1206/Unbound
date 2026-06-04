@@ -106,12 +106,13 @@ final class CalibrationViewModel {
 
     // MARK: Finish
 
-    func finish() async {
+    func finish() async throws {
         do {
             try await calibrationService.save(baselines, userId: userId)
+            calibrationService.markCompleted(userId: userId)
         } catch {
             logger.error("Failed to persist calibration baselines: \(String(describing: error))")
-            calibrationService.markCompleted(userId: userId)
+            throw error
         }
 
         for row in preferenceRows where row.state != .none {
@@ -143,11 +144,19 @@ final class CalibrationViewModel {
 
     // MARK: Adaptive baselines
 
+    private var isFloorOnly: Bool {
+        Equipment.isFloorOnlySelection(equipment)
+    }
+
     private var isBodyweightOnly: Bool {
-        equipment == [.bodyweight]
+        let bodyweightGear: Set<Equipment> = [.bodyweight, .pullupBar, .bands, .dipStation, .rings]
+        return !equipment.isEmpty && equipment.isSubset(of: bodyweightGear)
     }
 
     private func generateBaselines() -> [CalibrationBaseline] {
+        if isFloorOnly {
+            return floorOnlyBaselines()
+        }
         if isBodyweightOnly {
             return calisthenicBaselines()
         }
@@ -173,6 +182,15 @@ final class CalibrationViewModel {
             repBaseline(key: "pullup", name: "Pullup"),
             repBaseline(key: "dip", name: "Dip"),
             repBaseline(key: "pistol squat", name: "Pistol Squat")
+        ]
+    }
+
+    private func floorOnlyBaselines() -> [CalibrationBaseline] {
+        [
+            repBaseline(key: "pushup", name: "Pushup"),
+            repBaseline(key: "bodyweight squat", name: "Bodyweight Squat"),
+            repBaseline(key: "glute bridge", name: "Glute Bridge"),
+            repBaseline(key: "reverse crunch", name: "Reverse Crunch")
         ]
     }
 
@@ -238,6 +256,21 @@ final class CalibrationViewModel {
     // MARK: Adaptive preferences
 
     private func generatePreferenceRows() -> [CalibrationPreferenceRow] {
+        let floorOnly: [(String, String, [MuscleGroup])] = [
+            ("pushup", "Pushup", [.chest, .shoulders, .arms]),
+            ("bodyweight squat", "Bodyweight Squat", [.legs, .glutes]),
+            ("glute bridge", "Glute Bridge", [.glutes, .legs, .core]),
+            ("reverse crunch", "Reverse Crunch", [.core]),
+            ("plank", "Plank", [.core]),
+            ("hollow hold", "Hollow Hold", [.core])
+        ]
+
+        if isFloorOnly {
+            return floorOnly.map { key, name, groups in
+                CalibrationPreferenceRow(id: key, displayName: name, muscleGroups: groups)
+            }
+        }
+
         let useCalisthenic = isBodyweightOnly
 
         let universal: [(String, String, [MuscleGroup])] = [

@@ -1,12 +1,10 @@
 // UNBOUND/Views/Squads/CreateSquadSheet.swift
-//
-// Note: uses SquadService.shared + AuthService.shared directly.
-// ServiceContainer wiring deferred to Phase 16.
 import SwiftUI
 
 struct CreateSquadSheet: View {
     var onCompleted: (() -> Void)?
 
+    @EnvironmentObject var services: ServiceContainer
     @Environment(\.dismiss) var dismiss
     @State private var name = ""
     @State private var error: String?
@@ -94,14 +92,14 @@ struct CreateSquadSheet: View {
 
     @MainActor
     private func create() async {
-        guard let userId = AuthService.shared.currentUserId else {
+        guard let userId = services.auth.currentUserId else {
             error = "Sign in to create a squad."
             return
         }
         isCreating = true
         defer { isCreating = false }
         do {
-            _ = try await SquadService.shared.createSquad(name: name.trimmingCharacters(in: .whitespaces), userId: userId)
+            _ = try await services.squads.createSquad(name: name.trimmingCharacters(in: .whitespaces), userId: userId)
             onCompleted?()
             dismiss()
         } catch SquadError.invalidName {
@@ -116,4 +114,5 @@ struct CreateSquadSheet: View {
 
 #Preview {
     CreateSquadSheet()
+        .environmentObject(ServiceContainer.mock)
 }

@@ -32,6 +32,9 @@ struct Step17_Diet: View {
     }
 }
 
+#if DEBUG
 #Preview {
     Step17_Diet(flow: OnboardingFlowViewModel(), progress: 0.56, onBack: {}, onContinue: {})
 }
+
+#endif

@@ -49,12 +49,42 @@ final class TierCriterionEvaluatorTests: XCTestCase {
         ))
     }
 
+    func testReps_assistedSetDoesNotProveStrictCriterion() {
+        let entry = makeEntry(exerciseName: "Pull-Up", sets: [makeSet(reps: 10, qualityFlags: [.assisted])])
+        XCTAssertFalse(TierCriterionEvaluator.satisfied(
+            criterion: .reps(8, exerciseName: "pull-up"),
+            history: [entry],
+            bodyweightKg: 70
+        ))
+    }
+
+    func testReps_formBreakDoesNotSatisfy() {
+        let entry = makeEntry(exerciseName: "Pull-Up", sets: [makeSet(reps: 10, qualityFlags: [.formBreak])])
+        XCTAssertFalse(TierCriterionEvaluator.satisfied(
+            criterion: .reps(8, exerciseName: "pull-up"),
+            history: [entry],
+            bodyweightKg: 70
+        ))
+    }
+
     // MARK: - .seconds (always false — see evaluator note)
 
     func testSeconds_alwaysFalse() {
         XCTAssertFalse(TierCriterionEvaluator.satisfied(
             criterion: .seconds(30),
             history: [],
+            bodyweightKg: 70
+        ))
+    }
+
+    func testExerciseSeconds_partialRangeDoesNotSatisfy() {
+        let entry = makeEntry(
+            exerciseName: "Wall Handstand",
+            sets: [makeSet(durationSeconds: 40, qualityFlags: [.partialRange])]
+        )
+        XCTAssertFalse(TierCriterionEvaluator.satisfied(
+            criterion: .exerciseSeconds(30, exerciseName: "wall handstand"),
+            history: [entry],
             bodyweightKg: 70
         ))
     }
@@ -165,6 +195,15 @@ final class TierCriterionEvaluatorTests: XCTestCase {
         ))
     }
 
+    func testVariant_painFlagDoesNotSatisfy() {
+        let entry = makeEntry(exerciseName: "Muscle-Up", sets: [makeSet(reps: 1, qualityFlags: [.pain])])
+        XCTAssertFalse(TierCriterionEvaluator.satisfied(
+            criterion: .variant("muscle-up"),
+            history: [entry],
+            bodyweightKg: 70
+        ))
+    }
+
     func testVariant_noMatch() {
         let entry = makeEntry(exerciseName: "pull-up", sets: [makeSet(reps: 20)])
         XCTAssertFalse(TierCriterionEvaluator.satisfied(
@@ -215,14 +254,22 @@ final class TierCriterionEvaluatorTests: XCTestCase {
         )
     }
 
-    private func makeSet(weightKg: Double? = nil, reps: Int = 0, isWarmup: Bool = false) -> SetLog {
+    private func makeSet(
+        weightKg: Double? = nil,
+        reps: Int = 0,
+        durationSeconds: Int? = nil,
+        isWarmup: Bool = false,
+        qualityFlags: Set<PerformanceQualityFlag>? = nil
+    ) -> SetLog {
         SetLog(
             id: UUID().uuidString,
             setNumber: 1,
             weightKg: weightKg,
             reps: reps,
             rpe: nil,
-            isWarmup: isWarmup
+            isWarmup: isWarmup,
+            durationSeconds: durationSeconds,
+            qualityFlags: qualityFlags
         )
     }
 }

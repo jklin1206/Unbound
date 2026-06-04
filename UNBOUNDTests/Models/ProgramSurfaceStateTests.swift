@@ -59,6 +59,32 @@ final class ProgramSurfaceStateTests: XCTestCase {
         XCTAssertEqual(complete.primaryActionTitle, "Build Next Arc")
     }
 
+    func testLoadedProgramUsesCurrentArcStartForSelectedDay() {
+        let now = Date(timeIntervalSince1970: 1_700_000_000)
+        let originalStart = now.addingTimeInterval(-90 * 86_400)
+        let currentArcStart = now.addingTimeInterval(-2 * 86_400)
+        let arc = Arc(id: "arc-2", programId: "p-1", startDate: currentArcStart)
+        let trainingProgram = program(
+            createdAt: originalStart,
+            days: [
+                day(number: 1, isRest: true),
+                day(number: 2, isRest: true),
+                day(number: 3, isRest: false)
+            ],
+            arcs: [arc],
+            currentArcId: arc.id
+        )
+
+        let surface = ProgramSurfaceState.resolve(
+            state: .loaded(trainingProgram),
+            selectedDate: now,
+            now: now
+        )
+
+        XCTAssertEqual(surface.kind, .trainingDay)
+        XCTAssertTrue(surface.canStartWorkout)
+    }
+
     func testProgramProofFixturesResolveToRequestedSurfaceStates() {
         let now = Date(timeIntervalSince1970: 1_700_000_000)
 
@@ -116,7 +142,12 @@ final class ProgramSurfaceStateTests: XCTestCase {
         )
     }
 
-    private func program(createdAt: Date, days: [ProgramDay]) -> TrainingProgram {
+    private func program(
+        createdAt: Date,
+        days: [ProgramDay],
+        arcs: [Arc] = [],
+        currentArcId: String? = nil
+    ) -> TrainingProgram {
         TrainingProgram(
             id: "p-1",
             scanId: "s-1",
@@ -146,7 +177,9 @@ final class ProgramSurfaceStateTests: XCTestCase {
             difficultyLevel: .intermediate,
             requiredEquipment: [],
             estimatedDailyMinutes: 45,
-            rationale: nil
+            rationale: nil,
+            arcs: arcs,
+            currentArcId: currentArcId
         )
     }
 

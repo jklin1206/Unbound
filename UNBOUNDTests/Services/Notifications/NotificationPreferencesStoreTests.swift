@@ -51,15 +51,15 @@ final class NotificationPreferencesStoreTests: XCTestCase {
         let store = NotificationPreferencesStore(defaults: defaults, key: key)
 
         XCTAssertFalse(store.load().workoutReminders.isEnabled)
-        XCTAssertTrue(store.load().retentionNudges.isEnabled)
-        XCTAssertTrue(store.load().milestones.isEnabled)
+        XCTAssertFalse(store.load().retentionNudges.isEnabled)
+        XCTAssertFalse(store.load().milestones.isEnabled)
 
         defaults.set(Data("not-json".utf8), forKey: key)
 
         let fallback = store.load()
         XCTAssertFalse(fallback.workoutReminders.isEnabled)
-        XCTAssertTrue(fallback.retentionNudges.isEnabled)
-        XCTAssertTrue(fallback.milestones.isEnabled)
+        XCTAssertFalse(fallback.retentionNudges.isEnabled)
+        XCTAssertFalse(fallback.milestones.isEnabled)
     }
 
     func testUpdateMutatesAndPersistsPreferences() {

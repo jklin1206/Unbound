@@ -18,7 +18,7 @@ final class LoggingService: @unchecked Sendable {
     private let minimumLevel: LogLevel = .info
     #endif
 
-    private let logger = Logger(subsystem: "com.unbound.app", category: "AniBody")
+    private let logger = Logger(subsystem: "com.unbound.app", category: "UNBOUND")
 
     private init() {}
 

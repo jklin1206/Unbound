@@ -22,6 +22,24 @@ final class ProofEngineTests: XCTestCase {
         XCTAssertTrue(result.standardsCleared.contains { $0.skillId == "pp.pullup" })
     }
 
+    func testCurrentTierStateDoesNotReemitAlreadyEarnedStandards() {
+        let current = UserSkillTierState(
+            perSkill: ["pp.pullup": .novice],
+            rankUpsEarned: 0,
+            ascendantSkills: []
+        )
+
+        let result = ProofEngine.evaluate(
+            log: pullupLog(reps: 12),
+            source: .custom,
+            currentTierState: current
+        )
+
+        XCTAssertTrue(result.standardsCleared.allSatisfy { $0.skillId != "pp.pullup" || $0.tier > .novice })
+        XCTAssertFalse(result.unlocks.contains { $0.skillId == "pp.pullup" && $0.tier <= .novice })
+        XCTAssertNotEqual(result.multiRankEvent?.fromTier, nil, "A later multi-rank event must report the persisted starting tier.")
+    }
+
     func testProcessedLogIsIdempotentAndDoesNotDoubleGrant() {
         let log = pullupLog(reps: 12)
 
@@ -46,7 +64,22 @@ final class ProofEngineTests: XCTestCase {
         XCTAssertTrue(result.achievedProofs.isEmpty)
     }
 
-    private func pullupLog(reps: Int) -> WorkoutLog {
+    func testProofBlockingQualityDoesNotEmitProofRewardsOrBests() {
+        let log = pullupLog(reps: 12, qualityFlags: [.assisted])
+
+        let result = ProofEngine.evaluate(log: log, source: .skillPractice)
+
+        XCTAssertFalse(result.hasRewards)
+        XCTAssertTrue(result.achievedProofs.isEmpty)
+        XCTAssertTrue(result.standardsCleared.isEmpty)
+        XCTAssertTrue(result.prereqsCleared.isEmpty)
+        XCTAssertTrue(result.newBests.isEmpty)
+    }
+
+    private func pullupLog(
+        reps: Int,
+        qualityFlags: Set<PerformanceQualityFlag>? = nil
+    ) -> WorkoutLog {
         WorkoutLog(
             id: "log-\(reps)",
             userId: "user-1",
@@ -70,7 +103,8 @@ final class ProofEngineTests: XCTestCase {
                             weightKg: nil,
                             reps: reps,
                             rpe: 8,
-                            isWarmup: false
+                            isWarmup: false,
+                            qualityFlags: qualityFlags
                         )
                     ],
                     skipped: false,

@@ -1,8 +1,15 @@
 -- =============================================================================
 -- Squad backend automation: cron schedules + workout_logs webhook
 -- =============================================================================
--- Edge Functions referenced here were deployed with --no-verify-jwt, so the
--- net.http_post calls don't need an Authorization header.
+-- Service-role Edge Functions require a shared service secret even when they
+-- are deployed with --no-verify-jwt for pg_net/webhook callers. Configure it
+-- before enabling these schedules:
+--
+--   alter database postgres
+--   set app.settings.service_function_secret = '<same value as SQUAD_CRON_SECRET>';
+--
+-- The functions expect POST, application/json, an empty JSON object body for
+-- cron calls, and the Authorization bearer header shown below.
 -- =============================================================================
 
 create extension if not exists pg_cron;
@@ -24,7 +31,11 @@ select cron.schedule(
   '0 3 * * *',
   $$select net.http_post(
     url := 'https://xwoemvkzrnnsvtupxctu.supabase.co/functions/v1/evaluate_squad_streak',
-    headers := '{"Content-Type": "application/json"}'::jsonb
+    headers := jsonb_build_object(
+      'Content-Type', 'application/json',
+      'Authorization', 'Bearer ' || current_setting('app.settings.service_function_secret', true)
+    ),
+    body := '{}'::jsonb
   );$$
 );
 
@@ -41,7 +52,11 @@ select cron.schedule(
   '0 4 * * *',
   $$select net.http_post(
     url := 'https://xwoemvkzrnnsvtupxctu.supabase.co/functions/v1/evaluate_squad_mission',
-    headers := '{"Content-Type": "application/json"}'::jsonb
+    headers := jsonb_build_object(
+      'Content-Type', 'application/json',
+      'Authorization', 'Bearer ' || current_setting('app.settings.service_function_secret', true)
+    ),
+    body := '{}'::jsonb
   );$$
 );
 
@@ -58,7 +73,11 @@ select cron.schedule(
   '0 23 * * 0',
   $$select net.http_post(
     url := 'https://xwoemvkzrnnsvtupxctu.supabase.co/functions/v1/assign_weekly_honors',
-    headers := '{"Content-Type": "application/json"}'::jsonb
+    headers := jsonb_build_object(
+      'Content-Type', 'application/json',
+      'Authorization', 'Bearer ' || current_setting('app.settings.service_function_secret', true)
+    ),
+    body := '{}'::jsonb
   );$$
 );
 
@@ -78,7 +97,10 @@ as $$
 begin
   perform net.http_post(
     url := 'https://xwoemvkzrnnsvtupxctu.supabase.co/functions/v1/detect_linked_sessions',
-    headers := '{"Content-Type": "application/json"}'::jsonb,
+    headers := jsonb_build_object(
+      'Content-Type', 'application/json',
+      'Authorization', 'Bearer ' || current_setting('app.settings.service_function_secret', true)
+    ),
     body := jsonb_build_object('record', to_jsonb(NEW))
   );
   return NEW;

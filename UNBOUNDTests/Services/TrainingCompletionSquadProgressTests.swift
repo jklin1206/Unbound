@@ -8,25 +8,25 @@ import XCTest
 
 @MainActor
 private final class SpyMissionService: SquadMissionServiceProtocol {
-    var recordCalls: [(logId: String, userId: String)] = []
+    var recordCalls: [(logId: String, userId: String, sourceLogId: String)] = []
     func generateThisWeek(squadId: UUID) async throws -> SquadMission { throw SquadError.backendUnavailable }
     func currentMission(squadId: UUID) async -> SquadMission? { nil }
-    func recordProgress(log: WorkoutLog, userId: String) async {
-        recordCalls.append((log.id, userId))
+    func recordProgress(log: WorkoutLog, userId: String, sourceLogId: String) async {
+        recordCalls.append((log.id, userId, sourceLogId))
     }
     func evaluateCompletion(squadId: UUID) async {}
 }
 
 @MainActor
 private final class SpyChallengeService: FriendChallengeServiceProtocol {
-    var recordCalls: [(logId: String, userId: String)] = []
+    var recordCalls: [(logId: String, userId: String, sourceLogId: String)] = []
     func createChallenge(challengedId: UUID, kind: FriendChallenge.Kind, squadId: UUID) async throws -> FriendChallenge {
         throw SquadError.backendUnavailable
     }
     func activeChallenges(userId: UUID) async -> [FriendChallenge] { [] }
     func accept(_ challengeId: UUID) async throws {}
-    func recordProgress(log: WorkoutLog, userId: String) async {
-        recordCalls.append((log.id, userId))
+    func recordProgress(log: WorkoutLog, userId: String, sourceLogId: String) async {
+        recordCalls.append((log.id, userId, sourceLogId))
     }
     func evaluateExpired() async {}
 }
@@ -61,8 +61,10 @@ final class TrainingCompletionSquadProgressTests: XCTestCase {
         XCTAssertEqual(mission.recordCalls.count, 1)
         XCTAssertEqual(mission.recordCalls.first?.logId, "perf-1")
         XCTAssertEqual(mission.recordCalls.first?.userId, "user-1")
+        XCTAssertEqual(mission.recordCalls.first?.sourceLogId, "perf-1")
         XCTAssertEqual(challenge.recordCalls.count, 1)
         XCTAssertEqual(challenge.recordCalls.first?.logId, "perf-1")
+        XCTAssertEqual(challenge.recordCalls.first?.sourceLogId, "perf-1")
     }
 
     func testReflushOfSameSessionDoesNotDoubleCount() async {

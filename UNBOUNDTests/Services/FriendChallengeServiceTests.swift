@@ -3,6 +3,26 @@ import XCTest
 
 @MainActor
 final class FriendChallengeServiceTests: XCTestCase {
+    private func makeLog(
+        id: String,
+        userId: String,
+        localStartHour: Int? = nil
+    ) -> WorkoutLog {
+        WorkoutLog(
+            id: id,
+            userId: userId,
+            programId: "program",
+            dayNumber: 1,
+            plannedWorkoutName: "Proof Session",
+            startedAt: Date().addingTimeInterval(-1800),
+            completedAt: Date(),
+            exerciseEntries: [],
+            overallNotes: nil,
+            overallRPE: 7,
+            durationMinutes: 30,
+            localStartHour: localStartHour
+        )
+    }
 
     func testCreateChallengeThrowsWhenBackendUnavailable() async {
         let service = FriendChallengeService(remoteBackendEnabled: false)
@@ -14,6 +34,22 @@ final class FriendChallengeServiceTests: XCTestCase {
             )
             XCTFail("Expected backendUnavailable to be thrown")
         } catch SquadError.backendUnavailable {
+            // Expected
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+    }
+
+    func testCreateChallengeRejectsUnsupportedKindBeforeBackend() async {
+        let service = FriendChallengeService(remoteBackendEnabled: false)
+        do {
+            _ = try await service.createChallenge(
+                challengedId: UUID(),
+                kind: .proteinGoal,
+                squadId: UUID()
+            )
+            XCTFail("Expected unsupportedChallengeKind to be thrown")
+        } catch SquadError.unsupportedChallengeKind {
             // Expected
         } catch {
             XCTFail("Unexpected error: \(error)")
@@ -61,26 +97,76 @@ final class FriendChallengeServiceTests: XCTestCase {
         )
         try await service.accept(challenge.id)
 
-        let log = WorkoutLog(
-            id: "progress-proof",
-            userId: challengerUserId,
-            programId: "program",
-            dayNumber: 1,
-            plannedWorkoutName: "Proof Session",
-            startedAt: Date().addingTimeInterval(-1800),
-            completedAt: Date(),
-            exerciseEntries: [],
-            overallNotes: nil,
-            overallRPE: 7,
-            durationMinutes: 30
-        )
-        await service.recordProgress(log: log, userId: challengerUserId)
+        let log = makeLog(id: "progress-proof", userId: challengerUserId)
+        await service.recordProgress(log: log, userId: challengerUserId, sourceLogId: "progress-proof")
 
         let active = await service.activeChallenges(userId: challengerId)
         XCTAssertEqual(active.first?.challengerProgress, 1)
         XCTAssertEqual(active.first?.challengedProgress, 0)
         XCTAssertEqual(active.first?.challengedId, challengedId)
         XCTAssertFalse(active.first?.isPending ?? true)
+    }
+
+    func testRecordProgressCountsEarlyRiserFromLocalStartHour() async throws {
+        let challengerUserId = "dev-early-riser-progress"
+        let challengedId = try XCTUnwrap(SquadUserIdentity.uuid(from: "dev-early-riser-opponent"))
+        let challengerId = try XCTUnwrap(SquadUserIdentity.uuid(from: challengerUserId))
+        AuthService.shared.activateDevUser(id: challengerUserId)
+
+        let service = FriendChallengeService(remoteBackendEnabled: true)
+        let challenge = try await service.createChallenge(
+            challengedId: challengedId,
+            kind: .earlyRiser,
+            squadId: UUID()
+        )
+        try await service.accept(challenge.id)
+
+        await service.recordProgress(
+            log: makeLog(id: "early-proof", userId: challengerUserId, localStartHour: 7),
+            userId: challengerUserId,
+            sourceLogId: "early-proof"
+        )
+        await service.recordProgress(
+            log: makeLog(id: "late-proof", userId: challengerUserId, localStartHour: 8),
+            userId: challengerUserId,
+            sourceLogId: "late-proof"
+        )
+
+        let active = await service.activeChallenges(userId: challengerId)
+        XCTAssertEqual(active.first?.challengerProgress, 1)
+        XCTAssertEqual(active.first?.challengedProgress, 0)
+    }
+
+    func testRecordProgressSkipsUnsupportedLocalChallengeKind() async throws {
+        let challengerUserId = "dev-unsupported-challenge-progress"
+        let challengerId = try XCTUnwrap(SquadUserIdentity.uuid(from: challengerUserId))
+        let challengedId = try XCTUnwrap(SquadUserIdentity.uuid(from: "dev-unsupported-challenge-opponent"))
+        AuthService.shared.activateDevUser(id: challengerUserId)
+
+        let service = FriendChallengeService(remoteBackendEnabled: true)
+        service._seedLocalChallengeForTesting(FriendChallenge(
+            id: UUID(),
+            challengerId: challengerId,
+            challengedId: challengedId,
+            squadId: UUID(),
+            kind: .mostAlignedSessions,
+            startedAt: .now.addingTimeInterval(-3600),
+            expiresAt: .now.addingTimeInterval(3600),
+            acceptedAt: .now,
+            challengerProgress: 0,
+            challengedProgress: 0,
+            winnerUserId: nil
+        ))
+
+        await service.recordProgress(
+            log: makeLog(id: "unsupported-proof", userId: challengerUserId, localStartHour: 6),
+            userId: challengerUserId,
+            sourceLogId: "unsupported-proof"
+        )
+
+        let active = await service.activeChallenges(userId: challengerId)
+        XCTAssertEqual(active.first?.challengerProgress, 0)
+        XCTAssertEqual(active.first?.challengedProgress, 0)
     }
 
     func testEvaluateExpiredDoesNotCrash() async {

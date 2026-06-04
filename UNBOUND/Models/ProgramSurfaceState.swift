@@ -93,7 +93,7 @@ struct ProgramSurfaceState: Equatable, Sendable {
         guard !program.days.isEmpty else { return nil }
         let daysSinceStart = calendar.dateComponents(
             [.day],
-            from: calendar.startOfDay(for: program.createdAt),
+            from: calendar.startOfDay(for: BlockRolloverScheduler.activeStartDate(for: program)),
             to: calendar.startOfDay(for: date)
         ).day ?? 0
         let index = ((daysSinceStart % program.days.count) + program.days.count) % program.days.count

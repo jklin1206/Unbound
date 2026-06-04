@@ -10,6 +10,7 @@ struct SquadChatView: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var messages: [SquadMessage]
+    @State private var hiddenUserIds: Set<UUID>
     @State private var draft = ""
     @State private var reportingMessage: SquadMessage?
     @FocusState private var isDraftFocused: Bool
@@ -29,6 +30,7 @@ struct SquadChatView: View {
         self.messageService = messageService
         self.onMessagesChanged = onMessagesChanged
         _messages = State(initialValue: initialMessages.sorted { $0.createdAt < $1.createdAt })
+        _hiddenUserIds = State(initialValue: Self.loadHiddenUserIds(for: squad.id))
     }
 
     var body: some View {
@@ -65,12 +67,15 @@ struct SquadChatView: View {
             Button("Report Message", role: .destructive) {
                 reportCurrentMessage()
             }
-            Button("Block User", role: .destructive) {
-                reportCurrentMessage()
+            if let authorUserId = reportingMessage?.authorUserId,
+               authorUserId != currentUserId {
+                Button("Hide User Locally", role: .destructive) {
+                    hideCurrentMessageAuthor()
+                }
             }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Reports help keep crew chat safe.")
+            Text("Reports help keep crew chat safe. Hiding a user only affects this device.")
         }
         .task(id: squad.id) {
             await refreshMessagesLoop()
@@ -81,7 +86,7 @@ struct SquadChatView: View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(spacing: 12) {
-                    ForEach(messages) { message in
+                    ForEach(visibleMessages) { message in
                         bubble(for: message)
                     }
                 }
@@ -106,9 +111,19 @@ struct SquadChatView: View {
             authorName: displayName(for: message.authorUserId),
             isMine: message.authorUserId == currentUserId,
             onReact: { emoji in addReaction(emoji, to: message.id) },
-            onReport: { reportingMessage = message }
+            onReport: { reportingMessage = message },
+            onHide: message.authorUserId == nil || message.authorUserId == currentUserId
+                ? nil
+                : { hideAuthor(of: message) }
         )
         .id(message.id)
+    }
+
+    private var visibleMessages: [SquadMessage] {
+        messages.filter { message in
+            guard let authorUserId = message.authorUserId else { return true }
+            return !hiddenUserIds.contains(authorUserId)
+        }
     }
 
     private var composeBar: some View {
@@ -206,7 +221,7 @@ struct SquadChatView: View {
     }
 
     private func scrollToLastMessage(_ proxy: ScrollViewProxy) {
-        guard let last = messages.last else { return }
+        guard let last = visibleMessages.last else { return }
         withAnimation(.snappy) {
             proxy.scrollTo(last.id, anchor: .bottom)
         }
@@ -250,6 +265,7 @@ struct SquadChatView: View {
 
     private func reportCurrentMessage() {
         guard let message = reportingMessage else { return }
+        reportingMessage = nil
         Task {
             await messageService.report(
                 messageId: message.id,
@@ -257,6 +273,36 @@ struct SquadChatView: View {
                 reason: "inappropriate"
             )
         }
+    }
+
+    private func hideCurrentMessageAuthor() {
+        guard let message = reportingMessage else { return }
+        reportingMessage = nil
+        hideAuthor(of: message)
+    }
+
+    private func hideAuthor(of message: SquadMessage) {
+        guard let authorUserId = message.authorUserId,
+              authorUserId != currentUserId else { return }
+        hiddenUserIds.insert(authorUserId)
+        Self.saveHiddenUserIds(hiddenUserIds, for: squad.id)
+        publishMessages()
+    }
+
+    private static func hiddenUsersKey(for squadId: UUID) -> String {
+        "unbound.squad.hiddenUsers.\(squadId.uuidString)"
+    }
+
+    private static func loadHiddenUserIds(for squadId: UUID) -> Set<UUID> {
+        let rawValues = UserDefaults.standard.stringArray(forKey: hiddenUsersKey(for: squadId)) ?? []
+        return Set(rawValues.compactMap(UUID.init(uuidString:)))
+    }
+
+    private static func saveHiddenUserIds(_ ids: Set<UUID>, for squadId: UUID) {
+        UserDefaults.standard.set(
+            ids.map(\.uuidString).sorted(),
+            forKey: hiddenUsersKey(for: squadId)
+        )
     }
 }
 
@@ -266,6 +312,7 @@ struct SquadMessageBubble: View {
     let isMine: Bool
     let onReact: (SquadMessageReaction.Emoji) -> Void
     let onReport: () -> Void
+    let onHide: (() -> Void)?
 
     var body: some View {
         VStack(alignment: isMine ? .trailing : .leading, spacing: 6) {
@@ -299,7 +346,9 @@ struct SquadMessageBubble: View {
             .frame(maxWidth: 310, alignment: isMine ? .trailing : .leading)
             .contextMenu {
                 Button("Report", role: .destructive, action: onReport)
-                Button("Block User", role: .destructive, action: onReport)
+                if let onHide {
+                    Button("Hide User Locally", role: .destructive, action: onHide)
+                }
             }
         }
         .frame(maxWidth: .infinity, alignment: isMine ? .trailing : .leading)

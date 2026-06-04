@@ -31,7 +31,7 @@ final class OutboxStore: @unchecked Sendable {
     @MainActor
     func enqueue(_ entry: OutboxEntry) {
         if let i = pending.firstIndex(where: {
-            $0.collection == entry.collection && $0.docId == entry.docId
+            $0.userId == entry.userId && $0.collection == entry.collection && $0.docId == entry.docId
         }) {
             // Coalesce: the new payload supersedes the old, but changedFields
             // must UNION — otherwise a field edited only in the earlier entry

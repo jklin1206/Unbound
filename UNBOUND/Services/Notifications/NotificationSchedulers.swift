@@ -45,42 +45,12 @@ struct TrainTimeNotificationScheduler {
         "\(identifierPrefix).\(day.rawValue)"
     }
 
-    private static func title(for time: WorkoutTime) -> String {
-        switch time {
-        case .earlyMorning:
-            return L10n.string(.notificationWorkoutEarlyMorningTitle, defaultValue: "Early birds get the reps.")
-        case .morning:
-            return L10n.string(.notificationWorkoutMorningTitle, defaultValue: "Morning session. Go.")
-        case .lunch:
-            return L10n.string(.notificationWorkoutLunchTitle, defaultValue: "Midday window is open.")
-        case .afternoon:
-            return L10n.string(.notificationWorkoutAfternoonTitle, defaultValue: "Afternoon grind.")
-        case .evening:
-            return L10n.string(.notificationWorkoutEveningTitle, defaultValue: "Evening session. Don't skip.")
-        case .lateNight:
-            return L10n.string(.notificationWorkoutLateNightTitle, defaultValue: "Late-night rep. Most people sleep.")
-        case .varies:
-            return L10n.string(.notificationWorkoutVariesTitle, defaultValue: "Time to train.")
-        }
+    private static func title(for _: WorkoutTime) -> String {
+        L10n.string(.notificationWorkoutVariesTitle, defaultValue: "Time to go to the gym.")
     }
 
-    private static func body(for time: WorkoutTime) -> String {
-        switch time {
-        case .earlyMorning:
-            return L10n.string(.notificationWorkoutEarlyMorningBody, defaultValue: "Gym is empty. Reps are yours.")
-        case .morning:
-            return L10n.string(.notificationWorkoutMorningBody, defaultValue: "Set the tone before the day sets it for you.")
-        case .lunch:
-            return L10n.string(.notificationWorkoutLunchBody, defaultValue: "This is the one most people skip. You're not most people.")
-        case .afternoon:
-            return L10n.string(.notificationWorkoutAfternoonBody, defaultValue: "Afternoon window. Your protocol is waiting.")
-        case .evening:
-            return L10n.string(.notificationWorkoutEveningBody, defaultValue: "The day's almost done. Finish it right.")
-        case .lateNight:
-            return L10n.string(.notificationWorkoutLateNightBody, defaultValue: "Everyone else is asleep. You're building.")
-        case .varies:
-            return L10n.string(.notificationWorkoutVariesBody, defaultValue: "Your session is on the schedule. Earn it.")
-        }
+    private static func body(for _: WorkoutTime) -> String {
+        L10n.string(.notificationWorkoutVariesBody, defaultValue: "Your workout is scheduled. Head in and start.")
     }
 }
 

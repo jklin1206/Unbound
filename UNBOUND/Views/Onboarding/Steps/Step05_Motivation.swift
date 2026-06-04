@@ -28,6 +28,7 @@ struct Step05_Motivation: View {
     }
 }
 
+#if DEBUG
 #Preview {
     Step05_Motivation(
         flow: OnboardingFlowViewModel(),
@@ -36,3 +37,5 @@ struct Step05_Motivation: View {
         onContinue: {}
     )
 }
+
+#endif

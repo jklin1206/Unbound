@@ -1,0 +1,141 @@
+{
+  "originHash" : "4adfa4813e8755e40b2d65789df6ccf5af9c3e2f3ca83cfef31d3cc57c271afa",
+  "pins" : [
+    {
+      "identity" : "dlkit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/johnno1962/DLKit",
+      "state" : {
+        "revision" : "6fd36eb4fbe807e82c567df539234a330e5f51ef",
+        "version" : "1.2.2"
+      }
+    },
+    {
+      "identity" : "hotreloading",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/johnno1962/HotReloading",
+      "state" : {
+        "revision" : "878e0f95e120c150cde70a9cb5bb4bb94b51aab3",
+        "version" : "2.1.30"
+      }
+    },
+    {
+      "identity" : "posthog-ios",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/PostHog/posthog-ios.git",
+      "state" : {
+        "revision" : "cf6155963a6532c7b88e0cfa2b1d07595d6b6db6",
+        "version" : "3.58.3"
+      }
+    },
+    {
+      "identity" : "purchases-ios-spm",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/RevenueCat/purchases-ios-spm.git",
+      "state" : {
+        "revision" : "bd63241b2258ea519020eb32a349db44fb44b119",
+        "version" : "5.68.0"
+      }
+    },
+    {
+      "identity" : "remote",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/johnno1962/Remote",
+      "state" : {
+        "revision" : "2a03313297a15f31b354dbf2b40c62ca9630b0a1",
+        "version" : "2.3.5"
+      }
+    },
+    {
+      "identity" : "supabase-swift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/supabase-community/supabase-swift",
+      "state" : {
+        "revision" : "17261e93c60aa721e3c17312bfeb2ae6de3d6f8a",
+        "version" : "2.43.1"
+      }
+    },
+    {
+      "identity" : "swift-asn1",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-asn1.git",
+      "state" : {
+        "revision" : "eb50cbd14606a9161cbc5d452f18797c90ef0bab",
+        "version" : "1.7.0"
+      }
+    },
+    {
+      "identity" : "swift-clocks",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/pointfreeco/swift-clocks",
+      "state" : {
+        "revision" : "cc46202b53476d64e824e0b6612da09d84ffde8e",
+        "version" : "1.0.6"
+      }
+    },
+    {
+      "identity" : "swift-concurrency-extras",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/pointfreeco/swift-concurrency-extras",
+      "state" : {
+        "revision" : "5a3825302b1a0d744183200915a47b508c828e6f",
+        "version" : "1.3.2"
+      }
+    },
+    {
+      "identity" : "swift-crypto",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-crypto.git",
+      "state" : {
+        "revision" : "476538ccb827f2dd18efc5de754cc87d77127a47",
+        "version" : "4.4.0"
+      }
+    },
+    {
+      "identity" : "swift-http-types",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-http-types.git",
+      "state" : {
+        "revision" : "45eb0224913ea070ec4fba17291b9e7ecf4749ca",
+        "version" : "1.5.1"
+      }
+    },
+    {
+      "identity" : "swiftregex5",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/johnno1962/SwiftRegex5",
+      "state" : {
+        "revision" : "8ecb4a8570757b7f8bce72f82242742e13891f99",
+        "version" : "5.2.3"
+      }
+    },
+    {
+      "identity" : "swifttrace",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/johnno1962/SwiftTrace",
+      "state" : {
+        "revision" : "85fa92863bf93e4113c3418387471837c79c040f",
+        "version" : "7.6.20"
+      }
+    },
+    {
+      "identity" : "xctest-dynamic-overlay",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/pointfreeco/xctest-dynamic-overlay",
+      "state" : {
+        "revision" : "dfd70507def84cb5fb821278448a262c6ff2bbad",
+        "version" : "1.9.0"
+      }
+    },
+    {
+      "identity" : "xprobeplugin",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/johnno1962/XprobePlugin",
+      "state" : {
+        "revision" : "b8a9a5a13d9f418a2790d7c26a52c464d826f057",
+        "version" : "2.6.2"
+      }
+    }
+  ],
+  "version" : 3
+}

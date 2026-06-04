@@ -6,6 +6,7 @@
 //   Webhook → POST to detect_linked_sessions on workout_logs INSERT
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+import { isJsonObject, requireJsonObjectBody, requirePost, requireServiceFunctionAuth } from "../_shared/service_auth.ts"
 
 const LINKED_SLACK_MINUTES = 5
 
@@ -14,12 +15,47 @@ interface WebhookPayload {
     id: string
     user_id: string
     started_at: string
-    completed_at?: string
+    completed_at?: string | null
+  }
+}
+
+function parseWebhookPayload(payload: Record<string, unknown>): WebhookPayload | null {
+  const record = payload.record
+  if (!isJsonObject(record)) return null
+
+  const id = requiredString(record, "id")
+  const userId = requiredString(record, "user_id")
+  const startedAt = requiredString(record, "started_at")
+  if (!id || !userId || !startedAt || !isValidDate(startedAt)) return null
+
+  const completedAt = optionalString(record, "completed_at")
+  if (completedAt === undefined) return null
+  if (completedAt !== null && !isValidDate(completedAt)) return null
+
+  return {
+    record: {
+      id,
+      user_id: userId,
+      started_at: startedAt,
+      completed_at: completedAt,
+    },
   }
 }
 
 serve(async (req) => {
-  const payload: WebhookPayload = await req.json()
+  const methodError = requirePost(req)
+  if (methodError) return methodError
+  const authError = requireServiceFunctionAuth(req)
+  if (authError) return authError
+
+  const bodyResult = await requireJsonObjectBody(req)
+  if (!bodyResult.ok) return bodyResult.response
+
+  const payload = parseWebhookPayload(bodyResult.body)
+  if (!payload) {
+    return new Response("invalid webhook payload", { status: 400 })
+  }
+
   const log = payload.record
   if (!log.completed_at) return new Response("incomplete", { status: 200 })
 
@@ -94,6 +130,22 @@ serve(async (req) => {
 
   return new Response("linked", { status: 200 })
 })
+
+function requiredString(record: Record<string, unknown>, field: string): string | null {
+  const value = record[field]
+  return typeof value === "string" && value.trim().length > 0 ? value : null
+}
+
+function optionalString(record: Record<string, unknown>, field: string): string | null | undefined {
+  if (!(field in record)) return null
+  const value = record[field]
+  if (value === null) return null
+  return typeof value === "string" && value.trim().length > 0 ? value : undefined
+}
+
+function isValidDate(value: string): boolean {
+  return !Number.isNaN(new Date(value).getTime())
+}
 
 async function sendLinkedSessionPushes(supabase: any, squadId: string, userIds: string[]) {
   // Look up device tokens for each user from `device_tokens` (or whatever

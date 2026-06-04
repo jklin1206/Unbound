@@ -28,7 +28,7 @@ final class SkillProgressService {
     /// Snapshot of node states keyed by nodeId. Views observe this.
     private(set) var nodeStates: [String: NodeState] = [:]
 
-    /// Per-attempting-node fraction of the target hit by the user's best
+    /// Per-reachable-node fraction of the target hit by the user's best
     /// recent attempt. 0.0–1.0. Populated during recompute. Missing entries
     /// mean "no data yet" — render the hex without a fill.
     private(set) var nodeProgress: [String: Double] = [:]
@@ -37,9 +37,11 @@ final class SkillProgressService {
     private(set) var bookmarkedNodeIds: Set<String> = []
 
     /// Mirror of `UserSkillProgress.activeGoalIds` for view binding.
-    /// Active goals are skills the user has explicitly opted into training
-    /// — they drive the Program tab's TODAY'S TRAINING section.
+    /// Product copy calls these Program Focuses. The stored field keeps its
+    /// older name so existing user data does not need a migration.
     private(set) var activeGoalIds: Set<String> = []
+
+    var programFocusIds: Set<String> { activeGoalIds }
 
     /// Mirror of `UserSkillProgress.weeklySchedule` for view binding.
     /// Index 0 = Monday, 6 = Sunday. `nil` entries fall back to
@@ -223,26 +225,30 @@ final class SkillProgressService {
         try? await database.create(p, collection: "skillProgress", documentId: p.userId)
     }
 
-    // MARK: - Active goals (Program scheduler)
+    // MARK: - Program Focuses (Program scheduler)
 
     /// Maximum number of skills a user can have actively training at once.
-    /// Cap exists to keep the Program tab focused — V1 surfaces all active
-    /// goals every day, so 3+ would already feel like a heavy daily list.
+    /// Cap exists to keep the Program tab focused.
     static let activeGoalCap: Int = 3
+    static let programFocusCap: Int = activeGoalCap
 
     func isActiveGoal(nodeId: String) -> Bool {
         activeGoalIds.contains(nodeId)
     }
 
-    /// Toggle whether a node is an active goal. Caps at `activeGoalCap` —
-    /// attempts to add a new goal beyond the cap silently no-op (the view
+    func isProgramFocus(nodeId: String) -> Bool {
+        isActiveGoal(nodeId: nodeId)
+    }
+
+    /// Toggle whether a node is a Program Focus. Caps at `programFocusCap` —
+    /// attempts to add a new focus beyond the cap silently no-op (the view
     /// should disable the add button when at cap, but the service guards
     /// anyway). Persists via the same path as bookmarks.
     func toggleActiveGoal(nodeId: String) async {
         guard var p = progress else { return }
         guard isNodeTrainable(nodeId: nodeId) || p.activeGoalIds.contains(nodeId) else { return }
-        let wasGoal = p.activeGoalIds.contains(nodeId)
-        if wasGoal {
+        let wasFocus = p.activeGoalIds.contains(nodeId)
+        if wasFocus {
             p.activeGoalIds.remove(nodeId)
         } else {
             // Cap enforcement — don't grow past the limit.
@@ -257,7 +263,7 @@ final class SkillProgressService {
         // On ADD: pre-generate today's session so the Program tab Train
         // button is instant when the user gets there. Fire-and-forget —
         // if the lookup fails it'll retry on first user-initiated open.
-        if !wasGoal, let userId = currentUserId {
+        if !wasFocus, let userId = currentUserId {
             Task.detached { @MainActor in
                 await RPESessionService.shared.prefetch(
                     skillId: nodeId,
@@ -265,6 +271,10 @@ final class SkillProgressService {
                 )
             }
         }
+    }
+
+    func toggleProgramFocus(nodeId: String) async {
+        await toggleActiveGoal(nodeId: nodeId)
     }
 
     // MARK: - Weekly schedule (Program scheduler V3)
@@ -296,7 +306,7 @@ final class SkillProgressService {
 
     /// OR-across-groups, AND-within-a-group. A node is unlocked if ANY
     /// of its unlock-standard groups has ALL source skills at the required
-    /// tier. Baseline Forged unlocks accept legacy achieved/mastered state
+    /// tier. Baseline Forged unlocks accept legacy proven-compatible state
     /// while old progress saves migrate onto tier-backed standards.
     /// Entry nodes (no prereqs) are always considered gate-met.
     private func prereqsMet(for node: SkillNode) -> Bool {
@@ -333,20 +343,11 @@ final class SkillProgressService {
         case .weightMultiplier(let exercise, let mult):
             guard let bw = bodyweightKg else { return false }
             let target = bw * mult * threshold
-            return logs.contains(where: { log in
-                log.exerciseEntries.contains(where: { entry in
-                    matches(entry.exerciseName, exercise) &&
-                    entry.sets.contains(where: { ($0.weightKg ?? 0) >= target })
-                })
-            })
+            return proofSets(exercise: exercise, logs: logs)
+                .contains { ($0.weightKg ?? 0) >= target }
         case .reps(let exercise, let count, _):
             let target = Int(Double(count) * threshold)
-            return logs.contains(where: { log in
-                log.exerciseEntries.contains(where: { entry in
-                    matches(entry.exerciseName, exercise) &&
-                    entry.sets.contains(where: { $0.reps >= target && !$0.isWarmup })
-                })
-            })
+            return repsMetricMet(exercise: exercise, target: target, logs: logs)
         case .hold(let exercise, let seconds):
             // Hold: best logged duration meets the target seconds.
             let target = Int((Double(seconds) * threshold).rounded())
@@ -374,13 +375,8 @@ final class SkillProgressService {
         logs: [WorkoutLog],
         requireLoad: Bool = false
     ) -> Bool {
-        logs.contains { log in
-            log.exerciseEntries.contains { entry in
-                matches(entry.exerciseName, exercise) &&
-                entry.sets.contains { set in
-                    !set.isWarmup && set.reps >= target && (!requireLoad || (set.weightKg ?? 0) > 0)
-                }
-            }
+        proofSets(exercise: exercise, logs: logs).contains { set in
+            set.reps >= target && (!requireLoad || (set.weightKg ?? 0) > 0)
         }
     }
 
@@ -392,16 +388,18 @@ final class SkillProgressService {
         logs: [WorkoutLog],
         requireLoad: Bool = false
     ) -> Bool {
-        logs.contains { log in
-            log.exerciseEntries.contains { entry in
-                matches(entry.exerciseName, exercise) &&
-                entry.sets.contains { set in
-                    !set.isWarmup
-                        && (set.durationSeconds ?? set.reps) >= target
-                        && (!requireLoad || (set.weightKg ?? 0) > 0)
-                }
-            }
+        proofSets(exercise: exercise, logs: logs).contains { set in
+            (set.durationSeconds ?? set.reps) >= target
+                && (!requireLoad || (set.weightKg ?? 0) > 0)
         }
+    }
+
+    private func proofSets(exercise: String, logs: [WorkoutLog]) -> [SetLog] {
+        logs.flatMap(\.exerciseEntries)
+            .filter { !$0.skipped }
+            .filter { matches($0.exerciseName, exercise) }
+            .flatMap(\.sets)
+            .filter { !$0.isWarmup && $0.isProofEligible }
     }
 
     /// Strict movement-aware proof match between a logged exercise and a node target.
@@ -424,19 +422,14 @@ final class SkillProgressService {
         case .weightMultiplier(let exercise, let mult):
             guard let bw = bodyweightKg, bw > 0 else { return 0 }
             let target = bw * mult
-            let best = logs.flatMap(\.exerciseEntries)
-                .filter { matches($0.exerciseName, exercise) }
-                .flatMap(\.sets)
+            let best = proofSets(exercise: exercise, logs: logs)
                 .compactMap(\.weightKg)
                 .max() ?? 0
             return target > 0 ? best / target : 0
 
         case .reps(let exercise, let count, _):
             let target = Double(count)
-            let best = logs.flatMap(\.exerciseEntries)
-                .filter { matches($0.exerciseName, exercise) }
-                .flatMap(\.sets)
-                .filter { !$0.isWarmup }
+            let best = proofSets(exercise: exercise, logs: logs)
                 .map { Double($0.reps) }
                 .max() ?? 0
             return target > 0 ? best / target : 0
@@ -451,17 +444,14 @@ final class SkillProgressService {
         case .steps(let exercise, let count):
             return repsMetricFraction(exercise: exercise, target: Double(count), logs: logs)
         case .carry(let exercise, let seconds, _):
-            return secondsMetricFraction(exercise: exercise, target: Double(seconds), logs: logs)
+            return secondsMetricFraction(exercise: exercise, target: Double(seconds), logs: logs, requireLoad: true)
         }
     }
 
     /// Best non-warmup `reps` (metric column for steps) over target.
     private func repsMetricFraction(exercise: String, target: Double, logs: [WorkoutLog]) -> Double {
         guard target > 0 else { return 0 }
-        let best = logs.flatMap(\.exerciseEntries)
-            .filter { matches($0.exerciseName, exercise) }
-            .flatMap(\.sets)
-            .filter { !$0.isWarmup }
+        let best = proofSets(exercise: exercise, logs: logs)
             .map { Double($0.reps) }
             .max() ?? 0
         return best / target
@@ -469,12 +459,15 @@ final class SkillProgressService {
 
     /// Best non-warmup hold/carry duration over target. Reads `durationSeconds`,
     /// falling back to `reps` for legacy reps-column holds.
-    private func secondsMetricFraction(exercise: String, target: Double, logs: [WorkoutLog]) -> Double {
+    private func secondsMetricFraction(
+        exercise: String,
+        target: Double,
+        logs: [WorkoutLog],
+        requireLoad: Bool = false
+    ) -> Double {
         guard target > 0 else { return 0 }
-        let best = logs.flatMap(\.exerciseEntries)
-            .filter { matches($0.exerciseName, exercise) }
-            .flatMap(\.sets)
-            .filter { !$0.isWarmup }
+        let best = proofSets(exercise: exercise, logs: logs)
+            .filter { !requireLoad || ($0.weightKg ?? 0) > 0 }
             .map { Double($0.durationSeconds ?? $0.reps) }
             .max() ?? 0
         return best / target

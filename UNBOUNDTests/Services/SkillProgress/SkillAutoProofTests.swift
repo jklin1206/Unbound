@@ -16,7 +16,13 @@ final class SkillAutoProofTests: XCTestCase {
         return s
     }
 
-    private func log(exercise: String, reps: Int, weightKg: Double? = nil) -> WorkoutLog {
+    private func log(
+        exercise: String,
+        reps: Int,
+        weightKg: Double? = nil,
+        qualityFlags: Set<PerformanceQualityFlag>? = nil,
+        skipped: Bool = false
+    ) -> WorkoutLog {
         WorkoutLog(
             id: "log-1",
             userId: "u",
@@ -31,8 +37,18 @@ final class SkillAutoProofTests: XCTestCase {
                     exerciseName: exercise,
                     plannedSets: 1,
                     plannedReps: "\(reps)",
-                    sets: [SetLog(id: "s-1", setNumber: 1, weightKg: weightKg, reps: reps, rpe: nil, isWarmup: false)],
-                    skipped: false,
+                    sets: [
+                        SetLog(
+                            id: "s-1",
+                            setNumber: 1,
+                            weightKg: weightKg,
+                            reps: reps,
+                            rpe: nil,
+                            isWarmup: false,
+                            qualityFlags: qualityFlags
+                        )
+                    ],
+                    skipped: skipped,
                     notes: nil
                 )
             ],
@@ -49,9 +65,9 @@ final class SkillAutoProofTests: XCTestCase {
         let logs = [log(exercise: "l-sit", reps: 60)]
 
         XCTAssertTrue(s.requirementMet(req, logs: logs, bodyweightKg: 70, threshold: 1.0),
-                      "60s logged ≥ 10s target → achieved")
+                      "60s logged >= 10s target -> proven")
         XCTAssertTrue(s.requirementMet(req, logs: logs, bodyweightKg: 70, threshold: 2.0),
-                      "60s logged ≥ 2× target → mastered")
+                      "60s logged >= 2x target -> proven at the higher threshold")
     }
 
     /// Foundation 2: a hold logged with real `durationSeconds` (not the reps
@@ -102,6 +118,72 @@ final class SkillAutoProofTests: XCTestCase {
         XCTAssertFalse(s.requirementMet(req, logs: [log(exercise: "farmer carry", reps: 40, weightKg: nil)], bodyweightKg: 70, threshold: 1.0))
     }
 
+    func testProofBlockingQualityFlagsDoNotAutoProveRequirements() async {
+        let s = await svc()
+
+        XCTAssertFalse(
+            s.requirementMet(
+                .reps(exercise: "pull-up", count: 8),
+                logs: [log(exercise: "pull-up", reps: 12, qualityFlags: [.assisted])],
+                bodyweightKg: 70,
+                threshold: 1.0
+            )
+        )
+
+        XCTAssertFalse(
+            s.requirementMet(
+                .hold(exercise: "l-sit", seconds: 10),
+                logs: [log(exercise: "l-sit", reps: 20, qualityFlags: [.formBreak])],
+                bodyweightKg: 70,
+                threshold: 1.0
+            )
+        )
+
+        XCTAssertFalse(
+            s.requirementMet(
+                .carry(exercise: "farmer carry", seconds: 30, load: "2x bw"),
+                logs: [log(exercise: "farmer carry", reps: 40, weightKg: 60, qualityFlags: [.partialRange])],
+                bodyweightKg: 70,
+                threshold: 1.0
+            )
+        )
+
+        XCTAssertFalse(
+            s.requirementMet(
+                .weightMultiplier(exercise: "weighted pull-up", multiplier: 0.5),
+                logs: [log(exercise: "weighted pull-up", reps: 1, weightKg: 40, qualityFlags: [.pain])],
+                bodyweightKg: 70,
+                threshold: 1.0
+            )
+        )
+
+        let composite = NodeRequirement.composite([
+            .hold(exercise: "l-sit", seconds: 10),
+            .reps(exercise: "pull-up", count: 5)
+        ])
+        XCTAssertFalse(
+            s.requirementMet(
+                composite,
+                logs: [
+                    log(exercise: "l-sit", reps: 12),
+                    log2(exercise: "pull-up", reps: 6, qualityFlags: [.pain])
+                ],
+                bodyweightKg: 70,
+                threshold: 1.0
+            )
+        )
+    }
+
+    func testSkippedLoggedEntryDoesNotAutoProveRequirement() async {
+        let s = await svc()
+        let req = NodeRequirement.hold(exercise: "l-sit", seconds: 10)
+        let skippedLog = log(exercise: "l-sit", reps: 30, skipped: true)
+
+        XCTAssertFalse(
+            s.requirementMet(req, logs: [skippedLog], bodyweightKg: 70, threshold: 1.0)
+        )
+    }
+
     func testCompositeRequiresAllParts() async {
         let s = await svc()
         let req = NodeRequirement.composite([
@@ -115,8 +197,12 @@ final class SkillAutoProofTests: XCTestCase {
     }
 
     // Second log with a distinct id so composite pools both entries.
-    private func log2(exercise: String, reps: Int) -> WorkoutLog {
-        var l = log(exercise: exercise, reps: reps)
+    private func log2(
+        exercise: String,
+        reps: Int,
+        qualityFlags: Set<PerformanceQualityFlag>? = nil
+    ) -> WorkoutLog {
+        let l = log(exercise: exercise, reps: reps, qualityFlags: qualityFlags)
         return WorkoutLog(
             id: "log-2", userId: l.userId, programId: l.programId, dayNumber: 2,
             plannedWorkoutName: l.plannedWorkoutName, startedAt: l.startedAt, completedAt: l.completedAt,
