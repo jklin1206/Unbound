@@ -16,13 +16,14 @@ Use this structure for single exercise visuals:
 Regenerate this UNBOUND exercise visual in the current UNBOUND movement style.
 Use the reference image only for pose, apparatus, and camera angle.
 
-Style lock: anime/webtoon male-presenting athlete, sharp messy black hair, lean calisthenics build, low-detail face, black sleeveless training top, black pants, black shoes, wrist wraps, cyan/teal rim light, subtle teal motion trails. No purple accents.
+Style lock: anime/webtoon male-presenting athlete, sharp messy black hair, lean calisthenics build, low-detail but readable face with simple dark eyes/eye lines, subtle nose line, and small mouth line, black sleeveless training top, black pants, black shoes, wrist wraps, cyan/teal rim light, subtle teal motion trails. No purple accents. Never generate a blank, smooth, or faceless head when the face is visible.
 
 Subject: [EXERCISE NAME].
 Camera and pose: match the reference image as closely as possible.
 Output: one centered full-body exercise figure, 1024x1024 PNG.
 Background: perfectly flat chroma green #00FF00 only. No shadows, gradients, texture, text, logos, UI, decorative symbols, or scenery on the background.
 Keep the athlete and apparatus fully inside the frame with clean readable silhouette.
+If the face is visible, facial features must remain readable at app thumbnail size while staying simple and low-detail.
 ```
 
 For four-panel form slides, keep the same UNBOUND style lock and require:
