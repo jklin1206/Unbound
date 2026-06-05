@@ -392,6 +392,39 @@ final class WeeklyVowsServiceTests: XCTestCase {
         XCTAssertTrue(service.state(userId: "u-1").weeklyVowCompletionLedger.isEmpty)
     }
 
+    func testRecordCompletedVowWorkOpensWindowForSavedLogAfterSaturday() async {
+        seedAttribute()
+        await service.ensureCurrentWeek(userId: "u-1")
+        let overdrive = service.state(userId: "u-1").currentWeekCards.first(where: { $0.kind == .overdrive })!
+        let weekStart = Date(timeIntervalSince1970: 1_700_000_000)
+        let completedAt = weekStart.addingTimeInterval((5 * 86_400) + 60)
+        var state = WeeklyVowsState.empty
+        state.currentWeekStart = weekStart
+        state.currentWeekCards = [overdrive]
+        state.currentVow = WeeklyVow(
+            id: overdrive.id,
+            userId: "u-1",
+            weekStart: weekStart,
+            chosenCard: overdrive,
+            capstoneState: .pending,
+            completedAt: nil
+        )
+        store.save(state, userId: "u-1")
+
+        let vow = try! XCTUnwrap(service.state(userId: "u-1").currentVow)
+        let draft = service.trainingDraft(for: vow, date: completedAt)
+        let log = makePerformanceLog(from: draft, completedAt: completedAt)
+        var result = TrainingCompletionResult()
+        result.savedPerformanceLogId = log.id
+        result.bodyweightKg = 70
+
+        let receipt = service.recordCompletedVowWork(performanceLog: log, completionResult: result)
+
+        XCTAssertEqual(receipt?.vow.capstoneState, .completed)
+        XCTAssertEqual(service.state(userId: "u-1").currentVow?.capstoneState, .completed)
+        XCTAssertEqual(service.state(userId: "u-1").weeklyVowCompletionLedger.first?.performanceLogId, log.id)
+    }
+
     func testRecordCompletedVowWorkRejectsAutoLogProofMiss() async {
         seedAttribute()
         await service.ensureCurrentWeek(userId: "u-1")
@@ -401,10 +434,14 @@ final class WeeklyVowsServiceTests: XCTestCase {
 
         let draft = try! XCTUnwrap(service.trainingDraftForCurrentVow(userId: "u-1", date: .now))
         var log = makePerformanceLog(from: draft)
-        log.blocks[0].exercises[0].sets[0].reps = 1
-        log.blocks[0].exercises[0].sets[0].weightKg = 5
-        log.blocks[0].exercises[0].sets[0].holdSeconds = 1
-        log.blocks[0].exercises[0].sets[0].durationSeconds = 1
+        for setIndex in log.blocks[0].exercises[0].sets.indices {
+            log.blocks[0].exercises[0].sets[setIndex].reps = 1
+            log.blocks[0].exercises[0].sets[setIndex].weightKg = 5
+            log.blocks[0].exercises[0].sets[setIndex].holdSeconds = 1
+            log.blocks[0].exercises[0].sets[setIndex].durationSeconds = 1
+            log.blocks[0].exercises[0].sets[setIndex].distanceMeters = 1
+            log.blocks[0].exercises[0].sets[setIndex].calories = 1
+        }
         var result = TrainingCompletionResult()
         result.savedPerformanceLogId = log.id
         result.bodyweightKg = 70
@@ -544,6 +581,27 @@ final class WeeklyVowsServiceTests: XCTestCase {
         let draft = try! XCTUnwrap(service.trainingDraftForCurrentVow(userId: "u-1", date: .now))
         var partialLog = makePerformanceLog(from: draft)
         partialLog.blocks[0].exercises.removeLast()
+        var result = TrainingCompletionResult()
+        result.savedPerformanceLogId = partialLog.id
+        result.bodyweightKg = 70
+
+        XCTAssertNil(service.recordCompletedVowWork(performanceLog: partialLog, completionResult: result))
+        XCTAssertEqual(service.state(userId: "u-1").currentVow?.capstoneState, .windowOpen)
+        XCTAssertTrue(service.state(userId: "u-1").weeklyVowCompletionLedger.isEmpty)
+    }
+
+    func testRecordCompletedApexVowRequiresPrescribedSetVolume() async {
+        seedAttribute()
+        await service.ensureCurrentWeek(userId: "u-1")
+        let apex = service.state(userId: "u-1").currentWeekCards.first(where: { $0.kind == .apex })!
+        service.pickVowCard(apex, userId: "u-1")
+        openCurrentVow()
+
+        let draft = try! XCTUnwrap(service.trainingDraftForCurrentVow(userId: "u-1", date: .now))
+        var partialLog = makePerformanceLog(from: draft)
+        for exerciseIndex in partialLog.blocks[0].exercises.indices {
+            partialLog.blocks[0].exercises[exerciseIndex].sets = Array(partialLog.blocks[0].exercises[exerciseIndex].sets.prefix(1))
+        }
         var result = TrainingCompletionResult()
         result.savedPerformanceLogId = partialLog.id
         result.bodyweightKg = 70
@@ -832,9 +890,11 @@ final class WeeklyVowsServiceTests: XCTestCase {
         store.save(state, userId: userId)
     }
 
-    private func makePerformanceLog(from draft: TrainingSessionDraft) -> PerformanceLog {
+    private func makePerformanceLog(
+        from draft: TrainingSessionDraft,
+        completedAt: Date = Date(timeIntervalSince1970: 1_700_000_600)
+    ) -> PerformanceLog {
         let block = draft.blocks[0]
-        let completedAt = Date(timeIntervalSince1970: 1_700_000_600)
         let exercises = block.prescriptions.enumerated().map { index, prescription in
             PerformanceExercise(
                 id: prescription.id,
@@ -843,9 +903,9 @@ final class WeeklyVowsServiceTests: XCTestCase {
                 rankStandardMovementId: prescription.rankStandardMovementId,
                 plannedSets: prescription.sets,
                 plannedTarget: prescription.target.displayText,
-                sets: [
+                sets: (0..<max(1, prescription.sets)).map { setIndex in
                     PerformanceSet(
-                        setNumber: index + 1,
+                        setNumber: setIndex + 1,
                         reps: 20,
                         weightKg: 100,
                         holdSeconds: 600,
@@ -854,7 +914,7 @@ final class WeeklyVowsServiceTests: XCTestCase {
                         calories: 500,
                         rpe: prescription.rpe
                     )
-                ]
+                }
             )
         }
         return PerformanceLog(

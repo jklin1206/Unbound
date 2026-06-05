@@ -199,6 +199,7 @@ struct RootView: View {
                         // Trials: roll week on Monday or first launch. Marks prior
                         // uncompleted trial as .missed and generates 3 fresh cards.
                         await services.trials.ensureCurrentWeek(userId: userId)
+                        services.trials.checkVowWindow(userId: userId, now: Date())
                         // Restore-on-sign-in: if this device has no local program
                         // cache for the user, pull their data down once and
                         // rehydrate the active program. Gated on "no local cache"

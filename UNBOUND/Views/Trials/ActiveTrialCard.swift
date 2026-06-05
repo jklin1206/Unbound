@@ -13,7 +13,7 @@ struct ActiveTrialCard: View {
     private var card: TrialCard { trial.chosenCard }
     private var tint: Color { card.theme.tintColor }
     private var canLaunchTraining: Bool {
-        trial.capstoneState != .completed && trial.capstoneState != .missed
+        trial.capstoneState == .windowOpen
     }
 
     /// 0.0 = not started, 1.0 = complete.
@@ -146,12 +146,16 @@ struct ActiveTrialCard: View {
             .frame(width: 64, height: 30)
             .background(Capsule().fill(tint))
         } else {
-            Text("LOCKED")
-                .font(.system(size: 9, weight: .heavy, design: .monospaced))
-                .tracking(1.2)
-                .foregroundStyle(tint)
-                .frame(width: 64, height: 30)
-                .background(Capsule().fill(tint.opacity(0.13)))
+            HStack(spacing: 5) {
+                Image(systemName: "lock.fill")
+                    .font(.system(size: 9, weight: .bold))
+                Text("ARMED")
+                    .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                    .tracking(1.1)
+            }
+            .foregroundStyle(tint)
+            .frame(width: 64, height: 30)
+            .background(Capsule().fill(tint.opacity(0.13)))
         }
     }
 
@@ -163,7 +167,7 @@ struct ActiveTrialCard: View {
 
     private var capstoneStateLabel: String {
         switch trial.capstoneState {
-        case .pending:    return "READY"
+        case .pending:    return "OPENS SAT"
         case .windowOpen: return "OPEN"
         case .completed:  return "COMPLETE"
         case .missed:     return "MISSED"

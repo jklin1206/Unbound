@@ -163,6 +163,7 @@ final class WeeklyVowsService: WeeklyVowsServiceProtocol {
         guard WeeklyVowTrainingRoute.hasCompletedWork(performanceLog) else { return nil }
         guard let vowId = WeeklyVowTrainingRoute.vowId(from: performanceLog.programId) else { return nil }
 
+        checkVowWindow(userId: performanceLog.userId, now: performanceLog.completedAt)
         let state = store.load(userId: performanceLog.userId)
         guard !state.weeklyVowCompletionLedger.contains(where: { $0.performanceLogId == performanceLog.id }) else {
             return nil
@@ -358,7 +359,7 @@ private enum WeeklyVowTrainingRoute {
         return prescriptions.allSatisfy { prescription in
             exercises.contains { exercise in
                 exercise.matches(prescription)
-                    && hasCompletedExercise(exercise, satisfying: prescription.target)
+                    && completedSetCount(exercise, satisfying: prescription.target) >= prescription.sets
             }
         }
     }
@@ -376,12 +377,12 @@ private enum WeeklyVowTrainingRoute {
         }
     }
 
-    private static func hasCompletedExercise(
+    private static func completedSetCount(
         _ exercise: PerformanceExercise,
         satisfying target: TrainingTarget
-    ) -> Bool {
-        guard !exercise.skipped else { return false }
-        return exercise.sets.contains { set in
+    ) -> Int {
+        guard !exercise.skipped else { return 0 }
+        return exercise.sets.filter { set in
             guard !set.isWarmup else { return false }
             switch target {
             case .reps(let count):
@@ -403,7 +404,7 @@ private enum WeeklyVowTrainingRoute {
             case .timedSeconds(let seconds):
                 return max(set.durationSeconds ?? 0, set.holdSeconds ?? 0) >= seconds
             }
-        }
+        }.count
     }
 }
 
