@@ -153,20 +153,17 @@ final class WeeklyVowGeneratorTests: XCTestCase {
         XCTAssertTrue(overdrive.capstone.description.contains("Barbell Bench Press"))
     }
 
-    func testApexWeightProofUsesExerciseSpecificTarget() {
+    func testApexUsesWorkoutRotationInsteadOfExerciseSpecificProofTarget() {
         let profile = makeProfile(powerValue: 70, controlValue: 30)
         let history = [makeWorkoutLog(exerciseName: "deadlift", weightKg: 120)]
 
         let cards = WeeklyVowGenerator.cards(profile: profile, history: history, weekStart: .now, weekNumber: 2)
         let apex = cards.first(where: { $0.kind == .apex })!
 
-        guard case .autoFromLog(.exerciseWeightKg(let target, let exerciseName)) = apex.capstone.evaluation else {
-            return XCTFail("Expected an exercise-specific Apex proof.")
-        }
-
-        XCTAssertEqual(apex.capstone.displayName, "1-Rep PR Attempt")
-        XCTAssertEqual(exerciseName, "deadlift")
-        XCTAssertEqual(target, 125)
+        XCTAssertEqual(apex.capstone.displayName, "Pull Crucible")
+        XCTAssertEqual(apex.capstone.evaluation, .manualClaim)
+        XCTAssertTrue(apex.blurb.localizedCaseInsensitiveContains("hard standalone workout"))
+        XCTAssertFalse(apex.capstone.description.localizedCaseInsensitiveContains("PR"))
     }
 
     // MARK: helpers

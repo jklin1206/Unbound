@@ -5,8 +5,8 @@ import Foundation
 /// history, week-start Date, ISO week number. Output: 3 WeeklyVowCards.
 ///
 /// Deterministic given identical inputs. Recovery Vow = recovery-safe
-/// low-day work. Finisher Vow = after-workout finisher. Limit Vow cycles per
-/// weekNumber.
+/// low-day work. Finisher Vow = after-workout finisher. Limit Vow cycles hard
+/// dedicated workout archetypes per weekNumber.
 @MainActor
 enum WeeklyVowGenerator {
 
@@ -22,7 +22,7 @@ enum WeeklyVowGenerator {
         return [
             makeEmberCard(axis: emberAxis, weekNumber: weekNumber),
             makeOverdriveCard(axis: overdriveAxis, weekNumber: weekNumber, history: history),
-            makeApexCard(weekNumber: weekNumber, history: history)
+            makeApexCard(weekNumber: weekNumber)
         ]
     }
 
@@ -87,25 +87,14 @@ enum WeeklyVowGenerator {
         )
     }
 
-    private static func makeApexCard(weekNumber: Int, history: [WorkoutLog]) -> WeeklyVowCard {
-        var capstone = PrestigeCapstoneCatalog.capstone(for: weekNumber)
-        // Dynamic scaling for the 1-rep PR Apex proof.
-        if capstone.displayName == "1-Rep PR Attempt" {
-            let target = scaledWeightTarget(history: history, fallbackExerciseName: "deadlift")
-            capstone = WeeklyVowProof(
-                displayName: capstone.displayName,
-                description: "Hit a 1-rep PR of \(Int(target.weightKg))kg or higher on \(target.displayName).",
-                evaluation: .autoFromLog(
-                    .exerciseWeightKg(target.weightKg, exerciseName: target.exerciseName)
-                )
-            )
-        }
+    private static func makeApexCard(weekNumber: Int) -> WeeklyVowCard {
+        let capstone = PrestigeCapstoneCatalog.capstone(for: weekNumber)
         return WeeklyVowCard(
             id: "weekly-vow-W\(weekNumber)-apex",
             kind: .apex,
             theme: .wildcard,
             displayName: apexVowName(for: capstone),
-            blurb: "A dedicated Limit Binding Vow: one focused standard, clean execution, no extra clutter.",
+            blurb: "A dedicated Limit Binding Vow: a hard standalone workout with a real cost if you leave it unfinished.",
             capstone: capstone,
             prescription: WeeklyVowPrescription(
                 placement: .dedicatedSession,
@@ -143,12 +132,12 @@ enum WeeklyVowGenerator {
 
     private static func apexVowName(for capstone: WeeklyVowProof) -> String {
         switch capstone.displayName {
-        case "Max Pull-Up AMRAP": return "Pull-Up Vow"
-        case "Broad Jump Distance": return "Broad Jump Vow"
-        case "1-Rep PR Attempt": return "Top Set Vow"
-        case "Strict Muscle-Up": return "Muscle-Up Vow"
-        case "L-Sit Hold": return "Stillness Vow"
-        case "5K Sub-25": return "5K Vow"
+        case "Iron Gauntlet": return "Gauntlet Vow"
+        case "Engine Breaker": return "Engine Vow"
+        case "Pull Crucible": return "Crucible Vow"
+        case "Static Furnace": return "Furnace Vow"
+        case "Impact Ladder": return "Impact Vow"
+        case "Volume Blackout": return "Blackout Vow"
         default: return "Final Vow"
         }
     }

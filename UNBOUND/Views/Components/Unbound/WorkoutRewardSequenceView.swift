@@ -737,6 +737,9 @@ struct WorkoutRewardSequenceView: View {
                     VStack(spacing: 10) {
                         if let bonus = callout.completionBonus {
                             rewardLine(label: "Vow Bonus", value: "+\(bonus.overallLevelXP) LVL XP", tint: Color.rewardBlue)
+                            if let penaltyXP = bonus.penaltyAppliedXP, penaltyXP > 0 {
+                                rewardLine(label: "Vow Fracture", value: "-\(penaltyXP) LVL XP", tint: Color.unbound.alert)
+                            }
                             rewardLine(label: "Vow Badge", value: bonus.badgeProgress.displayText, tint: tint)
                             rewardLine(label: "Vow Cosmetic", value: bonus.cosmeticProgress.displayText, tint: tint)
                         }

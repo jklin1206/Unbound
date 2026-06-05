@@ -9,6 +9,16 @@ struct WeeklyVowCompletionLedgerEntry: Codable, Equatable, Identifiable, Sendabl
     let bonus: WeeklyVowCompletionBonus
 }
 
+struct WeeklyVowPenaltyLedgerEntry: Codable, Equatable, Identifiable, Sendable {
+    var id: String { "\(vowId)-\(Int(weekStart.timeIntervalSince1970))" }
+
+    let vowId: String
+    let cardKind: WeeklyVowKind
+    let weekStart: Date
+    let missedAt: Date
+    let penaltyXP: Int
+}
+
 /// Persisted Weekly Vows state per user. Lives in WeeklyVowsStore.
 struct WeeklyVowsState: Codable, Equatable, Sendable {
     /// Monday 00:00 of the active vow week. nil before first generation.
@@ -29,6 +39,10 @@ struct WeeklyVowsState: Codable, Equatable, Sendable {
     var skippedCurrentWeek: Bool
     /// Saved PerformanceLogs that have already consumed the one-time Vow bonus.
     var weeklyVowCompletionLedger: [WeeklyVowCompletionLedgerEntry]
+    /// Missed picked vows. Skipping before picking still has no penalty.
+    var weeklyVowPenaltyLedger: [WeeklyVowPenaltyLedgerEntry]
+    /// Outstanding XP tax applied against future vow completion bonuses.
+    var pendingVowPenaltyXP: Int
 
     var currentVow: WeeklyVow? {
         get { currentTrial }
@@ -49,7 +63,9 @@ struct WeeklyVowsState: Codable, Equatable, Sendable {
         unlockedTitles: [],
         equippedTitle: nil,
         skippedCurrentWeek: false,
-        weeklyVowCompletionLedger: []
+        weeklyVowCompletionLedger: [],
+        weeklyVowPenaltyLedger: [],
+        pendingVowPenaltyXP: 0
     )
 
     init(
@@ -61,7 +77,9 @@ struct WeeklyVowsState: Codable, Equatable, Sendable {
         unlockedTitles: [TitleID],
         equippedTitle: TitleID?,
         skippedCurrentWeek: Bool,
-        weeklyVowCompletionLedger: [WeeklyVowCompletionLedgerEntry] = []
+        weeklyVowCompletionLedger: [WeeklyVowCompletionLedgerEntry] = [],
+        weeklyVowPenaltyLedger: [WeeklyVowPenaltyLedgerEntry] = [],
+        pendingVowPenaltyXP: Int = 0
     ) {
         self.currentWeekStart = currentWeekStart
         self.currentWeekCards = currentWeekCards
@@ -72,6 +90,8 @@ struct WeeklyVowsState: Codable, Equatable, Sendable {
         self.equippedTitle = equippedTitle
         self.skippedCurrentWeek = skippedCurrentWeek
         self.weeklyVowCompletionLedger = weeklyVowCompletionLedger
+        self.weeklyVowPenaltyLedger = weeklyVowPenaltyLedger
+        self.pendingVowPenaltyXP = max(0, pendingVowPenaltyXP)
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -84,6 +104,8 @@ struct WeeklyVowsState: Codable, Equatable, Sendable {
         case equippedTitle
         case skippedCurrentWeek
         case weeklyVowCompletionLedger
+        case weeklyVowPenaltyLedger
+        case pendingVowPenaltyXP
     }
 
     init(from decoder: Decoder) throws {
@@ -100,6 +122,11 @@ struct WeeklyVowsState: Codable, Equatable, Sendable {
             [WeeklyVowCompletionLedgerEntry].self,
             forKey: .weeklyVowCompletionLedger
         ) ?? []
+        weeklyVowPenaltyLedger = try container.decodeIfPresent(
+            [WeeklyVowPenaltyLedgerEntry].self,
+            forKey: .weeklyVowPenaltyLedger
+        ) ?? []
+        pendingVowPenaltyXP = try container.decodeIfPresent(Int.self, forKey: .pendingVowPenaltyXP) ?? 0
     }
 }
 

@@ -46,7 +46,7 @@ extension WeeklyVowKind {
         case .overdrive:
             return "Post-workout binding"
         case .apex:
-            return "Limit standard"
+            return "Hard workout"
         }
     }
 
@@ -77,6 +77,10 @@ extension WeeklyVowKind {
         case .overdrive: return 120
         case .apex: return 240
         }
+    }
+
+    var missedPenaltyOverallLevelXP: Int {
+        completionBonusOverallLevelXP / 2
     }
 
     var vowIdComponent: String {

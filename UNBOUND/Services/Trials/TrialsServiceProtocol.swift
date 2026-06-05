@@ -61,9 +61,8 @@ protocol WeeklyVowsServiceProtocol: AnyObject {
     /// Build real trainable work for the user's current vow, if one exists.
     func trainingDraftForCurrentVow(userId: String, date: Date) -> TrainingSessionDraft?
 
-    /// Mark the current vow complete. Increments Title counters,
-    /// unlocks Titles at threshold crossings, posts .weeklyVowCompleted (and
-    /// .titleUnlocked per crossing).
+    /// Legacy adapter retained for older callers. Binding vows now complete
+    /// only through `recordCompletedVowWork` after a saved routed workout.
     func completeVow(userId: String, at date: Date)
 
     /// Mark the current vow complete only after its routed PerformanceLog was
@@ -74,8 +73,8 @@ protocol WeeklyVowsServiceProtocol: AnyObject {
         completionResult: TrainingCompletionResult
     ) -> WeeklyVowCompletionReceipt?
 
-    /// Re-evaluate the active proof against new log history. Only acts
-    /// when capstoneState == .windowOpen and evaluation == .autoFromLog.
+    /// Legacy adapter retained for older callers. Raw history can no longer
+    /// seal vows; saved routed workout receipts are required.
     func evaluateVowProofFromLog(
         userId: String,
         history: [ExerciseLogEntry],

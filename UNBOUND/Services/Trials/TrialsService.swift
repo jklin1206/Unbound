@@ -47,8 +47,9 @@ final class WeeklyVowsService: WeeklyVowsServiceProtocol {
             return
         }
 
-        // Roll prior week. Mark uncompleted vow as missed.
+        // Roll prior week. Mark uncompleted picked vows as missed and bind the miss penalty.
         if var vow = state.currentVow, vow.capstoneState != .completed {
+            WeeklyVowPenaltyCatalog.applyMissedPenaltyIfNeeded(for: vow, missedAt: now, state: &state)
             vow.capstoneState = .missed
             state.currentVow = vow
         }
@@ -101,6 +102,14 @@ final class WeeklyVowsService: WeeklyVowsServiceProtocol {
 
     func pickVowCard(_ card: WeeklyVowCard, userId: String) {
         var state = store.load(userId: userId)
+        if let existingVow = state.currentVow {
+            guard existingVow.id != card.id else { return }
+            WeeklyVowPenaltyCatalog.applyMissedPenaltyIfNeeded(
+                for: existingVow,
+                missedAt: Date(),
+                state: &state
+            )
+        }
         let vow = WeeklyVow(
             id: card.id,
             userId: userId,
@@ -118,6 +127,13 @@ final class WeeklyVowsService: WeeklyVowsServiceProtocol {
 
     func skipThisWeek(userId: String) {
         var state = store.load(userId: userId)
+        if let existingVow = state.currentVow {
+            WeeklyVowPenaltyCatalog.applyMissedPenaltyIfNeeded(
+                for: existingVow,
+                missedAt: Date(),
+                state: &state
+            )
+        }
         state.skippedCurrentWeek = true
         state.currentVow = nil
         store.save(state, userId: userId)
@@ -153,14 +169,20 @@ final class WeeklyVowsService: WeeklyVowsServiceProtocol {
         }
         guard let vow = state.currentVow,
               vow.id == vowId,
-              vow.capstoneState != .completed
+              vow.capstoneState == .windowOpen,
+              Self.savedWorkSatisfiesProof(
+                performanceLog,
+                vow: vow,
+                bodyweightKg: completionResult.bodyweightKg
+              )
         else { return nil }
 
         let completionCountAfter = (state.completionsByCardKind[vow.chosenCard.kind] ?? 0) + 1
         let bonus = WeeklyVowCompletionBonusCatalog.bonus(
             for: vow,
             performanceLog: performanceLog,
-            completionCountAfter: completionCountAfter
+            completionCountAfter: completionCountAfter,
+            pendingPenaltyXP: state.pendingVowPenaltyXP
         )
         let ledgerEntry = WeeklyVowCompletionLedgerEntry(
             vowId: vow.id,
@@ -169,11 +191,12 @@ final class WeeklyVowsService: WeeklyVowsServiceProtocol {
             bonus: bonus
         )
 
-        guard let completedVow = completeVow(
+        guard let completedVow = sealCompletedVow(
             userId: performanceLog.userId,
             at: performanceLog.completedAt,
             ledgerEntry: ledgerEntry
         ) else { return nil }
+
         return WeeklyVowCompletionReceipt(
             vow: completedVow,
             performanceLog: performanceLog,
@@ -184,20 +207,21 @@ final class WeeklyVowsService: WeeklyVowsServiceProtocol {
     // MARK: - Complete vow
 
     func completeVow(userId: String, at date: Date) {
-        _ = completeVow(userId: userId, at: date, ledgerEntry: nil)
+        // Completion is intentionally sealed only by recordCompletedVowWork(_:completionResult:).
+        // Legacy callers cannot bypass the saved-work receipt requirement.
     }
 
     @discardableResult
-    private func completeVow(
+    private func sealCompletedVow(
         userId: String,
         at date: Date,
-        ledgerEntry: WeeklyVowCompletionLedgerEntry?
+        ledgerEntry: WeeklyVowCompletionLedgerEntry
     ) -> WeeklyVow? {
         var state = store.load(userId: userId)
         guard var vow = state.currentVow else { return nil }
-        guard vow.capstoneState != .completed else { return nil }
-        if let ledgerEntry,
-           state.weeklyVowCompletionLedger.contains(where: { $0.performanceLogId == ledgerEntry.performanceLogId }) {
+        guard vow.id == ledgerEntry.vowId else { return nil }
+        guard vow.capstoneState == .windowOpen else { return nil }
+        if state.weeklyVowCompletionLedger.contains(where: { $0.performanceLogId == ledgerEntry.performanceLogId }) {
             return nil
         }
 
@@ -220,11 +244,13 @@ final class WeeklyVowsService: WeeklyVowsServiceProtocol {
                 state.unlockedTitles.append(titleId)
             }
         }
-        if let ledgerEntry {
-            state.weeklyVowCompletionLedger.append(ledgerEntry)
-            if state.weeklyVowCompletionLedger.count > 100 {
-                state.weeklyVowCompletionLedger.removeFirst(state.weeklyVowCompletionLedger.count - 100)
-            }
+        state.weeklyVowCompletionLedger.append(ledgerEntry)
+        state.pendingVowPenaltyXP = WeeklyVowPenaltyCatalog.remainingPenaltyXP(
+            afterApplying: ledgerEntry.bonus.penaltyAppliedXP ?? 0,
+            to: state.pendingVowPenaltyXP
+        )
+        if state.weeklyVowCompletionLedger.count > 100 {
+            state.weeklyVowCompletionLedger.removeFirst(state.weeklyVowCompletionLedger.count - 100)
         }
 
         store.save(state, userId: userId)
@@ -234,6 +260,7 @@ final class WeeklyVowsService: WeeklyVowsServiceProtocol {
         }
         NotificationCenter.default.post(name: .weeklyVowCompleted, object: vow)
         NotificationCenter.default.post(name: .trialCompleted, object: vow)
+        AnalyticsService.shared.track(.bindingVowCleared(vowId: vow.id))
         return vow
     }
 
@@ -255,18 +282,8 @@ final class WeeklyVowsService: WeeklyVowsServiceProtocol {
         history: [ExerciseLogEntry],
         bodyweightKg: Double
     ) async {
-        let state = store.load(userId: userId)
-        guard let vow = state.currentVow else { return }
-        guard vow.capstoneState == .windowOpen else { return }
-        guard case .autoFromLog(let criterion) = vow.chosenCard.capstone.evaluation else { return }
-
-        if TierCriterionEvaluator.satisfied(
-            criterion: criterion,
-            history: history,
-            bodyweightKg: bodyweightKg
-        ) {
-            completeVow(userId: userId, at: .now)
-        }
+        // Raw history can hint at readiness, but it cannot seal a vow. The
+        // saved PerformanceLog route is the single completion authority.
     }
 
     func checkVowWindow(userId: String, now: Date = .now) {
@@ -330,6 +347,22 @@ private enum WeeklyVowTrainingRoute {
         }
     }
 
+    static func satisfiesApexWorkoutCompletion(
+        _ performanceLog: PerformanceLog,
+        card: WeeklyVowCard
+    ) -> Bool {
+        let prescriptions = WeeklyVowTrainingBuilder.prescriptions(for: card)
+        guard !prescriptions.isEmpty else { return false }
+        let exercises = performanceLog.blocks.flatMap(\.exercises)
+        guard !exercises.contains(where: \.skipped) else { return false }
+        return prescriptions.allSatisfy { prescription in
+            exercises.contains { exercise in
+                exercise.matches(prescription)
+                    && hasCompletedExercise(exercise, satisfying: prescription.target)
+            }
+        }
+    }
+
     private static func hasCompletedExercise(_ exercise: PerformanceExercise) -> Bool {
         guard !exercise.skipped else { return false }
         return exercise.sets.contains { set in
@@ -342,15 +375,156 @@ private enum WeeklyVowTrainingRoute {
                 || (set.weightKg ?? 0) > 0
         }
     }
+
+    private static func hasCompletedExercise(
+        _ exercise: PerformanceExercise,
+        satisfying target: TrainingTarget
+    ) -> Bool {
+        guard !exercise.skipped else { return false }
+        return exercise.sets.contains { set in
+            guard !set.isWarmup else { return false }
+            switch target {
+            case .reps(let count):
+                return (set.reps ?? 0) >= count
+            case .repsRange(let low, _):
+                return (set.reps ?? 0) >= low
+            case .amrap:
+                return (set.reps ?? 0) > 0
+                    || (set.holdSeconds ?? 0) > 0
+                    || (set.durationSeconds ?? 0) > 0
+                    || (set.distanceMeters ?? 0) > 0
+                    || (set.calories ?? 0) > 0
+            case .holdSeconds(let seconds):
+                return max(set.holdSeconds ?? 0, set.durationSeconds ?? 0) >= seconds
+            case .distanceMeters(let meters):
+                return (set.distanceMeters ?? 0) >= meters
+            case .calories(let calories):
+                return (set.calories ?? 0) >= calories
+            case .timedSeconds(let seconds):
+                return max(set.durationSeconds ?? 0, set.holdSeconds ?? 0) >= seconds
+            }
+        }
+    }
+}
+
+private extension PerformanceExercise {
+    func matches(_ prescription: TrainingBlockPrescription) -> Bool {
+        if let movementId, let prescriptionMovementId = prescription.movementId, movementId == prescriptionMovementId {
+            return true
+        }
+        if let rankStandardMovementId,
+           let prescriptionRankStandardMovementId = prescription.rankStandardMovementId,
+           rankStandardMovementId == prescriptionRankStandardMovementId {
+            return true
+        }
+        return MovementCatalog.normalized(name) == MovementCatalog.normalized(prescription.exerciseName)
+    }
+}
+
+private extension WeeklyVowsService {
+    static func savedWorkSatisfiesProof(
+        _ performanceLog: PerformanceLog,
+        vow: WeeklyVow,
+        bodyweightKg: Double
+    ) -> Bool {
+        if vow.chosenCard.kind == .apex {
+            return WeeklyVowTrainingRoute.satisfiesApexWorkoutCompletion(
+                performanceLog,
+                card: vow.chosenCard
+            )
+        }
+
+        switch vow.chosenCard.capstone.evaluation {
+        case .manualClaim, .liveTimer:
+            return true
+        case .autoFromLog(let criterion):
+            return TierCriterionEvaluator.satisfied(
+                criterion: criterion,
+                history: performanceLog.weeklyVowExerciseHistory,
+                bodyweightKg: bodyweightKg
+            )
+        }
+    }
+}
+
+private extension PerformanceLog {
+    var weeklyVowExerciseHistory: [ExerciseLogEntry] {
+        blocks.flatMap { block in
+            block.exercises.map { exercise in
+                ExerciseLogEntry(
+                    id: exercise.id,
+                    exerciseName: exercise.name,
+                    movementId: exercise.movementId,
+                    rankStandardMovementId: exercise.rankStandardMovementId,
+                    plannedSets: exercise.plannedSets,
+                    plannedReps: exercise.plannedTarget,
+                    sets: exercise.sets.map { set in
+                        SetLog(
+                            id: set.id,
+                            setNumber: set.setNumber,
+                            weightKg: set.weightKg,
+                            reps: set.reps ?? 0,
+                            rpe: set.rpe,
+                            isWarmup: set.isWarmup,
+                            durationSeconds: set.holdSeconds ?? set.durationSeconds,
+                            qualityFlags: set.qualityFlags,
+                            notes: set.notes
+                        )
+                    },
+                    skipped: exercise.skipped,
+                    notes: exercise.notes
+                )
+            }
+        }
+    }
+}
+
+private enum WeeklyVowPenaltyCatalog {
+    private static let maxPendingPenaltyXP = 240
+    private static let maxLedgerEntries = 100
+
+    static func applyMissedPenaltyIfNeeded(
+        for vow: WeeklyVow,
+        missedAt: Date,
+        state: inout WeeklyVowsState
+    ) {
+        guard vow.capstoneState != .completed, vow.capstoneState != .missed else { return }
+        guard !state.weeklyVowPenaltyLedger.contains(where: { $0.vowId == vow.id && $0.weekStart == vow.weekStart }) else { return }
+
+        let penaltyXP = vow.chosenCard.kind.missedPenaltyOverallLevelXP
+        guard penaltyXP > 0 else { return }
+
+        state.weeklyVowPenaltyLedger.append(
+            WeeklyVowPenaltyLedgerEntry(
+                vowId: vow.id,
+                cardKind: vow.chosenCard.kind,
+                weekStart: vow.weekStart,
+                missedAt: missedAt,
+                penaltyXP: penaltyXP
+            )
+        )
+        if state.weeklyVowPenaltyLedger.count > maxLedgerEntries {
+            state.weeklyVowPenaltyLedger.removeFirst(state.weeklyVowPenaltyLedger.count - maxLedgerEntries)
+        }
+        state.pendingVowPenaltyXP = min(maxPendingPenaltyXP, state.pendingVowPenaltyXP + penaltyXP)
+    }
+
+    static func remainingPenaltyXP(afterApplying appliedXP: Int, to pendingXP: Int) -> Int {
+        max(0, pendingXP - max(0, appliedXP))
+    }
 }
 
 private enum WeeklyVowCompletionBonusCatalog {
     static func bonus(
         for vow: WeeklyVow,
         performanceLog: PerformanceLog,
-        completionCountAfter: Int
+        completionCountAfter: Int,
+        pendingPenaltyXP: Int
     ) -> WeeklyVowCompletionBonus {
         let kind = vow.chosenCard.kind
+        let baseOverallLevelXP = kind.completionBonusOverallLevelXP
+        let penaltyAppliedXP = min(max(0, pendingPenaltyXP), baseOverallLevelXP)
+        let awardedOverallLevelXP = max(0, baseOverallLevelXP - penaltyAppliedXP)
         let badgeTarget = 3
         let cosmeticTarget = 5
         let badgeProgress = min(badgeTarget, ((completionCountAfter - 1) % badgeTarget) + 1)
@@ -374,7 +548,7 @@ private enum WeeklyVowCompletionBonusCatalog {
         }
 
         return WeeklyVowCompletionBonus(
-            overallLevelXP: kind.completionBonusOverallLevelXP,
+            overallLevelXP: awardedOverallLevelXP,
             badgeProgress: WeeklyVowProgressDescriptor(
                 title: "\(kind.displayName) I",
                 current: badgeProgress,
@@ -385,7 +559,9 @@ private enum WeeklyVowCompletionBonusCatalog {
                 current: cosmeticProgress,
                 target: cosmeticTarget
             ),
-            shareCard: shareCard
+            shareCard: shareCard,
+            baseOverallLevelXP: penaltyAppliedXP > 0 ? baseOverallLevelXP : nil,
+            penaltyAppliedXP: penaltyAppliedXP > 0 ? penaltyAppliedXP : nil
         )
     }
 }
@@ -416,7 +592,7 @@ private enum WeeklyVowTrainingBuilder {
         )
     }
 
-    private static func prescriptions(for card: WeeklyVowCard) -> [TrainingBlockPrescription] {
+    static func prescriptions(for card: WeeklyVowCard) -> [TrainingBlockPrescription] {
         if case .autoFromLog(let criterion) = card.capstone.evaluation {
             return prescriptions(for: criterion, card: card)
         }
@@ -598,22 +774,47 @@ private enum WeeklyVowTrainingBuilder {
 
     private static func apexCircuit(card: WeeklyVowCard) -> [TrainingBlockPrescription] {
         switch card.capstone.displayName {
-        case "Broad Jump Distance":
+        case "Iron Gauntlet":
             return [
-                makePrescription(exerciseName: "Jump Squat", sets: 5, target: .reps(3), restSeconds: 105, rpe: rpe(for: card), notes: "Max intent; reset fully each set."),
-                makePrescription(exerciseName: "Walking Lunge", sets: 3, target: .repsRange(10, 12), restSeconds: 75, rpe: rpe(for: card), notes: "Build the landing positions."),
-                makePrescription(exerciseName: "Farmer Carry", sets: 3, target: .distanceMeters(30), restSeconds: 90, rpe: rpe(for: card), notes: "Rigid trunk under fatigue.")
+                makePrescription(exerciseName: "Bench Press", sets: 4, target: .repsRange(3, 5), restSeconds: 150, rpe: rpe(for: card), notes: "Heavy, clean reps; leave no grindy misses."),
+                makePrescription(exerciseName: "Goblet Squat", sets: 4, target: .repsRange(8, 10), restSeconds: 90, rpe: rpe(for: card), notes: "Deep range, upright torso, steady tempo."),
+                makePrescription(exerciseName: "Farmer Carry", sets: 4, target: .distanceMeters(40), restSeconds: 90, rpe: rpe(for: card), notes: "Heavy brace under fatigue."),
+                makePrescription(exerciseName: "Plank", sets: 3, target: .holdSeconds(45), restSeconds: 45, rpe: rpe(for: card), notes: "Finish with a quiet trunk.")
             ]
-        case "L-Sit Hold":
+        case "Engine Breaker":
             return [
-                makePrescription(exerciseName: "L-Sit (Tucked)", sets: 4, target: .holdSeconds(15), restSeconds: 75, rpe: rpe(for: card), notes: "Accumulate perfect holds before the proof."),
-                makePrescription(exerciseName: "Hollow Hold", sets: 3, target: .holdSeconds(30), restSeconds: 60, rpe: rpe(for: card), notes: "Keep ribs down."),
-                makePrescription(exerciseName: "Dip", sets: 3, target: .repsRange(5, 8), restSeconds: 90, rpe: rpe(for: card), notes: "Shoulders packed and elbows controlled.")
-            ]
-        case "5K Sub-25":
-            return [
-                makePrescription(exerciseName: "Run", sets: 1, target: .distanceMeters(5_000), restSeconds: 0, rpe: rpe(for: card), notes: "Log the 5K attempt as one continuous effort."),
+                makePrescription(exerciseName: "Run", sets: 1, target: .timedSeconds(15 * 60), restSeconds: 0, rpe: rpe(for: card), notes: "Hard steady effort; do not turn it into a sprint."),
+                makePrescription(exerciseName: "Kettlebell Swing", sets: 4, target: .repsRange(12, 15), restSeconds: 75, rpe: rpe(for: card), notes: "Snap the hips and keep breathing controlled."),
+                makePrescription(exerciseName: "Farmer Carry", sets: 3, target: .distanceMeters(40), restSeconds: 90, rpe: rpe(for: card), notes: "Loaded breathing after the engine work."),
                 makePrescription(exerciseName: "Hip Flexor Stretch", sets: 2, target: .timedSeconds(45), restSeconds: 15, rpe: 4, notes: "Cooldown and restore stride length.")
+            ]
+        case "Pull Crucible":
+            return [
+                makePrescription(exerciseName: "Pullup", sets: 5, target: .repsRange(3, 8), restSeconds: 120, rpe: rpe(for: card), notes: "Strict reps; stop each set before shape breaks."),
+                makePrescription(exerciseName: "Inverted Row", sets: 4, target: .repsRange(8, 12), restSeconds: 75, rpe: rpe(for: card), notes: "Chest to handle/bar every rep."),
+                makePrescription(exerciseName: "Hollow Hold", sets: 4, target: .holdSeconds(30), restSeconds: 45, rpe: rpe(for: card), notes: "Ribs down, pelvis tucked."),
+                makePrescription(exerciseName: "Farmer Carry", sets: 3, target: .distanceMeters(30), restSeconds: 90, rpe: rpe(for: card), notes: "Grip finish. Walk tall.")
+            ]
+        case "Static Furnace":
+            return [
+                makePrescription(exerciseName: "L-Sit (Tucked)", sets: 5, target: .holdSeconds(15), restSeconds: 75, rpe: rpe(for: card), notes: "Accumulate clean holds with locked shoulders."),
+                makePrescription(exerciseName: "Hollow Hold", sets: 4, target: .holdSeconds(35), restSeconds: 60, rpe: rpe(for: card), notes: "No rib flare, no low-back arch."),
+                makePrescription(exerciseName: "Plank", sets: 3, target: .holdSeconds(60), restSeconds: 60, rpe: rpe(for: card), notes: "Hard brace, quiet hips."),
+                makePrescription(exerciseName: "Thoracic Rotation", sets: 2, target: .timedSeconds(45), restSeconds: 15, rpe: 4, notes: "Bring the system down with clean rotation.")
+            ]
+        case "Impact Ladder":
+            return [
+                makePrescription(exerciseName: "Jump Squat", sets: 6, target: .reps(3), restSeconds: 105, rpe: rpe(for: card), notes: "Max intent; reset fully each set."),
+                makePrescription(exerciseName: "Kettlebell Swing", sets: 5, target: .repsRange(8, 10), restSeconds: 90, rpe: rpe(for: card), notes: "Powerful hip snap, no soft reps."),
+                makePrescription(exerciseName: "Walking Lunge", sets: 4, target: .repsRange(10, 12), restSeconds: 75, rpe: rpe(for: card), notes: "Own the landing positions under fatigue."),
+                makePrescription(exerciseName: "Farmer Carry", sets: 3, target: .distanceMeters(30), restSeconds: 90, rpe: rpe(for: card), notes: "Rigid trunk to close.")
+            ]
+        case "Volume Blackout":
+            return [
+                makePrescription(exerciseName: "Pushup", sets: 5, target: .repsRange(10, 15), restSeconds: 45, rpe: rpe(for: card), notes: "Short rests. Every rep locked out."),
+                makePrescription(exerciseName: "Inverted Row", sets: 5, target: .repsRange(8, 12), restSeconds: 45, rpe: rpe(for: card), notes: "Pull with the back, no hip drive."),
+                makePrescription(exerciseName: "Goblet Squat", sets: 5, target: .repsRange(10, 15), restSeconds: 45, rpe: rpe(for: card), notes: "Stay tall and keep the pace honest."),
+                makePrescription(exerciseName: "Plank", sets: 4, target: .holdSeconds(45), restSeconds: 45, rpe: rpe(for: card), notes: "Finish braced. No sagging.")
             ]
         default:
             return [

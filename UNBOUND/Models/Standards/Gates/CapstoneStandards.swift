@@ -50,41 +50,40 @@ enum CapstoneCatalog {
     ]
 }
 
-/// Rotation of Apex (wildcard) proofs used by the Apex vow slot.
+/// Rotation of Apex (wildcard) hard-workout standards used by the Apex vow slot.
 /// WeeklyVowGenerator indexes into this array using week-number-mod-rotation.count
-/// so the same proof doesn't repeat within `rotation.count` weeks.
+/// so the same workout doesn't repeat within `rotation.count` weeks.
 enum PrestigeCapstoneCatalog {
 
     static let rotation: [WeeklyVowProof] = [
         WeeklyVowProof(
-            displayName: "Max Pull-Up AMRAP",
-            description: "One AMRAP set of pull-ups, 15+ reps unbroken.",
-            evaluation: .autoFromLog(.reps(15, exerciseName: "pullup"))
-        ),
-        WeeklyVowProof(
-            displayName: "Broad Jump Distance",
-            description: "Hit a personal-best broad jump.",
+            displayName: "Iron Gauntlet",
+            description: "A heavy full-body gauntlet: press, squat, carry, and brace under fatigue.",
             evaluation: .manualClaim
         ),
         WeeklyVowProof(
-            displayName: "1-Rep PR Attempt",
-            description: "Hit a 1-rep PR on bench, squat, deadlift, or overhead press.",
-            // Placeholder: WeeklyVowGenerator stamps a dynamically scaled criterion.
-            evaluation: .autoFromLog(.weightKg(0))
+            displayName: "Engine Breaker",
+            description: "A hard conditioning session built around sustained running and loaded breathing.",
+            evaluation: .manualClaim
         ),
         WeeklyVowProof(
-            displayName: "Strict Muscle-Up",
-            description: "One strict muscle-up. No kip, no swing.",
-            evaluation: .autoFromLog(.variant("strict muscle-up"))
+            displayName: "Pull Crucible",
+            description: "A dense upper-body pull session: strict reps, rows, trunk lock, and grip finish.",
+            evaluation: .manualClaim
         ),
         WeeklyVowProof(
-            displayName: "L-Sit Hold",
-            description: "20-second strict L-sit hold.",
-            evaluation: .liveTimer(seconds: 20, exerciseName: "l-sit")
+            displayName: "Static Furnace",
+            description: "A control-heavy core session built from holds, bracing, and clean positions.",
+            evaluation: .manualClaim
         ),
         WeeklyVowProof(
-            displayName: "5K Sub-25",
-            description: "Log a 5K under 25 minutes.",
+            displayName: "Impact Ladder",
+            description: "A power-output session: jumps, swings, lunges, and loaded carries.",
+            evaluation: .manualClaim
+        ),
+        WeeklyVowProof(
+            displayName: "Volume Blackout",
+            description: "A high-density bodyweight session with short rests and no skipped movements.",
             evaluation: .manualClaim
         )
     ]
