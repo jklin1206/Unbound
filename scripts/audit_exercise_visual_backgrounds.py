@@ -18,6 +18,9 @@ ASSET_ROOT = ROOT / "UNBOUND" / "Assets.xcassets"
 def classify_border(image: Image.Image) -> str:
     rgba = image.convert("RGBA")
     width, height = rgba.size
+    alpha = rgba.getchannel("A")
+    alpha_histogram = alpha.histogram()
+    transparent_pixels = alpha_histogram[0]
     points = [
         (0, 0),
         (width - 1, 0),
@@ -29,7 +32,11 @@ def classify_border(image: Image.Image) -> str:
         (width - 1, height // 2),
     ]
     samples = [rgba.getpixel(point) for point in points]
+    transparent_samples = [sample for sample in samples if sample[3] < 16]
     opaque_samples = [sample for sample in samples if sample[3] > 245]
+
+    if transparent_pixels > width * height * 0.2 and len(transparent_samples) >= 2:
+        return "transparent"
 
     if len(opaque_samples) < 4:
         return "transparent"
