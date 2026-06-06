@@ -11,27 +11,36 @@ enum BodyRegion: String, Codable, CaseIterable, Sendable, Hashable, Identifiable
     var id: String { rawValue }
 
     // Upper — front
-    case chest, shoulders, biceps, triceps, forearms
+    case chest, upperChest, midLowerChest, shoulders, frontSideDelts, biceps, triceps, forearms
     // Upper — back
-    case traps, lats
+    case traps, rearDelts, rhomboids, lats
     // Core
     case abs, obliques, lowerBack
     // Lower
-    case quads, hamstrings, glutes, calves
+    case quads, adductors, abductors, hamstrings, glutes, calves
 
     var displayName: String {
         switch self {
         case .chest:      return "Chest"
+        case .upperChest: return "Upper Chest"
+        case .midLowerChest:
+            return "Mid/Lower Chest"
         case .shoulders:  return "Shoulders"
+        case .frontSideDelts:
+            return "Front/Side Delts"
         case .biceps:     return "Biceps"
         case .triceps:    return "Triceps"
         case .forearms:   return "Forearms"
         case .traps:      return "Traps"
+        case .rearDelts:  return "Rear Delts"
+        case .rhomboids:  return "Rhomboids"
         case .lats:       return "Lats"
         case .abs:        return "Abs"
         case .obliques:   return "Obliques"
         case .lowerBack:  return "Lower Back"
         case .quads:      return "Quads"
+        case .adductors:  return "Adductors"
+        case .abductors:  return "Abductors"
         case .hamstrings: return "Hamstrings"
         case .glutes:     return "Glutes"
         case .calves:     return "Calves"
@@ -43,9 +52,9 @@ enum BodyRegion: String, Codable, CaseIterable, Sendable, Hashable, Identifiable
     /// Primary side where this region is rendered on the body map.
     var primarySide: Side {
         switch self {
-        case .chest, .shoulders, .biceps, .abs, .obliques, .quads, .forearms:
+        case .chest, .upperChest, .midLowerChest, .shoulders, .frontSideDelts, .biceps, .abs, .obliques, .quads, .adductors, .forearms:
             return .front
-        case .traps, .lats, .triceps, .lowerBack, .glutes, .hamstrings:
+        case .traps, .rearDelts, .rhomboids, .lats, .triceps, .lowerBack, .abductors, .glutes, .hamstrings:
             return .back
         case .calves:
             return .both
@@ -65,20 +74,51 @@ enum BodyRegion: String, Codable, CaseIterable, Sendable, Hashable, Identifiable
                 "cable fly", "dumbbell fly", "decline bench press",
                 "machine chest press", "pec dec"
             ]
+        case .upperChest:
+            return [
+                "incline bench press", "incline dumbbell press",
+                "machine incline chest press", "smith machine incline press",
+                "low-to-high cable fly", "incline cable fly"
+            ]
+        case .midLowerChest:
+            return [
+                "bench press", "dumbbell bench press", "machine chest press",
+                "plate loaded chest press", "hammer strength chest press",
+                "converging chest press", "pushup", "dip",
+                "decline bench press", "cable fly", "dumbbell fly",
+                "high-to-low cable fly", "pec dec"
+            ]
         case .lats:
             return [
                 "pullup", "chin-up", "chinup", "lat pulldown",
-                "barbell row", "bent-over row", "dumbbell row",
-                "cable row (seated)", "machine row", "chest supported row",
-                "seal row", "meadows row", "pendlay row", "inverted row",
+                "wide grip lat pulldown", "close grip lat pulldown",
+                "reverse grip lat pulldown", "barbell row", "bent-over row",
+                "dumbbell row", "single arm row", "cable row (seated)",
+                "machine row", "chest supported row", "seal row",
+                "meadows row", "pendlay row", "inverted row",
                 "straight arm pulldown", "single arm pulldown",
-                "weighted pullup", "muscle-up"
+                "machine pullover", "weighted pullup", "muscle-up"
+            ]
+        case .rhomboids:
+            return [
+                "barbell row", "bent-over row", "dumbbell row",
+                "single arm row", "cable row (seated)", "machine row",
+                "chest supported row", "seal row", "meadows row",
+                "pendlay row", "inverted row", "face pull",
+                "rear delt fly", "reverse pec deck", "band pull apart"
+            ]
+        case .rearDelts:
+            return [
+                "rear delt fly", "rear delt fly (db)",
+                "rear delt fly (machine)", "reverse pec deck",
+                "reverse fly", "face pull", "band pull apart",
+                "high row"
             ]
         case .traps:
             return [
-                "deadlift", "shrug", "barbell row", "bent-over row",
-                "face pull", "trap bar deadlift", "romanian deadlift",
-                "single arm pulldown"
+                "deadlift", "shrug", "upright row", "face pull",
+                "trap bar deadlift", "romanian deadlift",
+                "farmer carry", "suitcase carry"
             ]
         case .shoulders:
             return [
@@ -88,6 +128,16 @@ enum BodyRegion: String, Codable, CaseIterable, Sendable, Hashable, Identifiable
                 "pike pushup", "wall handstand pushup",
                 "lateral raise (db)", "lateral raise (cable)",
                 "rear delt fly (db)", "rear delt fly (machine)"
+            ]
+        case .frontSideDelts:
+            return [
+                "overhead press", "ohp", "military press",
+                "dumbbell overhead press", "arnold press",
+                "seated machine press", "landmine press",
+                "pike pushup", "wall handstand pushup",
+                "lateral raise (db)", "lateral raise (cable)",
+                "machine lateral raise", "front raise", "y raise",
+                "upright row"
             ]
         case .biceps:
             return [
@@ -132,6 +182,18 @@ enum BodyRegion: String, Codable, CaseIterable, Sendable, Hashable, Identifiable
                 "assisted pistol squat", "assisted shrimp squat",
                 "shrimp squat"
             ]
+        case .adductors:
+            return [
+                "hip adductor", "adductor machine", "cable adduction",
+                "cossack squat", "sumo squat", "sumo deadlift",
+                "lateral lunge"
+            ]
+        case .abductors:
+            return [
+                "hip abductor", "abductor machine", "cable abduction",
+                "band abduction", "lateral band walk", "monster walk",
+                "clamshell", "side lying leg raise"
+            ]
         case .hamstrings:
             return [
                 "deadlift", "romanian deadlift", "rdl", "leg curl (lying)",
@@ -158,9 +220,16 @@ enum BodyRegion: String, Codable, CaseIterable, Sendable, Hashable, Identifiable
     var needsWorkDirective: String {
         switch self {
         case .chest:      return "Log a push day"
+        case .upperChest: return "Incline press or low-to-high flys"
+        case .midLowerChest:
+            return "Flat press, pushups, or flys"
         case .lats:       return "Hit pullups or rows this week"
-        case .traps:      return "Add shrugs or face pulls"
+        case .rhomboids:  return "Rows and reverse flys"
+        case .rearDelts:  return "Face pulls or rear-delt flys"
+        case .traps:      return "Add shrugs or carries"
         case .shoulders:  return "Press overhead, chase lateral volume"
+        case .frontSideDelts:
+            return "Press overhead or hit lateral raises"
         case .biceps:     return "Curl variations — time under tension"
         case .triceps:    return "Pushdowns or skullcrushers"
         case .forearms:   return "Heavy carries and hammer curls"
@@ -168,6 +237,8 @@ enum BodyRegion: String, Codable, CaseIterable, Sendable, Hashable, Identifiable
         case .obliques:   return "Side planks and rotational work"
         case .lowerBack:  return "Good mornings or back extensions"
         case .quads:      return "Squats would help"
+        case .adductors:  return "Adductor machine or Cossack squats"
+        case .abductors:  return "Abductor machine or lateral walks"
         case .hamstrings: return "Time for RDLs or leg curls"
         case .glutes:     return "Hip thrusts and split squats"
         case .calves:     return "Calf raises — straight and bent knee"
