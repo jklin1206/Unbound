@@ -227,15 +227,15 @@ enum FormPhaseLibrary {
                 ),
                 FormPhase(
                     id: "phase4",
-                    title: "Hollow Line",
+                    title: "Core Lock",
                     cues: [
-                        "Ribs down, glutes tight",
+                        "Brace abs, ribs down",
+                        "Glutes tight, legs together",
                         "Toes touch the wall lightly",
-                        "No banana-back arch"
                     ],
-                    instruction: "Lock in a hollow wall-handstand line: shoulders tall, ribs tucked, glutes tight, legs together, and toes only lightly touching the wall. End the set before the low back arches or the shoulders sink.",
+                    instruction: "Brace the core into a hollow wall-handstand line: shoulders tall, ribs tucked, abs locked, glutes tight, legs together, and toes only lightly touching the wall. End the set before the low back arches or the shoulders sink.",
                     assetName: "hs_wall-handstand-30_phase4",
-                    fallbackSymbol: "circle.hexagongrid.fill"
+                    fallbackSymbol: "figure.core.training"
                 ),
             ]
 
