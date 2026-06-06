@@ -689,11 +689,24 @@ enum FormPhaseLibrary {
 
     private static func frontLeverPhases(skillId: String) -> [FormPhase] {
         let prefix = skillId.replacingOccurrences(of: ".", with: "_")
+        let phase4Title: String
+        let phase4Instruction: String
+        switch skillId {
+        case "cl.full-front-lever":
+            phase4Title = "Full Lever"
+            phase4Instruction = "Bring legs together only when the horizontal body line stays quiet. The final hold is face-up, straight-arm, and ribs-down from shoulders to toes."
+        case "cl.straddle-front-lever":
+            phase4Title = "Hip Line"
+            phase4Instruction = "Hold the straddle with hips level to the shoulders, elbows locked, toes pointed, and ribs down. End the set when the hips sink or the arms bend."
+        default:
+            phase4Title = "Hold"
+            phase4Instruction = "Own the tuck with shoulders depressed, elbows locked, ribs down, and no swing. Short clean holds beat longer sets that drift below the line."
+        }
         return [
             phase("phase1", "Tuck", "Start from straight arms and a tight tuck. Depress the shoulders, pull the hands toward the hips, and bring hips to shoulder height before lengthening the lever.", "figure.hanging", assetName: assetName(prefix, "phase1")),
             phase("phase2", "Open Tuck", "Open the hips slightly while keeping ribs down and elbows locked. If the back arches or hips drop, return to the tighter tuck.", "rectangle.expand.vertical", assetName: assetName(prefix, "phase2")),
             phase("phase3", skillId == "cl.tuck-front-lever" ? "Line Check" : "Straddle", skillId == "cl.tuck-front-lever" ? "Hold the shortest lever perfectly: shoulders down, arms straight, and hips level. This is the shape that buys every later progression." : "Extend into a wide straddle with toes pointed and hips level. A wide clean straddle beats a narrow, sagging one.", "arrow.left.and.right", assetName: assetName(prefix, "phase3")),
-            phase("phase4", skillId == "cl.full-front-lever" ? "Full Lever" : "Exit", skillId == "cl.full-front-lever" ? "Bring legs together only when the horizontal body line stays quiet. The final hold is face-up, straight-arm, and ribs-down from shoulders to toes." : "Exit by returning to tuck or inverted hang under control. Dropping out teaches panic instead of lever strength.", "checkmark.seal.fill", assetName: assetName(prefix, "phase4"))
+            phase("phase4", phase4Title, phase4Instruction, "checkmark.seal.fill", assetName: assetName(prefix, "phase4"))
         ]
     }
 
