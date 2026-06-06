@@ -118,6 +118,7 @@ enum SkillTraditionalVisualResolver {
     ]
 
     private static let generatedSkillIconNodeIds: Set<String> = [
+        "hs.wall-handstand-30",
         "cl.straddle-front-lever",
         "cl.straddle-back-lever"
     ]
