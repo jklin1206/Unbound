@@ -227,15 +227,15 @@ enum FormPhaseLibrary {
                 ),
                 FormPhase(
                     id: "phase4",
-                    title: "Breathe",
+                    title: "Hollow Line",
                     cues: [
-                        "Hold the line while breathing",
-                        "Stop before shape breaks",
-                        "Step down with control"
+                        "Ribs down, glutes tight",
+                        "Toes touch the wall lightly",
+                        "No banana-back arch"
                     ],
-                    instruction: "The hold only counts while the position survives normal breathing. If the low back arches, elbows bend, or shoulders sink, step down under control and use shorter sets.",
+                    instruction: "Lock in a hollow wall-handstand line: shoulders tall, ribs tucked, glutes tight, legs together, and toes only lightly touching the wall. End the set before the low back arches or the shoulders sink.",
                     assetName: "hs_wall-handstand-30_phase4",
-                    fallbackSymbol: "lungs.fill"
+                    fallbackSymbol: "circle.hexagongrid.fill"
                 ),
             ]
 
