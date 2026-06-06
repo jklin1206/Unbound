@@ -532,7 +532,7 @@ private struct ClusterNodeHex: View {
     }
 
     private func usesOriginalNodeArtwork(_ assetName: String) -> Bool {
-        assetName == "hs_tuck-handstand" || assetName.hasPrefix("exercise_visual_")
+        true
     }
 
     // MARK: In-hex progress fill
