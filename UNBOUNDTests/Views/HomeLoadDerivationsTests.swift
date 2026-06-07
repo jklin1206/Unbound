@@ -52,7 +52,7 @@ final class HomeLoadDerivationsTests: XCTestCase {
 
         let loads = HomeLoadDerivations.bodyRegionLoads(logs, now: now, calendar: cal())
 
-        XCTAssertGreaterThan(loads[.chest] ?? 0, 0)
+        XCTAssertGreaterThan(loads[.midLowerChest] ?? 0, 0)
         XCTAssertGreaterThan(loads[.hamstrings] ?? 0, 0)
         XCTAssertGreaterThan(loads[.glutes] ?? 0, 0)
     }
@@ -65,7 +65,7 @@ final class HomeLoadDerivationsTests: XCTestCase {
 
         let loads = HomeLoadDerivations.bodyRegionLoads(logs, now: now, calendar: cal())
 
-        XCTAssertEqual(loads[.chest] ?? 0, 0, accuracy: 0.001)
+        XCTAssertEqual(loads[.midLowerChest] ?? 0, 0, accuracy: 0.001)
     }
 
     private func log(startedAt: Date, entries: [ExerciseLogEntry]) -> WorkoutLog {

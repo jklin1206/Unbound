@@ -194,6 +194,20 @@ struct WeeklyVowProofAsset: View {
 
     var body: some View {
         ZStack {
+            if let image = UIImage(named: kind.proofAssetName) {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFit()
+                    .shadow(color: tint.opacity(compact ? 0.22 : 0.36), radius: compact ? 8 : 16)
+            } else {
+                fallbackMark
+            }
+        }
+        .compositingGroup()
+    }
+
+    private var fallbackMark: some View {
+        ZStack {
             VowFacetShape()
                 .fill(
                     LinearGradient(

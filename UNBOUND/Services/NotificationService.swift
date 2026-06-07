@@ -10,11 +10,13 @@ enum NotificationService {
 
     static func scheduleWorkoutReminders(
         workoutTime: WorkoutTime,
-        trainingDays: Set<Weekday>
+        trainingDays: Set<Weekday>,
+        minuteOfDay: Int? = nil
     ) async {
         await NotificationCoordinator.shared.scheduleWorkoutReminders(
             workoutTime: workoutTime,
-            trainingDays: trainingDays
+            trainingDays: trainingDays,
+            minuteOfDay: minuteOfDay
         )
     }
 

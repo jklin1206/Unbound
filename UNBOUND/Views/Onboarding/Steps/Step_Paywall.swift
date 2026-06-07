@@ -17,59 +17,22 @@ struct Step_Paywall: View {
     @EnvironmentObject var services: ServiceContainer
 
     var body: some View {
-        ZStack {
-            Color.unbound.bg.ignoresSafeArea()
+        GeometryReader { proxy in
+            ZStack {
+                paywallBackground
 
-            Image("onboarding_path_open_gate")
-                .resizable()
-                .scaledToFill()
-                .opacity(0.46)
-                .blur(radius: 3)
-                .ignoresSafeArea()
-
-            LinearGradient(
-                colors: [
-                    Color.unbound.bg.opacity(0.54),
-                    Color.unbound.bg.opacity(0.86),
-                    Color.black.opacity(0.98)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .ignoresSafeArea()
-
-            RadialGradient(
-                colors: [
-                    Color.unbound.accent.opacity(pulse ? 0.34 : 0.18),
-                    Color.clear
-                ],
-                center: .top,
-                startRadius: 30,
-                endRadius: 460
-            )
-            .ignoresSafeArea()
-            .animation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true), value: pulse)
-
-            ScrollView(.vertical, showsIndicators: false) {
-                VStack(spacing: 12) {
-                    Spacer().frame(height: 14)
-
+                VStack(spacing: 10) {
                     header
-                    transformationPanel
-                    featureUnlocks
-                    climberProof
-                    pathPreview
+                    includedFeatureList
 
-                    Spacer().frame(height: 460)
+                    Spacer(minLength: 4)
+
+                    ctaSection
                 }
                 .padding(.horizontal, 20)
+                .padding(.top, max(12, proxy.safeAreaInsets.top + 10))
+                .padding(.bottom, max(12, proxy.safeAreaInsets.bottom + 10))
             }
-
-            VStack(spacing: 0) {
-                Spacer()
-                bottomPurchaseTray
-            }
-            .ignoresSafeArea(edges: .bottom)
         }
         .toolbar(.hidden, for: .navigationBar)
         .opacity(hasAnimated ? 1 : 0)
@@ -80,14 +43,50 @@ struct Step_Paywall: View {
         }
     }
 
+    private var paywallBackground: some View {
+        ZStack {
+            Color.unbound.bg.ignoresSafeArea()
+
+            Image("onboarding_path_open_gate")
+                .resizable()
+                .scaledToFill()
+                .opacity(0.32)
+                .blur(radius: 2)
+                .ignoresSafeArea()
+
+            LinearGradient(
+                colors: [
+                    Color.unbound.bg.opacity(0.72),
+                    Color.unbound.bg.opacity(0.9),
+                    Color.black.opacity(0.98)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea()
+
+            RadialGradient(
+                colors: [
+                    Color.unbound.accent.opacity(pulse ? 0.22 : 0.12),
+                    Color.clear
+                ],
+                center: .top,
+                startRadius: 28,
+                endRadius: 420
+            )
+            .ignoresSafeArea()
+            .animation(.easeInOut(duration: 1.8).repeatForever(autoreverses: true), value: pulse)
+        }
+    }
+
     // MARK: Header
 
     private var header: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 8) {
             HStack(spacing: 8) {
-                Image(systemName: "lock.open.fill")
+                Image(systemName: "crown.fill")
                     .font(.system(size: 12, weight: .bold))
-                Text(L10n.onboarding("paywall.kicker", defaultValue: "THE GATE IS OPEN"))
+                Text(L10n.onboarding("paywall.clean.kicker", defaultValue: "UNBOUND PRO"))
                     .font(Font.unbound.captionS.weight(.heavy))
                     .tracking(1.6)
             }
@@ -97,22 +96,179 @@ struct Step_Paywall: View {
             .background(Capsule().fill(Color.unbound.impact.opacity(0.12)))
             .overlay(Capsule().strokeBorder(Color.unbound.impact.opacity(0.35), lineWidth: 1))
 
-            Text(L10n.onboarding("paywall.title", defaultValue: "Become the version that keeps showing up."))
-                .font(.system(size: 34, weight: .black, design: .rounded))
+            Text(L10n.onboarding("paywall.clean.title", defaultValue: "Unlock your first arc."))
+                .font(.system(size: 31, weight: .black, design: .rounded))
                 .foregroundStyle(Color.unbound.textPrimary)
                 .multilineTextAlignment(.center)
-                .lineSpacing(1)
-                .fixedSize(horizontal: false, vertical: true)
+                .lineLimit(2)
+                .minimumScaleFactor(0.82)
                 .shadow(color: Color.unbound.accent.opacity(0.42), radius: 18)
 
-            Text(L10n.onboarding("paywall.subtitle", defaultValue: "You opened the gate. Unlock the arc that turns the scan into weekly training, rank movement, and proof you can see."))
-                .font(Font.unbound.bodyM)
+            Text(L10n.onboarding("paywall.clean.subtitle", defaultValue: "Weekly training, adaptive logs, streaks, and progress scans from your Day Zero setup."))
+                .font(Font.unbound.bodyS)
                 .foregroundStyle(Color.unbound.textPrimary.opacity(0.82))
                 .multilineTextAlignment(.center)
-                .padding(.horizontal, 12)
-                .fixedSize(horizontal: false, vertical: true)
+                .lineLimit(3)
+                .minimumScaleFactor(0.86)
+                .padding(.horizontal, 8)
         }
         .padding(.horizontal, 4)
+    }
+
+    private var includedFeatureList: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text(L10n.onboarding("paywall.features.title", defaultValue: "INCLUDED"))
+                    .font(Font.unbound.captionS.weight(.heavy))
+                    .tracking(1.7)
+                    .foregroundStyle(Color.unbound.impact)
+                Spacer()
+                Text(L10n.onboarding("paywall.features.badge", defaultValue: "DAY ZERO"))
+                    .font(.system(size: 9, weight: .black, design: .monospaced))
+                    .tracking(1.1)
+                    .foregroundStyle(Color.unbound.textTertiary)
+            }
+
+            VStack(spacing: 0) {
+                featureListRow(
+                    icon: "calendar.badge.clock",
+                    title: L10n.onboarding("paywall.feature.plan.title", defaultValue: "Weekly training arc"),
+                    detail: L10n.onboarding("paywall.feature.plan.detail", defaultValue: "\(sessionsPerWeek) sessions fit to your schedule")
+                )
+                listDivider
+                featureListRow(
+                    icon: "figure.strengthtraining.traditional",
+                    title: L10n.onboarding("paywall.feature.logs.title", defaultValue: "Editable workout logs"),
+                    detail: L10n.onboarding("paywall.feature.logs.detail", defaultValue: "Sets, reps, RPE, swaps, and finishes")
+                )
+                listDivider
+                featureListRow(
+                    icon: "flame.fill",
+                    title: L10n.onboarding("paywall.feature.streak.title", defaultValue: "Streak and reminder loop"),
+                    detail: L10n.onboarding("paywall.feature.streak.detail", defaultValue: "Keep the habit alive between sessions")
+                )
+                listDivider
+                featureListRow(
+                    icon: "hexagon.fill",
+                    title: L10n.onboarding("paywall.feature.progress.title", defaultValue: "Progress profile"),
+                    detail: L10n.onboarding("paywall.feature.progress.detail", defaultValue: "Ranks, milestones, and visible proof")
+                )
+                listDivider
+                featureListRow(
+                    icon: "camera.viewfinder",
+                    title: L10n.onboarding("paywall.feature.scans.title", defaultValue: "Monthly scan check-ins"),
+                    detail: L10n.onboarding("paywall.feature.scans.detail", defaultValue: "Compare changes and tune the next arc")
+                )
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(Color.unbound.surface.opacity(0.78))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .strokeBorder(Color.unbound.accent.opacity(0.22), lineWidth: 1)
+        )
+    }
+
+    private var listDivider: some View {
+        Rectangle()
+            .fill(Color.white.opacity(0.07))
+            .frame(height: 1)
+            .padding(.leading, 35)
+    }
+
+    private func featureListRow(icon: String, title: String, detail: String) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: icon)
+                .font(.system(size: 13, weight: .black))
+                .foregroundStyle(Color.unbound.impact)
+                .frame(width: 25, height: 25)
+                .background(Circle().fill(Color.unbound.impact.opacity(0.12)))
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(Font.unbound.captionS.weight(.heavy))
+                    .foregroundStyle(Color.unbound.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.78)
+                Text(detail)
+                    .font(.system(size: 10, weight: .semibold, design: .rounded))
+                    .foregroundStyle(Color.unbound.textSecondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.76)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .frame(height: 38)
+    }
+
+    private var unlockBoxGrid: some View {
+        VStack(spacing: 8) {
+            HStack(spacing: 8) {
+                unlockBox(
+                    icon: "calendar.badge.clock",
+                    title: L10n.onboarding("paywall.box.plan.title", defaultValue: "Plan"),
+                    detail: L10n.onboarding("paywall.box.plan.detail", defaultValue: "\(sessionsPerWeek)x weekly arc")
+                )
+                unlockBox(
+                    icon: "figure.strengthtraining.traditional",
+                    title: L10n.onboarding("paywall.box.log.title", defaultValue: "Log"),
+                    detail: L10n.onboarding("paywall.box.log.detail", defaultValue: "Sets, RPE, swaps")
+                )
+            }
+
+            HStack(spacing: 8) {
+                unlockBox(
+                    icon: "flame.fill",
+                    title: L10n.onboarding("paywall.box.streak.title", defaultValue: "Streak"),
+                    detail: L10n.onboarding("paywall.box.streak.detail", defaultValue: "Keep it alive")
+                )
+                unlockBox(
+                    icon: "camera.viewfinder",
+                    title: L10n.onboarding("paywall.box.scan.title", defaultValue: "Scans"),
+                    detail: L10n.onboarding("paywall.box.scan.detail", defaultValue: "Track changes")
+                )
+            }
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private func unlockBox(icon: String, title: String, detail: String) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Image(systemName: icon)
+                .font(.system(size: 15, weight: .black))
+                .foregroundStyle(Color.unbound.impact)
+                .frame(width: 30, height: 30)
+                .background(Circle().fill(Color.unbound.impact.opacity(0.12)))
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title.uppercased())
+                    .font(Font.unbound.captionS.weight(.heavy))
+                    .tracking(1.2)
+                    .foregroundStyle(Color.unbound.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                Text(detail)
+                    .font(Font.unbound.captionS)
+                    .foregroundStyle(Color.unbound.textSecondary)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.76)
+            }
+        }
+        .frame(maxWidth: .infinity, minHeight: 104, alignment: .topLeading)
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(Color.unbound.surface.opacity(0.82))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .strokeBorder(Color.unbound.accent.opacity(0.22), lineWidth: 1)
+        )
     }
 
     // MARK: Transformation
@@ -411,6 +567,7 @@ struct Step_Paywall: View {
                 placement: AppConstants.Paywall.hardGate,
                 ctaTitle: L10n.onboarding("paywall.subscribeCTA", defaultValue: "Start my first arc"),
                 showsPitch: false,
+                maxVisiblePackages: 2,
                 onPurchased: onUnlock
             )
 

@@ -88,6 +88,9 @@ protocol WeeklyVowsServiceProtocol: AnyObject {
     /// Equip an unlocked Title as the user's profile headline. Pass nil to unequip.
     func equipTitle(_ titleId: TitleID?, userId: String)
 
+    /// Grant a wearable title. Idempotent; posts `.titleUnlocked` when newly earned.
+    func unlockTitle(_ titleId: TitleID, userId: String)
+
     /// Read current state for UI.
     func state(userId: String) -> WeeklyVowsState
 }

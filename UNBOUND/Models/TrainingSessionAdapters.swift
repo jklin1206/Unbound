@@ -127,7 +127,6 @@ enum TrainingSessionAdapters {
 
     static func workout(from draft: TrainingSessionDraft) -> Workout {
         let exercises = draft.blocks
-            .filter { $0.kind == .strength || $0.kind == .bodyweight || $0.kind == .custom }
             .flatMap { block in
                 block.prescriptions.map { prescription in
                     Exercise(
@@ -447,7 +446,8 @@ enum TrainingSessionAdapters {
             restSeconds: exercise.restSeconds,
             muscleGroups: muscleGroups,
             rpe: exercise.rpe,
-            notes: exercise.notes
+            notes: exercise.notes,
+            suggestedWeightKg: exercise.suggestedWeightKg
         )
     }
 

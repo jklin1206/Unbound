@@ -38,7 +38,7 @@ struct FriendChallenge: Codable, Identifiable, Equatable, Sendable {
             switch self {
             case .mostSessions: return "Most Sessions"
             case .noMissedDays: return "No Missed Days"
-            case .firstToFinishTrial: return "First Binding Vow"
+            case .firstToFinishTrial: return "First Challenge Clear"
             case .mostAlignedSessions: return "Most Aligned"
             case .earlyRiser: return "Early Riser (8am)"
             case .proteinGoal: return "Protein Goal"
@@ -49,7 +49,7 @@ struct FriendChallenge: Codable, Identifiable, Equatable, Sendable {
             switch self {
             case .mostSessions: return "Most workout sessions this week."
             case .noMissedDays: return "Longest consecutive day streak."
-            case .firstToFinishTrial: return "First to clear a Binding Vow."
+            case .firstToFinishTrial: return "First to clear the weekly test."
             case .mostAlignedSessions: return "Most aligned-axis sessions."
             case .earlyRiser: return "Most workouts before 8 AM."
             case .proteinGoal: return "Most days hitting protein target."
@@ -72,4 +72,20 @@ struct FriendChallenge: Codable, Identifiable, Equatable, Sendable {
             return "\(value) \(noun)"
         }
     }
+}
+
+struct FriendChallengeStats: Codable, Equatable, Sendable {
+    var wins: Int
+    var seasonWins: Int
+    var activeCount: Int
+    var pendingCount: Int
+
+    init(wins: Int, seasonWins: Int = 0, activeCount: Int, pendingCount: Int) {
+        self.wins = wins
+        self.seasonWins = seasonWins
+        self.activeCount = activeCount
+        self.pendingCount = pendingCount
+    }
+
+    static let empty = FriendChallengeStats(wins: 0, seasonWins: 0, activeCount: 0, pendingCount: 0)
 }

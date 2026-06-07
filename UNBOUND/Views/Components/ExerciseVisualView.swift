@@ -65,7 +65,12 @@ enum ExerciseVisualAsset {
         "nordic-curl-arms-overhead": ["exercise_visual_exercise_nordic-curl"],
         "tuck-one-leg-nordic-curl": ["exercise_visual_exercise_nordic-curl"],
         "one-leg-nordic-curl": ["exercise_visual_exercise_nordic-curl"],
-        "bodyweight-leg-extension": ["exercise_visual_exercise_leg-extensions"]
+        "bodyweight-leg-extension": ["exercise_visual_exercise_leg-extensions"],
+        "skill-drill-wall-handstand": ["exercise_visual_exercise_wall-handstand"],
+        "skill-drill-freestanding-handstand": ["exercise_visual_exercise_freestanding-handstand"],
+        "skill-drill-crow-pose": ["exercise_visual_exercise_crow-pose"],
+        "skill-drill-headstand": ["exercise_visual_exercise_headstand"],
+        "skill-drill-tuck-l-sit": ["exercise_visual_exercise_l-sit-tucked"]
     ]
 
     static func assetName(for definition: MovementDefinition) -> String {
@@ -135,10 +140,10 @@ enum ExerciseVisualAsset {
             candidates.append("\(prefix)carry_\(carrySlug)")
         }
 
+        candidates.append(contentsOf: [direct, slugged, underscored])
         if let aliases = visualAliasBaseAssetNames[rawSlug] {
             candidates.append(contentsOf: aliases)
         }
-        candidates.append(contentsOf: [direct, slugged, underscored])
 
         return candidates.reduce(into: []) { result, candidate in
             guard !result.contains(candidate) else { return }
@@ -155,9 +160,9 @@ enum ExerciseVisualAsset {
         let candidates: [String]
         switch activeSet {
         case .jot:
-            candidates = [baseAssetName, assetName(baseAssetName, in: .jot)]
+            candidates = [assetName(baseAssetName, in: .jot), baseAssetName]
         case .legacy:
-            candidates = [baseAssetName, assetName(baseAssetName, in: .legacy)]
+            candidates = [assetName(baseAssetName, in: .legacy), baseAssetName]
         case .current:
             candidates = [baseAssetName]
         }

@@ -74,7 +74,9 @@ enum ArcGenerator {
         guard !sourceDays.isEmpty else { return [] }
         return (1...Arc.durationDays).map { dayNumber in
             let source = sourceDays[(dayNumber - 1) % sourceDays.count]
-            let workout = source.workout.map { LoadBiasApplier.apply(to: $0, bias: loadBias) }
+            let workout = source.workout.map { workout in
+                source.isUserOwnedWorkout ? workout : LoadBiasApplier.apply(to: workout, bias: loadBias)
+            }
             return ProgramDay(
                 id: "\(programId)-arc-day-\(dayNumber)",
                 dayNumber: dayNumber,
@@ -83,8 +85,11 @@ enum ArcGenerator {
                 workout: workout,
                 sessionRole: source.isRestDay
                     ? .rest
-                    : workout.map(SessionRoleTagger.role(for:)) ?? source.sessionRole,
+                    : source.isUserOwnedWorkout
+                        ? source.sessionRole
+                        : workout.map(SessionRoleTagger.role(for:)) ?? source.sessionRole,
                 savedWorkoutId: source.savedWorkoutId,
+                userWorkoutDraft: source.userWorkoutDraft,
                 nutritionOverride: source.nutritionOverride,
                 recoveryActivities: source.recoveryActivities
             )

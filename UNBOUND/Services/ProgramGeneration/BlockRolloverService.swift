@@ -254,6 +254,21 @@ enum BlockRolloverService {
         }
 
         let currentProgram = await activeProgram(userId: userId)
+        let pendingNextBlockContext = currentProgram.flatMap {
+            ProgramTrainingContextStore.shared.pendingNextBlockContext(
+                userId: userId,
+                programId: $0.id
+            )
+        }
+        let resolvedPendingContext = pendingNextBlockContext.map {
+            ProgramTrainingContextResolver.resolve(
+                selection: $0.selection,
+                currentStyle: profile.trainingStyleOverride,
+                currentEquipment: Set(profile.equipment ?? []),
+                currentExerciseStyles: Set(profile.exerciseStyles ?? []),
+                currentExperience: profile.experience
+            )
+        }
         let recentLogs = (try? await WorkoutLogService.shared.fetchRecentLogs(userId: userId, limit: 240)) ?? []
         let familyStates = await ProgressionStateStore.shared.allFamilyStates(userId: userId)
         let exerciseHistory = exerciseHistory(
@@ -281,8 +296,10 @@ enum BlockRolloverService {
         case "control": defaultStyle = .bodyweight
         default:        defaultStyle = .hybrid
         }
-        let style = profile.trainingStyleOverride ?? defaultStyle
-        let feedback = profile.trainingFeedbackMode ?? TrainingFeedbackMode.default(for: experience)
+        let style = resolvedPendingContext?.trainingStyle ?? profile.trainingStyleOverride ?? defaultStyle
+        let equipment = resolvedPendingContext?.sortedEquipment ?? profile.equipment ?? [.bodyweight]
+        let generationExperience = resolvedPendingContext?.experience ?? experience
+        let feedback = profile.trainingFeedbackMode ?? TrainingFeedbackMode.default(for: generationExperience)
 
         let preferences = (try? await ExercisePreferenceService.shared.fetchPreferences(userId: userId)) ?? []
 
@@ -292,15 +309,16 @@ enum BlockRolloverService {
             analysisId: analysis?.id,
             buildIdentity: buildIdentity,
             trainingStyle: style,
-            equipment: profile.equipment ?? [.bodyweight],
+            equipment: equipment,
             targetFrequency: frequency,
             trainingDays: trainingDays,
-            experience: experience,
+            experience: generationExperience,
             sessionLengthMinutes: profile.sessionLength?.minutes ?? defaultSessionMinutes(for: experience),
             focusAreas: focusAreas,
             cutModeActive: profile.cutMode.enabled,
             trainingFeedbackMode: feedback,
             progressionStates: progressionStates,
+            progressionFamilyStates: progressionFamilyStateMap(familyStates),
             previousBlock: previous,
             exerciseRotationsToApply: resolution.exercisesToRotate,
             weightKg: weight,
@@ -333,6 +351,12 @@ enum BlockRolloverService {
         )
 
         await ProgramBlockStore.shared.save(newBlock)
+        if let pendingNextBlockContext {
+            ProgramTrainingContextStore.shared.consumePendingNextBlockContext(
+                userId: userId,
+                programId: pendingNextBlockContext.programId
+            )
+        }
         return program
     }
 
@@ -372,7 +396,7 @@ enum BlockRolloverService {
         guard let latest = blockSets.first, !latest.keys.isEmpty else { return [:] }
 
         let statesByKey = progressionStateMap(progressionStates)
-        let familyStatesByFamily = Dictionary(uniqueKeysWithValues: familyStates.map { ($0.family, $0) })
+        let familyStatesByFamily = progressionFamilyStateMap(familyStates)
         let freshStimulusCutoff = latest.block.startedAt
 
         var result: [String: ExerciseRefreshRule.ExerciseHistory] = [:]
@@ -458,6 +482,12 @@ enum BlockRolloverService {
             map[MovementCatalog.normalized(state.exerciseKey)] = state
             map[MovementCatalog.normalized(state.displayName)] = state
         }
+        return map
+    }
+
+    private static func progressionFamilyStateMap(_ states: [ProgressionFamilyState]) -> [String: ProgressionFamilyState] {
+        var map: [String: ProgressionFamilyState] = [:]
+        states.forEach { map[$0.family] = $0 }
         return map
     }
 

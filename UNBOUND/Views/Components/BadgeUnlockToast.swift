@@ -105,6 +105,10 @@ struct BadgeUnlockPill: View {
                     .font(Font.unbound.captionS)
                     .foregroundStyle(Color.unbound.textSecondary)
                     .lineLimit(1)
+                Text(badge.vowReward)
+                    .font(Font.unbound.captionS.weight(.semibold))
+                    .foregroundStyle(badge.rarity.tint)
+                    .lineLimit(1)
             }
             Spacer()
 
@@ -148,10 +152,14 @@ struct BadgeEmblemView: View {
     var size: CGFloat = 64
     var isUnlocked: Bool? = nil
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var flamePhase = false
+
     private var unlocked: Bool { isUnlocked ?? badge.isUnlocked }
     private var tint: Color { unlocked ? badge.rarity.tint : Color.unbound.textTertiary }
     private var family: BadgeEmblemFamily { BadgeEmblemFamily(id: badge.id) }
-    private var generatedAssetName: String { "badge_art_\(badge.id)" }
+    private var generatedAssetName: String { badge.assetName }
+    private var animatesFlame: Bool { unlocked && badge.id.hasPrefix("streak_") && !reduceMotion }
 
     var body: some View {
         Group {
@@ -177,6 +185,60 @@ struct BadgeEmblemView: View {
             }
         }
         .frame(width: size, height: size)
+        .background {
+            if animatesFlame {
+                flameGlow
+            }
+        }
+        .scaleEffect(animatesFlame ? (flamePhase ? 1.018 : 0.996) : 1, anchor: .bottom)
+        .rotationEffect(.degrees(animatesFlame ? (flamePhase ? 0.45 : -0.25) : 0), anchor: .bottom)
+        .brightness(animatesFlame && flamePhase ? 0.025 : 0)
+        .shadow(
+            color: animatesFlame ? Color.unbound.emberGlow.opacity(flamePhase ? 0.30 : 0.14) : .clear,
+            radius: animatesFlame ? (flamePhase ? size * 0.12 : size * 0.07) : 0,
+            x: 0,
+            y: 0
+        )
+        .animation(.easeInOut(duration: 1.35).repeatForever(autoreverses: true), value: flamePhase)
+        .onAppear(perform: updateFlameAnimation)
+        .onChange(of: animatesFlame) { _, _ in
+            updateFlameAnimation()
+        }
+        .onDisappear {
+            flamePhase = false
+        }
+    }
+
+    private var flameGlow: some View {
+        Circle()
+            .fill(
+                RadialGradient(
+                    colors: [
+                        Color.unbound.emberGlow.opacity(flamePhase ? 0.16 : 0.07),
+                        Color.unbound.ember.opacity(flamePhase ? 0.08 : 0.03),
+                        .clear
+                    ],
+                    center: UnitPoint(x: 0.5, y: 0.42),
+                    startRadius: size * 0.08,
+                    endRadius: size * 0.64
+                )
+            )
+            .scaleEffect(flamePhase ? 1.04 : 0.96, anchor: .bottom)
+            .blendMode(.screen)
+            .allowsHitTesting(false)
+    }
+
+    private func updateFlameAnimation() {
+        guard animatesFlame else {
+            flamePhase = false
+            return
+        }
+
+        flamePhase = false
+        DispatchQueue.main.async {
+            guard animatesFlame else { return }
+            flamePhase = true
+        }
     }
 
     private var fallbackEmblem: some View {
@@ -301,7 +363,7 @@ private enum BadgeEmblemFamily {
     case streak, rank, skill, strength, proof, session
 
     init(id: String) {
-        if id.contains("streak") { self = .streak }
+        if id.hasPrefix("streak_") { self = .streak }
         else if id.contains("rank") || id.hasPrefix("rank_") { self = .rank }
         else if id.contains("muscle") || id.contains("handstand") || id.contains("pull") || id.contains("dip") || id.contains("pistol") || id.contains("pushup") { self = .skill }
         else if id.hasPrefix("bw_") || id.contains("deadlift") || id.contains("squat") || id.contains("bench") { self = .strength }

@@ -75,7 +75,7 @@ enum OnboardingStep: Int, CaseIterable, Identifiable {
     case workoutPreviewDemo // shows the daily mission
     case workoutLogDemo     // lets the user taste logging
     case workoutRewardDemo  // shows progress/rank reward after logging
-    case appRatingPrompt    // native Apple rating prompt before the final cinematic
+    case appRatingPrompt    // archived; native Apple prompt now fires from reward completion
     case trajectory         // 12-month projection chart
     case obstacleFix         // names the user's obstacle and maps UNBOUND's fix
 
@@ -125,7 +125,6 @@ enum OnboardingStep: Int, CaseIterable, Identifiable {
         .trainingDays,
         .workoutTime,
         .equipment,
-        .exerciseStyle,
         .sessionLength,
         .resultsSnapshot,
         .diet,
@@ -143,7 +142,6 @@ enum OnboardingStep: Int, CaseIterable, Identifiable {
         .workoutPreviewDemo,
         .workoutLogDemo,
         .workoutRewardDemo,
-        .appRatingPrompt,
         .chapterPath,
         .whyThisProgram,
         .trajectory,
@@ -271,13 +269,13 @@ extension OnboardingStep {
         case .workoutPreviewDemo: return "35 Daily Mission"
         case .workoutLogDemo: return "36 Log Workout"
         case .workoutRewardDemo: return "37 Reward"
-        case .appRatingPrompt: return "38 Apple Rating"
         case .chapterPath: return "39 Gate Open"
         case .whyThisProgram: return "40 Path Benefits"
         case .trajectory: return "41 Trajectory"
         case .socialProofGallery: return "42 Climbers"
         case .commitDay90: return "43 Staircase"
         case .paywall: return "44 Paywall"
+        case .appRatingPrompt: return "ARCHIVED · Apple Rating"
         case .obstacleFix: return "ARCHIVED · Obstacle Fix"
         case .lifeChangeEnergy: return "ARCHIVED · Energy"
         case .lifeChangeStrength: return "ARCHIVED · Strength"
@@ -349,6 +347,7 @@ final class OnboardingFlowViewModel {
     var goals: Set<Goal> = []
     var targetAreas: Set<TargetArea> = []
     var workoutTime: WorkoutTime? = nil
+    var workoutMinuteOfDay: Int? = nil
     var age: Int = 22
     var gender: Gender = .unspecified
     var heightCm: Double = 175
@@ -560,6 +559,7 @@ final class OnboardingFlowViewModel {
         goals = [.buildMuscle, .getStronger]
         targetAreas = [.fullBody, .back]
         workoutTime = .evening
+        workoutMinuteOfDay = 19 * 60
         age = 23
         gender = .male
         heightCm = 178
@@ -755,7 +755,8 @@ final class OnboardingFlowViewModel {
         guard notificationsRequested, let workoutTime else { return }
         await NotificationService.scheduleWorkoutReminders(
             workoutTime: workoutTime,
-            trainingDays: trainingDays
+            trainingDays: trainingDays,
+            minuteOfDay: workoutMinuteOfDay
         )
     }
 
@@ -780,6 +781,7 @@ final class OnboardingFlowViewModel {
             "priorAttempts": priorAttempts.map(\.rawValue)
         ]
         if let workoutTime { fields["workoutTime"] = workoutTime.rawValue }
+        if let workoutMinuteOfDay { fields["workoutMinuteOfDay"] = workoutMinuteOfDay }
         fields["seededAttributes"] = effectiveSeededAttributes.map(\.rawValue)
         // preferredArchetype field removed — inferred attribute sparks drive Build instead
         if let experience { fields["experience"] = experience.rawValue }

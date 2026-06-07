@@ -110,7 +110,7 @@ struct MilestoneNotificationPlanner {
             kind: "badge",
             subject: event.badge.id,
             title: "Badge unlocked: \(event.badge.displayName)",
-            body: event.badge.description
+            body: event.badge.vowReward
         )
     }
 

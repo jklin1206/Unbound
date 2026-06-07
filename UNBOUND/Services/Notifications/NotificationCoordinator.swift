@@ -45,12 +45,20 @@ final class NotificationCoordinator {
 
     func scheduleWorkoutReminders(
         workoutTime: WorkoutTime,
-        trainingDays: Set<Weekday>
+        trainingDays: Set<Weekday>,
+        minuteOfDay: Int? = nil
     ) async {
         let preferences = store.update { preferences in
             preferences.workoutReminders.isEnabled = true
             preferences.workoutReminders.workoutTime = workoutTime
             preferences.workoutReminders.trainingDays = trainingDays
+            if let minuteOfDay {
+                preferences.workoutReminders.hour = min(max(minuteOfDay / 60, 0), 23)
+                preferences.workoutReminders.minute = min(max(minuteOfDay % 60, 0), 59)
+            } else {
+                preferences.workoutReminders.hour = nil
+                preferences.workoutReminders.minute = 0
+            }
             preferences.retentionNudges.isEnabled = false
             preferences.milestones.isEnabled = false
         }
@@ -134,8 +142,7 @@ final class NotificationCoordinator {
             "unbound.weekly-vow.sunday-closing",
             "unbound.trial.monday-picker",
             "unbound.trial.saturday-unlock",
-            "unbound.trial.sunday-closing",
-            "unbound.rest.timer"
+            "unbound.trial.sunday-closing"
         ]
     }
 

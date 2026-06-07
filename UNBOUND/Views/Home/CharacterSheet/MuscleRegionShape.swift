@@ -57,7 +57,17 @@ private func regionSpec(region: BodyRegion, side: BodyMapSide) -> RegionSpec {
             poly((0.392, 0.286), (0.455, 0.258), (0.495, 0.278), (0.488, 0.334), (0.438, 0.346), (0.392, 0.326)),
             poly((0.505, 0.278), (0.545, 0.258), (0.608, 0.286), (0.608, 0.326), (0.562, 0.346), (0.512, 0.334))
         ])
-    case (.shoulders, .front):
+    case (.upperChest, .front):
+        return .polygons([
+            poly((0.396, 0.270), (0.460, 0.254), (0.496, 0.270), (0.492, 0.300), (0.438, 0.306), (0.394, 0.292)),
+            poly((0.504, 0.270), (0.540, 0.254), (0.604, 0.270), (0.606, 0.292), (0.562, 0.306), (0.508, 0.300))
+        ])
+    case (.midLowerChest, .front):
+        return .polygons([
+            poly((0.392, 0.304), (0.492, 0.308), (0.486, 0.342), (0.438, 0.350), (0.392, 0.328)),
+            poly((0.508, 0.308), (0.608, 0.304), (0.608, 0.328), (0.562, 0.350), (0.514, 0.342))
+        ])
+    case (.shoulders, .front), (.frontSideDelts, .front):
         return .polygons([
             poly((0.308, 0.269), (0.356, 0.246), (0.400, 0.266), (0.388, 0.318), (0.336, 0.333), (0.298, 0.306)),
             poly((0.600, 0.266), (0.644, 0.246), (0.692, 0.269), (0.702, 0.306), (0.664, 0.333), (0.612, 0.318))
@@ -86,6 +96,11 @@ private func regionSpec(region: BodyRegion, side: BodyMapSide) -> RegionSpec {
             poly((0.412, 0.592), (0.484, 0.592), (0.486, 0.760), (0.448, 0.820), (0.404, 0.746)),
             poly((0.516, 0.592), (0.588, 0.592), (0.596, 0.746), (0.552, 0.820), (0.514, 0.760))
         ])
+    case (.adductors, .front):
+        return .polygons([
+            poly((0.470, 0.606), (0.500, 0.622), (0.492, 0.764), (0.464, 0.814), (0.442, 0.742)),
+            poly((0.500, 0.622), (0.530, 0.606), (0.558, 0.742), (0.536, 0.814), (0.508, 0.764))
+        ])
     case (.calves, .front):
         return .polygons([
             poly((0.418, 0.792), (0.466, 0.804), (0.472, 0.914), (0.430, 0.958), (0.392, 0.906)),
@@ -96,6 +111,16 @@ private func regionSpec(region: BodyRegion, side: BodyMapSide) -> RegionSpec {
     case (.traps, .back):
         return .polygons([
             poly((0.430, 0.250), (0.500, 0.220), (0.570, 0.250), (0.548, 0.322), (0.500, 0.338), (0.452, 0.322))
+        ])
+    case (.rearDelts, .back):
+        return .polygons([
+            poly((0.314, 0.274), (0.366, 0.246), (0.420, 0.278), (0.398, 0.338), (0.338, 0.344), (0.302, 0.314)),
+            poly((0.580, 0.278), (0.634, 0.246), (0.686, 0.274), (0.698, 0.314), (0.662, 0.344), (0.602, 0.338))
+        ])
+    case (.rhomboids, .back):
+        return .polygons([
+            poly((0.418, 0.292), (0.500, 0.330), (0.470, 0.440), (0.402, 0.416)),
+            poly((0.500, 0.330), (0.582, 0.292), (0.598, 0.416), (0.530, 0.440))
         ])
     case (.lats, .back):
         return .polygons([
@@ -120,6 +145,11 @@ private func regionSpec(region: BodyRegion, side: BodyMapSide) -> RegionSpec {
         return .polygons([
             poly((0.394, 0.616), (0.494, 0.620), (0.486, 0.710), (0.430, 0.738), (0.384, 0.688)),
             poly((0.506, 0.620), (0.606, 0.616), (0.616, 0.688), (0.570, 0.738), (0.514, 0.710))
+        ])
+    case (.abductors, .back):
+        return .polygons([
+            poly((0.360, 0.610), (0.398, 0.632), (0.388, 0.724), (0.342, 0.760), (0.326, 0.676)),
+            poly((0.602, 0.632), (0.640, 0.610), (0.674, 0.676), (0.658, 0.760), (0.612, 0.724))
         ])
     case (.hamstrings, .back):
         return .polygons([
@@ -149,9 +179,9 @@ extension BodyRegion {
     static func visible(on side: BodyMapSide) -> [BodyRegion] {
         switch side {
         case .front:
-            return [.chest, .shoulders, .biceps, .forearms, .abs, .obliques, .quads, .calves]
+            return [.upperChest, .midLowerChest, .frontSideDelts, .biceps, .forearms, .abs, .obliques, .quads, .adductors, .calves]
         case .back:
-            return [.traps, .lats, .triceps, .forearms, .lowerBack, .glutes, .hamstrings, .calves]
+            return [.traps, .rearDelts, .rhomboids, .lats, .triceps, .forearms, .lowerBack, .glutes, .abductors, .hamstrings, .calves]
         }
     }
 }

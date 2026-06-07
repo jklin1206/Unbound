@@ -21,4 +21,5 @@ struct Exercise: Codable, Identifiable, Hashable {
     var rpe: Int?
     var notes: String?
     var substitution: String?
+    var suggestedWeightKg: Double? = nil
 }

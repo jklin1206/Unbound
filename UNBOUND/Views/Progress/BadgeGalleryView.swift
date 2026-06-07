@@ -10,7 +10,7 @@ struct BadgeGalleryView: View {
     @State private var badges: [Badge] = []
     @State private var selected: Badge?
 
-    private let columns = [GridItem(.adaptive(minimum: 110), spacing: 14)]
+    private let columns = [GridItem(.adaptive(minimum: 128), spacing: 14)]
 
     var body: some View {
         ZStack {
@@ -40,7 +40,7 @@ struct BadgeGalleryView: View {
         }
         .sheet(item: $selected) { badge in
             BadgeDetailSheet(badge: badge)
-                .presentationDetents([.height(360)])
+                .presentationDetents([.height(520), .medium])
                 .presentationDragIndicator(.visible)
                 .presentationBackground(Color.unbound.bg)
         }
@@ -80,20 +80,23 @@ private struct BadgeTile: View {
 
     var body: some View {
         VStack(spacing: 10) {
-            BadgeEmblemView(badge: badge, size: 78)
-                .frame(height: 90)
+            BadgeEmblemView(badge: badge, size: 92)
+                .frame(height: 102)
 
-            VStack(spacing: 2) {
+            VStack(spacing: 4) {
                 Text(badge.displayName)
                     .font(Font.unbound.bodyMStrong)
                     .foregroundStyle(badge.isUnlocked ? Color.unbound.textPrimary : Color.unbound.textSecondary)
-                    .lineLimit(1)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .frame(minHeight: 36, alignment: .top)
                 Text(badge.isUnlocked ? badge.rarity.displayName.uppercased() : "LOCKED")
                     .font(Font.unbound.monoS)
                     .tracking(1.2)
                     .foregroundStyle(badge.isUnlocked ? badge.rarity.tint : Color.unbound.textTertiary)
             }
         }
+        .frame(maxWidth: .infinity)
     }
 }
 
@@ -103,57 +106,43 @@ private struct BadgeDetailSheet: View {
     let badge: Badge
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            HStack(alignment: .center, spacing: 14) {
-                BadgeEmblemView(badge: badge, size: 76)
+        ScrollView(.vertical, showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 18) {
+                HStack(alignment: .center, spacing: 16) {
+                    BadgeEmblemView(badge: badge, size: 96)
 
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(badge.displayName)
-                        .font(Font.unbound.titleM)
-                        .foregroundStyle(Color.unbound.textPrimary)
-                    Text(badge.rarity.displayName.uppercased())
-                        .font(Font.unbound.monoS)
-                        .tracking(1.4)
-                        .foregroundStyle(badge.rarity.tint)
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text(badge.displayName)
+                            .font(Font.unbound.titleM)
+                            .foregroundStyle(Color.unbound.textPrimary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Text(badge.rarity.displayName.uppercased())
+                            .font(Font.unbound.monoS)
+                            .tracking(1.4)
+                            .foregroundStyle(badge.rarity.tint)
+                    }
+                    Spacer(minLength: 0)
                 }
-                Spacer()
-            }
 
-            VStack(alignment: .leading, spacing: 6) {
-                Text("HOW TO EARN")
-                    .font(Font.unbound.captionS)
-                    .tracking(1.4)
+                BadgeDetailBlock(label: "LEGEND", text: badge.description)
+                BadgeDetailBlock(label: "HOW TO ACHIEVE", text: badge.unlockCriteria)
+                BadgeDetailBlock(label: "VOW REWARD", text: badge.vowReward, tint: badge.rarity.tint)
+
+                if let date = badge.unlockedAt {
+                    BadgeDetailBlock(label: "UNLOCKED", text: Self.formatter.string(from: date), tint: Color.unbound.success)
+                } else {
+                    HStack(spacing: 8) {
+                        Image(systemName: "lock.fill")
+                            .font(.system(size: 14, weight: .semibold))
+                        Text("Locked")
+                            .font(Font.unbound.bodyM)
+                    }
                     .foregroundStyle(Color.unbound.textTertiary)
-                Text(badge.description)
-                    .font(Font.unbound.bodyM)
-                    .foregroundStyle(Color.unbound.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
-            if let date = badge.unlockedAt {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("UNLOCKED")
-                        .font(Font.unbound.captionS)
-                        .tracking(1.4)
-                        .foregroundStyle(Color.unbound.textTertiary)
-                    Text(Self.formatter.string(from: date))
-                        .font(Font.unbound.bodyM)
-                        .foregroundStyle(Color.unbound.textPrimary)
                 }
-            } else {
-                HStack(spacing: 8) {
-                    Image(systemName: "lock.fill")
-                        .font(.system(size: 14, weight: .semibold))
-                    Text("Locked")
-                        .font(Font.unbound.bodyM)
-                }
-                .foregroundStyle(Color.unbound.textTertiary)
             }
-
-            Spacer()
+            .padding(24)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(24)
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private static let formatter: DateFormatter = {
@@ -162,6 +151,26 @@ private struct BadgeDetailSheet: View {
         f.timeStyle = .short
         return f
     }()
+}
+
+private struct BadgeDetailBlock: View {
+    let label: String
+    let text: String
+    var tint: Color = Color.unbound.textSecondary
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            Text(label)
+                .font(Font.unbound.captionS)
+                .tracking(1.4)
+                .foregroundStyle(Color.unbound.textTertiary)
+            Text(text)
+                .font(Font.unbound.bodyM)
+                .foregroundStyle(tint)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
 }
 
 #Preview {

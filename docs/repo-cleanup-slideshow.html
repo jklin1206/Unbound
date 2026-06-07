@@ -1,0 +1,895 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>UNBOUND Repo Cleanup State</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #111317;
+      --panel: #181c22;
+      --panel-2: #20252d;
+      --ink: #f3f1ea;
+      --muted: #aeb7bd;
+      --line: #303843;
+      --accent: #27d1b6;
+      --accent-2: #ffcf5a;
+      --accent-3: #ff6b6b;
+      --blue: #7aa8ff;
+      --green: #85e08a;
+      --shadow: rgba(0, 0, 0, 0.35);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      min-height: 100%;
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      letter-spacing: 0;
+    }
+
+    body {
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      overflow: hidden;
+    }
+
+    .topbar,
+    .controls {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 16px clamp(18px, 4vw, 56px);
+      border-color: var(--line);
+      background: rgba(17, 19, 23, 0.92);
+      backdrop-filter: blur(12px);
+    }
+
+    .topbar {
+      border-bottom: 1px solid var(--line);
+    }
+
+    .controls {
+      border-top: 1px solid var(--line);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .mark {
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--line);
+      background: linear-gradient(135deg, #232a32, #14171c);
+      color: var(--accent);
+      font-size: 18px;
+      font-weight: 800;
+      border-radius: 8px;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: clamp(16px, 2vw, 21px);
+      line-height: 1.05;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .brand span,
+    .meta {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .deck {
+      position: relative;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      align-content: center;
+      gap: 24px;
+      padding: clamp(24px, 5vw, 64px);
+      opacity: 0;
+      transform: translateX(24px);
+      pointer-events: none;
+      transition: opacity 220ms ease, transform 220ms ease;
+      overflow: auto;
+    }
+
+    .slide.active {
+      opacity: 1;
+      transform: translateX(0);
+      pointer-events: auto;
+    }
+
+    .slide > header {
+      max-width: 980px;
+    }
+
+    .kicker {
+      margin: 0 0 10px;
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    h2 {
+      margin: 0;
+      max-width: 1050px;
+      font-size: clamp(34px, 7vw, 78px);
+      line-height: 0.96;
+      font-weight: 850;
+    }
+
+    h3 {
+      margin: 0 0 10px;
+      font-size: clamp(20px, 3vw, 32px);
+      line-height: 1.05;
+    }
+
+    p {
+      margin: 0;
+      color: var(--muted);
+      font-size: clamp(16px, 2vw, 20px);
+      line-height: 1.45;
+      max-width: 900px;
+    }
+
+    strong {
+      color: var(--ink);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      gap: 16px;
+      align-items: stretch;
+      width: min(1180px, 100%);
+    }
+
+    .tile {
+      min-height: 118px;
+      padding: 18px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 18px 36px var(--shadow);
+    }
+
+    .span-3 {
+      grid-column: span 3;
+    }
+
+    .span-4 {
+      grid-column: span 4;
+    }
+
+    .span-5 {
+      grid-column: span 5;
+    }
+
+    .span-6 {
+      grid-column: span 6;
+    }
+
+    .span-7 {
+      grid-column: span 7;
+    }
+
+    .span-8 {
+      grid-column: span 8;
+    }
+
+    .span-12 {
+      grid-column: span 12;
+    }
+
+    .metric {
+      display: grid;
+      gap: 7px;
+    }
+
+    .metric .value {
+      color: var(--ink);
+      font-size: clamp(34px, 6vw, 66px);
+      font-weight: 850;
+      line-height: 0.95;
+    }
+
+    .metric .label {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.35;
+    }
+
+    .metric.clean .value {
+      color: var(--green);
+    }
+
+    .metric.warn .value {
+      color: var(--accent-2);
+    }
+
+    .bar-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .bar-row {
+      display: grid;
+      grid-template-columns: minmax(210px, 1fr) minmax(120px, 36%);
+      align-items: center;
+      gap: 14px;
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    .bar-label {
+      overflow-wrap: anywhere;
+    }
+
+    .bar-track {
+      height: 12px;
+      overflow: hidden;
+      background: #101318;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+    }
+
+    .bar-fill {
+      display: block;
+      height: 100%;
+      width: var(--w);
+      background: linear-gradient(90deg, var(--accent), var(--blue));
+      border-radius: inherit;
+    }
+
+    .split-map {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .lane {
+      min-height: 260px;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+    }
+
+    .lane h3 {
+      font-size: 17px;
+      margin-bottom: 14px;
+    }
+
+    .pill-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .pill {
+      padding: 7px 9px;
+      color: var(--ink);
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      font-size: 12px;
+      line-height: 1.2;
+    }
+
+    .checklist {
+      display: grid;
+      gap: 12px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .checklist li {
+      display: grid;
+      grid-template-columns: 28px 1fr;
+      gap: 12px;
+      align-items: start;
+      color: var(--muted);
+      font-size: clamp(15px, 2vw, 18px);
+      line-height: 1.35;
+    }
+
+    .dot {
+      width: 28px;
+      height: 28px;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      color: #08100e;
+      background: var(--green);
+      font-size: 17px;
+      font-weight: 900;
+    }
+
+    .dot.warn {
+      background: var(--accent-2);
+      color: #14100a;
+    }
+
+    code {
+      color: var(--ink);
+      background: #0d1014;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 2px 6px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.88em;
+    }
+
+    .nav {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .icon-button {
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      color: var(--ink);
+      font-size: 20px;
+      cursor: pointer;
+    }
+
+    .icon-button:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .dots {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      min-width: 140px;
+      justify-content: center;
+    }
+
+    .step-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      border: 0;
+      padding: 0;
+      background: #4a515d;
+      cursor: pointer;
+    }
+
+    .step-dot.active {
+      width: 22px;
+      background: var(--accent);
+    }
+
+    .timeline {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .stage {
+      min-height: 156px;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+    }
+
+    .stage b {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--ink);
+      font-size: 16px;
+    }
+
+    .stage span {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.4;
+    }
+
+    .two-column {
+      display: grid;
+      grid-template-columns: 0.9fr 1.1fr;
+      gap: 18px;
+      width: min(1120px, 100%);
+      align-items: stretch;
+    }
+
+    .file-table {
+      width: 100%;
+      border-collapse: collapse;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .file-table th,
+    .file-table td {
+      padding: 10px 8px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    .file-table th {
+      color: var(--ink);
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .file-table td:last-child,
+    .file-table th:last-child {
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    .path {
+      overflow-wrap: anywhere;
+    }
+
+    .status-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      width: min(1060px, 100%);
+    }
+
+    .stamp {
+      min-height: 170px;
+      display: grid;
+      align-content: space-between;
+      padding: 18px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: var(--panel);
+    }
+
+    .stamp b {
+      color: var(--green);
+      font-size: 32px;
+      line-height: 1;
+    }
+
+    .stamp span {
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.35;
+    }
+
+    .repo-map {
+      width: min(1080px, 100%);
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      grid-auto-rows: 86px;
+      gap: 10px;
+    }
+
+    .repo-node {
+      display: grid;
+      align-content: center;
+      gap: 6px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.2;
+      overflow: hidden;
+    }
+
+    .repo-node b {
+      color: var(--ink);
+      font-size: 15px;
+    }
+
+    .repo-node.source {
+      border-color: color-mix(in srgb, var(--accent) 55%, var(--line));
+      background: linear-gradient(180deg, rgba(39, 209, 182, 0.12), var(--panel));
+    }
+
+    .repo-node.tests {
+      border-color: color-mix(in srgb, var(--blue) 55%, var(--line));
+      background: linear-gradient(180deg, rgba(122, 168, 255, 0.12), var(--panel));
+    }
+
+    .repo-node.assets {
+      border-color: color-mix(in srgb, var(--accent-2) 55%, var(--line));
+      background: linear-gradient(180deg, rgba(255, 207, 90, 0.12), var(--panel));
+    }
+
+    @media (max-width: 860px) {
+      body {
+        overflow: auto;
+      }
+
+      .deck {
+        min-height: calc(100vh - 137px);
+      }
+
+      .slide {
+        padding: 22px;
+      }
+
+      .grid,
+      .two-column,
+      .status-grid,
+      .split-map,
+      .timeline,
+      .repo-map {
+        grid-template-columns: 1fr;
+      }
+
+      .span-3,
+      .span-4,
+      .span-5,
+      .span-6,
+      .span-7,
+      .span-8,
+      .span-12 {
+        grid-column: span 1;
+      }
+
+      .repo-map {
+        grid-auto-rows: minmax(84px, auto);
+      }
+
+      .bar-row {
+        grid-template-columns: 1fr;
+      }
+
+      .brand span,
+      .meta {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="mark">U</div>
+      <div>
+        <h1>UNBOUND Repo Cleanup State</h1>
+        <span>Swift source split pass - June 7, 2026</span>
+      </div>
+    </div>
+    <div class="meta" id="slideLabel">Slide 1 of 9</div>
+  </header>
+
+  <main class="deck" id="deck">
+    <section class="slide active" aria-label="Outcome">
+      <header>
+        <p class="kicker">Goal Status</p>
+        <h2>The large Swift files are now split into purpose-built source.</h2>
+        <p>The cleanup focused on active app and test code. Generated metadata, localization, screenshots, and historical planning docs were classified separately and left intact.</p>
+      </header>
+      <div class="grid">
+        <div class="tile metric clean span-3">
+          <span class="value">0</span>
+          <span class="label">Swift files over 1000 lines after cleanup</span>
+        </div>
+        <div class="tile metric warn span-3">
+          <span class="value">33</span>
+          <span class="label">Oversized Swift files in the initial audit</span>
+        </div>
+        <div class="tile metric span-3">
+          <span class="value">973</span>
+          <span class="label">Current Swift files in the repo audit</span>
+        </div>
+        <div class="tile metric span-3">
+          <span class="value">185k</span>
+          <span class="label">Swift lines counted after the split pass</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" aria-label="Validation">
+      <header>
+        <p class="kicker">Verification</p>
+        <h2>Build confidence is back on the board.</h2>
+        <p>The refactor was followed by project regeneration and two compiler passes through the app and test targets.</p>
+      </header>
+      <div class="status-grid">
+        <div class="stamp">
+          <b>OK</b>
+          <span><code>xcodegen generate</code> completed and refreshed the generated Xcode project.</span>
+        </div>
+        <div class="stamp">
+          <b>OK</b>
+          <span>App target build succeeded on the iOS Simulator destination.</span>
+        </div>
+        <div class="stamp">
+          <b>OK</b>
+          <span><code>build-for-testing</code> succeeded. One existing formatter warning remains in <code>SquadLeaderboardTests.swift:194</code>.</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" aria-label="Largest Swift files">
+      <header>
+        <p class="kicker">After Snapshot</p>
+        <h2>The biggest Swift files are under the threshold.</h2>
+        <p>These are the largest active Swift files after the pass. They are watchlist candidates, not blockers.</p>
+      </header>
+      <div class="tile span-12">
+        <div class="bar-list">
+          <div class="bar-row">
+            <span class="bar-label"><code>ProgramRoutineViews.swift</code> - 984 lines</span>
+            <span class="bar-track"><span class="bar-fill" style="--w: 98.4%"></span></span>
+          </div>
+          <div class="bar-row">
+            <span class="bar-label"><code>ProgramFocusSwitchSheet.swift</code> - 982 lines</span>
+            <span class="bar-track"><span class="bar-fill" style="--w: 98.2%"></span></span>
+          </div>
+          <div class="bar-row">
+            <span class="bar-label"><code>ProfileView.swift</code> - 963 lines</span>
+            <span class="bar-track"><span class="bar-fill" style="--w: 96.3%"></span></span>
+          </div>
+          <div class="bar-row">
+            <span class="bar-label"><code>WorkoutLogGridView.swift</code> - 935 lines</span>
+            <span class="bar-track"><span class="bar-fill" style="--w: 93.5%"></span></span>
+          </div>
+          <div class="bar-row">
+            <span class="bar-label"><code>ActiveWorkoutSession.swift</code> - 931 lines</span>
+            <span class="bar-track"><span class="bar-fill" style="--w: 93.1%"></span></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" aria-label="Split map">
+      <header>
+        <p class="kicker">Purpose Boundaries</p>
+        <h2>The split follows the app's working domains.</h2>
+        <p>Large files were not just chopped down. Their responsibilities were moved into named files that match how the feature is used.</p>
+      </header>
+      <div class="split-map">
+        <div class="lane">
+          <h3>Home And Skills</h3>
+          <div class="pill-list">
+            <span class="pill">home chrome</span>
+            <span class="pill">loading states</span>
+            <span class="pill">daily quest</span>
+            <span class="pill">skill guide</span>
+            <span class="pill">rank path</span>
+            <span class="pill">set logger</span>
+            <span class="pill">tree layout</span>
+          </div>
+        </div>
+        <div class="lane">
+          <h3>Program UI</h3>
+          <div class="pill-list">
+            <span class="pill">overview</span>
+            <span class="pill">schedule</span>
+            <span class="pill">rank library</span>
+            <span class="pill">ready mode</span>
+            <span class="pill">session editor</span>
+            <span class="pill">active sheets</span>
+          </div>
+        </div>
+        <div class="lane">
+          <h3>Models And Services</h3>
+          <div class="pill-list">
+            <span class="pill">movement catalog</span>
+            <span class="pill">progression math</span>
+            <span class="pill">body map</span>
+            <span class="pill">rank trials</span>
+            <span class="pill">weekly vows</span>
+            <span class="pill">program generator</span>
+          </div>
+        </div>
+        <div class="lane">
+          <h3>Tests</h3>
+          <div class="pill-list">
+            <span class="pill">year simulation</span>
+            <span class="pill">rank trials</span>
+            <span class="pill">movement progress</span>
+            <span class="pill">training adapters</span>
+            <span class="pill">test doubles</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" aria-label="Representative splits">
+      <header>
+        <p class="kicker">Examples</p>
+        <h2>Representative extractions by feature area.</h2>
+        <p>The new filenames are meant to make navigation obvious before opening the file.</p>
+      </header>
+      <div class="two-column">
+        <div class="tile">
+          <h3>UI Files</h3>
+          <ul class="checklist">
+            <li><span class="dot">+</span><span><code>UnboundHomeView+Briefing.swift</code>, <code>+Controls.swift</code>, <code>+DailyQuest.swift</code></span></li>
+            <li><span class="dot">+</span><span><code>SessionEditorView+Header.swift</code>, <code>+Blocks.swift</code>, <code>+EditableRows.swift</code></span></li>
+            <li><span class="dot">+</span><span><code>WorkoutReadyView+Header.swift</code>, <code>+Controls.swift</code>, <code>+BuilderSheets.swift</code></span></li>
+            <li><span class="dot">+</span><span><code>ProgramRankLibraryRowView.swift</code>, detail views, proof views, and target figure views</span></li>
+          </ul>
+        </div>
+        <div class="tile">
+          <h3>Service And Model Files</h3>
+          <ul class="checklist">
+            <li><span class="dot">+</span><span><code>MovementCatalogTypes.swift</code>, definitions, classification, resolver, and validation</span></li>
+            <li><span class="dot">+</span><span><code>MovementAPCalculator.swift</code>, <code>OverallLevelService.swift</code>, <code>BodyMapProgressService.swift</code></span></li>
+            <li><span class="dot">+</span><span>Rank trial definitions, readiness, progress, loadout resolution, and runner files</span></li>
+            <li><span class="dot">+</span><span>Program generator schedule, movement selection, prescription, details, and metadata extensions</span></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" aria-label="Repository map">
+      <header>
+        <p class="kicker">Repo Shape</p>
+        <h2>The repo now reads as feature lanes instead of mega-files.</h2>
+        <p>This map shows the active areas touched by the cleanup and the artifacts intentionally outside the split scope.</p>
+      </header>
+      <div class="repo-map">
+        <div class="repo-node source"><b>App</b><span>entry points and app shell</span></div>
+        <div class="repo-node source"><b>Models</b><span>movement, skill, squad, reward, and progression data</span></div>
+        <div class="repo-node source"><b>Services</b><span>generation, ranking, trials, progression, rewards</span></div>
+        <div class="repo-node source"><b>Views</b><span>home, program, profile, squads, rewards, onboarding</span></div>
+        <div class="repo-node tests"><b>Tests</b><span>simulation, adapters, services, view derivations</span></div>
+        <div class="repo-node assets"><b>Assets</b><span>image sets, generated media, body map resources</span></div>
+        <div class="repo-node source"><b>Home</b><span>skill tree, sessions, guide, heatmap</span></div>
+        <div class="repo-node source"><b>Program</b><span>overview, schedule, ready, editor, rank library</span></div>
+        <div class="repo-node source"><b>Trials</b><span>definitions, readiness, weekly vow builder</span></div>
+        <div class="repo-node source"><b>Progression</b><span>AP, level, ledger, movement services</span></div>
+        <div class="repo-node tests"><b>Simulation</b><span>year simulator split into support and tracker</span></div>
+        <div class="repo-node assets"><b>Docs</b><span>plans, handoffs, onboarding slideshows</span></div>
+      </div>
+    </section>
+
+    <section class="slide" aria-label="Non-source large files">
+      <header>
+        <p class="kicker">Large Non-Source Files</p>
+        <h2>The remaining large text files are resource or documentation artifacts.</h2>
+        <p>These are not active Swift source and were kept whole to avoid breaking generated metadata, localization, or historical records.</p>
+      </header>
+      <div class="tile">
+        <table class="file-table">
+          <thead>
+            <tr><th>File</th><th>Lines</th></tr>
+          </thead>
+          <tbody>
+            <tr><td class="path"><code>UNBOUND/Resources/Localizable.xcstrings</code></td><td>10,476</td></tr>
+            <tr><td class="path"><code>docs/superpowers/handoff/2026-05-20-movement-library-classification.json</code></td><td>7,382</td></tr>
+            <tr><td class="path"><code>UNBOUND.xcodeproj/project.pbxproj</code></td><td>5,812</td></tr>
+            <tr><td class="path"><code>docs/superpowers/plans/2026-04-20-program-redesign.md</code></td><td>4,172</td></tr>
+            <tr><td class="path"><code>docs/superpowers/plans/2026-05-13-trials.md</code></td><td>3,375</td></tr>
+            <tr><td class="path"><code>docs/asset-sets/exercise-visual-asset-sets.json</code></td><td>1,031</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="slide" aria-label="Subagent audit">
+      <header>
+        <p class="kicker">Parallel Audit</p>
+        <h2>Four focused audits drove the split boundaries.</h2>
+        <p>Subagents stayed read-only and returned targeted extraction plans. The edits were then applied in one coordinated pass.</p>
+      </header>
+      <div class="timeline">
+        <div class="stage"><b>Home</b><span>Skill tree, home dashboard, skill detail, rest combat, and guide components.</span></div>
+        <div class="stage"><b>Program UI</b><span>Program overview, rank library, ready state, session editor, profile, and reward surfaces.</span></div>
+        <div class="stage"><b>Models</b><span>Movement catalog, progression state, body map ledger, trial definitions, and program generator helpers.</span></div>
+        <div class="stage"><b>Tests</b><span>Large service and model tests split by behavior, with shared doubles separated.</span></div>
+        <div class="stage"><b>Verification</b><span>Compiler issues from extraction were fixed, then app and test builds were rerun.</span></div>
+      </div>
+    </section>
+
+    <section class="slide" aria-label="Final state">
+      <header>
+        <p class="kicker">Current State</p>
+        <h2>The source cleanup is finished and verified.</h2>
+        <p>The worktree remains broad because this repo already contained many in-flight assets and feature changes, so no unrelated files were reverted or deleted.</p>
+      </header>
+      <div class="grid">
+        <div class="tile span-4 metric">
+          <span class="value">153</span>
+          <span class="label">New Swift files from split work and existing untracked feature work</span>
+        </div>
+        <div class="tile span-4 metric">
+          <span class="value">127</span>
+          <span class="label">Modified tracked Swift files in the current working tree</span>
+        </div>
+        <div class="tile span-4 metric">
+          <span class="value">416</span>
+          <span class="label">Total status entries, including pre-existing assets, screenshots, docs, and generated media</span>
+        </div>
+        <div class="tile span-12">
+          <ul class="checklist">
+            <li><span class="dot">OK</span><span>No active Swift source file remains over 1000 lines.</span></li>
+            <li><span class="dot">OK</span><span>Generated and resource-sized files were reported separately instead of split blindly.</span></li>
+            <li><span class="dot warn">!</span><span>One non-blocking test warning remains: <code>formatter</code> can be a <code>let</code> in <code>SquadLeaderboardTests.swift:194</code>.</span></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="controls">
+    <div class="meta">UNBOUND cleanup report</div>
+    <nav class="nav" aria-label="Slide navigation">
+      <button class="icon-button" id="prev" type="button" aria-label="Previous slide">&larr;</button>
+      <div class="dots" id="dots"></div>
+      <button class="icon-button" id="next" type="button" aria-label="Next slide">&rarr;</button>
+    </nav>
+  </footer>
+
+  <script>
+    const slides = Array.from(document.querySelectorAll(".slide"));
+    const dots = document.getElementById("dots");
+    const label = document.getElementById("slideLabel");
+    let index = 0;
+
+    function renderDots() {
+      dots.innerHTML = "";
+      slides.forEach((_, slideIndex) => {
+        const dot = document.createElement("button");
+        dot.className = "step-dot";
+        dot.type = "button";
+        dot.setAttribute("aria-label", `Go to slide ${slideIndex + 1}`);
+        dot.addEventListener("click", () => goTo(slideIndex));
+        dots.appendChild(dot);
+      });
+    }
+
+    function goTo(nextIndex) {
+      index = (nextIndex + slides.length) % slides.length;
+      slides.forEach((slide, slideIndex) => {
+        slide.classList.toggle("active", slideIndex === index);
+      });
+      Array.from(dots.children).forEach((dot, slideIndex) => {
+        dot.classList.toggle("active", slideIndex === index);
+      });
+      label.textContent = `Slide ${index + 1} of ${slides.length}`;
+    }
+
+    document.getElementById("prev").addEventListener("click", () => goTo(index - 1));
+    document.getElementById("next").addEventListener("click", () => goTo(index + 1));
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "ArrowLeft") goTo(index - 1);
+      if (event.key === "ArrowRight") goTo(index + 1);
+    });
+
+    renderDots();
+    goTo(0);
+  </script>
+</body>
+</html>

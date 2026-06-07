@@ -39,6 +39,9 @@ protocol SquadBackendProtocol: Sendable {
     /// Update the affinity_axis + affinity_set_at columns for a squad.
     func updateAffinity(squadId: UUID, axis: AttributeKey?, setAt: Date?) async throws
 
+    /// Update the selected squad logo preset. Captains only via RLS.
+    func updateLogo(squadId: UUID, logoId: String) async throws
+
     // MARK: Member operations
 
     /// Return all members for a squad, ordered by joined_at ascending.

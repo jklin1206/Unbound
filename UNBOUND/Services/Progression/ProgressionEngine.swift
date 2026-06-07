@@ -104,14 +104,24 @@ final class ProgressionEngine {
 
         let hitTopOfRange = bestSet.reps >= state.targetRepMax
         let hitTargetRPE = isCleanRPEHit(bestSet.rpe, targetRPE: state.targetRPE)
+        let wasGrindy = isGrindyRPE(bestSet.rpe, targetRPE: state.targetRPE)
 
         var next = state
         next.updatedAt = loggedAt
+        next.lastSessionReps = bestSet.reps
+        next.lastSessionRPE = bestSet.rpe
+        next.lastSessionHitTarget = hitTopOfRange && hitTargetRPE
+        next.lastSessionWasGrindy = wasGrindy
 
         if hitTopOfRange && hitTargetRPE {
             next.consecutiveSessionsAtTarget += 1
+            next.underTargetSessionCount = 0
+            next.prescriptionBias = .hold
         } else {
             next.consecutiveSessionsAtTarget = 0
+            let misses = (state.underTargetSessionCount ?? 0) + 1
+            next.underTargetSessionCount = misses
+            next.prescriptionBias = wasGrindy || misses >= 2 ? .easier : .hold
         }
 
         // Tier unlock: if this exercise belongs to a progression family
@@ -138,10 +148,17 @@ final class ProgressionEngine {
                 applyBump(to: &next)
             }
             // In .preserve mode, we persist state but do NOT bump weight.
+            let bumpedWeight = mode == .advance && next.currentWorkingWeightKg > previousWeight
+            if bumpedWeight {
+                next.prescriptionBias = .hold
+            }
+            if mode == .advance && next.classification == .bodyweightSkill {
+                next.prescriptionBias = .harder
+            }
 
             try? await database.create(next, collection: "progression_states", documentId: next.id)
 
-            if mode == .advance && next.currentWorkingWeightKg > previousWeight {
+            if bumpedWeight {
                 let unit = WeightPlatePolicy.currentUnit
                 let event = ProgressionAdvance(
                     userId: userId,
@@ -244,6 +261,12 @@ final class ProgressionEngine {
         guard targetRPE > 0 else { return true }
         guard let rpe else { return false }
         return rpe <= targetRPE
+    }
+
+    private func isGrindyRPE(_ rpe: Int?, targetRPE: Int) -> Bool {
+        guard let rpe else { return false }
+        guard targetRPE > 0 else { return rpe >= 9 }
+        return rpe >= targetRPE + 2 || (rpe >= 9 && rpe > targetRPE)
     }
 
     private func accessoryRepCeiling(for state: ProgressionState) -> Int {

@@ -146,6 +146,62 @@ struct SquadMessage: Codable, Identifiable, Equatable, Sendable {
     }
 }
 
+struct SquadRoutineDrop: Codable, Identifiable, Equatable, Sendable {
+    let id: UUID
+    let squadId: UUID
+    let authorUserId: UUID
+    let authorDisplayName: String
+    let title: String
+    let note: String?
+    let workout: SavedWorkout
+    let createdAt: Date
+
+    init(
+        id: UUID = UUID(),
+        squadId: UUID,
+        authorUserId: UUID,
+        authorDisplayName: String,
+        title: String,
+        note: String?,
+        workout: SavedWorkout,
+        createdAt: Date = Date()
+    ) {
+        self.id = id
+        self.squadId = squadId
+        self.authorUserId = authorUserId
+        self.authorDisplayName = Self.cleaned(authorDisplayName, fallback: "Crewmate", limit: 42)
+        self.title = Self.cleaned(title, fallback: workout.title.isEmpty ? "Shared Workout" : workout.title, limit: 72)
+        self.note = Self.cleanedOptional(note, limit: 180)
+        self.workout = workout
+        self.createdAt = createdAt
+    }
+
+    var exerciseCount: Int { workout.exerciseCount }
+    var estimatedMinutes: Int { workout.estimatedMinutes }
+
+    func savedWorkoutCopy(now: Date = Date()) -> SavedWorkout {
+        let suffix = authorDisplayName == "You" ? "Squad Drop" : "From \(authorDisplayName)"
+        var copy = workout
+        copy.id = UUID()
+        copy.title = "\(title) - \(suffix)"
+        copy.order = 0
+        copy.createdAt = now
+        copy.updatedAt = now
+        return copy
+    }
+
+    private static func cleaned(_ value: String, fallback: String, limit: Int) -> String {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? fallback : String(trimmed.prefix(limit))
+    }
+
+    private static func cleanedOptional(_ value: String?, limit: Int) -> String? {
+        guard let value else { return nil }
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : String(trimmed.prefix(limit))
+    }
+}
+
 struct OpenChallenge: Codable, Identifiable, Equatable, Sendable {
     let id: UUID
     let squadId: UUID

@@ -24,6 +24,7 @@ final class MockSquadBackend: SquadBackendProtocol, @unchecked Sendable {
     var deletedSquads: [UUID] = []
     var deletedMembers: [(squadId: UUID, userId: UUID)] = []
     var affinityUpdates: [(squadId: UUID, axis: AttributeKey?, setAt: Date?)] = []
+    var logoUpdates: [(squadId: UUID, logoId: String)] = []
     var missionProgressIncrements: [(squadId: UUID, delta: Int, sourceLogId: String)] = []
 
     // MARK: Error injection
@@ -53,7 +54,8 @@ final class MockSquadBackend: SquadBackendProtocol, @unchecked Sendable {
             inviteCode: inviteCode,
             maxSize: maxSize,
             squadStreakWeeks: 0,
-            createdAt: Date()
+            createdAt: Date(),
+            logoId: SquadLogoCatalog.defaultId
         )
         squads[id] = squad
         // Server trigger auto-joins captain as first member.
@@ -98,6 +100,13 @@ final class MockSquadBackend: SquadBackendProtocol, @unchecked Sendable {
         guard let existing = squads[squadId] else { throw SquadError.backendUnavailable }
         squads[squadId] = existing.replacingAffinity(axis: axis, setAt: setAt)
         affinityUpdates.append((squadId: squadId, axis: axis, setAt: setAt))
+    }
+
+    func updateLogo(squadId: UUID, logoId: String) async throws {
+        guard let existing = squads[squadId] else { throw SquadError.backendUnavailable }
+        let resolved = SquadLogoCatalog.resolvedId(logoId)
+        squads[squadId] = existing.replacingLogo(resolved)
+        logoUpdates.append((squadId: squadId, logoId: resolved))
     }
 
     func fetchMembers(squadId: UUID) async throws -> [SquadMember] {

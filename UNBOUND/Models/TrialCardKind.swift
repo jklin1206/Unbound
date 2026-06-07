@@ -58,6 +58,14 @@ extension WeeklyVowKind {
         }
     }
 
+    var proofAssetName: String {
+        switch self {
+        case .ember: return "binding_vow_recovery_emblem"
+        case .overdrive: return "binding_vow_finisher_emblem"
+        case .apex: return "binding_vow_apex_emblem"
+        }
+    }
+
     static func kind(fromWeeklyVowRoute route: String?) -> WeeklyVowKind? {
         guard let route = route?.lowercased() else { return nil }
         if route.contains("apex") || route.contains("prestige") { return .apex }

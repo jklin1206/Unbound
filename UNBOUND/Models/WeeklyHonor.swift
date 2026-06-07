@@ -28,7 +28,7 @@ struct WeeklyHonor: Codable, Identifiable, Equatable, Sendable {
             case .comebackArc: return "Comeback Arc"
             case .earlyBird: return "Early Bird"
             case .nightGrinder: return "Night Grinder"
-            case .vowFinisher: return "Binding Vow Finisher"
+            case .vowFinisher: return "Proof Finisher"
             case .supportBuff: return "Support Buff"
             }
         }
@@ -42,7 +42,7 @@ struct WeeklyHonor: Codable, Identifiable, Equatable, Sendable {
             case .comebackArc: return "Returned after 7+ days then logged 3+"
             case .earlyBird: return "Most pre-7am workouts"
             case .nightGrinder: return "Most post-9pm workouts"
-            case .vowFinisher: return "Completed a Binding Vow"
+            case .vowFinisher: return "Cleared a proof challenge"
             case .supportBuff: return "Most linked-session participation"
             }
         }

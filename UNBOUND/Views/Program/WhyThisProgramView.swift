@@ -11,7 +11,7 @@ struct WhyThisProgramView: View {
             Color.unbound.bg.ignoresSafeArea()
 
             ScrollView(.vertical, showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 24) {
+                VStack(alignment: .leading, spacing: 16) {
                     hero
                     summaryBlock
                     decisionList
@@ -35,9 +35,9 @@ struct WhyThisProgramView: View {
     }
 
     private var hero: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
-                Text("WHY THIS PROGRAM")
+                Text("NEXT BLOCK")
                     .font(Font.unbound.captionS.weight(.bold))
                     .tracking(1.6)
                     .foregroundStyle(Color.unbound.accent)
@@ -59,34 +59,56 @@ struct WhyThisProgramView: View {
             Text(rationale.headline)
                 .font(Font.unbound.titleL)
                 .foregroundStyle(Color.unbound.textPrimary)
+                .lineLimit(2)
+                .minimumScaleFactor(0.86)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(14)
+        .padding(16)
         .background(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color.unbound.surface.opacity(0.72))
+                .fill(Color.unbound.surfaceElevated.opacity(0.92))
         )
         .overlay(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
+                .strokeBorder(Color.unbound.accent.opacity(0.35), lineWidth: 1)
         )
+        .shadow(color: Color.unbound.accent.opacity(0.12), radius: 14, y: 6)
         .opacity(appeared ? 1 : 0)
         .offset(y: appeared ? 0 : 12)
     }
 
     private var summaryBlock: some View {
-        Text(rationale.summaryCopy)
-            .font(Font.unbound.bodyL)
-            .foregroundStyle(Color.unbound.textSecondary)
-            .fixedSize(horizontal: false, vertical: true)
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: "sparkles")
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(Color.unbound.coachCyan)
+                .frame(width: 28, height: 28)
+                .background(Circle().fill(Color.unbound.coachCyan.opacity(0.16)))
+
+            Text(rationale.summaryCopy)
+                .font(Font.unbound.captionS)
+                .tracking(0.2)
+                .foregroundStyle(Color.unbound.textSecondary)
+                .lineLimit(3)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color.unbound.surface.opacity(0.78))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(Color.unbound.borderSubtle.opacity(0.95), lineWidth: 1)
+        )
             .opacity(appeared ? 1 : 0)
             .offset(y: appeared ? 0 : 12)
     }
 
     private var decisionList: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 8) {
             ForEach(Array(rationale.decisions.enumerated()), id: \.element.id) { (idx, decision) in
-                DecisionCard(decision: decision, index: idx)
+                DecisionCard(decision: decision)
                     .opacity(appeared ? 1 : 0)
                     .offset(y: appeared ? 0 : 20)
                     .animation(
@@ -111,52 +133,44 @@ struct WhyThisProgramView: View {
 
 private struct DecisionCard: View {
     let decision: ProgramRationale.Decision
-    let index: Int
 
     var body: some View {
-        UnboundCard {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(alignment: .center, spacing: 10) {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .fill(Color.unbound.accent.opacity(0.12))
-                        Image(systemName: decision.iconSystemName)
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundStyle(Color.unbound.accent)
-                    }
-                    .frame(width: 44, height: 44)
-
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text("INPUT \(index + 1)")
-                            .font(.system(size: 9, weight: .bold, design: .monospaced))
-                            .tracking(1.0)
-                            .foregroundStyle(Color.unbound.textTertiary)
-
-                        Text(decision.inputSummary.uppercased())
-                            .font(Font.unbound.captionS.weight(.bold))
-                            .tracking(1.1)
-                            .foregroundStyle(Color.unbound.textSecondary)
-                            .lineLimit(2)
-                    }
-                    Spacer(minLength: 0)
-                }
-
-                Rectangle()
-                    .fill(Color.unbound.borderSubtle)
-                    .frame(height: 0.5)
-
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("PROGRAM DECISION")
-                        .font(.system(size: 9, weight: .bold, design: .monospaced))
-                        .tracking(1.0)
-                        .foregroundStyle(Color.unbound.textTertiary)
-                    Text(decision.decisionApplied)
-                        .font(Font.unbound.bodyMStrong)
-                        .foregroundStyle(Color.unbound.textPrimary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
+        HStack(alignment: .top, spacing: 11) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(Color.unbound.accent.opacity(0.16))
+                Image(systemName: decision.iconSystemName)
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(Color.unbound.accent)
             }
+            .frame(width: 42, height: 42)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(decision.inputSummary.uppercased())
+                    .font(Font.unbound.captionS.weight(.bold))
+                    .tracking(1.0)
+                    .foregroundStyle(Color.unbound.textTertiary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+
+                Text(decision.decisionApplied)
+                    .font(Font.unbound.bodyMStrong)
+                    .foregroundStyle(Color.unbound.textPrimary)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer(minLength: 0)
         }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color.unbound.surfaceElevated.opacity(0.88))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(Color.unbound.borderSubtle.opacity(0.95), lineWidth: 1)
+        )
     }
 }
 

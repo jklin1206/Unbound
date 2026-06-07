@@ -190,6 +190,54 @@ final class ProgressionEngineBehaviorTests: XCTestCase {
         )
         XCTAssertEqual(state?.consecutiveSessionsAtTarget, 0)
         XCTAssertEqual(state?.currentWorkingWeightKg, 60)
+        XCTAssertEqual(state?.lastSessionReps, 10)
+        XCTAssertEqual(state?.lastSessionRPE, 9)
+        XCTAssertEqual(state?.lastSessionHitTarget, false)
+        XCTAssertEqual(state?.lastSessionWasGrindy, true)
+        XCTAssertEqual(state?.underTargetSessionCount, 2)
+        XCTAssertEqual(state?.prescriptionBias, .easier)
+    }
+
+    @MainActor
+    func testTargetRPE9CountsAsCleanWhenBlockCallsForIt() async {
+        let userId = "realization-rpe-\(UUID().uuidString)"
+        let startedAt = Date(timeIntervalSince1970: 3_500)
+        var seeded = ProgressionState.seed(
+            userId: userId,
+            exercise: "bench press",
+            startingWeightKg: 80,
+            block: .realization
+        )
+        seeded.targetRepMin = 3
+        seeded.targetRepMax = 5
+        seeded.targetRPE = 9
+        try? await DatabaseService.shared.create(
+            seeded,
+            collection: "progression_states",
+            documentId: seeded.id
+        )
+
+        await ProgressionEngine.shared.ingest(
+            log: progressionLog(
+                id: "bench-realization-\(UUID().uuidString)",
+                userId: userId,
+                exerciseName: "bench press",
+                reps: 5,
+                weightKg: 80,
+                rpe: 9,
+                at: startedAt
+            ),
+            mode: .advance
+        )
+
+        let state: ProgressionState? = try? await DatabaseService.shared.read(
+            collection: "progression_states",
+            documentId: "\(userId):bench press"
+        )
+        XCTAssertEqual(state?.lastSessionHitTarget, true)
+        XCTAssertEqual(state?.lastSessionWasGrindy, false)
+        XCTAssertEqual(state?.underTargetSessionCount, 0)
+        XCTAssertEqual(state?.prescriptionBias, .hold)
     }
 
     @MainActor

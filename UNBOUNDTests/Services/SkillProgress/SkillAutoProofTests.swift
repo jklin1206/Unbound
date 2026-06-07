@@ -210,3 +210,72 @@ final class SkillAutoProofTests: XCTestCase {
         )
     }
 }
+
+@MainActor
+final class ProgramFocusScheduleTests: XCTestCase {
+    private func service() async -> SkillProgressService {
+        let service = SkillProgressService(database: MockDatabaseService())
+        await service.load(userId: "u-program-focus")
+        return service
+    }
+
+    func testAddingSingleProgramFocusAutoOptimizesWeeklyExposure() async {
+        let service = await service()
+
+        await service.toggleProgramFocus(nodeId: "pp.incline-row")
+
+        let expected: [DayCategory?] = [
+            .pull,
+            .legs,
+            .pull,
+            .conditioning,
+            .pull,
+            .skills,
+            .rest
+        ]
+        XCTAssertEqual(service.programFocusIds, ["pp.incline-row"])
+        XCTAssertEqual(service.weeklySchedule, expected)
+    }
+
+    func testAppManagedScheduleReoptimizesWhenFocusSetChanges() async {
+        let service = await service()
+
+        await service.toggleProgramFocus(nodeId: "pp.incline-row")
+        await service.toggleProgramFocus(nodeId: "cal.incline-pushup")
+
+        let expected = ProgramScheduler.shared
+            .optimizedWeeklySchedule(programFocusIds: ["pp.incline-row", "cal.incline-pushup"])
+            .map(Optional.some)
+        XCTAssertEqual(service.programFocusIds, ["pp.incline-row", "cal.incline-pushup"])
+        XCTAssertEqual(service.weeklySchedule, expected)
+    }
+
+    func testCustomWeeklyScheduleIsPreservedWhenProgramFocusChanges() async {
+        let service = await service()
+        let custom: [DayCategory?] = [
+            .push,
+            .push,
+            .rest,
+            .legs,
+            .core,
+            .conditioning,
+            .rest
+        ]
+
+        await service.setWeeklySchedule(custom)
+        await service.toggleProgramFocus(nodeId: "pp.incline-row")
+
+        XCTAssertEqual(service.programFocusIds, ["pp.incline-row"])
+        XCTAssertEqual(service.weeklySchedule, custom)
+    }
+
+    func testRemovingLastProgramFocusReturnsToDefaultScheduleFallback() async {
+        let service = await service()
+
+        await service.toggleProgramFocus(nodeId: "pp.incline-row")
+        await service.toggleProgramFocus(nodeId: "pp.incline-row")
+
+        XCTAssertTrue(service.programFocusIds.isEmpty)
+        XCTAssertEqual(service.weeklySchedule, Array(repeating: nil, count: 7))
+    }
+}

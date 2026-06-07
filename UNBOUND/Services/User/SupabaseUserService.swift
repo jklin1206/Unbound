@@ -145,6 +145,7 @@ final class SupabaseUserService: UserServiceProtocol, @unchecked Sendable {
         "targetFrequency":       "target_frequency",
         "currentFrequency":      "current_frequency",
         "workoutTime":           "workout_time",
+        "workoutMinuteOfDay":    "workout_minute_of_day",
         "sessionLength":         "session_length",
         "exerciseStyles":        "exercise_styles",
         "targetAreas":           "target_areas",

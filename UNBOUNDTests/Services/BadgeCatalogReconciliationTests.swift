@@ -46,4 +46,16 @@ final class BadgeCatalogReconciliationTests: XCTestCase {
             "BadgeCatalog.all contains duplicate ids"
         )
     }
+
+    func testEveryBadgeHasAchievementInstructionsAndVowReward() {
+        let missingInstructions = BadgeCatalog.all
+            .filter { $0.unlockCriteria.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+            .map(\.id)
+        let missingRewards = BadgeCatalog.all
+            .filter { $0.vowReward.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+            .map(\.id)
+
+        XCTAssertTrue(missingInstructions.isEmpty, "Badges missing how-to-achieve copy: \(missingInstructions)")
+        XCTAssertTrue(missingRewards.isEmpty, "Badges missing vow reward copy: \(missingRewards)")
+    }
 }

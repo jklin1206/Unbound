@@ -163,6 +163,7 @@ For UI work, "good" means:
 
 - It feels native to UNBOUND's anime training-arc product.
 - It is readable on phone-sized screens.
+- Text must be fully readable on supported iPhone sizes. Surfaces should adapt with flexible widths, wrapping, scale factors, layout priority, or larger hit areas instead of clipping labels, titles, prices, counters, or button copy. Intentional truncation needs an explicit product reason.
 - The visual reward feels earned, not like a generic tint.
 - Premium art supports the workflow instead of competing with controls.
 - Copy stays direct and non-negging.

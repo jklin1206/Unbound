@@ -103,6 +103,34 @@ final class SquadV1ModelsTests: XCTestCase {
         XCTAssertEqual(merged.last?.kind, .text(.init(body: "persisted")))
         XCTAssertEqual(merged.last?.reactions.first?.emoji, .fire)
     }
+
+    func testRoutineDropCreatesFreshSavedWorkoutCopy() {
+        let originalId = UUID()
+        let workout = SavedWorkout(
+            id: originalId,
+            title: "Upper Engine",
+            blocks: [],
+            createdAt: Date(timeIntervalSince1970: 10),
+            updatedAt: Date(timeIntervalSince1970: 20)
+        )
+        let now = Date(timeIntervalSince1970: 100)
+        let drop = SquadRoutineDrop(
+            squadId: UUID(),
+            authorUserId: UUID(),
+            authorDisplayName: "Alex",
+            title: "Upper Engine",
+            note: "Run it with strict rest.",
+            workout: workout,
+            createdAt: Date(timeIntervalSince1970: 50)
+        )
+
+        let copy = drop.savedWorkoutCopy(now: now)
+
+        XCTAssertNotEqual(copy.id, originalId)
+        XCTAssertEqual(copy.title, "Upper Engine - From Alex")
+        XCTAssertEqual(copy.createdAt, now)
+        XCTAssertEqual(copy.updatedAt, now)
+    }
 }
 
 private final class MockSquadMessageBackend: SquadMessageBackendProtocol {
@@ -143,6 +171,24 @@ private final class MockSquadMessageBackend: SquadMessageBackendProtocol {
 
 private enum SquadMessageTestError: Error {
     case forced
+}
+
+private final class MockSquadRoutineDropBackend: SquadRoutineDropBackendProtocol, @unchecked Sendable {
+    var fetchedDrops: [SquadRoutineDrop] = []
+    var fetchError: Error?
+    var insertError: Error?
+    var insertedDrops: [SquadRoutineDrop] = []
+
+    func fetchRecentDrops(squadId: UUID, limit: Int) async throws -> [SquadRoutineDrop] {
+        if let fetchError { throw fetchError }
+        return Array(fetchedDrops.filter { $0.squadId == squadId }.prefix(limit))
+    }
+
+    func insertDrop(_ drop: SquadRoutineDrop) async throws -> SquadRoutineDrop {
+        if let insertError { throw insertError }
+        insertedDrops.append(drop)
+        return drop
+    }
 }
 
 @MainActor
@@ -229,5 +275,43 @@ final class SquadMessageServiceTests: XCTestCase {
         XCTAssertEqual(backend.reports.first?.1, reporterId)
         XCTAssertEqual(backend.reports.first?.2, "spam")
         XCTAssertEqual(backend.reports.first?.3, "Repeated")
+    }
+
+    func testRoutineDropSharePersistsDropAndPublishesShareMessage() async {
+        let squadId = UUID()
+        let authorId = UUID()
+        let dropBackend = MockSquadRoutineDropBackend()
+        let messageBackend = MockSquadMessageBackend()
+        let messageService = SquadMessageService(backend: messageBackend)
+        let service = SquadRoutineDropService(backend: dropBackend, messageService: messageService)
+        let squad = Squad(
+            id: squadId,
+            name: "Codex Crew",
+            captainId: authorId,
+            affinityAxis: nil,
+            affinitySetAt: nil,
+            inviteCode: "ABC123",
+            maxSize: 8,
+            squadStreakWeeks: 0,
+            createdAt: Date(timeIntervalSince1970: 10)
+        )
+        let workout = SavedWorkout(title: "Hotel Full Body", blocks: [])
+
+        let drop = await service.share(
+            workout: workout,
+            note: "Keep the pace honest.",
+            squad: squad,
+            authorUserId: authorId,
+            authorDisplayName: "Alex"
+        )
+
+        XCTAssertEqual(dropBackend.insertedDrops, [drop])
+        XCTAssertEqual(messageBackend.insertedMessages.count, 1)
+        XCTAssertEqual(messageBackend.insertedMessages.first?.squadId, squadId)
+        XCTAssertEqual(messageBackend.insertedMessages.first?.authorUserId, authorId)
+        XCTAssertEqual(
+            messageBackend.insertedMessages.first?.kind,
+            .savedWorkoutShare(.init(shareId: drop.id, workoutTitle: "Hotel Full Body", sharedById: authorId))
+        )
     }
 }

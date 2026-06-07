@@ -23,17 +23,20 @@ struct WorkoutReminderNotificationPreferences: Codable, Equatable {
     var isEnabled: Bool
     var workoutTime: WorkoutTime?
     var trainingDays: Set<Weekday>
+    var hour: Int?
     var minute: Int
 
     init(
         isEnabled: Bool = false,
         workoutTime: WorkoutTime? = nil,
         trainingDays: Set<Weekday> = [],
+        hour: Int? = nil,
         minute: Int = 0
     ) {
         self.isEnabled = isEnabled
         self.workoutTime = workoutTime
         self.trainingDays = trainingDays
+        self.hour = hour
         self.minute = minute
     }
 }

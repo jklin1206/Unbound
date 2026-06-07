@@ -120,3 +120,98 @@ actor SquadMessageService {
         return SquadUserIdentity.usesLocalOnlySquad(for: userId.uuidString)
     }
 }
+
+actor SquadRoutineDropService {
+    static let shared = SquadRoutineDropService()
+
+    private let backend: SquadRoutineDropBackendProtocol
+    private let messageService: SquadMessageService
+    private let logger = LoggingService.shared
+    private var localDrops: [UUID: [SquadRoutineDrop]] = [:]
+
+    init(
+        backend: SquadRoutineDropBackendProtocol = SquadRoutineDropBackend.shared,
+        messageService: SquadMessageService = .shared
+    ) {
+        self.backend = backend
+        self.messageService = messageService
+    }
+
+    func share(
+        workout: SavedWorkout,
+        note: String?,
+        squad: Squad,
+        authorUserId: UUID,
+        authorDisplayName: String
+    ) async -> SquadRoutineDrop {
+        let drop = SquadRoutineDrop(
+            squadId: squad.id,
+            authorUserId: authorUserId,
+            authorDisplayName: authorDisplayName,
+            title: workout.title,
+            note: note,
+            workout: workout
+        )
+
+        let savedDrop: SquadRoutineDrop
+        if SquadUserIdentity.usesLocalOnlySquad(for: authorUserId.uuidString) {
+            appendLocal(drop)
+            savedDrop = drop
+        } else {
+            do {
+                savedDrop = try await backend.insertDrop(drop)
+            } catch {
+                logger.log("SquadRoutineDropService.share saved local fallback: \(error)", level: .warning)
+                appendLocal(drop)
+                savedDrop = drop
+            }
+        }
+
+        await publishShareMessage(for: savedDrop)
+        NotificationCenter.default.post(name: .squadRoutineDropShared, object: savedDrop)
+        return savedDrop
+    }
+
+    func fetchRecent(squadId: UUID, limit: Int = 20) async -> [SquadRoutineDrop] {
+        do {
+            let remote = try await backend.fetchRecentDrops(squadId: squadId, limit: limit)
+            let merged = Self.mergedDrops(remote + (localDrops[squadId] ?? []))
+            localDrops[squadId] = Self.mergedDrops(localDrops[squadId] ?? [])
+            return Array(merged.prefix(limit))
+        } catch {
+            logger.log("SquadRoutineDropService.fetchRecent falling back locally: \(error)", level: .debug)
+            return Array((localDrops[squadId] ?? []).prefix(limit))
+        }
+    }
+
+    nonisolated static func mergedDrops(_ drops: [SquadRoutineDrop]) -> [SquadRoutineDrop] {
+        var byId: [UUID: SquadRoutineDrop] = [:]
+        for drop in drops {
+            byId[drop.id] = drop
+        }
+        return byId.values.sorted { $0.createdAt > $1.createdAt }
+    }
+
+    private func appendLocal(_ drop: SquadRoutineDrop) {
+        var existing = localDrops[drop.squadId] ?? []
+        existing.removeAll { $0.id == drop.id }
+        existing.insert(drop, at: 0)
+        localDrops[drop.squadId] = Self.mergedDrops(existing)
+    }
+
+    private func publishShareMessage(for drop: SquadRoutineDrop) async {
+        let message = SquadMessage(
+            id: UUID(),
+            squadId: drop.squadId,
+            authorUserId: drop.authorUserId,
+            kind: .savedWorkoutShare(.init(
+                shareId: drop.id,
+                workoutTitle: drop.title,
+                sharedById: drop.authorUserId
+            )),
+            reactions: [],
+            createdAt: drop.createdAt
+        )
+        _ = await messageService.sendMessage(message)
+    }
+}

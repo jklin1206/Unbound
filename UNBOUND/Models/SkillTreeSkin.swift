@@ -17,6 +17,13 @@ enum SkillTreeSkin: String, Codable, Sendable, CaseIterable, Identifiable {
     case aurora
     case holographic
     case ascendant
+    case chalk
+    case blueprint
+    case streetNeon = "street_neon"
+    case inkDojo = "ink_dojo"
+    case solarCircuit = "solar_circuit"
+    case glassCircuit = "glass_circuit"
+    case crystalCavern = "crystal_cavern"
 
     var id: String { rawValue }
 
@@ -34,6 +41,13 @@ enum SkillTreeSkin: String, Codable, Sendable, CaseIterable, Identifiable {
         case .aurora:       return "Aurora"
         case .holographic:  return "Holographic"
         case .ascendant:    return "Ascendant"
+        case .chalk:        return "Chalk Rails"
+        case .blueprint:    return "Blueprint Rails"
+        case .streetNeon:   return "Street Neon"
+        case .inkDojo:      return "Ink Dojo"
+        case .solarCircuit: return "Solar Circuit"
+        case .glassCircuit: return "Glass Circuit"
+        case .crystalCavern: return "Crystal Cavern"
         }
     }
 
@@ -49,6 +63,13 @@ enum SkillTreeSkin: String, Codable, Sendable, CaseIterable, Identifiable {
         case .aurora:       return "Split teal, violet, and rose light across the tree."
         case .holographic:  return "Prismatic node glow for Unbound progress."
         case .ascendant:    return "White-gold apex styling for the top of the ladder."
+        case .chalk:        return "A stripped-down map skin with chalk rails and quiet node glow."
+        case .blueprint:    return "Cool drafting lines, icy nodes, and a crisp technical map read."
+        case .streetNeon:   return "Cyan rails, magenta proven nodes, and sharper tree-map contrast."
+        case .inkDojo:      return "Ink-wash banners, parchment banding, and restrained teal node light."
+        case .solarCircuit: return "Amber active paths, teal glass nodes, and brighter circuit bands."
+        case .glassCircuit: return "Premium teal glass nodes with gold active paths."
+        case .crystalCavern: return "Violet crystal walls, cyan shard glow, and luminous cavern rails."
         }
     }
 
@@ -69,6 +90,8 @@ enum SkillTreeSkin: String, Codable, Sendable, CaseIterable, Identifiable {
         case .aurora:       return .unbound
         case .holographic:  return .ascendant
         case .ascendant:    return .ascendant
+        case .chalk, .blueprint, .streetNeon, .inkDojo, .solarCircuit, .glassCircuit, .crystalCavern:
+            return nil
         }
     }
 
@@ -84,6 +107,17 @@ enum SkillTreeSkin: String, Codable, Sendable, CaseIterable, Identifiable {
         case .aurora:       return "Reach Ascendant aggregate tier."
         case .holographic:  return "Reach Unbound aggregate tier."
         case .ascendant:    return "Reach Unbound aggregate tier."
+        case .chalk, .blueprint, .streetNeon, .inkDojo, .solarCircuit, .glassCircuit, .crystalCavern:
+            return "Buy it in the Shop."
+        }
+    }
+
+    var isShopExclusive: Bool {
+        switch self {
+        case .chalk, .blueprint, .streetNeon, .inkDojo, .solarCircuit, .glassCircuit, .crystalCavern:
+            return true
+        default:
+            return false
         }
     }
 
@@ -103,6 +137,13 @@ enum SkillTreeSkin: String, Codable, Sendable, CaseIterable, Identifiable {
         case .aurora:       return Color.skinHex("5EEAD4")
         case .holographic:  return Color.skinHex("B5F3FE")
         case .ascendant:    return Color.skinHex("FFF3B0")
+        case .chalk:        return Color.skinHex("CBD5E1")
+        case .blueprint:    return Color.skinHex("38BDF8")
+        case .streetNeon:   return Color.skinHex("22D3EE")
+        case .inkDojo:      return Color.skinHex("EDE6D6")
+        case .solarCircuit: return Color.skinHex("F97316")
+        case .glassCircuit: return Color.skinHex("5EEAD4")
+        case .crystalCavern: return Color.skinHex("A78BFA")
         }
     }
 
@@ -119,6 +160,13 @@ enum SkillTreeSkin: String, Codable, Sendable, CaseIterable, Identifiable {
         case .aurora:       return Color.skinHex("F0ABFC")
         case .holographic:  return Color.skinHex("F5A4FF")
         case .ascendant:    return Color.skinHex("FFFFFF")
+        case .chalk:        return Color.skinHex("2DD4BF")
+        case .blueprint:    return Color.skinHex("E0F2FE")
+        case .streetNeon:   return Color.skinHex("FF4FD8")
+        case .inkDojo:      return Color.skinHex("2DD4BF")
+        case .solarCircuit: return Color.skinHex("F6C95B")
+        case .glassCircuit: return Color.skinHex("F6C95B")
+        case .crystalCavern: return Color.skinHex("67E8F9")
         }
     }
 
@@ -136,6 +184,13 @@ enum SkillTreeSkin: String, Codable, Sendable, CaseIterable, Identifiable {
         case .aurora:       return Color.skinHex("99F6E4")
         case .holographic:  return Color.skinHex("D8B4FE")
         case .ascendant:    return Color.skinHex("FFE8A3")
+        case .chalk:        return Color.skinHex("F8FAFC")
+        case .blueprint:    return Color.skinHex("BAE6FD")
+        case .streetNeon:   return Color.skinHex("38BDF8")
+        case .inkDojo:      return Color.skinHex("D84B3D")
+        case .solarCircuit: return Color.skinHex("FDE68A")
+        case .glassCircuit: return Color.skinHex("FDE68A")
+        case .crystalCavern: return Color.skinHex("E9D5FF")
         }
     }
 
@@ -153,13 +208,20 @@ enum SkillTreeSkin: String, Codable, Sendable, CaseIterable, Identifiable {
         case .aurora:       return Color.skinHex("CCFBF1")
         case .holographic:  return Color.skinHex("E0F2FE")
         case .ascendant:    return Color.skinHex("FFFBEA")
+        case .chalk:        return Color.skinHex("E2E8F0")
+        case .blueprint:    return Color.skinHex("E0F2FE")
+        case .streetNeon:   return Color.skinHex("F0FDFA")
+        case .inkDojo:      return Color.skinHex("F8FAFC")
+        case .solarCircuit: return Color.skinHex("FFFBEB")
+        case .glassCircuit: return Color.skinHex("FFFBEB")
+        case .crystalCavern: return Color.skinHex("F5F3FF")
         }
     }
 
     var impactDecalColor: Color {
         switch self {
         case .graphite:     return Color.skinHex("F8FAFC")
-        case .gold, .ascendant:
+        case .gold, .ascendant, .solarCircuit, .glassCircuit, .crystalCavern:
             return Color.skinHex("FFFFFF")
         default:
             return impactColor
@@ -223,6 +285,41 @@ enum SkillTreeSkin: String, Codable, Sendable, CaseIterable, Identifiable {
                 colors: [Color.skinHex("FFF7D6").opacity(0.48), Color.skinHex("FFC857").opacity(0.26), Color.skinHex("B5F3FE").opacity(0.18)],
                 startPoint: .topLeading, endPoint: .bottomTrailing
             )
+        case .chalk:
+            return LinearGradient(
+                colors: [Color.skinHex("334155").opacity(0.50), Color.skinHex("0B1120").opacity(0.84), Color.skinHex("2DD4BF").opacity(0.10)],
+                startPoint: .topLeading, endPoint: .bottomTrailing
+            )
+        case .blueprint:
+            return LinearGradient(
+                colors: [Color.skinHex("0F2741").opacity(0.88), Color.skinHex("38BDF8").opacity(0.24), Color.skinHex("E0F2FE").opacity(0.16)],
+                startPoint: .topLeading, endPoint: .bottomTrailing
+            )
+        case .streetNeon:
+            return LinearGradient(
+                colors: [Color.skinHex("0F172A").opacity(0.88), Color.skinHex("22D3EE").opacity(0.24), Color.skinHex("FF4FD8").opacity(0.22)],
+                startPoint: .topLeading, endPoint: .bottomTrailing
+            )
+        case .inkDojo:
+            return LinearGradient(
+                colors: [Color.skinHex("111827").opacity(0.86), Color.skinHex("EDE6D6").opacity(0.18), Color.skinHex("2DD4BF").opacity(0.14)],
+                startPoint: .topLeading, endPoint: .bottomTrailing
+            )
+        case .solarCircuit:
+            return LinearGradient(
+                colors: [Color.skinHex("180F1B").opacity(0.92), Color.skinHex("F97316").opacity(0.30), Color.skinHex("5EEAD4").opacity(0.18)],
+                startPoint: .topLeading, endPoint: .bottomTrailing
+            )
+        case .glassCircuit:
+            return LinearGradient(
+                colors: [Color.skinHex("0B1120").opacity(0.92), Color.skinHex("14B8A6").opacity(0.28), Color.skinHex("F6C95B").opacity(0.20)],
+                startPoint: .topLeading, endPoint: .bottomTrailing
+            )
+        case .crystalCavern:
+            return LinearGradient(
+                colors: [Color.skinHex("120A2A").opacity(0.94), Color.skinHex("7C3AED").opacity(0.34), Color.skinHex("67E8F9").opacity(0.22)],
+                startPoint: .topLeading, endPoint: .bottomTrailing
+            )
         }
     }
 
@@ -242,31 +339,34 @@ enum SkillTreeSkin: String, Codable, Sendable, CaseIterable, Identifiable {
         switch self {
         case .graphite: return 0.06
         case .violet: return 0.08
-        case .ember, .gold, .aurora, .holographic, .ascendant: return 0.11
+        case .ember, .gold, .aurora, .holographic, .ascendant, .streetNeon, .solarCircuit, .glassCircuit, .crystalCavern: return 0.11
         case .jade, .frost, .void: return 0.09
+        case .chalk, .blueprint: return 0.07
+        case .inkDojo: return 0.08
         }
     }
 
     var backgroundAssetOpacity: Double {
         switch self {
-        case .graphite, .jade, .frost: return 0.96
-        case .gold, .ember, .void: return 0.92
-        case .violet, .aurora, .holographic, .ascendant: return 0.88
+        case .graphite, .jade, .frost, .chalk, .blueprint: return 0.96
+        case .gold, .ember, .void, .inkDojo: return 0.92
+        case .violet, .aurora, .holographic, .ascendant, .streetNeon, .solarCircuit, .glassCircuit: return 0.88
+        case .crystalCavern: return 0.84
         }
     }
 
     var backgroundAssetContrast: Double {
         switch self {
-        case .graphite, .jade, .frost: return 1.24
-        case .gold, .ember, .void: return 1.18
-        case .violet, .aurora, .holographic, .ascendant: return 1.14
+        case .graphite, .jade, .frost, .chalk, .blueprint: return 1.24
+        case .gold, .ember, .void, .streetNeon, .solarCircuit, .inkDojo: return 1.18
+        case .violet, .aurora, .holographic, .ascendant, .glassCircuit: return 1.14
+        case .crystalCavern: return 1.12
         }
     }
 
     func bandTint(for rank: RankTier) -> Color {
         let ramp = 0.012 + Double(rank.rawValue) * 0.011
-        let color = rank >= .vessel ? impactColor : primaryColor
-        return color.opacity(ramp)
+        return rank.rewardTint.opacity(ramp)
     }
 
     func nodeFill(state: NodeState, faded: Bool) -> Color {
@@ -378,6 +478,55 @@ extension SkillTreeSkin {
                 background: primaryColor.opacity(0.20),
                 border: Color.skinHex("FFE8A3"),
                 text: Color.skinHex("FFFBEA"),
+                glow: impactColor
+            )
+        case .chalk:
+            return ChipStyle(
+                background: primaryColor.opacity(0.14),
+                border: primaryColor.opacity(0.72),
+                text: Color.unbound.textPrimary,
+                glow: impactColor
+            )
+        case .blueprint:
+            return ChipStyle(
+                background: Color.skinHex("38BDF8").opacity(0.16),
+                border: Color.skinHex("BAE6FD").opacity(0.84),
+                text: Color.skinHex("E0F2FE"),
+                glow: primaryColor
+            )
+        case .streetNeon:
+            return ChipStyle(
+                background: primaryColor.opacity(0.18),
+                border: primaryColor,
+                text: Color.unbound.textPrimary,
+                glow: impactColor
+            )
+        case .inkDojo:
+            return ChipStyle(
+                background: Color.skinHex("EDE6D6").opacity(0.14),
+                border: Color.skinHex("EDE6D6").opacity(0.76),
+                text: Color.skinHex("F8FAFC"),
+                glow: impactColor
+            )
+        case .solarCircuit:
+            return ChipStyle(
+                background: Color.skinHex("F97316").opacity(0.20),
+                border: Color.skinHex("F6C95B"),
+                text: Color.skinHex("FFFBEB"),
+                glow: impactColor
+            )
+        case .glassCircuit:
+            return ChipStyle(
+                background: Color.skinHex("F6C95B").opacity(0.18),
+                border: Color.skinHex("F6C95B"),
+                text: Color.skinHex("FFFBEB"),
+                glow: impactColor
+            )
+        case .crystalCavern:
+            return ChipStyle(
+                background: Color.skinHex("7C3AED").opacity(0.20),
+                border: Color.skinHex("A78BFA"),
+                text: Color.skinHex("F5F3FF"),
                 glow: impactColor
             )
         }

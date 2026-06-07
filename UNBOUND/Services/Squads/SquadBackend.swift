@@ -26,6 +26,7 @@ final class SquadBackend: SquadBackendProtocol, @unchecked Sendable {
         let max_size: Int
         let squad_streak_weeks: Int
         let created_at: Date
+        let logo_id: String?
 
         func toSquad() -> Squad {
             Squad(
@@ -37,7 +38,8 @@ final class SquadBackend: SquadBackendProtocol, @unchecked Sendable {
                 inviteCode: invite_code,
                 maxSize: max_size,
                 squadStreakWeeks: squad_streak_weeks,
-                createdAt: created_at
+                createdAt: created_at,
+                logoId: logo_id
             )
         }
     }
@@ -131,6 +133,15 @@ final class SquadBackend: SquadBackendProtocol, @unchecked Sendable {
         try await db
             .from("squads")
             .update(patch)
+            .eq("id", value: squadId.uuidString)
+            .execute()
+    }
+
+    func updateLogo(squadId: UUID, logoId: String) async throws {
+        struct Patch: Encodable { let logo_id: String }
+        try await db
+            .from("squads")
+            .update(Patch(logo_id: SquadLogoCatalog.resolvedId(logoId)))
             .eq("id", value: squadId.uuidString)
             .execute()
     }

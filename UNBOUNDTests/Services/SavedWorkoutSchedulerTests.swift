@@ -17,8 +17,74 @@ final class SavedWorkoutSchedulerTests: XCTestCase {
         XCTAssertEqual(day.label, "My Pull A")
         XCTAssertFalse(day.isRestDay)
         XCTAssertEqual(day.savedWorkoutId, saved.id)
+        XCTAssertNotNil(day.userWorkoutDraft)
         XCTAssertEqual(day.sessionRole, .pull)
         XCTAssertEqual(day.workout?.mainExercises.map(\.name), ["Pull-Up", "Machine Row"])
+    }
+
+    func testScheduleStoresExactUserDraftAndPreviewIncludesManualBlockKinds() throws {
+        let program = makeProgram()
+        let saved = SavedWorkout(
+            id: UUID(uuidString: "00000000-0000-0000-0000-000000000003")!,
+            title: "Freeform Engine",
+            blocks: [
+                TrainingBlock(
+                    kind: .strength,
+                    title: "Lift",
+                    prescriptions: [
+                        TrainingBlockPrescription(
+                            exerciseName: "Goblet Squat",
+                            sets: 3,
+                            target: .repsRange(8, 10),
+                            restSeconds: 90,
+                            muscleGroups: [.legs]
+                        )
+                    ]
+                ),
+                TrainingBlock(
+                    kind: .cardio,
+                    title: "Condition",
+                    prescriptions: [
+                        TrainingBlockPrescription(
+                            exerciseName: "Bike Sprint",
+                            sets: 6,
+                            target: .timedSeconds(20),
+                            restSeconds: 100,
+                            muscleGroups: []
+                        )
+                    ]
+                ),
+                TrainingBlock(
+                    kind: .carry,
+                    title: "Carry",
+                    prescriptions: [
+                        TrainingBlockPrescription(
+                            exerciseName: "Farmer Carry",
+                            sets: 4,
+                            target: .distanceMeters(40),
+                            restSeconds: 90,
+                            muscleGroups: [.forearms, .traps]
+                        )
+                    ]
+                )
+            ],
+            sessionRole: "custom"
+        )
+
+        let updated = try SavedWorkoutScheduler.schedule(
+            saved,
+            on: [3],
+            in: program,
+            userId: "u1"
+        )
+
+        let day = try XCTUnwrap(updated.days.first { $0.dayNumber == 3 })
+        let draft = try XCTUnwrap(day.userWorkoutDraft)
+        let workout = try XCTUnwrap(day.workout)
+        XCTAssertEqual(day.savedWorkoutId, saved.id)
+        XCTAssertEqual(draft.blocks.map { $0.kind }, [TrainingBlockKind.strength, .cardio, .carry])
+        XCTAssertEqual(draft.blocks.flatMap { $0.prescriptions }.map { $0.exerciseName }, ["Goblet Squat", "Bike Sprint", "Farmer Carry"])
+        XCTAssertEqual(workout.mainExercises.map { $0.name }, ["Goblet Squat", "Bike Sprint", "Farmer Carry"])
     }
 
     func testScheduleRejectsCustomizedCollisionUnlessExplicitlyReplacing() throws {
@@ -60,10 +126,40 @@ final class SavedWorkoutSchedulerTests: XCTestCase {
         let unscheduled = try SavedWorkoutScheduler.unschedule(dayNumber: 1, in: scheduled)
 
         XCTAssertNil(unscheduled.days.first?.savedWorkoutId)
+        XCTAssertNil(unscheduled.days.first?.userWorkoutDraft)
         XCTAssertNotNil(unscheduled.days.first?.workout)
     }
 
-    private func makeProgram() -> TrainingProgram {
+    @MainActor
+    func testProgramFocusRebuildPreservesUserOwnedWorkoutSlots() throws {
+        let saved = makeSavedWorkout(role: "pull")
+        let previous = try SavedWorkoutScheduler.schedule(
+            saved,
+            on: [2],
+            in: makeProgram(id: "old-program"),
+            userId: "u1"
+        )
+        let generated = makeProgram(id: "new-program")
+
+        let protected = ProgramViewModel.preservingUserOwnedWorkouts(
+            from: previous,
+            onto: generated,
+            userId: "u1"
+        )
+
+        let preservedDay = try XCTUnwrap(protected.days.first { $0.dayNumber == 2 })
+        XCTAssertEqual(preservedDay.savedWorkoutId, saved.id)
+        XCTAssertEqual(preservedDay.label, "My Pull A")
+        XCTAssertEqual(preservedDay.userWorkoutDraft?.programId, "new-program")
+        XCTAssertEqual(preservedDay.userWorkoutDraft?.dayNumber, 2)
+
+        let generatedDay = try XCTUnwrap(protected.days.first { $0.dayNumber == 1 })
+        XCTAssertEqual(generatedDay.label, "Generated 1")
+        XCTAssertNil(generatedDay.savedWorkoutId)
+        XCTAssertNil(generatedDay.userWorkoutDraft)
+    }
+
+    private func makeProgram(id: String = "p1") -> TrainingProgram {
         let days = (1...3).map { day -> ProgramDay in
             ProgramDay(
                 id: "d\(day)",
@@ -96,7 +192,7 @@ final class SavedWorkoutSchedulerTests: XCTestCase {
         }
 
         return TrainingProgram(
-            id: "p1",
+            id: id,
             scanId: "s1",
             analysisId: "a1",
             userId: "u1",

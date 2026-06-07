@@ -2,7 +2,9 @@ import SwiftUI
 
 struct HomeTabView: View {
     @EnvironmentObject var services: ServiceContainer
+    @ObservedObject private var restTimer = RestTimerModel.shared
     @State private var selectedTab: Int
+    private let restClock = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     #if DEBUG
     @State private var debugPresentedSkillNode: SkillNode?
     @State private var debugShowCardioLogger = false
@@ -65,9 +67,21 @@ struct HomeTabView: View {
             .tag(4)
         }
         .tint(Color.unbound.accent)
+        .overlay(alignment: .bottom) {
+            RestTimerPill(
+                model: restTimer,
+                onAddThirty: { restTimer.addThirty() },
+                onDismiss: { restTimer.dismiss() }
+            )
+            .padding(.bottom, 58)
+            .allowsHitTesting(restTimer.isVisible)
+        }
         .rankUpCinematicOverlay()
         .skinUnlockToast()
         .badgeUnlockToast()
+        .onReceive(restClock) { now in
+            restTimer.tick(now: now)
+        }
         .onAppear {
             services.analytics.track(.tabSelected(tab: tabName(for: selectedTab)))
         }
@@ -119,6 +133,21 @@ struct HomeTabView: View {
                 debugShowCardioLogger = true
             }
         }
+        .onAppear {
+            if Self.shouldForceProgramTabForProofLaunch {
+                selectedTab = 1
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
+                if Self.shouldForceProgramTabForProofLaunch {
+                    selectedTab = 1
+                }
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.1) {
+                if Self.shouldForceProgramTabForProofLaunch {
+                    selectedTab = 1
+                }
+            }
+        }
         #endif
     }
 
@@ -146,6 +175,13 @@ struct HomeTabView: View {
     }
 
     #if DEBUG
+    private static var shouldForceProgramTabForProofLaunch: Bool {
+        let arguments = ProcessInfo.processInfo.arguments
+        return arguments.contains("--unbound-open-program")
+            || launchArgumentValue(for: "--unbound-dev-dynamic-program") != nil
+            || UserDefaults.standard.string(forKey: DevDynamicProgramScenario.activeUserDefaultsKey) != nil
+    }
+
     private static func launchArgumentValue(for key: String) -> String? {
         let arguments = ProcessInfo.processInfo.arguments
         for (index, argument) in arguments.enumerated() {

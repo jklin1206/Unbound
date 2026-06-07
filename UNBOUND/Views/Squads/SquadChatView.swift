@@ -381,7 +381,7 @@ struct SquadMessageBubble: View {
         case .pr(let payload):
             card(payload.title, payload.detail, nil)
         case .vowSeal(let payload):
-            card("Binding Vow cleared", payload.title, nil)
+            card("Proof challenge cleared", payload.title, nil)
         case .challengeEvent(let payload):
             card(payload.title, payload.detail, nil)
         case .savedWorkoutShare(let payload):
@@ -490,7 +490,7 @@ struct SquadMessagePreviewRow: View {
         case .text: return authorName
         case .workout: return "Workout"
         case .pr: return "PR"
-        case .vowSeal: return "Vow"
+        case .vowSeal: return "Proof"
         case .challengeEvent: return "Challenge"
         case .savedWorkoutShare: return "Saved workout"
         case .system: return "System"

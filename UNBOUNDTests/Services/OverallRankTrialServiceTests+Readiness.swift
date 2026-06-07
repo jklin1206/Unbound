@@ -1,0 +1,286 @@
+import XCTest
+@testable import UNBOUND
+
+extension OverallRankTrialServiceTests {
+    func testReadinessLockedWhenAccumulationAndLevelRequirementsAreMissing() {
+        let readiness = TrialReadinessService.shared.evaluate(
+            OverallRankTrialReadinessInput(
+                userId: "u1",
+                currentRank: .initiate,
+                overallLevel: 0,
+                aggregateRank: .initiate,
+                equipment: [.bodyweight]
+            )
+        )
+
+        XCTAssertEqual(readiness.status, .locked)
+        XCTAssertTrue(readiness.missingRequirements.contains { $0.kind == .overallLevel })
+        XCTAssertTrue(readiness.missingRequirements.contains { $0.kind == .rank })
+    }
+
+    func testReadinessBecomesReadyWhenBothGatesAreMet() {
+        let definition = OverallRankTrialDefinitions.foundationProof
+        let readiness = TrialReadinessService.shared.evaluate(
+            OverallRankTrialReadinessInput(
+                userId: "u1",
+                currentRank: .initiate,
+                overallLevel: definition.minOverallLevel,
+                aggregateRank: definition.targetRank,
+                equipment: [.bodyweight]
+            )
+        )
+
+        XCTAssertEqual(readiness.status, .ready)
+        XCTAssertTrue(readiness.missingRequirements.isEmpty)
+        XCTAssertEqual(readiness.definition?.id, definition.id)
+    }
+
+    func testEarlyRankGatesUsePlayableBenchmarkTrials() {
+        XCTAssertEqual(OverallRankTrialDefinitions.ceremonyTier(for: .novice), .benchmark)
+        XCTAssertEqual(OverallRankTrialDefinitions.ceremonyTier(for: .apprentice), .benchmark)
+
+        for definition in [OverallRankTrialDefinitions.foundationProof, OverallRankTrialDefinitions.calibration] {
+            let draft = OverallRankTrialRunner.shared.draft(
+                for: definition,
+                userId: "u1",
+                date: Date(timeIntervalSince1970: 100)
+            )
+
+            XCTAssertEqual(draft.source, .overallRankTrial, definition.displayName)
+            XCTAssertEqual(draft.programId, definition.id, definition.displayName)
+            XCTAssertFalse(draft.blocks.isEmpty, definition.displayName)
+        }
+    }
+
+    func testNoviceReadinessTargetsApprenticeAndLocksWhenCalibrationRequirementsAreMissing() {
+        let definition = OverallRankTrialDefinitions.calibration
+        let readiness = TrialReadinessService.shared.evaluate(
+            OverallRankTrialReadinessInput(
+                userId: "u1",
+                currentRank: .novice,
+                overallLevel: definition.minOverallLevel - 1,
+                aggregateRank: .initiate,
+                equipment: [.bodyweight]
+            )
+        )
+
+        XCTAssertEqual(readiness.status, .locked)
+        XCTAssertEqual(readiness.currentRank, .novice)
+        XCTAssertEqual(readiness.targetRank, .apprentice)
+        XCTAssertEqual(readiness.definition?.id, definition.id)
+        XCTAssertTrue(readiness.missingRequirements.contains { $0.kind == .overallLevel })
+        XCTAssertTrue(readiness.missingRequirements.contains { $0.kind == .rank })
+        XCTAssertTrue(readiness.missingRequirements.contains { $0.kind == .equipment })
+    }
+
+    func testNoviceReadinessBecomesReadyForCalibrationWhenRequirementsAreMet() {
+        let definition = OverallRankTrialDefinitions.calibration
+        let readiness = TrialReadinessService.shared.evaluate(
+            OverallRankTrialReadinessInput(
+                userId: "u1",
+                currentRank: .novice,
+                overallLevel: definition.minOverallLevel,
+                aggregateRank: definition.targetRank,
+                equipment: readyEquipment()
+            )
+        )
+
+        XCTAssertEqual(readiness.status, .ready)
+        XCTAssertEqual(readiness.currentRank, .novice)
+        XCTAssertEqual(readiness.targetRank, .apprentice)
+        XCTAssertTrue(readiness.missingRequirements.isEmpty)
+        XCTAssertEqual(readiness.definition?.displayName, "Operator Screen")
+        XCTAssertEqual(readiness.resolvedTrial?.selectedLoadout, .gymHybrid)
+    }
+
+    func testApprenticeReadinessTargetsForgedAndLocksWhenForgeRequirementsAreMissing() {
+        let definition = OverallRankTrialDefinitions.forge
+        let readiness = TrialReadinessService.shared.evaluate(
+            OverallRankTrialReadinessInput(
+                userId: "u1",
+                currentRank: .apprentice,
+                overallLevel: definition.minOverallLevel - 1,
+                aggregateRank: .initiate,
+                equipment: [.bodyweight]
+            )
+        )
+
+        XCTAssertEqual(readiness.status, .locked)
+        XCTAssertEqual(readiness.currentRank, .apprentice)
+        XCTAssertEqual(readiness.targetRank, .forged)
+        XCTAssertEqual(readiness.definition?.id, definition.id)
+        XCTAssertTrue(readiness.missingRequirements.contains { $0.kind == .overallLevel })
+        XCTAssertTrue(readiness.missingRequirements.contains { $0.kind == .rank })
+        XCTAssertTrue(readiness.missingRequirements.contains { $0.kind == .equipment })
+    }
+
+    func testApprenticeReadinessBecomesReadyForForgeWhenRequirementsAreMet() {
+        let definition = OverallRankTrialDefinitions.forge
+        let readiness = TrialReadinessService.shared.evaluate(
+            OverallRankTrialReadinessInput(
+                userId: "u1",
+                currentRank: .apprentice,
+                overallLevel: definition.minOverallLevel,
+                aggregateRank: definition.targetRank,
+                equipment: readyEquipment()
+            )
+        )
+
+        XCTAssertEqual(readiness.status, .ready)
+        XCTAssertEqual(readiness.currentRank, .apprentice)
+        XCTAssertEqual(readiness.targetRank, .forged)
+        XCTAssertTrue(readiness.missingRequirements.isEmpty)
+        XCTAssertEqual(readiness.definition?.displayName, "The Finisher")
+    }
+
+    func testForgeReadinessReportsFailedAfterMissedAttemptWhenRequirementsRemainMet() {
+        let definition = OverallRankTrialDefinitions.forge
+        let attempt = OverallRankTrialAttempt(
+            id: "forge-log-1",
+            userId: "u1",
+            definitionId: definition.id,
+            targetRank: definition.targetRank,
+            startedAt: Date(timeIntervalSince1970: 100),
+            completedAt: Date(timeIntervalSince1970: 1_000),
+            performanceLogId: "forge-log-1",
+            passed: false,
+            movementAPGained: 0,
+            overallLevelXPGained: 0
+        )
+
+        let readiness = TrialReadinessService.shared.evaluate(
+            OverallRankTrialReadinessInput(
+                userId: "u1",
+                currentRank: .apprentice,
+                overallLevel: definition.minOverallLevel,
+                aggregateRank: definition.targetRank,
+                equipment: readyEquipment(),
+                attempts: [attempt]
+            )
+        )
+
+        XCTAssertEqual(readiness.status, .failed)
+        XCTAssertEqual(readiness.latestAttempt?.id, attempt.id)
+        XCTAssertTrue(readiness.isReady)
+    }
+
+    func testForgedReadinessTargetsVeteranAndLocksWhenReckoningEquipmentIsMissing() {
+        let definition = OverallRankTrialDefinitions.reckoning
+        let readiness = TrialReadinessService.shared.evaluate(
+            OverallRankTrialReadinessInput(
+                userId: "u1",
+                currentRank: .forged,
+                overallLevel: definition.minOverallLevel,
+                aggregateRank: definition.targetRank,
+                equipment: [.bodyweight, .openSpace]
+            )
+        )
+
+        XCTAssertEqual(readiness.status, .locked)
+        XCTAssertEqual(readiness.currentRank, .forged)
+        XCTAssertEqual(readiness.targetRank, .veteran)
+        XCTAssertEqual(readiness.definition?.id, definition.id)
+        XCTAssertEqual(readiness.missingRequirements.map(\.kind), [.equipment])
+    }
+
+    func testForgedReadinessBecomesReadyForReckoningWhenRequirementsAreMet() {
+        let definition = OverallRankTrialDefinitions.reckoning
+        let readiness = TrialReadinessService.shared.evaluate(
+            OverallRankTrialReadinessInput(
+                userId: "u1",
+                currentRank: .forged,
+                overallLevel: definition.minOverallLevel,
+                aggregateRank: definition.targetRank,
+                equipment: readyEquipment()
+            )
+        )
+
+        XCTAssertEqual(readiness.status, .ready)
+        XCTAssertEqual(readiness.currentRank, .forged)
+        XCTAssertEqual(readiness.targetRank, .veteran)
+        XCTAssertTrue(readiness.missingRequirements.isEmpty)
+        XCTAssertEqual(readiness.definition?.displayName, "Deck of Proof")
+    }
+
+    func testVeteranReadinessTargetsMasterAndLocksWhenGauntletRequirementsAreMissing() {
+        let definition = OverallRankTrialDefinitions.gauntlet
+        let readiness = TrialReadinessService.shared.evaluate(
+            OverallRankTrialReadinessInput(
+                userId: "u1",
+                currentRank: .veteran,
+                overallLevel: definition.minOverallLevel - 1,
+                aggregateRank: .initiate,
+                equipment: [.bodyweight, .openSpace]
+            )
+        )
+
+        XCTAssertEqual(readiness.status, .locked)
+        XCTAssertEqual(readiness.currentRank, .veteran)
+        XCTAssertEqual(readiness.targetRank, .master)
+        XCTAssertEqual(readiness.definition?.id, definition.id)
+        XCTAssertTrue(readiness.missingRequirements.contains { $0.kind == .overallLevel })
+        XCTAssertTrue(readiness.missingRequirements.contains { $0.kind == .rank })
+        XCTAssertTrue(readiness.missingRequirements.contains { $0.kind == .equipment })
+    }
+
+    func testVeteranReadinessBecomesReadyForGauntletWhenRequirementsAreMet() {
+        let definition = OverallRankTrialDefinitions.gauntlet
+        let readiness = TrialReadinessService.shared.evaluate(
+            OverallRankTrialReadinessInput(
+                userId: "u1",
+                currentRank: .veteran,
+                overallLevel: definition.minOverallLevel,
+                aggregateRank: definition.targetRank,
+                equipment: readyEquipment()
+            )
+        )
+
+        assertCatalogBacked(definition)
+        XCTAssertEqual(readiness.status, .ready)
+        XCTAssertEqual(readiness.currentRank, .veteran)
+        XCTAssertEqual(readiness.targetRank, .master)
+        XCTAssertTrue(readiness.missingRequirements.isEmpty)
+        XCTAssertEqual(readiness.definition?.displayName, "The Tower")
+    }
+
+    func testUpperRankReadinessLocksAndReadiesForEveryNewDefinition() {
+        for trialCase in upperRankTrialCases {
+            let definition = trialCase.definition
+            let locked = TrialReadinessService.shared.evaluate(
+                OverallRankTrialReadinessInput(
+                    userId: "u1",
+                    currentRank: trialCase.sourceRank,
+                    overallLevel: definition.minOverallLevel - 1,
+                    aggregateRank: .initiate,
+                    equipment: [.bodyweight]
+                )
+            )
+
+            XCTAssertEqual(locked.status, .locked, definition.displayName)
+            XCTAssertEqual(locked.currentRank, trialCase.sourceRank, definition.displayName)
+            XCTAssertEqual(locked.targetRank, definition.targetRank, definition.displayName)
+            XCTAssertEqual(locked.definition?.id, definition.id, definition.displayName)
+            XCTAssertTrue(locked.missingRequirements.contains { $0.kind == .overallLevel }, definition.displayName)
+            XCTAssertTrue(locked.missingRequirements.contains { $0.kind == .rank }, definition.displayName)
+            XCTAssertTrue(locked.missingRequirements.contains { $0.kind == .equipment }, definition.displayName)
+
+            let ready = TrialReadinessService.shared.evaluate(
+                OverallRankTrialReadinessInput(
+                    userId: "u1",
+                    currentRank: trialCase.sourceRank,
+                    overallLevel: definition.minOverallLevel,
+                    aggregateRank: definition.targetRank,
+                    equipment: readyEquipment()
+                )
+            )
+
+            assertCatalogBacked(definition)
+            XCTAssertEqual(ready.status, .ready, definition.displayName)
+            XCTAssertEqual(ready.currentRank, trialCase.sourceRank, definition.displayName)
+            XCTAssertEqual(ready.targetRank, definition.targetRank, definition.displayName)
+            XCTAssertTrue(ready.missingRequirements.isEmpty, definition.displayName)
+            XCTAssertEqual(ready.definition?.id, definition.id, definition.displayName)
+        }
+    }
+
+}

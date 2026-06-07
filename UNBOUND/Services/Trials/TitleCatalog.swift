@@ -1,7 +1,7 @@
 // UNBOUND/Services/Trials/TitleCatalog.swift
 import Foundation
 
-/// Maps TitleID → human-readable display name. 9 paths × 3 tiers = 27 Titles.
+/// Maps TitleID → human-readable display name.
 /// Naming is the spec-locked authoring scaffold; brand polish can tune later.
 enum TitleCatalog {
 
@@ -10,6 +10,11 @@ enum TitleCatalog {
         // Badge titles are named by the badge itself (not the axis/tier grid).
         case (.badge(let badgeId), _):
             return BadgeCatalog.all.first { $0.id == badgeId }?.displayName ?? "Badge"
+        // Shop titles are named by the shop-only cosmetic title catalog.
+        case (.shop(let shopTitleId), _):
+            return ShopTitleCatalog.displayName(for: shopTitleId)
+        case (.squadSeasonWinner(let seasonNumber), _):
+            return "Season \(max(1, seasonNumber)) Winner"
         // Axis Titles
         case (.axis(.power), .bronze):           return "Power Initiate"
         case (.axis(.power), .silver):           return "Power Sovereign"
@@ -42,7 +47,7 @@ enum TitleCatalog {
         }
     }
 
-    /// All 27 TitleIDs in deterministic order.
+    /// Baseline vow TitleIDs in deterministic order.
     static let all: [TitleID] = {
         var result: [TitleID] = []
         for axis in AttributeKey.allCases {

@@ -7,9 +7,36 @@ struct Badge: Identifiable, Codable, Sendable, Hashable {
     let id: String
     var displayName: String
     var description: String
+    /// Exact player-facing unlock instructions. Keep this in sync with
+    /// `BadgeService` evaluators and `BadgeStandards`.
+    var unlockCriteria: String
+    /// The vow-style reward copy shown when the achievement is earned. The
+    /// concrete reward today is the wearable badge title unlocked by
+    /// `WeeklyVowsService.unlockBadgeTitle`.
+    var vowReward: String
     var iconSystemName: String
     var rarity: Rarity
     var unlockedAt: Date?
+
+    init(
+        id: String,
+        displayName: String,
+        description: String,
+        unlockCriteria: String,
+        vowReward: String,
+        iconSystemName: String,
+        rarity: Rarity,
+        unlockedAt: Date?
+    ) {
+        self.id = id
+        self.displayName = displayName
+        self.description = description
+        self.unlockCriteria = unlockCriteria
+        self.vowReward = vowReward
+        self.iconSystemName = iconSystemName
+        self.rarity = rarity
+        self.unlockedAt = unlockedAt
+    }
 
     enum Rarity: String, Codable, Sendable, CaseIterable {
         case common, rare, legendary
@@ -32,6 +59,29 @@ struct Badge: Identifiable, Codable, Sendable, Hashable {
     }
 
     var isUnlocked: Bool { unlockedAt != nil }
+
+    var assetName: String {
+        let normalized = id
+            .replacingOccurrences(of: ".", with: "_")
+            .replacingOccurrences(of: "-", with: "_")
+        return "badge_art_\(normalized)"
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, displayName, description, unlockCriteria, vowReward, iconSystemName, rarity, unlockedAt
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        displayName = try container.decode(String.self, forKey: .displayName)
+        description = try container.decode(String.self, forKey: .description)
+        unlockCriteria = try container.decodeIfPresent(String.self, forKey: .unlockCriteria) ?? description
+        vowReward = try container.decodeIfPresent(String.self, forKey: .vowReward) ?? "Unlocks the \(displayName) title."
+        iconSystemName = try container.decode(String.self, forKey: .iconSystemName)
+        rarity = try container.decode(Rarity.self, forKey: .rarity)
+        unlockedAt = try container.decodeIfPresent(Date.self, forKey: .unlockedAt)
+    }
 }
 
 // MARK: - BadgeTrigger

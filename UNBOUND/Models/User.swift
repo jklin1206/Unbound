@@ -32,6 +32,7 @@ struct UserProfile: Codable, Identifiable {
     var goals: [Goal]?
     var targetAreas: [TargetArea]?
     var workoutTime: WorkoutTime?
+    var workoutMinuteOfDay: Int?
     var exerciseStyles: [ExerciseStyle]?
 
     // MARK: Program Redesign (2026-04-20)
@@ -89,7 +90,7 @@ struct UserProfile: Codable, Identifiable {
         case displayHandle, gender, motivations, currentBodyType, experience
         case currentFrequency, targetFrequency, equipment, obstacles, sessionLength
         case priorAttempts, dietQuality, sleepQuality, stressLevel, commitment
-        case goals, targetAreas, workoutTime, exerciseStyles
+        case goals, targetAreas, workoutTime, workoutMinuteOfDay, exerciseStyles
         case trainingFeedbackMode, trainingStyleOverride, trainingDays, cutMode
     }
 
@@ -126,6 +127,7 @@ struct UserProfile: Codable, Identifiable {
         self.goals = try c.decodeIfPresent([Goal].self, forKey: .goals)
         self.targetAreas = try c.decodeIfPresent([TargetArea].self, forKey: .targetAreas)
         self.workoutTime = try c.decodeIfPresent(WorkoutTime.self, forKey: .workoutTime)
+        self.workoutMinuteOfDay = try c.decodeIfPresent(Int.self, forKey: .workoutMinuteOfDay)
         self.exerciseStyles = try c.decodeIfPresent([ExerciseStyle].self, forKey: .exerciseStyles)
 
         self.trainingFeedbackMode = try c.decodeIfPresent(TrainingFeedbackMode.self, forKey: .trainingFeedbackMode)

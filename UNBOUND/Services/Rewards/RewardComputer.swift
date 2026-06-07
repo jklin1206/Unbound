@@ -121,8 +121,8 @@ final class RewardComputer {
             BadgeUnlock(
                 id: badge.id,
                 title: badge.displayName,
-                subtitle: badge.description,
-                assetName: badgeAssetName(for: badge.id)
+                subtitle: badge.vowReward,
+                assetName: badge.assetName
             )
         }
 
@@ -258,16 +258,4 @@ final class RewardComputer {
         }
     }
 
-    // MARK: - Badge asset mapping
-
-    /// Maps `Badge.id` to the BadgeArt imageset name. Catalog ids use
-    /// dot-separated keys (e.g. "session.10"); imageset names use
-    /// underscores (e.g. "badge_art_sessions_10"). Mapping codifies the
-    /// translation in one place.
-    private func badgeAssetName(for badgeId: String) -> String {
-        let normalized = badgeId
-            .replacingOccurrences(of: ".", with: "_")
-            .replacingOccurrences(of: "-", with: "_")
-        return "badge_art_\(normalized)"
-    }
 }

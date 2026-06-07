@@ -61,36 +61,89 @@ enum RankCosmetics {
     }
 
     static func unlockedTiers(userId: String, currentTier: SkillTier) -> [SkillTier] {
+        rankUnlockedTiers(userId: userId, currentTier: currentTier)
+    }
+
+    static func unlockedFrameTiers(userId: String, currentTier: SkillTier) -> [SkillTier] {
+        rankUnlockedTiers(userId: userId, currentTier: currentTier)
+    }
+
+    static func unlockedBackgroundTiers(userId: String, currentTier: SkillTier) -> [SkillTier] {
+        rankUnlockedTiers(userId: userId, currentTier: currentTier)
+    }
+
+    static func unlockedProfileColorTiers(userId: String, currentTier: SkillTier) -> [SkillTier] {
+        rankUnlockedTiers(userId: userId, currentTier: currentTier)
+    }
+
+    private static func rankUnlockedTiers(userId: String, currentTier: SkillTier) -> [SkillTier] {
         let highest = recordUnlockedTier(userId: userId, currentTier: currentTier)
         return SkillTier.allCases.filter { $0.rawValue <= highest.rawValue }
     }
 
     static func equippedFrameTier(userId: String, currentTier: SkillTier) -> RankTitle {
-        equippedTier(keyPrefix: frameKeyPrefix, userId: userId, currentTier: currentTier)
+        equippedTier(
+            keyPrefix: frameKeyPrefix,
+            userId: userId,
+            currentTier: currentTier,
+            unlocked: unlockedFrameTiers(userId: userId, currentTier: currentTier)
+        )
     }
 
     static func equippedBackgroundTier(userId: String, currentTier: SkillTier) -> RankTitle {
-        equippedTier(keyPrefix: backgroundKeyPrefix, userId: userId, currentTier: currentTier)
+        equippedTier(
+            keyPrefix: backgroundKeyPrefix,
+            userId: userId,
+            currentTier: currentTier,
+            unlocked: unlockedBackgroundTiers(userId: userId, currentTier: currentTier)
+        )
     }
 
     static func equippedProfileColorTier(userId: String, currentTier: SkillTier) -> RankTitle {
-        equippedTier(keyPrefix: colorKeyPrefix, userId: userId, currentTier: currentTier)
+        equippedTier(
+            keyPrefix: colorKeyPrefix,
+            userId: userId,
+            currentTier: currentTier,
+            unlocked: unlockedProfileColorTiers(userId: userId, currentTier: currentTier)
+        )
     }
 
     static func setEquippedFrameTier(_ tier: SkillTier, userId: String, currentTier: SkillTier) {
-        setEquippedTier(tier, keyPrefix: frameKeyPrefix, userId: userId, currentTier: currentTier)
+        setEquippedTier(
+            tier,
+            keyPrefix: frameKeyPrefix,
+            userId: userId,
+            currentTier: currentTier,
+            unlocked: unlockedFrameTiers(userId: userId, currentTier: currentTier)
+        )
     }
 
     static func setEquippedBackgroundTier(_ tier: SkillTier, userId: String, currentTier: SkillTier) {
-        setEquippedTier(tier, keyPrefix: backgroundKeyPrefix, userId: userId, currentTier: currentTier)
+        setEquippedTier(
+            tier,
+            keyPrefix: backgroundKeyPrefix,
+            userId: userId,
+            currentTier: currentTier,
+            unlocked: unlockedBackgroundTiers(userId: userId, currentTier: currentTier)
+        )
     }
 
     static func setEquippedProfileColorTier(_ tier: SkillTier, userId: String, currentTier: SkillTier) {
-        setEquippedTier(tier, keyPrefix: colorKeyPrefix, userId: userId, currentTier: currentTier)
+        setEquippedTier(
+            tier,
+            keyPrefix: colorKeyPrefix,
+            userId: userId,
+            currentTier: currentTier,
+            unlocked: unlockedProfileColorTiers(userId: userId, currentTier: currentTier)
+        )
     }
 
-    private static func equippedTier(keyPrefix: String, userId: String, currentTier: SkillTier) -> RankTitle {
-        let unlocked = unlockedTiers(userId: userId, currentTier: currentTier)
+    private static func equippedTier(
+        keyPrefix: String,
+        userId: String,
+        currentTier: SkillTier,
+        unlocked: [SkillTier]
+    ) -> RankTitle {
         let fallback = unlocked.last ?? currentTier
         guard let raw = UserDefaults.standard.string(forKey: keyPrefix + userId)
         else { return fallback }
@@ -99,8 +152,14 @@ enum RankCosmetics {
         return tier
     }
 
-    private static func setEquippedTier(_ tier: SkillTier, keyPrefix: String, userId: String, currentTier: SkillTier) {
-        guard unlockedTiers(userId: userId, currentTier: currentTier).contains(tier) else { return }
+    private static func setEquippedTier(
+        _ tier: SkillTier,
+        keyPrefix: String,
+        userId: String,
+        currentTier: SkillTier,
+        unlocked: [SkillTier]
+    ) {
+        guard unlocked.contains(tier) else { return }
         // Persist the case-name token (the legacy on-disk format) so old blobs
         // round-trip; reads go through RankTier.fromToken.
         UserDefaults.standard.set(tier.token, forKey: keyPrefix + userId)
@@ -117,6 +176,7 @@ struct CosmeticAvatar: View {
     let size: CGFloat
     var image: UIImage? = nil
     var letterFallback: String = "U"
+    var shopBorder: ShopProfileBorderID? = nil
 
     var body: some View {
         ZStack {
@@ -127,7 +187,7 @@ struct CosmeticAvatar: View {
 
             // Cosmetic frame border, always-on. Frame asset is a
             // transparent ring so the inner core shows through cleanly.
-            frameBorder
+            activeFrameBorder
                 .frame(width: size, height: size)
         }
         .frame(width: size, height: size)
@@ -181,6 +241,18 @@ struct CosmeticAvatar: View {
 
     private var fallbackFontSize: CGFloat {
         avatarFallbackText.count > 1 ? size * 0.18 : size * 0.24
+    }
+
+    @ViewBuilder
+    private var activeFrameBorder: some View {
+        if let shopBorder,
+           let ui = UIImage(named: shopBorder.assetName) {
+            Image(uiImage: ui)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+        } else {
+            frameBorder
+        }
     }
 
     @ViewBuilder
@@ -285,20 +357,25 @@ private struct AvatarFrameRing: View {
 struct CosmeticBackdrop: View {
     let tier: RankTitle
     var colorTier: RankTitle? = nil
+    var shopBackground: ShopProfileBackgroundID? = nil
+    var shopBackdropAssetName: String? = nil
     var maxHeight: CGFloat = 320
 
     var body: some View {
         let washTier = colorTier ?? tier
+        let isUsingShopBackdrop = activeShopAssetName != nil
 
         GeometryReader { geo in
             ZStack(alignment: .top) {
-                LinearGradient(
-                    colors: washTier.rewardGlowColors.map { $0.opacity(0.16) } + [.clear],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
+                if !isUsingShopBackdrop {
+                    LinearGradient(
+                        colors: washTier.rewardGlowColors.map { $0.opacity(0.16) } + [.clear],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                }
 
-                if let asset = RankCosmetics.profileBackgroundAsset(for: tier),
+                if let asset = activeAssetName,
                    let ui = UIImage(named: asset) {
                     Image(uiImage: ui)
                         .resizable()
@@ -310,29 +387,52 @@ struct CosmeticBackdrop: View {
                         .overlay(
                             LinearGradient(
                                 stops: [
-                                    .init(color: Color.unbound.bg.opacity(0.06), location: 0),
-                                    .init(color: Color.unbound.bg.opacity(0.44), location: 0.68),
-                                    .init(color: Color.unbound.bg.opacity(0.96), location: 1.0),
+                                    .init(color: Color.unbound.bg.opacity(isUsingShopBackdrop ? 0.02 : 0.06), location: 0),
+                                    .init(color: Color.unbound.bg.opacity(isUsingShopBackdrop ? 0.28 : 0.44), location: 0.68),
+                                    .init(color: Color.unbound.bg.opacity(isUsingShopBackdrop ? 0.76 : 0.96), location: 1.0),
                                 ],
                                 startPoint: .top,
                                 endPoint: .bottom
                             )
                         )
                         .overlay(
-                            RadialGradient(
-                                colors: washTier.rewardGlowColors.map { $0.opacity(0.18) } + [.clear],
-                                center: .topTrailing,
-                                startRadius: 12,
-                                endRadius: max(260, geo.size.width * 0.85)
-                            )
-                            .blendMode(.screen)
+                            Group {
+                                if !isUsingShopBackdrop {
+                                    RadialGradient(
+                                        colors: washTier.rewardGlowColors.map { $0.opacity(0.18) } + [.clear],
+                                        center: .topTrailing,
+                                        startRadius: 12,
+                                        endRadius: max(260, geo.size.width * 0.85)
+                                    )
+                                    .blendMode(.screen)
+                                }
+                            }
                         )
-                        .opacity(0.88)
+                        .opacity(isUsingShopBackdrop ? 1.0 : 0.88)
                 }
             }
             .frame(width: geo.size.width, height: maxHeight, alignment: .top)
         }
         .frame(height: maxHeight)
         .allowsHitTesting(false)
+    }
+
+    private var activeAssetName: String? {
+        if let activeShopAssetName {
+            return activeShopAssetName
+        }
+        return RankCosmetics.profileBackgroundAsset(for: tier)
+    }
+
+    private var activeShopAssetName: String? {
+        if let shopBackdropAssetName,
+           UIImage(named: shopBackdropAssetName) != nil {
+            return shopBackdropAssetName
+        }
+        guard let shopBackground,
+              UIImage(named: shopBackground.assetName) != nil else {
+            return nil
+        }
+        return shopBackground.assetName
     }
 }

@@ -203,5 +203,104 @@
       "back": "right"
     },
     "source": "supplied marker strokes filled after mirroring the selected half for consistency"
+  },
+  "anime_v2": {
+    "width": 848,
+    "height": 1264,
+    "generated_source": "UNBOUND/Resources/BodyMap/anime_heatmap_source_v2.png",
+    "front_base": "UNBOUND/Resources/BodyMap/heatmap_anime_front_v2.png",
+    "back_base": "UNBOUND/Resources/BodyMap/heatmap_anime_back_v2.png",
+    "front_file": "UNBOUND/Resources/BodyMap/source_frontmap_anime_v2_regions.svg",
+    "back_file": "UNBOUND/Resources/BodyMap/source_backmap_anime_v2_regions.svg",
+    "front_regions": [
+      "chest",
+      "shoulders",
+      "biceps",
+      "forearms",
+      "abs",
+      "obliques",
+      "quads",
+      "calves"
+    ],
+    "back_regions": [
+      "traps",
+      "lats",
+      "triceps",
+      "forearms",
+      "lowerBack",
+      "glutes",
+      "hamstrings",
+      "calves"
+    ],
+    "source": "AI-generated flat-color anime body-map reference, cropped into neutral base PNGs and vectorized into data-region SVG masks"
+  },
+  "anime_v3": {
+    "width": 848,
+    "height": 1264,
+    "generated_source": "UNBOUND/Resources/BodyMap/anime_heatmap_source_v3.png",
+    "front_base": "UNBOUND/Resources/BodyMap/heatmap_anime_front_v3.png",
+    "back_base": "UNBOUND/Resources/BodyMap/heatmap_anime_back_v3.png",
+    "front_file": "UNBOUND/Resources/BodyMap/source_frontmap_anime_v3_regions.svg",
+    "back_file": "UNBOUND/Resources/BodyMap/source_backmap_anime_v3_regions.svg",
+    "front_regions": [
+      "chest",
+      "shoulders",
+      "biceps",
+      "forearms",
+      "abs",
+      "obliques",
+      "quads",
+      "adductors",
+      "calves"
+    ],
+    "back_regions": [
+      "traps",
+      "rearDelts",
+      "rhomboids",
+      "lats",
+      "triceps",
+      "forearms",
+      "lowerBack",
+      "glutes",
+      "abductors",
+      "hamstrings",
+      "calves"
+    ],
+    "source": "AI-generated grayscale anime body-map reference with separate rear delts, rhomboids, lats, triceps, adductors, and abductors; masks were eroded one pixel before SVG vectorization for visible gaps."
+  },
+  "anime_v4": {
+    "width": 848,
+    "height": 1264,
+    "generated_source": "UNBOUND/Resources/BodyMap/anime_heatmap_source_v4.png",
+    "front_base": "UNBOUND/Resources/BodyMap/heatmap_anime_front_v4.png",
+    "back_base": "UNBOUND/Resources/BodyMap/heatmap_anime_back_v4.png",
+    "front_file": "UNBOUND/Resources/BodyMap/source_frontmap_anime_v4_regions.svg",
+    "back_file": "UNBOUND/Resources/BodyMap/source_backmap_anime_v4_regions.svg",
+    "front_regions": [
+      "upperChest",
+      "midLowerChest",
+      "frontSideDelts",
+      "biceps",
+      "forearms",
+      "abs",
+      "obliques",
+      "quads",
+      "adductors",
+      "calves"
+    ],
+    "back_regions": [
+      "traps",
+      "rhomboids",
+      "rearDelts",
+      "lats",
+      "triceps",
+      "forearms",
+      "lowerBack",
+      "glutes",
+      "abductors",
+      "hamstrings",
+      "calves"
+    ],
+    "source": "AI-generated grey anime body-map reference with upper vs mid/lower chest and front/side delts split out; saturated panels were vectorized into v4 data-region SVG masks."
   }
 }

@@ -34,8 +34,8 @@ struct FinisherTrialReadyPreview: View {
                         .fixedSize(horizontal: false, vertical: true)
 
                     HStack(spacing: 8) {
-                        finisherChip("\(stations.count) stations", icon: "bolt.fill")
-                        finisherChip("Fast close", icon: "timer")
+                        RankTrialInfoChip(text: "\(stations.count) stations", icon: "bolt.fill", tint: tint, strokeOpacity: 0.3)
+                        RankTrialInfoChip(text: "Fast close", icon: "timer", tint: tint, strokeOpacity: 0.3)
                     }
                 }
                 .layoutPriority(1)
@@ -51,18 +51,6 @@ struct FinisherTrialReadyPreview: View {
     }
 
     private static let rounds = [21, 15, 9]
-
-    private func finisherChip(_ text: String, icon: String) -> some View {
-        Label(text, systemImage: icon)
-            .font(Font.unbound.captionS.weight(.semibold))
-            .foregroundStyle(Color.unbound.textPrimary)
-            .lineLimit(1)
-            .minimumScaleFactor(0.72)
-            .padding(.horizontal, 9)
-            .frame(height: 28)
-            .background(Capsule().fill(Color.unbound.surfaceElevated))
-            .overlay(Capsule().strokeBorder(tint.opacity(0.3), lineWidth: 1))
-    }
 }
 
 struct FinisherTrialActiveView<CurrentStationCard: View>: View {
@@ -144,8 +132,8 @@ struct FinisherTrialActiveView<CurrentStationCard: View>: View {
 
                 VStack(alignment: .leading, spacing: 12) {
                     HStack(spacing: 8) {
-                        finisherChip(roundLabel(for: pair.exercise), icon: "arrow.down.forward")
-                        finisherChip("Gate \(pair.index + 1)", icon: "flag.checkered")
+                        RankTrialInfoChip(text: roundLabel(for: pair.exercise), icon: "arrow.down.forward", tint: tint)
+                        RankTrialInfoChip(text: "Gate \(pair.index + 1)", icon: "flag.checkered", tint: tint)
                     }
 
                     Text(pair.exercise.blockTitle ?? pair.exercise.name)
@@ -311,18 +299,6 @@ struct FinisherTrialActiveView<CurrentStationCard: View>: View {
             }
         }
         .accessibilityIdentifier("finisher.completedStage")
-    }
-
-    private func finisherChip(_ text: String, icon: String) -> some View {
-        Label(text, systemImage: icon)
-            .font(Font.unbound.captionS.weight(.semibold))
-            .foregroundStyle(Color.unbound.textPrimary)
-            .lineLimit(1)
-            .minimumScaleFactor(0.72)
-            .padding(.horizontal, 9)
-            .frame(height: 28)
-            .background(Capsule().fill(Color.unbound.surfaceElevated))
-            .overlay(Capsule().strokeBorder(tint.opacity(0.34), lineWidth: 1))
     }
 
     private var headerTitle: String {

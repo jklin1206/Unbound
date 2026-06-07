@@ -29,7 +29,7 @@ struct UnboundColors {
     // Text
     let textPrimary = Color.unboundHex("F5F5F4")      // warm bone white
     let textSecondary = Color.unboundHex("A3A3A3")    // softened from spec for premium readability
-    let textTertiary = Color.unboundHex("525252")     // meta / placeholder
+    let textTertiary = Color.unboundHex("858585")     // meta / placeholder, AA-readable on elevated dark surfaces
 
     // Borders / dividers
     let border = Color.unboundHex("262626")
@@ -49,7 +49,7 @@ struct UnboundColors {
     let emberDeep = Color.unboundHex("8A1F0A")        // dying ember — deep rust
 
     // Semantic
-    let alert = Color.unboundHex("B91C1C")            // critical warnings only
+    let alert = Color.unboundHex("EF4444")            // critical warnings only, readable as text on dark surfaces
     let success = Color.unboundHex("22C55E")          // sparingly — streak kept, rescan complete
 
     // Category accents — tinted interactive cards to break monochrome.
@@ -57,7 +57,7 @@ struct UnboundColors {
     // tile accents color-code category (coach/communication, warn/attention).
     let coachCyan = Color.unboundHex("06B6D4")        // communication tiles (coach bubble, chat)
     let warnOrange = Color.unboundHex("F97316")       // attention tiles (needs work, weakness)
-    let rankRed = Color.unboundHex("B91C1C")          // urgent/untrained
+    let rankRed = Color.unboundHex("EF4444")          // urgent/untrained
     let rankOrange = Color.unboundHex("F97316")       // weak
     let rankAmber = Color.unboundHex("EAB308")        // moderate
     let rankGreen = Color.unboundHex("22C55E")        // solid

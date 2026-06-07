@@ -75,6 +75,7 @@ final class SkinService: SkinServiceProtocol, ObservableObject {
 
         var newlyUnlocked: [SkillTreeSkin] = []
         for skin in SkillTreeSkin.allCases {
+            if skin.isShopExclusive { continue }
             if let req = skin.unlockRequirement, aggregateTier < req { continue }
             if !unlockedSkins.contains(skin) {
                 unlockedSkins.append(skin)
@@ -91,6 +92,15 @@ final class SkinService: SkinServiceProtocol, ObservableObject {
             }
         }
         return newlyUnlocked
+    }
+
+    func unlockPurchasedSkin(_ skin: SkillTreeSkin) {
+        guard !unlockedSkins.contains(skin) else { return }
+        unlockedSkins.append(skin)
+        persistUnlocked()
+        let event = SkinUnlock(skin: skin)
+        NotificationCenter.default.post(name: .skinUnlocked, object: nil, userInfo: ["event": event])
+        logger.log("Purchased skin unlocked: \(skin.rawValue)", level: .info)
     }
 
     private func persistUnlocked() {

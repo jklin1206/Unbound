@@ -35,42 +35,41 @@ struct CoachActionsRow: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 6) {
-                Image(systemName: "slider.horizontal.3")
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(Color.unbound.accent)
-                Text("PLAN ADJUSTMENTS")
-                    .font(Font.unbound.captionS.weight(.bold))
-                    .tracking(1.6)
-                    .foregroundStyle(Color.unbound.textTertiary)
-            }
+        VStack(spacing: 0) {
+            Divider()
+                .overlay(Color.unbound.borderSubtle.opacity(0.7))
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    chip(
-                        title: "DELOAD",
-                        subtitle: "next week",
-                        icon: "arrow.down.circle",
-                        tint: Color.unbound.accent,
-                        action: { sheet = .deload }
-                    )
-                    chip(
-                        title: "TRAVEL",
-                        subtitle: "adjust plan",
-                        icon: "airplane",
-                        tint: Color.unbound.accent,
-                        action: { sheet = .travel }
-                    )
-                    chip(
-                        title: "SHORT",
-                        subtitle: "~30 min",
-                        icon: "timer",
-                        tint: Color.unbound.coachCyan,
-                        action: { sheet = .shortSession }
-                    )
-                }
+            HStack(spacing: 12) {
+                Text("Adjust")
+                    .font(Font.unbound.captionS.weight(.heavy))
+                    .tracking(1.0)
+                    .foregroundStyle(Color.unbound.textTertiary)
+
+                Spacer(minLength: 0)
+
+                chip(
+                    title: "Deload",
+                    icon: "arrow.down.circle",
+                    tint: Color.unbound.accent,
+                    action: { sheet = .deload }
+                )
+                chip(
+                    title: "Travel",
+                    icon: "airplane",
+                    tint: Color.unbound.accent,
+                    action: { sheet = .travel }
+                )
+                chip(
+                    title: "Short",
+                    icon: "timer",
+                    tint: Color.unbound.coachCyan,
+                    action: { sheet = .shortSession }
+                )
             }
+            .padding(.vertical, 10)
+
+            Divider()
+                .overlay(Color.unbound.borderSubtle.opacity(0.7))
         }
         .sheet(item: $sheet) { kind in
             switch kind {
@@ -86,7 +85,6 @@ struct CoachActionsRow: View {
 
     private func chip(
         title: String,
-        subtitle: String,
         icon: String,
         tint: Color,
         action: @escaping () -> Void
@@ -95,31 +93,17 @@ struct CoachActionsRow: View {
             UnboundHaptics.medium()
             action()
         } label: {
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 6) {
-                    Image(systemName: icon)
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(tint)
-                    Text(title)
-                        .font(Font.unbound.captionS.weight(.bold))
-                        .tracking(1.4)
-                        .foregroundStyle(Color.unbound.textPrimary)
-                }
-                Text(subtitle.uppercased())
-                    .font(.system(size: 9, weight: .medium))
-                    .tracking(1.0)
-                    .foregroundStyle(Color.unbound.textTertiary)
+            HStack(spacing: 5) {
+                Image(systemName: icon)
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(tint)
+                Text(title.uppercased())
+                    .font(Font.unbound.captionS.weight(.bold))
+                    .tracking(0.8)
+                    .foregroundStyle(Color.unbound.textPrimary)
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
-            .background(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(Color.unbound.surface)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .strokeBorder(tint.opacity(0.3), lineWidth: 1)
-            )
+            .frame(height: 34)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }

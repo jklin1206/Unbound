@@ -5,9 +5,17 @@ import Supabase
 protocol FriendChallengeServiceProtocol: Sendable {
     func createChallenge(challengedId: UUID, kind: FriendChallenge.Kind, squadId: UUID) async throws -> FriendChallenge
     func activeChallenges(userId: UUID) async -> [FriendChallenge]
+    func challengeStats(squadId: UUID) async -> [UUID: FriendChallengeStats]
+    func challengeStats(squadId: UUID, season: SquadSeason) async -> [UUID: FriendChallengeStats]
     func accept(_ challengeId: UUID) async throws
     func recordProgress(log: WorkoutLog, userId: String, sourceLogId: String) async
     func evaluateExpired() async
+}
+
+extension FriendChallengeServiceProtocol {
+    func challengeStats(squadId: UUID, season: SquadSeason) async -> [UUID: FriendChallengeStats] {
+        await challengeStats(squadId: squadId)
+    }
 }
 
 @MainActor
@@ -193,6 +201,30 @@ final class FriendChallengeService: FriendChallengeServiceProtocol {
         }
     }
 
+    func challengeStats(squadId: UUID) async -> [UUID: FriendChallengeStats] {
+        await challengeStats(squadId: squadId, season: .current())
+    }
+
+    func challengeStats(squadId: UUID, season: SquadSeason) async -> [UUID: FriendChallengeStats] {
+        let local = stats(from: localChallenges.filter { $0.squadId == squadId }, season: season.interval)
+        if currentUserUsesLocalChallenges {
+            return local
+        }
+        guard remoteBackendEnabled else { return local }
+        do {
+            let rows: [ChallengeRow] = try await db
+                .from("friend_challenges")
+                .select()
+                .eq("squad_id", value: squadId.uuidString)
+                .execute()
+                .value
+            return stats(from: rows.compactMap { $0.toModel() }, season: season.interval)
+        } catch {
+            logger.log("FriendChallengeService.challengeStats error: \(error)", level: .warning)
+            return local
+        }
+    }
+
     func accept(_ challengeId: UUID) async throws {
         if let index = localChallenges.firstIndex(where: { $0.id == challengeId }) {
             localChallenges[index].acceptedAt = Date()
@@ -356,5 +388,33 @@ final class FriendChallengeService: FriendChallengeServiceProtocol {
                 : challenge.challengerId
             NotificationCenter.default.post(name: .friendChallengeExpired, object: localChallenges[index])
         }
+    }
+
+    private func stats(from challenges: [FriendChallenge], season: DateInterval) -> [UUID: FriendChallengeStats] {
+        var result: [UUID: FriendChallengeStats] = [:]
+        func update(_ userId: UUID, _ body: (inout FriendChallengeStats) -> Void) {
+            var stats = result[userId] ?? .empty
+            body(&stats)
+            result[userId] = stats
+        }
+
+        for challenge in challenges {
+            if let winner = challenge.winnerUserId {
+                update(winner) {
+                    $0.wins += 1
+                    if season.contains(challenge.expiresAt) || season.contains(challenge.startedAt) {
+                        $0.seasonWins += 1
+                    }
+                }
+            }
+            if challenge.isActive {
+                update(challenge.challengerId) { $0.activeCount += 1 }
+                update(challenge.challengedId) { $0.activeCount += 1 }
+            }
+            if challenge.isPending {
+                update(challenge.challengedId) { $0.pendingCount += 1 }
+            }
+        }
+        return result
     }
 }

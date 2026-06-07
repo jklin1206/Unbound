@@ -199,6 +199,7 @@ final class ProgramGenerationService: ProgramGenerationServiceProtocol, @uncheck
     ) async -> ProgramGeneratorInput {
         async let calibrationTask = CalibrationService.shared.fetchAll(userId: userId)
         async let progressionTask = ProgressionStateStore.shared.fetchAll(userId: userId)
+        async let familyTask = ProgressionStateStore.shared.allFamilyStates(userId: userId)
 
         let frequency = targetFrequency ?? .four
         let resolvedExperience = experience ?? .never
@@ -228,6 +229,7 @@ final class ProgramGenerationService: ProgramGenerationServiceProtocol, @uncheck
 
         let calibrations = await calibrationTask
         let progressions = await progressionTask
+        let progressionFamilyStates = await familyTask
         let preferences = (try? await ExercisePreferenceService.shared.fetchPreferences(userId: userId)) ?? []
         let progressionStates = progressionStateMap(
             userId: userId,
@@ -250,6 +252,7 @@ final class ProgramGenerationService: ProgramGenerationServiceProtocol, @uncheck
             cutModeActive: cutModeActive,
             trainingFeedbackMode: resolvedFeedback,
             progressionStates: progressionStates,
+            progressionFamilyStates: progressionFamilyStateMap(progressionFamilyStates),
             previousBlock: nil,
             weightKg: weightKg > 0 ? weightKg : 75,
             heightCm: heightCm > 0 ? heightCm : 175,
@@ -263,6 +266,12 @@ final class ProgramGenerationService: ProgramGenerationServiceProtocol, @uncheck
                 progressionStates: Array(progressionStates.values)
             )
         )
+    }
+
+    private func progressionFamilyStateMap(_ states: [ProgressionFamilyState]) -> [String: ProgressionFamilyState] {
+        var map: [String: ProgressionFamilyState] = [:]
+        states.forEach { map[$0.family] = $0 }
+        return map
     }
 
     private func progressionStateMap(
