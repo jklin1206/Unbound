@@ -1789,7 +1789,7 @@ struct ClusterStaircaseView: View {
     }
 
     private func usesOriginalNodeArtwork(_ assetName: String) -> Bool {
-        assetName == "hs_tuck-handstand" || assetName.hasPrefix("exercise_visual_")
+        true
     }
 
     // MARK: - Section algorithm (unchanged — still used to identify role)

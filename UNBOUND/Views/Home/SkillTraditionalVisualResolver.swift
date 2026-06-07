@@ -118,6 +118,24 @@ enum SkillTraditionalVisualResolver {
     ]
 
     private static let generatedSkillIconNodeIds: Set<String> = [
+        "cal.l-sit-10",
+        "pl.tuck-planche",
+        "pl.bent-arm-planche",
+        "pl.straddle-planche",
+        "pl.full-planche",
+        "pp.muscle-up",
+        "pp.ring-muscle-up",
+        "pp.strict-muscle-up",
+        "pp.straddle-row",
+        "pp.tuck-front-lever-pullup",
+        "hs.elbow-lever",
+        "oah.one-arm-handstand-5s",
+        "cl.tuck-front-lever",
+        "cl.tuck-back-lever",
+        "cl.full-front-lever",
+        "cl.full-back-lever",
+        "hs.wall-handstand-30",
+        "hs.freestanding-hs-30",
         "cl.straddle-front-lever",
         "cl.straddle-back-lever"
     ]

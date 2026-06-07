@@ -227,15 +227,15 @@ enum FormPhaseLibrary {
                 ),
                 FormPhase(
                     id: "phase4",
-                    title: "Breathe",
+                    title: "Core Lock",
                     cues: [
-                        "Hold the line while breathing",
-                        "Stop before shape breaks",
-                        "Step down with control"
+                        "Brace abs, ribs down",
+                        "Glutes tight, legs together",
+                        "Toes touch the wall lightly",
                     ],
-                    instruction: "The hold only counts while the position survives normal breathing. If the low back arches, elbows bend, or shoulders sink, step down under control and use shorter sets.",
+                    instruction: "Brace the core into a hollow wall-handstand line: shoulders tall, ribs tucked, abs locked, glutes tight, legs together, and toes only lightly touching the wall. End the set before the low back arches or the shoulders sink.",
                     assetName: "hs_wall-handstand-30_phase4",
-                    fallbackSymbol: "lungs.fill"
+                    fallbackSymbol: "figure.core.training"
                 ),
             ]
 
@@ -597,7 +597,7 @@ enum FormPhaseLibrary {
             phase("phase1", "Stack", "Set forearms on the floor with elbows under shoulders. Root the forearms before lifting into the hold.", "rectangle.compress.vertical", assetName: assetName(assetPrefix, "phase1")),
             phase("phase2", "Brace", "Zip ribs toward hips, lightly squeeze glutes and quads, and keep the neck long.", "figure.core.training", assetName: assetName(assetPrefix, "phase2")),
             phase("phase3", "Hold", "Keep one long line from head to heels while breathing quietly. No sag, pike, or shoulder collapse.", "timer", assetName: assetName(assetPrefix, "phase3")),
-            phase("phase4", "Exit", "Lower with the same line you held. Do not finish by collapsing into the low back or shoulders.", "arrow.down.to.line", assetName: assetName(assetPrefix, "phase4"))
+            phase("phase4", "Lower", "Lower with the same line you held. Knees or hips touch down only after the ribs, shoulders, and pelvis stay organized.", "arrow.down.to.line", assetName: assetName(assetPrefix, "phase4"))
         ]
     }
 
@@ -660,7 +660,7 @@ enum FormPhaseLibrary {
             phase("phase1", isRollout ? "Start" : "Reach", isRollout ? "Set ribs down, glutes on, and shoulders active before the wheel moves. The spine position is the skill." : "Walk hands forward only as far as the ribs stay tucked and the hips stay level.", "figure.core.training", assetName: assetName(prefix, "phase1")),
             phase("phase2", "Extend", isRollout ? "Roll out slowly while keeping a hollow body. Stop before the low back sags; range is earned, not forced." : "Hold the longer lever with shoulders packed and neck neutral. Hands farther forward only counts if the body line survives.", "arrow.forward", assetName: assetName(prefix, "phase2")),
             phase("phase3", "End Range", "Pause at the hardest point without breath-holding or collapsing the shoulders. If the brace breaks, shorten the lever on the next set.", "pause.circle.fill", assetName: assetName(prefix, "phase3")),
-            phase("phase4", isRollout ? "Return" : "Exit", isRollout ? "Pull back with lats and abs together. Do not pike the hips first to escape the hard range." : "Walk the hands back under control. The exit should not be a sudden hip pike or shoulder shrug.", "arrow.backward", assetName: assetName(prefix, "phase4"))
+            phase("phase4", "Return", isRollout ? "Pull back with lats and abs together. Do not pike the hips first to escape the hard range." : "Walk the hands back under control with ribs tucked and shoulders active. The return should not turn into a sudden hip pike or shoulder shrug.", "arrow.backward", assetName: assetName(prefix, "phase4"))
         ]
     }
 
@@ -689,11 +689,24 @@ enum FormPhaseLibrary {
 
     private static func frontLeverPhases(skillId: String) -> [FormPhase] {
         let prefix = skillId.replacingOccurrences(of: ".", with: "_")
+        let phase4Title: String
+        let phase4Instruction: String
+        switch skillId {
+        case "cl.full-front-lever":
+            phase4Title = "Full Lever"
+            phase4Instruction = "Bring legs together only when the horizontal body line stays quiet. The final hold is face-up, straight-arm, and ribs-down from shoulders to toes."
+        case "cl.straddle-front-lever":
+            phase4Title = "Hip Line"
+            phase4Instruction = "Hold the straddle with hips level to the shoulders, elbows locked, toes pointed, and ribs down. End the set when the hips sink or the arms bend."
+        default:
+            phase4Title = "Hold"
+            phase4Instruction = "Own the tuck with shoulders depressed, elbows locked, ribs down, and no swing. Short clean holds beat longer sets that drift below the line."
+        }
         return [
             phase("phase1", "Tuck", "Start from straight arms and a tight tuck. Depress the shoulders, pull the hands toward the hips, and bring hips to shoulder height before lengthening the lever.", "figure.hanging", assetName: assetName(prefix, "phase1")),
             phase("phase2", "Open Tuck", "Open the hips slightly while keeping ribs down and elbows locked. If the back arches or hips drop, return to the tighter tuck.", "rectangle.expand.vertical", assetName: assetName(prefix, "phase2")),
             phase("phase3", skillId == "cl.tuck-front-lever" ? "Line Check" : "Straddle", skillId == "cl.tuck-front-lever" ? "Hold the shortest lever perfectly: shoulders down, arms straight, and hips level. This is the shape that buys every later progression." : "Extend into a wide straddle with toes pointed and hips level. A wide clean straddle beats a narrow, sagging one.", "arrow.left.and.right", assetName: assetName(prefix, "phase3")),
-            phase("phase4", skillId == "cl.full-front-lever" ? "Full Lever" : "Exit", skillId == "cl.full-front-lever" ? "Bring legs together only when the horizontal body line stays quiet. The final hold is face-up, straight-arm, and ribs-down from shoulders to toes." : "Exit by returning to tuck or inverted hang under control. Dropping out teaches panic instead of lever strength.", "checkmark.seal.fill", assetName: assetName(prefix, "phase4"))
+            phase("phase4", phase4Title, phase4Instruction, "checkmark.seal.fill", assetName: assetName(prefix, "phase4"))
         ]
     }
 
@@ -719,7 +732,7 @@ enum FormPhaseLibrary {
             phase("phase1", "German Hang", "Enter shoulder extension slowly through a skin-the-cat path. Stop before pain; this position is mobility and connective-tissue prep, not a dare.", "figure.gymnastics", assetName: assetName(prefix, "phase1")),
             phase("phase2", "Tuck", "Keep elbows locked and tuck knees tight while lowering toward horizontal. Shoulders stay active; the body does not dump into the front of the joint.", "figure.core.training", assetName: assetName(prefix, "phase2")),
             phase("phase3", skillId == "cl.full-back-lever" || skillId == "cl.straddle-back-lever" ? "Straddle" : "Control", skillId == "cl.full-back-lever" || skillId == "cl.straddle-back-lever" ? "Open into a wide straddle with glutes squeezed and ribs down. Widen the legs as needed to keep the body line honest." : "Move in and out of the bottom slowly. If the shoulders shock-load or elbows bend, regress the range.", "arrow.left.and.right", assetName: assetName(prefix, "phase3")),
-            phase("phase4", skillId == "cl.full-back-lever" ? "Full Lever" : "Exit", skillId == "cl.full-back-lever" ? "Bring legs together into a face-down horizontal line only when the shoulders, elbows, and trunk stay calm." : "Return through the same path you entered. Never drop out of a German hang or back lever attempt.", "checkmark.seal.fill", assetName: assetName(prefix, "phase4"))
+            phase("phase4", skillId == "cl.full-back-lever" ? "Full Lever" : "Hold Line", skillId == "cl.full-back-lever" ? "Bring legs together into a face-down horizontal line only when the shoulders, elbows, and trunk stay calm." : "Hold the straddle with shoulders active, elbows locked, glutes squeezed, and hips level. End the set before the rings drift or the body folds.", "checkmark.seal.fill", assetName: assetName(prefix, "phase4"))
         ]
     }
 
@@ -910,7 +923,7 @@ enum FormPhaseLibrary {
                 phase("phase1", "Tuck Base", "Begin from a tuck or advanced tuck planche you can control with the same protracted shoulder position.", "pause.circle.fill", assetName: assetName(assetPrefix, "phase1")),
                 phase("phase2", "Open", "Extend the legs wide into straddle, not straight back. A wider split is the bridge; narrow it only after control appears.", "arrow.left.and.right", assetName: assetName(assetPrefix, "phase2")),
                 phase("phase3", "Line", "Lock knees, point toes, posteriorly tilt the pelvis, and keep hips level with shoulders instead of letting the legs droop.", "line.diagonal", assetName: assetName(assetPrefix, "phase3")),
-                phase("phase4", "Exit", "Step down or tuck back in before the scapula collapses. Clean short holds beat long banana-back holds.", "checkmark.seal.fill", assetName: assetName(assetPrefix, "phase4"))
+                phase("phase4", "Hold Line", "Hold the straddle with shoulders forward, elbows locked, hips level, and toes pointed. End the set when the scapula collapses or the low back starts to banana.", "checkmark.seal.fill", assetName: assetName(assetPrefix, "phase4"))
             ]
         case "pl.half-lay-planche":
             return [
