@@ -7,6 +7,7 @@ struct CreateSquadSheet: View {
     @EnvironmentObject var services: ServiceContainer
     @Environment(\.dismiss) var dismiss
     @State private var name = ""
+    @State private var selectedLogoId = SquadLogoCatalog.defaultId
     @State private var error: String?
     @State private var isCreating = false
     @FocusState private var isNameFocused: Bool
@@ -32,6 +33,9 @@ struct CreateSquadSheet: View {
                             .font(.caption)
                             .foregroundStyle(Color.unbound.textSecondary)
                     }
+
+                    SquadLogoPicker(selectedLogoId: $selectedLogoId)
+                        .padding(.top, 2)
 
                     if let error {
                         Text(error)
@@ -99,7 +103,14 @@ struct CreateSquadSheet: View {
         isCreating = true
         defer { isCreating = false }
         do {
-            _ = try await services.squads.createSquad(name: name.trimmingCharacters(in: .whitespaces), userId: userId)
+            let squad = try await services.squads.createSquad(name: name.trimmingCharacters(in: .whitespaces), userId: userId)
+            if squad.resolvedLogoId != selectedLogoId {
+                do {
+                    try await services.squads.setLogo(selectedLogoId, userId: userId)
+                } catch {
+                    services.logging.log("CreateSquadSheet.setLogo failed: \(error)", level: .warning)
+                }
+            }
             onCompleted?()
             dismiss()
         } catch SquadError.invalidName {

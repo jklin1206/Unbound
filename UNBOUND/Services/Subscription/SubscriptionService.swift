@@ -16,11 +16,11 @@ final class SubscriptionService: NSObject, SubscriptionServiceProtocol, @uncheck
 
     func configure() {
         let key = AppConstants.RevenueCat.apiKey
-        // Skip RevenueCat init when running with a placeholder key (dev/sim).
-        // Otherwise iOS triggers the Apple Account sign-in modal repeatedly
-        // when the SDK tries to validate receipts with a fake key.
-        guard !key.hasPrefix("PLACEHOLDER_") else {
-            logger.log("SubscriptionService.configure: skipping RevenueCat init (placeholder key)", level: .info)
+        guard !Self.shouldStubPurchases(for: key) else {
+            logger.log(
+                "SubscriptionService.configure: skipping RevenueCat init (\(Self.stubReason(for: key)))",
+                level: .info
+            )
             return
         }
         Purchases.logLevel = .error
@@ -28,10 +28,30 @@ final class SubscriptionService: NSObject, SubscriptionServiceProtocol, @uncheck
         Purchases.shared.delegate = self
     }
 
-    /// True when running with a placeholder RevenueCat key (dev/sim).
+    /// True when purchases are disabled for local simulator safety.
     /// All Purchases.shared calls become no-ops to avoid triggering Apple Account modals.
     private var isStubbed: Bool {
-        AppConstants.RevenueCat.apiKey.hasPrefix("PLACEHOLDER_")
+        Self.shouldStubPurchases(for: AppConstants.RevenueCat.apiKey)
+    }
+
+    private static func shouldStubPurchases(for key: String) -> Bool {
+        if key.hasPrefix("PLACEHOLDER_") { return true }
+
+        #if DEBUG && targetEnvironment(simulator)
+        return ProcessInfo.processInfo.environment["UNBOUND_ENABLE_REVENUECAT_SIM"] != "1"
+        #else
+        return false
+        #endif
+    }
+
+    private static func stubReason(for key: String) -> String {
+        if key.hasPrefix("PLACEHOLDER_") { return "placeholder key" }
+
+        #if DEBUG && targetEnvironment(simulator)
+        return "debug simulator"
+        #else
+        return "disabled"
+        #endif
     }
 
     func login(userId: String) async throws {
@@ -50,7 +70,13 @@ final class SubscriptionService: NSObject, SubscriptionServiceProtocol, @uncheck
     }
 
     func fetchOfferings() async throws -> [SubscriptionPackage] {
-        guard !isStubbed else { return [] }
+        guard !isStubbed else {
+            #if DEBUG && targetEnvironment(simulator)
+            return Self.debugPreviewPackages
+            #else
+            return []
+            #endif
+        }
         let offerings = try await Purchases.shared.offerings()
         guard let current = offerings.current else { return [] }
 
@@ -68,8 +94,42 @@ final class SubscriptionService: NSObject, SubscriptionServiceProtocol, @uncheck
         }
     }
 
+    #if DEBUG && targetEnvironment(simulator)
+    private static var debugPreviewPackages: [SubscriptionPackage] {
+        [
+            SubscriptionPackage(
+                id: "$rc_three_month",
+                productId: "unbound_month_3",
+                title: "3 Month",
+                price: "$24.99",
+                duration: "3 Months",
+                pricePerMonth: "$8.33",
+                hasFreeTrial: true,
+                freeTrialDuration: "3 Days"
+            ),
+            SubscriptionPackage(
+                id: "$rc_weekly",
+                productId: "unbound_weekly",
+                title: "Weekly",
+                price: "$14.99",
+                duration: "Weekly",
+                pricePerMonth: nil,
+                hasFreeTrial: true,
+                freeTrialDuration: "3 Days"
+            )
+        ]
+    }
+    #endif
+
     func purchase(packageId: String) async throws -> Bool {
-        guard !isStubbed else { return false }
+        guard !isStubbed else {
+            #if DEBUG && targetEnvironment(simulator)
+            setSubscriptionStatus(true)
+            return true
+            #else
+            return false
+            #endif
+        }
         let offerings = try await Purchases.shared.offerings()
         guard let pkg = offerings.current?.availablePackages.first(where: { $0.identifier == packageId }) else {
             throw AppError.subscriptionPurchaseFailed(underlying: NSError(domain: "RC", code: -1, userInfo: [NSLocalizedDescriptionKey: "Package not found"]))
@@ -80,7 +140,14 @@ final class SubscriptionService: NSObject, SubscriptionServiceProtocol, @uncheck
     }
 
     func restorePurchases() async throws -> Bool {
-        guard !isStubbed else { return false }
+        guard !isStubbed else {
+            #if DEBUG && targetEnvironment(simulator)
+            setSubscriptionStatus(true)
+            return true
+            #else
+            return false
+            #endif
+        }
         let customerInfo = try await Purchases.shared.restorePurchases()
         updateStatus(from: customerInfo)
         return hasActiveSubscription

@@ -665,8 +665,13 @@ final class MovementResolverTests: XCTestCase {
         let bench = MovementResolver.resolve("Bench Press")
         XCTAssertEqual(bench.rankTemplate, .barbellStrength)
         XCTAssertEqual(bench.movementSlot, .horizontalPush)
-        XCTAssertTrue(bench.bodyRegions.contains(.chest))
+        XCTAssertTrue(bench.bodyRegions.contains(.midLowerChest))
+        XCTAssertTrue(bench.bodyRegions.contains(.frontSideDelts))
         XCTAssertTrue(bench.bodyRegions.contains(.triceps))
+
+        let inclineBench = MovementResolver.resolve("Incline Bench Press")
+        XCTAssertTrue(inclineBench.bodyRegions.contains(.upperChest))
+        XCTAssertFalse(inclineBench.bodyRegions.contains(.midLowerChest))
 
         let legPress = MovementResolver.resolve("Leg Press")
         XCTAssertEqual(legPress.rankTemplate, .machineStrength)
@@ -694,6 +699,9 @@ final class MovementResolverTests: XCTestCase {
         XCTAssertEqual(neutralPulldown.loggerMode, .strengthSets)
         XCTAssertEqual(neutralPulldown.variantOfMovementId, "exercise.lat-pulldown")
         XCTAssertEqual(neutralPulldown.rankStandardMovementId, "exercise.lat-pulldown")
+        XCTAssertTrue(neutralPulldown.bodyRegions.contains(.lats))
+        XCTAssertFalse(neutralPulldown.bodyRegions.contains(.rhomboids))
+        XCTAssertFalse(neutralPulldown.bodyRegions.contains(.lowerBack))
 
         let dipMachine = MovementResolver.resolve("Dip Machine")
         XCTAssertEqual(dipMachine.rankTemplate, .machineStrength)
@@ -710,10 +718,18 @@ final class MovementResolverTests: XCTestCase {
         let plateLoadedPress = MovementResolver.resolve("Plate Loaded Chest Press")
         XCTAssertEqual(plateLoadedPress.rankTemplate, .machineStrength)
         XCTAssertEqual(plateLoadedPress.rankStandardMovementId, "exercise.machine-chest-press")
+        XCTAssertTrue(plateLoadedPress.bodyRegions.contains(.midLowerChest))
+        XCTAssertFalse(plateLoadedPress.bodyRegions.contains(.upperChest))
 
         let hammerStrengthRow = MovementResolver.resolve("Hammer Strength Row")
         XCTAssertEqual(hammerStrengthRow.rankTemplate, .machineStrength)
         XCTAssertEqual(hammerStrengthRow.rankStandardMovementId, "exercise.machine-row")
+        XCTAssertTrue(hammerStrengthRow.bodyRegions.contains(.lats))
+        XCTAssertTrue(hammerStrengthRow.bodyRegions.contains(.rhomboids))
+        XCTAssertFalse(hammerStrengthRow.bodyRegions.contains(.rearDelts))
+
+        let facePull = MovementResolver.resolve("Face Pull")
+        XCTAssertEqual(Set(facePull.bodyRegions), Set([.rearDelts, .rhomboids, .traps]))
 
         let declineSitup = MovementResolver.resolve("Decline Sit-Up")
         XCTAssertEqual(declineSitup.rankTemplate, .bodyweightReps)
@@ -755,9 +771,17 @@ final class MovementResolverTests: XCTestCase {
 
         let hipAdductor = MovementResolver.resolve("Hip Adductor Machine")
         XCTAssertEqual(hipAdductor.movementSlot, .squat)
+        XCTAssertEqual(Set(hipAdductor.bodyRegions), Set([.adductors]))
+
+        let hipAbductor = MovementResolver.resolve("Hip Abductor Machine")
+        XCTAssertEqual(Set(hipAbductor.bodyRegions), Set([.abductors, .glutes]))
+
+        let legExtension = MovementResolver.resolve("Leg Extension")
+        XCTAssertEqual(Set(legExtension.bodyRegions), Set([.quads]))
 
         let tricepPushdown = MovementCatalog.definition(for: "exercise.tricep-pushdown")
         XCTAssertEqual(tricepPushdown?.skillAssociations.contains("pp.muscle-up"), false)
+        XCTAssertEqual(Set(tricepPushdown?.bodyRegions ?? []), Set([.triceps]))
 
         let hangingKneeRaise = MovementCatalog.definition(for: "exercise.hanging-knee-raise")
         XCTAssertEqual(hangingKneeRaise?.skillAssociations.contains("cl.hollow-body-30"), true)

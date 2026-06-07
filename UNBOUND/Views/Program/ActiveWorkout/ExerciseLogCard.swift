@@ -94,6 +94,8 @@ struct ExerciseLogCard: View {
                 Divider().overlay(Color.unbound.borderSubtle).padding(.vertical, 8)
                 ExerciseDetailSections(
                     muscleGroups: muscleGroups,
+                    bodyRegions: movementDefinition?.bodyRegions ?? [],
+                    showsProgramming: false,
                     sets: plannedSets,
                     reps: plannedReps,
                     restSeconds: restSeconds,

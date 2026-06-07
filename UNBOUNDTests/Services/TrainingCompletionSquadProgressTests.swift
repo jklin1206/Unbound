@@ -24,6 +24,7 @@ private final class SpyChallengeService: FriendChallengeServiceProtocol {
         throw SquadError.backendUnavailable
     }
     func activeChallenges(userId: UUID) async -> [FriendChallenge] { [] }
+    func challengeStats(squadId: UUID) async -> [UUID: FriendChallengeStats] { [:] }
     func accept(_ challengeId: UUID) async throws {}
     func recordProgress(log: WorkoutLog, userId: String, sourceLogId: String) async {
         recordCalls.append((log.id, userId, sourceLogId))

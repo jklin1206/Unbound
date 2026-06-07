@@ -24,7 +24,7 @@ struct TrainTimeNotificationScheduler {
             .map { day in
                 var components = DateComponents()
                 components.weekday = day.calendarWeekday
-                components.hour = workoutTime.notificationHour
+                components.hour = workout.hour.map { min(max($0, 0), 23) } ?? workoutTime.notificationHour
                 components.minute = min(max(workout.minute, 0), 59)
 
                 return LocalNotificationRequestDescriptor(

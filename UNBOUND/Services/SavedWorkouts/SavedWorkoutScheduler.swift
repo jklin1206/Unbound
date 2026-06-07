@@ -42,6 +42,7 @@ enum SavedWorkoutScheduler {
             updated.days[index].workout = workout
             updated.days[index].sessionRole = SessionRole.fromStorageValue(savedWorkout.sessionRole) ?? .custom("saved")
             updated.days[index].savedWorkoutId = savedWorkout.id
+            updated.days[index].userWorkoutDraft = draft
             updated.days[index].recoveryActivities = []
         }
 
@@ -62,6 +63,7 @@ enum SavedWorkoutScheduler {
             updated.days[index] = fallbackDay
         } else {
             updated.days[index].savedWorkoutId = nil
+            updated.days[index].userWorkoutDraft = nil
         }
         return updated
     }

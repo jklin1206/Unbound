@@ -16,7 +16,7 @@ struct ProgramFuelTargetBand: View {
                 initialIsRestDay: day.isRestDay
             )
         } label: {
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: 8) {
                 Rectangle()
                     .fill(Color.unbound.borderSubtle)
                     .frame(height: 1)
@@ -52,12 +52,6 @@ struct ProgramFuelTargetBand: View {
                         .foregroundStyle(Color.unbound.textTertiary)
                         .accessibilityHidden(true)
                 }
-
-                Text(target.guidanceLine)
-                    .font(Font.unbound.captionS)
-                    .tracking(0.2)
-                    .foregroundStyle(Color.unbound.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
             }
             .contentShape(Rectangle())
         }

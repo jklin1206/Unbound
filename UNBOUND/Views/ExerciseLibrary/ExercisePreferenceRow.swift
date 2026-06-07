@@ -61,21 +61,21 @@ struct ExercisePreferenceRow: View {
     private var statusStrip: some View {
         HStack(spacing: 6) {
             if let tier = row.tier {
-                libraryPill(text: tier.displayName, color: tier.rewardTint)
+                ExerciseLibraryPill(text: tier.displayName, tint: tier.rewardTint)
             } else if item.isRankable {
-                libraryPill(text: "Ranked", color: .theme.textMuted)
+                ExerciseLibraryPill(text: "Ranked", tint: .theme.textMuted)
             }
 
             if row.totalAP > 0 {
-                libraryPill(text: "\(formatWhole(row.totalAP)) XP", color: .theme.primary)
+                ExerciseLibraryPill(text: "\(formatWhole(row.totalAP)) XP", tint: .theme.primary)
             }
 
             if let benchmark = row.nextBenchmarkSummary {
-                libraryPill(text: benchmark, color: .theme.warning)
+                ExerciseLibraryPill(text: benchmark, tint: .theme.warning)
             }
 
             if let summary = row.bestMetricSummary {
-                libraryPill(text: summary, color: .theme.success)
+                ExerciseLibraryPill(text: summary, tint: .theme.success)
             }
         }
         .lineLimit(1)
@@ -84,37 +84,24 @@ struct ExercisePreferenceRow: View {
     private var tagStrip: some View {
         HStack(spacing: 4) {
             if !item.equipmentSummary.isEmpty {
-                Text(item.equipmentSummary)
-                    .font(.caption(11))
-                    .foregroundColor(.theme.warning)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(Color.theme.warning.opacity(0.12))
-                    .clipShape(Capsule())
+                ExerciseLibraryPill(
+                    text: item.equipmentSummary,
+                    tint: .theme.warning,
+                    horizontalPadding: 6,
+                    verticalPadding: 2
+                )
                     .lineLimit(1)
             }
 
             ForEach(item.muscleGroups.prefix(2), id: \.self) { group in
-                Text(group.displayName)
-                    .font(.caption(11))
-                    .foregroundColor(.theme.primary)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(Color.theme.primary.opacity(0.12))
-                    .clipShape(Capsule())
+                ExerciseLibraryPill(
+                    text: group.displayName,
+                    tint: .theme.primary,
+                    horizontalPadding: 6,
+                    verticalPadding: 2
+                )
             }
         }
-    }
-
-    private func libraryPill(text: String, color: Color) -> some View {
-        Text(text)
-            .font(.caption(11))
-            .foregroundColor(color)
-            .padding(.horizontal, 7)
-            .padding(.vertical, 3)
-            .background(color.opacity(0.12))
-            .clipShape(Capsule())
-            .minimumScaleFactor(0.75)
     }
 
     private func formatWhole(_ value: Double) -> String {

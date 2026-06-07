@@ -1,6 +1,7 @@
 import UIKit
+import UserNotifications
 
-class AppDelegate: NSObject, UIApplicationDelegate {
+class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
     func application(
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
@@ -16,7 +17,18 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         }
         AuthService.shared.autoProvisionIfNeeded()
         SubscriptionService.shared.configure()
+        UNUserNotificationCenter.current().delegate = self
         Task { await NotificationService.applyStoredPreferences() }
         return true
+    }
+
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        willPresent notification: UNNotification
+    ) async -> UNNotificationPresentationOptions {
+        guard notification.request.identifier == RestNotifier.identifier else {
+            return []
+        }
+        return [.banner, .sound]
     }
 }

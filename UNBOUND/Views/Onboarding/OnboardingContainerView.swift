@@ -338,8 +338,8 @@ private struct OnboardingRouter: View {
                         .transition(screenTransition)
 
                 case .appRatingPrompt:
-                    Step_AppRatingPrompt(progress: flow.progress, onBack: back, onContinue: advance)
-                        .transition(screenTransition)
+                    Step_NativeAppRatingPrompt(onContinue: advance)
+                        .transition(.opacity)
 
                 case .trajectory:
                     Step28_Trajectory(flow: flow, progress: flow.progress, onBack: back, onContinue: advance)

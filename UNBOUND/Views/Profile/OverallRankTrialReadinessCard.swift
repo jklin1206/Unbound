@@ -92,13 +92,13 @@ struct OverallRankTrialReadinessCard: View {
     @ViewBuilder
     private var trialSummary: some View {
         if let resolved = readiness.resolvedTrial {
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 10) {
                 HStack(spacing: 8) {
-                    Image(systemName: "scope")
-                        .font(.system(size: 11, weight: .bold))
+                    Image(systemName: "list.bullet.clipboard.fill")
+                        .font(.system(size: 12, weight: .bold))
                         .foregroundStyle(statusTint)
-                    Text(resolved.selectedLoadout.displayName.uppercased())
-                        .font(.system(size: 9, weight: .black, design: .monospaced))
+                    Text("HOW THIS TRIAL WORKS")
+                        .font(.system(size: 10, weight: .black, design: .monospaced))
                         .tracking(1.4)
                         .foregroundStyle(Color.unbound.textTertiary)
                     Spacer(minLength: 0)
@@ -108,17 +108,25 @@ struct OverallRankTrialReadinessCard: View {
                         .foregroundStyle(statusTint)
                 }
 
-                Text(categorySummary(resolved))
-                    .font(Font.unbound.captionS)
-                    .foregroundStyle(Color.unbound.textSecondary)
+                Text(trialHowItWorksText(resolved))
+                    .font(Font.unbound.bodyMStrong)
+                    .foregroundStyle(Color.unbound.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
+                    .lineSpacing(2)
 
-                Text(readiness.blockerSummary ?? prepSummary(resolved))
-                    .font(Font.unbound.captionS.weight(.semibold))
-                    .foregroundStyle(readiness.blockerSummary == nil ? Color.unbound.textPrimary : Color.unbound.warnOrange)
-                    .fixedSize(horizontal: false, vertical: true)
+                if let blockerSummary = readiness.blockerSummary {
+                    Label {
+                        Text(blockerSummary)
+                            .font(Font.unbound.captionS.weight(.semibold))
+                            .fixedSize(horizontal: false, vertical: true)
+                    } icon: {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.system(size: 11, weight: .bold))
+                    }
+                    .foregroundStyle(Color.unbound.warnOrange)
+                }
             }
-            .padding(10)
+            .padding(12)
             .background(
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
                     .fill(statusTint.opacity(0.08))
@@ -182,24 +190,27 @@ struct OverallRankTrialReadinessCard: View {
         }
     }
 
-    private func categorySummary(_ resolved: ResolvedRankTrial) -> String {
-        if readiness.definition?.format == .fixedDeck {
-            return deckExampleSummary
+    private func trialHowItWorksText(_ resolved: ResolvedRankTrial) -> String {
+        switch readiness.definition?.format {
+        case .daily100:
+            return "Clear five stations: lower, push, pull, step, and trunk. Every station needs clean logged work before the gate closes."
+        case .operatorScreen:
+            return "Complete each event floor: engine, lower, push, pull, and carry/core. Miss one event and the gate stays closed."
+        case .finisher:
+            return "Work through three descending rounds. Each round has engine, hinge, push, pull, and carry work."
+        case .fixedDeck:
+            return "Draw a card, do the reps, then move to the next card. Suits choose the movement; card value sets the reps."
+        case .tower:
+            return "Climb the tower one floor at a time. Every floor must be cleared, then the final hold seals the gate."
+        case .bossRush:
+            return "Clear each boss under its station clock. Engine, lower, power, push, pull, control, and carry all have to pass."
+        case .raid:
+            return "Clear three stages: engine repeats, the work-set gates, then the final control hold."
+        case .finalExam:
+            return "Pass three parts: explosive control, engine capacity, then the final volume block."
+        case nil:
+            return resolved.nextPrepAction
         }
-
-        return resolved.categoriesTested.map(\.displayName).joined(separator: " / ")
-    }
-
-    private func prepSummary(_ resolved: ResolvedRankTrial) -> String {
-        if readiness.definition?.format == .fixedDeck {
-            return "Draw a card. Do the reps. Tap next."
-        }
-
-        return resolved.nextPrepAction
-    }
-
-    private var deckExampleSummary: String {
-        "A♥ 11 pushups · 7♦ 7 squats · J♣ 10 pullups · 4♠ 4 sit-ups"
     }
 
     private func requirementIcon(for kind: OverallRankTrialRequirementKind) -> String {

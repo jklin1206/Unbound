@@ -189,6 +189,31 @@ final class SquadService: SquadServiceProtocol {
         NotificationCenter.default.post(name: .squadStateChanged, object: nil)
     }
 
+    func setLogo(_ logoId: String, userId: String) async throws {
+        let resolvedLogoId = SquadLogoCatalog.resolvedId(logoId)
+        let current = store.load(userId: userId)
+        guard let squad = current.currentSquad else {
+            throw SquadError.notInSquad
+        }
+        guard let userUUID = SquadUserIdentity.uuid(from: userId), squad.captainId == userUUID else {
+            throw SquadError.notCaptain
+        }
+
+        if SquadUserIdentity.usesLocalOnlySquad(for: userId) {
+            localDirectory.updateLogo(squadId: squad.id, logoId: resolvedLogoId)
+        } else {
+            try await backend.updateLogo(squadId: squad.id, logoId: resolvedLogoId)
+        }
+
+        var state = store.load(userId: userId)
+        if var currentSquad = state.currentSquad {
+            currentSquad = currentSquad.replacingLogo(resolvedLogoId)
+            state.currentSquad = currentSquad
+        }
+        store.save(state, userId: userId)
+        NotificationCenter.default.post(name: .squadStateChanged, object: nil)
+    }
+
     // MARK: - state
 
     func state(userId: String) -> SquadState {

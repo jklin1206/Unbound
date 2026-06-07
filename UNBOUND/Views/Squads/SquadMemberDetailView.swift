@@ -14,6 +14,8 @@ struct SquadMemberDetailView: View {
     @State private var memberActivity: [SquadActivityEntry] = []
     @State private var workoutLogs: [WorkoutLog] = []
     @State private var activeChallenges: [FriendChallenge] = []
+    @State private var sessionXPRecord: SessionXPRecord?
+    @State private var challengeStats: FriendChallengeStats = .empty
     @State private var isLoading = true
 
     private var profileUserId: String {
@@ -38,6 +40,7 @@ struct SquadMemberDetailView: View {
                     heroSection
                     ProfileBuildCard(profile: attributeProfile)
                     weeklySessionsSection
+                    competitionStatsSection
                     accountabilitySection
                     recentWorkoutsSection
                     activeChallengesSection
@@ -131,6 +134,19 @@ struct SquadMemberDetailView: View {
             metricBlock(value: "\(weeklySessionCount)", label: "THIS WEEK", tint: Color.unbound.accent)
             metricBlock(value: "\(workoutLogs.count)", label: "LOGS", tint: aggregateTier.rewardTint)
             metricBlock(value: aggregateTier.displayName.uppercased(), label: "TIER", tint: aggregateTier.rewardTint)
+        }
+    }
+
+    private var competitionStatsSection: some View {
+        let columns = [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)]
+        return VStack(alignment: .leading, spacing: 10) {
+            sectionHeader("SEASON STATS")
+            LazyVGrid(columns: columns, spacing: 10) {
+                metricBlock(value: "\(streakSummary.current)", label: "CURRENT STR", tint: Color.unbound.warnOrange)
+                metricBlock(value: "\(streakSummary.best)", label: "BEST STR", tint: Color.unbound.warnOrange)
+                metricBlock(value: "\(challengeStats.seasonWins)", label: "WINS", tint: Color.unbound.accent)
+                metricBlock(value: "\(challengeStats.activeCount)", label: "ACTIVE", tint: Color.unbound.accent)
+            }
         }
     }
 
@@ -361,10 +377,8 @@ struct SquadMemberDetailView: View {
     }
 
     private var weeklySessionCount: Int {
+        let logged = streakSummary.weeklyCount
         let interval = currentWeekInterval
-        let logged = workoutLogs.filter { log in
-            interval.contains(log.completedAt ?? log.startedAt)
-        }.count
         let activity = memberActivity.filter { entry in
             entry.kind == .trialCompleted && interval.contains(entry.createdAt)
         }.count
@@ -372,7 +386,11 @@ struct SquadMemberDetailView: View {
     }
 
     private var challengeClears: Int {
-        activeChallenges.filter { $0.winnerUserId == member.userId }.count
+        challengeStats.seasonWins
+    }
+
+    private var streakSummary: SquadStreakSummary {
+        SquadLeaderboardBuilder.streakSummary(logs: workoutLogs, xpRecord: sessionXPRecord)
     }
 
     private var recentWorkoutRows: [WorkoutProfileRow] {
@@ -441,6 +459,9 @@ struct SquadMemberDetailView: View {
         aggregateTier = await services.rank.aggregateTier(userId: resolvedUserId)
         workoutLogs = await fetchWorkoutLogs(userId: resolvedUserId)
         activeChallenges = await services.friendChallenge.activeChallenges(userId: member.userId)
+        sessionXPRecord = services.sessionXP.record(userId: resolvedUserId)
+        let statsByMember = await services.friendChallenge.challengeStats(squadId: member.squadId)
+        challengeStats = statsByMember[member.userId] ?? .empty
 
         if let viewerId = services.auth.currentUserId {
             let all = (try? await services.squadActivity.fetchRecent(userId: viewerId)) ?? []

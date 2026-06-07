@@ -55,6 +55,16 @@ struct ExerciseLibraryCompatibilityState: Equatable {
     }
 }
 
+struct ExerciseLibrarySearchResult: Identifiable, Equatable {
+    let exercise: CatalogExercise
+    let definition: MovementDefinition?
+    let signals: ExerciseLibrarySearchSignals
+    let compatibility: ExerciseLibraryCompatibilityState
+    let score: Int
+
+    var id: String { exercise.id }
+}
+
 enum ExerciseLibraryContextFilter: String, CaseIterable, Hashable {
     case best
     case recent
@@ -89,42 +99,92 @@ enum ExerciseLibrarySearch {
         preferenceStatusesByKey: [String: ExercisePreferenceStatus] = [:],
         availableEquipment: [Equipment]? = nil
     ) -> [CatalogExercise] {
+        filteredResults(
+            alternatives,
+            searchText: searchText,
+            selectedSlot: selectedSlot,
+            contextFilter: contextFilter,
+            recentExerciseNames: recentExerciseNames,
+            preferenceStatusesByKey: preferenceStatusesByKey,
+            availableEquipment: availableEquipment
+        )
+        .map(\.exercise)
+    }
+
+    static func filteredResults(
+        _ alternatives: [CatalogExercise],
+        searchText: String,
+        selectedSlot: MovementSlot? = nil,
+        contextFilter: ExerciseLibraryContextFilter = .best,
+        recentExerciseNames: Set<String> = [],
+        preferenceStatusesByKey: [String: ExercisePreferenceStatus] = [:],
+        availableEquipment: [Equipment]? = nil
+    ) -> [ExerciseLibrarySearchResult] {
         let query = MovementCatalog.normalized(searchText.trimmingCharacters(in: .whitespacesAndNewlines))
         return alternatives
-            .filter { matchesSelectedSlot($0, selectedSlot: selectedSlot) }
-            .filter {
-                matchesContextFilter(
-                    $0,
-                    contextFilter: contextFilter,
+            .compactMap { alt -> ExerciseLibrarySearchResult? in
+                let definition = MovementCatalog.canonicalExercise(named: alt.name)
+                guard matchesSelectedSlot(definition, selectedSlot: selectedSlot) else { return nil }
+
+                let signals = signals(
+                    for: alt,
                     recentExerciseNames: recentExerciseNames,
                     preferenceStatusesByKey: preferenceStatusesByKey
                 )
+                guard matchesContextFilter(
+                    signals,
+                    contextFilter: contextFilter
+                ) else { return nil }
+
+                guard matchesSearch(alt, definition: definition, query: query) else { return nil }
+
+                let compatibility = compatibilityState(
+                    for: alt,
+                    definition: definition,
+                    preferredSlot: selectedSlot,
+                    availableEquipment: availableEquipment,
+                    preferenceStatusesByKey: preferenceStatusesByKey
+                )
+                let score = searchScore(
+                    alt,
+                    definition: definition,
+                    compatibility: compatibility,
+                    signals: signals,
+                    query: query,
+                    selectedSlot: selectedSlot
+                )
+
+                return ExerciseLibrarySearchResult(
+                    exercise: alt,
+                    definition: definition,
+                    signals: signals,
+                    compatibility: compatibility,
+                    score: score
+                )
             }
-            .filter { matchesSearch($0, query: query) }
             .sorted {
-                let lhsScore = searchScore(
-                    $0,
-                    query: query,
-                    selectedSlot: selectedSlot,
-                    recentExerciseNames: recentExerciseNames,
-                    preferenceStatusesByKey: preferenceStatusesByKey,
-                    availableEquipment: availableEquipment
-                )
-                let rhsScore = searchScore(
-                    $1,
-                    query: query,
-                    selectedSlot: selectedSlot,
-                    recentExerciseNames: recentExerciseNames,
-                    preferenceStatusesByKey: preferenceStatusesByKey,
-                    availableEquipment: availableEquipment
-                )
-                if lhsScore != rhsScore { return lhsScore > rhsScore }
-                return $0.displayName < $1.displayName
+                if $0.score != $1.score { return $0.score > $1.score }
+                return $0.exercise.displayName < $1.exercise.displayName
             }
     }
-
     static func compatibilityState(
         for alt: CatalogExercise,
+        preferredSlot: MovementSlot? = nil,
+        availableEquipment: [Equipment]? = nil,
+        preferenceStatusesByKey: [String: ExercisePreferenceStatus] = [:]
+    ) -> ExerciseLibraryCompatibilityState {
+        compatibilityState(
+            for: alt,
+            definition: MovementCatalog.canonicalExercise(named: alt.name),
+            preferredSlot: preferredSlot,
+            availableEquipment: availableEquipment,
+            preferenceStatusesByKey: preferenceStatusesByKey
+        )
+    }
+
+    private static func compatibilityState(
+        for alt: CatalogExercise,
+        definition: MovementDefinition?,
         preferredSlot: MovementSlot? = nil,
         availableEquipment: [Equipment]? = nil,
         preferenceStatusesByKey: [String: ExercisePreferenceStatus] = [:]
@@ -137,7 +197,7 @@ enum ExerciseLibrarySearch {
             )
         }
 
-        guard let definition = MovementCatalog.canonicalExercise(named: alt.name) else {
+        guard let definition else {
             return ExerciseLibraryCompatibilityState(
                 level: .compatible,
                 title: "Custom-compatible",
@@ -192,9 +252,26 @@ enum ExerciseLibrarySearch {
             .contains(query)
     }
 
+    private static func matchesSearch(
+        _ alt: CatalogExercise,
+        definition: MovementDefinition?,
+        query: String
+    ) -> Bool {
+        guard !query.isEmpty else { return true }
+        return searchTerms(for: alt, definition: definition)
+            .map { MovementCatalog.normalized($0) }
+            .joined(separator: " ")
+            .contains(query)
+    }
+
     private static func matchesSelectedSlot(_ alt: CatalogExercise, selectedSlot: MovementSlot?) -> Bool {
         guard let selectedSlot else { return true }
         return MovementCatalog.canonicalExercise(named: alt.name)?.movementSlot == selectedSlot
+    }
+
+    private static func matchesSelectedSlot(_ definition: MovementDefinition?, selectedSlot: MovementSlot?) -> Bool {
+        guard let selectedSlot else { return true }
+        return definition?.movementSlot == selectedSlot
     }
 
     private static func matchesContextFilter(
@@ -210,6 +287,20 @@ enum ExerciseLibrarySearch {
             return isRecent(alt, recentExerciseNames: recentExerciseNames)
         case .favorites, .available:
             return preferenceStatus(for: alt, preferenceStatusesByKey: preferenceStatusesByKey) == .available
+        }
+    }
+
+    private static func matchesContextFilter(
+        _ signals: ExerciseLibrarySearchSignals,
+        contextFilter: ExerciseLibraryContextFilter
+    ) -> Bool {
+        switch contextFilter {
+        case .best:
+            return true
+        case .recent:
+            return signals.isRecent
+        case .favorites, .available:
+            return signals.preferenceStatus == .available
         }
     }
 
@@ -265,6 +356,51 @@ enum ExerciseLibrarySearch {
         return score
     }
 
+    private static func searchScore(
+        _ alt: CatalogExercise,
+        definition: MovementDefinition?,
+        compatibility: ExerciseLibraryCompatibilityState,
+        signals: ExerciseLibrarySearchSignals,
+        query: String,
+        selectedSlot: MovementSlot?
+    ) -> Int {
+        var score = 0
+        let display = MovementCatalog.normalized(alt.displayName)
+        let canonical = MovementCatalog.normalized(alt.name)
+
+        if !query.isEmpty {
+            if display == query || canonical == query { score += 60 }
+            if display.hasPrefix(query) || canonical.hasPrefix(query) { score += 35 }
+            if definition?.aliases.map(MovementCatalog.normalized).contains(where: { $0.hasPrefix(query) }) == true {
+                score += 20
+            }
+        }
+
+        if selectedSlot == nil { score += 8 }
+        if signals.isRecent { score += 28 }
+        switch signals.preferenceStatus {
+        case .available:
+            score += 40
+        case .substitute:
+            score -= 6
+        case .avoid:
+            score -= 80
+        case nil:
+            break
+        }
+        switch compatibility.level {
+        case .compatible:
+            score += 18
+        case .unavailable:
+            score -= 120
+        case .avoided:
+            score -= 160
+        }
+        if definition?.equipment.contains(.bodyweight) == true { score += 2 }
+        score -= definition?.difficulty.sortPenalty ?? 0
+        return score
+    }
+
     private static func isRecent(
         _ alt: CatalogExercise,
         recentExerciseNames: Set<String>
@@ -281,13 +417,20 @@ enum ExerciseLibrarySearch {
     }
 
     private static func searchTerms(for alt: CatalogExercise) -> [String] {
+        searchTerms(for: alt, definition: MovementCatalog.canonicalExercise(named: alt.name))
+    }
+
+    private static func searchTerms(
+        for alt: CatalogExercise,
+        definition: MovementDefinition?
+    ) -> [String] {
         var terms: [String] = [
             alt.name,
             alt.displayName,
             alt.muscleGroups.map(\.displayName).joined(separator: " ")
         ]
 
-        if let definition = MovementCatalog.canonicalExercise(named: alt.name) {
+        if let definition {
             terms.append(definition.aliases.joined(separator: " "))
             terms.append(ExerciseLibrary.equipmentLabels(for: definition).joined(separator: " "))
             terms.append(definition.movementSlot.displayName)

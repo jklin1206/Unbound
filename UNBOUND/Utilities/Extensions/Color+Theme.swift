@@ -16,8 +16,8 @@ struct ThemeColors {
     let secondary = Color(hex: "525252")         // neutral gray — monochrome-first
     let textPrimary = Color(hex: "F5F5F4")       // matches unbound.textPrimary
     let textSecondary = Color(hex: "A3A3A3")    // matches unbound.textSecondary
-    let textMuted = Color(hex: "525252")         // matches unbound.textTertiary
-    let danger = Color(hex: "B91C1C")            // matches unbound.alert
+    let textMuted = Color(hex: "858585")         // matches unbound.textTertiary
+    let danger = Color(hex: "EF4444")            // matches unbound.alert
     let success = Color(hex: "22C55E")
     let warning = Color(hex: "FFD60A")
 }

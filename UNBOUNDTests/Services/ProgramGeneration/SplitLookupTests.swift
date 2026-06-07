@@ -54,6 +54,113 @@ final class SplitLookupTests: XCTestCase {
         XCTAssertEqual(split.trainingDayTemplates, [.push, .pull, .legs, .skill, .weakPoint])
     }
 
+    func testContextResolverBuildsCalisthenicsBlockFromMixedProfile() {
+        let resolution = ProgramTrainingContextResolver.resolve(
+            selection: ProgramTrainingContextSelection(
+                scope: .ongoing,
+                mode: .calisthenics,
+                equipment: [.fullGym, .dumbbells, .pullupBar, .rings],
+                experience: .tried
+            ),
+            currentStyle: .hybrid,
+            currentEquipment: [.fullGym],
+            currentExerciseStyles: [.compoundLifts, .mobility, .steadyCardio],
+            currentExperience: .current
+        )
+
+        XCTAssertEqual(resolution.trainingStyle, .bodyweight)
+        XCTAssertEqual(resolution.equipment, [.bodyweight, .pullupBar, .rings])
+        XCTAssertEqual(resolution.exerciseStyles, [.calisthenics, .mobility, .steadyCardio])
+        XCTAssertEqual(resolution.experience, .tried)
+        XCTAssertTrue(resolution.shouldRegenerateProgram)
+        XCTAssertTrue(resolution.shouldMutateProfile)
+        XCTAssertTrue(resolution.preservesSavedWorkouts)
+    }
+
+    func testContextResolverReturnsToLiftingWithoutCalisthenicsLeakage() {
+        let resolution = ProgramTrainingContextResolver.resolve(
+            selection: ProgramTrainingContextSelection(
+                scope: .ongoing,
+                mode: .lifting,
+                equipment: [.bodyweight, .pullupBar, .barbell, .dumbbells, .bench]
+            ),
+            currentStyle: .bodyweight,
+            currentEquipment: [.bodyweight, .pullupBar],
+            currentExerciseStyles: [.calisthenics, .mobility],
+            currentExperience: .current
+        )
+
+        XCTAssertEqual(resolution.trainingStyle, .freeWeights)
+        XCTAssertEqual(resolution.equipment, [.barbell, .dumbbells, .bench])
+        XCTAssertEqual(resolution.exerciseStyles, [.compoundLifts, .mobility])
+        XCTAssertEqual(resolution.experience, .current)
+        XCTAssertTrue(resolution.shouldRegenerateProgram)
+        XCTAssertTrue(resolution.shouldMutateProfile)
+    }
+
+    func testContextResolverKeepsFreeformOutOfGeneration() {
+        let resolution = ProgramTrainingContextResolver.resolve(
+            selection: ProgramTrainingContextSelection(
+                scope: .freeformManual,
+                mode: .freeform,
+                equipment: [.fullGym]
+            ),
+            currentStyle: .hybrid,
+            currentEquipment: [.fullGym],
+            currentExerciseStyles: [.compoundLifts, .calisthenics],
+            currentExperience: .current
+        )
+
+        XCTAssertEqual(resolution.trainingStyle, .hybrid)
+        XCTAssertFalse(resolution.shouldRegenerateProgram)
+        XCTAssertFalse(resolution.shouldMutateProfile)
+        XCTAssertFalse(resolution.usesDailyModifier)
+        XCTAssertTrue(resolution.requiresManualWorkoutControl)
+        XCTAssertTrue(resolution.preservesSavedWorkouts)
+    }
+
+    func testContextResolverTreatsThisWeekAsDailyModifier() {
+        let resolution = ProgramTrainingContextResolver.resolve(
+            selection: ProgramTrainingContextSelection(
+                scope: .thisWeek,
+                mode: .calisthenics,
+                equipment: [.fullGym, .pullupBar, .bands],
+                experience: .tried
+            ),
+            currentStyle: .hybrid,
+            currentEquipment: [.fullGym],
+            currentExerciseStyles: [.compoundLifts],
+            currentExperience: .current
+        )
+
+        XCTAssertEqual(resolution.trainingStyle, .bodyweight)
+        XCTAssertEqual(resolution.equipment, [.bodyweight, .pullupBar, .bands])
+        XCTAssertFalse(resolution.shouldRegenerateProgram)
+        XCTAssertFalse(resolution.shouldMutateProfile)
+        XCTAssertTrue(resolution.usesDailyModifier)
+        XCTAssertEqual(resolution.dailyModifierEquipment, [.pullupBar, .bands, .bodyweight])
+    }
+
+    func testContextResolverQueuesNextBlockWithoutImmediateProfileMutation() {
+        let resolution = ProgramTrainingContextResolver.resolve(
+            selection: ProgramTrainingContextSelection(
+                scope: .nextBlock,
+                mode: .lifting,
+                equipment: [.barbell, .dumbbells, .bench]
+            ),
+            currentStyle: .bodyweight,
+            currentEquipment: [.bodyweight, .pullupBar],
+            currentExerciseStyles: [.calisthenics],
+            currentExperience: .current
+        )
+
+        XCTAssertEqual(resolution.trainingStyle, .freeWeights)
+        XCTAssertEqual(resolution.equipment, [.barbell, .dumbbells, .bench])
+        XCTAssertTrue(resolution.shouldRegenerateProgram)
+        XCTAssertFalse(resolution.shouldMutateProfile)
+        XCTAssertFalse(resolution.usesDailyModifier)
+    }
+
     func testBalancedAthleteThreeIsUpperLowerFull() {
         let split = SplitLookup.split(buildIdentity: Self.balancedAthlete, frequency: .three)
         XCTAssertEqual(split.trainingDayTemplates, [.upper, .lower, .fullBody])

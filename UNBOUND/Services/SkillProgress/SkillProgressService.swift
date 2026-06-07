@@ -247,6 +247,7 @@ final class SkillProgressService {
     func toggleActiveGoal(nodeId: String) async {
         guard var p = progress else { return }
         guard isNodeTrainable(nodeId: nodeId) || p.activeGoalIds.contains(nodeId) else { return }
+        let previousFocusIds = p.activeGoalIds
         let wasFocus = p.activeGoalIds.contains(nodeId)
         if wasFocus {
             p.activeGoalIds.remove(nodeId)
@@ -255,9 +256,15 @@ final class SkillProgressService {
             guard p.activeGoalIds.count < Self.activeGoalCap else { return }
             p.activeGoalIds.insert(nodeId)
         }
+        p.weeklySchedule = autoOptimizedSchedule(
+            currentSchedule: p.weeklySchedule,
+            previousFocusIds: previousFocusIds,
+            nextFocusIds: p.activeGoalIds
+        )
         p.updatedAt = Date()
         progress = p
         activeGoalIds = p.activeGoalIds
+        weeklySchedule = p.weeklySchedule
         try? await database.create(p, collection: "skillProgress", documentId: p.userId)
 
         // On ADD: pre-generate today's session so the Program tab Train
@@ -303,6 +310,33 @@ final class SkillProgressService {
     }
 
     // MARK: Internal helpers
+
+    private func autoOptimizedSchedule(
+        currentSchedule: [DayCategory?],
+        previousFocusIds: Set<String>,
+        nextFocusIds: Set<String>
+    ) -> [DayCategory?] {
+        let normalized = Self.normalizedWeeklySchedule(currentSchedule)
+        let previousOptimized = ProgramScheduler.shared
+            .optimizedWeeklySchedule(programFocusIds: previousFocusIds)
+            .map(Optional.some)
+        let scheduleIsDefault = normalized.allSatisfy { $0 == nil }
+        let scheduleIsAppManaged = scheduleIsDefault || normalized == previousOptimized
+
+        guard scheduleIsAppManaged else { return normalized }
+        guard !nextFocusIds.isEmpty else {
+            return Array(repeating: nil, count: 7)
+        }
+
+        return ProgramScheduler.shared
+            .optimizedWeeklySchedule(programFocusIds: nextFocusIds)
+            .map(Optional.some)
+    }
+
+    private static func normalizedWeeklySchedule(_ schedule: [DayCategory?]) -> [DayCategory?] {
+        if schedule.count == 7 { return schedule }
+        return Array(schedule.prefix(7)) + Array(repeating: nil, count: max(0, 7 - schedule.count))
+    }
 
     /// OR-across-groups, AND-within-a-group. A node is unlocked if ANY
     /// of its unlock-standard groups has ALL source skills at the required

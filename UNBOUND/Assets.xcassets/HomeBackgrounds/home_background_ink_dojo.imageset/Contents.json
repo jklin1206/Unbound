@@ -1,0 +1,12 @@
+{
+  "images" : [
+    {
+      "filename" : "home_background_ink_dojo.png",
+      "idiom" : "universal"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}

@@ -669,15 +669,7 @@ private struct Daily100Chip: View {
     }
 
     var body: some View {
-        Label(text, systemImage: icon)
-            .font(Font.unbound.captionS.weight(.semibold))
-            .foregroundStyle(Color.unbound.textPrimary)
-            .lineLimit(1)
-            .minimumScaleFactor(0.72)
-            .padding(.horizontal, 9)
-            .frame(height: 28)
-            .background(Capsule().fill(Color.unbound.surfaceElevated))
-            .overlay(Capsule().strokeBorder(tint.opacity(0.34), lineWidth: 1))
+        RankTrialInfoChip(text: text, icon: icon, tint: tint)
     }
 }
 

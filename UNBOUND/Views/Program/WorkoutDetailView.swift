@@ -154,6 +154,14 @@ struct WorkoutDetailView: View {
 
     private var readyDraft: TrainingSessionDraft? {
         guard let userId = services.auth.currentUserId else { return nil }
+        if let day = programViewModel?.program?.days.first(where: { $0.dayNumber == dayNumber }),
+           let draft = DailyWorkoutResolver.programDraft(
+                from: day,
+                userId: userId,
+                programId: programId.isEmpty ? nil : programId
+           ) {
+            return draft
+        }
         return DailyWorkoutResolver.programDraft(
             from: liveWorkout,
             userId: userId,

@@ -3,7 +3,7 @@ import Foundation
 
 // MARK: - SquadActivityService
 //
-// Records squad-level activity events (weekly vow completions, title unlocks,
+// Records squad-level activity events (proof challenge completions, title unlocks,
 // linked sessions, member joins, affinity changes, streak extensions).
 //
 // On init it installs NotificationCenter observers for:

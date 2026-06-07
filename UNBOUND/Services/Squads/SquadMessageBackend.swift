@@ -10,6 +10,11 @@ protocol SquadMessageBackendProtocol: AnyObject {
     func reportMessage(messageId: UUID, reporterUserId: UUID, reason: String, detail: String?) async throws
 }
 
+protocol SquadRoutineDropBackendProtocol: Sendable {
+    func fetchRecentDrops(squadId: UUID, limit: Int) async throws -> [SquadRoutineDrop]
+    func insertDrop(_ drop: SquadRoutineDrop) async throws -> SquadRoutineDrop
+}
+
 struct SquadMessageStoragePayload: Codable, Equatable, Sendable {
     var body: String?
     var title: String?
@@ -249,5 +254,85 @@ final class SquadMessageBackend: SquadMessageBackendProtocol, @unchecked Sendabl
                 detail: detail
             ))
             .execute()
+    }
+}
+
+final class SquadRoutineDropBackend: SquadRoutineDropBackendProtocol, @unchecked Sendable {
+    static let shared = SquadRoutineDropBackend()
+    private let logger = LoggingService.shared
+
+    private init() {}
+
+    private var db: PostgrestClient { UnboundSupabase.client.schema("public") }
+
+    private struct RoutineDropRow: Codable {
+        let id: UUID
+        let squadId: UUID
+        let authorUserId: UUID
+        let authorDisplayName: String
+        let title: String
+        let note: String?
+        let workout: SavedWorkout
+        let createdAt: Date
+
+        func toModel() -> SquadRoutineDrop {
+            SquadRoutineDrop(
+                id: id,
+                squadId: squadId,
+                authorUserId: authorUserId,
+                authorDisplayName: authorDisplayName,
+                title: title,
+                note: note,
+                workout: workout,
+                createdAt: createdAt
+            )
+        }
+    }
+
+    private struct RoutineDropInsertRow: Encodable {
+        let id: String
+        let squadId: String
+        let authorUserId: String
+        let authorDisplayName: String
+        let title: String
+        let note: String?
+        let workout: SavedWorkout
+    }
+
+    func fetchRecentDrops(squadId: UUID, limit: Int) async throws -> [SquadRoutineDrop] {
+        let rows: [RoutineDropRow] = try await db
+            .from("squad_routine_drops")
+            .select()
+            .eq("squad_id", value: squadId.uuidString)
+            .order("created_at", ascending: false)
+            .limit(limit)
+            .execute()
+            .value
+        return rows.map { $0.toModel() }
+    }
+
+    func insertDrop(_ drop: SquadRoutineDrop) async throws -> SquadRoutineDrop {
+        let row = RoutineDropInsertRow(
+            id: drop.id.uuidString,
+            squadId: drop.squadId.uuidString,
+            authorUserId: drop.authorUserId.uuidString,
+            authorDisplayName: drop.authorDisplayName,
+            title: drop.title,
+            note: drop.note,
+            workout: drop.workout
+        )
+
+        do {
+            let rows: [RoutineDropRow] = try await db
+                .from("squad_routine_drops")
+                .insert(row)
+                .select()
+                .execute()
+                .value
+            return rows.first?.toModel() ?? drop
+        } catch {
+            logger.log("SquadRoutineDropBackend.insertDrop failed: \(error)", level: .warning)
+            throw error
+        }
     }
 }

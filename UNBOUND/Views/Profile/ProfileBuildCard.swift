@@ -114,16 +114,15 @@ private struct AttributeInfoSheet: View {
                         .lineLimit(1)
                     HStack(spacing: 6) {
                         AttributeRankBadge(rank: value.rankTitle, size: 16)
-                        Text("\(xpString(value.xpToNextLevel)) XP TO NEXT LEVEL")
+                        Text(value.rankTitle.displayName.uppercased())
                             .font(.system(size: 9, weight: .bold, design: .monospaced))
-                            .tracking(0.4)
+                            .tracking(0.8)
                             .foregroundStyle(value.rankTitle.rewardTextTint.opacity(0.92))
-                            .monospacedDigit()
                             .lineLimit(1)
                             .minimumScaleFactor(0.72)
                     }
                     .accessibilityElement(children: .combine)
-                    .accessibilityLabel("\(value.rankTitle.displayName) rank, \(xpString(value.xpToNextLevel)) XP to next level")
+                    .accessibilityLabel("\(value.rankTitle.displayName) rank")
                 }
 
                 Spacer(minLength: 0)

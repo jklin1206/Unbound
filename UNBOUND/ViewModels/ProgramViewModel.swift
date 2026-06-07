@@ -10,6 +10,7 @@ final class ProgramViewModel {
     var showTrainingDayNutrition = true
     var workoutLogs: [Int: WorkoutLog] = [:]  // dayNumber -> log
     var activeWaveAdjustments: [WaveAdjustment] = []
+    var progressionStates: [String: ProgressionState] = [:]
 
     private let services: ServiceContainer
 
@@ -59,13 +60,18 @@ final class ProgramViewModel {
     func loadTrackingData() async {
         guard let userId = services.auth.currentUserId, let program else { return }
         do {
-            let logs = try await services.workoutLog.fetchLogs(userId: userId, programId: program.id)
+            async let logsTask = services.workoutLog.fetchLogs(userId: userId, programId: program.id)
+            async let progressionTask = ProgressionStateStore.shared.fetchAll(userId: userId)
+            let (logs, states) = try await (logsTask, progressionTask)
             workoutLogs = logs.reduce(into: [Int: WorkoutLog]()) { result, log in
                 if let existing = result[log.dayNumber], existing.startedAt > log.startedAt {
                     return
                 }
                 result[log.dayNumber] = log
             }
+            progressionStates = Dictionary(
+                uniqueKeysWithValues: states.map { (MovementCatalog.normalized($0.exerciseKey), $0) }
+            )
         } catch {
             // Non-critical, don't block UI
         }
@@ -261,9 +267,14 @@ final class ProgramViewModel {
             cutModeActive: profile.cutMode.enabled,
             biologicalSex: profile.biologicalSex
         )
+        let protectedGenerated = Self.preservingUserOwnedWorkouts(
+            from: program,
+            onto: generated,
+            userId: userId
+        )
 
         var fields: [String: Any] = [
-            "currentProgramId": generated.id,
+            "currentProgramId": protectedGenerated.id,
             "equipment": sortedEquipment.map(\.rawValue),
             "exerciseStyles": sortedStyles.map(\.rawValue),
             "trainingStyleOverride": trainingStyle.rawValue
@@ -273,12 +284,54 @@ final class ProgramViewModel {
         }
         try await services.user.updateProfile(userId: userId, fields: fields)
 
-        program = generated
-        state = .loaded(generated)
-        await ProgramStore.shared.save(generated, userId: userId)
+        program = protectedGenerated
+        state = .loaded(protectedGenerated)
+        await ProgramStore.shared.save(protectedGenerated, userId: userId)
         await loadTrackingData()
         refreshWaveAdjustments()
-        return generated
+        return protectedGenerated
+    }
+
+    static func preservingUserOwnedWorkouts(
+        from previous: TrainingProgram?,
+        onto generated: TrainingProgram,
+        userId: String
+    ) -> TrainingProgram {
+        guard let previous else { return generated }
+        let ownedByDay = Dictionary(
+            uniqueKeysWithValues: previous.days
+                .filter(\.isUserOwnedWorkout)
+                .map { ($0.dayNumber, $0) }
+        )
+        guard !ownedByDay.isEmpty else { return generated }
+
+        var updated = generated
+        updated.days = generated.days.map { generatedDay in
+            guard let owned = ownedByDay[generatedDay.dayNumber] else { return generatedDay }
+
+            var draft = owned.userWorkoutDraft
+            draft?.programId = generated.id
+            draft?.dayNumber = generatedDay.dayNumber
+            draft?.date = Calendar(identifier: .gregorian).date(
+                byAdding: .day,
+                value: max(0, generatedDay.dayNumber - 1),
+                to: generated.createdAt
+            ) ?? generated.createdAt
+
+            return ProgramDay(
+                id: generatedDay.id,
+                dayNumber: generatedDay.dayNumber,
+                label: owned.label,
+                isRestDay: owned.isRestDay,
+                workout: owned.workout,
+                sessionRole: owned.sessionRole,
+                savedWorkoutId: owned.savedWorkoutId,
+                userWorkoutDraft: draft,
+                nutritionOverride: owned.nutritionOverride ?? generatedDay.nutritionOverride,
+                recoveryActivities: owned.recoveryActivities
+            )
+        }
+        return updated
     }
 
     func scheduleSavedWorkout(

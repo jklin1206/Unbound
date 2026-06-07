@@ -20,8 +20,8 @@ struct ProgramExerciseLibraryView: View {
     @State private var selectedSlot: MovementSlot?
     @State private var contextFilter: ExerciseLibraryContextFilter = .best
 
-    private var filteredAlternatives: [CatalogExercise] {
-        ExerciseLibrarySearch.filteredAlternatives(
+    private var filteredResults: [ExerciseLibrarySearchResult] {
+        ExerciseLibrarySearch.filteredResults(
             alternatives,
             searchText: searchText,
             selectedSlot: selectedSlot,
@@ -64,46 +64,20 @@ struct ProgramExerciseLibraryView: View {
     }
 
     var body: some View {
-        ZStack {
+        let matches = filteredResults
+
+        return ZStack {
             Color.unbound.bg.ignoresSafeArea()
 
             VStack(spacing: 0) {
-                header
+                header(matchCount: matches.count)
                 searchAndFilters
-                if alternatives.isEmpty {
-                    emptyState
-                    if onCreateCustom != nil {
-                        createNewRow
-                            .padding(.horizontal, 20)
-                            .padding(.bottom, 28)
-                    }
-                } else if filteredAlternatives.isEmpty {
-                    noSearchResults
-                    if onCreateCustom != nil {
-                        createNewRow
-                            .padding(.horizontal, 20)
-                            .padding(.bottom, 28)
-                    }
-                } else {
-                    ScrollView {
-                        VStack(spacing: 10) {
-                            ForEach(filteredAlternatives) { alt in
-                                libraryRow(alt)
-                            }
-                            if onCreateCustom != nil {
-                                createNewRow
-                            }
-                        }
-                        .padding(.horizontal, 20)
-                        .padding(.top, 8)
-                        .padding(.bottom, 28)
-                    }
-                }
+                libraryContent(matches: matches)
             }
         }
     }
 
-    private var header: some View {
+    private func header(matchCount: Int) -> some View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: mode == .add ? "plus" : "arrow.triangle.2.circlepath")
                 .font(.system(size: 15, weight: .bold))
@@ -123,7 +97,7 @@ struct ProgramExerciseLibraryView: View {
                 Text(mode == .add ? "Search, filter, or create a custom exercise." : "Choose a compatible replacement ranked by fit.")
                     .font(Font.unbound.captionS)
                     .foregroundStyle(Color.unbound.textSecondary)
-                Text("\(filteredAlternatives.count) of \(alternatives.count) matches")
+                Text("\(matchCount) of \(alternatives.count) matches")
                     .font(Font.unbound.monoS)
                     .foregroundStyle(Color.unbound.textTertiary)
             }
@@ -137,7 +111,10 @@ struct ProgramExerciseLibraryView: View {
     }
 
     private var searchAndFilters: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        let slots = availableSlots
+        let filters = availableContextFilters
+
+        return VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 10) {
                 Image(systemName: "magnifyingglass")
                     .font(.system(size: 13, weight: .semibold))
@@ -170,10 +147,10 @@ struct ProgramExerciseLibraryView: View {
                     .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
             )
 
-            if !availableSlots.isEmpty {
+            if !slots.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
-                        ForEach(availableContextFilters, id: \.self) { filter in
+                        ForEach(filters, id: \.self) { filter in
                             filterChip(title: filter.displayName, isSelected: contextFilter == filter) {
                                 contextFilter = filter
                             }
@@ -181,7 +158,7 @@ struct ProgramExerciseLibraryView: View {
                         filterChip(title: "All", isSelected: selectedSlot == nil) {
                             selectedSlot = nil
                         }
-                        ForEach(availableSlots, id: \.self) { slot in
+                        ForEach(slots, id: \.self) { slot in
                             filterChip(title: slot.displayName, isSelected: selectedSlot == slot) {
                                 selectedSlot = slot
                             }
@@ -193,6 +170,40 @@ struct ProgramExerciseLibraryView: View {
         }
         .padding(.horizontal, 20)
         .padding(.bottom, 10)
+    }
+
+    @ViewBuilder
+    private func libraryContent(matches: [ExerciseLibrarySearchResult]) -> some View {
+        if alternatives.isEmpty {
+            emptyState
+            if onCreateCustom != nil {
+                createNewRow
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 28)
+            }
+        } else if matches.isEmpty {
+            noSearchResults
+            if onCreateCustom != nil {
+                createNewRow
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 28)
+            }
+        } else {
+            ScrollView {
+                LazyVStack(spacing: 10) {
+                    ForEach(matches) { result in
+                        libraryRow(result)
+                    }
+                    if onCreateCustom != nil {
+                        createNewRow
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 8)
+                .padding(.bottom, 28)
+            }
+            .scrollDismissesKeyboard(.interactively)
+        }
     }
 
     private func filterChip(title: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
@@ -299,19 +310,11 @@ struct ProgramExerciseLibraryView: View {
         .buttonStyle(.plain)
     }
 
-    private func libraryRow(_ alt: CatalogExercise) -> some View {
-        let metadata = MovementCatalog.canonicalExercise(named: alt.name).map { libraryMetadata(for: $0) }
-        let signals = ExerciseLibrarySearch.signals(
-            for: alt,
-            recentExerciseNames: recentExerciseNames,
-            preferenceStatusesByKey: preferenceStatusesByKey
-        )
-        let compatibility = ExerciseLibrarySearch.compatibilityState(
-            for: alt,
-            preferredSlot: selectedSlot,
-            availableEquipment: availableEquipment,
-            preferenceStatusesByKey: preferenceStatusesByKey
-        )
+    private func libraryRow(_ result: ExerciseLibrarySearchResult) -> some View {
+        let alt = result.exercise
+        let metadata = result.definition.map { libraryMetadata(for: $0) }
+        let signals = result.signals
+        let compatibility = result.compatibility
 
         return Button(action: {
             guard compatibility.isSelectable else { return }
@@ -320,7 +323,7 @@ struct ProgramExerciseLibraryView: View {
             onDismiss()
         }, label: {
             HStack(spacing: 12) {
-                libraryRowVisual(alt, compatibility: compatibility)
+                libraryRowVisual(result, compatibility: compatibility)
                 VStack(alignment: .leading, spacing: 3) {
                     Text(alt.displayName)
                         .font(Font.unbound.bodyLStrong)
@@ -372,12 +375,12 @@ struct ProgramExerciseLibraryView: View {
 
     @ViewBuilder
     private func libraryRowVisual(
-        _ alt: CatalogExercise,
+        _ result: ExerciseLibrarySearchResult,
         compatibility: ExerciseLibraryCompatibilityState
     ) -> some View {
         let tint = compatibility.isSelectable ? compatibilityColor(compatibility) : Color.unbound.textTertiary
         ZStack(alignment: .bottomTrailing) {
-            if let definition = MovementCatalog.canonicalExercise(named: alt.name) {
+            if let definition = result.definition {
                 ExerciseVisualView(definition: definition, size: .thumbnail)
                     .frame(width: 62, height: 62)
             } else {

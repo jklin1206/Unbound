@@ -128,6 +128,9 @@ struct RootView: View {
             || ProcessInfo.processInfo.environment["RANK_TRIAL_DEMOS"] == "1"
             || ProcessInfo.processInfo.environment["RANK_TRIAL_DEMO"] != nil {
             RankTrialDemoRecorderView()
+        } else if ProcessInfo.processInfo.arguments.contains("-rankTrialReadyReview")
+            || ProcessInfo.processInfo.environment["RANK_TRIAL_READY_REVIEW"] == "1" {
+            RankTrialReadyReviewView()
         } else if ProcessInfo.processInfo.arguments.contains("-towerTrialDemo")
             || ProcessInfo.processInfo.environment["TOWER_TRIAL_DEMO"] == "1" {
             TowerTrialDemoView()
@@ -236,6 +239,86 @@ struct RootView: View {
 }
 
 #if DEBUG
+@MainActor
+private struct RankTrialReadyReviewView: View {
+    private let definition: OverallRankTrialDefinition
+    private let draft: TrainingSessionDraft
+
+    init() {
+        let definitions = OverallRankTrialDefinitions.all
+        let index = Self.requestedTrialIndex(in: definitions) ?? 0
+        let definition = definitions[index]
+        let equipment: Set<MovementEquipment> = [
+            .bodyweight,
+            .barbell,
+            .dumbbell,
+            .kettlebell,
+            .cable,
+            .machine,
+            .pullupBar,
+            .dipStation,
+            .rings,
+            .bench,
+            .box,
+            .band,
+            .sled,
+            .cardioMachine,
+            .openSpace
+        ]
+        let resolution = RankTrialLoadoutResolver.shared.resolve(
+            definition: definition,
+            userId: DevBuildBootstrapper.userId,
+            equipment: equipment
+        )
+        self.definition = definition
+        self.draft = definition.makeDraft(
+            userId: DevBuildBootstrapper.userId,
+            resolvedTrial: resolution.resolvedTrial,
+            bodyweightKg: 82
+        )
+    }
+
+    var body: some View {
+        WorkoutReadyView(draft: draft)
+            .accessibilityIdentifier("rankTrialReadyReview.\(definition.id)")
+    }
+
+    private static func requestedTrialIndex(in definitions: [OverallRankTrialDefinition]) -> Int? {
+        let args = ProcessInfo.processInfo.arguments
+        let env = ProcessInfo.processInfo.environment
+        let requested = value(after: "-rankTrialReadyReviewTrial", in: args)
+            ?? value(after: "--rank-trial-ready-review-trial", in: args)
+            ?? env["RANK_TRIAL_READY_REVIEW_TRIAL"]
+        guard let requested, !requested.isEmpty else { return nil }
+
+        if let numeric = Int(requested), definitions.indices.contains(numeric) {
+            return numeric
+        }
+
+        let normalized = requested
+            .replacingOccurrences(of: "-", with: "")
+            .replacingOccurrences(of: "_", with: "")
+            .replacingOccurrences(of: " ", with: "")
+            .lowercased()
+        return definitions.firstIndex { definition in
+            definition.id
+                .replacingOccurrences(of: "-", with: "")
+                .replacingOccurrences(of: "_", with: "")
+                .lowercased() == normalized
+            || definition.displayName
+                .replacingOccurrences(of: "The ", with: "")
+                .replacingOccurrences(of: " ", with: "")
+                .lowercased() == normalized
+            || definition.format.rawValue.lowercased() == normalized
+        }
+    }
+
+    private static func value(after flag: String, in args: [String]) -> String? {
+        guard let index = args.firstIndex(of: flag), args.indices.contains(index + 1) else { return nil }
+        return args[index + 1]
+    }
+}
+
 /// Launch with `-rewardDemo` to drop into the post-workout reward sequence and
 /// cycle through a battery of payload variants (no level-up, single rank,
 /// multi-rank feat, many exercises with different badges, the full kitchen sink

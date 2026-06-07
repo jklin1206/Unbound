@@ -1,0 +1,12 @@
+{
+  "images" : [
+    {
+      "filename" : "home_background_emerald_shrine.png",
+      "idiom" : "universal"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}

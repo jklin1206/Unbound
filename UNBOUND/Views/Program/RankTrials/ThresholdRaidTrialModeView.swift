@@ -29,8 +29,8 @@ struct ThresholdRaidTrialReadyPreview: View {
                         .fixedSize(horizontal: false, vertical: true)
 
                     HStack(spacing: 8) {
-                        raidChip("\(nodes.count) stations", icon: "point.3.connected.trianglepath.dotted")
-                        raidChip("3 gates", icon: "shield.lefthalf.filled")
+                        RankTrialInfoChip(text: "\(nodes.count) stations", icon: "point.3.connected.trianglepath.dotted", tint: tint, strokeOpacity: 0.3)
+                        RankTrialInfoChip(text: "3 gates", icon: "shield.lefthalf.filled", tint: tint, strokeOpacity: 0.3)
                     }
                 }
                 .layoutPriority(1)
@@ -45,17 +45,6 @@ struct ThresholdRaidTrialReadyPreview: View {
         }
     }
 
-    private func raidChip(_ text: String, icon: String) -> some View {
-        Label(text, systemImage: icon)
-            .font(Font.unbound.captionS.weight(.semibold))
-            .foregroundStyle(Color.unbound.textPrimary)
-            .lineLimit(1)
-            .minimumScaleFactor(0.72)
-            .padding(.horizontal, 9)
-            .frame(height: 28)
-            .background(Capsule().fill(Color.unbound.surfaceElevated))
-            .overlay(Capsule().strokeBorder(tint.opacity(0.3), lineWidth: 1))
-    }
 }
 
 struct ThresholdRaidTrialActiveView<CurrentStationCard: View>: View {

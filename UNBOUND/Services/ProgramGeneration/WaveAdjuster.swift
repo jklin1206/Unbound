@@ -37,7 +37,7 @@ enum WaveAdjuster {
         var adjustments: [WaveAdjustment] = []
         for index in adjustedProgram.days.indices {
             let day = adjustedProgram.days[index]
-            guard !day.isRestDay && day.savedWorkoutId == nil else { continue }
+            guard !day.isRestDay && !day.isUserOwnedWorkout else { continue }
             guard day.dayNumber >= dayNumber else { continue }
             guard let workout = day.workout else { continue }
             let load = RegionFatigueBudget.regionLoad(for: workout)

@@ -62,6 +62,12 @@ enum BlockType: String, Codable {
     }
 }
 
+enum ProgressionPrescriptionBias: String, Codable, Hashable, Sendable {
+    case easier
+    case hold
+    case harder
+}
+
 struct ProgressionState: Codable, Identifiable, Sendable {
     /// "{userId}:{exerciseName}" — stable composite key for storage.
     var id: String { "\(userId):\(exerciseKey)" }
@@ -94,6 +100,15 @@ struct ProgressionState: Codable, Identifiable, Sendable {
     var weekInBlock: Int
 
     var updatedAt: Date
+
+    /// Last-session signal used by generation to choose the next prescription
+    /// without mutating the user's owned workouts. Optional for legacy rows.
+    var lastSessionReps: Int? = nil
+    var lastSessionRPE: Int? = nil
+    var lastSessionHitTarget: Bool? = nil
+    var lastSessionWasGrindy: Bool? = nil
+    var underTargetSessionCount: Int? = nil
+    var prescriptionBias: ProgressionPrescriptionBias? = nil
 
     // MARK: Convenience
 

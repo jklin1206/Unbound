@@ -43,7 +43,8 @@ final class LocalSquadDirectory {
             inviteCode: inviteCode,
             maxSize: 8,
             squadStreakWeeks: 0,
-            createdAt: now
+            createdAt: now,
+            logoId: SquadLogoCatalog.defaultId
         )
         let captain = SquadMember(
             id: UUID(),
@@ -146,6 +147,15 @@ final class LocalSquadDirectory {
         guard let pair = records.first(where: { $0.value.squad.id == squadId }) else { return }
         var record = pair.value
         record.squad = record.squad.replacingAffinity(axis: axis, setAt: setAt)
+        records[pair.key] = record
+        save(records)
+    }
+
+    func updateLogo(squadId: UUID, logoId: String) {
+        var records = records()
+        guard let pair = records.first(where: { $0.value.squad.id == squadId }) else { return }
+        var record = pair.value
+        record.squad = record.squad.replacingLogo(logoId)
         records[pair.key] = record
         save(records)
     }

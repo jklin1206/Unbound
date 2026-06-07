@@ -91,6 +91,13 @@ sjw-wiki.yml
 /reward-*.gif
 /reward-*.wav
 /reward-*.m4a
+/.program-qa-proof/
+/.tmp-*
+/unbound-*.png
+/unbound-*.jpg
+/unbound-*.jpeg
+/unbound-*.webp
+/unbound-*.html
 
 # Do not keep deleted source in-tree; git history is the archive
 /_trash/

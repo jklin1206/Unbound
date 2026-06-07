@@ -35,6 +35,8 @@ struct WorkoutRewardSequenceSummary: Identifiable {
     var beats: [RewardBeat] = []
     var tally: RewardTally = .empty
     var emblemIgnition: Bool = false
+    var showsSessionSummary: Bool = true
+    var showsFinalSummary: Bool = true
 
     /// Unified per-exercise rank cards (skills AND lifts) for the RANKS beat:
     /// one card per movement showing the rank badge earned, progress toward the

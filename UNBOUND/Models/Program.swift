@@ -116,6 +116,7 @@ struct ProgramDay: Codable, Identifiable, Hashable {
     var workout: Workout?
     var sessionRole: SessionRole
     var savedWorkoutId: UUID?
+    var userWorkoutDraft: TrainingSessionDraft?
     var nutritionOverride: DayNutrition?
     var recoveryActivities: [RecoveryActivity]
 
@@ -127,6 +128,7 @@ struct ProgramDay: Codable, Identifiable, Hashable {
         workout: Workout?,
         sessionRole: SessionRole? = nil,
         savedWorkoutId: UUID? = nil,
+        userWorkoutDraft: TrainingSessionDraft? = nil,
         nutritionOverride: DayNutrition?,
         recoveryActivities: [RecoveryActivity]
     ) {
@@ -137,8 +139,13 @@ struct ProgramDay: Codable, Identifiable, Hashable {
         self.workout = workout
         self.sessionRole = sessionRole ?? (isRestDay ? .rest : .custom("unspecified"))
         self.savedWorkoutId = savedWorkoutId
+        self.userWorkoutDraft = userWorkoutDraft
         self.nutritionOverride = nutritionOverride
         self.recoveryActivities = recoveryActivities
+    }
+
+    var isUserOwnedWorkout: Bool {
+        savedWorkoutId != nil || userWorkoutDraft != nil
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -149,6 +156,7 @@ struct ProgramDay: Codable, Identifiable, Hashable {
         case workout
         case sessionRole
         case savedWorkoutId
+        case userWorkoutDraft
         case nutritionOverride
         case recoveryActivities
     }
@@ -163,6 +171,7 @@ struct ProgramDay: Codable, Identifiable, Hashable {
         sessionRole = try c.decodeIfPresent(SessionRole.self, forKey: .sessionRole)
             ?? (isRestDay ? .rest : .custom("unspecified"))
         savedWorkoutId = try c.decodeIfPresent(UUID.self, forKey: .savedWorkoutId)
+        userWorkoutDraft = try c.decodeIfPresent(TrainingSessionDraft.self, forKey: .userWorkoutDraft)
         nutritionOverride = try c.decodeIfPresent(DayNutrition.self, forKey: .nutritionOverride)
         recoveryActivities = try c.decode([RecoveryActivity].self, forKey: .recoveryActivities)
     }
@@ -279,17 +288,17 @@ enum ProgramBodyRegion: Hashable, Sendable {
 
     static func from(bodyRegion: BodyRegion) -> ProgramBodyRegion {
         switch bodyRegion {
-        case .chest, .triceps:
+        case .chest, .upperChest, .midLowerChest, .triceps:
             return .push
-        case .shoulders:
+        case .shoulders, .frontSideDelts:
             return .shoulders
-        case .biceps, .forearms, .traps, .lats:
+        case .biceps, .forearms, .traps, .rearDelts, .rhomboids, .lats:
             return .pull
         case .abs, .obliques:
             return .core
-        case .lowerBack, .hamstrings, .glutes:
+        case .lowerBack, .hamstrings, .glutes, .abductors:
             return .posterior
-        case .quads, .calves:
+        case .quads, .adductors, .calves:
             return .legs
         }
     }

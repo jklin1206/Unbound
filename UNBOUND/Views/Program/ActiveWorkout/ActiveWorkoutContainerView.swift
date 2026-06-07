@@ -4,7 +4,7 @@ import SwiftUI
 //
 // Session orchestrator for the new grid-based logging surface.
 // Owns the ActiveWorkoutSession, autosaves drafts, hosts WorkoutLogGridView
-// + RestTimerPill overlay, and on COMPLETE assembles + saves unified
+// + timer chrome, and on COMPLETE assembles + saves unified
 // PerformanceLog data before showing the post-workout reward sequence.
 
 struct ActiveWorkoutContainerView: View {
@@ -38,7 +38,8 @@ struct ActiveWorkoutContainerView: View {
     private struct RPETarget: Identifiable { let id = UUID(); let ei: Int; let si: Int }
 
     // Rest timer
-    @StateObject private var restTimer = RestTimerModel(notifier: RestNotifier.shared)
+    @ObservedObject private var restTimer = RestTimerModel.shared
+    @State private var workoutElapsedSeconds = 0
     private let restClock = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     @Environment(\.dismiss) private var dismiss
@@ -99,33 +100,39 @@ struct ActiveWorkoutContainerView: View {
         ZStack(alignment: .bottom) {
             Color.unbound.bg.ignoresSafeArea()
 
-            WorkoutLogGridView(
-                session: session,
-                rankTrialDefinition: rankTrialDefinition,
-                onIntent: { ei, intent in handleIntent(ei, intent) },
-                onEditWeight: { ei, si in editing = EditTarget(ei: ei, si: si, isWeight: true) },
-                onEditReps:   { ei, si in editing = EditTarget(ei: ei, si: si, isWeight: false) },
-                onPickRPE: { ei, si in rpeTarget = RPETarget(ei: ei, si: si) },
-                onConfirmAsPlanned: { ei, si in
-                    let shouldUseDeckFlow = isDeckTrial
-                    session.confirmAsPlanned(exerciseIndex: ei, setIndex: si)
-                    try? draftStore.save(session)
-                    if shouldUseDeckFlow && !session.hasUnloggedWorkingSets {
-                        restTimer.stop()
-                        Task { await complete() }
-                    } else {
-                        transition(ei: ei)
+            VStack(spacing: 0) {
+                workoutTopBar
+
+                WorkoutLogGridView(
+                    session: session,
+                    rankTrialDefinition: rankTrialDefinition,
+                    onIntent: { ei, intent in handleIntent(ei, intent) },
+                    onEditWeight: { ei, si in editing = EditTarget(ei: ei, si: si, isWeight: true) },
+                    onEditReps:   { ei, si in editing = EditTarget(ei: ei, si: si, isWeight: false) },
+                    onPickRPE: { ei, si in rpeTarget = RPETarget(ei: ei, si: si) },
+                    onConfirmAsPlanned: { ei, si in
+                        let shouldUseDeckFlow = isDeckTrial
+                        session.confirmAsPlanned(exerciseIndex: ei, setIndex: si)
+                        try? draftStore.save(session)
+                        if shouldUseDeckFlow && !session.hasUnloggedWorkingSets {
+                            restTimer.stop()
+                            Task { await complete() }
+                        } else {
+                            transition(ei: ei)
+                        }
+                    },
+                    onToggleQualityFlag: { ei, si, flag in
+                        session.toggleQualityFlag(flag, exerciseIndex: ei, setIndex: si)
+                        try? draftStore.save(session)
+                    },
+                    onAddSet: { ei in
+                        session.addSet(toExerciseIndex: ei)
+                        try? draftStore.save(session)
                     }
-                },
-                onToggleQualityFlag: { ei, si, flag in
-                    session.toggleQualityFlag(flag, exerciseIndex: ei, setIndex: si)
-                    try? draftStore.save(session)
-                },
-                onAddSet: { ei in
-                    session.addSet(toExerciseIndex: ei)
-                    try? draftStore.save(session)
-                }
-            )
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             if isDeckTrial {
                 deckRestFooter
@@ -133,24 +140,12 @@ struct ActiveWorkoutContainerView: View {
                 completionFooter
             }
         }
-        .overlay(alignment: .topLeading) {
-            Button {
-                showExitConfirm = true
-            } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 15, weight: .bold))
-                    .foregroundStyle(Color.unbound.textSecondary)
-                    .frame(width: 36, height: 36)
-                    .background(Circle().fill(Color.unbound.surfaceElevated))
-                    .overlay(Circle().strokeBorder(Color.unbound.borderSubtle, lineWidth: 1))
-            }
-            .buttonStyle(.plain)
-            .padding(.leading, 16)
-            .padding(.top, 8)
-            .accessibilityLabel("Close workout")
+        .onReceive(restClock) { now in
+            restTimer.tick(now: now)
+            workoutElapsedSeconds = Self.elapsedSeconds(since: session.startedAt, now: now)
         }
-        .onReceive(restClock) { _ in restTimer.tick() }
         .task {
+            workoutElapsedSeconds = Self.elapsedSeconds(since: session.startedAt)
             await loadContext()
         }
         .task {
@@ -281,6 +276,116 @@ struct ActiveWorkoutContainerView: View {
 
     // MARK: - Computed helpers
 
+    private var workoutTopBar: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 12) {
+                closeWorkoutButton
+                Spacer(minLength: 0)
+                workoutElapsedTime
+                Spacer(minLength: 0)
+                workoutModeBadge
+            }
+
+            workoutProgressRail
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 16)
+        .padding(.bottom, 8)
+    }
+
+    private var closeWorkoutButton: some View {
+        Button {
+            showExitConfirm = true
+        } label: {
+            Image(systemName: "xmark")
+                .font(.system(size: 13, weight: .bold))
+                .foregroundStyle(Color.unbound.textSecondary)
+                .frame(width: 36, height: 36)
+                .background(Circle().fill(Color.unbound.surface))
+                .overlay(Circle().strokeBorder(Color.unbound.borderSubtle, lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Close workout")
+    }
+
+    private var workoutElapsedTime: some View {
+        VStack(spacing: 2) {
+            Text("TOTAL TIME")
+                .font(.system(size: 8, weight: .heavy, design: .monospaced))
+                .tracking(1.4)
+                .foregroundStyle(Color.unbound.textTertiary)
+            Text(Self.timeString(seconds: workoutElapsedSeconds))
+                .font(Font.unbound.monoS.weight(.bold))
+                .tracking(1.4)
+                .foregroundStyle(Color.unbound.textSecondary)
+                .monospacedDigit()
+        }
+        .frame(minWidth: 92)
+        .accessibilityLabel("Workout timer")
+        .accessibilityValue(Self.timeString(seconds: workoutElapsedSeconds))
+        .accessibilityIdentifier("workout.elapsedTime")
+    }
+
+    private var workoutModeBadge: some View {
+        let tint = workoutHeaderTint
+        let text = session.progressSummary.isComplete
+            ? "FINISH"
+            : (isRankTrial ? "TRIAL" : "LIVE")
+        return Text(text)
+            .font(Font.unbound.captionS.weight(.bold))
+            .tracking(1.4)
+            .foregroundStyle(tint)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(Capsule().fill(tint.opacity(0.15)))
+            .overlay(Capsule().strokeBorder(tint.opacity(0.35), lineWidth: 1))
+            .frame(width: 64)
+            .accessibilityLabel(text == "FINISH" ? "Ready to finish" : text)
+    }
+
+    private var workoutProgressRail: some View {
+        let progress = session.progressSummary
+        return VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text(workoutProgressLabel(progress))
+                    .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                    .tracking(1.4)
+                    .foregroundStyle(Color.unbound.textTertiary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                Spacer(minLength: 0)
+            }
+
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(Color.unbound.surface)
+                        .frame(height: 3)
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(workoutHeaderTint)
+                        .frame(width: geo.size.width * workoutProgressFraction(progress), height: 3)
+                        .animation(.spring(response: 0.5, dampingFraction: 0.8), value: progress.loggedWorkingSets)
+                }
+            }
+            .frame(height: 3)
+        }
+    }
+
+    private var workoutHeaderTint: Color {
+        isRankTrial ? Color.unbound.coachCyan : Color.unbound.accent
+    }
+
+    private func workoutProgressFraction(_ progress: ActiveWorkoutSession.ProgressSummary) -> CGFloat {
+        guard progress.totalWorkingSets > 0 else { return 0 }
+        return min(1, CGFloat(progress.loggedWorkingSets) / CGFloat(progress.totalWorkingSets))
+    }
+
+    private func workoutProgressLabel(_ progress: ActiveWorkoutSession.ProgressSummary) -> String {
+        guard progress.totalWorkingSets > 0 else { return "SESSION IN PROGRESS" }
+        if progress.isComplete { return "READY TO FINISH" }
+        return "\(progress.loggedWorkingSets) OF \(progress.totalWorkingSets) WORK SETS"
+    }
+
     private var totalLoggedWorkingSets: Int {
         session.exercises.filter { !$0.skipped }.reduce(0) {
             $0 + $1.sets.filter { !$0.isWarmup && $0.logged }.count
@@ -397,6 +502,21 @@ struct ActiveWorkoutContainerView: View {
             return progress.isComplete ? "FINISH TRIAL" : "COMPLETE TRIAL"
         }
         return progress.isComplete ? "FINISH SESSION" : "COMPLETE SESSION"
+    }
+
+    private static func elapsedSeconds(since startedAt: Date, now: Date = Date()) -> Int {
+        max(0, Int(now.timeIntervalSince(startedAt).rounded(.down)))
+    }
+
+    private static func timeString(seconds: Int) -> String {
+        let clamped = max(0, seconds)
+        let hours = clamped / 3_600
+        let minutes = (clamped % 3_600) / 60
+        let seconds = clamped % 60
+        if hours > 0 {
+            return String(format: "%d:%02d:%02d", hours, minutes, seconds)
+        }
+        return String(format: "%d:%02d", minutes, seconds)
     }
 
     // MARK: - Rest timer
@@ -585,11 +705,17 @@ struct ActiveWorkoutContainerView: View {
         let performanceLog = session.assemblePerformanceLog(userId: uid)
         #endif
         do {
-            let completionResult = try await TrainingCompletionService.shared.complete(performanceLog, services: services)
+            var completionResult = try await TrainingCompletionService.shared.complete(performanceLog, services: services)
             let weeklyVowReceipt = services.trials.recordCompletedVowWork(
                 performanceLog: performanceLog,
                 completionResult: completionResult
             )
+            if let weeklyVowReceipt {
+                completionResult = await applyWeeklyVowBonus(
+                    weeklyVowReceipt,
+                    to: completionResult
+                )
+            }
             let rankTrialResult = OverallRankTrialRunner.shared.recordCompletedAttempt(
                 performanceLog: performanceLog,
                 completionResult: completionResult,
@@ -623,6 +749,33 @@ struct ActiveWorkoutContainerView: View {
             saving = false
             saveError = true   // surface it + offer Retry / Leave — never trap
         }
+    }
+
+    private func applyWeeklyVowBonus(
+        _ receipt: WeeklyVowCompletionReceipt,
+        to completionResult: TrainingCompletionResult
+    ) async -> TrainingCompletionResult {
+        var updated = completionResult
+        do {
+            let reward = try await OverallLevelService.shared.grantFlatXPStrict(
+                amount: receipt.completionBonus.overallLevelXP,
+                sourceId: "weekly-vow-bonus:\(receipt.performanceLogId)",
+                userId: receipt.vow.userId,
+                at: receipt.completedAt,
+                database: services.database
+            )
+            updated.appendOverallLevelReward(reward)
+        } catch {
+            LoggingService.shared.log(
+                "Weekly Vow bonus XP persistence failed: \(error)",
+                level: .warning,
+                context: [
+                    "vowId": receipt.vow.id,
+                    "performanceLogId": receipt.performanceLogId
+                ]
+            )
+        }
+        return updated
     }
 
     private func finishDismiss() {
@@ -696,224 +849,3 @@ struct ActiveWorkoutContainerView: View {
 
 /// Inline stepper sheet for editing a single weight or reps cell.
 /// Writes back to session on Done; keeps `logged` state unchanged.
-private struct EditorSheet: View {
-    @ObservedObject var session: ActiveWorkoutSession
-    let ei: Int
-    let si: Int
-    let isWeight: Bool
-    let onCommitted: () -> Void
-
-    @State private var value: Double
-    @Environment(\.dismiss) private var dismiss
-    @AppStorage(WeightPlatePolicy.unitDefaultsKey) private var weightUnitRaw = TrainingWeightUnit.localeDefault.rawValue
-    @AppStorage(WeightPlatePolicy.microloadingDefaultsKey) private var microloadingEnabled = false
-
-    init(session: ActiveWorkoutSession,
-         ei: Int,
-         si: Int,
-         isWeight: Bool,
-         onCommitted: @escaping () -> Void) {
-        self.session = session
-        self.ei = ei
-        self.si = si
-        self.isWeight = isWeight
-        self.onCommitted = onCommitted
-
-        let initial: Double
-        if isWeight {
-            let unit = WeightPlatePolicy.currentUnit
-            let kilograms = session.exercises.indices.contains(ei)
-                && session.exercises[ei].sets.indices.contains(si)
-                ? (session.exercises[ei].sets[si].weightKg
-                   ?? session.exercises[ei].sets[si].suggestedWeightKg)
-                : nil
-            initial = kilograms.map { WeightPlatePolicy.editingValue(fromKilograms: $0, unit: unit) } ?? 0
-        } else {
-            if session.exercises.indices.contains(ei),
-               session.exercises[ei].sets.indices.contains(si) {
-                let set = session.exercises[ei].sets[si]
-                switch session.exercises[ei].metricKind {
-                case .reps:
-                    initial = Double(set.reps ?? set.suggestedReps ?? 0)
-                case .holdSeconds:
-                    initial = Double(set.holdSeconds ?? set.suggestedHoldSeconds ?? 0)
-                case .durationSeconds:
-                    initial = Double(set.durationSeconds ?? set.suggestedDurationSeconds ?? 0)
-                case .distanceMeters:
-                    initial = Double(set.distanceMeters ?? set.suggestedDistanceMeters ?? 0)
-                case .calories:
-                    initial = Double(set.calories ?? set.suggestedCalories ?? 0)
-                }
-            } else {
-                initial = 0
-            }
-        }
-        _value = State(initialValue: initial)
-    }
-
-    var body: some View {
-        NavigationStack {
-            ZStack {
-                Color.unbound.bg.ignoresSafeArea()
-                VStack(spacing: 32) {
-                    Spacer()
-                    StepperControl(
-                        label: label,
-                        value: $value,
-                        step: isWeight ? weightStep : 1,
-                        unit: unit,
-                        allowsDecimal: isWeight
-                    )
-                    Spacer()
-                }
-                .padding(24)
-            }
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { commit() }
-                        .foregroundStyle(Color.unbound.accent)
-                        .fontWeight(.semibold)
-                }
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                        .foregroundStyle(Color.unbound.textSecondary)
-                }
-            }
-        }
-        .presentationDetents([.height(280)])
-        .presentationDragIndicator(.visible)
-        .presentationBackground(Color.unbound.bg)
-    }
-
-    private var isHoldMetric: Bool {
-        session.exercises.indices.contains(ei)
-            && (session.exercises[ei].blockKind == .carry
-                || session.exercises[ei].metricKind == .holdSeconds
-                || session.exercises[ei].metricKind == .durationSeconds)
-    }
-
-    private var label: String {
-        if isWeight { return isHoldMetric ? "Load" : "Weight" }
-        guard session.exercises.indices.contains(ei) else { return "Value" }
-        switch session.exercises[ei].metricKind {
-        case .reps: return "Reps"
-        case .holdSeconds: return "Hold"
-        case .durationSeconds: return "Time"
-        case .distanceMeters: return "Distance"
-        case .calories: return "Calories"
-        }
-    }
-
-    private var unit: String? {
-        if isWeight { return weightUnit.shortLabel }
-        guard session.exercises.indices.contains(ei) else { return nil }
-        switch session.exercises[ei].metricKind {
-        case .reps: return nil
-        case .holdSeconds, .durationSeconds: return "sec"
-        case .distanceMeters: return "m"
-        case .calories: return "cal"
-        }
-    }
-
-    private var weightUnit: TrainingWeightUnit {
-        TrainingWeightUnit(rawValue: weightUnitRaw) ?? .localeDefault
-    }
-
-    private var weightStep: Double {
-        WeightPlatePolicy.loadIncrement(
-            unit: weightUnit,
-            microloadingEnabled: microloadingEnabled
-        )
-    }
-
-    private func commit() {
-        guard session.exercises.indices.contains(ei),
-              session.exercises[ei].sets.indices.contains(si) else {
-            dismiss()
-            return
-        }
-        if isWeight {
-            session.objectWillChange.send()
-            session.exercises[ei].sets[si].weightKg = value > 0
-                ? WeightPlatePolicy.kilograms(fromDisplayValue: value, unit: weightUnit)
-                : nil
-        } else {
-            let intValue = Int(value)
-            session.objectWillChange.send()
-            switch session.exercises[ei].metricKind {
-            case .reps:
-                session.exercises[ei].sets[si].reps = intValue > 0 ? intValue : nil
-            case .holdSeconds:
-                session.exercises[ei].sets[si].holdSeconds = intValue > 0 ? intValue : nil
-            case .durationSeconds:
-                session.exercises[ei].sets[si].durationSeconds = intValue > 0 ? intValue : nil
-            case .distanceMeters:
-                session.exercises[ei].sets[si].distanceMeters = intValue > 0 ? intValue : nil
-            case .calories:
-                session.exercises[ei].sets[si].calories = intValue > 0 ? intValue : nil
-            }
-        }
-        // Keep .logged unchanged — do not clear it.
-        onCommitted()
-        dismiss()
-    }
-}
-
-// MARK: - NotesEditSheet
-
-/// Lightweight inline notes editor — simple text entry that writes back via
-/// session.setNotes(_:forExerciseAt:). No heavy dependencies.
-private struct NotesEditSheet: View {
-    @Binding var text: String
-    let onSave: () -> Void
-    let onCancel: () -> Void
-
-    var body: some View {
-        NavigationStack {
-            ZStack {
-                Color.unbound.bg.ignoresSafeArea()
-
-                VStack(alignment: .leading, spacing: 16) {
-                    Text("EXERCISE NOTES")
-                        .font(Font.unbound.captionS.weight(.bold))
-                        .tracking(1.4)
-                        .foregroundStyle(Color.unbound.textTertiary)
-
-                    TextField("How did this feel? Cues, tips…", text: $text, axis: .vertical)
-                        .font(Font.unbound.bodyS)
-                        .foregroundStyle(Color.unbound.textPrimary)
-                        .tint(Color.unbound.accent)
-                        .padding(12)
-                        .background(
-                            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                .fill(Color.unbound.surface)
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
-                        )
-                        .lineLimit(4...10)
-
-                    Spacer()
-                }
-                .padding(20)
-            }
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { onCancel() }
-                        .foregroundStyle(Color.unbound.textSecondary)
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") { onSave() }
-                        .foregroundStyle(Color.unbound.accent)
-                        .fontWeight(.semibold)
-                }
-            }
-        }
-        .presentationDetents([.medium])
-        .presentationDragIndicator(.visible)
-        .presentationBackground(Color.unbound.bg)
-    }
-}

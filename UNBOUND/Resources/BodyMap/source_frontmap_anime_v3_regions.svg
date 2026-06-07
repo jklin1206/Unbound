@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 848 1264" width="848" height="1264">
+  <g id="anime-v3-region-masks" fill="#ffffff" fill-opacity="1" stroke="none">
+    <path id="anime-v3-front-chest-1" data-region="chest" d="M 556 288 L 542 269 L 508 236 L 494 237 L 490 241 L 483 238 L 453 241 L 436 250 L 433 255 L 432 320 L 437 330 L 458 340 L 486 345 L 509 344 L 524 337 L 558 297 Z" />
+    <path id="anime-v3-front-chest-2" data-region="chest" d="M 293 296 L 315 325 L 336 342 L 366 345 L 405 336 L 414 330 L 419 321 L 418 253 L 396 241 L 370 238 L 361 241 L 357 237 L 343 236 L 306 273 L 296 288 L 298 292 Z" />
+    <path id="anime-v3-front-shoulders-1" data-region="shoulders" d="M 331 232 L 313 227 L 297 228 L 277 235 L 261 249 L 251 266 L 245 286 L 244 305 L 248 326 L 280 297 L 298 269 L 333 234 Z" />
+    <path id="anime-v3-front-shoulders-2" data-region="shoulders" d="M 520 232 L 525 241 L 556 271 L 574 300 L 602 325 L 607 299 L 605 282 L 600 266 L 588 246 L 578 237 L 555 228 L 538 227 Z" />
+    <path id="anime-v3-front-biceps-1" data-region="biceps" d="M 294 305 L 270 317 L 251 336 L 246 335 L 243 327 L 237 337 L 233 351 L 232 380 L 235 395 L 241 397 L 248 425 L 275 409 L 285 397 L 290 385 L 299 341 L 299 315 Z" />
+    <path id="anime-v3-front-biceps-2" data-region="biceps" d="M 556 305 L 552 311 L 551 335 L 555 367 L 562 392 L 575 410 L 601 425 L 608 397 L 614 395 L 617 384 L 617 355 L 613 339 L 606 327 L 605 332 L 600 336 L 573 312 Z" />
+    <path id="anime-v3-front-forearms-1" data-region="forearms" d="M 225 409 L 203 445 L 184 556 L 191 558 L 203 541 L 206 545 L 199 560 L 206 556 L 209 565 L 212 556 L 218 555 L 218 570 L 267 483 L 276 425 L 241 452 L 222 512 L 208 539 L 202 541 L 232 456 L 231 421 Z" />
+    <path id="anime-v3-front-forearms-2" data-region="forearms" d="M 622 410 L 616 444 L 625 489 L 642 527 L 638 533 L 634 528 L 635 541 L 624 540 L 602 493 L 608 488 L 626 514 L 603 447 L 573 426 L 573 443 L 583 486 L 615 536 L 630 571 L 640 564 L 641 555 L 647 562 L 650 554 L 658 560 L 663 557 L 645 447 Z" />
+    <path id="anime-v3-front-abs-1" data-region="abs" d="M 383 483 L 380 491 L 381 506 L 386 530 L 391 544 L 399 547 L 418 549 L 420 540 L 420 507 L 418 487 L 415 484 Z" />
+    <path id="anime-v3-front-abs-2" data-region="abs" d="M 465 483 L 433 485 L 430 493 L 431 549 L 456 545 L 458 543 L 465 522 L 468 506 L 469 489 Z" />
+    <path id="anime-v3-front-abs-3" data-region="abs" d="M 433 435 L 430 441 L 430 467 L 432 472 L 435 475 L 439 476 L 464 475 L 468 471 L 472 463 L 472 437 L 470 435 Z" />
+    <path id="anime-v3-front-abs-4" data-region="abs" d="M 416 435 L 401 434 L 378 436 L 376 446 L 377 461 L 381 470 L 386 475 L 412 476 L 418 472 L 420 465 L 420 442 L 419 438 Z" />
+    <path id="anime-v3-front-abs-5" data-region="abs" d="M 432 390 L 430 396 L 430 418 L 434 426 L 470 427 L 473 425 L 476 418 L 476 399 L 472 394 L 466 391 L 454 389 Z" />
+    <path id="anime-v3-front-abs-6" data-region="abs" d="M 376 396 L 374 403 L 374 414 L 378 426 L 416 426 L 419 423 L 420 394 L 418 390 L 390 389 Z" />
+    <path id="anime-v3-front-abs-7" data-region="abs" d="M 432 348 L 430 353 L 430 373 L 434 380 L 451 381 L 474 387 L 477 385 L 479 378 L 479 370 L 476 361 L 470 355 L 448 347 L 436 346 Z" />
+    <path id="anime-v3-front-abs-8" data-region="abs" d="M 420 350 L 417 347 L 409 346 L 395 349 L 379 356 L 376 359 L 372 368 L 372 379 L 375 386 L 378 387 L 402 381 L 418 380 L 420 376 Z" />
+    <path id="anime-v3-front-obliques-1" data-region="obliques" d="M 319 346 L 317 362 L 320 372 L 316 378 L 319 388 L 324 391 L 323 403 L 330 422 L 329 500 L 340 515 L 372 533 L 374 528 L 361 465 L 364 443 L 359 426 L 362 421 L 359 388 L 363 359 L 335 354 Z" />
+    <path id="anime-v3-front-obliques-2" data-region="obliques" d="M 534 348 L 488 358 L 491 387 L 488 420 L 491 424 L 486 458 L 489 463 L 474 529 L 476 533 L 508 515 L 520 496 L 519 424 L 527 402 L 525 392 L 532 387 L 535 378 L 531 371 Z" />
+    <path id="anime-v3-front-quads-1" data-region="quads" d="M 314 586 L 287 654 L 285 750 L 302 812 L 316 789 L 323 787 L 350 841 L 359 832 L 366 798 L 365 742 L 358 722 L 364 687 L 363 648 L 348 606 L 330 588 Z" />
+    <path id="anime-v3-front-quads-2" data-region="quads" d="M 532 586 L 517 587 L 500 603 L 483 650 L 489 722 L 482 740 L 481 797 L 488 832 L 496 841 L 502 839 L 524 786 L 530 787 L 544 812 L 561 747 L 559 654 Z" />
+    <path id="anime-v3-front-adductors-1" data-region="adductors" d="M 374 646 L 377 794 L 371 825 L 377 814 L 388 765 L 409 699 L 407 688 Z" />
+    <path id="anime-v3-front-adductors-2" data-region="adductors" d="M 472 646 L 446 679 L 438 697 L 476 825 L 470 788 Z" />
+    <path id="anime-v3-front-calves-1" data-region="calves" d="M 355 872 L 335 890 L 323 919 L 323 946 L 318 948 L 314 994 L 314 1069 L 318 1085 L 327 1075 L 334 1030 L 332 1023 L 337 1015 L 339 998 L 354 974 L 361 952 L 363 921 Z" />
+    <path id="anime-v3-front-calves-2" data-region="calves" d="M 491 871 L 486 911 L 487 949 L 497 979 L 510 998 L 521 1075 L 530 1084 L 534 1055 L 529 949 L 524 947 L 525 925 L 514 894 Z" />
+    <path id="anime-v3-front-calves-3" data-region="calves" d="M 553 862 L 547 885 L 548 1031 L 551 1076 L 557 1084 L 557 1033 L 572 935 L 567 898 Z" />
+    <path id="anime-v3-front-calves-4" data-region="calves" d="M 293 862 L 283 889 L 276 927 L 290 1028 L 290 1085 L 296 1079 L 300 986 L 300 890 Z" />
+  </g>
+</svg>

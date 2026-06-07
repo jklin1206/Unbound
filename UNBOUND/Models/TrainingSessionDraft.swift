@@ -619,14 +619,16 @@ struct TrainingBlockPrescription: Codable, Identifiable, Hashable, Sendable {
     }
 
     var displayTargetText: String {
-        guard let loadPercentOfBodyweight else {
-            return target.displayText
-        }
-
-        if let suggestedWeightKg {
+        if let loadPercentOfBodyweight, let suggestedWeightKg {
             return "\(target.displayText) @ \(Self.loadText(suggestedWeightKg)) (\(Self.bodyweightPercentText(loadPercentOfBodyweight)))"
         }
-        return "\(target.displayText) @ \(Self.bodyweightPercentText(loadPercentOfBodyweight))"
+        if let loadPercentOfBodyweight {
+            return "\(target.displayText) @ \(Self.bodyweightPercentText(loadPercentOfBodyweight))"
+        }
+        if let suggestedWeightKg {
+            return "\(target.displayText) @ \(Self.loadText(suggestedWeightKg))"
+        }
+        return target.displayText
     }
 
     private static func bodyweightPercentText(_ percent: Double) -> String {

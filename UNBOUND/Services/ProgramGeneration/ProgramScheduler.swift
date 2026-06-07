@@ -83,6 +83,15 @@ enum WeekPhase: String, Codable, CaseIterable, Identifiable, Hashable {
         case .deload:   return "moon.zzz.fill"
         }
     }
+
+    var workoutDeloadFactor: Double? {
+        switch self {
+        case .deload:
+            return 0.5
+        case .heavy, .moderate, .light:
+            return nil
+        }
+    }
 }
 
 @MainActor

@@ -332,6 +332,13 @@ final class DailyWorkoutResolverTests: XCTestCase {
         XCTAssertTrue(strength?.prescriptions.allSatisfy { $0.notes?.contains("Deload modifier") == true } == true)
     }
 
+    func testWeekPhaseDeloadMapsIntoWorkoutModifier() {
+        XCTAssertNil(WeekPhase.heavy.workoutDeloadFactor)
+        XCTAssertNil(WeekPhase.moderate.workoutDeloadFactor)
+        XCTAssertNil(WeekPhase.light.workoutDeloadFactor)
+        XCTAssertEqual(WeekPhase.deload.workoutDeloadFactor, 0.5)
+    }
+
     func testAvoidedMovementModifierSwapsCompatibleAlternative() {
         let workout = Workout(
             name: "Avoided Push",
@@ -443,6 +450,110 @@ final class DailyWorkoutResolverTests: XCTestCase {
             overview.last?.date,
             calendar.date(byAdding: .day, value: 2, to: calendar.startOfDay(for: start))
         )
+    }
+
+    func testUserDraftReceivesScheduledSkillOverlayWithoutMutatingBaseDraft() {
+        let base = TrainingSessionDraft(
+            userId: "u1",
+            source: .custom,
+            title: "Built Pull",
+            estimatedMinutes: 35,
+            blocks: [
+                TrainingBlock(
+                    kind: .strength,
+                    title: "Pull",
+                    prescriptions: [
+                        TrainingBlockPrescription(
+                            exerciseName: "lat pulldown",
+                            sets: 4,
+                            target: .repsRange(8, 10),
+                            restSeconds: 90,
+                            muscleGroups: [.back]
+                        )
+                    ]
+                )
+            ]
+        )
+
+        let resolved = DailyWorkoutResolver.composedUserDraft(
+            base,
+            userId: "u1",
+            scheduledSkillIds: ["pp.pullup"]
+        )
+
+        XCTAssertNil(base.blocks.first?.skillId)
+        XCTAssertEqual(base.blocks.first?.prescriptions.first?.sets, 4)
+        XCTAssertEqual(resolved.blocks.first(where: { $0.kind == .skill })?.skillId, "pp.pullup")
+        XCTAssertEqual(
+            resolved.blocks.first(where: { $0.kind == .strength })?.prescriptions.first?.sets,
+            4
+        )
+    }
+
+    func testExistingSkillBlockForSameFocusIsNotDuplicated() {
+        let skillBlock = DailyWorkoutResolver.skillOnlyDraft(skillId: "pp.pullup", userId: "u1")?.blocks.first
+        let base = TrainingSessionDraft(
+            userId: "u1",
+            source: .custom,
+            title: "Built Pull",
+            estimatedMinutes: 35,
+            blocks: [
+                skillBlock ?? TrainingBlock(kind: .skill, title: "Pull-Up", skillId: "pp.pullup", prescriptions: [])
+            ]
+        )
+
+        let resolved = DailyWorkoutResolver.composedUserDraft(
+            base,
+            userId: "u1",
+            scheduledSkillIds: ["pp.pullup"]
+        )
+
+        XCTAssertEqual(resolved.blocks.filter { $0.skillId == "pp.pullup" }.count, 1)
+    }
+
+    func testProgressionDecoratesCustomDraftPrescription() {
+        var state = ProgressionState.seed(
+            userId: "u1",
+            exercise: "bench press",
+            startingWeightKg: 100,
+            block: .intensification
+        )
+        state.targetRepMin = 5
+        state.targetRepMax = 7
+        state.targetRPE = 8
+
+        let base = TrainingSessionDraft(
+            userId: "u1",
+            source: .custom,
+            title: "Built Push",
+            estimatedMinutes: 35,
+            blocks: [
+                TrainingBlock(
+                    kind: .strength,
+                    title: "Push",
+                    prescriptions: [
+                        TrainingBlockPrescription(
+                            exerciseName: "Bench Press",
+                            sets: 3,
+                            target: .repsRange(8, 10),
+                            restSeconds: 120,
+                            muscleGroups: [.chest]
+                        )
+                    ]
+                )
+            ]
+        )
+
+        let resolved = DailyWorkoutResolver.composedUserDraft(
+            base,
+            userId: "u1",
+            progressionStates: [MovementCatalog.normalized(state.exerciseKey): state]
+        )
+
+        let prescription = resolved.blocks.first?.prescriptions.first
+        XCTAssertEqual(prescription?.target, .repsRange(5, 7))
+        XCTAssertEqual(prescription?.rpe, 8)
+        XCTAssertEqual(prescription?.suggestedWeightKg, 100)
     }
 
     private func exercise(_ name: String, sets: Int, reps: String = "8-10") -> Exercise {

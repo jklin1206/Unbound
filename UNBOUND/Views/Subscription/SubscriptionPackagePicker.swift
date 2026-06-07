@@ -6,6 +6,7 @@ struct SubscriptionPackagePicker: View {
     let placement: String
     var ctaTitle: String = L10n.string(.subscriptionLockedCTA, defaultValue: "Subscribe to continue")
     var showsPitch: Bool = true
+    var maxVisiblePackages: Int? = nil
     var onPurchased: () -> Void = {}
 
     @State private var packages: [SubscriptionPackage] = []
@@ -52,7 +53,7 @@ struct SubscriptionPackagePicker: View {
             } else if packages.isEmpty {
                 unavailableCard
             } else {
-                ForEach(orderedPackages) { package in
+                ForEach(displayedPackages) { package in
                     packageCard(package)
                 }
             }
@@ -90,6 +91,77 @@ struct SubscriptionPackagePicker: View {
     }
 
     private func packageCard(_ package: SubscriptionPackage) -> some View {
+        let isSelected = selectedPackageId == package.id
+        return Button {
+            UnboundHaptics.medium()
+            selectedPackageId = package.id
+        } label: {
+            VStack(alignment: .leading, spacing: 9) {
+                HStack(alignment: .top, spacing: 10) {
+                    selectionIndicator(isSelected: isSelected)
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack(spacing: 7) {
+                            Text(planTitle(for: package))
+                                .font(Font.unbound.bodyLStrong)
+                                .foregroundStyle(Color.unbound.textPrimary)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.82)
+
+                            if let badge = badgeText(for: package) {
+                                planBadge(badge, emphasized: isSelected || isQuarterly(package))
+                            } else if package.hasFreeTrial {
+                                planBadge(trialBadge(for: package), emphasized: false)
+                            }
+                        }
+
+                        Text(detailLine(for: package))
+                            .font(Font.unbound.captionS)
+                            .foregroundStyle(Color.unbound.textSecondary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.82)
+                    }
+
+                    Spacer(minLength: 8)
+
+                    VStack(alignment: .trailing, spacing: 3) {
+                        Text(package.price)
+                            .font(Font.unbound.titleS.weight(.black))
+                            .foregroundStyle(Color.unbound.textPrimary)
+                            .monospacedDigit()
+
+                        if shouldShowPerMonth(for: package), let pricePerMonth = package.pricePerMonth {
+                            Text(L10n.format(.subscriptionPackagePricePerMonth, defaultValue: "%@/mo", pricePerMonth))
+                                .font(Font.unbound.captionS)
+                                .foregroundStyle(Color.unbound.textTertiary)
+                                .monospacedDigit()
+                        }
+                    }
+                }
+
+                if package.hasFreeTrial {
+                    Text(L10n.onboarding("paywall.revenueCat.trial", defaultValue: "Includes free trial. Cancel anytime."))
+                        .font(.system(size: 10, weight: .semibold, design: .rounded))
+                        .foregroundStyle(Color.unbound.textTertiary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .background(packageBackground(isSelected: isSelected))
+            .shadow(
+                color: isSelected ? Color.unbound.accent.opacity(0.28) : .clear,
+                radius: 12,
+                x: 0,
+                y: 0
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func legacyPackageCard(_ package: SubscriptionPackage) -> some View {
         let isSelected = selectedPackageId == package.id
         return Button {
             UnboundHaptics.medium()
@@ -149,12 +221,14 @@ struct SubscriptionPackagePicker: View {
         ZStack {
             Circle()
                 .strokeBorder(isSelected ? Color.unbound.accent : Color.unbound.border, lineWidth: 1.5)
-                .frame(width: 22, height: 22)
+                .frame(width: 20, height: 20)
 
             if isSelected {
-                Circle()
-                    .fill(Color.unbound.accent)
-                    .frame(width: 10, height: 10)
+                Image(systemName: "checkmark")
+                    .font(.system(size: 9, weight: .black))
+                    .foregroundStyle(Color.black)
+                    .frame(width: 20, height: 20)
+                    .background(Circle().fill(Color.unbound.accent))
             }
         }
     }
@@ -179,12 +253,12 @@ struct SubscriptionPackagePicker: View {
 
     private func packageBackground(isSelected: Bool) -> some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(Color.unbound.surface)
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(isSelected ? Color.unbound.accent.opacity(0.13) : Color.unbound.surface.opacity(0.86))
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .strokeBorder(
                     isSelected ? Color.unbound.accent : Color.unbound.border,
-                    lineWidth: isSelected ? 1.5 : 1
+                    lineWidth: isSelected ? 2 : 1
                 )
         }
     }
@@ -218,6 +292,11 @@ struct SubscriptionPackagePicker: View {
         packages.sorted { lhs, rhs in
             packagePriority(lhs) < packagePriority(rhs)
         }
+    }
+
+    private var displayedPackages: [SubscriptionPackage] {
+        guard let maxVisiblePackages else { return orderedPackages }
+        return Array(orderedPackages.prefix(maxVisiblePackages))
     }
 
     private var hasQuarterlyPackage: Bool {

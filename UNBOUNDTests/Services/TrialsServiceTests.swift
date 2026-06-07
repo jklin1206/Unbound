@@ -5,11 +5,11 @@ import XCTest
 @MainActor
 final class WeeklyVowsServiceTests: XCTestCase {
 
-    private var suiteName: String!
-    private var defaults: UserDefaults!
-    private var store: WeeklyVowsStore!
-    private var attribute: MockAttributeService!
-    private var service: WeeklyVowsService!
+    var suiteName: String!
+    var defaults: UserDefaults!
+    var store: WeeklyVowsStore!
+    var attribute: MockAttributeService!
+    var service: WeeklyVowsService!
 
     override func setUp() {
         super.setUp()
@@ -28,7 +28,7 @@ final class WeeklyVowsServiceTests: XCTestCase {
         super.tearDown()
     }
 
-    private func seedAttribute(power: Double = 70, control: Double = 30) {
+    func seedAttribute(power: Double = 70, control: Double = 30) {
         var profile = AttributeProfile.empty(userId: "u-1", at: .now)
         for axis in AttributeKey.allCases {
             let value: Double = {
@@ -884,125 +884,4 @@ final class WeeklyVowsServiceTests: XCTestCase {
         XCTAssertNil(service.state(userId: "u-1").equippedTitle)
     }
 
-    private func openCurrentVow(userId: String = "u-1") {
-        var state = service.state(userId: userId)
-        state.currentVow?.capstoneState = .windowOpen
-        store.save(state, userId: userId)
-    }
-
-    private func makePerformanceLog(
-        from draft: TrainingSessionDraft,
-        completedAt: Date = Date(timeIntervalSince1970: 1_700_000_600)
-    ) -> PerformanceLog {
-        let block = draft.blocks[0]
-        let exercises = block.prescriptions.enumerated().map { index, prescription in
-            PerformanceExercise(
-                id: prescription.id,
-                name: prescription.exerciseName,
-                movementId: prescription.movementId,
-                rankStandardMovementId: prescription.rankStandardMovementId,
-                plannedSets: prescription.sets,
-                plannedTarget: prescription.target.displayText,
-                sets: (0..<max(1, prescription.sets)).map { setIndex in
-                    PerformanceSet(
-                        setNumber: setIndex + 1,
-                        reps: 20,
-                        weightKg: 100,
-                        holdSeconds: 600,
-                        durationSeconds: 600,
-                        distanceMeters: 5_000,
-                        calories: 500,
-                        rpe: prescription.rpe
-                    )
-                }
-            )
-        }
-        return PerformanceLog(
-            id: "weekly-vow-log-\(UUID().uuidString)",
-            userId: draft.userId,
-            draftId: draft.id,
-            source: draft.source,
-            title: draft.title,
-            startedAt: completedAt.addingTimeInterval(-600),
-            completedAt: completedAt,
-            programId: draft.programId,
-            dayNumber: draft.dayNumber,
-            blocks: [
-                PerformanceBlock(
-                    kind: block.kind,
-                    title: block.title,
-                    skillId: block.skillId,
-                    exercises: exercises
-                )
-            ]
-        )
-    }
-
-    private func makeEmptyPerformanceLog(from draft: TrainingSessionDraft) -> PerformanceLog {
-        let block = draft.blocks[0]
-        let prescription = block.prescriptions[0]
-        let completedAt = Date(timeIntervalSince1970: 1_700_000_600)
-        return PerformanceLog(
-            id: "weekly-vow-empty-log-\(UUID().uuidString)",
-            userId: draft.userId,
-            draftId: draft.id,
-            source: draft.source,
-            title: draft.title,
-            startedAt: completedAt.addingTimeInterval(-600),
-            completedAt: completedAt,
-            programId: draft.programId,
-            dayNumber: draft.dayNumber,
-            blocks: [
-                PerformanceBlock(
-                    kind: block.kind,
-                    title: block.title,
-                    skillId: block.skillId,
-                    exercises: [
-                        PerformanceExercise(
-                            id: prescription.id,
-                            name: prescription.exerciseName,
-                            movementId: prescription.movementId,
-                            rankStandardMovementId: prescription.rankStandardMovementId,
-                            plannedSets: prescription.sets,
-                            plannedTarget: prescription.target.displayText,
-                            sets: []
-                        )
-                    ]
-                )
-            ]
-        )
-    }
-
-    private func makeAxisCard(kind: WeeklyVowKind, axis: AttributeKey) -> WeeklyVowCard {
-        WeeklyVowCard(
-            id: "weekly-vow-test-\(kind.rawValue)-\(axis.rawValue)",
-            kind: kind,
-            theme: .axis(axis),
-            displayName: "\(kind.displayName) · \(axis.displayName)",
-            blurb: "A focused proof for \(axis.displayName.lowercased()).",
-            capstone: WeeklyVowProof(
-                displayName: "Proof",
-                description: "Complete the proof work.",
-                evaluation: .manualClaim
-            ),
-            prescription: WeeklyVowPrescription(
-                placement: kind == .ember ? .recoveryDay : .afterWorkout,
-                minMinutes: kind == .ember ? 8 : 6,
-                maxMinutes: kind == .ember ? 12 : 12,
-                minRPE: kind == .ember ? 3 : 7,
-                maxRPE: kind == .ember ? 5 : 8
-            )
-        )
-    }
-
-    private func assertNoLegacyWeeklyCopy(
-        _ copy: [String],
-        file: StaticString = #filePath,
-        line: UInt = #line
-    ) {
-        for text in copy {
-            XCTAssertFalse(text.localizedCaseInsensitiveContains("trial"), "Unexpected legacy copy: \(text)", file: file, line: line)
-            XCTAssertFalse(text.localizedCaseInsensitiveContains("challenge"), "Unexpected legacy copy: \(text)", file: file, line: line)
-        }
-    }
 }

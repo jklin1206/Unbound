@@ -46,8 +46,8 @@ struct BossRushTrialReadyPreview: View {
                     .lineLimit(3)
                     .minimumScaleFactor(0.82)
                 HStack(spacing: 8) {
-                    rushChip("\(bosses.count) bosses", icon: "flame.fill")
-                    rushChip("6 min cap", icon: "timer")
+                    RankTrialInfoChip(text: "\(bosses.count) bosses", icon: "flame.fill", tint: tint, strokeOpacity: 0.30)
+                    RankTrialInfoChip(text: "6 min cap", icon: "timer", tint: tint, strokeOpacity: 0.30)
                 }
             }
             .layoutPriority(1)
@@ -154,17 +154,6 @@ struct BossRushTrialReadyPreview: View {
         .accessibilityElement(children: .combine)
     }
 
-    private func rushChip(_ text: String, icon: String) -> some View {
-        Label(text, systemImage: icon)
-            .font(Font.unbound.captionS.weight(.semibold))
-            .foregroundStyle(Color.unbound.textPrimary)
-            .lineLimit(1)
-            .minimumScaleFactor(0.72)
-            .padding(.horizontal, 9)
-            .frame(height: 28)
-            .background(Capsule().fill(Color.unbound.surfaceElevated))
-            .overlay(Capsule().strokeBorder(tint.opacity(0.30), lineWidth: 1))
-    }
 }
 
 struct BossRushTrialActiveView<CurrentStationCard: View>: View {
@@ -247,8 +236,18 @@ struct BossRushTrialActiveView<CurrentStationCard: View>: View {
 
                     VStack(alignment: .leading, spacing: 9) {
                         HStack(spacing: 8) {
-                            rushChip("Boss \(bossNumberString(for: pair.index))", icon: "flame.fill")
-                            rushChip("Rest \(Self.mmss(pair.exercise.restSeconds))", icon: "bolt.heart.fill")
+                            RankTrialInfoChip(
+                                text: "Boss \(bossNumberString(for: pair.index))",
+                                icon: "flame.fill",
+                                tint: tint,
+                                background: Color.unbound.bg.opacity(0.68)
+                            )
+                            RankTrialInfoChip(
+                                text: "Rest \(Self.mmss(pair.exercise.restSeconds))",
+                                icon: "bolt.heart.fill",
+                                tint: tint,
+                                background: Color.unbound.bg.opacity(0.68)
+                            )
                         }
 
                         Text(pair.exercise.blockTitle ?? pair.exercise.name)
@@ -438,18 +437,6 @@ struct BossRushTrialActiveView<CurrentStationCard: View>: View {
 
     private var tint: Color {
         definition.targetRank.rewardTextTint
-    }
-
-    private func rushChip(_ text: String, icon: String) -> some View {
-        Label(text, systemImage: icon)
-            .font(Font.unbound.captionS.weight(.semibold))
-            .foregroundStyle(Color.unbound.textPrimary)
-            .lineLimit(1)
-            .minimumScaleFactor(0.72)
-            .padding(.horizontal, 9)
-            .frame(height: 28)
-            .background(Capsule().fill(Color.unbound.bg.opacity(0.68)))
-            .overlay(Capsule().strokeBorder(tint.opacity(0.34), lineWidth: 1))
     }
 
     private func bossIsDefeated(_ exercise: ActiveWorkoutSession.ActiveExercise) -> Bool {

@@ -34,6 +34,26 @@ struct RankTrialActiveStageLayout<Header: View, ActiveContent: View, CompletedCo
     }
 }
 
+struct RankTrialInfoChip: View {
+    let text: String
+    let icon: String
+    let tint: Color
+    var background: Color = Color.unbound.surfaceElevated
+    var strokeOpacity: Double = 0.34
+
+    var body: some View {
+        Label(text, systemImage: icon)
+            .font(Font.unbound.captionS.weight(.semibold))
+            .foregroundStyle(Color.unbound.textPrimary)
+            .lineLimit(1)
+            .minimumScaleFactor(0.72)
+            .padding(.horizontal, 9)
+            .frame(height: 28)
+            .background(Capsule().fill(background))
+            .overlay(Capsule().strokeBorder(tint.opacity(strokeOpacity), lineWidth: 1))
+    }
+}
+
 extension ActiveWorkoutSession {
     var rankTrialCurrentExercisePair: RankTrialExercisePair? {
         guard exercises.indices.contains(currentExerciseIndex) else { return nil }

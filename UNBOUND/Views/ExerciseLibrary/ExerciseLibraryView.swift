@@ -32,38 +32,25 @@ struct ExerciseLibraryView: View {
     // MARK: - Search Bar
 
     private var searchBar: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "magnifyingglass")
-                .font(.caption(14))
-                .foregroundColor(.theme.textMuted)
-
-            TextField("Search exercises...", text: $viewModel.searchText)
-                .font(.bodyText(15))
-                .foregroundColor(.theme.textPrimary)
-                .autocorrectionDisabled()
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
-        .background(Color.theme.surface)
-        .clipShape(RoundedRectangle(cornerRadius: 10))
-        .padding(.horizontal, 16)
-        .padding(.top, 12)
-        .padding(.bottom, 8)
+        ExerciseLibrarySearchField(text: $viewModel.searchText)
+            .padding(.horizontal, 16)
+            .padding(.top, 12)
+            .padding(.bottom, 8)
     }
 
     private var progressOverview: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
-                libraryStat("RESULTS", "\(viewModel.resultCount)", .theme.textPrimary)
-                libraryStat("RANKED", "\(viewModel.rankedCount)", .theme.primary)
-                libraryStat("WITH XP", "\(viewModel.withAPCount)", .theme.success)
+                ExerciseLibraryStatCard(label: "RESULTS", value: "\(viewModel.resultCount)", tint: .theme.textPrimary)
+                ExerciseLibraryStatCard(label: "RANKED", value: "\(viewModel.rankedCount)", tint: .theme.primary)
+                ExerciseLibraryStatCard(label: "WITH XP", value: "\(viewModel.withAPCount)", tint: .theme.success)
             }
 
             if !viewModel.topProgressRows.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
                         ForEach(viewModel.topProgressRows) { row in
-                            topLiftChip(row)
+                            ExerciseLibraryProgressChip(row: row)
                         }
                     }
                 }
@@ -71,54 +58,6 @@ struct ExerciseLibraryView: View {
         }
         .padding(.horizontal, 16)
         .padding(.bottom, 8)
-    }
-
-    private func libraryStat(_ label: String, _ value: String, _ color: Color) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(label)
-                .font(.caption(10))
-                .foregroundColor(.theme.textMuted)
-            Text(value)
-                .font(.bodyMedium(16))
-                .foregroundColor(color)
-                .monospacedDigit()
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(10)
-        .background(Color.theme.surface)
-        .clipShape(RoundedRectangle(cornerRadius: 10))
-    }
-
-    private func topLiftChip(_ row: ExerciseLibraryDisplayRow) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 5) {
-                Text(row.tier?.displayName.uppercased() ?? "LOGGED")
-                    .font(.caption(9))
-                    .foregroundColor((row.tier?.rewardTint ?? .theme.success))
-                if row.totalAP > 0 {
-                    Text("\(Int(row.totalAP.rounded())) XP")
-                        .font(.caption(9))
-                        .foregroundColor(.theme.textMuted)
-                        .monospacedDigit()
-                }
-            }
-
-            Text(row.item.name)
-                .font(.caption(12))
-                .foregroundColor(.theme.textPrimary)
-                .lineLimit(1)
-
-            if let summary = row.bestMetricSummary {
-                Text(summary)
-                    .font(.caption(10))
-                    .foregroundColor(.theme.textSecondary)
-                    .lineLimit(1)
-            }
-        }
-        .frame(width: 148, alignment: .leading)
-        .padding(10)
-        .background(Color.theme.surface)
-        .clipShape(RoundedRectangle(cornerRadius: 10))
     }
 
     private var sortControl: some View {
@@ -161,35 +100,24 @@ struct ExerciseLibraryView: View {
 
     private func statusChip(_ filter: ExerciseLibraryStatusFilter) -> some View {
         let isSelected = viewModel.selectedStatusFilter == filter
-        return Button {
+        return ExerciseLibraryFilterChip(
+            title: filter.displayName,
+            isSelected: isSelected,
+            fontSize: 12,
+            horizontalPadding: 12
+        ) {
             withAnimation(.easeInOut(duration: 0.15)) {
                 viewModel.selectedStatusFilter = filter
             }
-        } label: {
-            Text(filter.displayName)
-                .font(.caption(12))
-                .foregroundColor(isSelected ? .white : .theme.textSecondary)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 7)
-                .background(isSelected ? Color.theme.primary : Color.theme.surface)
-                .clipShape(Capsule())
         }
     }
 
     private func categoryChip(title: String, category: ExerciseCategory?) -> some View {
         let isSelected = viewModel.selectedCategory == category
-        return Button {
+        return ExerciseLibraryFilterChip(title: title, isSelected: isSelected) {
             withAnimation(.easeInOut(duration: 0.15)) {
                 viewModel.selectedCategory = category
             }
-        } label: {
-            Text(title)
-                .font(.caption(13))
-                .foregroundColor(isSelected ? .white : .theme.textSecondary)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 7)
-                .background(isSelected ? Color.theme.primary : Color.theme.surface)
-                .clipShape(Capsule())
         }
     }
 
@@ -197,26 +125,14 @@ struct ExerciseLibraryView: View {
 
     private var summaryBar: some View {
         HStack(spacing: 0) {
-            summaryItem(count: viewModel.availableCount, label: "Available", color: .theme.success)
+            ExerciseLibrarySummaryItem(count: viewModel.availableCount, label: "Available", tint: .theme.success)
             summaryDivider
-            summaryItem(count: viewModel.substituteCount, label: "Substitute", color: .theme.warning)
+            ExerciseLibrarySummaryItem(count: viewModel.substituteCount, label: "Substitute", tint: .theme.warning)
             summaryDivider
-            summaryItem(count: viewModel.avoidCount, label: "Avoid", color: .theme.danger)
+            ExerciseLibrarySummaryItem(count: viewModel.avoidCount, label: "Avoid", tint: .theme.danger)
         }
         .padding(.vertical, 10)
         .padding(.horizontal, 16)
-    }
-
-    private func summaryItem(count: Int, label: String, color: Color) -> some View {
-        HStack(spacing: 4) {
-            Text("\(count)")
-                .font(.bodyMedium(14))
-                .foregroundColor(count > 0 ? color : .theme.textMuted)
-            Text(label)
-                .font(.caption(13))
-                .foregroundColor(.theme.textSecondary)
-        }
-        .frame(maxWidth: .infinity)
     }
 
     private var summaryDivider: some View {
