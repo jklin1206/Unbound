@@ -121,7 +121,7 @@ final class SquadLeaderboardTests: XCTestCase {
     }
 
     func testPreviousSeasonUsesQuarterBeforeCurrent() {
-        let previous = SquadSeason.previous(endingBefore: date("2026-06-07"))
+        let previous = SquadSeason.previous(endingBefore: date("2026-06-07"), calendar: utcCalendar)
 
         XCTAssertEqual(previous.title, "S1 2026")
         XCTAssertEqual(previous.winnerTitleName, "Season 1 Winner")
@@ -283,11 +283,17 @@ final class SquadLeaderboardTests: XCTestCase {
     }
 
     private func date(_ raw: String) -> Date {
-        var formatter = DateFormatter()
-        formatter.calendar = Calendar(identifier: .gregorian)
+        let formatter = DateFormatter()
+        formatter.calendar = utcCalendar
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.timeZone = TimeZone(secondsFromGMT: 0)
         formatter.dateFormat = "yyyy-MM-dd"
         return formatter.date(from: raw)!
+    }
+
+    private var utcCalendar: Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        return calendar
     }
 }

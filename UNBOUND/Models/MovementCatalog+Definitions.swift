@@ -456,7 +456,7 @@ extension MovementCatalog {
             equipment: [.bodyweight],
             difficulty: .intermediate,
             muscleGroups: [.shoulders, .forearms, .core],
-            bodyRegions: [.shoulders, .forearms, .abs, .obliques, .lowerBack],
+            bodyRegions: [.shoulders, .frontSideDelts, .forearms, .abs, .obliques, .lowerBack],
             movementSlot: .skill,
             substitutionGroup: "skill.\(skillId)",
             skillAssociations: [skillId],

@@ -28,7 +28,7 @@ struct WeeklyHonor: Codable, Identifiable, Equatable, Sendable {
             case .comebackArc: return "Comeback Arc"
             case .earlyBird: return "Early Bird"
             case .nightGrinder: return "Night Grinder"
-            case .vowFinisher: return "Proof Finisher"
+            case .vowFinisher: return "Binding Vow Finisher"
             case .supportBuff: return "Support Buff"
             }
         }

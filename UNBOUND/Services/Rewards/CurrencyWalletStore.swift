@@ -306,12 +306,7 @@ final class ShopInventoryStore: ObservableObject {
            let item = ShopCatalog.item(id: itemID),
            item.isBackdrop,
            hasPurchased(itemID: item.id, userId: userId, defaults: defaults) {
-            switch (surface, item.reward) {
-            case (.home, .homeBackground), (.profile, .profileBackground):
-                return item
-            default:
-                defaults.removeObject(forKey: equippedBackdropKeyPrefix(for: surface) + userId)
-            }
+            return item
         }
 
         switch surface {
@@ -389,7 +384,8 @@ final class ShopInventoryStore: ObservableObject {
         case (.profile, .profileBackground(let background)):
             setEquippedProfileBackground(background, userId: userId, defaults: defaults)
         default:
-            return
+            defaults.set(item.id, forKey: equippedBackdropKeyPrefix(for: surface) + userId)
+            NotificationCenter.default.post(name: .shopInventoryChanged, object: item)
         }
     }
 
