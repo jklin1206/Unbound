@@ -65,11 +65,24 @@ struct WorkoutLogGridView: View {
     @ViewBuilder
     private var standardExerciseList: some View {
         let visible = Array(session.exercises.enumerated()).filter { !$0.element.skipped }
+        let current = session.currentExerciseIndex
         VStack(spacing: 0) {
-            ForEach(visible, id: \.element.id) { ei, ex in
-                exerciseCard(ei: ei, ex: ex, isCurrent: ei == session.currentExerciseIndex)
-                if ex.id != visible.last?.element.id {
-                    Divider().overlay(Color.unbound.borderSubtle)
+            ForEach(Array(visible.enumerated()), id: \.element.element.id) { pos, pair in
+                let ei = pair.offset
+                let isActive = ei == current
+                exerciseCard(ei: ei, ex: pair.element, isCurrent: isActive)
+
+                if pos < visible.count - 1 {
+                    let nextIsActive = visible[pos + 1].offset == current
+                    if isActive || nextIsActive {
+                        // The active panel floats on whitespace — no divider
+                        // jammed against its raised surface.
+                        Color.clear.frame(height: 8)
+                    } else {
+                        Divider()
+                            .overlay(Color.unbound.border)
+                            .padding(.vertical, 2)
+                    }
                 }
             }
         }

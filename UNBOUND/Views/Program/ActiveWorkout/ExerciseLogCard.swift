@@ -47,11 +47,11 @@ struct ExerciseLogCard: View {
                     )
             } else {
                 // Standard logging: calm list — no card, no border, no shadow.
-                // Only the active exercise is lifted (left accent spine + wash).
+                // Only the active exercise is lifted: a fill-only raised surface.
                 cardContent(calm: true)
-                    .padding(.vertical, 14)
-                    .padding(.horizontal, 4)
-                    .activeAccent(isCurrent)
+                    .padding(.vertical, 16)
+                    .padding(.horizontal, 12)
+                    .activeSurface(isCurrent)
             }
         }
         .animation(reduceMotion ? nil : .spring(response: 0.34, dampingFraction: 0.85),

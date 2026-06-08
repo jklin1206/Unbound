@@ -34,12 +34,12 @@ struct MetaLine: View {
     }
 }
 
-/// The single emphasis treatment in a calm list: a 3pt left accent spine plus a
-/// faint surface wash behind the active row/section. Everything not-active stays
-/// flat on `bg`.
-struct ActiveAccentModifier: ViewModifier {
+/// The single emphasis treatment in a calm list: the active row/section sits on
+/// a fill-only `surfaceElevated` panel (the brightest surface in the dark
+/// palette) — no border, no shadow, no accent bar. Everything not-active stays
+/// flat on `bg`. The fill alone is the lift; whitespace around it does the rest.
+struct ActiveSurfaceModifier: ViewModifier {
     let isActive: Bool
-    var tint: Color = Color.unbound.coachCyan
     var cornerRadius: CGFloat = 16
 
     func body(content: Content) -> some View {
@@ -47,27 +47,16 @@ struct ActiveAccentModifier: ViewModifier {
             .background {
                 if isActive {
                     RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                        .fill(Color.unbound.surface.opacity(0.55))
-                }
-            }
-            .overlay(alignment: .leading) {
-                if isActive {
-                    Capsule()
-                        .fill(tint)
-                        .frame(width: 3)
-                        .padding(.vertical, 8)
+                        .fill(Color.unbound.surfaceElevated)
                 }
             }
     }
 }
 
 extension View {
-    /// Marks a row/section as the currently-active one in a calm list.
-    func activeAccent(
-        _ isActive: Bool,
-        tint: Color = Color.unbound.coachCyan,
-        cornerRadius: CGFloat = 16
-    ) -> some View {
-        modifier(ActiveAccentModifier(isActive: isActive, tint: tint, cornerRadius: cornerRadius))
+    /// Marks a row/section as the currently-active one in a calm list — a
+    /// fill-only raised surface, never a bar or border.
+    func activeSurface(_ isActive: Bool, cornerRadius: CGFloat = 16) -> some View {
+        modifier(ActiveSurfaceModifier(isActive: isActive, cornerRadius: cornerRadius))
     }
 }
