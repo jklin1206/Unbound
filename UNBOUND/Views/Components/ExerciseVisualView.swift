@@ -80,14 +80,26 @@ enum ExerciseVisualAsset {
     ]
 
     static func assetName(for definition: MovementDefinition) -> String {
-        assetNameCandidates(forMovementId: definition.id).first ?? prefix + sanitized(definition.id)
+        if let skillAssetName = existingSkillTargetAssetName(for: definition) {
+            return skillAssetName
+        }
+        return assetNameCandidates(forMovementId: definition.id).first ?? prefix + sanitized(definition.id)
     }
 
     static func existingAssetName(for definition: MovementDefinition) -> String? {
-        existingAssetName(forMovementId: definition.id)
+        existingSkillTargetAssetName(for: definition)
+            ?? existingAssetName(forMovementIdOnly: definition.id)
+            ?? existingSemanticAssetName(for: definition)
     }
 
     static func existingAssetName(forMovementId movementId: String) -> String? {
+        if let definition = MovementCatalog.definition(for: movementId) {
+            return existingAssetName(for: definition)
+        }
+        return existingAssetName(forMovementIdOnly: movementId)
+    }
+
+    private static func existingAssetName(forMovementIdOnly movementId: String) -> String? {
         let candidates = assetNameCandidates(forMovementId: movementId)
 
         if movementId.hasPrefix("carry.") {
@@ -102,6 +114,58 @@ enum ExerciseVisualAsset {
             }
         }
         return nil
+    }
+
+    private static func existingSkillTargetAssetName(for definition: MovementDefinition) -> String? {
+        guard definition.role == .skillTarget,
+              let skillId = definition.skillId,
+              let node = SkillGraph.shared.nodes.first(where: { $0.id == skillId })
+        else { return nil }
+
+        return SkillTraditionalVisualResolver.assetName(for: node)
+    }
+
+    private static func existingSemanticAssetName(for definition: MovementDefinition) -> String? {
+        let semanticNames = semanticVisualNames(for: definition)
+
+        for name in semanticNames {
+            let slug = MovementCatalog.slug(name)
+            guard !slug.isEmpty else { continue }
+
+            let candidates = [
+                "\(prefix)exercise_\(slug)",
+                "\(prefix)exercise_\(MovementCatalog.normalized(name).replacingOccurrences(of: " ", with: "_"))"
+            ]
+
+            for candidate in candidates {
+                if let existing = existingAssetName(forBaseAssetName: candidate) {
+                    return existing
+                }
+            }
+        }
+
+        return nil
+    }
+
+    private static func semanticVisualNames(for definition: MovementDefinition) -> [String] {
+        var names: [String] = []
+
+        if let canonical = definition.canonicalExerciseName {
+            names.append(canonical)
+        }
+        names.append(definition.displayName)
+        if let skillId = definition.skillId {
+            names.append(skillId.components(separatedBy: ".").last ?? skillId)
+        }
+        names.append(contentsOf: definition.aliases)
+
+        return names.reduce(into: []) { result, name in
+            let normalized = MovementCatalog.normalized(name)
+            guard !normalized.isEmpty,
+                  !result.contains(where: { MovementCatalog.normalized($0) == normalized })
+            else { return }
+            result.append(name)
+        }
     }
 
     static func existingAssetName(forBaseAssetName baseAssetName: String) -> String? {

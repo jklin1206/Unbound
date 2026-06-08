@@ -21,6 +21,25 @@ final class MovementResolverTests: XCTestCase {
         }
     }
 
+    func testEveryBodyweightProgramCandidateHasVisualAsset() {
+        let equipment: [Equipment] = [
+            .bodyweight,
+            .pullupBar,
+            .dipStation,
+            .rings,
+            .bench,
+            .bands
+        ]
+        let definitions = MovementCatalog.programDefinitions(style: .bodyweight, userEquipment: equipment)
+
+        let missing = definitions.filter { ExerciseVisualAsset.existingAssetName(for: $0) == nil }
+
+        XCTAssertTrue(
+            missing.isEmpty,
+            "Program candidates missing exercise visuals:\n\(missing.map { "\($0.id) — \($0.displayName)" }.joined(separator: "\n"))"
+        )
+    }
+
     func testBandAssistedPullUpResolvesToAssistedVariantWithAssistedTag() {
         let resolved = MovementResolver.resolve("Band-Assisted Pull-Up")
 

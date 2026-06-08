@@ -90,21 +90,16 @@ struct ExerciseLogCard: View {
 
             Button(action: onToggleExpand) {
                 HStack(spacing: 8) {
-                    if isCurrent {
-                        if calm {
-                            Text("NOW")
-                                .font(Font.unbound.captionS.weight(.heavy))
-                                .tracking(1.4)
-                                .foregroundStyle(Color.unbound.coachCyan)
-                        } else {
-                            Text("NOW")
-                                .font(Font.unbound.captionS.weight(.bold))
-                                .tracking(1)
-                                .foregroundStyle(Color.unbound.bg)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(Capsule().fill(Color.unbound.coachCyan))
-                        }
+                    // No "NOW" label on the calm path — the raised surface
+                    // already says it's current. Capsule kept for rank trials.
+                    if isCurrent && !calm {
+                        Text("NOW")
+                            .font(Font.unbound.captionS.weight(.bold))
+                            .tracking(1)
+                            .foregroundStyle(Color.unbound.bg)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Capsule().fill(Color.unbound.coachCyan))
                     }
                     Text(name)
                         .font(Font.unbound.titleM)

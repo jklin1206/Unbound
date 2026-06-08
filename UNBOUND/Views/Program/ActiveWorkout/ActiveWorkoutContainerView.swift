@@ -30,8 +30,12 @@ struct ActiveWorkoutContainerView: View {
     @State private var rewardSequence: WorkoutRewardSequenceSummary? = nil
     @State private var isFinishingRewardSequence = false
 
-    // Grid cell editor state
+    // Grid cell editor state — bottom-docked keypad (no modal). editBuffer is the
+    // typed string; editPristine is true until the user actually edits, so merely
+    // opening a cell never commits the suggested value (the ✓ ring does that).
     @State private var editing: EditTarget? = nil
+    @State private var editBuffer: String = ""
+    @State private var editPristine: Bool = true
 
     // RPE picker state
     @State private var rpeTarget: RPETarget?
@@ -107,9 +111,13 @@ struct ActiveWorkoutContainerView: View {
                     session: session,
                     rankTrialDefinition: rankTrialDefinition,
                     onIntent: { ei, intent in handleIntent(ei, intent) },
-                    onEditWeight: { ei, si in editing = EditTarget(ei: ei, si: si, isWeight: true) },
-                    onEditReps:   { ei, si in editing = EditTarget(ei: ei, si: si, isWeight: false) },
-                    onPickRPE: { ei, si in rpeTarget = RPETarget(ei: ei, si: si) },
+                    onEditWeight: { ei, si in beginEdit(ei: ei, si: si, isWeight: true) },
+                    onEditReps:   { ei, si in beginEdit(ei: ei, si: si, isWeight: false) },
+                    onPickRPE: { ei, si in
+                        commitPendingEditIfNeeded()
+                        editing = nil
+                        rpeTarget = RPETarget(ei: ei, si: si)
+                    },
                     onConfirmAsPlanned: { ei, si in
                         let shouldUseDeckFlow = isDeckTrial
                         session.confirmAsPlanned(exerciseIndex: ei, setIndex: si)
@@ -139,7 +147,11 @@ struct ActiveWorkoutContainerView: View {
             } else {
                 completionFooter
             }
+
+            bottomEditingDock
         }
+        .animation(.spring(response: 0.32, dampingFraction: 0.86), value: editing?.id)
+        .animation(.spring(response: 0.32, dampingFraction: 0.86), value: rpeTarget?.id)
         .onReceive(restClock) { now in
             restTimer.tick(now: now)
             workoutElapsedSeconds = Self.elapsedSeconds(since: session.startedAt, now: now)
@@ -196,33 +208,8 @@ struct ActiveWorkoutContainerView: View {
             }
             Button("Keep training", role: .cancel) {}
         }
-        // Grid cell editor sheet
-        .sheet(item: $editing) { t in
-            EditorSheet(
-                session: session,
-                ei: t.ei,
-                si: t.si,
-                isWeight: t.isWeight,
-                onCommitted: {
-                    try? draftStore.save(session)
-                }
-            )
-        }
-        // RPE picker sheet
-        .sheet(item: $rpeTarget) { t in
-            RPEPickerSheet(
-                current: (session.exercises.indices.contains(t.ei)
-                          && session.exercises[t.ei].sets.indices.contains(t.si))
-                    ? (session.exercises[t.ei].sets[t.si].rpe
-                       ?? session.exercises[t.ei].sets[t.si].suggestedRPE)
-                    : nil,
-                onPick: { v in
-                    session.setRPE(exerciseIndex: t.ei, setIndex: t.si, v)
-                    try? draftStore.save(session)
-                }
-            )
-            .presentationDetents([.height(420)])
-        }
+        // Grid cell editing + RPE now use a bottom-docked keypad / quick-pick
+        // (see bottomEditingDock), not modal sheets.
         // Swap sheet — uses the existing ExerciseSwapSheet with real init
         .sheet(item: Binding(
             get: { swapExerciseIndex.map(SwapContext.init(index:)) },
@@ -852,3 +839,183 @@ struct ActiveWorkoutContainerView: View {
 
 /// Inline stepper sheet for editing a single weight or reps cell.
 /// Writes back to session on Done; keeps `logged` state unchanged.
+
+// MARK: - Bottom-docked editing (keypad + RPE quick-pick)
+
+private extension ActiveWorkoutContainerView {
+    @ViewBuilder
+    var bottomEditingDock: some View {
+        if let target = editing {
+            InlineNumberPad(
+                title: editLabel(target),
+                unit: editUnit(target),
+                valueText: editBuffer,
+                placeholder: editPlaceholder(target),
+                allowsDecimal: target.isWeight,
+                onKey: { handleEditKey($0, target) },
+                onDone: { commitEdit(target) }
+            )
+            .zIndex(20)
+        } else if let target = rpeTarget {
+            InlineRPEPicker(
+                current: currentRPE(target.ei, target.si),
+                onPick: { value in
+                    session.setRPE(exerciseIndex: target.ei, setIndex: target.si, value)
+                    try? draftStore.save(session)
+                    rpeTarget = nil
+                },
+                onDone: { rpeTarget = nil }
+            )
+            .zIndex(20)
+        }
+    }
+
+    var editWeightUnit: TrainingWeightUnit {
+        TrainingWeightUnit(rawValue: weightUnitRaw) ?? .localeDefault
+    }
+
+    func beginEdit(ei: Int, si: Int, isWeight: Bool) {
+        commitPendingEditIfNeeded()
+        rpeTarget = nil
+        let target = EditTarget(ei: ei, si: si, isWeight: isWeight)
+        editBuffer = seedBuffer(for: target)
+        editPristine = true
+        editing = target
+    }
+
+    /// Commit the currently-open cell's edits (if any) before switching cells.
+    func commitPendingEditIfNeeded() {
+        guard let target = editing, !editPristine else { return }
+        writeLive(target)
+        try? draftStore.save(session)
+    }
+
+    func handleEditKey(_ key: NumberPadKey, _ target: EditTarget) {
+        switch key {
+        case .digit(let digit):
+            if editPristine { editBuffer = ""; editPristine = false }
+            if editBuffer == "0" { editBuffer = "" }   // no leading zeros
+            editBuffer.append("\(digit)")
+        case .decimal:
+            if editPristine { editBuffer = "0"; editPristine = false }
+            if !editBuffer.contains(".") {
+                editBuffer.append(editBuffer.isEmpty ? "0." : ".")
+            }
+        case .delete:
+            editPristine = false
+            if !editBuffer.isEmpty { editBuffer.removeLast() }
+        }
+        writeLive(target)
+    }
+
+    func commitEdit(_ target: EditTarget) {
+        if !editPristine {
+            writeLive(target)
+            try? draftStore.save(session)
+        }
+        editing = nil
+    }
+
+    /// Write the typed buffer into the session live (so the row updates as you
+    /// type). Mirrors EditorSheet.commit; never touches `.logged`.
+    func writeLive(_ target: EditTarget) {
+        guard session.exercises.indices.contains(target.ei),
+              session.exercises[target.ei].sets.indices.contains(target.si) else { return }
+        let parsed = Double(editBuffer)
+        session.objectWillChange.send()
+        if target.isWeight {
+            if let parsed, parsed > 0 {
+                session.exercises[target.ei].sets[target.si].weightKg =
+                    WeightPlatePolicy.kilograms(fromDisplayValue: parsed, unit: editWeightUnit)
+            } else {
+                session.exercises[target.ei].sets[target.si].weightKg = nil
+            }
+            return
+        }
+        let intValue = parsed.map { Int($0) }
+        let value = (intValue ?? 0) > 0 ? intValue : nil
+        switch session.exercises[target.ei].metricKind {
+        case .reps: session.exercises[target.ei].sets[target.si].reps = value
+        case .holdSeconds: session.exercises[target.ei].sets[target.si].holdSeconds = value
+        case .durationSeconds: session.exercises[target.ei].sets[target.si].durationSeconds = value
+        case .distanceMeters: session.exercises[target.ei].sets[target.si].distanceMeters = value
+        case .calories: session.exercises[target.ei].sets[target.si].calories = value
+        }
+    }
+
+    func seedBuffer(for target: EditTarget) -> String {
+        guard session.exercises.indices.contains(target.ei),
+              session.exercises[target.ei].sets.indices.contains(target.si) else { return "" }
+        let set = session.exercises[target.ei].sets[target.si]
+        if target.isWeight {
+            guard let kg = set.weightKg else { return "" }
+            return displayNumber(WeightPlatePolicy.editingValue(fromKilograms: kg, unit: editWeightUnit))
+        }
+        switch session.exercises[target.ei].metricKind {
+        case .reps: return set.reps.map(String.init) ?? ""
+        case .holdSeconds: return set.holdSeconds.map(String.init) ?? ""
+        case .durationSeconds: return set.durationSeconds.map(String.init) ?? ""
+        case .distanceMeters: return set.distanceMeters.map(String.init) ?? ""
+        case .calories: return set.calories.map(String.init) ?? ""
+        }
+    }
+
+    func editPlaceholder(_ target: EditTarget) -> String {
+        guard session.exercises.indices.contains(target.ei),
+              session.exercises[target.ei].sets.indices.contains(target.si) else { return "—" }
+        let set = session.exercises[target.ei].sets[target.si]
+        if target.isWeight {
+            guard let kg = set.suggestedWeightKg ?? set.weightKg else { return "—" }
+            return displayNumber(WeightPlatePolicy.editingValue(fromKilograms: kg, unit: editWeightUnit))
+        }
+        let value: Int?
+        switch session.exercises[target.ei].metricKind {
+        case .reps: value = set.suggestedReps ?? set.reps
+        case .holdSeconds: value = set.suggestedHoldSeconds ?? set.holdSeconds
+        case .durationSeconds: value = set.suggestedDurationSeconds ?? set.durationSeconds
+        case .distanceMeters: value = set.suggestedDistanceMeters ?? set.distanceMeters
+        case .calories: value = set.suggestedCalories ?? set.calories
+        }
+        return value.map(String.init) ?? "—"
+    }
+
+    func editLabel(_ target: EditTarget) -> String {
+        guard session.exercises.indices.contains(target.ei) else { return "Value" }
+        let exercise = session.exercises[target.ei]
+        if target.isWeight {
+            let isHold = exercise.blockKind == .carry
+                || exercise.metricKind == .holdSeconds
+                || exercise.metricKind == .durationSeconds
+            return isHold ? "Load" : "Weight"
+        }
+        switch exercise.metricKind {
+        case .reps: return "Reps"
+        case .holdSeconds: return "Hold"
+        case .durationSeconds: return "Time"
+        case .distanceMeters: return "Distance"
+        case .calories: return "Calories"
+        }
+    }
+
+    func editUnit(_ target: EditTarget) -> String? {
+        if target.isWeight { return editWeightUnit.shortLabel }
+        guard session.exercises.indices.contains(target.ei) else { return nil }
+        switch session.exercises[target.ei].metricKind {
+        case .reps: return nil
+        case .holdSeconds, .durationSeconds: return "sec"
+        case .distanceMeters: return "m"
+        case .calories: return "cal"
+        }
+    }
+
+    func currentRPE(_ ei: Int, _ si: Int) -> Int? {
+        guard session.exercises.indices.contains(ei),
+              session.exercises[ei].sets.indices.contains(si) else { return nil }
+        let set = session.exercises[ei].sets[si]
+        return set.rpe ?? set.suggestedRPE
+    }
+
+    func displayNumber(_ value: Double) -> String {
+        value == value.rounded() ? String(Int(value)) : String(format: "%g", value)
+    }
+}
