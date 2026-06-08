@@ -33,13 +33,70 @@ struct ExerciseLogCard: View {
     @AppStorage(WeightPlatePolicy.unitDefaultsKey) private var weightUnitRaw = TrainingWeightUnit.localeDefault.rawValue
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .top, spacing: 12) {
-                exerciseThumbnail
+        Group {
+            if rankTrialStyle {
+                // Rank-trial keeps its distinct carded styling.
+                cardContent(calm: false)
+                    .padding(15)
+                    .background(cardBackground)
+                    .overlay(cardBorder)
+                    .shadow(
+                        color: isCurrent ? Color.black.opacity(0.10) : Color.clear,
+                        radius: 8,
+                        y: 2
+                    )
+            } else {
+                // Standard logging: calm list — no card, no border, no shadow.
+                // Only the active exercise is lifted (left accent spine + wash).
+                cardContent(calm: true)
+                    .padding(.vertical, 14)
+                    .padding(.horizontal, 4)
+                    .activeAccent(isCurrent)
+            }
+        }
+        .animation(reduceMotion ? nil : .spring(response: 0.34, dampingFraction: 0.85),
+                   value: isExpanded)
+        .animation(reduceMotion ? nil : .spring(response: 0.34, dampingFraction: 0.85),
+                   value: isCurrent)
+    }
 
-                Button(action: onToggleExpand) {
-                    HStack(spacing: 8) {
-                        if isCurrent {
+    @ViewBuilder
+    private func cardContent(calm: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            headerRow(calm: calm)
+
+            targetSummary(calm: calm)
+
+            if isUnmatched {
+                unmatchedWarning
+            }
+
+            if isExpanded {
+                expandedDetail
+            }
+
+            if showsSetGrid {
+                setGridSection(calm: calm)
+            } else {
+                compactProgressRow
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func headerRow(calm: Bool) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            exerciseThumbnail
+
+            Button(action: onToggleExpand) {
+                HStack(spacing: 8) {
+                    if isCurrent {
+                        if calm {
+                            Text("NOW")
+                                .font(Font.unbound.captionS.weight(.heavy))
+                                .tracking(1.4)
+                                .foregroundStyle(Color.unbound.coachCyan)
+                        } else {
                             Text("NOW")
                                 .font(Font.unbound.captionS.weight(.bold))
                                 .tracking(1)
@@ -48,28 +105,43 @@ struct ExerciseLogCard: View {
                                 .padding(.vertical, 4)
                                 .background(Capsule().fill(Color.unbound.coachCyan))
                         }
-                        Text(name)
-                            .font(Font.unbound.titleM)
-                            .foregroundStyle(Color.unbound.textPrimary)
-                            .multilineTextAlignment(.leading)
-                            .lineLimit(2)
-                            .minimumScaleFactor(0.78)
-                        Image(systemName: "chevron.down")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(Color.unbound.textTertiary)
-                            .rotationEffect(.degrees(isExpanded ? 180 : 0))
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .contentShape(Rectangle())
+                    Text(name)
+                        .font(Font.unbound.titleM)
+                        .foregroundStyle(Color.unbound.textPrimary)
+                        .multilineTextAlignment(.leading)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.78)
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Color.unbound.textTertiary)
+                        .rotationEffect(.degrees(isExpanded ? 180 : 0))
                 }
-                .buttonStyle(.plain)
-                .layoutPriority(1)
-
-                if allowsProtocolEditing {
-                    ExerciseOverflowMenu(isWarmup: isWarmupCurrent, onIntent: onIntent)
-                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
+            .layoutPriority(1)
 
+            if allowsProtocolEditing {
+                ExerciseOverflowMenu(isWarmup: isWarmupCurrent, onIntent: onIntent)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func targetSummary(calm: Bool) -> some View {
+        if calm {
+            MetaLine(
+                [
+                    "\(plannedSets)×\(plannedReps)",
+                    targetRPE.map { "RPE \($0)" },
+                    calmRestText
+                ],
+                emphasized: isCurrent
+            )
+            .padding(.bottom, isExpanded ? 0 : 2)
+        } else {
             HStack(spacing: 8) {
                 targetPill("\(plannedSets) x \(plannedReps)", icon: "scope")
                 if let targetRPE {
@@ -78,106 +150,97 @@ struct ExerciseLogCard: View {
                 targetPill(restPillText, icon: "timer")
             }
             .padding(.bottom, isExpanded ? 0 : 4)
+        }
+    }
 
-            if isUnmatched {
-                HStack(spacing: 6) {
-                    Image(systemName: "info.circle")
-                        .font(.system(size: 11, weight: .semibold))
-                    Text("Won't count toward rank or XP")
-                        .font(Font.unbound.captionS.weight(.semibold))
-                }
-                .foregroundStyle(Color.unbound.textTertiary)
-                .padding(.bottom, isExpanded ? 0 : 2)
-            }
+    private var calmRestText: String {
+        restPillText == "VAR REST" ? "var rest" : "rest \(restPillText)"
+    }
 
-            if isExpanded {
-                Divider().overlay(Color.unbound.borderSubtle).padding(.vertical, 8)
-                ExerciseDetailSections(
-                    muscleGroups: muscleGroups,
-                    bodyRegions: movementDefinition?.bodyRegions ?? [],
-                    showsProgramming: false,
-                    sets: plannedSets,
-                    reps: plannedReps,
-                    restSeconds: restSeconds,
-                    formCues: formCues,
-                    substitution: substitution
-                )
-                .padding(.bottom, 14)
-            }
+    private var unmatchedWarning: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "info.circle")
+                .font(.system(size: 11, weight: .semibold))
+            Text("Won't count toward rank or XP")
+                .font(Font.unbound.captionS.weight(.semibold))
+        }
+        .foregroundStyle(Color.unbound.textTertiary)
+        .padding(.bottom, isExpanded ? 0 : 2)
+    }
 
-            if showsSetGrid {
-                HStack(spacing: 8) {
-                    Text("SET").frame(width: 26, alignment: .leading)
-                    Text(weightHeader).frame(maxWidth: .infinity)
-                    Text(metricHeader).frame(maxWidth: .infinity)
-                    Text("RPE").frame(width: 44)
-                    Spacer().frame(width: 40)
-                }
-                .font(Font.unbound.captionS)
-                .tracking(1.2)
-                .foregroundStyle(Color.unbound.textSecondary)
-                .padding(.top, 2)
+    @ViewBuilder
+    private var expandedDetail: some View {
+        Divider().overlay(Color.unbound.borderSubtle).padding(.vertical, 8)
+        ExerciseDetailSections(
+            muscleGroups: muscleGroups,
+            bodyRegions: movementDefinition?.bodyRegions ?? [],
+            showsProgramming: false,
+            sets: plannedSets,
+            reps: plannedReps,
+            restSeconds: restSeconds,
+            formCues: formCues,
+            substitution: substitution
+        )
+        .padding(.bottom, 14)
+    }
 
-                ForEach(Array(sets.enumerated()), id: \.element.id) { idx, set in
-                    SetLogGridRow(
-                        setNumber: idx + 1,
-                        weightKg: set.weightKg,
-                        reps: set.reps,
-                        holdSeconds: set.holdSeconds,
-                        durationSeconds: set.durationSeconds,
-                        distanceMeters: set.distanceMeters,
-                        calories: set.calories,
-                        rpe: set.rpe,
-                        suggestedWeightKg: set.suggestedWeightKg,
-                        suggestedReps: set.suggestedReps,
-                        suggestedHoldSeconds: set.suggestedHoldSeconds,
-                        suggestedDurationSeconds: set.suggestedDurationSeconds,
-                        suggestedDistanceMeters: set.suggestedDistanceMeters,
-                        suggestedCalories: set.suggestedCalories,
-                        suggestedRPE: set.suggestedRPE,
-                        metricKind: metricKind,
-                        tracksHold: tracksHold,
-                        logged: set.logged,
-                        qualityFlags: set.qualityFlags,
-                        isCurrent: currentSetIndex == idx,
-                        onEditWeight: { onEditWeight(idx) },
-                        onEditReps: { onEditReps(idx) },
-                        onPickRPE: { onPickRPE(idx) },
-                        onConfirmAsPlanned: { onConfirmAsPlanned(idx) },
-                        onToggleQualityFlag: { onToggleQualityFlag(idx, $0) }
-                    )
-                    if idx < sets.count - 1 {
-                        Divider().overlay(Color.unbound.borderSubtle)
-                    }
-                }
+    @ViewBuilder
+    private func setGridSection(calm: Bool) -> some View {
+        HStack(spacing: 8) {
+            Text("SET").frame(width: 26, alignment: .leading)
+            Text(weightHeader).frame(maxWidth: .infinity)
+            Text(metricHeader).frame(maxWidth: .infinity)
+            Text("RPE").frame(width: 44)
+            Spacer().frame(width: 40)
+        }
+        .font(Font.unbound.captionS)
+        .tracking(1.2)
+        .foregroundStyle(Color.unbound.textSecondary)
+        .padding(.top, 2)
 
-                if allowsProtocolEditing {
-                    Button(action: onAddSet) {
-                        Label("Add set", systemImage: "plus")
-                            .font(Font.unbound.captionS)
-                            .foregroundStyle(Color.unbound.textSecondary)
-                            .padding(.top, 10)
-                    }
-                    .buttonStyle(.plain)
-                }
-            } else {
-                compactProgressRow
+        ForEach(Array(sets.enumerated()), id: \.element.id) { idx, set in
+            SetLogGridRow(
+                setNumber: idx + 1,
+                weightKg: set.weightKg,
+                reps: set.reps,
+                holdSeconds: set.holdSeconds,
+                durationSeconds: set.durationSeconds,
+                distanceMeters: set.distanceMeters,
+                calories: set.calories,
+                rpe: set.rpe,
+                suggestedWeightKg: set.suggestedWeightKg,
+                suggestedReps: set.suggestedReps,
+                suggestedHoldSeconds: set.suggestedHoldSeconds,
+                suggestedDurationSeconds: set.suggestedDurationSeconds,
+                suggestedDistanceMeters: set.suggestedDistanceMeters,
+                suggestedCalories: set.suggestedCalories,
+                suggestedRPE: set.suggestedRPE,
+                metricKind: metricKind,
+                tracksHold: tracksHold,
+                logged: set.logged,
+                qualityFlags: set.qualityFlags,
+                isCurrent: currentSetIndex == idx,
+                calmStyle: calm,
+                onEditWeight: { onEditWeight(idx) },
+                onEditReps: { onEditReps(idx) },
+                onPickRPE: { onPickRPE(idx) },
+                onConfirmAsPlanned: { onConfirmAsPlanned(idx) },
+                onToggleQualityFlag: { onToggleQualityFlag(idx, $0) }
+            )
+            if idx < sets.count - 1 {
+                Divider().overlay(Color.unbound.borderSubtle)
             }
         }
-        .padding(rankTrialStyle ? 15 : 18)
-        .background(cardBackground)
-        .overlay(cardBorder)
-        .shadow(
-            color: isCurrent
-                ? Color.black.opacity(rankTrialStyle ? 0.10 : 0.14)
-                : Color.clear,
-            radius: rankTrialStyle ? 8 : 12,
-            y: rankTrialStyle ? 2 : 3
-        )
-        .animation(reduceMotion ? nil : .spring(response: 0.34, dampingFraction: 0.85),
-                   value: isExpanded)
-        .animation(reduceMotion ? nil : .spring(response: 0.34, dampingFraction: 0.85),
-                   value: isCurrent)
+
+        if allowsProtocolEditing {
+            Button(action: onAddSet) {
+                Label("Add set", systemImage: "plus")
+                    .font(Font.unbound.captionS)
+                    .foregroundStyle(Color.unbound.textSecondary)
+                    .padding(.top, 10)
+            }
+            .buttonStyle(.plain)
+        }
     }
 
     private var showsSetGrid: Bool {

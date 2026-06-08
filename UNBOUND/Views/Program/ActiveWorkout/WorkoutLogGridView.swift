@@ -64,9 +64,13 @@ struct WorkoutLogGridView: View {
 
     @ViewBuilder
     private var standardExerciseList: some View {
-        ForEach(Array(session.exercises.enumerated()), id: \.element.id) { ei, ex in
-            if !ex.skipped {
+        let visible = Array(session.exercises.enumerated()).filter { !$0.element.skipped }
+        VStack(spacing: 0) {
+            ForEach(visible, id: \.element.id) { ei, ex in
                 exerciseCard(ei: ei, ex: ex, isCurrent: ei == session.currentExerciseIndex)
+                if ex.id != visible.last?.element.id {
+                    Divider().overlay(Color.unbound.borderSubtle)
+                }
             }
         }
     }

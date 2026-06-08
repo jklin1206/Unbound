@@ -25,6 +25,7 @@ struct SetLogGridRow: View {
     let logged: Bool
     let qualityFlags: Set<PerformanceQualityFlag>
     let isCurrent: Bool
+    var calmStyle: Bool = false
     let onEditWeight: () -> Void
     let onEditReps: () -> Void
     let onPickRPE: () -> Void
@@ -64,8 +65,7 @@ struct SetLogGridRow: View {
                                                     hasSuggested: suggestedRPE != nil))
                         .frame(width: 44)
                         .padding(.vertical, 10)
-                        .background(RoundedRectangle(cornerRadius: 10)
-                            .fill(isCurrent ? Color.unbound.bg.opacity(0.84) : Color.unbound.surfaceElevated))
+                        .background { valueFieldBackground() }
                 }
                 .buttonStyle(.plain)
 
@@ -74,9 +74,9 @@ struct SetLogGridRow: View {
 
         }
         .padding(.vertical, 8)
-        .padding(.horizontal, isCurrent ? 8 : 0)
+        .padding(.horizontal, (!calmStyle && isCurrent) ? 8 : 0)
         .background {
-            if isCurrent {
+            if isCurrent && !calmStyle {
                 RoundedRectangle(cornerRadius: 14)
                     .fill(Color.unbound.surfaceElevated.opacity(0.42))
                     .overlay(RoundedRectangle(cornerRadius: 14)
@@ -160,10 +160,27 @@ struct SetLogGridRow: View {
                                             hasSuggested: suggested != nil))
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 10)
-                .background(RoundedRectangle(cornerRadius: 10)
-                    .fill(isCurrent ? Color.unbound.bg.opacity(0.84) : Color.unbound.surfaceElevated))
+                .background { valueFieldBackground() }
         }
         .buttonStyle(.plain)
+    }
+
+    /// Editable-value affordance. Calm style: a hairline underline (accent when
+    /// the set is current) instead of a filled box, so the row reads as a form
+    /// field without the box-soup. Legacy/trial style: the filled cell.
+    @ViewBuilder
+    private func valueFieldBackground() -> some View {
+        if calmStyle {
+            VStack(spacing: 0) {
+                Spacer(minLength: 0)
+                Rectangle()
+                    .fill(isCurrent ? Color.unbound.coachCyan.opacity(0.40) : Color.unbound.borderSubtle)
+                    .frame(height: 1)
+            }
+        } else {
+            RoundedRectangle(cornerRadius: 10)
+                .fill(isCurrent ? Color.unbound.bg.opacity(0.84) : Color.unbound.surfaceElevated)
+        }
     }
 
     /// Actual value wins when present (user touched it); else the dim
