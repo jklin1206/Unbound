@@ -295,51 +295,19 @@ struct ExerciseLogCard: View {
         }
     }
 
-    @ViewBuilder
+    // Rank-trial only (the calm/standard path uses `activeSurface`). No left
+    // accent bar — ever.
     private var cardBackground: some View {
-        if rankTrialStyle {
-            RankTrialActionDockShape()
-                .fill(isCurrent ? Color.unbound.surface.opacity(0.94) : Color.unbound.surface.opacity(0.82))
-                .overlay(alignment: .leading) {
-                    Rectangle()
-                        .fill(isCurrent ? Color.unbound.coachCyan : Color.unbound.borderSubtle)
-                        .frame(width: 3)
-                        .opacity(isCurrent ? 0.95 : 0.34)
-                        .padding(.vertical, 12)
-                }
-        } else {
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(Color.unbound.surface)
-                .overlay(alignment: .leading) {
-                    if isCurrent {
-                        Rectangle()
-                            .fill(Color.unbound.coachCyan)
-                            .frame(width: 3)
-                            .opacity(0.9)
-                            .padding(.vertical, 14)
-                    }
-                }
-                .overlay {
-                    if isCurrent {
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .fill(Color.unbound.coachCyan.opacity(0.035))
-                    }
-                }
-        }
+        RankTrialActionDockShape()
+            .fill(isCurrent ? Color.unbound.surface.opacity(0.94) : Color.unbound.surface.opacity(0.82))
     }
 
-    @ViewBuilder
     private var cardBorder: some View {
-        if rankTrialStyle {
-            RankTrialActionDockShape()
-                .strokeBorder(
-                    isCurrent ? Color.unbound.coachCyan.opacity(0.54) : Color.unbound.borderSubtle,
-                    lineWidth: 1
-                )
-        } else {
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .strokeBorder(isCurrent ? Color.unbound.coachCyan.opacity(0.38) : Color.unbound.border, lineWidth: 1)
-        }
+        RankTrialActionDockShape()
+            .strokeBorder(
+                isCurrent ? Color.unbound.coachCyan.opacity(0.54) : Color.unbound.borderSubtle,
+                lineWidth: 1
+            )
     }
 
     private func targetPill(_ text: String, icon: String) -> some View {
