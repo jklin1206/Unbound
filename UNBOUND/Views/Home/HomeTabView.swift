@@ -31,7 +31,7 @@ struct HomeTabView: View {
             }
             .tabItem {
                 Image(systemName: "dumbbell.fill")
-                Text("Program")
+                Text("Train")
             }
             .accessibilityIdentifier("tab.program")
             .tag(1)
@@ -166,7 +166,7 @@ struct HomeTabView: View {
     private func tabName(for index: Int) -> String {
         switch index {
         case 0: return "home"
-        case 1: return "program"
+        case 1: return "train"
         case 2: return "skills"
         case 3: return "squad"
         case 4: return "profile"
