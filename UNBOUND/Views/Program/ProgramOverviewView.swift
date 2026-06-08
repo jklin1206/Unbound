@@ -170,16 +170,15 @@ struct ProgramOverviewView: View {
                     switch selectedTab {
                     case .program:  programTab
                     case .myWorkouts:
-                        VStack(spacing: 12) {
-                            Text("MY WORKOUTS")
-                                .font(Font.unbound.captionS.weight(.heavy))
-                                .tracking(1.5)
-                                .foregroundStyle(Color.unbound.textTertiary)
-                            Text("Quick Log · Build · Saved — coming in Phase 2")
-                                .font(Font.unbound.bodyM)
-                                .foregroundStyle(Color.unbound.textSecondary)
-                        }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        MyWorkoutsView(
+                            onQuickLog: {
+                                activeWorkoutDraft = QuickLogDraftFactory.empty(userId: services.auth.currentUserId ?? "")
+                            },
+                            onBuild: {
+                                sessionEditorDraft = QuickLogDraftFactory.empty(userId: services.auth.currentUserId ?? "")
+                            },
+                            onOpenSaved: { showSavedWorkouts = true }
+                        )
                     case .routines: routinesTab
                     }
                 }

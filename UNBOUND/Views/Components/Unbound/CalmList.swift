@@ -60,3 +60,26 @@ extension View {
         modifier(ActiveSurfaceModifier(isActive: isActive, cornerRadius: cornerRadius))
     }
 }
+
+/// Small tracked-caps section header for calm lists. No border, no background —
+/// just label text in `textTertiary` with heavy tracking, optionally paired with
+/// a trailing meta string.
+struct CalmSectionHeader: View {
+    let title: String
+    var trailing: String? = nil
+
+    var body: some View {
+        HStack {
+            Text(title)
+                .font(Font.unbound.captionS.weight(.heavy))
+                .tracking(1.5)
+                .foregroundStyle(Color.unbound.textTertiary)
+            Spacer(minLength: 0)
+            if let trailing {
+                Text(trailing)
+                    .font(Font.unbound.captionS)
+                    .foregroundStyle(Color.unbound.textTertiary)
+            }
+        }
+    }
+}
