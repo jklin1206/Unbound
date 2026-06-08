@@ -2,20 +2,31 @@
 import SwiftUI
 
 /// Verification harness for the My Workouts landing via `-myWorkoutsDemo`.
+/// Mirrors production: Quick Log → active workout; Build → SessionEditor → active workout.
 struct MyWorkoutsDemoHarness: View {
     @StateObject private var services = ServiceContainer()
-    @State private var draft: TrainingSessionDraft?
+    @State private var activeDraft: TrainingSessionDraft?
+    @State private var editorDraft: TrainingSessionDraft?
 
     var body: some View {
         MyWorkoutsView(
-            onQuickLog: { draft = QuickLogDraftFactory.empty(userId: "demo") },
-            onBuild: { draft = QuickLogDraftFactory.empty(userId: "demo") },
+            onQuickLog: { activeDraft = QuickLogDraftFactory.empty(userId: "demo") },
+            onBuild: { editorDraft = QuickLogDraftFactory.empty(userId: "demo") },
             onOpenSaved: {}
         )
         .environmentObject(services)
-        .fullScreenCover(item: $draft) { d in
-            ActiveWorkoutContainerView(draft: d, services: services) { draft = nil }
+        .fullScreenCover(item: $activeDraft) { d in
+            ActiveWorkoutContainerView(draft: d, services: services) { activeDraft = nil }
                 .environmentObject(services)
+        }
+        .fullScreenCover(item: $editorDraft) { d in
+            SessionEditorView(draft: d) { editedDraft in
+                editorDraft = nil
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.22) {
+                    activeDraft = editedDraft
+                }
+            }
+            .environmentObject(services)
         }
     }
 }

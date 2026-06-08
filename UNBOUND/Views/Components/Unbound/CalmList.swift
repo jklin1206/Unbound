@@ -74,6 +74,7 @@ struct CalmSectionHeader: View {
                 .font(Font.unbound.captionS.weight(.heavy))
                 .tracking(1.5)
                 .foregroundStyle(Color.unbound.textTertiary)
+                .accessibilityAddTraits(.isHeader)
             Spacer(minLength: 0)
             if let trailing {
                 Text(trailing)

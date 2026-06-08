@@ -8,7 +8,7 @@ final class QuickLogDraftTests: XCTestCase {
         XCTAssertEqual(draft.userId, "u1")
         XCTAssertEqual(draft.source, .custom)
         XCTAssertTrue(draft.blocks.isEmpty, "Quick Log starts empty; user adds exercises live")
-        XCTAssertFalse(draft.title.isEmpty)
+        XCTAssertEqual(draft.title, "Quick Log")
     }
 
     func test_emptyDraft_makesAnEmptyActiveSessionYouCanAppendTo() {
