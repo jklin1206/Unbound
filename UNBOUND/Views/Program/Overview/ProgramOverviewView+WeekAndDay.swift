@@ -71,13 +71,12 @@ extension ProgramOverviewView {
             skillNodes: skillNodes
         )
 
-        let fuelText: String? = day.map { d in
+        let fuelText: String? = day.map { d -> String in
+            if d.isRestDay {
+                return ProgramDayFuelSummary.text(kcal: 0, proteinGrams: 0, isRestDay: true)
+            }
             let target = program.nutritionPlan.target(for: d)
-            return ProgramDayFuelSummary.text(
-                kcal: target.calories,
-                proteinGrams: target.proteinGrams,
-                isRestDay: d.isRestDay
-            )
+            return ProgramDayFuelSummary.text(kcal: target.calories, proteinGrams: target.proteinGrams, isRestDay: false)
         }
 
         return ProgramSelectedDayCard(
