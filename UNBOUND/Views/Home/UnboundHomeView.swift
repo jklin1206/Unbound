@@ -319,7 +319,16 @@ struct UnboundHomeView: View {
             NavigationStack {
                 ProgramRankLibraryView()
                     .environmentObject(services)
+                    .toolbar {
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button(L10n.string("common.done", defaultValue: "Done")) {
+                                showRankLibrary = false
+                            }
+                        }
+                    }
             }
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
         }
         .fullScreenCover(isPresented: $showScanCaptureFlow, onDismiss: {
             // Refresh cadence after a scan completes

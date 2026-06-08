@@ -33,7 +33,7 @@ struct HomeTabView: View {
                 Image(systemName: "dumbbell.fill")
                 Text("Train")
             }
-            .accessibilityIdentifier("tab.program")
+            .accessibilityIdentifier("tab.train")
             .tag(1)
 
             NavigationStack {

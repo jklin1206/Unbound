@@ -23,7 +23,7 @@ struct HomeRanksCard: View {
                     .font(Font.unbound.bodyMStrong)
                     .foregroundStyle(Color.unbound.textSecondary)
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 13, weight: .bold))
+                    .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(Color.unbound.textTertiary)
             }
             .padding(.vertical, 14)
