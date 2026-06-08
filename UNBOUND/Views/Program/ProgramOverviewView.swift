@@ -92,7 +92,7 @@ struct ProgramOverviewView: View {
     @State var resumeDraft: ActiveWorkoutSession?
     let draftStore = WorkoutDraftStore()
 
-    enum Tab: Hashable { case program, routines, ranks }
+    enum Tab: Hashable { case program, myWorkouts, routines }
 
     private static func initialSelectedDayDate() -> Date {
         #if DEBUG
@@ -169,8 +169,18 @@ struct ProgramOverviewView: View {
                 Group {
                     switch selectedTab {
                     case .program:  programTab
+                    case .myWorkouts:
+                        VStack(spacing: 12) {
+                            Text("MY WORKOUTS")
+                                .font(Font.unbound.captionS.weight(.heavy))
+                                .tracking(1.5)
+                                .foregroundStyle(Color.unbound.textTertiary)
+                            Text("Quick Log · Build · Saved — coming in Phase 2")
+                                .font(Font.unbound.bodyM)
+                                .foregroundStyle(Color.unbound.textSecondary)
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                     case .routines: routinesTab
-                    case .ranks:    ProgramRankLibraryView()
                     }
                 }
             }

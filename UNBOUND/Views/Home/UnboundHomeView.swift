@@ -60,6 +60,7 @@ struct UnboundHomeView: View {
     @State var bodyRegionLoads: [BodyRegion: Double] = [:]
 
     // Modal state
+    @State private var showRankLibrary = false
     @State var workoutReadyDraft: TrainingSessionDraft?
     @State var showingCalibrationWorkout = false
     // navigateToCoach removed — replaced by CoachModesStrip
@@ -150,6 +151,11 @@ struct UnboundHomeView: View {
                         trainingConsole
                         homeControlSurface
                             .homeLegibilityPlane(cornerRadius: 22, horizontalPadding: 14, verticalPadding: 10)
+                        HomeRanksCard(aggregateTier: aggregateTier) {
+                            UnboundHaptics.soft()
+                            showRankLibrary = true
+                        }
+                        .homeLegibilityPlane(cornerRadius: 22, horizontalPadding: 14, verticalPadding: 4)
                         BodyLoadHeatmapView(loads: bodyRegionLoads, plannedRegions: todayPlannedBodyRegions)
                             .homeLegibilityPlane(cornerRadius: 22, horizontalPadding: 14, verticalPadding: 0)
                         contextualStack
@@ -308,6 +314,12 @@ struct UnboundHomeView: View {
             }
             .presentationDetents([.large])
             .presentationDragIndicator(.visible)
+        }
+        .sheet(isPresented: $showRankLibrary) {
+            NavigationStack {
+                ProgramRankLibraryView()
+                    .environmentObject(services)
+            }
         }
         .fullScreenCover(isPresented: $showScanCaptureFlow, onDismiss: {
             // Refresh cadence after a scan completes
