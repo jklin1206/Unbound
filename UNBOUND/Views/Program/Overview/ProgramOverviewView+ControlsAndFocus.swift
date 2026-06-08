@@ -2,40 +2,7 @@ import SwiftUI
 
 extension ProgramOverviewView {
     func programTopBar() -> some View {
-        let program = viewModel?.program
-        let baseStyle = effectiveTrainingStyle()
-        let baseEquipment = program.map(currentEquipmentFallback(program:))
-            ?? currentProfile?.equipment
-            ?? [Equipment.bodyweight]
-        let activeContext = program.map { activeTrainingContextOverride(program: $0, date: selectedDayDate) } ?? nil
-        let pendingContext = program.map { pendingNextBlockContext(program: $0) } ?? nil
-        let displayedContext = activeContext ?? pendingContext
-        let contextResolution = displayedContext.map(resolvedTrainingContext)
-        let style = contextResolution?.trainingStyle ?? baseStyle
-        let equipment = contextResolution?.sortedEquipment ?? baseEquipment
-        let setupTile = ProgramCommandDock.SetupTile.resolve(
-            style: style,
-            equipment: equipment,
-            activeContext: activeContext,
-            pendingContext: pendingContext,
-            isLoading: isSwitchingProgramFocus
-        )
-
-        return ProgramOverviewTopBar(
-            setupTitle: setupTile.title,
-            setupIcon: setupTile.icon,
-            setupTint: setupTile.tint,
-            setupBadge: setupTile.badge,
-            isSetupLoading: setupTile.isLoading,
-            onSetup: {
-                presentProgramFocusSwitch(
-                    style: style,
-                    equipment: equipment,
-                    activeContext: activeContext,
-                    pendingContext: pendingContext
-                )
-            }
-        )
+        ProgramOverviewTopBar()
     }
 
     func programControlDock(program: TrainingProgram) -> some View {

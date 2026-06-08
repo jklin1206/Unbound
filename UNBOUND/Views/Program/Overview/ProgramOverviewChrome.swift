@@ -1,13 +1,6 @@
 import SwiftUI
 
 struct ProgramOverviewTopBar: View {
-    let setupTitle: String
-    let setupIcon: String
-    let setupTint: Color
-    let setupBadge: String?
-    let isSetupLoading: Bool
-    let onSetup: () -> Void
-
     var body: some View {
         HStack {
             Text("TRAIN")
@@ -16,32 +9,6 @@ struct ProgramOverviewTopBar: View {
                 .foregroundStyle(Color.unbound.textPrimary)
 
             Spacer()
-
-            Button(action: onSetup) {
-                HStack(spacing: 7) {
-                    Image(systemName: isSetupLoading ? "arrow.triangle.2.circlepath" : setupIcon)
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(setupTint)
-                    Text(setupTitle)
-                        .font(Font.unbound.captionS.weight(.heavy))
-                        .tracking(0.8)
-                        .foregroundStyle(Color.unbound.textPrimary)
-                        .lineLimit(1)
-                    if let setupBadge, setupBadge != "BASE" {
-                        Text(setupBadge)
-                            .font(Font.unbound.monoS.weight(.bold))
-                            .foregroundStyle(setupTint)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.68)
-                    }
-                }
-                .frame(height: 34)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .disabled(isSetupLoading)
-            .accessibilityLabel("Training setup")
-            .accessibilityIdentifier("program.focusSwitch.topBar")
         }
         .padding(.horizontal, 20)
         .padding(.top, 12)
