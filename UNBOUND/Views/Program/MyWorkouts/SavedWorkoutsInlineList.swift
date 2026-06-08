@@ -74,49 +74,103 @@ private struct SavedWorkoutInlineRow: View {
     let onShare: () -> Void
     let onDelete: () -> Void
 
+    @State private var expanded = false
+
     var body: some View {
-        Button(action: { UnboundHaptics.soft(); onUseToday() }) {
-            HStack(spacing: 12) {
-                WorkoutReferenceImageView(
-                    exerciseName: workout.effectiveReferenceExerciseName,
-                    fallbackSystemName: "dumbbell.fill",
-                    fallbackTint: Color.unbound.textSecondary
-                )
-                .frame(width: 44, height: 44)
+        VStack(alignment: .leading, spacing: 0) {
+            // Header — tap to expand/collapse
+            Button {
+                withAnimation(.easeInOut(duration: 0.22)) { expanded.toggle() }
+                UnboundHaptics.soft()
+            } label: {
+                HStack(spacing: 12) {
+                    WorkoutReferenceImageView(
+                        exerciseName: workout.effectiveReferenceExerciseName,
+                        fallbackSystemName: "dumbbell.fill",
+                        fallbackTint: Color.unbound.textSecondary
+                    )
+                    .frame(width: 44, height: 44)
 
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(workout.title)
-                        .font(Font.unbound.bodyMStrong)
-                        .foregroundStyle(Color.unbound.textPrimary)
-                        .lineLimit(1)
-                    MetaLine(["\(workout.exerciseCount) exercises", "\(workout.estimatedMinutes)m", roleText.uppercased()])
-                }
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(workout.title)
+                            .font(Font.unbound.bodyMStrong)
+                            .foregroundStyle(Color.unbound.textPrimary)
+                            .lineLimit(1)
+                        MetaLine(["\(workout.exerciseCount) exercises", "\(workout.estimatedMinutes)m", roleText.uppercased()])
+                    }
 
-                Spacer(minLength: 8)
+                    Spacer(minLength: 8)
 
-                Image(systemName: "arrow.triangle.2.circlepath")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(Color.unbound.coachCyan)
-                    .accessibilityHidden(true)
-
-                Menu {
-                    Button { onSchedule() } label: { Label("Schedule", systemImage: "calendar.badge.plus") }
-                    Button { onShare() } label: { Label("Drop to Squad", systemImage: "paperplane.fill") }
-                    Button(role: .destructive) { onDelete() } label: { Label("Delete", systemImage: "trash") }
-                } label: {
-                    Image(systemName: "ellipsis")
-                        .font(.system(size: 16, weight: .bold))
+                    Image(systemName: expanded ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(Color.unbound.textSecondary)
-                        .frame(width: 30, height: 38)
+                        .accessibilityHidden(true)
+
+                    Menu {
+                        Button { onSchedule() } label: { Label("Schedule", systemImage: "calendar.badge.plus") }
+                        Button { onShare() } label: { Label("Drop to Squad", systemImage: "paperplane.fill") }
+                        Button(role: .destructive) { onDelete() } label: { Label("Delete", systemImage: "trash") }
+                    } label: {
+                        Image(systemName: "ellipsis")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundStyle(Color.unbound.textSecondary)
+                            .frame(width: 30, height: 38)
+                    }
+                    .menuStyle(.button)
                 }
-                .menuStyle(.button)
+                .padding(.vertical, 10)
+                .contentShape(Rectangle())
             }
-            .padding(.vertical, 10)
-            .contentShape(Rectangle())
+            .buttonStyle(.plain)
+            .accessibilityLabel("\(workout.title), \(workout.exerciseCount) exercises, tap to \(expanded ? "collapse" : "expand")")
+
+            // Expanded area
+            if expanded {
+                VStack(alignment: .leading, spacing: 0) {
+                    // Exercise lines
+                    let prescriptions = workout.blocks.flatMap(\.prescriptions)
+                    if !prescriptions.isEmpty {
+                        VStack(alignment: .leading, spacing: 6) {
+                            ForEach(prescriptions) { prescription in
+                                HStack(spacing: 6) {
+                                    Text(prescription.exerciseName)
+                                        .font(Font.unbound.bodyS)
+                                        .foregroundStyle(Color.unbound.textSecondary)
+                                        .lineLimit(1)
+                                    Text("·")
+                                        .font(Font.unbound.bodyS)
+                                        .foregroundStyle(Color.unbound.textTertiary)
+                                    Text("\(prescription.sets)×\(prescription.target.displayText)")
+                                        .font(Font.unbound.bodyS)
+                                        .foregroundStyle(Color.unbound.textTertiary)
+                                }
+                            }
+                        }
+                        .padding(.bottom, 14)
+                    }
+
+                    // Use Today button
+                    Button {
+                        UnboundHaptics.medium()
+                        onUseToday()
+                    } label: {
+                        Text("Use Today")
+                            .font(Font.unbound.bodyMStrong)
+                            .foregroundStyle(Color.unbound.bg)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 44)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .fill(Color.unbound.accent)
+                            )
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Use \(workout.title) today")
+                }
+                .padding(.bottom, 12)
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
         }
-        .buttonStyle(.plain)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("Use \(workout.title) today")
     }
 }
 
