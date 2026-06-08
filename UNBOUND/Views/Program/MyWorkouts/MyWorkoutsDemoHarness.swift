@@ -4,9 +4,21 @@ import SwiftUI
 /// Verification harness for the My Workouts landing via `-myWorkoutsDemo`.
 /// Mirrors production: Quick Log → active workout; Build → SessionEditor → active workout.
 struct MyWorkoutsDemoHarness: View {
-    @StateObject private var services = ServiceContainer()
+    @StateObject private var services: ServiceContainer
     @State private var activeDraft: TrainingSessionDraft?
     @State private var editorDraft: TrainingSessionDraft?
+
+    init() {
+        _services = StateObject(wrappedValue: ServiceContainer())
+        // Seed sample saved workouts BEFORE the body builds, so the inline list's
+        // init-time snapshot of SavedWorkoutStore picks them up. Demoable on a
+        // freshly-installed simulator (the QA-Lab seed is wiped on reinstall).
+        if SavedWorkoutStore.shared.all().isEmpty {
+            for workout in DevBuildBootstrapper.programQALabSavedWorkouts(now: Date()) {
+                SavedWorkoutStore.shared.save(workout)
+            }
+        }
+    }
 
     var body: some View {
         MyWorkoutsView(
