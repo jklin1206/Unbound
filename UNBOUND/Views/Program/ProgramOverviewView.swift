@@ -31,7 +31,7 @@ struct ProgramOverviewView: View {
     @State var activeWorkoutDraft: TrainingSessionDraft?
     @State var sessionEditorDraft: TrainingSessionDraft?
     @State var planningWorkoutDraft: TrainingSessionDraft?
-    @State var showSavedWorkouts = false
+
     @State var showMonthPlanner = false
     @State var showExerciseStarterLibrary = false
     @State var exerciseStarterAlternativesCache: [CatalogExercise] = []
@@ -177,7 +177,12 @@ struct ProgramOverviewView: View {
                             onBuild: {
                                 sessionEditorDraft = QuickLogDraftFactory.empty(userId: services.auth.currentUserId ?? "")
                             },
-                            onOpenSaved: { showSavedWorkouts = true }
+                            onUseToday: { workout in
+                                applySavedWorkout(workout, to: programToday, allowExtraSession: true)
+                            },
+                            onSchedule: { workout in
+                                applySavedWorkout(workout, to: selectedPlanningDate(), allowExtraSession: false)
+                            }
                         )
                     case .routines: routinesTab
                     }
@@ -223,27 +228,6 @@ struct ProgramOverviewView: View {
                 WhyThisProgramView(rationale: rationale, onDismiss: { showRationale = false })
                     .presentationDragIndicator(.visible)
             }
-        }
-        .sheet(isPresented: $showSavedWorkouts) {
-            SavedWorkoutsListView(
-                onCreateNew: {
-                    showSavedWorkouts = false
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
-                        openCreateWorkoutEditor()
-                    }
-                },
-                onReplaceToday: { workout in
-                    showSavedWorkouts = false
-                    applySavedWorkout(workout, to: programToday, allowExtraSession: true)
-                },
-                onSchedule: { workout in
-                    showSavedWorkouts = false
-                    applySavedWorkout(workout, to: selectedPlanningDate(), allowExtraSession: false)
-                },
-                onDismiss: {
-                    showSavedWorkouts = false
-                }
-            )
         }
         .sheet(isPresented: $showMonthPlanner) {
             ProgramMonthPlannerView(

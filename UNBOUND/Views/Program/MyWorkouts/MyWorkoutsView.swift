@@ -1,88 +1,48 @@
 import SwiftUI
 
-/// "My Workouts" sub-tab of the Train tab: the off-program surface.
-/// Composes existing entry points — Quick Log (empty session), Build
-/// (SessionEditorView), and Saved (SavedWorkoutsListView). Calm-list styling:
-/// one hero action, the rest flat rows on bg.
+/// "My Workouts" sub-tab: list-first. The saved workouts ARE the content; Quick
+/// Log and Build are small secondary actions on top.
 struct MyWorkoutsView: View {
     let onQuickLog: () -> Void
     let onBuild: () -> Void
-    let onOpenSaved: () -> Void
+    let onUseToday: (SavedWorkout) -> Void
+    let onSchedule: (SavedWorkout) -> Void
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 22) {
-                // Hero: Quick Log — the one emphasized element (accent fill).
-                Button(action: { UnboundHaptics.medium(); onQuickLog() }) {
-                    HStack(spacing: 12) {
-                        Image(systemName: "bolt.fill")
-                            .font(.system(size: 18, weight: .bold))
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Quick Log")
-                                .font(Font.unbound.bodyMStrong)
-                            Text("Start empty · add as you go")
-                                .font(Font.unbound.captionS)
-                                .foregroundStyle(Color.unbound.textPrimary.opacity(0.8))
-                        }
-                        Spacer(minLength: 0)
-                    }
-                    .foregroundStyle(Color.unbound.textPrimary)
-                    .padding(16)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .fill(Color.unbound.accent)
-                    )
-                    .contentShape(Rectangle())
+            VStack(alignment: .leading, spacing: 18) {
+                HStack(spacing: 10) {
+                    actionButton(title: "Quick Log", icon: "bolt.fill") { UnboundHaptics.medium(); onQuickLog() }
+                        .accessibilityIdentifier("myWorkouts.quickLog")
+                    actionButton(title: "Build", icon: "plus") { UnboundHaptics.soft(); onBuild() }
+                        .accessibilityIdentifier("myWorkouts.build")
                 }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("myWorkouts.quickLog")
 
-                // Build — flat row.
-                Button(action: { UnboundHaptics.soft(); onBuild() }) {
-                    HStack(spacing: 12) {
-                        Image(systemName: "plus")
-                            .font(.system(size: 15, weight: .bold))
-                            .foregroundStyle(Color.unbound.textSecondary)
-                        Text("Build a new workout")
-                            .font(Font.unbound.bodyM)
-                            .foregroundStyle(Color.unbound.textPrimary)
-                        Spacer(minLength: 0)
-                    }
-                    .padding(.vertical, 6)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("myWorkouts.build")
-
-                // Saved — section header + entry row (full management lives in
-                // SavedWorkoutsListView, opened via onOpenSaved).
-                VStack(alignment: .leading, spacing: 10) {
-                    CalmSectionHeader(title: "SAVED")
-                    Button(action: { UnboundHaptics.soft(); onOpenSaved() }) {
-                        HStack(spacing: 12) {
-                            Image(systemName: "folder")
-                                .font(.system(size: 15, weight: .semibold))
-                                .foregroundStyle(Color.unbound.textSecondary)
-                            Text("Your saved workouts")
-                                .font(Font.unbound.bodyM)
-                                .foregroundStyle(Color.unbound.textPrimary)
-                            Spacer(minLength: 0)
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 13, weight: .bold))
-                                .foregroundStyle(Color.unbound.textTertiary)
-                        }
-                        .padding(.vertical, 6)
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityIdentifier("myWorkouts.saved")
-                }
+                SavedWorkoutsInlineList(onUseToday: onUseToday, onSchedule: onSchedule)
             }
             .padding(.horizontal, 20)
-            .padding(.top, 8)
+            .padding(.top, 10)
+            .padding(.bottom, 24)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.unbound.bg)
+    }
+
+    private func actionButton(title: String, icon: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 7) {
+                Image(systemName: icon).font(.system(size: 13, weight: .bold))
+                Text(title).font(Font.unbound.bodyMStrong)
+            }
+            .foregroundStyle(Color.unbound.textPrimary)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 11)
+            .overlay(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .strokeBorder(Color.unbound.border, lineWidth: 1)
+            )
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 }

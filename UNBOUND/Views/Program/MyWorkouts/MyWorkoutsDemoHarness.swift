@@ -12,7 +12,8 @@ struct MyWorkoutsDemoHarness: View {
         MyWorkoutsView(
             onQuickLog: { activeDraft = QuickLogDraftFactory.empty(userId: "demo") },
             onBuild: { editorDraft = QuickLogDraftFactory.empty(userId: "demo") },
-            onOpenSaved: {}
+            onUseToday: { _ in activeDraft = QuickLogDraftFactory.empty(userId: "demo") },
+            onSchedule: { _ in }
         )
         .environmentObject(services)
         .fullScreenCover(item: $activeDraft) { d in
