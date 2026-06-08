@@ -25,7 +25,7 @@ extension SessionEditorView {
             if block.prescriptions.isEmpty {
                 emptyBlockRow()
             } else {
-                VStack(spacing: 10) {
+                VStack(spacing: 0) {
                     ForEach(Array(block.prescriptions.enumerated()), id: \.element.id) { prescriptionIndex, prescription in
                         let target = PrescriptionTarget(blockIndex: blockIndex, prescriptionIndex: prescriptionIndex)
                         EditablePrescriptionRow(
@@ -55,6 +55,10 @@ extension SessionEditorView {
                         )
                         .id(prescription.id)
                         .accessibilityIdentifier("sessionEditor.exercise.\(blockIndex).\(prescriptionIndex).row")
+
+                        if prescriptionIndex < block.prescriptions.count - 1 {
+                            Divider().overlay(Color.unbound.border)
+                        }
                     }
                 }
             }

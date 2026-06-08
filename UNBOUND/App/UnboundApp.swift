@@ -136,6 +136,8 @@ struct RootView: View {
             TowerTrialDemoView()
         } else if ProcessInfo.processInfo.arguments.contains("-activeWorkoutDemo") {
             ActiveWorkoutDemoHarness()
+        } else if ProcessInfo.processInfo.arguments.contains("-sessionEditorDemo") {
+            SessionEditorDemoHarness()
         } else {
             mainContent
         }

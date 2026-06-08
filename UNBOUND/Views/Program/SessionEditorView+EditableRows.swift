@@ -103,15 +103,8 @@ extension SessionEditorView {
 
                 notesControl
             }
-            .padding(12)
-            .background(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(Color.unbound.surface)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
-            )
+            .padding(.vertical, 14)
+            .padding(.horizontal, 4)
             .onAppear {
                 materializeSetPlansIfNeeded()
             }
@@ -134,11 +127,10 @@ extension SessionEditorView {
                 }
             } label: {
                 Image(systemName: "ellipsis")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(Color.unbound.textSecondary)
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundStyle(Color.unbound.textTertiary)
                     .frame(width: 34, height: 34)
-                    .background(Circle().fill(Color.unbound.bg.opacity(0.76)))
-                    .overlay(Circle().strokeBorder(Color.unbound.borderSubtle, lineWidth: 1))
+                    .contentShape(Rectangle())
             }
             .accessibilityLabel("Exercise actions")
         }
@@ -193,30 +185,13 @@ extension SessionEditorView {
                         Spacer(minLength: 0)
                     }
                     .foregroundStyle(Color.unbound.accent)
-                    .padding(.horizontal, 10)
-                    .frame(height: 34)
-                    .background(
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .fill(Color.unbound.accent.opacity(0.08))
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .strokeBorder(Color.unbound.accent.opacity(0.24), lineWidth: 1)
-                    )
+                    .padding(.vertical, 6)
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("sessionEditor.exercise.\(prescription.id).addSet")
             }
-            .padding(10)
-            .background(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(Color.unbound.bg.opacity(0.58))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
-            )
+            .padding(.top, 2)
         }
 
         var notesControl: some View {
@@ -238,16 +213,7 @@ extension SessionEditorView {
                             .rotationEffect(.degrees(showsNotes ? 180 : 0))
                     }
                     .foregroundStyle(Color.unbound.textSecondary)
-                    .padding(.horizontal, 10)
-                    .frame(height: 34)
-                    .background(
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .fill(Color.unbound.bg.opacity(0.62))
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
-                    )
+                    .padding(.vertical, 6)
                 }
                 .buttonStyle(.plain)
 
@@ -257,15 +223,11 @@ extension SessionEditorView {
                         .foregroundStyle(Color.unbound.textPrimary)
                         .textInputAutocapitalization(.sentences)
                         .lineLimit(1...3)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 9)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 10)
                         .background(
                             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                .fill(Color.unbound.bg.opacity(0.72))
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
+                                .fill(Color.unbound.surface)
                         )
                         .onChange(of: notesText) { _, newValue in applyNotes(newValue) }
                 }
@@ -298,16 +260,11 @@ extension SessionEditorView {
                             .foregroundStyle(Color.unbound.textTertiary)
                     }
                 }
-                .padding(.horizontal, 9)
-                .frame(height: 36)
-                .background(
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .fill(Color.unbound.bg.opacity(0.72))
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
-                )
+                .padding(.horizontal, 2)
+                .frame(height: 34)
+                .overlay(alignment: .bottom) {
+                    Rectangle().fill(Color.unbound.borderSubtle).frame(height: 1)
+                }
             }
         }
 
@@ -510,31 +467,17 @@ extension SessionEditorView {
                             .tracking(0.7)
                             .foregroundStyle(plan.isWarmup ? Color.unbound.warnOrange : Color.unbound.textSecondary)
                             .frame(maxWidth: .infinity)
-                            .frame(height: 34)
-                            .background(
-                                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                    .fill(Color.unbound.surface.opacity(0.72))
-                            )
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                    .strokeBorder(
-                                        plan.isWarmup ? Color.unbound.warnOrange.opacity(0.45) : Color.unbound.borderSubtle,
-                                        lineWidth: 1
-                                    )
-                            )
+                            .frame(height: 32)
+                            .overlay(alignment: .bottom) {
+                                Rectangle()
+                                    .fill(plan.isWarmup ? Color.unbound.warnOrange.opacity(0.6) : Color.unbound.borderSubtle)
+                                    .frame(height: 1)
+                            }
                     }
                     .buttonStyle(.plain)
                 }
             }
-            .padding(8)
-            .background(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(Color.unbound.surface.opacity(0.78))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
-            )
+            .padding(.vertical, 8)
         }
 
         func setField(
@@ -564,16 +507,11 @@ extension SessionEditorView {
                             .foregroundStyle(Color.unbound.textTertiary)
                     }
                 }
-                .padding(.horizontal, 8)
-                .frame(height: 34)
-                .background(
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .fill(Color.unbound.bg.opacity(0.72))
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
-                )
+                .padding(.horizontal, 2)
+                .frame(height: 32)
+                .overlay(alignment: .bottom) {
+                    Rectangle().fill(Color.unbound.borderSubtle).frame(height: 1)
+                }
             }
         }
 
