@@ -8,6 +8,7 @@ struct ProgramSelectedDayCard<Content: View>: View {
     let heroTint: Color
     let metrics: [ProgramCommandMetricModel]
     let skillNodes: [SkillNode]
+    let fuelText: String?
     let content: Content
 
     init(
@@ -18,6 +19,7 @@ struct ProgramSelectedDayCard<Content: View>: View {
         heroTint: Color,
         metrics: [ProgramCommandMetricModel],
         skillNodes: [SkillNode],
+        fuelText: String? = nil,
         @ViewBuilder content: () -> Content
     ) {
         self.headerLabel = headerLabel
@@ -27,6 +29,7 @@ struct ProgramSelectedDayCard<Content: View>: View {
         self.heroTint = heroTint
         self.metrics = metrics
         self.skillNodes = skillNodes
+        self.fuelText = fuelText
         self.content = content()
     }
 
@@ -34,17 +37,18 @@ struct ProgramSelectedDayCard<Content: View>: View {
         VStack(alignment: .leading, spacing: 14) {
             header
 
-            MetaLine(metrics.map { $0.title })
+            MetaLine(metrics.map { $0.title } + [fuelText].compactMap { $0 })
 
             if !skillNodes.isEmpty {
                 MetaLine(skillNodes.map { $0.title }, emphasized: false)
             }
 
+            Divider().overlay(Color.unbound.border)
+
             content
         }
-        .padding(16)
+        .padding(.horizontal, 20)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .activeSurface(true, cornerRadius: 18)
     }
 
     private var header: some View {

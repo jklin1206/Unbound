@@ -71,6 +71,15 @@ extension ProgramOverviewView {
             skillNodes: skillNodes
         )
 
+        let fuelText: String? = day.map { d in
+            let target = program.nutritionPlan.target(for: d)
+            return ProgramDayFuelSummary.text(
+                kcal: target.calories,
+                proteinGrams: target.proteinGrams,
+                isRestDay: d.isRestDay
+            )
+        }
+
         return ProgramSelectedDayCard(
             headerLabel: presentation.headerLabel,
             title: presentation.title,
@@ -78,12 +87,9 @@ extension ProgramOverviewView {
             badge: presentation.badge,
             heroTint: presentation.heroTint,
             metrics: presentation.metrics,
-            skillNodes: presentation.skillNodes
+            skillNodes: presentation.skillNodes,
+            fuelText: fuelText
         ) {
-            if let day {
-                ProgramFuelTargetBand(plan: program.nutritionPlan, day: day)
-            }
-
             if let day, !day.isRestDay, let workout {
                 ProgramModifierSummaryRail(summary: programModifierSummary(for: day))
                 ProgramWaveAdjustmentPanel(
