@@ -49,7 +49,7 @@ struct SavedWorkoutsInlineList: View {
             }
         }
         .sheet(item: $sharingWorkout) { workout in
-            InlineSquadRoutineDropShareSheet(workout: workout) { _ in sharingWorkout = nil }
+            SquadRoutineDropShareSheet(workout: workout) { _ in sharingWorkout = nil }
                 .environmentObject(services)
         }
     }
@@ -120,11 +120,9 @@ private struct SavedWorkoutInlineRow: View {
     }
 }
 
-// MARK: - Squad share sheet (moved here from SavedWorkoutsListView so it compiles
-//         when used by this inline list; SavedWorkoutsListView retains its own
-//         private copy for its own usage).
+// MARK: - Squad share sheet
 
-struct InlineSquadRoutineDropShareSheet: View {
+private struct SquadRoutineDropShareSheet: View {
     @EnvironmentObject private var services: ServiceContainer
     @Environment(\.dismiss) private var dismiss
 
