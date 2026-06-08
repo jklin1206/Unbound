@@ -10,7 +10,7 @@ struct ProgramOverviewTopBar: View {
 
     var body: some View {
         HStack {
-            Text("PROGRAM")
+            Text("TRAIN")
                 .font(Font.unbound.titleS)
                 .tracking(2.0)
                 .foregroundStyle(Color.unbound.textPrimary)
