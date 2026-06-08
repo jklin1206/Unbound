@@ -99,380 +99,57 @@ struct ProgramCommandDock: View {
     }
 
     let setupTile: SetupTile
-    let savedWorkouts: [SavedWorkout]
-    let onWorkout: (SavedWorkout) -> Void
     let onPlan: () -> Void
     let onChangeSetup: () -> Void
-    let onCreateWorkout: () -> Void
-    let onShowAllWorkouts: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            header
-            actionBar
-            workoutList
-        }
-        .accessibilityIdentifier("program.quickStart.card")
-    }
-
-    private var header: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 10) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Workouts")
-                    .font(Font.unbound.titleS)
-                    .foregroundStyle(Color.unbound.textPrimary)
-                Text(savedWorkouts.isEmpty ? "Create one, then start it from here." : "\(savedWorkouts.count) saved")
-                    .font(Font.unbound.captionS)
-                    .foregroundStyle(Color.unbound.textTertiary)
-                    .lineLimit(1)
-            }
-
-            Spacer(minLength: 0)
-        }
-    }
-
-    private var actionBar: some View {
-        HStack(spacing: 14) {
-            actionLink(
-                title: "Plan",
-                systemName: "calendar",
-                tint: Color.unbound.coachCyan,
-                action: onPlan
-            )
-            .accessibilityIdentifier("program.monthPlanner.open")
-
-            actionLink(
-                title: "Create",
-                systemName: "plus.circle",
-                tint: Color.unbound.accent,
-                action: onCreateWorkout
-            )
-            .accessibilityIdentifier("program.createWorkout.open")
-
-            Spacer(minLength: 0)
-        }
-        .padding(.vertical, 2)
-    }
-
-    private var workoutList: some View {
         VStack(spacing: 0) {
             Divider()
-                .overlay(Color.unbound.borderSubtle.opacity(0.72))
+                .overlay(Color.unbound.border)
 
-            if savedWorkouts.isEmpty {
-                emptyWorkoutRow
-            } else {
-                ForEach(Array(savedWorkouts.prefix(4).enumerated()), id: \.element.id) { index, workout in
-                    workoutRow(workout)
-                    if index < min(savedWorkouts.count, 4) - 1 {
-                        Divider()
-                            .padding(.leading, 44)
-                            .overlay(Color.unbound.borderSubtle.opacity(0.5))
-                    }
-                }
-
-                if savedWorkouts.count > 4 {
-                    Divider()
-                        .padding(.leading, 44)
-                        .overlay(Color.unbound.borderSubtle.opacity(0.5))
-                    allWorkoutsRow
-                }
-            }
+            planRow
+                .accessibilityIdentifier("program.monthPlanner.open")
 
             Divider()
-                .overlay(Color.unbound.borderSubtle.opacity(0.72))
+                .padding(.leading, 36)
+                .overlay(Color.unbound.border.opacity(0.5))
+
+            setupRow
         }
+        .accessibilityIdentifier("program.controls")
     }
 
-    private var workoutRail: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
+    private var planRow: some View {
+        Button(action: onPlan) {
             HStack(spacing: 10) {
-                if savedWorkouts.isEmpty {
-                    emptyWorkoutTile
-                } else {
-                    ForEach(savedWorkouts.prefix(8)) { workout in
-                        workoutTile(workout)
-                    }
-
-                    if savedWorkouts.count > 8 {
-                        allWorkoutsTile
-                    }
-                }
-            }
-            .padding(.vertical, 2)
-            .padding(.horizontal, 1)
-        }
-    }
-
-    private func workoutRow(_ workout: SavedWorkout) -> some View {
-        Button {
-            onWorkout(workout)
-        } label: {
-            HStack(spacing: 12) {
-                WorkoutReferenceImageView(
-                    exerciseName: workout.effectiveReferenceExerciseName,
-                    fallbackSystemName: icon(for: workout),
-                    fallbackTint: tint(for: workout)
-                )
-                .frame(width: 38, height: 38)
-
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(workout.title.isEmpty ? "Workout" : workout.title)
-                        .font(Font.unbound.bodyMStrong)
-                        .foregroundStyle(Color.unbound.textPrimary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.78)
-                    Text("\(roleText(workout)) / \(workout.exerciseCount) moves / ~\(workout.estimatedMinutes)m")
-                        .font(Font.unbound.captionS)
-                        .foregroundStyle(Color.unbound.textTertiary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.78)
-                }
-
-                Spacer(minLength: 8)
-
-                Image(systemName: "arrow.up.right")
+                Image(systemName: "calendar")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(Color.unbound.coachCyan)
+                    .frame(width: 24)
+                Text("Plan Month")
+                    .font(Font.unbound.bodyM)
+                    .foregroundStyle(Color.unbound.textPrimary)
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right")
                     .font(.system(size: 11, weight: .bold))
                     .foregroundStyle(Color.unbound.textTertiary)
             }
-            .padding(.vertical, 12)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityIdentifier("program.savedWorkout.quickStart.\(workout.id.uuidString)")
-    }
-
-    private var emptyWorkoutRow: some View {
-        Button(action: onCreateWorkout) {
-            HStack(spacing: 12) {
-                Image(systemName: "plus")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(Color.unbound.accent)
-                    .frame(width: 32, height: 32)
-                    .background(Circle().fill(Color.unbound.accent.opacity(0.12)))
-
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("Build Workout")
-                        .font(Font.unbound.bodyMStrong)
-                        .foregroundStyle(Color.unbound.textPrimary)
-                    Text("Save it once. Start it fast.")
-                        .font(Font.unbound.captionS)
-                        .foregroundStyle(Color.unbound.textTertiary)
-                }
-
-                Spacer(minLength: 8)
-            }
-            .padding(.vertical, 12)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityIdentifier("program.savedWorkout.create")
-    }
-
-    private var allWorkoutsRow: some View {
-        Button(action: onShowAllWorkouts) {
-            HStack(spacing: 12) {
-                Image(systemName: "tray.full")
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(Color.unbound.coachCyan)
-                    .frame(width: 32, height: 32)
-                    .background(Circle().fill(Color.unbound.coachCyan.opacity(0.12)))
-                Text("Show all workouts")
-                    .font(Font.unbound.bodyS.weight(.semibold))
-                    .foregroundStyle(Color.unbound.textPrimary)
-                Spacer(minLength: 8)
-                Text("\(savedWorkouts.count)")
-                    .font(Font.unbound.monoS.weight(.bold))
-                    .foregroundStyle(Color.unbound.textTertiary)
-            }
-            .padding(.vertical, 12)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityIdentifier("program.savedWorkouts.open")
-    }
-
-    private func workoutTile(_ workout: SavedWorkout) -> some View {
-        Button {
-            onWorkout(workout)
-        } label: {
-            VStack(alignment: .leading, spacing: 9) {
-                HStack(spacing: 8) {
-                    WorkoutReferenceImageView(
-                        exerciseName: workout.effectiveReferenceExerciseName,
-                        fallbackSystemName: icon(for: workout),
-                        fallbackTint: tint(for: workout)
-                    )
-                    .frame(width: 34, height: 34)
-                    Spacer(minLength: 0)
-                    Text(roleText(workout).uppercased())
-                        .font(Font.unbound.captionS.weight(.heavy))
-                        .tracking(0.8)
-                        .foregroundStyle(tint(for: workout))
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.68)
-                }
-
-                Text(workout.title.isEmpty ? "Workout" : workout.title)
-                    .font(Font.unbound.bodyMStrong)
-                    .foregroundStyle(Color.unbound.textPrimary)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.76)
-
-                HStack(spacing: 8) {
-                    metric("\(workout.exerciseCount)", "moves")
-                    metric("~\(workout.estimatedMinutes)m", "time")
-                }
-            }
-            .padding(12)
-            .frame(width: 164, height: 112, alignment: .leading)
-            .background(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(Color.unbound.surfaceElevated.opacity(0.88))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .strokeBorder(tint(for: workout).opacity(0.34), lineWidth: 1)
-            )
-            .shadow(color: tint(for: workout).opacity(0.10), radius: 10, y: 5)
-        }
-        .buttonStyle(.plain)
-        .accessibilityIdentifier("program.savedWorkout.quickStart.\(workout.id.uuidString)")
-    }
-
-    private var emptyWorkoutTile: some View {
-        Button(action: onCreateWorkout) {
-            HStack(spacing: 12) {
-                Image(systemName: "plus")
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundStyle(Color.unbound.textPrimary)
-                    .frame(width: 42, height: 42)
-                    .background(Circle().fill(Color.unbound.accent))
-
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("BUILD WORKOUT")
-                        .font(Font.unbound.captionS.weight(.heavy))
-                        .tracking(1.0)
-                        .foregroundStyle(Color.unbound.textPrimary)
-                    Text("Save it once. Start it fast.")
-                        .font(Font.unbound.captionS)
-                        .foregroundStyle(Color.unbound.textSecondary)
-                        .lineLimit(1)
-                }
-                Spacer(minLength: 0)
-            }
-            .padding(12)
-            .frame(width: 246, height: 82, alignment: .leading)
-            .background(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(Color.unbound.surfaceElevated.opacity(0.88))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .strokeBorder(Color.unbound.accent.opacity(0.34), lineWidth: 1)
-            )
-        }
-        .buttonStyle(.plain)
-        .accessibilityIdentifier("program.savedWorkout.create")
-    }
-
-    private var allWorkoutsTile: some View {
-        Button(action: onShowAllWorkouts) {
-            VStack(spacing: 8) {
-                Image(systemName: "tray.full")
-                    .font(.system(size: 15, weight: .bold))
-                    .foregroundStyle(Color.unbound.coachCyan)
-                    .frame(width: 34, height: 34)
-                    .background(Circle().fill(Color.unbound.coachCyan.opacity(0.14)))
-                Text("ALL")
-                    .font(Font.unbound.captionS.weight(.heavy))
-                    .tracking(1.2)
-                    .foregroundStyle(Color.unbound.textPrimary)
-                Text("\(savedWorkouts.count)")
-                    .font(Font.unbound.monoS.weight(.bold))
-                    .foregroundStyle(Color.unbound.textTertiary)
-            }
-            .frame(width: 76, height: 112)
-            .background(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(Color.unbound.surfaceElevated.opacity(0.78))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
-            )
-        }
-        .buttonStyle(.plain)
-        .accessibilityIdentifier("program.savedWorkouts.open")
-    }
-
-    private func compactActionButton(
-        title: String,
-        systemName: String,
-        tint: Color,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
-            VStack(spacing: 3) {
-                Image(systemName: systemName)
-                    .font(.system(size: 13, weight: .bold))
-                Text(title.uppercased())
-                    .font(Font.unbound.captionS.weight(.heavy))
-                    .tracking(0.7)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.72)
-            }
-            .foregroundStyle(tint)
-            .frame(width: 58, height: 46)
-            .background(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(tint.opacity(0.12))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .strokeBorder(tint.opacity(0.24), lineWidth: 1)
-            )
-        }
-        .buttonStyle(.plain)
-    }
-
-    private func actionLink(
-        title: String,
-        systemName: String,
-        tint: Color,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
-            HStack(spacing: 7) {
-                Image(systemName: systemName)
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(tint)
-                    .frame(width: 20)
-                Text(title)
-                    .font(Font.unbound.captionS.weight(.heavy))
-                    .tracking(0.7)
-                    .foregroundStyle(Color.unbound.textPrimary)
-                    .lineLimit(1)
-            }
-            .frame(height: 34)
+            .padding(.vertical, 14)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }
 
-    private var trainSetupButton: some View {
+    private var setupRow: some View {
         Button(action: onChangeSetup) {
-            HStack(spacing: 7) {
+            HStack(spacing: 10) {
                 Image(systemName: setupTile.isLoading ? "arrow.triangle.2.circlepath" : setupTile.icon)
-                    .font(.system(size: 12, weight: .bold))
+                    .font(.system(size: 13, weight: .bold))
                     .foregroundStyle(setupTile.tint)
-                    .frame(width: 20)
+                    .frame(width: 24)
                 Text(setupTile.title)
-                    .font(Font.unbound.captionS.weight(.heavy))
-                    .tracking(0.7)
+                    .font(Font.unbound.bodyM)
                     .foregroundStyle(Color.unbound.textPrimary)
-                    .lineLimit(1)
-
                 if let badge = setupTile.badge, badge != "BASE" {
                     Text(badge)
                         .font(Font.unbound.monoS.weight(.bold))
@@ -480,53 +157,18 @@ struct ProgramCommandDock: View {
                         .lineLimit(1)
                         .minimumScaleFactor(0.65)
                 }
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(Color.unbound.textTertiary)
             }
-            .frame(height: 34)
+            .padding(.vertical, 14)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .disabled(setupTile.isLoading)
         .accessibilityLabel("Training setup")
         .accessibilityIdentifier("program.focusSwitch")
-    }
-
-    private func metric(_ value: String, _ label: String) -> some View {
-        HStack(spacing: 3) {
-            Text(value.uppercased())
-                .font(Font.unbound.monoS.weight(.bold))
-            Text(label.uppercased())
-                .font(Font.unbound.captionS.weight(.semibold))
-        }
-        .foregroundStyle(Color.unbound.textTertiary)
-        .lineLimit(1)
-        .minimumScaleFactor(0.72)
-    }
-
-    private func roleText(_ workout: SavedWorkout) -> String {
-        SessionRole.fromStorageValue(workout.sessionRole)?.displayName ?? "Custom"
-    }
-
-    private func tint(for workout: SavedWorkout) -> Color {
-        switch SavedWorkout.normalizedSessionRole(workout.sessionRole) {
-        case "push", "upper": return Color.unbound.accent
-        case "pull": return Color.unbound.coachCyan
-        case "legs", "lower": return Color.unbound.success
-        case "full-body", "full_body": return Color.unbound.warnOrange
-        case "skill-only", "skill_only": return Color.unbound.success
-        default: return Color.unbound.textSecondary
-        }
-    }
-
-    private func icon(for workout: SavedWorkout) -> String {
-        switch SavedWorkout.normalizedSessionRole(workout.sessionRole) {
-        case "push", "upper": return "figure.strengthtraining.traditional"
-        case "pull": return "figure.pull"
-        case "legs", "lower": return "figure.run"
-        case "full-body", "full_body": return "figure.mixed.cardio"
-        case "skill-only", "skill_only": return "sparkles"
-        case "cardio": return "heart.fill"
-        default: return "dumbbell.fill"
-        }
     }
 }
 

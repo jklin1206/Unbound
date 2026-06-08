@@ -5,56 +5,9 @@ struct ProgramModifierSummaryRail: View {
 
     var body: some View {
         if !summary.isEmpty {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    ForEach(Array(summary.visibleLines.enumerated()), id: \.offset) { _, line in
-                        ProgramModifierChip(line: line)
-                    }
-                    if summary.overflowCount > 0 {
-                        Text("+\(summary.overflowCount)")
-                            .font(Font.unbound.captionS.weight(.heavy))
-                            .foregroundStyle(Color.unbound.textPrimary.opacity(0.62))
-                            .padding(.horizontal, 10)
-                            .frame(height: 34)
-                            .background(Capsule().fill(Color.unbound.bg.opacity(0.72)))
-                            .overlay(Capsule().strokeBorder(Color.unbound.borderSubtle, lineWidth: 1))
-                    }
-                }
-                .padding(.horizontal, 1)
-            }
-        }
-    }
-}
-
-private struct ProgramModifierChip: View {
-    let line: ProgramModifierLine
-
-    var body: some View {
-        HStack(spacing: 7) {
-            Image(systemName: line.iconName)
-                .font(.system(size: 11, weight: .bold))
-                .foregroundStyle(color(for: line.colorRole))
-            Text(line.title.uppercased())
-                .font(Font.unbound.captionS.weight(.heavy))
-                .tracking(0.7)
-                .foregroundStyle(Color.unbound.textPrimary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.72)
-        }
-        .padding(.horizontal, 10)
-        .frame(height: 34)
-        .background(Capsule().fill(Color.unbound.bg.opacity(0.72)))
-        .overlay(Capsule().strokeBorder(Color.unbound.borderSubtle, lineWidth: 1))
-    }
-
-    private func color(for role: ProgramModifierColorRole) -> Color {
-        switch role {
-        case .accent:
-            return Color.unbound.accent
-        case .warning:
-            return Color.unbound.warnOrange
-        case .neutral:
-            return Color.unbound.textPrimary.opacity(0.66)
+            let titles = summary.visibleLines.map { $0.title }
+            let overflow = summary.overflowCount > 0 ? "+\(summary.overflowCount)" : nil
+            MetaLine(titles + [overflow])
         }
     }
 }
@@ -65,24 +18,18 @@ struct ProgramWaveAdjustmentPanel: View {
 
     var body: some View {
         if !adjustments.isEmpty {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("WAVE 2 ADJUSTMENTS")
-                    .font(Font.unbound.monoS.weight(.bold))
-                    .foregroundStyle(Color.unbound.textPrimary.opacity(0.62))
+            VStack(alignment: .leading, spacing: 0) {
+                Divider()
+                    .overlay(Color.unbound.border)
+                CalmSectionHeader(title: "WAVE ADJUSTMENTS")
+                    .padding(.vertical, 6)
                 ForEach(adjustments) { adjustment in
                     ProgramWaveAdjustmentRow(adjustment: adjustment, onUndo: onUndo)
+                    Divider()
+                        .padding(.leading, 22)
+                        .overlay(Color.unbound.border.opacity(0.5))
                 }
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 9)
-            .background(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(Color.unbound.bg.opacity(0.72))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .strokeBorder(Color.unbound.accent.opacity(0.28), lineWidth: 1)
-            )
         }
     }
 }
@@ -122,10 +69,7 @@ private struct ProgramWaveAdjustmentRow: View {
                         .font(Font.unbound.captionS.weight(.black))
                         .tracking(0.8)
                         .foregroundStyle(Color.unbound.warnOrange)
-                        .padding(.horizontal, 8)
                         .frame(height: 28)
-                        .background(Capsule().fill(Color.unbound.warnOrange.opacity(0.12)))
-                        .overlay(Capsule().strokeBorder(Color.unbound.warnOrange.opacity(0.28), lineWidth: 1))
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("program.waveAdjustment.undo.\(adjustment.dayNumber)")

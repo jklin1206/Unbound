@@ -72,23 +72,7 @@ struct ProgramWeekStrip: View {
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 8)
-            .background(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(
-                        tile.isSelected
-                            ? Color.unbound.accent.opacity(0.28)
-                            : (tile.isToday ? Color.unbound.surfaceElevated.opacity(0.62) : Color.clear)
-                    )
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .strokeBorder(
-                        tile.isSelected || tile.isToday
-                            ? Color.unbound.accent.opacity(tile.isToday ? 0.75 : 0.42)
-                            : Color.clear,
-                        lineWidth: tile.isToday ? 1.2 : 1
-                    )
-            )
+            .activeSurface(tile.isSelected, cornerRadius: 10)
             .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
         }
         .buttonStyle(.plain)
@@ -105,7 +89,6 @@ struct ProgramWeekStrip: View {
             Circle()
                 .fill(isActive ? Color.unbound.textPrimary : Color.unbound.accent)
                 .frame(width: 6, height: 6)
-                .shadow(color: Color.unbound.accent.opacity(0.65), radius: 3)
         case .rest:
             Image(systemName: "moon.fill")
                 .font(.system(size: 10, weight: .semibold))

@@ -47,7 +47,6 @@ extension ProgramOverviewView {
         let contextResolution = displayedContext.map(resolvedTrainingContext)
         let style = contextResolution?.trainingStyle ?? baseStyle
         let equipment = contextResolution?.sortedEquipment ?? baseEquipment
-        let savedWorkouts = SavedWorkoutStore.shared.all()
 
         return ProgramCommandDock(
             setupTile: ProgramCommandDock.SetupTile.resolve(
@@ -57,11 +56,6 @@ extension ProgramOverviewView {
                 pendingContext: pendingContext,
                 isLoading: isSwitchingProgramFocus
             ),
-            savedWorkouts: savedWorkouts,
-            onWorkout: { workout in
-                UnboundHaptics.medium()
-                openSavedWorkoutForToday(workout)
-            },
             onPlan: {
                 UnboundHaptics.soft()
                 showMonthPlanner = true
@@ -73,14 +67,6 @@ extension ProgramOverviewView {
                     activeContext: activeContext,
                     pendingContext: pendingContext
                 )
-            },
-            onCreateWorkout: {
-                UnboundHaptics.soft()
-                openCreateWorkoutEditor()
-            },
-            onShowAllWorkouts: {
-                UnboundHaptics.soft()
-                showSavedWorkouts = true
             }
         )
     }

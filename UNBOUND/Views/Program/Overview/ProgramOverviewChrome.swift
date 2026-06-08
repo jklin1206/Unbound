@@ -58,15 +58,6 @@ struct ProgramOverviewTabSelector: View {
             tabChip(.myWorkouts, label: "MY WORKOUTS")
             tabChip(.routines, label: "ROUTINES")
         }
-        .padding(4)
-        .background(
-            Capsule()
-                .fill(Color.unbound.surface)
-        )
-        .overlay(
-            Capsule()
-                .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
-        )
     }
 
     private func tabChip(_ tab: ProgramOverviewView.Tab, label: String) -> some View {
@@ -77,19 +68,20 @@ struct ProgramOverviewTabSelector: View {
                 selectedTab = tab
             }
         } label: {
-            Text(label)
-                .font(Font.unbound.captionS.weight(.bold))
-                .tracking(1.4)
-                .foregroundStyle(isActive ? Color.unbound.textPrimary : Color.unbound.textPrimary.opacity(0.58))
-                .lineLimit(1)
-                .minimumScaleFactor(0.76)
-                .allowsTightening(true)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 9)
-                .background(
-                    Capsule()
-                        .fill(isActive ? Color.unbound.accent.opacity(0.25) : .clear)
-                )
+            VStack(spacing: 0) {
+                Text(label)
+                    .font(Font.unbound.captionS.weight(.bold))
+                    .tracking(1.4)
+                    .foregroundStyle(isActive ? Color.unbound.textPrimary : Color.unbound.textPrimary.opacity(0.48))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.76)
+                    .allowsTightening(true)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                Rectangle()
+                    .fill(isActive ? Color.unbound.accent : Color.clear)
+                    .frame(height: 2)
+            }
         }
         .buttonStyle(.plain)
     }
