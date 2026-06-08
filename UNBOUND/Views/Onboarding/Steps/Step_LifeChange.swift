@@ -5,13 +5,13 @@ enum LifeChangeSlide: String, CaseIterable {
 
     static let activeSlides: [LifeChangeSlide] = [.energy, .sleep, .confidence]
 
-    var icon: String {
+    var chipAssetName: String {
         switch self {
-        case .energy:     return "bolt.fill"
-        case .strength:   return "heart.fill"
-        case .confidence: return "brain.head.profile"
-        case .sleep:      return "moon.stars.fill"
-        case .looksFeel:  return "figure.mind.and.body"
+        case .energy:     return "badge_art_streak_7"
+        case .strength:   return "badge_art_pr_session"
+        case .confidence: return "badge_art_proof_10"
+        case .sleep:      return "badge_art_hour_glass"
+        case .looksFeel:  return "badge_art_first_build_identity_resolved"
         }
     }
 
@@ -150,8 +150,11 @@ struct Step_LifeChange: View {
                 )
 
             HStack(spacing: 8) {
-                Image(systemName: slide.icon)
-                    .font(.system(size: 12, weight: .black))
+                Image(slide.chipAssetName)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 18, height: 18)
+                    .shadow(color: Color.unbound.accent.opacity(0.36), radius: 5)
                 Text(slide.chipTitle)
                     .font(.system(size: 10, weight: .black, design: .monospaced))
                     .tracking(1.3)

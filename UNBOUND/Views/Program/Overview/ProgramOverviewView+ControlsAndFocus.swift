@@ -66,11 +66,6 @@ extension ProgramOverviewView {
                 UnboundHaptics.soft()
                 showMonthPlanner = true
             },
-            onExercises: {
-                UnboundHaptics.soft()
-                refreshExerciseStarterAlternativesCache(program: program)
-                showExerciseStarterLibrary = true
-            },
             onChangeSetup: {
                 presentProgramFocusSwitch(
                     style: style,
@@ -81,7 +76,7 @@ extension ProgramOverviewView {
             },
             onCreateWorkout: {
                 UnboundHaptics.soft()
-                openPlanAheadEditor()
+                openCreateWorkoutEditor()
             },
             onShowAllWorkouts: {
                 UnboundHaptics.soft()

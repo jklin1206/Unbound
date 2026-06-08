@@ -112,6 +112,53 @@ final class ProgramOverviewDayResolverTests: XCTestCase {
         XCTAssertNotNil(day.userWorkoutDraft)
     }
 
+    func testScheduledRestDayWinsBeforeTravelOverride() throws {
+        let start = try date(year: 2026, month: 6, day: 1)
+        let program = makeProgram(start: start)
+        let selected = try XCTUnwrap(calendar.date(byAdding: .day, value: 1, to: start))
+        let store = makeScheduleStore()
+        let occurrence = ProgramScheduleOccurrence(
+            userId: "u1",
+            programId: program.id,
+            date: selected,
+            kind: .rest,
+            title: "Rest",
+            attachScheduledSkills: false,
+            adaptsWithProgression: false
+        )
+        store.replacePrimary(on: selected, userId: "u1", programId: program.id, with: occurrence)
+        let override = TravelOverride(
+            userId: "u1",
+            startDate: start,
+            endDate: selected,
+            summary: "Travel week.",
+            days: [
+                TravelDay(
+                    dayOffset: 1,
+                    title: "HOTEL PUSH",
+                    duration: "~25 MIN",
+                    exercises: ["Pushup"],
+                    isRest: false
+                )
+            ],
+            createdAt: start
+        )
+        let resolver = ProgramOverviewDayResolver(
+            userId: "u1",
+            activeTravelOverride: override,
+            scheduleRevision: 1,
+            scheduleStore: store,
+            calendar: calendar
+        )
+
+        let day = try XCTUnwrap(resolver.day(for: selected, in: program))
+
+        XCTAssertTrue(day.isRestDay)
+        XCTAssertEqual(day.dayNumber, 2)
+        XCTAssertEqual(day.label, "Rest")
+        XCTAssertNil(day.workout)
+    }
+
     private func date(year: Int, month: Int, day: Int) throws -> Date {
         try XCTUnwrap(calendar.date(from: DateComponents(year: year, month: month, day: day)))
     }

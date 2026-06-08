@@ -381,8 +381,220 @@ extension DevBuildBootstrapper {
         UserDefaults.standard.removeObject(forKey: badgeKey)
         UserDefaults.standard.removeObject(forKey: sessionXPKey)
         UserDefaults.standard.removeObject(forKey: didBootstrapKey)
+        UserDefaults.standard.removeObject(forKey: devAccountModeKey)
         UserDefaults.standard.removeObject(forKey: "unbound.streakDays")
         DevFlags.shared.unlockAllFeatures = false
+    }
+
+    static func seedFreshLoginDevAccount(services _: ServiceContainer) async {
+        AuthService.shared.activateDevUser(id: userId)
+        DevFlags.shared.unlockAllFeatures = true
+        UserDefaults.standard.set(freshLoginDevAccountMode, forKey: devAccountModeKey)
+        UserDefaults.standard.set(true, forKey: "onboardingCompleted")
+        UserDefaults.standard.set(true, forKey: "unbound.calibration.completed")
+        UserDefaults.standard.removeObject(forKey: DevDynamicProgramScenario.activeUserDefaultsKey)
+        DevProgramClock.reset()
+
+        await clearFreshLoginDevState()
+
+        let now = Date()
+        var profile = freshLoginProfile(at: now)
+        try? await DatabaseService.shared.create(profile, collection: "users", documentId: userId)
+
+        seedFreshSessionXP(at: now)
+        seedFreshAttributes(at: now)
+        await seedFreshOverallLevel(at: now)
+        await seedFreshSkillProgress(at: now)
+        OverallRankTrialStore.shared.save(.empty, userId: userId)
+        UserSkillTierStore.shared.save(.empty, userId: userId)
+        WeeklyVowsStore.shared.save(.empty, userId: userId)
+        seedFreshLiftTiers()
+        SkinService.shared.debugResetToFreshDefaults()
+        BadgeService.shared.bind(userId: userId)
+
+        if let generated = await generateScenarioProgram(from: profile) {
+            profile.currentProgramId = generated.id
+            try? await DatabaseService.shared.create(profile, collection: "users", documentId: userId)
+        } else {
+            try? await DatabaseService.shared.create(profile, collection: "users", documentId: userId)
+        }
+
+        await SkillProgressService.shared.load(userId: userId)
+        await TrialsService.shared.ensureCurrentWeek(userId: userId)
+    }
+
+    private static func clearFreshLoginDevState() async {
+        let defaults = UserDefaults.standard
+        let userScopedKeys = [
+            badgeKey,
+            sessionXPKey,
+            "unbound.sessionxpbonus.\(userId)",
+            "unbound.attributeProfile.\(userId)",
+            "unbound.attributeHistory.\(userId)",
+            "unbound.overallRankTrials.\(userId)",
+            "unbound.skillTierState.\(userId)",
+            "unbound.weeklyVowsState.\(userId)",
+            "unbound.trialsState.\(userId)",
+            "unbound.profileCosmetics.highest.\(userId)",
+            "unbound.profileCosmetics.frame.\(userId)",
+            "unbound.profileCosmetics.background.\(userId)",
+            "unbound.profileCosmetics.color.\(userId)",
+            "unbound.wallet.vows.\(userId)",
+            "unbound.wallet.vows.starterGrant.\(userId)",
+            "unbound.wallet.vows.grantLedger.\(userId)",
+            "unbound.shop.inventory.\(userId)",
+            "unbound.shop.equippedHomeBackground.\(userId)",
+            "unbound.shop.equippedBackdrop.home.\(userId)",
+            "unbound.shop.equippedProfileBorder.\(userId)",
+            "unbound.shop.equippedProfileBackground.\(userId)",
+            "unbound.shop.equippedBackdrop.profile.\(userId)"
+        ]
+        userScopedKeys.forEach { defaults.removeObject(forKey: $0) }
+        devLiftNames.forEach { lift in
+            defaults.removeObject(forKey: "unbound.liftTier.\(userId).\(lift)")
+        }
+        defaults.removeObject(forKey: "unbound.streakDays")
+        defaults.removeObject(forKey: "unbound.lastScanTimestamp")
+        defaults.removeObject(forKey: "unbound.scanConsentGranted")
+        defaults.removeObject(forKey: didBootstrapKey)
+
+        let userOwnedCollections = [
+            "analyses",
+            "custom_exercises",
+            "exercisePreferences",
+            "movement_ap_gains",
+            "movement_progress",
+            "movement_progress_prior_states",
+            "movement_progress_source_receipts",
+            "performanceLogs",
+            "program_blocks",
+            "programs",
+            "progress",
+            "progressPhotos",
+            "progression_families",
+            "progression_states",
+            "scanDeltaReports",
+            "scans",
+            "sessionLogs",
+            "training_completion_overload_receipts",
+            "training_completion_progression_receipts",
+            "training_completion_records",
+            "training_completion_replay_receipts",
+            "travel_overrides",
+            "workingWeights",
+            "workoutLogs"
+        ]
+        for collection in userOwnedCollections {
+            _ = try? await DatabaseService.shared.deleteWhere(
+                collection: collection,
+                field: "userId",
+                isEqualTo: userId
+            )
+        }
+        try? await DatabaseService.shared.delete(collection: "overall_level_progress", documentId: userId)
+        try? await DatabaseService.shared.delete(collection: "skillProgress", documentId: userId)
+
+        SavedWorkoutStore.shared.clear()
+        ProgramTrainingContextStore.shared.clear(userId: userId, programId: "dev-program")
+        try? ScanCheckpointStore.shared.clear(userId: userId)
+
+        ProgramStore.shared.clear()
+        ProgramScheduleStore.shared.clear(userId: userId)
+        WorkoutDraftStore().clear()
+        TrainingSessionDraftStore().clear()
+        RoutineHistoryStore.shared.clear()
+        ProfilePhotoStore.shared.remove(userId: userId)
+        OutboxStore.shared.clear()
+    }
+
+    private static func freshLoginProfile(at date: Date) -> UserProfile {
+        var profile = UserProfile(
+            id: userId,
+            email: "fresh-dev@unbound.local",
+            displayName: "Fresh Dev",
+            createdAt: date,
+            onboardingCompleted: true,
+            totalScans: 0,
+            currentProgramId: nil,
+            heightCm: 178,
+            weightKg: 76,
+            age: 26,
+            biologicalSex: .male
+        )
+        profile.displayHandle = "freshdev"
+        profile.gender = .male
+        profile.motivations = [.discipline, .strength]
+        profile.currentBodyType = .skinnyFat
+        profile.experience = .tried
+        profile.currentFrequency = .oneToTwo
+        profile.targetFrequency = .four
+        profile.equipment = [.dumbbells, .bench, .pullupBar, .bands, .bodyweight]
+        profile.obstacles = [.consistency, .time]
+        profile.sessionLength = .fortyFive
+        profile.priorAttempts = [.youtube, .otherApps]
+        profile.dietQuality = 6
+        profile.sleepQuality = 6
+        profile.stressLevel = 5
+        profile.commitment = 7
+        profile.goals = [.buildMuscle, .getStronger, .athletic]
+        profile.targetAreas = [.fullBody, .back, .shoulders, .core]
+        profile.workoutTime = .evening
+        profile.workoutMinuteOfDay = 18 * 60
+        profile.exerciseStyles = [.compoundLifts, .calisthenics, .mobility]
+        profile.trainingFeedbackMode = .quick
+        profile.trainingStyleOverride = .hybrid
+        profile.trainingDays = [.monday, .wednesday, .friday, .saturday]
+        return profile
+    }
+
+    private static func seedFreshSessionXP(at date: Date) {
+        let record = SessionXPRecord.empty(userId: userId, weekStart: mondayWeekStart(for: date))
+        if let data = try? JSONEncoder.unbound.encode(record) {
+            UserDefaults.standard.set(data, forKey: sessionXPKey)
+        }
+        UserDefaults.standard.set(0, forKey: "unbound.streakDays")
+        let delta = SessionXPDelta(previous: record, updated: record, streakExtended: false, streakBroken: false)
+        NotificationCenter.default.post(name: .sessionXPUpdated, object: nil, userInfo: ["delta": delta])
+    }
+
+    private static func seedFreshAttributes(at date: Date) {
+        AttributeProfileStore.shared.save(.empty(userId: userId, at: date))
+        NotificationCenter.default.post(name: .attributeRankUp, object: nil)
+    }
+
+    private static func seedFreshOverallLevel(at date: Date) async {
+        let progress = OverallLevelProgress(
+            userId: userId,
+            totalXP: OverallLevelCurve.xpRequired(forLevel: 1),
+            lastGainedXP: 0,
+            processedSourceLogIds: [],
+            processedSourceRewards: [:],
+            updatedAt: date
+        )
+        try? await DatabaseService.shared.create(
+            progress,
+            collection: "overall_level_progress",
+            documentId: userId
+        )
+    }
+
+    private static func seedFreshSkillProgress(at date: Date) async {
+        var progress = UserSkillProgress.empty(userId: userId)
+        progress.updatedAt = date
+        try? await DatabaseService.shared.create(progress, collection: "skillProgress", documentId: userId)
+    }
+
+    private static func seedFreshLiftTiers() {
+        devLiftNames.forEach { lift in
+            LiftTierService.shared.save(tier: .initiate, lift: lift, userId: userId)
+        }
+    }
+
+    private static func mondayWeekStart(for date: Date) -> Date {
+        var calendar = Calendar.current
+        calendar.firstWeekday = 2
+        let components = calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: date)
+        return calendar.date(from: components) ?? calendar.startOfDay(for: date)
     }
 
     static func resetSkillForProof(skillId: String) async {

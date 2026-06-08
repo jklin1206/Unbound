@@ -43,6 +43,10 @@ final class SavedWorkoutStore {
         var current = readWorkouts()
         var saved = workout
         saved.title = workout.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        saved.referenceExerciseName = TrainingSessionDraft.cleanedReferenceExerciseName(
+            workout.referenceExerciseName,
+            in: workout.blocks
+        )
         saved.sessionRole = SavedWorkout.normalizedSessionRole(workout.sessionRole)
         saved.updatedAt = Date()
 

@@ -12,6 +12,7 @@ struct CalibrationWorkoutView: View {
     @State private var isLoading = true
     @State private var showError = false
     @State private var errorMessage = ""
+    @AppStorage(WeightPlatePolicy.unitDefaultsKey) private var weightUnitRaw = TrainingWeightUnit.localeDefault.rawValue
 
     var body: some View {
         ZStack {
@@ -36,6 +37,7 @@ struct CalibrationWorkoutView: View {
                             ForEach(Array(entries.enumerated()), id: \.element.id) { idx, entry in
                                 CalibrationEntryCard(
                                     index: idx,
+                                    weightUnit: weightUnit,
                                     entry: Binding(
                                         get: { entries[idx] },
                                         set: { entries[idx] = $0 }
@@ -176,7 +178,7 @@ struct CalibrationWorkoutView: View {
                     displayName: entry.name,
                     kind: entry.kind,
                     value: entry.workValue,
-                    unit: entry.kind == .weight ? "kg" : "reps",
+                    unit: entry.kind == .weight ? weightUnit.shortLabel : "reps",
                     isKnown: true
                 )
             }
@@ -201,6 +203,10 @@ struct CalibrationWorkoutView: View {
                 }
             }
         }
+    }
+
+    private var weightUnit: TrainingWeightUnit {
+        TrainingWeightUnit(rawValue: weightUnitRaw) ?? .localeDefault
     }
 }
 
@@ -227,6 +233,7 @@ struct CalibrationEntry: Identifiable {
 
 private struct CalibrationEntryCard: View {
     let index: Int
+    let weightUnit: TrainingWeightUnit
     @Binding var entry: CalibrationEntry
 
     var body: some View {
@@ -252,7 +259,13 @@ private struct CalibrationEntryCard: View {
 
                 if entry.kind == .weight {
                     HStack(spacing: 10) {
-                        stepperField(label: "WORK KG", value: $entry.workWeight, step: 2.5, min: 0, max: 400)
+                        stepperField(
+                            label: "WORK \(weightUnit.shortLabel.uppercased())",
+                            value: $entry.workWeight,
+                            step: WeightPlatePolicy.loadIncrement(unit: weightUnit),
+                            min: 0,
+                            max: weightUnit == .pounds ? 900 : 400
+                        )
                         stepperField(label: "REPS", intValue: $entry.workReps, min: 0, max: 30)
                     }
                 } else {

@@ -118,9 +118,14 @@ struct Step29_SocialProof: View {
 
     private var socialProofFooter: some View {
         HStack(spacing: 8) {
-            Image(systemName: "flame.fill")
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(Color.unbound.accent)
+            OnboardingAssetGlyph(
+                assetName: "badge_art_first_rank_up",
+                tint: Color.unbound.accent,
+                size: 26,
+                imagePadding: 5,
+                shape: .hexagon,
+                showsCornerMark: false
+            )
             Text(L10n.onboarding("socialProof.footer", defaultValue: "The win is not the quote. The win is that the next rank gives the work somewhere to go."))
                 .font(Font.unbound.bodyS)
                 .foregroundStyle(Color.unbound.textSecondary)
@@ -246,9 +251,11 @@ struct Step29_SocialProof: View {
                 Capsule()
                     .fill(tint.opacity(0.12))
                     .frame(width: 34, height: 22)
-                Image(systemName: "arrow.right")
-                    .font(.system(size: 12, weight: .black))
-                    .foregroundStyle(tint)
+                Image("badge_art_first_rank_up")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 20, height: 20)
+                    .shadow(color: tint.opacity(0.34), radius: 5)
             }
 
             rankBubble(label: "NOW", rank: t.rank, tint: tint)

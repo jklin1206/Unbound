@@ -20,8 +20,7 @@ struct Step20_PriorAttempts: View {
             HUDMultiSelectGroup(
                 options: PriorAttempt.allCases,
                 selection: $flow.priorAttempts,
-                title: { $0.displayName },
-                icon: { $0.icon }
+                title: { $0.displayName }
             )
             .padding(.top, 4)
         }

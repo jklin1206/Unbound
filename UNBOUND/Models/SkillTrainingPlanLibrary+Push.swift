@@ -32,7 +32,7 @@ extension SkillTrainingPlanLibrary {
                 sets: 4,
                 target: .reps(8),
                 restSeconds: 90,
-                notes: "Load 5-10kg in a backpack — keep body line tight"
+                notes: "Add a light backpack load — keep body line tight"
             ),
             TrainingPrescription(
                 exerciseName: "Tempo Push-Up",

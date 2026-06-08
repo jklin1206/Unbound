@@ -29,19 +29,18 @@ struct SessionEditorView: View {
         var primaryTitle: String {
             switch self {
             case .startSession: return "BEGIN SESSION"
-            case .planAhead: return "SAVE PLAN"
+            case .planAhead: return "DONE"
             }
         }
 
         var primaryIcon: String {
             switch self {
             case .startSession: return "play.fill"
-            case .planAhead: return "calendar.badge.plus"
+            case .planAhead: return "checkmark"
             }
         }
 
         var showsPersistenceStrip: Bool { self == .startSession }
-        var showsSaveWorkoutAction: Bool { self == .startSession }
     }
 
     @State var draft: TrainingSessionDraft
@@ -53,10 +52,6 @@ struct SessionEditorView: View {
     @State var preferenceStatusesByKey: [String: ExercisePreferenceStatus] = [:]
     @State var availableEquipment: [Equipment]?
     @State var isPersistingEdits = false
-    @State var showSaveWorkoutSheet = false
-    @State var showSkillBlockPicker = false
-    @State var savedWorkoutConfirmation: SavedWorkoutConfirmation?
-    @State var skillBlockConfirmation: SkillBlockConfirmation?
 
     @EnvironmentObject var services: ServiceContainer
     @Environment(\.dismiss) var dismiss
@@ -141,52 +136,10 @@ struct SessionEditorView: View {
             }
             .environmentObject(services)
         }
-        .sheet(isPresented: $showSaveWorkoutSheet) {
-            SaveWorkoutSheet(
-                draft: draft,
-                existingWorkouts: SavedWorkoutStore.shared.all()
-            ) { savedWorkout in
-                SavedWorkoutStore.shared.save(savedWorkout)
-                savedWorkoutConfirmation = SavedWorkoutConfirmation(title: savedWorkout.title)
-            }
-        }
-        .sheet(isPresented: $showSkillBlockPicker) {
-            SkillBlockPickerSheet(
-                programFocusIDs: Array(SkillProgressService.shared.programFocusIds),
-                onPick: { node, kind in
-                    draft = SkillBlockRouter.insert(
-                        skillID: node.id,
-                        title: node.title,
-                        kind: kind,
-                        into: draft
-                    )
-                    refreshDraftEstimate()
-                    skillBlockConfirmation = SkillBlockConfirmation(title: node.title, kind: kind)
-                    showSkillBlockPicker = false
-                },
-                onDismiss: {
-                    showSkillBlockPicker = false
-                }
-            )
-        }
         .alert("Add at least one exercise", isPresented: $showEmptyWorkoutWarning) {
             Button("OK", role: .cancel) {}
         } message: {
             Text("A session needs at least one exercise before it can start.")
-        }
-        .alert(item: $savedWorkoutConfirmation) { confirmation in
-            Alert(
-                title: Text("Saved Workout"),
-                message: Text("\(confirmation.title) is ready to reuse from this phone."),
-                dismissButton: .default(Text("OK"))
-            )
-        }
-        .alert(item: $skillBlockConfirmation) { confirmation in
-            Alert(
-                title: Text("Skill Block Added"),
-                message: Text("\(confirmation.title) was inserted as a \(confirmation.kind.displayName.lowercased()) block."),
-                dismissButton: .default(Text("OK"))
-            )
         }
         .task {
             await loadPickerContext()
@@ -244,6 +197,7 @@ struct SessionEditorView: View {
     }
 
     func refreshDraftEstimate() {
+        draft.normalizeReferenceExerciseName()
         draft.estimatedMinutes = Self.estimatedMinutes(for: draft.blocks)
     }
 
@@ -251,14 +205,17 @@ struct SessionEditorView: View {
         guard !blocks.isEmpty else { return 0 }
         return max(10, blocks.reduce(0) { total, block in
             let blockSeconds = block.prescriptions.reduce(0) { subtotal, prescription in
-                let workSeconds: Int
-                switch prescription.target {
-                case .holdSeconds(let seconds), .timedSeconds(let seconds):
-                    workSeconds = seconds
-                default:
-                    workSeconds = 45
+                let setSeconds = prescription.effectiveSetPlans.reduce(0) { setTotal, plan in
+                    let workSeconds: Int
+                    switch plan.target {
+                    case .holdSeconds(let seconds), .timedSeconds(let seconds):
+                        workSeconds = seconds
+                    default:
+                        workSeconds = 45
+                    }
+                    return setTotal + workSeconds + plan.restSeconds
                 }
-                return subtotal + ((workSeconds + prescription.restSeconds) * max(1, prescription.sets))
+                return subtotal + setSeconds
             }
             return total + max(5, Int(ceil(Double(blockSeconds) / 60.0)))
         })

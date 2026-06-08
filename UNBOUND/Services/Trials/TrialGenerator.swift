@@ -63,7 +63,7 @@ enum WeeklyVowGenerator {
             let target = scaledWeightTarget(history: history, fallbackExerciseName: "bench press")
             capstone = WeeklyVowProof(
                 displayName: capstone.displayName,
-                description: "After a workout, hit \(Int(target.weightKg))kg or higher on \(target.displayName).",
+                description: "After a workout, hit \(WeightPlatePolicy.formatLoggedWeightWithUnit(target.weightKg)) or higher on \(target.displayName).",
                 evaluation: .autoFromLog(
                     .exerciseWeightKg(target.weightKg, exerciseName: target.exerciseName)
                 )

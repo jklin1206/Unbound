@@ -142,14 +142,14 @@ extension MovementCatalog {
         mobility(
             "wrist-prep",
             "Wrist Prep Flow",
-            aliases: ["wrist prep flow", "wrist conditioning", "reverse wrist stretch", "finger pressure rocks"],
+            aliases: ["wrist prep flow", "wrist prep", "wrist conditioning", "reverse wrist stretch", "finger pressure rocks"],
             muscleGroups: [.forearms],
             bodyRegions: [.forearms]
         ),
         mobility(
             "shoulder-dislocates",
             "Shoulder Dislocates",
-            aliases: ["shoulder dislocates", "shoulder circles"],
+            aliases: ["shoulder dislocates", "shoulder opener", "shoulder circles"],
             muscleGroups: [.shoulders, .chest, .back],
             bodyRegions: [.shoulders, .chest, .lats]
         ),
@@ -219,7 +219,7 @@ extension MovementCatalog {
         mobility(
             "worlds-greatest-stretch",
             "World's Greatest Stretch",
-            aliases: ["world's greatest stretch", "worlds greatest stretch", "runner lunge rotation"],
+            aliases: ["world's greatest stretch", "worlds greatest stretch", "hip opener flow", "lunge mobility", "runner lunge rotation"],
             muscleGroups: [.legs, .glutes, .back, .core],
             bodyRegions: [.quads, .hamstrings, .glutes, .lats, .obliques]
         )

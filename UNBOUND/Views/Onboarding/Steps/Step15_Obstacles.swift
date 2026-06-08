@@ -20,8 +20,7 @@ struct Step15_Obstacles: View {
             HUDMultiSelectGroup(
                 options: Obstacle.allCases,
                 selection: $flow.obstacles,
-                title: { $0.displayName },
-                icon: { $0.icon }
+                title: { $0.displayName }
             )
             .padding(.top, 4)
         }

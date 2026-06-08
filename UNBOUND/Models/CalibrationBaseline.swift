@@ -38,7 +38,7 @@ struct CalibrationBaseline: Codable, Identifiable, Sendable, Hashable {
     /// Return working weight in kg regardless of the stored unit.
     var weightInKg: Double? {
         guard kind == .weight else { return nil }
-        if unit.lowercased() == "lbs" { return value * 0.45359237 }
+        if ["lb", "lbs"].contains(unit.lowercased()) { return value * 0.45359237 }
         return value
     }
 

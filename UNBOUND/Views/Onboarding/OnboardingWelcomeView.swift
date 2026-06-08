@@ -10,9 +10,11 @@ struct OnboardingWelcomeView: View {
             VStack(spacing: 0) {
                 Spacer()
 
-                Image(systemName: "figure.strengthtraining.traditional")
-                    .font(.system(size: 100, weight: .thin))
-                    .foregroundColor(.theme.primary)
+                Image("onboarding_path_open_gate")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 168, height: 168)
+                    .shadow(color: Color.unbound.accent.opacity(0.32), radius: 18)
                     .padding(.bottom, 48)
 
                 VStack(spacing: 12) {

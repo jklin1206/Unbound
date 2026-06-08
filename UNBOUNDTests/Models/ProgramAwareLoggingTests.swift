@@ -41,6 +41,63 @@ final class ProgramAwareLoggingTests: XCTestCase {
         XCTAssertFalse(e.sets[0].logged)
     }
 
+    func test_trainingDraftSetPlansBecomeActiveSetSuggestions() {
+        let draft = TrainingSessionDraft(
+            userId: "u1",
+            source: .custom,
+            title: "Bench Dropset",
+            estimatedMinutes: 35,
+            blocks: [
+                TrainingBlock(
+                    kind: .strength,
+                    title: "Bench",
+                    prescriptions: [
+                        TrainingBlockPrescription(
+                            exerciseName: "Bench Press",
+                            sets: 3,
+                            target: .reps(5),
+                            restSeconds: 150,
+                            muscleGroups: [.chest],
+                            rpe: 8,
+                            suggestedWeightKg: 100,
+                            setPlans: [
+                                TrainingSetPlan(
+                                    target: .reps(5),
+                                    restSeconds: 150,
+                                    rpe: 8,
+                                    suggestedWeightKg: 100
+                                ),
+                                TrainingSetPlan(
+                                    target: .reps(6),
+                                    restSeconds: 45,
+                                    rpe: 9,
+                                    suggestedWeightKg: 80
+                                ),
+                                TrainingSetPlan(
+                                    target: .reps(12),
+                                    restSeconds: 0,
+                                    rpe: 9,
+                                    suggestedWeightKg: 60
+                                )
+                            ]
+                        )
+                    ]
+                )
+            ]
+        )
+
+        let session = ActiveWorkoutSession(trainingDraft: draft)
+        let exercise = session.exercises[0]
+
+        XCTAssertEqual(exercise.plannedSets, 3)
+        XCTAssertEqual(exercise.plannedReps, "custom sets")
+        XCTAssertEqual(exercise.restSeconds, 150)
+        XCTAssertEqual(exercise.sets.map(\.suggestedReps), [5, 6, 12])
+        XCTAssertEqual(exercise.sets.map(\.suggestedRestSeconds), [150, 45, 0])
+        XCTAssertEqual(exercise.sets.map(\.suggestedRPE), [8, 9, 9])
+        XCTAssertEqual(exercise.sets.map(\.suggestedWeightKg), [100, 80, 60])
+    }
+
     func test_confirmAsPlanned_copiesSuggestedToActualAndLogs() {
         let s = ActiveWorkoutSession(workout: workout([ex("Bench Press")]),
                                      programId: "p", dayNumber: 1)

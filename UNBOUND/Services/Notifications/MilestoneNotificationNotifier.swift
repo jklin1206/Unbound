@@ -164,7 +164,7 @@ struct MilestoneNotificationPlanner {
             kind: "progression",
             subject: "\(event.exerciseKey)-\(event.newWeightKg)",
             title: "\(event.displayName) weight bumped",
-            body: "New working weight: \(Int(event.newWeightKg.rounded())) kg."
+            body: "New working weight: \(WeightPlatePolicy.formatLoggedWeightWithUnit(event.newWeightKg, separator: " "))."
         )
     }
 

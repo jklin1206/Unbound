@@ -40,7 +40,7 @@ enum TrainingWeightUnit: String, Codable, CaseIterable, Identifiable {
 }
 
 enum WeightPlatePolicy {
-    static let unitDefaultsKey = "unbound.trainingWeightUnit.v1"
+    static let unitDefaultsKey = "unbound.trainingWeightUnit.v2"
     static let microloadingDefaultsKey = "unbound.microloadingEnabled.v1"
     static let poundsPerKilogram = 2.20462262185
 
@@ -63,6 +63,14 @@ enum WeightPlatePolicy {
         formatDisplayValue(unit.displayValue(fromKilograms: kilograms))
     }
 
+    static func formatLoggedWeightWithUnit(
+        _ kilograms: Double,
+        unit: TrainingWeightUnit = currentUnit,
+        separator: String = ""
+    ) -> String {
+        "\(formatLoggedWeight(kilograms, unit: unit))\(separator)\(unit.shortLabel)"
+    }
+
     static func formatSuggestionWeight(
         _ kilograms: Double,
         unit: TrainingWeightUnit = currentUnit,
@@ -81,6 +89,25 @@ enum WeightPlatePolicy {
         unit: TrainingWeightUnit = currentUnit
     ) -> String {
         formatDisplayValue(unit.displayValue(fromKilograms: kilograms))
+    }
+
+    static func formatDeltaWeightWithUnit(
+        _ kilograms: Double,
+        unit: TrainingWeightUnit = currentUnit,
+        separator: String = ""
+    ) -> String {
+        "\(formatDeltaWeight(kilograms, unit: unit))\(separator)\(unit.shortLabel)"
+    }
+
+    static func formatVolume(
+        _ kilograms: Double,
+        unit: TrainingWeightUnit = currentUnit
+    ) -> String {
+        let display = unit.displayValue(fromKilograms: kilograms)
+        if display >= 1_000 {
+            return "\(formatDisplayValue(display / 1_000))k \(unit.shortLabel)"
+        }
+        return "\(formatDisplayValue(display))\(unit.shortLabel)"
     }
 
     static func editingValue(

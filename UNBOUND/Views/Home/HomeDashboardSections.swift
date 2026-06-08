@@ -440,11 +440,6 @@ struct HomeWeekPathSection: View {
 
             VStack(alignment: .leading, spacing: 9) {
                 HStack(spacing: 8) {
-                    Text("IGNITION")
-                        .font(.system(size: 9, weight: .heavy, design: .monospaced))
-                        .tracking(1.7)
-                        .foregroundStyle(Color.unbound.textTertiary)
-                        .lineLimit(1)
                     Text("\(weekSessionDays.count)/7")
                         .font(.system(size: 10, weight: .heavy, design: .monospaced))
                         .tracking(1.0)

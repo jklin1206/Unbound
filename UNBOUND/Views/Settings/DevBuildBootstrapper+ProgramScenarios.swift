@@ -226,6 +226,7 @@ extension DevBuildBootstrapper {
         profile.exerciseStyles = config.exerciseStyles
         profile.trainingStyleOverride = config.trainingStyle
         profile.trainingFeedbackMode = .detailed
+        profile.sessionLength = .fortyFive
         profile.trainingDays = [.monday, .tuesday, .wednesday, .thursday, .friday]
         try? await DatabaseService.shared.create(profile, collection: "users", documentId: userId)
 
@@ -271,6 +272,11 @@ extension DevBuildBootstrapper {
                 programId: program.id
             )
 
+        case .programQALab:
+            program = await seedProgramQALabFixtures(in: program)
+            await ProgramStore.shared.save(program, userId: userId)
+            try? await DatabaseService.shared.create(program, collection: "programs", documentId: program.id)
+
         case .freeformProtected:
             if let scheduled = seedProtectedFreeformWorkout(in: program) {
                 program = scheduled
@@ -308,6 +314,16 @@ extension DevBuildBootstrapper {
         weekPhase: WeekPhase
     ) {
         switch scenario {
+        case .programQALab:
+            return (
+                .hybrid,
+                [.barbell, .dumbbells, .bench, .pullupBar, .dipStation, .rings, .bands, .bodyweight],
+                [.compoundLifts, .calisthenics, .mobility, .steadyCardio],
+                .current,
+                .five,
+                ["pp.muscle-up", "cal.ring-dip", "ld.pistol-squat", "cl.tuck-front-lever", "hs.wall-handstand-30", "pl.tuck-planche"],
+                .moderate
+            )
         case .oneSkillLifting:
             return (
                 .freeWeights,
@@ -398,7 +414,7 @@ extension DevBuildBootstrapper {
     static func seedDynamicProgressionStates(for scenario: DevDynamicProgramScenario) async {
         let states: [ProgressionState]
         switch scenario {
-        case .oneSkillLifting, .nextBlockLifting, .sixSkillHybrid, .freeformProtected:
+        case .programQALab, .oneSkillLifting, .nextBlockLifting, .sixSkillHybrid, .freeformProtected:
             states = [
                 dynamicProgressionState(
                     exercise: "Barbell Bench Press",
@@ -563,6 +579,313 @@ extension DevBuildBootstrapper {
         }
 
         return DevProgramClock.reset()
+    }
+
+    static func seedProgramQALabFixtures(in program: TrainingProgram) async -> TrainingProgram {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: DevProgramClock.today)
+        let now = Date()
+        let savedWorkouts = programQALabSavedWorkouts(now: now)
+
+        SavedWorkoutStore.shared.clear()
+        savedWorkouts.forEach { SavedWorkoutStore.shared.save($0) }
+
+        await MainActor.run {
+            ProgramScheduleStore.shared.clear(userId: userId)
+            WorkoutDraftStore().clear()
+
+            if let todayWorkout = savedWorkouts.first {
+                ProgramScheduleStore.shared.replacePrimary(
+                    on: today,
+                    userId: userId,
+                    programId: program.id,
+                    with: ProgramScheduleOccurrence(
+                        id: UUID(uuidString: "00000000-0000-0000-0000-00000000E401") ?? UUID(),
+                        userId: userId,
+                        programId: program.id,
+                        date: today,
+                        kind: .saved,
+                        title: todayWorkout.title,
+                        savedWorkoutId: todayWorkout.id,
+                        attachScheduledSkills: true,
+                        adaptsWithProgression: true,
+                        createdAt: now,
+                        updatedAt: now
+                    )
+                )
+            }
+
+            let plannedOffsets = [1, 3, 6]
+            for (index, workout) in savedWorkouts.dropFirst().enumerated() {
+                let offset = plannedOffsets.indices.contains(index) ? plannedOffsets[index] : index + 1
+                let date = calendar.date(byAdding: .day, value: offset, to: today) ?? today
+                ProgramScheduleStore.shared.upsert(
+                    ProgramScheduleOccurrence(
+                        id: UUID(uuidString: "00000000-0000-0000-0000-00000000E40\(index + 2)") ?? UUID(),
+                        userId: userId,
+                        programId: program.id,
+                        date: date,
+                        kind: .saved,
+                        title: workout.title,
+                        savedWorkoutId: workout.id,
+                        attachScheduledSkills: true,
+                        adaptsWithProgression: true,
+                        createdAt: now,
+                        updatedAt: now
+                    )
+                )
+            }
+        }
+
+        if let firstDraft = savedWorkouts.first?.asDraft(
+            userId: userId,
+            date: today,
+            programId: program.id,
+            dayNumber: 1
+        ) {
+            TrainingSessionDraftStore().saveRecent(firstDraft)
+        }
+
+        ProgramTrainingContextStore.shared.saveDailyContext(
+            selection: ProgramTrainingContextSelection(
+                scope: .thisWeek,
+                mode: .calisthenics,
+                equipment: [.bodyweight, .pullupBar, .rings, .bands],
+                experience: .current
+            ),
+            userId: userId,
+            programId: program.id,
+            anchorDate: today
+        )
+        ProgramTrainingContextStore.shared.savePendingNextBlockContext(
+            selection: ProgramTrainingContextSelection(
+                scope: .nextBlock,
+                mode: .lifting,
+                equipment: [.barbell, .dumbbells, .bench, .pullupBar],
+                experience: .current
+            ),
+            userId: userId,
+            programId: program.id
+        )
+
+        let startDate = BlockRolloverScheduler.activeStartDate(for: program)
+        await seedWorkoutLogs(
+            programStartDate: startDate,
+            completedDayNumbers: [1, 2, 3, 5, 6, 8, 9, 10]
+        )
+        await seedScanHistory(daysAgo: 31)
+
+        return program
+    }
+
+    static func programQALabSavedWorkouts(now: Date) -> [SavedWorkout] {
+        [
+            SavedWorkout(
+                id: UUID(uuidString: "00000000-0000-0000-0000-00000000D401") ?? UUID(),
+                title: "QA Handstand Push Prep",
+                blocks: [
+                    TrainingBlock(
+                        kind: .skill,
+                        title: "Handstand Skill",
+                        skillId: "hs.wall-handstand-30",
+                        prescriptions: [
+                            TrainingBlockPrescription(
+                                exerciseName: "Wall Handstand",
+                                sets: 5,
+                                target: .holdSeconds(30),
+                                restSeconds: 90,
+                                muscleGroups: [.shoulders, .core],
+                                rpe: 7,
+                                notes: "Quality first. Stop before the line collapses."
+                            ),
+                            TrainingBlockPrescription(
+                                exerciseName: "Pike Push-Up",
+                                sets: 4,
+                                target: .repsRange(5, 8),
+                                restSeconds: 120,
+                                muscleGroups: [.shoulders, .chest, .arms],
+                                rpe: 8
+                            )
+                        ]
+                    ),
+                    TrainingBlock(
+                        kind: .strength,
+                        title: "Push Support",
+                        prescriptions: [
+                            TrainingBlockPrescription(
+                                exerciseName: "Dumbbell Bench Press",
+                                sets: 3,
+                                target: .repsRange(8, 10),
+                                restSeconds: 105,
+                                muscleGroups: [.chest, .shoulders, .arms],
+                                rpe: 8,
+                                suggestedWeightKg: 28
+                            ),
+                            TrainingBlockPrescription(
+                                exerciseName: "Band Face Pull",
+                                sets: 3,
+                                target: .repsRange(12, 15),
+                                restSeconds: 60,
+                                muscleGroups: [.shoulders, .traps],
+                                rpe: 7
+                            )
+                        ]
+                    )
+                ],
+                order: 1,
+                preferredEquipment: [.bodyweight, .dumbbells, .bench, .bands],
+                sessionRole: "push",
+                createdAt: now,
+                updatedAt: now
+            ),
+            SavedWorkout(
+                id: UUID(uuidString: "00000000-0000-0000-0000-00000000D402") ?? UUID(),
+                title: "QA Muscle-Up Pull",
+                blocks: [
+                    TrainingBlock(
+                        kind: .skill,
+                        title: "Muscle-Up Skill",
+                        skillId: "pp.muscle-up",
+                        prescriptions: [
+                            TrainingBlockPrescription(
+                                exerciseName: "Chest-to-Bar Pull-Up",
+                                sets: 5,
+                                target: .repsRange(2, 4),
+                                restSeconds: 150,
+                                muscleGroups: [.back, .lats, .arms],
+                                rpe: 8
+                            ),
+                            TrainingBlockPrescription(
+                                exerciseName: "Band-Assisted Muscle-Up Transition",
+                                sets: 4,
+                                target: .repsRange(2, 4),
+                                restSeconds: 120,
+                                muscleGroups: [.back, .lats, .chest, .arms],
+                                rpe: 7
+                            )
+                        ]
+                    ),
+                    TrainingBlock(
+                        kind: .strength,
+                        title: "Pull Support",
+                        prescriptions: [
+                            TrainingBlockPrescription(
+                                exerciseName: "Ring Row",
+                                sets: 4,
+                                target: .repsRange(8, 12),
+                                restSeconds: 75,
+                                muscleGroups: [.back, .lats, .arms],
+                                rpe: 8
+                            ),
+                            TrainingBlockPrescription(
+                                exerciseName: "Hollow Body Hold",
+                                sets: 4,
+                                target: .holdSeconds(25),
+                                restSeconds: 45,
+                                muscleGroups: [.core],
+                                rpe: 7
+                            )
+                        ]
+                    )
+                ],
+                order: 2,
+                preferredEquipment: [.pullupBar, .rings, .bands, .bodyweight],
+                sessionRole: "pull",
+                createdAt: now,
+                updatedAt: now
+            ),
+            SavedWorkout(
+                id: UUID(uuidString: "00000000-0000-0000-0000-00000000D403") ?? UUID(),
+                title: "QA Pistol Lower",
+                blocks: [
+                    TrainingBlock(
+                        kind: .skill,
+                        title: "Pistol Skill",
+                        skillId: "ld.pistol-squat",
+                        prescriptions: [
+                            TrainingBlockPrescription(
+                                exerciseName: "Box Pistol Squat",
+                                sets: 5,
+                                target: .repsRange(3, 5),
+                                restSeconds: 120,
+                                muscleGroups: [.legs, .glutes, .core],
+                                rpe: 8
+                            ),
+                            TrainingBlockPrescription(
+                                exerciseName: "Cossack Squat",
+                                sets: 3,
+                                target: .repsRange(6, 8),
+                                restSeconds: 75,
+                                muscleGroups: [.legs, .glutes],
+                                rpe: 7
+                            )
+                        ]
+                    ),
+                    TrainingBlock(
+                        kind: .strength,
+                        title: "Lower Support",
+                        prescriptions: [
+                            TrainingBlockPrescription(
+                                exerciseName: "Goblet Squat",
+                                sets: 4,
+                                target: .repsRange(8, 10),
+                                restSeconds: 90,
+                                muscleGroups: [.legs, .glutes, .core],
+                                rpe: 8,
+                                suggestedWeightKg: 32
+                            )
+                        ]
+                    )
+                ],
+                order: 3,
+                preferredEquipment: [.bodyweight, .dumbbells, .bench],
+                sessionRole: "lower",
+                createdAt: now,
+                updatedAt: now
+            ),
+            SavedWorkout(
+                id: UUID(uuidString: "00000000-0000-0000-0000-00000000D404") ?? UUID(),
+                title: "QA Hybrid Strength",
+                blocks: [
+                    TrainingBlock(
+                        kind: .strength,
+                        title: "Strength",
+                        prescriptions: [
+                            TrainingBlockPrescription(
+                                exerciseName: "Back Squat",
+                                sets: 4,
+                                target: .repsRange(4, 6),
+                                restSeconds: 180,
+                                muscleGroups: [.legs, .glutes, .core],
+                                rpe: 8,
+                                suggestedWeightKg: 92.5
+                            ),
+                            TrainingBlockPrescription(
+                                exerciseName: "Pull-Up",
+                                sets: 4,
+                                target: .repsRange(5, 8),
+                                restSeconds: 120,
+                                muscleGroups: [.back, .lats, .arms],
+                                rpe: 8
+                            ),
+                            TrainingBlockPrescription(
+                                exerciseName: "Farmer Carry",
+                                sets: 4,
+                                target: .distanceMeters(35),
+                                restSeconds: 90,
+                                muscleGroups: [.forearms, .traps, .core],
+                                rpe: 8
+                            )
+                        ]
+                    )
+                ],
+                order: 4,
+                preferredEquipment: [.barbell, .dumbbells, .pullupBar],
+                sessionRole: "full-body",
+                createdAt: now,
+                updatedAt: now
+            )
+        ]
     }
 
     static func seedProtectedFreeformWorkout(in program: TrainingProgram) -> TrainingProgram? {

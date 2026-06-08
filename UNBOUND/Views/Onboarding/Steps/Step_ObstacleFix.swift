@@ -31,16 +31,13 @@ struct Step_ObstacleFix: View {
             VStack(spacing: 14) {
                 UnboundCard {
                     HStack(alignment: .center, spacing: 14) {
-                        ZStack {
-                            HUDHexagon()
-                                .fill(Color.unbound.rankRed.opacity(0.16))
-                            HUDHexagon()
-                                .stroke(Color.unbound.rankRed.opacity(0.65), lineWidth: 1.4)
-                            Image(systemName: primaryObstacle.icon)
-                                .font(.system(size: 18, weight: .semibold))
-                                .foregroundStyle(Color.unbound.rankRed)
-                        }
-                        .frame(width: 54, height: 50)
+                        OnboardingAssetGlyph(
+                            assetName: assetName(for: primaryObstacle),
+                            tint: Color.unbound.rankRed,
+                            size: 54,
+                            imagePadding: 7,
+                            shape: .hexagon
+                        )
 
                         VStack(alignment: .leading, spacing: 4) {
                             Text(L10n.onboarding("obstacleFix.youSaid", defaultValue: "YOU SAID"))
@@ -103,9 +100,14 @@ struct Step_ObstacleFix: View {
 
                 VStack(alignment: .leading, spacing: 5) {
                     HStack(spacing: 8) {
-                        Image(systemName: fix.icon)
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(Color.unbound.accent)
+                        OnboardingAssetGlyph(
+                            assetName: fix.assetName,
+                            tint: Color.unbound.accent,
+                            size: 24,
+                            imagePadding: 4,
+                            shape: .hexagon,
+                            showsCornerMark: false
+                        )
                         Text(fix.title.uppercased())
                             .font(Font.unbound.bodyMStrong)
                             .tracking(0.6)
@@ -122,6 +124,16 @@ struct Step_ObstacleFix: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 14)
+        }
+    }
+
+    private func assetName(for obstacle: Obstacle) -> String {
+        switch obstacle {
+        case .unsure: return "onboarding_path_protocol_dossier"
+        case .consistency: return "badge_art_consistency_loop"
+        case .plateau: return "onboarding_path_rank_gates"
+        case .time: return "badge_art_hour_glass"
+        case .motivation: return "badge_art_first_rank_up"
         }
     }
 }
@@ -146,17 +158,17 @@ private struct ObstacleFixPlan {
                 subtitle: L10n.onboarding("obstacleFix.unsure.subtitle", defaultValue: "You said you don't know what to do. UNBOUND gives the next move a shape."),
                 fixes: [
                     .init(
-                        icon: "map.fill",
+                        assetName: "onboarding_path_protocol_dossier",
                         title: L10n.onboarding("obstacleFix.unsure.fix1.title", defaultValue: "Your next move is visible"),
                         detail: L10n.onboardingFormat("obstacleFix.unsure.fix1.detail", defaultValue: "Every session points toward %@, not a random workout.", firstUnlock)
                     ),
                     .init(
-                        icon: "list.bullet.clipboard.fill",
+                        assetName: "badge_art_arc_week",
                         title: L10n.onboarding("obstacleFix.unsure.fix2.title", defaultValue: "The week is already built"),
                         detail: L10n.onboardingFormat("obstacleFix.unsure.fix2.detail", defaultValue: "%d sessions per week, %@ each, matched to your equipment and focus.", sessions, sessionLength)
                     ),
                     .init(
-                        icon: "arrow.triangle.2.circlepath",
+                        assetName: "onboarding_path_rank_gates",
                         title: L10n.onboarding("obstacleFix.unsure.fix3.title", defaultValue: "The path keeps moving"),
                         detail: L10n.onboarding("obstacleFix.unsure.fix3.detail", defaultValue: "Finish the work, and the next target steps into view.")
                     )
@@ -169,17 +181,17 @@ private struct ObstacleFixPlan {
                 subtitle: L10n.onboarding("obstacleFix.consistency.subtitle", defaultValue: "You said consistency breaks. So every return needs to feel like progress."),
                 fixes: [
                     .init(
-                        icon: "calendar.badge.clock",
+                        assetName: "badge_art_arc_week",
                         title: L10n.onboarding("obstacleFix.consistency.fix1.title", defaultValue: "Your days are locked"),
                         detail: L10n.onboarding("obstacleFix.consistency.fix1.detail", defaultValue: "Your training days become the rhythm of the arc.")
                     ),
                     .init(
-                        icon: "hexagon.fill",
+                        assetName: "badge_art_proof_10",
                         title: L10n.onboarding("obstacleFix.consistency.fix2.title", defaultValue: "Every session leaves a mark"),
                         detail: L10n.onboarding("obstacleFix.consistency.fix2.detail", defaultValue: "The card changes because you showed up.")
                     ),
                     .init(
-                        icon: "flame.fill",
+                        assetName: "badge_art_consistency_loop",
                         title: L10n.onboarding("obstacleFix.consistency.fix3.title", defaultValue: "Small wins stack"),
                         detail: L10n.onboarding("obstacleFix.consistency.fix3.detail", defaultValue: "Streaks and node progress make missed days feel recoverable, not like a full restart.")
                     )
@@ -192,17 +204,17 @@ private struct ObstacleFixPlan {
                 subtitle: L10n.onboarding("obstacleFix.plateau.subtitle", defaultValue: "You said progress stalled. That means the next push needs to feel different."),
                 fixes: [
                     .init(
-                        icon: "gauge.with.dots.needle.bottom.50percent",
+                        assetName: "badge_art_pr_session",
                         title: L10n.onboarding("obstacleFix.plateau.fix1.title", defaultValue: "Effort has a target"),
                         detail: L10n.onboarding("obstacleFix.plateau.fix1.detail", defaultValue: "Too easy, too hard, or just right stops being a guess.")
                     ),
                     .init(
-                        icon: "chart.line.uptrend.xyaxis",
+                        assetName: "badge_art_proof_25",
                         title: L10n.onboarding("obstacleFix.plateau.fix2.title", defaultValue: "Progress becomes visible"),
                         detail: L10n.onboardingFormat("obstacleFix.plateau.fix2.detail", defaultValue: "You can watch %@ move instead of hoping it is working.", focus)
                     ),
                     .init(
-                        icon: "arrow.up.right.circle.fill",
+                        assetName: "onboarding_path_rank_gates",
                         title: L10n.onboarding("obstacleFix.plateau.fix3.title", defaultValue: "Targets climb"),
                         detail: L10n.onboarding("obstacleFix.plateau.fix3.detail", defaultValue: "When you prove you can handle it, the next wall gets taller.")
                     )
@@ -215,17 +227,17 @@ private struct ObstacleFixPlan {
                 subtitle: L10n.onboarding("obstacleFix.time.subtitle", defaultValue: "You said time gets in the way. So the first step has to fit the day you actually have."),
                 fixes: [
                     .init(
-                        icon: "timer",
+                        assetName: "badge_art_hour_glass",
                         title: L10n.onboarding("obstacleFix.time.fix1.title", defaultValue: "Session length is capped"),
                         detail: L10n.onboardingFormat("obstacleFix.time.fix1.detail", defaultValue: "Your workouts are built around %@, not an imaginary perfect day.", sessionLength)
                     ),
                     .init(
-                        icon: "scope",
+                        assetName: "onboarding_path_protocol_dossier",
                         title: L10n.onboarding("obstacleFix.time.fix2.title", defaultValue: "Priority comes first"),
                         detail: L10n.onboardingFormat("obstacleFix.time.fix2.detail", defaultValue: "The plan puts %@ work where it matters most, then trims the noise.", focus)
                     ),
                     .init(
-                        icon: "calendar",
+                        assetName: "badge_art_arc_week",
                         title: L10n.onboarding("obstacleFix.time.fix3.title", defaultValue: "Frequency stays realistic"),
                         detail: L10n.onboardingFormat("obstacleFix.time.fix3.detail", defaultValue: "%d days per week is the pace. No fantasy schedule required.", sessions)
                     )
@@ -238,17 +250,17 @@ private struct ObstacleFixPlan {
                 subtitle: L10n.onboarding("obstacleFix.motivation.subtitle", defaultValue: "You said motivation fades. The answer is seeing the character move forward."),
                 fixes: [
                     .init(
-                        icon: "target",
+                        assetName: "badge_art_first_rank_up",
                         title: L10n.onboarding("obstacleFix.motivation.fix1.title", defaultValue: "A concrete first unlock"),
                         detail: L10n.onboardingFormat("obstacleFix.motivation.fix1.detail", defaultValue: "%@ becomes the first visible milestone, not a vague transformation.", firstUnlock)
                     ),
                     .init(
-                        icon: "star.fill",
+                        assetName: "badge_art_pr_session",
                         title: L10n.onboarding("obstacleFix.motivation.fix2.title", defaultValue: "The work pays out"),
                         detail: L10n.onboarding("obstacleFix.motivation.fix2.detail", defaultValue: "Each session gives you something to watch, keep, and chase.")
                     ),
                     .init(
-                        icon: "person.crop.square",
+                        assetName: "badge_art_first_build_identity_resolved",
                         title: L10n.onboarding("obstacleFix.motivation.fix3.title", defaultValue: "Your card becomes the mirror"),
                         detail: L10n.onboarding("obstacleFix.motivation.fix3.detail", defaultValue: "The Day Zero profile keeps the gap visible: where you started, where you are, and what changes next.")
                     )
@@ -260,7 +272,7 @@ private struct ObstacleFixPlan {
 }
 
 private struct ObstacleFix {
-    let icon: String
+    let assetName: String
     let title: String
     let detail: String
 }

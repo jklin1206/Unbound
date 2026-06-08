@@ -21,7 +21,6 @@ struct Step14_Equipment: View {
                 options: visibleEquipment,
                 selection: $flow.equipment,
                 title: { $0.displayName },
-                icon: { $0.icon },
                 umbrella: .fullGym,
                 umbrellaSubtitle: "Whole arsenal — nothing off the table."
             )

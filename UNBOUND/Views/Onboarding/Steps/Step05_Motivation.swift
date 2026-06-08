@@ -20,8 +20,7 @@ struct Step05_Motivation: View {
             HUDMultiSelectGroup(
                 options: Motivation.allCases,
                 selection: $flow.motivations,
-                title: { $0.displayName },
-                icon: { $0.icon }
+                title: { $0.displayName }
             )
             .padding(.top, 4)
         }

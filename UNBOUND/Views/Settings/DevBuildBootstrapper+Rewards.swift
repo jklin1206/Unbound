@@ -6,6 +6,7 @@ extension DevBuildBootstrapper {
     static func activate(services: ServiceContainer, completeOnboarding: Bool = true) async {
         AuthService.shared.activateDevUser(id: userId)
         DevFlags.shared.unlockAllFeatures = true
+        UserDefaults.standard.removeObject(forKey: devAccountModeKey)
         UserDefaults.standard.set(completeOnboarding, forKey: "onboardingCompleted")
         UserDefaults.standard.set(completeOnboarding, forKey: "unbound.calibration.completed")
 

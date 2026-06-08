@@ -343,6 +343,9 @@ extension OverallRankTrialServiceTests {
     }
 
     func testRankTrialDraftDisplaysAndPrefillsBodyweightLoadStandards() throws {
+        UserDefaults.standard.set(TrainingWeightUnit.kilograms.rawValue, forKey: WeightPlatePolicy.unitDefaultsKey)
+        defer { UserDefaults.standard.removeObject(forKey: WeightPlatePolicy.unitDefaultsKey) }
+
         let definition = OverallRankTrialDefinitions.gauntlet
         let resolved = try XCTUnwrap(resolvedTrial(for: definition, loadout: .homeKit))
         let draft = OverallRankTrialRunner.shared.draft(

@@ -112,6 +112,35 @@ struct ProgramPlanningCoordinator {
         )
     }
 
+    func markRestDay(date: Date) -> Date {
+        let normalizedDate = calendar.startOfDay(for: date)
+        scheduleStore.replacePrimary(
+            on: normalizedDate,
+            userId: userId,
+            programId: programId,
+            with: ProgramScheduleOccurrence(
+                userId: userId,
+                programId: programId,
+                date: normalizedDate,
+                kind: .rest,
+                title: "Rest",
+                attachScheduledSkills: false,
+                adaptsWithProgression: false
+            )
+        )
+        return normalizedDate
+    }
+
+    func clearPlannedDay(date: Date) -> Date {
+        let normalizedDate = calendar.startOfDay(for: date)
+        scheduleStore.clearPrimary(
+            on: normalizedDate,
+            userId: userId,
+            programId: programId
+        )
+        return normalizedDate
+    }
+
     private func builtOccurrence(
         from draft: TrainingSessionDraft,
         date: Date,

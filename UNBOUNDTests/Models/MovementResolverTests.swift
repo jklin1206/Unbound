@@ -98,6 +98,18 @@ final class MovementResolverTests: XCTestCase {
         XCTAssertTrue(resolved.variationTags.contains(.wallSupported))
     }
 
+    func testWallHandstandHasWorkoutReferenceVisualAsset() throws {
+        let resolved = MovementResolver.resolve("Wall Handstand")
+        let definition = try XCTUnwrap(MovementCatalog.definition(for: resolved.movementId))
+
+        XCTAssertEqual(definition.role, .skillDrill)
+        XCTAssertEqual(definition.id, "skill-drill.wall-handstand")
+        XCTAssertEqual(
+            ExerciseVisualAsset.existingAssetName(for: definition),
+            "exercise_visual_exercise_wall-handstand"
+        )
+    }
+
     func testCardioNamesResolveToCardioLogger() {
         let run = MovementResolver.resolve("Run")
         let bike = MovementResolver.resolve("Easy Bike Flush")

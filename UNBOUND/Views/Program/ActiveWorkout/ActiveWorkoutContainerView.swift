@@ -118,7 +118,7 @@ struct ActiveWorkoutContainerView: View {
                             restTimer.stop()
                             Task { await complete() }
                         } else {
-                            transition(ei: ei)
+                            transition(ei: ei, si: si)
                         }
                     },
                     onToggleQualityFlag: { ei, si, flag in
@@ -521,18 +521,21 @@ struct ActiveWorkoutContainerView: View {
 
     // MARK: - Rest timer
 
-    private func startRest(ei: Int) {
+    private func startRest(ei: Int, si: Int) {
         guard session.exercises.indices.contains(ei) else { return }
-        let secs = session.exercises[ei].restSeconds
+        let setRest = session.exercises[ei].sets.indices.contains(si)
+            ? session.exercises[ei].sets[si].suggestedRestSeconds
+            : nil
+        let secs = setRest ?? session.exercises[ei].restSeconds
         let next = session.exercises[ei].name
         restTimer.onElapsed = { UnboundHaptics.success() }
         restTimer.start(seconds: secs, nextLabel: next)
     }
 
     /// Fired exactly once per set on the SUGGESTED→LOGGED edge.
-    private func transition(ei: Int) {
+    private func transition(ei: Int, si: Int) {
         UnboundHaptics.success()
-        startRest(ei: ei)
+        startRest(ei: ei, si: si)
     }
 
     /// After loadContext resolves history/working-weight, fill each set's

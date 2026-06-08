@@ -21,6 +21,8 @@ extension ProgramOverviewView {
         ProgramDevDynamicScenarioRail(
             scenarios: orderedDevDynamicScenarios,
             activeRawValue: activeDevDynamicScenarioRawValue,
+            isFreshMode: UserDefaults.standard.string(forKey: DevBuildBootstrapper.devAccountModeKey)
+                == DevBuildBootstrapper.freshLoginDevAccountMode,
             isSeeding: isSeedingDevDynamicScenario,
             onSelect: applyDevDynamicScenario
         )

@@ -21,8 +21,7 @@ struct Step_ExerciseStyle: View {
                 options: ExerciseStyle.allCases,
                 selection: $flow.exerciseStyles,
                 title: { $0.displayName },
-                subtitle: { $0.subtitle },
-                icon: { $0.icon }
+                subtitle: { $0.subtitle }
             )
             .padding(.top, 4)
         }

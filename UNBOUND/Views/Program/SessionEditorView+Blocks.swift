@@ -22,50 +22,15 @@ extension SessionEditorView {
 
     func blockCard(block: TrainingBlock, blockIndex: Int) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            if draft.blocks.count > 1 || block.kind == .skill {
-                HStack(spacing: 8) {
-                    Image(systemName: icon(for: block.kind))
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(Color.unbound.accent)
-                        .frame(width: 24, height: 24)
-                        .background(Circle().fill(Color.unbound.accent.opacity(0.12)))
-
-                    Text(block.title)
-                        .font(Font.unbound.bodyS.weight(.heavy))
-                        .foregroundStyle(Color.unbound.textPrimary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.78)
-
-                    Text(block.kind.rawValue.uppercased())
-                        .font(Font.unbound.captionS)
-                        .tracking(0.9)
-                        .foregroundStyle(Color.unbound.textTertiary)
-
-                    Spacer(minLength: 0)
-
-                    Button {
-                        openAddExercise(blockId: block.id)
-                    } label: {
-                        Image(systemName: "plus")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundStyle(Color.unbound.accent)
-                            .frame(width: 30, height: 30)
-                            .background(Circle().fill(Color.unbound.surface))
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Add exercise to \(block.title)")
-                }
-            }
-
             if block.prescriptions.isEmpty {
-                emptyBlockRow(blockId: block.id)
+                emptyBlockRow()
             } else {
                 VStack(spacing: 10) {
                     ForEach(Array(block.prescriptions.enumerated()), id: \.element.id) { prescriptionIndex, prescription in
                         let target = PrescriptionTarget(blockIndex: blockIndex, prescriptionIndex: prescriptionIndex)
                         EditablePrescriptionRow(
                             prescription: prescriptionBinding(for: target),
-                            index: prescriptionIndex + 1,
+                            index: displayIndex(blockIndex: blockIndex, prescriptionIndex: prescriptionIndex),
                             canMoveUp: prescriptionIndex > 0,
                             canMoveDown: prescriptionIndex < block.prescriptions.count - 1,
                             onSwap: {
@@ -96,31 +61,31 @@ extension SessionEditorView {
         }
     }
 
-    func emptyBlockRow(blockId: String) -> some View {
-        Button {
-            openAddExercise(blockId: blockId)
-        } label: {
-            HStack(spacing: 10) {
-                Image(systemName: "plus.circle.fill")
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundStyle(Color.unbound.accent)
-                Text("Add exercise")
-                    .font(Font.unbound.bodyS.weight(.semibold))
-                    .foregroundStyle(Color.unbound.textSecondary)
-                Spacer()
-            }
-            .padding(.horizontal, 12)
-            .frame(height: 48)
-            .background(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(Color.unbound.surface)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
-            )
+    func emptyBlockRow() -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: "list.bullet")
+                .font(.system(size: 14, weight: .bold))
+                .foregroundStyle(Color.unbound.textTertiary)
+            Text("No exercises yet")
+                .font(Font.unbound.bodyS.weight(.semibold))
+                .foregroundStyle(Color.unbound.textSecondary)
+            Spacer()
         }
-        .buttonStyle(.plain)
+        .padding(.horizontal, 12)
+        .frame(height: 48)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color.unbound.surface.opacity(0.72))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
+        )
+    }
+
+    func displayIndex(blockIndex: Int, prescriptionIndex: Int) -> Int {
+        let previous = draft.blocks.prefix(blockIndex).reduce(0) { $0 + $1.prescriptions.count }
+        return previous + prescriptionIndex + 1
     }
 
     @ViewBuilder

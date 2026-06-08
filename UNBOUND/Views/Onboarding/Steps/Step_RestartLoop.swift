@@ -68,6 +68,14 @@ struct Step_RestartLoop: View {
                         .multilineTextAlignment(.center)
                         .lineLimit(2)
                         .minimumScaleFactor(0.82)
+
+                    Text(L10n.onboarding("restartLoop.subtitle", defaultValue: "UNBOUND maps the daily mission around your time, gear, and obstacles, so a rough week doesn't erase the path."))
+                        .font(Font.unbound.bodyM)
+                        .foregroundStyle(Color.unbound.textSecondary)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(3)
+                        .minimumScaleFactor(0.86)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 .padding(.horizontal, 24)
                 .opacity(hasAnimated ? 1 : 0)

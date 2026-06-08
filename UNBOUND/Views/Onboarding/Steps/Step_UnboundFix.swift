@@ -23,14 +23,14 @@ struct Step_UnboundFix: View {
                     title: L10n.string(.appName, defaultValue: "UNBOUND"),
                     message: L10n.onboarding("unboundFix.message", defaultValue: "A progression layer for your training."),
                     accent: Color.unbound.accent,
-                    icon: "sparkles",
+                    assetName: "badge_art_first_build_identity_resolved",
                     pulse: pulse
                 ) {
                     VStack(spacing: 10) {
-                        FixChip(icon: "viewfinder", title: L10n.onboarding("unboundFix.chip.baseline", defaultValue: "BASELINE"))
-                        FixChip(icon: "hexagon.fill", title: L10n.onboarding("unboundFix.chip.stats", defaultValue: "STATS"))
-                        FixChip(icon: "point.3.connected.trianglepath.dotted", title: L10n.onboarding("unboundFix.chip.unlocks", defaultValue: "UNLOCKS"))
-                        FixChip(icon: "list.bullet.clipboard.fill", title: L10n.onboarding("unboundFix.chip.protocol", defaultValue: "PROTOCOL"))
+                        FixChip(assetName: "badge_art_first_scan", title: L10n.onboarding("unboundFix.chip.baseline", defaultValue: "BASELINE"))
+                        FixChip(assetName: "badge_art_proof_10", title: L10n.onboarding("unboundFix.chip.stats", defaultValue: "STATS"))
+                        FixChip(assetName: "onboarding_path_rank_gates", title: L10n.onboarding("unboundFix.chip.unlocks", defaultValue: "UNLOCKS"))
+                        FixChip(assetName: "onboarding_path_protocol_dossier", title: L10n.onboarding("unboundFix.chip.protocol", defaultValue: "PROTOCOL"))
                     }
                 }
                 .padding(.horizontal, 22)
@@ -62,23 +62,21 @@ struct SystemNoticeCard<Content: View>: View {
     let title: String
     let message: String
     let accent: Color
-    let icon: String
+    let assetName: String
     let pulse: Bool
     @ViewBuilder var content: Content
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             HStack(spacing: 10) {
-                ZStack {
-                    Circle()
-                        .fill(accent.opacity(pulse ? 0.22 : 0.1))
-                    Circle()
-                        .stroke(accent.opacity(pulse ? 0.8 : 0.38), lineWidth: 1)
-                    Image(systemName: icon)
-                        .font(.system(size: 13, weight: .black))
-                        .foregroundStyle(accent)
-                }
-                .frame(width: 32, height: 32)
+                OnboardingAssetGlyph(
+                    assetName: assetName,
+                    tint: accent,
+                    size: 34,
+                    imagePadding: 5,
+                    shape: .hexagon
+                )
+                .opacity(pulse ? 1 : 0.86)
 
                 VStack(alignment: .leading, spacing: 3) {
                     Text(eyebrow)
@@ -148,15 +146,19 @@ struct SystemMetricRow: View {
 }
 
 struct FixChip: View {
-    let icon: String
+    let assetName: String
     let title: String
 
     var body: some View {
         HStack(spacing: 10) {
-            Image(systemName: icon)
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(Color.unbound.accent)
-                .frame(width: 24, height: 24)
+            OnboardingAssetGlyph(
+                assetName: assetName,
+                tint: Color.unbound.accent,
+                size: 26,
+                imagePadding: 5,
+                shape: .hexagon,
+                showsCornerMark: false
+            )
 
             Text(title)
                 .font(Font.unbound.monoS)
@@ -165,9 +167,14 @@ struct FixChip: View {
 
             Spacer(minLength: 0)
 
-            Image(systemName: "checkmark")
-                .font(.system(size: 11, weight: .black))
-                .foregroundStyle(Color.unbound.accent)
+            OnboardingAssetGlyph(
+                assetName: "badge_art_first_session",
+                tint: Color.unbound.accent,
+                size: 20,
+                imagePadding: 4,
+                shape: .hexagon,
+                showsCornerMark: false
+            )
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 11)

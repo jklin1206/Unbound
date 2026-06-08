@@ -10,27 +10,35 @@ struct Step_AppPainSolution: View {
     let onBack: () -> Void
     let onContinue: () -> Void
 
-    private var rows: [(problem: String, fix: String, icon: String)] {
+    private var rows: [(problem: String, fix: String, assetName: String, tint: Color, imagePadding: CGFloat)] {
         [
             (
                 L10n.onboarding("appPainSolution.problem.today", defaultValue: "You do not know what to train today."),
                 L10n.onboarding("appPainSolution.fix.today", defaultValue: "UNBOUND gives you one daily mission."),
-                "target"
+                "onboarding_path_protocol_dossier",
+                Color.unbound.accent,
+                4
             ),
             (
                 L10n.onboarding("appPainSolution.problem.progress", defaultValue: "Progress feels invisible."),
                 L10n.onboarding("appPainSolution.fix.progress", defaultValue: "Every log moves rank, stats, and gate readiness."),
-                "chart.line.uptrend.xyaxis"
+                "badge_art_proof_10",
+                Color.unbound.impact,
+                5
             ),
             (
                 L10n.onboarding("appPainSolution.problem.life", defaultValue: "Life breaks generic plans."),
                 L10n.onboarding("appPainSolution.fix.life", defaultValue: "Your plan adapts to recovery, schedule, and equipment."),
-                "arrow.triangle.2.circlepath"
+                "badge_art_consistency_loop",
+                Color.unbound.ember,
+                5
             ),
             (
                 L10n.onboarding("appPainSolution.problem.plateau", defaultValue: "There is no clear standard to chase."),
                 L10n.onboarding("appPainSolution.fix.plateau", defaultValue: "Rank gates tell you exactly what unlocks the next climb."),
-                "flag.checkered"
+                "onboarding_path_rank_gates",
+                Color.unbound.rankGreen,
+                4
             )
         ]
     }
@@ -48,33 +56,51 @@ struct Step_AppPainSolution: View {
         ) {
             VStack(spacing: 12) {
                 ForEach(Array(rows.enumerated()), id: \.offset) { index, row in
-                    problemFixRow(index: index + 1, problem: row.problem, fix: row.fix, icon: row.icon)
+                    problemFixRow(
+                        index: index + 1,
+                        problem: row.problem,
+                        fix: row.fix,
+                        assetName: row.assetName,
+                        tint: row.tint,
+                        imagePadding: row.imagePadding
+                    )
                 }
             }
         }
     }
 
-    private func problemFixRow(index: Int, problem: String, fix: String, icon: String) -> some View {
+    private func problemFixRow(
+        index: Int,
+        problem: String,
+        fix: String,
+        assetName: String,
+        tint: Color,
+        imagePadding: CGFloat
+    ) -> some View {
         UnboundCard(cornerRadius: 12, padding: 14) {
             HStack(alignment: .top, spacing: 12) {
-                ZStack {
-                    Circle()
-                        .fill(Color.unbound.accent.opacity(0.12))
-                    Image(systemName: icon)
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(Color.unbound.accent)
-                }
-                .frame(width: 36, height: 36)
+                OnboardingAssetGlyph(
+                    assetName: assetName,
+                    tint: tint,
+                    size: 38,
+                    imagePadding: imagePadding,
+                    shape: .hexagon
+                )
 
                 VStack(alignment: .leading, spacing: 7) {
                     Text(problem)
                         .font(Font.unbound.bodyM.weight(.semibold))
                         .foregroundStyle(Color.unbound.textPrimary)
                     HStack(alignment: .top, spacing: 8) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 13, weight: .bold))
-                            .foregroundStyle(Color.unbound.accent)
-                            .padding(.top, 1)
+                        OnboardingAssetGlyph(
+                            assetName: "badge_art_first_session",
+                            tint: Color.unbound.accent,
+                            size: 18,
+                            imagePadding: 3,
+                            shape: .hexagon,
+                            showsCornerMark: false
+                        )
+                        .padding(.top, 1)
                         Text(fix)
                             .font(Font.unbound.bodyS)
                             .foregroundStyle(Color.unbound.textSecondary)
@@ -144,9 +170,13 @@ struct Step_WorkoutPreviewDemo: View {
 
                 UnboundCard(cornerRadius: 12, padding: 14) {
                     HStack(spacing: 12) {
-                        Image(systemName: "sparkles")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundStyle(Color.unbound.accent)
+                        OnboardingAssetGlyph(
+                            assetName: "badge_art_pr_session",
+                            tint: Color.unbound.accent,
+                            size: 34,
+                            imagePadding: 5,
+                            shape: .hexagon
+                        )
                         Text(L10n.onboarding("workoutPreviewDemo.note", defaultValue: "After you log it, UNBOUND updates your next target."))
                             .font(Font.unbound.bodyS)
                             .foregroundStyle(Color.unbound.textSecondary)

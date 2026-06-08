@@ -2,8 +2,12 @@ import SwiftUI
 import UIKit
 
 extension WorkoutRewardSequenceView {
+    var weightUnit: TrainingWeightUnit {
+        TrainingWeightUnit(rawValue: weightUnitRaw) ?? .localeDefault
+    }
+
     var volumeText: String {
-        summary.volumeKg >= 1000 ? String(format: "%.1ft", summary.volumeKg / 1000) : String(format: "%.0fkg", summary.volumeKg)
+        WeightPlatePolicy.formatVolume(summary.volumeKg, unit: weightUnit)
     }
 
     var dominantLiftTint: Color {

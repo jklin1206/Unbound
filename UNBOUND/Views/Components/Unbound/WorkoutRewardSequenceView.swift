@@ -19,6 +19,7 @@ struct WorkoutRewardSequenceView: View {
     @State var hexPrev: [AttributeKey: Double] = [:]   // phase from-map
     @State var hexCur: [AttributeKey: Double] = [:]    // phase to-map
     @State var finishRequested = false
+    @AppStorage(WeightPlatePolicy.unitDefaultsKey) var weightUnitRaw = TrainingWeightUnit.localeDefault.rawValue
 
     enum RewardBeatKind: Equatable {
         case sessionComplete

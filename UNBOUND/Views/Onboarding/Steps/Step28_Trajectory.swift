@@ -163,9 +163,13 @@ struct Step28_Trajectory: View {
     private var calloutCard: some View {
         UnboundCard {
             HStack(spacing: 14) {
-                Image(systemName: "arrow.up.right.circle.fill")
-                    .font(.system(size: 22))
-                    .foregroundStyle(Color.unbound.accent)
+                OnboardingAssetGlyph(
+                    assetName: "rank_title_ascendant",
+                    tint: Color.unbound.accent,
+                    size: 40,
+                    imagePadding: 4,
+                    shape: .hexagon
+                )
                 VStack(alignment: .leading, spacing: 4) {
                     Text(L10n.onboardingFormat("trajectory.projected", defaultValue: "Projected: %@", rankGapText))
                         .font(Font.unbound.bodyLStrong)
@@ -194,9 +198,14 @@ struct Step28_Trajectory: View {
         UnboundCard {
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 10) {
-                    Image(systemName: "flame.fill")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(Color.unbound.ember)
+                    OnboardingAssetGlyph(
+                        assetName: "badge_art_proof_25",
+                        tint: Color.unbound.ember,
+                        size: 28,
+                        imagePadding: 5,
+                        shape: .hexagon,
+                        showsCornerMark: false
+                    )
                     Text(L10n.onboarding("trajectory.sell.title", defaultValue: "WHY IT SHOOTS UP LATER"))
                         .font(Font.unbound.captionS)
                         .tracking(1.4)

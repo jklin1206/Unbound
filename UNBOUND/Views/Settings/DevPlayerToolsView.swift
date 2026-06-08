@@ -6,6 +6,7 @@ import UIKit
 struct DevPlayerToolsView: View {
     @EnvironmentObject var services: ServiceContainer
     @AppStorage(ExerciseVisualAssetSet.userDefaultsKey) var exerciseVisualAssetSetRawValue = ExerciseVisualAssetSet.defaultSet.rawValue
+    @AppStorage(WeightPlatePolicy.unitDefaultsKey) var weightUnitRaw = TrainingWeightUnit.localeDefault.rawValue
 
     @State var selectedLevel: Int = 25
     @State var selectedRank: SkillTier = .ascendant
@@ -27,6 +28,10 @@ struct DevPlayerToolsView: View {
 
     var currentUserId: String {
         AuthService.shared.currentUserId ?? DevBuildBootstrapper.userId
+    }
+
+    var selectedWeightUnit: TrainingWeightUnit {
+        TrainingWeightUnit(rawValue: weightUnitRaw) ?? .localeDefault
     }
 
     static var rankTrialTargets: [RankTitle] {
@@ -254,7 +259,7 @@ struct DevPlayerToolsView: View {
                         Label("Weight", systemImage: "dumbbell.fill")
                             .foregroundColor(.theme.textPrimary)
                         Spacer()
-                        Text("\(Int(selectedBestLiftWeight.rounded())) kg")
+                        Text(WeightPlatePolicy.formatLoggedWeightWithUnit(selectedBestLiftWeight, unit: selectedWeightUnit, separator: " "))
                             .font(.system(size: 15, weight: .semibold, design: .monospaced))
                             .foregroundColor(.theme.primary)
                     }
@@ -327,6 +332,16 @@ struct DevPlayerToolsView: View {
             notificationPreviewSection
 
             Section {
+                Button {
+                    run(successMessage: "Dev account reset to a fresh logged-in user.") {
+                        await DevBuildBootstrapper.seedFreshLoginDevAccount(services: services)
+                    }
+                } label: {
+                    Label("Fresh Login Dev Account", systemImage: "person.crop.circle.badge.checkmark")
+                        .foregroundColor(.theme.primary)
+                }
+                .accessibilityIdentifier("dev.account.freshLogin")
+
                 Button(role: .destructive) {
                     DevBuildBootstrapper.clearDevProgress()
                     status = "Dev progress cleared. Activate again when you want a fresh sandbox."
@@ -604,19 +619,27 @@ enum DevBuildBootstrapper {
     static let programSurfaceProofArg = "--unbound-proof-program-surface"
     static let devProgramSandboxArg = "--unbound-dev-program-sandbox"
     static let dynamicProgramScenarioArg = "--unbound-dev-dynamic-program"
+    static let freshLoginDevAccountArg = "--unbound-dev-fresh-login"
     static let devScanSandboxArg = "--unbound-dev-scan"
     static let squadRosterProofArg = "--unbound-seed-squad-roster"
     static let squadActivityProofArg = "--unbound-proof-squad-activity"
+    static let devAccountModeKey = "unbound.dev.accountMode"
+    static let freshLoginDevAccountMode = "fresh-login"
 
     static func ensureReady() async {
         AuthService.shared.activateDevUser(id: userId)
         DevFlags.shared.unlockAllFeatures = true
 
-        await maxEverything(
-            level: 42,
-            services: ServiceContainer(),
-            completeOnboarding: shouldCompleteOnboardingForDevLaunch
-        )
+        let services = ServiceContainer()
+        if shouldSeedFreshLoginDevAccount {
+            await seedFreshLoginDevAccount(services: services)
+        } else {
+            await maxEverything(
+                level: 42,
+                services: services,
+                completeOnboarding: shouldCompleteOnboardingForDevLaunch
+            )
+        }
         if ProcessInfo.processInfo.arguments.contains(resetOpenedSkillForProofArg),
            let skillId = launchArgumentValue(for: "--unbound-open-skill") {
             await resetSkillForProof(skillId: skillId)
@@ -635,11 +658,11 @@ enum DevBuildBootstrapper {
         }
         if let rawSandboxState = launchArgumentValue(for: devProgramSandboxArg),
            let sandboxState = DevProgramSandboxState(rawValue: rawSandboxState) {
-            await seedProgramScanSandbox(services: ServiceContainer(), state: sandboxState)
+            await seedProgramScanSandbox(services: services, state: sandboxState)
         }
         if let rawDynamicScenario = launchArgumentValue(for: dynamicProgramScenarioArg),
            let scenario = DevDynamicProgramScenario(rawValue: rawDynamicScenario) {
-            await seedDynamicProgramScenario(services: ServiceContainer(), scenario: scenario)
+            await seedDynamicProgramScenario(services: services, scenario: scenario)
         }
         if let rawScanState = launchArgumentValue(for: devScanSandboxArg) {
             let normalized = rawScanState.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
@@ -673,6 +696,7 @@ enum DevBuildBootstrapper {
             || arguments.contains(where: { $0 == programSurfaceProofArg || $0.hasPrefix("\(programSurfaceProofArg)=") })
             || arguments.contains(where: { $0 == devProgramSandboxArg || $0.hasPrefix("\(devProgramSandboxArg)=") })
             || arguments.contains(where: { $0 == dynamicProgramScenarioArg || $0.hasPrefix("\(dynamicProgramScenarioArg)=") })
+            || arguments.contains(freshLoginDevAccountArg)
             || arguments.contains(where: { $0 == devScanSandboxArg || $0.hasPrefix("\(devScanSandboxArg)=") })
             || arguments.contains(squadActivityProofArg)
     }
@@ -683,6 +707,20 @@ enum DevBuildBootstrapper {
             return false
         }
         return true
+    }
+
+    static var shouldSeedFreshLoginDevAccount: Bool {
+        let arguments = ProcessInfo.processInfo.arguments
+        if arguments.contains(freshLoginDevAccountArg) {
+            return true
+        }
+        if arguments.contains(where: { $0 == dynamicProgramScenarioArg || $0.hasPrefix("\(dynamicProgramScenarioArg)=") })
+            || arguments.contains(where: { $0 == devProgramSandboxArg || $0.hasPrefix("\(devProgramSandboxArg)=") })
+            || arguments.contains(where: { $0 == programStateProofArg || $0.hasPrefix("\(programStateProofArg)=") })
+            || arguments.contains(where: { $0 == programSurfaceProofArg || $0.hasPrefix("\(programSurfaceProofArg)=") }) {
+            return false
+        }
+        return UserDefaults.standard.string(forKey: devAccountModeKey) == freshLoginDevAccountMode
     }
 
     static var rankTrialProofTargetArgument: String? {

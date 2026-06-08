@@ -165,10 +165,25 @@ struct ProgramWorkoutExerciseList: View {
 private struct ProgramVisualExerciseRow: View {
     let exercise: Exercise
 
+    private var definition: MovementDefinition? {
+        MovementCatalog.canonicalExercise(named: exercise.name)
+    }
+
+    private var subtitle: String {
+        let groups = exercise.muscleGroups.prefix(2).map(\.displayName).joined(separator: " / ")
+        guard let definition else { return groups }
+        let labels = ExerciseLibrary.equipmentLabels(for: definition)
+        let equipment = labels.first(where: { $0 != "Bodyweight" }) ?? labels.first
+        return [equipment, groups].compactMap { value in
+            guard let value, !value.isEmpty else { return nil }
+            return value
+        }.joined(separator: " · ")
+    }
+
     var body: some View {
         HStack(spacing: 10) {
             ProgramWorkoutExerciseVisual(
-                definition: MovementCatalog.canonicalExercise(named: exercise.name),
+                definition: definition,
                 size: .thumbnail
             )
             .frame(width: 46, height: 46)
@@ -180,7 +195,7 @@ private struct ProgramVisualExerciseRow: View {
                     .foregroundStyle(Color.unbound.textPrimary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.72)
-                Text(exercise.muscleGroups.prefix(2).map(\.displayName).joined(separator: " / ").uppercased())
+                Text(subtitle.uppercased())
                     .font(Font.unbound.monoS)
                     .foregroundStyle(Color.unbound.textPrimary.opacity(0.58))
                     .lineLimit(1)

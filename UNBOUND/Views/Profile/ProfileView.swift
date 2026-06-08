@@ -216,6 +216,10 @@ struct ProfileView: View {
         .onReceive(NotificationCenter.default.publisher(for: .shopInventoryChanged)) { _ in
             refreshShopCosmetics()
         }
+        .onReceive(NotificationCenter.default.publisher(for: .profileCosmeticsChanged)) { note in
+            guard profileCosmeticChangeAppliesToCurrentUser(note) else { return }
+            refreshEquippedCosmetics()
+        }
         .attributeRankUpToast()
     }
 
@@ -233,15 +237,7 @@ struct ProfileView: View {
         }
 
         aggregateTier = await services.rank.aggregateTier(userId: userId)
-        // Cosmetics reflect the CONFIRMED overall rank (highestPassedRank,
-        // permanent), not the live accumulation (Phase 7 §5).
-        let confirmedRank = OverallRankTrialStore.shared.load(userId: userId).currentRank
-        let cosmeticTier = RankCosmetics.equipped(highestRank: confirmedRank)
-        _ = RankCosmetics.unlockedTiers(userId: userId, currentTier: cosmeticTier)
-        equippedFrameTier = RankCosmetics.equippedFrameTier(userId: userId, currentTier: cosmeticTier)
-        equippedBackgroundTier = RankCosmetics.equippedBackgroundTier(userId: userId, currentTier: cosmeticTier)
-        equippedProfileColorTier = RankCosmetics.equippedProfileColorTier(userId: userId, currentTier: cosmeticTier)
-        refreshShopCosmetics(userId: userId)
+        refreshEquippedCosmetics(userId: userId)
         attributeProfile = services.attribute.profile(userId: userId)
 
         unlockedBadges = services.badges.unlockedBadges(userId: userId)
@@ -303,6 +299,24 @@ struct ProfileView: View {
         let userId = overrideUserId ?? services.auth.currentUserId ?? "anonymous"
         equippedShopProfileBorder = ShopInventoryStore.equippedProfileBorder(userId: userId)
         equippedProfileBackdrop = ShopInventoryStore.equippedBackdrop(for: .profile, userId: userId)
+    }
+
+    private func refreshEquippedCosmetics(userId overrideUserId: String? = nil) {
+        let userId = overrideUserId ?? services.auth.currentUserId ?? "anonymous"
+        // Cosmetics reflect the CONFIRMED overall rank (highestPassedRank,
+        // permanent), not the live accumulation (Phase 7 §5).
+        let confirmedRank = OverallRankTrialStore.shared.load(userId: userId).currentRank
+        let cosmeticTier = RankCosmetics.equipped(highestRank: confirmedRank)
+        _ = RankCosmetics.unlockedTiers(userId: userId, currentTier: cosmeticTier)
+        equippedFrameTier = RankCosmetics.equippedFrameTier(userId: userId, currentTier: cosmeticTier)
+        equippedBackgroundTier = RankCosmetics.equippedBackgroundTier(userId: userId, currentTier: cosmeticTier)
+        equippedProfileColorTier = RankCosmetics.equippedProfileColorTier(userId: userId, currentTier: cosmeticTier)
+        refreshShopCosmetics(userId: userId)
+    }
+
+    private func profileCosmeticChangeAppliesToCurrentUser(_ note: Notification) -> Bool {
+        guard let eventUserId = note.userInfo?["userId"] as? String else { return true }
+        return eventUserId == (services.auth.currentUserId ?? "anonymous")
     }
 
     private func startOverallRankTrial(_ definition: OverallRankTrialDefinition) {

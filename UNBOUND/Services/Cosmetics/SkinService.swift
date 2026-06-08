@@ -113,6 +113,14 @@ final class SkinService: SkinServiceProtocol, ObservableObject {
         persistUnlocked()
         try? setCurrent(skin)
     }
+
+    func debugResetToFreshDefaults() {
+        currentSkin = .violet
+        unlockedSkins = [.violet, .graphite]
+        UserDefaults.standard.set(currentSkin.rawValue, forKey: currentKey)
+        persistUnlocked()
+        NotificationCenter.default.post(name: .skinChanged, object: nil, userInfo: ["skin": currentSkin])
+    }
     #endif
 }
 

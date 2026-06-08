@@ -107,9 +107,14 @@ struct Step_ScanAnalyzing: View {
                         )
                         .padding(.horizontal, 40)
                 } else {
-                    Image(systemName: "figure.stand")
-                        .font(.system(size: 280, weight: .ultraLight))
-                        .foregroundStyle(Color.unbound.textPrimary.opacity(0.22))
+                    OnboardingAssetGlyph(
+                        assetName: "rank_title_initiate",
+                        tint: Color.unbound.accent,
+                        size: 168,
+                        imagePadding: 12,
+                        shape: .hexagon
+                    )
+                    .opacity(0.72)
                 }
 
                 // Scan plane — sweeps top↔bottom

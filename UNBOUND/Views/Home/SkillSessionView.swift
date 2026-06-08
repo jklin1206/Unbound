@@ -19,6 +19,7 @@ struct SkillSessionView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var services: ServiceContainer
     @Bindable private var skillProgress = SkillProgressService.shared
+    @AppStorage(WeightPlatePolicy.unitDefaultsKey) private var weightUnitRaw = TrainingWeightUnit.localeDefault.rawValue
 
     // MARK: Session state
 
@@ -455,17 +456,18 @@ struct SkillSessionView: View {
             return "\(secs)s"
         default:
             if let kg = s.weightKg, kg > 0 {
-                return "\(s.reps) · \(formatKg(kg))"
+                return "\(s.reps) · \(formatWeight(kg))"
             }
             return "\(s.reps) reps"
         }
     }
 
-    private func formatKg(_ kg: Double) -> String {
-        if kg == floor(kg) {
-            return "\(Int(kg))kg"
-        }
-        return String(format: "%.1fkg", kg)
+    private var weightUnit: TrainingWeightUnit {
+        TrainingWeightUnit(rawValue: weightUnitRaw) ?? .localeDefault
+    }
+
+    private func formatWeight(_ kg: Double) -> String {
+        WeightPlatePolicy.formatLoggedWeightWithUnit(kg, unit: weightUnit)
     }
 
     // MARK: - Disclosure sections (regressions / accessories)

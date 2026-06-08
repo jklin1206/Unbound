@@ -75,6 +75,14 @@ final class OutboxStore: @unchecked Sendable {
     }
 
     @MainActor
+    func clear() {
+        pending = []
+        dead = []
+        try? FileManager.default.removeItem(at: pendingURL)
+        try? FileManager.default.removeItem(at: deadletterURL)
+    }
+
+    @MainActor
     private func persistPending() {
         try? JSONEncoder().encode(pending).write(to: pendingURL, options: .atomic)
     }

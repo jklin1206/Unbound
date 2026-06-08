@@ -34,6 +34,13 @@ extension ProgramOverviewView {
         planningWorkoutDraft = draft
     }
 
+    func openCreateWorkoutEditor(date: Date? = nil) {
+        let targetDate = date ?? selectedPlanningDate()
+        guard let draft = emptyCustomWorkoutDraft(title: "New Workout", date: targetDate) else { return }
+        planningTargetDate = targetDate
+        planningWorkoutDraft = draft
+    }
+
     func selectedPlanningDate() -> Date {
         planningCoordinator?.planningDate(
             selectedDate: selectedDayDate,
@@ -65,6 +72,20 @@ extension ProgramOverviewView {
 
     func placeSavedWorkoutOnCalendar(_ workout: SavedWorkout, date: Date) {
         applySavedWorkout(workout, to: date, allowExtraSession: false)
+    }
+
+    func markRestDayOnCalendar(_ date: Date) {
+        guard let planningCoordinator else { return }
+        let savedDate = planningCoordinator.markRestDay(date: date)
+        programScheduleRevision += 1
+        selectedDayDate = savedDate
+    }
+
+    func clearPlannedDayOnCalendar(_ date: Date) {
+        guard let planningCoordinator else { return }
+        let clearedDate = planningCoordinator.clearPlannedDay(date: date)
+        programScheduleRevision += 1
+        selectedDayDate = clearedDate
     }
 
     func monthPlannerOccurrences() -> [ProgramScheduleOccurrence] {
@@ -135,10 +156,29 @@ extension ProgramOverviewView {
             date: date,
             generatedDayNumber: generatedDayNumber(for: date)
         )
+        autoSaveBuiltWorkoutToLibrary(draft)
         programScheduleRevision += 1
         selectedDayDate = savedDate
         planningTargetDate = nil
         planningWorkoutDraft = nil
+    }
+
+    /// A workout the user builds is auto-saved to the reusable library — no
+    /// explicit "Save" button. The library entry id is keyed off the draft id so
+    /// re-editing the same built workout updates that entry instead of creating a
+    /// duplicate.
+    private func autoSaveBuiltWorkoutToLibrary(_ draft: TrainingSessionDraft) {
+        let exerciseCount = draft.blocks.reduce(0) { $0 + $1.prescriptions.count }
+        guard exerciseCount > 0 else { return }
+        let trimmedTitle = draft.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        var saved = SavedWorkout.from(
+            draft,
+            title: trimmedTitle.isEmpty ? "Built Workout" : trimmedTitle
+        )
+        if let stableId = UUID(uuidString: draft.id) {
+            saved.id = stableId
+        }
+        SavedWorkoutStore.shared.save(saved)
     }
 
     func applySavedWorkout(

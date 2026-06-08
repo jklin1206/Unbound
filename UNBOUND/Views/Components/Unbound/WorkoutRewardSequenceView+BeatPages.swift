@@ -56,7 +56,10 @@ extension WorkoutRewardSequenceView {
     }
 
     var sessionCompleteBeat: some View {
-        RewardPanel(tint: Color.unbound.textPrimary, active: currentBeatKind == .sessionComplete) {
+        let volumeValue = WeightPlatePolicy.formatDisplayValue(weightUnit.displayValue(fromKilograms: summary.volumeKg))
+        let volumeUnit = weightUnit.shortLabel.uppercased()
+
+        return RewardPanel(tint: Color.unbound.textPrimary, active: currentBeatKind == .sessionComplete) {
             VStack(spacing: 22) {
                 Text("COMPLETED")
                     .font(.system(size: 42, weight: .black, design: .monospaced))
@@ -78,11 +81,11 @@ extension WorkoutRewardSequenceView {
                         .shadow(color: Color.rewardBlue.opacity(0.55), radius: 10)
 
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
-                        Text("\(Int(summary.volumeKg.rounded()))")
+                        Text(volumeValue)
                             .font(.system(size: 66, weight: .black, design: .monospaced))
                             .foregroundStyle(Color.unbound.textPrimary)
                             .shadow(color: Color.white.opacity(0.35), radius: 18)
-                        Text("KG")
+                        Text(volumeUnit)
                             .font(.system(size: 30, weight: .black, design: .monospaced))
                             .foregroundStyle(Color.unbound.textPrimary.opacity(0.85))
                     }

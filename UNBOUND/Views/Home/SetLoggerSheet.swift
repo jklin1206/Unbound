@@ -13,6 +13,7 @@ struct SetLoggerSheet: View {
     @State private var holdSeconds: Int = 0
     @State private var qualityFlags: Set<PerformanceQualityFlag> = [.clean]
     @State private var setNotes: String = ""
+    @AppStorage(WeightPlatePolicy.unitDefaultsKey) private var weightUnitRaw = TrainingWeightUnit.localeDefault.rawValue
 
     // Hold timer state
     @State private var isTimerRunning: Bool = false
@@ -153,7 +154,7 @@ struct SetLoggerSheet: View {
 
             HStack(spacing: 8) {
                 setStat(label: "TARGET", value: isHoldTarget ? "TIME" : "REPS")
-                setStat(label: "LOAD", value: weightKg > 0 ? formatKg(weightKg) : "BW")
+                setStat(label: "LOAD", value: weightKg > 0 ? formatWeight(weightKg) : "BW")
                 setStat(label: "EFFORT", value: rpe == 0 ? "OPEN" : "RPE \(rpe)")
                 setStat(label: "QUALITY", value: qualityStatLabel)
             }
@@ -344,29 +345,31 @@ struct SetLoggerSheet: View {
     private var weightInput: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text("WEIGHT (KG)")
+                Text("WEIGHT (\(weightUnit.shortLabel.uppercased()))")
                     .font(Font.unbound.captionS.weight(.heavy))
                     .tracking(1.4)
                     .foregroundStyle(Color.unbound.textSecondary)
                 Spacer()
-                Text(weightKg > 0 ? formatKg(weightKg) : "Bodyweight")
+                Text(weightKg > 0 ? formatWeight(weightKg) : "Bodyweight")
                     .font(Font.unbound.bodyMStrong)
                     .foregroundStyle(weightKg > 0 ? Color.unbound.textPrimary : Color.unbound.textTertiary)
             }
 
             HStack(spacing: 8) {
-                ForEach([0.0, 2.5, 5.0, 7.5, 10.0, 15.0, 20.0], id: \.self) { value in
+                ForEach(weightChipValues, id: \.self) { value in
+                    let chipWeightKg = kilograms(fromDisplayValue: value)
+                    let isSelected = isSelectedWeightChip(chipWeightKg)
                     Button {
-                        weightKg = value
+                        weightKg = chipWeightKg
                         UnboundHaptics.soft()
                     } label: {
-                        Text(value == 0 ? "BW" : "\(formatKg(value))")
+                        Text(value == 0 ? "BW" : WeightPlatePolicy.formatLoggedWeightWithUnit(chipWeightKg, unit: weightUnit))
                             .font(Font.unbound.captionS.weight(.semibold))
-                            .foregroundStyle(weightKg == value ? Color.unbound.bg : Color.unbound.textSecondary)
+                            .foregroundStyle(isSelected ? Color.unbound.bg : Color.unbound.textSecondary)
                             .padding(.horizontal, 9)
                             .padding(.vertical, 6)
                             .background(
-                                Capsule().fill(weightKg == value ? Color.unbound.accent : Color.unbound.surfaceElevated)
+                                Capsule().fill(isSelected ? Color.unbound.accent : Color.unbound.surfaceElevated)
                             )
                             .overlay(Capsule().strokeBorder(Color.unbound.border, lineWidth: 1))
                     }
@@ -605,11 +608,29 @@ struct SetLoggerSheet: View {
         return String(format: "%d:%02d", m, r)
     }
 
-    private func formatKg(_ kg: Double) -> String {
-        if kg == floor(kg) {
-            return "\(Int(kg))kg"
+    private var weightUnit: TrainingWeightUnit {
+        TrainingWeightUnit(rawValue: weightUnitRaw) ?? .localeDefault
+    }
+
+    private var weightChipValues: [Double] {
+        switch weightUnit {
+        case .kilograms:
+            return [0.0, 2.5, 5.0, 7.5, 10.0, 15.0, 20.0]
+        case .pounds:
+            return [0.0, 5.0, 10.0, 15.0, 20.0, 25.0, 35.0, 45.0]
         }
-        return String(format: "%.1fkg", kg)
+    }
+
+    private func kilograms(fromDisplayValue value: Double) -> Double {
+        value > 0 ? WeightPlatePolicy.kilograms(fromDisplayValue: value, unit: weightUnit) : 0
+    }
+
+    private func isSelectedWeightChip(_ kilograms: Double) -> Bool {
+        abs(weightKg - kilograms) < 0.01
+    }
+
+    private func formatWeight(_ kg: Double) -> String {
+        WeightPlatePolicy.formatLoggedWeightWithUnit(kg, unit: weightUnit)
     }
 
     private func roundIconButton(icon: String, action: @escaping () -> Void) -> some View {

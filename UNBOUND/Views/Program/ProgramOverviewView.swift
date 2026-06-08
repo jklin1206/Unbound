@@ -220,7 +220,7 @@ struct ProgramOverviewView: View {
                 onCreateNew: {
                     showSavedWorkouts = false
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
-                        openPlanAheadEditor()
+                        openCreateWorkoutEditor()
                     }
                 },
                 onReplaceToday: { workout in
@@ -244,10 +244,16 @@ struct ProgramOverviewView: View {
                 onPlace: { workout, date in
                     placeSavedWorkoutOnCalendar(workout, date: date)
                 },
+                onMarkRest: { date in
+                    markRestDayOnCalendar(date)
+                },
+                onClearPlan: { date in
+                    clearPlannedDayOnCalendar(date)
+                },
                 onCreateWorkout: {
                     showMonthPlanner = false
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
-                        openPlanAheadEditor()
+                        openCreateWorkoutEditor()
                     }
                 },
                 onDismiss: {

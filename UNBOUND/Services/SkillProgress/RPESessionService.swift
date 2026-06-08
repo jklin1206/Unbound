@@ -32,9 +32,6 @@ final class RPESessionService {
     /// 2.5% per RPE point of headroom. Industry standard for autoregulation.
     private static let percentPerRPEPoint: Double = 0.025
 
-    /// Minimum load increment, kg. Sub-2.5 kg adjustments are noise.
-    private static let loadStepKg: Double = 2.5
-
     /// Same-day cache so re-opening the session screen returns the same
     /// prescription. Keyed by `<skillId>.<yyyy-MM-dd>`. Cleared on the
     /// boundary by date check, not eviction.
@@ -194,7 +191,7 @@ final class RPESessionService {
         let firstWeight = sets.first?.weightKg
         let weightSuffix: String = {
             guard let w = firstWeight, w > 0 else { return " reps" }
-            return "×\(formatKg(w))"
+            return "×\(formatWeight(w))"
         }()
 
         let rpes = sets.compactMap(\.rpe)
@@ -225,10 +222,10 @@ final class RPESessionService {
             // Weighted: percent-based load adjustment.
             let factor = 1.0 + Self.percentPerRPEPoint * Double(delta)
             let raw = weight * factor
-            let stepped = (raw / Self.loadStepKg).rounded() * Self.loadStepKg
+            let stepped = WeightPlatePolicy.snappedSuggestionKilograms(raw)
             if stepped == weight { return "hold load" }
             let direction = stepped > weight ? "bump to" : "drop to"
-            return "\(direction) \(formatKg(stepped))"
+            return "\(direction) \(formatWeight(stepped))"
         } else {
             // Bodyweight: rep progression. RPE ≤ 7 with target reps hit
             // → add a rep. Otherwise hold.
@@ -242,9 +239,8 @@ final class RPESessionService {
         }
     }
 
-    private func formatKg(_ kg: Double) -> String {
-        if kg == floor(kg) { return "\(Int(kg))kg" }
-        return String(format: "%.1fkg", kg)
+    private func formatWeight(_ kg: Double) -> String {
+        WeightPlatePolicy.formatLoggedWeightWithUnit(kg)
     }
 
     // MARK: - Persistence reads

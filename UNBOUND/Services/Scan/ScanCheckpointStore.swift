@@ -56,4 +56,10 @@ final class ScanCheckpointStore {
     func mostRecent(userId: String) throws -> ScanCheckpoint? {
         try history(userId: userId).last
     }
+
+    func clear(userId: String) throws {
+        for checkpoint in try history(userId: userId) {
+            try? fileManager.removeItem(at: url(for: checkpoint.id))
+        }
+    }
 }

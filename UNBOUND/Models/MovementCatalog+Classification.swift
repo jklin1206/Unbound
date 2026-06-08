@@ -666,6 +666,10 @@ extension MovementCatalog {
             aliases += ["australian row", "ring row", "bodyweight row"]
         case "cable row (seated)":
             aliases += ["cable row", "seated row", "seated cable row"]
+        case "band row":
+            aliases += ["banded row", "light band row", "band row prep"]
+        case "band lat pull":
+            aliases += ["band lat pulldown", "band pulldown", "banded lat pulldown"]
         case "hanging knee raise":
             aliases += ["captain chair knee raise", "captain's chair knee raise"]
         case "hanging leg raise":

@@ -266,7 +266,12 @@ private struct SavedWorkoutLibraryRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            roleBadge
+            WorkoutReferenceImageView(
+                exerciseName: workout.effectiveReferenceExerciseName,
+                fallbackSystemName: roleIcon,
+                fallbackTint: roleTint
+            )
+            .frame(width: 48, height: 48)
 
             VStack(alignment: .leading, spacing: 6) {
                 Text(workout.title)
@@ -334,21 +339,6 @@ private struct SavedWorkoutLibraryRow: View {
         .overlay(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
-        )
-    }
-
-    private var roleBadge: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(roleTint.opacity(0.16))
-            Image(systemName: roleIcon)
-                .font(.system(size: 16, weight: .bold))
-                .foregroundStyle(roleTint)
-        }
-        .frame(width: 44, height: 44)
-        .overlay(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .strokeBorder(roleTint.opacity(0.28), lineWidth: 1)
         )
     }
 
@@ -513,11 +503,12 @@ private struct SquadRoutineDropShareSheet: View {
 
     private var workoutSummary: some View {
         HStack(alignment: .top, spacing: 12) {
-            Image(systemName: "square.and.arrow.up.fill")
-                .font(.system(size: 18, weight: .bold))
-                .foregroundStyle(Color.unbound.warnOrange)
-                .frame(width: 42, height: 42)
-                .background(Circle().fill(Color.unbound.warnOrange.opacity(0.14)))
+            WorkoutReferenceImageView(
+                exerciseName: workout.effectiveReferenceExerciseName,
+                fallbackSystemName: "square.and.arrow.up.fill",
+                fallbackTint: Color.unbound.warnOrange
+            )
+            .frame(width: 46, height: 46)
 
             VStack(alignment: .leading, spacing: 5) {
                 Text(workout.title)

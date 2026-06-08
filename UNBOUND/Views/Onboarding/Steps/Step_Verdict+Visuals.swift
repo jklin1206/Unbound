@@ -83,9 +83,13 @@ extension Step_Verdict {
                         .scaledToFit()
                         .padding(10)
                 } else {
-                    Image(systemName: "figure.stand")
-                        .font(.system(size: 40, weight: .ultraLight))
-                        .foregroundStyle(Color.unbound.textSecondary)
+                    OnboardingAssetGlyph(
+                        assetName: "rank_title_initiate",
+                        tint: initiateTint,
+                        size: 66,
+                        imagePadding: 6,
+                        shape: .hexagon
+                    )
                 }
             }
             .frame(width: 82, height: 82)
@@ -184,9 +188,14 @@ extension Step_Verdict {
     var scanSignalStrip: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
-                Image(systemName: "viewfinder")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(Color.unbound.ember)
+                OnboardingAssetGlyph(
+                    assetName: "badge_art_first_scan",
+                    tint: Color.unbound.ember,
+                    size: 26,
+                    imagePadding: 5,
+                    shape: .hexagon,
+                    showsCornerMark: false
+                )
                 Text(L10n.onboarding("verdict.scanSignal.title", defaultValue: "DAY ZERO SIGNAL"))
                     .font(Font.unbound.captionS)
                     .tracking(1.4)
@@ -296,11 +305,15 @@ extension Step_Verdict {
                             .scaledToFit()
                             .background(Color.unbound.surfaceElevated)
                     } else {
-                        Image(systemName: "figure.stand")
-                            .font(.system(size: 80, weight: .ultraLight))
-                            .foregroundStyle(Color.unbound.textSecondary)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .background(Color.unbound.surfaceElevated)
+                        OnboardingAssetGlyph(
+                            assetName: "rank_title_initiate",
+                            tint: initiateTint,
+                            size: 108,
+                            imagePadding: 8,
+                            shape: .hexagon
+                        )
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(Color.unbound.surfaceElevated)
                     }
                 }
                 .frame(width: 160, height: 160)
@@ -325,8 +338,10 @@ extension Step_Verdict {
                     .multilineTextAlignment(.center)
 
                 HStack(spacing: 8) {
-                    Image(systemName: "checkmark.seal.fill")
-                        .font(.system(size: 11, weight: .semibold))
+                    Image("badge_art_first_session")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 17, height: 17)
                     Text(L10n.onboardingFormat("verdict.snapshot.logged", defaultValue: "LOGGED · %@", loggedDateText))
                         .font(Font.unbound.captionS)
                         .tracking(1.4)
@@ -373,9 +388,14 @@ extension Step_Verdict {
         UnboundCard {
             VStack(alignment: .leading, spacing: 14) {
                 HStack(spacing: 10) {
-                    Image(systemName: "viewfinder")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(Color.unbound.ember)
+                    OnboardingAssetGlyph(
+                        assetName: "badge_art_first_scan",
+                        tint: Color.unbound.ember,
+                        size: 28,
+                        imagePadding: 5,
+                        shape: .hexagon,
+                        showsCornerMark: false
+                    )
                     Text(L10n.onboarding("verdict.scanInsight.fromDayZero", defaultValue: "FROM DAY ZERO"))
                         .font(Font.unbound.captionS)
                         .tracking(1.4)

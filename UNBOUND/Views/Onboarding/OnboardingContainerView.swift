@@ -554,13 +554,13 @@ private struct Step_ResultsSnapshot: View {
 
                 VStack(spacing: 8) {
                     signalRow(
-                        icon: "calendar",
+                        assetName: "badge_art_consistency_loop",
                         label: L10n.onboarding("resultsSnapshot.signal.trainingRhythm", defaultValue: "Training rhythm"),
                         value: L10n.onboardingFormat("resultsSnapshot.signal.trainingRhythm.value", defaultValue: "%@ · %@", frequencyLabel, sessionLabel)
                     )
-                    signalRow(icon: "dumbbell.fill", label: L10n.onboarding("resultsSnapshot.signal.availableTools", defaultValue: "Available tools"), value: equipmentLabel)
-                    signalRow(icon: "hexagon.fill", label: L10n.onboarding("resultsSnapshot.signal.firstSpark", defaultValue: "First spark"), value: L10n.onboarding("resultsSnapshot.signal.firstSpark.value", defaultValue: "A tiny mark on the hex. Enough to begin."))
-                    signalRow(icon: "flag.checkered", label: L10n.onboarding("resultsSnapshot.signal.nextGate", defaultValue: "Next gate"), value: L10n.onboarding("resultsSnapshot.signal.nextGate.value", defaultValue: "Show up. Clear the wall. Climb."))
+                    signalRow(assetName: "exercise_visual_exercise_pushup", label: L10n.onboarding("resultsSnapshot.signal.availableTools", defaultValue: "Available tools"), value: equipmentLabel)
+                    signalRow(assetName: "badge_art_first_build_identity_resolved", label: L10n.onboarding("resultsSnapshot.signal.firstSpark", defaultValue: "First spark"), value: L10n.onboarding("resultsSnapshot.signal.firstSpark.value", defaultValue: "A tiny mark on the hex. Enough to begin."))
+                    signalRow(assetName: "onboarding_path_rank_gates", label: L10n.onboarding("resultsSnapshot.signal.nextGate", defaultValue: "Next gate"), value: L10n.onboarding("resultsSnapshot.signal.nextGate.value", defaultValue: "Show up. Clear the wall. Climb."))
                 }
 
                 infoCallout
@@ -575,10 +575,15 @@ private struct Step_ResultsSnapshot: View {
 
     private var infoCallout: some View {
         HStack(alignment: .top, spacing: 8) {
-            Image(systemName: "scope")
-                .font(.system(size: 12, weight: .bold))
-                .foregroundStyle(Color.unbound.accent)
-                .padding(.top, 1)
+            OnboardingAssetGlyph(
+                assetName: "badge_art_proof_10",
+                tint: Color.unbound.accent,
+                size: 25,
+                imagePadding: 4,
+                shape: .hexagon,
+                showsCornerMark: false
+            )
+            .padding(.top, 1)
             Text(L10n.onboarding("resultsSnapshot.callout", defaultValue: "The blank parts are the point. Your first sessions start turning this into something real."))
                 .font(Font.unbound.bodyS)
                 .foregroundStyle(Color.unbound.textSecondary)
@@ -620,12 +625,16 @@ private struct Step_ResultsSnapshot: View {
         )
     }
 
-    private func signalRow(icon: String, label: String, value: String) -> some View {
+    private func signalRow(assetName: String, label: String, value: String) -> some View {
         HStack(spacing: 6) {
-            Image(systemName: icon)
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(Color.unbound.accent)
-                .frame(width: 18)
+            OnboardingAssetGlyph(
+                assetName: assetName,
+                tint: Color.unbound.accent,
+                size: 22,
+                imagePadding: 3,
+                shape: .hexagon,
+                showsCornerMark: false
+            )
             Text(label.uppercased())
                 .font(.system(size: 9, weight: .black, design: .monospaced))
                 .tracking(0.8)
@@ -703,7 +712,7 @@ private struct Step_PlanReady: View {
 
                         OnboardingGeneratedArt(
                             candidateAssets: ["onboarding_path_protocol_dossier", "onboarding_plan_ready_hero", "body_unbound_front"],
-                            fallbackSymbol: "figure.mixed.cardio",
+                            fallbackAssetName: "badge_art_calibration_complete",
                             tint: Color.unbound.accent
                         )
                         .frame(maxWidth: .infinity)
@@ -727,16 +736,21 @@ private struct Step_PlanReady: View {
                 }
 
                 HStack(spacing: 8) {
-                    insightChip(icon: "target", text: (flow.targetAreas.first?.displayName ?? L10n.onboarding("common.fullBody", defaultValue: "Full Body")).uppercased())
-                    insightChip(icon: "flag.fill", text: (flow.goals.first?.displayName ?? L10n.onboarding("common.buildMuscle", defaultValue: "Build Muscle")).uppercased())
+                    insightChip(assetName: "onboarding_path_rank_gates", text: (flow.targetAreas.first?.displayName ?? L10n.onboarding("common.fullBody", defaultValue: "Full Body")).uppercased())
+                    insightChip(assetName: "badge_art_first_rank_up", text: (flow.goals.first?.displayName ?? L10n.onboarding("common.buildMuscle", defaultValue: "Build Muscle")).uppercased())
                     Spacer(minLength: 0)
                 }
 
                 HStack(alignment: .top, spacing: 8) {
-                    Image(systemName: "checkmark.shield.fill")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(Color.unbound.accent)
-                        .padding(.top, 1)
+                    OnboardingAssetGlyph(
+                        assetName: "badge_art_first_session",
+                        tint: Color.unbound.accent,
+                        size: 25,
+                        imagePadding: 4,
+                        shape: .hexagon,
+                        showsCornerMark: false
+                    )
+                    .padding(.top, 1)
                     Text(L10n.onboarding("planReady.callout", defaultValue: "You can start today. Unlock the calibration week, 28-day Arcs, workout logging, and profile progress that keeps moving with you."))
                         .font(Font.unbound.bodyS)
                         .foregroundStyle(Color.unbound.textSecondary)
@@ -810,11 +824,16 @@ private struct Step_PlanReady: View {
         }
     }
 
-    private func insightChip(icon: String, text: String) -> some View {
+    private func insightChip(assetName: String, text: String) -> some View {
         HStack(spacing: 6) {
-            Image(systemName: icon)
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(Color.unbound.accent)
+            OnboardingAssetGlyph(
+                assetName: assetName,
+                tint: Color.unbound.accent,
+                size: 18,
+                imagePadding: 3,
+                shape: .hexagon,
+                showsCornerMark: false
+            )
             Text(text)
                 .font(.system(size: 9, weight: .bold, design: .monospaced))
                 .tracking(0.8)
@@ -831,9 +850,84 @@ private struct Step_PlanReady: View {
     }
 }
 
+enum OnboardingAssetGlyphShape {
+    case chamfered
+    case hexagon
+    case circle
+}
+
+struct OnboardingAssetGlyph: View {
+    let assetName: String
+    var tint: Color = Color.unbound.accent
+    var size: CGFloat = 36
+    var imagePadding: CGFloat = 5
+    var shape: OnboardingAssetGlyphShape = .chamfered
+    var showsCornerMark = true
+
+    var body: some View {
+        ZStack {
+            background
+
+            Image(assetName)
+                .resizable()
+                .scaledToFit()
+                .padding(imagePadding)
+                .shadow(color: tint.opacity(0.36), radius: max(3, size * 0.16))
+
+            if showsCornerMark {
+                HUDHexagon()
+                    .stroke(tint.opacity(0.72), lineWidth: 0.8)
+                    .frame(width: max(8, size * 0.34), height: max(8, size * 0.34))
+                    .offset(x: size * 0.35, y: -size * 0.35)
+            }
+        }
+        .frame(width: size, height: size)
+        .accessibilityHidden(true)
+    }
+
+    @ViewBuilder
+    private var background: some View {
+        switch shape {
+        case .chamfered:
+            ChamferedRectangle(inset: max(4, size * 0.16))
+                .fill(glyphGradient)
+                .overlay(
+                    ChamferedRectangle(inset: max(4, size * 0.16))
+                        .stroke(tint.opacity(0.56), lineWidth: 1)
+                )
+        case .hexagon:
+            HUDHexagon()
+                .fill(glyphGradient)
+                .overlay(
+                    HUDHexagon()
+                        .stroke(tint.opacity(0.56), lineWidth: 1)
+                )
+        case .circle:
+            Circle()
+                .fill(glyphGradient)
+                .overlay(
+                    Circle()
+                        .stroke(tint.opacity(0.56), lineWidth: 1)
+                )
+        }
+    }
+
+    private var glyphGradient: LinearGradient {
+        LinearGradient(
+            colors: [
+                Color.unbound.bg.opacity(0.74),
+                tint.opacity(0.18),
+                Color.unbound.surfaceElevated.opacity(0.66)
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+}
+
 private struct OnboardingGeneratedArt: View {
     let candidateAssets: [String]
-    let fallbackSymbol: String
+    let fallbackAssetName: String
     let tint: Color
 
     private var resolvedImage: UIImage? {
@@ -864,9 +958,13 @@ private struct OnboardingGeneratedArt: View {
                         )
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
                         .strokeBorder(tint.opacity(0.35), lineWidth: 1)
-                    Image(systemName: fallbackSymbol)
-                        .font(.system(size: 32, weight: .semibold))
-                        .foregroundStyle(tint.opacity(0.9))
+                    OnboardingAssetGlyph(
+                        assetName: fallbackAssetName,
+                        tint: tint,
+                        size: 72,
+                        imagePadding: 8,
+                        shape: .hexagon
+                    )
                 }
             }
         }

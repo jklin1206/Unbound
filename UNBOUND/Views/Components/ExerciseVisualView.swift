@@ -66,11 +66,17 @@ enum ExerciseVisualAsset {
         "tuck-one-leg-nordic-curl": ["exercise_visual_exercise_nordic-curl"],
         "one-leg-nordic-curl": ["exercise_visual_exercise_nordic-curl"],
         "bodyweight-leg-extension": ["exercise_visual_exercise_leg-extensions"],
+        "pp-dead-hang": ["exercise_visual_exercise_dead-hang"],
         "skill-drill-wall-handstand": ["exercise_visual_exercise_wall-handstand"],
         "skill-drill-freestanding-handstand": ["exercise_visual_exercise_freestanding-handstand"],
         "skill-drill-crow-pose": ["exercise_visual_exercise_crow-pose"],
         "skill-drill-headstand": ["exercise_visual_exercise_headstand"],
         "skill-drill-tuck-l-sit": ["exercise_visual_exercise_l-sit-tucked"]
+    ]
+
+    private static let preferredVisualBaseAssetNames: [String: [String]] = [
+        "band-row": ["exercise_visual_jot_exercise_band-row"],
+        "band-lat-pull": ["exercise_visual_exercise_assisted-pullup-band"]
     ]
 
     static func assetName(for definition: MovementDefinition) -> String {
@@ -140,6 +146,9 @@ enum ExerciseVisualAsset {
             candidates.append("\(prefix)carry_\(carrySlug)")
         }
 
+        if let preferred = preferredVisualBaseAssetNames[rawSlug] {
+            candidates.append(contentsOf: preferred)
+        }
         candidates.append(contentsOf: [direct, slugged, underscored])
         if let aliases = visualAliasBaseAssetNames[rawSlug] {
             candidates.append(contentsOf: aliases)

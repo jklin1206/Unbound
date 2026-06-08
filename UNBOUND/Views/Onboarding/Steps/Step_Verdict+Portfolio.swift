@@ -188,10 +188,10 @@ extension Step_Verdict {
 
     var onboardingProofGrid: some View {
         LazyVGrid(columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)], spacing: 8) {
-            revealStatTile(label: L10n.onboarding("common.start", defaultValue: "START"), value: L10n.onboarding("common.dayZero.compact", defaultValue: "DAY 0"), icon: "flame.fill", tint: Color.unbound.ember)
-            revealStatTile(label: L10n.onboarding("verdict.monthOne", defaultValue: "MONTH ONE"), value: L10n.onboardingFormat("common.timesPerWeek.long", defaultValue: "%dx / WEEK", sessionsPerWeek), icon: "bolt.fill", tint: Color.unbound.coachCyan)
-            revealStatTile(label: L10n.onboarding("verdict.buildFocus", defaultValue: "BUILD FOCUS"), value: focusAreas.first?.uppercased() ?? L10n.onboarding("common.fullBody", defaultValue: "Full Body").uppercased(), icon: "sparkles", tint: initiateTint)
-            revealStatTile(label: L10n.onboarding("verdict.firstUnlock", defaultValue: "FIRST UNLOCK"), value: firstUnlockTitle.uppercased(), icon: "dumbbell.fill", tint: Color.unbound.accent)
+            revealStatTile(label: L10n.onboarding("common.start", defaultValue: "START"), value: L10n.onboarding("common.dayZero.compact", defaultValue: "DAY 0"), assetName: "badge_art_streak_flame", tint: Color.unbound.ember)
+            revealStatTile(label: L10n.onboarding("verdict.monthOne", defaultValue: "MONTH ONE"), value: L10n.onboardingFormat("common.timesPerWeek.long", defaultValue: "%dx / WEEK", sessionsPerWeek), assetName: "badge_art_arc_week", tint: Color.unbound.coachCyan)
+            revealStatTile(label: L10n.onboarding("verdict.buildFocus", defaultValue: "BUILD FOCUS"), value: focusAreas.first?.uppercased() ?? L10n.onboarding("common.fullBody", defaultValue: "Full Body").uppercased(), assetName: "badge_art_first_build_identity_resolved", tint: initiateTint)
+            revealStatTile(label: L10n.onboarding("verdict.firstUnlock", defaultValue: "FIRST UNLOCK"), value: firstUnlockTitle.uppercased(), assetName: "exercise_visual_exercise_pushup", tint: Color.unbound.accent)
         }
     }
 
@@ -269,7 +269,7 @@ extension Step_Verdict {
         }
     }
 
-    func revealStatTile(label: String, value: String, icon: String, tint: Color) -> some View {
+    func revealStatTile(label: String, value: String, assetName: String, tint: Color) -> some View {
         HStack(alignment: .top, spacing: 9) {
             RoundedRectangle(cornerRadius: 3, style: .continuous)
                 .fill(tint)
@@ -277,9 +277,14 @@ extension Step_Verdict {
                 .padding(.top, 2)
 
             VStack(alignment: .leading, spacing: 8) {
-                Image(systemName: icon)
-                    .font(.system(size: 13, weight: .black))
-                    .foregroundStyle(tint)
+                OnboardingAssetGlyph(
+                    assetName: assetName,
+                    tint: tint,
+                    size: 28,
+                    imagePadding: 5,
+                    shape: .hexagon,
+                    showsCornerMark: false
+                )
                 Text(label)
                     .font(.system(size: 9, weight: .black, design: .monospaced))
                     .tracking(1.5)

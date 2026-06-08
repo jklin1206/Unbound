@@ -43,6 +43,7 @@ struct TrainingSessionDraft: Codable, Identifiable, Hashable, Sendable {
     var estimatedMinutes: Int
     var programId: String?
     var dayNumber: Int?
+    var referenceExerciseName: String?
     var blocks: [TrainingBlock]
 
     init(
@@ -54,6 +55,7 @@ struct TrainingSessionDraft: Codable, Identifiable, Hashable, Sendable {
         estimatedMinutes: Int,
         programId: String? = nil,
         dayNumber: Int? = nil,
+        referenceExerciseName: String? = nil,
         blocks: [TrainingBlock]
     ) {
         self.id = id
@@ -64,6 +66,7 @@ struct TrainingSessionDraft: Codable, Identifiable, Hashable, Sendable {
         self.estimatedMinutes = estimatedMinutes
         self.programId = programId
         self.dayNumber = dayNumber
+        self.referenceExerciseName = Self.cleanedReferenceExerciseName(referenceExerciseName, in: blocks)
         self.blocks = blocks
     }
 }
@@ -82,6 +85,102 @@ extension TrainingSessionDraft {
 
     var isWeeklyVowDraft: Bool {
         source == .vow || weeklyVowId != nil || id.hasPrefix("weekly-vow-draft-")
+    }
+
+    var referenceExerciseOptions: [String] {
+        Self.referenceExerciseOptions(in: blocks)
+    }
+
+    var effectiveReferenceExerciseName: String? {
+        Self.effectiveReferenceExerciseName(referenceExerciseName, in: blocks)
+    }
+
+    mutating func normalizeReferenceExerciseName() {
+        referenceExerciseName = Self.cleanedReferenceExerciseName(referenceExerciseName, in: blocks)
+    }
+
+    static func referenceExerciseOptions(in blocks: [TrainingBlock]) -> [String] {
+        var seen: Set<String> = []
+        var names: [String] = []
+        for block in blocks {
+            for prescription in block.prescriptions {
+                let name = prescription.exerciseName.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !name.isEmpty else { continue }
+                let key = normalizedExerciseName(name)
+                guard !seen.contains(key) else { continue }
+                seen.insert(key)
+                names.append(name)
+            }
+        }
+        return names
+    }
+
+    static func effectiveReferenceExerciseName(
+        _: String?,
+        in blocks: [TrainingBlock]
+    ) -> String? {
+        firstMainExerciseName(in: blocks)
+    }
+
+    static func firstMainExerciseName(in blocks: [TrainingBlock]) -> String? {
+        let mainBlocks = blocks.filter { block in
+            !isSupportBlock(block)
+        }
+        if let name = firstExerciseName(in: mainBlocks) {
+            return name
+        }
+        return firstExerciseName(in: blocks)
+    }
+
+    private static func firstExerciseName(in blocks: [TrainingBlock]) -> String? {
+        for block in blocks {
+            for prescription in block.prescriptions {
+                let name = prescription.exerciseName.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !name.isEmpty {
+                    return name
+                }
+            }
+        }
+        return nil
+    }
+
+    private static func isSupportBlock(_ block: TrainingBlock) -> Bool {
+        let title = normalizedExerciseName(block.title)
+        let supportTokens = [
+            "warmup",
+            "warm up",
+            "cooldown",
+            "cool down",
+            "mobility",
+            "activation",
+            "recovery"
+        ]
+        return supportTokens.contains { token in
+            title == token || title.hasPrefix("\(token) ") || title.hasSuffix(" \(token)")
+        }
+    }
+
+    static func cleanedReferenceExerciseName(
+        _ storedName: String?,
+        in blocks: [TrainingBlock]
+    ) -> String? {
+        guard let storedName else { return nil }
+        let trimmed = storedName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        let key = normalizedExerciseName(trimmed)
+        return referenceExerciseOptions(in: blocks).first {
+            normalizedExerciseName($0) == key
+        }
+    }
+
+    static func normalizedExerciseName(_ value: String) -> String {
+        value
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+            .replacingOccurrences(of: "_", with: " ")
+            .replacingOccurrences(of: "-", with: " ")
+            .split(separator: " ")
+            .joined(separator: " ")
     }
 }
 
@@ -575,6 +674,51 @@ struct TrainingBlock: Codable, Identifiable, Hashable, Sendable {
     }
 }
 
+struct TrainingSetPlan: Codable, Identifiable, Hashable, Sendable {
+    let id: String
+    var target: TrainingTarget
+    var restSeconds: Int
+    var rpe: Int?
+    var loadPercentOfBodyweight: Double?
+    var suggestedWeightKg: Double?
+    var isWarmup: Bool
+    var notes: String?
+
+    init(
+        id: String = UUID().uuidString,
+        target: TrainingTarget,
+        restSeconds: Int,
+        rpe: Int? = nil,
+        loadPercentOfBodyweight: Double? = nil,
+        suggestedWeightKg: Double? = nil,
+        isWarmup: Bool = false,
+        notes: String? = nil
+    ) {
+        self.id = id
+        self.target = target
+        self.restSeconds = min(max(restSeconds, 0), 600)
+        self.rpe = rpe.map { min(max($0, 1), 10) }
+        self.loadPercentOfBodyweight = loadPercentOfBodyweight
+        self.suggestedWeightKg = suggestedWeightKg
+        self.isWarmup = isWarmup
+        self.notes = notes?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
+    }
+
+    var displayTargetText: String {
+        if let suggestedWeightKg {
+            return "\(target.displayText) @ \(WeightPlatePolicy.formatLoggedWeightWithUnit(suggestedWeightKg, separator: " "))"
+        }
+        if let loadPercentOfBodyweight {
+            let value = loadPercentOfBodyweight * 100
+            let text = value.rounded() == value
+                ? "\(Int(value))% BW"
+                : "\(String(format: "%.1f", value))% BW"
+            return "\(target.displayText) @ \(text)"
+        }
+        return target.displayText
+    }
+}
+
 struct TrainingBlockPrescription: Codable, Identifiable, Hashable, Sendable {
     let id: String
     var exerciseName: String
@@ -588,6 +732,7 @@ struct TrainingBlockPrescription: Codable, Identifiable, Hashable, Sendable {
     var notes: String?
     var loadPercentOfBodyweight: Double?
     var suggestedWeightKg: Double?
+    var setPlans: [TrainingSetPlan]?
 
     init(
         id: String = UUID().uuidString,
@@ -601,14 +746,16 @@ struct TrainingBlockPrescription: Codable, Identifiable, Hashable, Sendable {
         rpe: Int? = nil,
         notes: String? = nil,
         loadPercentOfBodyweight: Double? = nil,
-        suggestedWeightKg: Double? = nil
+        suggestedWeightKg: Double? = nil,
+        setPlans: [TrainingSetPlan]? = nil
     ) {
         let resolved = MovementResolver.resolve(exerciseName)
+        let cleanedSetPlans = Self.cleanedSetPlans(setPlans)
         self.id = id
         self.exerciseName = exerciseName
         self.movementId = movementId ?? resolved.movementId
         self.rankStandardMovementId = rankStandardMovementId ?? resolved.rankStandardMovementId
-        self.sets = sets
+        self.sets = cleanedSetPlans.map(\.count) ?? max(1, sets)
         self.target = target
         self.restSeconds = restSeconds
         self.muscleGroups = muscleGroups
@@ -616,9 +763,13 @@ struct TrainingBlockPrescription: Codable, Identifiable, Hashable, Sendable {
         self.notes = notes
         self.loadPercentOfBodyweight = loadPercentOfBodyweight
         self.suggestedWeightKg = suggestedWeightKg
+        self.setPlans = cleanedSetPlans
     }
 
     var displayTargetText: String {
+        if hasCustomSetPlanValues {
+            return "Custom set plan"
+        }
         if let loadPercentOfBodyweight, let suggestedWeightKg {
             return "\(target.displayText) @ \(Self.loadText(suggestedWeightKg)) (\(Self.bodyweightPercentText(loadPercentOfBodyweight)))"
         }
@@ -640,11 +791,104 @@ struct TrainingBlockPrescription: Codable, Identifiable, Hashable, Sendable {
     }
 
     private static func loadText(_ kilograms: Double) -> String {
-        let rounded = (kilograms * 2).rounded() / 2
-        if rounded.rounded() == rounded {
-            return "\(Int(rounded)) kg"
+        WeightPlatePolicy.formatLoggedWeightWithUnit(kilograms, separator: " ")
+    }
+}
+
+extension TrainingBlockPrescription {
+    var effectiveSetPlans: [TrainingSetPlan] {
+        if let setPlans, !setPlans.isEmpty {
+            return setPlans
         }
-        return "\(String(format: "%.1f", rounded)) kg"
+        return (0..<max(1, sets)).map { index in
+            TrainingSetPlan(
+                id: "\(id)-set-plan-\(index + 1)",
+                target: target,
+                restSeconds: restSeconds,
+                rpe: rpe,
+                loadPercentOfBodyweight: loadPercentOfBodyweight,
+                suggestedWeightKg: suggestedWeightKg
+            )
+        }
+    }
+
+    var plannedSetCount: Int {
+        effectiveSetPlans.count
+    }
+
+    var setPlanSummaryText: String {
+        hasCustomSetPlanValues ? "custom sets" : displayTargetText
+    }
+
+    var hasCustomSetPlanValues: Bool {
+        guard let setPlans, !setPlans.isEmpty else { return false }
+        return setPlans.contains { plan in
+            plan.target != target
+                || plan.restSeconds != restSeconds
+                || plan.rpe != rpe
+                || plan.loadPercentOfBodyweight != loadPercentOfBodyweight
+                || plan.suggestedWeightKg != suggestedWeightKg
+                || plan.isWarmup
+        }
+    }
+
+    mutating func materializeSetPlans() {
+        if setPlans?.isEmpty != false {
+            setPlans = effectiveSetPlans
+        }
+        syncSummaryFromSetPlans()
+    }
+
+    mutating func addSetPlan() {
+        materializeSetPlans()
+        var plans = setPlans ?? effectiveSetPlans
+        let fallback = plans.last ?? TrainingSetPlan(
+            target: target,
+            restSeconds: restSeconds,
+            rpe: rpe,
+            loadPercentOfBodyweight: loadPercentOfBodyweight,
+            suggestedWeightKg: suggestedWeightKg
+        )
+        plans.append(
+            TrainingSetPlan(
+                target: fallback.target,
+                restSeconds: fallback.restSeconds,
+                rpe: fallback.rpe,
+                loadPercentOfBodyweight: fallback.loadPercentOfBodyweight,
+                suggestedWeightKg: fallback.suggestedWeightKg,
+                isWarmup: fallback.isWarmup,
+                notes: fallback.notes
+            )
+        )
+        setPlans = plans
+        syncSummaryFromSetPlans()
+    }
+
+    mutating func removeSetPlan(at index: Int) {
+        materializeSetPlans()
+        guard var plans = setPlans, plans.count > 1, plans.indices.contains(index) else { return }
+        plans.remove(at: index)
+        setPlans = plans
+        syncSummaryFromSetPlans()
+    }
+
+    mutating func syncSummaryFromSetPlans() {
+        guard let first = setPlans?.first else {
+            sets = max(1, sets)
+            return
+        }
+        sets = max(1, setPlans?.count ?? 1)
+        target = first.target
+        restSeconds = first.restSeconds
+        rpe = first.rpe
+        loadPercentOfBodyweight = first.loadPercentOfBodyweight
+        suggestedWeightKg = first.suggestedWeightKg
+    }
+
+    static func cleanedSetPlans(_ plans: [TrainingSetPlan]?) -> [TrainingSetPlan]? {
+        guard let plans else { return nil }
+        let cleaned = plans.filter { !$0.target.displayText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+        return cleaned.isEmpty ? nil : Array(cleaned.prefix(30))
     }
 }
 

@@ -21,8 +21,7 @@ struct Step_Goals: View {
                 options: visibleGoals,
                 selection: $flow.goals,
                 title: { $0.displayName },
-                subtitle: { $0.subtitle },
-                icon: { $0.icon }
+                subtitle: { $0.subtitle }
             )
             .padding(.top, 4)
         }

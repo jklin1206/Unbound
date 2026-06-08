@@ -160,7 +160,7 @@ struct PersonalRecord: Equatable {
     var displayValue: String {
         switch kind {
         case .maxReps:    return "\(Int(value)) reps"
-        case .maxWeight:  return value == floor(value) ? "\(Int(value)) kg" : String(format: "%.1f kg", value)
+        case .maxWeight:  return WeightPlatePolicy.formatLoggedWeightWithUnit(value, separator: " ")
         case .maxHold:    return "\(Int(value))s hold"
         case .maxVolume:  return "\(Int(value)) total"
         }
@@ -171,7 +171,7 @@ struct PersonalRecord: Equatable {
         guard delta > 0 else { return nil }
         switch kind {
         case .maxReps:    return "+\(Int(delta)) over best"
-        case .maxWeight:  return "+\(delta == floor(delta) ? "\(Int(delta))" : String(format: "%.1f", delta)) kg over best"
+        case .maxWeight:  return "+\(WeightPlatePolicy.formatDeltaWeightWithUnit(delta, separator: " ")) over best"
         case .maxHold:    return "+\(Int(delta))s over best"
         case .maxVolume:  return "+\(Int(delta)) volume"
         }

@@ -102,7 +102,6 @@ struct ProgramCommandDock: View {
     let savedWorkouts: [SavedWorkout]
     let onWorkout: (SavedWorkout) -> Void
     let onPlan: () -> Void
-    let onExercises: () -> Void
     let onChangeSetup: () -> Void
     let onCreateWorkout: () -> Void
     let onShowAllWorkouts: () -> Void
@@ -143,12 +142,12 @@ struct ProgramCommandDock: View {
             .accessibilityIdentifier("program.monthPlanner.open")
 
             actionLink(
-                title: "Exercises",
-                systemName: "list.bullet.rectangle",
+                title: "Create",
+                systemName: "plus.circle",
                 tint: Color.unbound.accent,
-                action: onExercises
+                action: onCreateWorkout
             )
-            .accessibilityIdentifier("program.exerciseStarter.open")
+            .accessibilityIdentifier("program.createWorkout.open")
 
             Spacer(minLength: 0)
         }
@@ -210,11 +209,12 @@ struct ProgramCommandDock: View {
             onWorkout(workout)
         } label: {
             HStack(spacing: 12) {
-                Image(systemName: icon(for: workout))
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(tint(for: workout))
-                    .frame(width: 32, height: 32)
-                    .background(Circle().fill(tint(for: workout).opacity(0.12)))
+                WorkoutReferenceImageView(
+                    exerciseName: workout.effectiveReferenceExerciseName,
+                    fallbackSystemName: icon(for: workout),
+                    fallbackTint: tint(for: workout)
+                )
+                .frame(width: 38, height: 38)
 
                 VStack(alignment: .leading, spacing: 3) {
                     Text(workout.title.isEmpty ? "Workout" : workout.title)
@@ -298,11 +298,12 @@ struct ProgramCommandDock: View {
         } label: {
             VStack(alignment: .leading, spacing: 9) {
                 HStack(spacing: 8) {
-                    Image(systemName: icon(for: workout))
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundStyle(Color.unbound.bg)
-                        .frame(width: 28, height: 28)
-                        .background(Circle().fill(tint(for: workout)))
+                    WorkoutReferenceImageView(
+                        exerciseName: workout.effectiveReferenceExerciseName,
+                        fallbackSystemName: icon(for: workout),
+                        fallbackTint: tint(for: workout)
+                    )
+                    .frame(width: 34, height: 34)
                     Spacer(minLength: 0)
                     Text(roleText(workout).uppercased())
                         .font(Font.unbound.captionS.weight(.heavy))
@@ -529,19 +530,36 @@ struct ProgramCommandDock: View {
     }
 }
 
+private struct ProgramMonthPlanMarker: Hashable {
+    let title: String
+    let kind: ProgramScheduleOccurrenceKind
+
+    var isRest: Bool { kind == .rest }
+}
+
 struct ProgramMonthPlannerView: View {
+    private struct DaySelection: Identifiable {
+        let date: Date
+
+        var id: TimeInterval { date.timeIntervalSinceReferenceDate }
+    }
+
     let workouts: [SavedWorkout]
     let initialDate: Date
     let occurrences: [ProgramScheduleOccurrence]
     let onPlace: (SavedWorkout, Date) -> Void
+    let onMarkRest: (Date) -> Void
+    let onClearPlan: (Date) -> Void
     let onCreateWorkout: () -> Void
     let onDismiss: () -> Void
 
     @State private var visibleMonth: Date
-    @State private var selectedWorkoutId: UUID?
-    @State private var placedTitles: [Date: String]
+    @State private var planMarkers: [Date: ProgramMonthPlanMarker]
+    @State private var activeDaySelection: DaySelection?
 
     private let calendar: Calendar
+    private let dayCellHeight: CGFloat = 54
+    private let weekdaySymbols = ["M", "T", "W", "T", "F", "S", "S"]
 
     init(
         workouts: [SavedWorkout],
@@ -549,6 +567,8 @@ struct ProgramMonthPlannerView: View {
         occurrences: [ProgramScheduleOccurrence],
         calendar: Calendar = .current,
         onPlace: @escaping (SavedWorkout, Date) -> Void,
+        onMarkRest: @escaping (Date) -> Void,
+        onClearPlan: @escaping (Date) -> Void,
         onCreateWorkout: @escaping () -> Void,
         onDismiss: @escaping () -> Void
     ) {
@@ -557,14 +577,15 @@ struct ProgramMonthPlannerView: View {
         self.occurrences = occurrences
         self.calendar = calendar
         self.onPlace = onPlace
+        self.onMarkRest = onMarkRest
+        self.onClearPlan = onClearPlan
         self.onCreateWorkout = onCreateWorkout
         self.onDismiss = onDismiss
 
         let month = calendar.dateInterval(of: .month, for: initialDate)?.start
             ?? calendar.startOfDay(for: initialDate)
         _visibleMonth = State(initialValue: month)
-        _selectedWorkoutId = State(initialValue: workouts.first?.id)
-        _placedTitles = State(initialValue: Self.indexedTitles(from: occurrences, calendar: calendar))
+        _planMarkers = State(initialValue: Self.indexedMarkers(from: occurrences, calendar: calendar))
     }
 
     var body: some View {
@@ -572,10 +593,10 @@ struct ProgramMonthPlannerView: View {
             ZStack {
                 Color.unbound.bg.ignoresSafeArea()
 
-                VStack(alignment: .leading, spacing: 14) {
+                VStack(alignment: .leading, spacing: 16) {
                     header
-                    workoutPicker
                     calendarGrid
+                    self.plannerLegend
                     Spacer(minLength: 0)
                 }
                 .padding(20)
@@ -588,24 +609,59 @@ struct ProgramMonthPlannerView: View {
                         .foregroundStyle(Color.unbound.textSecondary)
                 }
             }
+            .sheet(item: $activeDaySelection) { selection in
+                ProgramMonthWorkoutPickerView(
+                    date: selection.date,
+                    workouts: workouts,
+                    planMarker: planMarkers[calendar.startOfDay(for: selection.date)],
+                    onSelect: { workout in
+                        let normalized = calendar.startOfDay(for: selection.date)
+                        UnboundHaptics.success()
+                        onPlace(workout, normalized)
+                        planMarkers[normalized] = ProgramMonthPlanMarker(
+                            title: workout.title,
+                            kind: .saved
+                        )
+                        activeDaySelection = nil
+                    },
+                    onMarkRest: {
+                        let normalized = calendar.startOfDay(for: selection.date)
+                        UnboundHaptics.success()
+                        onMarkRest(normalized)
+                        planMarkers[normalized] = ProgramMonthPlanMarker(
+                            title: "Rest",
+                            kind: .rest
+                        )
+                        activeDaySelection = nil
+                    },
+                    onClearPlan: {
+                        let normalized = calendar.startOfDay(for: selection.date)
+                        UnboundHaptics.medium()
+                        onClearPlan(normalized)
+                        planMarkers.removeValue(forKey: normalized)
+                        activeDaySelection = nil
+                    },
+                    onCreateWorkout: {
+                        activeDaySelection = nil
+                        onCreateWorkout()
+                    }
+                )
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+                .presentationBackground(Color.unbound.bg)
+            }
         }
-    }
-
-    private var selectedWorkout: SavedWorkout? {
-        guard let selectedWorkoutId else { return workouts.first }
-        return workouts.first { $0.id == selectedWorkoutId } ?? workouts.first
     }
 
     private var header: some View {
         HStack(alignment: .center, spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
-                Text("MONTH PLAN")
-                    .font(Font.unbound.captionS.weight(.heavy))
-                    .tracking(1.6)
-                    .foregroundStyle(Color.unbound.coachCyan)
                 Text(monthTitle(visibleMonth))
                     .font(Font.unbound.titleM)
                     .foregroundStyle(Color.unbound.textPrimary)
+                Text(monthSummary)
+                    .font(Font.unbound.captionS.weight(.semibold))
+                    .foregroundStyle(Color.unbound.textSecondary)
             }
 
             Spacer(minLength: 0)
@@ -615,54 +671,10 @@ struct ProgramMonthPlannerView: View {
         }
     }
 
-    @ViewBuilder
-    private var workoutPicker: some View {
-        if workouts.isEmpty {
-            Button(action: onCreateWorkout) {
-                HStack(spacing: 12) {
-                    Image(systemName: "plus")
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundStyle(Color.unbound.textPrimary)
-                        .frame(width: 38, height: 38)
-                        .background(Circle().fill(Color.unbound.accent))
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("BUILD A WORKOUT")
-                            .font(Font.unbound.captionS.weight(.heavy))
-                            .tracking(1.0)
-                            .foregroundStyle(Color.unbound.textPrimary)
-                        Text("Saved workouts appear here for planning.")
-                            .font(Font.unbound.captionS)
-                            .foregroundStyle(Color.unbound.textSecondary)
-                    }
-                    Spacer()
-                }
-                .padding(12)
-                .background(
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .fill(Color.unbound.surface)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .strokeBorder(Color.unbound.accent.opacity(0.34), lineWidth: 1)
-                )
-            }
-            .buttonStyle(.plain)
-        } else {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    ForEach(workouts) { workout in
-                        workoutChip(workout)
-                    }
-                }
-                .padding(.horizontal, 1)
-            }
-        }
-    }
-
     private var calendarGrid: some View {
-        VStack(spacing: 8) {
-            HStack(spacing: 6) {
-                ForEach(["M", "T", "W", "T", "F", "S", "S"], id: \.self) { label in
+        VStack(spacing: 10) {
+            LazyVGrid(columns: dayColumns, spacing: 6) {
+                ForEach(Array(weekdaySymbols.enumerated()), id: \.offset) { _, label in
                     Text(label)
                         .font(Font.unbound.captionS.weight(.heavy))
                         .tracking(0.7)
@@ -671,115 +683,126 @@ struct ProgramMonthPlannerView: View {
                 }
             }
 
-            LazyVGrid(columns: dayColumns, spacing: 8) {
+            LazyVGrid(columns: dayColumns, spacing: 6) {
                 ForEach(monthCells.indices, id: \.self) { index in
                     if let date = monthCells[index] {
                         dayCell(date)
                     } else {
-                        Color.clear.frame(height: 74)
+                        Color.clear.frame(height: dayCellHeight)
                     }
                 }
             }
         }
-    }
-
-    private func workoutChip(_ workout: SavedWorkout) -> some View {
-        let isSelected = selectedWorkout?.id == workout.id
-        return Button {
-            UnboundHaptics.soft()
-            selectedWorkoutId = workout.id
-        } label: {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(workout.title.isEmpty ? "Workout" : workout.title)
-                    .font(Font.unbound.bodyS.weight(.heavy))
-                    .foregroundStyle(Color.unbound.textPrimary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.78)
-                Text("\(workout.exerciseCount) moves / ~\(workout.estimatedMinutes)m")
-                    .font(Font.unbound.monoS.weight(.bold))
-                    .foregroundStyle(Color.unbound.textTertiary)
-                    .lineLimit(1)
-            }
-            .padding(.horizontal, 12)
-            .frame(width: 152, height: 54, alignment: .leading)
-            .background(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(isSelected ? Color.unbound.accent.opacity(0.18) : Color.unbound.surface)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .strokeBorder(
-                        isSelected ? Color.unbound.accent.opacity(0.52) : Color.unbound.borderSubtle,
-                        lineWidth: 1
-                    )
-            )
-        }
-        .buttonStyle(.plain)
     }
 
     private func dayCell(_ date: Date) -> some View {
         let normalized = calendar.startOfDay(for: date)
-        let title = placedTitles[normalized]
+        let marker = planMarkers[normalized]
         let isToday = calendar.isDateInToday(date)
-        let isInitial = calendar.isDate(date, inSameDayAs: initialDate)
+        let isSelected = calendar.isDate(date, inSameDayAs: initialDate)
+        let isPast = normalized < calendar.startOfDay(for: Date())
 
         return Button {
-            guard let workout = selectedWorkout else { return }
             UnboundHaptics.medium()
-            onPlace(workout, normalized)
-            placedTitles[normalized] = workout.title
+            activeDaySelection = DaySelection(date: normalized)
         } label: {
-            VStack(alignment: .leading, spacing: 5) {
-                HStack {
-                    Text("\(calendar.component(.day, from: date))")
-                        .font(Font.unbound.monoS.weight(.heavy))
-                        .foregroundStyle(Color.unbound.textPrimary)
-                    Spacer()
+            VStack(spacing: 6) {
+                ZStack {
                     if isToday {
                         Circle()
-                            .fill(Color.unbound.coachCyan)
-                            .frame(width: 6, height: 6)
+                            .fill(Color.unbound.accent)
+                            .frame(width: 34, height: 34)
+                    } else if isSelected {
+                        Circle()
+                            .strokeBorder(Color.unbound.accent.opacity(0.55), lineWidth: 1.5)
+                            .frame(width: 34, height: 34)
                     }
+                    Text("\(calendar.component(.day, from: date))")
+                        .font(Font.unbound.monoS.weight(.bold))
+                        .foregroundStyle(dayNumberColor(isToday: isToday, isPast: isPast))
                 }
+                .frame(height: 34)
 
-                Spacer(minLength: 0)
-
-                if let title {
-                    Text(title.uppercased())
-                        .font(Font.unbound.captionS.weight(.heavy))
-                        .tracking(0.5)
-                        .foregroundStyle(Color.unbound.accent)
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.62)
-                } else {
-                    Text("OPEN")
-                        .font(Font.unbound.captionS.weight(.bold))
-                        .tracking(0.7)
-                        .foregroundStyle(Color.unbound.textTertiary.opacity(0.72))
-                }
+                dayIndicator(marker)
             }
-            .padding(9)
-            .frame(maxWidth: .infinity, minHeight: 74, alignment: .topLeading)
-            .background(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(title == nil ? Color.unbound.surface.opacity(0.72) : Color.unbound.surfaceElevated)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .strokeBorder(
-                        title == nil
-                            ? (isInitial ? Color.unbound.coachCyan.opacity(0.32) : Color.unbound.borderSubtle)
-                            : Color.unbound.accent.opacity(0.34),
-                        lineWidth: 1
-                    )
-            )
+            .frame(maxWidth: .infinity, minHeight: dayCellHeight)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .disabled(selectedWorkout == nil)
+        .opacity(isPast && marker == nil ? 0.5 : 1)
+        .accessibilityLabel(accessibilityLabel(for: date, marker: marker))
+    }
+
+    @ViewBuilder
+    private func dayIndicator(_ marker: ProgramMonthPlanMarker?) -> some View {
+        if let marker {
+            if marker.isRest {
+                Image(systemName: "moon.fill")
+                    .font(.system(size: 8, weight: .bold))
+                    .foregroundStyle(Color.unbound.textSecondary)
+                    .frame(height: 8)
+            } else {
+                Circle()
+                    .fill(Color.unbound.accent)
+                    .frame(width: 7, height: 7)
+            }
+        } else {
+            Color.clear.frame(height: 8)
+        }
+    }
+
+    private var plannerLegend: some View {
+        HStack(spacing: 18) {
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(Color.unbound.accent)
+                    .frame(width: 7, height: 7)
+                Text("Workout")
+                    .font(Font.unbound.captionS)
+                    .foregroundStyle(Color.unbound.textSecondary)
+            }
+            HStack(spacing: 6) {
+                Image(systemName: "moon.fill")
+                    .font(.system(size: 8, weight: .bold))
+                    .foregroundStyle(Color.unbound.textSecondary)
+                Text("Rest")
+                    .font(Font.unbound.captionS)
+                    .foregroundStyle(Color.unbound.textSecondary)
+            }
+            Spacer(minLength: 0)
+            Text("Tap a day to plan")
+                .font(Font.unbound.captionS)
+                .foregroundStyle(Color.unbound.textTertiary)
+        }
+    }
+
+    private func dayNumberColor(isToday: Bool, isPast: Bool) -> Color {
+        if isToday { return Color.unbound.bg }
+        if isPast { return Color.unbound.textTertiary }
+        return Color.unbound.textPrimary
+    }
+
+    private func accessibilityLabel(for date: Date, marker: ProgramMonthPlanMarker?) -> String {
+        let day = accessibilityDayTitle(date)
+        guard let marker else { return "\(day), no plan. Tap to plan." }
+        return marker.isRest ? "\(day), rest day" : "\(day), \(marker.title) planned"
+    }
+
+    private var monthSummary: String {
+        let monthMarkers = planMarkers.filter {
+            calendar.isDate($0.key, equalTo: visibleMonth, toGranularity: .month)
+        }
+        let workouts = monthMarkers.values.filter { !$0.isRest }.count
+        let rests = monthMarkers.values.filter { $0.isRest }.count
+        if workouts == 0 && rests == 0 { return "Nothing planned yet" }
+        var parts: [String] = []
+        if workouts > 0 { parts.append("\(workouts) workout\(workouts == 1 ? "" : "s")") }
+        if rests > 0 { parts.append("\(rests) rest") }
+        return parts.joined(separator: " · ")
     }
 
     private var dayColumns: [GridItem] {
-        Array(repeating: GridItem(.flexible(), spacing: 8), count: 7)
+        Array(repeating: GridItem(.flexible(), spacing: 6), count: 7)
     }
 
     private var monthCells: [Date?] {
@@ -823,12 +846,303 @@ struct ProgramMonthPlannerView: View {
         return formatter.string(from: date)
     }
 
-    private static func indexedTitles(
+    private func accessibilityDayTitle(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+        return formatter.string(from: date)
+    }
+
+    private static func indexedMarkers(
         from occurrences: [ProgramScheduleOccurrence],
         calendar: Calendar
-    ) -> [Date: String] {
+    ) -> [Date: ProgramMonthPlanMarker] {
         occurrences.reduce(into: [:]) { result, occurrence in
-            result[calendar.startOfDay(for: occurrence.date)] = occurrence.displayTitle
+            result[calendar.startOfDay(for: occurrence.date)] = ProgramMonthPlanMarker(
+                title: occurrence.displayTitle,
+                kind: occurrence.kind
+            )
+        }
+    }
+}
+
+private struct ProgramMonthWorkoutPickerView: View {
+    let date: Date
+    let workouts: [SavedWorkout]
+    let planMarker: ProgramMonthPlanMarker?
+    let onSelect: (SavedWorkout) -> Void
+    let onMarkRest: () -> Void
+    let onClearPlan: () -> Void
+    let onCreateWorkout: () -> Void
+
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Color.unbound.bg.ignoresSafeArea()
+
+                ScrollView(.vertical, showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 12) {
+                        pickerHeader
+                        quickActions
+
+                        if workouts.isEmpty {
+                            emptyState
+                        } else {
+                            VStack(spacing: 0) {
+                                ForEach(Array(workouts.enumerated()), id: \.element.id) { index, workout in
+                                    workoutRow(workout)
+                                    if index < workouts.count - 1 {
+                                        Divider()
+                                            .padding(.leading, 46)
+                                            .overlay(Color.unbound.borderSubtle.opacity(0.52))
+                                    }
+                                }
+                            }
+                            .background(
+                                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                    .fill(Color.unbound.surface.opacity(0.82))
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                    .strokeBorder(Color.unbound.borderSubtle.opacity(0.82), lineWidth: 1)
+                            )
+                        }
+                    }
+                    .padding(20)
+                    .padding(.bottom, 24)
+                }
+            }
+            .navigationTitle(dayTitle(date))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundStyle(Color.unbound.textSecondary)
+                    }
+                    .accessibilityLabel("Close")
+                }
+            }
+        }
+    }
+
+    private var pickerHeader: some View {
+        HStack(spacing: 10) {
+            Image(systemName: headerIcon)
+                .font(.system(size: 15, weight: .bold))
+                .foregroundStyle(headerTint)
+                .frame(width: 34, height: 34)
+                .background(
+                    Circle()
+                        .fill(headerTint.opacity(0.12))
+                )
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(planMarker?.title ?? "Choose Workout")
+                    .font(Font.unbound.bodyMStrong)
+                    .foregroundStyle(Color.unbound.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.76)
+                Text(planMarker?.isRest == true ? "Recovery day" : "\(workouts.count) saved")
+                    .font(Font.unbound.captionS)
+                    .foregroundStyle(Color.unbound.textTertiary)
+                    .lineLimit(1)
+            }
+
+            Spacer(minLength: 0)
+        }
+    }
+
+    private var quickActions: some View {
+        VStack(spacing: 0) {
+            actionRow(
+                title: "Rest Day",
+                subtitle: "No workout",
+                icon: "moon.fill",
+                tint: Color.unbound.textSecondary,
+                action: onMarkRest
+            )
+
+            if planMarker != nil {
+                Divider()
+                    .padding(.leading, 46)
+                    .overlay(Color.unbound.borderSubtle.opacity(0.52))
+
+                actionRow(
+                    title: "Use Block Plan",
+                    subtitle: "Clear override",
+                    icon: "arrow.counterclockwise",
+                    tint: Color.unbound.coachCyan,
+                    action: onClearPlan
+                )
+            }
+        }
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color.unbound.surface.opacity(0.82))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .strokeBorder(Color.unbound.borderSubtle.opacity(0.82), lineWidth: 1)
+        )
+    }
+
+    private var headerIcon: String {
+        if planMarker?.isRest == true { return "moon.fill" }
+        return planMarker == nil ? "calendar.badge.plus" : "calendar.badge.checkmark"
+    }
+
+    private var headerTint: Color {
+        if planMarker?.isRest == true { return Color.unbound.textSecondary }
+        return planMarker == nil ? Color.unbound.coachCyan : Color.unbound.accent
+    }
+
+    private var emptyState: some View {
+        Button(action: onCreateWorkout) {
+            HStack(spacing: 12) {
+                Image(systemName: "plus")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(Color.unbound.bg)
+                    .frame(width: 38, height: 38)
+                    .background(Circle().fill(Color.unbound.accent))
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Build Workout")
+                        .font(Font.unbound.bodyMStrong)
+                        .foregroundStyle(Color.unbound.textPrimary)
+                    Text("Create once, then place it here.")
+                        .font(Font.unbound.captionS)
+                        .foregroundStyle(Color.unbound.textTertiary)
+                        .lineLimit(1)
+                }
+
+                Spacer(minLength: 0)
+            }
+            .padding(14)
+            .background(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(Color.unbound.surface)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .strokeBorder(Color.unbound.accent.opacity(0.34), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func workoutRow(_ workout: SavedWorkout) -> some View {
+        Button {
+            onSelect(workout)
+        } label: {
+            HStack(spacing: 12) {
+                WorkoutReferenceImageView(
+                    exerciseName: workout.effectiveReferenceExerciseName,
+                    fallbackSystemName: icon(for: workout),
+                    fallbackTint: tint(for: workout)
+                )
+                .frame(width: 40, height: 40)
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(workout.title.isEmpty ? "Workout" : workout.title)
+                        .font(Font.unbound.bodyMStrong)
+                        .foregroundStyle(Color.unbound.textPrimary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.76)
+                    Text("\(roleText(workout)) / \(workout.exerciseCount) moves / ~\(workout.estimatedMinutes)m")
+                        .font(Font.unbound.captionS)
+                        .foregroundStyle(Color.unbound.textTertiary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.72)
+                }
+
+                Spacer(minLength: 0)
+
+                Image(systemName: "plus.circle.fill")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(Color.unbound.accent)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 13)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func actionRow(
+        title: String,
+        subtitle: String,
+        icon: String,
+        tint: Color,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(spacing: 12) {
+                Image(systemName: icon)
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(tint)
+                    .frame(width: 34, height: 34)
+                    .background(Circle().fill(tint.opacity(0.12)))
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(title)
+                        .font(Font.unbound.bodyMStrong)
+                        .foregroundStyle(Color.unbound.textPrimary)
+                        .lineLimit(1)
+                    Text(subtitle)
+                        .font(Font.unbound.captionS)
+                        .foregroundStyle(Color.unbound.textTertiary)
+                        .lineLimit(1)
+                }
+
+                Spacer(minLength: 0)
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(Color.unbound.textTertiary)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 13)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func dayTitle(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "EEE, MMM d"
+        return formatter.string(from: date)
+    }
+
+    private func roleText(_ workout: SavedWorkout) -> String {
+        SessionRole.fromStorageValue(workout.sessionRole)?.displayName ?? "Custom"
+    }
+
+    private func tint(for workout: SavedWorkout) -> Color {
+        switch SavedWorkout.normalizedSessionRole(workout.sessionRole) {
+        case "push", "upper": return Color.unbound.accent
+        case "pull": return Color.unbound.coachCyan
+        case "legs", "lower": return Color.unbound.success
+        case "full-body", "full_body": return Color.unbound.warnOrange
+        case "skill-only", "skill_only": return Color.unbound.success
+        default: return Color.unbound.textSecondary
+        }
+    }
+
+    private func icon(for workout: SavedWorkout) -> String {
+        switch SavedWorkout.normalizedSessionRole(workout.sessionRole) {
+        case "push", "upper": return "figure.strengthtraining.traditional"
+        case "pull": return "figure.pull"
+        case "legs", "lower": return "figure.run"
+        case "full-body", "full_body": return "figure.mixed.cardio"
+        case "skill-only", "skill_only": return "sparkles"
+        case "cardio": return "heart.fill"
+        default: return "dumbbell.fill"
         }
     }
 }

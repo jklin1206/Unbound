@@ -33,12 +33,20 @@ struct Step_ProblemFrame: View {
                         .tracking(2.0)
                         .foregroundStyle(Color.unbound.accent)
 
-                    Text(L10n.onboarding("problemOpening.title", defaultValue: "Your stats aren't there yet."))
+                    Text(L10n.onboarding("problemOpening.title", defaultValue: "You shouldn't have to guess your way through training."))
                         .font(Font.unbound.displayM)
                         .foregroundStyle(Color.unbound.textPrimary)
                         .multilineTextAlignment(.center)
                         .lineLimit(2)
                         .minimumScaleFactor(0.82)
+
+                    Text(L10n.onboarding("problemOpening.body", defaultValue: "Random workouts, invisible progress, and missed weeks make it too easy to lose the arc."))
+                        .font(Font.unbound.bodyM)
+                        .foregroundStyle(Color.unbound.textSecondary)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.86)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 .padding(.horizontal, 24)
                 .opacity(hasAnimated ? 1 : 0)
@@ -112,9 +120,40 @@ struct Step_ProblemFrame: View {
             }
 
             problemBaselineHex()
-                .frame(height: 170)
+                .frame(height: 132)
                 .padding(.horizontal, 4)
-                .padding(.vertical, 20)
+                .padding(.top, 12)
+                .padding(.bottom, 8)
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text(L10n.onboarding("problemOpening.noRank", defaultValue: "THE PAIN POINTS"))
+                    .font(.system(size: 8.5, weight: .black, design: .monospaced))
+                    .tracking(1.2)
+                    .foregroundStyle(Color.unbound.accent)
+                    .lineLimit(1)
+
+                painPointPill(
+                    assetName: "exercise_visual_exercise_pushup",
+                    tint: Color.unbound.impact,
+                    title: L10n.onboarding("problemOpening.pain.guesswork.title", defaultValue: "Guesswork"),
+                    detail: L10n.onboarding("problemOpening.pain.guesswork.detail", defaultValue: "You still have to decide what matters today."),
+                    imagePadding: 1
+                )
+                painPointPill(
+                    assetName: "badge_art_proof_10",
+                    tint: Color.unbound.accent,
+                    title: L10n.onboarding("problemOpening.pain.proof.title", defaultValue: "No proof"),
+                    detail: L10n.onboarding("problemOpening.pain.proof.detail", defaultValue: "Strength changes, but the progress feels invisible."),
+                    imagePadding: 4
+                )
+                painPointPill(
+                    assetName: "badge_art_consistency_loop",
+                    tint: Color.unbound.ember,
+                    title: L10n.onboarding("problemOpening.pain.restart.title", defaultValue: "Restart loop"),
+                    detail: L10n.onboarding("problemOpening.pain.restart.detail", defaultValue: "A busy week can turn into starting over."),
+                    imagePadding: 4
+                )
+            }
         }
         .padding(14)
         .background(
@@ -174,6 +213,43 @@ struct Step_ProblemFrame: View {
             .monospacedDigit()
             .lineLimit(1)
             .minimumScaleFactor(0.72)
+    }
+
+    private func painPointPill(
+        assetName: String,
+        tint: Color,
+        title: String,
+        detail: String,
+        imagePadding: CGFloat
+    ) -> some View {
+        HStack(spacing: 7) {
+            OnboardingAssetGlyph(
+                assetName: assetName,
+                tint: tint,
+                size: 32,
+                imagePadding: imagePadding,
+                shape: .chamfered
+            )
+
+            Text(title.uppercased())
+                .font(.system(size: 8.5, weight: .black, design: .monospaced))
+                .tracking(0.6)
+                .foregroundStyle(Color.unbound.textPrimary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+        }
+        .padding(.horizontal, 9)
+        .padding(.vertical, 6)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(Color.unbound.bg.opacity(0.38))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .strokeBorder(Color.unbound.borderSubtle.opacity(0.72), lineWidth: 1)
+        )
+        .accessibilityLabel(Text("\(title). \(detail)"))
     }
 
     private func hexRow(_ key: AttributeKey, value: Double) -> some View {

@@ -90,6 +90,7 @@ struct ProgramDevDaySimulatorCard: View {
 struct ProgramDevDynamicScenarioRail: View {
     let scenarios: [DevDynamicProgramScenario]
     let activeRawValue: String
+    let isFreshMode: Bool
     let isSeeding: Bool
     let onSelect: (DevDynamicProgramScenario) -> Void
 
@@ -107,6 +108,10 @@ struct ProgramDevDynamicScenarioRail: View {
                 }
             }
 
+            if isFreshMode {
+                freshModeChip
+            }
+
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
                     ForEach(scenarios) { scenario in
@@ -118,6 +123,24 @@ struct ProgramDevDynamicScenarioRail: View {
         }
         .frame(height: 36)
         .accessibilityIdentifier("program.devDynamicScenarioRail")
+    }
+
+    private var freshModeChip: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "person.crop.circle.badge.checkmark")
+                .font(.system(size: 10, weight: .bold))
+            Text("FRESH")
+                .font(Font.unbound.captionS.weight(.heavy))
+                .tracking(0.7)
+        }
+        .foregroundStyle(Color.unbound.textPrimary)
+        .padding(.horizontal, 10)
+        .frame(height: 32)
+        .background(
+            Capsule()
+                .fill(Color.unbound.coachCyan.opacity(0.18))
+        )
+        .contentShape(Capsule())
     }
 
     private func scenarioChip(_ scenario: DevDynamicProgramScenario) -> some View {

@@ -84,8 +84,14 @@ struct Step_Paywall: View {
     private var header: some View {
         VStack(spacing: 8) {
             HStack(spacing: 8) {
-                Image(systemName: "crown.fill")
-                    .font(.system(size: 12, weight: .bold))
+                OnboardingAssetGlyph(
+                    assetName: "rank_title_unbound",
+                    tint: Color.unbound.impact,
+                    size: 21,
+                    imagePadding: 2,
+                    shape: .hexagon,
+                    showsCornerMark: false
+                )
                 Text(L10n.onboarding("paywall.clean.kicker", defaultValue: "UNBOUND PRO"))
                     .font(Font.unbound.captionS.weight(.heavy))
                     .tracking(1.6)
@@ -131,31 +137,31 @@ struct Step_Paywall: View {
 
             VStack(spacing: 0) {
                 featureListRow(
-                    icon: "calendar.badge.clock",
+                    assetName: "onboarding_path_protocol_dossier",
                     title: L10n.onboarding("paywall.feature.plan.title", defaultValue: "Weekly training arc"),
                     detail: L10n.onboarding("paywall.feature.plan.detail", defaultValue: "\(sessionsPerWeek) sessions fit to your schedule")
                 )
                 listDivider
                 featureListRow(
-                    icon: "figure.strengthtraining.traditional",
+                    assetName: "badge_art_first_session",
                     title: L10n.onboarding("paywall.feature.logs.title", defaultValue: "Editable workout logs"),
                     detail: L10n.onboarding("paywall.feature.logs.detail", defaultValue: "Sets, reps, RPE, swaps, and finishes")
                 )
                 listDivider
                 featureListRow(
-                    icon: "flame.fill",
+                    assetName: "badge_art_consistency_loop",
                     title: L10n.onboarding("paywall.feature.streak.title", defaultValue: "Streak and reminder loop"),
                     detail: L10n.onboarding("paywall.feature.streak.detail", defaultValue: "Keep the habit alive between sessions")
                 )
                 listDivider
                 featureListRow(
-                    icon: "hexagon.fill",
+                    assetName: "badge_art_proof_10",
                     title: L10n.onboarding("paywall.feature.progress.title", defaultValue: "Progress profile"),
                     detail: L10n.onboarding("paywall.feature.progress.detail", defaultValue: "Ranks, milestones, and visible proof")
                 )
                 listDivider
                 featureListRow(
-                    icon: "camera.viewfinder",
+                    assetName: "badge_art_first_scan",
                     title: L10n.onboarding("paywall.feature.scans.title", defaultValue: "Monthly scan check-ins"),
                     detail: L10n.onboarding("paywall.feature.scans.detail", defaultValue: "Compare changes and tune the next arc")
                 )
@@ -180,13 +186,16 @@ struct Step_Paywall: View {
             .padding(.leading, 35)
     }
 
-    private func featureListRow(icon: String, title: String, detail: String) -> some View {
+    private func featureListRow(assetName: String, title: String, detail: String) -> some View {
         HStack(spacing: 10) {
-            Image(systemName: icon)
-                .font(.system(size: 13, weight: .black))
-                .foregroundStyle(Color.unbound.impact)
-                .frame(width: 25, height: 25)
-                .background(Circle().fill(Color.unbound.impact.opacity(0.12)))
+            OnboardingAssetGlyph(
+                assetName: assetName,
+                tint: Color.unbound.impact,
+                size: 27,
+                imagePadding: 4,
+                shape: .hexagon,
+                showsCornerMark: false
+            )
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
@@ -210,12 +219,12 @@ struct Step_Paywall: View {
         VStack(spacing: 8) {
             HStack(spacing: 8) {
                 unlockBox(
-                    icon: "calendar.badge.clock",
+                    assetName: "onboarding_path_protocol_dossier",
                     title: L10n.onboarding("paywall.box.plan.title", defaultValue: "Plan"),
                     detail: L10n.onboarding("paywall.box.plan.detail", defaultValue: "\(sessionsPerWeek)x weekly arc")
                 )
                 unlockBox(
-                    icon: "figure.strengthtraining.traditional",
+                    assetName: "badge_art_first_session",
                     title: L10n.onboarding("paywall.box.log.title", defaultValue: "Log"),
                     detail: L10n.onboarding("paywall.box.log.detail", defaultValue: "Sets, RPE, swaps")
                 )
@@ -223,12 +232,12 @@ struct Step_Paywall: View {
 
             HStack(spacing: 8) {
                 unlockBox(
-                    icon: "flame.fill",
+                    assetName: "badge_art_consistency_loop",
                     title: L10n.onboarding("paywall.box.streak.title", defaultValue: "Streak"),
                     detail: L10n.onboarding("paywall.box.streak.detail", defaultValue: "Keep it alive")
                 )
                 unlockBox(
-                    icon: "camera.viewfinder",
+                    assetName: "badge_art_first_scan",
                     title: L10n.onboarding("paywall.box.scan.title", defaultValue: "Scans"),
                     detail: L10n.onboarding("paywall.box.scan.detail", defaultValue: "Track changes")
                 )
@@ -237,13 +246,15 @@ struct Step_Paywall: View {
         .frame(maxWidth: .infinity)
     }
 
-    private func unlockBox(icon: String, title: String, detail: String) -> some View {
+    private func unlockBox(assetName: String, title: String, detail: String) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Image(systemName: icon)
-                .font(.system(size: 15, weight: .black))
-                .foregroundStyle(Color.unbound.impact)
-                .frame(width: 30, height: 30)
-                .background(Circle().fill(Color.unbound.impact.opacity(0.12)))
+            OnboardingAssetGlyph(
+                assetName: assetName,
+                tint: Color.unbound.impact,
+                size: 32,
+                imagePadding: 5,
+                shape: .hexagon
+            )
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(title.uppercased())
@@ -291,9 +302,9 @@ struct Step_Paywall: View {
             }
 
             HStack(spacing: 8) {
-                compactUnlock(icon: "calendar.badge.clock", text: "4-week opening arc")
-                compactUnlock(icon: "moon.stars.fill", text: "Recovery targets")
-                compactUnlock(icon: "hexagon.fill", text: "Rank proof")
+                compactUnlock(assetName: "badge_art_arc_week", text: "4-week opening arc")
+                compactUnlock(assetName: "badge_art_hour_glass", text: "Recovery targets")
+                compactUnlock(assetName: "badge_art_proof_10", text: "Rank proof")
             }
         }
         .padding(15)
@@ -320,25 +331,25 @@ struct Step_Paywall: View {
     }
 
     private var paywallSeal: some View {
-        ZStack {
-            Circle()
-                .fill(Color.unbound.impact.opacity(0.16))
-            Circle()
-                .strokeBorder(Color.unbound.impact.opacity(0.45), lineWidth: 1)
-            Image(systemName: "lock.open.fill")
-                .font(.system(size: 22, weight: .black))
-                .foregroundStyle(Color.unbound.impact)
-                .shadow(color: Color.unbound.impact.opacity(0.6), radius: 12)
-        }
-        .frame(width: 58, height: 58)
+        OnboardingAssetGlyph(
+            assetName: "rank_title_unbound",
+            tint: Color.unbound.impact,
+            size: 58,
+            imagePadding: 5,
+            shape: .hexagon
+        )
     }
 
-    private func compactUnlock(icon: String, text: String) -> some View {
+    private func compactUnlock(assetName: String, text: String) -> some View {
         HStack(spacing: 9) {
-            Image(systemName: icon)
-                .font(.system(size: 12, weight: .black))
-                .foregroundStyle(Color.unbound.impact)
-                .frame(width: 16)
+            OnboardingAssetGlyph(
+                assetName: assetName,
+                tint: Color.unbound.impact,
+                size: 22,
+                imagePadding: 4,
+                shape: .hexagon,
+                showsCornerMark: false
+            )
             Text(text)
                 .font(Font.unbound.captionS.weight(.semibold))
                 .foregroundStyle(Color.unbound.textPrimary.opacity(0.92))
@@ -376,22 +387,22 @@ struct Step_Paywall: View {
     private var unlocks: [PaywallUnlock] {
         [
             PaywallUnlock(
-                icon: "calendar.badge.clock",
+                assetName: "onboarding_path_protocol_dossier",
                 title: L10n.onboarding("paywall.unlock.program.title", defaultValue: "The opening arc"),
                 detail: L10n.onboarding("paywall.unlock.program.detail", defaultValue: "A 4-week route built from your goals, equipment, training days, and starting point.")
             ),
             PaywallUnlock(
-                icon: "figure.strengthtraining.traditional",
+                assetName: "badge_art_first_session",
                 title: L10n.onboarding("paywall.unlock.sessions.title", defaultValue: "Sessions that feed the next gate"),
                 detail: L10n.onboarding("paywall.unlock.sessions.detail", defaultValue: "Log sets, RPE, swaps, and finishes so your plan keeps adapting instead of going stale.")
             ),
             PaywallUnlock(
-                icon: "hexagon.fill",
+                assetName: "badge_art_proof_10",
                 title: L10n.onboarding("paywall.unlock.profile.title", defaultValue: "A character card that changes"),
                 detail: L10n.onboarding("paywall.unlock.profile.detail", defaultValue: "Your Build Hex, milestones, streaks, and rank path start moving from Day Zero.")
             ),
             PaywallUnlock(
-                icon: "camera.viewfinder",
+                assetName: "badge_art_first_scan",
                 title: L10n.onboarding("paywall.unlock.scan.title", defaultValue: "Monthly evolution scans"),
                 detail: L10n.onboarding("paywall.unlock.scan.detail", defaultValue: "Return to the scanner, compare the work, and make the next arc more specific.")
             )
@@ -400,11 +411,13 @@ struct Step_Paywall: View {
 
     private func featureRow(_ unlock: PaywallUnlock) -> some View {
         HStack(alignment: .top, spacing: 12) {
-            Image(systemName: unlock.icon)
-                .font(.system(size: 15, weight: .bold))
-                .foregroundStyle(Color.unbound.impact)
-                .frame(width: 30, height: 30)
-                .background(Circle().fill(Color.unbound.impact.opacity(0.12)))
+            OnboardingAssetGlyph(
+                assetName: unlock.assetName,
+                tint: Color.unbound.impact,
+                size: 32,
+                imagePadding: 5,
+                shape: .hexagon
+            )
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(unlock.title)
@@ -608,7 +621,7 @@ struct Step_Paywall: View {
 
 private struct PaywallUnlock: Identifiable {
     let id = UUID()
-    let icon: String
+    let assetName: String
     let title: String
     let detail: String
 }

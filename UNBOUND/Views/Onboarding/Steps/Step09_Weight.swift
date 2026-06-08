@@ -5,6 +5,7 @@ struct Step09_Weight: View {
     var progress: Double
     let onBack: () -> Void
     let onContinue: () -> Void
+    @AppStorage(WeightPlatePolicy.unitDefaultsKey) private var trainingWeightUnitRaw = TrainingWeightUnit.localeDefault.rawValue
 
     var body: some View {
         OnboardingScaffold(
@@ -47,6 +48,14 @@ struct Step09_Weight: View {
             }
             .padding(.top, 8)
         }
+        .onAppear(perform: syncTrainingWeightUnit)
+        .onChange(of: flow.useMetricWeight) { _, _ in syncTrainingWeightUnit() }
+    }
+
+    private func syncTrainingWeightUnit() {
+        trainingWeightUnitRaw = flow.useMetricWeight
+            ? TrainingWeightUnit.kilograms.rawValue
+            : TrainingWeightUnit.pounds.rawValue
     }
 }
 

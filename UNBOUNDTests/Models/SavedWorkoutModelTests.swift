@@ -72,6 +72,132 @@ final class SavedWorkoutModelTests: XCTestCase {
         XCTAssertEqual(rehydrated.blocks.first?.prescriptions.first?.exerciseName, "Bench Press")
     }
 
+    func testEffectiveReferenceExerciseUsesFirstMainExercise() {
+        var draft = TrainingSessionDraft(
+            userId: "u-1",
+            source: .custom,
+            title: "Pull Template",
+            estimatedMinutes: 35,
+            referenceExerciseName: "Ring Row",
+            blocks: [
+                TrainingBlock(
+                    kind: .strength,
+                    title: "Pull",
+                    prescriptions: [
+                        TrainingBlockPrescription(
+                            exerciseName: "Pull-Up",
+                            sets: 3,
+                            target: .repsRange(5, 8),
+                            restSeconds: 120,
+                            muscleGroups: [.back],
+                            rpe: 8
+                        ),
+                        TrainingBlockPrescription(
+                            exerciseName: "Ring Row",
+                            sets: 3,
+                            target: .repsRange(8, 12),
+                            restSeconds: 75,
+                            muscleGroups: [.back, .arms],
+                            rpe: 7
+                        )
+                    ]
+                )
+            ]
+        )
+
+        let saved = SavedWorkout.from(draft)
+        let rehydrated = saved.asDraft(userId: "u-2")
+
+        XCTAssertEqual(saved.referenceExerciseName, "Ring Row")
+        XCTAssertEqual(saved.effectiveReferenceExerciseName, "Pull-Up")
+        XCTAssertEqual(rehydrated.referenceExerciseName, "Ring Row")
+        XCTAssertEqual(rehydrated.effectiveReferenceExerciseName, "Pull-Up")
+
+        draft.referenceExerciseName = "Exercise That Was Removed"
+        draft.normalizeReferenceExerciseName()
+        XCTAssertNil(draft.referenceExerciseName)
+        XCTAssertEqual(draft.effectiveReferenceExerciseName, "Pull-Up")
+    }
+
+    func testEffectiveReferenceExerciseSkipsWarmupBlocks() {
+        let draft = TrainingSessionDraft(
+            userId: "u-1",
+            source: .program,
+            title: "Push Day",
+            estimatedMinutes: 44,
+            blocks: [
+                TrainingBlock(
+                    kind: .bodyweight,
+                    title: "Warmup",
+                    prescriptions: [
+                        TrainingBlockPrescription(
+                            exerciseName: "Shoulder Opener",
+                            sets: 1,
+                            target: .timedSeconds(45),
+                            restSeconds: 20
+                        )
+                    ]
+                ),
+                TrainingBlock(
+                    kind: .strength,
+                    title: "Main",
+                    prescriptions: [
+                        TrainingBlockPrescription(
+                            exerciseName: "Pike Push-Up",
+                            sets: 4,
+                            target: .repsRange(5, 8),
+                            restSeconds: 120
+                        )
+                    ]
+                )
+            ]
+        )
+
+        XCTAssertEqual(draft.effectiveReferenceExerciseName, "Pike Push-Up")
+    }
+
+    func testPrescriptionSetPlansSupportWarmupsBackoffsAndDropsets() {
+        var prescription = TrainingBlockPrescription(
+            exerciseName: "Squat",
+            sets: 3,
+            target: .reps(5),
+            restSeconds: 180,
+            rpe: 8,
+            suggestedWeightKg: 140
+        )
+
+        prescription.materializeSetPlans()
+        var plans = prescription.setPlans ?? []
+        plans[0].isWarmup = true
+        plans[0].target = .reps(3)
+        plans[0].suggestedWeightKg = 100
+        plans[1].target = .reps(5)
+        plans[1].suggestedWeightKg = 140
+        plans[2].target = .reps(10)
+        plans[2].restSeconds = 45
+        plans[2].rpe = 9
+        plans[2].suggestedWeightKg = 100
+        prescription.setPlans = plans
+        prescription.syncSummaryFromSetPlans()
+
+        XCTAssertEqual(prescription.plannedSetCount, 3)
+        XCTAssertEqual(prescription.sets, 3)
+        XCTAssertEqual(prescription.displayTargetText, "Custom set plan")
+        XCTAssertEqual(prescription.setPlanSummaryText, "custom sets")
+        XCTAssertEqual(prescription.effectiveSetPlans.map(\.target.displayText), ["3 reps", "5 reps", "10 reps"])
+        XCTAssertEqual(prescription.effectiveSetPlans.map(\.restSeconds), [180, 180, 45])
+        XCTAssertEqual(prescription.effectiveSetPlans.map(\.suggestedWeightKg), [100, 140, 100])
+        XCTAssertTrue(prescription.effectiveSetPlans[0].isWarmup)
+
+        prescription.addSetPlan()
+        XCTAssertEqual(prescription.plannedSetCount, 4)
+        XCTAssertEqual(prescription.effectiveSetPlans[3].target.displayText, "10 reps")
+        XCTAssertEqual(prescription.effectiveSetPlans[3].restSeconds, 45)
+
+        prescription.removeSetPlan(at: 3)
+        XCTAssertEqual(prescription.plannedSetCount, 3)
+    }
+
     func testEquatableOnlyUsesID() {
         let id = UUID()
         let lhs = SavedWorkout(id: id, title: "Push A", blocks: [], sessionRole: "push")

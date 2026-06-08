@@ -142,8 +142,11 @@ struct Step_ScanLive: View {
     private var entryHeader: some View {
         VStack(spacing: 8) {
             HStack(spacing: 8) {
-                Image(systemName: "hexagon.fill")
-                    .font(.system(size: 10, weight: .black))
+                Image("badge_art_first_scan")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 17, height: 17)
+                    .shadow(color: Color.unbound.accent.opacity(0.36), radius: 5)
                 Text(L10n.onboarding("scanLive.entry.eyebrow", defaultValue: "DAY ZERO ENTRY"))
                     .font(Font.unbound.monoS)
                     .tracking(2.0)
@@ -252,8 +255,11 @@ struct Step_ScanLive: View {
     private var instructionBlock: some View {
         VStack(spacing: 10) {
             HStack(spacing: 8) {
-                Image(systemName: "flame.fill")
-                    .font(.system(size: 11, weight: .semibold))
+                Image("badge_art_first_photo")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 18, height: 18)
+                    .shadow(color: Color.unbound.accent.opacity(0.36), radius: 5)
                 Text(L10n.onboarding("scanLive.instruction.eyebrow", defaultValue: "MONTH ONE STARTS HERE"))
                     .font(Font.unbound.captionS)
                     .tracking(1.6)
@@ -314,9 +320,11 @@ struct Step_ScanLive: View {
                         .scaleEffect(isCapturing ? 0.82 : 1.0)
                         .animation(.spring(response: 0.28, dampingFraction: 0.72), value: isCapturing)
 
-                    Image(systemName: "viewfinder")
-                        .font(.system(size: 22, weight: .black))
-                        .foregroundStyle(Color.unbound.bg.opacity(0.82))
+                    Image("badge_art_first_scan")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 36, height: 36)
+                        .shadow(color: Color.unbound.bg.opacity(0.42), radius: 8)
                 }
             }
             .buttonStyle(.plain)
@@ -394,9 +402,13 @@ struct Step_ScanLive: View {
     @ViewBuilder
     private var fallbackPanel: some View {
         VStack(spacing: 16) {
-            Image(systemName: fallbackIcon)
-                .font(.system(size: 36, weight: .light))
-                .foregroundStyle(Color.unbound.accent)
+            OnboardingAssetGlyph(
+                assetName: fallbackAssetName,
+                tint: Color.unbound.accent,
+                size: 76,
+                imagePadding: 10,
+                shape: .hexagon
+            )
 
             Text(fallbackTitle)
                 .font(Font.unbound.titleM)
@@ -457,12 +469,12 @@ struct Step_ScanLive: View {
         .padding(.horizontal, 24)
     }
 
-    private var fallbackIcon: String {
+    private var fallbackAssetName: String {
         switch sessionStatus {
-        case .starting:    return "camera.viewfinder"
-        case .denied:      return "lock.shield"
-        case .unavailable: return "video.slash"
-        case .running:     return "camera.fill"
+        case .starting:    return "badge_art_first_scan"
+        case .denied:      return "badge_art_first_photo"
+        case .unavailable: return "badge_art_hour_glass"
+        case .running:     return "badge_art_first_scan"
         }
     }
 

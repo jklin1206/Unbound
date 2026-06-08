@@ -108,9 +108,10 @@ struct Step_SkillTreePreview: View {
                         lineWidth: 1.5
                     )
                 if state == .locked {
-                    Image(systemName: "lock.fill")
-                        .font(.system(size: 9, weight: .semibold))
-                        .foregroundStyle(Color.unbound.textTertiary)
+                    Image("rank_title_initiate")
+                        .resizable()
+                        .scaledToFit()
+                        .padding(4)
                 }
             }
             .frame(width: 18, height: 18)
@@ -134,9 +135,14 @@ struct Step_SkillTreePreview: View {
         UnboundCard {
             VStack(alignment: .leading, spacing: 14) {
                 HStack(spacing: 10) {
-                    Image(systemName: "flame.fill")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(Color.unbound.ember)
+                    OnboardingAssetGlyph(
+                        assetName: "badge_art_first_muscle_up",
+                        tint: Color.unbound.ember,
+                        size: 28,
+                        imagePadding: 5,
+                        shape: .hexagon,
+                        showsCornerMark: false
+                    )
                     Text(L10n.onboarding("skillTreePreview.unlocks.title", defaultValue: "WHAT THIS UNLOCKS"))
                         .font(Font.unbound.captionS)
                         .tracking(1.4)
@@ -146,23 +152,28 @@ struct Step_SkillTreePreview: View {
                 VStack(alignment: .leading, spacing: 10) {
                     hypeFeat(
                         L10n.onboarding("skillTreePreview.feat.muscleUp.name", defaultValue: "Muscle-up"),
-                        L10n.onboarding("skillTreePreview.feat.muscleUp.detail", defaultValue: "The pull-up everyone wants")
+                        L10n.onboarding("skillTreePreview.feat.muscleUp.detail", defaultValue: "The pull-up everyone wants"),
+                        assetName: "badge_art_first_muscle_up"
                     )
                     hypeFeat(
                         L10n.onboarding("skillTreePreview.feat.frontLever.name", defaultValue: "Front lever"),
-                        L10n.onboarding("skillTreePreview.feat.frontLever.detail", defaultValue: "Core, grip, and lats in one hold")
+                        L10n.onboarding("skillTreePreview.feat.frontLever.detail", defaultValue: "Core, grip, and lats in one hold"),
+                        assetName: "exercise_visual_exercise_advanced-tuck-front-lever"
                     )
                     hypeFeat(
                         L10n.onboarding("skillTreePreview.feat.oneArmPushup.name", defaultValue: "One-arm pushup"),
-                        L10n.onboarding("skillTreePreview.feat.oneArmPushup.detail", defaultValue: "Pure body control")
+                        L10n.onboarding("skillTreePreview.feat.oneArmPushup.detail", defaultValue: "Pure body control"),
+                        assetName: "exercise_visual_exercise_one-arm-pushup"
                     )
                     hypeFeat(
                         L10n.onboarding("skillTreePreview.feat.pistolSquat.name", defaultValue: "Pistol squat"),
-                        L10n.onboarding("skillTreePreview.feat.pistolSquat.detail", defaultValue: "Legs that actually work as a unit")
+                        L10n.onboarding("skillTreePreview.feat.pistolSquat.detail", defaultValue: "Legs that actually work as a unit"),
+                        assetName: "badge_art_first_pistol_squat"
                     )
                     hypeFeat(
                         L10n.onboarding("skillTreePreview.feat.humanFlag.name", defaultValue: "Human flag"),
-                        L10n.onboarding("skillTreePreview.feat.humanFlag.detail", defaultValue: "The one that makes strangers stare")
+                        L10n.onboarding("skillTreePreview.feat.humanFlag.detail", defaultValue: "The one that makes strangers stare"),
+                        assetName: "rank_title_unbound"
                     )
                 }
 
@@ -175,12 +186,13 @@ struct Step_SkillTreePreview: View {
         }
     }
 
-    private func hypeFeat(_ name: String, _ detail: String) -> some View {
+    private func hypeFeat(_ name: String, _ detail: String, assetName: String) -> some View {
         HStack(alignment: .center, spacing: 12) {
-            Image(systemName: "flame")
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(Color.unbound.ember)
-                .frame(width: 18)
+            Image(assetName)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 22, height: 22)
+                .shadow(color: Color.unbound.ember.opacity(0.28), radius: 5)
             Text(name)
                 .font(Font.unbound.bodyMStrong)
                 .foregroundStyle(Color.unbound.textPrimary)
@@ -199,9 +211,14 @@ struct Step_SkillTreePreview: View {
         UnboundCard {
             VStack(alignment: .leading, spacing: 14) {
                 HStack(spacing: 10) {
-                    Image(systemName: "sparkles")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(Color.unbound.accent)
+                    OnboardingAssetGlyph(
+                        assetName: "badge_art_first_session",
+                        tint: Color.unbound.accent,
+                        size: 28,
+                        imagePadding: 5,
+                        shape: .hexagon,
+                        showsCornerMark: false
+                    )
                     Text(L10n.onboarding("skillTreePreview.how.title", defaultValue: "HOW THIS WORKS"))
                         .font(Font.unbound.captionS)
                         .tracking(1.4)
@@ -243,14 +260,13 @@ private struct NodeDetailSheet: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
             HStack(alignment: .center, spacing: 14) {
-                ZStack {
-                    Hexagon().fill(Color.unbound.surface)
-                    Hexagon().strokeBorder(Color.unbound.accent, lineWidth: 1.5)
-                    Image(systemName: node.isKeystone ? "shield.lefthalf.filled" : "lock.fill")
-                        .font(.system(size: 20, weight: .semibold))
-                        .foregroundStyle(Color.unbound.accent)
-                }
-                .frame(width: 64, height: 64)
+                OnboardingAssetGlyph(
+                    assetName: node.isKeystone ? "onboarding_path_rank_gates" : "rank_title_initiate",
+                    tint: node.isKeystone ? Color.unbound.impact : Color.unbound.accent,
+                    size: 64,
+                    imagePadding: 8,
+                    shape: .hexagon
+                )
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(node.title)

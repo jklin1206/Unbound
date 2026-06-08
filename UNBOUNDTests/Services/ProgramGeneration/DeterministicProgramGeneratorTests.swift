@@ -219,6 +219,9 @@ final class DeterministicProgramGeneratorTests: XCTestCase {
             $0.exerciseName == baselineExercise.name
         })
 
+        UserDefaults.standard.set(TrainingWeightUnit.kilograms.rawValue, forKey: WeightPlatePolicy.unitDefaultsKey)
+        defer { UserDefaults.standard.removeObject(forKey: WeightPlatePolicy.unitDefaultsKey) }
+
         XCTAssertEqual(prescription.suggestedWeightKg, 60)
         XCTAssertTrue(prescription.displayTargetText.contains("@ 60 kg"))
     }

@@ -75,7 +75,7 @@ struct ExerciseLogCard: View {
                 if let targetRPE {
                     targetPill("RPE \(targetRPE)", icon: "gauge.medium")
                 }
-                targetPill(Self.mmss(restSeconds), icon: "timer")
+                targetPill(restPillText, icon: "timer")
             }
             .padding(.bottom, isExpanded ? 0 : 4)
 
@@ -182,6 +182,12 @@ struct ExerciseLogCard: View {
 
     private var showsSetGrid: Bool {
         isCurrent || isExpanded
+    }
+
+    private var restPillText: String {
+        let rests = sets.map { $0.suggestedRestSeconds ?? restSeconds }
+        guard let first = rests.first else { return Self.mmss(restSeconds) }
+        return rests.allSatisfy { $0 == first } ? Self.mmss(first) : "VAR REST"
     }
 
     private var movementDefinition: MovementDefinition? {

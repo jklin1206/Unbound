@@ -46,7 +46,8 @@ struct WorkoutDetailView: View {
                             title: "Warmup",
                             icon: "figure.run",
                             exercises: workout.warmup,
-                            editable: false
+                            editable: false,
+                            showsTrainingDetails: false
                         )
                     }
 
@@ -62,7 +63,8 @@ struct WorkoutDetailView: View {
                             title: "Cooldown",
                             icon: "figure.cooldown",
                             exercises: workout.cooldown,
-                            editable: false
+                            editable: false,
+                            showsTrainingDetails: false
                         )
                     }
 
@@ -275,7 +277,8 @@ struct WorkoutDetailView: View {
         title: String,
         icon: String,
         exercises: [Exercise],
-        editable: Bool
+        editable: Bool,
+        showsTrainingDetails: Bool = true
     ) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             Label(title, systemImage: icon)
@@ -306,7 +309,7 @@ struct WorkoutDetailView: View {
                             }
                         )
                     } else {
-                        ExerciseRow(exercise: exercise)
+                        ExerciseRow(exercise: exercise, showsTrainingDetails: showsTrainingDetails)
                     }
                 }
             }
@@ -318,19 +321,44 @@ struct WorkoutDetailView: View {
 
 private struct ExerciseRow: View {
     let exercise: Exercise
+    let showsTrainingDetails: Bool
     @State private var isExpanded = false
 
+    private var visualDefinition: MovementDefinition? {
+        let resolved = MovementResolver.resolve(exercise.name)
+        return MovementCatalog.definition(for: resolved.movementId)
+    }
+
     private var movementDefinition: MovementDefinition? {
-        MovementCatalog.canonicalExercise(named: exercise.name)
+        guard let visualDefinition, visualDefinition.role == .canonicalExercise else {
+            return MovementCatalog.canonicalExercise(named: exercise.name)
+        }
+        return visualDefinition
     }
 
     private var displayName: String {
-        movementDefinition?.displayName ?? exercise.name
+        exercise.name
     }
 
     private var displayMuscleGroups: [MuscleGroup] {
-        let groups = movementDefinition?.muscleGroups ?? []
+        let groups = visualDefinition?.muscleGroups ?? movementDefinition?.muscleGroups ?? []
         return groups.isEmpty ? exercise.muscleGroups : groups
+    }
+
+    private var equipmentLabel: String? {
+        guard showsTrainingDetails, let visualDefinition else { return nil }
+        let labels = ExerciseLibrary.equipmentLabels(for: visualDefinition)
+        return labels.first(where: { $0 != "Bodyweight" }) ?? labels.first
+    }
+
+    private var targetText: String {
+        if showsTrainingDetails {
+            return "\(exercise.sets) × \(exercise.reps)"
+        }
+        if exercise.reps.localizedCaseInsensitiveContains("s") || exercise.reps.contains("/") {
+            return exercise.reps
+        }
+        return "\(exercise.reps) reps"
     }
 
     var body: some View {
@@ -341,25 +369,29 @@ private struct ExerciseRow: View {
                 }
             } label: {
                 HStack(spacing: 12) {
+                    WorkoutExerciseVisualTile(definition: visualDefinition)
+                        .frame(width: 52, height: 52)
+
                     VStack(alignment: .leading, spacing: 4) {
                         Text(displayName)
                             .font(.bodyMedium(15))
                             .foregroundColor(.theme.textPrimary)
                             .multilineTextAlignment(.leading)
+                            .lineLimit(2)
 
                         HStack(spacing: 8) {
-                            Text("\(exercise.sets) × \(exercise.reps)")
+                            Text(targetText)
                                 .font(.caption(13))
                                 .foregroundColor(.theme.textSecondary)
 
-                            if exercise.restSeconds > 0 {
+                            if showsTrainingDetails && exercise.restSeconds > 0 {
                                 Text("Rest \(exercise.restSeconds)s")
                                     .font(.caption(13))
                                     .foregroundColor(.theme.textMuted)
                             }
                         }
 
-                        if let movementDefinition {
+                        if showsTrainingDetails, let movementDefinition {
                             Text(compactMetadata(for: movementDefinition))
                                 .font(.caption(11))
                                 .foregroundColor(.theme.textMuted)
@@ -370,14 +402,14 @@ private struct ExerciseRow: View {
                     Spacer()
 
                     HStack(spacing: 4) {
-                        ForEach(displayMuscleGroups.prefix(2), id: \.self) { group in
-                            Text(group.displayName)
-                                .font(.caption(11))
-                                .foregroundColor(.theme.primary)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(Color.theme.primary.opacity(0.12))
-                                .clipShape(Capsule())
+                        if let equipmentLabel {
+                            rowChip(equipmentLabel, tint: .theme.warning)
+                        } else if !showsTrainingDetails {
+                            rowChip("Prep", tint: .theme.primary)
+                        }
+
+                        ForEach(displayMuscleGroups.prefix(showsTrainingDetails ? 1 : 0), id: \.self) { group in
+                            rowChip(group.displayName, tint: .theme.primary)
                         }
                     }
 
@@ -404,11 +436,11 @@ private struct ExerciseRow: View {
         VStack(alignment: .leading, spacing: 8) {
             Divider().background(Color.theme.surfaceLight)
 
-            if let movementDefinition {
+            if showsTrainingDetails, let movementDefinition {
                 movementMetadata(movementDefinition)
             }
 
-            if let rpe = exercise.rpe {
+            if showsTrainingDetails, let rpe = exercise.rpe {
                 HStack(spacing: 6) {
                     Text("RPE:")
                         .font(.caption(12))
@@ -474,6 +506,39 @@ private struct ExerciseRow: View {
                 .fixedSize(horizontal: false, vertical: true)
         }
     }
+
+    private func rowChip(_ text: String, tint: Color) -> some View {
+        Text(text)
+            .font(.caption(11))
+            .foregroundColor(tint)
+            .lineLimit(1)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(tint.opacity(0.12))
+            .clipShape(Capsule())
+    }
+}
+
+private struct WorkoutExerciseVisualTile: View {
+    let definition: MovementDefinition?
+
+    var body: some View {
+        if let definition {
+            ExerciseVisualView(definition: definition, size: .thumbnail)
+        } else {
+            ZStack {
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(Color.theme.surfaceLight.opacity(0.72))
+                Image(systemName: "figure.strengthtraining.functional")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(Color.theme.primary)
+            }
+            .overlay(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .strokeBorder(Color.theme.surfaceLight, lineWidth: 1)
+            )
+        }
+    }
 }
 
 // MARK: - Editable Row
@@ -492,16 +557,24 @@ private struct EditableExerciseRow: View {
     @State private var repsValue: String
     @FocusState private var repsFocused: Bool
 
+    private var visualDefinition: MovementDefinition? {
+        let resolved = MovementResolver.resolve(exercise.name)
+        return MovementCatalog.definition(for: resolved.movementId)
+    }
+
     private var movementDefinition: MovementDefinition? {
-        MovementCatalog.canonicalExercise(named: exercise.name)
+        guard let visualDefinition, visualDefinition.role == .canonicalExercise else {
+            return MovementCatalog.canonicalExercise(named: exercise.name)
+        }
+        return visualDefinition
     }
 
     private var displayName: String {
-        movementDefinition?.displayName ?? exercise.name
+        exercise.name
     }
 
     private var displayMuscleGroups: [MuscleGroup] {
-        let groups = movementDefinition?.muscleGroups ?? []
+        let groups = visualDefinition?.muscleGroups ?? movementDefinition?.muscleGroups ?? []
         return groups.isEmpty ? exercise.muscleGroups : groups
     }
 
@@ -522,11 +595,15 @@ private struct EditableExerciseRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .top, spacing: 12) {
+                WorkoutExerciseVisualTile(definition: visualDefinition)
+                    .frame(width: 54, height: 54)
+
                 VStack(alignment: .leading, spacing: 4) {
                     Text(displayName)
                         .font(.bodyMedium(15))
                         .foregroundColor(.theme.textPrimary)
                         .multilineTextAlignment(.leading)
+                        .lineLimit(2)
                     Text(displayMuscleGroups.prefix(2).map(\.displayName).joined(separator: " · "))
                         .font(.caption(12))
                         .foregroundColor(.theme.textMuted)

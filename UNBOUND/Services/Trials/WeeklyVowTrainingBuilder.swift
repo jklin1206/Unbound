@@ -88,7 +88,7 @@ enum WeeklyVowTrainingBuilder {
                     target: .reps(1),
                     restSeconds: restSeconds(for: card, fallback: 180),
                     rpe: rpe(for: card),
-                    notes: "Build toward \(Int(target.rounded()))kg or higher."
+                    notes: "Build toward \(WeightPlatePolicy.formatLoggedWeightWithUnit(target)) or higher."
                 )
             ]
 
@@ -99,7 +99,7 @@ enum WeeklyVowTrainingBuilder {
                 target: .reps(1),
                 restSeconds: restSeconds(for: card, fallback: 180),
                 rpe: rpe(for: card),
-                notes: "Build toward \(Int(target.rounded()))kg or higher on this lift."
+                notes: "Build toward \(WeightPlatePolicy.formatLoggedWeightWithUnit(target)) or higher on this lift."
             )
             guard card.kind == .apex else { return [primary] }
             return Array(([primary] + apexSupport(for: exerciseName, card: card)).prefix(4))

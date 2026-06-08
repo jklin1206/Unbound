@@ -4,6 +4,7 @@ enum ProgramScheduleOccurrenceKind: String, Codable, Hashable, Sendable {
     case saved
     case built
     case extra
+    case rest
 }
 
 struct ProgramScheduleOccurrence: Codable, Identifiable, Hashable, Sendable {
@@ -53,7 +54,8 @@ struct ProgramScheduleOccurrence: Codable, Identifiable, Hashable, Sendable {
     }
 
     var displayTitle: String {
-        title.isEmpty ? "Workout" : title
+        if kind == .rest { return "Rest" }
+        return title.isEmpty ? "Workout" : title
     }
 
     func resolvedDraft(userId: String, programId: String?, dayNumber: Int?, date: Date) -> TrainingSessionDraft? {
@@ -157,6 +159,22 @@ final class ProgramScheduleStore {
                 && (programId == nil || existing.programId == nil || existing.programId == programId)
         }
         occurrences.append(occurrence)
+        save()
+    }
+
+    func clearPrimary(
+        on date: Date,
+        userId: String,
+        programId: String?
+    ) {
+        loadIfNeeded()
+        let day = Calendar.current.startOfDay(for: date)
+        occurrences.removeAll { existing in
+            existing.userId == userId
+                && !existing.isExtraSession
+                && Calendar.current.isDate(existing.date, inSameDayAs: day)
+                && (programId == nil || existing.programId == nil || existing.programId == programId)
+        }
         save()
     }
 

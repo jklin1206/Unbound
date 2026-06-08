@@ -27,7 +27,7 @@ final class PTContextBuilder {
         if !plateaus.isEmpty {
             md += "\n## Plateaus\n"
             for p in plateaus {
-                md += "- \(p.displayName): \(p.stalledSessions) stalled sessions at \(formatWeight(p.currentWeightKg))kg\n"
+                md += "- \(p.displayName): \(p.stalledSessions) stalled sessions at \(formatWeight(p.currentWeightKg))\n"
             }
         }
         if let delta {
@@ -60,7 +60,7 @@ final class PTContextBuilder {
         if !plateaus.isEmpty {
             md += "\n## Plateaus\n"
             for p in plateaus {
-                md += "- \(p.displayName): \(p.stalledSessions) stalled sessions at \(formatWeight(p.currentWeightKg))kg\n"
+                md += "- \(p.displayName): \(p.stalledSessions) stalled sessions at \(formatWeight(p.currentWeightKg))\n"
             }
         }
         if let delta {
@@ -105,7 +105,7 @@ final class PTContextBuilder {
         // Build identity determined by AttributeService, not a legacy archetype field.
         if let f = p.targetFrequency { md += "- Target frequency: \(f.rawValue)\n" }
         if let e = p.experience { md += "- Experience: \(e.rawValue)\n" }
-        if let w = p.weightKg { md += "- Bodyweight: \(formatWeight(w))kg\n" }
+        if let w = p.weightKg { md += "- Bodyweight: \(formatWeight(w))\n" }
         if let h = p.heightCm { md += "- Height: \(Int(h))cm\n" }
         if full {
             if let eq = p.equipment, !eq.isEmpty {
@@ -135,7 +135,7 @@ final class PTContextBuilder {
             for entry in log.exerciseEntries.prefix(5) where !entry.skipped {
                 let top = entry.sets.filter { !$0.isWarmup }.max { ($0.weightKg ?? 0) < ($1.weightKg ?? 0) }
                 if let top, let w = top.weightKg {
-                    md += "    - \(entry.exerciseName): \(formatWeight(w))kg × \(top.reps)"
+                    md += "    - \(entry.exerciseName): \(formatWeight(w)) × \(top.reps)"
                     if let rpe = top.rpe { md += " @\(rpe)" }
                     md += "\n"
                 } else {
@@ -150,14 +150,12 @@ final class PTContextBuilder {
         guard !states.isEmpty else { return "- No progression state yet.\n" }
         var md = ""
         for s in states {
-            md += "- \(s.displayName): \(formatWeight(s.currentWorkingWeightKg))kg × \(s.targetRepMin)-\(s.targetRepMax) @RPE\(s.targetRPE) · \(s.blockType.displayName) wk\(s.weekInBlock) · streak \(s.consecutiveSessionsAtTarget)\n"
+            md += "- \(s.displayName): \(formatWeight(s.currentWorkingWeightKg)) × \(s.targetRepMin)-\(s.targetRepMax) @RPE\(s.targetRPE) · \(s.blockType.displayName) wk\(s.weekInBlock) · streak \(s.consecutiveSessionsAtTarget)\n"
         }
         return md
     }
 
     private func formatWeight(_ v: Double) -> String {
-        v.truncatingRemainder(dividingBy: 1) == 0
-            ? String(format: "%.0f", v)
-            : String(format: "%.1f", v)
+        WeightPlatePolicy.formatLoggedWeightWithUnit(v)
     }
 }

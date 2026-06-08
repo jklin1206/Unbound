@@ -357,7 +357,7 @@ final class OnboardingFlowViewModel {
     // permission prompt, no personal data read; just the region the phone
     // is already registered to. User can flip the toggle on screen.
     var useMetricHeight: Bool = Locale.current.measurementSystem == .metric
-    var useMetricWeight: Bool = Locale.current.measurementSystem == .metric
+    var useMetricWeight: Bool = TrainingWeightUnit.localeDefault == .kilograms
     var experience: Experience? = nil
     var exerciseStyles: Set<ExerciseStyle> = []
     var currentFrequency: Frequency? = nil

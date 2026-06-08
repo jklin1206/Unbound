@@ -104,7 +104,6 @@ private enum ProgramFocusSwitchModeChoice: String, CaseIterable, Identifiable {
     case calisthenics
     case lifting
     case hybrid
-    case machines
 
     var id: String { rawValue }
 
@@ -113,7 +112,6 @@ private enum ProgramFocusSwitchModeChoice: String, CaseIterable, Identifiable {
         case .calisthenics: return .calisthenics
         case .lifting: return .lifting
         case .hybrid: return .hybrid
-        case .machines: return .machines
         }
     }
 
@@ -122,16 +120,14 @@ private enum ProgramFocusSwitchModeChoice: String, CaseIterable, Identifiable {
         case .calisthenics: return "Calisthenics"
         case .lifting: return "Lifting"
         case .hybrid: return "Hybrid"
-        case .machines: return "Machines"
         }
     }
 
     var subtitle: String {
         switch self {
         case .calisthenics: return "Bodyweight-first progressions and skill work."
-        case .lifting: return "Loaded strength with free-weight patterns."
+        case .lifting: return "Weights, cables, and machines based on available gear."
         case .hybrid: return "Skills plus weights in the same block."
-        case .machines: return "Gym machine and cable-biased programming."
         }
     }
 
@@ -140,7 +136,6 @@ private enum ProgramFocusSwitchModeChoice: String, CaseIterable, Identifiable {
         case .calisthenics: return "figure.gymnastics"
         case .lifting: return "figure.strengthtraining.traditional"
         case .hybrid: return "arrow.triangle.2.circlepath"
-        case .machines: return "gearshape.2.fill"
         }
     }
 
@@ -149,7 +144,6 @@ private enum ProgramFocusSwitchModeChoice: String, CaseIterable, Identifiable {
         case .calisthenics: return "exercise_visual_exercise_pullup"
         case .lifting: return "exercise_visual_exercise_back-squat"
         case .hybrid: return "exercise_visual_exercise_weighted-pullup"
-        case .machines: return "exercise_visual_exercise_lat-pulldown"
         }
     }
 
@@ -162,11 +156,9 @@ private enum ProgramFocusSwitchModeChoice: String, CaseIterable, Identifiable {
         case .calisthenics:
             return [.pullupBar, .bands, .dipStation, .rings]
         case .lifting:
-            return [.fullGym, .barbell, .dumbbells, .bench]
+            return [.fullGym, .barbell, .dumbbells, .bench, .machines]
         case .hybrid:
-            return [.fullGym, .barbell, .dumbbells, .bench, .pullupBar, .bands, .dipStation, .rings]
-        case .machines:
-            return [.fullGym, .machines]
+            return [.fullGym, .barbell, .dumbbells, .bench, .machines, .pullupBar, .bands, .dipStation, .rings]
         }
     }
 
@@ -175,7 +167,7 @@ private enum ProgramFocusSwitchModeChoice: String, CaseIterable, Identifiable {
         case .bodyweight: return .calisthenics
         case .freeWeights: return .lifting
         case .hybrid: return .hybrid
-        case .machines: return .machines
+        case .machines: return .lifting
         }
     }
 }
@@ -379,15 +371,12 @@ struct ProgramFocusSwitchSheet: View {
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 16) {
                     header
-                    currentSummary
                     contextControls
                     modePicker
-                    scopePicker
                     setupPicker
                     if selectedMode.needsAbility {
                         abilityPicker
                     }
-                    consequenceCard
                     if let errorMessage {
                         errorRow(errorMessage)
                     }
@@ -401,25 +390,9 @@ struct ProgramFocusSwitchSheet: View {
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("CHANGE TRAINING SETUP")
-                .font(Font.unbound.captionS.weight(.heavy))
-                .tracking(1.8)
-                .foregroundStyle(Color.unbound.coachCyan)
-            Text("Pick the lane.")
-                .font(Font.unbound.titleM)
-                .foregroundStyle(Color.unbound.textPrimary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-    }
-
-    private var currentSummary: some View {
-        let columns = [GridItem(.adaptive(minimum: 122), spacing: 8, alignment: .leading)]
-        return LazyVGrid(columns: columns, alignment: .leading, spacing: 8) {
-            summaryPill(title: currentStyle.displayName, icon: "slider.horizontal.3")
-            summaryPill(title: equipmentLabel(currentEquipment), icon: "wrench.and.screwdriver")
-            summaryPill(title: currentExperience?.displayName ?? "Level unset", icon: "gauge.with.dots.needle.bottom.50percent")
-        }
+        Text("Training setup")
+            .font(Font.unbound.titleM)
+            .foregroundStyle(Color.unbound.textPrimary)
     }
 
     @ViewBuilder
@@ -616,23 +589,6 @@ struct ProgramFocusSwitchSheet: View {
         )
     }
 
-    private func summaryPill(title: String, icon: String) -> some View {
-        HStack(spacing: 6) {
-            Image(systemName: icon)
-                .font(.system(size: 10, weight: .bold))
-            Text(title.uppercased())
-                .font(Font.unbound.captionS.weight(.bold))
-                .tracking(0.8)
-                .lineLimit(1)
-                .minimumScaleFactor(0.72)
-        }
-        .foregroundStyle(Color.unbound.textSecondary)
-        .padding(.horizontal, 10)
-        .frame(height: 30)
-        .background(Capsule().fill(Color.unbound.surface))
-        .overlay(Capsule().strokeBorder(Color.unbound.borderSubtle, lineWidth: 1))
-    }
-
     private func contextControlCard(
         title: String,
         detail: String,
@@ -824,53 +780,6 @@ struct ProgramFocusSwitchSheet: View {
         .disabled(isApplying)
     }
 
-    private var consequenceCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            sectionHeader("EFFECTS")
-            horizontalRail {
-                switch selectedScope {
-                case .todayOnly:
-                    consequenceChip(icon: "sun.max.fill", title: "Today")
-                    consequenceChip(icon: "wrench.and.screwdriver", title: "Gear")
-                    consequenceChip(icon: "clock.arrow.circlepath", title: "Base kept")
-                case .thisWeek:
-                    consequenceChip(icon: "calendar", title: "Week")
-                    consequenceChip(icon: "wrench.and.screwdriver", title: "Gear")
-                    consequenceChip(icon: "clock.arrow.circlepath", title: "Base kept")
-                case .nextBlock:
-                    consequenceChip(icon: "calendar.badge.plus", title: "Queued")
-                    consequenceChip(icon: "clock.arrow.circlepath", title: "Current kept")
-                    consequenceChip(icon: "wrench.and.screwdriver", title: "Gear")
-                case .ongoing:
-                    consequenceChip(icon: "arrow.triangle.2.circlepath", title: "Rebuild")
-                    consequenceChip(icon: "person.crop.circle.badge.checkmark", title: "Profile")
-                    consequenceChip(icon: "lock.shield", title: "Protected")
-                }
-                if selectedMode.needsAbility {
-                    consequenceChip(icon: "target", title: selectedAbility.title)
-                }
-            }
-        }
-    }
-
-    private func consequenceChip(icon: String, title: String) -> some View {
-        HStack(spacing: 7) {
-            Image(systemName: icon)
-                .font(.system(size: 11, weight: .bold))
-                .foregroundStyle(Color.unbound.coachCyan)
-            Text(title.uppercased())
-                .font(Font.unbound.captionS.weight(.bold))
-                .tracking(0.8)
-                .foregroundStyle(Color.unbound.textPrimary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.76)
-        }
-        .padding(.horizontal, 11)
-        .frame(height: 34)
-        .background(Capsule().fill(Color.unbound.surface))
-        .overlay(Capsule().strokeBorder(Color.unbound.borderSubtle, lineWidth: 1))
-    }
-
     private func errorRow(_ message: String) -> some View {
         HStack(alignment: .top, spacing: 8) {
             Image(systemName: "exclamationmark.triangle.fill")
@@ -893,7 +802,9 @@ struct ProgramFocusSwitchSheet: View {
     }
 
     private var actions: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 12) {
+            scopePicker
+
             Button {
                 onApply(selection)
             } label: {
@@ -945,7 +856,7 @@ struct ProgramFocusSwitchSheet: View {
             case .nextBlock:
                 return "QUEUING"
             case .ongoing:
-                return "REBUILDING BLOCK"
+                return "REBUILDING ACTIVE BLOCK"
             }
         }
         switch selectedScope {
@@ -956,7 +867,7 @@ struct ProgramFocusSwitchSheet: View {
         case .nextBlock:
             return "QUEUE NEXT BLOCK"
         case .ongoing:
-            return "REBUILD BLOCK"
+            return "REBUILD ACTIVE BLOCK"
         }
     }
 

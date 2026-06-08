@@ -106,9 +106,14 @@ extension Step_Verdict {
         UnboundCard {
             VStack(alignment: .leading, spacing: 14) {
                 HStack(spacing: 10) {
-                    Image(systemName: "doc.text.fill")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(Color.unbound.ember)
+                    OnboardingAssetGlyph(
+                        assetName: "onboarding_path_protocol_dossier",
+                        tint: Color.unbound.ember,
+                        size: 28,
+                        imagePadding: 5,
+                        shape: .hexagon,
+                        showsCornerMark: false
+                    )
                     Text(L10n.onboarding("verdict.dossier.title", defaultValue: "YOUR BUILD DOSSIER"))
                         .font(Font.unbound.captionS)
                         .tracking(1.4)
@@ -223,8 +228,10 @@ extension Step_Verdict {
                 FlexibleWrap(spacing: 8) {
                     ForEach(focusAreas, id: \.self) { area in
                         HStack(spacing: 6) {
-                            Image(systemName: "target")
-                                .font(.system(size: 10, weight: .semibold))
+                            Image("onboarding_path_rank_gates")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 15, height: 15)
                             Text(area)
                                 .font(Font.unbound.bodyS)
                         }
@@ -277,8 +284,8 @@ extension Step_Verdict {
                 Divider().background(Color.unbound.borderSubtle)
 
                 HStack(spacing: 12) {
-                    statChip(icon: "calendar", value: "\(sessionsPerWeek)", label: L10n.onboarding("verdict.protocol.sessionsPerWeek", defaultValue: "sessions / week"))
-                    statChip(icon: "clock", value: "\(sessionMinutes)", label: L10n.onboarding("verdict.protocol.minutesPerSession", defaultValue: "min / session"))
+                    statChip(assetName: "badge_art_arc_week", value: "\(sessionsPerWeek)", label: L10n.onboarding("verdict.protocol.sessionsPerWeek", defaultValue: "sessions / week"))
+                    statChip(assetName: "badge_art_hour_glass", value: "\(sessionMinutes)", label: L10n.onboarding("verdict.protocol.minutesPerSession", defaultValue: "min / session"))
                 }
             }
         }
@@ -306,11 +313,16 @@ extension Step_Verdict {
         }
     }
 
-    func statChip(icon: String, value: String, label: String) -> some View {
+    func statChip(assetName: String, value: String, label: String) -> some View {
         HStack(spacing: 8) {
-            Image(systemName: icon)
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(Color.unbound.accent)
+            OnboardingAssetGlyph(
+                assetName: assetName,
+                tint: Color.unbound.accent,
+                size: 24,
+                imagePadding: 5,
+                shape: .hexagon,
+                showsCornerMark: false
+            )
             Text(value)
                 .font(Font.unbound.monoM)
                 .foregroundStyle(Color.unbound.textPrimary)

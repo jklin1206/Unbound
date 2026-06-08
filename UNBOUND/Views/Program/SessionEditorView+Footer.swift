@@ -2,7 +2,7 @@ import SwiftUI
 
 extension SessionEditorView {
     var bottomStartBar: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 9) {
             HStack(spacing: 8) {
                 Text(showsPersistenceControls ? selectedPersistence.displayName.uppercased() : mode.footerLabel)
                     .font(Font.unbound.captionS.weight(.heavy))
@@ -13,6 +13,7 @@ extension SessionEditorView {
                     .font(Font.unbound.captionS)
                     .foregroundStyle(Color.unbound.textTertiary)
             }
+            bottomAddExerciseButton
             startSessionButton(height: 52)
         }
         .padding(.horizontal, 20)

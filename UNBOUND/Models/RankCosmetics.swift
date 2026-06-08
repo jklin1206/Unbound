@@ -163,7 +163,16 @@ enum RankCosmetics {
         // Persist the case-name token (the legacy on-disk format) so old blobs
         // round-trip; reads go through RankTier.fromToken.
         UserDefaults.standard.set(tier.token, forKey: keyPrefix + userId)
+        NotificationCenter.default.post(
+            name: .profileCosmeticsChanged,
+            object: nil,
+            userInfo: ["userId": userId]
+        )
     }
+}
+
+extension Notification.Name {
+    static let profileCosmeticsChanged = Notification.Name("unbound.profileCosmeticsChanged")
 }
 
 // MARK: - SwiftUI helpers

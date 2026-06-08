@@ -30,7 +30,7 @@ final class SupabaseUserService: UserServiceProtocol, @unchecked Sendable {
 
     func createUserIfNeeded(userId: String, email: String?) async throws -> UserProfile {
         #if DEBUG
-        if userId == "dev-player" {
+        if Self.isLocalDebugUser(userId) {
             return try await local.createUserIfNeeded(userId: userId, email: email)
         }
         #endif
@@ -63,7 +63,7 @@ final class SupabaseUserService: UserServiceProtocol, @unchecked Sendable {
 
     func fetchProfile(userId: String) async throws -> UserProfile {
         #if DEBUG
-        if userId == "dev-player" {
+        if Self.isLocalDebugUser(userId) {
             return try await local.fetchProfile(userId: userId)
         }
         #endif
@@ -87,7 +87,7 @@ final class SupabaseUserService: UserServiceProtocol, @unchecked Sendable {
 
     func updateProfile(userId: String, fields: [String: Any]) async throws {
         #if DEBUG
-        if userId == "dev-player" {
+        if Self.isLocalDebugUser(userId) {
             try await local.updateProfile(userId: userId, fields: fields)
             return
         }
@@ -110,6 +110,13 @@ final class SupabaseUserService: UserServiceProtocol, @unchecked Sendable {
     // MARK: - deleteUserData
 
     func deleteUserData(userId: String) async throws {
+        #if DEBUG
+        if Self.isLocalDebugUser(userId) {
+            try await local.deleteUserData(userId: userId)
+            return
+        }
+        #endif
+
         do {
             // Foreign-key cascades on programs / workout_logs / scans /
             // analyses / progress drop child rows automatically.
@@ -159,6 +166,12 @@ final class SupabaseUserService: UserServiceProtocol, @unchecked Sendable {
         "currentBodyType":       "current_body_type",
         "cutMode":               "cut_mode"
     ]
+
+    #if DEBUG
+    private static func isLocalDebugUser(_ userId: String) -> Bool {
+        userId == "dev-player" || userId.hasPrefix("dev-player-")
+    }
+    #endif
 
     static func mapFieldsToSnakeCase(_ fields: [String: Any]) -> [String: Any] {
         var out: [String: Any] = [:]

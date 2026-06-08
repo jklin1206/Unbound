@@ -77,7 +77,7 @@ extension TravelDay {
         let main = exercises.map(Self.exercise)
         let groups = orderedGroups(from: main)
         let warmup = Self.warmup(for: title)
-        let cooldown = Self.cooldown(for: title)
+        let cooldown: [Exercise] = []
 
         return Workout(
             name: title,
@@ -113,23 +113,12 @@ extension TravelDay {
         if lower.contains("push") {
             return [
                 supportExercise("Scap Pushup", groups: [.chest, .shoulders, .back], reps: "10", notes: "Wake up shoulders."),
-                supportExercise("Wrist Prep Flow", groups: [.forearms], reps: "45s", notes: "Prep hands and wrists.")
+                supportExercise("Wrist Prep", groups: [.forearms], reps: "45s", notes: "Prep hands and wrists.")
             ]
         }
         return [
-            supportExercise("World's Greatest Stretch", groups: [.legs, .glutes, .back, .core], reps: "45s", notes: "Full-body prep."),
+            supportExercise("Hip Opener Flow", groups: [.legs, .glutes, .back, .core], reps: "45s", notes: "Full-body prep."),
             supportExercise("Jumping Jack", groups: [.legs, .calves, .shoulders], reps: "45s", notes: "Easy pulse raise.")
-        ]
-    }
-
-    private static func cooldown(for title: String) -> [Exercise] {
-        let lower = title.lowercased()
-        let stretch = lower.contains("leg")
-            ? supportExercise("Couch Stretch", groups: [.legs, .glutes], reps: "45s", notes: "Hip flexor reset.")
-            : supportExercise("Child's Pose Reach", groups: [.back, .lats, .shoulders], reps: "45s", notes: "Easy reset.")
-        return [
-            stretch,
-            supportExercise("Box Breathing", groups: [.core], reps: "60s", notes: "Downshift before you leave.")
         ]
     }
 
@@ -202,8 +191,8 @@ extension TravelDay {
             muscleGroups: groups,
             sets: 1,
             reps: reps,
-            restSeconds: 20,
-            rpe: 5,
+            restSeconds: 0,
+            rpe: nil,
             notes: notes,
             substitution: nil
         )

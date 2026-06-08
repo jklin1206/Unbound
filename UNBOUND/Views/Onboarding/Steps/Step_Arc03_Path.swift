@@ -38,7 +38,7 @@ struct Step_Arc03_Path: View {
                         .lineLimit(2)
                         .minimumScaleFactor(0.85)
 
-                    Text(L10n.onboarding("arcPath.subtitle", defaultValue: "Every rep moves the ladder."))
+                    Text(L10n.onboarding("arcPath.subtitle", defaultValue: "Every session becomes proof, so strength, control, and consistency stop feeling invisible."))
                         .font(Font.unbound.bodyM)
                         .foregroundStyle(Color.unbound.textSecondary)
                         .multilineTextAlignment(.center)

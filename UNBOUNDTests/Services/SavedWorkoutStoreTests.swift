@@ -48,6 +48,19 @@ final class SavedWorkoutStoreTests: XCTestCase {
         XCTAssertEqual(reloaded.get(id: workout.id)?.blocks.first?.prescriptions.first?.exerciseName, "Pull-Up")
     }
 
+    func testSaveRoundTripsReferenceExerciseName() {
+        let url = tempFileURL()
+        let store = SavedWorkoutStore(fileURL: url)
+        var workout = sampleWorkout(title: "Pull Visual", role: "pull")
+        workout.referenceExerciseName = "Pull-Up"
+
+        store.save(workout)
+
+        let reloaded = SavedWorkoutStore(fileURL: url)
+        XCTAssertEqual(reloaded.get(id: workout.id)?.referenceExerciseName, "Pull-Up")
+        XCTAssertEqual(reloaded.get(id: workout.id)?.effectiveReferenceExerciseName, "Pull-Up")
+    }
+
     func testSaveIsIdempotentByID() {
         let url = tempFileURL()
         let store = SavedWorkoutStore(fileURL: url)

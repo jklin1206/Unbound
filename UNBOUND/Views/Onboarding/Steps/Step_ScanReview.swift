@@ -45,10 +45,14 @@ struct Step_ScanReview: View {
                         .resizable()
                         .scaledToFill()
                 } else {
-                    Image(systemName: "photo")
-                        .font(.system(size: 48, weight: .ultraLight))
-                        .foregroundStyle(Color.unbound.textTertiary)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    OnboardingAssetGlyph(
+                        assetName: "badge_art_first_scan",
+                        tint: Color.unbound.accent,
+                        size: 92,
+                        imagePadding: 10,
+                        shape: .hexagon
+                    )
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             }
             .frame(maxWidth: .infinity)
@@ -83,9 +87,14 @@ struct Step_ScanReview: View {
 
     private var privacyPill: some View {
         HStack(spacing: 10) {
-            Image(systemName: "lock.shield.fill")
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(Color.unbound.accent)
+            OnboardingAssetGlyph(
+                assetName: "badge_art_first_photo",
+                tint: Color.unbound.accent,
+                size: 30,
+                imagePadding: 5,
+                shape: .hexagon,
+                showsCornerMark: false
+            )
             VStack(alignment: .leading, spacing: 2) {
                 Text(L10n.onboarding("scanReview.privacy.title", defaultValue: "Private by default"))
                     .font(Font.unbound.bodyMStrong)

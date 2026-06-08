@@ -4,7 +4,7 @@ struct OnboardingHowItWorksView: View {
     let onNext: () -> Void
 
     private struct Step {
-        let icon: String
+        let assetName: String
         let title: String
         let description: String
     }
@@ -12,17 +12,17 @@ struct OnboardingHowItWorksView: View {
     private var steps: [Step] {
         [
             Step(
-                icon: "camera.fill",
+                assetName: "badge_art_first_scan",
                 title: L10n.onboarding("howItWorks.step.photos.title", defaultValue: "Take 3 Photos"),
                 description: L10n.onboarding("howItWorks.step.photos.description", defaultValue: "Front, side, and back — we'll guide you")
             ),
             Step(
-                icon: "chart.bar.fill",
+                assetName: "badge_art_proof_10",
                 title: L10n.onboarding("howItWorks.step.report.title", defaultValue: "Get Your Monthly Recap"),
                 description: L10n.onboarding("howItWorks.step.report.description", defaultValue: "Monthly recaps summarize validated progress signals")
             ),
             Step(
-                icon: "dumbbell.fill",
+                assetName: "onboarding_path_protocol_dossier",
                 title: L10n.onboarding("howItWorks.step.program.title", defaultValue: "Follow Your Program"),
                 description: L10n.onboarding("howItWorks.step.program.description", defaultValue: "Custom training, nutrition, and recovery plan")
             )
@@ -49,9 +49,12 @@ struct OnboardingHowItWorksView: View {
                                     .fill(Color.theme.primary.opacity(0.15))
                                     .frame(width: 52, height: 52)
 
-                                Image(systemName: step.icon)
-                                    .font(.system(size: 22, weight: .medium))
-                                    .foregroundColor(.theme.primary)
+                                Image(step.assetName)
+                                    .resizable()
+                                    .scaledToFit()
+                                    .padding(8)
+                                    .frame(width: 52, height: 52)
+                                    .shadow(color: Color.unbound.accent.opacity(0.32), radius: 8)
                             }
 
                             VStack(alignment: .leading, spacing: 4) {

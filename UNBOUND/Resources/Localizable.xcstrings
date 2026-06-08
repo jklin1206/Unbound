@@ -3693,7 +3693,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Every rep moves the ladder."
+            "value" : "Every session becomes proof, so strength, control, and consistency stop feeling invisible."
           }
         }
       }
@@ -5181,7 +5181,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Most apps leave you guessing. UNBOUND turns the guesswork into a daily mission, proof, and a rank gate."
+            "value" : "Random workouts, invisible progress, and missed weeks make it too easy to lose the arc."
           }
         }
       }
@@ -5217,7 +5217,79 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "This is why plans break."
+            "value" : "THE PAIN POINTS"
+          }
+        }
+      }
+    },
+    "onboarding.problemOpening.pain.guesswork.detail" : {
+      "comment" : "Onboarding screen copy.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You still have to decide what matters today."
+          }
+        }
+      }
+    },
+    "onboarding.problemOpening.pain.guesswork.title" : {
+      "comment" : "Onboarding screen copy.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Guesswork"
+          }
+        }
+      }
+    },
+    "onboarding.problemOpening.pain.proof.detail" : {
+      "comment" : "Onboarding screen copy.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Strength changes, but the progress feels invisible."
+          }
+        }
+      }
+    },
+    "onboarding.problemOpening.pain.proof.title" : {
+      "comment" : "Onboarding screen copy.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No proof"
+          }
+        }
+      }
+    },
+    "onboarding.problemOpening.pain.restart.detail" : {
+      "comment" : "Onboarding screen copy.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A busy week can turn into starting over."
+          }
+        }
+      }
+    },
+    "onboarding.problemOpening.pain.restart.title" : {
+      "comment" : "Onboarding screen copy.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restart loop"
           }
         }
       }
@@ -5241,7 +5313,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Your stats aren't there yet."
+            "value" : "You shouldn't have to guess your way through training."
           }
         }
       }
@@ -5266,6 +5338,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "BUILD PREVIEW"
+          }
+        }
+      }
+    },
+    "onboarding.restartLoop.subtitle" : {
+      "comment" : "Onboarding screen copy.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "UNBOUND maps the daily mission around your time, gear, and obstacles, so a rough week doesn't erase the path."
           }
         }
       }

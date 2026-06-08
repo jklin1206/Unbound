@@ -47,4 +47,33 @@ final class ProgramScheduleStoreTests: XCTestCase {
         XCTAssertEqual(store.primaryOccurrence(on: date, userId: "u1", programId: "p1")?.title, "Built Push")
         XCTAssertEqual(sameDay.filter(\.isExtraSession).count, 1)
     }
+
+    func testClearPrimaryRemovesOnlyPrimaryOccurrence() {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("program-schedule-\(UUID().uuidString)", isDirectory: true)
+        let store = ProgramScheduleStore(directory: directory)
+        let date = Date(timeIntervalSince1970: 1_780_000_000)
+        let rest = ProgramScheduleOccurrence(
+            userId: "u1",
+            programId: "p1",
+            date: date,
+            kind: .rest,
+            title: "Rest"
+        )
+        let extra = ProgramScheduleOccurrence(
+            userId: "u1",
+            programId: "p1",
+            date: date,
+            kind: .extra,
+            title: "Extra Session"
+        )
+
+        store.replacePrimary(on: date, userId: "u1", programId: "p1", with: rest)
+        store.upsert(extra)
+        store.clearPrimary(on: date, userId: "u1", programId: "p1")
+
+        XCTAssertNil(store.primaryOccurrence(on: date, userId: "u1", programId: "p1"))
+        XCTAssertEqual(store.occurrences(on: date, userId: "u1", programId: "p1").count, 1)
+        XCTAssertEqual(store.occurrences(on: date, userId: "u1", programId: "p1").first?.kind, .extra)
+    }
 }

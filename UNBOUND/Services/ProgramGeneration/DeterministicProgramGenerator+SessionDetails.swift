@@ -15,32 +15,32 @@ extension DeterministicProgramGenerator {
         switch template {
         case .push:
             base = [
-                warmupExercise("Shoulder Dislocates", groups: [.shoulders, .chest, .back], reps: "45s"),
+                warmupExercise("Shoulder Opener", groups: [.shoulders, .chest, .back], reps: "45s"),
                 warmupExercise("Incline Pushup", groups: [.chest, .shoulders, .arms, .core], reps: "8")
             ]
         case .pull:
             base = [
-                warmupExercise("Shoulder Dislocates", groups: [.shoulders, .back], reps: "45s"),
-                warmupExercise("Band Row", groups: [.back, .lats, .arms], reps: "12")
+                warmupExercise("Shoulder Opener", groups: [.shoulders, .back], reps: "45s"),
+                warmupExercise("Hollow Hold", groups: [.core], reps: "20s")
             ]
         case .legs, .lower:
             base = [
-                warmupExercise("World's Greatest Stretch", groups: [.legs, .glutes, .back, .core], reps: "45s"),
+                warmupExercise("Hip Opener Flow", groups: [.legs, .glutes, .back, .core], reps: "45s"),
                 warmupExercise("Bodyweight Squat", groups: [.legs, .glutes, .core], reps: "10")
             ]
         case .upper:
             base = [
-                warmupExercise("Shoulder Dislocates", groups: [.shoulders, .chest, .back], reps: "45s"),
-                warmupExercise("Band Row", groups: [.back, .lats, .arms], reps: "12")
+                warmupExercise("Shoulder Opener", groups: [.shoulders, .chest, .back], reps: "45s"),
+                warmupExercise("Hollow Hold", groups: [.core], reps: "20s")
             ]
         case .fullBody, .weakPoint:
             base = [
-                warmupExercise("World's Greatest Stretch", groups: [.legs, .glutes, .back, .core], reps: "45s"),
+                warmupExercise("Hip Opener Flow", groups: [.legs, .glutes, .back, .core], reps: "45s"),
                 warmupExercise("Incline Pushup", groups: [.chest, .shoulders, .arms, .core], reps: "8")
             ]
         case .skill:
             base = [
-                warmupExercise("Wrist Prep Flow", groups: [.forearms], reps: "45s"),
+                warmupExercise("Wrist Prep", groups: [.forearms], reps: "45s"),
                 warmupExercise("Hollow Hold", groups: [.core], reps: "20s")
             ]
         case .rest:
@@ -57,27 +57,27 @@ extension DeterministicProgramGenerator {
         switch template {
         case .legs, .lower:
             return [
-                warmupExercise("World's Greatest Stretch", groups: [.legs, .glutes, .back, .core], reps: "45s"),
+                warmupExercise("Hip Opener Flow", groups: [.legs, .glutes, .back, .core], reps: "45s"),
                 warmupExercise("Bodyweight Squat", groups: [.legs, .glutes, .core], reps: "10")
             ]
         case .push:
             return [
-                warmupExercise("Wrist Prep Flow", groups: [.forearms], reps: "45s"),
-                warmupExercise("Pushup Plank", groups: [.chest, .shoulders, .arms, .core], reps: "20s")
+                warmupExercise("Wrist Prep", groups: [.forearms], reps: "45s"),
+                warmupExercise("High Plank", groups: [.chest, .shoulders, .arms, .core], reps: "20s")
             ]
         case .pull, .upper:
             return [
-                warmupExercise("Prone Y-T-W", groups: [.back, .shoulders], reps: "8"),
+                warmupExercise("Prone Shoulder Raise", groups: [.back, .shoulders], reps: "8"),
                 warmupExercise("Hollow Hold", groups: [.core], reps: "20s")
             ]
         case .fullBody, .weakPoint:
             return [
-                warmupExercise("World's Greatest Stretch", groups: [.legs, .glutes, .back, .core], reps: "45s"),
+                warmupExercise("Hip Opener Flow", groups: [.legs, .glutes, .back, .core], reps: "45s"),
                 warmupExercise("Glute Bridge", groups: [.glutes, .legs, .core], reps: "10")
             ]
         case .skill:
             return [
-                warmupExercise("Wrist Prep Flow", groups: [.forearms], reps: "45s"),
+                warmupExercise("Wrist Prep", groups: [.forearms], reps: "45s"),
                 warmupExercise("Hollow Hold", groups: [.core], reps: "20s")
             ]
         case .rest:
@@ -102,60 +102,8 @@ extension DeterministicProgramGenerator {
         return warmupExercises(for: .fullBody, input: input)
     }
 
-    static func cooldownExercises(for template: DayTemplate, blockType: BlockType) -> [Exercise] {
-        let breathing = warmupExercise(
-            "90/90 Breathing Reset",
-            groups: [.core],
-            reps: "60s",
-            restSeconds: 0,
-            notes: "Downshift before you leave."
-        )
-
-        let stretch: Exercise
-        switch template {
-        case .push, .upper:
-            stretch = warmupExercise(
-                "Doorway Pec Stretch",
-                groups: [.chest, .shoulders],
-                reps: "45s",
-                restSeconds: 0,
-                notes: "Open the front line."
-            )
-        case .pull:
-            stretch = warmupExercise(
-                "Child's Pose Lat Reach",
-                groups: [.back, .lats],
-                reps: "45s",
-                restSeconds: 0,
-                notes: "Easy lat reset."
-            )
-        case .legs, .lower:
-            stretch = warmupExercise(
-                "Couch Stretch",
-                groups: [.legs, .glutes],
-                reps: "45s",
-                restSeconds: 0,
-                notes: "Hip flexor reset."
-            )
-        case .skill:
-            stretch = warmupExercise(
-                "Wrist Flexor Stretch",
-                groups: [.forearms],
-                reps: "45s",
-                restSeconds: 0,
-                notes: "Unload the wrists."
-            )
-        case .fullBody, .weakPoint, .rest:
-            stretch = warmupExercise(
-                "World's Greatest Stretch",
-                groups: [.legs, .glutes, .back, .core],
-                reps: "45s",
-                restSeconds: 0,
-                notes: "Full-body reset."
-            )
-        }
-
-        return blockType == .deload ? [stretch, breathing] : [breathing, stretch]
+    static func cooldownExercises(for _: DayTemplate, blockType _: BlockType) -> [Exercise] {
+        []
     }
 
     static func rampWarmupExercise(for template: DayTemplate) -> Exercise? {
@@ -176,7 +124,7 @@ extension DeterministicProgramGenerator {
         groups: [MuscleGroup],
         sets: Int = 1,
         reps: String,
-        restSeconds: Int = 30,
+        restSeconds: Int = 0,
         notes: String? = "Prep work."
     ) -> Exercise {
         Exercise(
@@ -186,7 +134,7 @@ extension DeterministicProgramGenerator {
             sets: sets,
             reps: reps,
             restSeconds: restSeconds,
-            rpe: 5,
+            rpe: nil,
             notes: notes,
             substitution: nil
         )

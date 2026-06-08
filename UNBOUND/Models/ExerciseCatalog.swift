@@ -226,7 +226,7 @@ enum ExerciseCatalog {
             .init(name: "close grip lat pulldown", displayName: "Close-Grip Lat Pulldown", muscleGroups: [.back, .lats, .arms], defaultSubstitute: "lat pulldown"),
             .init(name: "reverse grip lat pulldown", displayName: "Reverse-Grip Lat Pulldown", muscleGroups: [.back, .lats, .arms], defaultSubstitute: "lat pulldown"),
             .init(name: "wide grip pullup", displayName: "Wide-Grip Pull-Up", muscleGroups: [.back, .lats, .arms], defaultSubstitute: "pullup", progressionFamily: "pull", progressionTier: 5),
-            .init(name: "weighted pullup", displayName: "Weighted Pull-Up (5kg)", muscleGroups: [.back, .lats, .arms], defaultSubstitute: "pullup", progressionFamily: "pull", progressionTier: 6),
+            .init(name: "weighted pullup", displayName: "Weighted Pull-Up", muscleGroups: [.back, .lats, .arms], defaultSubstitute: "pullup", progressionFamily: "pull", progressionTier: 6),
             .init(name: "banded muscle-up", displayName: "Banded Muscle-Up", muscleGroups: [.back, .lats, .arms, .chest, .core], defaultSubstitute: "chest-to-bar pullup", progressionFamily: "pull", progressionTier: 8),
             .init(name: "low-bar muscle-up transition", displayName: "Low-Bar Muscle-Up Transition", muscleGroups: [.back, .lats, .arms, .chest, .core], defaultSubstitute: "banded muscle-up", progressionFamily: "pull", progressionTier: 9),
             .init(name: "assisted turnover freeze", displayName: "Assisted Turnover Freeze", muscleGroups: [.back, .lats, .arms, .chest, .core], defaultSubstitute: "low-bar muscle-up transition", progressionFamily: "pull", progressionTier: 10),
@@ -234,7 +234,7 @@ enum ExerciseCatalog {
             .init(name: "lat pulldown", displayName: "Lat Pulldown (Bar)", muscleGroups: [.back, .lats, .arms], defaultSubstitute: "pullup"),
             .init(name: "single arm pulldown", displayName: "Single-Arm Pulldown", muscleGroups: [.back, .lats, .arms], defaultSubstitute: "lat pulldown"),
             .init(name: "straight arm pulldown", displayName: "Straight-Arm Pulldown", muscleGroups: [.lats], defaultSubstitute: "lat pulldown"),
-            .init(name: "band lat pull", displayName: "Band Lat Pull", muscleGroups: [.back, .lats, .arms], defaultSubstitute: "band row"),
+            .init(name: "band lat pull", displayName: "Band Lat Pulldown", muscleGroups: [.back, .lats, .arms], defaultSubstitute: "band row"),
             .init(name: "machine pullover", displayName: "Machine Pullover", muscleGroups: [.lats, .back], defaultSubstitute: "straight arm pulldown"),
             .init(name: "chest-to-bar pullup", displayName: "Chest-to-Bar Pullup", muscleGroups: [.back, .lats, .arms], defaultSubstitute: "pullup")
         ],

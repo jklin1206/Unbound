@@ -106,6 +106,39 @@ actor DatabaseService: DatabaseServiceProtocol {
         }
     }
 
+    @discardableResult
+    func deleteWhere(collection: String, field: String, isEqualTo value: Any) async throws -> Int {
+        let collectionURL = rootURL.appendingPathComponent(collection, isDirectory: true)
+        guard fm.fileExists(atPath: collectionURL.path) else { return 0 }
+
+        let files = (try? fm.contentsOfDirectory(at: collectionURL, includingPropertiesForKeys: nil)) ?? []
+        let jsonFiles = files.filter { $0.pathExtension == "json" }
+        var deletedCount = 0
+
+        for url in jsonFiles {
+            guard let data = try? Data(contentsOf: url),
+                  let raw = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  valuesEqual(raw[field], value)
+            else {
+                continue
+            }
+
+            do {
+                try fm.removeItem(at: url)
+                deletedCount += 1
+            } catch {
+                logger.log(
+                    "DB deleteWhere failed: \(error)",
+                    level: .error,
+                    context: ["collection": collection, "field": field]
+                )
+                throw AppError.databaseWriteFailed(underlying: error)
+            }
+        }
+
+        return deletedCount
+    }
+
     func query<T: Codable>(
         collection: String,
         field: String,

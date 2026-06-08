@@ -21,6 +21,19 @@ final class TrainingWeightPolicyTests: XCTestCase {
         )
     }
 
+    func testFormattedWeightWithUnitUsesSelectedUnitLabel() {
+        let kilograms = TrainingWeightUnit.pounds.kilograms(fromDisplayValue: 225)
+
+        XCTAssertEqual(
+            WeightPlatePolicy.formatLoggedWeightWithUnit(kilograms, unit: .pounds, separator: " "),
+            "225 lb"
+        )
+        XCTAssertEqual(
+            WeightPlatePolicy.formatLoggedWeightWithUnit(kilograms, unit: .kilograms, separator: " "),
+            "102.1 kg"
+        )
+    }
+
     func testPoundSuggestionsSnapToLoadableNumbers() {
         let oddPounds = TrainingWeightUnit.pounds.kilograms(fromDisplayValue: 88)
 

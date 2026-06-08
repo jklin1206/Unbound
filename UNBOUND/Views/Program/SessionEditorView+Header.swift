@@ -44,136 +44,61 @@ extension SessionEditorView {
     }
 
     var builderHeader: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .top, spacing: 12) {
-                VStack(alignment: .leading, spacing: 7) {
-                    Text(mode.summaryEyebrow)
-                        .font(Font.unbound.captionS.weight(.heavy))
-                        .tracking(1.5)
-                        .foregroundStyle(Color.unbound.coachCyan)
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 12) {
+                WorkoutReferenceImageView(
+                    exerciseName: draft.effectiveReferenceExerciseName,
+                    fallbackSystemName: "dumbbell.fill",
+                    fallbackTint: Color.unbound.accent
+                )
+                .frame(width: 58, height: 58)
 
-                    TextField("Workout name", text: $draft.title)
-                        .font(Font.unbound.titleM)
-                        .foregroundStyle(Color.unbound.textPrimary)
-                        .textInputAutocapitalization(.words)
-                        .submitLabel(.done)
-                        .padding(.horizontal, 10)
-                        .frame(minHeight: 42)
-                        .background(
-                            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                .fill(Color.unbound.bg.opacity(0.74))
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
-                        )
-                        .accessibilityIdentifier("sessionEditor.workoutName")
-                }
-
-                VStack(alignment: .trailing, spacing: 6) {
-                    compactMetric("\(exerciseCount)", "EXERCISES")
-                    compactMetric("~\(draft.estimatedMinutes)M", "TIME")
-                }
-            }
-
-            HStack(spacing: 8) {
-                builderActionButton("Add Exercise", systemName: "plus", tint: Color.unbound.accent) {
-                    UnboundHaptics.soft()
-                    openAddExercise()
-                }
-                .accessibilityIdentifier("sessionEditor.addExercise")
-
-                if mode.showsSaveWorkoutAction {
-                    iconActionButton(systemName: "square.and.arrow.down", tint: Color.unbound.coachCyan) {
-                        guard exerciseCount > 0 else {
-                            showEmptyWorkoutWarning = true
-                            return
-                        }
-                        UnboundHaptics.soft()
-                        showSaveWorkoutSheet = true
-                    }
-                    .accessibilityIdentifier("sessionEditor.saveWorkout")
-                    .accessibilityLabel("Save workout")
-                }
-
-                iconActionButton(systemName: "sparkles", tint: Color.unbound.accent) {
-                    UnboundHaptics.soft()
-                    showSkillBlockPicker = true
-                }
-                .accessibilityIdentifier("sessionEditor.addSkillBlock")
-                .accessibilityLabel("Add skill block")
+                TextField("Workout name", text: $draft.title)
+                    .font(Font.unbound.titleM)
+                    .foregroundStyle(Color.unbound.textPrimary)
+                    .textInputAutocapitalization(.words)
+                    .submitLabel(.done)
+                    .padding(.horizontal, 12)
+                    .frame(minHeight: 48)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(Color.unbound.surface)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
+                    )
+                    .accessibilityIdentifier("sessionEditor.workoutName")
             }
         }
-        .padding(12)
-        .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color.unbound.surface)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .strokeBorder(Color.unbound.coachCyan.opacity(0.22), lineWidth: 1)
-        )
     }
 
-    func compactMetric(_ value: String, _ label: String) -> some View {
-        VStack(alignment: .trailing, spacing: 1) {
-            Text(value)
-                .font(Font.unbound.monoM.weight(.bold))
-                .foregroundStyle(Color.unbound.textPrimary)
-            Text(label)
-                .font(Font.unbound.captionS)
-                .tracking(0.8)
-                .foregroundStyle(Color.unbound.textTertiary)
-        }
-        .frame(minWidth: 70, alignment: .trailing)
-    }
-
-    func builderActionButton(
-        _ title: String,
-        systemName: String,
-        tint: Color,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
-            Label(title, systemImage: systemName)
-                .font(Font.unbound.bodyS.weight(.heavy))
-                .foregroundStyle(Color.unbound.textPrimary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.76)
-                .frame(maxWidth: .infinity)
-                .frame(height: 42)
-                .background(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(tint.opacity(0.18))
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .strokeBorder(tint.opacity(0.36), lineWidth: 1)
-                )
+    var bottomAddExerciseButton: some View {
+        Button {
+            UnboundHaptics.soft()
+            openAddExercise()
+        } label: {
+            HStack(spacing: 9) {
+                Image(systemName: "plus")
+                    .font(.system(size: 13, weight: .bold))
+                Text("ADD EXERCISE")
+                    .font(Font.unbound.bodyS.weight(.heavy))
+                    .tracking(1.1)
+            }
+            .foregroundStyle(Color.unbound.textPrimary)
+            .frame(maxWidth: .infinity)
+            .frame(height: 46)
+            .background(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(Color.unbound.surfaceElevated)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .strokeBorder(Color.unbound.accent.opacity(0.36), lineWidth: 1)
+            )
         }
         .buttonStyle(.plain)
-    }
-
-    func iconActionButton(
-        systemName: String,
-        tint: Color,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
-            Image(systemName: systemName)
-                .font(.system(size: 15, weight: .bold))
-                .foregroundStyle(tint)
-                .frame(width: 42, height: 42)
-                .background(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(tint.opacity(0.12))
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .strokeBorder(tint.opacity(0.26), lineWidth: 1)
-                )
-        }
-        .buttonStyle(.plain)
+        .accessibilityIdentifier("sessionEditor.addExercise")
     }
 
     var compactPersistenceStrip: some View {
@@ -251,4 +176,37 @@ extension SessionEditorView {
         .accessibilityLabel(mode.isImplemented ? mode.displayName : "\(mode.displayName) coming soon")
     }
 
+}
+
+struct WorkoutReferenceImageView: View {
+    let exerciseName: String?
+    let fallbackSystemName: String
+    let fallbackTint: Color
+
+    private var definition: MovementDefinition? {
+        guard let exerciseName else { return nil }
+        let resolved = MovementResolver.resolve(exerciseName)
+        guard let definition = MovementCatalog.definition(for: resolved.movementId),
+              definition.role != .routineStep
+        else { return nil }
+        return definition
+    }
+
+    var body: some View {
+        if let definition {
+            ExerciseVisualView(definition: definition, size: .thumbnail)
+        } else {
+            ZStack {
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(fallbackTint.opacity(0.14))
+                Image(systemName: fallbackSystemName)
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundStyle(fallbackTint)
+            }
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .strokeBorder(fallbackTint.opacity(0.25), lineWidth: 1)
+            )
+        }
+    }
 }

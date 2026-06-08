@@ -139,8 +139,8 @@ enum RankBenchmarkSummary {
         if let ratio = StrengthStandards.ratio(exerciseKey: key, tier: targetTier, sex: sex) {
             let ratioText = String(format: "%.2g", ratio)
             if let bodyweightKg, bodyweightKg > 0 {
-                let kg = Int((ratio * bodyweightKg).rounded())
-                return "\(targetTier.displayName): \(ratioText)x bodyweight (≈ \(kg) kg)"
+                let targetKg = ratio * bodyweightKg
+                return "\(targetTier.displayName): \(ratioText)x bodyweight (≈ \(WeightPlatePolicy.formatLoggedWeightWithUnit(targetKg, separator: " ")))"
             }
             return "\(targetTier.displayName): \(ratioText)x bodyweight"
         }
@@ -180,9 +180,9 @@ enum RankBenchmarkSummary {
         case .exerciseSeconds(let seconds, let exerciseName):
             return "\(seconds)s \(displayExerciseName(exerciseName)) hold"
         case .weightKg(let weight):
-            return "\(Int(weight.rounded())) kg working set"
+            return "\(WeightPlatePolicy.formatLoggedWeightWithUnit(weight, separator: " ")) working set"
         case .exerciseWeightKg(let weight, let exerciseName):
-            return "\(Int(weight.rounded())) kg \(displayExerciseName(exerciseName))"
+            return "\(WeightPlatePolicy.formatLoggedWeightWithUnit(weight, separator: " ")) \(displayExerciseName(exerciseName))"
         case .bodyweightRatio(let ratio):
             return "\(String(format: "%.2g", ratio))x bodyweight"
         case .exerciseBodyweightRatio(let ratio, let exerciseName):

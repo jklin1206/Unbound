@@ -371,9 +371,9 @@ struct ProgramRankLibraryExpandedRow: View {
         case .exerciseSeconds(let seconds, let exerciseName):
             return "\(seconds)s \(displayExerciseName(exerciseName)) hold"
         case .weightKg(let weight):
-            return "\(Int(weight.rounded())) kg working set"
+            return "\(WeightPlatePolicy.formatLoggedWeightWithUnit(weight, separator: " ")) working set"
         case .exerciseWeightKg(let weight, let exerciseName):
-            return "\(Int(weight.rounded())) kg \(displayExerciseName(exerciseName))"
+            return "\(WeightPlatePolicy.formatLoggedWeightWithUnit(weight, separator: " ")) \(displayExerciseName(exerciseName))"
         case .bodyweightRatio(let ratio):
             return "\(String(format: "%.2g", ratio))x bodyweight"
         case .exerciseBodyweightRatio(let ratio, let exerciseName):

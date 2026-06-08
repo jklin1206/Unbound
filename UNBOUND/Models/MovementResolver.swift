@@ -105,6 +105,22 @@ enum MovementResolver {
     }
 
     private static func inferAliasBase(from normalized: String) -> MovementDefinition? {
+        if normalized.contains("active bar hang") || normalized.contains("active hang") || normalized.contains("scap hang") {
+            return MovementCatalog.aliasIndex["dead hang"]
+        }
+        if normalized.contains("front lever") {
+            if normalized.contains("advanced") {
+                return MovementCatalog.aliasIndex["advanced tuck front lever"]
+            }
+            return MovementCatalog.aliasIndex["tuck front lever"]
+        }
+        if normalized.contains("muscle up") {
+            if normalized.contains("band") {
+                return MovementCatalog.aliasIndex["banded muscle up"]
+            }
+            return MovementCatalog.aliasIndex["muscle up"]
+        }
+
         if (normalized.contains("pull up") || normalized.contains("pullup")) {
             if normalized.contains("machine") && normalized.contains("assisted") {
                 return MovementCatalog.aliasIndex["assisted pull up machine"]
@@ -115,6 +131,7 @@ enum MovementResolver {
             if normalized.contains("negative") || normalized.contains("eccentric") {
                 return MovementCatalog.aliasIndex["negative pull up"]
             }
+            return MovementCatalog.aliasIndex["pull up"] ?? MovementCatalog.aliasIndex["pullup"]
         }
 
         let stripped = normalized

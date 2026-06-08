@@ -295,6 +295,20 @@ final class AuthService: NSObject, AuthServiceProtocol, @unchecked Sendable {
     }
 
     private func cacheUserId(_ uid: String) {
+        #if DEBUG
+        if let debugUserId = UserDefaults.standard.string(forKey: debugUserIdOverrideKey) {
+            // Debug override takes precedence on read (see getCachedUserId), so we
+            // must NOT delete the real cached UID here — doing so permanently loses
+            // the real session once the override is cleared. Just route to the debug
+            // identity and leave the real cache intact.
+            AnalyticsService.shared.identify(
+                userId: debugUserId,
+                traits: ["authState": "debugSignedIn"]
+            )
+            authStateSubject.send(debugUserId)
+            return
+        }
+        #endif
         UserDefaults.standard.set(uid, forKey: cachedUserIdKey)
         AnalyticsService.shared.identify(
             userId: uid,

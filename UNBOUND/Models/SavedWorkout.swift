@@ -6,6 +6,7 @@ struct SavedWorkout: Codable, Identifiable, Hashable, Sendable {
     var blocks: [TrainingBlock]
     var order: Int
     var preferredEquipment: Set<Equipment>
+    var referenceExerciseName: String?
     /// Agent B adapter until Agent A lands a typed SessionRole.
     var sessionRole: String?
     var abPartnerID: UUID?
@@ -18,6 +19,7 @@ struct SavedWorkout: Codable, Identifiable, Hashable, Sendable {
         blocks: [TrainingBlock],
         order: Int = 0,
         preferredEquipment: Set<Equipment> = [],
+        referenceExerciseName: String? = nil,
         sessionRole: String? = nil,
         abPartnerID: UUID? = nil,
         createdAt: Date = Date(),
@@ -28,6 +30,10 @@ struct SavedWorkout: Codable, Identifiable, Hashable, Sendable {
         self.blocks = blocks
         self.order = order
         self.preferredEquipment = preferredEquipment
+        self.referenceExerciseName = TrainingSessionDraft.cleanedReferenceExerciseName(
+            referenceExerciseName,
+            in: blocks
+        )
         self.sessionRole = Self.normalizedSessionRole(sessionRole)
         self.abPartnerID = abPartnerID
         self.createdAt = createdAt
@@ -49,7 +55,17 @@ struct SavedWorkout: Codable, Identifiable, Hashable, Sendable {
     var estimatedMinutes: Int {
         max(10, blocks.reduce(0) { total, block in
             total + block.prescriptions.reduce(0) { blockTotal, prescription in
-                blockTotal + max(3, prescription.sets * 3)
+                let setMinutes = prescription.effectiveSetPlans.reduce(0) { setTotal, plan in
+                    let workSeconds: Int
+                    switch plan.target {
+                    case .holdSeconds(let seconds), .timedSeconds(let seconds):
+                        workSeconds = seconds
+                    default:
+                        workSeconds = 45
+                    }
+                    return setTotal + max(1, Int(ceil(Double(workSeconds + plan.restSeconds) / 60.0)))
+                }
+                return blockTotal + max(3, setMinutes)
             }
         })
     }
@@ -68,6 +84,7 @@ struct SavedWorkout: Codable, Identifiable, Hashable, Sendable {
             estimatedMinutes: estimatedMinutes,
             programId: programId,
             dayNumber: dayNumber,
+            referenceExerciseName: referenceExerciseName,
             blocks: blocks
         )
     }
@@ -77,6 +94,7 @@ struct SavedWorkout: Codable, Identifiable, Hashable, Sendable {
         title: String? = nil,
         order: Int = 0,
         preferredEquipment: Set<Equipment> = [],
+        referenceExerciseName: String? = nil,
         sessionRole: String? = nil,
         now: Date = Date()
     ) -> SavedWorkout {
@@ -96,6 +114,7 @@ struct SavedWorkout: Codable, Identifiable, Hashable, Sendable {
             blocks: blocks,
             order: order,
             preferredEquipment: preferredEquipment,
+            referenceExerciseName: referenceExerciseName,
             sessionRole: sessionRole ?? inferredSessionRole(from: workout),
             createdAt: now,
             updatedAt: now
@@ -107,6 +126,7 @@ struct SavedWorkout: Codable, Identifiable, Hashable, Sendable {
         title: String? = nil,
         order: Int = 0,
         preferredEquipment: Set<Equipment> = [],
+        referenceExerciseName: String? = nil,
         sessionRole: String? = nil,
         now: Date = Date()
     ) -> SavedWorkout {
@@ -115,6 +135,7 @@ struct SavedWorkout: Codable, Identifiable, Hashable, Sendable {
             blocks: draft.blocks,
             order: order,
             preferredEquipment: preferredEquipment,
+            referenceExerciseName: referenceExerciseName ?? draft.referenceExerciseName,
             sessionRole: sessionRole ?? inferredSessionRole(from: draft),
             createdAt: now,
             updatedAt: now
@@ -135,6 +156,14 @@ struct SavedWorkout: Codable, Identifiable, Hashable, Sendable {
         inferRole(title: draft.title, muscleGroups: draft.blocks.flatMap { block in
             block.prescriptions.flatMap(\.muscleGroups)
         })
+    }
+
+    var referenceExerciseOptions: [String] {
+        TrainingSessionDraft.referenceExerciseOptions(in: blocks)
+    }
+
+    var effectiveReferenceExerciseName: String? {
+        TrainingSessionDraft.effectiveReferenceExerciseName(referenceExerciseName, in: blocks)
     }
 
     static func inferredSessionRole(from workout: Workout) -> String? {

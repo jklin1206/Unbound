@@ -47,6 +47,10 @@ final class TrainingSessionDraftStore {
         }
     }
 
+    func clear() {
+        try? fileManager.removeItem(at: fileURL)
+    }
+
     private static func defaultFileURL(fileManager: FileManager) -> URL {
         let base = (try? fileManager.url(
             for: .applicationSupportDirectory,

@@ -4,11 +4,11 @@ struct LifestyleSignalAsset: View {
     enum Kind {
         case diet, sleep, stress
 
-        var icon: String {
+        var assetName: String {
             switch self {
-            case .diet: return "leaf.fill"
-            case .sleep: return "moon.stars.fill"
-            case .stress: return "waveform.path.ecg"
+            case .diet: return "badge_art_clean_sweep"
+            case .sleep: return "badge_art_hour_glass"
+            case .stress: return "badge_art_consistency_loop"
             }
         }
 
@@ -35,16 +35,13 @@ struct LifestyleSignalAsset: View {
     var body: some View {
         HStack(spacing: 14) {
             ZStack {
-                Circle()
-                    .fill(kind.tint.opacity(0.14))
-                    .frame(width: 64, height: 64)
-                Circle()
-                    .stroke(kind.tint.opacity(0.42), lineWidth: 1)
-                    .frame(width: 64, height: 64)
-                Image(systemName: kind.icon)
-                    .font(.system(size: 24, weight: .bold))
-                    .foregroundStyle(kind.tint)
-                    .shadow(color: kind.tint.opacity(0.45), radius: 12)
+                OnboardingAssetGlyph(
+                    assetName: kind.assetName,
+                    tint: kind.tint,
+                    size: 64,
+                    imagePadding: 9,
+                    shape: .hexagon
+                )
             }
 
             VStack(alignment: .leading, spacing: 7) {

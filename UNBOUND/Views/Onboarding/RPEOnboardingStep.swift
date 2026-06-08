@@ -133,16 +133,13 @@ struct RPEOnboardingStep: View {
     private var demoRewardCard: some View {
         UnboundCard {
             HStack(spacing: 14) {
-                ZStack {
-                    HUDHexagon()
-                        .fill(Color.unbound.accent.opacity(0.16))
-                    HUDHexagon()
-                        .stroke(Color.unbound.accent.opacity(0.7), lineWidth: 1.4)
-                    Image(systemName: "arrow.up.right")
-                        .font(.system(size: 16, weight: .black))
-                        .foregroundStyle(Color.unbound.accent)
-                }
-                .frame(width: 48, height: 44)
+                OnboardingAssetGlyph(
+                    assetName: "badge_art_pr_session",
+                    tint: Color.unbound.accent,
+                    size: 48,
+                    imagePadding: 7,
+                    shape: .hexagon
+                )
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(L10n.onboarding("rpeLoop.reward.title", defaultValue: "+12 XP · POWER +1"))

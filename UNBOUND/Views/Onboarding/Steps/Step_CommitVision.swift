@@ -11,11 +11,11 @@ enum CommitVisionSlide: String, CaseIterable {
         }
     }
 
-    var icon: String {
+    var chipAssetName: String {
         switch self {
-        case .day30: return "calendar"
-        case .day90: return "star.square.fill"
-        case .today: return "flame.fill"
+        case .day30: return "onboarding_path_day30_card"
+        case .day90: return "onboarding_path_rank_gates"
+        case .today: return "onboarding_path_open_gate"
         }
     }
 
@@ -66,8 +66,11 @@ struct Step_CommitVision: View {
                     visionHero
 
                     HStack(spacing: 8) {
-                        Image(systemName: slide.icon)
-                            .font(.system(size: 12, weight: .semibold))
+                        Image(slide.chipAssetName)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 18, height: 18)
+                            .shadow(color: Color.unbound.accent.opacity(0.36), radius: 5)
                         Text(slide.chip)
                             .font(Font.unbound.monoS)
                             .tracking(1.8)

@@ -54,6 +54,7 @@ final class ActiveWorkoutSession: ObservableObject, Identifiable {
         var suggestedDistanceMeters: Int?
         var suggestedCalories: Int?
         var suggestedRPE: Int?
+        var suggestedRestSeconds: Int?
         var qualityFlags: Set<PerformanceQualityFlag>
 
         init(id: String, weightKg: Double?, reps: Int?, rpe: Int?,
@@ -69,6 +70,7 @@ final class ActiveWorkoutSession: ObservableObject, Identifiable {
              calories: Int? = nil,
              suggestedCalories: Int? = nil,
              suggestedRPE: Int? = nil,
+             suggestedRestSeconds: Int? = nil,
              qualityFlags: Set<PerformanceQualityFlag> = []) {
             self.id = id; self.weightKg = weightKg; self.reps = reps
             self.rpe = rpe; self.holdSeconds = holdSeconds
@@ -83,6 +85,7 @@ final class ActiveWorkoutSession: ObservableObject, Identifiable {
             self.suggestedDistanceMeters = suggestedDistanceMeters
             self.suggestedCalories = suggestedCalories
             self.suggestedRPE = suggestedRPE
+            self.suggestedRestSeconds = suggestedRestSeconds
             self.qualityFlags = qualityFlags
         }
 
@@ -90,7 +93,7 @@ final class ActiveWorkoutSession: ObservableObject, Identifiable {
             case id, weightKg, reps, rpe, isWarmup, logged
             case holdSeconds, durationSeconds, distanceMeters, calories
             case suggestedWeightKg, suggestedReps, suggestedHoldSeconds
-            case suggestedDurationSeconds, suggestedDistanceMeters, suggestedCalories, suggestedRPE, qualityFlags
+            case suggestedDurationSeconds, suggestedDistanceMeters, suggestedCalories, suggestedRPE, suggestedRestSeconds, qualityFlags
         }
 
         init(from decoder: Decoder) throws {
@@ -112,6 +115,7 @@ final class ActiveWorkoutSession: ObservableObject, Identifiable {
             suggestedDistanceMeters = try c.decodeIfPresent(Int.self, forKey: .suggestedDistanceMeters)
             suggestedCalories = try c.decodeIfPresent(Int.self, forKey: .suggestedCalories)
             suggestedRPE = try c.decodeIfPresent(Int.self, forKey: .suggestedRPE)
+            suggestedRestSeconds = try c.decodeIfPresent(Int.self, forKey: .suggestedRestSeconds)
             qualityFlags = try c.decodeIfPresent(Set<PerformanceQualityFlag>.self, forKey: .qualityFlags) ?? []
         }
     }
@@ -282,7 +286,8 @@ final class ActiveWorkoutSession: ObservableObject, Identifiable {
                               suggestedDurationSeconds: metricKind == .durationSeconds ? RepRange.lowerBound(ex.reps) : nil,
                               suggestedDistanceMeters: metricKind == .distanceMeters ? RepRange.lowerBound(ex.reps) : nil,
                               suggestedCalories: metricKind == .calories ? RepRange.lowerBound(ex.reps) : nil,
-                              suggestedRPE: ex.rpe)
+                              suggestedRPE: ex.rpe,
+                              suggestedRestSeconds: RestPrescription.restSeconds(for: ex))
                 },
                 skipped: false,
                 notes: "",
@@ -434,7 +439,8 @@ final class ActiveWorkoutSession: ObservableObject, Identifiable {
                       suggestedDurationSeconds: exercise.metricKind == .durationSeconds ? RepRange.lowerBound(exercise.plannedReps) : nil,
                       suggestedDistanceMeters: exercise.metricKind == .distanceMeters ? RepRange.lowerBound(exercise.plannedReps) : nil,
                       suggestedCalories: exercise.metricKind == .calories ? RepRange.lowerBound(exercise.plannedReps) : nil,
-                      suggestedRPE: exercise.targetRPE))
+                      suggestedRPE: exercise.targetRPE,
+                      suggestedRestSeconds: exercise.restSeconds))
     }
 
     func removeLastSetFromCurrentExercise() {
@@ -565,7 +571,8 @@ final class ActiveWorkoutSession: ObservableObject, Identifiable {
                       suggestedDurationSeconds: exercise.metricKind == .durationSeconds ? RepRange.lowerBound(exercise.plannedReps) : nil,
                       suggestedDistanceMeters: exercise.metricKind == .distanceMeters ? RepRange.lowerBound(exercise.plannedReps) : nil,
                       suggestedCalories: exercise.metricKind == .calories ? RepRange.lowerBound(exercise.plannedReps) : nil,
-                      suggestedRPE: exercise.targetRPE))
+                      suggestedRPE: exercise.targetRPE,
+                      suggestedRestSeconds: exercise.restSeconds))
     }
 
     func removeLastSet(fromExerciseIndex ei: Int) {
@@ -595,7 +602,8 @@ final class ActiveWorkoutSession: ObservableObject, Identifiable {
                     isWarmup: false,
                     logged: false,
                     suggestedReps: custom.defaultRepMin,
-                    suggestedRPE: targetRPE
+                    suggestedRPE: targetRPE,
+                    suggestedRestSeconds: Self.defaultRestSeconds(for: custom.classification)
                 )
             },
             skipped: false,
@@ -800,29 +808,32 @@ final class ActiveWorkoutSession: ObservableObject, Identifiable {
         draft.blocks.flatMap { block in
             block.prescriptions.map { prescription in
                 let definition = movementDefinition(for: prescription)
-                let metricKind = prescription.target.metricKind(defaultingTo: definition?.defaultMetric)
+                let exerciseMetricKind = prescription.target.metricKind(defaultingTo: definition?.defaultMetric)
+                let setPlans = prescription.effectiveSetPlans
                 return ActiveExercise(
                     id: prescription.id,
                     name: prescription.exerciseName,
-                    plannedSets: prescription.sets,
-                    plannedReps: prescription.displayTargetText,
-                    restSeconds: prescription.restSeconds,
+                    plannedSets: setPlans.count,
+                    plannedReps: prescription.setPlanSummaryText,
+                    restSeconds: setPlans.first?.restSeconds ?? prescription.restSeconds,
                     muscleGroups: prescription.muscleGroups,
-                    sets: (0..<max(1, prescription.sets)).map { _ in
-                        ActiveSet(
+                    sets: setPlans.map { plan in
+                        let metricKind = plan.target.metricKind(defaultingTo: definition?.defaultMetric)
+                        return ActiveSet(
                             id: UUID().uuidString,
                             weightKg: nil,
                             reps: nil,
                             rpe: nil,
-                            isWarmup: false,
+                            isWarmup: plan.isWarmup,
                             logged: false,
-                            suggestedWeightKg: prescription.suggestedWeightKg,
-                            suggestedReps: metricKind == .reps ? prescription.target.metricLowerBound : nil,
-                            suggestedHoldSeconds: metricKind == .holdSeconds ? prescription.target.metricLowerBound : nil,
-                            suggestedDurationSeconds: metricKind == .durationSeconds ? prescription.target.metricLowerBound : nil,
-                            suggestedDistanceMeters: metricKind == .distanceMeters ? prescription.target.metricLowerBound : nil,
-                            suggestedCalories: metricKind == .calories ? prescription.target.metricLowerBound : nil,
-                            suggestedRPE: prescription.rpe
+                            suggestedWeightKg: plan.suggestedWeightKg,
+                            suggestedReps: metricKind == .reps ? plan.target.metricLowerBound : nil,
+                            suggestedHoldSeconds: metricKind == .holdSeconds ? plan.target.metricLowerBound : nil,
+                            suggestedDurationSeconds: metricKind == .durationSeconds ? plan.target.metricLowerBound : nil,
+                            suggestedDistanceMeters: metricKind == .distanceMeters ? plan.target.metricLowerBound : nil,
+                            suggestedCalories: metricKind == .calories ? plan.target.metricLowerBound : nil,
+                            suggestedRPE: plan.rpe,
+                            suggestedRestSeconds: plan.restSeconds
                         )
                     },
                     skipped: false,
@@ -841,8 +852,8 @@ final class ActiveWorkoutSession: ObservableObject, Identifiable {
                     selectedRungReason: block.selectedRungReason,
                     routineId: block.routineId,
                     cardioType: block.cardioType,
-                    tracksHold: block.kind == .carry || metricKind == .holdSeconds || metricKind == .durationSeconds,
-                    metricKind: metricKind
+                    tracksHold: block.kind == .carry || exerciseMetricKind == .holdSeconds || exerciseMetricKind == .durationSeconds,
+                    metricKind: exerciseMetricKind
                 )
             }
         }

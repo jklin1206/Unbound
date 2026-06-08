@@ -42,6 +42,7 @@ enum DevProgramSandboxState: String, CaseIterable, Identifiable {
 }
 
 enum DevDynamicProgramScenario: String, CaseIterable, Identifiable {
+    case programQALab = "program-qa-lab"
     case oneSkillLifting = "one-skill-lifting"
     case sixSkillHybrid = "six-skill-hybrid"
     case calisthenicsWeekBands = "calis-week-bands"
@@ -58,6 +59,7 @@ enum DevDynamicProgramScenario: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
+        case .programQALab: return "Dynamic: Program QA Lab"
         case .oneSkillLifting: return "Dynamic: 1 Skill + Lifting"
         case .sixSkillHybrid: return "Dynamic: 6 Skills + Hybrid"
         case .calisthenicsWeekBands: return "Dynamic: Week Bands Calis"
@@ -68,6 +70,7 @@ enum DevDynamicProgramScenario: String, CaseIterable, Identifiable {
 
     var shortTitle: String {
         switch self {
+        case .programQALab: return "QA Lab"
         case .oneSkillLifting: return "1 Skill"
         case .sixSkillHybrid: return "6 Skills"
         case .calisthenicsWeekBands: return "Bands Week"
@@ -78,6 +81,7 @@ enum DevDynamicProgramScenario: String, CaseIterable, Identifiable {
 
     var systemImage: String {
         switch self {
+        case .programQALab: return "checklist.checked"
         case .oneSkillLifting: return "dumbbell.fill"
         case .sixSkillHybrid: return "circle.hexagongrid.fill"
         case .calisthenicsWeekBands: return "figure.strengthtraining.functional"
@@ -88,6 +92,8 @@ enum DevDynamicProgramScenario: String, CaseIterable, Identifiable {
 
     var successMessage: String {
         switch self {
+        case .programQALab:
+            return "Seeded the Program QA Lab with saved workouts, planned dates, skills, equipment context, and progression fixtures."
         case .oneSkillLifting:
             return "Seeded one Program Focus with a lifting block."
         case .sixSkillHybrid:

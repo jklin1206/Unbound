@@ -24,16 +24,21 @@ struct Step_WhyThisProgram: View {
                 pathHero
 
                 VStack(spacing: 10) {
-                    routeStat(label: "RECEIVE", value: "YOUR OPENING ARC", icon: "map.fill")
-                    routeStat(label: "TRACK", value: "RANK, LOGS, PROOF", icon: "hexagon.fill")
-                    routeStat(label: "RHYTHM", value: "\(sessionsPerWeek)x / \(sessionLengthLabel.uppercased())", icon: "timer")
+                    routeStat(label: "RECEIVE", value: "YOUR OPENING ARC", assetName: "onboarding_path_protocol_dossier", tint: Color.unbound.accent)
+                    routeStat(label: "TRACK", value: "RANK, LOGS, PROOF", assetName: "badge_art_proof_10", tint: Color.unbound.impact)
+                    routeStat(label: "RHYTHM", value: "\(sessionsPerWeek)x / \(sessionLengthLabel.uppercased())", assetName: "badge_art_consistency_loop", tint: Color.unbound.ember)
                 }
 
                 HStack(alignment: .top, spacing: 10) {
-                    Image(systemName: "lock.open.fill")
-                        .font(.system(size: 14, weight: .black))
-                        .foregroundStyle(Color.unbound.impact)
-                        .padding(.top, 2)
+                    OnboardingAssetGlyph(
+                        assetName: "rank_title_unbound",
+                        tint: Color.unbound.impact,
+                        size: 30,
+                        imagePadding: 3,
+                        shape: .hexagon,
+                        showsCornerMark: false
+                    )
+                    .padding(.top, 1)
                     Text("You get the first block, recovery targets, workout logging, monthly scans, rank movement, and the next gate only after the current one is earned.")
                         .font(Font.unbound.bodyS)
                         .foregroundStyle(Color.unbound.textSecondary)
@@ -94,13 +99,15 @@ struct Step_WhyThisProgram: View {
         flow.sessionLength?.displayName ?? "45 minutes"
     }
 
-    private func routeStat(label: String, value: String, icon: String) -> some View {
+    private func routeStat(label: String, value: String, assetName: String, tint: Color) -> some View {
         HStack(spacing: 12) {
-            Image(systemName: icon)
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(Color.unbound.accent)
-                .frame(width: 28, height: 28)
-                .background(Circle().fill(Color.unbound.accent.opacity(0.12)))
+            OnboardingAssetGlyph(
+                assetName: assetName,
+                tint: tint,
+                size: 32,
+                imagePadding: 5,
+                shape: .hexagon
+            )
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(label)

@@ -74,6 +74,19 @@ struct ProgramOverviewDayResolver {
         date: Date,
         program: TrainingProgram
     ) -> ProgramDay? {
+        if occurrence.kind == .rest {
+            return ProgramDay(
+                id: "planned-rest-\(occurrence.id.uuidString)",
+                dayNumber: fallback.dayNumber,
+                label: occurrence.displayTitle,
+                isRestDay: true,
+                workout: nil,
+                sessionRole: .rest,
+                nutritionOverride: fallback.nutritionOverride,
+                recoveryActivities: fallback.recoveryActivities
+            )
+        }
+
         guard let userId,
               let draft = occurrence.resolvedDraft(
                 userId: userId,

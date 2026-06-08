@@ -42,15 +42,17 @@ struct Step23_Notifications: View {
                         .frame(width: 140, height: 128)
                         .animeGlow(color: Color.unbound.accent, radius: 14, intensity: 0.7)
 
-                    Image(systemName: "bell.badge.fill")
-                        .font(.system(size: 56, weight: .light))
-                        .foregroundStyle(Color.unbound.accent)
+                    Image("badge_art_consistency_loop")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 88, height: 88)
+                        .shadow(color: Color.unbound.accent.opacity(0.55), radius: 18)
                 }
 
                 VStack(spacing: 12) {
-                    hudBenefitRow(icon: "flame.fill", text: L10n.onboarding("notifications.benefit.streak", defaultValue: "A clean nudge when it is time to train"))
-                    hudBenefitRow(icon: "calendar", text: L10n.onboarding("notifications.benefit.schedule", defaultValue: "Gym reminders that match your schedule"))
-                    hudBenefitRow(icon: "bell.slash", text: L10n.onboarding("notifications.benefit.monthly", defaultValue: "No extra progress or streak alerts by default"))
+                    hudBenefitRow(assetName: "badge_art_streak_7", text: L10n.onboarding("notifications.benefit.streak", defaultValue: "A clean nudge when it is time to train"))
+                    hudBenefitRow(assetName: "badge_art_arc_week", text: L10n.onboarding("notifications.benefit.schedule", defaultValue: "Gym reminders that match your schedule"))
+                    hudBenefitRow(assetName: "badge_art_first_scan", text: L10n.onboarding("notifications.benefit.monthly", defaultValue: "No extra progress or streak alerts by default"))
                 }
 
                 Spacer().frame(height: 8)
@@ -81,13 +83,17 @@ struct Step23_Notifications: View {
         }
     }
 
-    private func hudBenefitRow(icon: String, text: String) -> some View {
+    private func hudBenefitRow(assetName: String, text: String) -> some View {
         HUDPanel(isActive: false) {
             HStack(spacing: 14) {
-                Image(systemName: icon)
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(Color.unbound.accent)
-                    .frame(width: 24)
+                OnboardingAssetGlyph(
+                    assetName: assetName,
+                    tint: Color.unbound.accent,
+                    size: 28,
+                    imagePadding: 5,
+                    shape: .hexagon,
+                    showsCornerMark: false
+                )
                 Text(text)
                     .font(Font.unbound.bodyM)
                     .foregroundStyle(Color.unbound.textPrimary)

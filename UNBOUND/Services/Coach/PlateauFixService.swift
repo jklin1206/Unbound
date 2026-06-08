@@ -80,8 +80,6 @@ final class PlateauFixService {
     }
 
     private func formatWeight(_ weight: Double) -> String {
-        weight.truncatingRemainder(dividingBy: 1) == 0
-            ? "\(Int(weight))kg"
-            : String(format: "%.1fkg", weight)
+        WeightPlatePolicy.formatLoggedWeightWithUnit(weight)
     }
 }

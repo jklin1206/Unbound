@@ -15,6 +15,8 @@ final class CurrencyWalletStore: ObservableObject {
     private static let starterGrant = 1_500
     #if DEBUG
     private static let debugUnlimitedBalance = 9_999_999
+    private static let devAccountModeKey = "unbound.dev.accountMode"
+    private static let freshLoginDevAccountMode = "fresh-login"
     #endif
 
     private let defaults: UserDefaults
@@ -121,6 +123,9 @@ final class CurrencyWalletStore: ObservableObject {
 
     private static func usesUnlimitedDevCredits(_ userId: String) -> Bool {
         #if DEBUG
+        if UserDefaults.standard.string(forKey: devAccountModeKey) == freshLoginDevAccountMode {
+            return false
+        }
         return userId == "dev-player" || userId.hasPrefix("dev-player-")
         #else
         return false
