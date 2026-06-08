@@ -6,7 +6,6 @@ struct ProgramSelectedDayCard<Content: View>: View {
     let contextLabel: String
     let badge: ProgramDayBadgeState
     let heroTint: Color
-    let isToday: Bool
     let metrics: [ProgramCommandMetricModel]
     let skillNodes: [SkillNode]
     let content: Content
@@ -17,7 +16,6 @@ struct ProgramSelectedDayCard<Content: View>: View {
         contextLabel: String,
         badge: ProgramDayBadgeState,
         heroTint: Color,
-        isToday: Bool,
         metrics: [ProgramCommandMetricModel],
         skillNodes: [SkillNode],
         @ViewBuilder content: () -> Content
@@ -27,7 +25,6 @@ struct ProgramSelectedDayCard<Content: View>: View {
         self.contextLabel = contextLabel
         self.badge = badge
         self.heroTint = heroTint
-        self.isToday = isToday
         self.metrics = metrics
         self.skillNodes = skillNodes
         self.content = content()
@@ -92,16 +89,10 @@ struct ProgramSelectedDayCard<Content: View>: View {
 struct ProgramCommandMetricModel: Identifiable {
     let id: String
     let title: String
-    let icon: String
-    let tint: Color
-    let foreground: Color?
 
-    init(title: String, icon: String, tint: Color, foreground: Color? = nil) {
-        self.id = "\(title)-\(icon)"
+    init(title: String) {
+        self.id = title
         self.title = title
-        self.icon = icon
-        self.tint = tint
-        self.foreground = foreground
     }
 }
 

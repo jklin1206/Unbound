@@ -3,7 +3,6 @@ import SwiftUI
 struct ProgramCommandDock: View {
     struct SetupTile {
         let title: String
-        let detail: String
         let icon: String
         let tint: Color
         let badge: String?
@@ -16,14 +15,8 @@ struct ProgramCommandDock: View {
             pendingContext: ProgramTrainingContextOverride?,
             isLoading: Bool
         ) -> SetupTile {
-            let displayedContext = activeContext ?? pendingContext
             return SetupTile(
                 title: compactTrainingStyleLabel(style),
-                detail: contextDockDetail(
-                    override: displayedContext,
-                    style: style,
-                    equipment: equipment
-                ),
                 icon: trainingStyleIcon(style),
                 tint: trainingStyleTint(style),
                 badge: contextDockBadge(
@@ -61,13 +54,6 @@ struct ProgramCommandDock: View {
             }
         }
 
-        private static func equipmentDockLabel(_ equipment: [Equipment]) -> String {
-            let sorted = ProgramTrainingContextResolver.sortedEquipment(Set(equipment))
-            guard let first = sorted.first else { return "Auto gear" }
-            if sorted.count == 1 { return first.displayName }
-            return "\(first.displayName) +\(sorted.count - 1)"
-        }
-
         private static func contextDockBadge(
             activeContext: ProgramTrainingContextOverride?,
             pendingContext: ProgramTrainingContextOverride?
@@ -81,21 +67,6 @@ struct ProgramCommandDock: View {
             return "BASE"
         }
 
-        private static func contextDockDetail(
-            override: ProgramTrainingContextOverride?,
-            style: TrainingStyle,
-            equipment: [Equipment]
-        ) -> String {
-            let styleLabel = compactTrainingStyleLabel(style)
-            switch override?.selection.scope {
-            case .todayOnly, .thisWeek:
-                return "\(styleLabel) / \(equipmentDockLabel(equipment))"
-            case .nextBlock:
-                return "\(styleLabel) queued"
-            case .ongoing, .freeformManual, .none:
-                return equipmentDockLabel(equipment)
-            }
-        }
     }
 
     let setupTile: SetupTile

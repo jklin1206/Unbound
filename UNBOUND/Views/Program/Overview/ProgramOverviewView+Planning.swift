@@ -48,28 +48,6 @@ extension ProgramOverviewView {
         ) ?? selectedDayDate
     }
 
-    func openSavedWorkoutForToday(_ workout: SavedWorkout) {
-        if !services.entitlement.isEntitled {
-            showPaywall = true
-            return
-        }
-        guard let userId = services.auth.currentUserId else {
-            LoggingService.shared.log(
-                "Saved workout quick start skipped without authenticated user",
-                level: .warning,
-                context: ["savedWorkoutId": workout.id.uuidString]
-            )
-            return
-        }
-
-        sessionEditorDraft = workout.asDraft(
-            userId: userId,
-            date: programToday,
-            programId: nil,
-            dayNumber: nil
-        )
-    }
-
     func placeSavedWorkoutOnCalendar(_ workout: SavedWorkout, date: Date) {
         applySavedWorkout(workout, to: date, allowExtraSession: false)
     }

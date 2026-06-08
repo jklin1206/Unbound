@@ -32,30 +32,13 @@ enum ProgramSelectedDayPresenter {
             badge: badgeState(day: day, isToday: isToday, isCompleted: isCompleted, isCalibration: isCalibration),
             heroTint: heroTint,
             metrics: [
-                ProgramCommandMetricModel(
-                    title: "\(exerciseCountLabel(for: day, workout: workout)) moves",
-                    icon: "list.bullet.clipboard",
-                    tint: heroTint
-                ),
-                ProgramCommandMetricModel(
-                    title: durationLabel(for: day, workout: workout),
-                    icon: day?.isRestDay == true ? "leaf.fill" : "timer",
-                    tint: Color.unbound.accent,
-                    foreground: Color.unbound.textPrimary
-                ),
-                ProgramCommandMetricModel(
-                    title: ProgramSkillFocusResolver.metricTitle(
-                        for: skillNodes,
-                        day: day,
-                        isCalibration: isCalibration
-                    ),
-                    icon: ProgramSkillFocusResolver.metricIcon(
-                        for: skillNodes,
-                        day: day,
-                        isCalibration: isCalibration
-                    ),
-                    tint: day?.isRestDay == true ? Color.unbound.textSecondary : Color.unbound.success
-                )
+                ProgramCommandMetricModel(title: "\(exerciseCountLabel(for: day, workout: workout)) moves"),
+                ProgramCommandMetricModel(title: durationLabel(for: day, workout: workout)),
+                ProgramCommandMetricModel(title: ProgramSkillFocusResolver.metricTitle(
+                    for: skillNodes,
+                    day: day,
+                    isCalibration: isCalibration
+                )),
             ],
             skillNodes: skillNodes
         )
