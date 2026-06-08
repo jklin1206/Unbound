@@ -86,10 +86,6 @@ extension ProgramOverviewView {
 
             if let day, !day.isRestDay, let workout {
                 ProgramModifierSummaryRail(summary: programModifierSummary(for: day))
-                ProgramWaveAdjustmentPanel(
-                    adjustments: waveAdjustments(for: day),
-                    onUndo: revertWaveAdjustment
-                )
                 ProgramWorkoutExerciseList(exercises: workout.mainExercises)
             }
 

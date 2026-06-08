@@ -311,7 +311,9 @@ struct ProgramOverviewView: View {
                 recoveryPlan: viewModel?.recoveryPlan,
                 workoutLog: viewModel?.logFor(dayNumber: day.dayNumber),
                 programViewModel: viewModel,
-                programId: viewModel?.program?.id ?? ""
+                programId: viewModel?.program?.id ?? "",
+                adjustments: waveAdjustments(for: day),
+                onUndoAdjustment: revertWaveAdjustment
             )
         }
         .fullScreenCover(item: $activeRoutinePlayer) { routine in
