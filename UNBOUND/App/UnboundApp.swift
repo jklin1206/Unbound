@@ -138,6 +138,8 @@ struct RootView: View {
             ActiveWorkoutDemoHarness()
         } else if ProcessInfo.processInfo.arguments.contains("-sessionEditorDemo") {
             SessionEditorDemoHarness()
+        } else if ProcessInfo.processInfo.arguments.contains("-myWorkoutsDemo") {
+            MyWorkoutsDemoHarness()
         } else {
             mainContent
         }
