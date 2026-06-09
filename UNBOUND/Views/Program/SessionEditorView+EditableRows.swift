@@ -318,11 +318,6 @@ extension SessionEditorView {
                 if showsWeight {
                     gridField(text: $weightText, placeholder: "—", keyboard: .decimalPad)
                         .onChange(of: weightText) { _, text in applyWeight(text) }
-                } else {
-                    Text("—")
-                        .font(Font.unbound.monoM)
-                        .foregroundStyle(Color.unbound.textTertiary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
                 gridField(text: $metricText, placeholder: "—", keyboard: .numbersAndPunctuation)
