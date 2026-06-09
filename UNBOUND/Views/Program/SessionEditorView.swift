@@ -52,6 +52,7 @@ struct SessionEditorView: View {
     @State var preferenceStatusesByKey: [String: ExercisePreferenceStatus] = [:]
     @State var availableEquipment: [Equipment]?
     @State var isPersistingEdits = false
+    @State var expandedPrescriptionId: String?
 
     @EnvironmentObject var services: ServiceContainer
     @Environment(\.dismiss) var dismiss

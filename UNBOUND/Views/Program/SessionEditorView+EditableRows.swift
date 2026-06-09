@@ -4,8 +4,10 @@ extension SessionEditorView {
     struct EditablePrescriptionRow<Visual: View>: View {
         @Binding var prescription: TrainingBlockPrescription
         let index: Int
+        let isExpanded: Bool
         let canMoveUp: Bool
         let canMoveDown: Bool
+        let onToggleExpand: () -> Void
         let onSwap: () -> Void
         let onMoveUp: () -> Void
         let onMoveDown: () -> Void
@@ -29,8 +31,10 @@ extension SessionEditorView {
         init(
             prescription: Binding<TrainingBlockPrescription>,
             index: Int,
+            isExpanded: Bool,
             canMoveUp: Bool,
             canMoveDown: Bool,
+            onToggleExpand: @escaping () -> Void,
             onSwap: @escaping () -> Void,
             onMoveUp: @escaping () -> Void,
             onMoveDown: @escaping () -> Void,
@@ -40,8 +44,10 @@ extension SessionEditorView {
         ) {
             _prescription = prescription
             self.index = index
+            self.isExpanded = isExpanded
             self.canMoveUp = canMoveUp
             self.canMoveDown = canMoveDown
+            self.onToggleExpand = onToggleExpand
             self.onSwap = onSwap
             self.onMoveUp = onMoveUp
             self.onMoveDown = onMoveDown
@@ -58,10 +64,23 @@ extension SessionEditorView {
             _notesText = State(initialValue: value.notes ?? "")
         }
 
+        var summaryLine: String {
+            let setCount = prescription.plannedSetCount
+            if prescription.hasCustomSetPlanValues {
+                let setLabel = setCount == 1 ? "1 set" : "\(setCount) sets"
+                return "\(setLabel) · custom"
+            }
+            var line = "\(setCount) × \(prescription.displayTargetText)"
+            if let rpe = prescription.rpe {
+                line += " · RPE \(rpe)"
+            }
+            return line
+        }
+
         var body: some View {
             VStack(alignment: .leading, spacing: 10) {
                 HStack(alignment: .center, spacing: 10) {
-                    Button(action: onSwap) {
+                    Button(action: onToggleExpand) {
                         HStack(spacing: 10) {
                             ZStack(alignment: .topLeading) {
                                 visual()
@@ -79,7 +98,7 @@ extension SessionEditorView {
                                     .foregroundStyle(Color.unbound.textPrimary)
                                     .lineLimit(2)
                                     .minimumScaleFactor(0.76)
-                                Text(prescription.displayTargetText)
+                                Text(summaryLine)
                                     .font(Font.unbound.captionS)
                                     .foregroundStyle(Color.unbound.textSecondary)
                                     .lineLimit(1)
@@ -88,9 +107,10 @@ extension SessionEditorView {
 
                             Spacer(minLength: 0)
 
-                            Image(systemName: "chevron.right")
+                            Image(systemName: "chevron.down")
                                 .font(.system(size: 12, weight: .bold))
                                 .foregroundStyle(Color.unbound.textTertiary)
+                                .rotationEffect(.degrees(isExpanded ? 180 : 0))
                         }
                         .contentShape(Rectangle())
                     }
@@ -99,9 +119,11 @@ extension SessionEditorView {
                     rowActionsMenu
                 }
 
-                setPlanEditor
+                if isExpanded {
+                    setPlanEditor
 
-                notesControl
+                    notesControl
+                }
             }
             .padding(.vertical, 14)
             .padding(.horizontal, 4)
@@ -112,6 +134,10 @@ extension SessionEditorView {
 
         var rowActionsMenu: some View {
             Menu {
+                Button(action: onSwap) {
+                    Label("Swap Exercise", systemImage: "arrow.triangle.2.circlepath")
+                }
+
                 Button(action: onMoveUp) {
                     Label("Move Up", systemImage: "arrow.up")
                 }

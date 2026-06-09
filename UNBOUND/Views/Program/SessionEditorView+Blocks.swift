@@ -31,8 +31,15 @@ extension SessionEditorView {
                         EditablePrescriptionRow(
                             prescription: prescriptionBinding(for: target),
                             index: displayIndex(blockIndex: blockIndex, prescriptionIndex: prescriptionIndex),
+                            isExpanded: expandedPrescriptionId == prescription.id,
                             canMoveUp: prescriptionIndex > 0,
                             canMoveDown: prescriptionIndex < block.prescriptions.count - 1,
+                            onToggleExpand: {
+                                UnboundHaptics.soft()
+                                withAnimation(.easeInOut(duration: 0.18)) {
+                                    expandedPrescriptionId = expandedPrescriptionId == prescription.id ? nil : prescription.id
+                                }
+                            },
                             onSwap: {
                                 UnboundHaptics.soft()
                                 pickerRoute = .swap(target)
