@@ -77,6 +77,7 @@ extension ProgramOverviewView {
             contextLabel: presentation.contextLabel,
             badge: presentation.badge,
             heroTint: presentation.heroTint,
+            isToday: isToday,
             metrics: presentation.metrics,
             skillNodes: presentation.skillNodes
         ) {
