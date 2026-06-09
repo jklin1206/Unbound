@@ -53,8 +53,17 @@ struct SessionEditorView: View {
     @State var availableEquipment: [Equipment]?
     @State var isPersistingEdits = false
 
+    // Grid cell editor state — bottom-docked keypad (mirrors the in-workout
+    // logging grid; no system keyboard). editBuffer is the typed string;
+    // editPristine is true until the user actually edits a digit, so merely
+    // opening a cell never overwrites the existing value with a re-parse.
+    @State var editing: CellEditTarget? = nil
+    @State var editBuffer: String = ""
+    @State var editPristine: Bool = true
+
     @EnvironmentObject var services: ServiceContainer
     @Environment(\.dismiss) var dismiss
+    @AppStorage(WeightPlatePolicy.unitDefaultsKey) var weightUnitRaw = TrainingWeightUnit.localeDefault.rawValue
 
     let originalDraft: TrainingSessionDraft
     let mode: Mode
@@ -144,6 +153,8 @@ struct SessionEditorView: View {
         .task {
             await loadPickerContext()
         }
+        .overlay(alignment: .bottom) { editorKeypadDock }
+        .animation(.spring(response: 0.32, dampingFraction: 0.86), value: editing?.id)
     }
 
     var allCatalogExercises: [CatalogExercise] {

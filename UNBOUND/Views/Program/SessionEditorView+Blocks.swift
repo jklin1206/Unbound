@@ -31,6 +31,11 @@ extension SessionEditorView {
                         EditablePrescriptionRow(
                             prescription: prescriptionBinding(for: target),
                             index: displayIndex(blockIndex: blockIndex, prescriptionIndex: prescriptionIndex),
+                            blockIndex: blockIndex,
+                            prescriptionIndex: prescriptionIndex,
+                            activeEdit: editing,
+                            liveBuffer: editBuffer,
+                            onBeginEdit: { beginEdit($0) },
                             canMoveUp: prescriptionIndex > 0,
                             canMoveDown: prescriptionIndex < block.prescriptions.count - 1,
                             onSwap: {

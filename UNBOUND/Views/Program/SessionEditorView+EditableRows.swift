@@ -8,6 +8,11 @@ extension SessionEditorView {
     struct EditablePrescriptionRow<Visual: View>: View {
         @Binding var prescription: TrainingBlockPrescription
         let index: Int
+        let blockIndex: Int
+        let prescriptionIndex: Int
+        let activeEdit: CellEditTarget?
+        let liveBuffer: String
+        let onBeginEdit: (CellEditTarget) -> Void
         let canMoveUp: Bool
         let canMoveDown: Bool
         let onSwap: () -> Void
@@ -22,6 +27,11 @@ extension SessionEditorView {
         init(
             prescription: Binding<TrainingBlockPrescription>,
             index: Int,
+            blockIndex: Int,
+            prescriptionIndex: Int,
+            activeEdit: CellEditTarget?,
+            liveBuffer: String,
+            onBeginEdit: @escaping (CellEditTarget) -> Void,
             canMoveUp: Bool,
             canMoveDown: Bool,
             onSwap: @escaping () -> Void,
@@ -33,6 +43,11 @@ extension SessionEditorView {
         ) {
             _prescription = prescription
             self.index = index
+            self.blockIndex = blockIndex
+            self.prescriptionIndex = prescriptionIndex
+            self.activeEdit = activeEdit
+            self.liveBuffer = liveBuffer
+            self.onBeginEdit = onBeginEdit
             self.canMoveUp = canMoveUp
             self.canMoveDown = canMoveDown
             self.onSwap = onSwap
@@ -105,9 +120,14 @@ extension SessionEditorView {
 
                 EditableSetGrid(
                     prescription: $prescription,
+                    blockIndex: blockIndex,
+                    prescriptionIndex: prescriptionIndex,
                     metricKind: metricKind,
                     showsWeight: showsWeight,
                     weightUnit: weightUnit,
+                    activeEdit: activeEdit,
+                    liveBuffer: liveBuffer,
+                    onBeginEdit: onBeginEdit,
                     onProgrammingChange: onProgrammingChange
                 )
             }
@@ -150,9 +170,14 @@ extension SessionEditorView {
     /// `setPlans` through the prescription binding; weight is hidden for bodyweight.
     struct EditableSetGrid: View {
         @Binding var prescription: TrainingBlockPrescription
+        let blockIndex: Int
+        let prescriptionIndex: Int
         let metricKind: TrainingMetricKind
         let showsWeight: Bool
         let weightUnit: TrainingWeightUnit
+        let activeEdit: CellEditTarget?
+        let liveBuffer: String
+        let onBeginEdit: (CellEditTarget) -> Void
         let onProgrammingChange: () -> Void
 
         var body: some View {
@@ -163,16 +188,21 @@ extension SessionEditorView {
                     EditableSetGridRow(
                         plan: setPlanBinding(setIndex),
                         setNumber: setIndex + 1,
+                        blockIndex: blockIndex,
+                        prescriptionIndex: prescriptionIndex,
+                        setIndex: setIndex,
                         metricKind: metricKind,
                         showsWeight: showsWeight,
                         weightUnit: weightUnit,
+                        activeEdit: activeEdit,
+                        liveBuffer: liveBuffer,
+                        onBeginEdit: onBeginEdit,
                         canRemove: prescription.plannedSetCount > 1,
                         onRemove: {
                             UnboundHaptics.soft()
                             mutate { $0.removeSetPlan(at: setIndex) }
                             onProgrammingChange()
-                        },
-                        onChange: onProgrammingChange
+                        }
                     )
                 }
 
@@ -270,42 +300,37 @@ extension SessionEditorView {
         }
     }
 
-    /// One editable set line: number + (weight) + reps/hold + remove. The metric
-    /// column edits the set's target; for holds it reads/writes hold-seconds.
+    /// One editable set line: number + (weight) + reps/hold + remove. Each value
+    /// is a tappable cell that opens the bottom-docked keypad (no system keyboard);
+    /// the active cell shows the live typed buffer and is lifted via a fill-only
+    /// surface (never a left bar — see no-left-accent-bar).
     struct EditableSetGridRow: View {
         @Binding var plan: TrainingSetPlan
         let setNumber: Int
+        let blockIndex: Int
+        let prescriptionIndex: Int
+        let setIndex: Int
         let metricKind: TrainingMetricKind
         let showsWeight: Bool
         let weightUnit: TrainingWeightUnit
+        let activeEdit: CellEditTarget?
+        let liveBuffer: String
+        let onBeginEdit: (CellEditTarget) -> Void
         let canRemove: Bool
         let onRemove: () -> Void
-        let onChange: () -> Void
 
-        @State private var weightText: String
-        @State private var metricText: String
+        private var weightTarget: CellEditTarget {
+            CellEditTarget(
+                blockIndex: blockIndex, prescriptionIndex: prescriptionIndex,
+                setIndex: setIndex, isWeight: true, metricKind: metricKind
+            )
+        }
 
-        init(
-            plan: Binding<TrainingSetPlan>,
-            setNumber: Int,
-            metricKind: TrainingMetricKind,
-            showsWeight: Bool,
-            weightUnit: TrainingWeightUnit,
-            canRemove: Bool,
-            onRemove: @escaping () -> Void,
-            onChange: @escaping () -> Void
-        ) {
-            _plan = plan
-            self.setNumber = setNumber
-            self.metricKind = metricKind
-            self.showsWeight = showsWeight
-            self.weightUnit = weightUnit
-            self.canRemove = canRemove
-            self.onRemove = onRemove
-            self.onChange = onChange
-            let value = plan.wrappedValue
-            _weightText = State(initialValue: Self.formatWeight(value.suggestedWeightKg, unit: weightUnit))
-            _metricText = State(initialValue: Self.metricEditText(value.target, metricKind: metricKind))
+        private var metricTarget: CellEditTarget {
+            CellEditTarget(
+                blockIndex: blockIndex, prescriptionIndex: prescriptionIndex,
+                setIndex: setIndex, isWeight: false, metricKind: metricKind
+            )
         }
 
         var body: some View {
@@ -316,12 +341,10 @@ extension SessionEditorView {
                     .frame(width: 26, alignment: .leading)
 
                 if showsWeight {
-                    gridField(text: $weightText, placeholder: "—", keyboard: .decimalPad)
-                        .onChange(of: weightText) { _, text in applyWeight(text) }
+                    valueCell(target: weightTarget, displayText: weightDisplay, accessibilityName: "Weight")
                 }
 
-                gridField(text: $metricText, placeholder: "—", keyboard: .numbersAndPunctuation)
-                    .onChange(of: metricText) { _, text in applyMetric(text) }
+                valueCell(target: metricTarget, displayText: metricDisplay, accessibilityName: metricAccessibilityName)
 
                 if canRemove {
                     Button(action: onRemove) {
@@ -341,91 +364,67 @@ extension SessionEditorView {
             .overlay(alignment: .bottom) {
                 Rectangle().fill(Color.unbound.borderSubtle).frame(height: 1)
             }
-            .onChange(of: plan) { _, _ in syncTextFromPlan() }
         }
 
-        private func gridField(text: Binding<String>, placeholder: String, keyboard: UIKeyboardType) -> some View {
-            TextField(placeholder, text: text)
-                .font(Font.unbound.monoM)
-                .foregroundStyle(Color.unbound.textPrimary)
-                .keyboardType(keyboard)
-                .lineLimit(1)
-                .submitLabel(.done)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.vertical, 8)
-        }
-
-        private func applyWeight(_ text: String) {
-            let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !trimmed.isEmpty else {
-                guard plan.suggestedWeightKg != nil || plan.loadPercentOfBodyweight != nil else { return }
-                plan.suggestedWeightKg = nil
-                plan.loadPercentOfBodyweight = nil
-                onChange()
-                return
+        @ViewBuilder
+        private func valueCell(target: CellEditTarget, displayText: String, accessibilityName: String) -> some View {
+            let isActive = activeEdit == target
+            let shown = isActive ? liveBuffer : displayText
+            Button {
+                UnboundHaptics.tick()
+                onBeginEdit(target)
+            } label: {
+                Text(shown.isEmpty ? "—" : shown)
+                    .font(Font.unbound.monoM)
+                    .foregroundStyle(shown.isEmpty ? Color.unbound.textTertiary : Color.unbound.textPrimary)
+                    .lineLimit(1)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.vertical, 8)
+                    .padding(.horizontal, 8)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .fill(isActive ? Color.unbound.surfaceElevated : Color.clear)
+                    )
+                    .contentShape(Rectangle())
             }
-
-            guard let value = Double(trimmed.replacingOccurrences(of: ",", with: ".")) else { return }
-            let weight = value > 0 ? WeightPlatePolicy.kilograms(fromDisplayValue: value, unit: weightUnit) : nil
-            guard plan.suggestedWeightKg != weight || plan.loadPercentOfBodyweight != nil else { return }
-            plan.suggestedWeightKg = weight
-            plan.loadPercentOfBodyweight = nil
-            onChange()
+            .buttonStyle(.plain)
+            .accessibilityLabel("\(accessibilityName), set \(setNumber)")
+            .accessibilityValue(displayText.isEmpty ? "Not set" : displayText)
+            .accessibilityHint("Opens the number pad")
         }
 
-        private func applyMetric(_ text: String) {
-            let target = Self.target(from: text, metricKind: metricKind)
-            guard plan.target != target else { return }
-            plan.target = target
-            onChange()
+        private var weightDisplay: String {
+            guard let kg = plan.suggestedWeightKg else { return "" }
+            return WeightPlatePolicy.formatLoggedWeight(kg, unit: weightUnit)
         }
 
-        private func syncTextFromPlan() {
-            let newWeight = Self.formatWeight(plan.suggestedWeightKg, unit: weightUnit)
-            if newWeight != weightText { weightText = newWeight }
-            let newMetric = Self.metricEditText(plan.target, metricKind: metricKind)
-            if newMetric != metricText { metricText = newMetric }
-        }
-
-        /// Editable text for the metric column. Reps show the range/count; holds and
-        /// timed sets show seconds as a plain number; distance/calories likewise.
-        private static func metricEditText(_ target: TrainingTarget, metricKind: TrainingMetricKind) -> String {
+        /// Reps show the count/range as-is (range is informative even though the
+        /// keypad edits the lower bound); holds/time/distance/cal show the number.
+        private var metricDisplay: String {
             switch metricKind {
             case .reps:
-                switch target {
+                switch plan.target {
                 case .reps(let count): return "\(count)"
                 case .repsRange(let low, let high): return "\(low)-\(high)"
                 case .amrap: return "AMRAP"
-                default: return SessionEditorView.targetEditText(target)
+                default:
+                    guard let lower = plan.target.metricLowerBound else { return "" }
+                    return "\(lower)"
                 }
-            case .holdSeconds, .durationSeconds:
-                return "\(target.metricLowerBound ?? 0)"
-            case .distanceMeters, .calories:
-                return "\(target.metricLowerBound ?? 0)"
+            case .holdSeconds, .durationSeconds, .distanceMeters, .calories:
+                guard let lower = plan.target.metricLowerBound else { return "" }
+                return "\(lower)"
             }
         }
 
-        /// Parse the metric column back into a target, anchored to the column's
-        /// metric kind so a hold field can't accidentally become reps.
-        private static func target(from text: String, metricKind: TrainingMetricKind) -> TrainingTarget {
-            let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        private var metricAccessibilityName: String {
             switch metricKind {
-            case .reps:
-                return SessionEditorView.target(from: trimmed)
-            case .holdSeconds:
-                return .holdSeconds(RepRange.lowerBound(trimmed) ?? 0)
-            case .durationSeconds:
-                return .timedSeconds(RepRange.lowerBound(trimmed) ?? 0)
-            case .distanceMeters:
-                return .distanceMeters(RepRange.lowerBound(trimmed) ?? 0)
-            case .calories:
-                return .calories(RepRange.lowerBound(trimmed) ?? 0)
+            case .reps: return "Reps"
+            case .holdSeconds: return "Hold seconds"
+            case .durationSeconds: return "Time"
+            case .distanceMeters: return "Distance"
+            case .calories: return "Calories"
             }
-        }
-
-        private static func formatWeight(_ value: Double?, unit: TrainingWeightUnit) -> String {
-            guard let value else { return "" }
-            return WeightPlatePolicy.formatLoggedWeight(value, unit: unit)
         }
     }
 
