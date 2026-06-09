@@ -2,12 +2,12 @@ import SwiftUI
 
 // MARK: - Bottom-docked keypad editing for the Plan/Edit Workout grid
 //
-// Mirrors the in-workout logging grid (ActiveWorkoutContainerView): tapping a
-// Weight/Reps cell opens the bottom-docked InlineNumberPad instead of the system
-// keyboard. The parent owns the typed buffer and writes it live into the draft's
-// set plan as the user types, reusing the existing setPlans / WeightPlatePolicy
-// logic. Kept in its own extension so SessionEditorView.body stays under the
-// SwiftUI metadata cliff.
+// Drives the SHARED NumberPadEditorModel (NumberPadEditor.swift) — the same module
+// the in-workout logging grid uses — so the two screens stay consistent. This file
+// only builds the per-cell NumberPadCellConfig (label/unit/seed/placeholder + the
+// live-write/commit closures) that writes into the draft's set plan, reusing the
+// existing setPlans / WeightPlatePolicy logic. Kept in its own extension so
+// SessionEditorView.body stays under the SwiftUI metadata cliff.
 
 extension SessionEditorView {
     /// Identifies a single editable grid cell across the block / prescription /
@@ -26,66 +26,26 @@ extension SessionEditorView {
         }
     }
 
-    @ViewBuilder
-    var editorKeypadDock: some View {
-        if let target = editing {
-            InlineNumberPad(
-                title: editLabel(target),
-                unit: editUnit(target),
-                valueText: editBuffer,
-                placeholder: editPlaceholder(target),
-                allowsDecimal: target.isWeight,
-                onKey: { handleEditKey($0, target) },
-                onDone: { commitEdit(target) }
-            )
-            .zIndex(20)
-        }
-    }
-
     var editWeightUnit: TrainingWeightUnit {
         TrainingWeightUnit(rawValue: weightUnitRaw) ?? .localeDefault
     }
 
-    // MARK: - Begin / commit
+    // MARK: - Begin editing (config build)
 
     func beginEdit(_ target: CellEditTarget) {
-        commitPendingEditIfNeeded()
-        editBuffer = seedBuffer(for: target)
-        editPristine = true
-        editing = target
+        keypad.begin(target, config: config(for: target))
     }
 
-    /// Commit the currently-open cell (if any) before switching cells or closing.
-    func commitPendingEditIfNeeded() {
-        guard let target = editing, !editPristine else { return }
-        writeLive(target)
-        refreshDraftEstimate()
-    }
-
-    func handleEditKey(_ key: NumberPadKey, _ target: CellEditTarget) {
-        switch key {
-        case .digit(let digit):
-            if editPristine { editBuffer = ""; editPristine = false }
-            if editBuffer == "0" { editBuffer = "" }   // no leading zeros
-            editBuffer.append("\(digit)")
-        case .decimal:
-            if editPristine { editBuffer = "0"; editPristine = false }
-            if !editBuffer.contains(".") {
-                editBuffer.append(editBuffer.isEmpty ? "0." : ".")
-            }
-        case .delete:
-            editPristine = false
-            if !editBuffer.isEmpty { editBuffer.removeLast() }
-        }
-        writeLive(target)
-    }
-
-    func commitEdit(_ target: CellEditTarget) {
-        if !editPristine {
-            writeLive(target)
-            refreshDraftEstimate()
-        }
-        editing = nil
+    private func config(for target: CellEditTarget) -> NumberPadCellConfig {
+        NumberPadCellConfig(
+            kind: .numeric(allowsDecimal: target.isWeight),
+            label: editLabel(target),
+            unit: editUnit(target),
+            placeholder: editPlaceholder(target),
+            seed: seedBuffer(for: target),
+            liveWrite: { buffer in writeLive(target, buffer: buffer) },
+            commitWrite: { refreshDraftEstimate() }
+        )
     }
 
     // MARK: - Live write into the draft set plan
@@ -93,10 +53,10 @@ extension SessionEditorView {
     /// Write the typed buffer into the draft's set plan live (so the cell updates
     /// as you type). Mirrors EditableSetGridRow.applyWeight / applyMetric, going
     /// through the same materializeSetPlans + syncSummaryFromSetPlans path.
-    func writeLive(_ target: CellEditTarget) {
+    func writeLive(_ target: CellEditTarget, buffer: String) {
         mutateSetPlan(target) { plan in
             if target.isWeight {
-                let trimmed = editBuffer.trimmingCharacters(in: .whitespacesAndNewlines)
+                let trimmed = buffer.trimmingCharacters(in: .whitespacesAndNewlines)
                 if trimmed.isEmpty {
                     plan.suggestedWeightKg = nil
                     plan.loadPercentOfBodyweight = nil
@@ -107,7 +67,7 @@ extension SessionEditorView {
                     plan.loadPercentOfBodyweight = nil
                 }
             } else {
-                plan.target = Self.metricTarget(from: editBuffer, metricKind: target.metricKind)
+                plan.target = Self.metricTarget(from: buffer, metricKind: target.metricKind)
             }
         }
     }

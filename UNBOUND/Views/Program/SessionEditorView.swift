@@ -53,13 +53,10 @@ struct SessionEditorView: View {
     @State var availableEquipment: [Equipment]?
     @State var isPersistingEdits = false
 
-    // Grid cell editor state — bottom-docked keypad (mirrors the in-workout
-    // logging grid; no system keyboard). editBuffer is the typed string;
-    // editPristine is true until the user actually edits a digit, so merely
-    // opening a cell never overwrites the existing value with a re-parse.
-    @State var editing: CellEditTarget? = nil
-    @State var editBuffer: String = ""
-    @State var editPristine: Bool = true
+    // Grid cell editor — shared bottom-docked keypad module (mirrors the in-workout
+    // logging grid; no system keyboard). The model owns the typed buffer + pristine
+    // state, so merely opening a cell never overwrites the existing value.
+    @StateObject var keypad = NumberPadEditorModel<CellEditTarget>()
 
     @EnvironmentObject var services: ServiceContainer
     @Environment(\.dismiss) var dismiss
@@ -99,7 +96,9 @@ struct SessionEditorView: View {
                     .padding(.bottom, 104)
                 }
                 .safeAreaInset(edge: .bottom, spacing: 0) {
-                    bottomStartBar
+                    // The keypad takes the bottom space while editing — hide the
+                    // ADD EXERCISE / DONE bar so they don't stack.
+                    if !keypad.isActive { bottomStartBar }
                 }
             }
         }
@@ -153,8 +152,7 @@ struct SessionEditorView: View {
         .task {
             await loadPickerContext()
         }
-        .safeAreaInset(edge: .bottom, spacing: 0) { editorKeypadDock }
-        .animation(.spring(response: 0.32, dampingFraction: 0.86), value: editing?.id)
+        .numberPadDock(model: keypad)
     }
 
     var allCatalogExercises: [CatalogExercise] {
