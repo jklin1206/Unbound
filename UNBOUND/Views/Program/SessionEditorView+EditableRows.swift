@@ -1,13 +1,15 @@
 import SwiftUI
 
 extension SessionEditorView {
+    /// Flat, always-visible exercise row: thumbnail + name + overflow menu, then a
+    /// compact Set · Weight · Reps grid (one editable row per set) + "add set".
+    /// Mirrors the in-workout logging grid but simplified — no RPE / rest / target /
+    /// warmup controls (those model values keep their defaults, just unexposed).
     struct EditablePrescriptionRow<Visual: View>: View {
         @Binding var prescription: TrainingBlockPrescription
         let index: Int
-        let isExpanded: Bool
         let canMoveUp: Bool
         let canMoveDown: Bool
-        let onToggleExpand: () -> Void
         let onSwap: () -> Void
         let onMoveUp: () -> Void
         let onMoveDown: () -> Void
@@ -15,26 +17,13 @@ extension SessionEditorView {
         let onProgrammingChange: () -> Void
         let visual: () -> Visual
 
-        @State var setsText: String
-        @State var targetText: String
-        @State var weightText: String
-        @State var restText: String
-        @State var rpeText: String
-        @State var notesText: String
-        @State var showsNotes = false
         @AppStorage(WeightPlatePolicy.unitDefaultsKey) private var weightUnitRaw = TrainingWeightUnit.localeDefault.rawValue
-
-        var columns: [GridItem] {
-            [GridItem(.adaptive(minimum: 86), spacing: 8, alignment: .top)]
-        }
 
         init(
             prescription: Binding<TrainingBlockPrescription>,
             index: Int,
-            isExpanded: Bool,
             canMoveUp: Bool,
             canMoveDown: Bool,
-            onToggleExpand: @escaping () -> Void,
             onSwap: @escaping () -> Void,
             onMoveUp: @escaping () -> Void,
             onMoveDown: @escaping () -> Void,
@@ -44,97 +33,89 @@ extension SessionEditorView {
         ) {
             _prescription = prescription
             self.index = index
-            self.isExpanded = isExpanded
             self.canMoveUp = canMoveUp
             self.canMoveDown = canMoveDown
-            self.onToggleExpand = onToggleExpand
             self.onSwap = onSwap
             self.onMoveUp = onMoveUp
             self.onMoveDown = onMoveDown
             self.onRemove = onRemove
             self.onProgrammingChange = onProgrammingChange
             self.visual = visual
-
-            let value = prescription.wrappedValue
-            _setsText = State(initialValue: "\(value.sets)")
-            _targetText = State(initialValue: SessionEditorView.targetEditText(value.target))
-            _weightText = State(initialValue: Self.formatWeight(value.suggestedWeightKg, unit: WeightPlatePolicy.currentUnit))
-            _restText = State(initialValue: "\(value.restSeconds)")
-            _rpeText = State(initialValue: value.rpe.map(String.init) ?? "")
-            _notesText = State(initialValue: value.notes ?? "")
         }
 
-        var summaryLine: String {
-            let setCount = prescription.plannedSetCount
-            if prescription.hasCustomSetPlanValues {
-                let setLabel = setCount == 1 ? "1 set" : "\(setCount) sets"
-                return "\(setLabel) · custom"
+        private var weightUnit: TrainingWeightUnit {
+            TrainingWeightUnit(rawValue: weightUnitRaw) ?? .localeDefault
+        }
+
+        /// Reps / hold-seconds / time / distance / calories — driven by the target,
+        /// falling back to the movement's default metric for AMRAP.
+        private var metricKind: TrainingMetricKind {
+            prescription.target.metricKind(defaultingTo: movementDefinition?.defaultMetric)
+        }
+
+        private var movementDefinition: MovementDefinition? {
+            MovementCatalog.resolvedTrainingMovement(
+                name: prescription.exerciseName,
+                movementId: prescription.movementId,
+                rankStandardMovementId: prescription.rankStandardMovementId
+            )?.exact
+        }
+
+        /// Weighted exercises get an editable Weight column; pure bodyweight/skill
+        /// movements don't — unless the prescription already carries a load
+        /// (e.g. weighted pull-ups), in which case it stays editable.
+        private var showsWeight: Bool {
+            if hasAnyWeightValue { return true }
+            switch movementDefinition?.loggerMode {
+            case .bodyweightSets, .skillAttempts, .mobility, .routinePlayer:
+                return false
+            case .strengthSets, .hold, .cardio, .carry, .none:
+                return true
             }
-            var line = "\(setCount) × \(prescription.displayTargetText)"
-            if let rpe = prescription.rpe {
-                line += " · RPE \(rpe)"
-            }
-            return line
+        }
+
+        private var hasAnyWeightValue: Bool {
+            if prescription.suggestedWeightKg != nil { return true }
+            return prescription.effectiveSetPlans.contains { $0.suggestedWeightKg != nil }
         }
 
         var body: some View {
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: 12) {
                 HStack(alignment: .center, spacing: 10) {
-                    Button(action: onToggleExpand) {
-                        HStack(spacing: 10) {
-                            ZStack(alignment: .topLeading) {
-                                visual()
-                                Text("\(index)")
-                                    .font(Font.unbound.monoS.weight(.bold))
-                                    .foregroundStyle(Color.unbound.bg)
-                                    .frame(width: 18, height: 18)
-                                    .background(Circle().fill(Color.unbound.coachCyan))
-                                    .offset(x: -3, y: -3)
-                            }
-
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text(prescription.exerciseName)
-                                    .font(Font.unbound.bodyMStrong)
-                                    .foregroundStyle(Color.unbound.textPrimary)
-                                    .lineLimit(2)
-                                    .minimumScaleFactor(0.76)
-                                Text(summaryLine)
-                                    .font(Font.unbound.captionS)
-                                    .foregroundStyle(Color.unbound.textSecondary)
-                                    .lineLimit(1)
-                                    .minimumScaleFactor(0.72)
-                            }
-
-                            Spacer(minLength: 0)
-
-                            Image(systemName: "chevron.down")
-                                .font(.system(size: 12, weight: .bold))
-                                .foregroundStyle(Color.unbound.textTertiary)
-                                .rotationEffect(.degrees(isExpanded ? 180 : 0))
-                        }
-                        .contentShape(Rectangle())
+                    ZStack(alignment: .topLeading) {
+                        visual()
+                        Text("\(index)")
+                            .font(Font.unbound.monoS.weight(.bold))
+                            .foregroundStyle(Color.unbound.bg)
+                            .frame(width: 18, height: 18)
+                            .background(Circle().fill(Color.unbound.coachCyan))
+                            .offset(x: -3, y: -3)
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("\(prescription.exerciseName), \(summaryLine)")
-                    .accessibilityHint(isExpanded ? "Collapse to hide sets" : "Expand to edit sets")
+
+                    Text(prescription.exerciseName)
+                        .font(Font.unbound.bodyMStrong)
+                        .foregroundStyle(Color.unbound.textPrimary)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.76)
+
+                    Spacer(minLength: 0)
 
                     rowActionsMenu
                 }
 
-                if isExpanded {
-                    setPlanEditor
-
-                    notesControl
-                }
+                EditableSetGrid(
+                    prescription: $prescription,
+                    metricKind: metricKind,
+                    showsWeight: showsWeight,
+                    weightUnit: weightUnit,
+                    onProgrammingChange: onProgrammingChange
+                )
             }
             .padding(.vertical, 14)
             .padding(.horizontal, 4)
-            .onAppear {
-                materializeSetPlansIfNeeded()
-            }
         }
 
-        var rowActionsMenu: some View {
+        private var rowActionsMenu: some View {
             Menu {
                 Button(action: onSwap) {
                     Label("Swap Exercise", systemImage: "arrow.triangle.2.circlepath")
@@ -162,213 +143,106 @@ extension SessionEditorView {
             }
             .accessibilityLabel("Exercise actions")
         }
+    }
 
-        var weightUnit: TrainingWeightUnit {
-            TrainingWeightUnit(rawValue: weightUnitRaw) ?? .localeDefault
-        }
+    /// The Set · Weight · Reps grid for one exercise. Its own `View` struct so the
+    /// editor stays under the SwiftUI metadata cliff. Edits the underlying
+    /// `setPlans` through the prescription binding; weight is hidden for bodyweight.
+    struct EditableSetGrid: View {
+        @Binding var prescription: TrainingBlockPrescription
+        let metricKind: TrainingMetricKind
+        let showsWeight: Bool
+        let weightUnit: TrainingWeightUnit
+        let onProgrammingChange: () -> Void
 
-        var setPlanEditor: some View {
-            VStack(alignment: .leading, spacing: 8) {
-                HStack(spacing: 8) {
-                    Text("SETS")
-                        .font(Font.unbound.captionS.weight(.heavy))
-                        .tracking(1.1)
-                        .foregroundStyle(Color.unbound.textTertiary)
+        var body: some View {
+            VStack(alignment: .leading, spacing: 0) {
+                columnHeader
 
-                    Spacer(minLength: 0)
-                }
-
-                VStack(spacing: 8) {
-                    ForEach(Array((prescription.setPlans ?? prescription.effectiveSetPlans).indices), id: \.self) { setIndex in
-                        EditableSetPlanRow(
-                            plan: setPlanBinding(setIndex),
-                            index: setIndex,
-                            canRemove: prescription.plannedSetCount > 1,
-                            onRemove: {
-                                UnboundHaptics.soft()
-                                mutatePrescription { $0.removeSetPlan(at: setIndex) }
-                                syncTextFromPrescription()
-                                onProgrammingChange()
-                            },
-                            onChange: {
-                                syncTextFromPrescription()
-                                onProgrammingChange()
-                            }
-                        )
-                    }
+                ForEach(Array(planIndices), id: \.self) { setIndex in
+                    EditableSetGridRow(
+                        plan: setPlanBinding(setIndex),
+                        setNumber: setIndex + 1,
+                        metricKind: metricKind,
+                        showsWeight: showsWeight,
+                        weightUnit: weightUnit,
+                        canRemove: prescription.plannedSetCount > 1,
+                        onRemove: {
+                            UnboundHaptics.soft()
+                            mutate { $0.removeSetPlan(at: setIndex) }
+                            onProgrammingChange()
+                        },
+                        onChange: onProgrammingChange
+                    )
                 }
 
                 Button {
                     UnboundHaptics.soft()
-                    mutatePrescription { $0.addSetPlan() }
-                    syncTextFromPrescription()
+                    mutate { $0.addSetPlan() }
                     onProgrammingChange()
                 } label: {
                     HStack(spacing: 7) {
                         Image(systemName: "plus")
                             .font(.system(size: 11, weight: .heavy))
-                        Text("ADD SET")
-                            .font(Font.unbound.captionS.weight(.heavy))
-                            .tracking(0.8)
+                        Text("set")
+                            .font(Font.unbound.bodyS.weight(.semibold))
                         Spacer(minLength: 0)
                     }
                     .foregroundStyle(Color.unbound.accent)
-                    .padding(.vertical, 6)
+                    .padding(.vertical, 9)
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("sessionEditor.exercise.\(prescription.id).addSet")
             }
-            .padding(.top, 2)
+            .onAppear(perform: materializeSetPlansIfNeeded)
         }
 
-        var notesControl: some View {
-            VStack(alignment: .leading, spacing: 8) {
-                Button {
-                    withAnimation(.easeInOut(duration: 0.16)) {
-                        showsNotes.toggle()
-                    }
-                } label: {
-                    HStack(spacing: 7) {
-                        Image(systemName: notesText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "plus.circle" : "quote.bubble")
-                            .font(.system(size: 12, weight: .bold))
-                        Text(notesText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "ADD CUE" : "CUES")
-                            .font(Font.unbound.captionS.weight(.heavy))
-                            .tracking(0.9)
-                        Spacer(minLength: 0)
-                        Image(systemName: "chevron.down")
-                            .font(.system(size: 10, weight: .bold))
-                            .rotationEffect(.degrees(showsNotes ? 180 : 0))
-                    }
-                    .foregroundStyle(Color.unbound.textSecondary)
-                    .padding(.vertical, 6)
+        private var columnHeader: some View {
+            HStack(spacing: 8) {
+                Text("SET").frame(width: 26, alignment: .leading)
+                if showsWeight {
+                    Text(weightHeader).frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .buttonStyle(.plain)
+                Text(metricHeader).frame(maxWidth: .infinity, alignment: .leading)
+                Spacer().frame(width: 28)
+            }
+            .font(Font.unbound.captionS.weight(.heavy))
+            .tracking(1.2)
+            .foregroundStyle(Color.unbound.textTertiary)
+            .padding(.bottom, 4)
+        }
 
-                if showsNotes {
-                    TextField("Notes or cues", text: $notesText, axis: .vertical)
-                        .font(Font.unbound.captionS)
-                        .foregroundStyle(Color.unbound.textPrimary)
-                        .textInputAutocapitalization(.sentences)
-                        .lineLimit(1...3)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 10)
-                        .background(
-                            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                .fill(Color.unbound.surface)
-                        )
-                        .onChange(of: notesText) { _, newValue in applyNotes(newValue) }
-                }
+        private var planIndices: Range<Int> {
+            (prescription.setPlans ?? prescription.effectiveSetPlans).indices
+        }
+
+        private var weightHeader: String {
+            "WEIGHT " + weightUnit.shortLabel.uppercased()
+        }
+
+        private var metricHeader: String {
+            switch metricKind {
+            case .reps: return "REPS"
+            case .holdSeconds: return "HOLD"
+            case .durationSeconds: return "TIME"
+            case .distanceMeters: return "DIST"
+            case .calories: return "CAL"
             }
         }
 
-        func editorField(
-            label: String,
-            text: Binding<String>,
-            suffix: String? = nil,
-            keyboard: UIKeyboardType
-        ) -> some View {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(label)
-                    .font(Font.unbound.captionS.weight(.heavy))
-                    .tracking(0.8)
-                    .foregroundStyle(Color.unbound.textTertiary)
-
-                HStack(spacing: 4) {
-                    TextField("-", text: text)
-                        .font(Font.unbound.bodyS.weight(.semibold))
-                        .foregroundStyle(Color.unbound.textPrimary)
-                        .keyboardType(keyboard)
-                        .lineLimit(1)
-                        .submitLabel(.done)
-
-                    if let suffix, !text.wrappedValue.isEmpty {
-                        Text(suffix)
-                            .font(Font.unbound.captionS.weight(.semibold))
-                            .foregroundStyle(Color.unbound.textTertiary)
-                    }
-                }
-                .padding(.horizontal, 2)
-                .frame(height: 34)
-                .overlay(alignment: .bottom) {
-                    Rectangle().fill(Color.unbound.borderSubtle).frame(height: 1)
-                }
-            }
-        }
-
-        func applySets(_ text: String) {
-            guard let value = Int(text.trimmingCharacters(in: .whitespacesAndNewlines)) else { return }
-            let clamped = min(max(value, 1), 20)
-            guard prescription.sets != clamped else { return }
-            prescription.sets = clamped
-            onProgrammingChange()
-        }
-
-        func applyTarget(_ text: String) {
-            let target = SessionEditorView.target(from: text)
-            guard prescription.target != target else { return }
-            prescription.target = target
-            onProgrammingChange()
-        }
-
-        func applyWeight(_ text: String) {
-            let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !trimmed.isEmpty else {
-                if prescription.suggestedWeightKg != nil || prescription.loadPercentOfBodyweight != nil {
-                    prescription.suggestedWeightKg = nil
-                    prescription.loadPercentOfBodyweight = nil
-                    onProgrammingChange()
-                }
-                return
-            }
-
-            guard let value = Double(trimmed.replacingOccurrences(of: ",", with: ".")) else { return }
-            let weight = value > 0 ? WeightPlatePolicy.kilograms(fromDisplayValue: value, unit: weightUnit) : nil
-            guard prescription.suggestedWeightKg != weight else { return }
-            prescription.suggestedWeightKg = weight
-            prescription.loadPercentOfBodyweight = nil
-            onProgrammingChange()
-        }
-
-        func applyRest(_ text: String) {
-            guard let value = Int(text.trimmingCharacters(in: .whitespacesAndNewlines)) else { return }
-            let clamped = min(max(value, 0), 600)
-            guard prescription.restSeconds != clamped else { return }
-            prescription.restSeconds = clamped
-            onProgrammingChange()
-        }
-
-        func applyRPE(_ text: String) {
-            let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !trimmed.isEmpty else {
-                if prescription.rpe != nil {
-                    prescription.rpe = nil
-                    onProgrammingChange()
-                }
-                return
-            }
-
-            guard let value = Int(trimmed) else { return }
-            let clamped = min(max(value, 1), 10)
-            guard prescription.rpe != clamped else { return }
-            prescription.rpe = clamped
-            onProgrammingChange()
-        }
-
-        func applyNotes(_ text: String) {
-            let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-            let notes = trimmed.isEmpty ? nil : trimmed
-            guard prescription.notes != notes else { return }
-            prescription.notes = notes
-        }
-
-        func materializeSetPlansIfNeeded() {
+        private func materializeSetPlansIfNeeded() {
             guard prescription.setPlans?.isEmpty != false else { return }
-            mutatePrescription { $0.materializeSetPlans() }
-            syncTextFromPrescription()
+            mutate { $0.materializeSetPlans() }
         }
 
-        func setPlanBinding(_ index: Int) -> Binding<TrainingSetPlan> {
+        private func mutate(_ mutation: (inout TrainingBlockPrescription) -> Void) {
+            var updated = prescription
+            mutation(&updated)
+            prescription = updated
+        }
+
+        private func setPlanBinding(_ index: Int) -> Binding<TrainingSetPlan> {
             Binding(
                 get: {
                     let plans = prescription.setPlans ?? prescription.effectiveSetPlans
@@ -394,163 +268,99 @@ extension SessionEditorView {
                 }
             )
         }
-
-        func mutatePrescription(_ mutation: (inout TrainingBlockPrescription) -> Void) {
-            var updated = prescription
-            mutation(&updated)
-            prescription = updated
-        }
-
-        func syncTextFromPrescription() {
-            setsText = "\(prescription.sets)"
-            targetText = SessionEditorView.targetEditText(prescription.target)
-            weightText = Self.formatWeight(prescription.suggestedWeightKg, unit: weightUnit)
-            restText = "\(prescription.restSeconds)"
-            rpeText = prescription.rpe.map(String.init) ?? ""
-        }
-
-        static func formatWeight(_ value: Double?, unit: TrainingWeightUnit) -> String {
-            guard let value else { return "" }
-            return WeightPlatePolicy.formatLoggedWeight(value, unit: unit)
-        }
     }
 
-    struct EditableSetPlanRow: View {
+    /// One editable set line: number + (weight) + reps/hold + remove. The metric
+    /// column edits the set's target; for holds it reads/writes hold-seconds.
+    struct EditableSetGridRow: View {
         @Binding var plan: TrainingSetPlan
-        let index: Int
+        let setNumber: Int
+        let metricKind: TrainingMetricKind
+        let showsWeight: Bool
+        let weightUnit: TrainingWeightUnit
         let canRemove: Bool
         let onRemove: () -> Void
         let onChange: () -> Void
 
-        @State private var targetText: String
         @State private var weightText: String
-        @State private var restText: String
-        @State private var rpeText: String
-        @AppStorage(WeightPlatePolicy.unitDefaultsKey) private var weightUnitRaw = TrainingWeightUnit.localeDefault.rawValue
+        @State private var metricText: String
 
         init(
             plan: Binding<TrainingSetPlan>,
-            index: Int,
+            setNumber: Int,
+            metricKind: TrainingMetricKind,
+            showsWeight: Bool,
+            weightUnit: TrainingWeightUnit,
             canRemove: Bool,
             onRemove: @escaping () -> Void,
             onChange: @escaping () -> Void
         ) {
             _plan = plan
-            self.index = index
+            self.setNumber = setNumber
+            self.metricKind = metricKind
+            self.showsWeight = showsWeight
+            self.weightUnit = weightUnit
             self.canRemove = canRemove
             self.onRemove = onRemove
             self.onChange = onChange
             let value = plan.wrappedValue
-            _targetText = State(initialValue: SessionEditorView.targetEditText(value.target))
-            _weightText = State(initialValue: Self.formatWeight(value.suggestedWeightKg, unit: WeightPlatePolicy.currentUnit))
-            _restText = State(initialValue: "\(value.restSeconds)")
-            _rpeText = State(initialValue: value.rpe.map(String.init) ?? "")
-        }
-
-        private var weightUnit: TrainingWeightUnit {
-            TrainingWeightUnit(rawValue: weightUnitRaw) ?? .localeDefault
+            _weightText = State(initialValue: Self.formatWeight(value.suggestedWeightKg, unit: weightUnit))
+            _metricText = State(initialValue: Self.metricEditText(value.target, metricKind: metricKind))
         }
 
         var body: some View {
-            VStack(alignment: .leading, spacing: 8) {
-                HStack(spacing: 8) {
-                    Text("\(index + 1)")
-                        .font(Font.unbound.monoS.weight(.bold))
-                        .foregroundStyle(Color.unbound.bg)
-                        .frame(width: 22, height: 22)
-                        .background(Circle().fill(plan.isWarmup ? Color.unbound.warnOrange : Color.unbound.coachCyan))
+            HStack(spacing: 8) {
+                Text("\(setNumber)")
+                    .font(Font.unbound.monoM)
+                    .foregroundStyle(Color.unbound.textTertiary)
+                    .frame(width: 26, alignment: .leading)
 
-                    setField(label: "TARGET", text: $targetText, keyboard: .numbersAndPunctuation)
-                        .onChange(of: targetText) { _, text in applyTarget(text) }
-
-                    setField(label: weightUnit.shortLabel.uppercased(), text: $weightText, keyboard: .decimalPad)
+                if showsWeight {
+                    gridField(text: $weightText, placeholder: "—", keyboard: .decimalPad)
                         .onChange(of: weightText) { _, text in applyWeight(text) }
-
-                    if canRemove {
-                        Button(action: onRemove) {
-                            Image(systemName: "minus.circle.fill")
-                                .font(.system(size: 18, weight: .semibold))
-                                .foregroundStyle(Color.unbound.textTertiary)
-                                .frame(width: 28, height: 34)
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel("Remove set \(index + 1)")
-                    }
+                } else {
+                    Text("—")
+                        .font(Font.unbound.monoM)
+                        .foregroundStyle(Color.unbound.textTertiary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
-                HStack(spacing: 8) {
-                    setField(label: "RPE", text: $rpeText, keyboard: .numberPad)
-                        .onChange(of: rpeText) { _, text in applyRPE(text) }
+                gridField(text: $metricText, placeholder: "—", keyboard: .numbersAndPunctuation)
+                    .onChange(of: metricText) { _, text in applyMetric(text) }
 
-                    setField(label: "REST", text: $restText, suffix: "s", keyboard: .numberPad)
-                        .onChange(of: restText) { _, text in applyRest(text) }
-
-                    Button {
-                        UnboundHaptics.soft()
-                        plan.isWarmup.toggle()
-                        onChange()
-                    } label: {
-                        Text(plan.isWarmup ? "WARMUP" : "WORK")
-                            .font(Font.unbound.captionS.weight(.heavy))
-                            .tracking(0.7)
-                            .foregroundStyle(plan.isWarmup ? Color.unbound.warnOrange : Color.unbound.textSecondary)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 32)
-                            .overlay(alignment: .bottom) {
-                                Rectangle()
-                                    .fill(plan.isWarmup ? Color.unbound.warnOrange.opacity(0.6) : Color.unbound.borderSubtle)
-                                    .frame(height: 1)
-                            }
+                if canRemove {
+                    Button(action: onRemove) {
+                        Image(systemName: "minus.circle")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(Color.unbound.textTertiary)
+                            .frame(width: 28, height: 38)
+                            .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel("Remove set \(setNumber)")
+                } else {
+                    Spacer().frame(width: 28)
                 }
             }
-            .padding(.vertical, 8)
-        }
-
-        func setField(
-            label: String,
-            text: Binding<String>,
-            suffix: String? = nil,
-            keyboard: UIKeyboardType
-        ) -> some View {
-            VStack(alignment: .leading, spacing: 3) {
-                Text(label)
-                    .font(Font.unbound.captionS.weight(.heavy))
-                    .tracking(0.7)
-                    .foregroundStyle(Color.unbound.textTertiary)
-                    .lineLimit(1)
-
-                HStack(spacing: 3) {
-                    TextField("-", text: text)
-                        .font(Font.unbound.bodyS.weight(.semibold))
-                        .foregroundStyle(Color.unbound.textPrimary)
-                        .keyboardType(keyboard)
-                        .lineLimit(1)
-                        .submitLabel(.done)
-
-                    if let suffix, !text.wrappedValue.isEmpty {
-                        Text(suffix)
-                            .font(Font.unbound.captionS.weight(.semibold))
-                            .foregroundStyle(Color.unbound.textTertiary)
-                    }
-                }
-                .padding(.horizontal, 2)
-                .frame(height: 32)
-                .overlay(alignment: .bottom) {
-                    Rectangle().fill(Color.unbound.borderSubtle).frame(height: 1)
-                }
+            .padding(.vertical, 4)
+            .overlay(alignment: .bottom) {
+                Rectangle().fill(Color.unbound.borderSubtle).frame(height: 1)
             }
+            .onChange(of: plan) { _, _ in syncTextFromPlan() }
         }
 
-        func applyTarget(_ text: String) {
-            let target = SessionEditorView.target(from: text)
-            guard plan.target != target else { return }
-            plan.target = target
-            onChange()
+        private func gridField(text: Binding<String>, placeholder: String, keyboard: UIKeyboardType) -> some View {
+            TextField(placeholder, text: text)
+                .font(Font.unbound.monoM)
+                .foregroundStyle(Color.unbound.textPrimary)
+                .keyboardType(keyboard)
+                .lineLimit(1)
+                .submitLabel(.done)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.vertical, 8)
         }
 
-        func applyWeight(_ text: String) {
+        private func applyWeight(_ text: String) {
             let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !trimmed.isEmpty else {
                 guard plan.suggestedWeightKg != nil || plan.loadPercentOfBodyweight != nil else { return }
@@ -568,31 +378,57 @@ extension SessionEditorView {
             onChange()
         }
 
-        func applyRest(_ text: String) {
-            guard let value = Int(text.trimmingCharacters(in: .whitespacesAndNewlines)) else { return }
-            let clamped = min(max(value, 0), 600)
-            guard plan.restSeconds != clamped else { return }
-            plan.restSeconds = clamped
+        private func applyMetric(_ text: String) {
+            let target = Self.target(from: text, metricKind: metricKind)
+            guard plan.target != target else { return }
+            plan.target = target
             onChange()
         }
 
-        func applyRPE(_ text: String) {
-            let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !trimmed.isEmpty else {
-                guard plan.rpe != nil else { return }
-                plan.rpe = nil
-                onChange()
-                return
+        private func syncTextFromPlan() {
+            let newWeight = Self.formatWeight(plan.suggestedWeightKg, unit: weightUnit)
+            if newWeight != weightText { weightText = newWeight }
+            let newMetric = Self.metricEditText(plan.target, metricKind: metricKind)
+            if newMetric != metricText { metricText = newMetric }
+        }
+
+        /// Editable text for the metric column. Reps show the range/count; holds and
+        /// timed sets show seconds as a plain number; distance/calories likewise.
+        private static func metricEditText(_ target: TrainingTarget, metricKind: TrainingMetricKind) -> String {
+            switch metricKind {
+            case .reps:
+                switch target {
+                case .reps(let count): return "\(count)"
+                case .repsRange(let low, let high): return "\(low)-\(high)"
+                case .amrap: return "AMRAP"
+                default: return SessionEditorView.targetEditText(target)
+                }
+            case .holdSeconds, .durationSeconds:
+                return "\(target.metricLowerBound ?? 0)"
+            case .distanceMeters, .calories:
+                return "\(target.metricLowerBound ?? 0)"
             }
-
-            guard let value = Int(trimmed) else { return }
-            let clamped = min(max(value, 1), 10)
-            guard plan.rpe != clamped else { return }
-            plan.rpe = clamped
-            onChange()
         }
 
-        static func formatWeight(_ value: Double?, unit: TrainingWeightUnit) -> String {
+        /// Parse the metric column back into a target, anchored to the column's
+        /// metric kind so a hold field can't accidentally become reps.
+        private static func target(from text: String, metricKind: TrainingMetricKind) -> TrainingTarget {
+            let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            switch metricKind {
+            case .reps:
+                return SessionEditorView.target(from: trimmed)
+            case .holdSeconds:
+                return .holdSeconds(RepRange.lowerBound(trimmed) ?? 0)
+            case .durationSeconds:
+                return .timedSeconds(RepRange.lowerBound(trimmed) ?? 0)
+            case .distanceMeters:
+                return .distanceMeters(RepRange.lowerBound(trimmed) ?? 0)
+            case .calories:
+                return .calories(RepRange.lowerBound(trimmed) ?? 0)
+            }
+        }
+
+        private static func formatWeight(_ value: Double?, unit: TrainingWeightUnit) -> String {
             guard let value else { return "" }
             return WeightPlatePolicy.formatLoggedWeight(value, unit: unit)
         }

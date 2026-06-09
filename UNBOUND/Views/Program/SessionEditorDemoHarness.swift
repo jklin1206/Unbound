@@ -19,12 +19,24 @@ struct SessionEditorDemoHarness: View {
                 restSeconds: 90, rpe: 8, suggestedWeightKg: kg
             )
         }
+        func bw(_ name: String) -> TrainingBlockPrescription {
+            TrainingBlockPrescription(
+                exerciseName: name, sets: 3, target: .reps(10), restSeconds: 90, rpe: 8
+            )
+        }
+        func hold(_ name: String, seconds: Int) -> TrainingBlockPrescription {
+            TrainingBlockPrescription(
+                exerciseName: name, sets: 3, target: .holdSeconds(seconds), restSeconds: 60, rpe: 7
+            )
+        }
         let block = TrainingBlock(
             kind: .strength, title: "Main Work",
             prescriptions: [
                 rx("Overhead Press", kg: 45),
                 rx("Bench Press", kg: 60),
-                rx("Triceps Pushdown", kg: 25)
+                rx("Triceps Pushdown", kg: 25),
+                bw("Pull-Up"),
+                hold("Plank", seconds: 45)
             ]
         )
         return TrainingSessionDraft(
