@@ -132,25 +132,24 @@ private struct ProgramVisualExerciseRow: View {
             )
             .frame(width: 46, height: 46)
 
-            VStack(alignment: .leading, spacing: 3) {
-                Text(exercise.name.uppercased())
-                    .font(Font.unbound.captionS.weight(.bold))
-                    .tracking(0.7)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(exercise.name)
+                    .font(Font.unbound.bodyMStrong)
                     .foregroundStyle(Color.unbound.textPrimary)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.72)
-                Text(subtitle.uppercased())
-                    .font(Font.unbound.monoS)
-                    .foregroundStyle(Color.unbound.textPrimary.opacity(0.58))
+                    .minimumScaleFactor(0.8)
+                Text(subtitle)
+                    .font(Font.unbound.captionS)
+                    .foregroundStyle(Color.unbound.textSecondary)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.72)
+                    .minimumScaleFactor(0.8)
             }
 
             Spacer(minLength: 8)
 
-            Text("\(exercise.sets)x\(exercise.reps)")
+            Text("\(exercise.sets) × \(exercise.reps)")
                 .font(Font.unbound.monoS.weight(.bold))
-                .foregroundStyle(Color.unbound.textPrimary.opacity(0.78))
+                .foregroundStyle(Color.unbound.textPrimary)
                 .monospacedDigit()
         }
         .padding(.vertical, 10)

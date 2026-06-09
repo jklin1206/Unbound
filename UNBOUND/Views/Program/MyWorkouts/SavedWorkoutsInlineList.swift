@@ -130,22 +130,23 @@ private struct SavedWorkoutInlineRow: View {
                     // Exercise lines
                     let prescriptions = workout.blocks.flatMap(\.prescriptions)
                     if !prescriptions.isEmpty {
-                        VStack(alignment: .leading, spacing: 6) {
+                        VStack(alignment: .leading, spacing: 8) {
                             ForEach(prescriptions) { prescription in
-                                HStack(spacing: 6) {
+                                HStack(spacing: 8) {
                                     Text(prescription.exerciseName)
-                                        .font(Font.unbound.bodyS)
-                                        .foregroundStyle(Color.unbound.textSecondary)
+                                        .font(Font.unbound.bodyM)
+                                        .foregroundStyle(Color.unbound.textPrimary)
                                         .lineLimit(1)
-                                    Text("·")
-                                        .font(Font.unbound.bodyS)
-                                        .foregroundStyle(Color.unbound.textTertiary)
-                                    Text("\(prescription.sets)×\(prescription.target.displayText)")
-                                        .font(Font.unbound.bodyS)
-                                        .foregroundStyle(Color.unbound.textTertiary)
+                                        .minimumScaleFactor(0.8)
+                                    Spacer(minLength: 8)
+                                    Text("\(prescription.sets) × \(prescription.target.displayText)")
+                                        .font(Font.unbound.monoS.weight(.medium))
+                                        .foregroundStyle(Color.unbound.textSecondary)
+                                        .monospacedDigit()
                                 }
                             }
                         }
+                        .padding(.leading, 56)
                         .padding(.bottom, 14)
                     }
 
