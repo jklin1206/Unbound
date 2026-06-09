@@ -115,6 +115,8 @@ extension SessionEditorView {
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel("\(prescription.exerciseName), \(summaryLine)")
+                    .accessibilityHint(isExpanded ? "Collapse to hide sets" : "Expand to edit sets")
 
                     rowActionsMenu
                 }
