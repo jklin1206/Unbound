@@ -153,7 +153,7 @@ struct SessionEditorView: View {
         .task {
             await loadPickerContext()
         }
-        .overlay(alignment: .bottom) { editorKeypadDock }
+        .safeAreaInset(edge: .bottom, spacing: 0) { editorKeypadDock }
         .animation(.spring(response: 0.32, dampingFraction: 0.86), value: editing?.id)
     }
 
