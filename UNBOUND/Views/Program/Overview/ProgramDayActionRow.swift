@@ -30,11 +30,6 @@ struct ProgramDayActionRow: View {
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
                         .fill(isCompleted ? Color.unbound.surfaceElevated : Color.unbound.accent)
                 )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .strokeBorder(isCompleted ? Color.unbound.success.opacity(0.28) : Color.clear, lineWidth: 1)
-                )
-                .shadow(color: isCompleted ? Color.clear : Color.unbound.accent.opacity(0.35), radius: 10, y: 2)
             }
             .buttonStyle(.plain)
             .disabled(!actionState.isEnabled || isCompletingRecoveryDay)
@@ -48,11 +43,7 @@ struct ProgramDayActionRow: View {
                         .frame(width: 52, height: 46)
                         .background(
                             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                .fill(Color.unbound.success.opacity(0.22))
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                .strokeBorder(Color.unbound.success.opacity(0.38), lineWidth: 1)
+                                .fill(Color.unbound.surfaceElevated)
                         )
                 }
                 .buttonStyle(.plain)
@@ -69,10 +60,6 @@ struct ProgramDayActionRow: View {
                         .background(
                             RoundedRectangle(cornerRadius: 12, style: .continuous)
                                 .fill(Color.unbound.surfaceElevated)
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
                         )
                 }
                 .buttonStyle(.plain)

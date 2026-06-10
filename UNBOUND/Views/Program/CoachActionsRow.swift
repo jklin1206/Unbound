@@ -35,42 +35,7 @@ struct CoachActionsRow: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            Divider()
-                .overlay(Color.unbound.borderSubtle.opacity(0.7))
-
-            HStack(spacing: 12) {
-                Text("Adjust")
-                    .font(Font.unbound.captionS.weight(.heavy))
-                    .tracking(1.0)
-                    .foregroundStyle(Color.unbound.textTertiary)
-
-                Spacer(minLength: 0)
-
-                chip(
-                    title: "Deload",
-                    icon: "arrow.down.circle",
-                    tint: Color.unbound.accent,
-                    action: { sheet = .deload }
-                )
-                chip(
-                    title: "Travel",
-                    icon: "airplane",
-                    tint: Color.unbound.accent,
-                    action: { sheet = .travel }
-                )
-                chip(
-                    title: "Short",
-                    icon: "timer",
-                    tint: Color.unbound.coachCyan,
-                    action: { sheet = .shortSession }
-                )
-            }
-            .padding(.vertical, 10)
-
-            Divider()
-                .overlay(Color.unbound.borderSubtle.opacity(0.7))
-        }
+        actionRail
         .sheet(item: $sheet) { kind in
             switch kind {
             case .deload:
@@ -83,29 +48,56 @@ struct CoachActionsRow: View {
         }
     }
 
-    private func chip(
+    private var actionRail: some View {
+        HStack(spacing: 8) {
+            actionButton(
+                title: "Deload",
+                icon: "arrow.down.circle",
+                action: { sheet = .deload }
+            )
+
+            actionButton(
+                title: "Travel",
+                icon: "airplane",
+                action: { sheet = .travel }
+            )
+
+            actionButton(
+                title: "Short",
+                icon: "timer",
+                action: { sheet = .shortSession }
+            )
+        }
+    }
+
+    private func actionButton(
         title: String,
         icon: String,
-        tint: Color,
         action: @escaping () -> Void
     ) -> some View {
         Button {
             UnboundHaptics.medium()
             action()
         } label: {
-            HStack(spacing: 5) {
+            HStack(spacing: 7) {
                 Image(systemName: icon)
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(tint)
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(Color.unbound.textTertiary)
                 Text(title.uppercased())
-                    .font(Font.unbound.captionS.weight(.bold))
-                    .tracking(0.8)
-                    .foregroundStyle(Color.unbound.textPrimary)
+                    .font(Font.unbound.captionS.weight(.heavy))
+                    .tracking(1.0)
+                    .foregroundStyle(Color.unbound.textSecondary)
             }
-            .frame(height: 34)
-            .contentShape(Rectangle())
+            .frame(maxWidth: .infinity)
+            .frame(height: 42)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(Color.unbound.surface)
+            )
+            .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(title)
     }
 
     private func unavailableSheet(title: String, subtitle: String) -> some View {

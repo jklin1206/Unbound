@@ -169,7 +169,7 @@ extension ProgramOverviewView {
                 #endif
                 AnyView(weekStrip(program: program))
                 AnyView(dayCard(program: program))
-                AnyView(programControlDock(program: program))
+                AnyView(programBelowDayTools(program: program))
                 if let proposal = rolloverProposal,
                    shouldShowCheckpointPrompt(for: program, proposal: proposal) {
                     AnyView(
@@ -179,19 +179,15 @@ extension ProgramOverviewView {
                         )
                     )
                 }
-                CoachActionsRow(
-                    program: program,
-                    todayDay: programDay(for: programToday, in: program)
-                )
-                .environmentObject(services)
                 if !services.entitlement.isEntitled {
                     AnyView(ProgramSubscriptionBanner(onOpen: openPaywall))
                 }
-                Spacer().frame(height: 118)
             }
             .padding(.horizontal, 20)
             .padding(.top, 8)
+            .padding(.bottom, 24)
         }
+        .scrollBounceBehavior(.basedOnSize, axes: .vertical)
         .fullScreenCover(item: $resumeDraft) { draft in
             ActiveWorkoutContainerView(
                 workout: Workout(name: "", targetMuscleGroups: [], warmup: [],
@@ -213,6 +209,18 @@ extension ProgramOverviewView {
         }
         .task(id: selectedDayDate) {
             viewModel?.refreshWaveAdjustments(asOf: selectedDayDate)
+        }
+    }
+
+    func programBelowDayTools(program: TrainingProgram) -> some View {
+        VStack(spacing: 8) {
+            CoachActionsRow(
+                program: program,
+                todayDay: programDay(for: programToday, in: program)
+            )
+            .environmentObject(services)
+
+            programControlDock(program: program)
         }
     }
 }

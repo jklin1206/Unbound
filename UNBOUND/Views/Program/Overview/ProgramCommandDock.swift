@@ -4,7 +4,6 @@ struct ProgramCommandDock: View {
     struct SetupTile {
         let title: String
         let icon: String
-        let tint: Color
         let badge: String?
         let isLoading: Bool
 
@@ -18,7 +17,6 @@ struct ProgramCommandDock: View {
             return SetupTile(
                 title: compactTrainingStyleLabel(style),
                 icon: trainingStyleIcon(style),
-                tint: trainingStyleTint(style),
                 badge: contextDockBadge(
                     activeContext: activeContext,
                     pendingContext: pendingContext
@@ -45,15 +43,6 @@ struct ProgramCommandDock: View {
             }
         }
 
-        private static func trainingStyleTint(_ style: TrainingStyle) -> Color {
-            switch style {
-            case .bodyweight: return Color.unbound.success
-            case .freeWeights: return Color.unbound.accent
-            case .hybrid: return Color.unbound.coachCyan
-            case .machines: return Color.unbound.warnOrange
-            }
-        }
-
         private static func contextDockBadge(
             activeContext: ProgramTrainingContextOverride?,
             pendingContext: ProgramTrainingContextOverride?
@@ -74,72 +63,65 @@ struct ProgramCommandDock: View {
     let onChangeSetup: () -> Void
 
     var body: some View {
-        VStack(spacing: 0) {
-            Divider()
-                .overlay(Color.unbound.border)
-
-            planRow
+        HStack(spacing: 8) {
+            commandTile(
+                title: "Month",
+                icon: "calendar",
+                action: onPlan
+            )
+                .accessibilityLabel("Plan Month")
                 .accessibilityIdentifier("program.monthPlanner.open")
 
-            Divider()
-                .padding(.leading, 36)
-                .overlay(Color.unbound.border.opacity(0.5))
-
-            setupRow
+            commandTile(
+                title: setupTile.title,
+                icon: setupTile.isLoading ? "arrow.triangle.2.circlepath" : setupTile.icon,
+                accessory: setupTile.badge == "BASE" ? nil : setupTile.badge,
+                action: onChangeSetup
+            )
+                .disabled(setupTile.isLoading)
+                .accessibilityLabel("Training setup")
+                .accessibilityIdentifier("program.focusSwitch")
         }
         .accessibilityIdentifier("program.controls")
     }
 
-    private var planRow: some View {
-        Button(action: onPlan) {
-            HStack(spacing: 10) {
-                Image(systemName: "calendar")
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(Color.unbound.coachCyan)
-                    .frame(width: 24)
-                Text("Plan Month")
-                    .font(Font.unbound.bodyM)
-                    .foregroundStyle(Color.unbound.textPrimary)
-                Spacer(minLength: 0)
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 11, weight: .bold))
+    private func commandTile(
+        title: String,
+        icon: String,
+        accessory: String? = nil,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Image(systemName: icon)
+                    .font(.system(size: 12, weight: .bold))
                     .foregroundStyle(Color.unbound.textTertiary)
-            }
-            .padding(.vertical, 14)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-    }
 
-    private var setupRow: some View {
-        Button(action: onChangeSetup) {
-            HStack(spacing: 10) {
-                Image(systemName: setupTile.isLoading ? "arrow.triangle.2.circlepath" : setupTile.icon)
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(setupTile.tint)
-                    .frame(width: 24)
-                Text(setupTile.title)
-                    .font(Font.unbound.bodyM)
-                    .foregroundStyle(Color.unbound.textPrimary)
-                if let badge = setupTile.badge, badge != "BASE" {
-                    Text(badge)
+                Text(title.uppercased())
+                    .font(Font.unbound.captionS.weight(.heavy))
+                    .tracking(1.0)
+                    .foregroundStyle(Color.unbound.textSecondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+
+                if let accessory {
+                    Text(accessory)
                         .font(Font.unbound.monoS.weight(.bold))
-                        .foregroundStyle(setupTile.tint)
+                        .foregroundStyle(Color.unbound.textTertiary)
                         .lineLimit(1)
                         .minimumScaleFactor(0.65)
                 }
-                Spacer(minLength: 0)
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(Color.unbound.textTertiary)
             }
-            .padding(.vertical, 14)
-            .contentShape(Rectangle())
+            .padding(.horizontal, 10)
+            .frame(maxWidth: .infinity)
+            .frame(height: 42)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(Color.unbound.surface)
+            )
+            .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
         .buttonStyle(.plain)
-        .disabled(setupTile.isLoading)
-        .accessibilityLabel("Training setup")
-        .accessibilityIdentifier("program.focusSwitch")
     }
 }
 

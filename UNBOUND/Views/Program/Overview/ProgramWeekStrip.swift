@@ -62,9 +62,9 @@ struct ProgramWeekStrip: View {
                 Text("\(dayNumber)")
                     .font(Font.unbound.monoS.weight(.bold))
                     .foregroundStyle(
-                        isActive
-                            ? Color.unbound.textPrimary
-                            : Color.unbound.textPrimary.opacity(0.72)
+                        tile.isToday
+                            ? Color.unbound.accent
+                            : (isActive ? Color.unbound.textPrimary : Color.unbound.textPrimary.opacity(0.72))
                     )
                     .monospacedDigit()
                 tileStatusGlyph(status: tile.status, isActive: isActive)
@@ -73,23 +73,10 @@ struct ProgramWeekStrip: View {
             .frame(maxWidth: .infinity)
             .padding(.vertical, 8)
             .background(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(
-                        tile.isSelected
-                            ? Color.unbound.accent.opacity(0.28)
-                            : (tile.isToday ? Color.unbound.surfaceElevated.opacity(0.62) : Color.clear)
-                    )
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(tile.isSelected ? Color.unbound.surfaceElevated : Color.clear)
             )
-            .overlay(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .strokeBorder(
-                        tile.isSelected || tile.isToday
-                            ? Color.unbound.accent.opacity(tile.isToday ? 0.75 : 0.42)
-                            : Color.clear,
-                        lineWidth: tile.isToday ? 1.2 : 1
-                    )
-            )
-            .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
         .buttonStyle(.plain)
     }
@@ -103,9 +90,8 @@ struct ProgramWeekStrip: View {
                 .foregroundStyle(isActive ? Color.unbound.textPrimary : Color.unbound.accent)
         case .today:
             Circle()
-                .fill(isActive ? Color.unbound.textPrimary : Color.unbound.accent)
+                .fill(Color.unbound.accent)
                 .frame(width: 6, height: 6)
-                .shadow(color: Color.unbound.accent.opacity(0.65), radius: 3)
         case .rest:
             Image(systemName: "moon.fill")
                 .font(.system(size: 10, weight: .semibold))

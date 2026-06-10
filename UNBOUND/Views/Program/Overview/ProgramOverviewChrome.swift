@@ -137,11 +137,7 @@ struct ProgramSubscriptionBanner: View {
             .padding(14)
             .background(
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(Color.unbound.accent.opacity(0.08))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .strokeBorder(Color.unbound.accent.opacity(0.35), lineWidth: 1)
+                    .fill(Color.unbound.surface)
             )
         }
         .buttonStyle(.plain)

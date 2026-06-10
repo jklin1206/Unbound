@@ -18,7 +18,7 @@ struct ProgramFuelTargetBand: View {
         } label: {
             VStack(alignment: .leading, spacing: 8) {
                 Rectangle()
-                    .fill(Color.unbound.borderSubtle)
+                    .fill(Color.unbound.border)
                     .frame(height: 1)
 
                 HStack(alignment: .center, spacing: 10) {
@@ -26,10 +26,6 @@ struct ProgramFuelTargetBand: View {
                         .font(.system(size: 13, weight: .bold))
                         .foregroundStyle(day.isRestDay ? Color.unbound.success : Color.unbound.emberGlow)
                         .frame(width: 26, height: 26)
-                        .background(
-                            Circle()
-                                .fill((day.isRestDay ? Color.unbound.success : Color.unbound.emberGlow).opacity(0.13))
-                        )
 
                     VStack(alignment: .leading, spacing: 2) {
                         Text("FUEL TARGET")
