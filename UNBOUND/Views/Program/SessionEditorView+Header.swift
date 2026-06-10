@@ -10,9 +10,8 @@ extension SessionEditorView {
                 Text("Close")
                     .font(Font.unbound.bodyS.weight(.semibold))
                     .foregroundStyle(Color.unbound.textSecondary)
-                    .padding(.horizontal, 14)
                     .frame(height: 38)
-                    .background(Capsule().fill(Color.unbound.surface))
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
 
@@ -33,7 +32,7 @@ extension SessionEditorView {
                     .font(.system(size: 14, weight: .bold))
                     .foregroundStyle(Color.unbound.textSecondary)
                     .frame(width: 38, height: 38)
-                    .background(Circle().fill(Color.unbound.surface))
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Reset session edits")
@@ -53,22 +52,20 @@ extension SessionEditorView {
                 )
                 .frame(width: 58, height: 58)
 
-                TextField("Workout name", text: $draft.title)
-                    .font(Font.unbound.titleM)
-                    .foregroundStyle(Color.unbound.textPrimary)
-                    .textInputAutocapitalization(.words)
-                    .submitLabel(.done)
-                    .padding(.horizontal, 12)
-                    .frame(minHeight: 48)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .fill(Color.unbound.surface)
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
-                    )
-                    .accessibilityIdentifier("sessionEditor.workoutName")
+                VStack(alignment: .leading, spacing: 0) {
+                    TextField("Workout name", text: $draft.title)
+                        .font(Font.unbound.titleM)
+                        .foregroundStyle(Color.unbound.textPrimary)
+                        .textInputAutocapitalization(.words)
+                        .submitLabel(.done)
+                        .padding(.vertical, 8)
+                        .frame(minHeight: 44)
+                        .accessibilityIdentifier("sessionEditor.workoutName")
+
+                    Rectangle()
+                        .fill(Color.unbound.borderSubtle)
+                        .frame(height: 1)
+                }
             }
         }
     }
@@ -85,17 +82,10 @@ extension SessionEditorView {
                     .font(Font.unbound.bodyS.weight(.heavy))
                     .tracking(1.1)
             }
-            .foregroundStyle(Color.unbound.textPrimary)
+            .foregroundStyle(Color.unbound.accent)
             .frame(maxWidth: .infinity)
             .frame(height: 46)
-            .background(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(Color.unbound.surfaceElevated)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .strokeBorder(Color.unbound.accent.opacity(0.36), lineWidth: 1)
-            )
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier("sessionEditor.addExercise")
@@ -128,15 +118,7 @@ extension SessionEditorView {
                 }
             }
         }
-        .padding(12)
-        .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color.unbound.surface)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
-        )
+        .padding(.vertical, 4)
     }
 
     func persistenceChip(_ mode: TrainingSessionEditPersistence) -> some View {
@@ -182,6 +164,7 @@ struct WorkoutReferenceImageView: View {
     let exerciseName: String?
     let fallbackSystemName: String
     let fallbackTint: Color
+    var size: ExerciseVisualView.Size = .thumbnail
 
     private var definition: MovementDefinition? {
         guard let exerciseName else { return nil }
@@ -194,19 +177,26 @@ struct WorkoutReferenceImageView: View {
 
     var body: some View {
         if let definition {
-            ExerciseVisualView(definition: definition, size: .thumbnail)
+            ExerciseVisualView(definition: definition, size: size)
         } else {
             ZStack {
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                RoundedRectangle(cornerRadius: size.cornerRadius, style: .continuous)
                     .fill(fallbackTint.opacity(0.14))
                 Image(systemName: fallbackSystemName)
-                    .font(.system(size: 15, weight: .bold))
+                    .font(.system(size: fallbackIconSize, weight: .bold))
                     .foregroundStyle(fallbackTint)
             }
             .overlay(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                RoundedRectangle(cornerRadius: size.cornerRadius, style: .continuous)
                     .strokeBorder(fallbackTint.opacity(0.25), lineWidth: 1)
             )
+        }
+    }
+
+    private var fallbackIconSize: CGFloat {
+        switch size {
+        case .thumbnail: return 15
+        case .hero: return 28
         }
     }
 }
