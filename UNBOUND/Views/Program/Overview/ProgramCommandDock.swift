@@ -4,6 +4,7 @@ struct ProgramCommandDock: View {
     struct SetupTile {
         let title: String
         let icon: String
+        let tint: Color
         let badge: String?
         let isLoading: Bool
 
@@ -17,6 +18,7 @@ struct ProgramCommandDock: View {
             return SetupTile(
                 title: compactTrainingStyleLabel(style),
                 icon: trainingStyleIcon(style),
+                tint: trainingStyleTint(style),
                 badge: contextDockBadge(
                     activeContext: activeContext,
                     pendingContext: pendingContext
@@ -40,6 +42,15 @@ struct ProgramCommandDock: View {
             case .freeWeights: return "dumbbell.fill"
             case .hybrid: return "arrow.triangle.2.circlepath"
             case .machines: return "cable.connector"
+            }
+        }
+
+        private static func trainingStyleTint(_ style: TrainingStyle) -> Color {
+            switch style {
+            case .bodyweight: return Color.unbound.success
+            case .freeWeights: return Color.unbound.accent
+            case .hybrid: return Color.unbound.coachCyan
+            case .machines: return Color.unbound.warnOrange
             }
         }
 
@@ -67,6 +78,7 @@ struct ProgramCommandDock: View {
             commandTile(
                 title: "Month",
                 icon: "calendar",
+                tint: Color.unbound.coachCyan,
                 action: onPlan
             )
                 .accessibilityLabel("Plan Month")
@@ -75,6 +87,7 @@ struct ProgramCommandDock: View {
             commandTile(
                 title: setupTile.title,
                 icon: setupTile.isLoading ? "arrow.triangle.2.circlepath" : setupTile.icon,
+                tint: setupTile.tint,
                 accessory: setupTile.badge == "BASE" ? nil : setupTile.badge,
                 action: onChangeSetup
             )
@@ -88,6 +101,7 @@ struct ProgramCommandDock: View {
     private func commandTile(
         title: String,
         icon: String,
+        tint: Color,
         accessory: String? = nil,
         action: @escaping () -> Void
     ) -> some View {
@@ -95,7 +109,7 @@ struct ProgramCommandDock: View {
             HStack(spacing: 8) {
                 Image(systemName: icon)
                     .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(Color.unbound.textTertiary)
+                    .foregroundStyle(tint)
 
                 Text(title.uppercased())
                     .font(Font.unbound.captionS.weight(.heavy))

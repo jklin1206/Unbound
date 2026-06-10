@@ -30,7 +30,10 @@ struct ProgramOverviewView: View {
     @State var workoutReadyDraft: TrainingSessionDraft?
     @State var activeWorkoutDraft: TrainingSessionDraft?
     @State var sessionEditorDraft: TrainingSessionDraft?
+    @State var savedWorkoutEditorDraft: TrainingSessionDraft?
     @State var planningWorkoutDraft: TrainingSessionDraft?
+    @State var savedWorkoutLibraryRevision = 0
+    @State var schedulingWorkout: SavedWorkout?
 
     @State var showMonthPlanner = false
     @State var showExerciseStarterLibrary = false
@@ -171,17 +174,18 @@ struct ProgramOverviewView: View {
                     case .program:  programTab
                     case .myWorkouts:
                         MyWorkoutsView(
+                            refreshTrigger: savedWorkoutLibraryRevision,
                             onQuickLog: {
                                 activeWorkoutDraft = QuickLogDraftFactory.empty(userId: services.auth.currentUserId ?? "")
                             },
                             onBuild: {
-                                sessionEditorDraft = QuickLogDraftFactory.empty(userId: services.auth.currentUserId ?? "")
+                                savedWorkoutEditorDraft = SavedWorkoutDraftFactory.empty(userId: services.auth.currentUserId ?? "")
                             },
-                            onUseToday: { workout in
-                                applySavedWorkout(workout, to: programToday, allowExtraSession: true)
+                            onStartWorkout: { workout in
+                                startSavedWorkout(workout)
                             },
                             onSchedule: { workout in
-                                applySavedWorkout(workout, to: selectedPlanningDate(), allowExtraSession: false)
+                                schedulingWorkout = workout
                             }
                         )
                     case .routines: routinesTab
@@ -217,6 +221,7 @@ struct ProgramOverviewView: View {
 
             #if DEBUG
             openRoutineForProofIfRequested()
+            openWorkoutsTabIfRequested()
             #endif
         }
         .sheet(isPresented: $showPaywall) {
@@ -272,9 +277,24 @@ struct ProgramOverviewView: View {
             )
             .environmentObject(services)
         }
+        .sheet(item: $schedulingWorkout) { workout in
+            ScheduleWorkoutDateSheet(
+                workout: workout,
+                today: programToday,
+                onSchedule: { date in
+                    scheduleSavedWorkout(workout, on: date)
+                },
+                onDismiss: { schedulingWorkout = nil }
+            )
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
+            .presentationBackground(Color.unbound.bg)
+        }
         .onReceive(NotificationCenter.default.publisher(for: .savedWorkoutScheduleTodayRequested)) { note in
             guard let workout = note.object as? SavedWorkout else { return }
             selectedTab = .program
+            weekOffset = 0
+            selectedDayDate = Calendar.current.startOfDay(for: programToday)
             applySavedWorkout(workout, to: programToday, allowExtraSession: true)
         }
         .fullScreenCover(item: $workoutReadyDraft) { draft in
@@ -295,6 +315,12 @@ struct ProgramOverviewView: View {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.22) {
                     activeWorkoutDraft = editedDraft
                 }
+            }
+            .environmentObject(services)
+        }
+        .fullScreenCover(item: $savedWorkoutEditorDraft) { draft in
+            SessionEditorView(draft: draft, mode: .saveWorkout) { editedDraft in
+                saveWorkoutToLibrary(editedDraft)
             }
             .environmentObject(services)
         }

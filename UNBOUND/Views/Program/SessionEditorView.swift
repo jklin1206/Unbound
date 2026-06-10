@@ -4,11 +4,13 @@ struct SessionEditorView: View {
     enum Mode: Equatable {
         case startSession
         case planAhead
+        case saveWorkout
 
         var headerTitle: String {
             switch self {
             case .startSession: return "EDIT WORKOUT"
             case .planAhead: return "PLAN WORKOUT"
+            case .saveWorkout: return "CREATE WORKOUT"
             }
         }
 
@@ -16,6 +18,7 @@ struct SessionEditorView: View {
             switch self {
             case .startSession: return "WORKOUT"
             case .planAhead: return "PLAN"
+            case .saveWorkout: return "WORKOUT"
             }
         }
 
@@ -23,6 +26,7 @@ struct SessionEditorView: View {
             switch self {
             case .startSession: return "TODAY"
             case .planAhead: return "PLAN"
+            case .saveWorkout: return "LIBRARY"
             }
         }
 
@@ -30,6 +34,7 @@ struct SessionEditorView: View {
             switch self {
             case .startSession: return "BEGIN SESSION"
             case .planAhead: return "DONE"
+            case .saveWorkout: return "CREATE WORKOUT"
             }
         }
 
@@ -37,6 +42,18 @@ struct SessionEditorView: View {
             switch self {
             case .startSession: return "play.fill"
             case .planAhead: return "checkmark"
+            case .saveWorkout: return "square.and.arrow.down"
+            }
+        }
+
+        var emptyWorkoutWarningMessage: String {
+            switch self {
+            case .startSession:
+                return "A session needs at least one exercise before it can start."
+            case .planAhead:
+                return "A planned workout needs at least one exercise before it can be saved."
+            case .saveWorkout:
+                return "A saved workout needs at least one exercise."
             }
         }
 
@@ -147,7 +164,7 @@ struct SessionEditorView: View {
         .alert("Add at least one exercise", isPresented: $showEmptyWorkoutWarning) {
             Button("OK", role: .cancel) {}
         } message: {
-            Text("A session needs at least one exercise before it can start.")
+            Text(mode.emptyWorkoutWarningMessage)
         }
         .task {
             await loadPickerContext()

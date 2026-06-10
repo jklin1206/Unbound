@@ -2,23 +2,26 @@ import SwiftUI
 
 /// The saved-workouts list, rendered inline (no modal/NavigationStack chrome) for
 /// the My Workouts tab. Flat calm rows on `bg` separated by hairline rules.
-/// Data from SavedWorkoutStore; delete + Squad-share handled locally; use-today /
+/// Data from SavedWorkoutStore; delete + Squad-share handled locally; start /
 /// schedule bubble up to the parent (which applies them to the program).
 struct SavedWorkoutsInlineList: View {
     @EnvironmentObject private var services: ServiceContainer
     @State private var workouts: [SavedWorkout]
     @State private var sharingWorkout: SavedWorkout?
 
-    let onUseToday: (SavedWorkout) -> Void
+    let refreshTrigger: Int
+    let onStartWorkout: (SavedWorkout) -> Void
     let onSchedule: (SavedWorkout) -> Void
 
     init(
+        refreshTrigger: Int = 0,
         workouts: [SavedWorkout] = SavedWorkoutStore.shared.all(),
-        onUseToday: @escaping (SavedWorkout) -> Void,
+        onStartWorkout: @escaping (SavedWorkout) -> Void,
         onSchedule: @escaping (SavedWorkout) -> Void
     ) {
         _workouts = State(initialValue: workouts)
-        self.onUseToday = onUseToday
+        self.refreshTrigger = refreshTrigger
+        self.onStartWorkout = onStartWorkout
         self.onSchedule = onSchedule
     }
 
@@ -28,7 +31,7 @@ struct SavedWorkoutsInlineList: View {
                 .padding(.bottom, 8)
 
             if workouts.isEmpty {
-                Text("No saved workouts yet — build one or quick-log a session.")
+                Text("No saved workouts yet — save one or quick-log a session.")
                     .font(Font.unbound.bodyS)
                     .foregroundStyle(Color.unbound.textTertiary)
                     .padding(.vertical, 8)
@@ -37,7 +40,7 @@ struct SavedWorkoutsInlineList: View {
                     SavedWorkoutInlineRow(
                         workout: workout,
                         roleText: roleText(workout),
-                        onUseToday: { onUseToday(workout) },
+                        onStartWorkout: { onStartWorkout(workout) },
                         onSchedule: { onSchedule(workout) },
                         onShare: { sharingWorkout = workout },
                         onDelete: { delete(workout) }
@@ -52,11 +55,21 @@ struct SavedWorkoutsInlineList: View {
             SquadRoutineDropShareSheet(workout: workout) { _ in sharingWorkout = nil }
                 .environmentObject(services)
         }
+        .onAppear {
+            reload()
+        }
+        .onChange(of: refreshTrigger) { _, _ in
+            reload()
+        }
     }
 
     private func delete(_ workout: SavedWorkout) {
         SavedWorkoutStore.shared.delete(id: workout.id)
         workouts.removeAll { $0.id == workout.id }
+    }
+
+    private func reload() {
+        workouts = SavedWorkoutStore.shared.all()
     }
 
     private func roleText(_ workout: SavedWorkout) -> String {
@@ -69,7 +82,7 @@ struct SavedWorkoutsInlineList: View {
 private struct SavedWorkoutInlineRow: View {
     let workout: SavedWorkout
     let roleText: String
-    let onUseToday: () -> Void
+    let onStartWorkout: () -> Void
     let onSchedule: () -> Void
     let onShare: () -> Void
     let onDelete: () -> Void
@@ -83,42 +96,28 @@ private struct SavedWorkoutInlineRow: View {
                 withAnimation(.easeInOut(duration: 0.22)) { expanded.toggle() }
                 UnboundHaptics.soft()
             } label: {
-                HStack(spacing: 12) {
+                HStack(alignment: .top, spacing: 14) {
                     WorkoutReferenceImageView(
                         exerciseName: workout.effectiveReferenceExerciseName,
                         fallbackSystemName: "dumbbell.fill",
-                        fallbackTint: Color.unbound.textSecondary
+                        fallbackTint: Color.unbound.textSecondary,
+                        size: .hero
                     )
-                    .frame(width: 44, height: 44)
+                    .frame(width: 72, height: 72)
 
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: 6) {
                         Text(workout.title)
                             .font(Font.unbound.bodyMStrong)
                             .foregroundStyle(Color.unbound.textPrimary)
-                            .lineLimit(1)
-                        MetaLine(["\(workout.exerciseCount) exercises", "\(workout.estimatedMinutes)m", roleText.uppercased()])
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.82)
+                        MetaLine(["\(workout.exerciseCount) exercise\(workout.exerciseCount == 1 ? "" : "s")", "\(workout.estimatedMinutes)m", roleText.uppercased()])
                     }
+                    .padding(.top, 3)
 
                     Spacer(minLength: 8)
-
-                    Image(systemName: expanded ? "chevron.up" : "chevron.down")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(Color.unbound.textSecondary)
-                        .accessibilityHidden(true)
-
-                    Menu {
-                        Button { onSchedule() } label: { Label("Schedule", systemImage: "calendar.badge.plus") }
-                        Button { onShare() } label: { Label("Drop to Squad", systemImage: "paperplane.fill") }
-                        Button(role: .destructive) { onDelete() } label: { Label("Delete", systemImage: "trash") }
-                    } label: {
-                        Image(systemName: "ellipsis")
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundStyle(Color.unbound.textSecondary)
-                            .frame(width: 30, height: 38)
-                    }
-                    .menuStyle(.button)
                 }
-                .padding(.vertical, 10)
+                .padding(.vertical, 12)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -146,18 +145,18 @@ private struct SavedWorkoutInlineRow: View {
                                 }
                             }
                         }
-                        .padding(.leading, 56)
+                        .padding(.leading, 86)
                         .padding(.bottom, 14)
                     }
 
-                    // Use Today button
+                    // Primary start action
                     Button {
                         UnboundHaptics.medium()
-                        onUseToday()
+                        onStartWorkout()
                     } label: {
-                        Text("Use Today")
+                        Text("Start Workout")
                             .font(Font.unbound.bodyMStrong)
-                            .foregroundStyle(Color.unbound.bg)
+                            .foregroundStyle(Color.unbound.textPrimary)
                             .frame(maxWidth: .infinity)
                             .frame(height: 44)
                             .background(
@@ -166,12 +165,72 @@ private struct SavedWorkoutInlineRow: View {
                             )
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel("Use \(workout.title) today")
+                    .accessibilityLabel("Start \(workout.title)")
+
+                    // Secondary actions
+                    HStack(spacing: 8) {
+                        secondaryAction(
+                            title: "Schedule",
+                            icon: "calendar.badge.plus",
+                            tint: Color.unbound.coachCyan,
+                            action: onSchedule
+                        )
+                        .accessibilityIdentifier("myWorkouts.schedule")
+
+                        secondaryAction(
+                            title: "Drop",
+                            icon: "paperplane.fill",
+                            tint: Color.unbound.warnOrange,
+                            action: onShare
+                        )
+                        .accessibilityIdentifier("myWorkouts.dropToSquad")
+
+                        secondaryAction(
+                            title: "Delete",
+                            icon: "trash",
+                            tint: Color.unbound.alert,
+                            action: onDelete
+                        )
+                        .accessibilityIdentifier("myWorkouts.delete")
+                    }
+                    .padding(.top, 8)
                 }
                 .padding(.bottom, 12)
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
+    }
+
+    private func secondaryAction(
+        title: String,
+        icon: String,
+        tint: Color,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button {
+            UnboundHaptics.soft()
+            action()
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.system(size: 11, weight: .bold))
+                Text(title)
+                    .font(Font.unbound.captionS.weight(.heavy))
+                    .tracking(0.8)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.78)
+            }
+            .foregroundStyle(tint)
+            .frame(maxWidth: .infinity)
+            .frame(height: 40)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(Color.unbound.surface)
+            )
+            .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(title) \(workout.title)")
     }
 }
 
@@ -289,7 +348,7 @@ private struct SquadRoutineDropShareSheet: View {
                     .font(Font.unbound.bodyMStrong)
                     .foregroundStyle(Color.unbound.textPrimary)
                     .lineLimit(2)
-                Text("\(workout.exerciseCount) exercises - \(workout.estimatedMinutes)m")
+                Text("\(workout.exerciseCount) exercise\(workout.exerciseCount == 1 ? "" : "s") - \(workout.estimatedMinutes)m")
                     .font(Font.unbound.captionS)
                     .foregroundStyle(Color.unbound.textSecondary)
                 Text(currentSquadState?.currentSquad?.name ?? "Join a squad before dropping routines.")
@@ -343,6 +402,7 @@ private struct SquadRoutineDropShareSheet: View {
 
             await MainActor.run {
                 isSharing = false
+                UnboundHaptics.success()
                 onShared(drop)
                 dismiss()
             }

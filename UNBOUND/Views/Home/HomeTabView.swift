@@ -155,6 +155,7 @@ struct HomeTabView: View {
         #if DEBUG
         let arguments = ProcessInfo.processInfo.arguments
         if arguments.contains("--unbound-open-program") { return 1 }
+        if arguments.contains("--unbound-open-workouts") { return 1 }
         if arguments.contains("--unbound-open-routine") { return 1 }
         if arguments.contains("--unbound-open-skills") { return 2 }
         if arguments.contains("--unbound-open-squad") { return 3 }

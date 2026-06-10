@@ -30,6 +30,11 @@ extension ProgramOverviewView {
     }
 
     #if DEBUG
+    func openWorkoutsTabIfRequested() {
+        guard ProcessInfo.processInfo.arguments.contains("--unbound-open-workouts") else { return }
+        selectedTab = .myWorkouts
+    }
+
     func openRoutineForProofIfRequested() {
         guard ProcessInfo.processInfo.arguments.contains("--unbound-open-routine"),
               !debugOpenedRoutine

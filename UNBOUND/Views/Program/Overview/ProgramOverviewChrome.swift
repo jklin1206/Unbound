@@ -22,7 +22,7 @@ struct ProgramOverviewTabSelector: View {
     var body: some View {
         HStack(spacing: 0) {
             tabChip(.program, label: "PROGRAM")
-            tabChip(.myWorkouts, label: "MY WORKOUTS")
+            tabChip(.myWorkouts, label: "WORKOUTS")
             tabChip(.routines, label: "ROUTINES")
         }
     }

@@ -39,7 +39,7 @@ struct ProgramDayActionRow: View {
                 Button(action: onAddExtra) {
                     Image(systemName: "plus")
                         .font(.system(size: 15, weight: .bold))
-                        .foregroundStyle(Color.unbound.textPrimary)
+                        .foregroundStyle(Color.unbound.success)
                         .frame(width: 52, height: 46)
                         .background(
                             RoundedRectangle(cornerRadius: 12, style: .continuous)

@@ -53,18 +53,21 @@ struct CoachActionsRow: View {
             actionButton(
                 title: "Deload",
                 icon: "arrow.down.circle",
+                tint: Color.unbound.accent,
                 action: { sheet = .deload }
             )
 
             actionButton(
                 title: "Travel",
                 icon: "airplane",
+                tint: Color.unbound.accent,
                 action: { sheet = .travel }
             )
 
             actionButton(
                 title: "Short",
                 icon: "timer",
+                tint: Color.unbound.coachCyan,
                 action: { sheet = .shortSession }
             )
         }
@@ -73,6 +76,7 @@ struct CoachActionsRow: View {
     private func actionButton(
         title: String,
         icon: String,
+        tint: Color,
         action: @escaping () -> Void
     ) -> some View {
         Button {
@@ -82,7 +86,7 @@ struct CoachActionsRow: View {
             HStack(spacing: 7) {
                 Image(systemName: icon)
                     .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(Color.unbound.textTertiary)
+                    .foregroundStyle(tint)
                 Text(title.uppercased())
                     .font(Font.unbound.captionS.weight(.heavy))
                     .tracking(1.0)

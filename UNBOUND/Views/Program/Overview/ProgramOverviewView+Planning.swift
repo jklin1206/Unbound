@@ -52,6 +52,48 @@ extension ProgramOverviewView {
         applySavedWorkout(workout, to: date, allowExtraSession: false)
     }
 
+    /// Schedule flow from the Workouts tab: the user picked an explicit date,
+    /// so place the workout there and jump to that day on the PROGRAM tab so
+    /// the result is visible immediately.
+    func scheduleSavedWorkout(_ workout: SavedWorkout, on date: Date) {
+        let normalized = Calendar.current.startOfDay(for: date)
+        applySavedWorkout(workout, to: normalized, allowExtraSession: false)
+        schedulingWorkout = nil
+        UnboundHaptics.success()
+        selectedTab = .program
+        alignWeekOffset(to: normalized)
+    }
+
+    /// Point the week strip at the week containing `date` (Monday-start weeks,
+    /// matching ProgramWeekPresenter).
+    func alignWeekOffset(to date: Date) {
+        var weekCalendar = Calendar.current
+        weekCalendar.firstWeekday = 2
+        guard let thisWeek = weekCalendar.dateInterval(of: .weekOfYear, for: programToday)?.start,
+              let targetWeek = weekCalendar.dateInterval(of: .weekOfYear, for: date)?.start,
+              let weeks = weekCalendar.dateComponents([.weekOfYear], from: thisWeek, to: targetWeek).weekOfYear
+        else { return }
+        weekOffset = weeks
+    }
+
+    func startSavedWorkout(_ workout: SavedWorkout) {
+        guard let userId = services.auth.currentUserId else {
+            LoggingService.shared.log(
+                "Saved workout start skipped without authenticated user",
+                level: .warning,
+                context: ["savedWorkoutId": workout.id.uuidString]
+            )
+            return
+        }
+
+        activeWorkoutDraft = workout.asDraft(
+            userId: userId,
+            date: programToday,
+            programId: nil,
+            dayNumber: nil
+        )
+    }
+
     func markRestDayOnCalendar(_ date: Date) {
         guard let planningCoordinator else { return }
         let savedDate = planningCoordinator.markRestDay(date: date)
@@ -141,17 +183,26 @@ extension ProgramOverviewView {
         planningWorkoutDraft = nil
     }
 
+    func saveWorkoutToLibrary(_ draft: TrainingSessionDraft) {
+        autoSaveBuiltWorkoutToLibrary(draft, fallbackTitle: "Saved Workout")
+        savedWorkoutLibraryRevision += 1
+        savedWorkoutEditorDraft = nil
+    }
+
     /// A workout the user builds is auto-saved to the reusable library — no
     /// explicit "Save" button. The library entry id is keyed off the draft id so
     /// re-editing the same built workout updates that entry instead of creating a
     /// duplicate.
-    private func autoSaveBuiltWorkoutToLibrary(_ draft: TrainingSessionDraft) {
+    private func autoSaveBuiltWorkoutToLibrary(
+        _ draft: TrainingSessionDraft,
+        fallbackTitle: String = "Built Workout"
+    ) {
         let exerciseCount = draft.blocks.reduce(0) { $0 + $1.prescriptions.count }
         guard exerciseCount > 0 else { return }
         let trimmedTitle = draft.title.trimmingCharacters(in: .whitespacesAndNewlines)
         var saved = SavedWorkout.from(
             draft,
-            title: trimmedTitle.isEmpty ? "Built Workout" : trimmedTitle
+            title: trimmedTitle.isEmpty ? fallbackTitle : trimmedTitle
         )
         if let stableId = UUID(uuidString: draft.id) {
             saved.id = stableId
