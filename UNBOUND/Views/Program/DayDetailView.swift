@@ -14,17 +14,16 @@ struct DayDetailView: View {
 
     var body: some View {
         ZStack {
-            Color.theme.background.ignoresSafeArea()
+            Color.unbound.bg.ignoresSafeArea()
 
             ScrollView {
-                VStack(spacing: 16) {
-                    // Day header
+                VStack(alignment: .leading, spacing: 20) {
                     dayHeader
 
                     ProgramWaveAdjustmentPanel(adjustments: adjustments, onUndo: onUndoAdjustment)
 
                     if !day.isRestDay, let workout = day.workout {
-                        WorkoutSectionCard(
+                        WorkoutSectionRow(
                             workout: workout,
                             workoutLog: workoutLog,
                             programId: programId,
@@ -33,22 +32,26 @@ struct DayDetailView: View {
                         )
                     }
 
-                    if let nutrition = nutritionPlan {
-                        NutritionSectionCard(
-                            plan: nutrition,
-                            override: day.nutritionOverride,
-                            isRestDay: day.isRestDay
-                        )
-                    }
+                    VStack(alignment: .leading, spacing: 0) {
+                        if let nutrition = nutritionPlan {
+                            NutritionSectionRow(
+                                plan: nutrition,
+                                override: day.nutritionOverride,
+                                isRestDay: day.isRestDay
+                            )
+                            Divider()
+                                .overlay(Color.unbound.border.opacity(0.6))
+                        }
 
-                    if let recovery = recoveryPlan {
-                        RecoverySectionCard(
-                            plan: recovery,
-                            activities: day.recoveryActivities
-                        )
+                        if let recovery = recoveryPlan {
+                            RecoverySectionRow(
+                                plan: recovery,
+                                activities: day.recoveryActivities
+                            )
+                        }
                     }
                 }
-                .padding(16)
+                .padding(20)
                 .padding(.bottom, 32)
             }
         }
@@ -57,49 +60,32 @@ struct DayDetailView: View {
     }
 
     private var dayHeader: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(day.isRestDay ? "Rest Day" : day.label)
-                    .font(.subheadline(20))
-                    .foregroundColor(.theme.textPrimary)
+        VStack(alignment: .leading, spacing: 6) {
+            Text(day.isRestDay ? "REST DAY" : "TRAINING DAY")
+                .font(Font.unbound.captionS.weight(.heavy))
+                .tracking(1.5)
+                .foregroundStyle(day.isRestDay ? Color.unbound.textTertiary : Color.unbound.accent)
 
-                if day.isRestDay {
-                    Text("Recovery & Nutrition")
-                        .font(.bodyText(14))
-                        .foregroundColor(.theme.textSecondary)
-                } else if let workout = day.workout {
-                    Text(workout.targetMuscleGroups.map(\.displayName).joined(separator: " · "))
-                        .font(.bodyText(14))
-                        .foregroundColor(.theme.textSecondary)
-                }
-            }
-            Spacer()
+            Text(day.isRestDay ? "Recovery & Nutrition" : day.label)
+                .font(Font.unbound.titleL)
+                .foregroundStyle(Color.unbound.textPrimary)
 
-            if day.isRestDay {
-                Image(systemName: "moon.zzz.fill")
-                    .font(.system(size: 28))
-                    .foregroundColor(.theme.textMuted)
-            } else {
-                Image(systemName: "flame.fill")
-                    .font(.system(size: 28))
-                    .foregroundColor(.theme.primary)
+            if !day.isRestDay, let workout = day.workout {
+                MetaLine(workout.targetMuscleGroups.map(\.displayName))
             }
         }
-        .padding(16)
-        .background(Color.theme.surface)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
-// MARK: - Workout Section Card
+// MARK: - Workout Section
 
-private struct WorkoutSectionCard: View {
+private struct WorkoutSectionRow: View {
     let workout: Workout
     var workoutLog: WorkoutLog? = nil
     var programId: String = ""
     var dayNumber: Int = 0
     var programViewModel: ProgramViewModel? = nil
-    @State private var navigate = false
 
     private var logStatusText: String {
         guard let log = workoutLog else { return "Not logged yet" }
@@ -115,63 +101,45 @@ private struct WorkoutSectionCard: View {
             dayNumber: dayNumber,
             programViewModel: programViewModel
         )) {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Label("Workout", systemImage: "dumbbell.fill")
-                        .font(.bodyMedium(16))
-                        .foregroundColor(.theme.primary)
-                    Spacer()
-                    Image(systemName: "chevron.right")
-                        .font(.caption())
-                        .foregroundColor(.theme.textMuted)
+            HStack(alignment: .center, spacing: 12) {
+                VStack(alignment: .leading, spacing: 5) {
+                    Text("WORKOUT")
+                        .font(Font.unbound.captionS.weight(.heavy))
+                        .tracking(1.5)
+                        .foregroundStyle(Color.unbound.textTertiary)
+                    Text(workout.name)
+                        .font(Font.unbound.titleS)
+                        .foregroundStyle(Color.unbound.textPrimary)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.82)
+                    MetaLine([
+                        "\(workout.mainExercises.count) exercises",
+                        "\(workout.estimatedMinutes) min",
+                        workoutLog != nil ? logStatusText : nil
+                    ], emphasized: true)
                 }
 
-                Text(workout.name)
-                    .font(.subheadline(18))
-                    .foregroundColor(.theme.textPrimary)
+                Spacer(minLength: 8)
 
-                Text(logStatusText)
-                    .font(.caption(12))
-                    .foregroundColor(workoutLog != nil ? .theme.textSecondary : .theme.textMuted)
-
-                HStack(spacing: 20) {
-                    statPill(
-                        icon: "list.bullet",
-                        value: "\(workout.mainExercises.count)",
-                        label: "exercises"
-                    )
-                    statPill(
-                        icon: "clock",
-                        value: "\(workout.estimatedMinutes)",
-                        label: "min"
-                    )
-                }
+                Image(systemName: workoutLog != nil ? "checkmark" : "chevron.right")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(workoutLog != nil ? Color.unbound.success : Color.unbound.textTertiary)
             }
-            .padding(16)
-            .background(Color.theme.surface)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .padding(18)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(Color.unbound.surfaceElevated)
+            )
+            .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
         .buttonStyle(.plain)
     }
-
-    private func statPill(icon: String, value: String, label: String) -> some View {
-        HStack(spacing: 4) {
-            Image(systemName: icon)
-                .font(.caption(12))
-                .foregroundColor(.theme.textMuted)
-            Text(value)
-                .font(.bodyMedium(15))
-                .foregroundColor(.theme.textPrimary)
-            Text(label)
-                .font(.caption(13))
-                .foregroundColor(.theme.textSecondary)
-        }
-    }
 }
 
-// MARK: - Nutrition Section Card
+// MARK: - Nutrition Section
 
-private struct NutritionSectionCard: View {
+private struct NutritionSectionRow: View {
     let plan: NutritionPlan
     let override: DayNutrition?
     let isRestDay: Bool
@@ -183,87 +151,76 @@ private struct NutritionSectionCard: View {
 
     var body: some View {
         NavigationLink(destination: NutritionDayView(plan: plan, override: override, initialIsRestDay: isRestDay)) {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Label("Nutrition", systemImage: "fork.knife")
-                        .font(.bodyMedium(16))
-                        .foregroundColor(.theme.secondary)
-                    Spacer()
-                    Image(systemName: "chevron.right")
-                        .font(.caption())
-                        .foregroundColor(.theme.textMuted)
+            HStack(alignment: .center, spacing: 12) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("NUTRITION")
+                        .font(Font.unbound.captionS.weight(.heavy))
+                        .tracking(1.5)
+                        .foregroundStyle(Color.unbound.textTertiary)
+                    HStack(spacing: 16) {
+                        macroStat(value: "\(calories)", label: "KCAL")
+                        macroStat(value: "\(protein)g", label: "PRO")
+                        macroStat(value: "\(carbs)g", label: "CARB")
+                        macroStat(value: "\(fat)g", label: "FAT")
+                    }
                 }
 
-                HStack(spacing: 0) {
-                    macroPill(value: "\(calories)", label: "kcal", color: .theme.primary)
-                    Spacer()
-                    macroPill(value: "\(protein)g", label: "protein", color: .theme.secondary)
-                    Spacer()
-                    macroPill(value: "\(carbs)g", label: "carbs", color: Color.yellow)
-                    Spacer()
-                    macroPill(value: "\(fat)g", label: "fat", color: Color.orange)
-                }
+                Spacer(minLength: 8)
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(Color.unbound.textTertiary)
             }
-            .padding(16)
-            .background(Color.theme.surface)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .padding(.vertical, 16)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }
 
-    private func macroPill(value: String, label: String, color: Color) -> some View {
-        VStack(spacing: 2) {
+    private func macroStat(value: String, label: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
             Text(value)
-                .font(.bodyMedium(16))
-                .foregroundColor(color)
+                .font(Font.unbound.monoM.weight(.semibold))
+                .foregroundStyle(Color.unbound.textPrimary)
+                .monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
             Text(label)
-                .font(.caption(11))
-                .foregroundColor(.theme.textSecondary)
+                .font(Font.unbound.captionS.weight(.semibold))
+                .tracking(0.8)
+                .foregroundStyle(Color.unbound.textTertiary)
         }
     }
 }
 
-// MARK: - Recovery Section Card
+// MARK: - Recovery Section
 
-private struct RecoverySectionCard: View {
+private struct RecoverySectionRow: View {
     let plan: RecoveryPlan
     let activities: [RecoveryActivity]
 
     var body: some View {
         NavigationLink(destination: RecoveryView(plan: plan)) {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Label("Recovery", systemImage: "heart.fill")
-                        .font(.bodyMedium(16))
-                        .foregroundColor(Color.pink)
-                    Spacer()
-                    Image(systemName: "chevron.right")
-                        .font(.caption())
-                        .foregroundColor(.theme.textMuted)
+            HStack(alignment: .center, spacing: 12) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("RECOVERY")
+                        .font(Font.unbound.captionS.weight(.heavy))
+                        .tracking(1.5)
+                        .foregroundStyle(Color.unbound.textTertiary)
+                    MetaLine([
+                        "\(String(format: "%.1f", plan.sleepHoursTarget))h sleep",
+                        "\(activities.isEmpty ? plan.activities.count : activities.count) activities"
+                    ], emphasized: true)
                 }
 
-                HStack(spacing: 20) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "moon.fill")
-                            .font(.caption(12))
-                            .foregroundColor(.theme.textMuted)
-                        Text("\(String(format: "%.1f", plan.sleepHoursTarget))h sleep")
-                            .font(.bodyText(14))
-                            .foregroundColor(.theme.textSecondary)
-                    }
-                    HStack(spacing: 4) {
-                        Image(systemName: "figure.walk")
-                            .font(.caption(12))
-                            .foregroundColor(.theme.textMuted)
-                        Text("\(activities.isEmpty ? plan.activities.count : activities.count) activities")
-                            .font(.bodyText(14))
-                            .foregroundColor(.theme.textSecondary)
-                    }
-                }
+                Spacer(minLength: 8)
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(Color.unbound.textTertiary)
             }
-            .padding(16)
-            .background(Color.theme.surface)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .padding(.vertical, 16)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }

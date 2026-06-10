@@ -13,8 +13,15 @@ extension WorkoutReadyView {
             } else if let rankTrialDefinition {
                 rankTrialReadyPreview(for: rankTrialDefinition)
             } else {
-                ForEach(Array(draft.blocks.enumerated()), id: \.element.id) { index, block in
-                    blockRow(block, index: index)
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(Array(draft.blocks.enumerated()), id: \.element.id) { index, block in
+                        blockRow(block, index: index)
+                        if index < draft.blocks.count - 1 {
+                            Divider()
+                                .padding(.leading, 66)
+                                .overlay(Color.unbound.border.opacity(0.6))
+                        }
+                    }
                 }
             }
         }
@@ -190,8 +197,7 @@ extension WorkoutReadyView {
                 .accessibilityIdentifier("workoutReady.block.\(index).remove")
             }
         }
-        .padding(14)
-        .background(cardBackground)
+        .padding(.vertical, 12)
         .accessibilityIdentifier("workoutReady.block.\(block.kind.rawValue).\(index)")
     }
 

@@ -449,9 +449,8 @@ struct WorkoutReadyView: View {
     }
 
     var cardBackground: some View {
-        RoundedRectangle(cornerRadius: 8)
+        RoundedRectangle(cornerRadius: 14, style: .continuous)
             .fill(Color.unbound.surface)
-            .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color.unbound.borderSubtle, lineWidth: 1))
     }
 
     struct SkillLaunch: Identifiable {

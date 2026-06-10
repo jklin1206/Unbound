@@ -35,16 +35,15 @@ struct WorkoutDetailView: View {
 
     var body: some View {
         ZStack {
-            Color.theme.background.ignoresSafeArea()
+            Color.unbound.bg.ignoresSafeArea()
 
             ScrollView {
-                VStack(spacing: 20) {
+                VStack(alignment: .leading, spacing: 24) {
                     workoutHeader
 
                     if !workout.warmup.isEmpty {
                         exerciseSection(
-                            title: "Warmup",
-                            icon: "figure.run",
+                            title: "WARMUP",
                             exercises: workout.warmup,
                             editable: false,
                             showsTrainingDetails: false
@@ -52,16 +51,14 @@ struct WorkoutDetailView: View {
                     }
 
                     exerciseSection(
-                        title: "Main Workout",
-                        icon: "dumbbell.fill",
+                        title: "MAIN WORKOUT",
                         exercises: liveMainExercises,
                         editable: canEdit
                     )
 
                     if !workout.cooldown.isEmpty {
                         exerciseSection(
-                            title: "Cooldown",
-                            icon: "figure.cooldown",
+                            title: "COOLDOWN",
                             exercises: workout.cooldown,
                             editable: false,
                             showsTrainingDetails: false
@@ -69,13 +66,11 @@ struct WorkoutDetailView: View {
                     }
 
                     if !isEditing {
-                        GradientButton(title: "Log Workout", action: {
-                            showWorkoutReady = true
-                        })
-                        .padding(.top, 8)
+                        logWorkoutButton
+                            .padding(.top, 4)
                     }
                 }
-                .padding(16)
+                .padding(20)
                 .padding(.bottom, 32)
             }
         }
@@ -95,8 +90,8 @@ struct WorkoutDetailView: View {
                         }
                     } label: {
                         Text(isEditing ? "Done" : "Edit")
-                            .font(.bodyMedium(15))
-                            .foregroundColor(isEditing ? .theme.primary : .theme.textSecondary)
+                            .font(Font.unbound.bodyMStrong)
+                            .foregroundStyle(isEditing ? Color.unbound.accent : Color.unbound.textSecondary)
                     }
                 }
             }
@@ -241,52 +236,69 @@ struct WorkoutDetailView: View {
         UnboundHaptics.success()
     }
 
+    private var logWorkoutButton: some View {
+        Button {
+            showWorkoutReady = true
+        } label: {
+            HStack(spacing: 10) {
+                Image(systemName: "play.fill")
+                    .font(.system(size: 13, weight: .bold))
+                Text("LOG WORKOUT")
+                    .font(Font.unbound.bodyMStrong)
+                    .tracking(1.6)
+            }
+            .foregroundStyle(Color.unbound.textPrimary)
+            .frame(maxWidth: .infinity)
+            .frame(height: 52)
+            .background(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(Color.unbound.accent)
+            )
+            .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        }
+        .buttonStyle(.plain)
+    }
+
     // MARK: - Header
 
     private var workoutHeader: some View {
-        HStack(spacing: 0) {
-            statCell(value: "\(liveMainExercises.count)", label: "Exercises")
-            Divider().frame(height: 40).background(Color.theme.surfaceLight)
-            statCell(value: "\(workout.estimatedMinutes)", label: "Minutes")
-            Divider().frame(height: 40).background(Color.theme.surfaceLight)
+        HStack(alignment: .top, spacing: 24) {
+            statCell(value: "\(liveMainExercises.count)", label: "EXERCISES")
+            statCell(value: "\(workout.estimatedMinutes)", label: "MINUTES")
             statCell(
                 value: workout.targetMuscleGroups.prefix(2).map(\.displayName).joined(separator: "/"),
-                label: "Focus"
+                label: "FOCUS"
             )
+            Spacer(minLength: 0)
         }
-        .padding(.vertical, 16)
-        .background(Color.theme.surface)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
     private func statCell(value: String, label: String) -> some View {
-        VStack(spacing: 4) {
+        VStack(alignment: .leading, spacing: 3) {
             Text(value)
-                .font(.bodyMedium(16))
-                .foregroundColor(.theme.textPrimary)
+                .font(Font.unbound.monoL)
+                .foregroundStyle(Color.unbound.textPrimary)
+                .monospacedDigit()
                 .lineLimit(1)
-                .minimumScaleFactor(0.8)
+                .minimumScaleFactor(0.7)
             Text(label)
-                .font(.caption(12))
-                .foregroundColor(.theme.textSecondary)
+                .font(Font.unbound.captionS.weight(.semibold))
+                .tracking(1.2)
+                .foregroundStyle(Color.unbound.textTertiary)
         }
-        .frame(maxWidth: .infinity)
     }
 
     private func exerciseSection(
         title: String,
-        icon: String,
         exercises: [Exercise],
         editable: Bool,
         showsTrainingDetails: Bool = true
     ) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Label(title, systemImage: icon)
-                .font(.subheadline(16))
-                .foregroundColor(.theme.textPrimary)
+        VStack(alignment: .leading, spacing: 4) {
+            CalmSectionHeader(title: title)
 
-            VStack(spacing: 8) {
-                ForEach(exercises) { exercise in
+            VStack(spacing: 0) {
+                ForEach(Array(exercises.enumerated()), id: \.element.id) { index, exercise in
                     if editable && isEditing {
                         EditableExerciseRow(
                             exercise: exercise,
@@ -308,8 +320,14 @@ struct WorkoutDetailView: View {
                                 presentSwap(for: exercise.id)
                             }
                         )
+                        .padding(.vertical, 6)
                     } else {
                         ExerciseRow(exercise: exercise, showsTrainingDetails: showsTrainingDetails)
+                        if index < exercises.count - 1 {
+                            Divider()
+                                .padding(.leading, 64)
+                                .overlay(Color.unbound.border.opacity(0.6))
+                        }
                     }
                 }
             }
@@ -340,11 +358,6 @@ private struct ExerciseRow: View {
         exercise.name
     }
 
-    private var displayMuscleGroups: [MuscleGroup] {
-        let groups = visualDefinition?.muscleGroups ?? movementDefinition?.muscleGroups ?? []
-        return groups.isEmpty ? exercise.muscleGroups : groups
-    }
-
     private var equipmentLabel: String? {
         guard showsTrainingDetails, let visualDefinition else { return nil }
         let labels = ExerciseLibrary.equipmentLabels(for: visualDefinition)
@@ -372,93 +385,71 @@ private struct ExerciseRow: View {
                     WorkoutExerciseVisualTile(definition: visualDefinition)
                         .frame(width: 52, height: 52)
 
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: 3) {
                         Text(displayName)
-                            .font(.bodyMedium(15))
-                            .foregroundColor(.theme.textPrimary)
+                            .font(Font.unbound.bodyMStrong)
+                            .foregroundStyle(Color.unbound.textPrimary)
                             .multilineTextAlignment(.leading)
                             .lineLimit(2)
 
-                        HStack(spacing: 8) {
-                            Text(targetText)
-                                .font(.caption(13))
-                                .foregroundColor(.theme.textSecondary)
-
-                            if showsTrainingDetails && exercise.restSeconds > 0 {
-                                Text("Rest \(exercise.restSeconds)s")
-                                    .font(.caption(13))
-                                    .foregroundColor(.theme.textMuted)
-                            }
-                        }
-
-                        if showsTrainingDetails, let movementDefinition {
-                            Text(compactMetadata(for: movementDefinition))
-                                .font(.caption(11))
-                                .foregroundColor(.theme.textMuted)
-                                .lineLimit(2)
-                        }
+                        MetaLine([
+                            showsTrainingDetails && exercise.restSeconds > 0 ? "rest \(exercise.restSeconds)s" : nil,
+                            equipmentLabel
+                        ])
                     }
 
-                    Spacer()
+                    Spacer(minLength: 8)
 
-                    HStack(spacing: 4) {
-                        if let equipmentLabel {
-                            rowChip(equipmentLabel, tint: .theme.warning)
-                        } else if !showsTrainingDetails {
-                            rowChip("Prep", tint: .theme.primary)
-                        }
+                    Text(targetText)
+                        .font(Font.unbound.monoM.weight(.semibold))
+                        .foregroundStyle(Color.unbound.textPrimary)
+                        .monospacedDigit()
+                        .lineLimit(1)
 
-                        ForEach(displayMuscleGroups.prefix(showsTrainingDetails ? 1 : 0), id: \.self) { group in
-                            rowChip(group.displayName, tint: .theme.primary)
-                        }
-                    }
-
-                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                        .font(.caption(12))
-                        .foregroundColor(.theme.textMuted)
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(Color.unbound.textTertiary)
+                        .rotationEffect(.degrees(isExpanded ? 180 : 0))
                 }
-                .padding(12)
+                .padding(.vertical, 12)
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
 
             if isExpanded {
                 expandedContent
-                    .padding(.horizontal, 12)
+                    .padding(.leading, 64)
                     .padding(.bottom, 12)
             }
         }
-        .background(Color.theme.surface)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
     @ViewBuilder
     private var expandedContent: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Divider().background(Color.theme.surfaceLight)
-
             if showsTrainingDetails, let movementDefinition {
                 movementMetadata(movementDefinition)
             }
 
             if showsTrainingDetails, let rpe = exercise.rpe {
                 HStack(spacing: 6) {
-                    Text("RPE:")
-                        .font(.caption(12))
-                        .foregroundColor(.theme.textMuted)
+                    Text("RPE")
+                        .font(Font.unbound.captionS)
+                        .foregroundStyle(Color.unbound.textTertiary)
                     Text("\(rpe)/10")
-                        .font(.bodyMedium(13))
-                        .foregroundColor(.theme.textSecondary)
+                        .font(Font.unbound.monoS.weight(.semibold))
+                        .foregroundStyle(Color.unbound.textSecondary)
                 }
             }
 
             if let notes = exercise.notes, !notes.isEmpty {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Form Cues")
-                        .font(.caption(12))
-                        .foregroundColor(.theme.textMuted)
+                        .font(Font.unbound.captionS)
+                        .foregroundStyle(Color.unbound.textTertiary)
                     Text(notes)
-                        .font(.bodyText(13))
-                        .foregroundColor(.theme.textSecondary)
+                        .font(Font.unbound.bodyS)
+                        .foregroundStyle(Color.unbound.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
@@ -466,56 +457,37 @@ private struct ExerciseRow: View {
             if let sub = exercise.substitution, !sub.isEmpty {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Substitution")
-                        .font(.caption(12))
-                        .foregroundColor(.theme.textMuted)
+                        .font(Font.unbound.captionS)
+                        .foregroundStyle(Color.unbound.textTertiary)
                     Text(sub)
-                        .font(.bodyText(13))
-                        .foregroundColor(.theme.secondary)
+                        .font(Font.unbound.bodyS)
+                        .foregroundStyle(Color.unbound.coachCyan)
                 }
             }
 
             NavigationLink(destination: ExerciseDetailView(exercise: exercise)) {
                 Text("Full Details →")
-                    .font(.caption(13))
-                    .foregroundColor(.theme.primary)
+                    .font(Font.unbound.captionS.weight(.semibold))
+                    .foregroundStyle(Color.unbound.accent)
             }
         }
     }
 
-    private func compactMetadata(for definition: MovementDefinition) -> String {
-        [
-            definition.movementSlot.displayName,
-            definition.rankTemplate.displayName,
-            definition.loggerMode.displayName
-        ].joined(separator: " · ")
-    }
-
     private func movementMetadata(_ definition: MovementDefinition) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 4) {
             Text("Movement")
-                .font(.caption(12))
-                .foregroundColor(.theme.textMuted)
+                .font(Font.unbound.captionS)
+                .foregroundStyle(Color.unbound.textTertiary)
             Text([
                 definition.movementSlot.displayName,
                 definition.rankTemplate.displayName,
                 definition.loggerMode.displayName,
                 ExerciseLibrary.equipmentLabels(for: definition).joined(separator: " · ")
             ].filter { !$0.isEmpty }.joined(separator: " · "))
-                .font(.bodyText(13))
-                .foregroundColor(.theme.textSecondary)
+                .font(Font.unbound.bodyS)
+                .foregroundStyle(Color.unbound.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
-    }
-
-    private func rowChip(_ text: String, tint: Color) -> some View {
-        Text(text)
-            .font(.caption(11))
-            .foregroundColor(tint)
-            .lineLimit(1)
-            .padding(.horizontal, 6)
-            .padding(.vertical, 2)
-            .background(tint.opacity(0.12))
-            .clipShape(Capsule())
     }
 }
 
@@ -528,24 +500,20 @@ private struct WorkoutExerciseVisualTile: View {
         } else {
             ZStack {
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(Color.theme.surfaceLight.opacity(0.72))
+                    .fill(Color.unbound.surfaceElevated)
                 Image(systemName: "figure.strengthtraining.functional")
                     .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(Color.theme.primary)
+                    .foregroundStyle(Color.unbound.textSecondary)
             }
-            .overlay(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .strokeBorder(Color.theme.surfaceLight, lineWidth: 1)
-            )
         }
     }
 }
 
 // MARK: - Editable Row
 //
-// Premium, full-width charcoal card. Sets adjust via stepper; reps edit
-// inline via TextField; swap opens the existing ExerciseSwapSheet.
-// Onlyused in edit mode — read state goes through ExerciseRow above.
+// Edit mode lifts each editable unit onto the elevated surface — the one
+// emphasis treatment in the calm language. Sets adjust via stepper; reps
+// edit inline via TextField; swap opens the existing ExerciseSwapSheet.
 
 private struct EditableExerciseRow: View {
     let exercise: Exercise
@@ -598,44 +566,31 @@ private struct EditableExerciseRow: View {
                 WorkoutExerciseVisualTile(definition: visualDefinition)
                     .frame(width: 54, height: 54)
 
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 3) {
                     Text(displayName)
-                        .font(.bodyMedium(15))
-                        .foregroundColor(.theme.textPrimary)
+                        .font(Font.unbound.bodyMStrong)
+                        .foregroundStyle(Color.unbound.textPrimary)
                         .multilineTextAlignment(.leading)
                         .lineLimit(2)
-                    Text(displayMuscleGroups.prefix(2).map(\.displayName).joined(separator: " · "))
-                        .font(.caption(12))
-                        .foregroundColor(.theme.textMuted)
-                    if let movementDefinition {
-                        Text(editMetadata(for: movementDefinition))
-                            .font(.caption(11))
-                            .foregroundColor(.theme.textMuted)
-                            .lineLimit(2)
-                    }
+                    MetaLine(displayMuscleGroups.prefix(2).map(\.displayName))
                 }
                 Spacer()
                 Button {
                     UnboundHaptics.soft()
                     onSwapTapped()
                 } label: {
-                    HStack(spacing: 6) {
+                    HStack(spacing: 5) {
                         Image(systemName: "arrow.left.arrow.right")
-                            .font(.system(size: 11, weight: .bold))
-                        Text("Swap")
-                            .font(.caption(12).weight(.semibold))
+                            .font(.system(size: 10, weight: .bold))
+                        Text("SWAP")
+                            .font(Font.unbound.captionS.weight(.heavy))
+                            .tracking(0.8)
                     }
-                    .foregroundColor(.theme.primary)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(
-                        Capsule().fill(Color.theme.primary.opacity(0.12))
-                    )
-                    .overlay(
-                        Capsule().strokeBorder(Color.theme.primary.opacity(0.35), lineWidth: 1)
-                    )
+                    .foregroundStyle(Color.unbound.accent)
+                    .frame(height: 32)
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("Swap \(displayName)")
             }
 
             HStack(spacing: 10) {
@@ -646,12 +601,8 @@ private struct EditableExerciseRow: View {
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color.theme.surface)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .strokeBorder(Color.theme.primary.opacity(0.25), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color.unbound.surfaceElevated)
         )
         .onChange(of: setsValue) { _, newValue in
             onSetsChange(newValue)
@@ -661,9 +612,9 @@ private struct EditableExerciseRow: View {
     private var setsControl: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text("SETS")
-                .font(.caption(10).weight(.bold))
+                .font(Font.unbound.captionS.weight(.bold))
                 .tracking(1.2)
-                .foregroundColor(.theme.textMuted)
+                .foregroundStyle(Color.unbound.textTertiary)
             HStack(spacing: 8) {
                 stepperButton(systemName: "minus") {
                     if setsValue > 1 {
@@ -672,8 +623,8 @@ private struct EditableExerciseRow: View {
                     }
                 }
                 Text("\(setsValue)")
-                    .font(.bodyMedium(18))
-                    .foregroundColor(.theme.textPrimary)
+                    .font(Font.unbound.monoM.weight(.semibold))
+                    .foregroundStyle(Color.unbound.textPrimary)
                     .monospacedDigit()
                     .frame(minWidth: 24)
                 stepperButton(systemName: "plus") {
@@ -687,7 +638,7 @@ private struct EditableExerciseRow: View {
             .padding(.vertical, 8)
             .background(
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(Color.theme.background.opacity(0.6))
+                    .fill(Color.unbound.bg.opacity(0.6))
             )
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -696,12 +647,12 @@ private struct EditableExerciseRow: View {
     private var repsControl: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text("REPS")
-                .font(.caption(10).weight(.bold))
+                .font(Font.unbound.captionS.weight(.bold))
                 .tracking(1.2)
-                .foregroundColor(.theme.textMuted)
+                .foregroundStyle(Color.unbound.textTertiary)
             TextField("e.g. 8–12", text: $repsValue)
-                .font(.bodyMedium(16))
-                .foregroundColor(.theme.textPrimary)
+                .font(Font.unbound.monoM.weight(.semibold))
+                .foregroundStyle(Color.unbound.textPrimary)
                 .focused($repsFocused)
                 .submitLabel(.done)
                 .onSubmit {
@@ -714,7 +665,7 @@ private struct EditableExerciseRow: View {
                 .padding(.vertical, 8)
                 .background(
                     RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .fill(Color.theme.background.opacity(0.6))
+                        .fill(Color.unbound.bg.opacity(0.6))
                 )
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -724,21 +675,10 @@ private struct EditableExerciseRow: View {
         Button(action: action) {
             Image(systemName: systemName)
                 .font(.system(size: 12, weight: .bold))
-                .foregroundColor(.theme.primary)
+                .foregroundStyle(Color.unbound.textPrimary)
                 .frame(width: 28, height: 28)
-                .background(Circle().fill(Color.theme.primary.opacity(0.14)))
+                .background(Circle().fill(Color.unbound.surface))
         }
         .buttonStyle(.plain)
-    }
-
-    private func editMetadata(for definition: MovementDefinition) -> String {
-        [
-            definition.movementSlot.displayName,
-            definition.rankTemplate.displayName,
-            definition.loggerMode.displayName,
-            ExerciseLibrary.equipmentLabels(for: definition).prefix(2).joined(separator: " · ")
-        ]
-        .filter { !$0.isEmpty }
-        .joined(separator: " · ")
     }
 }

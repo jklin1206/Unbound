@@ -13,22 +13,17 @@ extension WorkoutReadyView {
     }
 
     var workoutHeader: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 8) {
             Text(draft.source.rawValue.uppercased())
                 .font(Font.unbound.captionS.weight(.heavy))
                 .tracking(1.6)
                 .foregroundStyle(Color.unbound.accent)
             Text(draft.title)
-                .font(.system(.title2).weight(.bold))
+                .font(Font.unbound.titleL)
                 .foregroundStyle(Color.unbound.textPrimary)
-            HStack(spacing: 10) {
-                readyChip("\(draft.blocks.count) blocks", icon: "square.stack.3d.up")
-                readyChip("\(draft.estimatedMinutes) min", icon: "clock")
-            }
+            MetaLine(["\(draft.blocks.count) blocks", "\(draft.estimatedMinutes) min"], emphasized: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(18)
-        .background(cardBackground)
     }
 
     var weeklyProofHeader: some View {
