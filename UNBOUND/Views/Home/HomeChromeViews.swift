@@ -64,12 +64,12 @@ struct HomeIconCommand: View {
     var body: some View {
         Button(action: action) {
             VStack(spacing: 5) {
-                HomeCommandMiniGlyph(kind: artwork, tint: Color.unbound.textSecondary)
+                HomeCommandMiniGlyph(kind: artwork, tint: tint)
                     .frame(width: 30, height: 30)
 
                 Text(value.uppercased())
                     .font(.system(size: 11.5, weight: .black, design: .rounded))
-                    .foregroundStyle(tint)
+                    .foregroundStyle(Color.unbound.textPrimary)
                     .monospacedDigit()
                     .lineLimit(1)
                     .minimumScaleFactor(0.62)

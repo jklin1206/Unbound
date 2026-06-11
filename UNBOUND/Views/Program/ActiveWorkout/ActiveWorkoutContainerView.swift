@@ -348,21 +348,24 @@ struct ActiveWorkoutContainerView: View {
         .accessibilityIdentifier("workout.elapsedTime")
     }
 
+    // The session being live is obvious; only states that say something get
+    // a word here — TRIAL (different rules) and FINISH (ready to close out).
     private var workoutModeBadge: some View {
-        let tint = workoutHeaderTint
-        let text = session.progressSummary.isComplete
+        let text: String? = session.progressSummary.isComplete
             ? "FINISH"
-            : (isRankTrial ? "TRIAL" : "LIVE")
-        return Text(text)
-            .font(Font.unbound.captionS.weight(.bold))
-            .tracking(1.4)
-            .foregroundStyle(tint)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 5)
-            .background(Capsule().fill(tint.opacity(0.15)))
-            .overlay(Capsule().strokeBorder(tint.opacity(0.35), lineWidth: 1))
-            .frame(width: 64)
-            .accessibilityLabel(text == "FINISH" ? "Ready to finish" : text)
+            : (isRankTrial ? "TRIAL" : nil)
+        return Group {
+            if let text {
+                Text(text)
+                    .font(Font.unbound.captionS.weight(.bold))
+                    .tracking(1.4)
+                    .foregroundStyle(workoutHeaderTint)
+            } else {
+                Color.clear
+            }
+        }
+        .frame(width: 64, height: 24)
+        .accessibilityLabel(text == "FINISH" ? "Ready to finish" : (text ?? "Live session"))
     }
 
     private var workoutProgressRail: some View {
@@ -445,20 +448,6 @@ struct ActiveWorkoutContainerView: View {
                 onAddThirty: { restTimer.addThirty() },
                 onDismiss: { restTimer.dismiss() }
             )
-
-            HStack(spacing: 8) {
-                Image(systemName: progress.isComplete ? "checkmark.circle.fill" : "circle.dashed")
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(progress.isComplete ? Color.unbound.accent : Color.unbound.textTertiary)
-                Text(progress.footerText.uppercased())
-                    .font(Font.unbound.captionS.weight(.bold))
-                    .tracking(1.1)
-                    .foregroundStyle(Color.unbound.textSecondary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.78)
-                Spacer()
-            }
-            .padding(.horizontal, 4)
 
             #if DEBUG
             Button(action: debugFillPlannedSets) {

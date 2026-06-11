@@ -75,19 +75,6 @@ struct ClusterCardView: View {
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .fill(Color.unbound.surface)
         )
-        .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(
-                    activeNode == nil ? Color.unbound.border : Color.unbound.accent.opacity(0.35),
-                    lineWidth: 1
-                )
-        )
-        .shadow(
-            color: activeNode == nil ? .clear : Color.unbound.accent.opacity(0.18),
-            radius: 12,
-            x: 0,
-            y: 4
-        )
     }
 
     // MARK: - Locked body
@@ -222,13 +209,6 @@ struct ClusterCardView: View {
                     .padding(4)
             }
         }
-        .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .strokeBorder(
-                    isLocked ? Color.unbound.border : Color.unbound.accent.opacity(0.30),
-                    lineWidth: 1
-                )
-        )
         .accessibilityHidden(true)
     }
 
@@ -241,14 +221,6 @@ struct ClusterCardView: View {
                 .tracking(1.2)
         }
         .foregroundStyle(Color.unbound.accent)
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
-        .background(
-            Capsule().fill(Color.unbound.accent.opacity(0.12))
-        )
-        .overlay(
-            Capsule().strokeBorder(Color.unbound.accent.opacity(0.4), lineWidth: 1)
-        )
     }
 
     private var divider: some View {
@@ -306,9 +278,7 @@ struct ClusterCardView: View {
             TierBadge(tier: earnedTier, compact: true)
                 .fixedSize()
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
-        .background(Capsule().fill(Color.unbound.surfaceElevated))
+        .padding(.vertical, 4)
     }
 
     private func achievementRow(_ preview: AchievementPreview) -> some View {
