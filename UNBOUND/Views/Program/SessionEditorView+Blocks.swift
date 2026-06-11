@@ -9,13 +9,36 @@ extension SessionEditorView {
                     .tracking(1.7)
                     .foregroundStyle(Color.unbound.textTertiary)
                 Spacer()
-                Text("\(exerciseCount) total")
-                    .font(Font.unbound.captionS.weight(.semibold))
-                    .foregroundStyle(Color.unbound.textSecondary)
+                if exerciseCount > 0 {
+                    Text("\(exerciseCount) total")
+                        .font(Font.unbound.captionS.weight(.semibold))
+                        .foregroundStyle(Color.unbound.textSecondary)
+                }
             }
 
             ForEach(Array(draft.blocks.enumerated()), id: \.element.id) { blockIndex, block in
                 blockCard(block: block, blockIndex: blockIndex)
+            }
+
+            if exerciseCount == 0 {
+                Button {
+                    UnboundHaptics.soft()
+                    openAddExercise()
+                } label: {
+                    VStack(spacing: 10) {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.system(size: 30, weight: .bold))
+                            .foregroundStyle(Color.unbound.accent)
+                        Text("Add your first exercise")
+                            .font(Font.unbound.bodyMStrong)
+                            .foregroundStyle(Color.unbound.textPrimary)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 48)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("sessionEditor.emptyAddExercise")
             }
         }
     }
@@ -23,7 +46,7 @@ extension SessionEditorView {
     func blockCard(block: TrainingBlock, blockIndex: Int) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             if block.prescriptions.isEmpty {
-                emptyBlockRow()
+                EmptyView()
             } else {
                 VStack(spacing: 0) {
                     ForEach(Array(block.prescriptions.enumerated()), id: \.element.id) { prescriptionIndex, prescription in
@@ -68,28 +91,6 @@ extension SessionEditorView {
                 }
             }
         }
-    }
-
-    func emptyBlockRow() -> some View {
-        HStack(spacing: 10) {
-            Image(systemName: "list.bullet")
-                .font(.system(size: 14, weight: .bold))
-                .foregroundStyle(Color.unbound.textTertiary)
-            Text("No exercises yet")
-                .font(Font.unbound.bodyS.weight(.semibold))
-                .foregroundStyle(Color.unbound.textSecondary)
-            Spacer()
-        }
-        .padding(.horizontal, 12)
-        .frame(height: 48)
-        .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color.unbound.surface.opacity(0.72))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
-        )
     }
 
     func displayIndex(blockIndex: Int, prescriptionIndex: Int) -> Int {

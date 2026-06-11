@@ -23,8 +23,7 @@ struct TierBadge: View {
         }
         .padding(.horizontal, compact ? 6 : 8)
         .padding(.vertical, compact ? 3 : 4)
-        .background(Capsule().fill(tint.opacity(tier.rawValue >= SkillTier.veteran.rawValue ? 0.18 : 0.10)))
-        .overlay(Capsule().strokeBorder(tint.opacity(tier.rawValue >= SkillTier.veteran.rawValue ? 0.44 : 0.28), lineWidth: 1))
+        .background(Capsule().fill(tint.opacity(tier.rawValue >= SkillTier.veteran.rawValue ? 0.20 : 0.12)))
         .shadow(color: tint.opacity(glowIntensity), radius: 6)
     }
 
