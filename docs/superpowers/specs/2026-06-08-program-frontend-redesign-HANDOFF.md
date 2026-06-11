@@ -1,5 +1,14 @@
 # Frontend Redesign — Handoff
 
+> **STATUS 2026-06-10: COMPLETE.** Every item below has since shipped (now on
+> `codex/profile-backdrop-redesign-test`): the editor header went calm at
+> `2e780546` — the old EXC_BAD_ACCESS no longer reproduces on a CLEAN build
+> (stale-incremental codegen artifact and/or resolved by the editor decomposition
+> in `fdd78303`/`4a1ec51e`); WorkoutDetailView/DayDetailView came off the legacy
+> palette at `bb34944d`; Phase 3 landed via `9438ccbd` → feedback rounds
+> `9f7df094`/`04e1d646`; Phase 4 skill sheets at `d123fa09`. A branch security
+> review (2026-06-10) found no vulnerabilities. This doc is kept as history.
+
 **Branch:** `frontend-redesign` (base/fallback: `codex/program-per-set-control`)
 **Spec:** `docs/superpowers/specs/2026-06-08-program-frontend-redesign-design.md`
 **Goal:** Replace the "box-soup" style across the Program / logging screens with a
