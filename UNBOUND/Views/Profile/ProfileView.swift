@@ -100,13 +100,6 @@ struct ProfileView: View {
         }
         .navigationBarHidden(true)
         .task(id: services.auth.currentUserId ?? "anonymous") { await load() }
-        #if DEBUG
-        .onAppear {
-            if ProcessInfo.processInfo.arguments.contains("--unbound-open-cosmetics"), !showProfileCosmetics {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) { showProfileCosmetics = true }
-            }
-        }
-        #endif
         .confirmationDialog("Profile picture",
                             isPresented: $showPhotoOptions,
                             titleVisibility: .visible) {
@@ -410,7 +403,7 @@ struct ProfileView: View {
                 label: "Vows",
                 value: "\(vowsCompletedCount)",
                 detail: vowMetricDetail,
-                tint: Color.unbound.rankGold
+                tint: vowMetricTint
             )
         ]
 
@@ -618,7 +611,7 @@ struct ProfileView: View {
     }
 
     private var hasLongIdentityText: Bool {
-        profileIdentityName.count > 20 || (equippedTitleLine ?? "").count > 22
+        profileIdentityName.count > 20 || profileTitleLine.count > 22
     }
 
     private func heroAvatar(level: Int, tint: Color, size: CGFloat) -> some View {
@@ -655,6 +648,10 @@ struct ProfileView: View {
         "COMPLETED"
     }
 
+    private var vowMetricTint: Color {
+        Color.unbound.rankGold
+    }
+
     private func identityStack(
         level: Int,
         currentXP: Int,
@@ -687,18 +684,16 @@ struct ProfileView: View {
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
 
-                    if let titleLine = equippedTitleLine {
-                        Text(titleLine.uppercased())
-                            .font(.system(size: 12, weight: .bold, design: .monospaced))
-                            .tracking(1.1)
-                            .foregroundStyle(rankTextColor)
-                            .lineLimit(titleLine.count > 28 ? 2 : 1)
-                            .minimumScaleFactor(0.58)
-                            .allowsTightening(true)
-                            .multilineTextAlignment(.leading)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
+                    Text(profileTitleLine.uppercased())
+                        .font(.system(size: 12, weight: .bold, design: .monospaced))
+                        .tracking(1.1)
+                        .foregroundStyle(rankTextColor)
+                        .lineLimit(profileTitleLine.count > 28 ? 2 : 1)
+                        .minimumScaleFactor(0.58)
+                        .allowsTightening(true)
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -736,8 +731,8 @@ struct ProfileView: View {
         playerHandle
     }
 
-    private var equippedTitleLine: String? {
-        trialsState.equippedTitle.map(TitleCatalog.displayName(for:))
+    private var profileTitleLine: String {
+        trialsState.equippedTitle.map(TitleCatalog.displayName(for:)) ?? "No title"
     }
 
     private var avatarInitial: String {
@@ -928,6 +923,10 @@ struct ProfileView: View {
         if lhs.metricSort != rhs.metricSort { return lhs.metricSort > rhs.metricSort }
         if lhs.repsSort != rhs.repsSort { return lhs.repsSort > rhs.repsSort }
         return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+    }
+
+    private func rankTitle(for tier: SkillTier) -> RankTitle {
+        tier.rankTitle
     }
 
     // MARK: - Archive

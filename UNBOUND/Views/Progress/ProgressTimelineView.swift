@@ -10,7 +10,7 @@ struct ProgressTimelineView: View {
 
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
-            Color.unbound.bg.ignoresSafeArea()
+            Color.theme.background.ignoresSafeArea()
 
             if viewModel.state.isLoading {
                 ProgressView()
@@ -130,12 +130,12 @@ private struct TimelineEntryCard: View {
                 .foregroundColor(.theme.textMuted)
         }
         .padding(16)
-        .background(Color.unbound.surface)
+        .background(Color.theme.surface)
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
                 .strokeBorder(
-                    isFirst ? Color.unbound.accent.opacity(0.4) : Color.clear,
+                    isFirst ? Color.theme.primary.opacity(0.4) : Color.clear,
                     lineWidth: 1
                 )
         )

@@ -5,7 +5,7 @@ struct RecoveryView: View {
 
     var body: some View {
         ZStack {
-            Color.unbound.bg.ignoresSafeArea()
+            Color.theme.background.ignoresSafeArea()
 
             ScrollView {
                 VStack(spacing: 16) {
@@ -48,7 +48,7 @@ struct RecoveryView: View {
             Spacer()
         }
         .padding(20)
-        .background(Color.unbound.surface)
+        .background(Color.theme.surface)
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
@@ -76,7 +76,7 @@ struct RecoveryView: View {
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(16)
-        .background(Color.unbound.surface)
+        .background(Color.theme.surface)
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 }
@@ -122,7 +122,7 @@ private struct RecoveryActivityCard: View {
             }
         }
         .padding(14)
-        .background(Color.unbound.surface)
+        .background(Color.theme.surface)
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 

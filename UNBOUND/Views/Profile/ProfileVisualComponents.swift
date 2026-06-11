@@ -164,19 +164,12 @@ struct RankTitlePlate: View {
     let tier: SkillTier
     let tint: Color
 
-    // Tier material escalation: trainee tiers read as a quiet hairline row;
-    // named tiers (Veteran+) earn a tinted plate; flagship tiers (Vessel+)
-    // add a sigil glow. Same ladder as the avatar frame-glow escalation.
-    private var isNamedTier: Bool { tier.ordinal >= 4 }
-    private var isFlagshipTier: Bool { tier.ordinal >= 6 }
-
     var body: some View {
         HStack(spacing: 8) {
             Image(tier.assetName)
                 .resizable()
                 .scaledToFit()
                 .frame(width: 26, height: 26)
-                .shadow(color: isFlagshipTier ? tint.opacity(0.55) : .clear, radius: 7)
 
             Text(tier.displayName.uppercased())
                 .font(.system(size: 13, weight: .black, design: .monospaced))
@@ -193,25 +186,10 @@ struct RankTitlePlate: View {
                 .foregroundStyle(tier.rewardTextTint)
         }
         .padding(.vertical, 10)
-        .padding(.horizontal, isNamedTier ? 10 : 0)
-        .background {
-            if isNamedTier {
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: [tint.opacity(0.18), tint.opacity(0.05)],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-            }
-        }
         .overlay(alignment: .bottom) {
-            if !isNamedTier {
-                Rectangle()
-                    .fill(tint.opacity(0.42))
-                    .frame(height: 0.5)
-            }
+            Rectangle()
+                .fill(tint.opacity(0.42))
+                .frame(height: 0.5)
         }
         .accessibilityIdentifier("profile.rankInfoPlate")
     }
@@ -248,8 +226,15 @@ struct LevelProgressPlate: View {
                 ZStack(alignment: .leading) {
                     Capsule().fill(Color.unbound.borderSubtle)
                     Capsule()
-                        .fill(tint)
+                        .fill(
+                            LinearGradient(
+                                colors: [tint, Color.unbound.textPrimary.opacity(0.74)],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
                         .frame(width: max(7, proxy.size.width * progress))
+                        .shadow(color: tint.opacity(0.5), radius: 6)
                 }
             }
             .frame(height: 6)
@@ -293,11 +278,17 @@ struct TrophyShowcaseRow: View {
     let badgeTier: SkillTier
 
     var body: some View {
-        HStack(alignment: .center, spacing: 11) {
+        HStack(alignment: .center, spacing: 9) {
+            RoundedRectangle(cornerRadius: 2, style: .continuous)
+                .fill(badgeTier.rewardTint)
+                .frame(width: 3, height: 38)
+                .shadow(color: badgeTier.rewardTint.opacity(0.26), radius: 6)
+
             Image(badgeTier.assetName)
                 .resizable()
                 .scaledToFit()
                 .frame(width: 34, height: 34)
+                .shadow(color: badgeTier.rewardTint.opacity(0.20), radius: 6)
 
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 6) {

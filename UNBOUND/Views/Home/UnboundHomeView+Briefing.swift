@@ -95,6 +95,12 @@ extension UnboundHomeView {
         HomeTrainingConsoleSection(
             day: model.todayProgramDay,
             programDayCount: model.program?.days.count ?? 28,
+            level: model.lvlValue,
+            xpInLevel: model.lvlXPInLevel,
+            xpForLevel: model.lvlXPForLevel,
+            levelFraction: model.lvlFraction,
+            aggregateTier: model.aggregateTier,
+            aggregateRank: model.aggregateRank,
             hasPlateaus: !model.plateaus.isEmpty,
             shouldShowCalibrationCard: model.shouldShowCalibrationCard
         ) { canStart, isRest in

@@ -32,7 +32,7 @@ struct WorkoutLogSummaryView: View {
 
     var body: some View {
         ZStack {
-            Color.unbound.bg.ignoresSafeArea()
+            Color.theme.background.ignoresSafeArea()
 
             ScrollView {
                 VStack(spacing: 16) {
@@ -73,20 +73,20 @@ struct WorkoutLogSummaryView: View {
                     value: log.durationMinutes.map { "\($0)m" } ?? "--",
                     label: "Duration"
                 )
-                Divider().frame(height: 36).background(Color.unbound.surfaceElevated)
+                Divider().frame(height: 36).background(Color.theme.surfaceLight)
                 statCell(value: "\(totalWorkSets)", label: "Work Sets")
-                Divider().frame(height: 36).background(Color.unbound.surfaceElevated)
+                Divider().frame(height: 36).background(Color.theme.surfaceLight)
                 statCell(
                     value: log.startedAt.formatted(.dateTime.hour().minute()),
                     label: "Started"
                 )
             }
             .padding(.vertical, 12)
-            .background(Color.unbound.bg)
+            .background(Color.theme.background)
             .clipShape(RoundedRectangle(cornerRadius: 10))
         }
         .padding(16)
-        .background(Color.unbound.surface)
+        .background(Color.theme.surface)
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
@@ -114,21 +114,21 @@ struct WorkoutLogSummaryView: View {
 
             HStack(spacing: 0) {
                 volumeCell(value: "\(totalWorkSets)", label: "Sets")
-                Divider().frame(height: 36).background(Color.unbound.surfaceElevated)
+                Divider().frame(height: 36).background(Color.theme.surfaceLight)
                 volumeCell(value: "\(totalReps)", label: "Reps")
-                Divider().frame(height: 36).background(Color.unbound.surfaceElevated)
+                Divider().frame(height: 36).background(Color.theme.surfaceLight)
                 volumeCell(
                     value: formattedTonnage,
                     label: "Tonnage"
                 )
                 if let rpe = log.overallRPE {
-                    Divider().frame(height: 36).background(Color.unbound.surfaceElevated)
+                    Divider().frame(height: 36).background(Color.theme.surfaceLight)
                     volumeCell(value: "\(rpe)/10", label: "RPE")
                 }
             }
         }
         .padding(16)
-        .background(Color.unbound.surface)
+        .background(Color.theme.surface)
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
@@ -171,7 +171,7 @@ struct WorkoutLogSummaryView: View {
                         .foregroundColor(.theme.textMuted)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 3)
-                        .background(Color.unbound.surfaceElevated)
+                        .background(Color.theme.surfaceLight)
                         .clipShape(Capsule())
                 } else {
                     Text("\(entry.sets.filter { !$0.isWarmup }.count) sets")
@@ -181,7 +181,7 @@ struct WorkoutLogSummaryView: View {
             }
 
             if !entry.skipped {
-                Divider().background(Color.unbound.surfaceElevated)
+                Divider().background(Color.theme.surfaceLight)
 
                 let workSets = entry.sets.filter { !$0.isWarmup }
                 let warmupSets = entry.sets.filter { $0.isWarmup }
@@ -209,7 +209,7 @@ struct WorkoutLogSummaryView: View {
             }
         }
         .padding(14)
-        .background(Color.unbound.surface)
+        .background(Color.theme.surface)
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
@@ -245,7 +245,7 @@ struct WorkoutLogSummaryView: View {
                     .foregroundColor(.theme.textSecondary)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
-                    .background(Color.unbound.surfaceElevated)
+                    .background(Color.theme.surfaceLight)
                     .clipShape(Capsule())
             }
         }
@@ -280,7 +280,7 @@ struct WorkoutLogSummaryView: View {
             }
             .padding(14)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.unbound.surface)
+            .background(Color.theme.surface)
             .clipShape(RoundedRectangle(cornerRadius: 12))
         }
     }

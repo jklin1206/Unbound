@@ -10,7 +10,7 @@ struct ExerciseDetailView: View {
 
     var body: some View {
         ZStack {
-            Color.unbound.bg.ignoresSafeArea()
+            Color.theme.background.ignoresSafeArea()
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     if let movementDefinition {

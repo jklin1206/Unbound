@@ -66,6 +66,7 @@ struct HomeIconCommand: View {
             VStack(spacing: 5) {
                 HomeCommandMiniGlyph(kind: artwork, tint: tint)
                     .frame(width: 30, height: 30)
+                    .shadow(color: tint.opacity(0.22), radius: 6)
 
                 Text(value.uppercased())
                     .font(.system(size: 11.5, weight: .black, design: .rounded))

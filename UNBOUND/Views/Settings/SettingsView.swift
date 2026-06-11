@@ -279,7 +279,7 @@ struct SettingsView: View {
         }
         .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
-        .background(Color.unbound.bg)
+        .background(Color.theme.background)
         .navigationTitle(L10n.string(.settingsTitle, defaultValue: "Settings"))
         .navigationBarTitleDisplayMode(.large)
         .navigationDestination(isPresented: $showDeleteAccount) {
@@ -414,7 +414,7 @@ struct NotificationSettingsView: View {
         }
         .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
-        .background(Color.unbound.bg)
+        .background(Color.theme.background)
         .navigationTitle(L10n.string(.settingsNotifications, defaultValue: "Notifications"))
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
@@ -499,7 +499,7 @@ private extension UNAuthorizationStatus {
 private struct FAQPlaceholderView: View {
     var body: some View {
         ZStack {
-            Color.unbound.bg.ignoresSafeArea()
+            Color.theme.background.ignoresSafeArea()
             Text(L10n.string(.settingsFAQComingSoon, defaultValue: "FAQ coming soon"))
                 .font(.bodyText(16))
                 .foregroundColor(.theme.textSecondary)

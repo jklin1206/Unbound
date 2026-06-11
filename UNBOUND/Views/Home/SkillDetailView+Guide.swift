@@ -5,7 +5,19 @@ extension SkillDetailView {
     var skillGuideSection: some View {
         if let guide = SkillGuideLibrary.guide(for: node.id) {
             VStack(alignment: .leading, spacing: 14) {
-                sectionHeader("Skill Guide")
+                HStack(alignment: .firstTextBaseline) {
+                    VStack(alignment: .leading, spacing: 3) {
+                        sectionHeader("Skill Guide")
+                        Text("Open one layer at a time")
+                            .font(Font.unbound.captionS)
+                            .foregroundStyle(Color.unbound.textTertiary)
+                    }
+                    Spacer()
+                    Text(selectedGuideTab.label.uppercased())
+                        .font(Font.unbound.captionS.weight(.heavy))
+                        .tracking(1.2)
+                        .foregroundStyle(Color.unbound.textTertiary)
+                }
 
                 guideTabs
 
@@ -43,17 +55,26 @@ extension SkillDetailView {
                             .lineLimit(1)
                             .minimumScaleFactor(0.75)
                     }
-                    .foregroundStyle(selectedGuideTab == tab ? Color.unbound.textPrimary : Color.unbound.textTertiary)
+                    .foregroundStyle(selectedGuideTab == tab ? Color.unbound.bg : Color.unbound.textSecondary)
                     .frame(maxWidth: .infinity)
                     .frame(height: 48)
                     .background(
                         RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .fill(selectedGuideTab == tab ? Color.unbound.surfaceElevated : Color.clear)
+                            .fill(selectedGuideTab == tab ? Color.unbound.accent : Color.unbound.surface)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .strokeBorder(selectedGuideTab == tab ? Color.clear : Color.unbound.borderSubtle, lineWidth: 1)
                     )
                 }
                 .buttonStyle(.plain)
             }
         }
+        .padding(4)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color.unbound.surfaceElevated.opacity(0.9))
+        )
     }
 
     func guideAssistanceSection(_ options: [SkillGuideAssistance]) -> some View {
@@ -88,6 +109,10 @@ extension SkillDetailView {
                     .background(
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
                             .fill(Color.unbound.surface)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
                     )
                 }
             }
@@ -124,6 +149,10 @@ extension SkillDetailView {
                     .background(
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
                             .fill(Color.unbound.surface)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
                     )
                 }
             }
@@ -166,6 +195,10 @@ extension SkillDetailView {
                     .background(
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
                             .fill(Color.unbound.surface)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
                     )
                 }
             }
