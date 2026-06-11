@@ -2,7 +2,7 @@ import SwiftUI
 
 extension FormPhaseLibrary {
     static func hangPhases(assetPrefix: String? = nil) -> [FormPhase] {
-        [
+        return [
             phase("phase1", "Grip", "Set both hands just outside shoulder width, wrap the bar securely, and let the body settle before loading the hang. If grip is the limiter, use shorter clean holds instead of twisting on the bar.", "hand.raised.fill", assetName: assetName(assetPrefix, "phase1")),
             phase("phase2", "Shoulders", "Reach long through straight arms, then keep the shoulders active enough that the neck stays long and the ears do not swallow the shoulders. This active bottom becomes the start of every pull.", "arrow.down.circle.fill", assetName: assetName(assetPrefix, "phase2")),
             phase("phase3", "Body Line", "Keep ribs down, glutes lightly squeezed, and legs together. The hold should look still from the side, not like a swing building momentum.", "figure.core.training", assetName: assetName(assetPrefix, "phase3")),
@@ -11,7 +11,7 @@ extension FormPhaseLibrary {
     }
 
     static func verticalPullPhases(title: String, grip: String, top: String, assetPrefix: String? = nil) -> [FormPhase] {
-        [
+        return [
             phase("phase1", "Set", "\(grip) Start from straight arms with ribs down, glutes lightly on, and legs quiet. Pause long enough that the body is not swinging before the pull begins.", "figure.climbing", assetName: assetName(assetPrefix, "phase1")),
             phase("phase2", "Initiate", "Begin by pulling the shoulder blades down and slightly back. The elbows have not done the whole job yet; this sets the lats and keeps the neck from shrugging.", "arrow.down.backward", assetName: assetName(assetPrefix, "phase2")),
             phase("phase3", "Pull", "\(top) Keep the path smooth and vertical. If the chin reaches forward or the knees kick, use assistance or fewer reps.", "arrow.up", assetName: assetName(assetPrefix, "phase3")),
@@ -19,12 +19,16 @@ extension FormPhaseLibrary {
         ]
     }
 
-    static func chinUpPhases(assetPrefix: String? = nil) -> [FormPhase] {
-        [
-            phase("phase1", "Chin Grip", "Set both hands shoulder-width or slightly narrower. From your perspective, the knuckles wrap over the far side of the bar; from a front camera, the knuckle side of both hands is visible. Keep thumbs underneath and wrists stacked.", "hand.raised.fill", assetName: assetName(assetPrefix, "phase1")),
-            phase("phase2", "Pull", "Begin the pull without letting the hands roll. The camera should still see knuckles, not open palms, while elbows drive down and slightly forward under the bar.", "arrow.up", assetName: assetName(assetPrefix, "phase2")),
-            phase("phase3", "Top", "Clear the chin with the same hand shape: knuckle side visible from the front, thumbs underneath, wrists not folded over, elbows close to the ribs, and shoulders down.", "scope", assetName: assetName(assetPrefix, "phase3")),
-            phase("phase4", "Lower", "Lower to straight arms while the grip stays unchanged. If a front view no longer shows the knuckle side clearly, reset before the next rep.", "arrow.down", assetName: assetName(assetPrefix, "phase4"))
+    static func chinUpPhases(assetPrefix: String? = nil, strict: Bool = false) -> [FormPhase] {
+        let stillSet = strict ? " Set ribs down, squeeze glutes lightly, keep feet together, and pause still before the pull starts." : ""
+        let strictPull = strict ? " No knee kick, hip rhythm, or hidden bounce counts as strict." : ""
+        let strictTop = strict ? " The top should come from the body rising, not the neck reaching." : ""
+        let strictLower = strict ? " Pause in a dead-stop hang before the next rep so every rep starts from stillness." : ""
+        return [
+            phase("phase1", "Chin Grip", "Set both hands shoulder-width or slightly narrower. From your perspective, the knuckles wrap over the far side of the bar; from a front camera, the knuckle side of both hands is visible. Keep thumbs underneath and wrists stacked.\(stillSet)", "hand.raised.fill", assetName: assetName(assetPrefix, "phase1")),
+            phase("phase2", "Pull", "Begin the pull without letting the hands roll. The camera should still see knuckles, not open palms, while elbows drive down and slightly forward under the bar.\(strictPull)", "arrow.up", assetName: assetName(assetPrefix, "phase2")),
+            phase("phase3", "Top", "Clear the chin with the same hand shape: knuckle side visible from the front, thumbs underneath, wrists not folded over, elbows close to the ribs, and shoulders down.\(strictTop)", "scope", assetName: assetName(assetPrefix, "phase3")),
+            phase("phase4", "Lower", "Lower to straight arms while the grip stays unchanged. If a front view no longer shows the knuckle side clearly, reset before the next rep.\(strictLower)", "arrow.down", assetName: assetName(assetPrefix, "phase4"))
         ]
     }
 
@@ -68,6 +72,14 @@ extension FormPhaseLibrary {
     static func soloArmPhases(skillId: String, assetPrefix: String? = nil) -> [FormPhase] {
         let isNegative = skillId == "pp.oap-negative"
         let isChin = skillId == "pp.one-arm-chin-up"
+        if isNegative {
+            return [
+                phase("phase1", "Top Set", "Use a box, jump, or assist hand only to arrive at the top. Set one overhand hand on the bar, chin above bar, shoulder packed, and torso quiet before the descent starts.", "hand.raised.fill", assetName: assetName(assetPrefix, "phase1")),
+                phase("phase2", "Lock", "Hold just below the top long enough to prove control. The free arm stays off the bar, the ribs stay down, and the body resists spinning toward the working side.", "lock.fill", assetName: assetName(assetPrefix, "phase2")),
+                phase("phase3", "Slow Lower", "Open the elbow gradually through the middle range without dropping, shrugging, or turning the negative into a fall. Use assistance if any inch speeds up.", "metronome", assetName: assetName(assetPrefix, "phase3")),
+                phase("phase4", "Active Hang", "Finish in a straight-arm active hang with the shoulder still engaged. Step down or reset before the shoulder dumps or the elbow gets irritated.", "exclamationmark.triangle.fill", assetName: assetName(assetPrefix, "phase4"))
+            ]
+        }
         let hangTitle = isChin ? "Chin Hang" : (isNegative ? "Top Set" : "One-Arm Hang")
         let hangInstruction = isNegative ? "Start at the top with one hand on the bar, shoulder packed, and torso quiet. Use a box or assist hand to arrive cleanly instead of jumping into chaos." : (isChin ? "Start from an active one-arm hang with the working hand supinated: from your perspective, knuckles wrap over the far side of the bar; from a front camera, knuckles are visible. Thumb stays underneath and free arm stays off the bar." : "Start from an active one-arm hang. Pull the shoulder down away from the ear before bending the elbow.")
         let pullInstruction = isNegative ? "Lower slowly through the full range without dropping, shrugging, or spinning out. Use assistance if any part becomes a fall." : (isChin ? "Pull the elbow down and slightly forward while the hand stays underhand. The camera should still see the knuckle side of the working hand, and the body resists twisting into the bar." : "Pull the elbow toward the ribs or hip while resisting rotation. Some body turn is normal; wild twisting means the assist level is too low.")
@@ -98,8 +110,26 @@ extension FormPhaseLibrary {
     }
 
     static func rowPhases(skillId: String) -> [FormPhase] {
-        if skillId == "pp.tuck-row" || skillId == "pp.straddle-row" || skillId == "pp.tuck-front-lever-pullup" {
-            let shape = skillId == "pp.straddle-row" ? "straddle front-lever shape" : "tucked front-lever shape"
+        if skillId == "pp.straddle-row" {
+            let assetPrefix = "pp_straddle-row"
+            return [
+                phase("phase1", "Set", "Start from a true straddle front lever: straight arms, hips level with shoulders, legs locked wide, and feet floating at hip height.", "figure.core.training", assetName: assetName(assetPrefix, "phase1")),
+                phase("phase2", "Line", "Hold the same horizontal line before pulling. Ribs stay tucked, glutes on, shoulders depressed, and the straddle does not sag into a hanging V.", "rectangle.compress.vertical", assetName: assetName(assetPrefix, "phase2")),
+                phase("phase3", "Row", "Pull sternum or lower chest toward the bar while elbows travel back. The rep only counts if the hips stay level and the legs stay wide.", "arrow.up", assetName: assetName(assetPrefix, "phase3")),
+                phase("phase4", "Return", "Straighten the arms back into the same straddle lever under control. Do not let the hips drop or the legs close on the eccentric.", "arrow.down", assetName: assetName(assetPrefix, "phase4"))
+            ]
+        }
+        if skillId == "pp.tuck-front-lever-pullup" {
+            let assetPrefix = "pp_tuck-front-lever-pullup"
+            return [
+                phase("phase1", "Set", "Enter the tuck front lever before pulling: straight arms, feet floating, knees tight, ribs down, and hips close to horizontal.", "figure.core.training", assetName: assetName(assetPrefix, "phase1")),
+                phase("phase2", "Hold", "Keep the same tuck lever shape before the rep starts. Shoulders stay active, hips stay high, and the knees do not drift away from the chest.", "rectangle.compress.vertical", assetName: assetName(assetPrefix, "phase2")),
+                phase("phase3", "Pull", "Bend the elbows and pull sternum or lower chest toward the bar without turning it into a vertical bent-knee pull-up. The tuck lever stays tight.", "arrow.up", assetName: assetName(assetPrefix, "phase3")),
+                phase("phase4", "Return", "Lower under control back to straight arms in the same tuck lever. If the hips drop or the body swings vertical, regress the rep.", "arrow.down", assetName: assetName(assetPrefix, "phase4"))
+            ]
+        }
+        if skillId == "pp.tuck-row" {
+            let shape = "tucked front-lever shape"
             let assetPrefix = "pp_tuck-row"
             return [
                 phase("phase1", "Lever Set", "Set a \(shape) before bending the arms. Shoulders stay depressed, ribs stay down, and hips stay high enough to match the chosen lever.", "figure.core.training", assetName: assetName(assetPrefix, "phase1")),
@@ -112,7 +142,24 @@ extension FormPhaseLibrary {
         let oneArm = skillId == "pp.one-arm-row"
         let decline = skillId == "pp.decline-row"
         let standardRow = skillId == "pp.row"
-        let assetPrefix = oneArm ? "pp_one-arm-row" : (standardRow ? "pp_row" : "pp_incline-row")
+        let assetPrefix: String
+        if oneArm {
+            assetPrefix = "pp_one-arm-row"
+        } else if decline {
+            assetPrefix = "pp_decline-row"
+        } else if standardRow {
+            assetPrefix = "pp_row"
+        } else {
+            assetPrefix = "pp_incline-row"
+        }
+        if decline {
+            return [
+                phase("phase1", "Set Angle", "Use a low bar with feet elevated on a bench or box near hip height. Start with straight arms and one long line from head through heels.", "slider.horizontal.3", assetName: assetName(assetPrefix, "phase1")),
+                phase("phase2", "Brace", "Before the elbows bend, lock ribs down, squeeze glutes, and keep the shoulders active. The rep starts from a hollow plank, not a sagging hang.", "rectangle.compress.vertical", assetName: assetName(assetPrefix, "phase2")),
+                phase("phase3", "Row", "Pull the middle or lower chest toward the bar while elbows drive back. Keep the feet planted on the box, hips level, and neck neutral.", "arrow.up", assetName: assetName(assetPrefix, "phase3")),
+                phase("phase4", "Lower", "Lower under control until the arms are straight again without losing the head-to-heel line. Every rep should return to this same bottom before the next pull.", "arrow.down", assetName: assetName(assetPrefix, "phase4"))
+            ]
+        }
         return [
             phase("phase1", "Set Angle", decline ? "Set the bar or rings so the body is near horizontal, often with feet elevated. Keep a straight line from head to heels." : (standardRow ? "Set a low bar or rings so the body is close to horizontal, heels grounded, and the chest can reach the hands without neck reaching." : "Set the bar or rings high enough that every rep can reach the same top. Walk the feet forward to make it harder, back to make it easier."), "slider.horizontal.3", assetName: assetName(assetPrefix, "phase1")),
             phase("phase2", "Brace", oneArm ? "Brace hard and keep the torso square. The free hand may assist lightly at easier levels, but it cannot twist the body into the finish." : "Squeeze glutes, keep ribs down, and start with straight arms. The body should feel like a plank before the elbows bend.", "rectangle.compress.vertical", assetName: assetName(assetPrefix, "phase2")),

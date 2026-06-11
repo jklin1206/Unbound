@@ -40,7 +40,6 @@ struct ProfileView: View {
     @State private var showcaseLiftOptions: [ProfileShowcaseOption] = []
     @State private var equippedFrameTier: RankTitle = .initiate
     @State private var equippedBackgroundTier: RankTitle = .initiate
-    @State private var equippedProfileColorTier: RankTitle = .initiate
     @State private var equippedShopProfileBorder: ShopProfileBorderID?
     @State private var equippedProfileBackdrop: ShopItem?
     @State private var sessionXP: SessionXPRecord?
@@ -52,6 +51,7 @@ struct ProfileView: View {
     @State private var trialsState: TrialsState = .empty
     @State private var overallRankTrialReadiness: OverallRankTrialReadiness?
     @State private var activeOverallRankTrialDraft: TrainingSessionDraft?
+    @State private var profileHeaderWidth: CGFloat = UIScreen.main.bounds.width
 
     @ObservedObject private var photoStore = ProfilePhotoStore.shared
     @State private var showPhotoOptions = false
@@ -67,41 +67,35 @@ struct ProfileView: View {
     @State private var overallLevel: OverallLevelProgress?
 
     var body: some View {
-        ZStack(alignment: .top) {
-            Color.unbound.bg.ignoresSafeArea()
+        GeometryReader { rootProxy in
+            ZStack(alignment: .top) {
+                Color.unbound.bg.ignoresSafeArea()
+                profileBaseWash
 
-            GeometryReader { proxy in
-                CosmeticBackdrop(
-                    tier: equippedBackgroundTier,
-                    colorTier: equippedProfileColorTier,
-                    shopBackdropAssetName: equippedProfileBackdrop?.backdropAssetName,
-                    maxHeight: isUsingShopProfileBackground ? proxy.size.height : 360
-                )
-                .ignoresSafeArea(edges: isUsingShopProfileBackground ? .all : .top)
-            }
-            .ignoresSafeArea()
-            .allowsHitTesting(false)
+                if isLoading {
+                    ProgressView().tint(Color.unbound.accent)
+                } else {
+                    ScrollView(.vertical, showsIndicators: false) {
+                        VStack(spacing: 0) {
+                            trophyHeader(topSafeInset: rootProxy.safeAreaInsets.top)
 
-            if isLoading {
-                ProgressView().tint(Color.unbound.accent)
-            } else {
-                ScrollView(.vertical, showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: 16) {
-                        trophyHeader
-                        ProfileBuildCard(profile: attributeProfile)
-                        badgesCard
-                        rewardsCard
-                        if let beforePhoto, let afterPhoto {
-                            ProgressJourneyCard(dayZero: beforePhoto, now: afterPhoto)
+                            VStack(spacing: 0) {
+                                ProfileBuildCard(profile: attributeProfile)
+                                badgesArchiveSection
+                                rewardsRow
+                                if let beforePhoto, let afterPhoto {
+                                    ProgressJourneySection(dayZero: beforePhoto, now: afterPhoto)
+                                }
+                                PhotoCalendarView().environmentObject(services)
+                                Spacer().frame(height: 118)
+                            }
+                            .padding(.horizontal, 20)
                         }
-                        PhotoCalendarView().environmentObject(services)
-                        Spacer().frame(height: 118)
+                        .frame(maxWidth: .infinity)
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 20)
-                    .padding(.top, 8)
+                    .ignoresSafeArea(edges: .top)
+                    .frame(maxWidth: .infinity)
                 }
-                .frame(maxWidth: .infinity)
             }
         }
         .navigationBarHidden(true)
@@ -223,6 +217,20 @@ struct ProfileView: View {
         .attributeRankUpToast()
     }
 
+    private var profileBaseWash: some View {
+        LinearGradient(
+            stops: [
+                .init(color: activeProfileTint.opacity(0.10), location: 0),
+                .init(color: Color.unbound.bg.opacity(0.98), location: 0.32),
+                .init(color: Color.black.opacity(0.28), location: 1)
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+        .ignoresSafeArea()
+        .allowsHitTesting(false)
+    }
+
     // MARK: - Load
 
     @MainActor
@@ -310,7 +318,6 @@ struct ProfileView: View {
         _ = RankCosmetics.unlockedTiers(userId: userId, currentTier: cosmeticTier)
         equippedFrameTier = RankCosmetics.equippedFrameTier(userId: userId, currentTier: cosmeticTier)
         equippedBackgroundTier = RankCosmetics.equippedBackgroundTier(userId: userId, currentTier: cosmeticTier)
-        equippedProfileColorTier = RankCosmetics.equippedProfileColorTier(userId: userId, currentTier: cosmeticTier)
         refreshShopCosmetics(userId: userId)
     }
 
@@ -368,61 +375,100 @@ struct ProfileView: View {
         }
     }
 
-    // MARK: - Header card
+    // MARK: - Header
 
-    private var trophyHeader: some View {
+    private func trophyHeader(topSafeInset: CGFloat) -> some View {
         let level = overallLevel?.level ?? 0
         let levelProgress = overallLevel?.progressToNextLevel ?? 0
         let currentXP = { guard let p = overallLevel else { return 0 }; return max(0, Int(p.totalXP - OverallLevelCurve.xpRequired(forLevel: p.level))) }()
-        let totalXP = max(0, Int((overallLevel?.totalXP ?? 0).rounded()))
         let lastXPGain = max(0, Int((overallLevel?.lastGainedXP ?? 0).rounded()))
         let rankColor = aggregateTier.rewardTint
         let rankTextColor = aggregateTier.rewardTextTint
-        let profileColor = equippedProfileColorTier.rewardTint
-        let profileGlowColors = equippedProfileColorTier.rewardGlowColors
-        let isUsingShopBackdrop = isUsingShopProfileBackground
+        let profileTint = activeProfileTint
+        let avatarSize = profileAvatarSize
+        let metrics = [
+            UnboundNativeMetric(
+                label: "Streak",
+                value: "\(sessionXP?.longestStreak ?? 0)D",
+                detail: "Best",
+                tint: Color.unbound.ember
+            ),
+            UnboundNativeMetric(
+                label: "Sessions",
+                value: "\(totalWorkouts)",
+                detail: "Total",
+                tint: Color.unbound.coachCyan
+            ),
+            UnboundNativeMetric(
+                label: "Vows",
+                value: "\(vowsCompletedCount)",
+                detail: vowMetricDetail,
+                tint: vowMetricTint
+            )
+        ]
 
-        return VStack(alignment: .leading, spacing: 18) {
-            profileTopBar
-
-            HStack(alignment: .center, spacing: 12) {
-                heroAvatar(level: level, tint: rankColor, size: profileAvatarSize)
-                identityStack(
-                    level: level,
-                    currentXP: currentXP,
-                    totalXP: totalXP,
-                    lastXPGain: lastXPGain,
-                    levelProgress: levelProgress,
-                    rankColor: rankColor,
-                    rankTextColor: rankTextColor
+        return VStack(alignment: .leading, spacing: 0) {
+            ZStack(alignment: .topLeading) {
+                UnboundBackdropArt(
+                    assetName: activeProfileBackgroundAsset,
+                    role: .profileBanner,
+                    tint: profileTint
                 )
+                .ignoresSafeArea(edges: .top)
+
+                DossierLinework(color: profileTint)
+                    .opacity(0.08)
+
+                VStack(alignment: .leading, spacing: 0) {
+                    profileTopBar
+                        .unboundTextShadow(strength: 0.96)
+
+                    Spacer(minLength: 16)
+
+                    HStack(alignment: .bottom, spacing: profileHeroSpacing) {
+                        heroAvatar(level: level, tint: rankColor, size: avatarSize)
+                            .shadow(color: profileTint.opacity(0.36), radius: 20, x: 0, y: 10)
+                            .layoutPriority(3)
+
+                        identityStack(
+                            level: level,
+                            currentXP: currentXP,
+                            lastXPGain: lastXPGain,
+                            levelProgress: levelProgress,
+                            rankColor: rankColor,
+                            rankTextColor: rankTextColor
+                        )
+                        .layoutPriority(2)
+                        .unboundTextShadow(strength: 0.98)
+                    }
+                }
+                .frame(maxWidth: profileHeaderContentMaxWidth, alignment: .leading)
+                .padding(.horizontal, profileHeaderHorizontalPadding)
+                .padding(.top, max(8, topSafeInset + 12))
+                .padding(.bottom, profileHeaderBottomPadding)
+            }
+            .frame(height: profileHeaderHeight + topSafeInset)
+            .background {
+                GeometryReader { proxy in
+                    Color.clear
+                        .onAppear {
+                            updateProfileHeaderWidth(proxy.size.width)
+                        }
+                        .onChange(of: proxy.size.width) { _, width in
+                            updateProfileHeaderWidth(width)
+                        }
+                }
+            }
+            .overlay(alignment: .bottom) {
+                UnboundNativeDivider(opacity: 0.64)
             }
 
-            VStack(spacing: 8) {
-                LazyVGrid(columns: profileMetricColumns, spacing: 8) {
-                    TrophyMetricTile(
-                        label: "STREAK",
-                        value: "\(sessionXP?.longestStreak ?? 0)D",
-                        detail: "BEST",
-                        tint: Color.unbound.ember,
-                        systemImage: "flame.fill"
-                    )
-                    TrophyMetricTile(
-                        label: "SESSIONS",
-                        value: "\(totalWorkouts)",
-                        detail: "TOTAL",
-                        tint: Color.unbound.coachCyan,
-                        systemImage: "bolt.fill"
-                    )
-                    TrophyMetricTile(
-                        label: "VOWS",
-                        value: "\(vowsCompletedCount)",
-                        detail: vowMetricDetail,
-                        tint: vowMetricTint,
-                        systemImage: "seal.fill"
-                    )
-                }
+            UnboundNativeMetricRail(metrics: metrics)
+                .padding(.horizontal, 20)
+                .padding(.top, 18)
+                .padding(.bottom, 18)
 
+            VStack(spacing: 0) {
                 TrophyShowcaseRow(
                     label: "SKILL",
                     value: showcaseSkillName.uppercased(),
@@ -436,50 +482,23 @@ struct ProfileView: View {
                     badgeTier: showcaseLiftTier
                 )
             }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 24)
         }
-        .padding(16)
-        .background(
-            ZStack {
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .fill(Color.black.opacity(0.62))
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .fill(Color.unbound.surface.opacity(0.64))
-                if !isUsingShopBackdrop,
-                   let asset = activeProfileBackgroundAsset,
-                   let ui = UIImage(named: asset) {
-                    Image(uiImage: ui)
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                        .clipped()
-                        .saturation(1.08)
-                        .contrast(1.04)
-                        .opacity(0.22)
-                        .blendMode(.screen)
-                }
-                RadialGradient(
-                    colors: profileGlowColors.map { $0.opacity(isUsingShopBackdrop ? 0.08 : 0.22) } + [.clear],
-                    center: .top,
-                    startRadius: 0,
-                    endRadius: 300
-                )
-                DossierLinework(color: profileColor)
-                    .opacity(isUsingShopBackdrop ? 0.14 : 0.28)
-            }
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .strokeBorder(
-                    LinearGradient(
-                        colors: profileGlowColors.map { $0.opacity(0.70) } + [Color.unbound.borderSubtle],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 1
-                )
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-        .shadow(color: profileColor.opacity(0.18), radius: 18, y: 10)
+        .background {
+            LinearGradient(
+                stops: [
+                    .init(color: profileTint.opacity(0.06), location: 0),
+                    .init(color: Color.unbound.bg.opacity(0.98), location: 0.30),
+                    .init(color: Color.unbound.bg, location: 1)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        }
+        .overlay(alignment: .bottom) {
+            UnboundNativeDivider(opacity: 0.62)
+        }
     }
 
     private var profileTopBar: some View {
@@ -506,7 +525,7 @@ struct ProfileView: View {
             } label: {
                 Image(systemName: "paintbrush.pointed.fill")
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(equippedProfileBackdrop?.accent ?? equippedProfileColorTier.rewardTextTint)
+                    .foregroundStyle(activeProfileTint)
                     .frame(width: 38, height: 38)
                     .background(Circle().fill(Color.unbound.bg.opacity(0.78)))
                     .overlay(Circle().strokeBorder(Color.unbound.borderSubtle, lineWidth: 1))
@@ -514,6 +533,7 @@ struct ProfileView: View {
             .buttonStyle(.plain)
             .accessibilityLabel("Customize profile cosmetics")
             .accessibilityIdentifier("profile.cosmetics")
+
             NavigationLink(destination: SettingsView(services: services)) {
                 Image(systemName: "gearshape.fill")
                     .font(.system(size: 14, weight: .semibold))
@@ -536,13 +556,58 @@ struct ProfileView: View {
         return RankCosmetics.profileBackgroundAsset(for: equippedBackgroundTier)
     }
 
-    private var isUsingShopProfileBackground: Bool {
-        guard let assetName = equippedProfileBackdrop?.backdropAssetName else { return false }
-        return UIImage(named: assetName) != nil
+    private var activeProfileTint: Color {
+        if let backdrop = equippedProfileBackdrop,
+           let assetName = backdrop.backdropAssetName,
+           UIImage(named: assetName) != nil {
+            return backdrop.accent
+        }
+        if let border = equippedShopProfileBorder {
+            return border.accent
+        }
+        return equippedBackgroundTier.rewardTint
+    }
+
+    private var profileHeaderHeight: CGFloat {
+        Self.profileHeaderHeight(for: profileHeaderWidth)
+    }
+
+    private static func profileHeaderHeight(for width: CGFloat) -> CGFloat {
+        let clampedWidth = max(320, min(width, 820))
+        let bannerHeight = clampedWidth / UnboundBackdropAspect.profileBanner
+        return min(430, max(320, bannerHeight + 110))
+    }
+
+    private var profileHeaderContentMaxWidth: CGFloat {
+        profileHeaderWidth >= 700 ? 660 : .infinity
+    }
+
+    private var profileHeaderHorizontalPadding: CGFloat {
+        profileHeaderWidth >= 700 ? 32 : 20
+    }
+
+    private var profileHeaderBottomPadding: CGFloat {
+        if profileHeaderWidth < 360 {
+            return 58
+        }
+        if profileHeaderWidth >= 700 {
+            return 74
+        }
+        return 66
+    }
+
+    private var profileHeroSpacing: CGFloat {
+        profileHeaderWidth < 360 ? 10 : 14
     }
 
     private var profileAvatarSize: CGFloat {
-        hasLongIdentityText ? 142 : 176
+        if profileHeaderWidth < 360 {
+            return hasLongIdentityText ? 104 : 118
+        }
+        if profileHeaderWidth >= 700 {
+            return hasLongIdentityText ? 168 : 196
+        }
+        return hasLongIdentityText ? 126 : 148
     }
 
     private var hasLongIdentityText: Bool {
@@ -555,7 +620,8 @@ struct ProfileView: View {
         } label: {
             ProfileHeroAvatar(
                 cosmeticTier: equippedFrameTier,
-                profileColorTier: equippedProfileColorTier,
+                glowTier: equippedFrameTier,
+                profileTint: activeProfileTint,
                 skillTier: aggregateTier,
                 level: level,
                 tint: tint,
@@ -569,12 +635,9 @@ struct ProfileView: View {
         .accessibilityLabel("Profile picture. Tap to change.")
     }
 
-    private var profileMetricColumns: [GridItem] {
-        [
-            GridItem(.flexible(minimum: 0), spacing: 7),
-            GridItem(.flexible(minimum: 0), spacing: 7),
-            GridItem(.flexible(minimum: 0), spacing: 7)
-        ]
+    private func updateProfileHeaderWidth(_ width: CGFloat) {
+        guard width > 1, abs(profileHeaderWidth - width) > 0.5 else { return }
+        profileHeaderWidth = width
     }
 
     private var vowsCompletedCount: Int {
@@ -592,7 +655,6 @@ struct ProfileView: View {
     private func identityStack(
         level: Int,
         currentXP: Int,
-        totalXP: Int,
         lastXPGain: Int,
         levelProgress: Double,
         rankColor: Color,
@@ -654,7 +716,6 @@ struct ProfileView: View {
             LevelProgressPlate(
                 currentXP: currentXP,
                 xpPerLevel: xpPerLevel,
-                totalXP: totalXP,
                 lastXPGain: lastXPGain,
                 progress: levelProgress,
                 tint: rankColor,
@@ -868,16 +929,15 @@ struct ProfileView: View {
         tier.rankTitle
     }
 
-    // MARK: - Badges card
+    // MARK: - Archive
 
-    private var rewardsCard: some View {
+    private var rewardsRow: some View {
         NavigationLink(destination: RewardsVaultView().environmentObject(services)) {
             HStack(spacing: 14) {
                 Image(systemName: "trophy.fill")
                     .font(.system(size: 18, weight: .bold))
                     .foregroundStyle(Color.unbound.accent)
-                    .frame(width: 40, height: 40)
-                    .background(Circle().fill(Color.unbound.accent.opacity(0.14)))
+                    .frame(width: 30, height: 40)
                 VStack(alignment: .leading, spacing: 2) {
                     Text("REWARDS")
                         .font(Font.unbound.captionS.weight(.bold))
@@ -895,16 +955,17 @@ struct ProfileView: View {
                     .font(.system(size: 12, weight: .bold))
                     .foregroundStyle(Color.unbound.textTertiary)
             }
-            .padding(16)
+            .padding(.vertical, 15)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(RoundedRectangle(cornerRadius: 18, style: .continuous).fill(Color.unbound.surface))
-            .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(Color.unbound.accent.opacity(0.25), lineWidth: 1))
+            .overlay(alignment: .bottom) {
+                UnboundNativeDivider(opacity: 0.42)
+            }
         }
         .buttonStyle(.plain)
     }
 
-    private var badgesCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
+    private var badgesArchiveSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("BADGES")
@@ -923,8 +984,7 @@ struct ProfileView: View {
                         .font(.system(size: 12, weight: .bold))
                         .foregroundStyle(Color.unbound.accent)
                         .frame(width: 34, height: 34)
-                        .background(Circle().fill(Color.unbound.bg.opacity(0.75)))
-                        .overlay(Circle().strokeBorder(Color.unbound.borderSubtle, lineWidth: 1))
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
             }
@@ -950,16 +1010,14 @@ struct ProfileView: View {
                 }
             }
         }
-        .padding(16)
+        .padding(.vertical, 18)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color.unbound.surface)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
-        )
+        .overlay(alignment: .top) {
+            UnboundNativeDivider(opacity: 0.52)
+        }
+        .overlay(alignment: .bottom) {
+            UnboundNativeDivider(opacity: 0.42)
+        }
     }
 
     private func badgeTile(_ badge: Badge) -> some View {

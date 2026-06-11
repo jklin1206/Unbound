@@ -51,7 +51,7 @@ struct SetLogGridRow: View {
                 .frame(width: 26, alignment: .leading)
 
                 cell(actual: weightKg.map(formatLoggedWeight),
-                     suggested: suggestedWeightKg.map(formatLoggedWeight),
+                     suggested: suggestedWeightKg.map(formatSuggestionWeight),
                      action: onEditWeight)
                 cell(actual: metricActual,
                      suggested: metricSuggested,
@@ -202,6 +202,10 @@ struct SetLogGridRow: View {
 
     private func formatLoggedWeight(_ kilograms: Double) -> String {
         WeightPlatePolicy.formatLoggedWeight(kilograms, unit: weightUnit)
+    }
+
+    private func formatSuggestionWeight(_ kilograms: Double) -> String {
+        WeightPlatePolicy.formatSuggestionWeight(kilograms, unit: weightUnit)
     }
 
     private static func time(_ seconds: Int) -> String {

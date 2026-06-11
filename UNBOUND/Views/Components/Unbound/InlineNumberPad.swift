@@ -54,7 +54,10 @@ struct InlineNumberPad: View {
                     if allowsDecimal {
                         keyButton(text: ".") { onKey(.decimal) }
                     } else {
-                        Color.clear.frame(maxWidth: .infinity, minHeight: 48)
+                        Color.clear
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 48)
+                            .accessibilityHidden(true)
                     }
                     keyButton(text: "0") { onKey(.digit(0)) }
                     keyButton(systemImage: "delete.left") { onKey(.delete) }

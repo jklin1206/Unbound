@@ -108,7 +108,7 @@ enum SkillTraditionalVisualResolver {
         "pp.strict-chin-up": ["chin-up"],
         "pp.oap-negative": ["negative-pullup"],
         "pp.one-arm-chin-up": ["one-arm-chin-up"],
-        "pp.one-arm-pullup": ["one-arm-chin-up"],
+        "pp.one-arm-pullup": ["one-arm-pullup"],
         "pp.decline-row": ["decline-row"],
         "pp.one-arm-row": ["one-arm-row", "one-arm-inverted-row"],
         "pp.tuck-row": ["tuck-row"],
@@ -157,7 +157,6 @@ enum SkillTraditionalVisualResolver {
     ]
 
     private static let legacySkillTreeAliasBaseAssetNames: [String: String] = [
-        "exercise_visual_exercise_decline-row": "exercise_visual_exercise_inverted-row",
         "exercise_visual_exercise_straddle-row": "exercise_visual_exercise_inverted-row",
         "exercise_visual_exercise_tuck-back-lever": "exercise_visual_exercise_straddle-back-lever"
     ]

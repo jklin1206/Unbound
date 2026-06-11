@@ -74,10 +74,7 @@ enum ExerciseVisualAsset {
         "skill-drill-tuck-l-sit": ["exercise_visual_exercise_l-sit-tucked"]
     ]
 
-    private static let preferredVisualBaseAssetNames: [String: [String]] = [
-        "band-row": ["exercise_visual_jot_exercise_band-row"],
-        "band-lat-pull": ["exercise_visual_exercise_assisted-pullup-band"]
-    ]
+    private static let preferredVisualBaseAssetNames: [String: [String]] = [:]
 
     static func assetName(for definition: MovementDefinition) -> String {
         if let skillAssetName = existingSkillTargetAssetName(for: definition) {

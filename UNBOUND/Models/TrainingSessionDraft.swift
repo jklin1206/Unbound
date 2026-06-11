@@ -706,7 +706,7 @@ struct TrainingSetPlan: Codable, Identifiable, Hashable, Sendable {
 
     var displayTargetText: String {
         if let suggestedWeightKg {
-            return "\(target.displayText) @ \(WeightPlatePolicy.formatLoggedWeightWithUnit(suggestedWeightKg, separator: " "))"
+            return "\(target.displayText) @ \(WeightPlatePolicy.formatSuggestionWeightWithUnit(suggestedWeightKg, separator: " "))"
         }
         if let loadPercentOfBodyweight {
             let value = loadPercentOfBodyweight * 100
@@ -791,7 +791,7 @@ struct TrainingBlockPrescription: Codable, Identifiable, Hashable, Sendable {
     }
 
     private static func loadText(_ kilograms: Double) -> String {
-        WeightPlatePolicy.formatLoggedWeightWithUnit(kilograms, separator: " ")
+        WeightPlatePolicy.formatSuggestionWeightWithUnit(kilograms, separator: " ")
     }
 }
 

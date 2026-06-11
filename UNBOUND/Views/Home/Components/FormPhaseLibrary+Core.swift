@@ -188,10 +188,10 @@ extension FormPhaseLibrary {
     static func threeSixtyPullPhases() -> [FormPhase] {
         let prefix = "cl_three-sixty-pulls"
         return [
-            phase("phase1", "Load", "Start from an active hang and build a clean hollow-to-power pull. The shoulders are set before speed enters.", "figure.hanging", assetName: assetName(prefix, "phase1")),
-            phase("phase2", "Explode", "Pull above bar height before release. Height is what gives the rotation time to finish safely.", "arrow.up.circle.fill", assetName: assetName(prefix, "phase2")),
-            phase("phase3", "Rotate", "Snap into a tight tuck after release and spot the bar early. Do not reach blind.", "arrow.triangle.2.circlepath", assetName: assetName(prefix, "phase3")),
-            phase("phase4", "Re-Catch", "Catch with prepared shoulders and absorb into control. A slammed dead hang is a failed catch.", "hand.raised.fill", assetName: assetName(prefix, "phase4"))
+            phase("phase1", "Active Hang", "Start from a quiet straight-arm ring hang. Set shoulders down, keep the ribs organized, and remove swing before the arc begins.", "figure.hanging", assetName: assetName(prefix, "phase1")),
+            phase("phase2", "Front Lane", "Sweep through the front-lever lane with elbows locked, rings held continuously, and the body moving as one piece. This is a controlled shoulder circle, not a pull-up.", "arrow.up.forward.circle.fill", assetName: assetName(prefix, "phase2")),
+            phase("phase3", "German Range", "Pass through the back side into a pain-free German-hang range: arms behind the torso, shoulders open, elbows straight, and rings quiet. Stop before the shoulders dump.", "figure.gymnastics", assetName: assetName(prefix, "phase3")),
+            phase("phase4", "Reverse", "Reverse the exact path back through the rings without releasing or bending the arms. Count only the range you can bring home under control.", "arrow.triangle.2.circlepath", assetName: assetName(prefix, "phase4"))
         ]
     }
 

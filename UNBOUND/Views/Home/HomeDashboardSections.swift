@@ -2,7 +2,6 @@ import SwiftUI
 
 struct HomeTopBarSection: View {
     let level: Int
-    let archetypeName: String
     let rank: RankTier
     let avatarImage: UIImage?
     let avatarLetter: String
@@ -20,20 +19,17 @@ struct HomeTopBarSection: View {
                 profileBorder: profileBorder
             )
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text("UNBOUND")
-                    .font(Font.unbound.captionS.weight(.black))
-                    .tracking(2.0)
-                    .foregroundStyle(Color.unbound.textPrimary)
-                Text(archetypeName.uppercased())
-                    .font(.system(size: 9, weight: .bold, design: .monospaced))
-                    .tracking(1.3)
-                    .foregroundStyle(Color.unbound.textTertiary)
-            }
+            Text("UNBOUND")
+                .font(Font.unbound.captionS.weight(.black))
+                .tracking(2.0)
+                .foregroundStyle(Color.unbound.textPrimary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.82)
+                .allowsHitTesting(false)
 
-            Spacer()
+            Spacer(minLength: 10)
 
-            HomeArcWalletChip(balance: arcBalance)
+            HomeArcWalletAmount(balance: arcBalance)
 
             Button {
                 onNotifications()
@@ -46,7 +42,9 @@ struct HomeTopBarSection: View {
             }
             .buttonStyle(.plain)
         }
+        .frame(maxWidth: .infinity)
         .frame(height: 44)
+        .unboundTextShadow(strength: 0.70)
     }
 }
 
@@ -72,9 +70,8 @@ private struct HomeAvatarBadge: View {
                     .font(.system(size: 9, weight: .bold))
                     .foregroundStyle(Color.unbound.textPrimary)
                     .monospacedDigit()
-                    .padding(.horizontal, 5)
-                    .padding(.vertical, 1)
-                    .background(Capsule().fill(Color.unbound.accent))
+                    .frame(width: 18, height: 18)
+                    .background(Circle().fill(Color.unbound.accent))
                     .offset(x: 4, y: 4)
             }
             .shadow(color: Color.unbound.accent.opacity(0.35), radius: 6)
@@ -82,7 +79,7 @@ private struct HomeAvatarBadge: View {
     }
 }
 
-private struct HomeArcWalletChip: View {
+private struct HomeArcWalletAmount: View {
     let balance: Int
 
     var body: some View {
@@ -97,14 +94,12 @@ private struct HomeArcWalletChip: View {
             valueColor: Color.unbound.textPrimary
         )
         .fixedSize(horizontal: true, vertical: false)
-        .padding(.horizontal, 11)
-        .padding(.vertical, 6)
-        .background(Capsule().fill(Color.unbound.rankGold.opacity(0.13)))
-        .overlay(
-            Capsule()
-                .strokeBorder(Color.unbound.rankGold.opacity(0.42), lineWidth: 1)
-        )
-        .shadow(color: Color.unbound.rankGold.opacity(0.18), radius: 8)
+        .padding(.leading, 10)
+        .overlay(alignment: .leading) {
+            Rectangle()
+                .fill(Color.unbound.rankGold.opacity(0.38))
+                .frame(width: 0.5, height: 22)
+        }
         .accessibilityLabel("\(balance.formatted()) Arcs")
     }
 }
@@ -119,24 +114,39 @@ struct HomeBriefingSection: View {
             HStack(alignment: .firstTextBaseline, spacing: 12) {
                 Text(title)
                     .font(.system(size: 31, weight: .black))
-                    .foregroundStyle(Color.unbound.textPrimary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.68)
+                    .unboundAdaptiveBackdropForeground(
+                        candidates: .unboundBackdropPrimary,
+                        minimumContrast: 3.1,
+                        brightPreference: .heroTitle,
+                        shadowStrength: 1.04
+                    )
 
                 Spacer(minLength: 10)
 
                 Text(dayText)
-                    .font(Font.unbound.monoS.weight(.semibold))
-                    .foregroundStyle(Color.unbound.textTertiary)
+                    .font(Font.unbound.monoS)
                     .monospacedDigit()
+                    .unboundAdaptiveBackdropForeground(
+                        candidates: .unboundBackdropPrimary,
+                        minimumContrast: 3.0,
+                        brightPreference: .heroTitle,
+                        shadowStrength: 0.92
+                    )
             }
 
             Text(copy)
                 .font(Font.unbound.bodyM)
-                .foregroundStyle(Color.unbound.textSecondary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.68)
+                .lineLimit(2)
+                .minimumScaleFactor(0.76)
                 .frame(maxWidth: 330, alignment: .leading)
+                .unboundAdaptiveBackdropForeground(
+                    candidates: .unboundBackdropBody,
+                    minimumContrast: 2.9,
+                    brightPreference: .heroBody,
+                    shadowStrength: 0.92
+                )
         }
         .padding(.top, 2)
     }
@@ -164,101 +174,100 @@ struct HomeTrainingConsoleSection: View {
         let minutes = workout?.estimatedMinutes ?? (isRest ? 18 : 30)
         let focus = workout?.targetMuscleGroups.first?.displayName.uppercased() ?? (isRest ? "RECOVERY" : "CUSTOM")
         let planValue = workout.map { "\($0.mainExercises.count) MOVES" } ?? (isRest ? "REST" : "OPEN")
+        let metrics = [
+            UnboundNativeMetric(label: "Day", value: programDayLabel, tint: tint),
+            UnboundNativeMetric(label: "Time", value: "\(minutes)M", tint: tint),
+            UnboundNativeMetric(label: "Plan", value: planValue, tint: tint)
+        ]
 
-        return ZStack(alignment: .topTrailing) {
-            ProtocolHeroBackground(tint: tint)
-
-            VStack(alignment: .leading, spacing: 16) {
-                HStack(alignment: .top, spacing: 14) {
-                    VStack(alignment: .leading, spacing: 10) {
-                        HStack(spacing: 8) {
-                            HomeProtocolStatusPill(label: "STATUS", value: todayStatusValue, tint: tint)
-                            Text(focus)
-                                .font(Font.unbound.captionS.weight(.bold))
-                                .tracking(1.4)
-                                .foregroundStyle(Color.unbound.textTertiary)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.72)
-                                .allowsTightening(true)
-                        }
-
-                        Text(title)
-                            .font(.system(size: 33, weight: .black))
-                            .foregroundStyle(Color.unbound.textPrimary)
-                            .lineLimit(2)
-                            .minimumScaleFactor(0.68)
-                            .fixedSize(horizontal: false, vertical: true)
-
-                        Text(Self.protocolHeroSubtitle(workout: workout, isRest: isRest))
-                            .font(Font.unbound.bodyM)
-                            .foregroundStyle(Color.unbound.textSecondary)
-                            .lineLimit(2)
-                            .minimumScaleFactor(0.76)
+        return VStack(alignment: .leading, spacing: 18) {
+            HStack(alignment: .top, spacing: 14) {
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack(spacing: 7) {
+                        HomeProtocolStatusLine(
+                            label: "STATUS",
+                            value: todayStatusValue,
+                            tint: tint
+                        )
+                        HomeProtocolSignalTag(text: focus, tint: tint)
                     }
 
-                    Spacer(minLength: 0)
+                    Text(title)
+                        .font(.system(size: 35, weight: .black))
+                        .foregroundStyle(Color.unbound.textPrimary)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.62)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .unboundTextShadow(strength: 0.82)
 
-                    HomeTrainingRankRail(
-                        level: level,
-                        xpInLevel: xpInLevel,
-                        xpForLevel: xpForLevel,
-                        fraction: levelFraction,
-                        aggregateTier: aggregateTier,
-                        rankColor: aggregateRank.rewardTint
-                    )
+                    Text(Self.protocolHeroSubtitle(workout: workout, isRest: isRest))
+                        .font(Font.unbound.bodyM)
+                        .foregroundStyle(Color.unbound.textPrimary)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.76)
+                        .unboundTextShadow(strength: 0.82)
                 }
 
-                HStack(spacing: 8) {
-                    HomeProtocolMetaTile(label: "DAY", value: programDayLabel, tint: tint)
-                    HomeProtocolMetaTile(label: "TIME", value: "\(minutes)M", tint: tint)
-                    HomeProtocolMetaTile(label: "PLAN", value: planValue, tint: tint)
-                }
+                Spacer(minLength: 0)
 
-                Button {
-                    onPrimary(canStart, isRest)
-                } label: {
-                    HStack(spacing: 11) {
-                        Text(Self.protocolPrimaryLabel(canStart: canStart, isRest: isRest).uppercased())
-                            .font(Font.unbound.bodyMStrong)
-                            .tracking(1.4)
-                        Image(systemName: canStart ? "arrow.right" : (isRest ? "camera.fill" : "calendar.badge.plus"))
-                            .font(.system(size: 13, weight: .bold))
-                    }
-                    .foregroundStyle(Color.unbound.textPrimary)
-                    .frame(maxWidth: .infinity)
-                    .frame(minHeight: 52)
-                    .background(
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .fill(tint)
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .strokeBorder(Color.white.opacity(0.16), lineWidth: 1)
-                    )
-                    .shadow(color: tint.opacity(0.22), radius: 18, y: 8)
-                }
-                .buttonStyle(.plain)
+                HomeTrainingRankRail(
+                    level: level,
+                    xpInLevel: xpInLevel,
+                    xpForLevel: xpForLevel,
+                    fraction: levelFraction,
+                    aggregateTier: aggregateTier,
+                    rankColor: aggregateRank.rewardTint
+                )
+                .unboundTextShadow(strength: 0.72)
             }
-            .padding(18)
+
+            UnboundNativeMetricRail(metrics: metrics)
+                .padding(.top, 2)
+                .unboundTextShadow(strength: 0.72)
+
+            Button {
+                onPrimary(canStart, isRest)
+            } label: {
+                HStack(spacing: 11) {
+                    Text(Self.protocolPrimaryLabel(canStart: canStart, isRest: isRest).uppercased())
+                        .font(Font.unbound.bodyMStrong)
+                        .tracking(1.4)
+                    Image(systemName: canStart ? "arrow.right" : (isRest ? "camera.fill" : "calendar.badge.plus"))
+                        .font(.system(size: 13, weight: .bold))
+                }
+                .foregroundStyle(Color.unbound.textPrimary)
+                .frame(maxWidth: .infinity)
+                .frame(minHeight: 52)
+                .background(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(tint)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .strokeBorder(Color.white.opacity(0.16), lineWidth: 1)
+                )
+                .shadow(color: tint.opacity(0.20), radius: 16, y: 8)
+            }
+            .buttonStyle(.plain)
         }
         .frame(maxWidth: .infinity)
-        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .strokeBorder(
+        .padding(.horizontal, 20)
+        .padding(.top, 24)
+        .padding(.bottom, 24)
+        .background {
+            ProtocolHeroBackground(tint: tint)
+                .mask(
                     LinearGradient(
-                        colors: [
-                            Color.white.opacity(0.16),
-                            tint.opacity(0.28),
-                            Color.white.opacity(0.04)
+                        stops: [
+                            .init(color: .clear, location: 0),
+                            .init(color: .black, location: 0.18),
+                            .init(color: .black, location: 1)
                         ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 1
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
                 )
         }
-        .shadow(color: Color.black.opacity(0.28), radius: 24, y: 14)
     }
 
     private var todayStatusValue: String {
@@ -327,8 +336,8 @@ private struct HomeTrainingRankRail: View {
             }
             .frame(width: 5, height: 58)
             Text("\(xpInLevel)/\(xpForLevel) XP")
-                .font(.system(size: 9, weight: .bold, design: .monospaced))
-                .foregroundStyle(Color.unbound.textTertiary)
+                .font(.system(size: 9, weight: .semibold, design: .monospaced))
+                .foregroundStyle(Color.unbound.textPrimary)
                 .monospacedDigit()
                 .lineLimit(1)
                 .minimumScaleFactor(0.65)
@@ -337,61 +346,62 @@ private struct HomeTrainingRankRail: View {
     }
 }
 
-private struct HomeProtocolMetaTile: View {
+private struct HomeProtocolStatusLine: View {
     let label: String
     let value: String
     let tint: Color
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        HStack(spacing: 7) {
             Text(label)
-                .font(.system(size: 9, weight: .bold))
-                .tracking(1.4)
-                .foregroundStyle(Color.unbound.textTertiary)
-            Text(value)
-                .font(Font.unbound.monoS.weight(.bold))
-                .foregroundStyle(tint)
+                .font(Font.unbound.captionS.weight(.semibold))
+                .tracking(1.6)
                 .lineLimit(1)
-                .minimumScaleFactor(0.74)
+                .minimumScaleFactor(0.76)
+                .unboundAdaptiveBackdropForeground(
+                    candidates: .unboundBackdropMeta,
+                    minimumContrast: 2.7,
+                    shadowStrength: 0.78
+                )
+            HomeProtocolSignalTag(text: value, tint: tint)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 10)
-        .padding(.vertical, 9)
-        .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color.white.opacity(0.045))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .strokeBorder(Color.white.opacity(0.07), lineWidth: 1)
-        )
     }
 }
 
-private struct HomeProtocolStatusPill: View {
-    let label: String
-    let value: String
+private struct HomeProtocolSignalTag: View {
+    let text: String
     let tint: Color
 
     var body: some View {
-        HStack(spacing: 8) {
-            Text(label)
-                .font(Font.unbound.captionS.weight(.bold))
-                .tracking(1.6)
-                .foregroundStyle(Color.unbound.textTertiary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.76)
-            Text(value)
-                .font(Font.unbound.monoS.weight(.bold))
-                .foregroundStyle(tint)
-                .monospacedDigit()
-                .lineLimit(1)
-                .minimumScaleFactor(0.72)
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .background(Capsule().fill(tint.opacity(0.12)))
-        .overlay(Capsule().strokeBorder(tint.opacity(0.30), lineWidth: 1))
+        Text(text)
+            .font(.system(size: 11, weight: .black, design: .monospaced))
+            .tracking(1.2)
+            .foregroundStyle(Color.unbound.textPrimary)
+            .monospacedDigit()
+            .lineLimit(1)
+            .minimumScaleFactor(0.72)
+            .allowsTightening(true)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 5)
+            .background {
+                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                tint.opacity(0.62),
+                                tint.opacity(0.38)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    .strokeBorder(Color.white.opacity(0.16), lineWidth: 1)
+            }
+            .shadow(color: tint.opacity(0.24), radius: 10, y: 4)
+            .unboundTextShadow(strength: 0.48)
     }
 }
 
@@ -448,7 +458,7 @@ struct HomeWeekPathSection: View {
                         .lineLimit(1)
                         .minimumScaleFactor(0.82)
                     if let countdown {
-                        HomeCountdownChip(countdown: countdown)
+                        HomeCountdownLabel(countdown: countdown)
                     }
                 }
 
@@ -470,7 +480,7 @@ struct HomeWeekPathSection: View {
     }
 }
 
-private struct HomeCountdownChip: View {
+private struct HomeCountdownLabel: View {
     let countdown: (text: String, urgent: Bool, safe: Bool)
 
     private var tint: Color {
@@ -484,9 +494,6 @@ private struct HomeCountdownChip: View {
             .foregroundStyle(tint)
             .lineLimit(1)
             .minimumScaleFactor(0.8)
-            .padding(.horizontal, 6)
-            .padding(.vertical, 2)
-            .background(Capsule().fill(tint.opacity(0.14)))
     }
 }
 
@@ -610,28 +617,24 @@ private struct ProtocolHeroBackground: View {
 
     var body: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            Color.unbound.surfaceElevated,
-                            Color.unbound.surface,
-                            Color.unbound.bg.opacity(0.95)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
+            UnboundPosterScrim(
+                tint: tint,
+                topOpacity: 0.24,
+                midOpacity: 0.34,
+                bottomOpacity: 0.68,
+                sideOpacity: 0.34,
+                tintOpacity: 0.035
+            )
 
             TopographicLines()
-                .stroke(Color.white.opacity(0.035), lineWidth: 1)
+                .stroke(Color.white.opacity(0.024), lineWidth: 1)
 
             DiagonalAccentShape()
                 .fill(
                     LinearGradient(
                         colors: [
-                            tint.opacity(0.28),
-                            tint.opacity(0.08),
+                            tint.opacity(0.12),
+                            tint.opacity(0.04),
                             .clear
                         ],
                         startPoint: .topLeading,
@@ -644,7 +647,7 @@ private struct ProtocolHeroBackground: View {
             Circle()
                 .fill(
                     RadialGradient(
-                        colors: [tint.opacity(0.22), .clear],
+                        colors: [tint.opacity(0.10), .clear],
                         center: .center,
                         startRadius: 0,
                         endRadius: 140

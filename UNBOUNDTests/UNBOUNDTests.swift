@@ -38,6 +38,7 @@ final class UNBOUNDSmokeTest: XCTestCase {
 
         var completion = TrainingCompletionResult()
         completion.skillXPGained = 10
+        completion.arcsEarned = 90
         completion.overallLevelXPGained = 6
         completion.overallLevelReward = OverallLevelReward(
             xpGained: 6,
@@ -70,6 +71,7 @@ final class UNBOUNDSmokeTest: XCTestCase {
         XCTAssertEqual(sequence.xp.breakdown.map(\.label), ["Skill XP", "Level XP"])
         XCTAssertEqual(sequence.badges.first?.title, "First Rep")
         XCTAssertEqual(sequence.progression?.skillXPGained, 10)
+        XCTAssertEqual(sequence.arcsEarned, 90)
     }
 
     func testSimpleReceiptProvidesProgramSequencePayloadForNonUnifiedRoutes() {
@@ -380,6 +382,111 @@ final class UNBOUNDSmokeTest: XCTestCase {
 
         XCTAssertEqual(sequence.xp.total, 0)
         XCTAssertEqual(sequence.progression?.skillXPGained, 25)
+    }
+
+    func testRewardSequenceDoesNotSurfaceMovementAPAsSeparateBeat() {
+        var sequence = WorkoutRewardSequenceSummary.simpleReceipt(
+            workoutName: "Strength Session",
+            durationMinutes: 42,
+            workSets: 12,
+            xpTotal: 18,
+            xpLabel: "Session logged",
+            sourceName: "Program"
+        )
+        sequence.progression = ProgressionReceipt(
+            totalMovementAP: 24,
+            movementLines: [
+                ProgressionMovementLine(
+                    id: "exercise.bench-press",
+                    name: "Bench Press",
+                    xpGained: 24,
+                    currentRank: .master,
+                    nextRank: .vessel,
+                    fractionToNextRank: 0.25,
+                    didRankUp: true
+                )
+            ]
+        )
+
+        let view = WorkoutRewardSequenceView(summary: sequence) {}
+
+        XCTAssertFalse(view.rewardBeats.contains(.progression))
+        XCTAssertEqual(view.rewardBeats, [.sessionComplete, .xp, .final])
+    }
+
+    func testSkillXPOnlyRewardStillShowsCompactReceiptBeat() {
+        var sequence = WorkoutRewardSequenceSummary.simpleReceipt(
+            workoutName: "Skill Practice",
+            durationMinutes: 8,
+            workSets: 1,
+            xpTotal: 0,
+            xpLabel: "Skill logged",
+            sourceName: "Skill"
+        )
+        sequence.progression = ProgressionReceipt(skillXPGained: 25)
+
+        let view = WorkoutRewardSequenceView(summary: sequence) {}
+
+        XCTAssertEqual(view.rewardBeats, [.sessionComplete, .progression, .final])
+    }
+
+    func testRankRewardUsesSingleStandardsBeat() {
+        var sequence = WorkoutRewardSequenceSummary.simpleReceipt(
+            workoutName: "Rank Proof",
+            durationMinutes: 10,
+            workSets: 1,
+            xpTotal: 0,
+            xpLabel: "Proof logged",
+            sourceName: "Skill"
+        )
+        sequence.exerciseRanks = [
+            ExerciseRankReward(
+                id: "skill:cal.pushup",
+                exerciseName: "Push-Up",
+                skillId: "cal.pushup",
+                rank: .veteran,
+                didRankUp: true,
+                fromRank: .novice,
+                progressToNext: 0.4,
+                nextRank: .forged,
+                nextThresholdText: "12 reps to Forged",
+                personalBestText: nil,
+                family: .press
+            )
+        ]
+
+        let view = WorkoutRewardSequenceView(summary: sequence) {}
+
+        XCTAssertEqual(view.rewardBeats, [.sessionComplete, .proof, .final])
+    }
+
+    func testArcsSurfaceAsCompactPayoutWithoutAddingRewardBeat() {
+        let sequence = WorkoutRewardSequenceSummary.simpleReceipt(
+            workoutName: "Strength Session",
+            durationMinutes: 42,
+            workSets: 12,
+            xpTotal: 18,
+            xpLabel: "Session logged",
+            sourceName: "Program",
+            arcsEarned: 90
+        )
+
+        let view = WorkoutRewardSequenceView(summary: sequence) {}
+
+        XCTAssertEqual(sequence.arcsEarned, 90)
+        XCTAssertEqual(view.rewardBeats, [.sessionComplete, .xp, .final])
+    }
+
+    func testTrainingCompletionReplayCarriesArcCurrencyPayout() {
+        var completion = TrainingCompletionResult()
+        completion.arcsEarned = 150
+
+        let replay = TrainingCompletionReplay(result: completion)
+        var hydrated = TrainingCompletionResult()
+        hydrated.apply(replay: replay)
+
+        XCTAssertEqual(replay.arcsEarned, 150)
+        XCTAssertEqual(hydrated.arcsEarned, 150)
     }
 
     func testProgressionReceiptGroupsMovementXPWithRankProgress() {

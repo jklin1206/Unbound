@@ -306,6 +306,121 @@ struct RankBadgeRevealView: View {
     }
 }
 
+struct RankStandardHero: View {
+    let reward: ExerciseRankReward
+    let rankUpCount: Int
+    let animate: Bool
+
+    @State private var revealed = false
+    @State private var sparked = false
+    @State private var played = false
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 16) {
+            RankStandardBadgeNode(reward: reward, revealed: revealed, sparked: sparked)
+
+            RankStandardCopy(reward: reward, rankUpCount: rankUpCount, revealed: revealed)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 14)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color.unbound.surface.opacity(0.70))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .stroke(reward.tint.opacity(0.32), lineWidth: 1)
+                )
+        )
+        .shadow(color: reward.tint.opacity(revealed ? 0.24 : 0.08), radius: revealed ? 24 : 10, y: 8)
+        .onAppear { runIfReady() }
+        .onChange(of: animate) { _, _ in runIfReady() }
+    }
+
+    private func runIfReady() {
+        guard animate, !played else { return }
+        played = true
+        UnboundSound.shared.play(.rankReveal, volume: 0.82)
+        UnboundHaptics.heavy()
+        withAnimation(.spring(response: 0.52, dampingFraction: 0.62)) { revealed = true }
+        withAnimation(.easeOut(duration: 0.72).delay(0.08)) { sparked = true }
+    }
+}
+
+private struct RankStandardBadgeNode: View {
+    let reward: ExerciseRankReward
+    let revealed: Bool
+    let sparked: Bool
+
+    var body: some View {
+        ZStack {
+            ForEach(0..<10, id: \.self) { i in
+                let angle = Double(i) / 10 * 2 * .pi
+                Circle()
+                    .fill(reward.tint)
+                    .frame(width: 4, height: 4)
+                    .offset(
+                        x: sparked ? cos(angle) * 58 : 0,
+                        y: sparked ? sin(angle) * 58 : 0
+                    )
+                    .opacity(sparked ? 0 : 0.82)
+            }
+
+            RankPulseRings(tint: reward.tint, hot: true, animate: revealed)
+                .frame(width: 96, height: 96)
+
+            Image(reward.badgeAssetName)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 74, height: 74)
+                .scaleEffect(revealed ? 1 : 0.52)
+                .rotationEffect(.degrees(revealed ? 0 : -10))
+                .shadow(color: reward.tint.opacity(revealed ? 0.74 : 0.2), radius: revealed ? 22 : 8)
+        }
+        .frame(width: 104, height: 104)
+    }
+}
+
+private struct RankStandardCopy: View {
+    let reward: ExerciseRankReward
+    let rankUpCount: Int
+    let revealed: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            Text(rankUpCount > 1 ? "\(rankUpCount) STANDARDS CLEARED" : "STANDARD CLEARED")
+                .font(Font.unbound.captionS.weight(.heavy))
+                .tracking(1.8)
+                .foregroundStyle(reward.tint)
+                .lineLimit(1)
+                .minimumScaleFactor(0.68)
+
+            Text(reward.rank.displayName.uppercased())
+                .font(.system(size: 34, weight: .black, design: .monospaced))
+                .foregroundStyle(Color.unbound.textPrimary)
+                .shadow(color: reward.tint.opacity(revealed ? 0.52 : 0.24), radius: 14)
+                .lineLimit(1)
+                .minimumScaleFactor(0.68)
+
+            Text(reward.exerciseName.uppercased())
+                .font(Font.unbound.captionS.weight(.heavy))
+                .tracking(1.6)
+                .foregroundStyle(Color.unbound.textSecondary)
+                .lineLimit(2)
+                .minimumScaleFactor(0.74)
+
+            if let fromRank = reward.fromRank {
+                Text("\(fromRank.displayName.uppercased()) -> \(reward.rank.displayName.uppercased())")
+                    .font(Font.unbound.monoS.weight(.heavy))
+                    .foregroundStyle(reward.tint)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .opacity(revealed ? 1 : 0.35)
+    }
+}
+
 struct LevelProgressHero: View {
     let label: String
     let levelBefore: Int

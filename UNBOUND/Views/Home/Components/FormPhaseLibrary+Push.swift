@@ -80,10 +80,10 @@ extension FormPhaseLibrary {
     static func clappingHandstandPushPhases() -> [FormPhase] {
         let assetPrefix = "cal_clapping-handstand-pushup"
         return [
-            phase("phase1", "Strict Base", "Begin from a stable handstand push-up setup with a predictable bottom target. Do not train release work until strict reps are controlled.", "pause.circle.fill", assetName: assetName(assetPrefix, "phase1")),
-            phase("phase2", "Controlled Lower", "Lower like a normal chest-to-wall handstand push-up with the same wall-side direction every rep. Toes stay light on the wall, but the press comes from shoulders and triceps.", "bolt.fill", assetName: assetName(assetPrefix, "phase2")),
-            phase("phase3", "Pop Clap", "Clap only if the launch is high enough for a small near-floor release. The hands meet close under the head and shoulders; do not reach forward or let the body line flip away from the wall.", "hands.clap.fill", assetName: assetName(assetPrefix, "phase3")),
-            phase("phase4", "Catch Tall", "Return the hands under the shoulders with elbows soft enough to absorb, then press tall. Stop the set when the catch gets noisy or the line arches.", "arrow.down.forward.circle.fill", assetName: assetName(assetPrefix, "phase4"))
+            phase("phase1", "Strict Base", "Begin from a stable freestanding handstand push-up setup with a predictable tripod bottom target. Do not train release work until strict reps are controlled.", "pause.circle.fill", assetName: assetName(assetPrefix, "phase1")),
+            phase("phase2", "Tripod Lower", "Lower under control until the head or pad lightly meets the floor between the hands. Keep the line balanced over the tripod instead of kicking or drifting.", "bolt.fill", assetName: assetName(assetPrefix, "phase2")),
+            phase("phase3", "Pop Clap", "Explode just high enough that both hands leave the floor and clap close under the head or upper chest. The clap stays near the support line, not out in front.", "hands.clap.fill", assetName: assetName(assetPrefix, "phase3")),
+            phase("phase4", "Catch Tall", "Return the hands under the shoulders, absorb with soft elbows, and press back to a tall freestanding handstand. Stop when the catch collapses or the line arches.", "arrow.down.forward.circle.fill", assetName: assetName(assetPrefix, "phase4"))
         ]
     }
 
@@ -139,10 +139,10 @@ extension FormPhaseLibrary {
         let assetPrefix = skillId.replacingOccurrences(of: ".", with: "_")
         if skillId == "hs.one-arm-elbow-lever" {
             return [
-                phase("phase1", "Two Arm", "Enter a clean two-arm elbow lever first. Both elbows should be anchored before you try to remove support.", "pause.circle.fill", assetName: assetName(assetPrefix, "phase1")),
-                phase("phase2", "Shift", "Move weight toward the working elbow while keeping the torso square. The free hand becomes light before it leaves.", "arrow.left.and.right", assetName: assetName(assetPrefix, "phase2")),
-                phase("phase3", "Release", "Reach the free arm off the floor as a counterbalance. Do not let that side twist open or drop.", "hand.raised.fill", assetName: assetName(assetPrefix, "phase3")),
-                phase("phase4", "Hold", "Hold one-arm support with the working elbow locked into the hip crease, legs straight, and body horizontal.", "timer", assetName: assetName(assetPrefix, "phase4"))
+                phase("phase1", "Two Arm", "Enter a clean two-arm elbow lever first. Both elbows should be wedged into the lower abdomen or hip creases before you try to remove support.", "pause.circle.fill", assetName: assetName(assetPrefix, "phase1")),
+                phase("phase2", "Shift", "Move weight toward the working elbow while keeping the torso square. The free hand becomes fingertips-light before it leaves.", "arrow.left.and.right", assetName: assetName(assetPrefix, "phase2")),
+                phase("phase3", "Release", "Reach the free arm off the floor as a counterbalance. Keep the working elbow buried and do not let the free side twist open or drop.", "hand.raised.fill", assetName: assetName(assetPrefix, "phase3")),
+                phase("phase4", "Hold", "Hold one-arm support with the working elbow locked into the hip crease, legs straight, and body horizontal. Step down if the elbow slides.", "timer", assetName: assetName(assetPrefix, "phase4"))
             ]
         }
         return [
@@ -173,9 +173,9 @@ extension FormPhaseLibrary {
         case "pl.half-lay-planche":
             return [
                 phase("phase1", "Straddle Set", "Start from a clean straddle planche with shoulders forward, elbows locked, and hips already level.", "pause.circle.fill", assetName: assetName(assetPrefix, "phase1")),
-                phase("phase2", "Narrow", "Close the legs partway toward parallel in small increments. The torso and shoulder shape should not change.", "arrow.left.and.right", assetName: assetName(assetPrefix, "phase2")),
-                phase("phase3", "Brace", "Squeeze glutes, quads, and toes while keeping ribs down. Narrower legs make every small leak louder.", "figure.core.training", assetName: assetName(assetPrefix, "phase3")),
-                phase("phase4", "Proof Hold", "Use short two-to-five-second holds. If hips drop, widen the straddle or use band assistance.", "timer", assetName: assetName(assetPrefix, "phase4"))
+                phase("phase2", "Narrow", "Close the legs toward center and let the knees bend enough to shorten the lever. The torso and shoulder shape should not change.", "arrow.left.and.right", assetName: assetName(assetPrefix, "phase2")),
+                phase("phase3", "Half-Lay", "Hold the distinct half-lay shape: hips level, ribs down, legs narrow, knees bent, shins lifted, and toes pointed. Do not drift into a full straight-body line.", "figure.core.training", assetName: assetName(assetPrefix, "phase3")),
+                phase("phase4", "Proof Hold", "Use short two-to-five-second holds with the same bent-knee lever. If hips drop, widen the straddle or use band assistance.", "timer", assetName: assetName(assetPrefix, "phase4"))
             ]
         case "pl.full-planche":
             return [

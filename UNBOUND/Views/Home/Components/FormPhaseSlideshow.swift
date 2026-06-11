@@ -341,26 +341,26 @@ enum FormPhaseLibrary {
 
         case "hs.wall-supported-oah":
             return [
-                phase("phase1", "Stack", "Build a tight wall handstand with shoulders elevated and ribs controlled.", "rectangle.portrait", assetName: "hs_wall-supported-oah_phase1"),
-                phase("phase2", "Straddle", "Open the legs so balance can shift without dumping sideways.", "figure.flexibility", assetName: "hs_wall-supported-oah_phase2"),
-                phase("phase3", "Shift", "Move weight into one hand while the working shoulder stays tall.", "arrow.left.and.right", assetName: "hs_wall-supported-oah_phase3"),
-                phase("phase4", "Unload", "Reduce the free hand to fingertips or a brief hover.", "hand.point.up.left.fill", assetName: "hs_wall-supported-oah_phase4")
+                phase("phase1", "Stack", "Use a chest-to-wall handstand with toes lightly on the wall, arms locked, shoulders elevated, and ribs pulled down before shifting weight.", "rectangle.portrait", assetName: "hs_wall-supported-oah_phase1"),
+                phase("phase2", "Straddle", "Open into a wide straddle while the toes keep light wall contact. The wall gives feedback; it should not become a heavy heel slam.", "figure.flexibility", assetName: "hs_wall-supported-oah_phase2"),
+                phase("phase3", "Shift", "Move hips over the support hand while the free hand turns into fingertips. Keep the support elbow locked and shoulder tall.", "arrow.left.and.right", assetName: "hs_wall-supported-oah_phase3"),
+                phase("phase4", "Unload", "Float the free hand or keep one fingertip down only. End the rep before the support shoulder sinks or the wall starts carrying the balance.", "hand.point.up.left.fill", assetName: "hs_wall-supported-oah_phase4")
             ]
 
         case "oah.one-arm-handstand-5s":
             return [
-                phase("phase1", "Enter", "Kick or press to a stable straddle handstand before shifting.", "figure.gymnastics", assetName: "oah_one-arm-handstand-5s_phase1"),
-                phase("phase2", "Align", "Push tall, control ribs, and center hips over the support side.", "line.diagonal", assetName: "oah_one-arm-handstand-5s_phase2"),
-                phase("phase3", "Transfer", "Make the free hand light while the working hand steers the floor.", "hand.tap.fill", assetName: "oah_one-arm-handstand-5s_phase3"),
-                phase("phase4", "Balance", "Lift the free hand, breathe, and exit before the shoulder sinks.", "checkmark.seal.fill", assetName: "oah_one-arm-handstand-5s_phase4")
+                phase("phase1", "Enter", "Start from a freestanding two-hand straddle handstand. Lock the elbows, push tall through both shoulders, and settle the ribs before transferring.", "figure.gymnastics", assetName: "oah_one-arm-handstand-5s_phase1"),
+                phase("phase2", "Align", "Shift the hips over the support hand while the wide straddle stays open. The free hand becomes lighter, but it is not gone yet.", "line.diagonal", assetName: "oah_one-arm-handstand-5s_phase2"),
+                phase("phase3", "Transfer", "Reduce the free hand to fingertips and let the support fingers steer the floor. Keep the body from twisting toward the lifted side.", "hand.tap.fill", assetName: "oah_one-arm-handstand-5s_phase3"),
+                phase("phase4", "5 Sec", "Lift the free hand into a wide-straddle one-arm hold for a short clean count. Exit before the support shoulder drops or the hold turns into a save.", "checkmark.seal.fill", assetName: "oah_one-arm-handstand-5s_phase4")
             ]
 
         case "oah.full-one-arm-handstand":
             return [
-                phase("phase1", "Enter", "Kick or press to a stable straddle handstand before shifting.", "figure.gymnastics", assetName: "oah_full-one-arm-handstand_phase1"),
-                phase("phase2", "Align", "Push tall, control ribs, and center hips over the support side.", "line.diagonal", assetName: "oah_full-one-arm-handstand_phase2"),
-                phase("phase3", "Transfer", "Make the free hand light while the working hand steers the floor.", "hand.tap.fill", assetName: "oah_full-one-arm-handstand_phase3"),
-                phase("phase4", "Balance", "Lift the free hand, breathe, and exit before the shoulder sinks.", "checkmark.seal.fill", assetName: "oah_full-one-arm-handstand_phase4")
+                phase("phase1", "Enter", "Enter from a controlled two-hand straddle handstand. Use the wide shape only to organize the transfer, not as the final standard.", "figure.gymnastics", assetName: "oah_full-one-arm-handstand_phase1"),
+                phase("phase2", "Stack", "Stack the hips over the support hand and begin narrowing the legs. The support shoulder stays elevated while the free hand gets light.", "line.diagonal", assetName: "oah_full-one-arm-handstand_phase2"),
+                phase("phase3", "Lift", "Peel the free hand fully off the floor and hold the line with the support fingers. Keep narrowing toward the full shape without bending the elbow.", "hand.tap.fill", assetName: "oah_full-one-arm-handstand_phase3"),
+                phase("phase4", "Full", "Finish in the cleanest one-arm line you own: free hand off, support elbow locked, shoulder tall, and legs close or only slightly apart.", "checkmark.seal.fill", assetName: "oah_full-one-arm-handstand_phase4")
             ]
 
         case "pp.dead-hang":
@@ -373,7 +373,7 @@ enum FormPhaseLibrary {
                 assetPrefix: "pp_pullup"
             )
         case "pp.chin-up", "pp.strict-chin-up":
-            return chinUpPhases(assetPrefix: "pp_chin-up")
+            return chinUpPhases(assetPrefix: "pp_chin-up", strict: skillId == "pp.strict-chin-up")
         case "pp.weighted-pullup", "pp.weighted-chin-up":
             return weightedPullPhases(
                 isChin: skillId == "pp.weighted-chin-up",
@@ -386,7 +386,9 @@ enum FormPhaseLibrary {
             )
         case "pp.archer-pullup":
             return archerPullPhases(assetPrefix: "pp_archer-pullup")
-        case "pp.oap-negative", "pp.one-arm-pullup":
+        case "pp.oap-negative":
+            return soloArmPhases(skillId: skillId, assetPrefix: "pp_oap-negative")
+        case "pp.one-arm-pullup":
             return soloArmPhases(skillId: skillId, assetPrefix: "pp_one-arm-pullup")
         case "pp.heighted-chin-up":
             return heightedChinPhases(assetPrefix: "pp_heighted-chin-up")

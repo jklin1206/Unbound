@@ -27,7 +27,7 @@ import UIKit
 //     rails paint over them.
 //
 // Preserved
-//   • Header, summary card, FULL TREE button, detail sheet handoff
+//   • Header, summary card, cosmetic picker, detail sheet handoff
 //   • Active pulse, auto-scroll to active on appear
 //   • Keystone sizing + crown + "N BEATS AWAY" chip
 //   • MYTHIC section below the tree when keystone achieved
@@ -41,7 +41,7 @@ struct ClusterStaircaseView: View {
     @Environment(\.dismiss) var dismiss
 
     @State var selectedNode: SkillNode?
-    @State var showFullTree: Bool = false
+    @State var showCosmetics: Bool = false
     @State var activePulse: CGFloat = 1.0
     @State var treeLayout: ComputedTreeLayout?
     @StateObject var skinService = SkinService.shared
@@ -113,20 +113,11 @@ struct ClusterStaircaseView: View {
                 nodeStates: nodeStates
             )
         }
-        .sheet(isPresented: $showFullTree) {
-            ClusterDetailView(
-                cluster: cluster,
-                graph: graph,
-                nodeStates: nodeStates,
-                nodeProgress: nodeProgress,
-                onNodeTap: { node in
-                    showFullTree = false
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                        selectedNode = node
-                    }
-                }
-            )
-            .presentationDetents([.large])
+        .sheet(isPresented: $showCosmetics) {
+            NavigationStack {
+                SkinPickerView()
+            }
+            .presentationDetents([.medium, .large])
             .presentationDragIndicator(.visible)
             .presentationBackground(Color.unbound.bg)
         }
@@ -159,29 +150,34 @@ struct ClusterStaircaseView: View {
                     .font(Font.unbound.captionS.weight(.heavy))
                     .tracking(2.0)
                     .foregroundStyle(Color.unbound.textSecondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.76)
                 Text(headerSubtitle)
                     .font(Font.unbound.captionS.italic())
                     .foregroundStyle(skinService.currentSkin.primaryColor.opacity(0.85))
                     .lineLimit(1)
+                    .minimumScaleFactor(0.78)
             }
-            Spacer()
-            Button { showFullTree = true } label: {
-                HStack(spacing: 5) {
-                    Image(systemName: "square.grid.3x3.fill")
-                        .font(.system(size: 10, weight: .bold))
-                    Text("FULL TREE")
-                        .font(Font.unbound.captionS.weight(.heavy))
-                        .tracking(1.6)
-                }
-                .foregroundStyle(Color.unbound.textSecondary)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(Capsule().fill(Color.unbound.surface))
-                .overlay(
-                    Capsule().strokeBorder(Color.unbound.border, lineWidth: 1)
-                )
+            .layoutPriority(1)
+
+            Spacer(minLength: 8)
+
+            Button {
+                UnboundHaptics.soft()
+                showCosmetics = true
+            } label: {
+                Image(systemName: "paintpalette.fill")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(skinService.currentSkin.primaryColor)
+                    .frame(width: 32, height: 32)
+                    .background(Circle().fill(Color.unbound.surface))
+                    .overlay(
+                        Circle().strokeBorder(skinService.currentSkin.primaryColor.opacity(0.36), lineWidth: 1)
+                    )
             }
             .buttonStyle(.plain)
+            .accessibilityLabel("Skill tree cosmetics")
+            .accessibilityHint("Opens cosmetic themes for the skill tree")
         }
         .padding(.horizontal, 16)
         .padding(.top, 10)

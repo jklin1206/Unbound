@@ -188,6 +188,7 @@ enum ExerciseCatalog {
             .init(name: "dumbbell front raise", displayName: "Dumbbell Front Raise", muscleGroups: [.shoulders], defaultSubstitute: "lateral raise (db)"),
             .init(name: "cable front raise", displayName: "Cable Front Raise", muscleGroups: [.shoulders], defaultSubstitute: "dumbbell front raise"),
             .init(name: "cable y raise", displayName: "Cable Y Raise", muscleGroups: [.shoulders, .traps], defaultSubstitute: "lateral raise (cable)"),
+            .init(name: "prone shoulder raise", displayName: "Prone Shoulder Raise", muscleGroups: [.shoulders, .back, .traps], defaultSubstitute: "face pull"),
             .init(name: "upright row", displayName: "Upright Row", muscleGroups: [.shoulders, .traps, .arms], defaultSubstitute: "lateral raise (db)"),
             .init(name: "rear delt fly (db)", displayName: "Rear Delt Fly (DB)", muscleGroups: [.shoulders, .back], defaultSubstitute: "face pull"),
             .init(name: "rear delt fly (machine)", displayName: "Rear Delt Fly (Machine)", muscleGroups: [.shoulders, .back], defaultSubstitute: "rear delt fly (db)"),
@@ -268,6 +269,7 @@ enum ExerciseCatalog {
         ],
         .core: [
             .init(name: "plank", displayName: "Plank", muscleGroups: [.core], defaultSubstitute: nil, progressionFamily: "core-lever", progressionTier: 0),
+            .init(name: "high plank", displayName: "High Plank", muscleGroups: [.core, .chest, .shoulders, .arms], defaultSubstitute: "plank"),
             .init(name: "hollow hold", displayName: "Hollow Hold", muscleGroups: [.core], defaultSubstitute: "plank", progressionFamily: "core-lever", progressionTier: 1),
             .init(name: "l-sit (tucked)", displayName: "L-Sit (Tucked)", muscleGroups: [.core, .shoulders, .arms], defaultSubstitute: "hollow hold", progressionFamily: "core-lever", progressionTier: 2),
             .init(name: "l-sit", displayName: "L-Sit", muscleGroups: [.core, .shoulders, .arms], defaultSubstitute: "l-sit (tucked)", progressionFamily: "core-lever", progressionTier: 3),

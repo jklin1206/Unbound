@@ -5,7 +5,8 @@ extension DeterministicProgramGenerator {
         for template: DayTemplate,
         input: ProgramGeneratorInput,
         bias: [MuscleGroup: Int],
-        blockType: BlockType
+        blockType: BlockType,
+        sessionIndex: Int = 0
     ) -> Workout {
         let compatibleCatalog = movementPool(input: input)
 
@@ -34,8 +35,18 @@ extension DeterministicProgramGenerator {
             eligiblePool = compatibleCatalog
         }
 
-        let compounds = rotationFiltered(eligiblePool.filter(isPrimaryMovement), input: input)
-        let accessories = rotationFiltered(eligiblePool.filter { !isPrimaryMovement($0) }, input: input)
+        if template != .skill {
+            eligiblePool = eligiblePool.filter { $0.movementSlot != .skill }
+        }
+
+        let compounds = rotateDefinitions(
+            rotationFiltered(eligiblePool.filter(isPrimaryMovement), input: input),
+            by: sessionIndex
+        )
+        let accessories = rotateDefinitions(
+            rotationFiltered(eligiblePool.filter { !isPrimaryMovement($0) }, input: input),
+            by: sessionIndex
+        )
 
         // Compounds: prefer the biased pick first, then the next available
         // different entry. If compounds is empty (very possible in a pure
@@ -66,8 +77,18 @@ extension DeterministicProgramGenerator {
             targetGroupsFor: { $0.muscleGroups }
         )
 
+        let variedSlotPicks = fullBodySlotPicks(
+            for: template,
+            from: eligiblePool,
+            input: input,
+            bias: bias,
+            sessionIndex: sessionIndex
+        )
+
         let pickedForTemplate: [MovementDefinition]
-        if template == .skill {
+        if !variedSlotPicks.isEmpty {
+            pickedForTemplate = variedSlotPicks
+        } else if template == .skill {
             let skillPicks = Array(
                 rotationFiltered(
                     eligiblePool.filter { $0.movementSlot == .skill },
@@ -93,7 +114,7 @@ extension DeterministicProgramGenerator {
 
         let warmup = warmupExercises(for: template, input: input)
         let cooldown = cooldownExercises(for: template, blockType: blockType)
-        let mainExercises = uniqueDefinitions(picked).map {
+        let mainExercises = uniqueWorkoutDefinitions(picked).map {
             toExercise(definition: $0, input: input, blockType: blockType)
         }
         let compressed = compressedMainExercises(
@@ -151,7 +172,7 @@ extension DeterministicProgramGenerator {
         }
 
         let warmup = calibrationWarmup(input: input, planName: plan.name)
-        let exercises = uniqueDefinitions(picked).map { definition in
+        let exercises = uniqueWorkoutDefinitions(picked).map { definition in
             toCalibrationExercise(definition: definition, input: input)
         }
         let compressed = compressedMainExercises(
@@ -264,10 +285,10 @@ extension DeterministicProgramGenerator {
         input: ProgramGeneratorInput,
         bias: [MuscleGroup: Int]
     ) -> MovementDefinition? {
-        let usedKeys = Set(alreadyPicked.map { $0.canonicalExerciseName ?? $0.id })
+        let usedKeys = Set(alreadyPicked.map { workoutEquivalenceKey(for: $0) })
         let candidates = catalog
             .filter { $0.movementSlot == slot }
-            .filter { !usedKeys.contains($0.canonicalExerciseName ?? $0.id) }
+            .filter { !usedKeys.contains(workoutEquivalenceKey(for: $0)) }
 
         let rotationAwareCandidates = rotationFiltered(candidates, input: input)
         guard !rotationAwareCandidates.isEmpty else { return nil }
@@ -281,6 +302,93 @@ extension DeterministicProgramGenerator {
         }
 
         return rotationAwareCandidates.first
+    }
+
+    static func fullBodySlotPicks(
+        for template: DayTemplate,
+        from eligiblePool: [MovementDefinition],
+        input: ProgramGeneratorInput,
+        bias: [MuscleGroup: Int],
+        sessionIndex: Int
+    ) -> [MovementDefinition] {
+        guard let slots = fullBodySlotPlan(
+            for: template,
+            input: input,
+            sessionIndex: sessionIndex
+        ) else {
+            return []
+        }
+
+        var picked: [MovementDefinition] = []
+        for (slotOffset, slot) in slots.enumerated() {
+            guard let definition = slotPick(
+                slot: slot,
+                from: eligiblePool,
+                alreadyPicked: picked,
+                input: input,
+                bias: bias,
+                rotationOffset: sessionIndex + slotOffset
+            ) else {
+                continue
+            }
+            picked.append(definition)
+        }
+        return picked
+    }
+
+    static func fullBodySlotPlan(
+        for template: DayTemplate,
+        input: ProgramGeneratorInput,
+        sessionIndex: Int
+    ) -> [MovementSlot]? {
+        guard template == .fullBody else { return nil }
+
+        let floorOnly = Equipment.isFloorOnlySelection(Set(input.equipment))
+        let plans: [[MovementSlot]]
+        if floorOnly {
+            plans = [
+                [.horizontalPush, .squat, .core],
+                [.squat, .hinge, .core],
+                [.horizontalPush, .hinge, .core]
+            ]
+        } else if input.trainingStyle == .bodyweight {
+            plans = [
+                [.horizontalPush, .verticalPull, .squat, .core],
+                [.verticalPush, .horizontalPull, .hinge, .core],
+                [.horizontalPush, .squat, .verticalPull, .core]
+            ]
+        } else {
+            plans = [
+                [.horizontalPush, .horizontalPull, .squat, .core],
+                [.verticalPush, .verticalPull, .hinge, .core],
+                [.horizontalPush, .hinge, .calves, .core]
+            ]
+        }
+
+        return plans[sessionIndex % plans.count]
+    }
+
+    static func slotPick(
+        slot: MovementSlot,
+        from catalog: [MovementDefinition],
+        alreadyPicked: [MovementDefinition],
+        input: ProgramGeneratorInput,
+        bias: [MuscleGroup: Int],
+        rotationOffset: Int
+    ) -> MovementDefinition? {
+        let usedKeys = Set(alreadyPicked.map { workoutEquivalenceKey(for: $0) })
+        let candidates = catalog
+            .filter { $0.movementSlot == slot }
+            .filter { !usedKeys.contains(workoutEquivalenceKey(for: $0)) }
+        let rotationAware = rotateDefinitions(rotationFiltered(candidates, input: input), by: rotationOffset)
+        guard !rotationAware.isEmpty else { return nil }
+
+        let biasedCandidates = rotationAware.filter { containsBiasedGroup($0, bias: bias) }
+        if let biased = biasedCandidates.first {
+            return biased
+        }
+
+        return rotationAware.first
     }
 
     static func toCalibrationExercise(

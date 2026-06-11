@@ -176,4 +176,35 @@ extension WorkoutRewardSequenceView {
         .frame(maxWidth: .infinity)
     }
 
+    func arcYieldToken(amount: Int) -> some View {
+        VStack(spacing: 5) {
+            HStack(alignment: .center, spacing: 4) {
+                Text("+\(ArcCurrencyAmount.compactText(for: max(0, amount)))")
+                    .font(.system(size: 24, weight: .black, design: .monospaced))
+                    .foregroundStyle(Color.unbound.rankGold)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.58)
+                    .allowsTightening(true)
+
+                Image("shop_currency_arc")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 20, height: 20)
+                    .shadow(color: Color.unbound.rankGold.opacity(0.28), radius: 5)
+                    .accessibilityHidden(true)
+            }
+
+            Text("ARCS")
+                .font(Font.unbound.captionS.weight(.heavy))
+                .tracking(1.2)
+                .foregroundStyle(Color.unbound.textTertiary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.64)
+                .allowsTightening(true)
+        }
+        .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(amount.formatted()) Arcs earned")
+    }
+
 }

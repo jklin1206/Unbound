@@ -3,7 +3,8 @@ import PhotosUI
 
 struct ProfileHeroAvatar: View {
     let cosmeticTier: RankTitle
-    let profileColorTier: RankTitle
+    let glowTier: RankTitle
+    let profileTint: Color
     let skillTier: SkillTier
     let level: Int
     let tint: Color
@@ -13,7 +14,6 @@ struct ProfileHeroAvatar: View {
     let size: CGFloat
 
     var body: some View {
-        let profileTint = profileColorTier.rewardTint
         let glowSize = size * 1.08
         let badgeSize = size * 0.33
 
@@ -43,10 +43,12 @@ struct ProfileHeroAvatar: View {
                 .font(.system(size: max(8, size * 0.057), weight: .black, design: .monospaced))
                 .tracking(1.0)
                 .foregroundStyle(Color.unbound.textPrimary)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 5)
-                .background(Capsule().fill(Color.unbound.bg.opacity(0.94)))
-                .overlay(Capsule().strokeBorder(tint.opacity(0.62), lineWidth: 1))
+                .padding(.top, 5)
+                .overlay(alignment: .top) {
+                    Rectangle()
+                        .fill(tint.opacity(0.72))
+                        .frame(height: 1)
+                }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
                 .offset(y: 8)
         }
@@ -54,7 +56,7 @@ struct ProfileHeroAvatar: View {
     }
 
     private var frameGlowOpacity: Double {
-        switch profileColorTier.ordinal {
+        switch glowTier.ordinal {
         case 1...4: return 0
         case 5...6: return 0.24
         case 7: return 0.34
@@ -63,7 +65,7 @@ struct ProfileHeroAvatar: View {
     }
 
     private var frameGlowRadius: CGFloat {
-        switch profileColorTier.ordinal {
+        switch glowTier.ordinal {
         case 1...4: return 0
         case 5...6: return 6
         case 7: return 10
@@ -72,12 +74,12 @@ struct ProfileHeroAvatar: View {
     }
 }
 
-struct ProgressJourneyCard: View {
+struct ProgressJourneySection: View {
     let dayZero: ProgressPhoto
     let now: ProgressPhoto
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .firstTextBaseline) {
                 VStack(alignment: .leading, spacing: 3) {
                     Text("BODY TIMELINE")
@@ -100,26 +102,13 @@ struct ProgressJourneyCard: View {
                 timelineImage(photo: now, label: "NOW", tint: Color.unbound.impact)
             }
         }
-        .padding(14)
-        .background(
-            ZStack {
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(Color.unbound.surface)
-                LinearGradient(
-                    colors: [
-                        Color.unbound.impact.opacity(0.18),
-                        Color.unbound.accent.opacity(0.08),
-                        .clear
-                    ],
-                    startPoint: .topTrailing,
-                    endPoint: .bottomLeading
-                )
-            }
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .strokeBorder(Color.unbound.impact.opacity(0.34), lineWidth: 1)
-        )
+        .padding(.vertical, 18)
+        .overlay(alignment: .top) {
+            UnboundNativeDivider(opacity: 0.50)
+        }
+        .overlay(alignment: .bottom) {
+            UnboundNativeDivider(opacity: 0.34)
+        }
     }
 
     private func timelineImage(photo: ProgressPhoto, label: String, tint: Color) -> some View {
@@ -196,16 +185,12 @@ struct RankTitlePlate: View {
                 .font(.system(size: 12, weight: .bold))
                 .foregroundStyle(tier.rewardTextTint)
         }
-        .padding(.horizontal, 9)
         .padding(.vertical, 10)
-        .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color.unbound.bg.opacity(0.74))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .strokeBorder(tint.opacity(0.34), lineWidth: 1)
-        )
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(tint.opacity(0.42))
+                .frame(height: 0.5)
+        }
         .accessibilityIdentifier("profile.rankInfoPlate")
     }
 }
@@ -213,7 +198,6 @@ struct RankTitlePlate: View {
 struct LevelProgressPlate: View {
     let currentXP: Int
     let xpPerLevel: Int
-    let totalXP: Int
     let lastXPGain: Int
     let progress: Double
     let tint: Color
@@ -255,32 +239,21 @@ struct LevelProgressPlate: View {
             }
             .frame(height: 6)
 
-            Text(trailingText)
-                .font(.system(size: 10, weight: .bold, design: .monospaced))
-                .foregroundStyle(lastXPGain > 0 ? tint : Color.unbound.textSecondary.opacity(0.9))
-                .monospacedDigit()
-                .lineLimit(1)
-                .minimumScaleFactor(0.64)
-                .allowsTightening(true)
-                .frame(maxWidth: .infinity, alignment: .trailing)
+            if lastXPGain > 0 {
+                Text("+\(compactNumber(lastXPGain)) \(detail) LAST")
+                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                    .foregroundStyle(tint)
+                    .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.64)
+                    .allowsTightening(true)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+            }
         }
-        .padding(.horizontal, 12)
         .padding(.vertical, 10)
-        .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color.unbound.bg.opacity(0.74))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
-        )
-    }
-
-    private var trailingText: String {
-        if lastXPGain > 0 {
-            return "+\(compactNumber(lastXPGain)) \(detail) LAST"
+        .overlay(alignment: .bottom) {
+            UnboundNativeDivider(opacity: 0.48)
         }
-        return "\(compactNumber(totalXP)) TOTAL \(detail)"
     }
 
     private func compactNumber(_ value: Int) -> String {
@@ -295,78 +268,6 @@ struct LevelProgressPlate: View {
             return String(format: "%.1fK", Double(clamped) / 1_000)
         }
         return "\(clamped)"
-    }
-}
-
-struct TrophyMetricTile: View {
-    let label: String
-    let value: String
-    var detail: String? = nil
-    let tint: Color
-    let systemImage: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 7) {
-            HStack(spacing: 5) {
-                Image(systemName: systemImage)
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(accent)
-                    .frame(width: 12, alignment: .leading)
-                Text(label)
-                    .font(.system(size: 8, weight: .black, design: .monospaced))
-                    .tracking(0.8)
-                    .foregroundStyle(Color.unbound.textSecondary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.62)
-                    .allowsTightening(true)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-
-            Text(value)
-                .font(.system(size: 18, weight: .black, design: .monospaced))
-                .foregroundStyle(Color.unbound.textPrimary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.46)
-                .allowsTightening(true)
-                .monospacedDigit()
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .layoutPriority(1)
-
-            if let detail {
-                Text(detail)
-                    .font(.system(size: 7, weight: .bold, design: .monospaced))
-                    .tracking(0.8)
-                    .foregroundStyle(Color.unbound.textSecondary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.56)
-                    .allowsTightening(true)
-            }
-        }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(label), \(value)")
-        .frame(maxWidth: .infinity, minHeight: 66, alignment: .topLeading)
-        .padding(.horizontal, 9)
-        .padding(.vertical, 9)
-        .background(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(backgroundFill)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .strokeBorder(borderColor, lineWidth: 1)
-        )
-    }
-
-    private var accent: Color {
-        return tint
-    }
-
-    private var backgroundFill: Color {
-        Color.unbound.bg.opacity(0.66)
-    }
-
-    private var borderColor: Color {
-        accent.opacity(0.24)
     }
 }
 
@@ -420,16 +321,10 @@ struct TrophyShowcaseRow: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(label), \(value)")
         .frame(maxWidth: .infinity, minHeight: 64, alignment: .leading)
-        .padding(.horizontal, 11)
         .padding(.vertical, 8)
-        .background(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(Color.unbound.bg.opacity(0.66))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .strokeBorder(badgeTier.rewardTint.opacity(0.24), lineWidth: 1)
-        )
+        .overlay(alignment: .bottom) {
+            UnboundNativeDivider(opacity: 0.38)
+        }
     }
 }
 

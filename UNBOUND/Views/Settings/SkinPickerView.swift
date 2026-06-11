@@ -70,6 +70,7 @@ struct SkinPickerView: View {
             HStack(alignment: .center, spacing: 16) {
                 swatch(for: skin)
                     .frame(width: 68, height: 68)
+                    .fixedSize()
                     .saturation(unlocked ? 1.0 : 0.15)
                     .overlay(
                         lockOverlay(visible: !unlocked)
@@ -81,6 +82,10 @@ struct SkinPickerView: View {
                             .font(Font.unbound.titleS)
                             .tracking(1.4)
                             .foregroundStyle(unlocked ? Color.unbound.textPrimary : Color.unbound.textSecondary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.72)
+                            .truncationMode(.tail)
+                            .layoutPriority(1)
                         if selected {
                             Text("ACTIVE")
                                 .font(Font.unbound.monoS)
@@ -89,15 +94,17 @@ struct SkinPickerView: View {
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 3)
                                 .background(Capsule().stroke(skin.primaryColor, lineWidth: 1))
+                                .fixedSize()
                         }
                     }
                     Text(unlocked ? skin.description : skin.unlockHintCopy)
                         .font(Font.unbound.bodyS)
                         .foregroundStyle(unlocked ? Color.unbound.textSecondary : Color.unbound.textTertiary)
-                        .lineLimit(2)
+                        .lineLimit(3)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                Spacer()
+                .layoutPriority(1)
+                Spacer(minLength: 0)
             }
             .padding(14)
             .frame(maxWidth: .infinity, alignment: .leading)

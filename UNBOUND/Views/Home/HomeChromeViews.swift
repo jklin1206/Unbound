@@ -9,13 +9,13 @@ struct HomeBackgroundContrastScrim: View {
         let longestSide = max(size.width, size.height)
 
         ZStack {
-            Color.unbound.bg.opacity(0.06)
+            Color.unbound.bg.opacity(0.18)
 
             LinearGradient(
                 colors: [
-                    Color.unbound.bg.opacity(0.22),
-                    Color.unbound.bg.opacity(0.10),
-                    Color.unbound.bg.opacity(0.46)
+                    Color.unbound.bg.opacity(0.46),
+                    Color.unbound.bg.opacity(0.24),
+                    Color.unbound.bg.opacity(0.72)
                 ],
                 startPoint: .top,
                 endPoint: .bottom
@@ -23,9 +23,9 @@ struct HomeBackgroundContrastScrim: View {
 
             LinearGradient(
                 colors: [
-                    Color.unbound.bg.opacity(0.22),
-                    Color.unbound.bg.opacity(0.08),
-                    Color.unbound.bg.opacity(0.02)
+                    Color.unbound.bg.opacity(0.42),
+                    Color.unbound.bg.opacity(0.18),
+                    Color.unbound.bg.opacity(0.06)
                 ],
                 startPoint: .leading,
                 endPoint: .trailing
@@ -34,7 +34,7 @@ struct HomeBackgroundContrastScrim: View {
             RadialGradient(
                 colors: [
                     Color.unbound.bg.opacity(0.00),
-                    Color.unbound.bg.opacity(0.32)
+                    Color.unbound.bg.opacity(0.46)
                 ],
                 center: UnitPoint(x: 0.54, y: 0.16),
                 startRadius: longestSide * 0.16,
@@ -44,88 +44,97 @@ struct HomeBackgroundContrastScrim: View {
     }
 }
 
-struct HomeLegibilityPlane: ViewModifier {
-    let cornerRadius: CGFloat
-    let horizontalPadding: CGFloat
-    let verticalPadding: CGFloat
-
-    func body(content: Content) -> some View {
-        content
-            .padding(.horizontal, horizontalPadding)
-            .padding(.vertical, verticalPadding)
-            .background(
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .fill(Color.unbound.bg.opacity(0.78))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                            .fill(Color.unbound.surface.opacity(0.12))
-                    )
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .strokeBorder(Color.white.opacity(0.08), lineWidth: 1)
-            )
-            .shadow(color: Color.black.opacity(0.24), radius: 18, x: 0, y: 10)
-    }
-}
-
-extension View {
-    func homeLegibilityPlane(
-        cornerRadius: CGFloat,
-        horizontalPadding: CGFloat,
-        verticalPadding: CGFloat
-    ) -> some View {
-        modifier(
-            HomeLegibilityPlane(
-                cornerRadius: cornerRadius,
-                horizontalPadding: horizontalPadding,
-                verticalPadding: verticalPadding
-            )
-        )
-    }
+enum HomeCommandArtworkKind {
+    case rankTrial
+    case vow
+    case shop
+    case backdrops
+    case rankLibrary
+    case weight
 }
 
 struct HomeIconCommand: View {
-    let systemName: String
+    let artwork: HomeCommandArtworkKind
+    let title: String
     let value: String
-    let label: String
     let tint: Color
     let accessibilityLabel: String
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 6) {
-                Image(systemName: systemName)
-                    .font(.system(size: 22, weight: .black))
-                    .foregroundStyle(tint)
-                    .frame(height: 25)
-                    .shadow(color: tint.opacity(0.26), radius: 6)
+            VStack(spacing: 5) {
+                HomeCommandMiniGlyph(kind: artwork, tint: tint)
+                    .frame(width: 30, height: 30)
+                    .shadow(color: tint.opacity(0.22), radius: 6)
 
                 Text(value.uppercased())
-                    .font(.system(size: 12, weight: .black, design: .rounded))
+                    .font(.system(size: 11.5, weight: .black, design: .rounded))
                     .foregroundStyle(Color.unbound.textPrimary)
                     .monospacedDigit()
                     .lineLimit(1)
-                    .minimumScaleFactor(0.58)
+                    .minimumScaleFactor(0.62)
                     .allowsTightening(true)
                     .fixedSize(horizontal: true, vertical: false)
 
-                Text(label.uppercased())
-                    .font(.system(size: 8, weight: .black, design: .monospaced))
-                    .tracking(0.9)
+                Text(title.uppercased())
+                    .font(.system(size: 8.7, weight: .black, design: .monospaced))
+                    .tracking(0.65)
                     .foregroundStyle(Color.unbound.textTertiary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.55)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.center)
+                    .minimumScaleFactor(0.64)
                     .allowsTightening(true)
+                    .frame(height: 22, alignment: .top)
                     .frame(maxWidth: .infinity)
             }
             .padding(.vertical, 4)
-            .frame(minWidth: 64, maxWidth: .infinity)
-            .frame(minHeight: 70)
+            .frame(maxWidth: .infinity)
+            .frame(height: 79)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel(accessibilityLabel)
+    }
+}
+
+private struct HomeCommandMiniGlyph: View {
+    let kind: HomeCommandArtworkKind
+    let tint: Color
+
+    var body: some View {
+        ZStack {
+            Image(systemName: systemName)
+                .font(.system(size: fontSize, weight: .black))
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(tint)
+
+            if kind == .rankLibrary {
+                RoundedRectangle(cornerRadius: 1.5, style: .continuous)
+                    .fill(Color.unbound.textPrimary.opacity(0.70))
+                    .frame(width: 16, height: 3)
+                    .offset(y: 9)
+            }
+        }
+    }
+
+    private var systemName: String {
+        switch kind {
+        case .rankTrial: return "flag.checkered"
+        case .vow: return "link"
+        case .shop: return "bag.fill"
+        case .backdrops: return "photo.on.rectangle.angled"
+        case .rankLibrary: return "list.bullet.rectangle.portrait.fill"
+        case .weight: return "scalemass.fill"
+        }
+    }
+
+    private var fontSize: CGFloat {
+        switch kind {
+        case .vow: return 24
+        case .backdrops: return 20
+        case .rankLibrary: return 22
+        default: return 21
+        }
     }
 }

@@ -9,12 +9,13 @@ struct ProfileBuildCard: View {
     private let columns = [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)]
 
     var body: some View {
-        VStack(spacing: 12) {
-            Text("BUILD HEX")
-                .font(.system(size: 9, weight: .bold, design: .monospaced))
-                .tracking(2.0)
-                .foregroundStyle(Color.unbound.textTertiary)
-                .frame(maxWidth: .infinity, alignment: .center)
+        VStack(alignment: .leading, spacing: 16) {
+            UnboundSectionHeader(
+                eyebrow: "Build",
+                title: profile.buildName,
+                detail: "Hex profile",
+                tint: primaryTint
+            )
 
             VStack(spacing: 8) {
                 AttributeHex(
@@ -26,19 +27,9 @@ struct ProfileBuildCard: View {
                     radius: 90
                 )
                 .padding(.horizontal, 40)
-                .padding(.vertical, 46)
-
-                Text(profile.buildName.uppercased())
-                    .font(.system(size: 13, weight: .semibold, design: .monospaced))
-                    .tracking(1.2)
-                    .foregroundStyle(Color.unbound.textPrimary)
-                    .lineLimit(1)
-
-                Text("TAP A STAT FOR DETAILS")
-                    .font(.system(size: 8, weight: .bold, design: .monospaced))
-                    .tracking(1.5)
-                    .foregroundStyle(Color.unbound.textTertiary)
+                .padding(.vertical, 36)
             }
+            .frame(maxWidth: .infinity)
 
             LazyVGrid(columns: columns, spacing: 8) {
                 ForEach(AttributeKey.allCases, id: \.self) { key in
@@ -52,15 +43,13 @@ struct ProfileBuildCard: View {
                 }
             }
         }
-        .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(Color.unbound.surface)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .strokeBorder(primaryTint.opacity(0.36), lineWidth: 1)
-        )
+        .padding(.vertical, 18)
+        .overlay(alignment: .top) {
+            UnboundNativeDivider(opacity: 0.52)
+        }
+        .overlay(alignment: .bottom) {
+            UnboundNativeDivider(opacity: 0.42)
+        }
         .sheet(isPresented: Binding(
             get: { selectedKey != nil },
             set: { if !$0 { selectedKey = nil } }

@@ -197,6 +197,10 @@ final class DeterministicProgramGeneratorTests: XCTestCase {
             equipment: [.fullGym],
             progressionStates: [MovementCatalog.normalized(state.exerciseKey): state]
         )
+
+        UserDefaults.standard.set(TrainingWeightUnit.kilograms.rawValue, forKey: WeightPlatePolicy.unitDefaultsKey)
+        defer { UserDefaults.standard.removeObject(forKey: WeightPlatePolicy.unitDefaultsKey) }
+
         let program = try DeterministicProgramGenerator.generate(input: progressedInput)
         let workout = try XCTUnwrap(program.days.compactMap(\.workout).first {
             $0.mainExercises.contains { $0.name == baselineExercise.name }
@@ -218,9 +222,6 @@ final class DeterministicProgramGeneratorTests: XCTestCase {
         let prescription = try XCTUnwrap(draft.blocks.flatMap(\.prescriptions).first {
             $0.exerciseName == baselineExercise.name
         })
-
-        UserDefaults.standard.set(TrainingWeightUnit.kilograms.rawValue, forKey: WeightPlatePolicy.unitDefaultsKey)
-        defer { UserDefaults.standard.removeObject(forKey: WeightPlatePolicy.unitDefaultsKey) }
 
         XCTAssertEqual(prescription.suggestedWeightKg, 60)
         XCTAssertTrue(prescription.displayTargetText.contains("@ 60 kg"))
@@ -335,6 +336,81 @@ final class DeterministicProgramGeneratorTests: XCTestCase {
                 )
             }
         }
+    }
+
+    func testFloorOnlyBeginnerProgramDoesNotDuplicateSkillAndExerciseAliases() throws {
+        var input = makeInput(
+            frequency: .three,
+            trainingDays: [.monday, .wednesday, .friday],
+            trainingStyle: .bodyweight,
+            equipment: [.bodyweight],
+            experience: .never
+        )
+        input.sessionLengthMinutes = 30
+        input.focusAreas = [
+            FocusArea(muscleGroup: .chest, priority: 1, rationale: "test", suggestedFocus: "upper body"),
+            FocusArea(muscleGroup: .core, priority: 2, rationale: "test", suggestedFocus: "control")
+        ]
+
+        let program = try DeterministicProgramGenerator.generate(input: input)
+        let workouts = program.days.compactMap(\.workout)
+
+        XCTAssertFalse(workouts.isEmpty)
+        for workout in workouts {
+            let names = workout.mainExercises.map(\.name)
+            let rankKeys = names.map { MovementResolver.resolve($0).rankStandardMovementId }
+
+            XCTAssertEqual(
+                rankKeys.count,
+                Set(rankKeys).count,
+                "\(workout.name) should not contain semantic duplicates: \(names)"
+            )
+            XCTAssertFalse(
+                names.contains("Push-Up"),
+                "Regular program days should use the canonical loggable exercise name, not the skill-target alias: \(names)"
+            )
+        }
+
+        let pushSkill = try XCTUnwrap(MovementCatalog.definition(for: "skill.cal.pushup"))
+        let pushExercise = try XCTUnwrap(MovementCatalog.definition(for: "exercise.pushup"))
+        XCTAssertEqual(
+            DeterministicProgramGenerator.workoutEquivalenceKey(for: pushSkill),
+            DeterministicProgramGenerator.workoutEquivalenceKey(for: pushExercise)
+        )
+    }
+
+    func testFloorOnlyBeginnerFullBodySessionsRotateMovementSlots() throws {
+        var input = makeInput(
+            frequency: .three,
+            trainingDays: [.monday, .wednesday, .friday],
+            trainingStyle: .bodyweight,
+            equipment: [.bodyweight],
+            experience: .never
+        )
+        input.sessionLengthMinutes = 30
+        input.focusAreas = [
+            FocusArea(muscleGroup: .chest, priority: 1, rationale: "test", suggestedFocus: "upper body"),
+            FocusArea(muscleGroup: .core, priority: 2, rationale: "test", suggestedFocus: "control")
+        ]
+
+        let program = try DeterministicProgramGenerator.generate(input: input)
+        let firstWeekSequences = Array(
+            program.days
+                .compactMap(\.workout)
+                .prefix(3)
+                .map { $0.mainExercises.map(\.name).joined(separator: " | ") }
+        )
+
+        XCTAssertEqual(firstWeekSequences.count, 3)
+        XCTAssertGreaterThan(
+            Set(firstWeekSequences).count,
+            1,
+            "Floor-only full-body sessions should rotate instead of repeating one sequence: \(firstWeekSequences)"
+        )
+        XCTAssertTrue(
+            firstWeekSequences.contains { $0.localizedCaseInsensitiveContains("Glute Bridge") },
+            "The first week should include a hinge pattern when floor-only equipment is available: \(firstWeekSequences)"
+        )
     }
 
     func testGeneratedExercisesRespectStructuredEquipmentCompatibility() throws {
@@ -502,6 +578,10 @@ final class DeterministicProgramGeneratorTests: XCTestCase {
         progressedInput.progressionStates = [
             MovementCatalog.normalized(definition.canonicalExerciseName ?? definition.displayName): state
         ]
+
+        UserDefaults.standard.set(TrainingWeightUnit.kilograms.rawValue, forKey: WeightPlatePolicy.unitDefaultsKey)
+        defer { UserDefaults.standard.removeObject(forKey: WeightPlatePolicy.unitDefaultsKey) }
+
         let program = try DeterministicProgramGenerator.generate(input: progressedInput)
         let adjusted = try XCTUnwrap(
             program.days

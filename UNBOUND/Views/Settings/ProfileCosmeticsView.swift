@@ -7,24 +7,13 @@ struct ProfileCosmeticsView: View {
     @State private var currentTier: SkillTier = .initiate
     @State private var unlockedFrameTiers: [SkillTier] = [.initiate]
     @State private var unlockedBackgroundTiers: [SkillTier] = [.initiate]
-    @State private var unlockedProfileColorTiers: [SkillTier] = [.initiate]
     @State private var equippedFrameTier: RankTitle = .initiate
     @State private var equippedBackgroundTier: RankTitle = .initiate
-    @State private var equippedProfileColorTier: RankTitle = .initiate
     @State private var equippedShopProfileBorder: ShopProfileBorderID?
     @State private var equippedProfileBackdrop: ShopItem?
+    @State private var selectedSurface: ProfileCosmeticSurface = .borders
 
     private let openShop: ((ShopCategory) -> Void)?
-
-    private let columns = [
-        GridItem(.flexible(), spacing: 10),
-        GridItem(.flexible(), spacing: 10),
-        GridItem(.flexible(), spacing: 10)
-    ]
-    private let shopColumns = [
-        GridItem(.flexible(), spacing: 10),
-        GridItem(.flexible(), spacing: 10)
-    ]
 
     init(openShop: ((ShopCategory) -> Void)? = nil) {
         self.openShop = openShop
@@ -32,13 +21,10 @@ struct ProfileCosmeticsView: View {
 
     var body: some View {
         ScrollView(showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: 16) {
                 header
-                cosmeticGrid(title: "Avatar Frame", selected: equippedFrameTier, mode: .frame)
-                cosmeticGrid(title: "Rank Backdrop", selected: equippedBackgroundTier, mode: .background)
-                cosmeticGrid(title: "Profile Color", selected: equippedProfileColorTier, mode: .color)
-                shopCosmeticGrid(title: "Shop Borders", items: shopBorderItems)
-                shopCosmeticGrid(title: "Shop Backdrops", items: shopBackdropItems)
+                surfaceSwitch
+                cosmeticTable
             }
             .padding(20)
         }
@@ -52,82 +38,82 @@ struct ProfileCosmeticsView: View {
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("CUSTOMIZE")
-                .font(Font.unbound.captionS.weight(.black))
-                .tracking(2.0)
-                .foregroundStyle(currentTier.rewardTextTint)
-            Text("Profile Cosmetics")
-                .font(Font.unbound.titleM)
-                .foregroundStyle(Color.unbound.textPrimary)
-            Text("Rank rewards stay unlocked once earned. Shop borders and profile backdrops can override them.")
-                .font(Font.unbound.captionS)
-                .foregroundStyle(Color.unbound.textSecondary)
-            Text("\(unlockedCosmeticCount)/\(SkillTier.allCases.count * 3) unlocked")
-                .font(.system(size: 11, weight: .black, design: .monospaced))
-                .tracking(1.1)
-                .foregroundStyle(currentTier.rewardTextTint)
+        HStack(alignment: .center, spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: [activeTint, Color.unbound.rankGold, Color.unbound.impact],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                Image(systemName: "person.crop.rectangle.stack.fill")
+                    .font(.system(size: 17, weight: .black))
+                    .foregroundStyle(Color.black.opacity(0.76))
+            }
+            .frame(width: 46, height: 46)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("PROFILE KIT")
+                    .font(.system(size: 10, weight: .black, design: .monospaced))
+                    .tracking(1.4)
+                    .foregroundStyle(Color.unbound.textTertiary)
+                Text(activeCosmeticSummary)
+                    .font(Font.unbound.titleS)
+                    .foregroundStyle(Color.unbound.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+            }
+            .layoutPriority(1)
+
+            Spacer(minLength: 0)
+
+            Text("\(rankUnlockedCount)/\(rankRewardCount)")
+                .font(.system(size: 13, weight: .black, design: .rounded))
+                .monospacedDigit()
+                .foregroundStyle(activeTint)
                 .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(Capsule().fill(currentTier.rewardTint.opacity(0.16)))
-                .overlay(Capsule().strokeBorder(currentTier.rewardTint.opacity(0.34), lineWidth: 1))
-                .padding(.top, 2)
+                .frame(height: 30)
+                .background(Capsule().fill(activeTint.opacity(0.14)))
         }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(Color.unbound.surface.opacity(0.92))
+        )
     }
 
-    private func cosmeticGrid(title: String, selected: RankTitle, mode: CosmeticMode) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            let unlockedTiers = unlockedTiers(for: mode)
-
-            Text(title.uppercased())
-                .font(.system(size: 10, weight: .black, design: .monospaced))
-                .tracking(1.5)
-                .foregroundStyle(Color.unbound.textSecondary)
-
-            LazyVGrid(columns: columns, spacing: 10) {
-                ForEach(SkillTier.allCases, id: \.self) { tier in
-                    let unlocked = unlockedTiers.contains(tier)
-                    CosmeticOptionTile(
-                        tier: tier,
-                        mode: mode,
-                        isUnlocked: unlocked,
-                        isSelected: isRankCosmeticSelected(tier, selected: selected, mode: mode)
-                    ) {
-                        guard unlocked else { return }
-                        switch mode {
-                        case .frame:
-                            equipFrame(tier)
-                        case .background:
-                            equipBackground(tier)
-                        case .color:
-                            equipProfileColor(tier)
-                        }
-                    }
-                }
+    private var cosmeticTable: some View {
+        VStack(spacing: 0) {
+            ProfileCosmeticTableHeader(surface: selectedSurface)
+            ForEach(profileRows) { row in
+                ProfileCosmeticTableRow(
+                    row: row,
+                    state: optionState(for: row),
+                    action: { primaryAction(for: row) }
+                )
             }
         }
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(Color.unbound.surface.opacity(0.86))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
+        )
     }
 
-    private func shopCosmeticGrid(title: String, items: [ShopItem]) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(title.uppercased())
-                .font(.system(size: 10, weight: .black, design: .monospaced))
-                .tracking(1.5)
-                .foregroundStyle(Color.unbound.textSecondary)
-
-            LazyVGrid(columns: shopColumns, spacing: 10) {
-                ForEach(items) { item in
-                    ProfileShopCosmeticTile(
-                        item: item,
-                        isOwned: inventory.isPurchased(item),
-                        isSelected: isShopCosmeticSelected(item),
-                        actionTitle: shopActionTitle(for: item)
-                    ) {
-                        primaryShopAction(for: item)
-                    }
-                }
+    private var surfaceSwitch: some View {
+        Picker("Profile cosmetic type", selection: $selectedSurface) {
+            ForEach(ProfileCosmeticSurface.allCases) { surface in
+                Label(surface.title, systemImage: surface.systemImage)
+                    .tag(surface)
             }
         }
+        .pickerStyle(.segmented)
     }
 
     @MainActor
@@ -138,10 +124,8 @@ struct ProfileCosmeticsView: View {
         currentTier = RankCosmetics.equipped(highestRank: confirmedRank)
         unlockedFrameTiers = RankCosmetics.unlockedFrameTiers(userId: userId, currentTier: currentTier)
         unlockedBackgroundTiers = RankCosmetics.unlockedBackgroundTiers(userId: userId, currentTier: currentTier)
-        unlockedProfileColorTiers = RankCosmetics.unlockedProfileColorTiers(userId: userId, currentTier: currentTier)
         equippedFrameTier = RankCosmetics.equippedFrameTier(userId: userId, currentTier: currentTier)
         equippedBackgroundTier = RankCosmetics.equippedBackgroundTier(userId: userId, currentTier: currentTier)
-        equippedProfileColorTier = RankCosmetics.equippedProfileColorTier(userId: userId, currentTier: currentTier)
         refreshShopCosmetics(userId: userId)
     }
 
@@ -166,31 +150,35 @@ struct ProfileCosmeticsView: View {
     }
 
     @MainActor
-    private func equipProfileColor(_ tier: SkillTier) {
-        let userId = services.auth.currentUserId ?? "anonymous"
-        RankCosmetics.setEquippedProfileColorTier(tier, userId: userId, currentTier: currentTier)
-        equippedProfileColorTier = RankCosmetics.equippedProfileColorTier(userId: userId, currentTier: currentTier)
-        UnboundHaptics.soft()
-    }
+    private func primaryAction(for row: ProfileCosmeticRow) {
+        guard !isActionDisabled(row) else { return }
 
-    @MainActor
-    private func primaryShopAction(for item: ShopItem) {
-        guard inventory.isPurchased(item) else {
-            openShop?(item.category)
-            return
-        }
-
-        switch item.reward {
-        case .profileBorder(let border):
-            inventory.setEquippedProfileBorder(border)
-        case .profileBackground:
+        switch row {
+        case .rankFrame(let tier):
+            guard unlockedFrameTiers.contains(tier) else { return }
+            equipFrame(tier)
+        case .rankBanner(let tier):
+            guard unlockedBackgroundTiers.contains(tier) else { return }
+            equipBackground(tier)
+        case .shopBorder(let item):
+            guard inventory.isPurchased(item) else {
+                openShop?(item.category)
+                return
+            }
+            if case .profileBorder(let border) = item.reward {
+                inventory.setEquippedProfileBorder(border)
+            }
+            refreshShopCosmetics()
+            UnboundHaptics.soft()
+        case .shopBanner(let item):
+            guard inventory.isPurchased(item) else {
+                openShop?(item.category)
+                return
+            }
             inventory.setEquippedBackdrop(item, for: .profile)
-        default:
-            return
+            refreshShopCosmetics()
+            UnboundHaptics.soft()
         }
-
-        refreshShopCosmetics()
-        UnboundHaptics.soft()
     }
 
     @MainActor
@@ -201,311 +189,423 @@ struct ProfileCosmeticsView: View {
         equippedProfileBackdrop = ShopInventoryStore.equippedBackdrop(for: .profile, userId: userId)
     }
 
-    private func isRankCosmeticSelected(_ tier: SkillTier, selected: RankTitle, mode: CosmeticMode) -> Bool {
-        switch mode {
-        case .frame:
-            return equippedShopProfileBorder == nil && selected == tier.rankTitle
-        case .background:
-            return equippedProfileBackdrop == nil && selected == tier.rankTitle
-        case .color:
-            return selected == tier.rankTitle
+    private var profileRows: [ProfileCosmeticRow] {
+        switch selectedSurface {
+        case .borders:
+            return SkillTier.allCases.map(ProfileCosmeticRow.rankFrame)
+                + shopBorderItems.map(ProfileCosmeticRow.shopBorder)
+        case .banners:
+            return SkillTier.allCases.map(ProfileCosmeticRow.rankBanner)
+                + shopBannerItems.map(ProfileCosmeticRow.shopBanner)
         }
     }
 
-    private func isShopCosmeticSelected(_ item: ShopItem) -> Bool {
-        switch item.reward {
-        case .profileBorder(let border):
-            return equippedShopProfileBorder == border
-        case .profileBackground:
-            return equippedProfileBackdrop?.id == item.id
-        default:
+    private func optionState(for option: ProfileCosmeticRow) -> ProfileCosmeticOptionState {
+        ProfileCosmeticOptionState(
+            isSelected: isSelected(option),
+            isUnlockedOrOwned: isUnlockedOrOwned(option),
+            statusTitle: statusTitle(for: option),
+            actionTitle: actionTitle(for: option),
+            isActionDisabled: isActionDisabled(option)
+        )
+    }
+
+    private func isSelected(_ row: ProfileCosmeticRow) -> Bool {
+        switch row {
+        case .rankFrame(let tier):
+            return equippedShopProfileBorder == nil && equippedFrameTier == tier.rankTitle
+        case .rankBanner(let tier):
+            return equippedProfileBackdrop == nil && equippedBackgroundTier == tier.rankTitle
+        case .shopBorder(let item):
+            if case .profileBorder(let border) = item.reward {
+                return equippedShopProfileBorder == border
+            }
             return false
+        case .shopBanner(let item):
+            return equippedProfileBackdrop?.id == item.id
         }
     }
 
-    private func shopActionTitle(for item: ShopItem) -> String {
-        if isShopCosmeticSelected(item) { return "Active" }
-        if inventory.isPurchased(item) { return "Use" }
-        return openShop == nil ? "Locked" : "Shop"
+    private func isUnlockedOrOwned(_ row: ProfileCosmeticRow) -> Bool {
+        switch row {
+        case .rankFrame(let tier):
+            return unlockedFrameTiers.contains(tier)
+        case .rankBanner(let tier):
+            return unlockedBackgroundTiers.contains(tier)
+        case .shopBorder(let item), .shopBanner(let item):
+            return inventory.isPurchased(item)
+        }
+    }
+
+    private func isActionDisabled(_ row: ProfileCosmeticRow) -> Bool {
+        if isSelected(row) { return true }
+        if isUnlockedOrOwned(row) { return false }
+        return !(row.isShopItem && openShop != nil)
+    }
+
+    private func statusTitle(for row: ProfileCosmeticRow) -> String {
+        if isSelected(row) { return "Active" }
+        if isUnlockedOrOwned(row) { return row.isShopItem ? "Owned" : "Unlocked" }
+        return row.isShopItem && openShop != nil ? "Shop" : "Locked"
+    }
+
+    private func actionTitle(for row: ProfileCosmeticRow) -> String {
+        if isSelected(row) { return "Active" }
+        if isUnlockedOrOwned(row) { return "Use" }
+        return row.isShopItem && openShop != nil ? "Shop" : "Locked"
+    }
+
+    private var activeCosmeticSummary: String {
+        let frame = equippedShopProfileBorder?.displayName ?? equippedFrameTier.displayName
+        let banner = activeShopBanner?.name ?? equippedBackgroundTier.displayName
+        return "\(frame) / \(banner)"
+    }
+
+    private var activeTint: Color {
+        if let banner = activeShopBanner {
+            return banner.accent
+        }
+        if let border = equippedShopProfileBorder {
+            return border.accent
+        }
+        return equippedBackgroundTier.rewardTint
     }
 
     private var shopBorderItems: [ShopItem] {
         ShopCatalog.items(for: .profileBorder)
     }
 
-    private var shopBackdropItems: [ShopItem] {
-        ShopCatalog.items(for: .backdrop).filter { item in
-            if case .profileBackground = item.reward {
-                return true
+    private var shopBannerItems: [ShopItem] {
+        ShopCatalog.items(for: .profileWallpaper)
+            .filter { item in
+                guard let assetName = item.backdropAssetName else { return false }
+                return UIImage(named: assetName) != nil
             }
+    }
+
+    private var activeShopBanner: ShopItem? {
+        guard let equippedProfileBackdrop,
+              let assetName = equippedProfileBackdrop.backdropAssetName,
+              UIImage(named: assetName) != nil
+        else { return nil }
+        return equippedProfileBackdrop
+    }
+
+    private var rankUnlockedCount: Int {
+        unlockedFrameTiers.count + unlockedBackgroundTiers.count
+    }
+
+    private var rankRewardCount: Int {
+        SkillTier.allCases.count * 2
+    }
+}
+
+private struct ProfileCosmeticOptionState {
+    let isSelected: Bool
+    let isUnlockedOrOwned: Bool
+    let statusTitle: String
+    let actionTitle: String
+    let isActionDisabled: Bool
+}
+
+private enum ProfileCosmeticSurface: String, CaseIterable, Identifiable {
+    case borders
+    case banners
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .borders:
+            return "Borders"
+        case .banners:
+            return "Banners"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .borders:
+            return "person.crop.circle.badge.sparkles"
+        case .banners:
+            return "person.crop.rectangle.stack"
+        }
+    }
+
+    var headerTitle: String {
+        switch self {
+        case .borders:
+            return "BORDER"
+        case .banners:
+            return "BANNER"
+        }
+    }
+}
+
+private enum ProfileCosmeticRow: Identifiable {
+    case rankFrame(SkillTier)
+    case rankBanner(SkillTier)
+    case shopBorder(ShopItem)
+    case shopBanner(ShopItem)
+
+    var id: String {
+        switch self {
+        case .rankFrame(let tier):
+            return "rank.frame.\(tier.token)"
+        case .rankBanner(let tier):
+            return "rank.banner.\(tier.token)"
+        case .shopBorder(let item):
+            return "shop.border.\(item.id)"
+        case .shopBanner(let item):
+            return "shop.banner.\(item.id)"
+        }
+    }
+
+    var title: String {
+        switch self {
+        case .rankFrame(let tier):
+            return "\(tier.displayName) Frame"
+        case .rankBanner(let tier):
+            return "\(tier.displayName) Banner"
+        case .shopBorder(let item), .shopBanner(let item):
+            return item.name
+        }
+    }
+
+    var sourceTitle: String {
+        switch self {
+        case .rankFrame, .rankBanner:
+            return "Rank"
+        case .shopBorder, .shopBanner:
+            return "Shop"
+        }
+    }
+
+    var typeTitle: String {
+        switch self {
+        case .rankFrame:
+            return "Frame"
+        case .shopBorder:
+            return "Border"
+        case .rankBanner, .shopBanner:
+            return "Banner"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .rankFrame:
+            return "person.crop.circle"
+        case .shopBorder:
+            return "person.crop.circle.badge.sparkles"
+        case .rankBanner, .shopBanner:
+            return "rectangle.fill"
+        }
+    }
+
+    var accent: Color {
+        switch self {
+        case .rankFrame(let tier), .rankBanner(let tier):
+            return tier.rewardTint
+        case .shopBorder(let item), .shopBanner(let item):
+            return item.accent
+        }
+    }
+
+    var detail: String {
+        switch self {
+        case .rankFrame(let tier), .rankBanner(let tier):
+            return "Tier \(tier.ordinal)"
+        case .shopBorder(let item), .shopBanner(let item):
+            return item.rarity
+        }
+    }
+
+    var isShopItem: Bool {
+        switch self {
+        case .shopBorder, .shopBanner:
+            return true
+        case .rankFrame, .rankBanner:
             return false
         }
     }
+}
 
-    private var unlockedCosmeticCount: Int {
-        unlockedFrameTiers.count + unlockedBackgroundTiers.count + unlockedProfileColorTiers.count
-    }
+private struct ProfileCosmeticTableHeader: View {
+    let surface: ProfileCosmeticSurface
 
-    private func unlockedTiers(for mode: CosmeticMode) -> [SkillTier] {
-        switch mode {
-        case .frame:
-            return unlockedFrameTiers
-        case .background:
-            return unlockedBackgroundTiers
-        case .color:
-            return unlockedProfileColorTiers
+    var body: some View {
+        HStack(spacing: 12) {
+            Text(surface.headerTitle)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Text("STATE")
+                .frame(width: 64, alignment: .trailing)
         }
+        .font(.system(size: 8, weight: .black, design: .monospaced))
+        .tracking(1.2)
+        .foregroundStyle(Color.unbound.textTertiary)
+        .padding(.horizontal, 12)
+        .padding(.top, 12)
+        .padding(.bottom, 8)
     }
 }
 
-private enum CosmeticMode {
-    case frame
-    case background
-    case color
-}
-
-private struct CosmeticOptionTile: View {
-    let tier: SkillTier
-    let mode: CosmeticMode
-    let isUnlocked: Bool
-    let isSelected: Bool
+private struct ProfileCosmeticTableRow: View {
+    let row: ProfileCosmeticRow
+    let state: ProfileCosmeticOptionState
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 8) {
+            HStack(alignment: .center, spacing: 12) {
                 preview
-                    .frame(height: 72)
-                    .frame(maxWidth: .infinity)
+                    .frame(width: previewSize.width, height: previewSize.height)
                     .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                     .overlay(
                         RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .strokeBorder(borderColor, lineWidth: isSelected ? 1.8 : 1)
+                            .strokeBorder(state.isSelected ? row.accent.opacity(0.92) : Color.unbound.borderSubtle, lineWidth: state.isSelected ? 1.8 : 1)
                     )
-                    .saturation(isUnlocked ? 1 : 0.10)
-                    .opacity(isUnlocked ? 1 : 0.45)
+                    .saturation(state.isUnlockedOrOwned ? 1 : 0.16)
+                    .opacity(state.isUnlockedOrOwned ? 1 : 0.52)
 
-                Text(tier.displayName.uppercased())
-                    .font(.system(size: 8, weight: .black, design: .monospaced))
-                    .tracking(0.8)
-                    .foregroundStyle(isUnlocked ? Color.unbound.textPrimary : Color.unbound.textTertiary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.62)
-            }
-            .padding(8)
-            .background(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(isSelected ? tier.rewardTint.opacity(0.16) : Color.unbound.surface.opacity(0.74))
-            )
-            .overlay(alignment: .topTrailing) {
-                if isSelected {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 15, weight: .bold))
-                        .foregroundStyle(tier.rewardTextTint)
-                        .padding(6)
-                } else if !isUnlocked {
-                    Image(systemName: "lock.fill")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(Color.unbound.textTertiary)
-                        .padding(7)
-                }
-            }
-        }
-        .buttonStyle(.plain)
-        .disabled(!isUnlocked)
-    }
-
-    @ViewBuilder
-    private var preview: some View {
-        switch mode {
-        case .frame:
-            ZStack {
-                Color.unbound.bg
-                CosmeticAvatar(tier: tier.rankTitle, size: 62, letterFallback: "U")
-            }
-        case .background:
-            ZStack {
-                if let asset = RankCosmetics.profileBackgroundAsset(for: tier.rankTitle),
-                   let ui = UIImage(named: asset) {
-                    Image(uiImage: ui)
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                } else {
-                    tier.rewardTint.opacity(0.24)
-                }
-                LinearGradient(
-                    colors: [.clear, Color.unbound.bg.opacity(0.56)],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-            }
-        case .color:
-            ZStack {
-                Color.unbound.bg
-                LinearGradient(
-                    colors: tier.rankTitle.rewardGlowColors.map { $0.opacity(0.54) } + [Color.clear],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                RadialGradient(
-                    colors: tier.rankTitle.rewardGlowColors.map { $0.opacity(0.42) } + [.clear],
-                    center: .topTrailing,
-                    startRadius: 4,
-                    endRadius: 82
-                )
-                VStack(spacing: 8) {
-                    ForEach(0..<4, id: \.self) { index in
-                        Capsule()
-                            .fill(tier.rewardTint.opacity(0.16 - Double(index) * 0.025))
-                            .frame(height: 2)
-                            .padding(.horizontal, CGFloat(index * 8 + 8))
-                    }
-                }
-            }
-        }
-    }
-
-    private var borderColor: Color {
-        isSelected ? tier.rewardTextTint : tier.rewardTint.opacity(isUnlocked ? 0.34 : 0.16)
-    }
-}
-
-private struct ProfileShopCosmeticTile: View {
-    let item: ShopItem
-    let isOwned: Bool
-    let isSelected: Bool
-    let actionTitle: String
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            VStack(alignment: .leading, spacing: 9) {
-                preview
-                    .aspectRatio(previewAspectRatio, contentMode: .fit)
-                    .frame(maxWidth: .infinity)
-                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .strokeBorder(isSelected ? item.accent.opacity(0.92) : Color.unbound.borderSubtle, lineWidth: isSelected ? 1.8 : 1)
-                    )
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(item.name)
-                        .font(Font.unbound.bodyMStrong)
-                        .foregroundStyle(isOwned ? Color.unbound.textPrimary : Color.unbound.textSecondary)
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.72)
-                        .frame(minHeight: 36, alignment: .topLeading)
-
-                    HStack(alignment: .center, spacing: 6) {
-                        Text((isOwned ? item.rarity : "Shop").uppercased())
+                VStack(alignment: .leading, spacing: 5) {
+                    HStack(spacing: 7) {
+                        Label(row.typeTitle.uppercased(), systemImage: row.systemImage)
+                            .labelStyle(.titleAndIcon)
                             .font(.system(size: 8, weight: .black, design: .monospaced))
-                            .tracking(1.0)
-                            .foregroundStyle(isOwned ? item.rarityTint : Color.unbound.textTertiary)
+                            .tracking(0.8)
+                            .foregroundStyle(row.accent)
                             .lineLimit(1)
-                            .minimumScaleFactor(0.65)
+                            .minimumScaleFactor(0.64)
 
-                        Spacer(minLength: 0)
-
-                        Text(actionTitle.uppercased())
-                            .font(.system(size: 9, weight: .black, design: .monospaced))
-                            .tracking(0.7)
-                            .foregroundStyle(actionForeground)
+                        Text(row.sourceTitle.uppercased())
+                            .font(.system(size: 8, weight: .black, design: .monospaced))
+                            .tracking(0.8)
+                            .foregroundStyle(Color.unbound.textTertiary)
                             .lineLimit(1)
-                            .minimumScaleFactor(0.56)
-                            .frame(width: 58, height: 27)
-                            .background(Capsule().fill(actionBackground))
+                            .minimumScaleFactor(0.64)
                     }
+
+                    Text(row.title)
+                        .font(Font.unbound.bodyMStrong)
+                        .foregroundStyle(state.isUnlockedOrOwned ? Color.unbound.textPrimary : Color.unbound.textSecondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.70)
+
+                    Text(row.detail.uppercased())
+                        .font(.system(size: 8, weight: .black, design: .monospaced))
+                        .tracking(0.9)
+                        .foregroundStyle(statusTint)
+                        .lineLimit(1)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .layoutPriority(1)
+
+                VStack(alignment: .trailing, spacing: 7) {
+                    Text(state.statusTitle.uppercased())
+                        .font(.system(size: 8, weight: .black, design: .monospaced))
+                        .tracking(0.8)
+                        .foregroundStyle(statusTint)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.60)
+
+                    Text(state.actionTitle.uppercased())
+                        .font(.system(size: 9, weight: .black, design: .monospaced))
+                        .tracking(0.7)
+                        .foregroundStyle(actionForeground)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.54)
+                        .frame(width: 58, height: 28)
+                        .background(Capsule().fill(actionBackground))
                 }
             }
-            .padding(9)
-            .frame(maxWidth: .infinity, alignment: .topLeading)
-            .background(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(isSelected ? item.accent.opacity(0.14) : Color.unbound.surface.opacity(0.74))
-            )
-            .opacity(isOwned ? 1 : 0.62)
-            .overlay(alignment: .topTrailing) {
-                if isSelected {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 15, weight: .bold))
-                        .foregroundStyle(Color.unbound.rankGold)
-                        .padding(6)
-                } else if !isOwned {
-                    Image(systemName: "lock.fill")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(Color.unbound.textTertiary)
-                        .padding(7)
-                }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(state.isSelected ? row.accent.opacity(0.10) : Color.clear)
+            .overlay(alignment: .bottom) {
+                UnboundNativeDivider(opacity: 0.34)
+                    .padding(.leading, previewSize.width + 24)
             }
         }
         .buttonStyle(.plain)
-        .disabled(isSelected || (!isOwned && actionTitle == "Locked"))
+        .disabled(state.isActionDisabled)
     }
 
-    private var previewAspectRatio: CGFloat {
-        switch item.reward {
-        case .profileBackground:
-            return ShopBackdropArtworkPreview.aspectRatio
-        default:
-            return 1
+    private var previewSize: CGSize {
+        switch row {
+        case .rankBanner, .shopBanner:
+            return CGSize(width: 72, height: 52)
+        case .rankFrame, .shopBorder:
+            return CGSize(width: 58, height: 58)
         }
     }
 
     @ViewBuilder
     private var preview: some View {
-        switch item.reward {
-        case .profileBorder(let border):
+        switch row {
+        case .rankFrame(let tier):
+            ZStack {
+                Color.unbound.bg
+                CosmeticAvatar(tier: tier.rankTitle, size: 52, letterFallback: "U")
+            }
+        case .rankBanner(let tier):
+            ShopBackdropArtworkPreview(
+                assetName: RankCosmetics.profileBackgroundAsset(for: tier.rankTitle),
+                accent: tier.rewardTint,
+                role: .profileBanner,
+                symbolName: nil,
+                isMuted: !state.isUnlockedOrOwned,
+                scrimOpacity: 0.34
+            )
+        case .shopBorder(let item):
             ZStack {
                 LinearGradient(
                     colors: item.colors.map { $0.opacity(0.82) } + [Color.unbound.surfaceElevated],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )
-                ShopPreviewLinework(color: border.accent)
-                    .opacity(0.20)
-                Circle()
-                    .fill(Color.unbound.bg.opacity(0.82))
-                    .frame(width: 48, height: 48)
-                if let ui = UIImage(named: border.assetName) {
-                    Image(uiImage: ui)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 78, height: 78)
-                        .shadow(color: border.accent.opacity(0.34), radius: 8)
-                } else {
+                if case .profileBorder(let border) = item.reward {
                     Circle()
-                        .strokeBorder(border.accent, lineWidth: 6)
-                        .frame(width: 66, height: 66)
+                        .fill(Color.unbound.bg.opacity(0.82))
+                        .frame(width: 34, height: 34)
+                    if let ui = UIImage(named: border.assetName) {
+                        Image(uiImage: ui)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 54, height: 54)
+                    } else {
+                        Circle()
+                            .strokeBorder(border.accent, lineWidth: 5)
+                            .frame(width: 44, height: 44)
+                    }
                 }
             }
-        case .profileBackground(let background):
+        case .shopBanner(let item):
             ShopBackdropArtworkPreview(
-                assetName: background.assetName,
-                accent: background.accent,
-                symbolName: "person.crop.rectangle.stack.fill",
-                symbolSize: 20,
-                isMuted: !isOwned,
-                scrimOpacity: 0.42
+                assetName: item.backdropAssetName,
+                accent: item.accent,
+                role: .profileBanner,
+                symbolName: nil,
+                isMuted: !state.isUnlockedOrOwned,
+                scrimOpacity: 0.34
             )
-        default:
-            ZStack {
-                Color.unbound.surfaceElevated
-                Image(systemName: "sparkles")
-                    .font(.system(size: 16, weight: .black))
-                    .foregroundStyle(item.accent)
-            }
         }
     }
 
+    private var statusTint: Color {
+        if state.isSelected { return Color.unbound.rankGold }
+        return state.isUnlockedOrOwned ? row.accent : Color.unbound.textTertiary
+    }
+
     private var actionBackground: Color {
-        if isSelected { return Color.unbound.rankGold.opacity(0.18) }
-        if !isOwned { return Color.unbound.surfaceElevated }
-        return item.accent.opacity(0.22)
+        if state.isSelected { return Color.unbound.rankGold.opacity(0.18) }
+        if !state.isUnlockedOrOwned { return Color.unbound.surfaceElevated }
+        return row.accent.opacity(0.22)
     }
 
     private var actionForeground: Color {
-        if isSelected { return Color.unbound.rankGold }
-        return isOwned ? Color.unbound.textPrimary : Color.unbound.textTertiary
+        if state.isSelected { return Color.unbound.rankGold }
+        if state.isUnlockedOrOwned { return Color.unbound.textPrimary }
+        return Color.unbound.textTertiary
     }
 }

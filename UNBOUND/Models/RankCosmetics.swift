@@ -10,8 +10,6 @@ import UIKit
 //    profile photo. Wraps the avatar on Home + Profile screens.
 //  - Profile background — atmospheric texture rendered behind the
 //    Profile header card.
-//  - Profile color — rank-tinted wash layered over the Profile screen
-//    and header card.
 //
 // Asset names match the imagesets seeded under
 // `Assets.xcassets/Cosmetics/`. The mapping is intentionally a static
@@ -26,7 +24,6 @@ enum RankCosmetics {
     private static let highestKeyPrefix = "unbound.profileCosmetics.highest."
     private static let frameKeyPrefix = "unbound.profileCosmetics.frame."
     private static let backgroundKeyPrefix = "unbound.profileCosmetics.background."
-    private static let colorKeyPrefix = "unbound.profileCosmetics.color."
 
     /// Returns the frame asset name (in Assets.xcassets/Cosmetics) for
     /// the given tier, or nil if no frame is shipped for it.
@@ -72,10 +69,6 @@ enum RankCosmetics {
         rankUnlockedTiers(userId: userId, currentTier: currentTier)
     }
 
-    static func unlockedProfileColorTiers(userId: String, currentTier: SkillTier) -> [SkillTier] {
-        rankUnlockedTiers(userId: userId, currentTier: currentTier)
-    }
-
     private static func rankUnlockedTiers(userId: String, currentTier: SkillTier) -> [SkillTier] {
         let highest = recordUnlockedTier(userId: userId, currentTier: currentTier)
         return SkillTier.allCases.filter { $0.rawValue <= highest.rawValue }
@@ -99,15 +92,6 @@ enum RankCosmetics {
         )
     }
 
-    static func equippedProfileColorTier(userId: String, currentTier: SkillTier) -> RankTitle {
-        equippedTier(
-            keyPrefix: colorKeyPrefix,
-            userId: userId,
-            currentTier: currentTier,
-            unlocked: unlockedProfileColorTiers(userId: userId, currentTier: currentTier)
-        )
-    }
-
     static func setEquippedFrameTier(_ tier: SkillTier, userId: String, currentTier: SkillTier) {
         setEquippedTier(
             tier,
@@ -125,16 +109,6 @@ enum RankCosmetics {
             userId: userId,
             currentTier: currentTier,
             unlocked: unlockedBackgroundTiers(userId: userId, currentTier: currentTier)
-        )
-    }
-
-    static func setEquippedProfileColorTier(_ tier: SkillTier, userId: String, currentTier: SkillTier) {
-        setEquippedTier(
-            tier,
-            keyPrefix: colorKeyPrefix,
-            userId: userId,
-            currentTier: currentTier,
-            unlocked: unlockedProfileColorTiers(userId: userId, currentTier: currentTier)
         )
     }
 
@@ -365,20 +339,18 @@ private struct AvatarFrameRing: View {
 /// can never inflate parent layout.
 struct CosmeticBackdrop: View {
     let tier: RankTitle
-    var colorTier: RankTitle? = nil
     var shopBackground: ShopProfileBackgroundID? = nil
     var shopBackdropAssetName: String? = nil
     var maxHeight: CGFloat = 320
 
     var body: some View {
-        let washTier = colorTier ?? tier
         let isUsingShopBackdrop = activeShopAssetName != nil
 
         GeometryReader { geo in
             ZStack(alignment: .top) {
                 if !isUsingShopBackdrop {
                     LinearGradient(
-                        colors: washTier.rewardGlowColors.map { $0.opacity(0.16) } + [.clear],
+                        colors: tier.rewardGlowColors.map { $0.opacity(0.16) } + [.clear],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
@@ -396,9 +368,9 @@ struct CosmeticBackdrop: View {
                         .overlay(
                             LinearGradient(
                                 stops: [
-                                    .init(color: Color.unbound.bg.opacity(isUsingShopBackdrop ? 0.02 : 0.06), location: 0),
-                                    .init(color: Color.unbound.bg.opacity(isUsingShopBackdrop ? 0.28 : 0.44), location: 0.68),
-                                    .init(color: Color.unbound.bg.opacity(isUsingShopBackdrop ? 0.76 : 0.96), location: 1.0),
+                                    .init(color: Color.unbound.bg.opacity(isUsingShopBackdrop ? 0.16 : 0.10), location: 0),
+                                    .init(color: Color.unbound.bg.opacity(isUsingShopBackdrop ? 0.58 : 0.52), location: 0.56),
+                                    .init(color: Color.unbound.bg.opacity(isUsingShopBackdrop ? 0.96 : 0.98), location: 1.0),
                                 ],
                                 startPoint: .top,
                                 endPoint: .bottom
@@ -408,7 +380,7 @@ struct CosmeticBackdrop: View {
                             Group {
                                 if !isUsingShopBackdrop {
                                     RadialGradient(
-                                        colors: washTier.rewardGlowColors.map { $0.opacity(0.18) } + [.clear],
+                                        colors: tier.rewardGlowColors.map { $0.opacity(0.18) } + [.clear],
                                         center: .topTrailing,
                                         startRadius: 12,
                                         endRadius: max(260, geo.size.width * 0.85)

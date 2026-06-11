@@ -18,44 +18,39 @@ struct BuildAttributeCell: View {
     }
 
     private var content: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .center) {
-                Text(key.displayName)
-                    .font(.system(size: 12, weight: .heavy, design: .monospaced))
-                    .tracking(0)
+        HStack(alignment: .center, spacing: 8) {
+            Rectangle()
+                .fill(key.rewardTint)
+                .frame(width: 3, height: 30)
+                .opacity(isSelected ? 1 : 0.72)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(key.displayName.uppercased())
+                    .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                    .tracking(0.8)
                     .foregroundStyle(key.rewardTint)
                     .lineLimit(1)
                     .minimumScaleFactor(0.68)
-                Spacer()
+
                 HStack(spacing: 5) {
-                    AttributeRankBadge(rank: value.rankTitle, size: 18)
+                    AttributeRankBadge(rank: value.rankTitle, size: 16)
                     Text("LVL \(value.level)")
-                        .font(.system(size: 11, weight: .black, design: .monospaced))
+                        .font(.system(size: 10, weight: .black, design: .monospaced))
                         .tracking(0)
                         .foregroundStyle(Color.unbound.textPrimary)
                         .monospacedDigit()
                         .lineLimit(1)
                 }
             }
+            .layoutPriority(1)
+
+            Spacer(minLength: 0)
         }
-        .padding(10)
-        .background(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            key.rewardTint.opacity(isSelected ? 0.22 : 0.13),
-                            Color.unbound.bg.opacity(0.9)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .strokeBorder(key.rewardTint.opacity(isSelected ? 0.82 : 0.42), lineWidth: 1)
-        )
-        .shadow(color: key.rewardTint.opacity(isSelected ? 0.2 : 0.08), radius: isSelected ? 10 : 5, y: 3)
+        .padding(.vertical, 10)
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(key.rewardTint.opacity(isSelected ? 0.70 : 0.28))
+                .frame(height: 0.5)
+        }
     }
 }

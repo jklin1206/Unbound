@@ -28,6 +28,8 @@ struct WorkoutRewardSequenceSummary: Identifiable {
     var personalRecords: [PersonalRecordReward]
     var badges: [BadgeUnlock]
     var arcProgress: ArcProgressReward
+    /// Shop currency paid out for this completed session.
+    var arcsEarned: Int = 0
     var cosmeticUnlock: CosmeticUnlockReward?
     var progression: ProgressionReceipt? = nil
     var weeklyVowCallout: WeeklyVowRewardCallout? = nil
@@ -419,6 +421,7 @@ extension WorkoutRewardSequenceSummary {
             progression: progression,
             weeklyVowCallout: weeklyVowCallout
         )
+        summary.arcsEarned = max(0, completionResult?.arcsEarned ?? 0)
         if let proofResult = completionResult?.proofEngineResult {
             summary = RewardPayloadBuilder.attachProofRewards(proofResult, to: summary)
         }
@@ -446,7 +449,8 @@ extension WorkoutRewardSequenceSummary {
         xpTotal: Int,
         xpLabel: String,
         sourceName: String,
-        badges: [BadgeUnlock] = []
+        badges: [BadgeUnlock] = [],
+        arcsEarned: Int = 0
     ) -> WorkoutRewardSequenceSummary {
         let progress = min(1.0, max(0.0, Double(xpTotal) / 100.0))
         return WorkoutRewardSequenceSummary(
@@ -481,6 +485,7 @@ extension WorkoutRewardSequenceSummary {
                 didCompleteArc: false,
                 bonusXP: 0
             ),
+            arcsEarned: max(0, arcsEarned),
             cosmeticUnlock: nil
         )
     }
@@ -797,6 +802,7 @@ extension WorkoutRewardSequenceSummary {
                 BadgeUnlock(id: "pr.session", title: "PR Feat", subtitle: "Set a new best lift.", assetName: "badge_art_pr_session")
             ],
             arcProgress: ArcProgressReward(arcName: "Arc 1 · Foundation", week: 2, totalWeeks: 4, completedSessions: 3, totalSessions: 4, didCompleteWeek: false, didCompleteArc: false, bonusXP: 500),
+            arcsEarned: 240,
             cosmeticUnlock: CosmeticUnlockReward(title: "PR Frame · Ember", subtitle: "Available for major lift share cards.", tint: Color.unbound.emberGlow)
         )
     }

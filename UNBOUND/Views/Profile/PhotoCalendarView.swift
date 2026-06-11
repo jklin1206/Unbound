@@ -33,16 +33,14 @@ struct PhotoCalendarView: View {
                 calendarGrid
             }
         }
-        .padding(16)
+        .padding(.vertical, 18)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color.unbound.surface)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
-        )
+        .overlay(alignment: .top) {
+            UnboundNativeDivider(opacity: 0.50)
+        }
+        .overlay(alignment: .bottom) {
+            UnboundNativeDivider(opacity: 0.34)
+        }
         .task { await loadPhotos() }
         .sheet(item: $selectedPhoto) { photo in
             PhotoPreviewSheet(

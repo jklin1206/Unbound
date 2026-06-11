@@ -343,6 +343,17 @@ struct DevPlayerToolsView: View {
                 .accessibilityIdentifier("dev.account.freshLogin")
 
                 Button(role: .destructive) {
+                    run(successMessage: "Completed workouts reset for Dev Player.") {
+                        await DevBuildBootstrapper.resetCompletedWorkouts()
+                    }
+                } label: {
+                    Label("Reset Completed Workouts", systemImage: "arrow.counterclockwise.circle")
+                        .foregroundColor(.theme.danger)
+                }
+                .disabled(isApplying)
+                .accessibilityIdentifier("dev.account.resetCompletedWorkouts")
+
+                Button(role: .destructive) {
                     DevBuildBootstrapper.clearDevProgress()
                     status = "Dev progress cleared. Activate again when you want a fresh sandbox."
                 } label: {
@@ -625,6 +636,7 @@ enum DevBuildBootstrapper {
     static let squadActivityProofArg = "--unbound-proof-squad-activity"
     static let devAccountModeKey = "unbound.dev.accountMode"
     static let freshLoginDevAccountMode = "fresh-login"
+    static let resetCompletedWorkoutsDevAccountMode = "reset-completed-workouts"
 
     static func ensureReady() async {
         AuthService.shared.activateDevUser(id: userId)
@@ -633,6 +645,13 @@ enum DevBuildBootstrapper {
         let services = ServiceContainer()
         if shouldSeedFreshLoginDevAccount {
             await seedFreshLoginDevAccount(services: services)
+        } else if shouldSeedResetCompletedWorkoutsDevAccount {
+            await maxEverything(
+                level: 42,
+                services: services,
+                completeOnboarding: shouldCompleteOnboardingForDevLaunch
+            )
+            await resetCompletedWorkouts()
         } else {
             await maxEverything(
                 level: 42,
@@ -721,6 +740,10 @@ enum DevBuildBootstrapper {
             return false
         }
         return UserDefaults.standard.string(forKey: devAccountModeKey) == freshLoginDevAccountMode
+    }
+
+    static var shouldSeedResetCompletedWorkoutsDevAccount: Bool {
+        UserDefaults.standard.string(forKey: devAccountModeKey) == resetCompletedWorkoutsDevAccountMode
     }
 
     static var rankTrialProofTargetArgument: String? {

@@ -1,5 +1,16 @@
 import SwiftUI
 
+private extension ShopBackdropSurface {
+    var previewAspectRatio: CGFloat {
+        switch self {
+        case .home:
+            return ShopBackdropArtworkPreview.homePosterAspectRatio
+        case .profile:
+            return ShopBackdropArtworkPreview.profileBannerAspectRatio
+        }
+    }
+}
+
 struct BackdropPickerView: View {
     @EnvironmentObject private var services: ServiceContainer
     @Environment(\.dismiss) private var dismiss
@@ -24,13 +35,11 @@ struct BackdropPickerView: View {
     }
 
     private var visibleItems: [ShopItem] {
-        ShopCatalog.items(for: .backdrop).filter { item in
-            switch (selectedSurface, item.reward) {
-            case (.home, .homeBackground), (.profile, .profileBackground):
-                return true
-            default:
-                return false
-            }
+        let items = ShopCatalog.items(for: selectedSurface.shopCategory)
+        guard selectedSurface == .profile else { return items }
+        return items.filter { item in
+            guard let assetName = item.backdropAssetName else { return false }
+            return UIImage(named: assetName) != nil
         }
     }
 
@@ -52,6 +61,8 @@ struct BackdropPickerView: View {
                             eyebrow: inventory.isPurchased(item) ? item.rarity : "Shop",
                             assetName: assetName(for: item),
                             accent: item.accent,
+                            previewAspectRatio: selectedSurface.previewAspectRatio,
+                            previewRole: selectedSurface.backdropRole,
                             eyebrowTint: inventory.isPurchased(item) ? item.rarityTint : nil,
                             isSelected: isEquipped(item),
                             isLocked: !inventory.isPurchased(item),
@@ -99,7 +110,7 @@ struct BackdropPickerView: View {
             .frame(width: 46, height: 46)
 
             VStack(alignment: .leading, spacing: 4) {
-                Text("\(selectedSurface.displayName.uppercased()) BACKDROP")
+                Text("\(selectedSurface.displayName.uppercased()) \(selectedSurface.cosmeticLabel.uppercased())")
                     .font(.system(size: 10, weight: .black, design: .monospaced))
                     .tracking(1.4)
                     .foregroundStyle(Color.unbound.textTertiary)
@@ -146,6 +157,8 @@ struct BackdropPickerView: View {
             eyebrow: "Default",
             assetName: defaultAssetName,
             accent: defaultAccent,
+            previewAspectRatio: selectedSurface.previewAspectRatio,
+            previewRole: selectedSurface.backdropRole,
             eyebrowTint: nil,
             isSelected: isDefaultSelected,
             isLocked: false,
@@ -158,7 +171,7 @@ struct BackdropPickerView: View {
     private var defaultBackdropName: String {
         switch selectedSurface {
         case .home: return "Chalk Chamber"
-        case .profile: return "Rank Backdrop"
+        case .profile: return "Rank Banner"
         }
     }
 
@@ -191,6 +204,9 @@ struct BackdropPickerView: View {
         case .home:
             return equippedHomeBackdrop
         case .profile:
+            guard let assetName = equippedProfileBackdrop?.backdropAssetName,
+                  UIImage(named: assetName) != nil
+            else { return nil }
             return equippedProfileBackdrop
         }
     }
@@ -241,11 +257,42 @@ struct BackdropPickerView: View {
     }
 }
 
+private extension ShopBackdropSurface {
+    var shopCategory: ShopCategory {
+        switch self {
+        case .home:
+            return .backdrop
+        case .profile:
+            return .profileWallpaper
+        }
+    }
+
+    var cosmeticLabel: String {
+        switch self {
+        case .home:
+            return "Backdrop"
+        case .profile:
+            return "Banner"
+        }
+    }
+
+    var backdropRole: BackdropPresentationRole {
+        switch self {
+        case .home:
+            return .homePoster
+        case .profile:
+            return .profileBanner
+        }
+    }
+}
+
 struct BackdropPickerTile: View {
     let title: String
     let eyebrow: String
     let assetName: String?
     let accent: Color
+    let previewAspectRatio: CGFloat
+    let previewRole: BackdropPresentationRole
     let eyebrowTint: Color?
     let isSelected: Bool
     let isLocked: Bool
@@ -256,7 +303,7 @@ struct BackdropPickerTile: View {
         Button(action: action) {
             VStack(alignment: .leading, spacing: 10) {
                 preview
-                    .aspectRatio(ShopBackdropArtworkPreview.aspectRatio, contentMode: .fit)
+                    .aspectRatio(previewAspectRatio, contentMode: .fit)
                     .frame(maxWidth: .infinity)
                     .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                     .overlay(
@@ -299,7 +346,6 @@ struct BackdropPickerTile: View {
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
                     .fill(Color.unbound.surface.opacity(isSelected ? 0.96 : 0.86))
             )
-            .opacity(isLocked ? 0.62 : 1)
             .overlay(alignment: .topTrailing) {
                 if isSelected {
                     Image(systemName: "checkmark.seal.fill")
@@ -322,6 +368,7 @@ struct BackdropPickerTile: View {
         ShopBackdropArtworkPreview(
             assetName: assetName,
             accent: accent,
+            role: previewRole,
             isMuted: isLocked
         )
     }

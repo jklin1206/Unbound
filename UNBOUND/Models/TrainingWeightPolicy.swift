@@ -84,6 +84,15 @@ enum WeightPlatePolicy {
         return formatDisplayValue(unit.displayValue(fromKilograms: snappedKg))
     }
 
+    static func formatSuggestionWeightWithUnit(
+        _ kilograms: Double,
+        unit: TrainingWeightUnit = currentUnit,
+        microloadingEnabled: Bool = isMicroloadingEnabled,
+        separator: String = ""
+    ) -> String {
+        "\(formatSuggestionWeight(kilograms, unit: unit, microloadingEnabled: microloadingEnabled))\(separator)\(unit.shortLabel)"
+    }
+
     static func formatDeltaWeight(
         _ kilograms: Double,
         unit: TrainingWeightUnit = currentUnit

@@ -2,8 +2,9 @@ import SwiftUI
 
 enum ShopCategory: String, CaseIterable, Identifiable {
     case backdrop
-    case skillTree
     case profileBorder
+    case profileWallpaper
+    case skillTree
     case title
 
     var id: String { rawValue }
@@ -11,6 +12,7 @@ enum ShopCategory: String, CaseIterable, Identifiable {
     var displayName: String {
         switch self {
         case .backdrop: return "Backdrops"
+        case .profileWallpaper: return "Profile Banners"
         case .skillTree: return "Tree Skins"
         case .profileBorder: return "Borders"
         case .title: return "Titles"
@@ -19,7 +21,8 @@ enum ShopCategory: String, CaseIterable, Identifiable {
 
     var systemImage: String {
         switch self {
-        case .backdrop: return "photo.on.rectangle.angled"
+        case .backdrop: return "house.fill"
+        case .profileWallpaper: return "person.crop.rectangle.stack.fill"
         case .skillTree: return "point.3.connected.trianglepath.dotted"
         case .profileBorder: return "person.crop.circle.badge.sparkles"
         case .title: return "textformat.alt"
@@ -64,6 +67,13 @@ enum ShopHomeBackgroundID: String, Codable, CaseIterable, Hashable, Identifiable
     case emeraldShrine = "emerald_shrine"
     case solarCourt = "solar_court"
     case glassCircuit = "glass_circuit"
+    case archiveWall = "archive_wall"
+    case lockerWall = "locker_wall"
+    case dojoScroll = "dojo_scroll"
+    case overgrownGate = "overgrown_gate"
+    case neonAtrium = "neon_atrium"
+    case solarForge = "solar_forge"
+    case holoForge = "holo_forge"
 
     var id: String { rawValue }
 
@@ -76,11 +86,23 @@ enum ShopHomeBackgroundID: String, Codable, CaseIterable, Hashable, Identifiable
         case .emeraldShrine: return "Emerald Shrine"
         case .solarCourt: return "Solar Court"
         case .glassCircuit: return "Glass Circuit"
+        case .archiveWall: return "Archive Wall"
+        case .lockerWall: return "Locker Wall"
+        case .dojoScroll: return "Dojo Scroll"
+        case .overgrownGate: return "Overgrown Gate"
+        case .neonAtrium: return "Neon Atrium"
+        case .solarForge: return "Solar Forge"
+        case .holoForge: return "Holo Forge"
         }
     }
 
     var assetName: String {
-        "home_background_\(rawValue)"
+        switch self {
+        case .chalk, .chamber, .streetNeon, .inkDojo, .emeraldShrine, .solarCourt, .glassCircuit:
+            return "home_background_\(rawValue)"
+        case .archiveWall, .lockerWall, .dojoScroll, .overgrownGate, .neonAtrium, .solarForge, .holoForge:
+            return "shop_profile_bg_\(rawValue)"
+        }
     }
 
     var accent: Color {
@@ -92,6 +114,13 @@ enum ShopHomeBackgroundID: String, Codable, CaseIterable, Hashable, Identifiable
         case .emeraldShrine: return Color.skinHex("55D487")
         case .solarCourt: return Color.skinHex("F6C95B")
         case .glassCircuit: return Color.skinHex("F6C95B")
+        case .archiveWall: return Color.skinHex("38BDF8")
+        case .lockerWall: return Color.skinHex("38BDF8")
+        case .dojoScroll: return Color.skinHex("EDE6D6")
+        case .overgrownGate: return Color.skinHex("55D487")
+        case .neonAtrium: return Color.skinHex("FF4FD8")
+        case .solarForge: return Color.skinHex("F6C95B")
+        case .holoForge: return Color.skinHex("67E8F9")
         }
     }
 }
@@ -157,7 +186,7 @@ enum ShopProfileBackgroundID: String, Codable, CaseIterable, Hashable, Identifia
     }
 
     var assetName: String {
-        "shop_profile_bg_\(rawValue)"
+        "profile_banner_\(rawValue)"
     }
 
     var accent: Color {
@@ -217,7 +246,7 @@ struct ShopItem: Identifiable, Hashable {
     }
 
     var isBackdrop: Bool {
-        category == .backdrop && backdropAssetName != nil
+        backdropAssetName != nil
     }
 
     var backdropAssetName: String? {
@@ -293,6 +322,76 @@ enum ShopCatalog {
             rarity: "Epic",
             reward: .homeBackground(.glassCircuit),
             colors: [Color.skinHex("5EEAD4"), Color.skinHex("F6C95B")]
+        ),
+        .init(
+            id: "homeBackground.archiveWall",
+            category: .backdrop,
+            name: "Archive Wall",
+            subtitle: "The former profile archive environment, now used as an immersive Home poster.",
+            price: 480,
+            rarity: "Common",
+            reward: .homeBackground(.archiveWall),
+            colors: [Color.skinHex("38BDF8"), Color.skinHex("94A3B8")]
+        ),
+        .init(
+            id: "homeBackground.lockerWall",
+            category: .backdrop,
+            name: "Locker Wall",
+            subtitle: "The former profile locker-room environment, now used as a Home poster.",
+            price: 550,
+            rarity: "Common",
+            reward: .homeBackground(.lockerWall),
+            colors: [Color.skinHex("38BDF8"), Color.skinHex("F97316")]
+        ),
+        .init(
+            id: "homeBackground.dojoScroll",
+            category: .backdrop,
+            name: "Dojo Scroll",
+            subtitle: "The former profile scroll environment, now used as an immersive Home poster.",
+            price: 880,
+            rarity: "Rare",
+            reward: .homeBackground(.dojoScroll),
+            colors: [Color.skinHex("EDE6D6"), Color.skinHex("2DD4BF"), Color.skinHex("D84B3D")]
+        ),
+        .init(
+            id: "homeBackground.overgrownGate",
+            category: .backdrop,
+            name: "Overgrown Gate",
+            subtitle: "The former profile stone-gate environment, now used as a Home poster.",
+            price: 1_250,
+            rarity: "Epic",
+            reward: .homeBackground(.overgrownGate),
+            colors: [Color.skinHex("55D487"), Color.skinHex("F6C95B"), Color.skinHex("5EEAD4")]
+        ),
+        .init(
+            id: "homeBackground.neonAtrium",
+            category: .backdrop,
+            name: "Neon Atrium",
+            subtitle: "The former profile atrium environment, now used as a Home poster.",
+            price: 620,
+            rarity: "Common",
+            reward: .homeBackground(.neonAtrium),
+            colors: [Color.skinHex("5EEAD4"), Color.skinHex("FF4FD8"), Color.skinHex("F6C95B")]
+        ),
+        .init(
+            id: "homeBackground.solarForge",
+            category: .backdrop,
+            name: "Solar Forge",
+            subtitle: "The former profile solar-forge environment, now used as a Home poster.",
+            price: 640,
+            rarity: "Common",
+            reward: .homeBackground(.solarForge),
+            colors: [Color.skinHex("F6C95B"), Color.skinHex("5EEAD4")]
+        ),
+        .init(
+            id: "homeBackground.holoForge",
+            category: .backdrop,
+            name: "Holo Forge",
+            subtitle: "The former profile holo sanctum, now used as a legendary Home poster.",
+            price: 3_600,
+            rarity: "Legendary",
+            reward: .homeBackground(.holoForge),
+            colors: [Color.skinHex("F6C95B"), Color.skinHex("67E8F9"), Color.skinHex("A78BFA"), Color.skinHex("FF4FD8")]
         ),
         .init(
             id: "skillTreeSkin.chalk",
@@ -426,9 +525,9 @@ enum ShopCatalog {
         ),
         .init(
             id: "profileBackground.archiveWall",
-            category: .backdrop,
+            category: .profileWallpaper,
             name: "Archive Wall",
-            subtitle: "A cheap training archive backdrop with lockers, tape, and cool blue panels.",
+            subtitle: "A wide profile banner with archive panels, tape, and cool blue light.",
             price: 480,
             rarity: "Common",
             reward: .profileBackground(.archiveWall),
@@ -436,9 +535,9 @@ enum ShopCatalog {
         ),
         .init(
             id: "profileBackground.lockerWall",
-            category: .backdrop,
+            category: .profileWallpaper,
             name: "Locker Wall",
-            subtitle: "Budget training-room backdrop with posters and taped panels.",
+            subtitle: "A wide profile banner with worn lockers, tape, and cool gym light.",
             price: 550,
             rarity: "Common",
             reward: .profileBackground(.lockerWall),
@@ -446,9 +545,9 @@ enum ShopCatalog {
         ),
         .init(
             id: "profileBackground.dojoScroll",
-            category: .backdrop,
+            category: .profileWallpaper,
             name: "Dojo Scroll",
-            subtitle: "A parchment profile backdrop with ink arcs, moon wash, and teal lanterns.",
+            subtitle: "A wide profile banner with ink arcs, moon wash, and teal lanterns.",
             price: 880,
             rarity: "Rare",
             reward: .profileBackground(.dojoScroll),
@@ -456,9 +555,9 @@ enum ShopCatalog {
         ),
         .init(
             id: "profileBackground.overgrownGate",
-            category: .backdrop,
+            category: .profileWallpaper,
             name: "Overgrown Gate",
-            subtitle: "A lush stone-gate backdrop with green lanterns, vines, and gold trim.",
+            subtitle: "A wide profile banner with stone, vines, emerald lanterns, and gold trim.",
             price: 1_250,
             rarity: "Epic",
             reward: .profileBackground(.overgrownGate),
@@ -466,9 +565,9 @@ enum ShopCatalog {
         ),
         .init(
             id: "profileBackground.neonAtrium",
-            category: .backdrop,
+            category: .profileWallpaper,
             name: "Neon Atrium",
-            subtitle: "A clean neon profile backdrop with glass rails and bright atrium glow.",
+            subtitle: "A wide profile banner with dark glass rails and restrained neon.",
             price: 620,
             rarity: "Common",
             reward: .profileBackground(.neonAtrium),
@@ -476,9 +575,9 @@ enum ShopCatalog {
         ),
         .init(
             id: "profileBackground.solarForge",
-            category: .backdrop,
+            category: .profileWallpaper,
             name: "Solar Forge",
-            subtitle: "A bright solar profile backdrop with warm arcs and dark glass panels.",
+            subtitle: "A wide profile banner with warm arcs, dark glass, and solar trim.",
             price: 640,
             rarity: "Common",
             reward: .profileBackground(.solarForge),
@@ -486,9 +585,9 @@ enum ShopCatalog {
         ),
         .init(
             id: "profileBackground.holoForge",
-            category: .backdrop,
+            category: .profileWallpaper,
             name: "Holo Forge",
-            subtitle: "A legendary holo sanctum with prism glass, gold rails, and a radiant core.",
+            subtitle: "A wide profile banner with prism glass, gold rails, and a radiant core.",
             price: 3_600,
             rarity: "Legendary",
             reward: .profileBackground(.holoForge),
@@ -556,7 +655,7 @@ enum ShopCatalog {
 
     static func items(for category: ShopCategory) -> [ShopItem] {
         let categoryItems = items.filter { $0.category == category }
-        guard category == .backdrop else { return categoryItems }
+        guard category == .backdrop || category == .profileWallpaper else { return categoryItems }
         return categoryItems.sorted(by: backdropDisplaySort)
     }
 

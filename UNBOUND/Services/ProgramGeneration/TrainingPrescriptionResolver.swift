@@ -64,7 +64,7 @@ enum TrainingPrescriptionResolver {
             updated.restSeconds = min(240, updated.restSeconds + (isPrimary ? 30 : 15))
             updated.rpe = max(5, min(updated.rpe ?? state.targetRPE, state.targetRPE - 1))
             if let weight = updated.suggestedWeightKg, weight > 0 {
-                updated.suggestedWeightKg = roundedHalfKilogram(max(0, weight * 0.95))
+                updated.suggestedWeightKg = WeightPlatePolicy.snappedSuggestionKilograms(max(0, weight * 0.95))
             }
             updated.notes = appendNote("Progression adjusted: easier target after recent grind.", to: updated.notes)
         case .harder:
@@ -121,7 +121,7 @@ enum TrainingPrescriptionResolver {
 
     private static func suggestedWeight(for state: ProgressionState) -> Double? {
         guard state.currentWorkingWeightKg > 0 else { return nil }
-        return roundedHalfKilogram(state.currentWorkingWeightKg)
+        return WeightPlatePolicy.snappedSuggestionKilograms(state.currentWorkingWeightKg)
     }
 
     private static func isPrimaryPrescription(_ prescription: TrainingBlockPrescription) -> Bool {
@@ -137,10 +137,6 @@ enum TrainingPrescriptionResolver {
         case .arms, .core, .calves, .carry, .cardio, .mobility, .routine, .skill:
             return false
         }
-    }
-
-    private static func roundedHalfKilogram(_ kilograms: Double) -> Double {
-        (kilograms * 2).rounded() / 2
     }
 
     private static func appendNote(_ note: String, to existing: String?) -> String {

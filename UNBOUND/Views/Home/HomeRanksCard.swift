@@ -1,36 +1,24 @@
 import SwiftUI
 
-/// Compact entry on Home that surfaces the user's aggregate rank tier and opens
-/// the full rank library. Replaces the old Program→RANKS sub-tab.
-struct HomeRanksCard: View {
+/// Compact Home row that surfaces the user's aggregate rank tier and opens the
+/// full rank library.
+struct HomeRanksRow: View {
     let aggregateTier: SkillTier
     let onOpen: () -> Void
 
     var body: some View {
-        Button(action: onOpen) {
-            HStack(spacing: 12) {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("RANKS")
-                        .font(Font.unbound.captionS.weight(.heavy))
-                        .tracking(1.5)
-                        .foregroundStyle(Color.unbound.textTertiary)
-                    Text(aggregateTier.displayName)
-                        .font(Font.unbound.titleS)
-                        .foregroundStyle(Color.unbound.textPrimary)
-                }
-                Spacer(minLength: 0)
-                Text("View")
-                    .font(Font.unbound.bodyMStrong)
-                    .foregroundStyle(Color.unbound.textSecondary)
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(Color.unbound.textTertiary)
-            }
-            .padding(.vertical, 14)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .contentShape(Rectangle())
+        VStack(spacing: 0) {
+            UnboundNativeRowButton(
+                systemImage: "seal.fill",
+                eyebrow: "Ranks",
+                title: aggregateTier.displayName,
+                detail: "Open the rank library",
+                tint: aggregateTier.rewardTextTint,
+                action: onOpen
+            )
+
+            UnboundNativeDivider(opacity: 0.42)
         }
-        .buttonStyle(.plain)
-        .accessibilityIdentifier("home.ranksCard")
+        .accessibilityIdentifier("home.ranksRow")
     }
 }

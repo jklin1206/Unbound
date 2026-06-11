@@ -40,6 +40,120 @@ final class MovementResolverTests: XCTestCase {
         )
     }
 
+    func testGeneratedWarmupExercisesResolveToBundledVisualAssets() throws {
+        let normalInput = makeWarmupInput(
+            trainingStyle: .hybrid,
+            equipment: [.bodyweight, .dumbbells, .barbell, .bench],
+            experience: .current
+        )
+        let floorOnlyInput = makeWarmupInput(
+            trainingStyle: .bodyweight,
+            equipment: [.bodyweight],
+            experience: .current
+        )
+        let warmups = DayTemplate.allCases.flatMap { template in
+            DeterministicProgramGenerator.warmupExercises(for: template, input: normalInput)
+                + DeterministicProgramGenerator.warmupExercises(for: template, input: floorOnlyInput)
+        }
+        let uniqueWarmupNames = Set(warmups.map(\.name))
+
+        for name in uniqueWarmupNames.sorted() {
+            let resolved = MovementCatalog.resolvedTrainingMovement(name: name)
+            let definition = try XCTUnwrap(resolved?.exact, "\(name) should resolve to a movement definition")
+            let assetName = try XCTUnwrap(
+                ExerciseVisualAsset.existingAssetName(for: definition),
+                "\(name) should resolve to a bundled visual asset"
+            )
+            XCTAssertNotNil(UIImage(named: assetName), "\(name) should load \(assetName)")
+        }
+    }
+
+    func testProgressionVariantVisualsAreNotExactDuplicateAssets() throws {
+        let variantPairs = [
+            ("exercise_visual_exercise_assisted-squat", "exercise_visual_exercise_bodyweight-squat"),
+            ("exercise_visual_exercise_parallel-squat", "exercise_visual_exercise_bodyweight-squat"),
+            ("exercise_visual_exercise_deep-step-up", "exercise_visual_exercise_step-up"),
+            ("exercise_visual_exercise_partial-pistol-squat", "exercise_visual_exercise_assisted-pistol-squat"),
+            ("exercise_visual_exercise_beginner-shrimp-squat", "exercise_visual_exercise_shrimp-squat"),
+            ("exercise_visual_exercise_intermediate-shrimp-squat", "exercise_visual_exercise_shrimp-squat"),
+            ("exercise_visual_exercise_two-hand-shrimp-squat", "exercise_visual_exercise_shrimp-squat"),
+            ("exercise_visual_exercise_elevated-two-hand-shrimp-squat", "exercise_visual_exercise_shrimp-squat"),
+            ("exercise_visual_exercise_nordic-curl-negative", "exercise_visual_exercise_nordic-curl"),
+            ("exercise_visual_exercise_nordic-curl-arms-overhead", "exercise_visual_exercise_nordic-curl"),
+            ("exercise_visual_exercise_tuck-one-leg-nordic-curl", "exercise_visual_exercise_nordic-curl"),
+            ("exercise_visual_exercise_one-leg-nordic-curl", "exercise_visual_exercise_nordic-curl"),
+            ("exercise_visual_exercise_bodyweight-leg-extension", "exercise_visual_exercise_leg-extensions"),
+            ("exercise_visual_exercise_single-leg-glute-bridge", "exercise_visual_exercise_glute-bridge"),
+            ("exercise_visual_exercise_one-arm-inverted-row", "exercise_visual_exercise_one-arm-row"),
+            ("exercise_visual_exercise_advanced-nordic-hip-hinge", "exercise_visual_exercise_advancing-nordic-curl"),
+            ("exercise_visual_exercise_single-leg-extension", "exercise_visual_exercise_leg-extensions")
+        ]
+
+        for (variantAssetName, baseAssetName) in variantPairs {
+            let variantImage = try XCTUnwrap(
+                UIImage(named: variantAssetName),
+                "\(variantAssetName) should ship in Assets.xcassets"
+            )
+            let baseImage = try XCTUnwrap(
+                UIImage(named: baseAssetName),
+                "\(baseAssetName) should ship in Assets.xcassets"
+            )
+
+            XCTAssertNotEqual(
+                variantImage.pngData(),
+                baseImage.pngData(),
+                "\(variantAssetName) should not be an exact duplicate of \(baseAssetName)"
+            )
+        }
+    }
+
+    func testBandProgramExercisesResolveToDirectCurrentBandVisuals() throws {
+        let expectedAssetsByMovementId = [
+            "exercise.band-row": "exercise_visual_exercise_band-row",
+            "exercise.band-lat-pull": "exercise_visual_exercise_band-lat-pull",
+            "exercise.band-curl": "exercise_visual_exercise_band-curl",
+            "exercise.band-tricep-extension": "exercise_visual_exercise_band-tricep-extension"
+        ]
+
+        for (movementId, expectedAssetName) in expectedAssetsByMovementId {
+            let definition = try XCTUnwrap(MovementCatalog.definition(for: movementId))
+
+            XCTAssertEqual(
+                ExerciseVisualAsset.existingAssetName(for: definition),
+                expectedAssetName,
+                "\(definition.displayName) should use its direct current band visual"
+            )
+            XCTAssertNotNil(UIImage(named: expectedAssetName))
+        }
+    }
+
+    func testFloorBodyweightClassificationsStayBeginnerAppropriate() throws {
+        let gluteBridge = try XCTUnwrap(MovementCatalog.canonicalExercise(named: "Glute Bridge"))
+        XCTAssertEqual(gluteBridge.blockKind, .bodyweight)
+        XCTAssertEqual(gluteBridge.rankTemplate, .bodyweightReps)
+        XCTAssertEqual(gluteBridge.loggerMode, .bodyweightSets)
+
+        let bodyweightLegExtension = try XCTUnwrap(
+            MovementCatalog.canonicalExercise(named: "Bodyweight Leg Extension")
+        )
+        XCTAssertEqual(bodyweightLegExtension.blockKind, .bodyweight)
+        XCTAssertEqual(bodyweightLegExtension.difficulty, .intermediate)
+
+        let jumpSquat = try XCTUnwrap(MovementCatalog.canonicalExercise(named: "Jump Squat"))
+        XCTAssertEqual(jumpSquat.blockKind, .bodyweight)
+        XCTAssertEqual(jumpSquat.difficulty, .intermediate)
+
+        let beltSquat = try XCTUnwrap(MovementCatalog.canonicalExercise(named: "Belt Squat"))
+        XCTAssertTrue(beltSquat.equipment.contains(.machine))
+        XCTAssertFalse(
+            MovementCatalog.isProgramCompatible(
+                beltSquat,
+                style: .bodyweight,
+                userEquipment: [.bodyweight]
+            )
+        )
+    }
+
     func testBandAssistedPullUpResolvesToAssistedVariantWithAssistedTag() {
         let resolved = MovementResolver.resolve("Band-Assisted Pull-Up")
 
@@ -905,5 +1019,33 @@ final class MovementResolverTests: XCTestCase {
             sex: nil
         ))
         XCTAssertGreaterThan(squatHigh.current.rawValue, squatLow.current.rawValue)
+    }
+
+    private func makeWarmupInput(
+        trainingStyle: TrainingStyle,
+        equipment: [Equipment],
+        experience: Experience
+    ) -> ProgramGeneratorInput {
+        ProgramGeneratorInput(
+            userId: "warmup-test-user",
+            scanId: nil,
+            analysisId: nil,
+            buildIdentity: BuildIdentity(primary: .control, secondary: nil, shape: .specialist),
+            trainingStyle: trainingStyle,
+            equipment: equipment,
+            targetFrequency: .four,
+            trainingDays: [.monday, .tuesday, .thursday, .friday],
+            experience: experience,
+            focusAreas: [],
+            cutModeActive: false,
+            trainingFeedbackMode: .quick,
+            progressionStates: [:],
+            previousBlock: nil,
+            weightKg: 75,
+            heightCm: 178,
+            age: 24,
+            sex: .male,
+            blockStartDate: Date(timeIntervalSince1970: 1_700_000_000)
+        )
     }
 }

@@ -210,9 +210,10 @@ final class TrainingCompletionService {
         result.streakCount = streakDelta.updated.currentStreak
         result.streakExtended = streakDelta.streakExtended
 
-        let vowsEarned = Self.sessionVowReward(for: result)
+        let arcsEarned = Self.sessionArcReward(for: result)
+        result.arcsEarned = arcsEarned
         CurrencyWalletStore.shared.bind(userId: performanceLog.userId)
-        CurrencyWalletStore.shared.grant(vowsEarned, sourceId: "session:\(performanceLog.id)")
+        CurrencyWalletStore.shared.grant(arcsEarned, sourceId: "session:\(performanceLog.id)")
 
         let receipt = TrainingCompletionReplayReceipt(result: result, performanceLog: performanceLog)
         try await services.database.create(
@@ -231,7 +232,7 @@ final class TrainingCompletionService {
         return result
     }
 
-    private static func sessionVowReward(for result: TrainingCompletionResult) -> Int {
+    private static func sessionArcReward(for result: TrainingCompletionResult) -> Int {
         let base = 90
         let streakBonus = result.streakExtended ? 60 : 0
         let rankBonus = min(240, result.attributeRankUpEventCount * 80)

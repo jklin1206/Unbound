@@ -24,9 +24,7 @@ struct WorkoutRewardSequenceView: View {
     enum RewardBeatKind: Equatable {
         case sessionComplete
         case xp
-        case rankBadge
         case proof
-        case rankReveal
         case attributes
         case collection
         case progression
@@ -44,19 +42,8 @@ struct WorkoutRewardSequenceView: View {
             beats.append(.xp)
         }
 
-        // Dedicated badge reveal for the top rank earned this session — shown
-        // just before the cleared-standards breakdown.
-        if earnedBadgeTier != nil {
-            beats.append(.rankBadge)
-        }
-
         if !summary.exerciseRanks.isEmpty || !summary.beats.isEmpty || summary.tally.hasAnyReward {
             beats.append(.proof)
-        }
-
-        // Movement-XP impact only — lift rank-ups now live on the RANKS page.
-        if summary.progression?.movementLines.isEmpty == false {
-            beats.append(.rankReveal)
         }
 
         if !summary.attributeDeltas.isEmpty {
@@ -67,7 +54,7 @@ struct WorkoutRewardSequenceView: View {
             beats.append(.collection)
         }
 
-        if summary.progression?.hasContent == true {
+        if shouldShowProgressionLedger {
             beats.append(.progression)
         }
 
@@ -101,16 +88,18 @@ struct WorkoutRewardSequenceView: View {
         rewardBeats[min(max(beat, 0), maxBeat)]
     }
 
-    /// Highest rank tier earned this session (across all cleared/unlocked beats).
-    /// Drives the dedicated badge reveal.
-    var earnedBadgeTier: SkillTier? {
-        summary.beats.compactMap(\.tier).max()
-    }
-
-    /// The skill whose top earned tier is being celebrated.
-    var earnedBadgeSkillTitle: String? {
-        guard let tier = earnedBadgeTier else { return nil }
-        return summary.beats.first { $0.tier == tier }?.skillTitle
+    /// Most progression details are implementation spine now. The post-workout
+    /// sequence should only surface this page when it is the only meaningful XP
+    /// receipt left to show, or when the novelty bonus itself is the reward.
+    var shouldShowProgressionLedger: Bool {
+        guard let receipt = summary.progression else { return false }
+        if summary.xp.total <= 0 && receipt.skillXPGained > 0 {
+            return true
+        }
+        if receipt.noveltyMultiplier > 1.001 && summary.attributeDeltas.isEmpty {
+            return true
+        }
+        return false
     }
 
     var body: some View {
@@ -227,12 +216,8 @@ struct WorkoutRewardSequenceView: View {
             sessionCompleteBeat
         case .xp:
             xpBeat
-        case .rankBadge:
-            rankBadgeBeat
         case .proof:
             ranksBeat
-        case .rankReveal:
-            rankRevealBeat
         case .attributes:
             attributeBeat
         case .collection:
@@ -260,7 +245,7 @@ struct WorkoutRewardSequenceView: View {
                 advanceRewardPage()
             } label: {
                 HStack(spacing: 10) {
-                    Text(finishRequested ? "SAVING" : (beat >= maxBeat ? "FINISH" : "TAP TO COLLECT"))
+                    Text(finishRequested ? "SAVING" : (beat >= maxBeat ? "FINISH" : "CONTINUE"))
                         .font(Font.unbound.captionS.weight(.heavy))
                         .tracking(2.4)
                     if finishRequested {
@@ -282,7 +267,7 @@ struct WorkoutRewardSequenceView: View {
             .buttonStyle(.plain)
             .disabled(finishRequested)
             .accessibilityIdentifier("workoutRewardContinueButton")
-            .accessibilityLabel(finishRequested ? "SAVING" : (beat >= maxBeat ? "FINISH" : "TAP TO COLLECT"))
+            .accessibilityLabel(finishRequested ? "SAVING" : (beat >= maxBeat ? "FINISH" : "CONTINUE"))
         }
         .frame(maxWidth: .infinity)
         .padding(.horizontal, 18)
@@ -380,7 +365,7 @@ struct WorkoutRewardSequenceView: View {
     }
 
     /// Per-beat audio. XP ticks (animateXP), the level-up chord (LevelProgressHero),
-    /// and the rank stinger (RankBadgeRevealView) are fired from their own views.
+    /// and the rank stinger (RankStandardHero) are fired from their own views.
     func playSound(for kind: RewardBeatKind) {
         switch kind {
         case .sessionComplete: UnboundSound.shared.play(.sessionComplete, volume: 0.85)
@@ -410,9 +395,9 @@ struct WorkoutRewardSequenceView: View {
         case .xp:
             animatedXP = 0
             UnboundHaptics.heavy()
-        case .proof, .rankReveal, .attributes, .collection, .progression, .rankTrial, .weeklyVow, .cosmetic, .streak:
+        case .proof, .attributes, .collection, .progression, .rankTrial, .weeklyVow, .cosmetic, .streak:
             UnboundHaptics.medium()
-        case .sessionComplete, .final, .rankBadge:
+        case .sessionComplete, .final:
             UnboundHaptics.soft()
         }
     }

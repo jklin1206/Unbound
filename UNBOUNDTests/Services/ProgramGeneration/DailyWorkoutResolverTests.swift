@@ -544,6 +544,9 @@ final class DailyWorkoutResolverTests: XCTestCase {
             ]
         )
 
+        UserDefaults.standard.set(TrainingWeightUnit.kilograms.rawValue, forKey: WeightPlatePolicy.unitDefaultsKey)
+        defer { UserDefaults.standard.removeObject(forKey: WeightPlatePolicy.unitDefaultsKey) }
+
         let resolved = DailyWorkoutResolver.composedUserDraft(
             base,
             userId: "u1",
@@ -554,6 +557,55 @@ final class DailyWorkoutResolverTests: XCTestCase {
         XCTAssertEqual(prescription?.target, .repsRange(5, 7))
         XCTAssertEqual(prescription?.rpe, 8)
         XCTAssertEqual(prescription?.suggestedWeightKg, 100)
+    }
+
+    func testProgressionSuggestionsSnapToPoundScaleWhenUserTracksPounds() {
+        var state = ProgressionState.seed(
+            userId: "u1",
+            exercise: "Bench Press",
+            startingWeightKg: 100
+        )
+        state.targetRepMin = 5
+        state.targetRepMax = 7
+        state.targetRPE = 8
+
+        let base = TrainingSessionDraft(
+            userId: "u1",
+            source: .custom,
+            title: "Built Push",
+            estimatedMinutes: 35,
+            blocks: [
+                TrainingBlock(
+                    kind: .strength,
+                    title: "Push",
+                    prescriptions: [
+                        TrainingBlockPrescription(
+                            exerciseName: "Bench Press",
+                            sets: 3,
+                            target: .repsRange(8, 10),
+                            restSeconds: 120,
+                            muscleGroups: [.chest]
+                        )
+                    ]
+                )
+            ]
+        )
+
+        UserDefaults.standard.set(TrainingWeightUnit.pounds.rawValue, forKey: WeightPlatePolicy.unitDefaultsKey)
+        defer { UserDefaults.standard.removeObject(forKey: WeightPlatePolicy.unitDefaultsKey) }
+
+        let resolved = DailyWorkoutResolver.composedUserDraft(
+            base,
+            userId: "u1",
+            progressionStates: [MovementCatalog.normalized(state.exerciseKey): state]
+        )
+
+        let prescription = resolved.blocks.first?.prescriptions.first
+        XCTAssertEqual(
+            WeightPlatePolicy.formatSuggestionWeight(prescription?.suggestedWeightKg ?? 0, unit: .pounds),
+            "220"
+        )
+        XCTAssertTrue(prescription?.displayTargetText.contains("@ 220 lb") == true)
     }
 
     private func exercise(_ name: String, sets: Int, reps: String = "8-10") -> Exercise {

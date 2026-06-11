@@ -13,3 +13,16 @@ enum QuickLogDraftFactory {
         )
     }
 }
+
+/// Builds the empty draft that backs saving a reusable workout template.
+enum SavedWorkoutDraftFactory {
+    static func empty(userId: String) -> TrainingSessionDraft {
+        TrainingSessionDraft(
+            userId: userId,
+            source: .custom,
+            title: "New Workout",
+            estimatedMinutes: 0,
+            blocks: []
+        )
+    }
+}

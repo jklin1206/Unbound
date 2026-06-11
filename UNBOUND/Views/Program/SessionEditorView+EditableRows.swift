@@ -76,11 +76,12 @@ extension SessionEditorView {
             )?.exact
         }
 
-        /// Weighted exercises get an editable Weight column; pure bodyweight/skill
-        /// movements don't — unless the prescription already carries a load
-        /// (e.g. weighted pull-ups), in which case it stays editable.
+        /// Reps-based rows keep the same Set · Weight · Reps shape as the live
+        /// workout grid. Pure bodyweight/skill rows simply render nil weight as
+        /// `—`, while loaded prescriptions stay editable.
         private var showsWeight: Bool {
             if hasAnyWeightValue { return true }
+            if metricKind == .reps { return true }
             switch movementDefinition?.loggerMode {
             case .bodyweightSets, .skillAttempts, .mobility, .routinePlayer:
                 return false

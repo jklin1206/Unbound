@@ -177,12 +177,8 @@ extension DeterministicProgramGenerator {
     ) -> Double? {
         guard let weight = state?.currentWorkingWeightKg, weight > 0 else { return nil }
         if bias == .easier {
-            return roundedHalfKilogram(max(0, weight * 0.95))
+            return WeightPlatePolicy.snappedSuggestionKilograms(max(0, weight * 0.95))
         }
-        return weight
-    }
-
-    static func roundedHalfKilogram(_ kilograms: Double) -> Double {
-        (kilograms * 2).rounded() / 2
+        return WeightPlatePolicy.snappedSuggestionKilograms(weight)
     }
 }

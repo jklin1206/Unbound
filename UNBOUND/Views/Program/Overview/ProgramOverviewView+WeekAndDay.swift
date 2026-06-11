@@ -78,8 +78,8 @@ extension ProgramOverviewView {
             badge: presentation.badge,
             heroTint: presentation.heroTint,
             isToday: isToday,
-            metrics: presentation.metrics,
-            skillNodes: presentation.skillNodes
+            metrics: [],
+            skillNodes: []
         ) {
             if let day {
                 ProgramFuelTargetBand(plan: program.nutritionPlan, day: day)

@@ -136,31 +136,59 @@ struct ClusterCardView: View {
         HStack(alignment: .center, spacing: 12) {
             skillArtworkMark
                 .frame(width: 58, height: 58)
+                .fixedSize()
 
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text(tree.displayName.uppercased())
-                        .font(Font.unbound.captionS.weight(.heavy))
-                        .tracking(2.2)
-                        .foregroundStyle(Color.unbound.textPrimary)
-                    Text(tree.chapterSubtitle)
-                        .font(Font.unbound.captionS.weight(.regular).italic())
-                        .tracking(0.2)
-                        .foregroundStyle(Color.unbound.accent.opacity(0.85))
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.85)
+            VStack(alignment: .leading, spacing: 5) {
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        treeTitle
+                        chapterSubtitleLabel
+                        if tree.isUmbrella {
+                            subClusterPill
+                        }
+                    }
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack(spacing: 8) {
+                            treeTitle
+                            if tree.isUmbrella {
+                                subClusterPill
+                            }
+                        }
+                        chapterSubtitleLabel
+                    }
                 }
+
                 Text(tree.tagline)
                     .font(Font.unbound.captionS)
                     .tracking(0.4)
                     .foregroundStyle(Color.unbound.textSecondary)
-                    .lineLimit(1)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            Spacer()
-            if tree.isUmbrella {
-                subClusterPill
-            }
+            .layoutPriority(1)
         }
+    }
+
+    private var treeTitle: some View {
+        Text(tree.displayName.uppercased())
+            .font(Font.unbound.captionS.weight(.heavy))
+            .tracking(2.2)
+            .foregroundStyle(Color.unbound.textPrimary)
+            .lineLimit(1)
+            .minimumScaleFactor(0.72)
+            .truncationMode(.tail)
+            .layoutPriority(1)
+    }
+
+    private var chapterSubtitleLabel: some View {
+        Text(tree.chapterSubtitle)
+            .font(Font.unbound.captionS.weight(.regular).italic())
+            .tracking(0.2)
+            .foregroundStyle(Color.unbound.accent.opacity(0.85))
+            .lineLimit(1)
+            .minimumScaleFactor(0.78)
+            .truncationMode(.tail)
     }
 
     private var skillArtworkMark: some View {
@@ -272,8 +300,11 @@ struct ClusterCardView: View {
                 .foregroundStyle(Color.unbound.textPrimary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
-            Spacer(minLength: 0)
+                .truncationMode(.tail)
+                .layoutPriority(1)
+            Spacer(minLength: 4)
             TierBadge(tier: earnedTier, compact: true)
+                .fixedSize()
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 8)
@@ -296,12 +327,17 @@ struct ClusterCardView: View {
                     .foregroundStyle(Color.unbound.textPrimary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.85)
+                    .truncationMode(.tail)
             }
-            Spacer()
+            .layoutPriority(1)
+            Spacer(minLength: 6)
             let userId = AuthService.shared.currentUserId ?? "anonymous"
             let skillTier = UserSkillTierStore.shared.load(userId: userId).perSkill[node.id] ?? .initiate
-            TierBadge(tier: skillTier, compact: true)
-            difficultyPill(rank: node.placementRank)
+            HStack(spacing: 6) {
+                TierBadge(tier: skillTier, compact: true)
+                difficultyPill(rank: node.placementRank)
+            }
+            .fixedSize()
         }
     }
 

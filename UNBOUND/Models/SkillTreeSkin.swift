@@ -374,7 +374,7 @@ enum SkillTreeSkin: String, Codable, Sendable, CaseIterable, Identifiable {
         case .locked:
             return Color.unbound.surface
         case .proven:
-            return primaryColor.opacity(faded ? 0.10 : 0.20)
+            return primaryColor.opacity(faded ? 0.18 : 0.24)
         }
     }
 

@@ -149,18 +149,6 @@ extension WorkoutRewardSequenceView {
         }
     }
 
-    var rankBadgeBeat: some View {
-        let tier = earnedBadgeTier ?? .novice
-        return RewardPanel(tint: tier.rewardTint, active: currentBeatKind == .rankBadge) {
-            RankBadgeRevealView(
-                tier: tier,
-                skillTitle: earnedBadgeSkillTitle ?? "",
-                multi: summary.tally.ranksAdvanced > 1 ? summary.tally.ranksAdvanced : nil,
-                active: currentBeatKind == .rankBadge && pageRevealed
-            )
-        }
-    }
-
     /// Unified RANKS page — one card per exercise (skills AND lifts) showing the
     /// rank badge earned, a bar toward the next rank, and any PR. Replaces the old
     /// per-(skill,tier) "proof" rows and the separate lift-rank page.
@@ -172,7 +160,15 @@ extension WorkoutRewardSequenceView {
 
         return RewardPanel(tint: tint, active: currentBeatKind == .proof || summary.emblemIgnition) {
             VStack(alignment: .leading, spacing: 16) {
-                beatHeader(kicker: "RANKS", title: title, tint: tint)
+                beatHeader(kicker: "RANK STANDARDS", title: title, tint: tint)
+
+                if let topRankUp = ranks.first(where: \.didRankUp) {
+                    RankStandardHero(
+                        reward: topRankUp,
+                        rankUpCount: rankUpCount,
+                        animate: currentBeatKind == .proof && pageRevealed
+                    )
+                }
 
                 if !ranks.isEmpty {
                     VStack(spacing: 10) {
@@ -201,64 +197,23 @@ extension WorkoutRewardSequenceView {
         }
     }
 
-    @ViewBuilder
-    var rankRevealBeat: some View {
-        if let receipt = summary.progression, !receipt.movementLines.isEmpty {
-            movementImpactBeat(receipt)
-        }
-    }
-
-    func movementImpactBeat(_ receipt: ProgressionReceipt) -> some View {
-        let lines = Array(receipt.movementLines.prefix(3))
-        let rankedUp = lines.contains(where: \.didRankUp)
-        let tint = rankedUp ? Color.unbound.rankGold : Color.unbound.success
-
-        return RewardPanel(tint: tint, active: currentBeatKind == .rankReveal) {
-            VStack(alignment: .leading, spacing: 18) {
-                beatHeader(
-                    kicker: rankedUp ? "MOVEMENT RANK UP" : "MOVEMENT XP",
-                    title: rankedUp ? "TIER ASCENDED" : "EARNED THIS SESSION",
-                    tint: tint
-                )
-
-                if let topLine = lines.first {
-                    MovementXPSpotlight(
-                        line: topLine,
-                        tint: topLine.didRankUp ? Color.unbound.rankGold : tint,
-                        animate: currentBeatKind == .rankReveal && pageRevealed
-                    )
-                }
-
-                VStack(spacing: 12) {
-                    ForEach(lines.dropFirst()) { line in
-                        MovementXPProgressRow(
-                            line: line,
-                            tint: Color.unbound.success,
-                            animate: currentBeatKind == .rankReveal && pageRevealed
-                        )
-                    }
-                }
-            }
-        }
-    }
-
     var attributeBeat: some View {
         RewardPanel(tint: Color.rewardBlue, active: currentBeatKind == .attributes || summary.attributeDeltas.contains(where: \.didAdvanceTier)) {
             VStack(alignment: .leading, spacing: 20) {
-                beatHeader(kicker: "BUILD UPDATED", title: "ATTRIBUTE RANKS", tint: Color.rewardBlue)
+                beatHeader(kicker: "BUILD SHIFT", title: "HEX UPDATED", tint: Color.rewardBlue)
                     .frame(maxWidth: .infinity, alignment: .leading)
 
-                HStack(alignment: .center, spacing: 16) {
-                    ZStack {
+                HStack(alignment: .center, spacing: 14) {
+                    ZStack(alignment: .center) {
                         AttributeHex(
                             current: previousAttributeMap,
                             levels: previousAttributeLevels,
                             tiers: previousAttributeTiers,
                             showLabels: false,
-                            radius: 66
+                            radius: 56
                         )
                         .opacity(0.20)
-                        .frame(width: 142, height: 142)
+                        .frame(width: 122, height: 122)
 
                         AnimatedRewardAttributeHex(
                             previous: hexPrev.isEmpty ? previousAttributeMap : hexPrev,
@@ -266,11 +221,18 @@ extension WorkoutRewardSequenceView {
                             levels: currentAttributeLevels,
                             tiers: currentAttributeTiers,
                             progress: attributeHexProgress,
-                            radius: 66
+                            radius: 56
                         )
-                        .frame(width: 142, height: 142)
+                        .frame(width: 122, height: 122)
                         .shadow(color: Color.rewardBlue.opacity(0.20), radius: 16)
                     }
+                    .frame(width: 124, height: 124)
+                    .padding(10)
+                    .background(
+                        Hexagon()
+                            .fill(Color.unbound.surface.opacity(0.76))
+                            .overlay(Hexagon().stroke(Color.rewardBlue.opacity(0.20), lineWidth: 1))
+                    )
 
                     if let primaryAttributeDelta {
                         AttributeRankSpotlight(
@@ -363,7 +325,7 @@ extension WorkoutRewardSequenceView {
     func progressionBeat(_ receipt: ProgressionReceipt) -> some View {
         RewardPanel(tint: Color.unbound.success, active: currentBeatKind == .progression) {
             VStack(alignment: .leading, spacing: 16) {
-                beatHeader(kicker: "SESSION LEDGER", title: "EARNED XP", tint: Color.unbound.success)
+                beatHeader(kicker: "SESSION RECEIPT", title: "EARNED XP", tint: Color.unbound.success)
 
                 VStack(spacing: 12) {
                     ReceiptTotalRow(
@@ -373,12 +335,6 @@ extension WorkoutRewardSequenceView {
                         show: receipt.overallLevelXPGained > 0
                     )
                     ReceiptTotalRow(
-                        label: "Movement XP",
-                        value: "+\(formatReceiptNumber(receipt.totalMovementAP)) XP",
-                        tint: Color.unbound.success,
-                        show: receipt.totalMovementAP > 0
-                    )
-                    ReceiptTotalRow(
                         label: "Skill XP",
                         value: "+\(receipt.skillXPGained) XP",
                         tint: Color.unbound.impact,
@@ -386,30 +342,6 @@ extension WorkoutRewardSequenceView {
                     )
                     if receipt.noveltyMultiplier > 1.001 {
                         rewardLine(label: "Body Novelty", value: "\(String(format: "%.2f", receipt.noveltyMultiplier))x", tint: Color.rewardTeal)
-                    }
-                }
-
-                if !receipt.movementLines.isEmpty {
-                    progressionMiniSection(title: "Movements") {
-                        VStack(spacing: 10) {
-                            ForEach(receipt.movementLines) { line in
-                                MovementXPProgressRow(
-                                    line: line,
-                                    tint: Color.unbound.success,
-                                    animate: currentBeatKind == .progression && pageRevealed
-                                )
-                            }
-                        }
-                    }
-                }
-
-                if !receipt.bodyRegionLines.isEmpty {
-                    progressionMiniSection(title: "Body Regions") {
-                        Text(receipt.bodyRegionLines.map(\.name).joined(separator: " · "))
-                            .font(Font.unbound.captionS.weight(.semibold))
-                            .foregroundStyle(Color.unbound.textSecondary)
-                            .lineLimit(3)
-                            .fixedSize(horizontal: false, vertical: true)
                     }
                 }
             }
@@ -573,8 +505,11 @@ extension WorkoutRewardSequenceView {
                 let proofCount = summary.tally.standardsCleared + summary.tally.unlocksGained + summary.tally.newBests
                 let featCount = summary.personalRecords.count + summary.badges.count + proofCount + (summary.weeklyVowCallout == nil ? 0 : 1)
                 let featLabel = proofCount > 0 ? "RANKS" : (summary.weeklyVowCallout == nil ? "FEATS" : "VOW")
-                HStack(spacing: 20) {
+                HStack(spacing: summary.arcsEarned > 0 ? 12 : 20) {
                     yieldToken(value: primaryXPValue, label: primaryXPLabel, tint: Color.rewardBlue)
+                    if summary.arcsEarned > 0 {
+                        arcYieldToken(amount: summary.arcsEarned)
+                    }
                     yieldToken(value: "\(summary.liftProgress.filter(\.didAdvanceTier).count + summary.tally.ranksAdvanced)", label: "RANK UPS", tint: dominantLiftTint)
                     yieldToken(value: "\(featCount)", label: featLabel, tint: proofCount > 0 ? proofTint : (summary.weeklyVowCallout?.theme.tintColor ?? Color.unbound.impact))
                 }

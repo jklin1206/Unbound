@@ -78,28 +78,30 @@ final class ShopInventoryStoreTests: XCTestCase {
         XCTAssertEqual(ShopInventoryStore.equippedBackdrop(for: .home, userId: userId, defaults: defaults)?.id, item.id)
     }
 
-    func testBackdropsCategoryCombinesHomeAndProfileBackdropItems() {
+    func testBackdropAndWallpaperCategoriesSplitHomeAndProfileItems() {
         let backdrops = ShopCatalog.items(for: .backdrop)
+        let wallpapers = ShopCatalog.items(for: .profileWallpaper)
 
         XCTAssertTrue(backdrops.contains { $0.id == "homeBackground.chamber" })
-        XCTAssertTrue(backdrops.contains { $0.id == "profileBackground.archiveWall" })
+        XCTAssertFalse(backdrops.contains { $0.id == "profileBackground.archiveWall" })
+        XCTAssertTrue(wallpapers.contains { $0.id == "profileBackground.archiveWall" })
+        XCTAssertFalse(wallpapers.contains { $0.id == "homeBackground.chamber" })
     }
 
     func testBackdropsSortByRarityThenPrice() {
         let backdrops = ShopCatalog.items(for: .backdrop)
-        let expected = backdrops.sorted {
-            if $0.raritySortRank != $1.raritySortRank {
-                return $0.raritySortRank < $1.raritySortRank
-            }
-            if $0.price != $1.price {
-                return $0.price < $1.price
-            }
-            return $0.name < $1.name
-        }
 
-        XCTAssertEqual(backdrops.map(\.id), expected.map(\.id))
-        XCTAssertEqual(backdrops.first?.id, "profileBackground.archiveWall")
-        XCTAssertEqual(backdrops.last?.id, "profileBackground.holoForge")
+        XCTAssertEqual(backdrops.map(\.id), sortedVisualItems(backdrops).map(\.id))
+        XCTAssertEqual(backdrops.first?.id, "homeBackground.archiveWall")
+        XCTAssertEqual(backdrops.last?.id, "homeBackground.holoForge")
+    }
+
+    func testWallpapersSortByRarityThenPrice() {
+        let wallpapers = ShopCatalog.items(for: .profileWallpaper)
+
+        XCTAssertEqual(wallpapers.map(\.id), sortedVisualItems(wallpapers).map(\.id))
+        XCTAssertEqual(wallpapers.first?.id, "profileBackground.archiveWall")
+        XCTAssertEqual(wallpapers.last?.id, "profileBackground.holoForge")
     }
 
     func testBackdropEquipCanReturnToDefaultSurfaces() {
@@ -142,5 +144,22 @@ final class ShopInventoryStoreTests: XCTestCase {
         let defaults = UserDefaults(suiteName: suiteName)!
         defaults.removePersistentDomain(forName: suiteName)
         return defaults
+    }
+
+    private func sortedVisualItems(_ items: [ShopItem]) -> [ShopItem] {
+        items.sorted {
+            if $0.raritySortRank != $1.raritySortRank {
+                return $0.raritySortRank < $1.raritySortRank
+            }
+            if $0.price != $1.price {
+                return $0.price < $1.price
+            }
+            let leftName = $0.name.lowercased()
+            let rightName = $1.name.lowercased()
+            if leftName != rightName {
+                return leftName < rightName
+            }
+            return $0.id < $1.id
+        }
     }
 }

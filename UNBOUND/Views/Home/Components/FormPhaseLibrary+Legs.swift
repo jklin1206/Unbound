@@ -14,16 +14,16 @@ extension FormPhaseLibrary {
         case "ld.step-up":
             return [
                 phase("phase1", "Plant", "Face a stable box and place the whole lead foot on top. Do not start from the toes or a half-foot plant.", "shoeprints.fill", assetName: assetName(assetPrefix, "phase1")),
-                phase("phase2", "Drive", "Push mostly through the lead midfoot and heel while the trailing leg stays quiet. Knee tracks over the second toe.", "arrow.up.forward", assetName: assetName(assetPrefix, "phase2")),
+                phase("phase2", "Drive", "Push mostly through the lead midfoot and heel while the trailing leg stays quiet. Do not jump or spring from the floor leg.", "arrow.up.forward", assetName: assetName(assetPrefix, "phase2")),
                 phase("phase3", "Stand Tall", "Finish with hip and knee fully extended on top before stepping down. The rep is not complete while folded forward.", "checkmark.seal.fill", assetName: assetName(assetPrefix, "phase3")),
-                phase("phase4", "Control Down", "Step down slowly and quietly. If you drop off the box or wobble hard, lower the height or reps.", "arrow.down.forward", assetName: assetName(assetPrefix, "phase4"))
+                phase("phase4", "Control Down", "Step down slowly and quietly with the knee still tracking toes. If you drop off the box or wobble hard, lower the height or reps.", "arrow.down.forward", assetName: assetName(assetPrefix, "phase4"))
             ]
         case "ld.deep-squat":
             return [
                 phase("phase1", "Stance", "Set feet around shoulder width with a small toe turn-out. Keep heel, big toe, and little toe rooted.", "shoeprints.fill", assetName: assetName(assetPrefix, "phase1")),
-                phase("phase2", "Sink", "Sit between the hips until hips pass below knees without heels lifting. Use a counterweight if balance blocks the range.", "arrow.down", assetName: assetName(assetPrefix, "phase2")),
-                phase("phase3", "Open", "Keep chest open, knees tracking with toes, and breathe slowly in the bottom. This is active mobility, not a collapsed rest.", "wind", assetName: assetName(assetPrefix, "phase3")),
-                phase("phase4", "Own Time", "Hold only while the position stays pain-free and foot-flat. Stand and reset before shape degrades.", "timer", assetName: assetName(assetPrefix, "phase4"))
+                phase("phase2", "Sink", "Sit between the hips until hips pass below knees without heels lifting. Knees track with toes; use a counterweight or heel lift only as a regression.", "arrow.down", assetName: assetName(assetPrefix, "phase2")),
+                phase("phase3", "Open", "Keep chest open, elbows light inside the knees, and breathe slowly in the bottom. Hands can guide position, but they should not prop the body up.", "wind", assetName: assetName(assetPrefix, "phase3")),
+                phase("phase4", "Own Time", "Hold only while the position stays pain-free, foot-flat, and active through the arches. Stand and reset before the shape collapses.", "timer", assetName: assetName(assetPrefix, "phase4"))
             ]
         case "ld.glute-bridge", "ld.single-leg-glute-bridge":
             let single = skillId == "ld.single-leg-glute-bridge"
@@ -50,19 +50,20 @@ extension FormPhaseLibrary {
                 phase("phase4", "Stand Clean", "Drive up without hand assist, free-foot touch, or heel lift. Use a box or counterweight if the full rep breaks.", "checkmark.seal.fill", assetName: assetName(assetPrefix, "phase4"))
             ]
         case "ld.calf-raise", "ld.weighted-sl-calf":
+            let weighted = skillId == "ld.weighted-sl-calf"
             return [
-                phase("phase1", "Stretch", "Start from a controlled bottom with ankle straight and pressure through the big toe mound. Use wall balance if needed.", "arrow.down.to.line", assetName: assetName(assetPrefix, "phase1")),
-                phase("phase2", "Rise High", "Lift as high as the ankle allows without rolling outward or bending the knee to cheat.", "arrow.up", assetName: assetName(assetPrefix, "phase2")),
-                phase("phase3", "Pause", "Hold the top briefly. This pause makes the rep full-range instead of a bounce.", "pause.circle.fill", assetName: assetName(assetPrefix, "phase3")),
-                phase("phase4", "Slow Lower", "Lower for control back into the stretch. Add load only after range stays identical.", "metronome", assetName: assetName(assetPrefix, "phase4"))
+                phase("phase1", "Stretch", weighted ? "Set the working forefoot on the step edge, hold the dumbbell still, and let the heel travel below the step while the free leg stays quiet." : "Set both forefeet on the step edge and let the heels travel below the step. Keep pressure through the big-toe mound and use light balance only.", "arrow.down.to.line", assetName: assetName(assetPrefix, "phase1")),
+                phase("phase2", "Rise High", weighted ? "Raise the working heel as high as the ankle allows without the free leg helping, the dumbbell swinging, or the knee bending to cheat." : "Raise both heels as high as the ankles allow without rolling outward, bouncing, or bending the knees to cheat.", "arrow.up", assetName: assetName(assetPrefix, "phase2")),
+                phase("phase3", "Pause", weighted ? "Hold the top on the working leg with the heel high, weight through the big-toe mound, and the balance hand light." : "Hold the top briefly with both heels high. This pause makes the rep full-range instead of a bounce.", "pause.circle.fill", assetName: assetName(assetPrefix, "phase3")),
+                phase("phase4", "Slow Lower", weighted ? "Lower the working heel back below the step under control. Add load only while every rep keeps the same bottom stretch and top height." : "Lower under control until the heels pass below the step again. Add difficulty only after the stretch and top height stay identical.", "metronome", assetName: assetName(assetPrefix, "phase4"))
             ]
         case "ld.jumping-squat", "ld.box-jump":
             let box = skillId == "ld.box-jump"
             return [
-                phase("phase1", "Load", box ? "Set a stable box and dip into an athletic quarter squat." : "Descend to a controlled squat depth with feet rooted.", "pause.circle.fill", assetName: assetName(assetPrefix, "phase1")),
+                phase("phase1", "Load", box ? "Set a stable box and dip into a shallow athletic quarter squat. Stay tall enough that the jump starts from power, not a collapsed crouch." : "Descend to a controlled squat depth with feet rooted.", "pause.circle.fill", assetName: assetName(assetPrefix, "phase1")),
                 phase("phase2", "Triple Extend", "Extend hips, knees, and ankles together. Arms can swing, but knees still track toes.", "bolt.fill", assetName: assetName(assetPrefix, "phase2")),
-                phase("phase3", box ? "Soft Box Landing" : "Soft Landing", box ? "Land with the whole foot on the box, knees soft, and chest organized. Stand tall after landing." : "Land quietly with knees soft and aligned, then absorb into the next rep.", "arrow.down.forward.circle.fill", assetName: assetName(assetPrefix, "phase3")),
-                phase("phase4", box ? "Step Down" : "Stop On Fade", box ? "Step down instead of jumping down. Protect the ankle and keep the next rep crisp." : "End the set when height or landing quality drops. Power reps are not burnout reps.", "timer", assetName: assetName(assetPrefix, "phase4"))
+                phase("phase3", box ? "Land Tall" : "Soft Landing", box ? "Land with the whole foot on the box, knees tracking toes, and hips clearly above knee height. Absorb quietly, but do not turn the landing into a deep squat." : "Land quietly with knees soft and aligned, then absorb into the next rep.", "arrow.down.forward.circle.fill", assetName: assetName(assetPrefix, "phase3")),
+                phase("phase4", box ? "Step Down" : "Stop On Fade", box ? "Stand tall first, then step down instead of jumping down. Protect the ankle and keep the next rep crisp." : "End the set when height or landing quality drops. Power reps are not burnout reps.", "timer", assetName: assetName(assetPrefix, "phase4"))
             ]
         case "ld.leg-extensions":
             return [
@@ -96,9 +97,17 @@ extension FormPhaseLibrary {
             if skillId == "ld.nordic-hip-hinge" {
                 return [
                     phase("phase1", "Anchor", "Secure ankles under a stable anchor. If the feet shift, the rep is over before it starts.", "lock.fill", assetName: assetName(assetPrefix, "phase1")),
-                    phase("phase2", "Brace Line", "Set ribs, glutes, and trunk before hinging. The hinge is deliberate, not a collapse.", "line.diagonal", assetName: assetName(assetPrefix, "phase2")),
-                    phase("phase3", "Hip Hinge", "Move the hips back while the hamstrings load. Keep the spine organized and avoid rounding to escape tension.", "arrow.down.forward", assetName: assetName(assetPrefix, "phase3")),
+                    phase("phase2", "Brace Line", "Set ribs, glutes, and trunk before leaning forward from the knees. The hinge is deliberate, not a backward reverse-Nordic lean.", "line.diagonal", assetName: assetName(assetPrefix, "phase2")),
+                    phase("phase3", "Hip Hinge", "Lean forward while the hips fold back enough to show a clear crease. Keep the spine organized and avoid rounding to escape tension.", "arrow.down.forward", assetName: assetName(assetPrefix, "phase3")),
                     phase("phase4", "Return", "Pull back to tall kneeling with control. Shorten the range if the anchor shifts or the back rounds.", "arrow.up", assetName: assetName(assetPrefix, "phase4"))
+                ]
+            }
+            if skillId == "ld.advancing-nordic-curl" {
+                return [
+                    phase("phase1", "Anchor", "Secure ankles under a stable anchor and start tall. The anchor should hold the feet while the hamstrings control the forward hinge.", "lock.fill", assetName: assetName(assetPrefix, "phase1")),
+                    phase("phase2", "Forward", "Lean farther forward than the basic hinge while the hips fold back slightly. Hands reach forward as insurance, not as the engine.", "arrow.down.forward", assetName: assetName(assetPrefix, "phase2")),
+                    phase("phase3", "Deep Hinge", "Reach the deepest forward hinge you can reverse: hips clearly flexed, trunk organized, ankles anchored, and hands ready before the last inches become a fall.", "metronome", assetName: assetName(assetPrefix, "phase3")),
+                    phase("phase4", "Reset", "Return under control or use a light hand catch, then reset to tall kneeling. Do not turn the catch into a push-up rep.", "arrow.up", assetName: assetName(assetPrefix, "phase4"))
                 ]
             }
             return [

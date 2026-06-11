@@ -47,6 +47,30 @@ final class TrainingWeightPolicyTests: XCTestCase {
         )
     }
 
+    func testSuggestionFormattingSnapsConvertedWeightsToSelectedUnitScale() {
+        let twoPlatePoundsInKilograms = TrainingWeightUnit.pounds.kilograms(fromDisplayValue: 225)
+
+        XCTAssertEqual(
+            WeightPlatePolicy.formatSuggestionWeightWithUnit(
+                twoPlatePoundsInKilograms,
+                unit: .kilograms,
+                microloadingEnabled: false,
+                separator: " "
+            ),
+            "102.5 kg"
+        )
+
+        XCTAssertEqual(
+            WeightPlatePolicy.formatSuggestionWeightWithUnit(
+                100,
+                unit: .pounds,
+                microloadingEnabled: false,
+                separator: " "
+            ),
+            "220 lb"
+        )
+    }
+
     func testPoundProgressionUsesStandardPlateJumpByDefault() {
         let current = TrainingWeightUnit.pounds.kilograms(fromDisplayValue: 225)
         let next = WeightPlatePolicy.progressedWeightKilograms(

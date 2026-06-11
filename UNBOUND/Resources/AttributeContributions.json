@@ -379,6 +379,10 @@
       "endurance": 0.3,
       "control": 0.15
     },
+    "high plank": {
+      "control": 0.7391,
+      "endurance": 0.2609
+    },
     "hip abductor machine": {
       "power": 0.55,
       "endurance": 0.3,
@@ -655,6 +659,11 @@
     "preacher curl": {
       "control": 0.7222,
       "endurance": 0.2778
+    },
+    "prone shoulder raise": {
+      "control": 0.55,
+      "endurance": 0.3,
+      "power": 0.15
     },
     "pseudo planche pushup": {
       "control": 0.75,

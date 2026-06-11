@@ -16,4 +16,13 @@ final class QuickLogDraftTests: XCTestCase {
         let session = ActiveWorkoutSession(trainingDraft: draft)
         XCTAssertTrue(session.exercises.isEmpty, "empty draft → empty session")
     }
+
+    func test_savedWorkoutDraftFactory_producesReusableWorkoutDraftCopy() {
+        let draft = SavedWorkoutDraftFactory.empty(userId: "u1")
+
+        XCTAssertEqual(draft.userId, "u1")
+        XCTAssertEqual(draft.source, .custom)
+        XCTAssertTrue(draft.blocks.isEmpty)
+        XCTAssertEqual(draft.title, "New Workout")
+    }
 }

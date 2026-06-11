@@ -250,7 +250,7 @@ extension MovementCatalog {
             "chin up", "pullup", "wide grip pullup", "weighted pullup", "chest to bar pullup",
             "straight bar dip", "dip",
             "banded muscle up", "low bar muscle up transition", "assisted turnover freeze", "muscle up",
-            "plank", "hollow hold", "l sit tucked", "l sit", "tuck front lever",
+            "plank", "high plank", "hollow hold", "l sit tucked", "l sit", "tuck front lever",
             "advanced tuck front lever", "dragon flag", "hanging knee raise", "hanging leg raise",
             "captains chair knee raise", "captains chair leg raise", "bodyweight squat",
             "assisted squat", "parallel squat", "split squat", "walking lunge", "step up",
@@ -259,7 +259,7 @@ extension MovementCatalog {
             "intermediate shrimp squat", "shrimp squat", "two-hand shrimp squat",
             "elevated two-hand shrimp squat", "nordic curl negative", "nordic curl",
             "nordic curl arms overhead", "tuck one-leg nordic curl", "one-leg nordic curl",
-            "bodyweight leg extension", "inverted row", "ab wheel", "decline situp", "roman chair situp",
+            "bodyweight leg extension", "glute bridge", "inverted row", "prone shoulder raise", "ab wheel", "decline situp", "roman chair situp",
             "hollow rock", "jump squat"
         ]
         if bodyweightNames.contains(name) {
@@ -309,6 +309,7 @@ extension MovementCatalog {
         let isMachineVariant = name.contains("machine")
             || name.contains("smith")
             || name.contains("cable")
+            || name.contains("belt squat")
             || name.contains("plate loaded")
             || name.contains("hammer strength")
         let isBodyweightLegExtension = name.contains("bodyweight leg extension")
@@ -333,7 +334,7 @@ extension MovementCatalog {
            name.contains("cable") || name.contains("pulldown") || name.contains("pushdown") || name.contains("face pull") || name.contains("pallof") {
             equipment.insert(.cable)
         }
-        if name.contains("machine") || name.contains("plate loaded") || name.contains("hammer strength") || name.contains("converging") || name.contains("leg press") || name.contains("hack squat") || name.contains("pendulum") || name.contains("v squat") || name.contains("pec deck") || name.contains("leg curl") || (!isBodyweightLegExtension && name.contains("leg extension")) || name.contains("reverse hyper") || name.contains("glute ham") || name.contains("captain") { equipment.insert(.machine) }
+        if name.contains("machine") || name.contains("belt squat") || name.contains("plate loaded") || name.contains("hammer strength") || name.contains("converging") || name.contains("leg press") || name.contains("hack squat") || name.contains("pendulum") || name.contains("v squat") || name.contains("pec deck") || name.contains("leg curl") || (!isBodyweightLegExtension && name.contains("leg extension")) || name.contains("reverse hyper") || name.contains("glute ham") || name.contains("captain") { equipment.insert(.machine) }
         if name.contains("pullup") || name.contains("chin up") || name.contains("hanging") { equipment.insert(.pullupBar) }
         if name.contains("ab wheel") { equipment.insert(.mobilityTool) }
         if name.contains("dip") { equipment.insert(.dipStation) }
@@ -353,6 +354,12 @@ extension MovementCatalog {
         let normalizedName = normalized(exercise.name)
         if normalizedName == "l sit tucked" {
             return .beginner
+        }
+        if normalizedName == "bodyweight leg extension" {
+            return .intermediate
+        }
+        if normalizedName == "jump squat" {
+            return .intermediate
         }
 
         if let tier = exercise.progressionTier {
@@ -415,6 +422,7 @@ extension MovementCatalog {
             || name.contains("reverse pec")
             || name.contains("reverse fly")
             || name.contains("band pull apart")
+            || name.contains("prone shoulder raise")
         if name.contains("face pull") || isRearDeltIsolation {
             regions.insert(.rearDelts)
             regions.insert(.rhomboids)

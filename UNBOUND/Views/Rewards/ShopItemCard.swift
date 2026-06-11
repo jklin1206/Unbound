@@ -91,8 +91,10 @@ struct ShopItemCard: View {
 
     private var previewAspectRatio: CGFloat {
         switch item.reward {
-        case .homeBackground, .profileBackground:
-            return ShopBackdropArtworkPreview.aspectRatio
+        case .homeBackground:
+            return ShopBackdropArtworkPreview.homePosterAspectRatio
+        case .profileBackground:
+            return ShopBackdropArtworkPreview.profileBannerAspectRatio
         default:
             return 1
         }
@@ -105,6 +107,7 @@ struct ShopItemCard: View {
             ShopBackdropArtworkPreview(
                 assetName: background.assetName,
                 accent: background.accent,
+                role: .homePoster,
                 symbolName: "house.fill",
                 symbolSize: 24,
                 scrimOpacity: 0.50
@@ -140,6 +143,7 @@ struct ShopItemCard: View {
             ShopBackdropArtworkPreview(
                 assetName: background.assetName,
                 accent: background.accent,
+                role: .profileBanner,
                 symbolName: "person.crop.rectangle.stack.fill",
                 symbolSize: 23,
                 scrimOpacity: 0.52
@@ -188,10 +192,12 @@ struct ShopItemCard: View {
 }
 
 struct ShopBackdropArtworkPreview: View {
-    static let aspectRatio: CGFloat = 9.0 / 16.0
+    static let homePosterAspectRatio: CGFloat = UnboundBackdropAspect.homePoster
+    static let profileBannerAspectRatio: CGFloat = UnboundBackdropAspect.profileBanner
 
     let assetName: String?
     let accent: Color
+    var role: BackdropPresentationRole = .thumbnail
     var symbolName: String?
     var symbolSize: CGFloat = 22
     var isMuted: Bool = false
@@ -202,13 +208,7 @@ struct ShopBackdropArtworkPreview: View {
             ZStack {
                 if let assetName,
                    let ui = UIImage(named: assetName) {
-                    Image(uiImage: ui)
-                        .resizable()
-                        .scaledToFill()
-                        .frame(width: proxy.size.width, height: proxy.size.height)
-                        .clipped()
-                        .saturation(isMuted ? 0.35 : 1.08)
-                        .contrast(1.05)
+                    previewImage(ui, in: proxy.size)
                 } else {
                     LinearGradient(
                         colors: [accent.opacity(0.78), Color.unbound.surfaceElevated],
@@ -219,11 +219,13 @@ struct ShopBackdropArtworkPreview: View {
                         .opacity(0.24)
                 }
 
-                LinearGradient(
-                    colors: [Color.clear, Color.black.opacity(scrimOpacity)],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
+                if effectiveScrimOpacity > 0 {
+                    LinearGradient(
+                        colors: [Color.clear, Color.black.opacity(effectiveScrimOpacity)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                }
 
                 if let symbolName {
                     Image(systemName: symbolName)
@@ -234,6 +236,32 @@ struct ShopBackdropArtworkPreview: View {
             }
             .frame(width: proxy.size.width, height: proxy.size.height)
         }
+    }
+
+    @ViewBuilder
+    private func previewImage(_ ui: UIImage, in size: CGSize) -> some View {
+        switch role {
+        case .profileBanner:
+            Image(uiImage: ui)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: size.width, height: size.height, alignment: .trailing)
+                .clipped()
+                .saturation(1)
+                .contrast(1)
+        case .homePoster, .thumbnail:
+            Image(uiImage: ui)
+                .resizable()
+                .scaledToFill()
+                .frame(width: size.width, height: size.height)
+                .clipped()
+                .saturation(isMuted ? 0.35 : 1.08)
+                .contrast(1.05)
+        }
+    }
+
+    private var effectiveScrimOpacity: Double {
+        role == .profileBanner ? 0 : scrimOpacity
     }
 }
 

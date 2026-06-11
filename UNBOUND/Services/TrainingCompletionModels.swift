@@ -19,6 +19,9 @@ struct TrainingCompletionResult: Sendable {
     var overallLevelReward: OverallLevelReward?
     var overallLevelXPGained: Double = 0
     var skillXPGained: Int = 0
+    /// Currency earned for the session. Legacy storage still uses "vows" keys,
+    /// but the surfaced shop currency is Arcs.
+    var arcsEarned: Int = 0
     var proofEngineResult: ProofEngineResult?
     var skillTrainingReviews: [SkillTrainingAgentReview] = []
 
@@ -84,6 +87,7 @@ struct TrainingCompletionResult: Sendable {
         overallLevelReward = replay.overallLevelReward
         overallLevelXPGained = replay.overallLevelXPGained
         skillXPGained = replay.skillXPGained
+        arcsEarned = replay.arcsEarned ?? 0
         proofEngineResult = replay.proofEngineResult
         skillTrainingReviews = replay.skillTrainingReviews ?? []
         streakCount = replay.streakCount
@@ -237,6 +241,7 @@ struct TrainingCompletionReplay: Codable, Sendable {
     var overallLevelReward: OverallLevelReward?
     var overallLevelXPGained: Double
     var skillXPGained: Int
+    var arcsEarned: Int?
     var proofEngineResult: ProofEngineResult?
     var skillTrainingReviews: [SkillTrainingAgentReview]?
     var streakCount: Int
@@ -259,6 +264,7 @@ struct TrainingCompletionReplay: Codable, Sendable {
         overallLevelReward = result.overallLevelReward
         overallLevelXPGained = result.overallLevelXPGained
         skillXPGained = result.skillXPGained
+        arcsEarned = result.arcsEarned
         proofEngineResult = result.proofEngineResult
         skillTrainingReviews = result.skillTrainingReviews
         streakCount = result.streakCount

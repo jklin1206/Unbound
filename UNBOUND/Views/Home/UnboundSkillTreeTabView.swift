@@ -21,8 +21,6 @@ struct UnboundSkillTreeTabView: View {
 
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 18) {
-                    treeCosmeticsAccess
-
                     SkillGraphView(
                         graph: SkillGraph.shared,
                         nodeStates: liveStatesForFullGraph(),
@@ -82,78 +80,6 @@ struct UnboundSkillTreeTabView: View {
             let userId = services.auth.currentUserId ?? "anonymous"
             _ = await skinService.evaluateUnlocks(userId: userId)
         }
-    }
-
-    private var treeCosmeticsAccess: some View {
-        Button {
-            UnboundHaptics.soft()
-            showCosmetics = true
-        } label: {
-            HStack(spacing: 12) {
-                cosmeticSwatch
-                    .frame(width: 42, height: 42)
-
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("TREE COSMETIC")
-                        .font(Font.unbound.monoS)
-                        .tracking(1.5)
-                        .foregroundStyle(Color.unbound.textTertiary)
-                    Text(skinService.currentSkin.displayName.uppercased())
-                        .font(Font.unbound.bodyMStrong)
-                        .tracking(1.0)
-                        .foregroundStyle(Color.unbound.textPrimary)
-                }
-
-                Spacer()
-
-                Text("\(skinService.unlockedSkins.count)/\(SkillTreeSkin.allCases.count)")
-                    .font(Font.unbound.monoS)
-                    .foregroundStyle(skinService.currentSkin.primaryColor)
-                    .padding(.horizontal, 9)
-                    .padding(.vertical, 5)
-                    .background(Capsule().fill(skinService.currentSkin.primaryColor.opacity(0.14)))
-
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(Color.unbound.textTertiary)
-            }
-            .padding(12)
-            .frame(maxWidth: .infinity)
-            .background(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(Color.unbound.surface)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .strokeBorder(skinService.currentSkin.primaryColor.opacity(0.32), lineWidth: 1)
-            )
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("Current skill tree cosmetic: \(skinService.currentSkin.displayName)")
-        .accessibilityHint("Opens skill tree cosmetic themes")
-    }
-
-    private var cosmeticSwatch: some View {
-        ZStack {
-            if UIImage(named: skinService.currentSkin.backgroundAssetName) != nil {
-                Image(skinService.currentSkin.backgroundAssetName)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .contrast(skinService.currentSkin.backgroundAssetContrast)
-                    .opacity(skinService.currentSkin.backgroundAssetOpacity)
-            } else {
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(skinService.currentSkin.nodeGradient)
-            }
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(skinService.currentSkin.mapBackground)
-                .blendMode(.screen)
-            Image(systemName: "hexagon.fill")
-                .font(.system(size: 18, weight: .bold))
-                .foregroundStyle(skinService.currentSkin.decalColor)
-                .shadow(color: skinService.currentSkin.impactDecalColor.opacity(0.55), radius: 6)
-        }
-        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
     }
 
     // MARK: Build-identity hero — aggregate rank

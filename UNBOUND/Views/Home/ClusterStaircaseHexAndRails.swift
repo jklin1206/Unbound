@@ -36,6 +36,9 @@ extension ClusterStaircaseView {
     ) -> some View {
         ZStack {
             Hexagon()
+                .fill(Color.unbound.surface)
+                .frame(width: size, height: size)
+            Hexagon()
                 .fill(fillColor(state: state, faded: faded))
                 .frame(width: size, height: size)
             Hexagon()
@@ -47,7 +50,6 @@ extension ClusterStaircaseView {
             glyph(for: node, state: state, fontSize: 24)
         }
         .shadow(color: glowColor(state: state, faded: faded), radius: state == .locked ? 0 : 10)
-        .opacity(faded ? 0.78 : 1.0)
         .contentShape(Rectangle())
         .onTapGesture {
             UnboundHaptics.medium()
@@ -58,6 +60,9 @@ extension ClusterStaircaseView {
     func activeHex(node: SkillNode, state: NodeState, size: CGFloat) -> some View {
         let skin = skinService.currentSkin
         return ZStack {
+            Hexagon()
+                .fill(Color.unbound.surface)
+                .frame(width: size, height: size)
             Hexagon()
                 .fill(skin.nodeFill(state: state, faded: false))
                 .frame(width: size, height: size)
@@ -81,6 +86,9 @@ extension ClusterStaircaseView {
     func keystoneHex(node: SkillNode, state: NodeState, size: CGFloat) -> some View {
         let skin = skinService.currentSkin
         return ZStack {
+            Hexagon()
+                .fill(Color.unbound.surface)
+                .frame(width: size, height: size)
             Hexagon()
                 .fill(keystoneFill(state: state))
                 .frame(width: size, height: size)
@@ -736,6 +744,9 @@ extension ClusterStaircaseView {
         let state = nodeStates[node.id] ?? .locked
         return VStack(spacing: 6) {
             ZStack {
+                Hexagon()
+                    .fill(Color.unbound.surface)
+                    .frame(width: size, height: size)
                 Hexagon()
                     .fill(fillColor(state: state, faded: false))
                     .frame(width: size, height: size)

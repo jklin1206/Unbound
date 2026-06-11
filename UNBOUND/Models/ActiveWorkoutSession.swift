@@ -826,7 +826,9 @@ final class ActiveWorkoutSession: ObservableObject, Identifiable {
                             rpe: nil,
                             isWarmup: plan.isWarmup,
                             logged: false,
-                            suggestedWeightKg: plan.suggestedWeightKg,
+                            suggestedWeightKg: plan.suggestedWeightKg.map {
+                                WeightPlatePolicy.snappedSuggestionKilograms($0)
+                            },
                             suggestedReps: metricKind == .reps ? plan.target.metricLowerBound : nil,
                             suggestedHoldSeconds: metricKind == .holdSeconds ? plan.target.metricLowerBound : nil,
                             suggestedDurationSeconds: metricKind == .durationSeconds ? plan.target.metricLowerBound : nil,

@@ -195,6 +195,70 @@ extension DeterministicProgramGenerator {
         }
     }
 
+    static func uniqueWorkoutDefinitions(_ definitions: [MovementDefinition]) -> [MovementDefinition] {
+        var seen: Set<String> = []
+        return definitions.filter { definition in
+            let key = workoutEquivalenceKey(for: definition)
+            guard !seen.contains(key) else { return false }
+            seen.insert(key)
+            return true
+        }
+    }
+
+    static func workoutEquivalenceKey(for definition: MovementDefinition) -> String {
+        if let canonical = definition.canonicalExerciseName {
+            return "exercise.\(MovementCatalog.normalized(canonical))"
+        }
+
+        if let exercise = canonicalExerciseEquivalent(for: definition),
+           let canonical = exercise.canonicalExerciseName {
+            return "exercise.\(MovementCatalog.normalized(canonical))"
+        }
+
+        return "movement.\(definition.rankStandardMovementId)"
+    }
+
+    static func canonicalExerciseEquivalent(for definition: MovementDefinition) -> MovementDefinition? {
+        guard definition.role == .skillTarget || definition.role == .skillDrill else {
+            return nil
+        }
+
+        let names = [definition.displayName] + definition.aliases
+        for name in names {
+            let resolved = MovementResolver.resolve(name)
+            guard resolved.movementId != definition.id,
+                  let resolvedDefinition = MovementCatalog.definition(for: resolved.movementId),
+                  resolvedDefinition.role == .canonicalExercise,
+                  resolvedDefinition.movementSlot != .routine,
+                  resolvedDefinition.movementSlot == resolved.movementSlot
+            else {
+                continue
+            }
+            return resolvedDefinition
+        }
+
+        return nil
+    }
+
+    static func rotateDefinitions(
+        _ definitions: [MovementDefinition],
+        by offset: Int
+    ) -> [MovementDefinition] {
+        guard definitions.count > 1 else { return definitions }
+        let shift = ((offset % definitions.count) + definitions.count) % definitions.count
+        guard shift > 0 else { return definitions }
+        return Array(definitions[shift...]) + Array(definitions[..<shift])
+    }
+
+    static func containsBiasedGroup(
+        _ definition: MovementDefinition,
+        bias: [MuscleGroup: Int]
+    ) -> Bool {
+        guard !bias.isEmpty else { return false }
+        let biasedGroups = Set(bias.keys)
+        return !Set(definition.muscleGroups).intersection(biasedGroups).isEmpty
+    }
+
     static func rotationFiltered(
         _ definitions: [MovementDefinition],
         input: ProgramGeneratorInput

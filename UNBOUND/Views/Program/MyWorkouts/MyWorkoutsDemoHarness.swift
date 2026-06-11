@@ -7,6 +7,7 @@ struct MyWorkoutsDemoHarness: View {
     @StateObject private var services: ServiceContainer
     @State private var activeDraft: TrainingSessionDraft?
     @State private var editorDraft: TrainingSessionDraft?
+    @State private var savedWorkoutRevision = 0
 
     init() {
         _services = StateObject(wrappedValue: ServiceContainer())
@@ -22,9 +23,10 @@ struct MyWorkoutsDemoHarness: View {
 
     var body: some View {
         MyWorkoutsView(
+            refreshTrigger: savedWorkoutRevision,
             onQuickLog: { activeDraft = QuickLogDraftFactory.empty(userId: "demo") },
-            onBuild: { editorDraft = QuickLogDraftFactory.empty(userId: "demo") },
-            onUseToday: { _ in activeDraft = QuickLogDraftFactory.empty(userId: "demo") },
+            onBuild: { editorDraft = SavedWorkoutDraftFactory.empty(userId: "demo") },
+            onStartWorkout: { workout in activeDraft = workout.asDraft(userId: "demo") },
             onSchedule: { _ in }
         )
         .environmentObject(services)
@@ -33,11 +35,10 @@ struct MyWorkoutsDemoHarness: View {
                 .environmentObject(services)
         }
         .fullScreenCover(item: $editorDraft) { d in
-            SessionEditorView(draft: d) { editedDraft in
+            SessionEditorView(draft: d, mode: .saveWorkout) { editedDraft in
+                SavedWorkoutStore.shared.save(SavedWorkout.from(editedDraft))
                 editorDraft = nil
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.22) {
-                    activeDraft = editedDraft
-                }
+                savedWorkoutRevision += 1
             }
             .environmentObject(services)
         }
