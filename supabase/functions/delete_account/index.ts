@@ -146,12 +146,23 @@ serve(async (req) => {
     })
   }
 
+  let confirm = false
   let legacyUserId: string | null = null
   try {
     const body = (await req.json()) as DeleteAccountRequestBody
+    confirm = body.confirm === true
     legacyUserId = body.legacy_user_id ?? null
   } catch {
-    // Body is optional; an absent/invalid body just means no legacy UID.
+    // Absent/invalid body means no confirmation and no legacy UID.
+  }
+
+  // Deletion is irreversible; require the explicit confirm flag so a stray
+  // authenticated POST can't wipe the account.
+  if (!confirm) {
+    return new Response(JSON.stringify({ error: "confirmation_required" }), {
+      status: 400,
+      headers: jsonHeaders,
+    })
   }
 
   try {
