@@ -38,22 +38,7 @@ struct ProfileCosmeticsView: View {
     }
 
     private var header: some View {
-        HStack(alignment: .center, spacing: 12) {
-            ZStack {
-                Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [activeTint, Color.unbound.rankGold, Color.unbound.impact],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                Image(systemName: "person.crop.rectangle.stack.fill")
-                    .font(.system(size: 17, weight: .black))
-                    .foregroundStyle(Color.black.opacity(0.76))
-            }
-            .frame(width: 46, height: 46)
-
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
                 Text("PROFILE KIT")
                     .font(.system(size: 10, weight: .black, design: .monospaced))
@@ -72,22 +57,13 @@ struct ProfileCosmeticsView: View {
             Text("\(rankUnlockedCount)/\(rankRewardCount)")
                 .font(.system(size: 13, weight: .black, design: .rounded))
                 .monospacedDigit()
-                .foregroundStyle(activeTint)
-                .padding(.horizontal, 10)
-                .frame(height: 30)
-                .background(Capsule().fill(activeTint.opacity(0.14)))
+                .foregroundStyle(Color.unbound.textSecondary)
         }
-        .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(Color.unbound.surface.opacity(0.92))
-        )
     }
 
     private var cosmeticTable: some View {
         VStack(spacing: 0) {
-            ProfileCosmeticTableHeader(surface: selectedSurface)
             ForEach(profileRows) { row in
                 ProfileCosmeticTableRow(
                     row: row,
@@ -96,14 +72,6 @@ struct ProfileCosmeticsView: View {
                 )
             }
         }
-        .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(Color.unbound.surface.opacity(0.86))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
-        )
     }
 
     private var surfaceSwitch: some View {
@@ -204,7 +172,6 @@ struct ProfileCosmeticsView: View {
         ProfileCosmeticOptionState(
             isSelected: isSelected(option),
             isUnlockedOrOwned: isUnlockedOrOwned(option),
-            statusTitle: statusTitle(for: option),
             actionTitle: actionTitle(for: option),
             isActionDisabled: isActionDisabled(option)
         )
@@ -241,12 +208,6 @@ struct ProfileCosmeticsView: View {
         if isSelected(row) { return true }
         if isUnlockedOrOwned(row) { return false }
         return !(row.isShopItem && openShop != nil)
-    }
-
-    private func statusTitle(for row: ProfileCosmeticRow) -> String {
-        if isSelected(row) { return "Active" }
-        if isUnlockedOrOwned(row) { return row.isShopItem ? "Owned" : "Unlocked" }
-        return row.isShopItem && openShop != nil ? "Shop" : "Locked"
     }
 
     private func actionTitle(for row: ProfileCosmeticRow) -> String {
@@ -303,7 +264,6 @@ struct ProfileCosmeticsView: View {
 private struct ProfileCosmeticOptionState {
     let isSelected: Bool
     let isUnlockedOrOwned: Bool
-    let statusTitle: String
     let actionTitle: String
     let isActionDisabled: Bool
 }
@@ -332,14 +292,6 @@ private enum ProfileCosmeticSurface: String, CaseIterable, Identifiable {
         }
     }
 
-    var headerTitle: String {
-        switch self {
-        case .borders:
-            return "BORDER"
-        case .banners:
-            return "BANNER"
-        }
-    }
 }
 
 private enum ProfileCosmeticRow: Identifiable {
@@ -431,25 +383,6 @@ private enum ProfileCosmeticRow: Identifiable {
     }
 }
 
-private struct ProfileCosmeticTableHeader: View {
-    let surface: ProfileCosmeticSurface
-
-    var body: some View {
-        HStack(spacing: 12) {
-            Text(surface.headerTitle)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            Text("STATE")
-                .frame(width: 64, alignment: .trailing)
-        }
-        .font(.system(size: 8, weight: .black, design: .monospaced))
-        .tracking(1.2)
-        .foregroundStyle(Color.unbound.textTertiary)
-        .padding(.horizontal, 12)
-        .padding(.top, 12)
-        .padding(.bottom, 8)
-    }
-}
-
 private struct ProfileCosmeticTableRow: View {
     let row: ProfileCosmeticRow
     let state: ProfileCosmeticOptionState
@@ -501,23 +434,13 @@ private struct ProfileCosmeticTableRow: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .layoutPriority(1)
 
-                VStack(alignment: .trailing, spacing: 7) {
-                    Text(state.statusTitle.uppercased())
-                        .font(.system(size: 8, weight: .black, design: .monospaced))
-                        .tracking(0.8)
-                        .foregroundStyle(statusTint)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.60)
-
-                    Text(state.actionTitle.uppercased())
-                        .font(.system(size: 9, weight: .black, design: .monospaced))
-                        .tracking(0.7)
-                        .foregroundStyle(actionForeground)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.54)
-                        .frame(width: 58, height: 28)
-                        .background(Capsule().fill(actionBackground))
-                }
+                Text(state.actionTitle.uppercased())
+                    .font(.system(size: 9, weight: .black, design: .monospaced))
+                    .tracking(0.7)
+                    .foregroundStyle(actionForeground)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.54)
+                    .frame(width: 58, alignment: .trailing)
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 10)
@@ -597,15 +520,9 @@ private struct ProfileCosmeticTableRow: View {
         return state.isUnlockedOrOwned ? row.accent : Color.unbound.textTertiary
     }
 
-    private var actionBackground: Color {
-        if state.isSelected { return Color.unbound.rankGold.opacity(0.18) }
-        if !state.isUnlockedOrOwned { return Color.unbound.surfaceElevated }
-        return row.accent.opacity(0.22)
-    }
-
     private var actionForeground: Color {
         if state.isSelected { return Color.unbound.rankGold }
-        if state.isUnlockedOrOwned { return Color.unbound.textPrimary }
+        if state.isUnlockedOrOwned { return Color.unbound.accent }
         return Color.unbound.textTertiary
     }
 }

@@ -126,6 +126,16 @@ struct UnboundHomeView: View {
             bindCosmeticStores()
             await model.load()
         }
+        #if DEBUG
+        .onAppear {
+            let args = ProcessInfo.processInfo.arguments
+            if args.contains("--unbound-open-shop") {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { showingShop = true }
+            } else if args.contains("--unbound-open-backdrops") {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { showingBackdropPicker = true }
+            }
+        }
+        #endif
         .onChange(of: model.isLoading) { _, isLoading in
             guard !isLoading else { return }
             // Kick off ambient loops once content is on screen.

@@ -100,6 +100,13 @@ struct ProfileView: View {
         }
         .navigationBarHidden(true)
         .task(id: services.auth.currentUserId ?? "anonymous") { await load() }
+        #if DEBUG
+        .onAppear {
+            if ProcessInfo.processInfo.arguments.contains("--unbound-open-cosmetics"), !showProfileCosmetics {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) { showProfileCosmetics = true }
+            }
+        }
+        #endif
         .confirmationDialog("Profile picture",
                             isPresented: $showPhotoOptions,
                             titleVisibility: .visible) {
