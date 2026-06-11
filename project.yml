@@ -73,7 +73,6 @@ targets:
         product: HotReloading
         weak: true
       - sdk: AppIntents.framework
-
   UNBOUNDTests:
     type: bundle.unit-test
     platform: iOS
@@ -87,3 +86,37 @@ targets:
         GENERATE_INFOPLIST_FILE: YES
         BUNDLE_LOADER: "$(TEST_HOST)"
         TEST_HOST: "$(BUILT_PRODUCTS_DIR)/UNBOUND.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/UNBOUND"
+
+# Explicit scheme (replaces the auto-generated one) so the archive carries a
+# post-action: the HotReloading SPM stack embeds SwiftTrace.framework
+# (swizzling/injection machinery) into the app in EVERY configuration, and
+# SPM embedding runs after all build phases, so a target script phase can't
+# strip it. The archive post-action deletes it from the .xcarchive before
+# export re-signs — Release products never ship injection code while Debug
+# keeps hot reload intact.
+schemes:
+  UNBOUND:
+    build:
+      targets:
+        UNBOUND: all
+        UNBOUNDTests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      gatherCoverageData: false
+      targets:
+        - UNBOUNDTests
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release
+      postActions:
+        - name: "Strip injection frameworks from archive"
+          settingsTarget: UNBOUND
+          script: |
+            APP="${ARCHIVE_PRODUCTS_PATH}/Applications/${PRODUCT_NAME}.app"
+            rm -rf "${APP}/Frameworks/SwiftTrace.framework" \
+                   "${APP}/Frameworks/HotReloading.framework"
