@@ -164,12 +164,19 @@ struct RankTitlePlate: View {
     let tier: SkillTier
     let tint: Color
 
+    // Tier material escalation: trainee tiers read as a quiet hairline row;
+    // named tiers (Veteran+) earn a tinted plate; flagship tiers (Vessel+)
+    // add a sigil glow. Same ladder as the avatar frame-glow escalation.
+    private var isNamedTier: Bool { tier.ordinal >= 4 }
+    private var isFlagshipTier: Bool { tier.ordinal >= 6 }
+
     var body: some View {
         HStack(spacing: 8) {
             Image(tier.assetName)
                 .resizable()
                 .scaledToFit()
                 .frame(width: 26, height: 26)
+                .shadow(color: isFlagshipTier ? tint.opacity(0.55) : .clear, radius: 7)
 
             Text(tier.displayName.uppercased())
                 .font(.system(size: 13, weight: .black, design: .monospaced))
@@ -186,10 +193,25 @@ struct RankTitlePlate: View {
                 .foregroundStyle(tier.rewardTextTint)
         }
         .padding(.vertical, 10)
+        .padding(.horizontal, isNamedTier ? 10 : 0)
+        .background {
+            if isNamedTier {
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [tint.opacity(0.18), tint.opacity(0.05)],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+            }
+        }
         .overlay(alignment: .bottom) {
-            Rectangle()
-                .fill(tint.opacity(0.42))
-                .frame(height: 0.5)
+            if !isNamedTier {
+                Rectangle()
+                    .fill(tint.opacity(0.42))
+                    .frame(height: 0.5)
+            }
         }
         .accessibilityIdentifier("profile.rankInfoPlate")
     }
