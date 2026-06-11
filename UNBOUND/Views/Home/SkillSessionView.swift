@@ -321,9 +321,6 @@ struct SkillSessionView: View {
         .background(
             Capsule().fill(Color.unbound.accent.opacity(0.14))
         )
-        .overlay(
-            Capsule().strokeBorder(Color.unbound.accent.opacity(0.45), lineWidth: 1)
-        )
     }
 
     // MARK: - Today's work (the single workout list)
@@ -431,19 +428,12 @@ struct SkillSessionView: View {
             .padding(.horizontal, 6)
             .frame(maxWidth: .infinity, minHeight: 50)
             .background(
+                // Calm: state via fill only — full surfaceElevated keeps the
+                // unlogged tap target legible without a border.
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
                     .fill(logged == nil
-                        ? Color.unbound.surfaceElevated.opacity(0.5)
-                        : Color.unbound.accent.opacity(0.10))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .strokeBorder(
-                        logged == nil
-                            ? Color.unbound.border
-                            : Color.unbound.accent.opacity(0.6),
-                        lineWidth: 1
-                    )
+                        ? Color.unbound.surfaceElevated
+                        : Color.unbound.accent.opacity(0.14))
             )
         }
         .buttonStyle(.plain)
@@ -853,13 +843,10 @@ struct SkillSessionView: View {
 
     // MARK: - Styling
 
+    // Calm: fill-only section panel — no border-on-fill double chrome.
     private var roundedCard: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color.unbound.surface)
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .strokeBorder(Color.unbound.border, lineWidth: 1)
-        }
+        RoundedRectangle(cornerRadius: 14, style: .continuous)
+            .fill(Color.unbound.surface)
     }
 }
 

@@ -160,10 +160,6 @@ struct QuickLogSheet: View {
                     )
                     .rotationEffect(.degrees(-90))
                     .animation(.linear(duration: 0.2), value: progress)
-                    .shadow(
-                        color: (met ? Color.unbound.impact : Color.unbound.accent).opacity(0.45),
-                        radius: 8
-                    )
 
                 VStack(spacing: 2) {
                     Text(formatHold(holdSeconds))
@@ -192,7 +188,6 @@ struct QuickLogSheet: View {
                     .frame(maxWidth: .infinity)
                     .frame(height: 38)
                     .background(Capsule().fill(Color.unbound.surfaceElevated))
-                    .overlay(Capsule().strokeBorder(Color.unbound.border, lineWidth: 1))
                 }
                 .buttonStyle(.plain)
 
@@ -206,7 +201,6 @@ struct QuickLogSheet: View {
                         .foregroundStyle(Color.unbound.textPrimary)
                         .frame(width: 38, height: 38)
                         .background(Circle().fill(Color.unbound.surfaceElevated))
-                        .overlay(Circle().strokeBorder(Color.unbound.border, lineWidth: 1))
                 }
                 .buttonStyle(.plain)
             }
@@ -304,7 +298,6 @@ struct QuickLogSheet: View {
                             .background(
                                 Capsule().fill(isSelected ? Color.unbound.accent : Color.unbound.surfaceElevated)
                             )
-                            .overlay(Capsule().strokeBorder(Color.unbound.border, lineWidth: 1))
                     }
                     .buttonStyle(.plain)
                 }
@@ -339,7 +332,6 @@ struct QuickLogSheet: View {
                             .foregroundStyle(rpe == v ? Color.unbound.bg : Color.unbound.textSecondary)
                             .frame(width: 30, height: 30)
                             .background(Circle().fill(rpe == v ? Color.unbound.accent : Color.unbound.surfaceElevated))
-                            .overlay(Circle().strokeBorder(Color.unbound.border, lineWidth: 1))
                     }
                     .buttonStyle(.plain)
                 }
@@ -395,10 +387,6 @@ struct QuickLogSheet: View {
                     RoundedRectangle(cornerRadius: 10, style: .continuous)
                         .fill(Color.unbound.bg.opacity(0.72))
                 )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
-                )
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -428,7 +416,6 @@ struct QuickLogSheet: View {
             .frame(maxWidth: .infinity)
             .frame(height: 32)
             .background(Capsule().fill(isOn ? color : Color.unbound.surfaceElevated))
-            .overlay(Capsule().strokeBorder(isOn ? Color.clear : Color.unbound.border, lineWidth: 1))
         }
         .buttonStyle(.plain)
     }
@@ -599,17 +586,13 @@ struct QuickLogSheet: View {
                 .foregroundStyle(Color.unbound.textPrimary)
                 .frame(width: 44, height: 44)
                 .background(Circle().fill(Color.unbound.surfaceElevated))
-                .overlay(Circle().strokeBorder(Color.unbound.border, lineWidth: 1))
         }
         .buttonStyle(.plain)
     }
 
+    // Calm: fill-only section panel — no border-on-fill double chrome.
     private var roundedCard: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color.unbound.surface)
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .strokeBorder(Color.unbound.border, lineWidth: 1)
-        }
+        RoundedRectangle(cornerRadius: 14, style: .continuous)
+            .fill(Color.unbound.surface)
     }
 }
