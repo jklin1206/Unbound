@@ -213,13 +213,31 @@ struct UnboundBackdropArt: View {
             let isAuthoredForHeader = isProfileBannerAsset || abs(imageAspect - containerAspect) < 0.38
 
             if isProfileBannerAsset {
+                // Authored 16:9 banner: fill the upper ~3/4 of the header
+                // (slight side crop) and fade the bottom edge into the
+                // header background so identity text never sits on a seam.
+                let naturalHeight = containerSize.width * (ui.size.height / max(1, ui.size.width))
+                let bannerFillHeight = min(containerSize.height, max(naturalHeight, containerSize.height * 0.74))
                 Image(uiImage: ui)
                     .resizable()
-                    .aspectRatio(contentMode: .fit)
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: containerSize.width, height: bannerFillHeight, alignment: .top)
+                    .clipped()
+                    .mask(
+                        LinearGradient(
+                            stops: [
+                                .init(color: .black, location: 0),
+                                .init(color: .black, location: 0.62),
+                                .init(color: .clear, location: 1)
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
                     .frame(
                         width: containerSize.width,
                         height: containerSize.height,
-                        alignment: .topTrailing
+                        alignment: .top
                     )
                     .saturation(1)
                     .contrast(1)

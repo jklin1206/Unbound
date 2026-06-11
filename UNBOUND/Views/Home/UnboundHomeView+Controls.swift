@@ -55,7 +55,7 @@ extension UnboundHomeView {
                 artwork: .shop,
                 title: "Shop",
                 value: "\(shopInventoryStore.purchasedItemIDs.count) owned",
-                tint: Color.unbound.textPrimary,
+                tint: Color.skinHex("8B5CF6"),
                 accessibilityLabel: "Open cosmetics shop"
             ) {
                 UnboundHaptics.medium()
@@ -66,7 +66,7 @@ extension UnboundHomeView {
                 artwork: .backdrops,
                 title: "Backdrops",
                 value: equippedHomeBackdrop?.name ?? "Default",
-                tint: Color.unbound.textPrimary,
+                tint: equippedHomeBackdrop?.accent ?? Color.skinHex("2DD4BF"),
                 accessibilityLabel: "Change home backdrop"
             ) {
                 UnboundHaptics.medium()
@@ -161,8 +161,7 @@ extension UnboundHomeView {
         if let activeTrial = model.trialsState.currentTrial {
             if activeTrial.capstoneState == .completed { return Color.unbound.success }
             if activeTrial.capstoneState == .missed { return Color.unbound.alert }
-            if activeTrial.capstoneState == .windowOpen { return Color.unbound.accent }
-            return Color.unbound.textPrimary
+            return activeTrial.chosenCard.theme.tintColor
         }
         if !model.trialsState.skippedCurrentWeek && !model.trialsState.currentWeekCards.isEmpty {
             return Color.unbound.accent
@@ -188,7 +187,7 @@ extension UnboundHomeView {
         if readiness.isReady {
             return readiness.targetRank?.rewardTextTint ?? Color.unbound.accent
         }
-        return Color.unbound.textPrimary
+        return Color.unbound.rankGold
     }
 
     var bodyWeightCommandValue: String {

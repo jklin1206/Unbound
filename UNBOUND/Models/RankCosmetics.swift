@@ -32,9 +32,10 @@ enum RankCosmetics {
         return UIImage(named: name) != nil ? name : nil
     }
 
-    /// Returns the profile background asset name, or nil if not shipped.
+    /// Returns the profile banner asset name (16:9, authored for the
+    /// profile header), or nil if not shipped.
     static func profileBackgroundAsset(for tier: RankTitle) -> String? {
-        let name = "profile_bg_\(tier.token)"
+        let name = "profile_banner_\(tier.token)"
         return UIImage(named: name) != nil ? name : nil
     }
 
