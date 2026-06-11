@@ -1,3 +1,4 @@
+#if DEBUG
 import SwiftUI
 import UserNotifications
 import UIKit
@@ -507,3 +508,5 @@ extension DevBuildBootstrapper {
         }
     }
 }
+
+#endif

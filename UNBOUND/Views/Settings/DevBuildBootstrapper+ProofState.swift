@@ -1,3 +1,4 @@
+#if DEBUG
 import SwiftUI
 import UserNotifications
 import UIKit
@@ -386,6 +387,43 @@ extension DevBuildBootstrapper {
         DevFlags.shared.unlockAllFeatures = false
     }
 
+    static func resetCompletedWorkouts() async {
+        AuthService.shared.activateDevUser(id: userId)
+        DevFlags.shared.unlockAllFeatures = true
+
+        let defaults = UserDefaults.standard
+        defaults.set(resetCompletedWorkoutsDevAccountMode, forKey: devAccountModeKey)
+        defaults.removeObject(forKey: "unbound.sessionxpbonus.\(userId)")
+        defaults.removeObject(forKey: "unbound.wallet.vows.grantLedger.\(userId)")
+
+        let completionCollections = [
+            "body_map_source_receipts",
+            "movement_progress_source_receipts",
+            "performanceLogs",
+            "sessionLogs",
+            "training_completion_overload_receipts",
+            "training_completion_progression_receipts",
+            "training_completion_records",
+            "training_completion_replay_receipts",
+            "vitality_reward_records",
+            "workoutLogs"
+        ]
+        for collection in completionCollections {
+            _ = try? await DatabaseService.shared.deleteWhere(
+                collection: collection,
+                field: "userId",
+                isEqualTo: userId
+            )
+        }
+
+        seedFreshSessionXP(at: Date())
+        ProgramTrainingContextStore.shared.clear(userId: userId, programId: "dev-program")
+        WorkoutDraftStore().clear()
+        TrainingSessionDraftStore().clear()
+        RoutineHistoryStore.shared.clear()
+        OutboxStore.shared.clear()
+    }
+
     static func seedFreshLoginDevAccount(services _: ServiceContainer) async {
         AuthService.shared.activateDevUser(id: userId)
         DevFlags.shared.unlockAllFeatures = true
@@ -438,7 +476,6 @@ extension DevBuildBootstrapper {
             "unbound.profileCosmetics.highest.\(userId)",
             "unbound.profileCosmetics.frame.\(userId)",
             "unbound.profileCosmetics.background.\(userId)",
-            "unbound.profileCosmetics.color.\(userId)",
             "unbound.wallet.vows.\(userId)",
             "unbound.wallet.vows.starterGrant.\(userId)",
             "unbound.wallet.vows.grantLedger.\(userId)",
@@ -688,3 +725,5 @@ extension DevBuildBootstrapper {
     }
 
 }
+
+#endif
