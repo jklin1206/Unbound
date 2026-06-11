@@ -197,7 +197,7 @@ final class DailyWorkoutResolverTests: XCTestCase {
 
         let prescriptions = draft.blocks.first(where: { $0.kind == .strength })?.prescriptions ?? []
         XCTAssertEqual(prescriptions.count, 3)
-        XCTAssertTrue(prescriptions.contains { $0.exerciseName == "Band Lat Pull" })
+        XCTAssertTrue(prescriptions.contains { $0.exerciseName == "Band Lat Pulldown" })
         XCTAssertTrue(prescriptions.contains { $0.exerciseName == "Band Row" })
         XCTAssertTrue(prescriptions.contains { $0.exerciseName == "Band Curl" })
         XCTAssertTrue(prescriptions.allSatisfy { prescription in
