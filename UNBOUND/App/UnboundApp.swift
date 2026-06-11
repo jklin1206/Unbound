@@ -214,7 +214,17 @@ struct RootView: View {
                         // rehydrate the active program. Gated on "no local cache"
                         // so it does NOT run on every launch.
                         if ProgramStore.shared.loadLocal(userId: userId) == nil {
-                            try? await SyncEngine.shared.restore(userId: userId)
+                            do {
+                                try await SyncEngine.shared.restore(userId: userId)
+                            } catch {
+                                // Restore is retried implicitly (cache stays empty so
+                                // this branch runs again next launch) — but a silent
+                                // failure here looks like a wiped account, so log it.
+                                LoggingService.shared.log(
+                                    "Restore-on-sign-in failed: \(error)",
+                                    level: .error
+                                )
+                            }
                             if let profile: UserProfile = try? await DatabaseService.shared
                                 .read(collection: "users", documentId: userId),
                                let pid = profile.currentProgramId,

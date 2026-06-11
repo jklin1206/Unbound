@@ -15,6 +15,7 @@ struct ActiveWorkoutContainerView: View {
     @State private var showCompleteConfirm = false
     @State private var saveError = false
     @State private var showExitConfirm = false
+    @State private var draftAutosaveFailed = false
 
     // Swap sheet state
     @State private var swapExerciseIndex: Int? = nil
@@ -105,6 +106,10 @@ struct ActiveWorkoutContainerView: View {
             VStack(spacing: 0) {
                 workoutTopBar
 
+                if draftAutosaveFailed {
+                    draftAutosaveWarning
+                }
+
                 WorkoutLogGridView(
                     session: session,
                     rankTrialDefinition: rankTrialDefinition,
@@ -115,7 +120,7 @@ struct ActiveWorkoutContainerView: View {
                     onConfirmAsPlanned: { ei, si in
                         let shouldUseDeckFlow = isDeckTrial
                         session.confirmAsPlanned(exerciseIndex: ei, setIndex: si)
-                        try? draftStore.save(session)
+                        saveDraft()
                         if shouldUseDeckFlow && !session.hasUnloggedWorkingSets {
                             restTimer.stop()
                             Task { await complete() }
@@ -125,11 +130,11 @@ struct ActiveWorkoutContainerView: View {
                     },
                     onToggleQualityFlag: { ei, si, flag in
                         session.toggleQualityFlag(flag, exerciseIndex: ei, setIndex: si)
-                        try? draftStore.save(session)
+                        saveDraft()
                     },
                     onAddSet: { ei in
                         session.addSet(toExerciseIndex: ei)
-                        try? draftStore.save(session)
+                        saveDraft()
                     }
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -216,7 +221,7 @@ struct ActiveWorkoutContainerView: View {
                 onSelect: { alt in
                     session.replaceExercise(at: ctx.index, with: alt)
                     swapExerciseIndex = nil
-                    try? draftStore.save(session)
+                    saveDraft()
                 },
                 onCreateCustom: {
                     swapExerciseIndex = nil
@@ -228,7 +233,7 @@ struct ActiveWorkoutContainerView: View {
         .sheet(isPresented: $showingCustomBuilder) {
             CustomExerciseBuilderView { exercise in
                 session.appendCustomExercise(exercise)
-                try? draftStore.save(session)
+                saveDraft()
             }
                 .environmentObject(services)
         }
@@ -239,7 +244,7 @@ struct ActiveWorkoutContainerView: View {
                 onSave: {
                     if let idx = notesEditingIndex {
                         session.setNotes(notesEditingText, forExerciseAt: idx)
-                        try? draftStore.save(session)
+                        saveDraft()
                     }
                     showNotesSheet = false
                 },
@@ -254,6 +259,41 @@ struct ActiveWorkoutContainerView: View {
             }
             .interactiveDismissDisabled(true)
         }
+    }
+
+    // MARK: - Draft autosave
+
+    /// Single funnel for draft autosave. A failure here means kill/crash
+    /// recovery is broken, so it's logged once and surfaced as a calm warning
+    /// row instead of failing silently.
+    private func saveDraft() {
+        do {
+            try draftStore.save(session)
+            draftAutosaveFailed = false
+        } catch {
+            if !draftAutosaveFailed {
+                LoggingService.shared.log(
+                    "Workout draft autosave failed: \(error)",
+                    level: .error
+                )
+            }
+            draftAutosaveFailed = true
+        }
+    }
+
+    private var draftAutosaveWarning: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 10, weight: .bold))
+            Text("Autosave isn't working — finish your session to keep this workout.")
+                .font(Font.unbound.captionS)
+                .lineLimit(2)
+        }
+        .foregroundStyle(Color.unbound.alert)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 20)
+        .padding(.bottom, 6)
+        .accessibilityIdentifier("workout.draftAutosaveWarning")
     }
 
     // MARK: - Computed helpers
@@ -577,7 +617,7 @@ struct ActiveWorkoutContainerView: View {
                 session.exercises[exerciseIndex].sets[setIndex] = set
             }
         }
-        try? draftStore.save(session)
+        saveDraft()
         UnboundHaptics.success()
     }
 
@@ -642,7 +682,7 @@ struct ActiveWorkoutContainerView: View {
             swapExerciseIndex = ei
             return // draft save happens in swap onSelect closure
         }
-        try? draftStore.save(session)
+        saveDraft()
     }
 
     // MARK: - Load context (wired to real APIs)
@@ -853,7 +893,7 @@ private extension ActiveWorkoutContainerView {
                 rpeValue: currentRPE(target.ei, target.si),
                 rpePick: { value in
                     session.setRPE(exerciseIndex: target.ei, setIndex: target.si, value)
-                    try? draftStore.save(session)
+                    saveDraft()
                 }
             )
         }
@@ -864,7 +904,7 @@ private extension ActiveWorkoutContainerView {
             placeholder: editPlaceholder(target),
             seed: seedBuffer(for: target),
             liveWrite: { buffer in writeLive(target, buffer: buffer) },
-            commitWrite: { try? draftStore.save(session) }
+            commitWrite: { saveDraft() }
         )
     }
 
