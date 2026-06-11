@@ -95,7 +95,13 @@ final class ProgramAwareLoggingTests: XCTestCase {
         XCTAssertEqual(exercise.sets.map(\.suggestedReps), [5, 6, 12])
         XCTAssertEqual(exercise.sets.map(\.suggestedRestSeconds), [150, 45, 0])
         XCTAssertEqual(exercise.sets.map(\.suggestedRPE), [8, 9, 9])
-        XCTAssertEqual(exercise.sets.map(\.suggestedWeightKg), [100, 80, 60])
+        // Draft→session ingest snaps suggestions to loadable plate weights so
+        // confirm-as-planned logs what the user actually lifts. Anchor to the
+        // policy, never hardcoded snapped values (locale-dependent unit).
+        let expectedWeights: [Double?] = [100, 80, 60].map {
+            WeightPlatePolicy.snappedSuggestionKilograms($0)
+        }
+        XCTAssertEqual(exercise.sets.map(\.suggestedWeightKg), expectedWeights)
     }
 
     func test_confirmAsPlanned_copiesSuggestedToActualAndLogs() {

@@ -12,10 +12,136 @@ final class ProgramViewModel {
     var activeWaveAdjustments: [WaveAdjustment] = []
     var progressionStates: [String: ProgressionState] = [:]
 
+    var currentProfile: UserProfile?
+
+    // Completed-log cache. Still feeds checkpoint/recovery context even
+    // though the old calendar tab is no longer surfaced.
+    var pastLogs: [WorkoutLog] = []
+
+    // Travel override (user hit the TRAVEL coach action)
+    var activeTravelOverride: TravelOverride?
+
     private let services: ServiceContainer
 
     init(services: ServiceContainer) {
         self.services = services
+    }
+
+    // MARK: - Surface load
+
+    /// Full Program-tab surface load: local-first program paint, profile
+    /// reconcile (or first-run generation), history + travel concurrently,
+    /// and a per-focus session prefetch. Moved verbatim from
+    /// `ProgramOverviewView+Loading.swift`.
+    func loadSurface(selectedDayDate: Date) async {
+        #if DEBUG
+        if let override = ProgramSurfaceProofOverride.fromLaunchArguments() {
+            state = override.loadingState
+            return
+        }
+        #endif
+
+        guard let userId = services.auth.currentUserId else {
+            state = .idle
+            return
+        }
+
+        // History + travel don't depend on the profile — run concurrently.
+        async let historyDone: Void = refreshHistory()
+        async let travelDone: Void = refreshTravelOverride()
+
+        // Instant: paint today's program from the local store — zero
+        // network before the screen appears.
+        let store = ProgramStore.shared
+        let cached = store.loadLocal(userId: userId)
+        if let cached {
+            program = cached
+            state = .loaded(cached)
+            await loadTrackingData()
+            refreshWaveAdjustments(asOf: selectedDayDate)
+        }
+
+        // Background: learn the authoritative programId; reconcile only
+        // if a new program (rollover) superseded the cache, or load/
+        // generate when there was no cache (first run).
+        do {
+            let profile: UserProfile = try await services.user.fetchProfile(userId: userId)
+            currentProfile = profile
+            if let programId = profile.currentProgramId {
+                if cached == nil {
+                    await loadProgram(programId: programId)
+                } else {
+                    await store.revalidate(userId: userId, expectedProgramId: programId)
+                    if let refreshed = store.program, refreshed.id != cached?.id {
+                        program = refreshed
+                        state = .loaded(refreshed)
+                        await loadTrackingData()
+                        refreshWaveAdjustments(asOf: selectedDayDate)
+                    }
+                }
+            } else if cached == nil {
+                state = .loading
+                let generated = try await ProgramGenerationService.shared.generateFromOnboarding(
+                    userId: userId,
+                    targetFrequency: profile.targetFrequency,
+                    equipment: Set(profile.equipment ?? []),
+                    experience: profile.experience,
+                    sessionLength: profile.sessionLength,
+                    exerciseStyles: Set(profile.exerciseStyles ?? []),
+                    targetAreas: Set(profile.targetAreas ?? []),
+                    age: profile.age ?? 0,
+                    gender: profile.gender ?? .unspecified,
+                    heightCm: profile.heightCm ?? 0,
+                    weightKg: profile.weightKg ?? 0,
+                    trainingDays: profile.trainingDays,
+                    trainingStyleOverride: profile.trainingStyleOverride,
+                    trainingFeedbackMode: profile.trainingFeedbackMode,
+                    cutModeActive: profile.cutMode.enabled,
+                    biologicalSex: profile.biologicalSex
+                )
+                program = generated
+                state = .loaded(generated)
+                store.adopt(generated, userId: userId)
+                refreshWaveAdjustments(asOf: selectedDayDate)
+            }
+        } catch {
+            if cached == nil {
+                state = .error(.databaseReadFailed(underlying: error))
+            }
+        }
+
+        _ = await historyDone
+        _ = await travelDone
+
+        // Prefetch today's session for every Program Focus so tapping
+        // TRAIN is instant. Each in its own detached task.
+        for focusId in SkillProgressService.shared.programFocusIds {
+            Task.detached { @MainActor in
+                await RPESessionService.shared.prefetch(
+                    skillId: focusId,
+                    userId: userId
+                )
+            }
+        }
+    }
+
+    // MARK: - Refresh
+
+    func refreshHistory() async {
+        guard let userId = services.auth.currentUserId else { return }
+        let logs = (try? await services.workoutLog.fetchRecentLogs(userId: userId, limit: 40)) ?? []
+        pastLogs = logs.filter { $0.completedAt != nil }
+    }
+
+    func refreshTravelOverride() async {
+        guard let userId = services.auth.currentUserId else { return }
+        activeTravelOverride = await TravelOverrideStore.shared.activeOverride(for: userId)
+    }
+
+    func refreshCompletionState(asOf date: Date) async {
+        await refreshHistory()
+        await loadTrackingData()
+        refreshWaveAdjustments(asOf: date)
     }
 
     func loadProgram(programId: String) async {

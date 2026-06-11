@@ -31,12 +31,12 @@ struct ExercisePreferenceRow: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(item.name)
                         .font(.bodyMedium(15))
-                        .foregroundColor(.theme.textPrimary)
+                        .foregroundColor(Color.unbound.textPrimary)
                         .multilineTextAlignment(.leading)
 
                     Text(item.metadataSummary)
                         .font(.caption(11))
-                        .foregroundColor(.theme.textMuted)
+                        .foregroundColor(Color.unbound.textTertiary)
                         .lineLimit(2)
                 }
 
@@ -54,7 +54,7 @@ struct ExercisePreferenceRow: View {
             }
         }
         .padding(12)
-        .background(Color.theme.surface)
+        .background(Color.unbound.surface)
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
@@ -63,19 +63,19 @@ struct ExercisePreferenceRow: View {
             if let tier = row.tier {
                 ExerciseLibraryPill(text: tier.displayName, tint: tier.rewardTint)
             } else if item.isRankable {
-                ExerciseLibraryPill(text: "Ranked", tint: .theme.textMuted)
+                ExerciseLibraryPill(text: "Ranked", tint: Color.unbound.textTertiary)
             }
 
             if row.totalAP > 0 {
-                ExerciseLibraryPill(text: "\(formatWhole(row.totalAP)) XP", tint: .theme.primary)
+                ExerciseLibraryPill(text: "\(formatWhole(row.totalAP)) XP", tint: Color.unbound.accent)
             }
 
             if let benchmark = row.nextBenchmarkSummary {
-                ExerciseLibraryPill(text: benchmark, tint: .theme.warning)
+                ExerciseLibraryPill(text: benchmark, tint: Color.unbound.rankAmber)
             }
 
             if let summary = row.bestMetricSummary {
-                ExerciseLibraryPill(text: summary, tint: .theme.success)
+                ExerciseLibraryPill(text: summary, tint: Color.unbound.success)
             }
         }
         .lineLimit(1)
@@ -86,7 +86,7 @@ struct ExercisePreferenceRow: View {
             if !item.equipmentSummary.isEmpty {
                 ExerciseLibraryPill(
                     text: item.equipmentSummary,
-                    tint: .theme.warning,
+                    tint: Color.unbound.rankAmber,
                     horizontalPadding: 6,
                     verticalPadding: 2
                 )
@@ -96,7 +96,7 @@ struct ExercisePreferenceRow: View {
             ForEach(item.muscleGroups.prefix(2), id: \.self) { group in
                 ExerciseLibraryPill(
                     text: group.displayName,
-                    tint: .theme.primary,
+                    tint: Color.unbound.accent,
                     horizontalPadding: 6,
                     verticalPadding: 2
                 )

@@ -12,10 +12,10 @@ struct EmailAuthView: View {
                 .autocapitalization(.none)
                 .disableAutocorrection(true)
                 .font(.bodyMedium(16))
-                .foregroundColor(.theme.textPrimary)
+                .foregroundColor(Color.unbound.textPrimary)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 16)
-                .background(Color.theme.surface)
+                .background(Color.unbound.surface)
                 .clipShape(RoundedRectangle(cornerRadius: 12))
                 .disabled(viewModel.isLoading)
 
@@ -23,10 +23,10 @@ struct EmailAuthView: View {
             SecureField(L10n.string(.authPasswordPlaceholder, defaultValue: "Password"), text: $viewModel.password)
                 .textContentType(.password)
                 .font(.bodyMedium(16))
-                .foregroundColor(.theme.textPrimary)
+                .foregroundColor(Color.unbound.textPrimary)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 16)
-                .background(Color.theme.surface)
+                .background(Color.unbound.surface)
                 .clipShape(RoundedRectangle(cornerRadius: 12))
                 .disabled(viewModel.isLoading)
 
@@ -38,7 +38,7 @@ struct EmailAuthView: View {
                     Text(errorMessage)
                         .font(.caption(13))
                 }
-                .foregroundColor(.theme.danger)
+                .foregroundColor(Color.unbound.alert)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 4)
             }
@@ -64,7 +64,7 @@ struct EmailAuthView: View {
                      ? L10n.string(.authToggleSignIn, defaultValue: "Already have an account? Sign in")
                      : L10n.string(.authToggleCreateAccount, defaultValue: "Don't have an account? Create one"))
                     .font(.bodyMedium(14))
-                    .foregroundColor(.theme.textSecondary)
+                    .foregroundColor(Color.unbound.textSecondary)
             }
             .disabled(viewModel.isLoading)
         }
@@ -73,7 +73,7 @@ struct EmailAuthView: View {
 
 #Preview {
     ZStack {
-        Color.theme.background.ignoresSafeArea()
+        Color.unbound.bg.ignoresSafeArea()
         EmailAuthView(viewModel: AuthViewModel(
             auth: MockAuthService(),
             user: UserService.shared,

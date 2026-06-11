@@ -2,34 +2,13 @@ import SwiftUI
 
 extension ProgramOverviewView {
     @MainActor
-    func refreshHistory() async {
-        guard let userId = services.auth.currentUserId else { return }
-        let logs = (try? await services.workoutLog.fetchRecentLogs(userId: userId, limit: 40)) ?? []
-        pastLogs = logs.filter { $0.completedAt != nil }
-    }
-
-    @MainActor
-    func refreshProgramCompletionState() async {
-        await refreshHistory()
-        guard let vm = viewModel else { return }
-        await vm.loadTrackingData()
-        vm.refreshWaveAdjustments(asOf: selectedDayDate)
-    }
-
-    @MainActor
-    func refreshTravelOverride() async {
-        guard let userId = services.auth.currentUserId else { return }
-        activeTravelOverride = await TravelOverrideStore.shared.activeOverride(for: userId)
-    }
-
-    @MainActor
     func applyCheckpointOutcome(_ outcome: CheckpointOutcome) async {
-        await viewModel?.completeCheckpoint(outcome)
-        if let programId = viewModel?.program?.id {
+        await viewModel.completeCheckpoint(outcome)
+        if let programId = viewModel.program?.id {
             dismissedCheckpointPromptProgramId = programId
             UserDefaults.standard.set(true, forKey: checkpointPromptDismissalKey(programId: programId))
         }
-        if let program = viewModel?.program {
+        if let program = viewModel.program {
             await loadBlockRolloverContext(program: program)
         }
     }
@@ -48,20 +27,20 @@ extension ProgramOverviewView {
     }
 
     var checkpointNutritionContext: NutritionContext {
-        let hardSessionWithin24Hours = pastLogs.contains { log in
+        let hardSessionWithin24Hours = viewModel.pastLogs.contains { log in
             guard let completedAt = log.completedAt else { return false }
             return programNow.timeIntervalSince(completedAt) <= 86_400
         }
         return NutritionTargetCalculator().calculate(
             input: NutritionTargetCalculator.Input(
-                bodyweightKilograms: currentProfile?.weightKg,
+                bodyweightKilograms: viewModel.currentProfile?.weightKg,
                 hardSessionLoggedWithin24Hours: hardSessionWithin24Hours
             )
         )
     }
 
     var checkpointMissedSessionSignal: MissedSessionSignal {
-        guard let program = viewModel?.program else { return .onTrack }
+        guard let program = viewModel.program else { return .onTrack }
         let now = programNow
         let sessions = scheduledAttendance(for: program, now: now)
         let result = MissedSessionMetric.evaluate(sessions: sessions, now: now)
@@ -86,8 +65,8 @@ extension ProgramOverviewView {
                 return nil
             }
             guard scheduledAt <= now else { return nil }
-            let completedAt = viewModel?.workoutLogs[day.dayNumber]?.completedAt
-                ?? viewModel?.workoutLogs[day.dayNumber]?.startedAt
+            let completedAt = viewModel.workoutLogs[day.dayNumber]?.completedAt
+                ?? viewModel.workoutLogs[day.dayNumber]?.startedAt
             return ScheduledSessionAttendance(
                 scheduledAt: scheduledAt,
                 completedAt: completedAt

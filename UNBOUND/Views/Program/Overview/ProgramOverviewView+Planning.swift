@@ -5,7 +5,7 @@ extension ProgramOverviewView {
         guard let userId = services.auth.currentUserId else { return nil }
         return ProgramPlanningCoordinator(
             userId: userId,
-            programId: viewModel?.program?.id,
+            programId: viewModel.program?.id,
             today: programToday,
             scheduleStore: ProgramScheduleStore.shared
         )
@@ -112,12 +112,12 @@ extension ProgramOverviewView {
         guard let userId = services.auth.currentUserId else { return [] }
         return ProgramScheduleStore.shared.all(
             userId: userId,
-            programId: viewModel?.program?.id
+            programId: viewModel.program?.id
         )
     }
 
     func exerciseStarterAlternatives(program: TrainingProgram?) -> [CatalogExercise] {
-        let equipment = currentProfile?.equipment
+        let equipment = viewModel.currentProfile?.equipment
             ?? program.map(currentEquipmentFallback(program:))
             ?? [Equipment.bodyweight]
         var seen: Set<String> = []
@@ -149,7 +149,7 @@ extension ProgramOverviewView {
     }
 
     func exerciseStarterCacheKey(program: TrainingProgram?) -> String {
-        let equipment = currentProfile?.equipment
+        let equipment = viewModel.currentProfile?.equipment
             ?? program.map(currentEquipmentFallback(program:))
             ?? [Equipment.bodyweight]
         let equipmentKey = equipment
@@ -217,7 +217,7 @@ extension ProgramOverviewView {
     ) {
         guard let planningCoordinator else { return }
         let normalizedDate = Calendar.current.startOfDay(for: date)
-        let day = viewModel?.program.flatMap { programDay(for: normalizedDate, in: $0) }
+        let day = viewModel.program.flatMap { programDay(for: normalizedDate, in: $0) }
         switch planningCoordinator.savedWorkoutApplication(
             workout: workout,
             date: normalizedDate,
@@ -235,7 +235,7 @@ extension ProgramOverviewView {
     }
 
     func draftForBuildEditor(on date: Date) -> TrainingSessionDraft? {
-        guard let program = viewModel?.program,
+        guard let program = viewModel.program,
               let day = programDay(for: date, in: program),
               !day.isRestDay
         else {

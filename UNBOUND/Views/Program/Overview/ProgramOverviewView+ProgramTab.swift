@@ -5,34 +5,30 @@ extension ProgramOverviewView {
 
     @ViewBuilder
     var programTab: some View {
-        if let vm = viewModel {
-            let surfaceState = ProgramSurfaceState.resolve(
-                state: vm.state,
-                selectedDate: selectedDayDate,
-                now: programNow
-            )
-            switch surfaceState.kind {
-            case .noProgram:
-                ProgramNoProgramState()
-            case .loading:
-                ProgramLoadingStateView()
-            case .loadError:
-                ProgramErrorStateView(error: vm.state.errorValue, onRetry: reloadProgramSurface)
-            case .blockComplete:
-                if let program = vm.state.value {
-                    blockCompleteState(program: program)
-                } else {
-                    ProgramErrorStateView(error: nil, onRetry: reloadProgramSurface)
-                }
-            case .restDay, .trainingDay, .missingDay:
-                if let program = vm.state.value {
-                    programBody(program)
-                } else {
-                    ProgramNoProgramState()
-                }
-            }
-        } else {
+        let surfaceState = ProgramSurfaceState.resolve(
+            state: viewModel.state,
+            selectedDate: selectedDayDate,
+            now: programNow
+        )
+        switch surfaceState.kind {
+        case .noProgram:
+            ProgramNoProgramState()
+        case .loading:
             ProgramLoadingStateView()
+        case .loadError:
+            ProgramErrorStateView(error: viewModel.state.errorValue, onRetry: reloadProgramSurface)
+        case .blockComplete:
+            if let program = viewModel.state.value {
+                blockCompleteState(program: program)
+            } else {
+                ProgramErrorStateView(error: nil, onRetry: reloadProgramSurface)
+            }
+        case .restDay, .trainingDay, .missingDay:
+            if let program = viewModel.state.value {
+                programBody(program)
+            } else {
+                ProgramNoProgramState()
+            }
         }
     }
 
@@ -112,9 +108,9 @@ extension ProgramOverviewView {
     /// new program. Failures restore the loaded state silently so the user
     /// can retry; production telemetry catches the failure path.
     func runGenerateNextBlock(currentProgram: TrainingProgram) async {
-        guard let vm = viewModel,
-              let userId = services.auth.currentUserId,
+        guard let userId = services.auth.currentUserId,
               !isGeneratingNextBlock else { return }
+        let vm = viewModel
 
         isGeneratingNextBlock = true
         let restoreState: LoadingState<TrainingProgram> = vm.state
@@ -147,9 +143,8 @@ extension ProgramOverviewView {
     // MARK: - Block-complete copy helpers
 
     func trainedDayCount(in program: TrainingProgram) -> Int {
-        guard let vm = viewModel else { return 0 }
-        return program.days.reduce(0) { count, day in
-            day.isRestDay ? count : (vm.isCompleted(dayNumber: day.dayNumber) ? count + 1 : count)
+        program.days.reduce(0) { count, day in
+            day.isRestDay ? count : (viewModel.isCompleted(dayNumber: day.dayNumber) ? count + 1 : count)
         }
     }
 
@@ -200,15 +195,15 @@ extension ProgramOverviewView {
             ) {
                 UserDefaults.standard.set(0, forKey: "unbound.shortSessionDate")
                 resumeDraft = nil
-                Task { await refreshProgramCompletionState() }
+                Task { await viewModel.refreshCompletionState(asOf: selectedDayDate) }
             }
         }
         .task(id: program.id) {
             await loadBlockRolloverContext(program: program)
-            viewModel?.refreshWaveAdjustments(asOf: selectedDayDate)
+            viewModel.refreshWaveAdjustments(asOf: selectedDayDate)
         }
         .task(id: selectedDayDate) {
-            viewModel?.refreshWaveAdjustments(asOf: selectedDayDate)
+            viewModel.refreshWaveAdjustments(asOf: selectedDayDate)
         }
     }
 

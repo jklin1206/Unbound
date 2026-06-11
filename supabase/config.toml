@@ -1,0 +1,39 @@
+# Codifies the per-function auth posture so it is reviewable from source and
+# applied consistently by `supabase functions deploy` (no more remembering
+# --no-verify-jwt per function).
+#
+# verify_jwt = true  → Supabase rejects requests without a valid user JWT
+#                      before the function runs.
+# verify_jwt = false → webhook/cron functions; each one gates itself on a
+#                      shared secret (see _shared/service_auth.ts and the
+#                      revenuecat_webhook header check).
+
+project_id = "UNBOUND"
+
+# --- user-facing: require a JWT at the platform edge ---
+
+[functions.anthropic_proxy]
+verify_jwt = true
+
+[functions.join_squad]
+verify_jwt = true
+
+[functions.delete_account]
+verify_jwt = true
+
+# --- webhooks/cron: no Supabase user; gated on shared secrets in-function ---
+
+[functions.revenuecat_webhook]
+verify_jwt = false
+
+[functions.assign_weekly_honors]
+verify_jwt = false
+
+[functions.evaluate_squad_mission]
+verify_jwt = false
+
+[functions.evaluate_squad_streak]
+verify_jwt = false
+
+[functions.detect_linked_sessions]
+verify_jwt = false

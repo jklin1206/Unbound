@@ -27,7 +27,7 @@ struct HomeTabView: View {
             .tag(0)
 
             NavigationStack {
-                ProgramOverviewView()
+                ProgramOverviewView(services: services)
             }
             .tabItem {
                 Image(systemName: "dumbbell.fill")
@@ -57,7 +57,7 @@ struct HomeTabView: View {
             .tag(3)
 
             NavigationStack {
-                ProfileView()
+                ProfileView(services: services)
             }
             .tabItem {
                 Image(systemName: "person.crop.circle")

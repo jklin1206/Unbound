@@ -56,7 +56,13 @@ enum WeeklyVowGenerator {
         weekNumber: Int,
         history: [WorkoutLog]
     ) -> WeeklyVowCard {
-        var capstone = CapstoneCatalog.perAxis[axis]!
+        // An axis without a catalog entry must not crash weekly-vow
+        // generation; fall back to a generic timed finisher for that axis.
+        var capstone = CapstoneCatalog.perAxis[axis] ?? WeeklyVowProof(
+            displayName: "Finisher Proof",
+            description: "After a workout, add 6-12 focused minutes of \(axis.displayName.lowercased()) work at RPE 7-8.",
+            evaluation: .liveTimer(seconds: 6 * 60, exerciseName: "\(axis.displayName.lowercased()) finisher")
+        )
         // Dynamic scaling for the .power proof: bake the user's recent
         // best x 1.05 in kg.
         if axis == .power, case .autoFromLog = capstone.evaluation {

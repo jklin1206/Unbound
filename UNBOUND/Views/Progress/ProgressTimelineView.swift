@@ -10,11 +10,11 @@ struct ProgressTimelineView: View {
 
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
-            Color.theme.background.ignoresSafeArea()
+            Color.unbound.bg.ignoresSafeArea()
 
             if viewModel.state.isLoading {
                 ProgressView()
-                    .tint(.theme.primary)
+                    .tint(Color.unbound.accent)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if viewModel.entries.isEmpty {
                 emptyStateView
@@ -39,21 +39,21 @@ struct ProgressTimelineView: View {
 
             Image(systemName: "figure.stand")
                 .font(.system(size: 72))
-                .foregroundColor(.theme.textMuted)
+                .foregroundColor(Color.unbound.textTertiary)
 
             VStack(spacing: 8) {
                 Text("No scans yet")
                     .font(.subheadline(22))
-                    .foregroundColor(.theme.textPrimary)
+                    .foregroundColor(Color.unbound.textPrimary)
 
                 Text("Start your first scan")
                     .font(.bodyText(16))
-                    .foregroundColor(.theme.textSecondary)
+                    .foregroundColor(Color.unbound.textSecondary)
             }
 
             Text("Use the Scan button on Home or Profile to start.")
                 .font(.bodyText(14))
-                .foregroundColor(.theme.textMuted)
+                .foregroundColor(Color.unbound.textTertiary)
                 .multilineTextAlignment(.center)
 
             Spacer()
@@ -104,18 +104,18 @@ private struct TimelineEntryCard: View {
                 maxScore: 100,
                 size: 60,
                 lineWidth: 5,
-                color: .theme.secondary
+                color: Color.unbound.textTertiary
             )
 
             // Details
             VStack(alignment: .leading, spacing: 4) {
                 Text(formattedDate)
                     .font(.bodyMedium(15))
-                    .foregroundColor(.theme.textPrimary)
+                    .foregroundColor(Color.unbound.textPrimary)
 
                 Text("Overall Score: \(entry.overallScore)")
                     .font(.bodyText(13))
-                    .foregroundColor(.theme.textSecondary)
+                    .foregroundColor(Color.unbound.textSecondary)
             }
 
             Spacer()
@@ -127,15 +127,15 @@ private struct TimelineEntryCard: View {
 
             Image(systemName: "chevron.right")
                 .font(.system(size: 12, weight: .semibold))
-                .foregroundColor(.theme.textMuted)
+                .foregroundColor(Color.unbound.textTertiary)
         }
         .padding(16)
-        .background(Color.theme.surface)
+        .background(Color.unbound.surface)
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
                 .strokeBorder(
-                    isFirst ? Color.theme.primary.opacity(0.4) : Color.clear,
+                    isFirst ? Color.unbound.accent.opacity(0.4) : Color.clear,
                     lineWidth: 1
                 )
         )
@@ -148,7 +148,7 @@ struct DeltaBadge: View {
     let delta: Int
 
     private var isPositive: Bool { delta >= 0 }
-    private var color: Color { isPositive ? .theme.success : .theme.danger }
+    private var color: Color { isPositive ? Color.unbound.success : Color.unbound.alert }
     private var sign: String { isPositive ? "+" : "" }
 
     var body: some View {

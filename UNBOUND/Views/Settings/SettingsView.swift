@@ -20,39 +20,39 @@ struct SettingsView: View {
             Section {
                 HStack {
                     Label(L10n.string(.settingsEmail, defaultValue: "Email"), systemImage: "envelope")
-                        .foregroundColor(.theme.textPrimary)
+                        .foregroundColor(Color.unbound.textPrimary)
                     Spacer()
                     Text(viewModel.userProfile?.email ?? "—")
                         .font(.bodyText(14))
-                        .foregroundColor(.theme.textMuted)
+                        .foregroundColor(Color.unbound.textTertiary)
                 }
 
                 Button(role: .destructive) {
                     viewModel.signOut()
                 } label: {
                     Label(L10n.string(.settingsSignOut, defaultValue: "Sign Out"), systemImage: "rectangle.portrait.and.arrow.right")
-                        .foregroundColor(.theme.danger)
+                        .foregroundColor(Color.unbound.alert)
                 }
             } header: {
                 Text(L10n.string(.settingsSectionAccount, defaultValue: "Account"))
-                    .foregroundColor(.theme.textSecondary)
+                    .foregroundColor(Color.unbound.textSecondary)
             }
 
             // MARK: Subscription
             Section {
                 HStack {
                     Label(L10n.string(.settingsPlan, defaultValue: "Plan"), systemImage: "crown")
-                        .foregroundColor(.theme.textPrimary)
+                        .foregroundColor(Color.unbound.textPrimary)
                     Spacer()
                     Text(viewModel.hasActiveSubscription ? settingsPlanPro : settingsPlanFree)
                         .font(.bodyMedium(14))
-                        .foregroundColor(viewModel.hasActiveSubscription ? .theme.primary : .theme.textMuted)
+                        .foregroundColor(viewModel.hasActiveSubscription ? Color.unbound.accent : Color.unbound.textTertiary)
                 }
 
                 if let url = URL(string: "itms-apps://apps.apple.com/account/subscriptions") {
                     Link(destination: url) {
                         Label(L10n.string(.settingsManageSubscription, defaultValue: "Manage Subscription"), systemImage: "arrow.up.circle")
-                            .foregroundColor(.theme.textPrimary)
+                            .foregroundColor(Color.unbound.textPrimary)
                     }
                 }
 
@@ -62,38 +62,38 @@ struct SettingsView: View {
                     if viewModel.isLoading {
                         HStack(spacing: 8) {
                             ProgressView()
-                                .tint(.theme.primary)
+                                .tint(Color.unbound.accent)
                             Text(L10n.string(.subscriptionRestoreRestoring, defaultValue: "Restoring..."))
-                                .foregroundColor(.theme.textSecondary)
+                                .foregroundColor(Color.unbound.textSecondary)
                         }
                     } else {
                         Label(L10n.string(.subscriptionRestoreIdle, defaultValue: "Restore Purchases"), systemImage: "arrow.counterclockwise")
-                            .foregroundColor(.theme.textPrimary)
+                            .foregroundColor(Color.unbound.textPrimary)
                     }
                 }
                 .disabled(viewModel.isLoading)
             } header: {
                 Text(L10n.string(.settingsSectionSubscription, defaultValue: "Subscription"))
-                    .foregroundColor(.theme.textSecondary)
+                    .foregroundColor(Color.unbound.textSecondary)
             }
 
             // MARK: Privacy
             Section {
                 Toggle(isOn: shareUsageDataBinding) {
                     Label(L10n.string(.settingsShareUsageData, defaultValue: "Share usage data"), systemImage: "chart.line.uptrend.xyaxis")
-                        .foregroundColor(.theme.textPrimary)
+                        .foregroundColor(Color.unbound.textPrimary)
                 }
-                .tint(.theme.primary)
+                .tint(Color.unbound.accent)
 
                 NavigationLink {
                     NotificationSettingsView()
                 } label: {
                     Label(L10n.string(.settingsNotifications, defaultValue: "Notifications"), systemImage: "bell.badge")
-                        .foregroundColor(.theme.textPrimary)
+                        .foregroundColor(Color.unbound.textPrimary)
                 }
             } header: {
                 Text(L10n.string(.settingsSectionPrivacy, defaultValue: "Privacy"))
-                    .foregroundColor(.theme.textSecondary)
+                    .foregroundColor(Color.unbound.textSecondary)
             }
 
             // MARK: Training preferences
@@ -104,52 +104,52 @@ struct SettingsView: View {
                     }
                 } label: {
                     Label(L10n.string(.settingsWeightUnit, defaultValue: "Weight Unit"), systemImage: "scalemass")
-                        .foregroundColor(.theme.textPrimary)
+                        .foregroundColor(Color.unbound.textPrimary)
                 }
 
                 Toggle(isOn: $microloadingEnabled) {
                     Label(L10n.string(.settingsMicroPlates, defaultValue: "Micro plates"), systemImage: "plus.forwardslash.minus")
-                        .foregroundColor(.theme.textPrimary)
+                        .foregroundColor(Color.unbound.textPrimary)
                 }
-                .tint(.theme.primary)
+                .tint(Color.unbound.accent)
 
                 NavigationLink {
                     ExercisePreferencesView()
                         .environmentObject(services)
                 } label: {
                     Label(L10n.string(.settingsExerciseLibrary, defaultValue: "Exercise Library"), systemImage: "list.bullet.rectangle.portrait")
-                        .foregroundColor(.theme.textPrimary)
+                        .foregroundColor(Color.unbound.textPrimary)
                 }
                 NavigationLink {
                     EquipmentSettingsView()
                 } label: {
                     Label(L10n.string(.settingsEquipment, defaultValue: "Equipment"), systemImage: "dumbbell.fill")
-                        .foregroundColor(.theme.textPrimary)
+                        .foregroundColor(Color.unbound.textPrimary)
                 }
                 NavigationLink {
                     CoachActionHistoryView()
                         .environmentObject(services)
                 } label: {
                     Label(L10n.string(.settingsPlanChanges, defaultValue: "Plan changes"), systemImage: "arrow.triangle.2.circlepath")
-                        .foregroundColor(.theme.textPrimary)
+                        .foregroundColor(Color.unbound.textPrimary)
                 }
                 NavigationLink {
                     BadgeGalleryView()
                         .environmentObject(services)
                 } label: {
                     Label(L10n.string(.settingsBadges, defaultValue: "Badges"), systemImage: "rosette")
-                        .foregroundColor(.theme.textPrimary)
+                        .foregroundColor(Color.unbound.textPrimary)
                 }
             } header: {
                 Text(L10n.string(.settingsSectionTraining, defaultValue: "Training"))
-                    .foregroundColor(.theme.textSecondary)
+                    .foregroundColor(Color.unbound.textSecondary)
             } footer: {
                 Text(L10n.string(
                     .settingsTrainingFooter,
                     defaultValue: "Your exact logged weights are preserved. UNBOUND rounds suggestions and progression jumps to the selected plate system."
                 ))
                     .font(.caption(11))
-                    .foregroundColor(.theme.textMuted)
+                    .foregroundColor(Color.unbound.textTertiary)
             }
 
             // MARK: Appearance
@@ -159,29 +159,29 @@ struct SettingsView: View {
                         .environmentObject(services)
                 } label: {
                     Label("Rewards", systemImage: "trophy.fill")
-                        .foregroundColor(.theme.textPrimary)
+                        .foregroundColor(Color.unbound.textPrimary)
                 }
                 NavigationLink {
                     ProfileCosmeticsView()
                         .environmentObject(services)
                 } label: {
                     Label(L10n.string(.settingsProfileCosmetics, defaultValue: "Profile cosmetics"), systemImage: "person.crop.circle.badge.sparkles")
-                        .foregroundColor(.theme.textPrimary)
+                        .foregroundColor(Color.unbound.textPrimary)
                 }
                 NavigationLink {
                     SkinPickerView()
                         .environmentObject(services)
                 } label: {
                     Label(L10n.string(.settingsSkillTreeCosmetics, defaultValue: "Skill tree cosmetics"), systemImage: "paintpalette")
-                        .foregroundColor(.theme.textPrimary)
+                        .foregroundColor(Color.unbound.textPrimary)
                 }
             } header: {
                 Text(L10n.string(.settingsSectionAppearance, defaultValue: "Appearance"))
-                    .foregroundColor(.theme.textSecondary)
+                    .foregroundColor(Color.unbound.textSecondary)
             } footer: {
                 Text(L10n.string(.settingsAppearanceFooter, defaultValue: "Equip unlocked profile frames, backdrops, and skill-tree cosmetics."))
                     .font(.caption(11))
-                    .foregroundColor(.theme.textMuted)
+                    .foregroundColor(Color.unbound.textTertiary)
             }
 
             // MARK: Support
@@ -189,7 +189,7 @@ struct SettingsView: View {
                 if let mailURL = URL(string: "mailto:support@unboundapp.com") {
                     Link(destination: mailURL) {
                         Label(L10n.string(.settingsContactUs, defaultValue: "Contact Us"), systemImage: "envelope.badge")
-                            .foregroundColor(.theme.textPrimary)
+                            .foregroundColor(Color.unbound.textPrimary)
                     }
                 }
 
@@ -197,27 +197,27 @@ struct SettingsView: View {
                     FAQPlaceholderView()
                 } label: {
                     Label(L10n.string(.settingsFAQ, defaultValue: "FAQ"), systemImage: "questionmark.circle")
-                        .foregroundColor(.theme.textPrimary)
+                        .foregroundColor(Color.unbound.textPrimary)
                 }
             } header: {
                 Text(L10n.string(.settingsSectionSupport, defaultValue: "Support"))
-                    .foregroundColor(.theme.textSecondary)
+                    .foregroundColor(Color.unbound.textSecondary)
             }
 
             // MARK: Legal
             Section {
                 Link(destination: AppConstants.Legal.termsURL) {
                     Label(L10n.string(.legalTermsOfService, defaultValue: "Terms of Service"), systemImage: "doc.text")
-                        .foregroundColor(.theme.textPrimary)
+                        .foregroundColor(Color.unbound.textPrimary)
                 }
 
                 Link(destination: AppConstants.Legal.privacyURL) {
                     Label(L10n.string(.legalPrivacyPolicy, defaultValue: "Privacy Policy"), systemImage: "hand.raised")
-                        .foregroundColor(.theme.textPrimary)
+                        .foregroundColor(Color.unbound.textPrimary)
                 }
             } header: {
                 Text(L10n.string(.settingsSectionLegal, defaultValue: "Legal"))
-                    .foregroundColor(.theme.textSecondary)
+                    .foregroundColor(Color.unbound.textSecondary)
             }
 
             // MARK: Danger Zone
@@ -226,11 +226,11 @@ struct SettingsView: View {
                     showDeleteAccount = true
                 } label: {
                     Label(L10n.string(.settingsDeleteAccount, defaultValue: "Delete Account"), systemImage: "trash")
-                        .foregroundColor(.theme.danger)
+                        .foregroundColor(Color.unbound.alert)
                 }
             } header: {
                 Text(L10n.string(.settingsSectionDangerZone, defaultValue: "Danger Zone"))
-                    .foregroundColor(.theme.textSecondary)
+                    .foregroundColor(Color.unbound.textSecondary)
             }
 
             // MARK: Dev (DEBUG only)
@@ -241,7 +241,7 @@ struct SettingsView: View {
                         .environmentObject(services)
                 } label: {
                     Label("Dev Player Tools", systemImage: "gamecontroller")
-                        .foregroundColor(.theme.textPrimary)
+                        .foregroundColor(Color.unbound.textPrimary)
                 }
                 .accessibilityIdentifier("settings.devPlayerTools")
 
@@ -250,36 +250,36 @@ struct SettingsView: View {
                     set: { DevFlags.shared.unlockAllFeatures = $0 }
                 )) {
                     Label("Unlock all features", systemImage: "lock.open")
-                        .foregroundColor(.theme.textPrimary)
+                        .foregroundColor(Color.unbound.textPrimary)
                 }
-                .tint(.theme.primary)
+                .tint(Color.unbound.accent)
 
                 Button {
                     resetOnboarding()
                 } label: {
                     Label("Reset Onboarding", systemImage: "arrow.counterclockwise.circle")
-                        .foregroundColor(.theme.primary)
+                        .foregroundColor(Color.unbound.accent)
                 }
 
                 Button {
                     resetEverything()
                 } label: {
                     Label("Reset Everything (wipe)", systemImage: "arrow.triangle.2.circlepath")
-                        .foregroundColor(.theme.danger)
+                        .foregroundColor(Color.unbound.alert)
                 }
             } header: {
                 Text("Dev")
-                    .foregroundColor(.theme.textSecondary)
+                    .foregroundColor(Color.unbound.textSecondary)
             } footer: {
                 Text("Debug-only controls. Hidden in release builds. Unlock bypasses the paywall without charging.")
                     .font(.caption(11))
-                    .foregroundColor(.theme.textMuted)
+                    .foregroundColor(Color.unbound.textTertiary)
             }
             #endif
         }
         .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
-        .background(Color.theme.background)
+        .background(Color.unbound.bg)
         .navigationTitle(L10n.string(.settingsTitle, defaultValue: "Settings"))
         .navigationBarTitleDisplayMode(.large)
         .navigationDestination(isPresented: $showDeleteAccount) {
@@ -362,22 +362,22 @@ struct NotificationSettingsView: View {
             Section {
                 HStack {
                     Label(L10n.string(.notificationSettingsPermission, defaultValue: "Permission"), systemImage: "bell")
-                        .foregroundColor(.theme.textPrimary)
+                        .foregroundColor(Color.unbound.textPrimary)
                     Spacer()
                     Text(authorizationLabel)
                         .font(.bodyText(14))
-                        .foregroundColor(.theme.textMuted)
+                        .foregroundColor(Color.unbound.textTertiary)
                 }
 
                 Button {
                     Task { await requestAuthorization() }
                 } label: {
                     Label(L10n.string(.notificationSettingsAllowNotifications, defaultValue: "Allow Notifications"), systemImage: "checkmark.circle")
-                        .foregroundColor(.theme.textPrimary)
+                        .foregroundColor(Color.unbound.textPrimary)
                 }
             } header: {
                 Text(L10n.string(.notificationSettingsSectionSystem, defaultValue: "System"))
-                    .foregroundColor(.theme.textSecondary)
+                    .foregroundColor(Color.unbound.textSecondary)
             }
 
             Section {
@@ -386,9 +386,9 @@ struct NotificationSettingsView: View {
                     set: { $0.workoutReminders.isEnabled = $1 }
                 )) {
                     Label(L10n.string(.notificationSettingsWorkoutReminders, defaultValue: "Workout reminders"), systemImage: "flame.fill")
-                        .foregroundColor(.theme.textPrimary)
+                        .foregroundColor(Color.unbound.textPrimary)
                 }
-                .tint(.theme.primary)
+                .tint(Color.unbound.accent)
 
                 Picker(L10n.string(.notificationSettingsTime, defaultValue: "Time"), selection: binding(
                     get: { $0.workoutReminders.workoutTime ?? .evening },
@@ -402,19 +402,19 @@ struct NotificationSettingsView: View {
                 ForEach(Weekday.allCases) { day in
                     Toggle(isOn: dayBinding(day)) {
                         Text(day.short)
-                            .foregroundColor(.theme.textPrimary)
+                            .foregroundColor(Color.unbound.textPrimary)
                     }
-                    .tint(.theme.primary)
+                    .tint(Color.unbound.accent)
                 }
             } header: {
                 Text(L10n.string(.settingsSectionTraining, defaultValue: "Training"))
-                    .foregroundColor(.theme.textSecondary)
+                    .foregroundColor(Color.unbound.textSecondary)
             }
 
         }
         .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
-        .background(Color.theme.background)
+        .background(Color.unbound.bg)
         .navigationTitle(L10n.string(.settingsNotifications, defaultValue: "Notifications"))
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
@@ -499,10 +499,10 @@ private extension UNAuthorizationStatus {
 private struct FAQPlaceholderView: View {
     var body: some View {
         ZStack {
-            Color.theme.background.ignoresSafeArea()
+            Color.unbound.bg.ignoresSafeArea()
             Text(L10n.string(.settingsFAQComingSoon, defaultValue: "FAQ coming soon"))
                 .font(.bodyText(16))
-                .foregroundColor(.theme.textSecondary)
+                .foregroundColor(Color.unbound.textSecondary)
         }
         .navigationTitle(L10n.string(.settingsFAQ, defaultValue: "FAQ"))
         .navigationBarTitleDisplayMode(.inline)

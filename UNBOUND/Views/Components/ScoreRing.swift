@@ -5,7 +5,7 @@ struct ScoreRing: View {
     let maxScore: Int
     var size: CGFloat = 120
     var lineWidth: CGFloat = 10
-    var color: Color = .theme.secondary
+    var color: Color = Color.unbound.textTertiary
 
     @State private var animatedProgress: CGFloat = 0
 
@@ -16,7 +16,7 @@ struct ScoreRing: View {
     var body: some View {
         ZStack {
             Circle()
-                .stroke(Color.theme.surfaceLight, lineWidth: lineWidth)
+                .stroke(Color.unbound.surfaceElevated, lineWidth: lineWidth)
 
             Circle()
                 .trim(from: 0, to: animatedProgress)
@@ -32,10 +32,10 @@ struct ScoreRing: View {
             VStack(spacing: 2) {
                 Text("\(score)")
                     .font(.stat(size * 0.3))
-                    .foregroundColor(.theme.textPrimary)
+                    .foregroundColor(Color.unbound.textPrimary)
                 Text("/ \(maxScore)")
                     .font(.caption(size * 0.12))
-                    .foregroundColor(.theme.textMuted)
+                    .foregroundColor(Color.unbound.textTertiary)
             }
         }
         .frame(width: size, height: size)

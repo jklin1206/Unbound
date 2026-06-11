@@ -15,7 +15,7 @@ final class StorageService: StorageServiceProtocol, @unchecked Sendable {
     private let fm = FileManager.default
 
     private lazy var rootURL: URL = {
-        let docs = fm.urls(for: .documentDirectory, in: .userDomainMask).first!
+        let docs = fm.documentsDirectory
         let dir = docs.appendingPathComponent("ScanPhotos", isDirectory: true)
         try? fm.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir

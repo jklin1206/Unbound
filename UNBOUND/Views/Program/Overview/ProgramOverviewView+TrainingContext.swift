@@ -30,7 +30,7 @@ extension ProgramOverviewView {
     ) -> ProgramTrainingContextResolution {
         ProgramFocusSwitchCoordinator.resolvedContext(
             override: override,
-            profile: currentProfile
+            profile: viewModel.currentProfile
         )
     }
 }

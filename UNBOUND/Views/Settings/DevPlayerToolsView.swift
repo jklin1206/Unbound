@@ -45,20 +45,20 @@ struct DevPlayerToolsView: View {
                     HStack(alignment: .center, spacing: 14) {
                         ZStack {
                             Circle()
-                                .fill(Color.theme.primary.opacity(0.16))
+                                .fill(Color.unbound.accent.opacity(0.16))
                                 .frame(width: 54, height: 54)
                             Image(systemName: "gamecontroller.fill")
                                 .font(.system(size: 24, weight: .semibold))
-                                .foregroundColor(.theme.primary)
+                                .foregroundColor(Color.unbound.accent)
                         }
 
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Dev Player")
                                 .font(.subheadline(18))
-                                .foregroundColor(.theme.textPrimary)
+                                .foregroundColor(Color.unbound.textPrimary)
                             Text(currentUserId)
                                 .font(.system(size: 11, weight: .medium, design: .monospaced))
-                                .foregroundColor(.theme.textMuted)
+                                .foregroundColor(Color.unbound.textTertiary)
                                 .lineLimit(1)
                                 .truncationMode(.middle)
                         }
@@ -68,7 +68,7 @@ struct DevPlayerToolsView: View {
 
                     Text(status)
                         .font(.caption(12))
-                        .foregroundColor(.theme.textSecondary)
+                        .foregroundColor(Color.unbound.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
 
                     Button {
@@ -85,7 +85,7 @@ struct DevPlayerToolsView: View {
             } footer: {
                 Text("This switches auth to a stable local user, completes onboarding, enables the paywall bypass, and seeds a usable profile.")
                     .font(.caption(11))
-                    .foregroundColor(.theme.textMuted)
+                    .foregroundColor(Color.unbound.textTertiary)
             }
 
             Section {
@@ -97,19 +97,19 @@ struct DevPlayerToolsView: View {
 
                 HStack {
                     Label("Active Set", systemImage: "photo.stack")
-                        .foregroundColor(.theme.textPrimary)
+                        .foregroundColor(Color.unbound.textPrimary)
                     Spacer()
                     Text(ExerciseVisualAssetSet.active.displayName)
                         .font(.system(size: 13, weight: .semibold, design: .monospaced))
-                        .foregroundColor(.theme.primary)
+                        .foregroundColor(Color.unbound.accent)
                 }
             } header: {
                 Text("Exercise Visuals")
-                    .foregroundColor(.theme.textSecondary)
+                    .foregroundColor(Color.unbound.textSecondary)
             } footer: {
                 Text("Set UNBOUND_EXERCISE_VISUAL_SET to jot, legacy, or current to override this picker from the scheme.")
                     .font(.caption(11))
-                    .foregroundColor(.theme.textMuted)
+                    .foregroundColor(Color.unbound.textTertiary)
             }
 
             programScanSection
@@ -118,11 +118,11 @@ struct DevPlayerToolsView: View {
                 Stepper(value: $selectedLevel, in: 1...80) {
                     HStack {
                         Label("Level", systemImage: "bolt.fill")
-                            .foregroundColor(.theme.textPrimary)
+                            .foregroundColor(Color.unbound.textPrimary)
                         Spacer()
                         Text("\(selectedLevel)")
                             .font(.system(size: 16, weight: .semibold, design: .monospaced))
-                            .foregroundColor(.theme.primary)
+                            .foregroundColor(Color.unbound.accent)
                     }
                 }
 
@@ -130,7 +130,7 @@ struct DevPlayerToolsView: View {
                     run { await DevBuildBootstrapper.applyLevel(selectedLevel) }
                 } label: {
                     Label("Apply Level", systemImage: "bolt.badge.checkmark")
-                        .foregroundColor(.theme.primary)
+                        .foregroundColor(Color.unbound.accent)
                 }
 
                 Picker("Rank", selection: $selectedRank) {
@@ -143,16 +143,16 @@ struct DevPlayerToolsView: View {
                     run { await DevBuildBootstrapper.applyRank(selectedRank) }
                 } label: {
                     Label("Apply Rank", systemImage: "seal.fill")
-                        .foregroundColor(.theme.primary)
+                        .foregroundColor(Color.unbound.accent)
                 }
 
             } header: {
                 Text("Fast Tuning")
-                    .foregroundColor(.theme.textSecondary)
+                    .foregroundColor(Color.unbound.textSecondary)
             } footer: {
                 Text("Rank updates the profile tier, badge frame, lift proof tiers, and skill-tier state for the dev player.")
                     .font(.caption(11))
-                    .foregroundColor(.theme.textMuted)
+                    .foregroundColor(Color.unbound.textTertiary)
             }
 
             Section {
@@ -169,15 +169,15 @@ struct DevPlayerToolsView: View {
                     }
                 } label: {
                     Label("Make Rank Trial Ready", systemImage: "flag.checkered")
-                        .foregroundColor(.theme.primary)
+                        .foregroundColor(Color.unbound.accent)
                 }
             } header: {
                 Text("Rank Trial")
-                    .foregroundColor(.theme.textSecondary)
+                    .foregroundColor(Color.unbound.textSecondary)
             } footer: {
                 Text("Sets the dev player's prior overall rank, level, movement XP, skill tiers, attributes, and compatible equipment so the selected rank gate unlocks.")
                     .font(.caption(11))
-                    .foregroundColor(.theme.textMuted)
+                    .foregroundColor(Color.unbound.textTertiary)
             }
 
             Section {
@@ -197,15 +197,15 @@ struct DevPlayerToolsView: View {
                     }
                 } label: {
                     Label("Apply Session Stats", systemImage: "checkmark.seal")
-                        .foregroundColor(.theme.primary)
+                        .foregroundColor(Color.unbound.accent)
                 }
             } header: {
                 Text("Profile Stats")
-                    .foregroundColor(.theme.textSecondary)
+                    .foregroundColor(Color.unbound.textSecondary)
             } footer: {
                 Text("Controls the profile Sessions, Streak, weekly count, and related session XP record.")
                     .font(.caption(11))
-                    .foregroundColor(.theme.textMuted)
+                    .foregroundColor(Color.unbound.textTertiary)
             }
 
             Section {
@@ -213,11 +213,11 @@ struct DevPlayerToolsView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
                             Label(key.displayName, systemImage: attributeIcon(for: key))
-                                .foregroundColor(.theme.textPrimary)
+                                .foregroundColor(Color.unbound.textPrimary)
                             Spacer()
                             Text("\(Int(devAttributes[key, default: 0].rounded()))")
                                 .font(.system(size: 15, weight: .semibold, design: .monospaced))
-                                .foregroundColor(.theme.primary)
+                                .foregroundColor(Color.unbound.accent)
                         }
                         Slider(
                             value: Binding(
@@ -236,15 +236,15 @@ struct DevPlayerToolsView: View {
                     run { DevBuildBootstrapper.applyAttributes(devAttributes) }
                 } label: {
                     Label("Apply Hex Stats", systemImage: "hexagon.fill")
-                        .foregroundColor(.theme.primary)
+                        .foregroundColor(Color.unbound.accent)
                 }
             } header: {
                 Text("Attribute Hex")
-                    .foregroundColor(.theme.textSecondary)
+                    .foregroundColor(Color.unbound.textSecondary)
             } footer: {
                 Text("Writes directly to AttributeProfileStore, so the profile radar and build identity use these values.")
                     .font(.caption(11))
-                    .foregroundColor(.theme.textMuted)
+                    .foregroundColor(Color.unbound.textTertiary)
             }
 
             Section {
@@ -257,11 +257,11 @@ struct DevPlayerToolsView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
                         Label("Weight", systemImage: "dumbbell.fill")
-                            .foregroundColor(.theme.textPrimary)
+                            .foregroundColor(Color.unbound.textPrimary)
                         Spacer()
                         Text(WeightPlatePolicy.formatLoggedWeightWithUnit(selectedBestLiftWeight, unit: selectedWeightUnit, separator: " "))
                             .font(.system(size: 15, weight: .semibold, design: .monospaced))
-                            .foregroundColor(.theme.primary)
+                            .foregroundColor(Color.unbound.accent)
                     }
                     Slider(value: $selectedBestLiftWeight, in: 20...360, step: 2.5)
                         .tint(Color.unbound.accent)
@@ -279,15 +279,15 @@ struct DevPlayerToolsView: View {
                     }
                 } label: {
                     Label("Apply Best Lift", systemImage: "dumbbell.fill")
-                        .foregroundColor(.theme.primary)
+                        .foregroundColor(Color.unbound.accent)
                 }
             } header: {
                 Text("Best Lift")
-                    .foregroundColor(.theme.textSecondary)
+                    .foregroundColor(Color.unbound.textSecondary)
             } footer: {
                 Text("Seeds the profile PR workout log so Best Lift shows this lift and its rank badge.")
                     .font(.caption(11))
-                    .foregroundColor(.theme.textMuted)
+                    .foregroundColor(Color.unbound.textTertiary)
             }
 
             Section {
@@ -295,21 +295,21 @@ struct DevPlayerToolsView: View {
                     run { await DevBuildBootstrapper.unlockAllBadges() }
                 } label: {
                     Label("Unlock All Badges", systemImage: "rosette")
-                        .foregroundColor(.theme.primary)
+                        .foregroundColor(Color.unbound.accent)
                 }
 
                 Button {
                     run { await DevBuildBootstrapper.masterSkillTree() }
                 } label: {
                     Label("Master Skill Tree", systemImage: "circle.hexagongrid.fill")
-                        .foregroundColor(.theme.primary)
+                        .foregroundColor(Color.unbound.accent)
                 }
 
                 Button {
                     run { await DevBuildBootstrapper.seedSessionStats() }
                 } label: {
                     Label("Seed Streak + Session Stats", systemImage: "flame.fill")
-                        .foregroundColor(.theme.primary)
+                        .foregroundColor(Color.unbound.accent)
                 }
 
                 Button {
@@ -321,12 +321,12 @@ struct DevPlayerToolsView: View {
                     }
                 } label: {
                     Label("Max Everything", systemImage: "sparkles")
-                        .foregroundColor(.theme.primary)
+                        .foregroundColor(Color.unbound.accent)
                 }
                 .disabled(isApplying)
             } header: {
                 Text("Feature Unlocks")
-                    .foregroundColor(.theme.textSecondary)
+                    .foregroundColor(Color.unbound.textSecondary)
             }
 
             notificationPreviewSection
@@ -338,7 +338,7 @@ struct DevPlayerToolsView: View {
                     }
                 } label: {
                     Label("Fresh Login Dev Account", systemImage: "person.crop.circle.badge.checkmark")
-                        .foregroundColor(.theme.primary)
+                        .foregroundColor(Color.unbound.accent)
                 }
                 .accessibilityIdentifier("dev.account.freshLogin")
 
@@ -348,7 +348,7 @@ struct DevPlayerToolsView: View {
                     }
                 } label: {
                     Label("Reset Completed Workouts", systemImage: "arrow.counterclockwise.circle")
-                        .foregroundColor(.theme.danger)
+                        .foregroundColor(Color.unbound.alert)
                 }
                 .disabled(isApplying)
                 .accessibilityIdentifier("dev.account.resetCompletedWorkouts")
@@ -358,13 +358,13 @@ struct DevPlayerToolsView: View {
                     status = "Dev progress cleared. Activate again when you want a fresh sandbox."
                 } label: {
                     Label("Clear Dev Progress", systemImage: "trash")
-                        .foregroundColor(.theme.danger)
+                        .foregroundColor(Color.unbound.alert)
                 }
             }
         }
         .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
-        .background(Color.theme.background)
+        .background(Color.unbound.bg)
         .navigationTitle("Dev Player")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear { loadDevControlValues() }
@@ -398,10 +398,10 @@ struct DevPlayerToolsView: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text(selectedPreset.title)
                     .font(.system(size: 15, weight: .semibold))
-                    .foregroundColor(.theme.textPrimary)
+                    .foregroundColor(Color.unbound.textPrimary)
                 Text(selectedPreset.body)
                     .font(.caption(13))
-                    .foregroundColor(.theme.textSecondary)
+                    .foregroundColor(Color.unbound.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .padding(.vertical, 4)
@@ -409,11 +409,11 @@ struct DevPlayerToolsView: View {
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
                     Label("Delay", systemImage: "timer")
-                        .foregroundColor(.theme.textPrimary)
+                        .foregroundColor(Color.unbound.textPrimary)
                     Spacer()
                     Text("\(Int(notificationDelaySeconds.rounded()))s")
                         .font(.system(size: 14, weight: .semibold, design: .monospaced))
-                        .foregroundColor(.theme.primary)
+                        .foregroundColor(Color.unbound.accent)
                 }
                 Slider(value: $notificationDelaySeconds, in: 1...15, step: 1)
                     .tint(Color.unbound.accent)
@@ -423,16 +423,16 @@ struct DevPlayerToolsView: View {
                 fireNotificationPreview(preset: selectedPreset)
             } label: {
                 Label("Send to Lock Screen", systemImage: "bell.badge.fill")
-                    .foregroundColor(.theme.primary)
+                    .foregroundColor(Color.unbound.accent)
             }
             .accessibilityIdentifier("dev.notification.fire")
         } header: {
             Text("Notification Preview")
-                .foregroundColor(.theme.textSecondary)
+                .foregroundColor(Color.unbound.textSecondary)
         } footer: {
             Text("Fires the selected message after the chosen delay. Lock the device before the timer runs out to capture the lock-screen pop for content carousels.")
                 .font(.caption(11))
-                .foregroundColor(.theme.textMuted)
+                .foregroundColor(Color.unbound.textTertiary)
         }
     }
 
@@ -477,7 +477,7 @@ struct DevPlayerToolsView: View {
                 }
             } label: {
                 Label("Seed Arc Day 1", systemImage: "calendar.badge.plus")
-                    .foregroundColor(.theme.primary)
+                    .foregroundColor(Color.unbound.accent)
             }
             .accessibilityIdentifier("dev.program.seedArcDay1")
 
@@ -487,7 +487,7 @@ struct DevPlayerToolsView: View {
                 }
             } label: {
                 Label("Force Wave 2 Today", systemImage: "waveform.path.ecg")
-                    .foregroundColor(.theme.primary)
+                    .foregroundColor(Color.unbound.accent)
             }
             .accessibilityIdentifier("dev.program.forceWave2")
 
@@ -497,7 +497,7 @@ struct DevPlayerToolsView: View {
                 }
             } label: {
                 Label("Force Checkpoint Due", systemImage: "flag.checkered")
-                    .foregroundColor(.theme.primary)
+                    .foregroundColor(Color.unbound.accent)
             }
             .accessibilityIdentifier("dev.program.forceCheckpointDue")
 
@@ -507,7 +507,7 @@ struct DevPlayerToolsView: View {
                 }
             } label: {
                 Label("Seed Scan Due History", systemImage: "camera.viewfinder")
-                    .foregroundColor(.theme.primary)
+                    .foregroundColor(Color.unbound.accent)
             }
             .accessibilityIdentifier("dev.scan.seedDueHistory")
 
@@ -517,7 +517,7 @@ struct DevPlayerToolsView: View {
                 }
             } label: {
                 Label("Lock Scan Window", systemImage: "lock.fill")
-                    .foregroundColor(.theme.primary)
+                    .foregroundColor(Color.unbound.accent)
             }
             .accessibilityIdentifier("dev.scan.lockWindow")
 
@@ -527,7 +527,7 @@ struct DevPlayerToolsView: View {
                 }
             } label: {
                 Label("Regenerate From Dev Profile", systemImage: "arrow.triangle.2.circlepath")
-                    .foregroundColor(.theme.primary)
+                    .foregroundColor(Color.unbound.accent)
             }
             .accessibilityIdentifier("dev.program.regenerateFromProfile")
 
@@ -541,17 +541,17 @@ struct DevPlayerToolsView: View {
                     }
                 } label: {
                     Label(scenario.title, systemImage: scenario.systemImage)
-                        .foregroundColor(.theme.primary)
+                        .foregroundColor(Color.unbound.accent)
                 }
                 .accessibilityIdentifier("dev.program.dynamic.\(scenario.rawValue)")
             }
         } header: {
             Text("Program + Scan Sandbox")
-                .foregroundColor(.theme.textSecondary)
+                .foregroundColor(Color.unbound.textSecondary)
         } footer: {
             Text("Seeds real local program, scan state, dynamic setup contexts, Program Focuses, and user-owned workout fixtures. Launch args: --unbound-dev-program-sandbox arc-day-1|wave-2|checkpoint-due, --unbound-dev-dynamic-program \(DevDynamicProgramScenario.launchArgumentList).")
                 .font(.caption(11))
-                .foregroundColor(.theme.textMuted)
+                .foregroundColor(Color.unbound.textTertiary)
         }
     }
 
@@ -559,11 +559,11 @@ struct DevPlayerToolsView: View {
         Stepper(value: value, in: range) {
             HStack {
                 Label(label, systemImage: systemName)
-                    .foregroundColor(.theme.textPrimary)
+                    .foregroundColor(Color.unbound.textPrimary)
                 Spacer()
                 Text("\(value.wrappedValue)")
                     .font(.system(size: 15, weight: .semibold, design: .monospaced))
-                    .foregroundColor(.theme.primary)
+                    .foregroundColor(Color.unbound.accent)
             }
         }
     }

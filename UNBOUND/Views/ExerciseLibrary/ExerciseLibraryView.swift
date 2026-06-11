@@ -10,7 +10,7 @@ struct ExerciseLibraryView: View {
 
     var body: some View {
         ZStack {
-            Color.theme.background.ignoresSafeArea()
+            Color.unbound.bg.ignoresSafeArea()
 
             VStack(spacing: 0) {
                 searchBar
@@ -41,9 +41,9 @@ struct ExerciseLibraryView: View {
     private var progressOverview: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
-                ExerciseLibraryStatCard(label: "RESULTS", value: "\(viewModel.resultCount)", tint: .theme.textPrimary)
-                ExerciseLibraryStatCard(label: "RANKED", value: "\(viewModel.rankedCount)", tint: .theme.primary)
-                ExerciseLibraryStatCard(label: "WITH XP", value: "\(viewModel.withAPCount)", tint: .theme.success)
+                ExerciseLibraryStatCard(label: "RESULTS", value: "\(viewModel.resultCount)", tint: Color.unbound.textPrimary)
+                ExerciseLibraryStatCard(label: "RANKED", value: "\(viewModel.rankedCount)", tint: Color.unbound.accent)
+                ExerciseLibraryStatCard(label: "WITH XP", value: "\(viewModel.withAPCount)", tint: Color.unbound.success)
             }
 
             if !viewModel.topProgressRows.isEmpty {
@@ -125,11 +125,11 @@ struct ExerciseLibraryView: View {
 
     private var summaryBar: some View {
         HStack(spacing: 0) {
-            ExerciseLibrarySummaryItem(count: viewModel.availableCount, label: "Available", tint: .theme.success)
+            ExerciseLibrarySummaryItem(count: viewModel.availableCount, label: "Available", tint: Color.unbound.success)
             summaryDivider
-            ExerciseLibrarySummaryItem(count: viewModel.substituteCount, label: "Substitute", tint: .theme.warning)
+            ExerciseLibrarySummaryItem(count: viewModel.substituteCount, label: "Substitute", tint: Color.unbound.rankAmber)
             summaryDivider
-            ExerciseLibrarySummaryItem(count: viewModel.avoidCount, label: "Avoid", tint: .theme.danger)
+            ExerciseLibrarySummaryItem(count: viewModel.avoidCount, label: "Avoid", tint: Color.unbound.alert)
         }
         .padding(.vertical, 10)
         .padding(.horizontal, 16)
@@ -137,7 +137,7 @@ struct ExerciseLibraryView: View {
 
     private var summaryDivider: some View {
         Rectangle()
-            .fill(Color.theme.surfaceLight)
+            .fill(Color.unbound.surfaceElevated)
             .frame(width: 1, height: 20)
     }
 
@@ -163,11 +163,11 @@ struct ExerciseLibraryView: View {
             HStack {
                 Text(title)
                     .font(.subheadline(16))
-                    .foregroundColor(.theme.textPrimary)
+                    .foregroundColor(Color.unbound.textPrimary)
                 Spacer()
                 Text("\(items.count)")
                     .font(.caption(12))
-                    .foregroundColor(.theme.textMuted)
+                    .foregroundColor(Color.unbound.textTertiary)
                     .monospacedDigit()
             }
 
@@ -183,10 +183,10 @@ struct ExerciseLibraryView: View {
         VStack(spacing: 10) {
             Image(systemName: "line.3.horizontal.decrease.circle")
                 .font(.system(size: 28, weight: .semibold))
-                .foregroundColor(.theme.textMuted)
+                .foregroundColor(Color.unbound.textTertiary)
             Text("No exercises match those filters.")
                 .font(.bodyMedium(15))
-                .foregroundColor(.theme.textSecondary)
+                .foregroundColor(Color.unbound.textSecondary)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 36)

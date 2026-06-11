@@ -36,10 +36,6 @@ extension ProgramOverviewView {
     @MainActor
     func completeRecoveryDay(_ day: ProgramDay) async {
         guard !isCompletingRecoveryDay, recoveryRewardSequence == nil else { return }
-        guard let viewModel else {
-            selectedDay = day
-            return
-        }
 
         isCompletingRecoveryDay = true
         do {
@@ -73,14 +69,14 @@ extension ProgramOverviewView {
             )
             return nil
         }
-        let programId = viewModel?.program?.id
+        let programId = viewModel.program?.id
         let modifierContext = programId.map {
             temporaryModifierContext(userId: userId, programId: $0, date: date)
         } ?? .empty
         return ProgramWorkoutDraftResolver(
             userId: userId,
             programId: programId,
-            progressionStates: viewModel?.progressionStates ?? [:],
+            progressionStates: viewModel.progressionStates ?? [:],
             modifierContext: modifierContext
         )
         .draft(from: day, date: date)
@@ -112,7 +108,7 @@ extension ProgramOverviewView {
 
         let resolution = ProgramFocusSwitchCoordinator.resolvedContext(
             override: override,
-            profile: currentProfile
+            profile: viewModel.currentProfile
         )
         return DailyWorkoutModifierContext(
             availableEquipment: resolution.dailyModifierEquipment,

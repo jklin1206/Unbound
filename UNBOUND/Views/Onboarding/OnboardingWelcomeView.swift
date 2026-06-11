@@ -5,7 +5,7 @@ struct OnboardingWelcomeView: View {
 
     var body: some View {
         ZStack {
-            Color.theme.background.ignoresSafeArea()
+            Color.unbound.bg.ignoresSafeArea()
 
             VStack(spacing: 0) {
                 Spacer()
@@ -20,12 +20,12 @@ struct OnboardingWelcomeView: View {
                 VStack(spacing: 12) {
                     Text(L10n.onboarding("welcome.title", defaultValue: "Your anime physique starts here."))
                         .font(.headline(32))
-                        .foregroundColor(.theme.textPrimary)
+                        .foregroundColor(Color.unbound.textPrimary)
                         .multilineTextAlignment(.center)
 
                     Text(L10n.onboarding("welcome.subtitle", defaultValue: "Deterministic training, monthly recaps, and real progression."))
                         .font(.bodyText())
-                        .foregroundColor(.theme.textSecondary)
+                        .foregroundColor(Color.unbound.textSecondary)
                         .multilineTextAlignment(.center)
                 }
                 .padding(.horizontal, 24)

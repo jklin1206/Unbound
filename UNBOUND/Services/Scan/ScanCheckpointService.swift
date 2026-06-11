@@ -99,7 +99,7 @@ final class ScanCheckpointService {
 /// Default writer — JPEGs land in Documents/scan-photos.
 final class DefaultScanPhotoWriter: ScanPhotoWriting {
     func write(_ data: Data, filename: String) throws {
-        let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+        let docs = FileManager.default.documentsDirectory
         let dir = docs.appendingPathComponent("scan-photos", isDirectory: true)
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         try data.write(to: dir.appendingPathComponent(filename))

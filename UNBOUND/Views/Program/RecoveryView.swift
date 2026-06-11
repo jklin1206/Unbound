@@ -5,7 +5,7 @@ struct RecoveryView: View {
 
     var body: some View {
         ZStack {
-            Color.theme.background.ignoresSafeArea()
+            Color.unbound.bg.ignoresSafeArea()
 
             ScrollView {
                 VStack(spacing: 16) {
@@ -37,18 +37,18 @@ struct RecoveryView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Sleep Target")
                     .font(.bodyText(14))
-                    .foregroundColor(.theme.textSecondary)
+                    .foregroundColor(Color.unbound.textSecondary)
                 Text("\(String(format: "%.1f", plan.sleepHoursTarget)) hours")
                     .font(.headline(24))
-                    .foregroundColor(.theme.textPrimary)
+                    .foregroundColor(Color.unbound.textPrimary)
                 Text("\(plan.restDaysPerWeek) rest days per week")
                     .font(.caption(13))
-                    .foregroundColor(.theme.textMuted)
+                    .foregroundColor(Color.unbound.textTertiary)
             }
             Spacer()
         }
         .padding(20)
-        .background(Color.theme.surface)
+        .background(Color.unbound.surface)
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
@@ -56,7 +56,7 @@ struct RecoveryView: View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Recovery Activities")
                 .font(.subheadline(16))
-                .foregroundColor(.theme.textPrimary)
+                .foregroundColor(Color.unbound.textPrimary)
 
             ForEach(plan.activities) { activity in
                 RecoveryActivityCard(activity: activity)
@@ -68,15 +68,15 @@ struct RecoveryView: View {
         VStack(alignment: .leading, spacing: 8) {
             Label("Coach Notes", systemImage: "note.text")
                 .font(.bodyMedium(14))
-                .foregroundColor(.theme.textSecondary)
+                .foregroundColor(Color.unbound.textSecondary)
 
             Text(plan.notes)
                 .font(.bodyText(14))
-                .foregroundColor(.theme.textSecondary)
+                .foregroundColor(Color.unbound.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(16)
-        .background(Color.theme.surface)
+        .background(Color.unbound.surface)
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 }
@@ -101,11 +101,11 @@ private struct RecoveryActivityCard: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(activity.name)
                     .font(.bodyMedium(15))
-                    .foregroundColor(.theme.textPrimary)
+                    .foregroundColor(Color.unbound.textPrimary)
 
                 Text(activity.description)
                     .font(.bodyText(13))
-                    .foregroundColor(.theme.textSecondary)
+                    .foregroundColor(Color.unbound.textSecondary)
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -115,14 +115,14 @@ private struct RecoveryActivityCard: View {
             VStack(alignment: .trailing, spacing: 4) {
                 Text("\(activity.durationMinutes) min")
                     .font(.bodyMedium(14))
-                    .foregroundColor(.theme.textPrimary)
+                    .foregroundColor(Color.unbound.textPrimary)
                 Text(activity.frequency)
                     .font(.caption(12))
-                    .foregroundColor(.theme.textMuted)
+                    .foregroundColor(Color.unbound.textTertiary)
             }
         }
         .padding(14)
-        .background(Color.theme.surface)
+        .background(Color.unbound.surface)
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
