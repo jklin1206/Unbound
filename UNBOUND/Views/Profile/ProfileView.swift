@@ -397,20 +397,17 @@ struct ProfileView: View {
             UnboundNativeMetric(
                 label: "Streak",
                 value: "\(sessionXP?.longestStreak ?? 0)D",
-                detail: "Best",
-                tint: Color.unbound.ember
+                detail: "Best"
             ),
             UnboundNativeMetric(
                 label: "Sessions",
                 value: "\(totalWorkouts)",
-                detail: "Total",
-                tint: Color.unbound.coachCyan
+                detail: "Total"
             ),
             UnboundNativeMetric(
                 label: "Vows",
                 value: "\(vowsCompletedCount)",
-                detail: vowMetricDetail,
-                tint: Color.unbound.rankGold
+                detail: vowMetricDetail
             )
         ]
 

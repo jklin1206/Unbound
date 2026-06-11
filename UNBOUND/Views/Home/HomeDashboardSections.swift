@@ -169,9 +169,9 @@ struct HomeTrainingConsoleSection: View {
         let focus = workout?.targetMuscleGroups.first?.displayName.uppercased() ?? (isRest ? "RECOVERY" : "CUSTOM")
         let planValue = workout.map { "\($0.mainExercises.count) MOVES" } ?? (isRest ? "REST" : "OPEN")
         let metrics = [
-            UnboundNativeMetric(label: "Day", value: programDayLabel, tint: tint),
-            UnboundNativeMetric(label: "Time", value: "\(minutes)M", tint: tint),
-            UnboundNativeMetric(label: "Plan", value: planValue, tint: tint)
+            UnboundNativeMetric(label: "Day", value: programDayLabel),
+            UnboundNativeMetric(label: "Time", value: "\(minutes)M"),
+            UnboundNativeMetric(label: "Plan", value: planValue)
         ]
 
         return VStack(alignment: .leading, spacing: 18) {
@@ -320,7 +320,7 @@ struct HomeWeekPathSection: View {
                     Text("\(weekSessionDays.count)/7")
                         .font(.system(size: 10, weight: .heavy, design: .monospaced))
                         .tracking(1.0)
-                        .foregroundStyle(Color.unbound.ember)
+                        .foregroundStyle(Color.unbound.textSecondary)
                         .monospacedDigit()
                         .lineLimit(1)
                         .minimumScaleFactor(0.82)
