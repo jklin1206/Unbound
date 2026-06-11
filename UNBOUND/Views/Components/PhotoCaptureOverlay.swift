@@ -8,7 +8,7 @@ struct PhotoCaptureOverlay: View {
             Color.black.opacity(0.3)
 
             RoundedRectangle(cornerRadius: 80)
-                .stroke(Color.theme.primary.opacity(0.6), lineWidth: 2)
+                .stroke(Color.unbound.accent.opacity(0.6), lineWidth: 2)
                 .frame(width: 200, height: 400)
 
             VStack {

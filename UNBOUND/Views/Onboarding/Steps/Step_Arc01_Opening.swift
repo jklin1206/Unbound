@@ -318,8 +318,8 @@ private struct CinematicVideoPlayer: UIViewRepresentable {
 
     func makeUIView(context: Context) -> PlayerHostView {
         let view = PlayerHostView()
-        view.playerLayer.player = player
-        view.playerLayer.videoGravity = .resizeAspectFill
+        view.playerLayer?.player = player
+        view.playerLayer?.videoGravity = .resizeAspectFill
         return view
     }
 
@@ -328,7 +328,7 @@ private struct CinematicVideoPlayer: UIViewRepresentable {
 
 private final class PlayerHostView: UIView {
     override static var layerClass: AnyClass { AVPlayerLayer.self }
-    var playerLayer: AVPlayerLayer { layer as! AVPlayerLayer }
+    var playerLayer: AVPlayerLayer? { layer as? AVPlayerLayer }
 }
 
 #Preview {

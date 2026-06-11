@@ -135,16 +135,16 @@ struct DevProgramScanSnapshotCard: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
                 Image(systemName: "stethoscope")
-                    .foregroundColor(.theme.primary)
+                    .foregroundColor(Color.unbound.accent)
                 Text("Current Sandbox")
                     .font(.caption(12).weight(.semibold))
-                    .foregroundColor(.theme.textSecondary)
+                    .foregroundColor(Color.unbound.textSecondary)
                 Spacer()
             }
 
             Text(snapshot.programName)
                 .font(.bodyText(15))
-                .foregroundColor(.theme.textPrimary)
+                .foregroundColor(Color.unbound.textPrimary)
                 .lineLimit(2)
 
             VStack(alignment: .leading, spacing: 6) {
@@ -163,11 +163,11 @@ struct DevProgramScanSnapshotCard: View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             Text(label.uppercased())
                 .font(.system(size: 10, weight: .bold, design: .monospaced))
-                .foregroundColor(.theme.textMuted)
+                .foregroundColor(Color.unbound.textTertiary)
                 .frame(width: 70, alignment: .leading)
             Text(value)
                 .font(.caption(12))
-                .foregroundColor(.theme.textSecondary)
+                .foregroundColor(Color.unbound.textSecondary)
                 .lineLimit(2)
             Spacer(minLength: 0)
         }

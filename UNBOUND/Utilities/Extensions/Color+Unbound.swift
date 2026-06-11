@@ -3,8 +3,8 @@ import SwiftUI
 // MARK: - Unbound Color Tokens
 //
 // Premium Hollow palette per UNBOUND_PROMPT.md spec.
-// Parallel namespace to Color.theme — legacy surfaces keep using Color.theme;
-// the new onboarding flow (and Day 2/3 surfaces) use Color.unbound.
+// The single color namespace — the legacy Color.theme bridge is deleted;
+// every surface reads Color.unbound.
 //
 // Violet is reserved for moments of impact only:
 //   - pressed button borders / input focus

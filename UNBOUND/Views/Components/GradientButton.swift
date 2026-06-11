@@ -22,7 +22,7 @@ struct GradientButton: View {
             .frame(height: 56)
             .background(
                 LinearGradient(
-                    colors: [Color.theme.primary, Color.theme.primaryLight],
+                    colors: [Color.unbound.accent, Color.unbound.impact],
                     startPoint: .leading,
                     endPoint: .trailing
                 )

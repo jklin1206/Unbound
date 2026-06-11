@@ -5,9 +5,9 @@ struct TriStateToggle: View {
 
     var body: some View {
         HStack(spacing: 6) {
-            stateButton(.available, icon: "checkmark", color: .theme.success)
-            stateButton(.substitute, icon: "arrow.triangle.2.circlepath", color: .theme.warning)
-            stateButton(.avoid, icon: "xmark", color: .theme.danger)
+            stateButton(.available, icon: "checkmark", color: Color.unbound.success)
+            stateButton(.substitute, icon: "arrow.triangle.2.circlepath", color: Color.unbound.rankAmber)
+            stateButton(.avoid, icon: "xmark", color: Color.unbound.alert)
         }
     }
 

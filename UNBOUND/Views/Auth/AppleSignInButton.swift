@@ -23,7 +23,7 @@ struct AppleSignInButton: View {
 
 #Preview {
     ZStack {
-        Color.theme.background.ignoresSafeArea()
+        Color.unbound.bg.ignoresSafeArea()
         AppleSignInButton(action: {})
             .padding(.horizontal, 24)
     }

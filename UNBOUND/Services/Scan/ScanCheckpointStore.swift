@@ -19,7 +19,7 @@ final class ScanCheckpointStore {
         if let directory {
             self.directory = directory
         } else {
-            let docs = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
+            let docs = fileManager.documentsDirectory
             self.directory = docs.appendingPathComponent("scan-checkpoints", isDirectory: true)
         }
         try? fileManager.createDirectory(at: self.directory, withIntermediateDirectories: true)

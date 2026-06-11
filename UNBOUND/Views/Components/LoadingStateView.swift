@@ -12,12 +12,12 @@ struct LoadingStateView<T>: View {
         case .loading:
             VStack(spacing: 16) {
                 ProgressView()
-                    .tint(Color.theme.primary)
+                    .tint(Color.unbound.accent)
                     .scaleEffect(1.2)
                 if !message.isEmpty {
                     Text(message)
                         .font(.bodyText())
-                        .foregroundColor(.theme.textSecondary)
+                        .foregroundColor(Color.unbound.textSecondary)
                 }
             }
         case .loaded:
@@ -26,15 +26,15 @@ struct LoadingStateView<T>: View {
             VStack(spacing: 16) {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .font(.system(size: 40))
-                    .foregroundColor(.theme.danger)
+                    .foregroundColor(Color.unbound.alert)
                 Text(error.errorDescription ?? "Something went wrong")
                     .font(.bodyText())
-                    .foregroundColor(.theme.textPrimary)
+                    .foregroundColor(Color.unbound.textPrimary)
                     .multilineTextAlignment(.center)
                 if let suggestion = error.recoverySuggestion {
                     Text(suggestion)
                         .font(.caption())
-                        .foregroundColor(.theme.textSecondary)
+                        .foregroundColor(Color.unbound.textSecondary)
                         .multilineTextAlignment(.center)
                 }
                 if let retry = retryAction {

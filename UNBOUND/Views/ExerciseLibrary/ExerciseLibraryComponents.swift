@@ -7,16 +7,16 @@ struct ExerciseLibrarySearchField: View {
         HStack(spacing: 10) {
             Image(systemName: "magnifyingglass")
                 .font(.caption(14))
-                .foregroundColor(.theme.textMuted)
+                .foregroundColor(Color.unbound.textTertiary)
 
             TextField("Search exercises...", text: $text)
                 .font(.bodyText(15))
-                .foregroundColor(.theme.textPrimary)
+                .foregroundColor(Color.unbound.textPrimary)
                 .autocorrectionDisabled()
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
-        .background(Color.theme.surface)
+        .background(Color.unbound.surface)
         .clipShape(RoundedRectangle(cornerRadius: 10))
     }
 }
@@ -30,7 +30,7 @@ struct ExerciseLibraryStatCard: View {
         VStack(alignment: .leading, spacing: 2) {
             Text(label)
                 .font(.caption(10))
-                .foregroundColor(.theme.textMuted)
+                .foregroundColor(Color.unbound.textTertiary)
             Text(value)
                 .font(.bodyMedium(16))
                 .foregroundColor(tint)
@@ -38,7 +38,7 @@ struct ExerciseLibraryStatCard: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(10)
-        .background(Color.theme.surface)
+        .background(Color.unbound.surface)
         .clipShape(RoundedRectangle(cornerRadius: 10))
     }
 }
@@ -51,30 +51,30 @@ struct ExerciseLibraryProgressChip: View {
             HStack(spacing: 5) {
                 Text(row.tier?.displayName.uppercased() ?? "LOGGED")
                     .font(.caption(9))
-                    .foregroundColor(row.tier?.rewardTint ?? .theme.success)
+                    .foregroundColor(row.tier?.rewardTint ?? Color.unbound.success)
                 if row.totalAP > 0 {
                     Text("\(Int(row.totalAP.rounded())) XP")
                         .font(.caption(9))
-                        .foregroundColor(.theme.textMuted)
+                        .foregroundColor(Color.unbound.textTertiary)
                         .monospacedDigit()
                 }
             }
 
             Text(row.item.name)
                 .font(.caption(12))
-                .foregroundColor(.theme.textPrimary)
+                .foregroundColor(Color.unbound.textPrimary)
                 .lineLimit(1)
 
             if let summary = row.bestMetricSummary {
                 Text(summary)
                     .font(.caption(10))
-                    .foregroundColor(.theme.textSecondary)
+                    .foregroundColor(Color.unbound.textSecondary)
                     .lineLimit(1)
             }
         }
         .frame(width: 148, alignment: .leading)
         .padding(10)
-        .background(Color.theme.surface)
+        .background(Color.unbound.surface)
         .clipShape(RoundedRectangle(cornerRadius: 10))
     }
 }
@@ -90,10 +90,10 @@ struct ExerciseLibraryFilterChip: View {
         Button(action: action) {
             Text(title)
                 .font(.caption(fontSize))
-                .foregroundColor(isSelected ? .white : .theme.textSecondary)
+                .foregroundColor(isSelected ? .white : Color.unbound.textSecondary)
                 .padding(.horizontal, horizontalPadding)
                 .padding(.vertical, 7)
-                .background(isSelected ? Color.theme.primary : Color.theme.surface)
+                .background(isSelected ? Color.unbound.accent : Color.unbound.surface)
                 .clipShape(Capsule())
         }
     }
@@ -108,10 +108,10 @@ struct ExerciseLibrarySummaryItem: View {
         HStack(spacing: 4) {
             Text("\(count)")
                 .font(.bodyMedium(14))
-                .foregroundColor(count > 0 ? tint : .theme.textMuted)
+                .foregroundColor(count > 0 ? tint : Color.unbound.textTertiary)
             Text(label)
                 .font(.caption(13))
-                .foregroundColor(.theme.textSecondary)
+                .foregroundColor(Color.unbound.textSecondary)
         }
         .frame(maxWidth: .infinity)
     }

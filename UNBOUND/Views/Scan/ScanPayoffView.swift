@@ -62,7 +62,7 @@ struct ScanPayoffView: View {
 enum ScanPhotoLoader {
     static func load(filename: String) -> UIImage? {
         guard !filename.isEmpty else { return nil }
-        let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+        let docs = FileManager.default.documentsDirectory
         let url = docs.appendingPathComponent("scan-photos").appendingPathComponent(filename)
         guard let data = try? Data(contentsOf: url) else { return nil }
         return UIImage(data: data)

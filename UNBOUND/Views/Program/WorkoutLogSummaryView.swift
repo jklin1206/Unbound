@@ -32,7 +32,7 @@ struct WorkoutLogSummaryView: View {
 
     var body: some View {
         ZStack {
-            Color.theme.background.ignoresSafeArea()
+            Color.unbound.bg.ignoresSafeArea()
 
             ScrollView {
                 VStack(spacing: 16) {
@@ -57,15 +57,15 @@ struct WorkoutLogSummaryView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(log.plannedWorkoutName)
                         .font(.subheadline(20))
-                        .foregroundColor(.theme.textPrimary)
+                        .foregroundColor(Color.unbound.textPrimary)
                     Text(log.startedAt.formatted(date: .long, time: .omitted))
                         .font(.caption(13))
-                        .foregroundColor(.theme.textMuted)
+                        .foregroundColor(Color.unbound.textTertiary)
                 }
                 Spacer()
                 Image(systemName: "checkmark.seal.fill")
                     .font(.system(size: 32))
-                    .foregroundColor(.theme.success)
+                    .foregroundColor(Color.unbound.success)
             }
 
             HStack(spacing: 0) {
@@ -73,20 +73,20 @@ struct WorkoutLogSummaryView: View {
                     value: log.durationMinutes.map { "\($0)m" } ?? "--",
                     label: "Duration"
                 )
-                Divider().frame(height: 36).background(Color.theme.surfaceLight)
+                Divider().frame(height: 36).background(Color.unbound.surfaceElevated)
                 statCell(value: "\(totalWorkSets)", label: "Work Sets")
-                Divider().frame(height: 36).background(Color.theme.surfaceLight)
+                Divider().frame(height: 36).background(Color.unbound.surfaceElevated)
                 statCell(
                     value: log.startedAt.formatted(.dateTime.hour().minute()),
                     label: "Started"
                 )
             }
             .padding(.vertical, 12)
-            .background(Color.theme.background)
+            .background(Color.unbound.bg)
             .clipShape(RoundedRectangle(cornerRadius: 10))
         }
         .padding(16)
-        .background(Color.theme.surface)
+        .background(Color.unbound.surface)
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
@@ -94,12 +94,12 @@ struct WorkoutLogSummaryView: View {
         VStack(spacing: 3) {
             Text(value)
                 .font(.stat(18))
-                .foregroundColor(.theme.textPrimary)
+                .foregroundColor(Color.unbound.textPrimary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
             Text(label)
                 .font(.caption(11))
-                .foregroundColor(.theme.textSecondary)
+                .foregroundColor(Color.unbound.textSecondary)
         }
         .frame(maxWidth: .infinity)
     }
@@ -110,25 +110,25 @@ struct WorkoutLogSummaryView: View {
         VStack(alignment: .leading, spacing: 12) {
             Label("Volume", systemImage: "chart.bar.fill")
                 .font(.bodyMedium(15))
-                .foregroundColor(.theme.primary)
+                .foregroundColor(Color.unbound.accent)
 
             HStack(spacing: 0) {
                 volumeCell(value: "\(totalWorkSets)", label: "Sets")
-                Divider().frame(height: 36).background(Color.theme.surfaceLight)
+                Divider().frame(height: 36).background(Color.unbound.surfaceElevated)
                 volumeCell(value: "\(totalReps)", label: "Reps")
-                Divider().frame(height: 36).background(Color.theme.surfaceLight)
+                Divider().frame(height: 36).background(Color.unbound.surfaceElevated)
                 volumeCell(
                     value: formattedTonnage,
                     label: "Tonnage"
                 )
                 if let rpe = log.overallRPE {
-                    Divider().frame(height: 36).background(Color.theme.surfaceLight)
+                    Divider().frame(height: 36).background(Color.unbound.surfaceElevated)
                     volumeCell(value: "\(rpe)/10", label: "RPE")
                 }
             }
         }
         .padding(16)
-        .background(Color.theme.surface)
+        .background(Color.unbound.surface)
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
@@ -136,10 +136,10 @@ struct WorkoutLogSummaryView: View {
         VStack(spacing: 3) {
             Text(value)
                 .font(.stat(16))
-                .foregroundColor(.theme.textPrimary)
+                .foregroundColor(Color.unbound.textPrimary)
             Text(label)
                 .font(.caption(11))
-                .foregroundColor(.theme.textSecondary)
+                .foregroundColor(Color.unbound.textSecondary)
         }
         .frame(maxWidth: .infinity)
     }
@@ -159,7 +159,7 @@ struct WorkoutLogSummaryView: View {
             HStack {
                 Text(entry.exerciseName)
                     .font(.bodyMedium(15))
-                    .foregroundColor(entry.skipped ? .theme.textMuted : .theme.textPrimary)
+                    .foregroundColor(entry.skipped ? Color.unbound.textTertiary : Color.unbound.textPrimary)
                     .strikethrough(entry.skipped)
 
                 Spacer()
@@ -168,20 +168,20 @@ struct WorkoutLogSummaryView: View {
                     Text("Skipped")
                         .font(.caption(11))
                         .fontWeight(.semibold)
-                        .foregroundColor(.theme.textMuted)
+                        .foregroundColor(Color.unbound.textTertiary)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 3)
-                        .background(Color.theme.surfaceLight)
+                        .background(Color.unbound.surfaceElevated)
                         .clipShape(Capsule())
                 } else {
                     Text("\(entry.sets.filter { !$0.isWarmup }.count) sets")
                         .font(.caption(12))
-                        .foregroundColor(.theme.textSecondary)
+                        .foregroundColor(Color.unbound.textSecondary)
                 }
             }
 
             if !entry.skipped {
-                Divider().background(Color.theme.surfaceLight)
+                Divider().background(Color.unbound.surfaceElevated)
 
                 let workSets = entry.sets.filter { !$0.isWarmup }
                 let warmupSets = entry.sets.filter { $0.isWarmup }
@@ -189,7 +189,7 @@ struct WorkoutLogSummaryView: View {
                 if !warmupSets.isEmpty {
                     Text("Warmup")
                         .font(.caption(11))
-                        .foregroundColor(.theme.warning)
+                        .foregroundColor(Color.unbound.rankAmber)
 
                     ForEach(warmupSets) { set in
                         setRow(set: set, isWarmup: true)
@@ -203,13 +203,13 @@ struct WorkoutLogSummaryView: View {
                 if let notes = entry.notes, !notes.isEmpty {
                     Text(notes)
                         .font(.caption(12))
-                        .foregroundColor(.theme.textMuted)
+                        .foregroundColor(Color.unbound.textTertiary)
                         .padding(.top, 2)
                 }
             }
         }
         .padding(14)
-        .background(Color.theme.surface)
+        .background(Color.unbound.surface)
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
@@ -217,35 +217,35 @@ struct WorkoutLogSummaryView: View {
         HStack(spacing: 10) {
             Text("Set \(set.setNumber)")
                 .font(.caption(12))
-                .foregroundColor(.theme.textMuted)
+                .foregroundColor(Color.unbound.textTertiary)
                 .frame(width: 42, alignment: .leading)
 
             if let weight = set.weightKg {
                 Text("\(WeightPlatePolicy.formatLoggedWeight(weight, unit: weightUnit))\(weightUnit.shortLabel)")
                     .font(.bodyMedium(14))
-                    .foregroundColor(.theme.textPrimary)
+                    .foregroundColor(Color.unbound.textPrimary)
             } else {
                 Text("BW")
                     .font(.bodyMedium(14))
-                    .foregroundColor(.theme.textSecondary)
+                    .foregroundColor(Color.unbound.textSecondary)
             }
 
             Text("×")
                 .font(.caption(12))
-                .foregroundColor(.theme.textMuted)
+                .foregroundColor(Color.unbound.textTertiary)
 
             Text("\(set.reps) reps")
                 .font(.bodyMedium(14))
-                .foregroundColor(.theme.textPrimary)
+                .foregroundColor(Color.unbound.textPrimary)
 
             if let rpe = set.rpe {
                 Spacer()
                 Text("@ RPE \(rpe)")
                     .font(.caption(12))
-                    .foregroundColor(.theme.textSecondary)
+                    .foregroundColor(Color.unbound.textSecondary)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
-                    .background(Color.theme.surfaceLight)
+                    .background(Color.unbound.surfaceElevated)
                     .clipShape(Capsule())
             }
         }
@@ -271,16 +271,16 @@ struct WorkoutLogSummaryView: View {
             VStack(alignment: .leading, spacing: 8) {
                 Label("Session Notes", systemImage: "note.text")
                     .font(.bodyMedium(14))
-                    .foregroundColor(.theme.textSecondary)
+                    .foregroundColor(Color.unbound.textSecondary)
 
                 Text(notes)
                     .font(.bodyText(14))
-                    .foregroundColor(.theme.textSecondary)
+                    .foregroundColor(Color.unbound.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .padding(14)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.theme.surface)
+            .background(Color.unbound.surface)
             .clipShape(RoundedRectangle(cornerRadius: 12))
         }
     }

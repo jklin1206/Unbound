@@ -18,18 +18,18 @@ struct AccountDeletionView: View {
 
     var body: some View {
         ZStack {
-            Color.theme.background.ignoresSafeArea()
+            Color.unbound.bg.ignoresSafeArea()
 
             ScrollView {
                 VStack(spacing: 28) {
                     // Warning icon
                     ZStack {
                         Circle()
-                            .fill(Color.theme.danger.opacity(0.12))
+                            .fill(Color.unbound.alert.opacity(0.12))
                             .frame(width: 80, height: 80)
                         Image(systemName: "exclamationmark.triangle.fill")
                             .font(.system(size: 36))
-                            .foregroundColor(.theme.danger)
+                            .foregroundColor(Color.unbound.alert)
                     }
                     .padding(.top, 24)
 
@@ -37,12 +37,12 @@ struct AccountDeletionView: View {
                     VStack(spacing: 8) {
                         Text("Delete Your Account")
                             .font(.headline(26))
-                            .foregroundColor(.theme.textPrimary)
+                            .foregroundColor(Color.unbound.textPrimary)
                             .multilineTextAlignment(.center)
 
                         Text("This will permanently delete your account, all scan data, photos, programs, and progress. This cannot be undone.")
                             .font(.bodyText(15))
-                            .foregroundColor(.theme.textSecondary)
+                            .foregroundColor(Color.unbound.textSecondary)
                             .multilineTextAlignment(.center)
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -51,44 +51,44 @@ struct AccountDeletionView: View {
                     VStack(alignment: .leading, spacing: 10) {
                         Text("What will be deleted:")
                             .font(.bodyMedium(14))
-                            .foregroundColor(.theme.textSecondary)
+                            .foregroundColor(Color.unbound.textSecondary)
 
                         ForEach(deletedItems, id: \.self) { item in
                             HStack(alignment: .top, spacing: 10) {
                                 Image(systemName: "xmark.circle.fill")
                                     .font(.system(size: 14))
-                                    .foregroundColor(.theme.danger)
+                                    .foregroundColor(Color.unbound.alert)
                                     .padding(.top, 1)
                                 Text(item)
                                     .font(.bodyText(14))
-                                    .foregroundColor(.theme.textSecondary)
+                                    .foregroundColor(Color.unbound.textSecondary)
                                     .fixedSize(horizontal: false, vertical: true)
                             }
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(16)
-                    .background(Color.theme.surface)
+                    .background(Color.unbound.surface)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
 
                     // Confirmation text field
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Type 'delete' to confirm")
                             .font(.bodyMedium(14))
-                            .foregroundColor(.theme.textSecondary)
+                            .foregroundColor(Color.unbound.textSecondary)
 
                         TextField("delete", text: $viewModel.deleteConfirmationText)
                             .autocapitalization(.none)
                             .disableAutocorrection(true)
                             .font(.bodyText(16))
-                            .foregroundColor(.theme.textPrimary)
+                            .foregroundColor(Color.unbound.textPrimary)
                             .padding(14)
-                            .background(Color.theme.surface)
+                            .background(Color.unbound.surface)
                             .clipShape(RoundedRectangle(cornerRadius: 12))
                             .overlay(
                                 RoundedRectangle(cornerRadius: 12)
                                     .strokeBorder(
-                                        canDelete ? Color.theme.danger : Color.theme.surfaceLight,
+                                        canDelete ? Color.unbound.alert : Color.unbound.surfaceElevated,
                                         lineWidth: 1
                                     )
                             )
@@ -114,7 +114,7 @@ struct AccountDeletionView: View {
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .frame(height: 56)
-                        .background(canDelete ? Color.theme.danger : Color.theme.danger.opacity(0.35))
+                        .background(canDelete ? Color.unbound.alert : Color.unbound.alert.opacity(0.35))
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
                     .disabled(!canDelete || viewModel.isLoading)
@@ -123,7 +123,7 @@ struct AccountDeletionView: View {
                     if let error = viewModel.errorMessage {
                         Text(error)
                             .font(.bodyText(14))
-                            .foregroundColor(.theme.danger)
+                            .foregroundColor(Color.unbound.alert)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 4)
                     }

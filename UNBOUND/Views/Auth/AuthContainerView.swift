@@ -30,7 +30,7 @@ private struct AuthContainerContentView: View {
 
     var body: some View {
         ZStack {
-            Color.theme.background.ignoresSafeArea()
+            Color.unbound.bg.ignoresSafeArea()
 
             ScrollView {
                 VStack(spacing: 0) {
@@ -38,12 +38,12 @@ private struct AuthContainerContentView: View {
                     VStack(spacing: 8) {
                         Text(L10n.string(.appName, defaultValue: "UNBOUND"))
                             .font(.headline(40))
-                            .foregroundColor(.theme.textPrimary)
+                            .foregroundColor(Color.unbound.textPrimary)
                             .tracking(4)
 
                         Text(L10n.string(.authSignInSubtitle, defaultValue: "Sign in to back up your progress"))
                             .font(.bodyMedium(16))
-                            .foregroundColor(.theme.textSecondary)
+                            .foregroundColor(Color.unbound.textSecondary)
                     }
                     .padding(.top, 72)
                     .padding(.bottom, 48)
@@ -57,16 +57,16 @@ private struct AuthContainerContentView: View {
                         // Divider
                         HStack(spacing: 12) {
                             Rectangle()
-                                .fill(Color.theme.surfaceLight)
+                                .fill(Color.unbound.surfaceElevated)
                                 .frame(height: 1)
 
                             Text(L10n.string(.authEmailDivider, defaultValue: "or continue with email"))
                                 .font(.caption(13))
-                                .foregroundColor(.theme.textMuted)
+                                .foregroundColor(Color.unbound.textTertiary)
                                 .fixedSize()
 
                             Rectangle()
-                                .fill(Color.theme.surfaceLight)
+                                .fill(Color.unbound.surfaceElevated)
                                 .frame(height: 1)
                         }
 
@@ -81,7 +81,7 @@ private struct AuthContainerContentView: View {
                     VStack(spacing: 4) {
                         Text(L10n.string(.authLegalPrefix, defaultValue: "By continuing, you agree to our"))
                             .font(.caption(12))
-                            .foregroundColor(.theme.textMuted)
+                            .foregroundColor(Color.unbound.textTertiary)
 
                         HStack(spacing: 4) {
                             Link(L10n.string(.legalTermsOfService, defaultValue: "Terms of Service"), destination: AppConstants.Legal.termsURL)
@@ -89,7 +89,7 @@ private struct AuthContainerContentView: View {
                             Link(L10n.string(.legalPrivacyPolicy, defaultValue: "Privacy Policy"), destination: AppConstants.Legal.privacyURL)
                         }
                         .font(.caption(12))
-                        .foregroundColor(.theme.textSecondary)
+                        .foregroundColor(Color.unbound.textSecondary)
                     }
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 24)

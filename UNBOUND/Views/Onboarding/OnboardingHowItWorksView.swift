@@ -31,14 +31,14 @@ struct OnboardingHowItWorksView: View {
 
     var body: some View {
         ZStack {
-            Color.theme.background.ignoresSafeArea()
+            Color.unbound.bg.ignoresSafeArea()
 
             VStack(spacing: 0) {
                 Spacer()
 
                 Text(L10n.onboarding("howItWorks.title", defaultValue: "How It Works"))
                     .font(.headline(28))
-                    .foregroundColor(.theme.textPrimary)
+                    .foregroundColor(Color.unbound.textPrimary)
                     .padding(.bottom, 40)
 
                 VStack(spacing: 28) {
@@ -46,7 +46,7 @@ struct OnboardingHowItWorksView: View {
                         HStack(alignment: .top, spacing: 20) {
                             ZStack {
                                 Circle()
-                                    .fill(Color.theme.primary.opacity(0.15))
+                                    .fill(Color.unbound.accent.opacity(0.15))
                                     .frame(width: 52, height: 52)
 
                                 Image(step.assetName)
@@ -60,11 +60,11 @@ struct OnboardingHowItWorksView: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(step.title)
                                     .font(.subheadline(18))
-                                    .foregroundColor(.theme.textPrimary)
+                                    .foregroundColor(Color.unbound.textPrimary)
 
                                 Text(step.description)
                                     .font(.bodyText(14))
-                                    .foregroundColor(.theme.textSecondary)
+                                    .foregroundColor(Color.unbound.textSecondary)
                                     .fixedSize(horizontal: false, vertical: true)
                             }
 

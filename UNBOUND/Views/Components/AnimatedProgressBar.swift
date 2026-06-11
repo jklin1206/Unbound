@@ -2,7 +2,7 @@ import SwiftUI
 
 struct AnimatedProgressBar: View {
     let progress: CGFloat
-    var color: Color = .theme.primary
+    var color: Color = Color.unbound.accent
     var height: CGFloat = 8
 
     @State private var animatedProgress: CGFloat = 0
@@ -11,7 +11,7 @@ struct AnimatedProgressBar: View {
         GeometryReader { geo in
             ZStack(alignment: .leading) {
                 RoundedRectangle(cornerRadius: height / 2)
-                    .fill(Color.theme.surfaceLight)
+                    .fill(Color.unbound.surfaceElevated)
 
                 RoundedRectangle(cornerRadius: height / 2)
                     .fill(
