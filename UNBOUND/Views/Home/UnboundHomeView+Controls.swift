@@ -8,7 +8,6 @@ extension UnboundHomeView {
             weekPath
             homeIconDock
             activeVowInlineStatus
-            bodyWeightQuickLogRow
         }
         .padding(.vertical, 8)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -26,14 +25,16 @@ extension UnboundHomeView {
 
     var homeIconDock: some View {
         let columns = [
-            GridItem(.adaptive(minimum: 68), spacing: 8)
+            GridItem(.flexible(minimum: 0), spacing: 10),
+            GridItem(.flexible(minimum: 0), spacing: 10),
+            GridItem(.flexible(minimum: 0), spacing: 10)
         ]
 
         return LazyVGrid(columns: columns, spacing: 8) {
             HomeIconCommand(
-                systemName: rankTrialCommandIconName,
+                artwork: .rankTrial,
+                title: "Rank Trial",
                 value: rankTrialCommandValue,
-                label: "RANK",
                 tint: rankTrialCommandTint,
                 accessibilityLabel: "Open rank trial"
             ) {
@@ -41,9 +42,9 @@ extension UnboundHomeView {
             }
 
             HomeIconCommand(
-                systemName: trialCommandIconName,
+                artwork: .vow,
+                title: "Vows",
                 value: trialCommandValue,
-                label: "VOW",
                 tint: trialCommandTint,
                 accessibilityLabel: "Open weekly vow"
             ) {
@@ -51,9 +52,20 @@ extension UnboundHomeView {
             }
 
             HomeIconCommand(
-                systemName: "photo.on.rectangle.angled",
-                value: "BACKDROP",
-                label: equippedHomeBackdrop?.name ?? "DEFAULT",
+                artwork: .shop,
+                title: "Shop",
+                value: "\(shopInventoryStore.purchasedItemIDs.count) owned",
+                tint: Color.skinHex("8B5CF6"),
+                accessibilityLabel: "Open cosmetics shop"
+            ) {
+                UnboundHaptics.medium()
+                showingShop = true
+            }
+
+            HomeIconCommand(
+                artwork: .backdrops,
+                title: "Backdrops",
+                value: equippedHomeBackdrop?.name ?? "Default",
                 tint: equippedHomeBackdrop?.accent ?? Color.skinHex("2DD4BF"),
                 accessibilityLabel: "Change home backdrop"
             ) {
@@ -62,24 +74,34 @@ extension UnboundHomeView {
             }
 
             HomeIconCommand(
-                systemName: "bag.fill",
-                value: "SHOP",
-                label: "\(shopInventoryStore.purchasedItemIDs.count) OWNED",
-                tint: Color.skinHex("8B5CF6"),
-                accessibilityLabel: "Open cosmetics shop"
+                artwork: .rankLibrary,
+                title: "Rank Library",
+                value: model.aggregateTier.displayName,
+                tint: model.aggregateTier.rewardTextTint,
+                accessibilityLabel: "Open rank library"
             ) {
-                UnboundHaptics.medium()
-                showingShop = true
+                UnboundHaptics.soft()
+                showRankLibrary = true
+            }
+
+            HomeIconCommand(
+                artwork: .weight,
+                title: "Weight",
+                value: bodyWeightCommandValue,
+                tint: bodyWeightStatusColor,
+                accessibilityLabel: "Open bodyweight log"
+            ) {
+                handleBodyWeightCommand()
             }
         }
         .padding(.top, 4)
-        .padding(.bottom, 2)
+        .padding(.bottom, 4)
         .frame(maxWidth: .infinity)
     }
 
     @ViewBuilder
     var activeVowInlineStatus: some View {
-        if let activeTrial = trialsState.currentTrial,
+        if let activeTrial = model.trialsState.currentTrial,
            activeTrial.capstoneState != .missed {
             Button {
                 handleTrialCommand()
@@ -126,45 +148,29 @@ extension UnboundHomeView {
     }
 
     var trialCommandValue: String {
-        if let activeTrial = trialsState.currentTrial {
+        if let activeTrial = model.trialsState.currentTrial {
             return capstoneStateLabel(for: activeTrial.capstoneState)
         }
-        if !trialsState.skippedCurrentWeek && !trialsState.currentWeekCards.isEmpty {
+        if !model.trialsState.skippedCurrentWeek && !model.trialsState.currentWeekCards.isEmpty {
             return "PICK"
         }
         return "IDLE"
     }
 
-    var trialCommandIconName: String {
-        if let activeTrial = trialsState.currentTrial {
-            switch activeTrial.capstoneState {
-            case .windowOpen:
-                return "play.fill"
-            case .completed:
-                return "checkmark.seal.fill"
-            case .missed:
-                return "xmark.seal.fill"
-            case .pending:
-                return "seal.fill"
-            }
-        }
-        return "seal"
-    }
-
     var trialCommandTint: Color {
-        if let activeTrial = trialsState.currentTrial {
+        if let activeTrial = model.trialsState.currentTrial {
             if activeTrial.capstoneState == .completed { return Color.unbound.success }
             if activeTrial.capstoneState == .missed { return Color.unbound.alert }
             return activeTrial.chosenCard.theme.tintColor
         }
-        if !trialsState.skippedCurrentWeek && !trialsState.currentWeekCards.isEmpty {
+        if !model.trialsState.skippedCurrentWeek && !model.trialsState.currentWeekCards.isEmpty {
             return Color.unbound.accent
         }
         return Color.unbound.textTertiary
     }
 
     var rankTrialCommandValue: String {
-        guard let readiness = overallRankTrialReadiness,
+        guard let readiness = model.overallRankTrialReadiness,
               readiness.definition != nil
         else { return "IDLE" }
         if readiness.isReady { return "READY" }
@@ -174,22 +180,23 @@ extension UnboundHomeView {
         return "\(metCount)/\(totalCount)"
     }
 
-    var rankTrialCommandIconName: String {
-        guard let readiness = overallRankTrialReadiness,
-              readiness.definition != nil
-        else { return "seal" }
-        return readiness.isReady ? "checkmark.seal.fill" : "seal.fill"
-    }
-
     var rankTrialCommandTint: Color {
-        guard let readiness = overallRankTrialReadiness,
+        guard let readiness = model.overallRankTrialReadiness,
               readiness.definition != nil
         else { return Color.unbound.textTertiary }
         return rankGatePulseTint(readiness)
     }
 
+    var bodyWeightCommandValue: String {
+        if let latestBodyWeightKg = model.latestBodyWeightKg {
+            let weight = WeightPlatePolicy.formatLoggedWeight(latestBodyWeightKg, unit: selectedWeightUnit)
+            return "\(weight) \(selectedWeightUnit.shortLabel)"
+        }
+        return model.hasLoggedBodyWeightToday ? "Logged" : "Log"
+    }
+
     func handleTrialCommand() {
-        if let activeTrial = trialsState.currentTrial {
+        if let activeTrial = model.trialsState.currentTrial {
             guard activeTrial.capstoneState == .windowOpen else {
                 UnboundHaptics.soft()
                 return
@@ -199,8 +206,8 @@ extension UnboundHomeView {
             return
         }
 
-        guard !trialsState.skippedCurrentWeek,
-              !trialsState.currentWeekCards.isEmpty
+        guard !model.trialsState.skippedCurrentWeek,
+              !model.trialsState.currentWeekCards.isEmpty
         else {
             UnboundHaptics.soft()
             return
@@ -211,7 +218,7 @@ extension UnboundHomeView {
     }
 
     func handleRankTrialCommand() {
-        guard let readiness = overallRankTrialReadiness,
+        guard let readiness = model.overallRankTrialReadiness,
               readiness.definition != nil
         else {
             UnboundHaptics.soft()
@@ -219,6 +226,16 @@ extension UnboundHomeView {
         }
         UnboundHaptics.medium()
         NotificationCenter.default.post(name: .requestNavigateToProfileRankGate, object: nil)
+    }
+
+    func handleBodyWeightCommand() {
+        model.bodyWeightSaveError = nil
+        UnboundHaptics.medium()
+        if model.hasLoggedBodyWeightToday {
+            showingBodyWeightHistory = true
+        } else {
+            showingBodyWeightLog = true
+        }
     }
 
     func capstoneStateLabel(for state: WeeklyVowState) -> String {
@@ -241,7 +258,7 @@ extension UnboundHomeView {
                 showingBodyWeightHistory = true
             } label: {
                 HStack(spacing: 10) {
-                    Image(systemName: hasLoggedBodyWeightToday ? "checkmark.circle.fill" : "scalemass.fill")
+                    Image(systemName: model.hasLoggedBodyWeightToday ? "checkmark.circle.fill" : "scalemass.fill")
                         .font(.system(size: 16, weight: .black))
                         .foregroundStyle(bodyWeightStatusColor)
                         .frame(width: 24, height: 24)
@@ -276,14 +293,14 @@ extension UnboundHomeView {
             .accessibilityLabel("Open bodyweight history")
 
             Button {
-                bodyWeightSaveError = nil
+                model.bodyWeightSaveError = nil
                 UnboundHaptics.medium()
                 showingBodyWeightLog = true
             } label: {
                 HStack(spacing: 6) {
-                    Image(systemName: hasLoggedBodyWeightToday ? "checkmark" : "plus")
+                    Image(systemName: model.hasLoggedBodyWeightToday ? "checkmark" : "plus")
                         .font(.system(size: 10, weight: .black))
-                    Text(hasLoggedBodyWeightToday ? "LOGGED" : "LOG")
+                    Text(model.hasLoggedBodyWeightToday ? "LOGGED" : "LOG")
                         .font(.system(size: 10, weight: .heavy, design: .monospaced))
                         .tracking(1.0)
                 }
@@ -292,7 +309,7 @@ extension UnboundHomeView {
                 .frame(height: 32)
                 .background(
                     Capsule()
-                        .fill(bodyWeightStatusColor.opacity(hasLoggedBodyWeightToday ? 0.20 : 0.92))
+                        .fill(bodyWeightStatusColor.opacity(model.hasLoggedBodyWeightToday ? 0.20 : 0.92))
                 )
                 .overlay(
                     Capsule()
@@ -317,7 +334,7 @@ extension UnboundHomeView {
         VStack(spacing: 12) {
             RecalibratingBanner()
 
-            if shouldShowCalibrationCard {
+            if model.shouldShowCalibrationCard {
                 DayOneCalibrationCard(style: .slim) {
                     UnboundHaptics.medium()
                     showingCalibrationWorkout = true
@@ -328,7 +345,7 @@ extension UnboundHomeView {
     }
 
     var shouldShowRankGatePulse: Bool {
-        guard let readiness = overallRankTrialReadiness,
+        guard let readiness = model.overallRankTrialReadiness,
               readiness.definition != nil
         else { return false }
         return true
@@ -346,8 +363,6 @@ extension UnboundHomeView {
         } label: {
             HStack(spacing: 12) {
                 ZStack {
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(tint.opacity(0.14))
                     Image(systemName: "seal.fill")
                         .font(.system(size: 15, weight: .bold))
                         .foregroundStyle(tint)
@@ -388,14 +403,9 @@ extension UnboundHomeView {
             }
             .padding(14)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(Color.unbound.surface)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .strokeBorder(tint.opacity(0.26), lineWidth: 1)
-            )
+            .overlay(alignment: .bottom) {
+                UnboundNativeDivider(opacity: 0.42)
+            }
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier("home.rankGatePulse")
@@ -436,7 +446,7 @@ extension UnboundHomeView {
 
     @ViewBuilder
     var lastSessionRecap: some View {
-        if let log = lastLog {
+        if let log = model.lastLog {
             HStack(spacing: 6) {
                 Text(dayWord(for: log.startedAt))
                     .font(Font.unbound.captionS)

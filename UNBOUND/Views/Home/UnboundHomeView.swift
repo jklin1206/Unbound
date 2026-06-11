@@ -19,12 +19,14 @@ import UIKit
 //   5. Stats grid    — 2×2 Strength / Stamina / Technique / Vitality
 //   6. Last session  — inline recap line, no card
 //
-// Reads SessionXPService for streak, AttributeService for the six axes,
-// RankService for aggregate rank, WorkoutLogService for the recap line.
+// Data state lives in `HomeViewModel`; this view keeps only presentation
+// state (sheets, cosmetics, animation phases).
 
 struct UnboundHomeView: View {
     @EnvironmentObject var services: ServiceContainer
     @Environment(\.accessibilityReduceMotion) var reduceMotion
+
+    @StateObject var model: HomeViewModel
 
     @ObservedObject var photoStore = ProfilePhotoStore.shared
     @StateObject var walletStore = CurrencyWalletStore.shared
@@ -32,35 +34,13 @@ struct UnboundHomeView: View {
     @State var equippedShopProfileBorder: ShopProfileBorderID?
     @State var equippedHomeBackdrop: ShopItem?
 
-    // Profile + program
-    @State var profile: UserProfile?
-    @State var program: TrainingProgram?
-    @State var bodyWeightLogs: [BodyWeightLog] = []
-    @State var isLoading = true
     @AppStorage(WeightPlatePolicy.unitDefaultsKey) var weightUnitRaw: String = TrainingWeightUnit.localeDefault.rawValue
-
-    // Sessions / XP
-    @State var overallLevel: OverallLevelProgress?
     @AppStorage("unbound.streakDays") var streakDays: Int = 0
     @AppStorage("unbound.lastPhotoTimestamp") var lastPhotoTimestamp: Double = 0
     @AppStorage("unbound.lastSessionDate") var lastSessionTimestamp: Double = 0
-    @State var sessionXP: SessionXPRecord?
-
-    // Ranking + stats
-    @State var aggregateRank: RankTier = .initiate
-    @State var aggregateTier: SkillTier = .initiate
-    @State var overallRankTrialReadiness: OverallRankTrialReadiness?
-
-    // Contextual triggers
-    @State var plateaus: [PlateauedExercise] = []
-    @State var calibrationSkipRatio: Double = 0
-    @State var hasLoggedAnyWorkout: Bool = false
-    @State var lastLog: WorkoutLog?
-    @State var weekSessionDays: Set<Int> = [] // Mon=1...Sun=7
-    @State var bodyRegionLoads: [BodyRegion: Double] = [:]
 
     // Modal state
-    @State private var showRankLibrary = false
+    @State var showRankLibrary = false
     @State var workoutReadyDraft: TrainingSessionDraft?
     @State var showingCalibrationWorkout = false
     // navigateToCoach removed — replaced by CoachModesStrip
@@ -70,11 +50,6 @@ struct UnboundHomeView: View {
     @State var showingShop = false
     @State var showingBackdropPicker = false
     @State var bodyWeightJustLogged = false
-    @State var isSavingBodyWeight = false
-    @State var bodyWeightSaveError: String?
-
-    // Attribute profile (Phase 8+)
-    @State var attributeProfile: AttributeProfile = AttributeProfile.empty(userId: "", at: .now)
 
     // Ambient animation state
     @State var rankGlowRadius: CGFloat = 6
@@ -93,29 +68,12 @@ struct UnboundHomeView: View {
     // Photo/Scan capture flow presentation
     @State var captureMode: PhotoCaptureFlow.Mode?
 
-    // Travel override (user hit the TRAVEL coach action)
-    @State var activeTravelOverride: TravelOverride?
-
-    // Scan cadence — drives ScanDueCard visibility
-    @State var scanCadence: ScanCadenceState = .compute(lastScanAt: nil, now: .now)
-    @State var lastScanAt: Date? = nil
     @State var showScanCaptureFlow = false
 
-    // Weekly Vows
-    @State var trialsState: TrialsState = .empty
     @State var showTrialPicker = false
 
-    // Level derivation reads the XP-backed OverallLevelProgress.
-    var lvlValue: Int { overallLevel?.level ?? 0 }
-    var lvlFraction: Double { overallLevel?.progressToNextLevel ?? 0 }
-    var lvlTotalXP: Int { Int(overallLevel?.totalXP ?? 0) }
-    var lvlXPInLevel: Int {
-        guard let p = overallLevel else { return 0 }
-        return max(0, Int(p.totalXP - OverallLevelCurve.xpRequired(forLevel: p.level)))
-    }
-    var lvlXPForLevel: Int {
-        let lvl = overallLevel?.level ?? 0
-        return max(1, Int(OverallLevelCurve.xpRequired(forLevel: lvl + 1) - OverallLevelCurve.xpRequired(forLevel: lvl)))
+    init(services: ServiceContainer) {
+        _model = StateObject(wrappedValue: HomeViewModel(services: services))
     }
 
     static let defaultDailyQuestRoutine: RoutineDef = {
@@ -138,58 +96,64 @@ struct UnboundHomeView: View {
             Color.unbound.bg.ignoresSafeArea()
             homeBackground
 
-            if isLoading {
+            if model.isLoading {
                 HomeLoadingSkeleton()
             } else {
                 ScrollView(.vertical, showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: 16) {
-                        VStack(alignment: .leading, spacing: 14) {
-                            topBar
-                            homeBriefing
+                    VStack(spacing: 0) {
+                        homeHeroStack
+
+                        VStack(spacing: 0) {
+                            homeControlSurface
+
+                            BodyLoadHeatmapView(loads: model.bodyRegionLoads, plannedRegions: model.todayPlannedBodyRegions)
+
+                            contextualStack
+                                .padding(.top, 14)
+
+                            lastSessionRecap
+                                .padding(.top, 18)
+
+                            Spacer().frame(height: 118)
                         }
-                        .homeLegibilityPlane(cornerRadius: 24, horizontalPadding: 14, verticalPadding: 14)
-                        trainingConsole
-                        homeControlSurface
-                            .homeLegibilityPlane(cornerRadius: 22, horizontalPadding: 14, verticalPadding: 10)
-                        HomeRanksCard(aggregateTier: aggregateTier) {
-                            UnboundHaptics.soft()
-                            showRankLibrary = true
-                        }
-                        .homeLegibilityPlane(cornerRadius: 22, horizontalPadding: 14, verticalPadding: 4)
-                        BodyLoadHeatmapView(loads: bodyRegionLoads, plannedRegions: todayPlannedBodyRegions)
-                            .homeLegibilityPlane(cornerRadius: 22, horizontalPadding: 14, verticalPadding: 0)
-                        contextualStack
-                        lastSessionRecap
-                        Spacer().frame(height: 118)
+                        .padding(.horizontal, 20)
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 20)
-                    .padding(.top, 8)
+                    .frame(maxWidth: .infinity)
                 }
             }
         }
-        .task { await load() }
+        .task {
+            bindCosmeticStores()
+            await model.load()
+        }
+        .onChange(of: model.isLoading) { _, isLoading in
+            guard !isLoading else { return }
+            // Kick off ambient loops once content is on screen.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                startAmbientAnimations()
+            }
+        }
         .tierBloomToast()
         .onReceive(NotificationCenter.default.publisher(for: .rankAdvanced)) { _ in
-            Task { await refreshRanksAndStats() }
+            Task { await model.refreshRanksAndStats() }
         }
         .onReceive(NotificationCenter.default.publisher(for: .skillTierAdvanced)) { _ in
             if let userId = services.auth.currentUserId {
                 Task {
-                    aggregateTier = await services.rank.aggregateTier(userId: userId)
+                    model.aggregateTier = await services.rank.aggregateTier(userId: userId)
                 }
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .sessionXPUpdated)) { _ in
             Task {
-                await refreshSessionXP()
-                await refreshRanksAndStats()
-                await refreshRecentTrainingSignals()
+                await model.refreshSessionXP()
+                await model.refreshRanksAndStats()
+                await model.refreshRecentTrainingSignals()
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .attributeRankUp)) { _ in
             if let userId = services.auth.currentUserId {
-                attributeProfile = services.attribute.profile(userId: userId)
+                model.attributeProfile = services.attribute.profile(userId: userId)
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .shopInventoryChanged)) { _ in
@@ -197,14 +161,14 @@ struct UnboundHomeView: View {
             equippedHomeBackdrop = shopInventoryStore.equippedBackdrop(for: .home)
         }
         .fullScreenCover(isPresented: $showingCalibrationWorkout, onDismiss: {
-            Task { await refreshCalibrationState() }
+            Task { await model.refreshCalibrationState() }
         }) {
-            CalibrationWorkoutView(onComplete: { calibrationSkipRatio = 0 })
+            CalibrationWorkoutView(onComplete: { model.calibrationSkipRatio = 0 })
                 .environmentObject(services)
         }
         .fullScreenCover(item: $workoutReadyDraft, onDismiss: {
             workoutReadyDraft = nil
-            Task { await refreshWorkoutCompletionState() }
+            Task { await model.refreshWorkoutCompletionState() }
         }) { draft in
             WorkoutReadyView(draft: draft)
                 .environmentObject(services)
@@ -215,7 +179,7 @@ struct UnboundHomeView: View {
                 if outcome == .photoSaved || outcome == .scanCompleted || outcome == .scanDegradedToPhoto {
                     // Updated timestamps already persisted by the flow.
                     // Just refresh rank/stat triggers that might care.
-                    Task { await refreshRanksAndStats() }
+                    Task { await model.refreshRanksAndStats() }
                 }
             }
             .environmentObject(services)
@@ -229,7 +193,7 @@ struct UnboundHomeView: View {
                                 UnboundHaptics.medium()
                                 self.dailyQuestRewardSequence = nil
                                 showRoutinePlayer = false
-                                Task { await refreshRanksAndStats() }
+                                Task { await model.refreshRanksAndStats() }
                             }
                             .interactiveDismissDisabled(true)
                         } else if let pendingRecord = pendingDailyQuestCompletionRecord,
@@ -262,12 +226,20 @@ struct UnboundHomeView: View {
         }
         .sheet(isPresented: $showingBodyWeightLog) {
             BodyWeightLogSheet(
-                initialWeightKg: latestBodyWeightKg,
+                initialWeightKg: model.latestBodyWeightKg,
                 unit: selectedWeightUnit,
-                isSaving: isSavingBodyWeight,
-                errorMessage: bodyWeightSaveError,
+                isSaving: model.isSavingBodyWeight,
+                errorMessage: model.bodyWeightSaveError,
                 onSave: { weightKg, note in
-                    await saveBodyWeight(weightKg: weightKg, note: note)
+                    let saved = await model.saveBodyWeight(weightKg: weightKg, note: note)
+                    if saved {
+                        bodyWeightJustLogged = true
+                        showingBodyWeightLog = false
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.28) {
+                            showingBodyWeightHistory = true
+                        }
+                        UnboundHaptics.medium()
+                    }
                 }
             )
             .presentationDetents([.height(430), .medium])
@@ -278,13 +250,13 @@ struct UnboundHomeView: View {
         }) {
             NavigationStack {
                 BodyWeightHistoryScreen(
-                    logs: bodyWeightLogs,
-                    latestWeightKg: latestBodyWeightKg,
+                    logs: model.bodyWeightLogs,
+                    latestWeightKg: model.latestBodyWeightKg,
                     unit: selectedWeightUnit,
                     didJustLog: bodyWeightJustLogged,
                     onLog: {
                         showingBodyWeightHistory = false
-                        bodyWeightSaveError = nil
+                        model.bodyWeightSaveError = nil
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
                             showingBodyWeightLog = true
                         }
@@ -334,8 +306,8 @@ struct UnboundHomeView: View {
             // Refresh cadence after a scan completes
             guard let userId = services.auth.currentUserId else { return }
             let history = (try? ScanCheckpointStore.shared.history(userId: userId)) ?? []
-            lastScanAt = history.last?.createdAt
-            scanCadence = ScanCadenceState.compute(lastScanAt: lastScanAt, now: .now)
+            model.lastScanAt = history.last?.createdAt
+            model.scanCadence = ScanCadenceState.compute(lastScanAt: model.lastScanAt, now: .now)
         }) {
             PhotoCaptureFlow(mode: .scan) { _ in
                 showScanCaptureFlow = false
@@ -349,32 +321,32 @@ struct UnboundHomeView: View {
         .trialCapstoneToast()
         .sheet(isPresented: $showTrialPicker) {
             TrialPickerSheet(
-                cards: trialsState.currentWeekCards,
+                cards: model.trialsState.currentWeekCards,
                 onPick: { card in
                     guard let userId = services.auth.currentUserId else { return }
                     services.trials.pickVowCard(card, userId: userId)
-                    trialsState = services.trials.state(userId: userId)
+                    model.trialsState = services.trials.state(userId: userId)
                 },
                 onSkip: {
                     guard let userId = services.auth.currentUserId else { return }
                     services.trials.skipThisWeek(userId: userId)
-                    trialsState = services.trials.state(userId: userId)
+                    model.trialsState = services.trials.state(userId: userId)
                 }
             )
         }
         .onReceive(NotificationCenter.default.publisher(for: .weeklyVowCompleted)) { _ in
             if let userId = services.auth.currentUserId {
-                trialsState = services.trials.state(userId: userId)
+                model.trialsState = services.trials.state(userId: userId)
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .weeklyVowWeekRolled)) { _ in
             if let userId = services.auth.currentUserId {
-                trialsState = services.trials.state(userId: userId)
+                model.trialsState = services.trials.state(userId: userId)
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .weeklyVowWindowOpen)) { _ in
             if let userId = services.auth.currentUserId {
-                trialsState = services.trials.state(userId: userId)
+                model.trialsState = services.trials.state(userId: userId)
             }
         }
     }

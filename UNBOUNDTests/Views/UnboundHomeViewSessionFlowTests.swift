@@ -11,7 +11,7 @@ final class UnboundHomeViewSessionFlowTests: XCTestCase {
     /// Smoke: the view renders without crashing.
     func testSessionFlowRendersWithoutCrashing() throws {
         let services = ServiceContainer.mock
-        let view = UnboundHomeView().environmentObject(services)
+        let view = UnboundHomeView(services: services).environmentObject(services)
         let renderer = ImageRenderer(content: view)
         renderer.scale = 1.0
         // ImageRenderer.uiImage can return nil for views requiring a

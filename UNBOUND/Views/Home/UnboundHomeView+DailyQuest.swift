@@ -7,7 +7,7 @@ extension UnboundHomeView {
     /// Swaps the card's label from PHOTO +5 to SCAN +25 using the same
     /// monthly cadence rule as the scan gate.
     var shouldShowScanEligibility: Bool {
-        scanCadence.isUnlocked
+        model.scanCadence.isUnlocked
     }
 
     func dayWord(for date: Date) -> String {
@@ -27,99 +27,12 @@ extension UnboundHomeView {
 
     // MARK: - Daily Quest
     //
-    // Bite-sized side activity — walks, mobility, stretch, alt circuits.
-    // Shown alongside Today's Session to motivate movement on rest days
-    // or as a lighter add-on on program days. Placeholder content until
-    // QuestLibrary + QuestService ship.
+    // Bite-sized side activity completion state. The Home screen no longer
+    // renders this as a standing card; only the full-screen routine player and
+    // completion/retry states live here.
 
-    /// On rest days (or when no program is scheduled), the quest is the
-    /// primary CTA — ordered above the session card. On program days,
-    /// the session CTA stays primary and the quest appears below.
-    var isQuestPrimary: Bool {
-        guard let day = todayProgramDay else { return true }
-        return day.isRestDay || day.workout == nil
-    }
-
-    func dailyQuestCard(isHero: Bool) -> some View {
-        let categoryColor = questColor
-
-        return VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Text("DAILY QUEST")
-                    .font(Font.unbound.captionS.weight(.bold))
-                    .tracking(1.8)
-                    .foregroundStyle(categoryColor)
-                Text("·")
-                    .font(Font.unbound.captionS)
-                    .foregroundStyle(Color.unbound.textTertiary)
-                Text(activeRoutine.category.label)
-                    .font(Font.unbound.captionS)
-                    .tracking(1.2)
-                    .foregroundStyle(Color.unbound.textTertiary)
-                Spacer()
-                Text("PROOF-GATED XP")
-                    .font(Font.unbound.monoS.weight(.bold))
-                    .foregroundStyle(categoryColor)
-                    .monospacedDigit()
-            }
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(activeRoutine.title.uppercased())
-                    .font(Font.unbound.titleM)
-                    .tracking(0.4)
-                    .foregroundStyle(Color.unbound.textPrimary)
-                Text(activeRoutine.subtitle)
-                    .font(Font.unbound.monoS)
-                    .tracking(0.4)
-                    .foregroundStyle(Color.unbound.textSecondary)
-            }
-
-            Button {
-                UnboundHaptics.medium()
-                activeRoutine = Self.defaultDailyQuestRoutine
-                showRoutinePlayer = true
-            } label: {
-                HStack(spacing: 10) {
-                    Text("ACCEPT")
-                        .font(Font.unbound.bodyMStrong)
-                        .tracking(1.6)
-                    Image(systemName: "arrow.right")
-                        .font(.system(size: 13, weight: .bold))
-                }
-                .foregroundStyle(Color.unbound.textPrimary)
-                .frame(maxWidth: .infinity)
-                .frame(height: 44)
-                .background(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(categoryColor)
-                )
-                .shadow(color: categoryColor.opacity(0.45), radius: isHero ? 14 : 6, y: 2)
-            }
-            .buttonStyle(.plain)
-        }
-        .padding(18)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            ZStack {
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(Color.unbound.surface)
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                categoryColor.opacity(isHero ? 0.14 : 0.06),
-                                .clear
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-            }
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(categoryColor.opacity(isHero ? 0.40 : 0.22), lineWidth: 1)
-        )
+    var questColor: Color {
+        activeRoutine.category.color
     }
 
     var dailyQuestCompletionOverlay: some View {

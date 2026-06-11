@@ -17,7 +17,7 @@ struct HomeTabView: View {
     var body: some View {
         TabView(selection: $selectedTab) {
             NavigationStack {
-                UnboundHomeView()
+                UnboundHomeView(services: services)
             }
             .tabItem {
                 Image(systemName: "house.fill")
