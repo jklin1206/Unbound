@@ -62,7 +62,7 @@ extension ProgramOverviewView {
 
     func jumpToBlockCompleteInspectionDay() {
         UnboundHaptics.soft()
-        guard let program = viewModel?.program else {
+        guard let program = viewModel.program else {
             moveSimulatedDay(by: 28)
             return
         }
@@ -81,10 +81,10 @@ extension ProgramOverviewView {
             selectedDayDate = today
             weekOffset = 0
         }
-        viewModel?.refreshWaveAdjustments(asOf: today)
+        viewModel.refreshWaveAdjustments(asOf: today)
         Task {
-            await refreshHistory()
-            await refreshTravelOverride()
+            await viewModel.refreshHistory()
+            await viewModel.refreshTravelOverride()
         }
     }
 

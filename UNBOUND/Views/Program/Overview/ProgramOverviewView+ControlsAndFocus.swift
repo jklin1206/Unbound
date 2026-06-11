@@ -49,19 +49,19 @@ extension ProgramOverviewView {
         focusSwitchPresentation = ProgramFocusSwitchPresentation(
             currentStyle: style,
             currentEquipment: equipment,
-            currentExperience: currentProfile?.experience,
+            currentExperience: viewModel.currentProfile?.experience,
             activeContext: activeContext,
             pendingContext: pendingContext
         )
     }
 
     func effectiveTrainingStyle() -> TrainingStyle {
-        ProgramFocusSwitchCoordinator.effectiveTrainingStyle(profile: currentProfile)
+        ProgramFocusSwitchCoordinator.effectiveTrainingStyle(profile: viewModel.currentProfile)
     }
 
     func currentEquipmentFallback(program: TrainingProgram) -> [Equipment] {
         ProgramFocusSwitchCoordinator.currentEquipmentFallback(
-            profile: currentProfile,
+            profile: viewModel.currentProfile,
             program: program
         )
     }
@@ -91,7 +91,7 @@ extension ProgramOverviewView {
         temporaryContextRevision += 1
         UnboundHaptics.success()
 
-        if let program = viewModel?.program {
+        if let program = viewModel.program {
             Task { await loadBlockRolloverContext(program: program) }
         }
     }
@@ -99,10 +99,6 @@ extension ProgramOverviewView {
     @MainActor
     func applyFocusSwitch(_ selection: ProgramFocusSwitchSelection) async {
         guard !isSwitchingProgramFocus else { return }
-        guard let viewModel else {
-            focusSwitchErrorMessage = "Program is still loading. Try again in a moment."
-            return
-        }
         guard let userId = services.auth.currentUserId else {
             focusSwitchErrorMessage = "Sign in again before changing the active block."
             return
@@ -177,7 +173,7 @@ extension ProgramOverviewView {
                 experience: resolution.experience
             )
 
-            currentProfile = ProgramFocusSwitchCoordinator.updatedProfile(
+            viewModel.currentProfile = ProgramFocusSwitchCoordinator.updatedProfile(
                 from: profile,
                 generatedProgram: generated,
                 resolution: resolution
@@ -188,7 +184,7 @@ extension ProgramOverviewView {
             weekOffset = 0
             focusSwitchPresentation = nil
             UnboundHaptics.success()
-            await refreshHistory()
+            await viewModel.refreshHistory()
         } catch {
             focusSwitchErrorMessage = "Could not rebuild the block. Check your connection and try again."
             LoggingService.shared.log(
@@ -207,9 +203,9 @@ extension ProgramOverviewView {
 
     @MainActor
     func focusSwitchProfile(userId: String) async throws -> UserProfile {
-        if let currentProfile { return currentProfile }
+        if let currentProfile = viewModel.currentProfile { return currentProfile }
         let profile = try await services.user.fetchProfile(userId: userId)
-        currentProfile = profile
+        viewModel.currentProfile = profile
         return profile
     }
 }

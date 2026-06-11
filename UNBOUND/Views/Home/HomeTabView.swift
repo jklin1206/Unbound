@@ -27,7 +27,7 @@ struct HomeTabView: View {
             .tag(0)
 
             NavigationStack {
-                ProgramOverviewView()
+                ProgramOverviewView(services: services)
             }
             .tabItem {
                 Image(systemName: "dumbbell.fill")

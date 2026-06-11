@@ -170,7 +170,7 @@ extension ProgramOverviewView {
         }
         let summary = ProgramModifierSummary.summarize(
             draft: draft,
-            isTravelDay: activeTravelOverride?.day(for: selectedDayDate) != nil
+            isTravelDay: viewModel.activeTravelOverride?.day(for: selectedDayDate) != nil
         )
         return ProgramModifierSummary(
             lines: summary.lines.filter { $0.kind != .scheduledSkill },
@@ -179,11 +179,11 @@ extension ProgramOverviewView {
     }
 
     func waveAdjustments(for day: ProgramDay) -> [WaveAdjustment] {
-        viewModel?.activeWaveAdjustments.filter { $0.dayNumber == day.dayNumber } ?? []
+        viewModel.activeWaveAdjustments.filter { $0.dayNumber == day.dayNumber } ?? []
     }
 
     func revertWaveAdjustment(_ adjustment: WaveAdjustment) {
         UnboundHaptics.soft()
-        viewModel?.revertWaveAdjustment(adjustment, asOf: selectedDayDate)
+        viewModel.revertWaveAdjustment(adjustment, asOf: selectedDayDate)
     }
 }

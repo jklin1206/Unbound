@@ -21,8 +21,9 @@ struct ProgramOverviewView: View {
     /// user changes skill training from the detail screen.
     @Bindable var skillProgress = SkillProgressService.shared
 
-    @State var viewModel: ProgramViewModel?
-    @State var currentProfile: UserProfile?
+    /// Data state + load/refresh live here; the view keeps presentation
+    /// state only (sheets, covers, selection, sizing).
+    @State var viewModel: ProgramViewModel
     @State var selectedTab: Tab = .program
     @State var selectedDay: ProgramDay?
     @State var showPaywall = false
@@ -63,13 +64,6 @@ struct ProgramOverviewView: View {
     @State var isSeedingDevDynamicScenario = false
     #endif
 
-    // Completed-log cache. Still feeds checkpoint/recovery context even
-    // though the old calendar tab is no longer surfaced.
-    @State var pastLogs: [WorkoutLog] = []
-
-    // Travel override (user hit the TRAVEL coach action)
-    @State var activeTravelOverride: TravelOverride?
-
     // Routines view state
     @State var activeRoutinePlayer: RoutineDef?
     @State var selectedChallengeId: String = "daily-quest"
@@ -96,6 +90,14 @@ struct ProgramOverviewView: View {
     let draftStore = WorkoutDraftStore()
 
     enum Tab: Hashable { case program, myWorkouts, routines }
+
+    init(services: ServiceContainer) {
+        let model = ProgramViewModel(services: services)
+        // Pre-load frames show the loading state, not the "no program" CTA;
+        // loadSurface drops back to .idle when there is no signed-in user.
+        model.state = .loading
+        _viewModel = State(initialValue: model)
+    }
 
     private static func initialSelectedDayDate() -> Date {
         #if DEBUG
@@ -124,7 +126,7 @@ struct ProgramOverviewView: View {
     var dayResolver: ProgramOverviewDayResolver {
         ProgramOverviewDayResolver(
             userId: services.auth.currentUserId,
-            activeTravelOverride: activeTravelOverride,
+            activeTravelOverride: viewModel.activeTravelOverride,
             scheduleRevision: programScheduleRevision,
             scheduleStore: ProgramScheduleStore.shared
         )
@@ -140,13 +142,19 @@ struct ProgramOverviewView: View {
 
     func showProgramRationale() {
         UnboundHaptics.soft()
-        if viewModel?.program?.rationale != nil {
+        if viewModel.program?.rationale != nil {
             showRationale = true
         }
     }
 
     func reloadProgramSurface() {
         Task { await loadProgramSurface() }
+    }
+
+    @MainActor
+    func loadProgramSurface() async {
+        await viewModel.loadSurface(selectedDayDate: selectedDayDate)
+        refreshExerciseStarterAlternativesCache(program: viewModel.program)
     }
 
     func openPaywall() {
@@ -229,7 +237,7 @@ struct ProgramOverviewView: View {
                 .environmentObject(services)
         }
         .sheet(isPresented: $showRationale) {
-            if let rationale = viewModel?.program?.rationale {
+            if let rationale = viewModel.program?.rationale {
                 WhyThisProgramView(rationale: rationale, onDismiss: { showRationale = false })
                     .presentationDragIndicator(.visible)
             }
@@ -266,14 +274,14 @@ struct ProgramOverviewView: View {
             ExerciseSwapSheet(
                 mode: .add,
                 currentExerciseName: "Workout",
-                alternatives: exerciseStarterSheetAlternatives(program: viewModel?.program),
+                alternatives: exerciseStarterSheetAlternatives(program: viewModel.program),
                 onSelect: { exercise in
                     showExerciseStarterLibrary = false
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
                         openExerciseStarter(exercise)
                     }
                 },
-                availableEquipment: currentProfile?.equipment
+                availableEquipment: viewModel.currentProfile?.equipment
             )
             .environmentObject(services)
         }
@@ -305,7 +313,7 @@ struct ProgramOverviewView: View {
             ActiveWorkoutContainerView(draft: draft, services: services) {
                 UserDefaults.standard.set(0, forKey: "unbound.shortSessionDate")
                 activeWorkoutDraft = nil
-                Task { await refreshProgramCompletionState() }
+                Task { await viewModel.refreshCompletionState(asOf: selectedDayDate) }
             }
             .environmentObject(services)
         }
@@ -333,11 +341,11 @@ struct ProgramOverviewView: View {
         .navigationDestination(item: $selectedDay) { day in
             DayDetailView(
                 day: day,
-                nutritionPlan: viewModel?.dailyNutrition,
-                recoveryPlan: viewModel?.recoveryPlan,
-                workoutLog: viewModel?.logFor(dayNumber: day.dayNumber),
+                nutritionPlan: viewModel.dailyNutrition,
+                recoveryPlan: viewModel.recoveryPlan,
+                workoutLog: viewModel.logFor(dayNumber: day.dayNumber),
                 programViewModel: viewModel,
-                programId: viewModel?.program?.id ?? "",
+                programId: viewModel.program?.id ?? "",
                 adjustments: waveAdjustments(for: day),
                 onUndoAdjustment: revertWaveAdjustment
             )
@@ -345,7 +353,7 @@ struct ProgramOverviewView: View {
         .fullScreenCover(item: $activeRoutinePlayer) { routine in
             RoutineCompletionFlow(routine: routine) {
                 activeRoutinePlayer = nil
-                Task { await refreshHistory() }
+                Task { await viewModel.refreshHistory() }
             }
             .environmentObject(services)
         }
@@ -389,7 +397,7 @@ struct ProgramOverviewView: View {
                 showRescanFlow = false
                 // After a rescan, refresh the delta-report cache so the
                 // block-complete teaser reflects the new comparison.
-                if let program = viewModel?.program {
+                if let program = viewModel.program {
                     Task { await loadBlockRolloverContext(program: program) }
                 }
             }
