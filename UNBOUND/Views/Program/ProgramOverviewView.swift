@@ -277,22 +277,6 @@ struct ProgramOverviewView: View {
             )
             .environmentObject(services)
         }
-        #if DEBUG
-        .onAppear {
-            let args = ProcessInfo.processInfo.arguments
-            if args.contains("--unbound-open-editor"), savedWorkoutEditorDraft == nil {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-                    savedWorkoutEditorDraft = SavedWorkoutDraftFactory.empty(userId: services.auth.currentUserId ?? "")
-                }
-            } else if args.contains("--unbound-open-active"), activeWorkoutDraft == nil {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-                    if let workout = SavedWorkoutStore().all().first {
-                        startSavedWorkout(workout)
-                    }
-                }
-            }
-        }
-        #endif
         .sheet(item: $schedulingWorkout) { workout in
             ScheduleWorkoutDateSheet(
                 workout: workout,

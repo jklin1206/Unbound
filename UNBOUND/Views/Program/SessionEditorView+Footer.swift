@@ -54,7 +54,7 @@ extension SessionEditorView {
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .fill(Color.unbound.accent)
             )
-            .shadow(color: Color.black.opacity(0.24), radius: 14, y: 6)
+            .shadow(color: Color.unbound.accent.opacity(0.35), radius: 14, y: 2)
         }
         .buttonStyle(.plain)
         .disabled(isPersistingEdits)
