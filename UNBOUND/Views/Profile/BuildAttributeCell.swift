@@ -19,11 +19,6 @@ struct BuildAttributeCell: View {
 
     private var content: some View {
         HStack(alignment: .center, spacing: 8) {
-            Rectangle()
-                .fill(key.rewardTint)
-                .frame(width: 3, height: 30)
-                .opacity(isSelected ? 1 : 0.72)
-
             VStack(alignment: .leading, spacing: 3) {
                 Text(key.displayName.uppercased())
                     .font(.system(size: 10, weight: .heavy, design: .monospaced))

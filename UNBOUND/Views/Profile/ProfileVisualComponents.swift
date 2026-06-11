@@ -226,15 +226,8 @@ struct LevelProgressPlate: View {
                 ZStack(alignment: .leading) {
                     Capsule().fill(Color.unbound.borderSubtle)
                     Capsule()
-                        .fill(
-                            LinearGradient(
-                                colors: [tint, Color.unbound.textPrimary.opacity(0.74)],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
+                        .fill(tint)
                         .frame(width: max(7, proxy.size.width * progress))
-                        .shadow(color: tint.opacity(0.5), radius: 6)
                 }
             }
             .frame(height: 6)
@@ -278,17 +271,11 @@ struct TrophyShowcaseRow: View {
     let badgeTier: SkillTier
 
     var body: some View {
-        HStack(alignment: .center, spacing: 9) {
-            RoundedRectangle(cornerRadius: 2, style: .continuous)
-                .fill(badgeTier.rewardTint)
-                .frame(width: 3, height: 38)
-                .shadow(color: badgeTier.rewardTint.opacity(0.26), radius: 6)
-
+        HStack(alignment: .center, spacing: 11) {
             Image(badgeTier.assetName)
                 .resizable()
                 .scaledToFit()
                 .frame(width: 34, height: 34)
-                .shadow(color: badgeTier.rewardTint.opacity(0.20), radius: 6)
 
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 6) {
