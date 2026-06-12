@@ -13,8 +13,25 @@ struct FriendChallengeCreateSheet: View {
 
     @State private var selectedOpponent: SquadMember?
     @State private var selectedKind: FriendChallenge.Kind = .mostSessions
+    @State private var selectedExercise: String?
+    @State private var exerciseSearch: String = ""
     @State private var isCreating = false
     @State private var error: String?
+
+    /// Curated compound lifts for heaviestLift — display names used by logging,
+    /// matched verbatim (lowercase) server-side in exercise_entries.
+    private static let heaviestLiftOptions: [String] = [
+        "Back Squat",
+        "Bench Press",
+        "Deadlift",
+        "Overhead Press",
+        "Barbell Row",
+        "Weighted Pullup",
+        "Romanian Deadlift",
+        "Front Squat",
+        "Incline Bench Press",
+        "Hip Thrust"
+    ]
 
     private var currentUserId: UUID? {
         services.auth.currentUserId.flatMap(SquadUserIdentity.uuid(from:))
@@ -30,6 +47,9 @@ struct FriendChallengeCreateSheet: View {
                 VStack(alignment: .leading, spacing: 24) {
                     opponentSection
                     kindSection
+                    if selectedKind.requiresExercisePick {
+                        exerciseSection
+                    }
                     if let error {
                         Text(error)
                             .font(.system(size: 13))
@@ -130,6 +150,10 @@ struct FriendChallengeCreateSheet: View {
         return Button {
             withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
                 selectedKind = kind
+                if !kind.requiresExercisePick {
+                    selectedExercise = nil
+                    exerciseSearch = ""
+                }
             }
         } label: {
             HStack(spacing: 12) {
@@ -169,10 +193,65 @@ struct FriendChallengeCreateSheet: View {
         .buttonStyle(.plain)
     }
 
+    // MARK: - Exercise section
+
+    private var exerciseSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            sectionHeader("PICK A LIFT", icon: "trophy.fill")
+            TextField("Search lifts…", text: $exerciseSearch)
+                .font(.system(size: 14))
+                .padding(10)
+                .background(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(Color.unbound.surface)
+                )
+                .foregroundStyle(Color.unbound.textPrimary)
+            let filtered = exerciseSearch.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                ? Self.heaviestLiftOptions
+                : Self.heaviestLiftOptions.filter {
+                    $0.localizedCaseInsensitiveContains(exerciseSearch)
+                }
+            VStack(spacing: 6) {
+                ForEach(filtered, id: \.self) { lift in
+                    let isSelected = selectedExercise == lift
+                    Button {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                            selectedExercise = lift
+                        }
+                    } label: {
+                        HStack {
+                            Text(lift)
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundStyle(Color.unbound.textPrimary)
+                            Spacer()
+                            if isSelected {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundStyle(Color.unbound.accent)
+                                    .font(.system(size: 16))
+                            }
+                        }
+                        .padding(12)
+                        .background(
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .fill(isSelected ? Color.unbound.accent.opacity(0.15) : Color.unbound.surface)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                        .strokeBorder(isSelected ? Color.unbound.accent : Color.clear, lineWidth: 1)
+                                )
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+
     // MARK: - Helpers
 
     private var canCreate: Bool {
-        selectedOpponent != nil
+        guard selectedOpponent != nil else { return false }
+        if selectedKind.requiresExercisePick { return selectedExercise != nil }
+        return true
     }
 
     private func sectionHeader(_ title: String, icon: String) -> some View {
@@ -195,7 +274,8 @@ struct FriendChallengeCreateSheet: View {
             let challenge = try await services.friendChallenge.createChallenge(
                 challengedId: opponent.userId,
                 kind: selectedKind,
-                squadId: squadId
+                squadId: squadId,
+                exerciseName: selectedKind.requiresExercisePick ? selectedExercise : nil
             )
             onCreated?(challenge)
             dismiss()
