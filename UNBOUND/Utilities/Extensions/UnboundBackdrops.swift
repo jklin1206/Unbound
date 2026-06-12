@@ -50,24 +50,18 @@ struct UnboundBackdropArt: View {
             let isAuthoredForHeader = isProfileBannerAsset || abs(imageAspect - containerAspect) < 0.38
 
             if isProfileBannerAsset {
-                // Authored landscape header banners fill the whole header rect
-                // edge-to-edge (full-bleed) so the avatar + identity always sit
-                // ON the art — never straddling a black void below it. The art
-                // is composed with the focal "core" off to one side and quiet
-                // dead space on the other for the overlaid content to breathe.
-                // The core sits high in the authored art, so we overscan the
-                // fill vertically and pin to the top: the visible crop drops
-                // the core lower in the header instead of pushing it up under
-                // the status bar.
-                let overscan: CGFloat = 1.30
+                // Authored landscape header banners render FIT, top-anchored:
+                // the full 16:9 art is always visible edge-to-edge at every
+                // device width (no fill-crop — the old 1.30 overscan was tuned
+                // for the retired photoreal set and chopped the anime art).
+                // The header frame is at least as tall as the art band; any
+                // sliver below the art dissolves into the page background via
+                // the header's bottom scrim, so the avatar + identity still
+                // read on the art's quiet dead space.
                 Image(uiImage: ui)
                     .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(
-                        width: containerSize.width,
-                        height: containerSize.height * overscan,
-                        alignment: .center
-                    )
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: containerSize.width, alignment: .top)
                     .frame(
                         width: containerSize.width,
                         height: containerSize.height,

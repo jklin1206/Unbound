@@ -604,11 +604,12 @@ struct ProfileView: View {
     private static func profileHeaderHeight(for width: CGFloat) -> CGFloat {
         let clampedWidth = max(320, min(width, 820))
         let bannerHeight = clampedWidth / UnboundBackdropAspect.profileBanner
-        // Keep the header closer to the banner's own wide aspect. A shorter
-        // header means the full-bleed fill crops far less off the sides, so the
-        // off-centre focal "core" stays fully on-screen instead of being shoved
-        // past the right edge.
-        return min(400, max(286, bannerHeight + 52))
+        // Full-fit: the header tracks the banner's own 16:9 so the WHOLE
+        // authored art is visible at every device width (the art renders fit,
+        // top-anchored — see UnboundBackdropArt). The floor only guards the
+        // avatar/identity overlay on very narrow widths; any band below the
+        // art dissolves into the page background via the header scrim.
+        return max(252, bannerHeight)
     }
 
     private var profileHeaderContentMaxWidth: CGFloat {
