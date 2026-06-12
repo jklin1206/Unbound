@@ -8,6 +8,26 @@ import SwiftUI
 // SkillTier.swift; this file adds the SwiftUI-flavored surface.
 
 extension RankTier {
+    /// The rank banner's place in the UNBOUND journey — each tier's banner is
+    /// a LOCATION along one pilgrimage, named after the scene in its art:
+    /// a bare room → the outer gate at dusk → a lantern-lit hall → the forge →
+    /// a moss-reclaimed shrine → a dojo above the clouds → a sealed spirit
+    /// chamber → the ascension hall → the sky temple. Used as the cosmetic
+    /// banner title (the tier itself stays visible via the row's TIER badge).
+    var bannerLocationName: String {
+        switch self {
+        case .initiate:   return "The Quiet Room"
+        case .novice:     return "The Outer Gate"
+        case .apprentice: return "The Lantern Hall"
+        case .forged:     return "The Forge"
+        case .veteran:    return "The Mossgrown Shrine"
+        case .master:     return "The Summit"
+        case .vessel:     return "The Sealed Chamber"
+        case .ascendant:  return "The Ascension Hall"
+        case .unbound:    return "The Sky Temple"
+        }
+    }
+
     /// Canonical visual tint for the nine UNBOUND title tiers. These are
     /// sampled to match the shipped `rank_title_*` badge art, then used by
     /// profile glow, avatar frames, chips, and rank-up moments.

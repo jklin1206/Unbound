@@ -253,7 +253,8 @@ struct ProfileCosmeticsView: View {
 
     private var activeCosmeticSummary: String {
         let frame = equippedShopProfileBorder?.displayName ?? equippedFrameTier.displayName
-        let banner = activeShopBanner?.name ?? equippedBackgroundTier.displayName
+        // Rank banners read as journey locations everywhere they're named.
+        let banner = activeShopBanner?.name ?? equippedBackgroundTier.bannerLocationName
         return "\(frame) / \(banner)"
     }
 
@@ -362,7 +363,9 @@ private enum ProfileCosmeticRow: Identifiable {
         case .rankFrame(let tier):
             return "\(tier.displayName) Frame"
         case .rankBanner(let tier):
-            return "\(tier.displayName) Banner"
+            // Journey-location names — the tier stays legible via the TIER
+            // badge on the row.
+            return tier.bannerLocationName
         case .shopBorder(let item), .shopBanner(let item):
             return item.name
         }

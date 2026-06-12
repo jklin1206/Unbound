@@ -433,6 +433,20 @@ struct ProfileView: View {
                     role: .profileBanner,
                     tint: profileTint
                 )
+                // Soft top emergence: fade the art's first ~14% from the page
+                // background so it doesn't start on a hard horizontal edge
+                // (which read as "cut off") — same dissolve language as the
+                // bottom hand-off.
+                .mask(
+                    LinearGradient(
+                        stops: [
+                            .init(color: .clear, location: 0),
+                            .init(color: .black, location: 0.14)
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
                 // Start the art BELOW the status-bar inset: bleeding under the
                 // Dynamic Island hid the banner's top slice and made the whole
                 // composition read too high, detached from the avatar zone.
