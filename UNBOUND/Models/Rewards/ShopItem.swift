@@ -86,13 +86,13 @@ enum ShopHomeBackgroundID: String, Codable, CaseIterable, Hashable, Identifiable
         case .emeraldShrine: return "Emerald Shrine"
         case .solarCourt: return "Solar Court"
         case .glassCircuit: return "Glass Circuit"
-        case .archiveWall: return "Archive Wall"
-        case .lockerWall: return "Locker Wall"
-        case .dojoScroll: return "Dojo Scroll"
-        case .overgrownGate: return "Overgrown Gate"
-        case .neonAtrium: return "Neon Atrium"
-        case .solarForge: return "Solar Forge"
-        case .holoForge: return "Holo Forge"
+        case .archiveWall: return "The Archive"
+        case .lockerWall: return "The Locker Room"
+        case .dojoScroll: return "The Dojo Scroll"
+        case .overgrownGate: return "The Overgrown Gate"
+        case .neonAtrium: return "The Neon Atrium"
+        case .solarForge: return "The Solar Forge"
+        case .holoForge: return "The Prism Sanctum"
         }
     }
 
@@ -175,13 +175,13 @@ enum ShopProfileBackgroundID: String, Codable, CaseIterable, Hashable, Identifia
 
     var displayName: String {
         switch self {
-        case .archiveWall: return "Archive Wall"
-        case .lockerWall: return "Locker Wall"
-        case .dojoScroll: return "Dojo Scroll"
-        case .overgrownGate: return "Overgrown Gate"
-        case .neonAtrium: return "Neon Atrium"
-        case .solarForge: return "Solar Forge"
-        case .holoForge: return "Holo Forge"
+        case .archiveWall: return "The Archive"
+        case .lockerWall: return "The Locker Room"
+        case .dojoScroll: return "The Dojo Scroll"
+        case .overgrownGate: return "The Overgrown Gate"
+        case .neonAtrium: return "The Neon Atrium"
+        case .solarForge: return "The Solar Forge"
+        case .holoForge: return "The Prism Sanctum"
         }
     }
 
@@ -326,7 +326,7 @@ enum ShopCatalog {
         .init(
             id: "homeBackground.archiveWall",
             category: .backdrop,
-            name: "Archive Wall",
+            name: "The Archive",
             subtitle: "The former profile archive environment, now used as an immersive Home poster.",
             price: 480,
             rarity: "Common",
@@ -336,7 +336,7 @@ enum ShopCatalog {
         .init(
             id: "homeBackground.lockerWall",
             category: .backdrop,
-            name: "Locker Wall",
+            name: "The Locker Room",
             subtitle: "The former profile locker-room environment, now used as a Home poster.",
             price: 550,
             rarity: "Common",
@@ -346,7 +346,7 @@ enum ShopCatalog {
         .init(
             id: "homeBackground.dojoScroll",
             category: .backdrop,
-            name: "Dojo Scroll",
+            name: "The Dojo Scroll",
             subtitle: "The former profile scroll environment, now used as an immersive Home poster.",
             price: 880,
             rarity: "Rare",
@@ -356,7 +356,7 @@ enum ShopCatalog {
         .init(
             id: "homeBackground.overgrownGate",
             category: .backdrop,
-            name: "Overgrown Gate",
+            name: "The Overgrown Gate",
             subtitle: "The former profile stone-gate environment, now used as a Home poster.",
             price: 1_250,
             rarity: "Epic",
@@ -366,7 +366,7 @@ enum ShopCatalog {
         .init(
             id: "homeBackground.neonAtrium",
             category: .backdrop,
-            name: "Neon Atrium",
+            name: "The Neon Atrium",
             subtitle: "The former profile atrium environment, now used as a Home poster.",
             price: 620,
             rarity: "Common",
@@ -376,7 +376,7 @@ enum ShopCatalog {
         .init(
             id: "homeBackground.solarForge",
             category: .backdrop,
-            name: "Solar Forge",
+            name: "The Solar Forge",
             subtitle: "The former profile solar-forge environment, now used as a Home poster.",
             price: 640,
             rarity: "Common",
@@ -386,7 +386,7 @@ enum ShopCatalog {
         .init(
             id: "homeBackground.holoForge",
             category: .backdrop,
-            name: "Holo Forge",
+            name: "The Prism Sanctum",
             subtitle: "The former profile holo sanctum, now used as a legendary Home poster.",
             price: 3_600,
             rarity: "Legendary",
@@ -526,7 +526,7 @@ enum ShopCatalog {
         .init(
             id: "profileBackground.archiveWall",
             category: .profileWallpaper,
-            name: "Archive Wall",
+            name: "The Archive",
             subtitle: "A wide profile banner with archive panels, tape, and cool blue light.",
             price: 480,
             rarity: "Common",
@@ -536,7 +536,7 @@ enum ShopCatalog {
         .init(
             id: "profileBackground.lockerWall",
             category: .profileWallpaper,
-            name: "Locker Wall",
+            name: "The Locker Room",
             subtitle: "A wide profile banner with worn lockers, tape, and cool gym light.",
             price: 550,
             rarity: "Common",
@@ -546,7 +546,7 @@ enum ShopCatalog {
         .init(
             id: "profileBackground.dojoScroll",
             category: .profileWallpaper,
-            name: "Dojo Scroll",
+            name: "The Dojo Scroll",
             subtitle: "A wide profile banner with ink arcs, moon wash, and teal lanterns.",
             price: 880,
             rarity: "Rare",
@@ -556,7 +556,7 @@ enum ShopCatalog {
         .init(
             id: "profileBackground.overgrownGate",
             category: .profileWallpaper,
-            name: "Overgrown Gate",
+            name: "The Overgrown Gate",
             subtitle: "A wide profile banner with stone, vines, emerald lanterns, and gold trim.",
             price: 1_250,
             rarity: "Epic",
@@ -566,7 +566,7 @@ enum ShopCatalog {
         .init(
             id: "profileBackground.neonAtrium",
             category: .profileWallpaper,
-            name: "Neon Atrium",
+            name: "The Neon Atrium",
             subtitle: "A wide profile banner with dark glass rails and restrained neon.",
             price: 620,
             rarity: "Common",
@@ -576,7 +576,7 @@ enum ShopCatalog {
         .init(
             id: "profileBackground.solarForge",
             category: .profileWallpaper,
-            name: "Solar Forge",
+            name: "The Solar Forge",
             subtitle: "A wide profile banner with warm arcs, dark glass, and solar trim.",
             price: 640,
             rarity: "Common",
@@ -586,7 +586,7 @@ enum ShopCatalog {
         .init(
             id: "profileBackground.holoForge",
             category: .profileWallpaper,
-            name: "Holo Forge",
+            name: "The Prism Sanctum",
             subtitle: "A wide profile banner with prism glass, gold rails, and a radiant core.",
             price: 3_600,
             rarity: "Legendary",
