@@ -126,6 +126,17 @@ struct SquadDetailView: View {
         } message: {
             Text("You can rejoin later with an invite code.")
         }
+        .alert(
+            "Couldn't leave squad",
+            isPresented: Binding(
+                get: { leaveError != nil },
+                set: { if !$0 { leaveError = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(leaveError ?? "Try again.")
+        }
     }
 
     @MainActor
@@ -861,7 +872,7 @@ struct SquadDetailView: View {
             try await services.squads.leaveSquad(userId: userId)
             state = services.squads.state(userId: userId)
         } catch {
-            leaveError = "Couldn't leave squad. Try again."
+            leaveError = "Try again."
         }
     }
 
