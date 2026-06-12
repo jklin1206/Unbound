@@ -7,6 +7,8 @@
 --   1. total_weight delta computation from exercise_entries (non-warmup, floor)
 --   2. crew_coverage per-member >= 3 sessions counting
 --   3. pick_squad_mission captain gating (non-captain raises)
+--   4. friend challenge mostWeight delta (Σ weightKg×reps, non-warmup)
+--   5. friend challenge heaviestLift MAX semantics (lighter 2nd log keeps the max)
 --
 -- All work happens inside one transaction and is rolled back at the end, so it
 -- leaves no rows behind and can be run repeatedly.
@@ -185,6 +187,135 @@ begin
 
   assert v_raised, 'scenario3 captain-gate: non-captain pick_squad_mission did NOT raise';
   raise notice 'scenario3 captain-gate OK: non-captain correctly rejected';
+end
+$$;
+
+-- ---------------------------------------------------------------------------
+-- Scenario 4: friend challenge mostWeight — delta = Σ weightKg×reps non-warmup
+-- ---------------------------------------------------------------------------
+do $$
+declare
+  v_squad_id uuid;
+  v_cap uuid := 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+  v_mate uuid := 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
+  v_challenge_id uuid;
+  v_log_id uuid := gen_random_uuid();
+  v_progress int;
+  v_expected int := 700;  -- 80*5 + 100*3 (60*8 warmup ignored)
+begin
+  insert into public.squads (name, captain_id, invite_code)
+  values ('V2TEST_FCW', v_cap, 'WW' || lpad((floor(random()*9999))::text, 4, '0'))
+  returning id into v_squad_id;
+
+  insert into public.squad_members (squad_id, user_id)
+  values (v_squad_id, v_mate)
+  on conflict (squad_id, user_id) do nothing;
+
+  -- Accepted challenge with the captain as challenger.
+  insert into public.friend_challenges
+    (challenger_id, challenged_id, squad_id, challenge_kind, started_at, expires_at, accepted_at)
+  values
+    (v_cap, v_mate, v_squad_id, 'mostWeight', now() - interval '1 hour', now() + interval '6 days', now() - interval '30 minutes')
+  returning id into v_challenge_id;
+
+  insert into public.workout_logs (id, user_id, day_number, planned_workout_name, started_at, completed_at, exercise_entries)
+  values (
+    v_log_id, v_cap, 1, 'V2TEST Day', now(), now(),
+    '[
+      {"exerciseName":"Bench Press","sets":[
+        {"weightKg":80,"reps":5,"isWarmup":false},
+        {"weightKg":100,"reps":3,"isWarmup":false},
+        {"weightKg":60,"reps":8,"isWarmup":true}
+      ]}
+    ]'::jsonb
+  );
+
+  perform public.increment_friend_challenge_progress_for_user(v_challenge_id, 1, v_log_id::text, v_cap);
+
+  select challenger_progress into v_progress from public.friend_challenges where id = v_challenge_id;
+  assert v_progress = v_expected,
+    format('scenario4 mostWeight: expected challenger_progress %s, got %s', v_expected, v_progress);
+
+  -- Idempotency: replaying the same source log must not double-count.
+  perform public.increment_friend_challenge_progress_for_user(v_challenge_id, 1, v_log_id::text, v_cap);
+  select challenger_progress into v_progress from public.friend_challenges where id = v_challenge_id;
+  assert v_progress = v_expected,
+    format('scenario4 idempotency: expected %s after replay, got %s', v_expected, v_progress);
+
+  raise notice 'scenario4 friend mostWeight OK: challenger_progress=%', v_progress;
+end
+$$;
+
+-- ---------------------------------------------------------------------------
+-- Scenario 5: friend challenge heaviestLift — MAX semantics on exercise_name.
+--   Log 1: best set 120 kg on the scoped lift → progress 120.
+--   Log 2: best set 100 kg (LIGHTER) → progress stays 120 (greatest, not +).
+--   A non-warmup set on a DIFFERENT exercise must be ignored.
+-- ---------------------------------------------------------------------------
+do $$
+declare
+  v_squad_id uuid;
+  v_cap uuid := 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+  v_mate uuid := 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
+  v_challenge_id uuid;
+  v_log1 uuid := gen_random_uuid();
+  v_log2 uuid := gen_random_uuid();
+  v_progress int;
+begin
+  insert into public.squads (name, captain_id, invite_code)
+  values ('V2TEST_FCH', v_cap, 'VV' || lpad((floor(random()*9999))::text, 4, '0'))
+  returning id into v_squad_id;
+
+  insert into public.squad_members (squad_id, user_id)
+  values (v_squad_id, v_mate)
+  on conflict (squad_id, user_id) do nothing;
+
+  insert into public.friend_challenges
+    (challenger_id, challenged_id, squad_id, challenge_kind, exercise_name, started_at, expires_at, accepted_at)
+  values
+    (v_cap, v_mate, v_squad_id, 'heaviestLift', 'Deadlift', now() - interval '1 hour', now() + interval '6 days', now() - interval '30 minutes')
+  returning id into v_challenge_id;
+
+  -- Log 1: heaviest scoped set 120 kg (plus an off-target 200 kg set that must
+  -- be ignored because exerciseName != 'Deadlift').
+  insert into public.workout_logs (id, user_id, day_number, planned_workout_name, started_at, completed_at, exercise_entries)
+  values (
+    v_log1, v_cap, 1, 'V2TEST Day', now(), now(),
+    '[
+      {"exerciseName":"Deadlift","sets":[
+        {"weightKg":100,"reps":5,"isWarmup":false},
+        {"weightKg":120,"reps":1,"isWarmup":false},
+        {"weightKg":140,"reps":1,"isWarmup":true}
+      ]},
+      {"exerciseName":"Leg Press","sets":[
+        {"weightKg":200,"reps":5,"isWarmup":false}
+      ]}
+    ]'::jsonb
+  );
+  perform public.increment_friend_challenge_progress_for_user(v_challenge_id, 1, v_log1::text, v_cap);
+
+  select challenger_progress into v_progress from public.friend_challenges where id = v_challenge_id;
+  assert v_progress = 120,
+    format('scenario5 heaviestLift: after 120kg log expected 120, got %s', v_progress);
+
+  -- Log 2: lighter top set (100 kg) → MAX keeps progress at 120, never sums.
+  insert into public.workout_logs (id, user_id, day_number, planned_workout_name, started_at, completed_at, exercise_entries)
+  values (
+    v_log2, v_cap, 1, 'V2TEST Day', now(), now(),
+    '[
+      {"exerciseName":"Deadlift","sets":[
+        {"weightKg":90,"reps":5,"isWarmup":false},
+        {"weightKg":100,"reps":3,"isWarmup":false}
+      ]}
+    ]'::jsonb
+  );
+  perform public.increment_friend_challenge_progress_for_user(v_challenge_id, 1, v_log2::text, v_cap);
+
+  select challenger_progress into v_progress from public.friend_challenges where id = v_challenge_id;
+  assert v_progress = 120,
+    format('scenario5 heaviestLift MAX: after lighter 100kg log expected progress to stay 120, got %s', v_progress);
+
+  raise notice 'scenario5 friend heaviestLift MAX OK: challenger_progress=%', v_progress;
 end
 $$;
 

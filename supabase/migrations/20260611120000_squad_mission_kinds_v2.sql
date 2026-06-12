@@ -323,8 +323,277 @@ $$;
 revoke all on function public.pick_squad_mission(uuid, text) from public, anon;
 grant execute on function public.pick_squad_mission(uuid, text) to authenticated;
 
+-- ===========================================================================
+-- Part 2: friend challenge kinds v2 — kind-aware 1v1 deltas.
+--
+-- The five 1v1 kinds (mostSessions, earlyRiser, mostWeight, mostReps,
+-- heaviestLift) mirror the mission deltas: the client RPC + the workout trigger
+-- still pass p_delta=1 as a SIGNAL, but the helper computes the real per-kind
+-- delta server-side from the trusted workout_logs.exercise_entries jsonb.
+--   mostSessions  → 1
+--   earlyRiser    → 1 if local_start_hour < 8 else 0
+--   mostWeight    → Σ floor(weightKg×reps), non-warmup
+--   mostReps      → Σ reps, non-warmup
+--   heaviestLift  → floor(max weightKg) over non-warmup sets on the challenge's
+--                   exercise_name; progress uses MAX semantics, not accumulation.
+-- ===========================================================================
+
+-- (e) Exercise scope for the heaviestLift duel (nullable; only heaviestLift
+--     rows set it — the existing insert RLS path is unchanged).
+alter table public.friend_challenges add column if not exists exercise_name text;
+
+-- (f) Relax the friend-challenge receipts delta bound: mostWeight/mostReps and
+--     heaviestLift deltas exceed 100. The original inline
+--     `check (delta >= 0 and delta <= 100)` auto-named
+--     friend_challenge_progress_receipts_delta_check. Keep a non-negativity floor.
+alter table public.friend_challenge_progress_receipts
+  drop constraint if exists friend_challenge_progress_receipts_delta_check;
+alter table public.friend_challenge_progress_receipts
+  add constraint friend_challenge_progress_receipts_delta_check check (delta >= 0);
+
+-- (g) Kind-aware delta computation in the source-validated 1v1 helper.
+--     Signature UNCHANGED (uuid, int, text, uuid) so both callers — the
+--     auth-forwarding wrapper increment_friend_challenge_progress(uuid,int,text)
+--     and the workout-completion trigger record_workout_log_social_progress —
+--     keep working without modification.
+create or replace function public.increment_friend_challenge_progress_for_user(
+  p_challenge_id uuid,
+  p_delta int,
+  p_source_log_id text,
+  p_user_id uuid
+)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_source_uuid uuid;
+  v_source_completed_at timestamptz;
+  v_source_local_start_hour int;
+  v_entries jsonb;
+  v_is_challenger boolean;
+  v_kind text;
+  v_exercise_name text;
+  v_delta int;
+  v_inserted int := 0;
+begin
+  if p_user_id is null then
+    raise exception 'increment_friend_challenge_progress: user_id is required';
+  end if;
+
+  -- p_delta is a SIGNAL only now; the real delta is computed server-side below.
+
+  if nullif(trim(p_source_log_id), '') is null then
+    raise exception 'increment_friend_challenge_progress: source_log_id is required';
+  end if;
+
+  begin
+    v_source_uuid := p_source_log_id::uuid;
+  exception when invalid_text_representation then
+    raise exception 'increment_friend_challenge_progress: source_log_id must be a workout log uuid';
+  end;
+
+  -- Source-log ownership guard. Capture exercise_entries + the early-hour flag
+  -- here so the delta math runs over the trusted server-side log, never client
+  -- input.
+  select wl.completed_at, wl.local_start_hour, wl.exercise_entries
+    into v_source_completed_at, v_source_local_start_hour, v_entries
+      from public.workout_logs wl
+     where wl.id = v_source_uuid
+       and wl.user_id = p_user_id
+       and wl.completed_at is not null;
+
+  if v_source_completed_at is null then
+    raise exception 'increment_friend_challenge_progress: completed workout source % for user % not found',
+      p_source_log_id, p_user_id;
+  end if;
+
+  -- Participant + accepted + window guard (FOR UPDATE locks the challenge row).
+  select fc.challenger_id = p_user_id, fc.challenge_kind, fc.exercise_name
+    into v_is_challenger, v_kind, v_exercise_name
+    from public.friend_challenges fc
+   where fc.id = p_challenge_id
+     and fc.accepted_at is not null
+     and fc.winner_user_id is null
+     and fc.started_at <= v_source_completed_at
+     and fc.expires_at >= v_source_completed_at
+     and (fc.challenger_id = p_user_id or fc.challenged_id = p_user_id)
+   for update;
+
+  if v_is_challenger is null then
+    raise exception 'increment_friend_challenge_progress: user % cannot update challenge %', p_user_id, p_challenge_id;
+  end if;
+
+  -- Kind-aware server-computed delta from the trusted exercise_entries jsonb.
+  v_delta := case v_kind
+    when 'mostSessions' then 1
+    when 'earlyRiser' then
+      case when v_source_local_start_hour is not null and v_source_local_start_hour < 8 then 1 else 0 end
+    when 'mostWeight' then (
+      select coalesce(floor(sum(
+        coalesce((s->>'weightKg')::numeric, 0) * coalesce((s->>'reps')::int, 0)
+      ))::int, 0)
+      from jsonb_array_elements(v_entries) e,
+           jsonb_array_elements(e->'sets') s
+      where coalesce((s->>'isWarmup')::boolean, false) = false
+    )
+    when 'mostReps' then (
+      select coalesce(sum(coalesce((s->>'reps')::int, 0)), 0)
+      from jsonb_array_elements(v_entries) e,
+           jsonb_array_elements(e->'sets') s
+      where coalesce((s->>'isWarmup')::boolean, false) = false
+    )
+    when 'heaviestLift' then (
+      select coalesce(floor(max(coalesce((s->>'weightKg')::numeric, 0)))::int, 0)
+      from jsonb_array_elements(v_entries) e,
+           jsonb_array_elements(e->'sets') s
+      where coalesce((s->>'isWarmup')::boolean, false) = false
+        and e->>'exerciseName' = v_exercise_name
+    )
+    else 0   -- legacy kinds are inert
+  end;
+
+  -- No qualifying work → record nothing (do not write a dedup receipt, so a
+  -- later log for the same challenge can still contribute).
+  if v_delta is null or v_delta <= 0 then
+    return;
+  end if;
+
+  insert into public.friend_challenge_progress_receipts (
+    challenge_id,
+    participant_user_id,
+    source_log_id,
+    delta
+  )
+  values (p_challenge_id, p_user_id, v_source_uuid::text, v_delta)
+  on conflict (challenge_id, participant_user_id, source_log_id) do nothing;
+
+  get diagnostics v_inserted = row_count;
+  if v_inserted = 0 then
+    return;
+  end if;
+
+  -- heaviestLift tracks a best-so-far score (MAX semantics); every other kind
+  -- accumulates.
+  if v_kind = 'heaviestLift' then
+    if v_is_challenger then
+      update public.friend_challenges
+         set challenger_progress = greatest(challenger_progress, v_delta)
+       where id = p_challenge_id
+         and winner_user_id is null;
+    else
+      update public.friend_challenges
+         set challenged_progress = greatest(challenged_progress, v_delta)
+       where id = p_challenge_id
+         and winner_user_id is null;
+    end if;
+  else
+    if v_is_challenger then
+      update public.friend_challenges
+         set challenger_progress = challenger_progress + v_delta
+       where id = p_challenge_id
+         and winner_user_id is null;
+    else
+      update public.friend_challenges
+         set challenged_progress = challenged_progress + v_delta
+       where id = p_challenge_id
+         and winner_user_id is null;
+    end if;
+  end if;
+end;
+$$;
+
+revoke all on function public.increment_friend_challenge_progress_for_user(uuid, int, text, uuid) from public, anon, authenticated;
+
+-- (h) Update the workout-completion trigger's pre-filter to the new kind names.
+--     sessions/earlyRiser pre-filter; mostWeight/mostReps/heaviestLift always
+--     call through (the helper computes 0-deltas as no-ops and skips the receipt
+--     write); legacy rows are inert.
+create or replace function public.record_workout_log_social_progress()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_squad_id uuid;
+  v_challenge record;
+  v_current_week_iso text;
+  v_completed_week_iso text;
+  v_should_increment boolean;
+begin
+  if new.completed_at is null then
+    return new;
+  end if;
+
+  if tg_op = 'UPDATE' then
+    if old.completed_at is not distinct from new.completed_at then
+      return new;
+    end if;
+  end if;
+
+  v_current_week_iso := to_char(now() at time zone 'UTC', 'IYYY') || '-W' || to_char(now() at time zone 'UTC', 'IW');
+  v_completed_week_iso :=
+    to_char(new.completed_at at time zone 'UTC', 'IYYY') ||
+    '-W' ||
+    to_char(new.completed_at at time zone 'UTC', 'IW');
+
+  if v_completed_week_iso = v_current_week_iso then
+    for v_squad_id in
+      select sm.squad_id
+        from public.squad_members sm
+       where sm.user_id = new.user_id
+    loop
+      perform public.increment_squad_mission_progress_for_user(
+        v_squad_id,
+        1,
+        new.id::text,
+        new.user_id
+      );
+    end loop;
+  end if;
+
+  for v_challenge in
+    select fc.id, fc.challenge_kind as kind
+      from public.friend_challenges fc
+     where fc.accepted_at is not null
+       and fc.winner_user_id is null
+       and fc.started_at <= new.completed_at
+       and fc.expires_at >= new.completed_at
+       and (fc.challenger_id = new.user_id or fc.challenged_id = new.user_id)
+     for update of fc
+  loop
+    v_should_increment := case v_challenge.kind
+      when 'mostSessions' then true
+      when 'earlyRiser' then new.local_start_hour is not null and new.local_start_hour < 8
+      when 'mostWeight' then true
+      when 'mostReps' then true
+      when 'heaviestLift' then true
+      else false
+    end;
+
+    if v_should_increment then
+      perform public.increment_friend_challenge_progress_for_user(
+        v_challenge.id,
+        1,
+        new.id::text,
+        new.user_id
+      );
+    end if;
+  end loop;
+
+  return new;
+end;
+$$;
+
+revoke all on function public.record_workout_log_social_progress() from public, anon, authenticated;
+
+-- The trigger itself is unchanged (still AFTER insert/update of completed_at);
+-- CREATE OR REPLACE on the function keeps the existing binding live.
+
 -- ---------------------------------------------------------------------------
--- (d) Verification.
+-- Verification (missions Part 1 + friend challenges Part 2).
 -- ---------------------------------------------------------------------------
 do $$
 begin
@@ -341,8 +610,8 @@ begin
     raise exception 'auth-forwarding squad mission wrapper missing';
   end if;
 
-  -- The old delta upper-bound (delta <= 100) must be gone: assert no remaining
-  -- check on the receipts table references the literal 100.
+  -- The old delta upper-bound (delta <= 100) must be gone on BOTH receipt
+  -- tables: assert no remaining check references the literal 100.
   if exists (
     select 1
       from pg_constraint c
@@ -350,7 +619,40 @@ begin
        and c.contype = 'c'
        and pg_get_constraintdef(c.oid) like '%100%'
   ) then
-    raise exception 'receipts delta upper-bound constraint (<= 100) still present';
+    raise exception 'squad mission receipts delta upper-bound constraint (<= 100) still present';
+  end if;
+
+  if exists (
+    select 1
+      from pg_constraint c
+     where c.conrelid = 'public.friend_challenge_progress_receipts'::regclass
+       and c.contype = 'c'
+       and pg_get_constraintdef(c.oid) like '%100%'
+  ) then
+    raise exception 'friend challenge receipts delta upper-bound constraint (<= 100) still present';
+  end if;
+
+  -- Part 2: friend challenge exercise scope + kind-aware helper + trigger fn.
+  if not exists (
+    select 1
+      from information_schema.columns
+     where table_schema = 'public'
+       and table_name = 'friend_challenges'
+       and column_name = 'exercise_name'
+  ) then
+    raise exception 'friend_challenges.exercise_name column missing';
+  end if;
+
+  if to_regprocedure('public.increment_friend_challenge_progress_for_user(uuid,int,text,uuid)') is null then
+    raise exception 'kind-aware friend challenge helper missing';
+  end if;
+
+  if to_regprocedure('public.increment_friend_challenge_progress(uuid,int,text)') is null then
+    raise exception 'auth-forwarding friend challenge wrapper missing';
+  end if;
+
+  if to_regprocedure('public.record_workout_log_social_progress()') is null then
+    raise exception 'workout social progress trigger function missing';
   end if;
 end
 $$;
