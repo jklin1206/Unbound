@@ -18,20 +18,31 @@ struct FriendChallengeCreateSheet: View {
     @State private var isCreating = false
     @State private var error: String?
 
-    /// Curated compound lifts for heaviestLift — display names used by logging,
-    /// matched verbatim (lowercase) server-side in exercise_entries.
-    private static let heaviestLiftOptions: [String] = [
-        "Back Squat",
-        "Bench Press",
-        "Deadlift",
-        "Overhead Press",
-        "Barbell Row",
-        "Weighted Pullup",
-        "Romanian Deadlift",
-        "Front Squat",
-        "Incline Bench Press",
-        "Hip Thrust"
+    /// Canonical catalog keys for the curated heaviestLift picker. Display names
+    /// are resolved from `ExerciseCatalog` at runtime so a future catalog rename
+    /// flows through automatically (the server matches on the `displayName` that
+    /// logging writes to `exercise_entries`). Locked by
+    /// `FriendChallengeLiftOptionsTests`.
+    private static let heaviestLiftCanonicalNames: [String] = [
+        "back squat",
+        "front squat",
+        "bench press",
+        "incline bench press",
+        "overhead press",
+        "deadlift",
+        "romanian deadlift",
+        "trap bar deadlift",
+        "bent-over row",
+        "weighted pullup",
+        "hip thrust",
+        "barbell curl"
     ]
+
+    /// Curated compound lifts for heaviestLift — the catalog `displayName` strings
+    /// that logging writes, matched (lower/trim) server-side in exercise_entries.
+    static let heaviestLiftOptions: [String] = heaviestLiftCanonicalNames.compactMap {
+        ExerciseCatalog.exercise(named: $0)?.displayName
+    }
 
     private var currentUserId: UUID? {
         services.auth.currentUserId.flatMap(SquadUserIdentity.uuid(from:))
