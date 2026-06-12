@@ -125,6 +125,34 @@ final class SquadMissionServiceTests: XCTestCase {
         XCTAssertGreaterThan(mission.target, 0)
     }
 
+    // MARK: - C1: Kind v2 raw values and legacy mapping
+
+    func testMissionKindV2RawValuesAndLegacyMapping() {
+        XCTAssertEqual(SquadMission.Kind(rawValue: "total_weight"), .totalWeight)
+        XCTAssertEqual(SquadMission.Kind(rawValue: "train_together"), .trainTogether)
+        // legacy rows from pre-v2 weeks still decode to a sensible kind
+        XCTAssertEqual(SquadMission.Kind(rawValue: "alignedSessions"), .totalSessions)
+        XCTAssertEqual(SquadMission.Kind(rawValue: "perfectAttendance"), .crewCoverage)
+        XCTAssertEqual(SquadMission.Kind(rawValue: "linkedSessions"), .trainTogether)
+        XCTAssertNil(SquadMission.Kind(rawValue: "bogus"))
+    }
+
+    func testMissionProgressDisplay() {
+        XCTAssertEqual(SquadMission.Kind.totalWeight.progressText(12500), "12,500 kg")
+        XCTAssertEqual(SquadMission.Kind.totalSessions.progressText(7), "7 sessions")
+        XCTAssertEqual(SquadMission.Kind.crewCoverage.progressText(3), "3 covered")
+    }
+
+    // MARK: - C2: Catalog targets match backend contract
+
+    func testCatalogTargetsMatchBackendContract() {
+        XCTAssertEqual(SquadMissionCatalog.target(for: .totalWeight, memberCount: 4), 32_000)
+        XCTAssertEqual(SquadMissionCatalog.target(for: .totalSessions, memberCount: 4), 16)
+        XCTAssertEqual(SquadMissionCatalog.target(for: .totalReps, memberCount: 4), 2_400)
+        XCTAssertEqual(SquadMissionCatalog.target(for: .crewCoverage, memberCount: 4), 4)
+        XCTAssertEqual(SquadMissionCatalog.target(for: .trainTogether, memberCount: 4), 3)
+    }
+
     // MARK: - evaluateCompletion does NOT fire when progress < target
 
     func testEvaluateCompletionDoesNotFireBelowTarget() async {
