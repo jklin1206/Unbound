@@ -129,7 +129,12 @@ struct ProfileView: View {
             .presentationDetents([.large])
             .presentationDragIndicator(.visible)
         }
-        .sheet(isPresented: $showProfileCosmetics) {
+        .sheet(isPresented: $showProfileCosmetics, onDismiss: {
+            // Guarantee the header avatar reflects any frame/border the user
+            // equipped while the picker was open, even if a change notification
+            // was missed.
+            refreshEquippedCosmetics()
+        }) {
             NavigationStack {
                 ProfileCosmeticsView { category in
                     shopInitialCategory = category
@@ -419,6 +424,23 @@ struct ProfileView: View {
                 DossierLinework(color: profileTint)
                     .opacity(0.08)
 
+                // Lower-band legibility + seamless hand-off: the full-bleed
+                // banner reaches the bottom of the header, so we ramp its lower
+                // half into the page background. This both guarantees the
+                // avatar + name + rank read cleanly on the art's dead space and
+                // dissolves the old hard black cut into the metric rail below.
+                LinearGradient(
+                    stops: [
+                        .init(color: .clear, location: 0),
+                        .init(color: .clear, location: 0.40),
+                        .init(color: Color.unbound.bg.opacity(0.58), location: 0.74),
+                        .init(color: Color.unbound.bg, location: 1)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .allowsHitTesting(false)
+
                 VStack(alignment: .leading, spacing: 0) {
                     profileTopBar
                         .unboundTextShadow(strength: 0.96)
@@ -459,16 +481,13 @@ struct ProfileView: View {
                         }
                 }
             }
-            .overlay(alignment: .bottom) {
-                UnboundNativeDivider(opacity: 0.64)
-            }
 
             UnboundNativeMetricRail(metrics: metrics)
                 .padding(.horizontal, 20)
                 .padding(.top, 18)
                 .padding(.bottom, 18)
 
-            VStack(spacing: 0) {
+            HStack(alignment: .top, spacing: 16) {
                 TrophyShowcaseRow(
                     label: "SKILL",
                     value: showcaseSkillName.uppercased(),
@@ -483,7 +502,7 @@ struct ProfileView: View {
                 )
             }
             .padding(.horizontal, 20)
-            .padding(.bottom, 24)
+            .padding(.bottom, 20)
         }
         .background {
             LinearGradient(
@@ -553,7 +572,7 @@ struct ProfileView: View {
            UIImage(named: assetName) != nil {
             return assetName
         }
-        return RankCosmetics.profileBackgroundAsset(for: equippedBackgroundTier)
+        return RankCosmetics.profileHeaderBannerAsset(for: equippedBackgroundTier)
     }
 
     private var activeProfileTint: Color {
@@ -575,7 +594,11 @@ struct ProfileView: View {
     private static func profileHeaderHeight(for width: CGFloat) -> CGFloat {
         let clampedWidth = max(320, min(width, 820))
         let bannerHeight = clampedWidth / UnboundBackdropAspect.profileBanner
-        return min(430, max(320, bannerHeight + 110))
+        // Keep the header closer to the banner's own wide aspect. A shorter
+        // header means the full-bleed fill crops far less off the sides, so the
+        // off-centre focal "core" stays fully on-screen instead of being shoved
+        // past the right edge.
+        return min(400, max(286, bannerHeight + 52))
     }
 
     private var profileHeaderContentMaxWidth: CGFloat {
@@ -587,13 +610,16 @@ struct ProfileView: View {
     }
 
     private var profileHeaderBottomPadding: CGFloat {
+        // Lifts the avatar + identity block UP off the bottom edge so it sits
+        // higher on the banner, leaving a measured band of dead space below it
+        // before the art blends into the page.
         if profileHeaderWidth < 360 {
-            return 58
+            return 40
         }
         if profileHeaderWidth >= 700 {
-            return 74
+            return 56
         }
-        return 66
+        return 46
     }
 
     private var profileHeroSpacing: CGFloat {
