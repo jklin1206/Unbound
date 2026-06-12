@@ -11,10 +11,12 @@ private final class SpyMissionService: SquadMissionServiceProtocol {
     var recordCalls: [(logId: String, userId: String, sourceLogId: String)] = []
     func generateThisWeek(squadId: UUID) async throws -> SquadMission { throw SquadError.backendUnavailable }
     func currentMission(squadId: UUID) async -> SquadMission? { nil }
+    func latestMission(squadId: UUID) async -> SquadMission? { nil }
     func recordProgress(log: WorkoutLog, userId: String, sourceLogId: String) async {
         recordCalls.append((log.id, userId, sourceLogId))
     }
     func evaluateCompletion(squadId: UUID) async {}
+    func pickMission(squadId: UUID, kind: SquadMission.Kind) async throws -> SquadMission? { nil }
 }
 
 @MainActor

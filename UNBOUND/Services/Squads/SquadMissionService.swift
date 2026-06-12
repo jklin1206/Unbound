@@ -5,8 +5,14 @@ import Supabase
 protocol SquadMissionServiceProtocol: Sendable {
     func generateThisWeek(squadId: UUID) async throws -> SquadMission
     func currentMission(squadId: UUID) async -> SquadMission?
+    /// Like `currentMission` but includes completed missions — returns the most
+    /// recent mission for the current ISO week regardless of completed_at.
+    func latestMission(squadId: UUID) async -> SquadMission?
     func recordProgress(log: WorkoutLog, userId: String, sourceLogId: String) async
     func evaluateCompletion(squadId: UUID) async
+    /// Captain-only: pick a mission kind for the current week via the
+    /// `pick_squad_mission` RPC. Returns nil when a mission already exists.
+    func pickMission(squadId: UUID, kind: SquadMission.Kind) async throws -> SquadMission?
 }
 
 @MainActor
@@ -124,16 +130,31 @@ final class SquadMissionService: SquadMissionServiceProtocol {
         }
     }
 
+    func latestMission(squadId: UUID) async -> SquadMission? {
+        guard remoteReadsEnabled else { return nil }
+        let weekIso = Self.currentWeekIso()
+        do {
+            let rows: [MissionRow] = try await db
+                .from("squad_missions")
+                .select()
+                .eq("squad_id", value: squadId.uuidString)
+                .eq("week_iso", value: weekIso)
+                .order("created_at", ascending: false)
+                .limit(1)
+                .execute()
+                .value
+            return rows.first?.toModel()
+        } catch {
+            logger.log("SquadMissionService.latestMission error: \(error)", level: .warning)
+            return nil
+        }
+    }
+
     func recordProgress(log: WorkoutLog, userId: String, sourceLogId: String) async {
-        // Increment the squad's current-week mission by +1 per workout log.
-        // RLS blocks a direct client UPDATE on squad_missions, so this goes
-        // through the increment_squad_mission_progress RPC (SECURITY DEFINER,
-        // squad-membership guarded). The evaluate_squad_mission cron then closes
-        // the mission once current_progress >= target.
-        //
-        // Generic +1 (matching FriendChallengeService's per-log model). Per-
-        // mission-kind weighting (e.g. only aligned-axis logs count) is a
-        // follow-up; the cron remains the source of truth for completion.
+        // Increment the squad's current-week mission via the
+        // `increment_squad_mission_progress` RPC (SECURITY DEFINER, squad-
+        // membership guarded). The RPC computes the real delta server-side from
+        // the workout_logs.exercise_entries jsonb — the +1 here is a signal only.
         guard let squad = squadService.state(userId: userId).currentSquad else { return }
         do {
             try await backend.incrementMissionProgress(
@@ -156,6 +177,10 @@ final class SquadMissionService: SquadMissionServiceProtocol {
         // Completion is marked by the evaluate_squad_mission Edge Function cron.
         // Post local notification so the UI can react immediately.
         NotificationCenter.default.post(name: .squadMissionCompleted, object: mission)
+    }
+
+    func pickMission(squadId: UUID, kind: SquadMission.Kind) async throws -> SquadMission? {
+        try await backend.pickSquadMission(squadId: squadId, kind: kind)
     }
 
     static func currentWeekIso() -> String {

@@ -1,5 +1,24 @@
 import Foundation
 
+// MARK: - MissionContribution
+//
+// Aggregated receipt total per member for a completed or in-progress mission.
+// `userId` is nil for train_together receipts (source_log_id "linked:…", no auth user).
+struct MissionContribution: Codable, Equatable, Sendable {
+    let userId: UUID?
+    let total: Int
+
+    /// Aggregate raw (userId, delta) receipt rows into per-user contribution totals.
+    static func aggregate(rows: [(userId: UUID?, delta: Int)]) -> [MissionContribution] {
+        var totals: [UUID?: Int] = [:]
+        for row in rows {
+            totals[row.userId, default: 0] += row.delta
+        }
+        return totals.map { MissionContribution(userId: $0.key, total: $0.value) }
+            .sorted { ($0.total, $0.userId?.uuidString ?? "") > ($1.total, $1.userId?.uuidString ?? "") }
+    }
+}
+
 struct SquadMission: Codable, Identifiable, Equatable, Sendable {
     let id: UUID
     let squadId: UUID

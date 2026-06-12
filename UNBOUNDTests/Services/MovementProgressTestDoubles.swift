@@ -112,8 +112,10 @@ actor TestProgressionDatabase: DatabaseServiceProtocol {
 final class NoOpSquadMissionService: SquadMissionServiceProtocol {
     func generateThisWeek(squadId: UUID) async throws -> SquadMission { throw SquadError.backendUnavailable }
     func currentMission(squadId: UUID) async -> SquadMission? { nil }
+    func latestMission(squadId: UUID) async -> SquadMission? { nil }
     func recordProgress(log: WorkoutLog, userId: String, sourceLogId: String) async {}
     func evaluateCompletion(squadId: UUID) async {}
+    func pickMission(squadId: UUID, kind: SquadMission.Kind) async throws -> SquadMission? { nil }
 }
 
 @MainActor
