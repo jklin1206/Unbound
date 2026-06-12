@@ -49,14 +49,11 @@ struct ProfileView: View {
     @State private var afterPhoto: ProgressPhoto?
     @State private var isLoading = true
     @State private var trialsState: TrialsState = .empty
-    @State private var overallRankTrialReadiness: OverallRankTrialReadiness?
-    @State private var activeOverallRankTrialDraft: TrainingSessionDraft?
     @State private var profileHeaderWidth: CGFloat = UIScreen.main.bounds.width
 
     @ObservedObject private var photoStore = ProfilePhotoStore.shared
     @State private var showPhotoOptions = false
     @State private var showEditProfile = false
-    @State private var showRankInfo = false
     @State private var showProfileCosmetics = false
     @State private var didAutoOpenCosmetics = false
     @State private var showShop = false
@@ -166,28 +163,11 @@ struct ProfileView: View {
             .presentationDetents([.large])
             .presentationDragIndicator(.visible)
         }
-        .sheet(isPresented: $showRankInfo) {
-            RankInfoSheet(
-                currentTier: aggregateTier,
-                readiness: overallRankTrialReadiness
-            ) { definition in
-                showRankInfo = false
-                startOverallRankTrial(definition)
-            }
-                .presentationDetents([.large])
-                .presentationDragIndicator(.visible)
-        }
         .fullScreenCover(isPresented: $showCamera) {
             CameraPicker { image in
                 photoStore.set(image, userId: photoUserId)
             }
             .ignoresSafeArea()
-        }
-        .fullScreenCover(item: $activeOverallRankTrialDraft, onDismiss: {
-            Task { await load() }
-        }) { draft in
-            WorkoutReadyView(draft: draft)
-                .environmentObject(services)
         }
         .onChange(of: pickedItem) { _, item in
             guard let item else { return }
@@ -218,9 +198,6 @@ struct ProfileView: View {
         .onReceive(NotificationCenter.default.publisher(for: .sessionXPUpdated)) { _ in
             guard let userId = services.auth.currentUserId else { return }
             Task { await refreshRewardReadouts(userId: userId) }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .requestOpenProfileRankInfo)) { _ in
-            showRankInfo = true
         }
         .onReceive(NotificationCenter.default.publisher(for: .shopInventoryChanged)) { _ in
             refreshShopCosmetics()
@@ -301,7 +278,6 @@ struct ProfileView: View {
 
         // Load trials state
         trialsState = services.trials.state(userId: userId)
-        overallRankTrialReadiness = await TrialReadinessService.shared.readiness(userId: userId, services: services)
 
         isLoading = false
     }
@@ -343,20 +319,6 @@ struct ProfileView: View {
     private func profileCosmeticChangeAppliesToCurrentUser(_ note: Notification) -> Bool {
         guard let eventUserId = note.userInfo?["userId"] as? String else { return true }
         return eventUserId == (services.auth.currentUserId ?? "anonymous")
-    }
-
-    private func startOverallRankTrial(_ definition: OverallRankTrialDefinition) {
-        let userId = services.auth.currentUserId ?? "anonymous"
-
-        let resolvedTrial = overallRankTrialReadiness?.resolvedTrial?.definitionId == definition.id
-            ? overallRankTrialReadiness?.resolvedTrial
-            : nil
-        activeOverallRankTrialDraft = OverallRankTrialRunner.shared.draft(
-            for: definition,
-            userId: userId,
-            resolvedTrial: resolvedTrial,
-            bodyweightKg: profile?.weightKg
-        )
     }
 
     @MainActor
@@ -735,10 +697,6 @@ struct ProfileView: View {
                             .multilineTextAlignment(.leading)
                             .fixedSize(horizontal: false, vertical: true)
                             .layoutPriority(1)
-                        Image(systemName: "pencil")
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundStyle(Color.unbound.textSecondary)
-                            .padding(.top, 4)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -758,17 +716,12 @@ struct ProfileView: View {
             .buttonStyle(.plain)
             .accessibilityLabel("Edit profile handle and title")
 
-            Button {
-                showRankInfo = true
-            } label: {
-                RankTitlePlate(
-                    tier: aggregateTier,
-                    tint: rankColor
-                )
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Current tier and rank gate details")
-            .accessibilityIdentifier("profile.rankInfoButton")
+            // Rank reads as a quiet plate — the trial/gate details live on the
+            // Home rank surfaces now, not behind an ⓘ here.
+            RankTitlePlate(
+                tier: aggregateTier,
+                tint: rankColor
+            )
             .frame(maxWidth: .infinity)
 
             LevelProgressPlate(

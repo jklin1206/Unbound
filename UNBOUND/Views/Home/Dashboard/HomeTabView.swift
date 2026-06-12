@@ -91,12 +91,6 @@ struct HomeTabView: View {
         .onReceive(NotificationCenter.default.publisher(for: .requestNavigateToProfileTab)) { _ in
             selectedTab = 4
         }
-        .onReceive(NotificationCenter.default.publisher(for: .requestNavigateToProfileRankGate)) { _ in
-            selectedTab = 4
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-                NotificationCenter.default.post(name: .requestOpenProfileRankInfo, object: nil)
-            }
-        }
         .onReceive(NotificationCenter.default.publisher(for: .requestNavigateToProgramTab)) { _ in
             selectedTab = 1
         }

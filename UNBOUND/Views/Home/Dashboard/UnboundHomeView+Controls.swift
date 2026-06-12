@@ -176,7 +176,7 @@ extension UnboundHomeView {
             return
         }
         UnboundHaptics.medium()
-        NotificationCenter.default.post(name: .requestNavigateToProfileRankGate, object: nil)
+        NotificationCenter.default.post(name: .requestOpenRankInfo, object: nil)
     }
 
     func handleBodyWeightCommand() {
@@ -310,7 +310,7 @@ extension UnboundHomeView {
 
         return Button {
             UnboundHaptics.soft()
-            NotificationCenter.default.post(name: .requestNavigateToProfileRankGate, object: nil)
+            NotificationCenter.default.post(name: .requestOpenRankInfo, object: nil)
         } label: {
             HStack(spacing: 12) {
                 ZStack {

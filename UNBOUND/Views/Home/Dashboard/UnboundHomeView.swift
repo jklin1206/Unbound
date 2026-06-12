@@ -49,6 +49,7 @@ struct UnboundHomeView: View {
     @State var showingBodyWeightHistory = false
     @State var showingShop = false
     @State var showingBackdropPicker = false
+    @State var showRankInfo = false
     @State var bodyWeightJustLogged = false
 
     // Ambient animation state
@@ -301,6 +302,32 @@ struct UnboundHomeView: View {
             }
             .presentationDetents([.large])
             .presentationDragIndicator(.visible)
+        }
+        .sheet(isPresented: $showRankInfo) {
+            // Rank-trial gate details live HERE now (moved off the profile's
+            // ⓘ). Starting a trial reuses the home workout-ready cover.
+            RankInfoSheet(
+                currentTier: model.aggregateTier,
+                readiness: model.overallRankTrialReadiness
+            ) { definition in
+                showRankInfo = false
+                let userId = services.auth.currentUserId ?? "anonymous"
+                let readiness = model.overallRankTrialReadiness
+                let resolvedTrial = readiness?.resolvedTrial?.definitionId == definition.id
+                    ? readiness?.resolvedTrial
+                    : nil
+                workoutReadyDraft = OverallRankTrialRunner.shared.draft(
+                    for: definition,
+                    userId: userId,
+                    resolvedTrial: resolvedTrial,
+                    bodyweightKg: model.profile?.weightKg
+                )
+            }
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .requestOpenRankInfo)) { _ in
+            showRankInfo = true
         }
         .fullScreenCover(isPresented: $showScanCaptureFlow, onDismiss: {
             // Refresh cadence after a scan completes

@@ -354,6 +354,13 @@ struct RankInfoSheet: View {
                 }
 
                 if let readiness {
+                    // Destination hero — every trial is a pilgrimage to the
+                    // next location in the journey, so the gate leads with the
+                    // target tier's banner art and place name.
+                    if let target = readiness.targetRank {
+                        trialDestinationHero(target: target)
+                    }
+
                     RankTrialFlowStrip(readiness: readiness)
 
                     VStack(alignment: .leading, spacing: 10) {
@@ -367,6 +374,55 @@ struct RankInfoSheet: View {
             .padding(20)
         }
         .background(Color.unbound.bg.ignoresSafeArea())
+    }
+
+    @ViewBuilder
+    private func trialDestinationHero(target: RankTitle) -> some View {
+        if let asset = RankCosmetics.profileHeaderBannerAsset(for: target),
+           let ui = UIImage(named: asset) {
+            ZStack(alignment: .bottomLeading) {
+                Image(uiImage: ui)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(height: 150)
+                    .frame(maxWidth: .infinity)
+                    .clipped()
+
+                LinearGradient(
+                    stops: [
+                        .init(color: .clear, location: 0),
+                        .init(color: Color.black.opacity(0.22), location: 0.45),
+                        .init(color: Color.black.opacity(0.78), location: 1)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+
+                HStack(alignment: .bottom) {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("NEXT DESTINATION")
+                            .font(.system(size: 9, weight: .black, design: .monospaced))
+                            .tracking(1.7)
+                            .foregroundStyle(Color.unbound.textSecondary)
+                        Text(target.bannerLocationName)
+                            .font(Font.unbound.titleM)
+                            .foregroundStyle(Color.unbound.textPrimary)
+                    }
+                    Spacer()
+                    Image(target.assetName)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 40, height: 40)
+                        .shadow(color: target.rewardTint.opacity(0.5), radius: 10)
+                }
+                .padding(14)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .strokeBorder(target.rewardTint.opacity(0.30), lineWidth: 1)
+            )
+        }
     }
 
     private var headerTier: RankTitle {

@@ -181,9 +181,6 @@ struct RankTitlePlate: View {
                 .layoutPriority(1)
 
             Spacer(minLength: 0)
-            Image(systemName: "info.circle.fill")
-                .font(.system(size: 12, weight: .bold))
-                .foregroundStyle(tier.rewardTextTint)
         }
         .padding(.vertical, 10)
         .overlay(alignment: .bottom) {
