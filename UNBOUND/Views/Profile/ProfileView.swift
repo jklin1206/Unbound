@@ -429,7 +429,10 @@ struct ProfileView: View {
                     role: .profileBanner,
                     tint: profileTint
                 )
-                .ignoresSafeArea(edges: .top)
+                // Start the art BELOW the status-bar inset: bleeding under the
+                // Dynamic Island hid the banner's top slice and made the whole
+                // composition read too high, detached from the avatar zone.
+                .padding(.top, topSafeInset)
 
                 DossierLinework(color: profileTint)
                     .opacity(0.08)
