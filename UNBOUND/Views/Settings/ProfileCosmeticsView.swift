@@ -475,6 +475,10 @@ private struct CosmeticGridCard: View {
             preview
                 .saturation(state.isUnlockedOrOwned ? 1 : 0.14)
                 .opacity(state.isUnlockedOrOwned ? 1 : 0.5)
+                // Center the art in the tile — the ZStack's topTrailing
+                // alignment (for the state badge) was pinning avatar/border
+                // previews into the top-right corner and clipping the ring.
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
 
             stateBadge
                 .padding(8)
