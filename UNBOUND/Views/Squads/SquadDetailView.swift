@@ -195,6 +195,7 @@ struct SquadDetailView: View {
         }
         #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("--unbound-demo-squad-mission") {
+            selectedTab = .challenges
             let demoId = UUID(uuidString: "AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE") ?? UUID()
             currentMissionState = SquadMission(
                 id: demoId,
