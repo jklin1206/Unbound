@@ -326,10 +326,14 @@ struct ProfileView: View {
 
     private func refreshEquippedCosmetics(userId overrideUserId: String? = nil) {
         let userId = overrideUserId ?? services.auth.currentUserId ?? "anonymous"
-        // Cosmetics reflect the CONFIRMED overall rank (highestPassedRank,
-        // permanent), not the live accumulation (Phase 7 §5).
+        // Cosmetic unlocks follow the rank the app SHOWS the user: the rank
+        // plate displays the skill-aggregate tier, so the aggregate counts
+        // alongside the trial-confirmed rank (the unlock ratchet keeps
+        // anything earned permanent). `aggregateTier` hydrates before this
+        // runs in load(); on the first pass it can be .initiate — the sheet
+        // and ratchet recompute with the live value on open/equip.
         let confirmedRank = OverallRankTrialStore.shared.load(userId: userId).currentRank
-        let cosmeticTier = RankCosmetics.equipped(highestRank: confirmedRank)
+        let cosmeticTier = RankCosmetics.equipped(highestRank: max(confirmedRank, aggregateTier))
         _ = RankCosmetics.unlockedTiers(userId: userId, currentTier: cosmeticTier)
         equippedFrameTier = RankCosmetics.equippedFrameTier(userId: userId, currentTier: cosmeticTier)
         equippedBackgroundTier = RankCosmetics.equippedBackgroundTier(userId: userId, currentTier: cosmeticTier)

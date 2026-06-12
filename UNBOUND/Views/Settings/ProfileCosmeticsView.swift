@@ -110,8 +110,14 @@ struct ProfileCosmeticsView: View {
     private func load() async {
         let userId = services.auth.currentUserId ?? "anonymous"
         inventory.bind(userId: userId)
+        // Unlocks follow the rank the app SHOWS the user: the profile's rank
+        // plate displays the skill-aggregate tier, so gating cosmetics on the
+        // trial-confirmed rank alone read as "can't equip my own rank". The
+        // confirmed rank still counts (and the unlock ratchet keeps anything
+        // earned permanent).
         let confirmedRank = OverallRankTrialStore.shared.load(userId: userId).currentRank
-        currentTier = RankCosmetics.equipped(highestRank: confirmedRank)
+        let aggregate = await services.rank.aggregateTier(userId: userId)
+        currentTier = RankCosmetics.equipped(highestRank: max(confirmedRank, aggregate))
         unlockedFrameTiers = RankCosmetics.unlockedFrameTiers(userId: userId, currentTier: currentTier)
         unlockedBackgroundTiers = RankCosmetics.unlockedBackgroundTiers(userId: userId, currentTier: currentTier)
         equippedFrameTier = RankCosmetics.equippedFrameTier(userId: userId, currentTier: currentTier)
