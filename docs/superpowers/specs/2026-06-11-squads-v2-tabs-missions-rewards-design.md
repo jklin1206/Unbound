@@ -17,12 +17,12 @@
 |---|---|
 | Scope | All three in one pass: tabs + co-op missions + rewards |
 | Tab layout | 3 tabs under a pinned compact header: CREW / CHALLENGES / SEASON |
-| Mission kinds at launch | total_weight, total_sessions, total_reps, crew_coverage, train_together, pr_hunt |
+| Mission kinds at launch | total_weight, total_sessions, total_reps, crew_coverage, train_together (PR energy moved to the 1v1 side — jlin 2026-06-11) |
 | Mission reward | Arcs payout per member + season-track progress (NO rank XP — preserves single-source rank) |
-| Mission selection | Captain picks weekly from the 6 kinds; server auto-assigns a rotating kind Monday night if unpicked |
+| Mission selection | Captain picks weekly from the 5 kinds; server auto-assigns a rotating kind Monday night if unpicked |
 | Celebration | Dedicated full-screen `SquadMissionCelebrationView` for all members |
 | 1v1 rewards | Small Arcs payout to the winner |
-| 1v1 menu | Delete the 4 dead kinds; ship 5 real kinds: Most Sessions, Early Riser, Most Weight, Most Reps, Most PRs |
+| 1v1 menu | Delete the 4 dead kinds; ship 5 real kinds: Most Sessions, Early Riser, Most Weight, Most Reps, Heaviest Lift (pick an exercise; score = best single-set weight on it this week, MAX semantics) |
 | Live join | "Squadmate is training now — jump in" row on Crew tab (presence-driven) |
 | Out of scope | Push notifications, synced/real-time shared workout rooms, squad-exclusive cosmetic art, skill-proof + dawn-patrol + hold-time mission kinds (bench for later seasons) |
 
@@ -40,7 +40,7 @@ Tab restructure ships first as a pure re-layout (no behavior change) so it can b
 
 ## 2. Backend — wake up `squad_missions`
 
-**Mission kinds** (`mission_kind` text values): `total_weight`, `total_sessions`, `total_reps`, `crew_coverage`, `train_together`, `pr_hunt`.
+**Mission kinds** (`mission_kind` text values): `total_weight`, `total_sessions`, `total_reps`, `crew_coverage`, `train_together`.
 
 **New table `squad_mission_contributions`:**
 `id`, `mission_id` FK, `user_id` FK, `amount` int, `source_log_id` uuid, `created_at`; unique `(mission_id, user_id, source_log_id)` for dedup. Powers per-member breakdowns in the hero card + celebration screen, and the crew-coverage computation. `squad_missions.current_progress` stays the rolled-up number.
@@ -58,7 +58,7 @@ Tab restructure ships first as a pure re-layout (no behavior change) so it can b
 
 - `SquadMissionService` (fetch current mission + contributions, captain pick, record progress) + `SquadMissionProgressPolicy` mirroring `FriendChallengeProgressPolicy`.
 - Hooked into the same post-workout completion point where `FriendChallengeService.recordProgress` runs.
-- Deltas per kind: `total_weight` = Σ weight×reps, `total_reps` = Σ reps, `total_sessions` = 1, `crew_coverage` = 1 (server interprets against per-member target), `pr_hunt` = PR count from the session summary, `train_together` = server-side only.
+- Deltas per kind: `total_weight` = Σ weight×reps, `total_reps` = Σ reps, `total_sessions` = 1, `crew_coverage` = 1 (server interprets against per-member target), `train_together` = server-side only.
 
 ## 4. Rewards + celebration
 
@@ -69,8 +69,8 @@ Tab restructure ships first as a pure re-layout (no behavior change) so it can b
 ## 5. 1v1 menu rework
 
 - Delete `noMissedDays`, `firstToFinishTrial`, `mostAlignedSessions`, `proteinGoal` — model cases, policy branches, and any UI copy, in the same commit (no parked dead code). Tolerant decoding for any historical rows of those kinds (display-only, settle as-is).
-- Add `mostWeight`, `mostReps`, `mostPRs` riding the same delta computations built for missions.
-- Final menu: Most Sessions, Early Riser, Most Weight, Most Reps, Most PRs — every visible kind creatable and counting.
+- Add `mostWeight`, `mostReps` riding the same delta computations built for missions, plus `heaviestLift`: an exercise-scoped duel — `friend_challenges` gains a nullable `exercise_name` column set at creation, the score is each player's best single-set weight on that exercise during the window (progress uses MAX semantics, not accumulation).
+- Final menu: Most Sessions, Early Riser, Most Weight, Most Reps, Heaviest Lift — every visible kind creatable and counting.
 
 ## 6. Phasing & verification
 
