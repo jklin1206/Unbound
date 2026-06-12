@@ -51,8 +51,8 @@ enum AttributeLevelCurve {
         (.veteran, 15),
         (.master, 25),
         (.vessel, 40),
-        (.unbound, 65),
-        (.ascendant, maxLevel)
+        (.ascendant, 65),
+        (.unbound, maxLevel)
     ]
 }
 

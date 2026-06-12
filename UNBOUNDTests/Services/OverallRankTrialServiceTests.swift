@@ -16,7 +16,7 @@ final class OverallRankTrialServiceTests: XCTestCase {
         [
             RankTrialCase(sourceRank: .master, definition: OverallRankTrialDefinitions.crucible),
             RankTrialCase(sourceRank: .vessel, definition: OverallRankTrialDefinitions.threshold),
-            RankTrialCase(sourceRank: .unbound, definition: OverallRankTrialDefinitions.ascension)
+            RankTrialCase(sourceRank: .ascendant, definition: OverallRankTrialDefinitions.ascension)
         ]
     }
 
@@ -29,7 +29,7 @@ final class OverallRankTrialServiceTests: XCTestCase {
             RankTrialCase(sourceRank: .veteran, definition: OverallRankTrialDefinitions.gauntlet),
             RankTrialCase(sourceRank: .master, definition: OverallRankTrialDefinitions.crucible),
             RankTrialCase(sourceRank: .vessel, definition: OverallRankTrialDefinitions.threshold),
-            RankTrialCase(sourceRank: .unbound, definition: OverallRankTrialDefinitions.ascension)
+            RankTrialCase(sourceRank: .ascendant, definition: OverallRankTrialDefinitions.ascension)
         ]
     }
 

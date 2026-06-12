@@ -123,7 +123,7 @@ extension DevBuildBootstrapper {
         NotificationCenter.default.post(name: .sessionXPUpdated, object: nil, userInfo: ["delta": delta])
     }
 
-    static func masterSkillTree(tier: SkillTier = .ascendant) async {
+    static func masterSkillTree(tier: SkillTier = .unbound) async {
         AuthService.shared.activateDevUser(id: userId)
         let now = Date()
         let graph = SkillGraph.shared
@@ -154,7 +154,7 @@ extension DevBuildBootstrapper {
                 result[node.id] = tier
             },
             rankUpsEarned: graph.nodes.count * max(tier.rawValue, 1),
-            ascendantSkills: tier == .ascendant ? graph.nodes.map(\.id) : []
+            ascendantSkills: tier == .unbound ? graph.nodes.map(\.id) : []
         )
         UserSkillTierStore.shared.save(tierState, userId: userId)
     }
@@ -164,7 +164,7 @@ extension DevBuildBootstrapper {
         await masterSkillTree(tier: tier)
         seedLiftTiers(tier: tier)
         await seedProgressionFamilies(tier: tier)
-        SkinService.shared.debugUnlockAllSkins(select: tier.rawValue >= SkillTier.unbound.rawValue ? .holographic : .violet)
+        SkinService.shared.debugUnlockAllSkins(select: tier.rawValue >= SkillTier.ascendant.rawValue ? .holographic : .violet)
         NotificationCenter.default.post(name: .skillTierAdvanced, object: SkillTierAdvance(
             skillId: "dev-profile-rank",
             from: .initiate,
@@ -340,7 +340,7 @@ extension DevBuildBootstrapper {
         NotificationCenter.default.post(name: .attributeRankUp, object: nil)
     }
 
-    static func seedLiftTiers(tier: SkillTier = .ascendant) {
+    static func seedLiftTiers(tier: SkillTier = .unbound) {
         for lift in devLiftNames {
             LiftTierService.shared.save(tier: tier, lift: lift, userId: userId)
         }
@@ -407,7 +407,7 @@ extension DevBuildBootstrapper {
         ) ?? .initiate
     }
 
-    static func seedProgressionFamilies(tier: SkillTier = .ascendant) async {
+    static func seedProgressionFamilies(tier: SkillTier = .unbound) async {
         let now = Date()
         let requestedTier = progressionFamilyTier(for: tier)
         let grouped = Dictionary(grouping: MovementCatalog.legacyExercises.compactMap { exercise -> (String, Int)? in
@@ -432,7 +432,9 @@ extension DevBuildBootstrapper {
     static func seedOverallRankTrialReadyProof(targetRankRawValue: String = RankTitle.novice.token) async {
         AuthService.shared.activateDevUser(id: userId)
         let now = Date()
-        let targetRank = RankTier.fromToken(targetRankRawValue)
+        // Dev input is a same-build `.token`, so resolve by CURRENT token names
+        // (fromLegacyToken would invert the two crown tokens).
+        let targetRank = RankTier.allCases.first { $0.token == targetRankRawValue } ?? .novice
         let definition = OverallRankTrialDefinitions.all.first { $0.targetRank == targetRank }
             ?? OverallRankTrialDefinitions.foundationProof
         OverallRankTrialStore.shared.save(
@@ -488,8 +490,8 @@ extension DevBuildBootstrapper {
         case .veteran: return .forged
         case .master: return .veteran
         case .vessel: return .master
-        case .unbound: return .vessel
-        case .ascendant: return .unbound
+        case .ascendant: return .vessel
+        case .unbound: return .ascendant
         case .initiate: return .initiate
         }
     }
@@ -503,8 +505,8 @@ extension DevBuildBootstrapper {
         case .veteran: return 3
         case .master: return 4
         case .vessel: return 5
-        case .unbound: return 6
-        case .ascendant: return 7
+        case .ascendant: return 6
+        case .unbound: return 7
         }
     }
 }

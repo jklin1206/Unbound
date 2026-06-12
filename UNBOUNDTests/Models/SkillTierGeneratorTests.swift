@@ -31,7 +31,7 @@ final class SkillTierGeneratorTests: XCTestCase {
         XCTAssertEqual(reps(ladder[.apprentice]), 6)   // Novice level
         XCTAssertEqual(reps(ladder[.veteran]), 13)     // Intermediate level
         XCTAssertEqual(reps(ladder[.vessel]), 23)      // Advanced level
-        XCTAssertEqual(reps(ladder[.ascendant]), 32)   // Elite level = peak
+        XCTAssertEqual(reps(ladder[.unbound]), 32)   // Elite level = peak
     }
 
     func testFullAnchorsAreNinePresentAndStrictlyIncreasing() {
@@ -55,19 +55,19 @@ final class SkillTierGeneratorTests: XCTestCase {
         for tier in [SkillTier.initiate, .novice, .apprentice, .forged, .veteran, .master, .vessel] {
             XCTAssertEqual(reps(ladder[tier]), 1, "\(tier) is the entry (1 rep → jump to Vessel)")
         }
-        XCTAssertEqual(reps(ladder[.unbound]), 3)
-        XCTAssertEqual(reps(ladder[.ascendant]), 5)   // peak = elite one-arm pull-up
+        XCTAssertEqual(reps(ladder[.ascendant]), 3)
+        XCTAssertEqual(reps(ladder[.unbound]), 5)   // peak = elite one-arm pull-up
     }
 
     func testFeatTopStrictlyIncreasesAboveFloor() {
         // ring muscle-up: floor Veteran, ladder climbs above it.
         let ladder = SkillTierGenerator.generate(PullSkillAnchors.table["pp.ring-muscle-up"]!)
-        let above = [SkillTier.veteran, .master, .vessel, .unbound, .ascendant].map { reps(ladder[$0]) ?? -1 }
+        let above = [SkillTier.veteran, .master, .vessel, .ascendant, .unbound].map { reps(ladder[$0]) ?? -1 }
         for i in 1..<above.count {
             XCTAssertGreaterThan(above[i], above[i - 1])
         }
         XCTAssertEqual(reps(ladder[.veteran]), 1)   // first ring MU = Veteran
-        XCTAssertEqual(reps(ladder[.ascendant]), 9)
+        XCTAssertEqual(reps(ladder[.unbound]), 9)
     }
 
     func testEveryPullAnchorGeneratesNineCompleteTiers() {
@@ -84,7 +84,7 @@ final class SkillTierGeneratorTests: XCTestCase {
 
     func testWeightedUsesBodyweightRatioCriterion() {
         let ladder = SkillTierGenerator.generate(PullSkillAnchors.table["pp.weighted-pullup"]!)
-        guard case .exerciseBodyweightRatio(let ratio, let ex)? = ladder[.ascendant] else {
+        guard case .exerciseBodyweightRatio(let ratio, let ex)? = ladder[.unbound] else {
             return XCTFail("weighted pull-up peak should be a bodyweight-ratio criterion")
         }
         XCTAssertEqual(ratio, 1.0, accuracy: 0.001)   // Elite = +100% bw
@@ -93,7 +93,7 @@ final class SkillTierGeneratorTests: XCTestCase {
 
     func testHoldUsesExerciseSecondsCriterion() {
         let ladder = SkillTierGenerator.generate(PullSkillAnchors.table["pp.dead-hang"]!)
-        guard case .exerciseSeconds(let secs, _)? = ladder[.ascendant] else {
+        guard case .exerciseSeconds(let secs, _)? = ladder[.unbound] else {
             return XCTFail("dead hang peak should be an exercise-seconds criterion")
         }
         XCTAssertEqual(secs, 120)   // Elite = 2 min

@@ -86,10 +86,10 @@ enum SkillTreeSkin: String, Codable, Sendable, CaseIterable, Identifiable {
         case .jade:         return .veteran
         case .frost:        return .master
         case .gold:         return .vessel
-        case .void:         return .unbound
-        case .aurora:       return .unbound
-        case .holographic:  return .ascendant
-        case .ascendant:    return .ascendant
+        case .void:         return .ascendant
+        case .aurora:       return .ascendant
+        case .holographic:  return .unbound
+        case .ascendant:    return .unbound
         case .chalk, .blueprint, .streetNeon, .inkDojo, .solarCircuit, .glassCircuit, .crystalCavern:
             return nil
         }

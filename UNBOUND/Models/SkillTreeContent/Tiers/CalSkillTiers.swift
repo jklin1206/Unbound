@@ -91,7 +91,7 @@ enum PushSkillAnchors {
 
         // Mythic clap variants.
         "cal.clapping-handstand-pushup": .init(exerciseName: "clapping handstand pushup", metric: .reps, spec: .feat(floor: .vessel,  ladder: [1, 2, 4])),  // clapping HSPU (3 vals)
-        "cal.triple-clap-pushup":        .init(exerciseName: "triple clap pushup",        metric: .reps, spec: .feat(floor: .unbound, ladder: [1, 2])),       // triple-clap pushup (2 vals)
+        "cal.triple-clap-pushup":        .init(exerciseName: "triple clap pushup",        metric: .reps, spec: .feat(floor: .ascendant, ladder: [1, 2])),       // triple-clap pushup (2 vals)
     ]
 }
 

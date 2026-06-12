@@ -127,7 +127,7 @@ struct ShopSkillTreeMapPreview: View {
 
     private var rankBandData: [ShopSkillTreePreviewBand] {
         [
-            .init(rank: .ascendant, label: "S"),
+            .init(rank: .unbound, label: "S"),
             .init(rank: .vessel, label: "A"),
             .init(rank: .master, label: "B"),
             .init(rank: .forged, label: "C"),

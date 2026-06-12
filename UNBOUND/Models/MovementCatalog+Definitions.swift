@@ -405,7 +405,7 @@ extension MovementCatalog {
     }
 
     static func difficulty(for node: SkillNode) -> MovementDifficulty {
-        if node.isMythic || node.placementRank >= .unbound || node.tier >= 7 {
+        if node.isMythic || node.placementRank >= .ascendant || node.tier >= 7 {
             return .elite
         }
         switch node.tier {

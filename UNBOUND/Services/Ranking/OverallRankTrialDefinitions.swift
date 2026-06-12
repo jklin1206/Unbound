@@ -683,7 +683,7 @@ enum OverallRankTrialDefinitions {
 
     static let threshold = definition(
         id: "overall-rank-trial-unbound-threshold",
-        targetRank: .unbound,
+        targetRank: .ascendant,
         displayName: "Threshold Raid",
         subtitle: "Vessel to Ascendant rank gate",
         estimatedMinutes: 65,
@@ -698,7 +698,7 @@ enum OverallRankTrialDefinitions {
 
     static let ascension = definition(
         id: "overall-rank-trial-ascendant-ascension",
-        targetRank: .ascendant,
+        targetRank: .unbound,
         displayName: "Final Exam",
         subtitle: "Ascendant to Unbound rank gate",
         estimatedMinutes: 75,
@@ -745,7 +745,7 @@ enum OverallRankTrialDefinitions {
             return crucible
         case .vessel:
             return threshold
-        case .unbound:
+        case .ascendant:
             return ascension
         default:
             return nil
@@ -787,8 +787,8 @@ extension RankTitle {
         case .veteran: return 4
         case .master: return 5
         case .vessel: return 6
-        case .unbound: return 7
-        case .ascendant: return 8
+        case .ascendant: return 7
+        case .unbound: return 8
         }
     }
 }

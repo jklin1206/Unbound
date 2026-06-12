@@ -9,7 +9,7 @@ struct DevPlayerToolsView: View {
     @AppStorage(WeightPlatePolicy.unitDefaultsKey) var weightUnitRaw = TrainingWeightUnit.localeDefault.rawValue
 
     @State var selectedLevel: Int = 25
-    @State var selectedRank: SkillTier = .ascendant
+    @State var selectedRank: SkillTier = .unbound
     @State var selectedRankTrialTarget: RankTitle = .novice
     @State var devTotalSessions: Int = 96
     @State var devCurrentStreak: Int = 21

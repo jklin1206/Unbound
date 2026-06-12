@@ -4,8 +4,8 @@ import XCTest
 final class SkillTierTests: XCTestCase {
     func testOrdinalOrdering() {
         XCTAssertLessThan(SkillTier.initiate, SkillTier.novice)
-        XCTAssertLessThan(SkillTier.vessel, SkillTier.unbound)
-        XCTAssertLessThan(SkillTier.unbound, SkillTier.ascendant)
+        XCTAssertLessThan(SkillTier.vessel, SkillTier.ascendant)
+        XCTAssertLessThan(SkillTier.ascendant, SkillTier.unbound)
     }
 
     func testAllNineCases() {
@@ -20,16 +20,16 @@ final class SkillTierTests: XCTestCase {
         XCTAssertFalse(SkillTier.veteran.isFlagshipMoment)
         XCTAssertFalse(SkillTier.master.isFlagshipMoment)
         XCTAssertTrue(SkillTier.vessel.isFlagshipMoment)
-        XCTAssertTrue(SkillTier.unbound.isFlagshipMoment)
         XCTAssertTrue(SkillTier.ascendant.isFlagshipMoment)
+        XCTAssertTrue(SkillTier.unbound.isFlagshipMoment)
     }
 
     func testDisplayNames() {
         XCTAssertEqual(SkillTier.initiate.displayName, "Initiate")
-        // Brand swap: peak (.ascendant, rawValue 8) is labeled "Unbound";
-        // tier 7 (.unbound) is labeled "Ascendant". Case names kept; label-only.
-        XCTAssertEqual(SkillTier.unbound.displayName, "Ascendant")
-        XCTAssertEqual(SkillTier.ascendant.displayName, "Unbound")
+        // Brand swap: peak (.unbound, rawValue 8) is labeled "Unbound";
+        // tier 7 (.ascendant) is labeled "Ascendant". Case names kept; label-only.
+        XCTAssertEqual(SkillTier.ascendant.displayName, "Ascendant")
+        XCTAssertEqual(SkillTier.unbound.displayName, "Unbound")
     }
 
     func testCodableRoundtrip() throws {

@@ -31,7 +31,7 @@ struct Step_WhyThisProgram: View {
 
                 HStack(alignment: .top, spacing: 10) {
                     OnboardingAssetGlyph(
-                        assetName: "rank_title_unbound",
+                        assetName: "rank_title_ascendant",
                         tint: Color.unbound.impact,
                         size: 30,
                         imagePadding: 3,

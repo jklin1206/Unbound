@@ -135,7 +135,9 @@ enum RankCosmetics {
         let fallback = unlocked.last ?? currentTier
         guard let raw = UserDefaults.standard.string(forKey: keyPrefix + userId)
         else { return fallback }
-        let tier = RankTier.fromToken(raw)
+        // New writes store the Int rawValue; older builds stored the case-name
+        // token (crown tokens carry their pre-rename meanings).
+        let tier = Int(raw).flatMap(RankTier.init(rawValue:)) ?? RankTier.fromLegacyToken(raw)
         guard unlocked.contains(tier) else { return fallback }
         return tier
     }
@@ -148,9 +150,9 @@ enum RankCosmetics {
         unlocked: [SkillTier]
     ) {
         guard unlocked.contains(tier) else { return }
-        // Persist the case-name token (the legacy on-disk format) so old blobs
-        // round-trip; reads go through RankTier.fromToken.
-        UserDefaults.standard.set(tier.token, forKey: keyPrefix + userId)
+        // Persist the Int rawValue (stable across the 2026-06 crown rename);
+        // reads stay tolerant of the older token form via fromLegacyToken.
+        UserDefaults.standard.set(String(tier.rawValue), forKey: keyPrefix + userId)
         NotificationCenter.default.post(
             name: .profileCosmeticsChanged,
             object: nil,

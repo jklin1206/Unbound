@@ -272,7 +272,7 @@ enum RoutineLibrary {
 
         RoutineDef(id: "saitama-protocol", title: "Zero Limit Protocol",
             subtitle: "100 push-ups, 100 sit-ups, 100 squats, 10km run. Every. Single. Day.",
-            durationLabel: "~60–90 MIN", category: .challenge, difficultyTier: .ascendant, spReward: 200,
+            durationLabel: "~60–90 MIN", category: .challenge, difficultyTier: .unbound, spReward: 200,
             steps: [
                 .repTarget(name: "Push-ups", target: 100, cue: nil),
                 .repTarget(name: "Sit-ups", target: 100, cue: "Full range, hands behind head"),
@@ -385,7 +385,7 @@ enum RoutineLibrary {
 
         RoutineDef(id: "gravity-chamber", title: "Gravity Chamber",
             subtitle: "High volume. Every rep heavier than the last. Build the body that survives pressure.",
-            durationLabel: "~50 MIN", category: .challenge, difficultyTier: .unbound, spReward: 110,
+            durationLabel: "~50 MIN", category: .challenge, difficultyTier: .ascendant, spReward: 110,
             steps: [
                 .circuit(rounds: 5, restBetweenSeconds: 60, steps: [
                     .instruction(text: "Weighted push-ups × 20 (plate / loaded pack)", cue: nil)
