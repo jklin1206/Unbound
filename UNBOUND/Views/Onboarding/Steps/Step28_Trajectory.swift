@@ -164,7 +164,7 @@ struct Step28_Trajectory: View {
         UnboundCard {
             HStack(spacing: 14) {
                 OnboardingAssetGlyph(
-                    assetName: "rank_title_ascendant",
+                    assetName: "rank_title_unbound",
                     tint: Color.unbound.accent,
                     size: 40,
                     imagePadding: 4,

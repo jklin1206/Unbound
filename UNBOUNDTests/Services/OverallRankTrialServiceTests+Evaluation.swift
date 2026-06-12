@@ -409,7 +409,7 @@ extension OverallRankTrialServiceTests {
             )
         }
 
-        XCTAssertNil(OverallRankTrialDefinitions.nextTrial(after: .ascendant))
+        XCTAssertNil(OverallRankTrialDefinitions.nextTrial(after: .unbound))
     }
 
 }

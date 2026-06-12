@@ -43,7 +43,7 @@ final class AttributeValueTests: XCTestCase {
         XCTAssertEqual(vet.rankTitle, .veteran)
         // L100 → ascendant.
         let asc = AttributeValue(xp: 160_000, lastContributionAt: t0)
-        XCTAssertEqual(asc.rankTitle, .ascendant)
+        XCTAssertEqual(asc.rankTitle, .unbound)
     }
 
     func testXPToNextLevel() {

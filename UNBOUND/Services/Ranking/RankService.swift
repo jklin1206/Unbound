@@ -87,7 +87,7 @@ final class RankService: RankServiceProtocol {
                 advances.append(SkillTierAdvance(skillId: node.id, from: priorTier, to: newTier))
                 newState.perSkill[node.id] = newTier
                 newState.rankUpsEarned += newTier.rawValue - priorTier.rawValue
-                if newTier == .ascendant && !newState.ascendantSkills.contains(node.id) {
+                if newTier == .unbound && !newState.ascendantSkills.contains(node.id) {
                     newState.ascendantSkills.append(node.id)
                 }
             }

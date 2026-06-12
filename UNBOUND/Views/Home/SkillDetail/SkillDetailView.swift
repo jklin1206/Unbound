@@ -281,8 +281,8 @@ struct SkillDetailView: View {
         case .initiate, .novice: return "Beginner"
         case .apprentice, .forged: return "Intermediate"
         case .veteran, .master: return "Advanced"
-        case .vessel, .unbound: return "Elite"
-        case .ascendant: return "Mythic"
+        case .vessel, .ascendant: return "Elite"
+        case .unbound: return "Mythic"
         }
     }
 
@@ -296,7 +296,7 @@ struct SkillDetailView: View {
         let earned = userSkillTierState.tier(for: node.id)
         let fraction = node.earnedRankIsBelowFloor(earned)
             ? 0
-            : max(0, min(1, Double(earned.rawValue) / Double(RankTier.ascendant.rawValue)))
+            : max(0, min(1, Double(earned.rawValue) / Double(RankTier.unbound.rawValue)))
         return VStack(spacing: 0) {
             GeometryReader { geo in
                 ZStack(alignment: .leading) {

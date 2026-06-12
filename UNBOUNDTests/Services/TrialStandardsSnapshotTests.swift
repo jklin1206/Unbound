@@ -349,7 +349,7 @@ final class TrialStandardsSnapshotTests: XCTestCase {
         ST boss-upper-pull cat=pull mov=exercise.cable-row-seated metric=reps min=16 qual=1 planned=1 rest=75 cap=360 load=-
         ST boss-control cat=mobilityControl mov=exercise.plank metric=holdSeconds min=60 qual=2 planned=2 rest=90 cap=360 load=-
         ST boss-carry cat=carryCore mov=carry.farmer-carry metric=distanceMeters min=200 qual=1 planned=1 rest=75 cap=360 load=0.300
-    DEF overall-rank-trial-unbound-threshold rank=unbound fmt=raid min=65 lvl=72
+    DEF overall-rank-trial-unbound-threshold rank=ascendant fmt=raid min=65 lvl=72
       VAR noGymField
         ST raid-stage-1 cat=engine mov=cardio.run metric=distanceMeters min=400 qual=3 planned=3 rest=45 cap=1080 load=-
         ST raid-stage-2-hinge cat=hingePower mov=exercise.glute-bridge metric=reps min=10 qual=4 planned=4 rest=75 cap=1920 load=-
@@ -368,7 +368,7 @@ final class TrialStandardsSnapshotTests: XCTestCase {
         ST raid-stage-2-upper cat=pull mov=exercise.cable-row-seated metric=reps min=10 qual=4 planned=4 rest=75 cap=1920 load=-
         ST raid-stage-2-carry cat=carryCore mov=carry.farmer-carry metric=distanceMeters min=60 qual=4 planned=4 rest=75 cap=1920 load=0.300
         ST raid-stage-3-control cat=mobilityControl mov=exercise.plank metric=holdSeconds min=120 qual=1 planned=1 rest=90 cap=900 load=-
-    DEF overall-rank-trial-ascendant-ascension rank=ascendant fmt=finalExam min=75 lvl=90
+    DEF overall-rank-trial-ascendant-ascension rank=unbound fmt=finalExam min=75 lvl=90
       VAR noGymField
         ST exam-part-a-explosive cat=explosive mov=exercise.step-up metric=reps min=30 qual=1 planned=1 rest=75 cap=480 load=-
         ST exam-part-b-engine cat=engine mov=cardio.run metric=distanceMeters min=1200 qual=1 planned=1 rest=45 cap=720 load=-

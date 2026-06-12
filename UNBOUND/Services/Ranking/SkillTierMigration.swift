@@ -61,7 +61,7 @@ enum SkillTierMigration {
             if tier != .initiate {
                 state.perSkill[skill.id] = tier
             }
-            if tier == .ascendant {
+            if tier == .unbound {
                 state.ascendantSkills.append(skill.id)
             }
         }

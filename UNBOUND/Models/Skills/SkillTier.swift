@@ -1,6 +1,6 @@
 import Foundation
 
-/// The single 9-tier ladder: Initiate → Ascendant. This is the one canonical
+/// The single 9-tier ladder: Initiate → Unbound. This is the one canonical
 /// "rank / tier" type for the whole app — per-skill tiers, per-movement/-lift
 /// tiers, attribute rank titles, and overall rank all speak it.
 ///
@@ -11,14 +11,15 @@ import Foundation
 /// compile unchanged.
 ///
 /// Bottom 4 (Initiate–Forged) are quiet trainee tiers. Top 5 (Veteran–
-/// Ascendant) are brand-flavored. Only Vessel/Unbound/Ascendant crossings
+/// Unbound) are brand-flavored. Only Vessel/Ascendant/Unbound crossings
 /// trigger the full chain-shatter cinematic.
 ///
 /// Raw value is the 0-based ordinal (so `<`, `.max()`, and `rawValue` math keep
 /// working). Codable is custom + tolerant: it decodes BOTH the legacy Int form
 /// (skill tiers, cosmetic highest) AND the legacy String form (trial progress,
-/// including the historical `"honed"` alias for Master), and encodes the
-/// case-name token — so no on-disk migration is needed.
+/// including the historical `"honed"` alias for Master), and encodes the Int
+/// rawValue — positions are stable across the 2026-06 crown rename, so no
+/// on-disk migration is needed (see `fromLegacyToken`).
 enum RankTier: Int, CaseIterable, Sendable, Comparable {
     case initiate    = 0
     case novice      = 1
@@ -27,8 +28,8 @@ enum RankTier: Int, CaseIterable, Sendable, Comparable {
     case veteran     = 4
     case master      = 5
     case vessel      = 6
-    case unbound     = 7
-    case ascendant   = 8
+    case ascendant   = 7
+    case unbound     = 8
 
     var displayName: String {
         switch self {
@@ -40,12 +41,12 @@ enum RankTier: Int, CaseIterable, Sendable, Comparable {
         case .master:     return "Master"
         case .vessel:     return "Vessel"
         // Brand decision: "Unbound" is the PEAK label — the app's pinnacle.
-        // Label-only swap: case names + rawValues + tokens + badge art are kept
-        // (.ascendant stays rawValue 8 / the gold peak badge); only the
-        // user-facing displayName flips, so the top tier reads "Unbound" and
-        // tier 7 reads "Ascendant" (rising → arrived). See ONE-METRIC log.
-        case .unbound:    return "Ascendant"
-        case .ascendant:  return "Unbound"
+        // 2026-06: case names/tokens were realigned to match the display names
+        // (the earlier label-only swap left `.ascendant` as the peak case).
+        // `.unbound` now IS rawValue 8. Legacy on-disk crown tokens decode with
+        // their old meanings via `fromLegacyToken`. See ONE-METRIC log.
+        case .ascendant:  return "Ascendant"
+        case .unbound:    return "Unbound"
         }
     }
 
@@ -62,8 +63,8 @@ enum RankTier: Int, CaseIterable, Sendable, Comparable {
         case .veteran:    return "veteran"
         case .master:     return "master"
         case .vessel:     return "vessel"
-        case .unbound:    return "unbound"
         case .ascendant:  return "ascendant"
+        case .unbound:    return "unbound"
         }
     }
 
@@ -81,10 +82,10 @@ enum RankTier: Int, CaseIterable, Sendable, Comparable {
     /// "Named tiers" (Veteran+) get the brand-flavored treatment.
     var isNamedTier: Bool { self >= .veteran }
 
-    /// True for the three crown tiers — Vessel/Unbound/Ascendant.
+    /// True for the three crown tiers — Vessel/Ascendant/Unbound.
     var deservesCinematic: Bool { self >= .vessel }
 
-    /// Next tier up, or nil if already at Ascendant.
+    /// Next tier up, or nil if already at Unbound.
     var next: RankTier? { RankTier(rawValue: rawValue + 1) }
 
     /// Nearest tier for a fractional 0–8 ladder position.
@@ -105,11 +106,18 @@ enum RankTier: Int, CaseIterable, Sendable, Comparable {
 
     // MARK: Tolerant decoding
 
-    /// Resolve a stored token/legacy string to a tier. Handles the historical
+    /// Resolve a STORED legacy string to a tier. Handles the historical
     /// `"honed"` → Master alias and single-letter legacy grades (E…S).
-    static func fromToken(_ raw: String) -> RankTier {
+    ///
+    /// Crown caveat: string tokens on disk predate the 2026-06 crown rename, so
+    /// the two crown tokens keep their LEGACY meanings — "ascendant" was the
+    /// peak (now `.unbound`) and "unbound" was tier 7 (now `.ascendant`). New
+    /// writes encode the Int rawValue, so no new-style string ever reaches this.
+    static func fromLegacyToken(_ raw: String) -> RankTier {
         let token = raw.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         if token == "honed" { return .master }
+        if token == "ascendant" { return .unbound }
+        if token == "unbound" { return .ascendant }
         if let exact = RankTier.allCases.first(where: { $0.token == token }) { return exact }
         return legacyLetterFallback(token)
     }
@@ -120,8 +128,8 @@ enum RankTier: Int, CaseIterable, Sendable, Comparable {
         case "D": return .apprentice
         case "C": return .veteran
         case "B": return .master
-        case "A": return .unbound
-        case "S": return .ascendant
+        case "A": return .ascendant
+        case "S": return .unbound
         default:  return .initiate
         }
     }
@@ -136,9 +144,10 @@ extension RankTier: Codable {
             self = tier
             return
         }
-        // Legacy / current String form (trial progress, incl. "honed").
+        // Legacy String form (trial progress, incl. "honed"; crown tokens carry
+        // their pre-rename meanings — see fromLegacyToken).
         if let stringValue = try? container.decode(String.self) {
-            self = RankTier.fromToken(stringValue)
+            self = RankTier.fromLegacyToken(stringValue)
             return
         }
         self = .initiate
@@ -146,7 +155,9 @@ extension RankTier: Codable {
 
     func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
-        try container.encode(token)
+        // Int rawValue: positions are stable across renames (the decoder's
+        // String path is legacy-only — see fromLegacyToken's crown caveat).
+        try container.encode(rawValue)
     }
 }
 

@@ -309,7 +309,7 @@ final class AttributeService: AttributeServiceProtocol {
         // Fire rank-up notification if the tier crossed.
         let afterTitle = value.rankTitle
         if afterTitle > beforeTitle {
-            let crownBand: Set<RankTitle> = [.vessel, .unbound, .ascendant]
+            let crownBand: Set<RankTitle> = [.vessel, .ascendant, .unbound]
             let event = AttributeRankUpEvent(
                 axis: axis,
                 fromTitle: beforeTitle,
@@ -351,7 +351,7 @@ private func reconstructedAttributeResult(
             )
         )
         if currentTier > previousTier {
-            let crownBand: Set<RankTitle> = [.vessel, .unbound, .ascendant]
+            let crownBand: Set<RankTitle> = [.vessel, .ascendant, .unbound]
             rankUpEvents.append(
                 AttributeRankUpEvent(
                     axis: key,

@@ -2,7 +2,7 @@ import SwiftUI
 
 extension SkillDetailView {
     var nextBeatCard: some View {
-        let isTopRank = userSkillTierState.tier(for: node.id) == .ascendant
+        let isTopRank = userSkillTierState.tier(for: node.id) == .unbound
         return VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text("NEXT BEAT")

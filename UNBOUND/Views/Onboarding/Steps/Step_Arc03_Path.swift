@@ -214,7 +214,7 @@ private struct RankOrbitStage: View {
     }
 
     private func rankProgress(_ tier: SkillTier) -> CGFloat {
-        CGFloat(tier.rawValue) / CGFloat(max(1, SkillTier.ascendant.rawValue))
+        CGFloat(tier.rawValue) / CGFloat(max(1, SkillTier.unbound.rawValue))
     }
 
     private func badgeOpacity(progress: CGFloat, selected: Bool) -> Double {
@@ -230,8 +230,8 @@ private struct RankOrbitStage: View {
         case .veteran: return "PROVEN"
         case .master: return "SHARPENED"
         case .vessel: return "HIGH TIER"
-        case .unbound: return "RESTRICTION BROKEN"
-        case .ascendant: return "APEX"
+        case .ascendant: return "RESTRICTION BROKEN"
+        case .unbound: return "APEX"
         }
     }
 }

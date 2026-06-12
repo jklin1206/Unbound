@@ -241,7 +241,7 @@ enum StrengthStandards {
             return RankTier.nearest(for: t) // 0…1 → initiate…novice
         }
 
-        if value >= anchors[8] { return .ascendant }
+        if value >= anchors[8] { return .unbound }
 
         for i in 1..<8 {
             let lo = anchors[i]
@@ -251,7 +251,7 @@ enum StrengthStandards {
                 return RankTier.nearest(for: Double(i) + t)
             }
         }
-        return .ascendant
+        return .unbound
     }
 
     // MARK: Progress to next rank (the reward "% to next" bar)

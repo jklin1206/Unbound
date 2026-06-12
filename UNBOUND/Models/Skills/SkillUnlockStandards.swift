@@ -122,7 +122,7 @@ enum SkillUnlockStandards {
     }
 
     private static func inferredTier(from parent: SkillNode?, to child: SkillNode) -> SkillTier {
-        if child.isMythic || child.placementRank >= .unbound || child.tier >= 6 {
+        if child.isMythic || child.placementRank >= .ascendant || child.tier >= 6 {
             return .master
         }
 
@@ -233,7 +233,7 @@ enum SkillUnlockStandards {
             return "Own the first clean standard before this unlocks."
         case .veteran:
             return "Show repeatable ownership before this harder branch opens."
-        case .master, .vessel, .unbound, .ascendant:
+        case .master, .vessel, .ascendant, .unbound:
             return "Prove strong ownership before this high-skill branch opens."
         }
     }

@@ -199,7 +199,7 @@ final class SkillStandardConsistencyTests: XCTestCase {
         )
         XCTAssertEqual(
             skillTier(nodeId: "ld.shrimp-squat", entry: entry("two-hand shrimp squat", node: "ld.shrimp-squat", [set(reps: 3)])),
-            .unbound
+            .ascendant
         )
         XCTAssertEqual(
             skillTier(nodeId: "ld.nordic-curl", entry: entry("nordic curl negative", node: "ld.nordic-curl", [set(reps: 5)])),
@@ -211,7 +211,7 @@ final class SkillStandardConsistencyTests: XCTestCase {
         )
         XCTAssertEqual(
             skillTier(nodeId: "ld.nordic-curl", entry: entry("one-leg nordic curl", node: "ld.nordic-curl", [set(reps: 1)])),
-            .ascendant
+            .unbound
         )
     }
 

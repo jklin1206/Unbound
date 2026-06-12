@@ -58,6 +58,7 @@ struct ProfileView: View {
     @State private var showEditProfile = false
     @State private var showRankInfo = false
     @State private var showProfileCosmetics = false
+    @State private var didAutoOpenCosmetics = false
     @State private var showShop = false
     @State private var shopInitialCategory: ShopCategory = .backdrop
     @State private var showCamera = false
@@ -128,6 +129,15 @@ struct ProfileView: View {
             )
             .presentationDetents([.large])
             .presentationDragIndicator(.visible)
+        }
+        .onAppear {
+            // Screenshot harness: `--unbound-open-cosmetics` (with
+            // `--unbound-open-profile`) lands directly on the cosmetics sheet.
+            if !didAutoOpenCosmetics,
+               ProcessInfo.processInfo.arguments.contains("--unbound-open-cosmetics") {
+                didAutoOpenCosmetics = true
+                showProfileCosmetics = true
+            }
         }
         .sheet(isPresented: $showProfileCosmetics, onDismiss: {
             // Guarantee the header avatar reflects any frame/border the user

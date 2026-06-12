@@ -508,7 +508,7 @@ extension SkillDetailView {
             return "Add volume or difficulty"
         case .master:
             return "High-quality repeatability"
-        case .vessel, .unbound, .ascendant:
+        case .vessel, .ascendant, .unbound:
             return "Advanced standard coming soon"
         }
     }

@@ -148,6 +148,19 @@ struct HomeTabView: View {
                 }
             }
         }
+        .onAppear {
+            // System alerts at cold launch (e.g. the simulator's Apple Account
+            // prompt) can stomp the initial tab selection — re-assert the
+            // launch-arg route the same way the proof launch does above.
+            let routed = Self.initialTabFromLaunchArguments()
+            guard routed != 0 else { return }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
+                selectedTab = routed
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.1) {
+                selectedTab = routed
+            }
+        }
         #endif
     }
 
