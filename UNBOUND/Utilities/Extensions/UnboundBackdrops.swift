@@ -185,9 +185,9 @@ struct UnboundBackdropArt: View {
                 )
                 LinearGradient(
                     stops: [
-                        .init(color: Color.black.opacity(0.46), location: 0),
-                        .init(color: Color.black.opacity(0.20), location: 0.44),
-                        .init(color: Color.black.opacity(0.04), location: 0.78)
+                        .init(color: Color.black.opacity(0.28), location: 0),
+                        .init(color: Color.black.opacity(0.12), location: 0.44),
+                        .init(color: Color.black.opacity(0.02), location: 0.78)
                     ],
                     startPoint: .leading,
                     endPoint: .trailing
