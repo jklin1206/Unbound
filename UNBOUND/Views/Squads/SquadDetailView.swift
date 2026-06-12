@@ -23,6 +23,7 @@ struct SquadDetailView: View {
     @State var currentMissionState: SquadMission?
     @State var missionContributions: [MissionContribution] = []
     @State var showMissionPick = false
+    @State var celebratedMission: SquadMission?
 
     enum SquadTab: String, CaseIterable {
         case crew = "CREW"
@@ -108,6 +109,17 @@ struct SquadDetailView: View {
                     }
                 }
             }
+        }
+        .fullScreenCover(item: $celebratedMission) { mission in
+            let namedContributions: [(name: String, total: Int)] = missionContributions.map { contribution in
+                let name = contribution.userId.map { displayName(for: $0) } ?? "Linked sessions"
+                return (name: name, total: contribution.total)
+            }
+            SquadMissionCelebrationView(
+                mission: mission,
+                contributions: namedContributions,
+                onClaim: { claimMissionReward(mission) }
+            )
         }
         .task {
             await loadAll()
@@ -214,6 +226,28 @@ struct SquadDetailView: View {
             ]
             return
         }
+        if ProcessInfo.processInfo.arguments.contains("--unbound-demo-mission-celebration") {
+            selectedTab = .challenges
+            let demoId = UUID(uuidString: "CCCCCCCC-DDDD-EEEE-FFFF-AAAAAAAAAAAA") ?? UUID()
+            let completedMission = SquadMission(
+                id: demoId,
+                squadId: squadId,
+                weekIso: SquadMissionService.currentWeekIso(),
+                kind: .totalWeight,
+                target: 32000,
+                currentProgress: 33400,
+                completedAt: Date(),
+                createdAt: .now
+            )
+            currentMissionState = completedMission
+            missionContributions = [
+                MissionContribution(userId: UUID(uuidString: "11111111-1111-1111-1111-111111111111"), total: 14200),
+                MissionContribution(userId: UUID(uuidString: "22222222-2222-2222-2222-222222222222"), total: 11800),
+                MissionContribution(userId: UUID(uuidString: "33333333-3333-3333-3333-333333333333"), total: 7400),
+            ]
+            celebratedMission = completedMission
+            return
+        }
         #endif
         currentMissionState = await services.squadMission.latestMission(squadId: squadId)
         if let mission = currentMissionState {
@@ -224,6 +258,16 @@ struct SquadDetailView: View {
             }
         } else {
             missionContributions = []
+        }
+        // Trigger celebration for completed missions not yet claimed
+        if let mission = currentMissionState, mission.isCompleted {
+            if let userId = services.auth.currentUserId {
+                CurrencyWalletStore.shared.bind(userId: userId)
+            }
+            let sourceId = SquadRewardPolicy.missionSourceId(mission.id)
+            if !CurrencyWalletStore.shared.hasGranted(sourceId: sourceId) {
+                celebratedMission = mission
+            }
         }
     }
 
@@ -604,6 +648,16 @@ struct SquadDetailView: View {
         } catch {
             services.logging.log("SquadDetailView.setSquadLogo failed: \(error)", level: .warning)
         }
+    }
+
+    func claimMissionReward(_ mission: SquadMission) {
+        if let userId = services.auth.currentUserId {
+            CurrencyWalletStore.shared.bind(userId: userId)
+        }
+        CurrencyWalletStore.shared.grant(
+            SquadRewardPolicy.missionArcs,
+            sourceId: SquadRewardPolicy.missionSourceId(mission.id)
+        )
     }
 
 }
