@@ -11,16 +11,26 @@ import { computeIsoWeek } from "./iso_week.ts"
 import { requireEmptyJsonObjectBody, requirePost, requireServiceFunctionAuth } from "../_shared/service_auth.ts"
 
 // ---------------------------------------------------------------------------
-// Mission catalog — mirrors SquadMissionCatalog.swift
+// Mission catalog — ORDER IS THE HASH CONTRACT.
+// Must stay in sync with three sites:
+//   • SquadMissionCatalog.swift (iOS client)
+//   • this file
+//   • the SQL fallback `case v_template_idx` block in
+//     20260611120000_squad_mission_kinds_v2.sql
+//
+// idx 0 total_weight   8000 × memberCount
+// idx 1 total_sessions 4 × memberCount
+// idx 2 total_reps     600 × memberCount
+// idx 3 crew_coverage  memberCount
+// idx 4 train_together 3 (fixed)
 // ---------------------------------------------------------------------------
 
-const MISSION_TEMPLATES: Array<{ kind: string; targetMultiplier: number }> = [
-  { kind: "alignedSessions",   targetMultiplier: 4 },
-  { kind: "capstonesTogether", targetMultiplier: 1 },
-  { kind: "focusSessions",     targetMultiplier: 6 },
-  { kind: "tierCrossings",     targetMultiplier: 1 },
-  { kind: "linkedSessions",    targetMultiplier: 1 },  // fixed at 3
-  { kind: "perfectAttendance", targetMultiplier: 1 },  // 1 per member
+const MISSION_TEMPLATES: Array<{ kind: string }> = [
+  { kind: "total_weight" },
+  { kind: "total_sessions" },
+  { kind: "total_reps" },
+  { kind: "crew_coverage" },
+  { kind: "train_together" },
 ]
 
 function generateMission(squadId: string, weekIso: string, memberCount: number): {
@@ -28,19 +38,16 @@ function generateMission(squadId: string, weekIso: string, memberCount: number):
 } {
   const hash = simpleHash(squadId + weekIso)
   const idx = hash % MISSION_TEMPLATES.length
-  const t = MISSION_TEMPLATES[idx]
+  const kind = MISSION_TEMPLATES[idx].kind
   let target: number
-  switch (t.kind) {
-    case "linkedSessions":
-      target = 3
-      break
-    case "perfectAttendance":
-      target = memberCount
-      break
-    default:
-      target = t.targetMultiplier * memberCount
+  switch (kind) {
+    case "total_weight":    target = 8000 * memberCount; break
+    case "total_sessions":  target = 4 * memberCount;    break
+    case "total_reps":      target = 600 * memberCount;  break
+    case "crew_coverage":   target = memberCount;         break
+    default:                target = 3;                   break  // train_together
   }
-  return { kind: t.kind, target }
+  return { kind, target }
 }
 
 // ---------------------------------------------------------------------------
