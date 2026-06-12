@@ -215,3 +215,10 @@ The integration agent should:
 - Run final simulator verification in the Verify lane.
 - Make only small integration fixes unless explicitly asked for larger implementation.
 - Report merged branches, build status, simulator checks, screenshots if relevant, and remaining risks.
+
+## Codebase navigation
+
+- Start at root [`ARCHITECTURE.md`](ARCHITECTURE.md): the 60-second mental model (App / Views / ViewModels / Models / Services / Utilities), `ServiceContainer` as the dependency hub, and 6 key flows with exact file lists (log a set, completion + reward, program generation, rank/tier, squad activity + presence, onboarding → paywall).
+- For the deep product-system map (rank/level/attribute/recovery semantics and owners), use [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md); for the repo layout and artifact hygiene, [`docs/FILE_STRUCTURE.md`](docs/FILE_STRUCTURE.md).
+- Once you land in a directory, read its `README.md` before reading source. Most `UNBOUND/Models/`, `UNBOUND/Services/`, and `UNBOUND/Views/` subfolders carry one with a file table and a "Where to find X" table — they locate code without reading every file.
+- **Maintenance contract:** update the directory `README.md` (and `ARCHITECTURE.md` if a flow or layer boundary moves) in the **same change** that adds, renames, or removes a file in that directory. A stale README is worse than none.
