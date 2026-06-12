@@ -21,6 +21,13 @@ struct SquadDetailView: View {
     @State private var challengeStatsByMember: [UUID: FriendChallengeStats] = [:]
     @State private var earnedSeasonWinnerAward: SquadSeasonWinnerTitleAward?
 
+    enum SquadTab: String, CaseIterable {
+        case crew = "CREW"
+        case challenges = "CHALLENGES"
+        case season = "SEASON"
+    }
+    @State private var selectedTab: SquadTab = .crew
+
     private var currentUserId: UUID? {
         services.auth.currentUserId.flatMap(SquadUserIdentity.uuid(from:))
     }
@@ -34,25 +41,32 @@ struct SquadDetailView: View {
             Color.unbound.bg.ignoresSafeArea()
             squadBackdrop
 
-            ScrollView(.vertical, showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 22) {
-                    if let squad = state.currentSquad {
-                        headerCard(squad: squad)
-                        squadStreakSection(squad: squad)
-                        crewSection
-                        challengesSection
-                        squadBoardSection
-                        seasonRewardsSection(squad: squad)
-                        routineDropsSection
-                        footerSection
-                    } else {
-                        emptyStateView
+            if let squad = state.currentSquad {
+                VStack(spacing: 0) {
+                    compactHeader(squad: squad)
+                        .padding(.horizontal, 20)
+                        .padding(.top, 8)
+
+                    tabPicker
+                        .padding(.horizontal, 20)
+                        .padding(.top, 14)
+
+                    ScrollView(.vertical, showsIndicators: false) {
+                        VStack(alignment: .leading, spacing: 22) {
+                            switch selectedTab {
+                            case .crew: crewTabContent(squad: squad)
+                            case .challenges: challengesTabContent
+                            case .season: seasonTabContent(squad: squad)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 20)
+                        .padding(.top, 16)
+                        .padding(.bottom, 118)
                     }
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 20)
-                .padding(.top, 8)
-                .padding(.bottom, 118)
+            } else {
+                emptyStateView
             }
         }
         .navigationTitle("Squad")
@@ -262,134 +276,110 @@ struct SquadDetailView: View {
         }
     }
 
-    private func headerCard(squad: Squad) -> some View {
-        ZStack(alignment: .topTrailing) {
-            SquadConsoleBackground(tint: Color.unbound.accent)
+    private func compactHeader(squad: Squad) -> some View {
+        HStack(spacing: 12) {
+            editableCrestMark(squad: squad, size: 48)
 
-            SquadLogoMarkView(logoId: squad.logoId, size: 164, showsBorder: false)
-                .opacity(0.13)
-                .blendMode(.screen)
-                .offset(x: 36, y: -34)
-
-            VStack(alignment: .leading, spacing: 18) {
-                HStack(alignment: .top, spacing: 14) {
-                    editableCrestMark(squad: squad, size: 92)
-
-                    Spacer(minLength: 0)
-
-                    VStack(alignment: .trailing, spacing: 3) {
-                        Text("\(state.roster.count)")
-                            .font(Font.unbound.monoM.weight(.semibold))
-                            .foregroundStyle(Color.unbound.textPrimary)
-                            .monospacedDigit()
-                        Text(state.roster.count == 1 ? "MEMBER" : "MEMBERS")
-                            .font(.system(size: 9, weight: .heavy, design: .monospaced))
-                            .tracking(1.4)
-                            .foregroundStyle(Color.unbound.textTertiary)
-                    }
-                }
-
-                VStack(alignment: .leading, spacing: 9) {
-                    Text(squad.name)
-                        .font(.system(size: 34, weight: .black))
-                        .foregroundStyle(Color.unbound.textPrimary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.58)
-
-                    Text("Protect the streak, win challenges, climb the season.")
-                        .font(Font.unbound.bodyM)
-                        .foregroundStyle(Color.unbound.textSecondary)
-                        .lineLimit(2)
-                        .fixedSize(horizontal: false, vertical: true)
-
-                    HStack(spacing: 8) {
-                        squadMetaPill(
-                            icon: "person.2.fill",
-                            value: "\(state.roster.count)/8",
-                            label: "CREW",
-                            tint: Color.unbound.accent
-                        )
-                        squadMetaPill(
-                            icon: "flame.fill",
-                            value: "\(squad.squadStreakWeeks)W",
-                            label: "STREAK",
-                            tint: Color.unbound.warnOrange
-                        )
-                        squadMetaPill(
-                            icon: "trophy.fill",
-                            value: currentSeason.title,
-                            label: "SEASON",
-                            tint: Color.unbound.accent
-                        )
-                    }
-
-                    squadTitlesRow
-                }
+            VStack(alignment: .leading, spacing: 4) {
+                Text(squad.name)
+                    .font(.system(size: 22, weight: .black))
+                    .foregroundStyle(Color.unbound.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
 
                 HStack(spacing: 10) {
-                    Button {
-                        showChallengeCreate = true
-                    } label: {
-                        HStack(spacing: 10) {
-                            Text("NEW CHALLENGE")
-                                .font(Font.unbound.bodyMStrong)
-                                .tracking(1.2)
-                            Image(systemName: "flag.checkered")
-                                .font(.system(size: 13, weight: .bold))
-                        }
-                        .foregroundStyle(Color.unbound.textPrimary)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 50)
-                        .background(
-                            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .fill(Color.unbound.accent)
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .strokeBorder(Color.white.opacity(0.16), lineWidth: 1)
-                        )
-                        .shadow(color: Color.unbound.accent.opacity(0.24), radius: 18, y: 8)
-                    }
-                    .buttonStyle(.plain)
-
-                    if let inviteURL = squad.inviteURL {
-                        ShareLink(item: inviteURL) {
-                            Image(systemName: "person.badge.plus")
-                                .font(.system(size: 15, weight: .bold))
-                                .foregroundStyle(Color.unbound.textPrimary)
-                                .frame(width: 50, height: 50)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                        .fill(Color.unbound.bg.opacity(0.52))
-                                )
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                        .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
-                                )
-                        }
-                    }
+                    metaItem(icon: "person.2.fill", text: "\(state.roster.count)/8")
+                    metaItem(icon: "flame.fill", text: "\(squad.squadStreakWeeks)W")
+                    metaItem(icon: "trophy.fill", text: currentSeason.title)
                 }
             }
-            .padding(18)
+
+            Spacer(minLength: 0)
+
+            if let inviteURL = squad.inviteURL {
+                ShareLink(item: inviteURL) {
+                    Image(systemName: "person.badge.plus")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(Color.unbound.textSecondary)
+                        .frame(width: 38, height: 38)
+                        .background(Circle().fill(Color.unbound.surface))
+                }
+            }
+
+            Menu {
+                Button(role: .destructive) {
+                    showLeaveConfirm = true
+                } label: {
+                    Label("Leave Squad", systemImage: "rectangle.portrait.and.arrow.right")
+                }
+            } label: {
+                Image(systemName: "ellipsis")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(Color.unbound.textSecondary)
+                    .frame(width: 38, height: 38)
+                    .background(Circle().fill(Color.unbound.surface))
+            }
         }
-        .frame(maxWidth: .infinity)
-        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .strokeBorder(
-                    LinearGradient(
-                        colors: [
-                            Color.white.opacity(0.16),
-                            Color.unbound.accent.opacity(0.32),
-                            Color.white.opacity(0.04)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 1
-                )
+    }
+
+    private func metaItem(icon: String, text: String) -> some View {
+        HStack(spacing: 5) {
+            Image(systemName: icon)
+                .font(.system(size: 10, weight: .bold))
+                .foregroundStyle(Color.unbound.textTertiary)
+            Text(text)
+                .font(.system(size: 11, weight: .heavy, design: .monospaced))
+                .foregroundStyle(Color.unbound.textSecondary)
+                .monospacedDigit()
         }
-        .shadow(color: Color.black.opacity(0.28), radius: 24, y: 14)
+    }
+
+    private var tabPicker: some View {
+        HStack(spacing: 6) {
+            ForEach(SquadTab.allCases, id: \.self) { tab in
+                Button {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.86)) {
+                        selectedTab = tab
+                    }
+                } label: {
+                    Text(tab.rawValue)
+                        .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                        .tracking(1.2)
+                        .foregroundStyle(selectedTab == tab ? Color.unbound.textPrimary : Color.unbound.textTertiary)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 36)
+                        .background(
+                            RoundedRectangle(cornerRadius: 11, style: .continuous)
+                                .fill(selectedTab == tab ? Color.unbound.surfaceElevated : Color.clear)
+                        )
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(4)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color.unbound.surface.opacity(0.72))
+        )
+    }
+
+    @ViewBuilder
+    private func crewTabContent(squad: Squad) -> some View {
+        squadStreakSection(squad: squad)
+        crewSection
+        routineDropsSection
+    }
+
+    @ViewBuilder
+    private var challengesTabContent: some View {
+        challengesSection
+    }
+
+    @ViewBuilder
+    private func seasonTabContent(squad: Squad) -> some View {
+        squadBoardSection
+        seasonRewardsSection(squad: squad)
+        squadTitlesRow
     }
 
     private var crewSection: some View {
@@ -664,36 +654,6 @@ struct SquadDetailView: View {
         }
     }
 
-    private var footerSection: some View {
-        VStack(spacing: 12) {
-            if let error = leaveError {
-                Text(error)
-                    .font(Font.unbound.bodyM)
-                    .foregroundStyle(Color.unbound.alert)
-                    .multilineTextAlignment(.center)
-            }
-            Button(role: .destructive) {
-                showLeaveConfirm = true
-            } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: "rectangle.portrait.and.arrow.right")
-                        .font(.system(size: 13, weight: .bold))
-                    Text("LEAVE SQUAD")
-                        .font(Font.unbound.captionS.weight(.bold))
-                        .tracking(1.2)
-                }
-                .font(Font.unbound.bodyMStrong)
-                .frame(maxWidth: .infinity)
-                    .frame(height: 48)
-                    .background(Capsule().fill(Color.unbound.alert.opacity(0.08)))
-                    .overlay(Capsule().strokeBorder(Color.unbound.alert.opacity(0.38), lineWidth: 1))
-                    .foregroundStyle(Color.unbound.alert)
-            }
-            .buttonStyle(.plain)
-            .padding(.top, 4)
-        }
-    }
-
     private var emptyStateView: some View {
         VStack(spacing: 16) {
             Spacer(minLength: 60)
@@ -762,26 +722,6 @@ struct SquadDetailView: View {
         } else {
             crestMark(size: size, logoId: squad.logoId)
         }
-    }
-
-    private func squadMetaPill(icon: String, value: String, label: String, tint: Color) -> some View {
-        HStack(spacing: 7) {
-            Image(systemName: icon)
-                .font(.system(size: 10, weight: .bold))
-                .foregroundStyle(tint)
-            Text(value)
-                .font(.system(size: 11, weight: .heavy, design: .monospaced))
-                .foregroundStyle(Color.unbound.textPrimary)
-                .monospacedDigit()
-            Text(label)
-                .font(.system(size: 8, weight: .heavy, design: .monospaced))
-                .tracking(1.0)
-                .foregroundStyle(Color.unbound.textTertiary)
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 7)
-        .background(Capsule().fill(Color.unbound.bg.opacity(0.46)))
-        .overlay(Capsule().strokeBorder(tint.opacity(0.28), lineWidth: 1))
     }
 
     private func challengeMetric(value: String, label: String) -> some View {
