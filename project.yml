@@ -51,6 +51,7 @@ targets:
           - CloudFunctions/**
           - supabase/**
           - Views/Components/Unbound/TierBloomToast.swift
+          - "**/README.md"
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.unboundapp.ios
