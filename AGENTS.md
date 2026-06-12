@@ -215,3 +215,9 @@ The integration agent should:
 - Run final simulator verification in the Verify lane.
 - Make only small integration fixes unless explicitly asked for larger implementation.
 - Report merged branches, build status, simulator checks, screenshots if relevant, and remaining risks.
+
+## Codebase navigation
+
+- Start with the root `ARCHITECTURE.md`: the layer map, the six key flows with exact file paths, and the repo conventions (xcodegen, `Type+Concern.swift` splits, DEBUG tooling, localization catalog rule).
+- Before reading source in a directory, read its `README.md`. `Models/`, `Services/`, `ViewModels/`, `Utilities/`, and the feature `Views/` subdirectories each have one, with a per-file purpose table and a "Where to find X" section.
+- Maintenance contract: any change that adds, renames, deletes, or repurposes files in a directory MUST update that directory's `README.md` in the same change. If a flow or convention changes, update `ARCHITECTURE.md` too.
