@@ -44,7 +44,7 @@ struct SquadMissionCelebrationView: View {
                 .offset(y: revealed ? 0 : 12)
 
                 VStack(spacing: 10) {
-                    ForEach(contributions.sorted { $0.total > $1.total }, id: \.name) { row in
+                    ForEach(Array(contributions.sorted { $0.total > $1.total }.enumerated()), id: \.offset) { _, row in
                         HStack(spacing: 10) {
                             Text(row.name)
                                 .font(Font.unbound.bodyS)
