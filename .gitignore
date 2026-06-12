@@ -104,3 +104,5 @@ sjw-wiki.yml
 /_archive/
 *.removed
 UNBOUND.xcodeproj/xcshareddata/xcschemes/
+.dd/
+.dd-device/
