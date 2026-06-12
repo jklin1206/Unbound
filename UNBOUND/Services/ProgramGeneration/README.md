@@ -31,7 +31,6 @@ Generates personalized 28-day training Arcs and one-week Calibration blocks from
 | `DailyWorkoutResolver+WorkoutModifiers.swift` | Workout-level load/rep adjustments (deload factor, travel override). |
 | `TrainingPrescriptionResolver.swift` | Overlays live `ProgressionState` weights onto a `TrainingSessionDraft` at session start. |
 | `MacroCalculator.swift` | Pure Mifflin-St Jeor BMR × activity-factor macro calculator; cut mode reduces calories by 15%. |
-| `NutritionTargetCalculator.swift` | Personalized hydration + protein targets from bodyweight and recent session history. |
 | `WaveAdjuster.swift` | Applies mid-block wave adjustments (volume/intensity modulation) to an existing program. |
 | `LoadBiasApplier.swift` | Applies a validated Checkpoint `loadAdjustmentBias` to next-Arc prescriptions (RPE + volume). |
 | `WeakPointBiaser.swift` | Converts focus-area inputs into per-muscle-group weights; drives accessory selection bias. |
@@ -50,5 +49,5 @@ Generates personalized 28-day training Arcs and one-week Calibration blocks from
 | Change how a new program is built | `DeterministicProgramGenerator.swift` + its `+` extensions |
 | Change how Arcs chain or apply Checkpoint signals | `ArcGenerator.swift` |
 | Change when / how the block rolls over | `BlockRolloverService.swift`, `RolloverCoordinator.swift`, `BlockRolloverScheduler.swift` |
-| Change macro or nutrition targets | `MacroCalculator.swift`, `NutritionTargetCalculator.swift` |
+| Change macro or nutrition targets | `MacroCalculator.swift` (macros); `../Scan/NutritionTargetCalculator.swift` (hydration/protein targets) |
 | Change how exercise rotation or bias works | `ExerciseRefreshRule.swift`, `AccessoryBiasRefreshRule.swift`, `WeakPointBiaser.swift` |

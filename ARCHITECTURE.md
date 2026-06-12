@@ -68,7 +68,7 @@ builds a `WorkoutRewardSequenceSummary` (Model) and presents
 1. `Services/ProgramGeneration/ProgramGenerationService.swift` — assembles `ProgramGeneratorInput` from live services (scan-triggered or onboarding-triggered)
 2. `Services/ProgramGeneration/DeterministicProgramGenerator.swift` (+ `+Schedule`, `+MovementSelection`, `+Prescription`, `+Progression`, `+WorkoutBuilder`, `+SessionDetails`, `+Metadata`) — pure `input → TrainingProgram`, no AI/network
 3. `Services/ProgramGeneration/SplitLookup.swift` + `ProgramScheduler.swift` — `(buildIdentity, frequency) → Split` and routing focuses onto weekday categories
-4. `Services/ProgramGeneration/MacroCalculator.swift` / `NutritionTargetCalculator.swift` — nutrition + hydration defaults stamped into the plan
+4. `Services/ProgramGeneration/MacroCalculator.swift` / `Services/Scan/NutritionTargetCalculator.swift` — nutrition + hydration defaults stamped into the plan
 5. `Services/ProgramGeneration/SupabaseProgramService.swift` — persists the program and patches `current_program_id`
 6. `Models/Program/` — `TrainingProgram`, `ProgramDay`, `Workout`, configuration enums
 
