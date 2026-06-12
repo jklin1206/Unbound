@@ -102,12 +102,12 @@ struct ShopView: View {
             HStack(alignment: .center, spacing: 12) {
                 ZStack {
                     Circle()
-                        .fill(Color.unbound.rankGold.opacity(0.13))
+                        .fill(Color.unbound.impact.opacity(0.13))
                     Image("shop_currency_arc")
                         .resizable()
                         .scaledToFit()
                         .padding(3)
-                        .shadow(color: Color.unbound.rankGold.opacity(0.30), radius: 7)
+                        .shadow(color: Color.unbound.impact.opacity(0.30), radius: 7)
                 }
                 .frame(width: 48, height: 48)
                 .accessibilityHidden(true)

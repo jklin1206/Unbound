@@ -181,7 +181,7 @@ extension WorkoutRewardSequenceView {
             HStack(alignment: .center, spacing: 4) {
                 Text("+\(ArcCurrencyAmount.compactText(for: max(0, amount)))")
                     .font(.system(size: 24, weight: .black, design: .monospaced))
-                    .foregroundStyle(Color.unbound.rankGold)
+                    .foregroundStyle(Color.unbound.impact)
                     .lineLimit(1)
                     .minimumScaleFactor(0.58)
                     .allowsTightening(true)
@@ -190,7 +190,7 @@ extension WorkoutRewardSequenceView {
                     .resizable()
                     .scaledToFit()
                     .frame(width: 20, height: 20)
-                    .shadow(color: Color.unbound.rankGold.opacity(0.28), radius: 5)
+                    .shadow(color: Color.unbound.impact.opacity(0.28), radius: 5)
                     .accessibilityHidden(true)
             }
 

@@ -9,12 +9,18 @@ extension UnboundHomeView {
                 .padding(.horizontal, 20)
                 .padding(.top, 8)
 
-            homeBriefing
-                .padding(.horizontal, 20)
-                .padding(.top, 24)
+            // The System opens the screen — quest-window voice, not a casual
+            // greeting. The console below carries the day's quest itself.
+            // The directive band sits centered between the top bar and the
+            // quest console — equal, tight air on both sides.
+            HomeSystemDirectiveLine(
+                message: systemDirectiveText,
+                dayText: shortDayString()
+            )
+            .padding(.top, 16)
 
             trainingConsole
-                .padding(.top, 14)
+                .padding(.top, 16)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.bottom, 2)
@@ -79,16 +85,6 @@ extension UnboundHomeView {
         return "home_background_chalk"
     }
 
-    // MARK: - Briefing
-
-    var homeBriefing: some View {
-        HomeBriefingSection(
-            title: briefingTitle,
-            copy: briefingCopy,
-            dayText: shortDayString()
-        )
-    }
-
     // MARK: - Premium Home Concept
 
     var trainingConsole: some View {
@@ -134,66 +130,15 @@ extension UnboundHomeView {
         )
     }
 
-    var briefingTitle: String {
-        let greeting = homeGreetingText
-
-        if let firstName = profileFirstName {
-            return "\(greeting), \(firstName)"
+    /// What the System announces above the quest console.
+    var systemDirectiveText: String {
+        if model.todayProgramDay?.isRestDay == true {
+            return "Recovery directive issued"
         }
-
-        return greeting
-    }
-
-    private var homeGreetingText: String {
-        let hour = Calendar.current.component(.hour, from: Date())
-
-        switch hour {
-        case 5..<12:
-            return "Morning"
-        case 12..<17:
-            return "Afternoon"
-        case 17..<22:
-            return "Evening"
-        default:
-            return "Tonight"
+        if model.todayProgramDay?.workout != nil {
+            return "Daily quest available"
         }
-    }
-
-    private var profileFirstName: String? {
-        guard let displayName = model.profile?.displayName else {
-            return nil
-        }
-
-        let name = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !name.isEmpty else {
-            return nil
-        }
-
-        return name.components(separatedBy: .whitespacesAndNewlines)
-            .first { !$0.isEmpty }
-    }
-
-    var briefingCopy: String {
-        homeMotivationLine
-    }
-
-    private var homeMotivationLine: String {
-        let trainingLines = [
-            "You are closer than yesterday. Prove it today.",
-            "Become the proof you keep looking for.",
-            "The next version of you is built one session at a time.",
-            "Make today something your future self can stand on.",
-            "Strength follows the standard you refuse to drop."
-        ]
-        let recoveryLines = [
-            "Recovery is where tomorrow's strength takes root.",
-            "Rest with purpose. Return with more than you left with.",
-            "Protect the rhythm. The work is still working.",
-            "Let the body rebuild what the mind already believes."
-        ]
-        let lines = model.todayProgramDay?.isRestDay == true ? recoveryLines : trainingLines
-        let dayOfYear = Calendar.current.ordinality(of: .day, in: .year, for: Date()) ?? 0
-        return lines[dayOfYear % lines.count]
+        return "Awaiting quest selection"
     }
 
     var avatarInitial: String {

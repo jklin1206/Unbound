@@ -50,14 +50,30 @@ struct UnboundBackdropArt: View {
             let isAuthoredForHeader = isProfileBannerAsset || abs(imageAspect - containerAspect) < 0.38
 
             if isProfileBannerAsset {
+                // Authored landscape header banners fill the whole header rect
+                // edge-to-edge (full-bleed) so the avatar + identity always sit
+                // ON the art — never straddling a black void below it. The art
+                // is composed with the focal "core" off to one side and quiet
+                // dead space on the other for the overlaid content to breathe.
+                // The core sits high in the authored art, so we overscan the
+                // fill vertically and pin to the top: the visible crop drops
+                // the core lower in the header instead of pushing it up under
+                // the status bar.
+                let overscan: CGFloat = 1.30
                 Image(uiImage: ui)
                     .resizable()
-                    .aspectRatio(contentMode: .fit)
+                    .aspectRatio(contentMode: .fill)
+                    .frame(
+                        width: containerSize.width,
+                        height: containerSize.height * overscan,
+                        alignment: .center
+                    )
                     .frame(
                         width: containerSize.width,
                         height: containerSize.height,
-                        alignment: .topTrailing
+                        alignment: .top
                     )
+                    .clipped()
                     .saturation(1)
                     .contrast(1)
             } else if isAuthoredForHeader {
@@ -132,11 +148,16 @@ struct UnboundBackdropArt: View {
         ZStack {
             switch role {
             case .homePoster:
+                // The ramp must complete to FULL page bg at the hero's end —
+                // stopping short leaves a lighter ghost band between the hero
+                // and the section below it.
                 LinearGradient(
                     stops: [
                         .init(color: Color.unbound.bg.opacity(0.01), location: 0),
                         .init(color: Color.unbound.bg.opacity(0.05), location: 0.46),
-                        .init(color: Color.unbound.bg.opacity(0.56), location: 1)
+                        .init(color: Color.unbound.bg.opacity(0.56), location: 0.86),
+                        .init(color: Color.unbound.bg.opacity(0.92), location: 0.97),
+                        .init(color: Color.unbound.bg, location: 1)
                     ],
                     startPoint: .top,
                     endPoint: .bottom

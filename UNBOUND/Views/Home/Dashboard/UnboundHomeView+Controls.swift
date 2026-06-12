@@ -7,7 +7,6 @@ extension UnboundHomeView {
         VStack(spacing: 12) {
             weekPath
             homeIconDock
-            activeVowInlineStatus
         }
         .padding(.vertical, 8)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -97,54 +96,6 @@ extension UnboundHomeView {
         .padding(.top, 4)
         .padding(.bottom, 4)
         .frame(maxWidth: .infinity)
-    }
-
-    @ViewBuilder
-    var activeVowInlineStatus: some View {
-        if let activeTrial = model.trialsState.currentTrial,
-           activeTrial.capstoneState != .missed {
-            Button {
-                handleTrialCommand()
-            } label: {
-                HStack(spacing: 10) {
-                    Image(systemName: activeTrial.capstoneState == .windowOpen ? "play.fill" : "seal.fill")
-                        .font(.system(size: 12, weight: .black))
-                        .foregroundStyle(activeTrial.chosenCard.theme.tintColor)
-                        .frame(width: 22, height: 22)
-
-                    VStack(alignment: .leading, spacing: 3) {
-                        HStack(spacing: 7) {
-                            Text("BINDING VOW")
-                                .font(.system(size: 9, weight: .black, design: .monospaced))
-                                .tracking(1.4)
-                                .foregroundStyle(Color.unbound.textTertiary)
-                            Text(capstoneStateLabel(for: activeTrial.capstoneState))
-                                .font(.system(size: 9, weight: .black, design: .monospaced))
-                                .tracking(1.0)
-                                .foregroundStyle(activeTrial.chosenCard.theme.tintColor)
-                        }
-
-                        Text(activeTrial.chosenCard.displayName)
-                            .font(Font.unbound.captionS.weight(.semibold))
-                            .foregroundStyle(Color.unbound.textPrimary)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.74)
-                    }
-
-                    Spacer(minLength: 0)
-
-                    if activeTrial.capstoneState == .windowOpen {
-                        Image(systemName: "arrow.right")
-                            .font(.system(size: 11, weight: .black))
-                            .foregroundStyle(activeTrial.chosenCard.theme.tintColor)
-                    }
-                }
-                .padding(.vertical, 4)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Weekly vow \(activeTrial.chosenCard.displayName)")
-        }
     }
 
     var trialCommandValue: String {
