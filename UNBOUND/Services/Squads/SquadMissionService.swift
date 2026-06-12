@@ -13,6 +13,8 @@ protocol SquadMissionServiceProtocol: Sendable {
     /// Captain-only: pick a mission kind for the current week via the
     /// `pick_squad_mission` RPC. Returns nil when a mission already exists.
     func pickMission(squadId: UUID, kind: SquadMission.Kind) async throws -> SquadMission?
+    /// Fetch per-member contribution totals for a mission (from the receipts ledger).
+    func fetchMissionContributions(missionId: UUID) async throws -> [MissionContribution]
 }
 
 @MainActor
@@ -181,6 +183,10 @@ final class SquadMissionService: SquadMissionServiceProtocol {
 
     func pickMission(squadId: UUID, kind: SquadMission.Kind) async throws -> SquadMission? {
         try await backend.pickSquadMission(squadId: squadId, kind: kind)
+    }
+
+    func fetchMissionContributions(missionId: UUID) async throws -> [MissionContribution] {
+        try await backend.fetchMissionContributions(missionId: missionId)
     }
 
     static func currentWeekIso() -> String {

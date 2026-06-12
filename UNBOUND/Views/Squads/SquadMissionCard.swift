@@ -1,13 +1,17 @@
 // UNBOUND/Views/Squads/SquadMissionCard.swift
 //
-// Renders the current squad mission: title, shared progress bar, and reward preview.
-// Placed near the top of SquadDetailView (after header, before aggregate Build hex).
+// Renders the current squad mission: title, flat progress bar, reward line,
+// and an optional per-member contribution strip (sorted desc, up to 4 rows).
 import SwiftUI
 
 struct SquadMissionCard: View {
     let mission: SquadMission
+    var contributions: [(name: String, total: Int)] = []
 
     private var progress: CGFloat { CGFloat(min(mission.progressFraction, 1.0)) }
+    private var maxContribution: Int {
+        max(contributions.map(\.total).max() ?? 1, 1)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -24,9 +28,10 @@ struct SquadMissionCard: View {
                 if mission.isCompleted {
                     completedBadge
                 } else {
-                    Text("\(mission.currentProgress) / \(mission.target)")
-                        .font(.system(size: 12, weight: .semibold, design: .monospaced))
+                    Text(mission.kind.progressText(mission.currentProgress) + " / " + mission.kind.progressText(mission.target))
+                        .font(.system(size: 11, weight: .semibold, design: .monospaced))
                         .foregroundStyle(Color.unbound.textSecondary)
+                        .monospacedDigit()
                 }
             }
 
@@ -41,44 +46,73 @@ struct SquadMissionCard: View {
                     .lineLimit(2)
             }
 
-            // Progress bar
+            // Progress bar — flat accent fill, no gradient
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     Capsule()
-                        .fill(Color.unbound.surface)
+                        .fill(Color.unbound.surfaceElevated)
                         .frame(height: 6)
                     Capsule()
-                        .fill(
-                            LinearGradient(
-                                colors: [Color.unbound.accent, Color.unbound.accent.opacity(0.6)],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
+                        .fill(Color.unbound.accent)
                         .frame(width: geo.size.width * progress, height: 6)
                         .animation(.spring(response: 0.5, dampingFraction: 0.82), value: progress)
                 }
             }
             .frame(height: 6)
 
-            // Reward preview
+            // Reward line
             HStack(spacing: 6) {
                 Image(systemName: "gift.fill")
                     .font(.system(size: 11))
                     .foregroundStyle(Color.unbound.accent.opacity(0.8))
-                Text("Crew XP bonus + squad activity badge")
+                Text("\(SquadRewardPolicy.missionArcs) Arcs each on completion")
                     .font(.system(size: 11, weight: .medium))
                     .foregroundStyle(Color.unbound.textSecondary)
+            }
+
+            // Contribution strip — up to 4 members, sorted desc
+            if !contributions.isEmpty {
+                Divider()
+                    .background(Color.unbound.surfaceElevated)
+
+                VStack(spacing: 8) {
+                    ForEach(Array(contributions.sorted { $0.total > $1.total }.prefix(4)), id: \.name) { row in
+                        GeometryReader { geo in
+                            HStack(spacing: 8) {
+                                Text(row.name)
+                                    .font(Font.unbound.captionS)
+                                    .foregroundStyle(Color.unbound.textSecondary)
+                                    .frame(width: 88, alignment: .leading)
+                                    .lineLimit(1)
+
+                                ZStack(alignment: .leading) {
+                                    Capsule()
+                                        .fill(Color.unbound.surfaceElevated)
+                                        .frame(height: 4)
+                                    Capsule()
+                                        .fill(Color.unbound.accent)
+                                        .frame(
+                                            width: max(4, (geo.size.width - 88 - 8 - 60) * CGFloat(row.total) / CGFloat(maxContribution)),
+                                            height: 4
+                                        )
+                                }
+
+                                Text(mission.kind.progressText(row.total))
+                                    .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                                    .foregroundStyle(Color.unbound.textTertiary)
+                                    .monospacedDigit()
+                                    .frame(width: 60, alignment: .trailing)
+                            }
+                        }
+                        .frame(height: 16)
+                    }
+                }
             }
         }
         .padding(16)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .fill(Color.unbound.surface)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .strokeBorder(Color.unbound.accent.opacity(0.25), lineWidth: 1)
-                )
         )
     }
 
@@ -104,18 +138,40 @@ struct SquadMissionCard: View {
 
 // MARK: - Preview
 
-#Preview("Active Mission") {
+#Preview("Active Mission — no contributions") {
     SquadMissionCard(
         mission: SquadMission(
             id: UUID(),
             squadId: UUID(),
-            weekIso: "2026-W20",
-            kind: .totalSessions,
-            target: 12,
-            currentProgress: 7,
+            weekIso: "2026-W24",
+            kind: .totalWeight,
+            target: 32000,
+            currentProgress: 18750,
             completedAt: nil,
             createdAt: .now
         )
+    )
+    .padding(20)
+    .background(Color.unbound.bg)
+}
+
+#Preview("Active Mission — with contributions") {
+    SquadMissionCard(
+        mission: SquadMission(
+            id: UUID(),
+            squadId: UUID(),
+            weekIso: "2026-W24",
+            kind: .totalWeight,
+            target: 32000,
+            currentProgress: 18750,
+            completedAt: nil,
+            createdAt: .now
+        ),
+        contributions: [
+            (name: "Marcus", total: 8200),
+            (name: "You", total: 6100),
+            (name: "Linked sessions", total: 4450),
+        ]
     )
     .padding(20)
     .background(Color.unbound.bg)
@@ -126,13 +182,19 @@ struct SquadMissionCard: View {
         mission: SquadMission(
             id: UUID(),
             squadId: UUID(),
-            weekIso: "2026-W20",
+            weekIso: "2026-W24",
             kind: .crewCoverage,
-            target: 5,
-            currentProgress: 5,
+            target: 4,
+            currentProgress: 4,
             completedAt: Date(),
             createdAt: .now
-        )
+        ),
+        contributions: [
+            (name: "Marcus", total: 4),
+            (name: "You", total: 3),
+            (name: "Kenji", total: 3),
+            (name: "Ava", total: 3),
+        ]
     )
     .padding(20)
     .background(Color.unbound.bg)

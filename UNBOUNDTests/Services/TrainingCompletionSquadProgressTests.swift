@@ -17,6 +17,7 @@ private final class SpyMissionService: SquadMissionServiceProtocol {
     }
     func evaluateCompletion(squadId: UUID) async {}
     func pickMission(squadId: UUID, kind: SquadMission.Kind) async throws -> SquadMission? { nil }
+    func fetchMissionContributions(missionId: UUID) async throws -> [MissionContribution] { [] }
 }
 
 @MainActor

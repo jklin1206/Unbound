@@ -20,6 +20,9 @@ struct SquadDetailView: View {
     @State var memberSessionRecords: [UUID: SessionXPRecord] = [:]
     @State var challengeStatsByMember: [UUID: FriendChallengeStats] = [:]
     @State var earnedSeasonWinnerAward: SquadSeasonWinnerTitleAward?
+    @State var currentMissionState: SquadMission?
+    @State var missionContributions: [MissionContribution] = []
+    @State var showMissionPick = false
 
     enum SquadTab: String, CaseIterable {
         case crew = "CREW"
@@ -95,6 +98,17 @@ struct SquadDetailView: View {
                 }
             }
         }
+        .sheet(isPresented: $showMissionPick) {
+            SquadMissionPickSheet(
+                memberCount: max(state.roster.count, 2)
+            ) { kind in
+                Task {
+                    if let mission = try? await services.squadMission.pickMission(squadId: state.currentSquad?.id ?? UUID(), kind: kind) {
+                        currentMissionState = mission
+                    }
+                }
+            }
+        }
         .task {
             await loadAll()
         }
@@ -118,6 +132,9 @@ struct SquadDetailView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .friendChallengeExpired)) { _ in
             Task { await refreshChallenges() }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .squadMissionCompleted)) { _ in
+            Task { await refreshMissionState() }
         }
         .confirmationDialog("Leave this squad?", isPresented: $showLeaveConfirm, titleVisibility: .visible) {
             Button("Leave Squad", role: .destructive) {
@@ -154,6 +171,7 @@ struct SquadDetailView: View {
         await refreshLeaderboardData()
         await awardEndedSeasonWinnerIfEligible()
         await refreshRoutineDrops()
+        await refreshMissionState()
     }
 
     @MainActor
@@ -165,6 +183,47 @@ struct SquadDetailView: View {
         await refreshLeaderboardData()
         await awardEndedSeasonWinnerIfEligible()
         await refreshRoutineDrops()
+        await refreshMissionState()
+    }
+
+    @MainActor
+    private func refreshMissionState() async {
+        guard let squadId = state.currentSquad?.id else {
+            currentMissionState = nil
+            missionContributions = []
+            return
+        }
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("--unbound-demo-squad-mission") {
+            let demoId = UUID(uuidString: "AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE") ?? UUID()
+            currentMissionState = SquadMission(
+                id: demoId,
+                squadId: squadId,
+                weekIso: SquadMissionService.currentWeekIso(),
+                kind: .totalWeight,
+                target: 32000,
+                currentProgress: 18750,
+                completedAt: nil,
+                createdAt: .now
+            )
+            missionContributions = [
+                MissionContribution(userId: nil, total: 8200),
+                MissionContribution(userId: nil, total: 6100),
+                MissionContribution(userId: nil, total: 4450),
+            ]
+            return
+        }
+        #endif
+        currentMissionState = await services.squadMission.latestMission(squadId: squadId)
+        if let mission = currentMissionState {
+            if let contributions = try? await services.squadMission.fetchMissionContributions(missionId: mission.id) {
+                missionContributions = contributions
+            } else {
+                missionContributions = []
+            }
+        } else {
+            missionContributions = []
+        }
     }
 
     @MainActor
@@ -465,7 +524,7 @@ struct SquadDetailView: View {
         return SquadUserIdentity.uuid(from: current) == member.userId
     }
 
-    private func canEditSquad(_ squad: Squad) -> Bool {
+    func canEditSquad(_ squad: Squad) -> Bool {
         guard let currentUserId else { return false }
         return squad.captainId == currentUserId
     }

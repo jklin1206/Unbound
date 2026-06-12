@@ -116,6 +116,7 @@ final class NoOpSquadMissionService: SquadMissionServiceProtocol {
     func recordProgress(log: WorkoutLog, userId: String, sourceLogId: String) async {}
     func evaluateCompletion(squadId: UUID) async {}
     func pickMission(squadId: UUID, kind: SquadMission.Kind) async throws -> SquadMission? { nil }
+    func fetchMissionContributions(missionId: UUID) async throws -> [MissionContribution] { [] }
 }
 
 @MainActor

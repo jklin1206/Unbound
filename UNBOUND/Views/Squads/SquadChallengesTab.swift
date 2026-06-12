@@ -4,8 +4,66 @@ import SwiftUI
 extension SquadDetailView {
     @ViewBuilder
     var challengesTabContent: some View {
+        missionSection
         challengesSection
     }
+
+    // MARK: - Mission section
+
+    @ViewBuilder
+    private var missionSection: some View {
+        if let mission = currentMissionState {
+            // Resolve contribution names: userId nil → "Linked sessions"
+            let namedContributions: [(name: String, total: Int)] = missionContributions.map { contribution in
+                let name = contribution.userId.map { displayName(for: $0) } ?? "Linked sessions"
+                return (name: name, total: contribution.total)
+            }
+            SquadMissionCard(mission: mission, contributions: namedContributions)
+        } else if state.currentSquad.map({ canEditSquad($0) }) ?? false {
+            // Captain: tappable pick row
+            Button {
+                showMissionPick = true
+            } label: {
+                HStack(spacing: 12) {
+                    ZStack {
+                        Circle()
+                            .fill(Color.unbound.surfaceElevated)
+                            .frame(width: 40, height: 40)
+                        Image(systemName: "flag.2.crossed.fill")
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundStyle(Color.unbound.accent)
+                    }
+
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("PICK THIS WEEK'S MISSION")
+                            .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                            .tracking(1.4)
+                            .foregroundStyle(Color.unbound.textPrimary)
+                        Text("Choose a co-op goal for the crew.")
+                            .font(Font.unbound.captionS)
+                            .foregroundStyle(Color.unbound.textSecondary)
+                    }
+
+                    Spacer(minLength: 0)
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 11, weight: .black))
+                        .foregroundStyle(Color.unbound.textTertiary)
+                }
+                .padding(14)
+                .background(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(Color.unbound.surface)
+                )
+            }
+            .buttonStyle(.plain)
+        } else {
+            // Non-captain: empty slab
+            emptySlab("Captain hasn't picked this week's mission yet — auto-assigns Monday night.", icon: "flag.2.crossed.fill")
+        }
+    }
+
+    // MARK: - Challenges section
 
     var challengesSection: some View {
         VStack(alignment: .leading, spacing: 10) {
