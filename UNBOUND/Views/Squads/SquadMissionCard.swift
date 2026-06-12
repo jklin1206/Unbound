@@ -76,7 +76,7 @@ struct SquadMissionCard: View {
                     .background(Color.unbound.surfaceElevated)
 
                 VStack(spacing: 8) {
-                    ForEach(Array(contributions.sorted { $0.total > $1.total }.prefix(4)), id: \.name) { row in
+                    ForEach(Array(contributions.sorted { $0.total > $1.total }.prefix(4).enumerated()), id: \.offset) { _, row in
                         GeometryReader { geo in
                             HStack(spacing: 8) {
                                 Text(row.name)
