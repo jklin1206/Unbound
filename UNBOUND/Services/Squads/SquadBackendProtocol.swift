@@ -85,6 +85,10 @@ protocol SquadBackendProtocol: Sendable {
     /// the week (on conflict do nothing → no row returned).
     func pickSquadMission(squadId: UUID, kind: SquadMission.Kind) async throws -> SquadMission?
 
+    /// Count completed squad missions within a date range (season bounds).
+    /// Members can read `squad_missions` via RLS.
+    func fetchCompletedMissionCount(squadId: UUID, since: Date, until: Date) async throws -> Int
+
     // MARK: Linked sessions
 
     /// Fetch the most recent `linked_sessions` rows for a squad (newest first).

@@ -187,7 +187,8 @@ enum SquadSeasonRewardsBuilder {
     static func makeRewards(
         squad: Squad,
         rows: [SquadBoardRow],
-        season: SquadSeason = .current()
+        season: SquadSeason = .current(),
+        missionsCompleted: Int = 0
     ) -> [SquadSeasonReward] {
         let challengeWins = rows.reduce(0) { $0 + $1.seasonChallengeWins }
         let seasonPRs = rows.reduce(0) { $0 + $1.seasonPRs }
@@ -246,6 +247,16 @@ enum SquadSeasonRewardsBuilder {
                 assetName: "squad_reward_season_aura",
                 progress: min(squad.squadStreakWeeks, fullSeasonStreakTarget),
                 target: fullSeasonStreakTarget
+            ),
+            SquadSeasonReward(
+                id: "squad-missions",
+                title: "Squad Missions",
+                rewardName: "Season milestone",
+                kind: .squadBadge,
+                iconName: "flag.2.crossed.fill",
+                assetName: nil,
+                progress: min(missionsCompleted, 4),
+                target: 4
             )
         ]
     }

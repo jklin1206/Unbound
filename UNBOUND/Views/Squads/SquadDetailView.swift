@@ -24,6 +24,7 @@ struct SquadDetailView: View {
     @State var missionContributions: [MissionContribution] = []
     @State var showMissionPick = false
     @State var celebratedMission: SquadMission?
+    @State var seasonMissionsCompleted: Int = 0
 
     enum SquadTab: String, CaseIterable {
         case crew = "CREW"
@@ -268,6 +269,15 @@ struct SquadDetailView: View {
             if !CurrencyWalletStore.shared.hasGranted(sourceId: sourceId) {
                 celebratedMission = mission
             }
+        }
+        // Season-track: count completed missions within current season interval
+        if let squadId = state.currentSquad?.id {
+            let season = currentSeason
+            seasonMissionsCompleted = (try? await SquadBackend.shared.fetchCompletedMissionCount(
+                squadId: squadId,
+                since: season.interval.start,
+                until: season.interval.end
+            )) ?? 0
         }
     }
 

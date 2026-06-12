@@ -17,7 +17,8 @@ extension SquadDetailView {
         let rewards = SquadSeasonRewardsBuilder.makeRewards(
             squad: squad,
             rows: squadBoardRows,
-            season: currentSeason
+            season: currentSeason,
+            missionsCompleted: seasonMissionsCompleted
         )
         let progressRewards = rewards.filter(\.usesProgress)
         let unlockedCount = progressRewards.filter(\.isUnlocked).count

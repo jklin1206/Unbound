@@ -161,6 +161,11 @@ final class MockSquadBackend: SquadBackendProtocol, @unchecked Sendable {
         return pickSquadMissionResult
     }
 
+    var completedMissionCount: Int = 0
+    func fetchCompletedMissionCount(squadId: UUID, since: Date, until: Date) async throws -> Int {
+        return completedMissionCount
+    }
+
     var linkedSessions: [UUID: [LinkedSession]] = [:]   // squadId → rows
 
     func fetchRecentLinkedSessions(squadId: UUID, limit: Int) async throws -> [LinkedSession] {

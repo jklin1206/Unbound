@@ -318,6 +318,20 @@ final class SquadBackend: SquadBackendProtocol, @unchecked Sendable {
         return rows.first?.toModel()
     }
 
+    func fetchCompletedMissionCount(squadId: UUID, since: Date, until: Date) async throws -> Int {
+        struct CountRow: Decodable { let id: UUID }
+        let rows: [CountRow] = try await db
+            .from("squad_missions")
+            .select("id")
+            .eq("squad_id", value: squadId.uuidString)
+            .not("completed_at", operator: .is, value: "null")
+            .gte("completed_at", value: ISO8601DateFormatter().string(from: since))
+            .lt("completed_at", value: ISO8601DateFormatter().string(from: until))
+            .execute()
+            .value
+        return rows.count
+    }
+
     func fetchRecentLinkedSessions(squadId: UUID, limit: Int) async throws -> [LinkedSession] {
         struct LinkedSessionRow: Codable {
             let id: UUID
