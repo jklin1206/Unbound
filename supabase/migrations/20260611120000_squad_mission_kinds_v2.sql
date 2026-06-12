@@ -449,7 +449,7 @@ begin
       from jsonb_array_elements(v_entries) e,
            jsonb_array_elements(e->'sets') s
       where coalesce((s->>'isWarmup')::boolean, false) = false
-        and e->>'exerciseName' = v_exercise_name
+        and lower(trim(e->>'exerciseName')) = lower(trim(v_exercise_name))
     )
     else 0   -- legacy kinds are inert
   end;
