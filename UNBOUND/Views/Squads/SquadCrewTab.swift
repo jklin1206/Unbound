@@ -4,9 +4,44 @@ import SwiftUI
 extension SquadDetailView {
     @ViewBuilder
     func crewTabContent(squad: Squad) -> some View {
+        liveNowRow
         squadStreakSection(squad: squad)
         crewSection
         routineDropsSection
+    }
+
+    @ViewBuilder
+    var liveNowRow: some View {
+        let others = state.activeRosterPresence.filter { $0.userId != currentUserId }
+        if let live = others.first {
+            Button {
+                NotificationCenter.default.post(name: .requestNavigateToProgramTab, object: nil)
+            } label: {
+                HStack(spacing: 12) {
+                    Circle()
+                        .fill(Color.unbound.accent)
+                        .frame(width: 8, height: 8)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("\(displayName(for: live.userId)) is training now")
+                            .font(Font.unbound.bodyMStrong)
+                            .foregroundStyle(Color.unbound.textPrimary)
+                        Text(others.count > 1 ? "+\(others.count - 1) more live — jump in" : "Jump in and link the session")
+                            .font(Font.unbound.captionS)
+                            .foregroundStyle(Color.unbound.textSecondary)
+                    }
+                    Spacer(minLength: 0)
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 11, weight: .black))
+                        .foregroundStyle(Color.unbound.textTertiary)
+                }
+                .padding(14)
+                .background(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .fill(Color.unbound.surfaceElevated)
+                )
+            }
+            .buttonStyle(.plain)
+        }
     }
 
     func squadStreakSection(squad: Squad) -> some View {
