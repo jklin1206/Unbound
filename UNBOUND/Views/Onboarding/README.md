@@ -1,6 +1,6 @@
 # Views/Onboarding
 
-The 33-step onboarding flow: `OnboardingContainerView` routes steps off `OnboardingFlowViewModel.currentStep` through the arc answers → scan → analyzing → verdict → trajectory → social proof → paywall → home. The individual step screens live in `Steps/` (Step_Arc01…Step29 etc.); `Components/` holds `LifestyleSignalAsset.swift` (diet/sleep/stress glyph assets).
+The 33-step onboarding flow: `OnboardingContainerView` routes steps off `OnboardingFlowViewModel.currentStep` through the arc answers → scan → analyzing → verdict → trajectory → social proof → paywall → home. The individual step screens live in `Steps/` (Step_Arc01…Step29 etc.); `Components/` holds `Components/LifestyleSignalAsset.swift` (diet/sleep/stress glyph assets).
 
 ## Files (this level)
 
@@ -15,7 +15,7 @@ The 33-step onboarding flow: `OnboardingContainerView` routes steps off `Onboard
 | `OnboardingConversionStepPlanReady.swift` | `Step_PlanReady` — inserted conversion step. |
 | `RPEOnboardingStep.swift` | Product-loop demo step: log a real set with the production `ExerciseLogCard`, rate effort, see progress move. |
 | `Steps/` | All numbered/arc step screens (Step05_Motivation … Step29_SocialProof, Step_Arc*, Step_Scan*, Step_Verdict*, Step_Paywall, chapter interstitials). |
-| `Components/` | `LifestyleSignalAsset.swift` — diet/sleep/stress signal asset view. |
+| `Components/` | `Components/LifestyleSignalAsset.swift` — diet/sleep/stress signal asset view. |
 
 ## Where to find X
 

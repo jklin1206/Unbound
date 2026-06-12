@@ -9,7 +9,7 @@ Screen-level view models (mostly `@MainActor final class`, ObservableObject or `
 | `AuthViewModel.swift` | Auth screen state: email/password fields, sign-in/sign-up (incl. Apple), loading + error messaging. |
 | `CalibrationViewModel.swift` | Calibration flow: `CalibrationStep` enum, preference row models, step state (`@Observable`). |
 | `ExerciseLibraryViewModel.swift` | Exercise library browsing: sort/status filters, display rows, rank benchmark summaries. |
-| `HomeViewModel.swift` | Home data state: profile + program, ranks/XP, recent training signals, bodyweight logs, travel override, scan cadence, weekly vows (moved from `UnboundHomeView+Loading.swift`). |
+| `HomeViewModel.swift` | Home data state: profile + program, ranks/XP, recent training signals, bodyweight logs, travel override, scan cadence, weekly vows (moved from `../Views/Home/Dashboard/UnboundHomeView+Loading.swift`). |
 | `OnboardingViewModel.swift` | Minimal legacy step counter (`currentStep`, next/complete/skip) — no references found outside this file; the live flow uses `Onboarding/OnboardingFlowViewModel`. |
 | `PreviewUserService.swift` | No-op `UserServiceProtocol` for SwiftUI `#Preview` — never hits the backend. |
 | `ProfileViewModel.swift` | Profile data state: identity, aggregate tier, badges, showcase picks, equipped cosmetics, photo counts, XP/level, trials (moved from `ProfileView`). |

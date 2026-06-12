@@ -1,6 +1,6 @@
 # Models/Ranking
 
-Rank, attribute, and level progression models: the six-axis attribute system (XP curves, profiles, level curves), the overall LVL curve, rank-up event payloads, earned Titles, and proof-family classification. The `RankTier` enum itself (the nine-tier ladder) is declared in `SkillTier.swift`; this folder holds the surfaces built on top of it.
+Rank, attribute, and level progression models: the six-axis attribute system (XP curves, profiles, level curves), the overall LVL curve, rank-up event payloads, earned Titles, and proof-family classification. The `RankTier` enum itself (the nine-tier ladder) is declared in `../Skills/SkillTier.swift`; this folder holds the surfaces built on top of it.
 
 | File | What it contains |
 | --- | --- |
@@ -13,7 +13,7 @@ Rank, attribute, and level progression models: the six-axis attribute system (XP
 | `ProofFamily.swift` | `ProofFamily` — classification of how a movement proves capability (reps, hold, loaded, eccentric, …). |
 | `RankAdvance.swift` | `RankAdvance` — rank-up notification payload emitted on `.rankAdvanced`, consumed by RankUpCinematic / BadgeService; plus a `Color` helper extension. |
 | `RankState.swift` | Tombstone only — `LiftRank` was removed in rank-cleanup-v1; file documents the deletion. |
-| `RankTitle+Helpers.swift` | `RankTier` extension: canonical tier tint colors, ornament/visual metadata, and derivation helpers (core ladder lives in `SkillTier.swift`). |
+| `RankTitle+Helpers.swift` | `RankTier` extension: canonical tier tint colors, ornament/visual metadata, and derivation helpers (core ladder lives in `../Skills/SkillTier.swift`). |
 | `TitleID.swift` | `TitleID` — identifier for an earned Title (axis / vow-kind / badge / shop paths) and `ShopTitleCatalog`. |
 
 Where to find X:

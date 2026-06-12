@@ -9,7 +9,7 @@ The live in-workout logging screen: `ActiveWorkoutContainerView` owns the `Activ
 | `ActiveWorkoutContainerView.swift` | The session orchestrator view — owns session state, draft autosave, completion + reward handoff. |
 | `ActiveWorkoutContainerView+Chrome.swift` | Top bar (close / elapsed / mode badge / progress rail), draft-autosave warning row, trial-format flags, time formatting. |
 | `ActiveWorkoutContainerView+Intents.swift` | Overflow-menu intent handling (warmup toggle, add/remove set, skip, notes, swap) + DEBUG fill-planned-sets. |
-| `ActiveWorkoutContainerView+Keypad.swift` | Wires the session into the shared `NumberPadEditorModel` (per-cell config, live-write/commit/RPE closures); dock chrome lives in `NumberPadEditor.swift`. |
+| `ActiveWorkoutContainerView+Keypad.swift` | Wires the session into the shared `NumberPadEditorModel` (per-cell config, live-write/commit/RPE closures); dock chrome lives in `../../Components/Unbound/NumberPadEditor.swift`. |
 | `ActiveWorkoutContainerView+RewardSummary.swift` | Assembles the post-workout `WorkoutRewardSequenceSummary` (incl. rank-trial callout) from the completion result. |
 | `ActiveWorkoutDemoHarness.swift` | TEMPORARY proof harness — boots the real container with a seeded draft via `-activeWorkoutDemo` launch arg for screenshots. |
 | `ActiveWorkoutSheets.swift` | `EditorSheet` + `NotesEditSheet` presented from the workout. |
