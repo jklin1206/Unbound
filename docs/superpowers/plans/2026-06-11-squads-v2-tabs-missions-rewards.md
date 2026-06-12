@@ -33,8 +33,9 @@
 | total_reps target | **600 × memberCount** | catalog ×3 places |
 | crew_coverage | target = memberCount; per-member bar = **3 sessions** | catalog + RPC |
 | train_together target | **3 linked sessions** (unchanged) | catalog ×3 places |
-| pr_hunt target | **1 × memberCount** PRs | catalog ×3 places |
-| pr_hunt definition | **server-side weight-PR**: log contains a non-warmup set whose `weightKg` strictly exceeds the user's max prior logged `weightKg` for the same `exerciseName` | RPC only |
+| heaviestLift (1v1) scoring | score = best single non-warmup `weightKg` on the challenge's `exercise_name` during the window; progress updates use **MAX semantics** (`greatest(current, new)`), never accumulation | 1v1 RPC only |
+
+> jlin 2026-06-11: PR Hunt is OUT of the mission set (PRs are competitive, not co-op) — missions are the 5 kinds above, hash mod 5. The PR energy lives in the 1v1 `heaviestLift` duel instead.
 
 ---
 
@@ -276,26 +277,6 @@ git commit -m "feat(squads): 3-tab layout under pinned compact header"
            jsonb_array_elements(e->'sets') s
       where coalesce((s->>'isWarmup')::boolean, false) = false
     )
-    when 'pr_hunt' then (
-      -- 1 if any non-warmup set beats the user's max prior weight for that exercise name
-      select case when exists (
-        select 1
-        from jsonb_array_elements(v_entries) e,
-             jsonb_array_elements(e->'sets') s
-        where coalesce((s->>'isWarmup')::boolean, false) = false
-          and coalesce((s->>'weightKg')::numeric, 0) > 0
-          and coalesce((s->>'weightKg')::numeric, 0) > coalesce((
-            select max(coalesce((ps->>'weightKg')::numeric, 0))
-            from public.workout_logs pl,
-                 jsonb_array_elements(pl.exercise_entries) pe,
-                 jsonb_array_elements(pe->'sets') ps
-            where pl.user_id = p_user_id
-              and pl.id <> v_source_uuid
-              and pl.completed_at is not null
-              and pe->>'exerciseName' = e->>'exerciseName'
-          ), 0)
-      ) then 1 else 0 end
-    )
     else 0   -- train_together progresses via linked sessions, not logs; legacy kinds inert
   end;
 
@@ -331,7 +312,7 @@ git commit -m "feat(squads): 3-tab layout under pinned compact header"
      and sm.current_progress >= sm.target;
 ```
 
-**(b) Replace the deterministic SQL fallback catalog** (the `case v_template_idx` block) with the 6 new kinds — same hash, same index order as the table in "Balance constants": idx 0 `total_weight` (8000×mc), 1 `total_sessions` (4×mc), 2 `total_reps` (600×mc), 3 `crew_coverage` (mc), 4 `train_together` (3), 5 `pr_hunt` (mc).
+**(b) Replace the deterministic SQL fallback catalog** (the `case v_template_idx` block) with the 5 new kinds — same hash but **`mod(abs(v_hash), 5)`**, index order: idx 0 `total_weight` (8000×mc), 1 `total_sessions` (4×mc), 2 `total_reps` (600×mc), 3 `crew_coverage` (mc), 4 `train_together` (3).
 
 **(c) `pick_squad_mission` RPC:**
 
@@ -355,7 +336,7 @@ begin
   if not exists (select 1 from public.squads s where s.id = p_squad_id and s.captain_id = v_uid) then
     raise exception 'pick_squad_mission: caller is not the captain of squad %', p_squad_id;
   end if;
-  if p_kind not in ('total_weight','total_sessions','total_reps','crew_coverage','train_together','pr_hunt') then
+  if p_kind not in ('total_weight','total_sessions','total_reps','crew_coverage','train_together') then
     raise exception 'pick_squad_mission: unknown kind %', p_kind;
   end if;
 
@@ -370,8 +351,7 @@ begin
     when 'total_sessions' then 4 * v_member_count
     when 'total_reps'     then 600 * v_member_count
     when 'crew_coverage'  then v_member_count
-    when 'train_together' then 3
-    else v_member_count  -- pr_hunt
+    else 3  -- train_together
   end;
 
   return query
@@ -395,7 +375,7 @@ grant execute on function public.pick_squad_mission(uuid, text) to authenticated
 **Files:**
 - Modify: `supabase/functions/evaluate_squad_mission/index.ts:17-44`
 
-- [ ] **Step 1:** Replace `MISSION_TEMPLATES` and `generateMission` with the 6 new kinds/targets (same order as the SQL `case` and `SquadMissionCatalog.templates` — order IS the hash contract). The cron already runs daily at 2 AM UTC and generates for any squad without a row, so "Monday-night auto-fallback" is already satisfied; no schedule change.
+- [ ] **Step 1:** Replace `MISSION_TEMPLATES` and `generateMission` with the 5 new kinds/targets (same order as the SQL `case` and `SquadMissionCatalog.templates` — order IS the hash contract; the modulus drops to 5 everywhere). The cron already runs daily at 2 AM UTC and generates for any squad without a row, so "Monday-night auto-fallback" is already satisfied; no schedule change.
 - [ ] **Step 2:** Run existing deno tests: `cd supabase/functions && deno test evaluate_squad_mission/ --allow-env`. Commit.
 
 ### Task B3: train_together progress from detect_linked_sessions
@@ -438,7 +418,7 @@ if (mission?.mission_kind === "train_together") {
 **Files:**
 - Create/extend test files next to the touched functions (`evaluate_squad_mission/index_test.ts` pattern).
 
-- [ ] Write deno tests covering: template parity table (kind list + targets per member count), and (where the existing test harness mocks supabase) the train_together receipt-dedup branch. SQL-level behavior (delta computation, crew coverage, pr_hunt) is covered by the Step B1 live rollback test script — save it as `supabase/tests/squad_mission_kinds_v2_test.sql` so it's rerunnable. Commit.
+- [ ] Write deno tests covering: template parity table (kind list + targets per member count), and (where the existing test harness mocks supabase) the train_together receipt-dedup branch. SQL-level behavior (delta computation, crew coverage) is covered by the Step B1 live rollback test script — save it as `supabase/tests/squad_mission_kinds_v2_test.sql` so it's rerunnable. Commit.
 
 ---
 
@@ -455,7 +435,7 @@ if (mission?.mission_kind === "train_together") {
 ```swift
 func testMissionKindV2RawValuesAndLegacyMapping() {
     XCTAssertEqual(SquadMission.Kind(rawValue: "total_weight"), .totalWeight)
-    XCTAssertEqual(SquadMission.Kind(rawValue: "pr_hunt"), .prHunt)
+    XCTAssertEqual(SquadMission.Kind(rawValue: "train_together"), .trainTogether)
     // legacy rows from pre-v2 weeks still decode to a sensible kind
     XCTAssertEqual(SquadMission.Kind(rawValue: "alignedSessions"), .totalSessions)
     XCTAssertEqual(SquadMission.Kind(rawValue: "perfectAttendance"), .crewCoverage)
@@ -479,16 +459,15 @@ func testMissionProgressDisplay() {
         case totalReps = "total_reps"
         case crewCoverage = "crew_coverage"
         case trainTogether = "train_together"
-        case prHunt = "pr_hunt"
 
         init?(rawValue: String) {
             switch rawValue {
             case "total_weight": self = .totalWeight
-            case "total_sessions", "alignedSessions", "focusSessions": self = .totalSessions
+            case "total_sessions", "alignedSessions", "focusSessions",
+                 "capstonesTogether", "tierCrossings": self = .totalSessions
             case "total_reps": self = .totalReps
             case "crew_coverage", "perfectAttendance": self = .crewCoverage
             case "train_together", "linkedSessions": self = .trainTogether
-            case "pr_hunt", "capstonesTogether", "tierCrossings": self = .prHunt
             default: return nil
             }
         }
@@ -500,7 +479,6 @@ func testMissionProgressDisplay() {
             case .totalReps: return "Rep Avalanche"
             case .crewCoverage: return "Full Crew"
             case .trainTogether: return "Linked Up"
-            case .prHunt: return "PR Hunt"
             }
         }
 
@@ -511,7 +489,6 @@ func testMissionProgressDisplay() {
             case .totalReps: return "Combined reps, every set counts."
             case .crewCoverage: return "Every member trains 3+ times."
             case .trainTogether: return "Train at the same time as a squadmate."
-            case .prHunt: return "Set new personal records together."
             }
         }
 
@@ -522,7 +499,6 @@ func testMissionProgressDisplay() {
             case .totalReps: return "repeat"
             case .crewCoverage: return "person.3.fill"
             case .trainTogether: return "link"
-            case .prHunt: return "trophy.fill"
             }
         }
 
@@ -534,7 +510,6 @@ func testMissionProgressDisplay() {
             case .totalReps: return "\(formatted) reps"
             case .crewCoverage: return "\(formatted) covered"
             case .trainTogether: return value == 1 ? "1 linked" : "\(formatted) linked"
-            case .prHunt: return value == 1 ? "1 PR" : "\(formatted) PRs"
             }
         }
     }
@@ -557,11 +532,10 @@ func testCatalogTargetsMatchBackendContract() {
     XCTAssertEqual(SquadMissionCatalog.target(for: .totalReps, memberCount: 4), 2_400)
     XCTAssertEqual(SquadMissionCatalog.target(for: .crewCoverage, memberCount: 4), 4)
     XCTAssertEqual(SquadMissionCatalog.target(for: .trainTogether, memberCount: 4), 3)
-    XCTAssertEqual(SquadMissionCatalog.target(for: .prHunt, memberCount: 4), 4)
 }
 ```
 
-- [ ] **Step 2: Implement** — templates in HASH ORDER (`totalWeight, totalSessions, totalReps, crewCoverage, trainTogether, prHunt`), extract `static func target(for:memberCount:)`, keep `templateIndex` byte-for-byte identical. Update the parity comment to name all three synced sites.
+- [ ] **Step 2: Implement** — templates in HASH ORDER (`totalWeight, totalSessions, totalReps, crewCoverage, trainTogether`; `% templates.count` naturally becomes mod 5), extract `static func target(for:memberCount:)`, keep `templateIndex` hashing byte-for-byte identical. Update the parity comment to name all three synced sites.
 - [ ] **Step 3:** Tests green; commit C1+C2.
 
 ### Task C3: Service — contributions fetch + completion detection
@@ -646,7 +620,7 @@ enum SquadRewardPolicy {
 
 - [ ] **Step 1:** State + loading in `SquadDetailView`: `@State var currentMissionState: SquadMission?`, `@State var missionContributions: [MissionContribution] = []`, `@State var showMissionPick = false`. In `loadAll`/`refreshState`: `currentMissionState = await services.squadMission.latestMission(squadId:)` then contributions fetch when non-nil. (Add `squadMission` to `ServiceContainer` if not exposed — check `ServiceContainer.swift`; `SquadMissionService.shared` is referenced there already.)
 - [ ] **Step 2:** Upgrade `SquadMissionCard`: replace the stale "Crew XP bonus + squad activity badge" reward line with `"\(SquadRewardPolicy.missionArcs) Arcs each on completion"`; use `kind.progressText(currentProgress)` + `progressText(target)`; add a contribution strip (horizontal bars per member, name + `kind.progressText(total)`, sorted desc — pass `[(name: String, total: Int)]` in). Calm-list: single `Color.unbound.surface` fill, no gradient progress (flat accent fill), no glow.
-- [ ] **Step 3:** `SquadMissionPickSheet` — list of the 6 kinds (icon, displayName, subtitle, computed target via `SquadMissionCatalog.target(for:memberCount:)`), tap calls `services.squadMission.pickMission`, dismisses, refreshes. Only reachable by the captain.
+- [ ] **Step 3:** `SquadMissionPickSheet` — list of the 5 kinds (icon, displayName, subtitle, computed target via `SquadMissionCatalog.target(for:memberCount:)`), tap calls `services.squadMission.pickMission`, dismisses, refreshes. Only reachable by the captain.
 - [ ] **Step 4:** Challenges tab composition: mission hero at top. If `currentMissionState == nil`: captain sees a "PICK THIS WEEK'S MISSION" row opening the sheet; non-captains see an `emptySlab("Captain hasn't picked this week's mission yet — auto-assigns Monday night.", icon: "flag.2.crossed.fill")`. Below: the existing `challengesSection` unchanged.
 - [ ] **Step 5:** `xcodegen generate`, build, screenshot Challenges tab (empty + active states via the demo harness), commit.
 
@@ -807,8 +781,12 @@ struct SquadMissionCelebrationView: View {
 
 ```swift
 func testKindMenuIsAllReal() {
-    XCTAssertEqual(Set(FriendChallenge.Kind.allCases), [.mostSessions, .earlyRiser, .mostWeight, .mostReps, .mostPRs])
+    XCTAssertEqual(Set(FriendChallenge.Kind.allCases), [.mostSessions, .earlyRiser, .mostWeight, .mostReps, .heaviestLift])
     XCTAssertEqual(Set(FriendChallenge.Kind.creationOptions), Set(FriendChallenge.Kind.allCases))
+}
+func testHeaviestLiftRequiresExercise() {
+    XCTAssertTrue(FriendChallenge.Kind.heaviestLift.requiresExercisePick)
+    XCTAssertFalse(FriendChallenge.Kind.mostWeight.requiresExercisePick)
 }
 func testLegacyKindRowsDecodeAsNilAndAreDropped() {
     XCTAssertNil(FriendChallenge.Kind(rawValue: "proteinGoal"))   // historical rows drop from lists (never creatable → no real rows exist)
@@ -823,10 +801,16 @@ func testLegacyKindRowsDecodeAsNilAndAreDropped() {
         case earlyRiser
         case mostWeight
         case mostReps
-        case mostPRs
+        case heaviestLift
 
         static let creationOptions: [Kind] = Kind.allCases
         var isSupportedForCreation: Bool { true }
+
+        /// Heaviest Lift is scoped to one exercise chosen at creation.
+        var requiresExercisePick: Bool { self == .heaviestLift }
+
+        /// MAX-semantics kinds show a best-so-far score, not a running total.
+        var usesMaxScore: Bool { self == .heaviestLift }
 
         var displayName: String {
             switch self {
@@ -834,7 +818,7 @@ func testLegacyKindRowsDecodeAsNilAndAreDropped() {
             case .earlyRiser: return "Early Riser (8am)"
             case .mostWeight: return "Most Weight"
             case .mostReps: return "Most Reps"
-            case .mostPRs: return "Most PRs"
+            case .heaviestLift: return "Heaviest Lift"
             }
         }
 
@@ -844,7 +828,7 @@ func testLegacyKindRowsDecodeAsNilAndAreDropped() {
             case .earlyRiser: return "Most workouts before 8 AM."
             case .mostWeight: return "Most combined kg moved this week."
             case .mostReps: return "Most combined reps this week."
-            case .mostPRs: return "Most new personal records this week."
+            case .heaviestLift: return "Pick a lift. Heaviest single set wins."
             }
         }
 
@@ -854,7 +838,7 @@ func testLegacyKindRowsDecodeAsNilAndAreDropped() {
             case .earlyRiser: return "sunrise.fill"
             case .mostWeight: return "scalemass.fill"
             case .mostReps: return "repeat"
-            case .mostPRs: return "trophy.fill"
+            case .heaviestLift: return "trophy.fill"
             }
         }
 
@@ -862,13 +846,14 @@ func testLegacyKindRowsDecodeAsNilAndAreDropped() {
             switch self {
             case .mostSessions, .earlyRiser:
                 return value == 1 ? "1 session" : "\(value.formatted(.number)) sessions"
-            case .mostWeight: return "\(value.formatted(.number)) kg"
+            case .mostWeight, .heaviestLift: return "\(value.formatted(.number)) kg"
             case .mostReps: return "\(value.formatted(.number)) reps"
-            case .mostPRs: return value == 1 ? "1 PR" : "\(value) PRs"
             }
         }
     }
 ```
+
+Add to the `FriendChallenge` struct itself: `let exerciseName: String?` (nil for all kinds except `heaviestLift`), threaded through `ChallengeRow` (`exercise_name` column, decodes via the row's `toModel()`) and `ChallengeInsert` in `FriendChallengeService`. `createChallenge` gains an `exerciseName: String? = nil` parameter; throw `SquadError.unsupportedChallengeKind` when `kind.requiresExercisePick` and the name is nil/blank.
 
 `FriendChallengeProgressPolicy`: delete `unsupportedReason` entirely (and its call site in `FriendChallengeService.recordProgress:253-259`); `progressDelta` returns 1 for ALL kinds when the log qualifies (`earlyRiser` keeps the hour check; the others return 1) — the server computes real deltas (Task E2). Grep repo-wide (incl. UNBOUNDTests) for the deleted case names in BOTH explicit and implicit (`.proteinGoal`) forms before building.
 - [ ] **Step 3:** Build + full challenge test suites + commit.
@@ -878,15 +863,43 @@ func testLegacyKindRowsDecodeAsNilAndAreDropped() {
 **Files:**
 - Append to: `supabase/migrations/20260611120000_squad_mission_kinds_v2.sql` (same migration — single deploy)
 
-- [ ] **Step 1:** Replace `increment_friend_challenge_progress_for_user`'s `v_qualifies` case with delta computation mirroring the mission SQL (same jsonb expressions): `mostSessions` → 1, `earlyRiser` → 1 if `local_start_hour < 8` else 0, `mostWeight` → Σ weight×reps, `mostReps` → Σ reps, `mostPRs` → the pr_hunt EXISTS expression (1/0). Drop the receipts `delta <= 100` check on `friend_challenge_progress_receipts` the same way. Update the trigger function `record_workout_log_social_progress`'s `v_should_increment` case to the new kind names (sessions/earlyRiser pre-filter; weight/reps/PRs always call through — the helper computes 0 deltas as no-ops and `if v_delta <= 0 then return` skips receipt writes).
-- [ ] **Step 2:** Extend the rollback test script with a 1v1 mostWeight delta assertion. Commit.
+- [ ] **Step 1:** Schema: `alter table public.friend_challenges add column if not exists exercise_name text;` (nullable; only `heaviestLift` rows set it — the existing insert RLS path is unchanged).
+- [ ] **Step 2:** Replace `increment_friend_challenge_progress_for_user`'s `v_qualifies` case with delta computation mirroring the mission SQL (same jsonb expressions): `mostSessions` → 1, `earlyRiser` → 1 if `local_start_hour < 8` else 0, `mostWeight` → Σ weight×reps, `mostReps` → Σ reps, `heaviestLift` → best single non-warmup set weight on the challenge's exercise:
 
-### Task E3: Create-sheet copy check
+```sql
+    when 'heaviestLift' then (
+      select coalesce(floor(max(coalesce((s->>'weightKg')::numeric, 0)))::int, 0)
+      from jsonb_array_elements(v_entries) e,
+           jsonb_array_elements(e->'sets') s
+      where coalesce((s->>'isWarmup')::boolean, false) = false
+        and e->>'exerciseName' = v_exercise_name   -- selected alongside v_kind from the challenge row
+    )
+```
+
+The progress UPDATE becomes kind-aware — `heaviestLift` uses MAX semantics, everything else accumulates:
+
+```sql
+  if v_kind = 'heaviestLift' then
+    update public.friend_challenges
+       set challenger_progress = greatest(challenger_progress, v_delta)
+     where id = p_challenge_id and winner_user_id is null;   -- challenged_progress branch mirrors this
+  else
+    -- existing += v_delta branches
+  end if;
+```
+
+Drop the receipts `delta <= 100` check on `friend_challenge_progress_receipts` the same way as the mission ledger. Update the trigger function `record_workout_log_social_progress`'s `v_should_increment` case to the new kind names (sessions/earlyRiser pre-filter; mostWeight/mostReps/heaviestLift always call through — the helper computes 0 deltas as no-ops and `if v_delta <= 0 then return` skips receipt writes).
+- [ ] **Step 3:** Extend the rollback test script with a 1v1 mostWeight delta assertion AND a heaviestLift assertion (two logs, second lighter → progress stays at the max). Commit.
+
+### Task E3: Create sheet — 5 kinds + exercise picker for Heaviest Lift
 
 **Files:**
-- Modify (if needed): `UNBOUND/Views/Squads/FriendChallengeCreateSheet.swift`
+- Modify: `UNBOUND/Views/Squads/FriendChallengeCreateSheet.swift`
 
-- [ ] **Step 1:** The sheet builds from `Kind.creationOptions` — verify it renders all 5 with icon/subtitle and no "unsupported" affordances remain (grep the file for `isSupportedForCreation`). Screenshot the sheet; commit if changed.
+- [ ] **Step 1:** The sheet builds from `Kind.creationOptions` — verify it renders all 5 with icon/subtitle and no "unsupported" affordances remain (grep the file for `isSupportedForCreation`).
+- [ ] **Step 2:** When the selected kind has `requiresExercisePick`, show an exercise field before CREATE is enabled. Source the options from the movement catalog's loadable movements (find via `grep -rn "MovementResolution\|CompoundStandards" UNBOUND/Models/Standards/` — offer the compound lifts list, searchable). Pass the chosen name through `createChallenge(challengedId:kind:squadId:exerciseName:)`. The stored string must be the **catalog display name** (it's matched verbatim against `exerciseName` in logged entries server-side — same name-resolution trap as skill tierCriteria).
+- [ ] **Step 3:** `ChallengeDashboardRow` + `FriendChallengeCard`: when `challenge.exerciseName` is set, show it under the kind name ("Heaviest Lift — Bench Press") and format scores with `progressLabel` (kg).
+- [ ] **Step 4:** Screenshot the sheet (both a plain kind and Heaviest Lift with picker); commit.
 
 ---
 
