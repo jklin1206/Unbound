@@ -137,6 +137,7 @@ struct FriendChallengeCard: View {
         challengedId: challengedId,
         squadId: squadId,
         kind: .mostSessions,
+        exerciseName: nil,
         startedAt: .now,
         expiresAt: Calendar.current.date(byAdding: .day, value: 3, to: .now)!,
         acceptedAt: Date(),

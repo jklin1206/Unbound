@@ -121,7 +121,7 @@ final class NoOpSquadMissionService: SquadMissionServiceProtocol {
 
 @MainActor
 final class NoOpFriendChallengeService: FriendChallengeServiceProtocol {
-    func createChallenge(challengedId: UUID, kind: FriendChallenge.Kind, squadId: UUID) async throws -> FriendChallenge {
+    func createChallenge(challengedId: UUID, kind: FriendChallenge.Kind, squadId: UUID, exerciseName: String?) async throws -> FriendChallenge {
         throw SquadError.backendUnavailable
     }
     func activeChallenges(userId: UUID) async -> [FriendChallenge] { [] }

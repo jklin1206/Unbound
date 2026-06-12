@@ -23,7 +23,7 @@ private final class SpyMissionService: SquadMissionServiceProtocol {
 @MainActor
 private final class SpyChallengeService: FriendChallengeServiceProtocol {
     var recordCalls: [(logId: String, userId: String, sourceLogId: String)] = []
-    func createChallenge(challengedId: UUID, kind: FriendChallenge.Kind, squadId: UUID) async throws -> FriendChallenge {
+    func createChallenge(challengedId: UUID, kind: FriendChallenge.Kind, squadId: UUID, exerciseName: String?) async throws -> FriendChallenge {
         throw SquadError.backendUnavailable
     }
     func activeChallenges(userId: UUID) async -> [FriendChallenge] { [] }

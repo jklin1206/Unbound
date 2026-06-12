@@ -209,6 +209,7 @@ extension View {
                 challengedId: opponent,
                 squadId: UUID(),
                 kind: .mostSessions,
+                exerciseName: nil,
                 startedAt: .now,
                 expiresAt: .now,
                 acceptedAt: Date(),
