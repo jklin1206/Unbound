@@ -175,6 +175,24 @@ final class ShopInventoryStoreTests: XCTestCase {
         XCTAssertEqual(wallet.balance, balanceAfterFirst, "Balance must not change on duplicate grant")
     }
 
+    func testDuelWinGrantDedupBySameSourceId() {
+        let defaults = isolatedDefaults()
+        let wallet = CurrencyWalletStore(defaults: defaults)
+        wallet.bind(userId: "duel-test-user")
+        let challengeId = UUID(uuidString: "DEADBEEF-DEAD-BEEF-DEAD-BEEFDEADBEEF")!
+        let sourceId = SquadRewardPolicy.duelSourceId(challengeId)
+        let balanceBefore = wallet.balance
+
+        let first = wallet.grant(SquadRewardPolicy.duelWinArcs, sourceId: sourceId)
+        let balanceAfterFirst = wallet.balance
+        let second = wallet.grant(SquadRewardPolicy.duelWinArcs, sourceId: sourceId)
+
+        XCTAssertTrue(first, "First duel win grant must succeed")
+        XCTAssertFalse(second, "Second grant for same challenge must be deduped")
+        XCTAssertEqual(wallet.balance, balanceAfterFirst, "Balance must not change on duplicate grant")
+        XCTAssertEqual(wallet.balance, balanceBefore + SquadRewardPolicy.duelWinArcs, "Balance must be +120 once only")
+    }
+
     private func isolatedDefaults() -> UserDefaults {
         let suiteName = "ShopInventoryStoreTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!
