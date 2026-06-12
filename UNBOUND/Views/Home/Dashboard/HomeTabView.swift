@@ -57,7 +57,7 @@ struct HomeTabView: View {
             .tag(3)
 
             NavigationStack {
-                ProfileView(services: services)
+                ProfileView()
             }
             .tabItem {
                 Image(systemName: "person.crop.circle")
