@@ -19,7 +19,7 @@ struct TheCrossingView: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    private enum Beat { case hush, walk, arrival, investiture, spoils }
+    private enum Beat { case hush, walk, investiture, spoils }
     @State private var beat: Beat = .hush
     @State private var kenBurns = false
     @State private var titleShown = false
@@ -48,10 +48,10 @@ struct TheCrossingView: View {
                 CrossingParticles(tint: crossing.tint, reduceMotion: reduceMotion)
             }
 
-            // Center scrim — keeps the title stack legible over any banner hue.
-            if beat == .arrival || beat == .investiture || beat == .spoils {
-                RadialGradient(colors: [Color.black.opacity(0.55), .clear],
-                               center: .center, startRadius: 50, endRadius: 360)
+            // Center scrim — keeps the badge + title legible over any world hue.
+            if beat == .investiture || beat == .spoils {
+                RadialGradient(colors: [Color.black.opacity(0.6), .clear],
+                               center: .center, startRadius: 40, endRadius: 380)
                     .ignoresSafeArea().allowsHitTesting(false)
             }
 
@@ -72,7 +72,7 @@ struct TheCrossingView: View {
             .clipped()
             .overlay(LinearGradient(colors: [.clear, Color.black.opacity(0.55), Color.black.opacity(0.9)],
                                     startPoint: .top, endPoint: .bottom).ignoresSafeArea())
-            .overlay(RadialGradient(colors: [crossing.tint.opacity(beat == .arrival ? 0.28 : 0.12), .clear],
+            .overlay(RadialGradient(colors: [crossing.tint.opacity(0.14), .clear],
                                     center: .center, startRadius: 30, endRadius: 320)
                         .blendMode(.screen).ignoresSafeArea())
     }
@@ -92,47 +92,45 @@ struct TheCrossingView: View {
         }
     }
 
+    private var showsReveal: Bool { beat == .investiture || beat == .spoils }
+
     private var content: some View {
-        VStack(spacing: 16) {
-            Spacer()
+        VStack(spacing: 0) {
+            Spacer(minLength: 0)
 
-            if beat == .arrival || beat == .investiture || beat == .spoils {
-                Text("RANK GATE \(crossing.world.numeral)")
-                    .font(Font.unbound.captionS.weight(.heavy)).tracking(4)
-                    .foregroundStyle(crossing.tint)
-                    .shadow(color: .black.opacity(0.85), radius: 4, y: 1)
-            }
-
-            if (beat == .investiture || beat == .spoils) && titleShown {
-                VStack(spacing: 18) {
+            if showsReveal && titleShown {
+                VStack(spacing: 14) {
+                    Text("RANK GATE \(crossing.world.numeral)")
+                        .font(Font.unbound.captionS.weight(.heavy)).tracking(4)
+                        .foregroundStyle(crossing.tint)
+                        .shadow(color: .black.opacity(0.85), radius: 4, y: 1)
                     Image(crossing.world.destinationRank.assetName)
                         .resizable().scaledToFit()
-                        .frame(width: 168, height: 168)
+                        .frame(width: 172, height: 172)
                         .shadow(color: crossing.fillTint.opacity(0.85), radius: 34)
-                        .shadow(color: crossing.fillTint.opacity(0.45), radius: 70)
+                        .shadow(color: crossing.fillTint.opacity(0.45), radius: 72)
                     Text(crossing.investitureTitle)
-                        .font(.system(size: 52, weight: .black)).tracking(5)
+                        .font(.system(size: 54, weight: .black)).tracking(6)
                         .foregroundStyle(Color.unbound.textPrimary)
                         .minimumScaleFactor(0.5).lineLimit(1)
                         .shadow(color: .black.opacity(0.55), radius: 8, y: 2)
-                        .shadow(color: crossing.fillTint.opacity(0.7), radius: 32)
+                        .shadow(color: crossing.fillTint.opacity(0.7), radius: 34)
+                    Text(crossing.dwellLine)
+                        .font(Font.unbound.bodyMStrong).foregroundStyle(crossing.tint)
+                        .multilineTextAlignment(.center)
+                        .shadow(color: .black.opacity(0.7), radius: 4, y: 1)
                 }
-                .transition(reduceMotion ? .opacity : .scale.combined(with: .opacity))
+                .frame(maxWidth: .infinity)
+                .transition(reduceMotion ? .opacity : .scale(scale: 0.85).combined(with: .opacity))
             }
 
-            if beat == .arrival {
-                Text(crossing.dwellLine)
-                    .font(Font.unbound.titleS.weight(.semibold)).foregroundStyle(Color.unbound.textPrimary)
-                    .multilineTextAlignment(.center)
-                    .shadow(color: .black.opacity(0.85), radius: 5, y: 1)
-                    .transition(.opacity)
+            Spacer(minLength: 0)
+
+            if beat == .spoils {
+                spoils.transition(.move(edge: .bottom).combined(with: .opacity))
             }
-
-            Spacer()
-
-            if beat == .spoils { spoils.transition(.opacity) }
         }
-        .padding(.horizontal, 24).padding(.bottom, 40)
+        .padding(.horizontal, 24).padding(.bottom, 36)
         .frame(maxWidth: .infinity, alignment: .center)
     }
 
@@ -189,14 +187,10 @@ struct TheCrossingView: View {
             await sleep(b.walk * 0.5)
         }
 
-        withAnimation(.easeInOut(duration: 0.5)) { beat = .arrival }
-        UnboundHaptics.medium()
-        await sleep(b.arrival)
-
-        withAnimation(.easeOut(duration: 0.4)) { beat = .investiture }
-        withAnimation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.15)) { titleShown = true }
+        withAnimation(.easeInOut(duration: 0.5)) { beat = .investiture }
+        withAnimation(.spring(response: 0.55, dampingFraction: 0.68).delay(0.15)) { titleShown = true }
         UnboundHaptics.heavy()
-        await sleep(b.investiture)
+        await sleep(b.arrival + b.investiture)
 
         withAnimation(.easeInOut(duration: 0.5)) { beat = .spoils }
         UnboundHaptics.success()
