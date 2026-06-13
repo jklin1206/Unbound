@@ -17,7 +17,7 @@ struct FinalExamTrialReadyPreview: View {
                     FinalExamReadySection(section: section, tint: tint)
                 }
             }
-            .accessibilityIdentifier("workoutReady.finalExamSections")
+            .accessibilityIdentifier("workoutReady.theLastGateSections")
         }
     }
 

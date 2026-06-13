@@ -590,7 +590,7 @@ enum OverallRankTrialDefinitions {
         displayName: "Daily 100",
         subtitle: "Initiate to Novice rank gate",
         estimatedMinutes: 14,
-        format: .daily100,
+        format: .firstLight,
         minOverallLevel: 1,
         requiredEquipment: [.bodyweight],
         performanceStandards: daily100Stations(loadout: .homeKit).map(\.standard),
@@ -608,7 +608,7 @@ enum OverallRankTrialDefinitions {
         displayName: "Operator Screen",
         subtitle: "Novice to Apprentice rank gate",
         estimatedMinutes: 20,
-        format: .operatorScreen,
+        format: .theCount,
         minOverallLevel: 8,
         loadoutVariants: loadoutVariants(
             noGym: operatorStations(loadout: .noGymField),
@@ -623,7 +623,7 @@ enum OverallRankTrialDefinitions {
         displayName: "The Finisher",
         subtitle: "Apprentice to Forged rank gate",
         estimatedMinutes: 30,
-        format: .finisher,
+        format: .theForging,
         minOverallLevel: 15,
         loadoutVariants: loadoutVariants(
             noGym: finisherStations(loadout: .noGymField),
@@ -639,7 +639,7 @@ enum OverallRankTrialDefinitions {
         displayName: "Deck of Proof",
         subtitle: "Forged to Veteran rank gate",
         estimatedMinutes: 42,
-        format: .fixedDeck,
+        format: .deckOfProof,
         minOverallLevel: 22,
         loadoutVariants: loadoutVariants(
             noGym: deckStations(loadout: .noGymField),
@@ -655,7 +655,7 @@ enum OverallRankTrialDefinitions {
         displayName: "The Tower",
         subtitle: "Veteran to Master rank gate",
         estimatedMinutes: 50,
-        format: .tower,
+        format: .theAscent,
         minOverallLevel: 40,
         loadoutVariants: loadoutVariants(
             noGym: towerStations(loadout: .noGymField),
@@ -671,7 +671,7 @@ enum OverallRankTrialDefinitions {
         displayName: "Boss Rush",
         subtitle: "Master to Vessel rank gate",
         estimatedMinutes: 58,
-        format: .bossRush,
+        format: .sevenSeals,
         minOverallLevel: 55,
         loadoutVariants: loadoutVariants(
             noGym: bossRushStations(loadout: .noGymField),
@@ -687,7 +687,7 @@ enum OverallRankTrialDefinitions {
         displayName: "Threshold Raid",
         subtitle: "Vessel to Ascendant rank gate",
         estimatedMinutes: 65,
-        format: .raid,
+        format: .theThreshold,
         minOverallLevel: 72,
         loadoutVariants: loadoutVariants(
             noGym: raidStations(loadout: .noGymField),
@@ -702,7 +702,7 @@ enum OverallRankTrialDefinitions {
         displayName: "Final Exam",
         subtitle: "Ascendant to Unbound rank gate",
         estimatedMinutes: 75,
-        format: .finalExam,
+        format: .theLastGate,
         minOverallLevel: 90,
         loadoutVariants: loadoutVariants(
             noGym: finalExamStations(loadout: .noGymField),

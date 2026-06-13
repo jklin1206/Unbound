@@ -48,14 +48,14 @@ struct Daily100TrialReadyPreview: View {
 
             Daily100EntryGate(marks: oathMarks, tint: tint)
                 .frame(height: 164)
-                .accessibilityIdentifier("workoutReady.daily100Gate")
+                .accessibilityIdentifier("workoutReady.firstLightGate")
 
             VStack(spacing: 9) {
                 ForEach(oathMarks) { mark in
                     Daily100ReadyMarkRow(mark: mark, tint: tint)
                 }
             }
-            .accessibilityIdentifier("workoutReady.daily100OathMarks")
+            .accessibilityIdentifier("workoutReady.firstLightOathMarks")
         }
     }
 }
@@ -291,7 +291,7 @@ private struct Daily100ReadyMark: Identifiable {
         title = block.title.isEmpty ? Daily100OathName.title(for: index) : block.title
         exerciseName = prescription?.exerciseName ?? title
         targetText = prescription.map { "\($0.sets) x \($0.displayTargetText)" } ?? "Official mark"
-        targetValue = prescription?.target.daily100Value ?? 0
+        targetValue = prescription?.target.firstLightValue ?? 0
         kind = block.kind
         movementDefinition = prescription.flatMap {
             MovementCatalog.resolvedTrainingMovement(
@@ -783,7 +783,7 @@ private enum Daily100Visuals {
 }
 
 private extension TrainingTarget {
-    var daily100Value: Int {
+    var firstLightValue: Int {
         switch self {
         case .reps(let value),
              .holdSeconds(let value),

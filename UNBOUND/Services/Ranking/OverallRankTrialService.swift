@@ -15,25 +15,47 @@ enum OverallRankTrialRequirementKind: String, Codable, Equatable, Sendable {
 }
 
 enum RankTrialFormat: String, Codable, CaseIterable, Equatable, Sendable {
-    case daily100
-    case operatorScreen
-    case finisher
-    case fixedDeck
-    case tower
-    case bossRush
-    case raid
-    case finalExam
+    case firstLight
+    case theCount
+    case theForging
+    case deckOfProof
+    case theAscent
+    case sevenSeals
+    case theThreshold
+    case theLastGate
+
+    init(from decoder: Decoder) throws {
+        let raw = try decoder.singleValueContainer().decode(String.self)
+        switch raw {
+        case "daily100": self = .firstLight
+        case "operatorScreen": self = .theCount
+        case "finisher": self = .theForging
+        case "fixedDeck": self = .deckOfProof
+        case "tower": self = .theAscent
+        case "bossRush": self = .sevenSeals
+        case "raid": self = .theThreshold
+        case "finalExam": self = .theLastGate
+        default:
+            guard let format = RankTrialFormat(rawValue: raw) else {
+                throw DecodingError.dataCorrupted(.init(
+                    codingPath: decoder.codingPath,
+                    debugDescription: "Unknown RankTrialFormat raw value: \(raw)"
+                ))
+            }
+            self = format
+        }
+    }
 
     var displayName: String {
         switch self {
-        case .daily100: return "Daily 100"
-        case .operatorScreen: return "Operator Screen"
-        case .finisher: return "Finisher"
-        case .fixedDeck: return "Random Deck"
-        case .tower: return "Tower"
-        case .bossRush: return "Boss Rush"
-        case .raid: return "Raid"
-        case .finalExam: return "Final Exam"
+        case .firstLight: return "First Light"
+        case .theCount: return "The Count"
+        case .theForging: return "The Forging"
+        case .deckOfProof: return "Deck of Proof"
+        case .theAscent: return "The Ascent"
+        case .sevenSeals: return "The Seven Seals"
+        case .theThreshold: return "The Threshold"
+        case .theLastGate: return "The Last Gate"
         }
     }
 }
@@ -306,7 +328,7 @@ struct OverallRankTrialDefinition: Identifiable, Codable, Equatable, Sendable {
         displayName: String,
         subtitle: String,
         estimatedMinutes: Int,
-        format: RankTrialFormat = .finisher,
+        format: RankTrialFormat = .theForging,
         minOverallLevel: Int,
         requiredEquipment: Set<MovementEquipment>,
         performanceStandards: [OverallRankTrialPerformanceStandard],
@@ -458,7 +480,7 @@ struct OverallRankTrialDefinition: Identifiable, Codable, Equatable, Sendable {
         userId: String,
         date: Date
     ) -> [ResolvedTrialStation] {
-        guard format == .fixedDeck, stations.count > 1 else { return stations }
+        guard format == .deckOfProof, stations.count > 1 else { return stations }
 
         var generator = DeckDrawRandomNumberGenerator(seed: deckDrawSeed(draftId: draftId, userId: userId, date: date))
         var dealt = stations.shuffled(using: &generator)

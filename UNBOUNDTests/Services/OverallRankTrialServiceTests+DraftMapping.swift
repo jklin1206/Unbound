@@ -36,7 +36,7 @@ extension OverallRankTrialServiceTests {
             resolvedTrial: resolved
         )
 
-        XCTAssertEqual(definition.format, .operatorScreen)
+        XCTAssertEqual(definition.format, .theCount)
         XCTAssertEqual(draft.title, "Operator Screen")
         XCTAssertEqual(draft.estimatedMinutes, 20)
         XCTAssertEqual(resolved.stations.map(\.category), [.engine, .lower, .push, .pull, .carryCore])
@@ -54,7 +54,7 @@ extension OverallRankTrialServiceTests {
             resolvedTrial: resolved
         )
 
-        XCTAssertEqual(definition.format, .finisher)
+        XCTAssertEqual(definition.format, .theForging)
         XCTAssertEqual(draft.title, "The Finisher")
         XCTAssertEqual(draft.estimatedMinutes, 30)
         XCTAssertEqual(resolved.stations.count, 15)
@@ -73,7 +73,7 @@ extension OverallRankTrialServiceTests {
             resolvedTrial: resolved
         )
 
-        XCTAssertEqual(definition.format, .fixedDeck)
+        XCTAssertEqual(definition.format, .deckOfProof)
         XCTAssertEqual(draft.title, "Deck of Proof")
         XCTAssertEqual(draft.estimatedMinutes, 42)
         XCTAssertEqual(resolved.stations.count, 52)
@@ -108,7 +108,7 @@ extension OverallRankTrialServiceTests {
         )
 
         assertCatalogBacked(definition)
-        XCTAssertEqual(definition.format, .tower)
+        XCTAssertEqual(definition.format, .theAscent)
         XCTAssertEqual(draft.title, "The Tower")
         XCTAssertEqual(draft.estimatedMinutes, 50)
         XCTAssertEqual(resolved.stations.count, 11)
