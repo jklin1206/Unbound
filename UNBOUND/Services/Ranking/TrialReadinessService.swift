@@ -29,7 +29,7 @@ final class TrialReadinessService {
         )
         let requirements = requirementLines(for: definition, resolution: resolution, input: input)
         let latestAttempt = input.attempts
-            .filter { $0.definitionId == definition.id }
+            .filter { definition.matchesAttemptDefinitionId($0.definitionId) }
             .sorted { $0.completedAt > $1.completedAt }
             .first
         let allMet = requirements.allSatisfy(\.isMet)

@@ -185,6 +185,125 @@ extension OverallRankTrialServiceTests {
         )
     }
 
+    func testLoadPercentRequiresLoadAndMetricInTheSameSet() {
+        let standard = OverallRankTrialPerformanceStandard(
+            movementId: "carry.farmer-carry",
+            displayName: "Farmer Carry",
+            metric: .distanceMeters,
+            minimumValue: 60,
+            minimumQualifyingSets: 1,
+            plannedSets: 1
+        )
+        let station = TrialStation(
+            id: "test-load-carry",
+            title: "Loaded Carry",
+            category: .carryCore,
+            standard: standard,
+            capSeconds: nil,
+            loadPercentOfBodyweight: 0.30,
+            movementOptions: [TrialMovementOption(movementId: "carry.farmer-carry")],
+            restRule: "test",
+            qualityFlags: [.clean]
+        )
+        let definition = OverallRankTrialDefinition(
+            id: "test-load-percent-gate",
+            targetRank: .apprentice,
+            displayName: "Load Percent Gate",
+            subtitle: "test",
+            estimatedMinutes: 10,
+            format: .theCount,
+            minOverallLevel: 1,
+            requiredEquipment: [.dumbbell, .openSpace],
+            performanceStandards: [standard],
+            loadoutVariants: [
+                TrialLoadoutVariant(
+                    loadout: .homeKit,
+                    requiredEquipment: [.dumbbell, .openSpace],
+                    promise: "test",
+                    stations: [station]
+                )
+            ]
+        )
+
+        func log(with sets: [PerformanceSet]) -> PerformanceLog {
+            PerformanceLog(
+                userId: "u1",
+                source: .overallRankTrial,
+                title: "Load Percent Gate",
+                startedAt: Date(timeIntervalSince1970: 0),
+                completedAt: Date(timeIntervalSince1970: 60),
+                programId: definition.id,
+                blocks: [
+                    PerformanceBlock(
+                        kind: .carry,
+                        title: "Loaded Carry",
+                        exercises: [
+                            PerformanceExercise(
+                                name: "Farmer Carry",
+                                movementId: "carry.farmer-carry",
+                                plannedSets: 1,
+                                plannedTarget: "60m",
+                                sets: sets
+                            )
+                        ]
+                    )
+                ]
+            )
+        }
+
+        let splitSetEvaluation = OverallRankTrialRunner.shared.evaluateDetailed(
+            log(with: [
+                PerformanceSet(setNumber: 1, weightKg: 30, distanceMeters: 1),
+                PerformanceSet(setNumber: 2, weightKg: 5, distanceMeters: 60)
+            ]),
+            against: definition,
+            bodyweightKg: 100,
+            enforceLoadPercent: true
+        )
+        XCTAssertFalse(splitSetEvaluation.passed)
+        XCTAssertEqual(
+            splitSetEvaluation.failedStation?.failureReason,
+            "Logged load missed the bodyweight percentage standard."
+        )
+
+        let sameSetEvaluation = OverallRankTrialRunner.shared.evaluateDetailed(
+            log(with: [PerformanceSet(setNumber: 1, weightKg: 30, distanceMeters: 60)]),
+            against: definition,
+            bodyweightKg: 100,
+            enforceLoadPercent: true
+        )
+        XCTAssertTrue(sameSetEvaluation.passed)
+    }
+
+    func testTheForgingDoesNotEnforceOverallTimeCap() throws {
+        let definition = OverallRankTrialDefinitions.theForging
+        let resolved = try XCTUnwrap(resolvedTrial(for: definition, loadout: .homeKit))
+        let draft = OverallRankTrialRunner.shared.draft(
+            for: definition,
+            userId: "u1",
+            date: Date(timeIntervalSince1970: 100),
+            resolvedTrial: resolved,
+            bodyweightKg: 80
+        )
+        let log = OverallRankTrialRunner.shared.performanceLog(
+            from: draft,
+            userId: "u1",
+            startedAt: Date(timeIntervalSince1970: 100),
+            completedAt: Date(timeIntervalSince1970: 100 + Double(definition.estimatedMinutes * 60 + 600)),
+            passing: true
+        )
+
+        let evaluation = OverallRankTrialRunner.shared.evaluateDetailed(
+            log,
+            against: definition,
+            bodyweightKg: 80
+        )
+
+        XCTAssertFalse(definition.enforcesTotalTimeCap)
+        XCTAssertTrue(evaluation.passed)
+        XCTAssertFalse(evaluation.stationResults.contains { $0.id == "trial-time-cap" })
+    }
+
     func testDetailedEvaluationFailsTrialTimeCap() throws {
         let definition = OverallRankTrialDefinitions.theCount
         let resolved = try XCTUnwrap(resolvedTrial(for: definition, loadout: .homeKit))
@@ -204,6 +323,7 @@ extension OverallRankTrialServiceTests {
 
         let evaluation = OverallRankTrialRunner.shared.evaluateDetailed(log, against: definition)
 
+        XCTAssertTrue(definition.enforcesTotalTimeCap)
         XCTAssertFalse(evaluation.passed)
         XCTAssertEqual(evaluation.failedStation?.id, "trial-time-cap")
         XCTAssertEqual(evaluation.failedStation?.failureReason, "Trial exceeded the official time cap.")
@@ -589,6 +709,66 @@ extension OverallRankTrialServiceTests {
         if let ratio = expectedRatio, let resolved = resolved {
             XCTAssertEqual(resolved, ratio * bodyweightKg, accuracy: 0.5)
         }
+    }
+
+    func testStrikeStationFailsClosedWhenLoadFloorDoesNotResolve() {
+        let movementId = "exercise.plank"
+        let station = makeStrikeStation(movementId: movementId, reps: 3, strengthTier: .forged)
+        let testDef = OverallRankTrialDefinition(
+            id: "test-unresolved-strike-gate",
+            targetRank: .forged,
+            displayName: "Unresolved Strike Gate",
+            subtitle: "test",
+            estimatedMinutes: 10,
+            format: .theForging,
+            minOverallLevel: 1,
+            requiredEquipment: [.bodyweight],
+            performanceStandards: [station.standard],
+            loadoutVariants: [
+                TrialLoadoutVariant(
+                    loadout: .homeKit,
+                    requiredEquipment: [.bodyweight],
+                    promise: "test",
+                    stations: [station]
+                )
+            ]
+        )
+        let log = PerformanceLog(
+            userId: "u1",
+            source: .overallRankTrial,
+            title: "Unresolved Strike Gate",
+            startedAt: Date(timeIntervalSince1970: 0),
+            completedAt: Date(timeIntervalSince1970: 60),
+            programId: testDef.id,
+            blocks: [
+                PerformanceBlock(
+                    kind: .bodyweight,
+                    title: "t-strike",
+                    exercises: [
+                        PerformanceExercise(
+                            name: "Plank",
+                            movementId: movementId,
+                            plannedSets: 1,
+                            plannedTarget: "3 reps",
+                            sets: [PerformanceSet(setNumber: 1, reps: 3, weightKg: 100)]
+                        )
+                    ]
+                )
+            ]
+        )
+
+        let evaluation = OverallRankTrialRunner.shared.evaluateDetailed(
+            log,
+            against: testDef,
+            bodyweightKg: 80,
+            enforceLoadPercent: false
+        )
+
+        XCTAssertFalse(evaluation.passed)
+        XCTAssertEqual(
+            evaluation.failedStation?.failureReason,
+            "Could not resolve the strength-tier load standard."
+        )
     }
 
     func testStrikeStationFailsWhenTopSetBelowLoadFloor() throws {

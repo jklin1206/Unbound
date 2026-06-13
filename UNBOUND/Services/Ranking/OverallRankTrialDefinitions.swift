@@ -113,7 +113,8 @@ enum OverallRankTrialDefinitions {
         format: RankTrialFormat,
         minOverallLevel: Int,
         loadoutVariants: [TrialLoadoutVariant],
-        legacyIds: Set<String> = []
+        legacyIds: Set<String> = [],
+        enforcesTotalTimeCap: Bool = true
     ) -> OverallRankTrialDefinition {
         let defaultVariant = loadoutVariants.first { $0.loadout == .homeKit } ?? loadoutVariants[0]
         return OverallRankTrialDefinition(
@@ -127,7 +128,8 @@ enum OverallRankTrialDefinitions {
             requiredEquipment: defaultVariant.requiredEquipment,
             performanceStandards: defaultVariant.stations.map(\.standard),
             loadoutVariants: loadoutVariants,
-            legacyIds: legacyIds
+            legacyIds: legacyIds,
+            enforcesTotalTimeCap: enforcesTotalTimeCap
         )
     }
 
@@ -1348,7 +1350,8 @@ enum OverallRankTrialDefinitions {
             "overall-rank-trial-forged-forge",
             "overall-rank-trial-honed-forge",
             "overall-rank-trial-master-forge"
-        ]
+        ],
+        enforcesTotalTimeCap: false
     )
 
     static let deckOfProof = definition(

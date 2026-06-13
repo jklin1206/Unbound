@@ -191,7 +191,7 @@ final class OverallRankTrialRunner {
 
         guard attempt.passed, didAdvanceRank else { return [] }
 
-        let priorAttempts = previousProgress.attempts.filter { $0.definitionId == definition.id }
+        let priorAttempts = previousProgress.attempts.filter { definition.matchesAttemptDefinitionId($0.definitionId) }
         let priorFailureCount = priorAttempts.filter { !$0.passed }.count
         let hadPriorPass = priorAttempts.contains { $0.passed }
         guard priorFailureCount > 0, !hadPriorPass else { return [] }
@@ -316,6 +316,7 @@ final class OverallRankTrialRunner {
         for definition: OverallRankTrialDefinition,
         performanceLog: PerformanceLog
     ) -> OverallRankTrialStationResult? {
+        guard definition.enforcesTotalTimeCap else { return nil }
         let capSeconds = definition.estimatedMinutes * 60
         let elapsed = max(0, Int(performanceLog.completedAt.timeIntervalSince(performanceLog.startedAt).rounded()))
         guard elapsed > capSeconds else { return nil }
@@ -483,7 +484,10 @@ final class OverallRankTrialRunner {
                 )
             }
             let minimumLoad = bodyweightKg * loadPercent
-            let loadedSetExists = cleanSets.contains { ($0.weightKg ?? 0) >= minimumLoad }
+            let loadedSetExists = cleanSets.contains { set in
+                (set.weightKg ?? 0) >= minimumLoad
+                    && value(for: set, metric: standard.metric) >= effectiveMinimum
+            }
             if !loadedSetExists {
                 return stationResult(
                     station,
@@ -510,23 +514,31 @@ final class OverallRankTrialRunner {
                     failureReason: "Bodyweight is required for the strength-tier load standard."
                 )
             }
-            if let strikeLoadKg = station.resolvedStrikeLoadKg(bodyweightKg: bw), strikeLoadKg > 0 {
-                // Load floor and rep floor must be met within ONE set — a heavy
-                // single plus a light triple is not a passed strike.
-                let loadedSetExists = cleanSets.contains { set in
-                    (set.weightKg ?? 0) >= strikeLoadKg
-                        && value(for: set, metric: standard.metric) >= effectiveMinimum
-                }
-                if !loadedSetExists {
-                    return stationResult(
-                        station,
-                        qualifyingSetsCompleted: 0,
-                        totalValue: values.reduce(0, +),
-                        failedQualityFlags: [],
-                        status: .failed,
-                        failureReason: "Top set did not meet the strength-tier load floor."
-                    )
-                }
+            guard let strikeLoadKg = station.resolvedStrikeLoadKg(bodyweightKg: bw), strikeLoadKg > 0 else {
+                return stationResult(
+                    station,
+                    qualifyingSetsCompleted: 0,
+                    totalValue: values.reduce(0, +),
+                    failedQualityFlags: [],
+                    status: .failed,
+                    failureReason: "Could not resolve the strength-tier load standard."
+                )
+            }
+            // Load floor and rep floor must be met within ONE set — a heavy
+            // single plus a light triple is not a passed strike.
+            let loadedSetExists = cleanSets.contains { set in
+                (set.weightKg ?? 0) >= strikeLoadKg
+                    && value(for: set, metric: standard.metric) >= effectiveMinimum
+            }
+            if !loadedSetExists {
+                return stationResult(
+                    station,
+                    qualifyingSetsCompleted: 0,
+                    totalValue: values.reduce(0, +),
+                    failedQualityFlags: [],
+                    status: .failed,
+                    failureReason: "Top set did not meet the strength-tier load floor."
+                )
             }
         }
 

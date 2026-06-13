@@ -8,11 +8,17 @@ struct OverallRankTrialProgress: Codable, Equatable, Sendable {
 
     var currentRank: RankTitle { highestPassedRank }
 
-    func latestAttempt(definitionId: String) -> OverallRankTrialAttempt? {
+    func latestAttempt(for definition: OverallRankTrialDefinition) -> OverallRankTrialAttempt? {
         attempts
-            .filter { $0.definitionId == definitionId }
+            .filter { definition.matchesAttemptDefinitionId($0.definitionId) }
             .sorted { $0.completedAt > $1.completedAt }
             .first
+    }
+}
+
+extension OverallRankTrialDefinition {
+    func matchesAttemptDefinitionId(_ definitionId: String) -> Bool {
+        id == definitionId || legacyIds.contains(definitionId)
     }
 }
 

@@ -171,6 +171,44 @@ extension OverallRankTrialServiceTests {
         XCTAssertTrue(readiness.isReady)
     }
 
+    func testLegacyDefinitionAttemptsCountForProgressAndReadiness() throws {
+        let definition = OverallRankTrialDefinitions.theForging
+        let legacyId = try XCTUnwrap(definition.legacyIds.first)
+        let legacyAttempt = OverallRankTrialAttempt(
+            id: "legacy-forging-pass",
+            userId: "u1",
+            definitionId: legacyId,
+            targetRank: definition.targetRank,
+            startedAt: Date(timeIntervalSince1970: 100),
+            completedAt: Date(timeIntervalSince1970: 1_000),
+            performanceLogId: "legacy-forging-log",
+            passed: true,
+            movementAPGained: 0,
+            overallLevelXPGained: 0
+        )
+        let progress = OverallRankTrialProgress(
+            highestPassedRank: .apprentice,
+            attempts: [legacyAttempt]
+        )
+
+        XCTAssertEqual(progress.latestAttempt(for: definition)?.id, legacyAttempt.id)
+
+        let readiness = TrialReadinessService.shared.evaluate(
+            OverallRankTrialReadinessInput(
+                userId: "u1",
+                currentRank: .apprentice,
+                overallLevel: 0,
+                aggregateRank: .initiate,
+                equipment: [.bodyweight],
+                clearedGateKeys: [],
+                attempts: progress.attempts
+            )
+        )
+
+        XCTAssertEqual(readiness.latestAttempt?.id, legacyAttempt.id)
+        XCTAssertEqual(readiness.status, .passed)
+    }
+
     func testForgedReadinessTargetsVeteranAndLocksWhenDeckOfProofEquipmentIsMissing() {
         let definition = OverallRankTrialDefinitions.deckOfProof
         let readiness = TrialReadinessService.shared.evaluate(

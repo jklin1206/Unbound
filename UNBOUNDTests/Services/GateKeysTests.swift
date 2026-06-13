@@ -43,13 +43,19 @@ final class GateKeysTests: XCTestCase {
         XCTAssertTrue(GateKeys.clearedKeys(for: .theForging, history: sameSetProof, bodyweightKg: 80).contains("key-forge-hinge"))
     }
 
-    func testThresholdCarryUsesNormalCatalogCarryIds() {
-        let history = FixtureGateKeyHistory(
-            records: [record("carry.farmer-carry", reps: 100, loadKg: 30)]
+    func testThresholdLoadedUpperKeyUsesSetLogProvableFields() {
+        let history = WorkoutLogGateKeyHistory(
+            workoutLogs: [
+                workoutLog(entries: [
+                    entry("Dumbbell Row", movementId: "exercise.dumbbell-row", reps: 8, weightKg: 50)
+                ])
+            ],
+            attributeProfile: nil,
+            trialProgress: .empty
         )
 
         let cleared = GateKeys.clearedKeys(for: .theThreshold, history: history, bodyweightKg: 100)
-        XCTAssertTrue(cleared.contains("key-threshold-carry"))
+        XCTAssertTrue(cleared.contains("key-threshold-press"))
     }
 
     func testAttributeFloorReadsAttributeProfile() {
@@ -152,6 +158,26 @@ final class GateKeysTests: XCTestCase {
         }
     }
 
+    func testWorkoutLogBackedGateKeysAreSatisfiableFromSetLogFields() {
+        let bodyweightKg = 100.0
+
+        for format in RankTrialFormat.allCases {
+            for key in GateKeys.keys(for: format) {
+                guard let entries = setLogEntriesThatShouldClear(key) else { continue }
+                let history = WorkoutLogGateKeyHistory(
+                    workoutLogs: [workoutLog(entries: entries)],
+                    attributeProfile: nil,
+                    trialProgress: .empty
+                )
+
+                XCTAssertTrue(
+                    GateKeys.clearedKeys(for: format, history: history, bodyweightKg: bodyweightKg).contains(key.id),
+                    "\(key.id) must be provable from SetLog reps, weightKg, or durationSeconds"
+                )
+            }
+        }
+    }
+
     private struct FixtureGateKeyHistory: GateKeyHistory {
         let gateKeySetRecords: [GateKeySetRecord]
         let gateKeyAttributeProfile: AttributeProfile?
@@ -227,6 +253,22 @@ final class GateKeysTests: XCTestCase {
             skipped: false,
             notes: nil
         )
+    }
+
+    private func setLogEntriesThatShouldClear(_ key: GateKeyDefinition) -> [ExerciseLogEntry]? {
+        guard let movementId = key.movementIds.first else { return [] }
+        let exerciseName = MovementCatalog.definition(for: movementId)?.displayName ?? movementId
+
+        switch key.metric {
+        case .repsInOneSet(let reps):
+            return [entry(exerciseName, movementId: movementId, reps: reps)]
+        case .loadedRepsInOneSet(let reps, let ratioOfBodyweight):
+            return [entry(exerciseName, movementId: movementId, reps: reps, weightKg: 100 * ratioOfBodyweight)]
+        case .holdSeconds(let seconds):
+            return [entry(exerciseName, movementId: movementId, reps: 0, durationSeconds: seconds)]
+        case .attributeFloor, .gatesAnswered:
+            return nil
+        }
     }
 
     private func attributeProfile(level: Int) -> AttributeProfile {

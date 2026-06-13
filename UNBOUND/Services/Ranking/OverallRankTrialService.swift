@@ -410,6 +410,7 @@ struct OverallRankTrialDefinition: Identifiable, Codable, Equatable, Sendable {
     let performanceStandards: [OverallRankTrialPerformanceStandard]
     let loadoutVariants: [TrialLoadoutVariant]
     let legacyIds: Set<String>
+    let enforcesTotalTimeCap: Bool
 
     init(
         id: String,
@@ -422,7 +423,8 @@ struct OverallRankTrialDefinition: Identifiable, Codable, Equatable, Sendable {
         requiredEquipment: Set<MovementEquipment>,
         performanceStandards: [OverallRankTrialPerformanceStandard],
         loadoutVariants: [TrialLoadoutVariant] = [],
-        legacyIds: Set<String> = []
+        legacyIds: Set<String> = [],
+        enforcesTotalTimeCap: Bool = true
     ) {
         self.id = id
         self.targetRank = targetRank
@@ -435,13 +437,14 @@ struct OverallRankTrialDefinition: Identifiable, Codable, Equatable, Sendable {
         self.performanceStandards = performanceStandards
         self.loadoutVariants = loadoutVariants
         self.legacyIds = legacyIds
+        self.enforcesTotalTimeCap = enforcesTotalTimeCap
     }
 
     enum CodingKeys: String, CodingKey {
         case id, targetRank, displayName, subtitle, estimatedMinutes, format
         case minOverallLevel, requiredEquipment
         case performanceStandards
-        case loadoutVariants, legacyIds
+        case loadoutVariants, legacyIds, enforcesTotalTimeCap
     }
 
     init(from decoder: Decoder) throws {
@@ -457,6 +460,7 @@ struct OverallRankTrialDefinition: Identifiable, Codable, Equatable, Sendable {
         performanceStandards = try c.decode([OverallRankTrialPerformanceStandard].self, forKey: .performanceStandards)
         loadoutVariants = try c.decodeIfPresent([TrialLoadoutVariant].self, forKey: .loadoutVariants) ?? []
         legacyIds = try c.decodeIfPresent(Set<String>.self, forKey: .legacyIds) ?? []
+        enforcesTotalTimeCap = try c.decodeIfPresent(Bool.self, forKey: .enforcesTotalTimeCap) ?? true
     }
 
     func makeDraft(

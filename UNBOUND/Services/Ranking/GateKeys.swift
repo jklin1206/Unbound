@@ -149,14 +149,14 @@ enum GateKeys {
         case .theThreshold:
             return [
                 GateKeyDefinition(
-                    id: "key-threshold-carry",
-                    label: "Carry 30% bodyweight for 100m",
+                    id: "key-threshold-press",
+                    label: "Loaded upper 0.5x bodyweight for 8",
                     movementIds: [
-                        "carry.farmer-carry",
-                        "carry.suitcase-carry",
-                        "carry.sandbag-carry"
+                        "exercise.dumbbell-row",
+                        "exercise.cable-row-seated",
+                        "exercise.machine-row"
                     ],
-                    metric: .loadedRepsInOneSet(reps: 100, ratioOfBodyweight: 0.30)
+                    metric: .loadedRepsInOneSet(reps: 8, ratioOfBodyweight: 0.50)
                 ),
                 GateKeyDefinition(
                     id: "key-threshold-hold",
