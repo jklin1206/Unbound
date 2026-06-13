@@ -78,10 +78,12 @@ enum TrialStandards {
         static let enduranceEngineMeters = 800
         static let vitalityLowerReps = 48
         static let explosivenessReps = 40
-        static let powerStrikeReps = 3
+        static let powerStrikeReps = 3          // shared by the hinge AND press halves of the Power seal
         static let controlHoldSeconds = 60
         static let controlSets = 2
         static let mobilityDeepSquatHoldSeconds = 60
+        static let mobilityHoldLoadPercentLoaded = 0.25   // weighted deep-squat hold (goblet/kettlebell)
+        static let mobilityHoldLoadPercentNoGym = 0.15    // backpack-loaded deep-squat hold
         static let mobilityCossackRepsPerSide = 10
         static let spiritCarryMeters = 200
         static let spiritCarryLoadPercentNoGym = 0.15

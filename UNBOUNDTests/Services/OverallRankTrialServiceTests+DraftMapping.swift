@@ -130,7 +130,8 @@ extension OverallRankTrialServiceTests {
         XCTAssertEqual(ascent.stations.first { $0.id == "ascent-floor-09-pull" }?.category, .pull)
         XCTAssertFalse(ascent.stations.map(\.id).contains("ascent-floor-09"))
         XCTAssertEqual(sevenSeals.stations.first { $0.id == "seals-explosiveness" }?.category, .explosive)
-        XCTAssertEqual(sevenSeals.stations.first { $0.id == "seals-power" }?.category, .hingePower)
+        XCTAssertEqual(sevenSeals.stations.first { $0.id == "seals-power-hinge" }?.category, .hingePower)
+        XCTAssertEqual(sevenSeals.stations.first { $0.id == "seals-power-press" }?.category, .push)
         XCTAssertEqual(sevenSeals.stations.last?.id, "seals-spirit")
         XCTAssertFalse(sevenSeals.stations.map(\.id).contains { $0.hasPrefix("boss-") })
     }

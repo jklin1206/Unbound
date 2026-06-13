@@ -222,6 +222,10 @@ struct TrialStation: Identifiable, Codable, Equatable, Sendable {
     /// `StrengthStandards` so balance tuning is reflected automatically.
     let strengthTier: RankTier?
     let dynamicGroupKey: String?
+    /// When false, the station is part of the prescribed work (warm-ups, ramps) but
+    /// does NOT gate pass/fail — evaluation still reports it but excludes it from the
+    /// overall verdict. Defaults true. Used by Gate III "Stoke the Fire" (unscored opener).
+    let isScored: Bool
     let movementOptions: [TrialMovementOption]
     let restRule: String
     let qualityFlags: Set<PerformanceQualityFlag>
@@ -262,6 +266,7 @@ struct TrialStation: Identifiable, Codable, Equatable, Sendable {
         loadPercentOfBodyweight: Double?,
         strengthTier: RankTier? = nil,
         dynamicGroupKey: String? = nil,
+        isScored: Bool = true,
         movementOptions: [TrialMovementOption],
         restRule: String,
         qualityFlags: Set<PerformanceQualityFlag>
@@ -274,6 +279,7 @@ struct TrialStation: Identifiable, Codable, Equatable, Sendable {
         self.loadPercentOfBodyweight = loadPercentOfBodyweight
         self.strengthTier = strengthTier
         self.dynamicGroupKey = dynamicGroupKey
+        self.isScored = isScored
         self.movementOptions = movementOptions
         self.restRule = restRule
         self.qualityFlags = qualityFlags
@@ -281,7 +287,7 @@ struct TrialStation: Identifiable, Codable, Equatable, Sendable {
 
     enum CodingKeys: String, CodingKey {
         case id, title, category, standard, capSeconds, loadPercentOfBodyweight, strengthTier, dynamicGroupKey
-        case movementOptions, restRule, qualityFlags
+        case isScored, movementOptions, restRule, qualityFlags
     }
 
     init(from decoder: Decoder) throws {
@@ -294,6 +300,7 @@ struct TrialStation: Identifiable, Codable, Equatable, Sendable {
         loadPercentOfBodyweight = try c.decodeIfPresent(Double.self, forKey: .loadPercentOfBodyweight)
         strengthTier = try c.decodeIfPresent(RankTier.self, forKey: .strengthTier)
         dynamicGroupKey = try c.decodeIfPresent(String.self, forKey: .dynamicGroupKey)
+        isScored = try c.decodeIfPresent(Bool.self, forKey: .isScored) ?? true
         movementOptions = try c.decode([TrialMovementOption].self, forKey: .movementOptions)
         restRule = try c.decode(String.self, forKey: .restRule)
         qualityFlags = try c.decode(Set<PerformanceQualityFlag>.self, forKey: .qualityFlags)
@@ -386,6 +393,53 @@ struct OverallRankTrialStationResult: Identifiable, Codable, Equatable, Sendable
     let failedQualityFlags: Set<PerformanceQualityFlag>
     let status: OverallRankTrialStationStatus
     let failureReason: String?
+    /// When false, this station is reported but excluded from the overall pass/fail
+    /// verdict (unscored warm-ups/ramps, e.g. Gate III "Stoke the Fire"). Defaults true.
+    let isScored: Bool
+
+    init(
+        id: String,
+        title: String,
+        category: TrialMovementCategory,
+        movementId: String,
+        required: Int,
+        qualifyingSetsRequired: Int,
+        qualifyingSetsCompleted: Int,
+        totalValue: Int,
+        failedQualityFlags: Set<PerformanceQualityFlag>,
+        status: OverallRankTrialStationStatus,
+        failureReason: String?,
+        isScored: Bool = true
+    ) {
+        self.id = id
+        self.title = title
+        self.category = category
+        self.movementId = movementId
+        self.required = required
+        self.qualifyingSetsRequired = qualifyingSetsRequired
+        self.qualifyingSetsCompleted = qualifyingSetsCompleted
+        self.totalValue = totalValue
+        self.failedQualityFlags = failedQualityFlags
+        self.status = status
+        self.failureReason = failureReason
+        self.isScored = isScored
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        title = try c.decode(String.self, forKey: .title)
+        category = try c.decode(TrialMovementCategory.self, forKey: .category)
+        movementId = try c.decode(String.self, forKey: .movementId)
+        required = try c.decode(Int.self, forKey: .required)
+        qualifyingSetsRequired = try c.decode(Int.self, forKey: .qualifyingSetsRequired)
+        qualifyingSetsCompleted = try c.decode(Int.self, forKey: .qualifyingSetsCompleted)
+        totalValue = try c.decode(Int.self, forKey: .totalValue)
+        failedQualityFlags = try c.decode(Set<PerformanceQualityFlag>.self, forKey: .failedQualityFlags)
+        status = try c.decode(OverallRankTrialStationStatus.self, forKey: .status)
+        failureReason = try c.decodeIfPresent(String.self, forKey: .failureReason)
+        isScored = try c.decodeIfPresent(Bool.self, forKey: .isScored) ?? true
+    }
 }
 
 struct OverallRankTrialEvaluation: Codable, Equatable, Sendable {
@@ -394,7 +448,7 @@ struct OverallRankTrialEvaluation: Codable, Equatable, Sendable {
     let stationResults: [OverallRankTrialStationResult]
 
     var failedStation: OverallRankTrialStationResult? {
-        stationResults.first { $0.status != .passed }
+        stationResults.first { $0.isScored && $0.status != .passed }
     }
 }
 

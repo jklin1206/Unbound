@@ -46,20 +46,18 @@ collapses the group to whichever was logged.
 4. strength-tier strike failed OPEN on unresolved ratio → now fails closed.
 5. loadPercent carry could pass via split sets → same-set conjunction (mirrors the strike fix).
 
-## NEEDS YOUR DECISION — balance/design items I deliberately did NOT change (your §14 checkpoints)
-These change game difficulty and were "confirm/adjust at phase start" items; I left them at the
-implemented baseline rather than guess. Each is a one-line call:
-1. **Gate VI POWER seal** — implemented as a single Vessel-tier hinge strike. §14 #2 default was
-   "hinge + press, 3 reps each". Add the press half? (currently hinge only)
-2. **Gate VI MOBILITY seal** — implemented as a 60s deep-squat hold only. §14 #3 default was
-   "60s WEIGHTED deep-squat hold + 10/side cossack". Add weighted-hold enforcement + cossack reps?
-   (Note: `TrialStandards.SevenSeals.mobilityCossackRepsPerSide` exists but is intentionally unwired pending this call.)
-3. **Gate III "Stoke the Fire"** — implemented as a scored 300m engine (min 1 qualifying set). Spec intent
-   is an UNSCORED warm-up. Make it truly unscored (exclude from pass/fail)?
-4. **Gate Keys table (§14 #5)** — early gates (First Light / The Count / Deck of Proof) return NO keys by
-   design (spec §7: LVL+accumulation suffice; deck capacity IS the trial). Seven Seals = 1 key (hexagon),
-   Last Gate = 1 key (7 gates answered). Spec §14 says "2–3 keys each" — a spec internal inconsistency.
-   Confirm the per-gate key set, or expand.
+## Balance/design calls — RESOLVED by jlin and implemented (commit `feat(gates): balance tweaks`)
+1. **Gate VI POWER seal** — now TWO scored Vessel-tier strikes: `seals-power-hinge` + `seals-power-press`
+   (3 reps each at Vessel ratios; no-gym press = tempo push-up floor 3). Tests both push and pull power.
+2. **Gate VI MOBILITY seal** — now `seals-mobility-hold` (WEIGHTED 60s deep-squat hold, 0.25×bw loaded /
+   0.15×bw no-gym) + `seals-mobility-cossack` (10/side). `mobilityCossackRepsPerSide` is now wired.
+   Gate VI is 9 stations (still 7 seals; Power and Mobility each span two scored movements).
+3. **Gate III "Stoke the Fire"** — now UNSCORED via the new `TrialStation.isScored=false`; reported but
+   excluded from the verdict. A failing/missing stoke no longer fails the trial (regression-tested).
+4. **Gate Keys** — early gates (First Light / The Count / Deck of Proof) keep NO keys by design (spec §7).
+   The keyed gates now have TWO each: Seven Seals (hexagon + loaded-hinge 1.5×bw×3), The Last Gate
+   (7 gates answered + 15 strict pull-ups). Forge / Ascent / Threshold already had two. All keys are
+   provable from `SetLog` (guard test enforces it).
 
 ## Deferred to later plans (by design, not gaps)
 - All UI: NextGateCard, Gate Hall, entry ceremony, world-stage active view, beats, verdict, The Crossing,

@@ -144,6 +144,16 @@ enum GateKeys {
                         "exercise.jump-squat"
                     ],
                     metric: .attributeFloor(.master)
+                ),
+                GateKeyDefinition(
+                    id: "key-seals-power",
+                    label: "Loaded hinge 1.5x bodyweight for 3",
+                    movementIds: [
+                        "exercise.deadlift",
+                        "exercise.romanian-deadlift",
+                        "exercise.dumbbell-romanian-deadlift"
+                    ],
+                    metric: .loadedRepsInOneSet(reps: 3, ratioOfBodyweight: 1.50)
                 )
             ]
         case .theThreshold:
@@ -177,6 +187,12 @@ enum GateKeys {
                         "carry.farmer-carry"
                     ],
                     metric: .gatesAnswered(7)
+                ),
+                GateKeyDefinition(
+                    id: "key-lastgate-pullups",
+                    label: "15 strict pull-ups, one set",
+                    movementIds: ["exercise.pullup"],
+                    metric: .repsInOneSet(15)
                 )
             ]
         }

@@ -83,6 +83,8 @@ final class GateDefinitionTests: XCTestCase {
         XCTAssertEqual(home[0].standard.minimumValue, TrialStandards.TheForging.stokeEngineMeters)
         XCTAssertEqual(home[0].standard.minimumQualifyingSets, 1)
         XCTAssertNil(home[0].capSeconds)
+        XCTAssertFalse(home[0].isScored, "Stoke the Fire is an unscored warm-up")
+        XCTAssertTrue(home.dropFirst().allSatisfy(\.isScored), "Only Stoke is unscored")
         XCTAssertEqual(home[1].standard.minimumValue, TrialStandards.TheForging.scoredStrikeReps)
         XCTAssertEqual(home[1].standard.minimumQualifyingSets, 1)
         XCTAssertEqual(home[1].standard.plannedSets, 3)
@@ -254,66 +256,89 @@ final class GateDefinitionTests: XCTestCase {
         XCTAssertTrue(gate.legacyIds.contains("overall-rank-trial-vessel-ten-hundred"))
         XCTAssertTrue(gate.legacyIds.contains("overall-rank-trial-vessel-crucible"))
 
+        // Seven seals, nine stations: Power (hinge + press) and Mobility (hold + cossack) each
+        // span two scored movements per the §14 balance calls.
         let expectedIds = [
             "seals-endurance", "seals-vitality", "seals-explosiveness",
-            "seals-power", "seals-control", "seals-mobility", "seals-spirit"
+            "seals-power-hinge", "seals-power-press", "seals-control",
+            "seals-mobility-hold", "seals-mobility-cossack", "seals-spirit"
         ]
 
         for loadout in TrialLoadout.allCases {
             let stations = gate.stations(for: loadout)
-            XCTAssertEqual(stations.count, 7, loadout.displayName)
+            XCTAssertEqual(stations.count, 9, loadout.displayName)
             XCTAssertEqual(stations.map(\.id), expectedIds, loadout.displayName)
             XCTAssertTrue(stations.allSatisfy { $0.capSeconds == TrialStandards.SevenSeals.sealCapSeconds }, loadout.displayName)
             XCTAssertTrue(stations.allSatisfy { !$0.movementOptions.isEmpty }, loadout.displayName)
             XCTAssertEqual(stations.last?.id, "seals-spirit", loadout.displayName)
         }
 
+        func station(_ id: String, in stations: [TrialStation]) throws -> TrialStation {
+            try XCTUnwrap(stations.first { $0.id == id })
+        }
+
         let home = gate.stations(for: .homeKit)
-        XCTAssertEqual(home[0].standard.minimumValue, TrialStandards.SevenSeals.enduranceEngineMeters)
-        XCTAssertEqual(home[1].standard.minimumValue, TrialStandards.SevenSeals.vitalityLowerReps)
-        XCTAssertEqual(home[2].category, .explosive)
-        XCTAssertEqual(home[2].standard.minimumValue, TrialStandards.SevenSeals.explosivenessReps)
-        XCTAssertEqual(home[3].category, .hingePower)
-        XCTAssertEqual(home[3].standard.minimumValue, TrialStandards.SevenSeals.powerStrikeReps)
-        XCTAssertEqual(home[3].standard.minimumQualifyingSets, 1)
-        XCTAssertEqual(home[3].standard.plannedSets, 3)
-        XCTAssertEqual(home[3].strengthTier, .vessel)
-        XCTAssertEqual(home[4].standard.movementId, "exercise.plank")
-        XCTAssertEqual(home[4].standard.minimumValue, TrialStandards.SevenSeals.controlHoldSeconds)
-        XCTAssertEqual(home[4].standard.minimumQualifyingSets, TrialStandards.SevenSeals.controlSets)
-        XCTAssertEqual(home[4].standard.plannedSets, TrialStandards.SevenSeals.controlSets)
-        XCTAssertEqual(home[5].standard.movementId, "mobility.deep-squat-hold")
-        XCTAssertEqual(home[5].standard.metric, .holdSeconds)
-        XCTAssertEqual(home[5].standard.minimumValue, TrialStandards.SevenSeals.mobilityDeepSquatHoldSeconds)
-        XCTAssertEqual(home[5].movementOptions.first?.requiredEquipment, Set([.bodyweight, .openSpace]))
-        XCTAssertEqual(home[6].standard.minimumValue, TrialStandards.SevenSeals.spiritCarryMeters)
-        XCTAssertEqual(home[6].loadPercentOfBodyweight, TrialStandards.SevenSeals.spiritCarryLoadPercentLoaded)
+        XCTAssertEqual(try station("seals-endurance", in: home).standard.minimumValue, TrialStandards.SevenSeals.enduranceEngineMeters)
+        XCTAssertEqual(try station("seals-vitality", in: home).standard.minimumValue, TrialStandards.SevenSeals.vitalityLowerReps)
+        XCTAssertEqual(try station("seals-explosiveness", in: home).category, .explosive)
+        XCTAssertEqual(try station("seals-explosiveness", in: home).standard.minimumValue, TrialStandards.SevenSeals.explosivenessReps)
+        let homeHinge = try station("seals-power-hinge", in: home)
+        XCTAssertEqual(homeHinge.category, .hingePower)
+        XCTAssertEqual(homeHinge.standard.minimumValue, TrialStandards.SevenSeals.powerStrikeReps)
+        XCTAssertEqual(homeHinge.standard.plannedSets, 3)
+        XCTAssertEqual(homeHinge.strengthTier, .vessel)
+        let homePress = try station("seals-power-press", in: home)
+        XCTAssertEqual(homePress.category, .push)
+        XCTAssertEqual(homePress.standard.minimumValue, TrialStandards.SevenSeals.powerStrikeReps)
+        XCTAssertEqual(homePress.strengthTier, .vessel)
+        let homeControl = try station("seals-control", in: home)
+        XCTAssertEqual(homeControl.standard.movementId, "exercise.plank")
+        XCTAssertEqual(homeControl.standard.minimumValue, TrialStandards.SevenSeals.controlHoldSeconds)
+        XCTAssertEqual(homeControl.standard.minimumQualifyingSets, TrialStandards.SevenSeals.controlSets)
+        let homeMobilityHold = try station("seals-mobility-hold", in: home)
+        XCTAssertEqual(homeMobilityHold.standard.movementId, "mobility.deep-squat-hold")
+        XCTAssertEqual(homeMobilityHold.standard.metric, .holdSeconds)
+        XCTAssertEqual(homeMobilityHold.standard.minimumValue, TrialStandards.SevenSeals.mobilityDeepSquatHoldSeconds)
+        XCTAssertEqual(homeMobilityHold.loadPercentOfBodyweight, TrialStandards.SevenSeals.mobilityHoldLoadPercentLoaded)
+        let homeCossack = try station("seals-mobility-cossack", in: home)
+        XCTAssertEqual(homeCossack.standard.metric, .reps)
+        XCTAssertEqual(homeCossack.standard.minimumValue, TrialStandards.SevenSeals.mobilityCossackRepsPerSide)
+        let homeSpirit = try station("seals-spirit", in: home)
+        XCTAssertEqual(homeSpirit.standard.minimumValue, TrialStandards.SevenSeals.spiritCarryMeters)
+        XCTAssertEqual(homeSpirit.loadPercentOfBodyweight, TrialStandards.SevenSeals.spiritCarryLoadPercentLoaded)
 
         let noGym = gate.stations(for: .noGymField)
-        let noGymPower = try XCTUnwrap(noGym.first { $0.id == "seals-power" })
-        XCTAssertEqual(noGymPower.standard.movementId, "exercise.single-leg-rdl")
-        XCTAssertEqual(noGymPower.loadPercentOfBodyweight, 0.25)
-        XCTAssertNil(noGymPower.strengthTier)
-        XCTAssertEqual(noGym.first { $0.id == "seals-spirit" }?.loadPercentOfBodyweight, TrialStandards.SevenSeals.spiritCarryLoadPercentNoGym)
+        let noGymHinge = try station("seals-power-hinge", in: noGym)
+        XCTAssertEqual(noGymHinge.standard.movementId, "exercise.single-leg-rdl")
+        XCTAssertEqual(noGymHinge.loadPercentOfBodyweight, 0.25)
+        XCTAssertNil(noGymHinge.strengthTier)
+        let noGymPress = try station("seals-power-press", in: noGym)
+        XCTAssertEqual(noGymPress.standard.movementId, "exercise.pushup")
+        XCTAssertNil(noGymPress.strengthTier)
+        XCTAssertEqual(noGymPress.movementOptions.first?.floorOverride, TrialStandards.SevenSeals.powerStrikeReps)
+        XCTAssertEqual(try station("seals-mobility-hold", in: noGym).loadPercentOfBodyweight, TrialStandards.SevenSeals.mobilityHoldLoadPercentNoGym)
+        XCTAssertEqual(try station("seals-spirit", in: noGym).loadPercentOfBodyweight, TrialStandards.SevenSeals.spiritCarryLoadPercentNoGym)
     }
 
     func testGate6PowerSealLoadedMovementsResolveVesselStrengthRatios() throws {
         let gate = OverallRankTrialDefinitions.sevenSeals
 
         for loadout in [TrialLoadout.homeKit, .gymHybrid] {
-            let power = try XCTUnwrap(gate.stations(for: loadout).first { $0.id == "seals-power" }, loadout.displayName)
-            XCTAssertEqual(power.strengthTier, .vessel, loadout.displayName)
+            // Both the hinge and the press halves carry the Vessel strength tier.
+            let strikes = gate.stations(for: loadout).filter { $0.strengthTier == .vessel }
+            XCTAssertEqual(strikes.map(\.id), ["seals-power-hinge", "seals-power-press"], loadout.displayName)
 
-            for option in power.movementOptions {
-                let movementKey = MovementCatalog.definition(for: option.movementId)?.canonicalExerciseName ?? option.movementId
-                let ratio = StrengthStandards.ratio(exerciseKey: movementKey, tier: .vessel, sex: nil)
-                XCTAssertNotNil(ratio, "\(loadout.displayName) \(option.movementId) must resolve a Vessel strength ratio")
+            for strike in strikes {
+                for option in strike.movementOptions {
+                    let movementKey = MovementCatalog.definition(for: option.movementId)?.canonicalExerciseName ?? option.movementId
+                    let ratio = StrengthStandards.ratio(exerciseKey: movementKey, tier: .vessel, sex: nil)
+                    XCTAssertNotNil(ratio, "\(loadout.displayName) \(option.movementId) must resolve a Vessel strength ratio")
+                }
+                XCTAssertNotNil(
+                    strike.resolvedStrikeLoadKg(bodyweightKg: 80),
+                    "\(loadout.displayName) \(strike.id) must resolve a strike load"
+                )
             }
-
-            XCTAssertNotNil(
-                power.resolvedStrikeLoadKg(bodyweightKg: 80),
-                "\(loadout.displayName) seals-power must resolve a strike load"
-            )
         }
     }
 

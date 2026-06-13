@@ -243,7 +243,9 @@ final class OverallRankTrialRunner {
 
         return OverallRankTrialEvaluation(
             definitionId: definition.id,
-            passed: stationResults.allSatisfy { $0.status == .passed },
+            // Unscored stations (warm-ups/ramps, e.g. Gate III "Stoke the Fire") are
+            // reported but never block the verdict.
+            passed: stationResults.filter(\.isScored).allSatisfy { $0.status == .passed },
             stationResults: stationResults
         )
     }
@@ -575,7 +577,8 @@ final class OverallRankTrialRunner {
             totalValue: totalValue,
             failedQualityFlags: failedQualityFlags,
             status: status,
-            failureReason: failureReason
+            failureReason: failureReason,
+            isScored: station.isScored
         )
     }
 

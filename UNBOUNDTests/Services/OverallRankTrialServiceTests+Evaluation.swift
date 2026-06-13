@@ -65,6 +65,50 @@ extension OverallRankTrialServiceTests {
         }
     }
 
+    func testUnscoredStationDoesNotBlockTheVerdict() throws {
+        // Gate III's "Stoke the Fire" is an unscored warm-up. Even if it is failed
+        // (or missing), the trial still passes when every scored station passes.
+        let definition = OverallRankTrialDefinitions.theForging
+        let resolved = try XCTUnwrap(resolvedTrial(for: definition, loadout: .homeKit))
+        let draft = OverallRankTrialRunner.shared.draft(
+            for: definition,
+            userId: "u1",
+            date: Date(timeIntervalSince1970: 100),
+            resolvedTrial: resolved,
+            bodyweightKg: 80
+        )
+        var log = OverallRankTrialRunner.shared.performanceLog(
+            from: draft,
+            userId: "u1",
+            startedAt: Date(timeIntervalSince1970: 100),
+            completedAt: Date(timeIntervalSince1970: 1_000),
+            passing: true
+        )
+
+        // Zero out the engine (stoke) block's logged distance so the unscored
+        // station fails, leaving every scored strike/carry intact.
+        for blockIndex in log.blocks.indices where log.blocks[blockIndex].kind == .cardio {
+            for exerciseIndex in log.blocks[blockIndex].exercises.indices {
+                for setIndex in log.blocks[blockIndex].exercises[exerciseIndex].sets.indices {
+                    log.blocks[blockIndex].exercises[exerciseIndex].sets[setIndex].distanceMeters = 0
+                }
+            }
+        }
+
+        let evaluation = OverallRankTrialRunner.shared.evaluateDetailed(
+            log,
+            against: definition,
+            bodyweightKg: 80,
+            enforceLoadPercent: true
+        )
+
+        XCTAssertTrue(evaluation.passed, "An unscored station failing must not fail the trial")
+        XCTAssertNil(evaluation.failedStation, "Unscored stations are excluded from failedStation")
+        let stoke = try XCTUnwrap(evaluation.stationResults.first { $0.id == "forging-stoke" })
+        XCTAssertFalse(stoke.isScored)
+        XCTAssertNotEqual(stoke.status, .passed, "The stoke was deliberately degraded")
+    }
+
     func testDetailedEvaluationFailsSkippedStationDespiteOtherOverperformance() throws {
         let definition = OverallRankTrialDefinitions.theCount
         let resolved = try XCTUnwrap(resolvedTrial(for: definition, loadout: .homeKit))

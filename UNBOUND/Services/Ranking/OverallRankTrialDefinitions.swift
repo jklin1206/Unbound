@@ -64,6 +64,7 @@ enum OverallRankTrialDefinitions {
         loadPercentOfBodyweight: Double? = nil,
         strengthTier: RankTier? = nil,
         dynamicGroupKey: String? = nil,
+        isScored: Bool = true,
         movementOptions: [TrialMovementOption]? = nil,
         restRule: String? = nil
     ) -> TrialStation {
@@ -85,6 +86,7 @@ enum OverallRankTrialDefinitions {
             loadPercentOfBodyweight: loadPercentOfBodyweight,
             strengthTier: strengthTier,
             dynamicGroupKey: dynamicGroupKey,
+            isScored: isScored,
             movementOptions: movementOptions ?? [option(movementId, displayName)],
             restRule: restRule ?? "Clean reps only. Pain or form-break flags fail the station.",
             qualityFlags: [.clean]
@@ -176,7 +178,8 @@ enum OverallRankTrialDefinitions {
         runMeters: Int,
         minimumQualifyingSets: Int = 1,
         capSeconds: Int? = nil,
-        dynamicGroupKey: String? = nil
+        dynamicGroupKey: String? = nil,
+        isScored: Bool = true
     ) -> TrialStation {
         let movement = engineMovement(loadout: loadout, runMeters: runMeters)
         return station(
@@ -192,6 +195,7 @@ enum OverallRankTrialDefinitions {
             restSeconds: 45,
             capSeconds: capSeconds,
             dynamicGroupKey: dynamicGroupKey,
+            isScored: isScored,
             movementOptions: [option(movement.id, movement.displayName, requiredEquipment: movement.equipment)]
         )
     }
@@ -391,7 +395,8 @@ enum OverallRankTrialDefinitions {
                 "forging-stoke",
                 title: "Stoke the Fire",
                 loadout: loadout,
-                runMeters: TrialStandards.TheForging.stokeEngineMeters
+                runMeters: TrialStandards.TheForging.stokeEngineMeters,
+                isScored: false
             ),
             station(
                 "forging-strike-hinge",
@@ -771,6 +776,13 @@ enum OverallRankTrialDefinitions {
             option("exercise.romanian-deadlift", requiredEquipment: [.barbell]),
             option("exercise.dumbbell-romanian-deadlift", requiredEquipment: [.dumbbell])
         ]
+        let homePressOptions = [
+            option("exercise.dumbbell-bench-press", requiredEquipment: [.dumbbell])
+        ]
+        let gymPressOptions = [
+            option("exercise.machine-chest-press", requiredEquipment: [.machine]),
+            option("exercise.dumbbell-bench-press", requiredEquipment: [.dumbbell])
+        ]
 
         return [
             engineStation(
@@ -823,8 +835,8 @@ enum OverallRankTrialDefinitions {
                 )
             ),
             station(
-                "seals-power",
-                title: "Seal IV — Power",
+                "seals-power-hinge",
+                title: "Seal IV — Power (Hinge)",
                 category: .hingePower,
                 movementId: loadout == .gymHybrid ? "exercise.romanian-deadlift" : loadout == .homeKit ? "exercise.dumbbell-romanian-deadlift" : "exercise.single-leg-rdl",
                 displayName: loadout == .noGymField ? "Backpack Single-Leg RDL" : nil,
@@ -840,6 +852,22 @@ enum OverallRankTrialDefinitions {
                     : loadout == .gymHybrid ? gymPowerOptions : homePowerOptions
             ),
             station(
+                "seals-power-press",
+                title: "Seal IV — Power (Press)",
+                category: .push,
+                movementId: loadout == .gymHybrid ? "exercise.machine-chest-press" : loadout == .homeKit ? "exercise.dumbbell-bench-press" : "exercise.pushup",
+                displayName: loadout == .noGymField ? "Tempo Push-Up" : nil,
+                metric: .reps,
+                minimumValue: TrialStandards.SevenSeals.powerStrikeReps,
+                minimumQualifyingSets: 1,
+                plannedSets: 3,
+                capSeconds: TrialStandards.SevenSeals.sealCapSeconds,
+                strengthTier: loadout == .noGymField ? nil : .vessel,
+                movementOptions: loadout == .noGymField
+                    ? [option("exercise.pushup", "Tempo Push-Up", floorOverride: TrialStandards.SevenSeals.powerStrikeReps)]
+                    : loadout == .gymHybrid ? gymPressOptions : homePressOptions
+            ),
+            station(
                 "seals-control",
                 title: "Seal V — Control",
                 category: .mobilityControl,
@@ -852,14 +880,25 @@ enum OverallRankTrialDefinitions {
                 movementOptions: [option("exercise.plank")]
             ),
             station(
-                "seals-mobility",
-                title: "Seal VI — Mobility",
+                "seals-mobility-hold",
+                title: "Seal VI — Mobility (Hold)",
                 category: .mobilityControl,
                 movementId: "mobility.deep-squat-hold",
                 metric: .holdSeconds,
                 minimumValue: TrialStandards.SevenSeals.mobilityDeepSquatHoldSeconds,
                 capSeconds: TrialStandards.SevenSeals.sealCapSeconds,
-                movementOptions: [option("mobility.deep-squat-hold", requiredEquipment: [.bodyweight, .openSpace])]
+                loadPercentOfBodyweight: loadout == .noGymField ? TrialStandards.SevenSeals.mobilityHoldLoadPercentNoGym : TrialStandards.SevenSeals.mobilityHoldLoadPercentLoaded,
+                movementOptions: [option("mobility.deep-squat-hold", "Weighted Deep-Squat Hold", requiredEquipment: [.bodyweight, .openSpace])]
+            ),
+            station(
+                "seals-mobility-cossack",
+                title: "Seal VI — Mobility (Flow)",
+                category: .mobilityControl,
+                movementId: "exercise.cossack-squat",
+                metric: .reps,
+                minimumValue: TrialStandards.SevenSeals.mobilityCossackRepsPerSide,
+                capSeconds: TrialStandards.SevenSeals.sealCapSeconds,
+                movementOptions: [option("exercise.cossack-squat", "Cossack Squat (per side)", requiredEquipment: [.bodyweight, .openSpace])]
             ),
             station(
                 "seals-spirit",

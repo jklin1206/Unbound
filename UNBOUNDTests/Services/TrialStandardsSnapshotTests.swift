@@ -302,25 +302,31 @@ final class TrialStandardsSnapshotTests: XCTestCase {
         ST seals-endurance cat=engine mov=cardio.run metric=distanceMeters min=800 qual=1 planned=1 rest=45 cap=360 load=-
         ST seals-vitality cat=lower mov=exercise.step-up metric=reps min=48 qual=1 planned=1 rest=75 cap=360 load=-
         ST seals-explosiveness cat=explosive mov=exercise.glute-bridge metric=reps min=40 qual=1 planned=1 rest=75 cap=360 load=-
-        ST seals-power cat=hingePower mov=exercise.single-leg-rdl metric=reps min=3 qual=1 planned=3 rest=75 cap=360 load=0.250
+        ST seals-power-hinge cat=hingePower mov=exercise.single-leg-rdl metric=reps min=3 qual=1 planned=3 rest=75 cap=360 load=0.250
+        ST seals-power-press cat=push mov=exercise.pushup metric=reps min=3 qual=1 planned=3 rest=75 cap=360 load=-
         ST seals-control cat=mobilityControl mov=exercise.plank metric=holdSeconds min=60 qual=2 planned=2 rest=90 cap=360 load=-
-        ST seals-mobility cat=mobilityControl mov=mobility.deep-squat-hold metric=holdSeconds min=60 qual=1 planned=1 rest=90 cap=360 load=-
+        ST seals-mobility-hold cat=mobilityControl mov=mobility.deep-squat-hold metric=holdSeconds min=60 qual=1 planned=1 rest=90 cap=360 load=0.150
+        ST seals-mobility-cossack cat=mobilityControl mov=exercise.cossack-squat metric=reps min=10 qual=1 planned=1 rest=75 cap=360 load=-
         ST seals-spirit cat=carryCore mov=carry.loaded-march metric=distanceMeters min=200 qual=1 planned=1 rest=75 cap=360 load=0.150
       VAR homeKit
         ST seals-endurance cat=engine mov=cardio.run metric=distanceMeters min=800 qual=1 planned=1 rest=45 cap=360 load=-
         ST seals-vitality cat=lower mov=exercise.dumbbell-step-up metric=reps min=48 qual=1 planned=1 rest=75 cap=360 load=-
         ST seals-explosiveness cat=explosive mov=exercise.kettlebell-swing metric=reps min=40 qual=1 planned=1 rest=75 cap=360 load=-
-        ST seals-power cat=hingePower mov=exercise.dumbbell-romanian-deadlift metric=reps min=3 qual=1 planned=3 rest=75 cap=360 load=-
+        ST seals-power-hinge cat=hingePower mov=exercise.dumbbell-romanian-deadlift metric=reps min=3 qual=1 planned=3 rest=75 cap=360 load=-
+        ST seals-power-press cat=push mov=exercise.dumbbell-bench-press metric=reps min=3 qual=1 planned=3 rest=75 cap=360 load=-
         ST seals-control cat=mobilityControl mov=exercise.plank metric=holdSeconds min=60 qual=2 planned=2 rest=90 cap=360 load=-
-        ST seals-mobility cat=mobilityControl mov=mobility.deep-squat-hold metric=holdSeconds min=60 qual=1 planned=1 rest=90 cap=360 load=-
+        ST seals-mobility-hold cat=mobilityControl mov=mobility.deep-squat-hold metric=holdSeconds min=60 qual=1 planned=1 rest=90 cap=360 load=0.250
+        ST seals-mobility-cossack cat=mobilityControl mov=exercise.cossack-squat metric=reps min=10 qual=1 planned=1 rest=75 cap=360 load=-
         ST seals-spirit cat=carryCore mov=carry.farmer-carry metric=distanceMeters min=200 qual=1 planned=1 rest=75 cap=360 load=0.300
       VAR gymHybrid
         ST seals-endurance cat=engine mov=cardio.row metric=distanceMeters min=919 qual=1 planned=1 rest=45 cap=360 load=-
         ST seals-vitality cat=lower mov=exercise.leg-press metric=reps min=48 qual=1 planned=1 rest=75 cap=360 load=-
         ST seals-explosiveness cat=explosive mov=exercise.cable-pull-through metric=reps min=40 qual=1 planned=1 rest=75 cap=360 load=-
-        ST seals-power cat=hingePower mov=exercise.romanian-deadlift metric=reps min=3 qual=1 planned=3 rest=75 cap=360 load=-
+        ST seals-power-hinge cat=hingePower mov=exercise.romanian-deadlift metric=reps min=3 qual=1 planned=3 rest=75 cap=360 load=-
+        ST seals-power-press cat=push mov=exercise.machine-chest-press metric=reps min=3 qual=1 planned=3 rest=75 cap=360 load=-
         ST seals-control cat=mobilityControl mov=exercise.plank metric=holdSeconds min=60 qual=2 planned=2 rest=90 cap=360 load=-
-        ST seals-mobility cat=mobilityControl mov=mobility.deep-squat-hold metric=holdSeconds min=60 qual=1 planned=1 rest=90 cap=360 load=-
+        ST seals-mobility-hold cat=mobilityControl mov=mobility.deep-squat-hold metric=holdSeconds min=60 qual=1 planned=1 rest=90 cap=360 load=0.250
+        ST seals-mobility-cossack cat=mobilityControl mov=exercise.cossack-squat metric=reps min=10 qual=1 planned=1 rest=75 cap=360 load=-
         ST seals-spirit cat=carryCore mov=carry.farmer-carry metric=distanceMeters min=200 qual=1 planned=1 rest=75 cap=360 load=0.300
     DEF gate-07-the-threshold rank=ascendant fmt=theThreshold min=65 lvl=72
       VAR noGymField
