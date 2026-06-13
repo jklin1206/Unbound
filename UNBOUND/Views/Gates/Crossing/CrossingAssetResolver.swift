@@ -24,6 +24,13 @@ enum CrossingAssetResolver {
         "gate_threshold_\(crossing.world.destinationRank.token)"
     }
 
+    /// The bundled Seedance "walk" clip for a gate, if present. nil → the Crossing
+    /// plays the Ken Burns still fallback (also the reduced-motion path).
+    static func crossingClipURL(for crossing: GateCrossing) -> URL? {
+        Bundle.main.url(forResource: "gate_crossing_\(crossing.world.destinationRank.token)",
+                        withExtension: "mp4")
+    }
+
     private static func imageExists(_ name: String) -> Bool {
         UIImage(named: name) != nil
     }

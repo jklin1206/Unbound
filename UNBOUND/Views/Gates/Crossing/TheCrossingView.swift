@@ -26,6 +26,7 @@ struct TheCrossingView: View {
     @State private var montageIndex = 0
 
     private var still: String { CrossingAssetResolver.thresholdStill(for: crossing) }
+    private var clipURL: URL? { CrossingAssetResolver.crossingClipURL(for: crossing) }
     private var b: (hush: Double, walk: Double, arrival: Double, investiture: Double) { crossing.tier.beats }
 
     var body: some View {
@@ -33,7 +34,10 @@ struct TheCrossingView: View {
             Color.black.ignoresSafeArea()
 
             if beat != .hush {
-                if crossing.tier == .finale && beat == .walk {
+                if beat == .walk, !reduceMotion, let url = clipURL {
+                    stillLayer   // base, revealed when the clip crossfades out
+                    CrossingClipLayer(url: url).ignoresSafeArea().transition(.opacity)
+                } else if beat == .walk, crossing.tier == .finale {
                     montageLayer
                 } else {
                     stillLayer
@@ -167,7 +171,9 @@ struct TheCrossingView: View {
         await sleep(b.hush)
 
         withAnimation(.easeOut(duration: 0.4)) { beat = .walk }
-        if crossing.tier == .finale {
+        if !reduceMotion, clipURL != nil {
+            await sleep(3.1)   // the Seedance walk clip (~3s) plays, then we settle
+        } else if crossing.tier == .finale {
             await runMontage()
         } else if !reduceMotion {
             withAnimation(.easeOut(duration: b.walk)) { kenBurns = true }
