@@ -19,7 +19,7 @@ enum GateCrossingCatalog {
         case .deckOfProof:  return "You cleared the whole deck."
         case .theAscent:    return "You stand above the clouds."
         case .sevenSeals:   return "Every part of you is sealed."
-        case .theThreshold: return "You held the line. The way is open."
+        case .theThreshold: return "The way is open."
         case .theLastGate:  return "Nothing holds you now."
         }
     }

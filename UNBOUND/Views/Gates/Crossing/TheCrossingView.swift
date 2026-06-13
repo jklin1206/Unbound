@@ -44,6 +44,13 @@ struct TheCrossingView: View {
                 CrossingParticles(tint: crossing.tint, reduceMotion: reduceMotion)
             }
 
+            // Center scrim — keeps the title stack legible over any banner hue.
+            if beat == .arrival || beat == .investiture || beat == .spoils {
+                RadialGradient(colors: [Color.black.opacity(0.55), .clear],
+                               center: .center, startRadius: 50, endRadius: 360)
+                    .ignoresSafeArea().allowsHitTesting(false)
+            }
+
             content
         }
         .contentShape(Rectangle())
@@ -88,7 +95,8 @@ struct TheCrossingView: View {
             if beat == .arrival || beat == .investiture || beat == .spoils {
                 Text("RANK GATE \(crossing.world.numeral)")
                     .font(Font.unbound.captionS.weight(.heavy)).tracking(3)
-                    .foregroundStyle(crossing.tint)
+                    .foregroundStyle(Color.unbound.textPrimary)
+                    .shadow(color: .black.opacity(0.85), radius: 4, y: 1)
             }
 
             if (beat == .investiture || beat == .spoils) && titleShown {
@@ -96,14 +104,17 @@ struct TheCrossingView: View {
                     .font(.system(size: 52, weight: .black)).tracking(2)
                     .foregroundStyle(Color.unbound.textPrimary)
                     .minimumScaleFactor(0.5).lineLimit(1)
-                    .shadow(color: crossing.fillTint.opacity(0.6), radius: 24)
+                    .shadow(color: .black.opacity(0.6), radius: 8, y: 2)
+                    .shadow(color: crossing.fillTint.opacity(0.55), radius: 24)
                     .transition(reduceMotion ? .opacity : .scale.combined(with: .opacity))
             }
 
             if beat == .arrival || beat == .investiture {
                 Text(crossing.dwellLine)
-                    .font(Font.unbound.titleS).foregroundStyle(Color.unbound.textSecondary)
-                    .multilineTextAlignment(.center).transition(.opacity)
+                    .font(Font.unbound.titleS.weight(.semibold)).foregroundStyle(Color.unbound.textPrimary)
+                    .multilineTextAlignment(.center)
+                    .shadow(color: .black.opacity(0.85), radius: 5, y: 1)
+                    .transition(.opacity)
             }
 
             Spacer()

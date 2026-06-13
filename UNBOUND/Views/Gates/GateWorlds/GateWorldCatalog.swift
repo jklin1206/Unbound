@@ -12,35 +12,35 @@ enum GateWorldCatalog {
         switch format {
         case .firstLight:
             return GateWorld(format: .firstLight, numeral: "I", order: 1,
-                promise: "Step out of the dark and light the courtyard.",
+                promise: "Light the courtyard.",
                 beatVerb: "lit", destinationRank: .novice, element: .lanterns)
         case .theCount:
             return GateWorld(format: .theCount, numeral: "II", order: 2,
-                promise: "Move with the bell, not against it.",
+                promise: "Move with the bell.",
                 beatVerb: "counted", destinationRank: .apprentice, element: .bell)
         case .theForging:
             return GateWorld(format: .theForging, numeral: "III", order: 3,
-                promise: "The fire waits. The steel doesn't rush.",
+                promise: "The steel doesn't rush.",
                 beatVerb: "struck", destinationRank: .forged, element: .forge)
         case .deckOfProof:
             return GateWorld(format: .deckOfProof, numeral: "IV", order: 4,
-                promise: "Fifty-two battles. Clear the whole deck.",
+                promise: "Clear the whole deck.",
                 beatVerb: "drawn", destinationRank: .veteran, element: .deck)
         case .theAscent:
             return GateWorld(format: .theAscent, numeral: "V", order: 5,
-                promise: "Ten floors of cloud. Climb to the temple doors.",
+                promise: "Climb to the temple.",
                 beatVerb: "climbed", destinationRank: .master, element: .ascent)
         case .sevenSeals:
             return GateWorld(format: .sevenSeals, numeral: "VI", order: 6,
-                promise: "Seven seals, one for each part of you.",
+                promise: "One seal for each part of you.",
                 beatVerb: "sealed", destinationRank: .vessel, element: .seals)
         case .theThreshold:
             return GateWorld(format: .theThreshold, numeral: "VII", order: 7,
-                promise: "Hold the line until the portal opens.",
+                promise: "Hold until the portal opens.",
                 beatVerb: "breached", destinationRank: .ascendant, element: .siege)
         case .theLastGate:
             return GateWorld(format: .theLastGate, numeral: "VIII", order: 8,
-                promise: "Every gate you've answered, one last time.",
+                promise: "Every gate, one last time.",
                 beatVerb: "answered", destinationRank: .unbound, element: .landings)
         }
     }
