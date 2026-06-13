@@ -12,7 +12,7 @@ struct GateExperienceDemoView: View {
     /// The end-to-end user journey, simulated by tapping the real CTAs.
     /// Each gate plays a clip on the way IN (entrance) and on success (crossing).
     /// Pass goes straight into the animation — no separate "verdict" screen.
-    enum FlowStep { case discovery, hall, entrance, active, crossing }
+    enum FlowStep { case discovery, hall, entrance, active, crossing, failed }
 
     @State private var format: RankTrialFormat = Self.initialFormat()
     @State private var stage: Stage = Self.initialStage()
@@ -97,15 +97,22 @@ struct GateExperienceDemoView: View {
         case .active:
             GateActiveView(world: world, stationIndex: activeIndex, stationCount: max(resolvedStations.count, 1),
                            stationsCleared: activeIndex, currentStationTitle: activeStationTitle) {
-                VStack(spacing: 16) {
+                VStack(spacing: 12) {
                     sampleSurface
                     Button { advance(.crossing) } label: {
                         Text("COMPLETE TRIAL").font(Font.unbound.captionS.weight(.heavy)).tracking(1.5)
                             .foregroundStyle(Color.unbound.bg).frame(maxWidth: .infinity).padding(.vertical, 14)
                             .background(Capsule().fill(world.fillTint))
                     }.buttonStyle(.plain)
+                    Button { advance(.failed) } label: {
+                        Text("DEMO: FAIL THIS TRIAL").font(Font.unbound.captionS.weight(.bold)).tracking(1)
+                            .foregroundStyle(Color.unbound.textTertiary)
+                    }.buttonStyle(.plain)
                 }
             }
+        case .failed:
+            GateVerdictView(evaluation: fixtureEvaluation(passed: false), world: world,
+                            onRematch: { advance(.hall) })
         case .crossing:
             TheCrossingView(crossing: GateCrossingCatalog.crossing(for: format),
                             dateText: "Jun 13, 2026",
