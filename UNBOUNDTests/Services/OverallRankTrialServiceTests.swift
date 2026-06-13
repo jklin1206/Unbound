@@ -16,7 +16,7 @@ final class OverallRankTrialServiceTests: XCTestCase {
         [
             RankTrialCase(sourceRank: .master, definition: OverallRankTrialDefinitions.sevenSeals),
             RankTrialCase(sourceRank: .vessel, definition: OverallRankTrialDefinitions.theThreshold),
-            RankTrialCase(sourceRank: .ascendant, definition: OverallRankTrialDefinitions.ascension)
+            RankTrialCase(sourceRank: .ascendant, definition: OverallRankTrialDefinitions.theLastGate)
         ]
     }
 
@@ -29,7 +29,7 @@ final class OverallRankTrialServiceTests: XCTestCase {
             RankTrialCase(sourceRank: .veteran, definition: OverallRankTrialDefinitions.theAscent),
             RankTrialCase(sourceRank: .master, definition: OverallRankTrialDefinitions.sevenSeals),
             RankTrialCase(sourceRank: .vessel, definition: OverallRankTrialDefinitions.theThreshold),
-            RankTrialCase(sourceRank: .ascendant, definition: OverallRankTrialDefinitions.ascension)
+            RankTrialCase(sourceRank: .ascendant, definition: OverallRankTrialDefinitions.theLastGate)
         ]
     }
 

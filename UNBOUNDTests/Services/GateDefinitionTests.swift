@@ -381,6 +381,139 @@ final class GateDefinitionTests: XCTestCase {
         XCTAssertEqual(homeCarry.loadPercentOfBodyweight, TrialStandards.TheThreshold.carryLoadPercentLoaded)
         XCTAssertEqual(noGymCarry.loadPercentOfBodyweight, TrialStandards.TheThreshold.carryLoadPercentNoGym)
     }
+
+    func testGate8TheLastGateStations() throws {
+        let gate = OverallRankTrialDefinitions.theLastGate
+        XCTAssertEqual(gate.id, "gate-08-the-last-gate")
+        XCTAssertEqual(gate.format, .theLastGate)
+        XCTAssertEqual(gate.displayName, "The Last Gate")
+        XCTAssertEqual(gate.targetRank, .unbound)
+        XCTAssertTrue(gate.legacyIds.contains("overall-rank-trial-ascendant-ascension"))
+
+        let expectedIds = [
+            "lastgate-landing-1-path",
+            "lastgate-landing-1-posts",
+            "lastgate-landing-1-banner",
+            "lastgate-landing-1-steps",
+            "lastgate-landing-1-door",
+            "lastgate-landing-2-count",
+            "lastgate-landing-3-strike"
+        ]
+            + (1...13).map { String(format: "lastgate-landing-4-card-%02d", $0) }
+            + [
+                "lastgate-landing-5-engine",
+                "lastgate-landing-5-hold",
+                "lastgate-landing-6-power",
+                "lastgate-landing-6-vitality",
+                "lastgate-landing-6-control",
+                "lastgate-landing-6-endurance",
+                "lastgate-landing-6-mobility",
+                "lastgate-landing-6-explosiveness",
+                "lastgate-landing-7-carry",
+                "lastgate-summit"
+            ]
+
+        for loadout in TrialLoadout.allCases {
+            let stations = gate.stations(for: loadout)
+            XCTAssertEqual(stations.count, 30, loadout.displayName)
+            XCTAssertEqual(stations.map(\.id), expectedIds, loadout.displayName)
+            XCTAssertTrue(stations.allSatisfy { !$0.movementOptions.isEmpty }, loadout.displayName)
+            XCTAssertTrue(stations.prefix(5).allSatisfy { $0.capSeconds == TrialStandards.TheLastGate.landing1CapSeconds }, loadout.displayName)
+            XCTAssertEqual(stations.last?.id, "lastgate-summit", loadout.displayName)
+        }
+
+        let home = gate.stations(for: .homeKit)
+        XCTAssertEqual(home[0].standard.minimumValue, TrialStandards.TheLastGate.landing1LowerReps)
+        XCTAssertEqual(home[1].standard.minimumValue, TrialStandards.TheLastGate.landing1PushReps)
+        XCTAssertEqual(home[2].standard.minimumValue, TrialStandards.TheLastGate.landing1PullReps)
+        XCTAssertEqual(home[3].standard.minimumValue, TrialStandards.TheLastGate.landing1StepReps)
+        XCTAssertEqual(home[4].standard.minimumValue, TrialStandards.TheLastGate.landing1HoldSeconds)
+        XCTAssertEqual(home[5].standard.minimumValue, TrialStandards.TheLastGate.landing2EngineMeters)
+        XCTAssertEqual(home[5].capSeconds, TrialStandards.TheLastGate.landing2WindowSeconds)
+        XCTAssertEqual(home[6].category, .hingePower)
+        XCTAssertEqual(home[6].standard.minimumValue, TrialStandards.TheLastGate.landing3StrikeReps)
+        XCTAssertEqual(home[6].standard.plannedSets, 3)
+        XCTAssertEqual(home[6].strengthTier, .unbound)
+
+        let noGymStrike = try XCTUnwrap(gate.stations(for: .noGymField).first { $0.id == "lastgate-landing-3-strike" })
+        XCTAssertEqual(noGymStrike.standard.movementId, "exercise.single-leg-rdl")
+        XCTAssertEqual(noGymStrike.loadPercentOfBodyweight, 0.30)
+        XCTAssertNil(noGymStrike.strengthTier)
+
+        let cards = Array(home[7..<20])
+        XCTAssertEqual(cards.map(\.title), [
+            "Landing 4 - Card AH Pushups",
+            "Landing 4 - Card 2D Squats",
+            "Landing 4 - Card 3C Pullups",
+            "Landing 4 - Card 4S Sit-Ups",
+            "Landing 4 - Card 5H Pushups",
+            "Landing 4 - Card 6D Squats",
+            "Landing 4 - Card 7C Pullups",
+            "Landing 4 - Card 8S Sit-Ups",
+            "Landing 4 - Card 9H Pushups",
+            "Landing 4 - Card 10D Squats",
+            "Landing 4 - Card JC Pullups",
+            "Landing 4 - Card QS Sit-Ups",
+            "Landing 4 - Card KH Pushups"
+        ])
+        XCTAssertEqual(cards.map(\.category), [
+            .push, .lower, .pull, .carryCore,
+            .push, .lower, .pull, .carryCore,
+            .push, .lower, .pull, .carryCore,
+            .push
+        ])
+        XCTAssertEqual(cards[0].standard.minimumValue, TrialStandards.DeckOfProof.aceReps)
+        XCTAssertEqual(cards[10].standard.minimumValue, TrialStandards.DeckOfProof.faceCardReps)
+        XCTAssertEqual(cards[10].capSeconds, TrialStandards.TheLastGate.landing4CapSeconds)
+        XCTAssertEqual(cards[10].resolvedMinimum(forMovementId: "exercise.pullup"), TrialStandards.DeckOfProof.faceCardReps)
+        XCTAssertEqual(cards[10].resolvedMinimum(forMovementId: "exercise.inverted-row"), 15)
+        XCTAssertEqual(cards[10].resolvedMinimum(forMovementId: "exercise.dumbbell-row"), 15)
+
+        XCTAssertEqual(home[20].standard.minimumValue, TrialStandards.TheLastGate.landing5EngineMeters)
+        XCTAssertEqual(home[21].standard.movementId, "exercise.plank")
+        XCTAssertEqual(home[21].standard.minimumValue, TrialStandards.TheLastGate.landing5HoldSeconds)
+
+        XCTAssertEqual(home[22].standard.minimumValue, TrialStandards.SevenSeals.powerStrikeReps)
+        XCTAssertEqual(home[22].strengthTier, .unbound)
+        XCTAssertEqual(home[23].standard.minimumValue, TrialStandards.SevenSeals.vitalityLowerReps)
+        XCTAssertEqual(home[24].standard.minimumValue, TrialStandards.SevenSeals.controlHoldSeconds)
+        XCTAssertEqual(home[24].standard.minimumQualifyingSets, TrialStandards.SevenSeals.controlSets)
+        XCTAssertEqual(home[24].standard.plannedSets, TrialStandards.SevenSeals.controlSets)
+        XCTAssertEqual(home[25].standard.minimumValue, TrialStandards.SevenSeals.enduranceEngineMeters)
+        XCTAssertEqual(home[26].standard.movementId, "mobility.deep-squat-hold")
+        XCTAssertEqual(home[26].standard.minimumValue, TrialStandards.SevenSeals.mobilityDeepSquatHoldSeconds)
+        XCTAssertEqual(home[27].standard.minimumValue, TrialStandards.SevenSeals.explosivenessReps)
+        XCTAssertEqual(home[28].standard.minimumValue, TrialStandards.TheLastGate.landing7CarryMeters)
+        XCTAssertEqual(home[28].loadPercentOfBodyweight, TrialStandards.TheLastGate.landing7CarryLoadPercentLoaded)
+        XCTAssertEqual(home[29].standard.movementId, "exercise.plank")
+        XCTAssertEqual(home[29].standard.minimumValue, TrialStandards.TheLastGate.summitHoldSeconds)
+        XCTAssertEqual(home[29].capSeconds, TrialStandards.TheLastGate.summitCapSeconds)
+
+        let noGymCarry = try XCTUnwrap(gate.stations(for: .noGymField).first { $0.id == "lastgate-landing-7-carry" })
+        XCTAssertEqual(noGymCarry.loadPercentOfBodyweight, TrialStandards.TheLastGate.landing7CarryLoadPercentNoGym)
+    }
+
+    func testGate8TheLastGateLoadedStrikeMovementsResolveUnboundStrengthRatios() throws {
+        let gate = OverallRankTrialDefinitions.theLastGate
+
+        for loadout in [TrialLoadout.homeKit, .gymHybrid] {
+            for stationId in ["lastgate-landing-3-strike", "lastgate-landing-6-power"] {
+                let strike = try XCTUnwrap(gate.stations(for: loadout).first { $0.id == stationId }, "\(loadout.displayName) \(stationId)")
+                XCTAssertEqual(strike.strengthTier, .unbound, "\(loadout.displayName) \(stationId)")
+
+                for option in strike.movementOptions {
+                    let movementKey = MovementCatalog.definition(for: option.movementId)?.canonicalExerciseName ?? option.movementId
+                    let ratio = StrengthStandards.ratio(exerciseKey: movementKey, tier: .unbound, sex: nil)
+                    XCTAssertNotNil(ratio, "\(loadout.displayName) \(stationId) \(option.movementId) must resolve an Unbound strength ratio")
+                }
+
+                XCTAssertNotNil(
+                    strike.resolvedStrikeLoadKg(bodyweightKg: 80),
+                    "\(loadout.displayName) \(stationId) must resolve a strike load"
+                )
+            }
+        }
+    }
 }
 
 private extension OverallRankTrialDefinition {

@@ -124,36 +124,5 @@ enum TrialStandards {
         static let landing7CarryLoadPercentLoaded = 0.35
         static let summitHoldSeconds = 120
         static let summitCapSeconds = 10 * 60
-
-        @available(*, deprecated, message: "TEMP shim")
-        static let explosiveReps = landing1StepReps // TEMP shim
-        @available(*, deprecated, message: "TEMP shim")
-        static let explosiveCapSeconds = landing1CapSeconds // TEMP shim
-        @available(*, deprecated, message: "TEMP shim")
-        static let engineMeters = landing2EngineMeters // TEMP shim
-        @available(*, deprecated, message: "TEMP shim")
-        static let engineCapSeconds = landing2WindowSeconds // TEMP shim
-        @available(*, deprecated, message: "TEMP shim")
-        static let pullReps = landing1PullReps // TEMP shim
-        @available(*, deprecated, message: "TEMP shim")
-        static let pushReps = landing1PushReps // TEMP shim
-        @available(*, deprecated, message: "TEMP shim")
-        static let lowerReps = landing1LowerReps // TEMP shim
-        @available(*, deprecated, message: "TEMP shim")
-        static let volumeCapSeconds = landing4CapSeconds // TEMP shim
-        @available(*, deprecated, message: "TEMP shim")
-        static let carryMeters = landing7CarryMeters // TEMP shim
-        @available(*, deprecated, message: "TEMP shim")
-        static let carryLoadPercentNoGym = landing7CarryLoadPercentNoGym // TEMP shim
-        @available(*, deprecated, message: "TEMP shim")
-        static let carryLoadPercentLoaded = landing7CarryLoadPercentLoaded // TEMP shim
-        @available(*, deprecated, message: "TEMP shim")
-        static let trunkHoldSeconds = summitHoldSeconds // TEMP shim
     }
-}
-
-// TEMPORARY shims — removed as gate definitions are rewritten (Plan Tasks 6–13).
-extension TrialStandards {
-    @available(*, deprecated, message: "TEMP shim")
-    typealias FinalExam = TheLastGate // TEMP shim
 }

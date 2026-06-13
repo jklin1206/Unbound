@@ -220,6 +220,7 @@ struct TrialStation: Identifiable, Codable, Equatable, Sendable {
     /// `nil` for bodyweight-only stations. Never copy ratio values here — always resolve from
     /// `StrengthStandards` so balance tuning is reflected automatically.
     let strengthTier: RankTier?
+    let dynamicGroupKey: String?
     let movementOptions: [TrialMovementOption]
     let restRule: String
     let qualityFlags: Set<PerformanceQualityFlag>
@@ -259,6 +260,7 @@ struct TrialStation: Identifiable, Codable, Equatable, Sendable {
         capSeconds: Int?,
         loadPercentOfBodyweight: Double?,
         strengthTier: RankTier? = nil,
+        dynamicGroupKey: String? = nil,
         movementOptions: [TrialMovementOption],
         restRule: String,
         qualityFlags: Set<PerformanceQualityFlag>
@@ -270,13 +272,14 @@ struct TrialStation: Identifiable, Codable, Equatable, Sendable {
         self.capSeconds = capSeconds
         self.loadPercentOfBodyweight = loadPercentOfBodyweight
         self.strengthTier = strengthTier
+        self.dynamicGroupKey = dynamicGroupKey
         self.movementOptions = movementOptions
         self.restRule = restRule
         self.qualityFlags = qualityFlags
     }
 
     enum CodingKeys: String, CodingKey {
-        case id, title, category, standard, capSeconds, loadPercentOfBodyweight, strengthTier
+        case id, title, category, standard, capSeconds, loadPercentOfBodyweight, strengthTier, dynamicGroupKey
         case movementOptions, restRule, qualityFlags
     }
 
@@ -289,6 +292,7 @@ struct TrialStation: Identifiable, Codable, Equatable, Sendable {
         capSeconds = try c.decodeIfPresent(Int.self, forKey: .capSeconds)
         loadPercentOfBodyweight = try c.decodeIfPresent(Double.self, forKey: .loadPercentOfBodyweight)
         strengthTier = try c.decodeIfPresent(RankTier.self, forKey: .strengthTier)
+        dynamicGroupKey = try c.decodeIfPresent(String.self, forKey: .dynamicGroupKey)
         movementOptions = try c.decode([TrialMovementOption].self, forKey: .movementOptions)
         restRule = try c.decode(String.self, forKey: .restRule)
         qualityFlags = try c.decode(Set<PerformanceQualityFlag>.self, forKey: .qualityFlags)
@@ -458,10 +462,26 @@ struct OverallRankTrialDefinition: Identifiable, Codable, Equatable, Sendable {
         userId: String,
         date: Date = Date(),
         resolvedTrial: ResolvedRankTrial? = nil,
-        bodyweightKg: Double? = nil
+        bodyweightKg: Double? = nil,
+        attributeScores: AttributeProfile? = nil
     ) -> TrainingSessionDraft {
+        let scores = attributeScores ?? AttributeProfile.empty(userId: userId, at: date)
         if let resolvedTrial {
-            return makeStructuredDraft(userId: userId, date: date, resolvedTrial: resolvedTrial, bodyweightKg: bodyweightKg)
+            return makeStructuredDraft(
+                userId: userId,
+                date: date,
+                resolvedTrial: dynamicallyFilteredResolvedTrial(resolvedTrial, attributeScores: scores),
+                bodyweightKg: bodyweightKg
+            )
+        }
+
+        if let dynamicResolvedTrial = defaultDynamicResolvedTrial(userId: userId, date: date, attributeScores: scores) {
+            return makeStructuredDraft(
+                userId: userId,
+                date: date,
+                resolvedTrial: dynamicResolvedTrial,
+                bodyweightKg: bodyweightKg
+            )
         }
 
         var groupedPrescriptions: [(TrainingBlockKind, [(OverallRankTrialPerformanceStandard, TrainingBlockPrescription)])] = []
@@ -503,6 +523,75 @@ struct OverallRankTrialDefinition: Identifiable, Codable, Equatable, Sendable {
                     prescriptions: items.map { $0.1 }
                 )
             }
+        )
+    }
+
+    private func defaultDynamicResolvedTrial(
+        userId: String,
+        date: Date,
+        attributeScores: AttributeProfile
+    ) -> ResolvedRankTrial? {
+        let defaultVariant = loadoutVariants.first { $0.loadout == .homeKit } ?? loadoutVariants.first
+        let dynamicGroupKey = "lastgate-landing-6"
+        guard let defaultVariant,
+              defaultVariant.stations.contains(where: { $0.dynamicGroupKey == dynamicGroupKey })
+        else { return nil }
+
+        let stations = OverallRankTrialRunner.resolveDynamicStations(
+            for: self,
+            loadout: defaultVariant.loadout,
+            attributeScores: attributeScores
+        )
+        return ResolvedRankTrial(
+            id: "\(id):\(defaultVariant.loadout.rawValue):dynamic-default",
+            definitionId: id,
+            userId: userId,
+            selectedLoadout: defaultVariant.loadout,
+            stations: stations.map { station in
+                ResolvedTrialStation(
+                    id: station.id,
+                    station: station,
+                    selectedMovement: station.primaryMovement
+                )
+            },
+            generatedAt: date,
+            version: 1
+        )
+    }
+
+    private func dynamicallyFilteredResolvedTrial(
+        _ resolvedTrial: ResolvedRankTrial,
+        attributeScores: AttributeProfile
+    ) -> ResolvedRankTrial {
+        let dynamicGroupKey = "lastgate-landing-6"
+        let landing6Count = resolvedTrial.stations.filter {
+            $0.station.dynamicGroupKey == dynamicGroupKey
+        }.count
+        guard landing6Count > 1 else { return resolvedTrial }
+
+        let selectedByStationId = Dictionary(uniqueKeysWithValues: resolvedTrial.stations.map {
+            ($0.id, $0.selectedMovement)
+        })
+        let stations = OverallRankTrialRunner.resolveDynamicStations(
+            for: self,
+            loadout: resolvedTrial.selectedLoadout,
+            attributeScores: attributeScores
+        )
+
+        return ResolvedRankTrial(
+            id: resolvedTrial.id,
+            definitionId: resolvedTrial.definitionId,
+            userId: resolvedTrial.userId,
+            selectedLoadout: resolvedTrial.selectedLoadout,
+            stations: stations.map { station in
+                ResolvedTrialStation(
+                    id: station.id,
+                    station: station,
+                    selectedMovement: selectedByStationId[station.id] ?? station.primaryMovement
+                )
+            },
+            generatedAt: resolvedTrial.generatedAt,
+            version: resolvedTrial.version
         )
     }
 

@@ -54,13 +54,22 @@ final class OverallRankTrialRunner {
         resolvedTrial: ResolvedRankTrial? = nil,
         bodyweightKg: Double? = nil
     ) -> TrainingSessionDraft {
+        let attributeScores = AttributeProfileStore.shared.load(userId: userId)
+            ?? AttributeProfile.empty(userId: userId, at: date)
         let resolved = resolvedTrial ?? RankTrialLoadoutResolver.shared.resolve(
             definition: definition,
             userId: userId,
             equipment: definition.requiredEquipment,
-            generatedAt: date
+            generatedAt: date,
+            attributeScores: attributeScores
         ).resolvedTrial
-        return definition.makeDraft(userId: userId, date: date, resolvedTrial: resolved, bodyweightKg: bodyweightKg)
+        return definition.makeDraft(
+            userId: userId,
+            date: date,
+            resolvedTrial: resolved,
+            bodyweightKg: bodyweightKg,
+            attributeScores: attributeScores
+        )
     }
 
     @discardableResult
@@ -263,19 +272,24 @@ final class OverallRankTrialRunner {
 
         if let selectedLoadout,
            let variant = definition.loadoutVariants.first(where: { $0.loadout == selectedLoadout }) {
-            return variant.stations.map { [$0] }
+            return groupedStationCandidates(variant.stations)
         }
 
-        var orderedIds: [String] = []
+        return groupedStationCandidates(definition.loadoutVariants.flatMap(\.stations))
+    }
+
+    private func groupedStationCandidates(_ stations: [TrialStation]) -> [[TrialStation]] {
+        var orderedKeys: [String] = []
         var grouped: [String: [TrialStation]] = [:]
-        for station in definition.loadoutVariants.flatMap(\.stations) {
-            if grouped[station.id] == nil {
-                orderedIds.append(station.id)
-                grouped[station.id] = []
+        for station in stations {
+            let key = station.dynamicGroupKey ?? station.id
+            if grouped[key] == nil {
+                orderedKeys.append(key)
+                grouped[key] = []
             }
-            grouped[station.id]?.append(station)
+            grouped[key]?.append(station)
         }
-        return orderedIds.compactMap { grouped[$0] }
+        return orderedKeys.compactMap { grouped[$0] }
     }
 
     private func selectedLoadout(in performanceLog: PerformanceLog) -> TrialLoadout? {
@@ -342,8 +356,8 @@ final class OverallRankTrialRunner {
     /// Filters landing-6 attribute variants of Gate VIII (The Last Gate) to
     /// the single station matching the user's weakest attribute axis.
     ///
-    /// The six variants carry ids `lastgate-landing-6-<attribute>` (one per
-    /// `AttributeKey`). This method returns all stations from the requested
+    /// The six variants share `dynamicGroupKey == "lastgate-landing-6"` (one
+    /// per `AttributeKey`). This method returns all stations from the requested
     /// loadout variant with the five un-selected landing-6 stations removed,
     /// leaving exactly one `lastgate-landing-6-<attribute>` entry (the weakest).
     ///
@@ -352,7 +366,7 @@ final class OverallRankTrialRunner {
     ///
     /// Safe for definitions that have no `lastgate-landing-6-*` stations at all:
     /// the filter is a no-op and the full station list is returned unchanged.
-    static func resolveDynamicStations(
+    nonisolated static func resolveDynamicStations(
         for definition: OverallRankTrialDefinition,
         loadout: TrialLoadout,
         attributeScores: AttributeProfile
@@ -361,19 +375,19 @@ final class OverallRankTrialRunner {
               ?? definition.loadoutVariants.first else { return [] }
         let stations = variant.stations
 
-        let prefix = "lastgate-landing-6-"
-        let landing6Ids = stations.map(\.id).filter { $0.hasPrefix(prefix) }
-        guard !landing6Ids.isEmpty else { return stations }
+        let groupKey = "lastgate-landing-6"
+        let landing6Stations = stations.filter { $0.dynamicGroupKey == groupKey }
+        guard !landing6Stations.isEmpty else { return stations }
 
         // Identify weakest axis in AttributeKey.allCases order for deterministic tie-breaking.
         let weakestKey = AttributeKey.allCases.min { a, b in
             attributeScores.level(for: a) < attributeScores.level(for: b)
         }
         let weakestSuffix = weakestKey?.rawValue ?? AttributeKey.allCases[0].rawValue
-        let keepId = prefix + weakestSuffix
+        let keepId = "\(groupKey)-\(weakestSuffix)"
 
         return stations.filter { station in
-            if station.id.hasPrefix(prefix) {
+            if station.dynamicGroupKey == groupKey {
                 return station.id == keepId
             }
             return true
@@ -609,12 +623,7 @@ final class OverallRankTrialRunner {
                                     || station.allowedMovementIds.contains(prescription.rankStandardMovementId ?? "")
                                     || station.allowedMovementIds.contains(MovementResolver.resolve(prescription.exerciseName).movementId)
                             }
-                        let standard = definition?.performanceStandards.first { standard in
-                            prescription.movementId == standard.movementId
-                                || prescription.rankStandardMovementId == standard.movementId
-                                || MovementResolver.resolve(prescription.exerciseName).movementId == standard.movementId
-                        } ?? station?.standard
-                        let setCount = max(1, standard?.minimumQualifyingSets ?? prescription.sets)
+                        let setCount = max(1, prescription.sets)
                         let achieved = passing ? target : max(0, target - 1)
                         let loadKg = prescription.suggestedWeightKg
                             ?? (station?.loadPercentOfBodyweight == nil ? nil : 50.0)

@@ -772,6 +772,7 @@ extension OverallRankTrialServiceTests {
                 ),
                 capSeconds: nil,
                 loadPercentOfBodyweight: nil,
+                dynamicGroupKey: "lastgate-landing-6",
                 movementOptions: [TrialMovementOption(movementId: "exercise.plank")],
                 restRule: "test",
                 qualityFlags: []
@@ -840,6 +841,89 @@ extension OverallRankTrialServiceTests {
         // Fixed station is preserved
         XCTAssertTrue(resolved.contains { $0.id == "lastgate-anchor" },
             "Non-dynamic anchor station must survive resolution")
+    }
+
+    func testRealLastGateDraftResolvesExactlyOneLanding6Station() {
+        let definition = OverallRankTrialDefinitions.theLastGate
+        let scores = makeAttributeProfile(overriding: .control, level: 31)
+
+        let stations = OverallRankTrialRunner.resolveDynamicStations(
+            for: definition,
+            loadout: .homeKit,
+            attributeScores: scores
+        )
+        let resolvedTrial = ResolvedRankTrial(
+            id: "\(definition.id):homeKit:dynamic-test",
+            definitionId: definition.id,
+            userId: "u1",
+            selectedLoadout: .homeKit,
+            stations: stations.map { station in
+                ResolvedTrialStation(
+                    id: station.id,
+                    station: station,
+                    selectedMovement: station.primaryMovement
+                )
+            },
+            generatedAt: Date(timeIntervalSince1970: 100),
+            version: 1
+        )
+        let draft = OverallRankTrialRunner.shared.draft(
+            for: definition,
+            userId: "u1",
+            date: Date(timeIntervalSince1970: 100),
+            resolvedTrial: resolvedTrial,
+            bodyweightKg: 80
+        )
+
+        let landing6Ids = resolvedTrial.stations.map(\.id).filter { $0.hasPrefix("lastgate-landing-6-") }
+        XCTAssertEqual(landing6Ids, ["lastgate-landing-6-control"])
+        XCTAssertEqual(draft.blocks.count, resolvedTrial.stations.count)
+        XCTAssertEqual(draft.blocks.filter { $0.title.hasPrefix("Landing 6") }.count, 1)
+    }
+
+    func testRealLastGateNormalDraftPathContainsExactlyOneLanding6Station() {
+        let definition = OverallRankTrialDefinitions.theLastGate
+        let draft = OverallRankTrialRunner.shared.draft(
+            for: definition,
+            userId: "lastgate-normal-draft-\(UUID().uuidString)",
+            date: Date(timeIntervalSince1970: 100),
+            bodyweightKg: 80
+        )
+
+        let landing6Blocks = draft.blocks.filter { $0.title.hasPrefix("Landing 6") }
+        XCTAssertEqual(landing6Blocks.count, 1)
+        XCTAssertEqual(landing6Blocks.first?.title, "Landing 6 - Power Seal")
+    }
+
+    func testRealLastGateEvaluationCollapsesLanding6DynamicGroup() {
+        let definition = OverallRankTrialDefinitions.theLastGate
+        let userId = "lastgate-evaluation-dynamic-group-\(UUID().uuidString)"
+        let startedAt = Date(timeIntervalSince1970: 100)
+        let completedAt = Date(timeIntervalSince1970: 100 + 60 * 70)
+        let draft = OverallRankTrialRunner.shared.draft(
+            for: definition,
+            userId: userId,
+            date: startedAt,
+            bodyweightKg: 80
+        )
+        let log = OverallRankTrialRunner.shared.performanceLog(
+            from: draft,
+            userId: userId,
+            startedAt: startedAt,
+            completedAt: completedAt,
+            passing: true
+        )
+
+        let evaluation = OverallRankTrialRunner.shared.evaluateDetailed(
+            log,
+            against: definition,
+            bodyweightKg: 80
+        )
+        let landing6Results = evaluation.stationResults.filter { $0.id.hasPrefix("lastgate-landing-6-") }
+
+        XCTAssertTrue(evaluation.passed, evaluation.failedStation?.failureReason ?? "The Last Gate failed")
+        XCTAssertEqual(landing6Results.map(\.id), ["lastgate-landing-6-power"])
+        XCTAssertFalse(landing6Results.contains { $0.status == .missing })
     }
 
     func testLastGateLanding6TieBreaksByAttributeKeyOrder() {

@@ -23,7 +23,9 @@ final class TrialReadinessService {
         let resolution = RankTrialLoadoutResolver.shared.resolve(
             definition: definition,
             userId: input.userId,
-            equipment: input.equipment
+            equipment: input.equipment,
+            attributeScores: AttributeProfileStore.shared.load(userId: input.userId)
+                ?? AttributeProfile.empty(userId: input.userId, at: Date())
         )
         let requirements = requirementLines(for: definition, resolution: resolution, input: input)
         let latestAttempt = input.attempts

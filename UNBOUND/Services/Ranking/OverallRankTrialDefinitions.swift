@@ -63,6 +63,7 @@ enum OverallRankTrialDefinitions {
         capSeconds: Int? = nil,
         loadPercentOfBodyweight: Double? = nil,
         strengthTier: RankTier? = nil,
+        dynamicGroupKey: String? = nil,
         movementOptions: [TrialMovementOption]? = nil,
         restRule: String? = nil
     ) -> TrialStation {
@@ -83,6 +84,7 @@ enum OverallRankTrialDefinitions {
             capSeconds: capSeconds,
             loadPercentOfBodyweight: loadPercentOfBodyweight,
             strengthTier: strengthTier,
+            dynamicGroupKey: dynamicGroupKey,
             movementOptions: movementOptions ?? [option(movementId, displayName)],
             restRule: restRule ?? "Clean reps only. Pain or form-break flags fail the station.",
             qualityFlags: [.clean]
@@ -171,7 +173,8 @@ enum OverallRankTrialDefinitions {
         loadout: TrialLoadout,
         runMeters: Int,
         minimumQualifyingSets: Int = 1,
-        capSeconds: Int? = nil
+        capSeconds: Int? = nil,
+        dynamicGroupKey: String? = nil
     ) -> TrialStation {
         let movement = engineMovement(loadout: loadout, runMeters: runMeters)
         return station(
@@ -186,6 +189,7 @@ enum OverallRankTrialDefinitions {
             plannedSets: minimumQualifyingSets,
             restSeconds: 45,
             capSeconds: capSeconds,
+            dynamicGroupKey: dynamicGroupKey,
             movementOptions: [option(movement.id, movement.displayName, requiredEquipment: movement.equipment)]
         )
     }
@@ -982,16 +986,313 @@ enum OverallRankTrialDefinitions {
         ]
     }
 
-    private static func finalExamStations(loadout: TrialLoadout) -> [TrialStation] {
-        [
-            station("exam-part-a-explosive", title: "Part A Explosive Control", category: .explosive, movementId: loadout == .gymHybrid ? "exercise.kettlebell-swing" : loadout == .homeKit ? "exercise.kettlebell-swing" : "exercise.step-up", metric: .reps, minimumValue: TrialStandards.FinalExam.explosiveReps, capSeconds: TrialStandards.FinalExam.explosiveCapSeconds, movementOptions: movementSet(loadout: loadout, noGym: option("exercise.step-up"), home: [option("exercise.kettlebell-swing", requiredEquipment: [.kettlebell]), option("exercise.step-up")], gym: [option("exercise.kettlebell-swing", requiredEquipment: [.kettlebell]), option("exercise.step-up")])),
-            engineStation("exam-part-b-engine", title: "Part B Capacity", loadout: loadout, runMeters: TrialStandards.FinalExam.engineMeters, capSeconds: TrialStandards.FinalExam.engineCapSeconds),
-            station("exam-part-c-pull", title: "Part C Pull Volume", category: .pull, movementId: loadout == .gymHybrid ? "exercise.cable-row-seated" : loadout == .homeKit ? "exercise.dumbbell-row" : "exercise.inverted-row", metric: .reps, minimumValue: TrialStandards.FinalExam.pullReps, capSeconds: TrialStandards.FinalExam.volumeCapSeconds, movementOptions: movementSet(loadout: loadout, noGym: option("exercise.inverted-row"), home: [option("exercise.dumbbell-row", requiredEquipment: [.dumbbell]), option("exercise.band-row", requiredEquipment: [.band])], gym: [option("exercise.cable-row-seated", requiredEquipment: [.cable]), option("exercise.machine-row", requiredEquipment: [.machine])])),
-            station("exam-part-c-push", title: "Part C Push Volume", category: .push, movementId: loadout == .gymHybrid ? "exercise.machine-chest-press" : "exercise.pushup", metric: .reps, minimumValue: TrialStandards.FinalExam.pushReps, capSeconds: TrialStandards.FinalExam.volumeCapSeconds, movementOptions: movementSet(loadout: loadout, noGym: option("exercise.pushup"), home: [option("exercise.pushup"), option("exercise.dumbbell-bench-press", requiredEquipment: [.dumbbell])], gym: [option("exercise.machine-chest-press", requiredEquipment: [.machine]), option("exercise.pushup")])),
-            station("exam-part-c-lower", title: "Part C Lower Volume", category: .lower, movementId: loadout == .gymHybrid ? "exercise.leg-press" : loadout == .homeKit ? "exercise.goblet-squat" : "exercise.step-up", metric: .reps, minimumValue: TrialStandards.FinalExam.lowerReps, capSeconds: TrialStandards.FinalExam.volumeCapSeconds, movementOptions: movementSet(loadout: loadout, noGym: option("exercise.step-up"), home: [option("exercise.goblet-squat", requiredEquipment: [.dumbbell]), option("exercise.dumbbell-step-up", requiredEquipment: [.dumbbell])], gym: [option("exercise.leg-press", requiredEquipment: [.machine]), option("exercise.goblet-squat", requiredEquipment: [.dumbbell])])),
-            station("exam-part-c-carry", title: "Part C Carry Finish", category: .carryCore, movementId: loadout == .noGymField ? "carry.loaded-march" : "carry.farmer-carry", metric: .distanceMeters, minimumValue: TrialStandards.FinalExam.carryMeters, capSeconds: TrialStandards.FinalExam.volumeCapSeconds, loadPercentOfBodyweight: loadout == .noGymField ? TrialStandards.FinalExam.carryLoadPercentNoGym : TrialStandards.FinalExam.carryLoadPercentLoaded, movementOptions: movementSet(loadout: loadout, noGym: option("carry.loaded-march", "Backpack Carry", requiredEquipment: [.openSpace]), home: [option("carry.farmer-carry", requiredEquipment: [.dumbbell, .openSpace]), option("carry.suitcase-carry", requiredEquipment: [.kettlebell, .openSpace])], gym: [option("carry.farmer-carry", requiredEquipment: [.dumbbell, .openSpace])])),
-            station("exam-part-c-trunk", title: "Part C Trunk Finish", category: .mobilityControl, movementId: "exercise.plank", metric: .holdSeconds, minimumValue: TrialStandards.FinalExam.trunkHoldSeconds, capSeconds: TrialStandards.FinalExam.volumeCapSeconds, movementOptions: [option("exercise.plank")])
+    private static func lastGateLanding1Stations(loadout: TrialLoadout) -> [TrialStation] {
+        return [
+            station(
+                "lastgate-landing-1-path",
+                title: "Landing 1 - The Path Lantern",
+                category: .lower,
+                movementId: loadout == .gymHybrid ? "exercise.leg-press" : loadout == .homeKit ? "exercise.goblet-squat" : "exercise.bodyweight-squat",
+                metric: .reps,
+                minimumValue: TrialStandards.TheLastGate.landing1LowerReps,
+                capSeconds: TrialStandards.TheLastGate.landing1CapSeconds,
+                movementOptions: movementSet(
+                    loadout: loadout,
+                    noGym: option("exercise.bodyweight-squat"),
+                    home: [
+                        option("exercise.goblet-squat", requiredEquipment: [.dumbbell]),
+                        option("exercise.bodyweight-squat")
+                    ],
+                    gym: [
+                        option("exercise.leg-press", requiredEquipment: [.machine]),
+                        option("exercise.goblet-squat", requiredEquipment: [.dumbbell])
+                    ]
+                )
+            ),
+            station(
+                "lastgate-landing-1-posts",
+                title: "Landing 1 - The Post Lantern",
+                category: .push,
+                movementId: loadout == .gymHybrid ? "exercise.machine-chest-press" : loadout == .homeKit ? "exercise.pushup" : "exercise.incline-pushup",
+                metric: .reps,
+                minimumValue: TrialStandards.TheLastGate.landing1PushReps,
+                capSeconds: TrialStandards.TheLastGate.landing1CapSeconds,
+                movementOptions: movementSet(
+                    loadout: loadout,
+                    noGym: option("exercise.incline-pushup"),
+                    home: [
+                        option("exercise.pushup"),
+                        option("exercise.dumbbell-bench-press", requiredEquipment: [.dumbbell])
+                    ],
+                    gym: [
+                        option("exercise.machine-chest-press", requiredEquipment: [.machine]),
+                        option("exercise.pushup")
+                    ]
+                )
+            ),
+            station(
+                "lastgate-landing-1-banner",
+                title: "Landing 1 - The Banner Lantern",
+                category: .pull,
+                movementId: loadout == .gymHybrid ? "exercise.cable-row-seated" : loadout == .homeKit ? "exercise.dumbbell-row" : "exercise.inverted-row",
+                metric: .reps,
+                minimumValue: TrialStandards.TheLastGate.landing1PullReps,
+                capSeconds: TrialStandards.TheLastGate.landing1CapSeconds,
+                movementOptions: movementSet(
+                    loadout: loadout,
+                    noGym: option("exercise.inverted-row"),
+                    home: [
+                        option("exercise.dumbbell-row", requiredEquipment: [.dumbbell]),
+                        option("exercise.band-row", requiredEquipment: [.band]),
+                        option("exercise.inverted-row")
+                    ],
+                    gym: [
+                        option("exercise.cable-row-seated", requiredEquipment: [.cable]),
+                        option("exercise.machine-row", requiredEquipment: [.machine])
+                    ]
+                )
+            ),
+            station(
+                "lastgate-landing-1-steps",
+                title: "Landing 1 - The Steps Lantern",
+                category: .engine,
+                movementId: "exercise.step-up",
+                metric: .reps,
+                minimumValue: TrialStandards.TheLastGate.landing1StepReps,
+                capSeconds: TrialStandards.TheLastGate.landing1CapSeconds,
+                movementOptions: [option("exercise.step-up")]
+            ),
+            station(
+                "lastgate-landing-1-door",
+                title: "Landing 1 - The Door Light",
+                category: .carryCore,
+                movementId: "exercise.plank",
+                metric: .holdSeconds,
+                minimumValue: TrialStandards.TheLastGate.landing1HoldSeconds,
+                capSeconds: TrialStandards.TheLastGate.landing1CapSeconds,
+                movementOptions: [option("exercise.plank")]
+            )
         ]
+    }
+
+    private static func lastGatePowerStrikeStation(
+        _ id: String,
+        title: String,
+        loadout: TrialLoadout,
+        minimumValue: Int,
+        capSeconds: Int? = nil,
+        noGymLoadPercent: Double,
+        dynamicGroupKey: String? = nil
+    ) -> TrialStation {
+        let homePowerOptions = [
+            option("exercise.dumbbell-romanian-deadlift", requiredEquipment: [.dumbbell])
+        ]
+        let gymPowerOptions = [
+            option("exercise.romanian-deadlift", requiredEquipment: [.barbell]),
+            option("exercise.dumbbell-romanian-deadlift", requiredEquipment: [.dumbbell])
+        ]
+
+        return station(
+            id,
+            title: title,
+            category: .hingePower,
+            movementId: loadout == .gymHybrid ? "exercise.romanian-deadlift" : loadout == .homeKit ? "exercise.dumbbell-romanian-deadlift" : "exercise.single-leg-rdl",
+            displayName: loadout == .noGymField ? "Backpack Single-Leg RDL" : nil,
+            metric: .reps,
+            minimumValue: minimumValue,
+            minimumQualifyingSets: 1,
+            plannedSets: 3,
+            capSeconds: capSeconds,
+            loadPercentOfBodyweight: loadout == .noGymField ? noGymLoadPercent : nil,
+            strengthTier: loadout == .noGymField ? nil : .unbound,
+            dynamicGroupKey: dynamicGroupKey,
+            movementOptions: loadout == .noGymField
+                ? [option("exercise.single-leg-rdl", "Backpack Single-Leg RDL", requiredEquipment: [.bodyweight, .openSpace])]
+                : loadout == .gymHybrid ? gymPowerOptions : homePowerOptions
+        )
+    }
+
+    private static func lastGateHandStations(loadout: TrialLoadout) -> [TrialStation] {
+        let suits = deckSuitSpecs(loadout: loadout)
+        let ranks = deckRanks.prefix(TrialStandards.TheLastGate.landing4CardCount)
+
+        return ranks.enumerated().map { index, rank in
+            let suit = suits[index % suits.count]
+            let cardNumber = String(format: "%02d", index + 1)
+            let cardCode = "\(rank.code)\(suit.code)"
+            return station(
+                "lastgate-landing-4-card-\(cardNumber)",
+                title: "Landing 4 - Card \(cardCode) \(suit.title)",
+                category: suit.category,
+                movementId: suit.movementId,
+                displayName: suit.displayName,
+                metric: .reps,
+                minimumValue: rank.reps,
+                restSeconds: TrialStandards.DeckOfProof.restSeconds,
+                capSeconds: TrialStandards.TheLastGate.landing4CapSeconds,
+                movementOptions: deckMovementOptions(for: suit, cardValue: rank.reps),
+                restRule: "Short rest, then flip the next card."
+            )
+        }
+    }
+
+    private static func lastGateLanding6Stations(loadout: TrialLoadout) -> [TrialStation] {
+        let dynamicGroupKey = "lastgate-landing-6"
+        return [
+            lastGatePowerStrikeStation(
+                "lastgate-landing-6-power",
+                title: "Landing 6 - Power Seal",
+                loadout: loadout,
+                minimumValue: TrialStandards.SevenSeals.powerStrikeReps,
+                capSeconds: TrialStandards.SevenSeals.sealCapSeconds,
+                noGymLoadPercent: TrialStandards.SevenSeals.spiritCarryLoadPercentNoGym + 0.10,
+                dynamicGroupKey: dynamicGroupKey
+            ),
+            station(
+                "lastgate-landing-6-vitality",
+                title: "Landing 6 - Vitality Seal",
+                category: .lower,
+                movementId: loadout == .gymHybrid ? "exercise.leg-press" : loadout == .homeKit ? "exercise.dumbbell-step-up" : "exercise.step-up",
+                metric: .reps,
+                minimumValue: TrialStandards.SevenSeals.vitalityLowerReps,
+                capSeconds: TrialStandards.SevenSeals.sealCapSeconds,
+                dynamicGroupKey: dynamicGroupKey,
+                movementOptions: movementSet(
+                    loadout: loadout,
+                    noGym: option("exercise.step-up"),
+                    home: [
+                        option("exercise.dumbbell-step-up", requiredEquipment: [.dumbbell]),
+                        option("exercise.goblet-squat", requiredEquipment: [.dumbbell])
+                    ],
+                    gym: [
+                        option("exercise.leg-press", requiredEquipment: [.machine]),
+                        option("exercise.dumbbell-step-up", requiredEquipment: [.dumbbell])
+                    ]
+                )
+            ),
+            station(
+                "lastgate-landing-6-control",
+                title: "Landing 6 - Control Seal",
+                category: .mobilityControl,
+                movementId: "exercise.plank",
+                metric: .holdSeconds,
+                minimumValue: TrialStandards.SevenSeals.controlHoldSeconds,
+                minimumQualifyingSets: TrialStandards.SevenSeals.controlSets,
+                plannedSets: TrialStandards.SevenSeals.controlSets,
+                capSeconds: TrialStandards.SevenSeals.sealCapSeconds,
+                dynamicGroupKey: dynamicGroupKey,
+                movementOptions: [option("exercise.plank")]
+            ),
+            engineStation(
+                "lastgate-landing-6-endurance",
+                title: "Landing 6 - Endurance Seal",
+                loadout: loadout,
+                runMeters: TrialStandards.SevenSeals.enduranceEngineMeters,
+                capSeconds: TrialStandards.SevenSeals.sealCapSeconds,
+                dynamicGroupKey: dynamicGroupKey
+            ),
+            station(
+                "lastgate-landing-6-mobility",
+                title: "Landing 6 - Mobility Seal",
+                category: .mobilityControl,
+                movementId: "mobility.deep-squat-hold",
+                metric: .holdSeconds,
+                minimumValue: TrialStandards.SevenSeals.mobilityDeepSquatHoldSeconds,
+                capSeconds: TrialStandards.SevenSeals.sealCapSeconds,
+                dynamicGroupKey: dynamicGroupKey,
+                movementOptions: [option("mobility.deep-squat-hold", requiredEquipment: [.bodyweight, .openSpace])]
+            ),
+            station(
+                "lastgate-landing-6-explosiveness",
+                title: "Landing 6 - Explosiveness Seal",
+                category: .explosive,
+                movementId: loadout == .gymHybrid ? "exercise.cable-pull-through" : loadout == .homeKit ? "exercise.kettlebell-swing" : "exercise.glute-bridge",
+                metric: .reps,
+                minimumValue: TrialStandards.SevenSeals.explosivenessReps,
+                capSeconds: TrialStandards.SevenSeals.sealCapSeconds,
+                dynamicGroupKey: dynamicGroupKey,
+                movementOptions: movementSet(
+                    loadout: loadout,
+                    noGym: option("exercise.glute-bridge"),
+                    home: [
+                        option("exercise.kettlebell-swing", requiredEquipment: [.kettlebell]),
+                        option("exercise.dumbbell-romanian-deadlift", requiredEquipment: [.dumbbell])
+                    ],
+                    gym: [
+                        option("exercise.cable-pull-through", requiredEquipment: [.cable]),
+                        option("exercise.kettlebell-swing", requiredEquipment: [.kettlebell])
+                    ]
+                )
+            )
+        ]
+    }
+
+    private static func theLastGateStations(loadout: TrialLoadout) -> [TrialStation] {
+        return lastGateLanding1Stations(loadout: loadout) + [
+            engineStation(
+                "lastgate-landing-2-count",
+                title: "Landing 2 - The Count",
+                loadout: loadout,
+                runMeters: TrialStandards.TheLastGate.landing2EngineMeters,
+                capSeconds: TrialStandards.TheLastGate.landing2WindowSeconds
+            ),
+            lastGatePowerStrikeStation(
+                "lastgate-landing-3-strike",
+                title: "Landing 3 - The Strike",
+                loadout: loadout,
+                minimumValue: TrialStandards.TheLastGate.landing3StrikeReps,
+                noGymLoadPercent: 0.30
+            )
+        ]
+            + lastGateHandStations(loadout: loadout)
+            + [
+                engineStation(
+                    "lastgate-landing-5-engine",
+                    title: "Landing 5 - The Engine",
+                    loadout: loadout,
+                    runMeters: TrialStandards.TheLastGate.landing5EngineMeters
+                ),
+                station(
+                    "lastgate-landing-5-hold",
+                    title: "Landing 5 - The Hold",
+                    category: .mobilityControl,
+                    movementId: "exercise.plank",
+                    metric: .holdSeconds,
+                    minimumValue: TrialStandards.TheLastGate.landing5HoldSeconds,
+                    movementOptions: [option("exercise.plank")]
+                )
+            ]
+            + lastGateLanding6Stations(loadout: loadout)
+            + [
+                station(
+                    "lastgate-landing-7-carry",
+                    title: "Landing 7 - The Carry",
+                    category: .carryCore,
+                    movementId: loadout == .noGymField ? "carry.loaded-march" : "carry.farmer-carry",
+                    metric: .distanceMeters,
+                    minimumValue: TrialStandards.TheLastGate.landing7CarryMeters,
+                    loadPercentOfBodyweight: loadout == .noGymField ? TrialStandards.TheLastGate.landing7CarryLoadPercentNoGym : TrialStandards.TheLastGate.landing7CarryLoadPercentLoaded,
+                    movementOptions: movementSet(
+                        loadout: loadout,
+                        noGym: option("carry.loaded-march", "Backpack Carry", requiredEquipment: [.openSpace]),
+                        home: [
+                            option("carry.farmer-carry", requiredEquipment: [.dumbbell, .openSpace]),
+                            option("carry.suitcase-carry", requiredEquipment: [.kettlebell, .openSpace])
+                        ],
+                        gym: [option("carry.farmer-carry", requiredEquipment: [.dumbbell, .openSpace])]
+                    )
+                ),
+                station(
+                    "lastgate-summit",
+                    title: "The Summit",
+                    category: .mobilityControl,
+                    movementId: "exercise.plank",
+                    metric: .holdSeconds,
+                    minimumValue: TrialStandards.TheLastGate.summitHoldSeconds,
+                    capSeconds: TrialStandards.TheLastGate.summitCapSeconds,
+                    movementOptions: [option("exercise.plank")]
+                )
+            ]
     }
 
     static let firstLight = OverallRankTrialDefinition(
@@ -1123,19 +1424,20 @@ enum OverallRankTrialDefinitions {
         legacyIds: ["overall-rank-trial-unbound-threshold"]
     )
 
-    static let ascension = definition(
-        id: "overall-rank-trial-ascendant-ascension",
+    static let theLastGate = definition(
+        id: "gate-08-the-last-gate",
         targetRank: .unbound,
-        displayName: "Final Exam",
+        displayName: "The Last Gate",
         subtitle: "Ascendant to Unbound rank gate",
         estimatedMinutes: 75,
         format: .theLastGate,
         minOverallLevel: 90,
         loadoutVariants: loadoutVariants(
-            noGym: finalExamStations(loadout: .noGymField),
-            home: finalExamStations(loadout: .homeKit),
-            gym: finalExamStations(loadout: .gymHybrid)
-        )
+            noGym: theLastGateStations(loadout: .noGymField),
+            home: theLastGateStations(loadout: .homeKit),
+            gym: theLastGateStations(loadout: .gymHybrid)
+        ),
+        legacyIds: ["overall-rank-trial-ascendant-ascension"]
     )
 
     static let all: [OverallRankTrialDefinition] = [
@@ -1146,7 +1448,7 @@ enum OverallRankTrialDefinitions {
         theAscent,
         sevenSeals,
         theThreshold,
-        ascension
+        theLastGate
     ]
 
     static func definition(id: String) -> OverallRankTrialDefinition? {
@@ -1173,7 +1475,7 @@ enum OverallRankTrialDefinitions {
         case .vessel:
             return theThreshold
         case .ascendant:
-            return ascension
+            return theLastGate
         default:
             return nil
         }
@@ -1185,9 +1487,8 @@ enum OverallRankTrialDefinitions {
 ///   - Novice through Veteran (rawValue 1–4): `benchmark` — one short
 ///     qualifying session, infinitely retryable. Early ranks still get real,
 ///     playable trials instead of synthetic claims.
-///   - Master+ (rawValue ≥ 5 — the crown crossings, Tower onward): `gauntlet` —
-///     the epic themed conditioning gauntlet (Tower / Boss Rush / Raid /
-///     Final Exam).
+///   - Master+ (rawValue ≥ 5 — the crown crossings): `gauntlet` —
+///     the epic themed conditioning gauntlet (The Ascent onward).
 enum OverallRankCeremonyTier: String, Equatable, Sendable {
     case benchmark
     case gauntlet
