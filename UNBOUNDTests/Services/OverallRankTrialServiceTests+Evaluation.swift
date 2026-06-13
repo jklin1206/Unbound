@@ -665,6 +665,69 @@ extension OverallRankTrialServiceTests {
         XCTAssertTrue(atEval.passed,
             "Strike station should pass when top set meets the strength-tier load floor")
     }
+
+    func testStrikeStationRequiresRepsAndLoadInTheSameSet() throws {
+        let movementId = "exercise.barbell-romanian-deadlift"
+        let bodyweightKg = 80.0
+        let station = makeStrikeStation(movementId: movementId, reps: 3, strengthTier: .forged)
+        let floorKg = try XCTUnwrap(station.resolvedStrikeLoadKg(bodyweightKg: bodyweightKg))
+
+        let testDef = OverallRankTrialDefinition(
+            id: "test-strike-gate-conjoined",
+            targetRank: .forged,
+            displayName: "Strike Gate",
+            subtitle: "test",
+            estimatedMinutes: 10,
+            format: .theForging,
+            minOverallLevel: 1,
+            requiredEquipment: [.bodyweight],
+            performanceStandards: [station.standard],
+            loadoutVariants: [
+                TrialLoadoutVariant(
+                    loadout: .homeKit,
+                    requiredEquipment: [.bodyweight],
+                    promise: "test",
+                    stations: [station]
+                )
+            ]
+        )
+
+        // A heavy 1-rep set plus a light 3-rep set satisfies load and reps in
+        // DIFFERENT sets — the strike demands both in ONE set, so this must fail.
+        let exercise = PerformanceExercise(
+            name: movementId,
+            movementId: movementId,
+            plannedSets: 3,
+            plannedTarget: "3 reps",
+            sets: [
+                PerformanceSet(setNumber: 1, reps: 1, weightKg: floorKg + 10),
+                PerformanceSet(setNumber: 2, reps: 3, weightKg: floorKg - 30)
+            ]
+        )
+        let block = PerformanceBlock(
+            kind: .bodyweight,
+            title: "t-strike",
+            exercises: [exercise]
+        )
+        let splitLog = PerformanceLog(
+            userId: "u1",
+            source: .overallRankTrial,
+            title: "Strike Gate",
+            startedAt: Date(timeIntervalSince1970: 0),
+            completedAt: Date(timeIntervalSince1970: 60),
+            programId: "test-strike-gate-conjoined",
+            blocks: [block]
+        )
+
+        let splitEval = OverallRankTrialRunner.shared.evaluateDetailed(
+            splitLog,
+            against: testDef,
+            bodyweightKg: bodyweightKg,
+            enforceLoadPercent: false
+        )
+        XCTAssertFalse(splitEval.passed,
+            "Strike must require the rep floor AND the load floor in the same set")
+    }
 }
 
 // MARK: - Task 5: Dynamic weakest-attribute station resolution

@@ -497,7 +497,12 @@ final class OverallRankTrialRunner {
                 )
             }
             if let strikeLoadKg = station.resolvedStrikeLoadKg(bodyweightKg: bw), strikeLoadKg > 0 {
-                let loadedSetExists = cleanSets.contains { ($0.weightKg ?? 0) >= strikeLoadKg }
+                // Load floor and rep floor must be met within ONE set — a heavy
+                // single plus a light triple is not a passed strike.
+                let loadedSetExists = cleanSets.contains { set in
+                    (set.weightKg ?? 0) >= strikeLoadKg
+                        && value(for: set, metric: standard.metric) >= effectiveMinimum
+                }
                 if !loadedSetExists {
                     return stationResult(
                         station,
