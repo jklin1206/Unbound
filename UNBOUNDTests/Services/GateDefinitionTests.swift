@@ -244,6 +244,78 @@ final class GateDefinitionTests: XCTestCase {
         XCTAssertEqual(noGymFloor4.resolvedMinimum(forMovementId: "exercise.inverted-row"), TrialStandards.TheAscent.rowFallbackReps)
         XCTAssertEqual(noGym.first { $0.id == "ascent-floor-06" }?.loadPercentOfBodyweight, TrialStandards.TheAscent.carryLoadPercentNoGym)
     }
+
+    func testGate6SevenSealsStations() throws {
+        let gate = OverallRankTrialDefinitions.sevenSeals
+        XCTAssertEqual(gate.id, "gate-06-seven-seals")
+        XCTAssertEqual(gate.format, .sevenSeals)
+        XCTAssertEqual(gate.displayName, "The Seven Seals")
+        XCTAssertEqual(gate.targetRank, .vessel)
+        XCTAssertTrue(gate.legacyIds.contains("overall-rank-trial-vessel-ten-hundred"))
+        XCTAssertTrue(gate.legacyIds.contains("overall-rank-trial-vessel-crucible"))
+
+        let expectedIds = [
+            "seals-endurance", "seals-vitality", "seals-explosiveness",
+            "seals-power", "seals-control", "seals-mobility", "seals-spirit"
+        ]
+
+        for loadout in TrialLoadout.allCases {
+            let stations = gate.stations(for: loadout)
+            XCTAssertEqual(stations.count, 7, loadout.displayName)
+            XCTAssertEqual(stations.map(\.id), expectedIds, loadout.displayName)
+            XCTAssertTrue(stations.allSatisfy { $0.capSeconds == TrialStandards.SevenSeals.sealCapSeconds }, loadout.displayName)
+            XCTAssertTrue(stations.allSatisfy { !$0.movementOptions.isEmpty }, loadout.displayName)
+            XCTAssertEqual(stations.last?.id, "seals-spirit", loadout.displayName)
+        }
+
+        let home = gate.stations(for: .homeKit)
+        XCTAssertEqual(home[0].standard.minimumValue, TrialStandards.SevenSeals.enduranceEngineMeters)
+        XCTAssertEqual(home[1].standard.minimumValue, TrialStandards.SevenSeals.vitalityLowerReps)
+        XCTAssertEqual(home[2].category, .explosive)
+        XCTAssertEqual(home[2].standard.minimumValue, TrialStandards.SevenSeals.explosivenessReps)
+        XCTAssertEqual(home[3].category, .hingePower)
+        XCTAssertEqual(home[3].standard.minimumValue, TrialStandards.SevenSeals.powerStrikeReps)
+        XCTAssertEqual(home[3].standard.minimumQualifyingSets, 1)
+        XCTAssertEqual(home[3].standard.plannedSets, 3)
+        XCTAssertEqual(home[3].strengthTier, .vessel)
+        XCTAssertEqual(home[4].standard.movementId, "exercise.plank")
+        XCTAssertEqual(home[4].standard.minimumValue, TrialStandards.SevenSeals.controlHoldSeconds)
+        XCTAssertEqual(home[4].standard.minimumQualifyingSets, TrialStandards.SevenSeals.controlSets)
+        XCTAssertEqual(home[4].standard.plannedSets, TrialStandards.SevenSeals.controlSets)
+        XCTAssertEqual(home[5].standard.movementId, "mobility.deep-squat-hold")
+        XCTAssertEqual(home[5].standard.metric, .holdSeconds)
+        XCTAssertEqual(home[5].standard.minimumValue, TrialStandards.SevenSeals.mobilityDeepSquatHoldSeconds)
+        XCTAssertEqual(home[5].movementOptions.first?.requiredEquipment, Set([.bodyweight, .openSpace]))
+        XCTAssertEqual(home[6].standard.minimumValue, TrialStandards.SevenSeals.spiritCarryMeters)
+        XCTAssertEqual(home[6].loadPercentOfBodyweight, TrialStandards.SevenSeals.spiritCarryLoadPercentLoaded)
+
+        let noGym = gate.stations(for: .noGymField)
+        let noGymPower = try XCTUnwrap(noGym.first { $0.id == "seals-power" })
+        XCTAssertEqual(noGymPower.standard.movementId, "exercise.single-leg-rdl")
+        XCTAssertEqual(noGymPower.loadPercentOfBodyweight, 0.25)
+        XCTAssertNil(noGymPower.strengthTier)
+        XCTAssertEqual(noGym.first { $0.id == "seals-spirit" }?.loadPercentOfBodyweight, TrialStandards.SevenSeals.spiritCarryLoadPercentNoGym)
+    }
+
+    func testGate6PowerSealLoadedMovementsResolveVesselStrengthRatios() throws {
+        let gate = OverallRankTrialDefinitions.sevenSeals
+
+        for loadout in [TrialLoadout.homeKit, .gymHybrid] {
+            let power = try XCTUnwrap(gate.stations(for: loadout).first { $0.id == "seals-power" }, loadout.displayName)
+            XCTAssertEqual(power.strengthTier, .vessel, loadout.displayName)
+
+            for option in power.movementOptions {
+                let movementKey = MovementCatalog.definition(for: option.movementId)?.canonicalExerciseName ?? option.movementId
+                let ratio = StrengthStandards.ratio(exerciseKey: movementKey, tier: .vessel, sex: nil)
+                XCTAssertNotNil(ratio, "\(loadout.displayName) \(option.movementId) must resolve a Vessel strength ratio")
+            }
+
+            XCTAssertNotNil(
+                power.resolvedStrikeLoadKg(bodyweightKg: 80),
+                "\(loadout.displayName) seals-power must resolve a strike load"
+            )
+        }
+    }
 }
 
 private extension OverallRankTrialDefinition {

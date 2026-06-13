@@ -757,15 +757,123 @@ enum OverallRankTrialDefinitions {
         ]
     }
 
-    private static func bossRushStations(loadout: TrialLoadout) -> [TrialStation] {
-        [
-            engineStation("boss-engine", title: "Engine Boss", loadout: loadout, runMeters: TrialStandards.BossRush.engineMeters, capSeconds: TrialStandards.BossRush.stationCapSeconds),
-            station("boss-lower", title: "Lower Boss", category: .lower, movementId: loadout == .gymHybrid ? "exercise.leg-press" : loadout == .homeKit ? "exercise.dumbbell-step-up" : "exercise.step-up", metric: .reps, minimumValue: TrialStandards.BossRush.lowerReps, capSeconds: TrialStandards.BossRush.stationCapSeconds, movementOptions: movementSet(loadout: loadout, noGym: option("exercise.step-up"), home: [option("exercise.dumbbell-step-up", requiredEquipment: [.dumbbell]), option("exercise.goblet-squat", requiredEquipment: [.dumbbell])], gym: [option("exercise.leg-press", requiredEquipment: [.machine]), option("exercise.dumbbell-step-up", requiredEquipment: [.dumbbell])])),
-            station("boss-power", title: "Power Boss", category: .hingePower, movementId: loadout == .gymHybrid ? "exercise.cable-pull-through" : loadout == .homeKit ? "exercise.kettlebell-swing" : "exercise.glute-bridge", metric: .reps, minimumValue: TrialStandards.BossRush.powerReps, capSeconds: TrialStandards.BossRush.stationCapSeconds, movementOptions: movementSet(loadout: loadout, noGym: option("exercise.glute-bridge"), home: [option("exercise.kettlebell-swing", requiredEquipment: [.kettlebell]), option("exercise.dumbbell-romanian-deadlift", requiredEquipment: [.dumbbell])], gym: [option("exercise.cable-pull-through", requiredEquipment: [.cable]), option("exercise.kettlebell-swing", requiredEquipment: [.kettlebell])])),
-            station("boss-upper-push", title: "Upper Boss Push", category: .push, movementId: loadout == .gymHybrid ? "exercise.machine-chest-press" : "exercise.pushup", metric: .reps, minimumValue: TrialStandards.BossRush.pushReps, capSeconds: TrialStandards.BossRush.stationCapSeconds, movementOptions: movementSet(loadout: loadout, noGym: option("exercise.pushup"), home: [option("exercise.pushup"), option("exercise.dumbbell-bench-press", requiredEquipment: [.dumbbell])], gym: [option("exercise.machine-chest-press", requiredEquipment: [.machine]), option("exercise.dumbbell-bench-press", requiredEquipment: [.dumbbell])])),
-            station("boss-upper-pull", title: "Upper Boss Pull", category: .pull, movementId: loadout == .gymHybrid ? "exercise.cable-row-seated" : loadout == .homeKit ? "exercise.dumbbell-row" : "exercise.inverted-row", metric: .reps, minimumValue: TrialStandards.BossRush.pullReps, capSeconds: TrialStandards.BossRush.stationCapSeconds, movementOptions: movementSet(loadout: loadout, noGym: option("exercise.inverted-row"), home: [option("exercise.dumbbell-row", requiredEquipment: [.dumbbell]), option("exercise.band-row", requiredEquipment: [.band])], gym: [option("exercise.cable-row-seated", requiredEquipment: [.cable]), option("exercise.machine-row", requiredEquipment: [.machine])])),
-            station("boss-control", title: "Control Boss", category: .mobilityControl, movementId: "exercise.plank", metric: .holdSeconds, minimumValue: TrialStandards.BossRush.controlHoldSeconds, minimumQualifyingSets: TrialStandards.BossRush.controlSets, plannedSets: TrialStandards.BossRush.controlSets, capSeconds: TrialStandards.BossRush.stationCapSeconds, movementOptions: [option("exercise.plank")]),
-            station("boss-carry", title: "Carry Boss", category: .carryCore, movementId: loadout == .noGymField ? "carry.loaded-march" : "carry.farmer-carry", metric: .distanceMeters, minimumValue: TrialStandards.BossRush.carryMeters, capSeconds: TrialStandards.BossRush.stationCapSeconds, loadPercentOfBodyweight: loadout == .noGymField ? TrialStandards.BossRush.carryLoadPercentNoGym : TrialStandards.BossRush.carryLoadPercentLoaded, movementOptions: movementSet(loadout: loadout, noGym: option("carry.loaded-march", "Backpack Carry", requiredEquipment: [.openSpace]), home: [option("carry.farmer-carry", requiredEquipment: [.dumbbell, .openSpace]), option("carry.suitcase-carry", requiredEquipment: [.kettlebell, .openSpace])], gym: [option("carry.farmer-carry", requiredEquipment: [.dumbbell, .openSpace])]))
+    private static func sevenSealsStations(loadout: TrialLoadout) -> [TrialStation] {
+        let homePowerOptions = [
+            option("exercise.dumbbell-romanian-deadlift", requiredEquipment: [.dumbbell])
+        ]
+        let gymPowerOptions = [
+            option("exercise.romanian-deadlift", requiredEquipment: [.barbell]),
+            option("exercise.dumbbell-romanian-deadlift", requiredEquipment: [.dumbbell])
+        ]
+
+        return [
+            engineStation(
+                "seals-endurance",
+                title: "Seal I — Endurance",
+                loadout: loadout,
+                runMeters: TrialStandards.SevenSeals.enduranceEngineMeters,
+                capSeconds: TrialStandards.SevenSeals.sealCapSeconds
+            ),
+            station(
+                "seals-vitality",
+                title: "Seal II — Vitality",
+                category: .lower,
+                movementId: loadout == .gymHybrid ? "exercise.leg-press" : loadout == .homeKit ? "exercise.dumbbell-step-up" : "exercise.step-up",
+                metric: .reps,
+                minimumValue: TrialStandards.SevenSeals.vitalityLowerReps,
+                capSeconds: TrialStandards.SevenSeals.sealCapSeconds,
+                movementOptions: movementSet(
+                    loadout: loadout,
+                    noGym: option("exercise.step-up"),
+                    home: [
+                        option("exercise.dumbbell-step-up", requiredEquipment: [.dumbbell]),
+                        option("exercise.goblet-squat", requiredEquipment: [.dumbbell])
+                    ],
+                    gym: [
+                        option("exercise.leg-press", requiredEquipment: [.machine]),
+                        option("exercise.dumbbell-step-up", requiredEquipment: [.dumbbell])
+                    ]
+                )
+            ),
+            station(
+                "seals-explosiveness",
+                title: "Seal III — Explosiveness",
+                category: .explosive,
+                movementId: loadout == .gymHybrid ? "exercise.cable-pull-through" : loadout == .homeKit ? "exercise.kettlebell-swing" : "exercise.glute-bridge",
+                metric: .reps,
+                minimumValue: TrialStandards.SevenSeals.explosivenessReps,
+                capSeconds: TrialStandards.SevenSeals.sealCapSeconds,
+                movementOptions: movementSet(
+                    loadout: loadout,
+                    noGym: option("exercise.glute-bridge"),
+                    home: [
+                        option("exercise.kettlebell-swing", requiredEquipment: [.kettlebell]),
+                        option("exercise.dumbbell-romanian-deadlift", requiredEquipment: [.dumbbell])
+                    ],
+                    gym: [
+                        option("exercise.cable-pull-through", requiredEquipment: [.cable]),
+                        option("exercise.kettlebell-swing", requiredEquipment: [.kettlebell])
+                    ]
+                )
+            ),
+            station(
+                "seals-power",
+                title: "Seal IV — Power",
+                category: .hingePower,
+                movementId: loadout == .gymHybrid ? "exercise.romanian-deadlift" : loadout == .homeKit ? "exercise.dumbbell-romanian-deadlift" : "exercise.single-leg-rdl",
+                displayName: loadout == .noGymField ? "Backpack Single-Leg RDL" : nil,
+                metric: .reps,
+                minimumValue: TrialStandards.SevenSeals.powerStrikeReps,
+                minimumQualifyingSets: 1,
+                plannedSets: 3,
+                capSeconds: TrialStandards.SevenSeals.sealCapSeconds,
+                loadPercentOfBodyweight: loadout == .noGymField ? 0.25 : nil,
+                strengthTier: loadout == .noGymField ? nil : .vessel,
+                movementOptions: loadout == .noGymField
+                    ? [option("exercise.single-leg-rdl", "Backpack Single-Leg RDL", requiredEquipment: [.bodyweight, .openSpace])]
+                    : loadout == .gymHybrid ? gymPowerOptions : homePowerOptions
+            ),
+            station(
+                "seals-control",
+                title: "Seal V — Control",
+                category: .mobilityControl,
+                movementId: "exercise.plank",
+                metric: .holdSeconds,
+                minimumValue: TrialStandards.SevenSeals.controlHoldSeconds,
+                minimumQualifyingSets: TrialStandards.SevenSeals.controlSets,
+                plannedSets: TrialStandards.SevenSeals.controlSets,
+                capSeconds: TrialStandards.SevenSeals.sealCapSeconds,
+                movementOptions: [option("exercise.plank")]
+            ),
+            station(
+                "seals-mobility",
+                title: "Seal VI — Mobility",
+                category: .mobilityControl,
+                movementId: "mobility.deep-squat-hold",
+                metric: .holdSeconds,
+                minimumValue: TrialStandards.SevenSeals.mobilityDeepSquatHoldSeconds,
+                capSeconds: TrialStandards.SevenSeals.sealCapSeconds,
+                movementOptions: [option("mobility.deep-squat-hold", requiredEquipment: [.bodyweight, .openSpace])]
+            ),
+            station(
+                "seals-spirit",
+                title: "Seal VII — Spirit",
+                category: .carryCore,
+                movementId: loadout == .noGymField ? "carry.loaded-march" : "carry.farmer-carry",
+                metric: .distanceMeters,
+                minimumValue: TrialStandards.SevenSeals.spiritCarryMeters,
+                capSeconds: TrialStandards.SevenSeals.sealCapSeconds,
+                loadPercentOfBodyweight: loadout == .noGymField ? TrialStandards.SevenSeals.spiritCarryLoadPercentNoGym : TrialStandards.SevenSeals.spiritCarryLoadPercentLoaded,
+                movementOptions: movementSet(
+                    loadout: loadout,
+                    noGym: option("carry.loaded-march", "Backpack Carry", requiredEquipment: [.openSpace]),
+                    home: [
+                        option("carry.farmer-carry", requiredEquipment: [.dumbbell, .openSpace]),
+                        option("carry.suitcase-carry", requiredEquipment: [.kettlebell, .openSpace])
+                    ],
+                    gym: [option("carry.farmer-carry", requiredEquipment: [.dumbbell, .openSpace])]
+                )
+            )
         ]
     }
 
@@ -885,20 +993,23 @@ enum OverallRankTrialDefinitions {
         ]
     )
 
-    static let crucible = definition(
-        id: "overall-rank-trial-vessel-ten-hundred",
+    static let sevenSeals = definition(
+        id: "gate-06-seven-seals",
         targetRank: .vessel,
-        displayName: "Boss Rush",
+        displayName: "The Seven Seals",
         subtitle: "Master to Vessel rank gate",
         estimatedMinutes: 58,
         format: .sevenSeals,
         minOverallLevel: 55,
         loadoutVariants: loadoutVariants(
-            noGym: bossRushStations(loadout: .noGymField),
-            home: bossRushStations(loadout: .homeKit),
-            gym: bossRushStations(loadout: .gymHybrid)
+            noGym: sevenSealsStations(loadout: .noGymField),
+            home: sevenSealsStations(loadout: .homeKit),
+            gym: sevenSealsStations(loadout: .gymHybrid)
         ),
-        legacyIds: ["overall-rank-trial-vessel-crucible"]
+        legacyIds: [
+            "overall-rank-trial-vessel-ten-hundred",
+            "overall-rank-trial-vessel-crucible"
+        ]
     )
 
     static let threshold = definition(
@@ -937,7 +1048,7 @@ enum OverallRankTrialDefinitions {
         theForging,
         deckOfProof,
         theAscent,
-        crucible,
+        sevenSeals,
         threshold,
         ascension
     ]
@@ -962,7 +1073,7 @@ enum OverallRankTrialDefinitions {
         case .veteran:
             return theAscent
         case .master:
-            return crucible
+            return sevenSeals
         case .vessel:
             return threshold
         case .ascendant:

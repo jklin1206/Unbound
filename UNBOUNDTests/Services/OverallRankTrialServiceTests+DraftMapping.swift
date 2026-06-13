@@ -124,30 +124,35 @@ extension OverallRankTrialServiceTests {
 
     func testEliteProtocolsScoreCompoundPushAndPullStationsSeparately() throws {
         let ascent = try XCTUnwrap(resolvedTrial(for: OverallRankTrialDefinitions.theAscent, loadout: .homeKit))
-        let bossRush = try XCTUnwrap(resolvedTrial(for: OverallRankTrialDefinitions.crucible, loadout: .homeKit))
+        let sevenSeals = try XCTUnwrap(resolvedTrial(for: OverallRankTrialDefinitions.sevenSeals, loadout: .homeKit))
 
         XCTAssertEqual(ascent.stations.first { $0.id == "ascent-floor-09-push" }?.category, .push)
         XCTAssertEqual(ascent.stations.first { $0.id == "ascent-floor-09-pull" }?.category, .pull)
         XCTAssertFalse(ascent.stations.map(\.id).contains("ascent-floor-09"))
-        XCTAssertEqual(bossRush.stations.first { $0.id == "boss-upper-push" }?.category, .push)
-        XCTAssertEqual(bossRush.stations.first { $0.id == "boss-upper-pull" }?.category, .pull)
-        XCTAssertFalse(bossRush.stations.map(\.id).contains("boss-upper"))
+        XCTAssertEqual(sevenSeals.stations.first { $0.id == "seals-explosiveness" }?.category, .explosive)
+        XCTAssertEqual(sevenSeals.stations.first { $0.id == "seals-power" }?.category, .hingePower)
+        XCTAssertEqual(sevenSeals.stations.last?.id, "seals-spirit")
+        XCTAssertFalse(sevenSeals.stations.map(\.id).contains { $0.hasPrefix("boss-") })
     }
 
     func testUpperRankDraftsMapToResolvedProtocolsForEveryNewDefinition() throws {
         for trialCase in upperRankTrialCases {
             let definition = trialCase.definition
             let resolved = try XCTUnwrap(resolvedTrial(for: definition, loadout: .homeKit), definition.displayName)
+            let bodyweightKg = definition.loadoutVariants
+                .flatMap(\.stations)
+                .contains { $0.strengthTier != nil } ? 80.0 : nil
             let draft = OverallRankTrialRunner.shared.draft(
                 for: definition,
                 userId: "u1",
                 date: Date(timeIntervalSince1970: 100),
-                resolvedTrial: resolved
+                resolvedTrial: resolved,
+                bodyweightKg: bodyweightKg
             )
 
             assertCatalogBacked(definition)
             assertDraft(draft, matches: definition, resolvedTrial: resolved)
-            assertDraftPassesAndFails(draft, against: definition)
+            assertDraftPassesAndFails(draft, against: definition, bodyweightKg: bodyweightKg)
         }
     }
 

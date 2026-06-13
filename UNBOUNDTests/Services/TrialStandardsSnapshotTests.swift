@@ -297,31 +297,31 @@ final class TrialStandardsSnapshotTests: XCTestCase {
         ST ascent-floor-09-push cat=push mov=exercise.machine-chest-press metric=reps min=15 qual=1 planned=1 rest=75 cap=- load=-
         ST ascent-floor-09-pull cat=pull mov=exercise.pullup metric=reps min=8 qual=1 planned=1 rest=75 cap=- load=-
         ST ascent-floor-10 cat=carryCore mov=exercise.plank metric=holdSeconds min=90 qual=1 planned=1 rest=90 cap=300 load=-
-    DEF overall-rank-trial-vessel-ten-hundred rank=vessel fmt=sevenSeals min=58 lvl=55
+    DEF gate-06-seven-seals rank=vessel fmt=sevenSeals min=58 lvl=55
       VAR noGymField
-        ST boss-engine cat=engine mov=cardio.run metric=distanceMeters min=800 qual=1 planned=1 rest=45 cap=360 load=-
-        ST boss-lower cat=lower mov=exercise.step-up metric=reps min=48 qual=1 planned=1 rest=75 cap=360 load=-
-        ST boss-power cat=hingePower mov=exercise.glute-bridge metric=reps min=40 qual=1 planned=1 rest=75 cap=360 load=-
-        ST boss-upper-push cat=push mov=exercise.pushup metric=reps min=16 qual=1 planned=1 rest=75 cap=360 load=-
-        ST boss-upper-pull cat=pull mov=exercise.inverted-row metric=reps min=16 qual=1 planned=1 rest=75 cap=360 load=-
-        ST boss-control cat=mobilityControl mov=exercise.plank metric=holdSeconds min=60 qual=2 planned=2 rest=90 cap=360 load=-
-        ST boss-carry cat=carryCore mov=carry.loaded-march metric=distanceMeters min=200 qual=1 planned=1 rest=75 cap=360 load=0.150
+        ST seals-endurance cat=engine mov=cardio.run metric=distanceMeters min=800 qual=1 planned=1 rest=45 cap=360 load=-
+        ST seals-vitality cat=lower mov=exercise.step-up metric=reps min=48 qual=1 planned=1 rest=75 cap=360 load=-
+        ST seals-explosiveness cat=explosive mov=exercise.glute-bridge metric=reps min=40 qual=1 planned=1 rest=75 cap=360 load=-
+        ST seals-power cat=hingePower mov=exercise.single-leg-rdl metric=reps min=3 qual=1 planned=3 rest=75 cap=360 load=0.250
+        ST seals-control cat=mobilityControl mov=exercise.plank metric=holdSeconds min=60 qual=2 planned=2 rest=90 cap=360 load=-
+        ST seals-mobility cat=mobilityControl mov=mobility.deep-squat-hold metric=holdSeconds min=60 qual=1 planned=1 rest=90 cap=360 load=-
+        ST seals-spirit cat=carryCore mov=carry.loaded-march metric=distanceMeters min=200 qual=1 planned=1 rest=75 cap=360 load=0.150
       VAR homeKit
-        ST boss-engine cat=engine mov=cardio.run metric=distanceMeters min=800 qual=1 planned=1 rest=45 cap=360 load=-
-        ST boss-lower cat=lower mov=exercise.dumbbell-step-up metric=reps min=48 qual=1 planned=1 rest=75 cap=360 load=-
-        ST boss-power cat=hingePower mov=exercise.kettlebell-swing metric=reps min=40 qual=1 planned=1 rest=75 cap=360 load=-
-        ST boss-upper-push cat=push mov=exercise.pushup metric=reps min=16 qual=1 planned=1 rest=75 cap=360 load=-
-        ST boss-upper-pull cat=pull mov=exercise.dumbbell-row metric=reps min=16 qual=1 planned=1 rest=75 cap=360 load=-
-        ST boss-control cat=mobilityControl mov=exercise.plank metric=holdSeconds min=60 qual=2 planned=2 rest=90 cap=360 load=-
-        ST boss-carry cat=carryCore mov=carry.farmer-carry metric=distanceMeters min=200 qual=1 planned=1 rest=75 cap=360 load=0.300
+        ST seals-endurance cat=engine mov=cardio.run metric=distanceMeters min=800 qual=1 planned=1 rest=45 cap=360 load=-
+        ST seals-vitality cat=lower mov=exercise.dumbbell-step-up metric=reps min=48 qual=1 planned=1 rest=75 cap=360 load=-
+        ST seals-explosiveness cat=explosive mov=exercise.kettlebell-swing metric=reps min=40 qual=1 planned=1 rest=75 cap=360 load=-
+        ST seals-power cat=hingePower mov=exercise.dumbbell-romanian-deadlift metric=reps min=3 qual=1 planned=3 rest=75 cap=360 load=-
+        ST seals-control cat=mobilityControl mov=exercise.plank metric=holdSeconds min=60 qual=2 planned=2 rest=90 cap=360 load=-
+        ST seals-mobility cat=mobilityControl mov=mobility.deep-squat-hold metric=holdSeconds min=60 qual=1 planned=1 rest=90 cap=360 load=-
+        ST seals-spirit cat=carryCore mov=carry.farmer-carry metric=distanceMeters min=200 qual=1 planned=1 rest=75 cap=360 load=0.300
       VAR gymHybrid
-        ST boss-engine cat=engine mov=cardio.row metric=distanceMeters min=919 qual=1 planned=1 rest=45 cap=360 load=-
-        ST boss-lower cat=lower mov=exercise.leg-press metric=reps min=48 qual=1 planned=1 rest=75 cap=360 load=-
-        ST boss-power cat=hingePower mov=exercise.cable-pull-through metric=reps min=40 qual=1 planned=1 rest=75 cap=360 load=-
-        ST boss-upper-push cat=push mov=exercise.machine-chest-press metric=reps min=16 qual=1 planned=1 rest=75 cap=360 load=-
-        ST boss-upper-pull cat=pull mov=exercise.cable-row-seated metric=reps min=16 qual=1 planned=1 rest=75 cap=360 load=-
-        ST boss-control cat=mobilityControl mov=exercise.plank metric=holdSeconds min=60 qual=2 planned=2 rest=90 cap=360 load=-
-        ST boss-carry cat=carryCore mov=carry.farmer-carry metric=distanceMeters min=200 qual=1 planned=1 rest=75 cap=360 load=0.300
+        ST seals-endurance cat=engine mov=cardio.row metric=distanceMeters min=919 qual=1 planned=1 rest=45 cap=360 load=-
+        ST seals-vitality cat=lower mov=exercise.leg-press metric=reps min=48 qual=1 planned=1 rest=75 cap=360 load=-
+        ST seals-explosiveness cat=explosive mov=exercise.cable-pull-through metric=reps min=40 qual=1 planned=1 rest=75 cap=360 load=-
+        ST seals-power cat=hingePower mov=exercise.romanian-deadlift metric=reps min=3 qual=1 planned=3 rest=75 cap=360 load=-
+        ST seals-control cat=mobilityControl mov=exercise.plank metric=holdSeconds min=60 qual=2 planned=2 rest=90 cap=360 load=-
+        ST seals-mobility cat=mobilityControl mov=mobility.deep-squat-hold metric=holdSeconds min=60 qual=1 planned=1 rest=90 cap=360 load=-
+        ST seals-spirit cat=carryCore mov=carry.farmer-carry metric=distanceMeters min=200 qual=1 planned=1 rest=75 cap=360 load=0.300
     DEF overall-rank-trial-unbound-threshold rank=ascendant fmt=theThreshold min=65 lvl=72
       VAR noGymField
         ST raid-stage-1 cat=engine mov=cardio.run metric=distanceMeters min=400 qual=3 planned=3 rest=45 cap=1080 load=-

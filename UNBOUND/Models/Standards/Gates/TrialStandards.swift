@@ -86,25 +86,6 @@ enum TrialStandards {
         static let spiritCarryMeters = 200
         static let spiritCarryLoadPercentNoGym = 0.15
         static let spiritCarryLoadPercentLoaded = 0.30
-
-        @available(*, deprecated, message: "TEMP shim")
-        static let stationCapSeconds = sealCapSeconds // TEMP shim
-        @available(*, deprecated, message: "TEMP shim")
-        static let engineMeters = enduranceEngineMeters // TEMP shim
-        @available(*, deprecated, message: "TEMP shim")
-        static let lowerReps = vitalityLowerReps // TEMP shim
-        @available(*, deprecated, message: "TEMP shim")
-        static let powerReps = explosivenessReps // TEMP shim
-        @available(*, deprecated, message: "TEMP shim")
-        static let pushReps = 16 // TEMP shim
-        @available(*, deprecated, message: "TEMP shim")
-        static let pullReps = 16 // TEMP shim
-        @available(*, deprecated, message: "TEMP shim")
-        static let carryMeters = spiritCarryMeters // TEMP shim
-        @available(*, deprecated, message: "TEMP shim")
-        static let carryLoadPercentNoGym = spiritCarryLoadPercentNoGym // TEMP shim
-        @available(*, deprecated, message: "TEMP shim")
-        static let carryLoadPercentLoaded = spiritCarryLoadPercentLoaded // TEMP shim
     }
 
     /// Gate VII — The Threshold (Vessel → Ascendant, .theThreshold)
@@ -194,8 +175,6 @@ enum TrialStandards {
 
 // TEMPORARY shims — removed as gate definitions are rewritten (Plan Tasks 6–13).
 extension TrialStandards {
-    @available(*, deprecated, message: "TEMP shim")
-    typealias BossRush = SevenSeals // TEMP shim
     @available(*, deprecated, message: "TEMP shim")
     typealias Raid = TheThreshold // TEMP shim
     @available(*, deprecated, message: "TEMP shim")
