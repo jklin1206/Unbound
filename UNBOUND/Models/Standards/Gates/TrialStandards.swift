@@ -102,27 +102,6 @@ enum TrialStandards {
         static let holdTheLightSeconds = 120
         static let holdSets = 1
         static let holdCapSeconds = 15 * 60
-
-        @available(*, deprecated, message: "TEMP shim")
-        static let engineMeters = approachEngineMeters // TEMP shim
-        @available(*, deprecated, message: "TEMP shim")
-        static let engineSets = approachSets // TEMP shim
-        @available(*, deprecated, message: "TEMP shim")
-        static let engineCapSeconds = approachCapSeconds // TEMP shim
-        @available(*, deprecated, message: "TEMP shim")
-        static let workReps = breachReps // TEMP shim
-        @available(*, deprecated, message: "TEMP shim")
-        static let workSets = breachSets // TEMP shim
-        @available(*, deprecated, message: "TEMP shim")
-        static let workCapSeconds = breachCapSeconds // TEMP shim
-        @available(*, deprecated, message: "TEMP shim")
-        static let carryMeters = breachCarryMeters // TEMP shim
-        @available(*, deprecated, message: "TEMP shim")
-        static let controlHoldSeconds = holdTheLightSeconds // TEMP shim
-        @available(*, deprecated, message: "TEMP shim")
-        static let controlSets = holdSets // TEMP shim
-        @available(*, deprecated, message: "TEMP shim")
-        static let controlCapSeconds = holdCapSeconds // TEMP shim
     }
 
     /// Gate VIII — The Last Gate (Ascendant → Unbound, .theLastGate)
@@ -175,8 +154,6 @@ enum TrialStandards {
 
 // TEMPORARY shims — removed as gate definitions are rewritten (Plan Tasks 6–13).
 extension TrialStandards {
-    @available(*, deprecated, message: "TEMP shim")
-    typealias Raid = TheThreshold // TEMP shim
     @available(*, deprecated, message: "TEMP shim")
     typealias FinalExam = TheLastGate // TEMP shim
 }

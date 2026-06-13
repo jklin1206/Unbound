@@ -316,6 +316,71 @@ final class GateDefinitionTests: XCTestCase {
             )
         }
     }
+
+    func testGate7TheThresholdStations() throws {
+        let gate = OverallRankTrialDefinitions.theThreshold
+        XCTAssertEqual(gate.id, "gate-07-the-threshold")
+        XCTAssertEqual(gate.format, .theThreshold)
+        XCTAssertEqual(gate.displayName, "The Threshold")
+        XCTAssertEqual(gate.targetRank, .ascendant)
+        XCTAssertTrue(gate.legacyIds.contains("overall-rank-trial-unbound-threshold"))
+
+        let expectedIds = [
+            "threshold-approach", "threshold-breach-hinge", "threshold-breach-upper",
+            "threshold-breach-carry", "threshold-hold-the-light"
+        ]
+
+        for loadout in TrialLoadout.allCases {
+            let stations = gate.stations(for: loadout)
+            XCTAssertEqual(stations.count, 5, loadout.displayName)
+            XCTAssertEqual(stations.map(\.id), expectedIds, loadout.displayName)
+            XCTAssertTrue(stations.allSatisfy { !$0.movementOptions.isEmpty }, loadout.displayName)
+
+            // Engine floor: run-based loadouts use the raw meters; gymHybrid converts
+            // run→row at ×1.15 inside engineMovement, so assert the raw value only for
+            // the run loadouts and a >= sanity floor for the rower (no magic number here).
+            if loadout == .gymHybrid {
+                XCTAssertGreaterThanOrEqual(stations[0].standard.minimumValue, TrialStandards.TheThreshold.approachEngineMeters, loadout.displayName)
+            } else {
+                XCTAssertEqual(stations[0].standard.minimumValue, TrialStandards.TheThreshold.approachEngineMeters, loadout.displayName)
+            }
+            XCTAssertEqual(stations[0].standard.minimumQualifyingSets, TrialStandards.TheThreshold.approachSets, loadout.displayName)
+            XCTAssertEqual(stations[0].capSeconds, TrialStandards.TheThreshold.approachCapSeconds, loadout.displayName)
+            XCTAssertEqual(stations[1].standard.minimumValue, TrialStandards.TheThreshold.breachReps, loadout.displayName)
+            XCTAssertEqual(stations[1].standard.minimumQualifyingSets, TrialStandards.TheThreshold.breachSets, loadout.displayName)
+            XCTAssertEqual(stations[1].standard.plannedSets, TrialStandards.TheThreshold.breachSets, loadout.displayName)
+            XCTAssertEqual(stations[1].capSeconds, TrialStandards.TheThreshold.breachCapSeconds, loadout.displayName)
+            XCTAssertEqual(stations[2].standard.movementId, "exercise.pullup", loadout.displayName)
+            XCTAssertEqual(stations[2].standard.minimumValue, TrialStandards.TheThreshold.breachReps, loadout.displayName)
+            XCTAssertEqual(stations[2].standard.minimumQualifyingSets, TrialStandards.TheThreshold.breachSets, loadout.displayName)
+            XCTAssertEqual(stations[2].standard.plannedSets, TrialStandards.TheThreshold.breachSets, loadout.displayName)
+            XCTAssertEqual(stations[2].capSeconds, TrialStandards.TheThreshold.breachCapSeconds, loadout.displayName)
+            XCTAssertEqual(stations[3].standard.minimumValue, TrialStandards.TheThreshold.breachCarryMeters, loadout.displayName)
+            XCTAssertEqual(stations[3].standard.minimumQualifyingSets, TrialStandards.TheThreshold.breachSets, loadout.displayName)
+            XCTAssertEqual(stations[3].standard.plannedSets, TrialStandards.TheThreshold.breachSets, loadout.displayName)
+            XCTAssertEqual(stations[3].capSeconds, TrialStandards.TheThreshold.breachCapSeconds, loadout.displayName)
+            XCTAssertEqual(stations[4].standard.movementId, "exercise.plank", loadout.displayName)
+            XCTAssertEqual(stations[4].standard.minimumValue, TrialStandards.TheThreshold.holdTheLightSeconds, loadout.displayName)
+            XCTAssertEqual(stations[4].standard.minimumQualifyingSets, TrialStandards.TheThreshold.holdSets, loadout.displayName)
+            XCTAssertEqual(stations[4].standard.plannedSets, TrialStandards.TheThreshold.holdSets, loadout.displayName)
+            XCTAssertEqual(stations[4].capSeconds, TrialStandards.TheThreshold.holdCapSeconds, loadout.displayName)
+        }
+
+        let homeUpper = try XCTUnwrap(gate.stations(for: .homeKit).first { $0.id == "threshold-breach-upper" })
+        XCTAssertEqual(homeUpper.resolvedMinimum(forMovementId: "exercise.pullup"), TrialStandards.TheThreshold.breachReps)
+        XCTAssertEqual(homeUpper.resolvedMinimum(forMovementId: "exercise.dumbbell-row"), 15)
+        XCTAssertEqual(homeUpper.resolvedMinimum(forMovementId: "exercise.band-row"), 15)
+
+        let noGymUpper = try XCTUnwrap(gate.stations(for: .noGymField).first { $0.id == "threshold-breach-upper" })
+        XCTAssertEqual(noGymUpper.resolvedMinimum(forMovementId: "exercise.inverted-row"), 15)
+        XCTAssertFalse(noGymUpper.movementOptions.contains { $0.movementId == "exercise.pullup" })
+        XCTAssertEqual(noGymUpper.movementOptions.first?.floorOverride, 15)
+
+        let homeCarry = try XCTUnwrap(gate.stations(for: .homeKit).first { $0.id == "threshold-breach-carry" })
+        let noGymCarry = try XCTUnwrap(gate.stations(for: .noGymField).first { $0.id == "threshold-breach-carry" })
+        XCTAssertEqual(homeCarry.loadPercentOfBodyweight, TrialStandards.TheThreshold.carryLoadPercentLoaded)
+        XCTAssertEqual(noGymCarry.loadPercentOfBodyweight, TrialStandards.TheThreshold.carryLoadPercentNoGym)
+    }
 }
 
 private extension OverallRankTrialDefinition {

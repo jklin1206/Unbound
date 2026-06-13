@@ -877,13 +877,108 @@ enum OverallRankTrialDefinitions {
         ]
     }
 
-    private static func raidStations(loadout: TrialLoadout) -> [TrialStation] {
-        [
-            engineStation("raid-stage-1", title: "Stage 1 Engine Repeats", loadout: loadout, runMeters: TrialStandards.Raid.engineMeters, minimumQualifyingSets: TrialStandards.Raid.engineSets, capSeconds: TrialStandards.Raid.engineCapSeconds),
-            station("raid-stage-2-hinge", title: "Stage 2 Hinge Raid", category: .hingePower, movementId: loadout == .gymHybrid ? "exercise.cable-pull-through" : loadout == .homeKit ? "exercise.dumbbell-romanian-deadlift" : "exercise.glute-bridge", metric: .reps, minimumValue: TrialStandards.Raid.workReps, minimumQualifyingSets: TrialStandards.Raid.workSets, plannedSets: TrialStandards.Raid.workSets, capSeconds: TrialStandards.Raid.workCapSeconds, movementOptions: movementSet(loadout: loadout, noGym: option("exercise.glute-bridge"), home: [option("exercise.dumbbell-romanian-deadlift", requiredEquipment: [.dumbbell]), option("exercise.kettlebell-swing", requiredEquipment: [.kettlebell])], gym: [option("exercise.cable-pull-through", requiredEquipment: [.cable]), option("exercise.dumbbell-romanian-deadlift", requiredEquipment: [.dumbbell])])),
-            station("raid-stage-2-upper", title: "Stage 2 Press / Row Raid", category: .pull, movementId: loadout == .gymHybrid ? "exercise.cable-row-seated" : loadout == .homeKit ? "exercise.dumbbell-row" : "exercise.inverted-row", metric: .reps, minimumValue: TrialStandards.Raid.workReps, minimumQualifyingSets: TrialStandards.Raid.workSets, plannedSets: TrialStandards.Raid.workSets, capSeconds: TrialStandards.Raid.workCapSeconds, movementOptions: movementSet(loadout: loadout, noGym: option("exercise.inverted-row"), home: [option("exercise.dumbbell-row", requiredEquipment: [.dumbbell]), option("exercise.band-row", requiredEquipment: [.band])], gym: [option("exercise.cable-row-seated", requiredEquipment: [.cable]), option("exercise.machine-row", requiredEquipment: [.machine])])),
-            station("raid-stage-2-carry", title: "Stage 2 Carry Raid", category: .carryCore, movementId: loadout == .noGymField ? "carry.loaded-march" : "carry.farmer-carry", metric: .distanceMeters, minimumValue: TrialStandards.Raid.carryMeters, minimumQualifyingSets: TrialStandards.Raid.workSets, plannedSets: TrialStandards.Raid.workSets, capSeconds: TrialStandards.Raid.workCapSeconds, loadPercentOfBodyweight: loadout == .noGymField ? TrialStandards.Raid.carryLoadPercentNoGym : TrialStandards.Raid.carryLoadPercentLoaded, movementOptions: movementSet(loadout: loadout, noGym: option("carry.loaded-march", "Backpack Carry", requiredEquipment: [.openSpace]), home: [option("carry.farmer-carry", requiredEquipment: [.dumbbell, .openSpace]), option("carry.suitcase-carry", requiredEquipment: [.kettlebell, .openSpace])], gym: [option("carry.farmer-carry", requiredEquipment: [.dumbbell, .openSpace])])),
-            station("raid-stage-3-control", title: "Stage 3 Recovery-Control Hold", category: .mobilityControl, movementId: "exercise.plank", metric: .holdSeconds, minimumValue: TrialStandards.Raid.controlHoldSeconds, minimumQualifyingSets: TrialStandards.Raid.controlSets, plannedSets: TrialStandards.Raid.controlSets, capSeconds: TrialStandards.Raid.controlCapSeconds, movementOptions: [option("exercise.plank")])
+    private static func theThresholdPullOptions(loadout: TrialLoadout) -> [TrialMovementOption] {
+        let rowFloor = 15
+        let pullup = option("exercise.pullup", "Pull-Up", requiredEquipment: [.pullupBar])
+        let invertedRow = option("exercise.inverted-row", "Inverted Row", floorOverride: rowFloor)
+
+        switch loadout {
+        case .noGymField:
+            return [invertedRow]
+        case .homeKit:
+            return [
+                pullup,
+                option("exercise.dumbbell-row", requiredEquipment: [.dumbbell], floorOverride: rowFloor),
+                option("exercise.band-row", requiredEquipment: [.band], floorOverride: rowFloor)
+            ]
+        case .gymHybrid:
+            return [
+                pullup,
+                option("exercise.cable-row-seated", requiredEquipment: [.cable], floorOverride: rowFloor),
+                option("exercise.machine-row", requiredEquipment: [.machine], floorOverride: rowFloor)
+            ]
+        }
+    }
+
+    private static func theThresholdStations(loadout: TrialLoadout) -> [TrialStation] {
+        return [
+            engineStation(
+                "threshold-approach",
+                title: "The Approach",
+                loadout: loadout,
+                runMeters: TrialStandards.TheThreshold.approachEngineMeters,
+                minimumQualifyingSets: TrialStandards.TheThreshold.approachSets,
+                capSeconds: TrialStandards.TheThreshold.approachCapSeconds
+            ),
+            station(
+                "threshold-breach-hinge",
+                title: "The Breach - Hinge",
+                category: .hingePower,
+                movementId: loadout == .gymHybrid ? "exercise.cable-pull-through" : loadout == .homeKit ? "exercise.dumbbell-romanian-deadlift" : "exercise.glute-bridge",
+                metric: .reps,
+                minimumValue: TrialStandards.TheThreshold.breachReps,
+                minimumQualifyingSets: TrialStandards.TheThreshold.breachSets,
+                plannedSets: TrialStandards.TheThreshold.breachSets,
+                capSeconds: TrialStandards.TheThreshold.breachCapSeconds,
+                movementOptions: movementSet(
+                    loadout: loadout,
+                    noGym: option("exercise.glute-bridge"),
+                    home: [
+                        option("exercise.dumbbell-romanian-deadlift", requiredEquipment: [.dumbbell]),
+                        option("exercise.kettlebell-swing", requiredEquipment: [.kettlebell])
+                    ],
+                    gym: [
+                        option("exercise.cable-pull-through", requiredEquipment: [.cable]),
+                        option("exercise.dumbbell-romanian-deadlift", requiredEquipment: [.dumbbell])
+                    ]
+                )
+            ),
+            station(
+                "threshold-breach-upper",
+                title: "The Breach - Upper",
+                category: .pull,
+                movementId: "exercise.pullup",
+                displayName: "Pull-Up",
+                metric: .reps,
+                minimumValue: TrialStandards.TheThreshold.breachReps,
+                minimumQualifyingSets: TrialStandards.TheThreshold.breachSets,
+                plannedSets: TrialStandards.TheThreshold.breachSets,
+                capSeconds: TrialStandards.TheThreshold.breachCapSeconds,
+                movementOptions: theThresholdPullOptions(loadout: loadout)
+            ),
+            station(
+                "threshold-breach-carry",
+                title: "The Breach - Carry",
+                category: .carryCore,
+                movementId: loadout == .noGymField ? "carry.loaded-march" : "carry.farmer-carry",
+                metric: .distanceMeters,
+                minimumValue: TrialStandards.TheThreshold.breachCarryMeters,
+                minimumQualifyingSets: TrialStandards.TheThreshold.breachSets,
+                plannedSets: TrialStandards.TheThreshold.breachSets,
+                capSeconds: TrialStandards.TheThreshold.breachCapSeconds,
+                loadPercentOfBodyweight: loadout == .noGymField ? TrialStandards.TheThreshold.carryLoadPercentNoGym : TrialStandards.TheThreshold.carryLoadPercentLoaded,
+                movementOptions: movementSet(
+                    loadout: loadout,
+                    noGym: option("carry.loaded-march", "Backpack Carry", requiredEquipment: [.openSpace]),
+                    home: [
+                        option("carry.farmer-carry", requiredEquipment: [.dumbbell, .openSpace]),
+                        option("carry.suitcase-carry", requiredEquipment: [.kettlebell, .openSpace])
+                    ],
+                    gym: [option("carry.farmer-carry", requiredEquipment: [.dumbbell, .openSpace])]
+                )
+            ),
+            station(
+                "threshold-hold-the-light",
+                title: "Hold the Light",
+                category: .mobilityControl,
+                movementId: "exercise.plank",
+                metric: .holdSeconds,
+                minimumValue: TrialStandards.TheThreshold.holdTheLightSeconds,
+                minimumQualifyingSets: TrialStandards.TheThreshold.holdSets,
+                plannedSets: TrialStandards.TheThreshold.holdSets,
+                capSeconds: TrialStandards.TheThreshold.holdCapSeconds,
+                movementOptions: [option("exercise.plank")]
+            )
         ]
     }
 
@@ -1012,19 +1107,20 @@ enum OverallRankTrialDefinitions {
         ]
     )
 
-    static let threshold = definition(
-        id: "overall-rank-trial-unbound-threshold",
+    static let theThreshold = definition(
+        id: "gate-07-the-threshold",
         targetRank: .ascendant,
-        displayName: "Threshold Raid",
+        displayName: "The Threshold",
         subtitle: "Vessel to Ascendant rank gate",
         estimatedMinutes: 65,
         format: .theThreshold,
         minOverallLevel: 72,
         loadoutVariants: loadoutVariants(
-            noGym: raidStations(loadout: .noGymField),
-            home: raidStations(loadout: .homeKit),
-            gym: raidStations(loadout: .gymHybrid)
-        )
+            noGym: theThresholdStations(loadout: .noGymField),
+            home: theThresholdStations(loadout: .homeKit),
+            gym: theThresholdStations(loadout: .gymHybrid)
+        ),
+        legacyIds: ["overall-rank-trial-unbound-threshold"]
     )
 
     static let ascension = definition(
@@ -1049,7 +1145,7 @@ enum OverallRankTrialDefinitions {
         deckOfProof,
         theAscent,
         sevenSeals,
-        threshold,
+        theThreshold,
         ascension
     ]
 
@@ -1075,7 +1171,7 @@ enum OverallRankTrialDefinitions {
         case .master:
             return sevenSeals
         case .vessel:
-            return threshold
+            return theThreshold
         case .ascendant:
             return ascension
         default:

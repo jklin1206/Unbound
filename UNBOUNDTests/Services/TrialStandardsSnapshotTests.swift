@@ -322,25 +322,25 @@ final class TrialStandardsSnapshotTests: XCTestCase {
         ST seals-control cat=mobilityControl mov=exercise.plank metric=holdSeconds min=60 qual=2 planned=2 rest=90 cap=360 load=-
         ST seals-mobility cat=mobilityControl mov=mobility.deep-squat-hold metric=holdSeconds min=60 qual=1 planned=1 rest=90 cap=360 load=-
         ST seals-spirit cat=carryCore mov=carry.farmer-carry metric=distanceMeters min=200 qual=1 planned=1 rest=75 cap=360 load=0.300
-    DEF overall-rank-trial-unbound-threshold rank=ascendant fmt=theThreshold min=65 lvl=72
+    DEF gate-07-the-threshold rank=ascendant fmt=theThreshold min=65 lvl=72
       VAR noGymField
-        ST raid-stage-1 cat=engine mov=cardio.run metric=distanceMeters min=400 qual=3 planned=3 rest=45 cap=1080 load=-
-        ST raid-stage-2-hinge cat=hingePower mov=exercise.glute-bridge metric=reps min=10 qual=4 planned=4 rest=75 cap=1920 load=-
-        ST raid-stage-2-upper cat=pull mov=exercise.inverted-row metric=reps min=10 qual=4 planned=4 rest=75 cap=1920 load=-
-        ST raid-stage-2-carry cat=carryCore mov=carry.loaded-march metric=distanceMeters min=60 qual=4 planned=4 rest=75 cap=1920 load=0.150
-        ST raid-stage-3-control cat=mobilityControl mov=exercise.plank metric=holdSeconds min=120 qual=1 planned=1 rest=90 cap=900 load=-
+        ST threshold-approach cat=engine mov=cardio.run metric=distanceMeters min=400 qual=3 planned=3 rest=45 cap=1080 load=-
+        ST threshold-breach-hinge cat=hingePower mov=exercise.glute-bridge metric=reps min=10 qual=4 planned=4 rest=75 cap=1920 load=-
+        ST threshold-breach-upper cat=pull mov=exercise.pullup metric=reps min=10 qual=4 planned=4 rest=75 cap=1920 load=-
+        ST threshold-breach-carry cat=carryCore mov=carry.loaded-march metric=distanceMeters min=60 qual=4 planned=4 rest=75 cap=1920 load=0.150
+        ST threshold-hold-the-light cat=mobilityControl mov=exercise.plank metric=holdSeconds min=120 qual=1 planned=1 rest=90 cap=900 load=-
       VAR homeKit
-        ST raid-stage-1 cat=engine mov=cardio.run metric=distanceMeters min=400 qual=3 planned=3 rest=45 cap=1080 load=-
-        ST raid-stage-2-hinge cat=hingePower mov=exercise.dumbbell-romanian-deadlift metric=reps min=10 qual=4 planned=4 rest=75 cap=1920 load=-
-        ST raid-stage-2-upper cat=pull mov=exercise.dumbbell-row metric=reps min=10 qual=4 planned=4 rest=75 cap=1920 load=-
-        ST raid-stage-2-carry cat=carryCore mov=carry.farmer-carry metric=distanceMeters min=60 qual=4 planned=4 rest=75 cap=1920 load=0.300
-        ST raid-stage-3-control cat=mobilityControl mov=exercise.plank metric=holdSeconds min=120 qual=1 planned=1 rest=90 cap=900 load=-
+        ST threshold-approach cat=engine mov=cardio.run metric=distanceMeters min=400 qual=3 planned=3 rest=45 cap=1080 load=-
+        ST threshold-breach-hinge cat=hingePower mov=exercise.dumbbell-romanian-deadlift metric=reps min=10 qual=4 planned=4 rest=75 cap=1920 load=-
+        ST threshold-breach-upper cat=pull mov=exercise.pullup metric=reps min=10 qual=4 planned=4 rest=75 cap=1920 load=-
+        ST threshold-breach-carry cat=carryCore mov=carry.farmer-carry metric=distanceMeters min=60 qual=4 planned=4 rest=75 cap=1920 load=0.300
+        ST threshold-hold-the-light cat=mobilityControl mov=exercise.plank metric=holdSeconds min=120 qual=1 planned=1 rest=90 cap=900 load=-
       VAR gymHybrid
-        ST raid-stage-1 cat=engine mov=cardio.row metric=distanceMeters min=459 qual=3 planned=3 rest=45 cap=1080 load=-
-        ST raid-stage-2-hinge cat=hingePower mov=exercise.cable-pull-through metric=reps min=10 qual=4 planned=4 rest=75 cap=1920 load=-
-        ST raid-stage-2-upper cat=pull mov=exercise.cable-row-seated metric=reps min=10 qual=4 planned=4 rest=75 cap=1920 load=-
-        ST raid-stage-2-carry cat=carryCore mov=carry.farmer-carry metric=distanceMeters min=60 qual=4 planned=4 rest=75 cap=1920 load=0.300
-        ST raid-stage-3-control cat=mobilityControl mov=exercise.plank metric=holdSeconds min=120 qual=1 planned=1 rest=90 cap=900 load=-
+        ST threshold-approach cat=engine mov=cardio.row metric=distanceMeters min=459 qual=3 planned=3 rest=45 cap=1080 load=-
+        ST threshold-breach-hinge cat=hingePower mov=exercise.cable-pull-through metric=reps min=10 qual=4 planned=4 rest=75 cap=1920 load=-
+        ST threshold-breach-upper cat=pull mov=exercise.pullup metric=reps min=10 qual=4 planned=4 rest=75 cap=1920 load=-
+        ST threshold-breach-carry cat=carryCore mov=carry.farmer-carry metric=distanceMeters min=60 qual=4 planned=4 rest=75 cap=1920 load=0.300
+        ST threshold-hold-the-light cat=mobilityControl mov=exercise.plank metric=holdSeconds min=120 qual=1 planned=1 rest=90 cap=900 load=-
     DEF overall-rank-trial-ascendant-ascension rank=unbound fmt=theLastGate min=75 lvl=90
       VAR noGymField
         ST exam-part-a-explosive cat=explosive mov=exercise.step-up metric=reps min=20 qual=1 planned=1 rest=75 cap=480 load=-
