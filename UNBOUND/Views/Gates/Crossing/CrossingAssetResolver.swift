@@ -24,10 +24,17 @@ enum CrossingAssetResolver {
         "gate_threshold_\(crossing.world.destinationRank.token)"
     }
 
-    /// The bundled Seedance "walk" clip for a gate, if present. nil → the Crossing
-    /// plays the Ken Burns still fallback (also the reduced-motion path).
+    /// The "achieved" victory clip for a gate (the world erupts) — plays as The
+    /// Crossing's walk beat before the rank badge. nil → Ken Burns still fallback.
     static func crossingClipURL(for crossing: GateCrossing) -> URL? {
         Bundle.main.url(forResource: "gate_crossing_\(crossing.world.destinationRank.token)",
+                        withExtension: "mp4")
+    }
+
+    /// The "entrance" clip for a gate (walking into the world) — plays when a trial
+    /// begins. nil → no entrance cinematic (skip straight in).
+    static func entranceClipURL(for crossing: GateCrossing) -> URL? {
+        Bundle.main.url(forResource: "gate_entrance_\(crossing.world.destinationRank.token)",
                         withExtension: "mp4")
     }
 

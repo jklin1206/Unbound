@@ -10,8 +10,9 @@ struct GateExperienceDemoView: View {
         case sealed, open, hall, active, beat, verdictPass, card, verdictFail, records, crossing, flow
     }
     /// The end-to-end user journey, simulated by tapping the real CTAs.
+    /// Each gate plays a clip on the way IN (entrance) and on success (crossing).
     /// Pass goes straight into the animation — no separate "verdict" screen.
-    enum FlowStep { case discovery, hall, active, crossing }
+    enum FlowStep { case discovery, hall, entrance, active, crossing }
 
     @State private var format: RankTrialFormat = Self.initialFormat()
     @State private var stage: Stage = Self.initialStage()
@@ -89,7 +90,10 @@ struct GateExperienceDemoView: View {
             }
         case .hall:
             GateHallView(world: world, resolvedTrial: fixtureResolved(),
-                         latestAttempt: nil, loadout: .homeKit, onBegin: { _ in advance(.active) })
+                         latestAttempt: nil, loadout: .homeKit, onBegin: { _ in advance(.entrance) })
+        case .entrance:
+            GateEntranceView(crossing: GateCrossingCatalog.crossing(for: format),
+                             onFinished: { advance(.active) })
         case .active:
             GateActiveView(world: world, stationIndex: activeIndex, stationCount: max(resolvedStations.count, 1),
                            stationsCleared: activeIndex, currentStationTitle: activeStationTitle) {
