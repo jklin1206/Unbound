@@ -35,12 +35,10 @@ struct GateWorld: Identifiable, Equatable, Sendable {
     var tint: Color { destinationRank.rewardTextTint }
     /// Saturated fill tint for sigils, progress fills, stamps.
     var fillTint: Color { destinationRank.rewardTint }
-    /// The gate's threshold art (Plan 3, bespoke anime-JRPG `gate_threshold_<token>`),
-    /// falling back to the rank banner cosmetic if a bespoke still is missing.
-    var bannerAssetName: String {
-        let threshold = "gate_threshold_\(destinationRank.token)"
-        return UIImage(named: threshold) != nil ? threshold : "profile_banner_\(destinationRank.token)"
-    }
+    /// Card-friendly rank banner art for the gate cards / hall / discovery
+    /// (crops cleanly). The full-screen bespoke threshold art (`gate_threshold_<token>`)
+    /// is full-bleed-only and lives in The Crossing via `CrossingAssetResolver`.
+    var bannerAssetName: String { "profile_banner_\(destinationRank.token)" }
 
     /// "FORGED → VETERAN" style transition label.
     func transitionLabel(from origin: RankTitle) -> String {

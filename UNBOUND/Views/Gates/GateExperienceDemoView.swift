@@ -7,12 +7,15 @@ import SwiftUI
 /// `UNBOUND_OPEN_GATE=<1…8>` and `UNBOUND_GATE_STAGE=<stage>`, or tap the controls.
 struct GateExperienceDemoView: View {
     enum Stage: String, CaseIterable {
-        case sealed, open, hall, active, beat, verdictPass, card, verdictFail, records, crossing
+        case sealed, open, hall, active, beat, verdictPass, card, verdictFail, records, crossing, flow
     }
+    /// The end-to-end user journey, simulated by tapping the real CTAs.
+    enum FlowStep { case discovery, hall, active, verdict, crossing }
 
     @State private var format: RankTrialFormat = Self.initialFormat()
     @State private var stage: Stage = Self.initialStage()
     @State private var showCrossing = false
+    @State private var flowStep: FlowStep = .discovery
 
     private var world: GateWorld { GateWorldCatalog.world(for: format) }
     private var definition: OverallRankTrialDefinition? {
@@ -28,7 +31,7 @@ struct GateExperienceDemoView: View {
     var body: some View {
         ZStack(alignment: .bottom) {
             stageContent.id("\(format.rawValue)-\(stage.rawValue)")
-            controls
+            if stage != .flow { controls }   // flow drives itself via the real CTAs
         }
         .accessibilityIdentifier("gateExperienceDemo")
     }
@@ -68,7 +71,45 @@ struct GateExperienceDemoView: View {
             GateVerdictView(evaluation: fixtureEvaluation(passed: false), world: world)
         case .records:
             TrialRecordsShelf(progress: fixtureProgress())
+        case .flow:
+            flowContent
         }
+    }
+
+    /// The whole journey, end to end — each step advances on the screen's own CTA.
+    @ViewBuilder private var flowContent: some View {
+        switch flowStep {
+        case .discovery:
+            scrolled { NextGateCard(readiness: fixtureReadiness(open: true), world: world,
+                                    onBegin: { advance(.hall) }) }
+        case .hall:
+            GateHallView(world: world, resolvedTrial: fixtureResolved(),
+                         latestAttempt: nil, loadout: .homeKit, onBegin: { _ in advance(.active) })
+        case .active:
+            GateActiveView(world: world, stationIndex: activeIndex, stationCount: max(resolvedStations.count, 1),
+                           stationsCleared: activeIndex, currentStationTitle: activeStationTitle) {
+                VStack(spacing: 16) {
+                    sampleSurface
+                    Button { advance(.verdict) } label: {
+                        Text("COMPLETE TRIAL").font(Font.unbound.captionS.weight(.heavy)).tracking(1.5)
+                            .foregroundStyle(Color.unbound.bg).frame(maxWidth: .infinity).padding(.vertical, 14)
+                            .background(Capsule().fill(world.fillTint))
+                    }.buttonStyle(.plain)
+                }
+            }
+        case .verdict:
+            GateVerdictView(evaluation: fixtureEvaluation(passed: true), world: world,
+                            onMintedCardTapped: { advance(.crossing) })
+        case .crossing:
+            TheCrossingView(crossing: GateCrossingCatalog.crossing(for: format),
+                            dateText: "Jun 13, 2026",
+                            definingNumber: "\(resolvedStations.count)/\(resolvedStations.count)",
+                            onShare: {}, onReplay: {}, onDismiss: { advance(.discovery) })
+        }
+    }
+
+    private func advance(_ step: FlowStep) {
+        withAnimation(.easeInOut(duration: 0.35)) { flowStep = step }
     }
 
     @ViewBuilder private func scrolled<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
@@ -202,14 +243,15 @@ struct GateExperienceDemoView: View {
 
     private static func initialFormat() -> RankTrialFormat {
         let env = ProcessInfo.processInfo.environment
-        if let raw = env["UNBOUND_OPEN_GATE"] ?? env["UNBOUND_OPEN_CROSSING"], let n = Int(raw),
-           (1...8).contains(n) { return RankTrialFormat.allCases[n - 1] }
+        if let raw = env["UNBOUND_OPEN_GATE"] ?? env["UNBOUND_OPEN_CROSSING"] ?? env["UNBOUND_GATE_FLOW"],
+           let n = Int(raw), (1...8).contains(n) { return RankTrialFormat.allCases[n - 1] }
         return .firstLight
     }
 
     private static func initialStage() -> Stage {
         let env = ProcessInfo.processInfo.environment
         if let raw = env["UNBOUND_GATE_STAGE"], let s = Stage(rawValue: raw) { return s }
+        if env["UNBOUND_GATE_FLOW"] != nil { return .flow }
         if env["UNBOUND_OPEN_CROSSING"] != nil { return .crossing }
         return .sealed
     }

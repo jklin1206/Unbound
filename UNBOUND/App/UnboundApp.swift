@@ -131,7 +131,9 @@ struct RootView: View {
         } else if ProcessInfo.processInfo.arguments.contains("-gateExperienceDemo")
             || ProcessInfo.processInfo.environment["UNBOUND_OPEN_GATE"] != nil
             || ProcessInfo.processInfo.arguments.contains("-rankCrossingDemo")
-            || ProcessInfo.processInfo.environment["UNBOUND_OPEN_CROSSING"] != nil {
+            || ProcessInfo.processInfo.environment["UNBOUND_OPEN_CROSSING"] != nil
+            || ProcessInfo.processInfo.arguments.contains("-gateFlowDemo")
+            || ProcessInfo.processInfo.environment["UNBOUND_GATE_FLOW"] != nil {
             GateExperienceDemoView()
         } else if ProcessInfo.processInfo.arguments.contains("-rankTrialReadyReview")
             || ProcessInfo.processInfo.environment["RANK_TRIAL_READY_REVIEW"] == "1" {
