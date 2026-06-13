@@ -466,10 +466,34 @@ enum OverallRankTrialDefinitions {
                     metric: .reps,
                     minimumValue: rank.reps,
                     restSeconds: TrialStandards.DeckOfProof.restSeconds,
-                    movementOptions: suit.movementOptions,
+                    movementOptions: deckMovementOptions(for: suit, cardValue: rank.reps),
                     restRule: "Short rest, then flip the next card."
                 )
             }
+        }
+    }
+
+    private static func deckMovementOptions(for suit: DeckSuitSpec, cardValue: Int) -> [TrialMovementOption] {
+        guard suit.category == .pull else { return suit.movementOptions }
+        let rowFloor = Int(ceil(Double(cardValue) * TrialStandards.DeckOfProof.rowConversionMultiplier))
+        let rowMovementIds: Set<String> = [
+            "exercise.inverted-row",
+            "exercise.dumbbell-row",
+            "exercise.band-row",
+            "exercise.cable-row-seated",
+            "exercise.machine-row"
+        ]
+
+        return suit.movementOptions.map { movementOption in
+            guard rowMovementIds.contains(movementOption.movementId) else {
+                return movementOption
+            }
+            return TrialMovementOption(
+                movementId: movementOption.movementId,
+                displayName: movementOption.displayName,
+                requiredEquipment: movementOption.requiredEquipment,
+                floorOverride: rowFloor
+            )
         }
     }
 
@@ -640,8 +664,8 @@ enum OverallRankTrialDefinitions {
         ]
     )
 
-    static let reckoning = definition(
-        id: "overall-rank-trial-veteran-reckoning",
+    static let deckOfProof = definition(
+        id: "gate-04-deck-of-proof",
         targetRank: .veteran,
         displayName: "Deck of Proof",
         subtitle: "Forged to Veteran rank gate",
@@ -653,7 +677,10 @@ enum OverallRankTrialDefinitions {
             home: deckStations(loadout: .homeKit),
             gym: deckStations(loadout: .gymHybrid)
         ),
-        legacyIds: ["overall-rank-trial-forged-reckoning"]
+        legacyIds: [
+            "overall-rank-trial-veteran-reckoning",
+            "overall-rank-trial-forged-reckoning"
+        ]
     )
 
     static let gauntlet = definition(
@@ -722,7 +749,7 @@ enum OverallRankTrialDefinitions {
         firstLight,
         theCount,
         theForging,
-        reckoning,
+        deckOfProof,
         gauntlet,
         crucible,
         threshold,
@@ -745,7 +772,7 @@ enum OverallRankTrialDefinitions {
         case .apprentice:
             return theForging
         case .forged:
-            return reckoning
+            return deckOfProof
         case .veteran:
             return gauntlet
         case .master:

@@ -128,6 +128,59 @@ final class GateDefinitionTests: XCTestCase {
             }
         }
     }
+
+    func testGate4DeckOfProofStations() {
+        let gate = OverallRankTrialDefinitions.deckOfProof
+        XCTAssertEqual(gate.id, "gate-04-deck-of-proof")
+        XCTAssertEqual(gate.format, .deckOfProof)
+        XCTAssertEqual(gate.displayName, "Deck of Proof")
+        XCTAssertEqual(gate.targetRank, .veteran)
+        XCTAssertTrue(gate.legacyIds.contains("overall-rank-trial-veteran-reckoning"))
+        XCTAssertTrue(gate.legacyIds.contains("overall-rank-trial-forged-reckoning"))
+
+        let expectedIds = (1...52).map { String(format: "deck-card-%02d", $0) }
+        let rankValues = [
+            TrialStandards.DeckOfProof.aceReps,
+            2, 3, 4, 5, 6, 7, 8, 9, 10,
+            TrialStandards.DeckOfProof.faceCardReps,
+            TrialStandards.DeckOfProof.faceCardReps,
+            TrialStandards.DeckOfProof.faceCardReps
+        ]
+        let expectedValues = Array(repeating: rankValues, count: 4).flatMap { $0 }
+
+        for loadout in TrialLoadout.allCases {
+            let stations = gate.stations(for: loadout)
+            XCTAssertEqual(stations.count, 52, loadout.displayName)
+            XCTAssertEqual(stations.map(\.id), expectedIds, loadout.displayName)
+            XCTAssertEqual(stations.map(\.standard.minimumValue), expectedValues, loadout.displayName)
+            XCTAssertTrue(stations.allSatisfy { !$0.movementOptions.isEmpty }, loadout.displayName)
+            XCTAssertTrue(stations.allSatisfy { $0.standard.restSeconds == TrialStandards.DeckOfProof.restSeconds }, loadout.displayName)
+            XCTAssertEqual(stations.prefix(13).map(\.category), Array(repeating: .push, count: 13), loadout.displayName)
+            XCTAssertEqual(stations.dropFirst(13).prefix(13).map(\.category), Array(repeating: .lower, count: 13), loadout.displayName)
+            XCTAssertEqual(stations.dropFirst(26).prefix(13).map(\.category), Array(repeating: .pull, count: 13), loadout.displayName)
+            XCTAssertEqual(stations.dropFirst(39).prefix(13).map(\.category), Array(repeating: .carryCore, count: 13), loadout.displayName)
+        }
+
+        let home = gate.stations(for: .homeKit)
+        XCTAssertEqual(home[0].title, "Card AH Pushups")
+        XCTAssertEqual(home[13].title, "Card AD Squats")
+        XCTAssertEqual(home[26].title, "Card AC Pullups")
+        XCTAssertEqual(home[39].title, "Card AS Sit-Ups")
+        XCTAssertEqual(home[26].standard.movementId, "exercise.pullup")
+        XCTAssertEqual(home[26].standard.minimumValue, TrialStandards.DeckOfProof.aceReps)
+    }
+
+    func testGate4DeckOfProofPullRowOptionResolvesConvertedFloor() throws {
+        let gate = OverallRankTrialDefinitions.deckOfProof
+        let tenValuePullCard = try XCTUnwrap(gate.stations(for: .homeKit).first { $0.id == "deck-card-36" })
+
+        XCTAssertEqual(tenValuePullCard.title, "Card 10C Pullups")
+        XCTAssertEqual(tenValuePullCard.standard.minimumValue, 10)
+        XCTAssertNil(tenValuePullCard.movementOptions.first { $0.movementId == "exercise.pullup" }?.floorOverride)
+        XCTAssertEqual(tenValuePullCard.resolvedMinimum(forMovementId: "exercise.pullup"), 10)
+        XCTAssertEqual(tenValuePullCard.resolvedMinimum(forMovementId: "exercise.inverted-row"), 15)
+        XCTAssertEqual(tenValuePullCard.resolvedMinimum(forMovementId: "exercise.dumbbell-row"), 15)
+    }
 }
 
 private extension OverallRankTrialDefinition {

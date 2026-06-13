@@ -164,8 +164,8 @@ extension OverallRankTrialServiceTests {
         XCTAssertTrue(readiness.isReady)
     }
 
-    func testForgedReadinessTargetsVeteranAndLocksWhenReckoningEquipmentIsMissing() {
-        let definition = OverallRankTrialDefinitions.reckoning
+    func testForgedReadinessTargetsVeteranAndLocksWhenDeckOfProofEquipmentIsMissing() {
+        let definition = OverallRankTrialDefinitions.deckOfProof
         let readiness = TrialReadinessService.shared.evaluate(
             OverallRankTrialReadinessInput(
                 userId: "u1",
@@ -183,8 +183,8 @@ extension OverallRankTrialServiceTests {
         XCTAssertEqual(readiness.missingRequirements.map(\.kind), [.equipment])
     }
 
-    func testForgedReadinessBecomesReadyForReckoningWhenRequirementsAreMet() {
-        let definition = OverallRankTrialDefinitions.reckoning
+    func testForgedReadinessBecomesReadyForDeckOfProofWhenRequirementsAreMet() {
+        let definition = OverallRankTrialDefinitions.deckOfProof
         let readiness = TrialReadinessService.shared.evaluate(
             OverallRankTrialReadinessInput(
                 userId: "u1",

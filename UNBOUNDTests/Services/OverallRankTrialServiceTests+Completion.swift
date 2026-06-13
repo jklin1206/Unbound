@@ -343,14 +343,14 @@ extension OverallRankTrialServiceTests {
         XCTAssertEqual(progress.attempts.count, 1)
     }
 
-    func testFailedReckoningLogsAttemptAndReceiptButDoesNotAdvancePastForged() async throws {
+    func testFailedDeckOfProofLogsAttemptAndReceiptButDoesNotAdvancePastForged() async throws {
         store.save(
             OverallRankTrialProgress(highestPassedRank: .forged, attempts: []),
             userId: "u1"
         )
         let database = MockDatabaseService()
         let services = makeServices(database: database)
-        let definition = OverallRankTrialDefinitions.reckoning
+        let definition = OverallRankTrialDefinitions.deckOfProof
         let draft = OverallRankTrialRunner.shared.draft(
             for: definition,
             userId: "u1",
@@ -385,14 +385,14 @@ extension OverallRankTrialServiceTests {
         XCTAssertEqual(store.load(userId: "u1").attempts.count, 1)
     }
 
-    func testPassedReckoningAdvancesToVeteranExactlyOnceForDuplicatePerformanceLogId() async throws {
+    func testPassedDeckOfProofAdvancesToVeteranExactlyOnceForDuplicatePerformanceLogId() async throws {
         store.save(
             OverallRankTrialProgress(highestPassedRank: .forged, attempts: []),
             userId: "u1"
         )
         let database = MockDatabaseService()
         let services = makeServices(database: database)
-        let definition = OverallRankTrialDefinitions.reckoning
+        let definition = OverallRankTrialDefinitions.deckOfProof
         let draft = OverallRankTrialRunner.shared.draft(
             for: definition,
             userId: "u1",

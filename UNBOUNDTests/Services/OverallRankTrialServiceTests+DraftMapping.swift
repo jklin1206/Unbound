@@ -66,7 +66,7 @@ extension OverallRankTrialServiceTests {
     }
 
     func testDeckOfProofDraftDealsRandomDrawOrder() throws {
-        let definition = OverallRankTrialDefinitions.reckoning
+        let definition = OverallRankTrialDefinitions.deckOfProof
         let resolved = try XCTUnwrap(resolvedTrial(for: definition, loadout: .homeKit))
         let draft = OverallRankTrialRunner.shared.draft(
             for: definition,

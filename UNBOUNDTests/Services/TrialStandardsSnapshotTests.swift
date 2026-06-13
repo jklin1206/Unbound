@@ -100,7 +100,7 @@ final class TrialStandardsSnapshotTests: XCTestCase {
         ST forging-strike-push cat=push mov=exercise.machine-chest-press metric=reps min=3 qual=1 planned=3 rest=75 cap=- load=-
         ST forging-strike-pull cat=pull mov=exercise.pullup metric=reps min=3 qual=1 planned=3 rest=75 cap=- load=-
         ST forging-quench cat=carryCore mov=carry.farmer-carry metric=distanceMeters min=40 qual=1 planned=1 rest=75 cap=- load=0.300
-    DEF overall-rank-trial-veteran-reckoning rank=veteran fmt=deckOfProof min=42 lvl=22
+    DEF gate-04-deck-of-proof rank=veteran fmt=deckOfProof min=42 lvl=22
       VAR noGymField
         ST deck-card-01 cat=push mov=exercise.pushup metric=reps min=11 qual=1 planned=1 rest=30 cap=- load=-
         ST deck-card-02 cat=push mov=exercise.pushup metric=reps min=2 qual=1 planned=1 rest=30 cap=- load=-
