@@ -73,6 +73,18 @@ final class TrialReadinessService {
         let aggregateRank = await services.rank.aggregateRank(userId: userId)
         let userProfile = try? await services.user.fetchProfile(userId: userId)
         let equipment = movementEquipment(from: userProfile?.equipment ?? [.bodyweight])
+        let workoutLogs = (try? await services.workoutLog.fetchLogs(userId: userId, programId: nil)) ?? []
+        let attributeProfile = AttributeProfileStore.shared.load(userId: userId)
+        let bodyweightKg = userProfile?.weightKg ?? 0
+        let nextFormat = OverallRankTrialDefinitions.nextTrial(after: progress.currentRank)?.format
+        let history = WorkoutLogGateKeyHistory(
+            workoutLogs: workoutLogs,
+            attributeProfile: attributeProfile,
+            trialProgress: progress
+        )
+        let clearedGateKeys = nextFormat.map {
+            GateKeys.clearedKeys(for: $0, history: history, bodyweightKg: bodyweightKg)
+        } ?? []
 
         return evaluate(
             OverallRankTrialReadinessInput(
@@ -81,6 +93,7 @@ final class TrialReadinessService {
                 overallLevel: overallProgress?.level ?? 0,
                 aggregateRank: aggregateRank,
                 equipment: equipment,
+                clearedGateKeys: clearedGateKeys,
                 attempts: progress.attempts
             )
         )
@@ -176,6 +189,20 @@ final class TrialReadinessService {
                 isMet: resolution.isReady
             )
         )
+
+        for key in GateKeys.keys(for: definition.format) {
+            let isMet = input.clearedGateKeys.contains(key.id)
+            lines.append(
+                OverallRankTrialRequirementLine(
+                    id: key.id,
+                    kind: .gateKey,
+                    label: key.label,
+                    current: isMet ? "Proven" : "Unproven",
+                    required: key.label,
+                    isMet: isMet
+                )
+            )
+        }
 
         return lines
     }

@@ -218,6 +218,7 @@ struct OverallRankTrialReadinessCard: View {
         case .overallLevel: return "chart.line.uptrend.xyaxis"
         case .rank: return "seal.fill"
         case .equipment: return "backpack.fill"
+        case .gateKey: return "key.fill"
         }
     }
 

@@ -9,7 +9,8 @@ extension OverallRankTrialServiceTests {
                 currentRank: .initiate,
                 overallLevel: 0,
                 aggregateRank: .initiate,
-                equipment: [.bodyweight]
+                equipment: [.bodyweight],
+                clearedGateKeys: []
             )
         )
 
@@ -26,7 +27,8 @@ extension OverallRankTrialServiceTests {
                 currentRank: .initiate,
                 overallLevel: definition.minOverallLevel,
                 aggregateRank: definition.targetRank,
-                equipment: [.bodyweight]
+                equipment: [.bodyweight],
+                clearedGateKeys: []
             )
         )
 
@@ -60,7 +62,8 @@ extension OverallRankTrialServiceTests {
                 currentRank: .novice,
                 overallLevel: definition.minOverallLevel - 1,
                 aggregateRank: .initiate,
-                equipment: [.bodyweight]
+                equipment: [.bodyweight],
+                clearedGateKeys: []
             )
         )
 
@@ -81,7 +84,8 @@ extension OverallRankTrialServiceTests {
                 currentRank: .novice,
                 overallLevel: definition.minOverallLevel,
                 aggregateRank: definition.targetRank,
-                equipment: readyEquipment()
+                equipment: readyEquipment(),
+                clearedGateKeys: []
             )
         )
 
@@ -101,7 +105,8 @@ extension OverallRankTrialServiceTests {
                 currentRank: .apprentice,
                 overallLevel: definition.minOverallLevel - 1,
                 aggregateRank: .initiate,
-                equipment: [.bodyweight]
+                equipment: [.bodyweight],
+                clearedGateKeys: []
             )
         )
 
@@ -122,7 +127,8 @@ extension OverallRankTrialServiceTests {
                 currentRank: .apprentice,
                 overallLevel: definition.minOverallLevel,
                 aggregateRank: definition.targetRank,
-                equipment: readyEquipment()
+                equipment: readyEquipment(),
+                clearedGateKeys: clearedGateKeyIds(for: definition)
             )
         )
 
@@ -155,6 +161,7 @@ extension OverallRankTrialServiceTests {
                 overallLevel: definition.minOverallLevel,
                 aggregateRank: definition.targetRank,
                 equipment: readyEquipment(),
+                clearedGateKeys: clearedGateKeyIds(for: definition),
                 attempts: [attempt]
             )
         )
@@ -172,7 +179,8 @@ extension OverallRankTrialServiceTests {
                 currentRank: .forged,
                 overallLevel: definition.minOverallLevel,
                 aggregateRank: definition.targetRank,
-                equipment: [.bodyweight, .openSpace]
+                equipment: [.bodyweight, .openSpace],
+                clearedGateKeys: []
             )
         )
 
@@ -191,7 +199,8 @@ extension OverallRankTrialServiceTests {
                 currentRank: .forged,
                 overallLevel: definition.minOverallLevel,
                 aggregateRank: definition.targetRank,
-                equipment: readyEquipment()
+                equipment: readyEquipment(),
+                clearedGateKeys: []
             )
         )
 
@@ -210,7 +219,8 @@ extension OverallRankTrialServiceTests {
                 currentRank: .veteran,
                 overallLevel: definition.minOverallLevel - 1,
                 aggregateRank: .initiate,
-                equipment: [.bodyweight, .openSpace]
+                equipment: [.bodyweight, .openSpace],
+                clearedGateKeys: []
             )
         )
 
@@ -231,7 +241,8 @@ extension OverallRankTrialServiceTests {
                 currentRank: .veteran,
                 overallLevel: definition.minOverallLevel,
                 aggregateRank: definition.targetRank,
-                equipment: readyEquipment()
+                equipment: readyEquipment(),
+                clearedGateKeys: clearedGateKeyIds(for: definition)
             )
         )
 
@@ -252,7 +263,8 @@ extension OverallRankTrialServiceTests {
                     currentRank: trialCase.sourceRank,
                     overallLevel: definition.minOverallLevel - 1,
                     aggregateRank: .initiate,
-                    equipment: [.bodyweight]
+                    equipment: [.bodyweight],
+                    clearedGateKeys: []
                 )
             )
 
@@ -270,7 +282,8 @@ extension OverallRankTrialServiceTests {
                     currentRank: trialCase.sourceRank,
                     overallLevel: definition.minOverallLevel,
                     aggregateRank: definition.targetRank,
-                    equipment: readyEquipment()
+                    equipment: readyEquipment(),
+                    clearedGateKeys: clearedGateKeyIds(for: definition)
                 )
             )
 

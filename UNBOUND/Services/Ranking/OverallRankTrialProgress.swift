@@ -150,6 +150,7 @@ struct OverallRankTrialReadinessInput: Equatable, Sendable {
     /// Live build-weighted accumulation (Phase 7). Gates next-rank eligibility.
     let aggregateRank: RankTier
     let equipment: Set<MovementEquipment>
+    let clearedGateKeys: Set<String>
     let attempts: [OverallRankTrialAttempt]
 
     init(
@@ -158,6 +159,7 @@ struct OverallRankTrialReadinessInput: Equatable, Sendable {
         overallLevel: Int,
         aggregateRank: RankTier,
         equipment: Set<MovementEquipment> = [.bodyweight],
+        clearedGateKeys: Set<String>,
         attempts: [OverallRankTrialAttempt] = []
     ) {
         self.userId = userId
@@ -165,6 +167,7 @@ struct OverallRankTrialReadinessInput: Equatable, Sendable {
         self.overallLevel = overallLevel
         self.aggregateRank = aggregateRank
         self.equipment = equipment
+        self.clearedGateKeys = clearedGateKeys
         self.attempts = attempts
     }
 }

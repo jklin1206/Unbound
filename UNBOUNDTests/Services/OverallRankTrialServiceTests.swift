@@ -87,6 +87,10 @@ extension OverallRankTrialServiceTests {
         ).resolvedTrial
     }
 
+    func clearedGateKeyIds(for definition: OverallRankTrialDefinition) -> Set<String> {
+        Set(GateKeys.keys(for: definition.format).map(\.id))
+    }
+
     func assertDraft(
         _ draft: TrainingSessionDraft,
         matches definition: OverallRankTrialDefinition,

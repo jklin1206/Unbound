@@ -12,6 +12,7 @@ enum OverallRankTrialRequirementKind: String, Codable, Equatable, Sendable {
     case overallLevel
     case rank
     case equipment
+    case gateKey
 }
 
 enum RankTrialFormat: String, Codable, CaseIterable, Equatable, Sendable {
