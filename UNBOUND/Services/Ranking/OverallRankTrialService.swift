@@ -215,6 +215,11 @@ struct TrialStation: Identifiable, Codable, Equatable, Sendable {
     let standard: OverallRankTrialPerformanceStandard
     let capSeconds: Int?
     let loadPercentOfBodyweight: Double?
+    /// When set, the station requires a top set at ≥ `StrengthStandards.ratio(…, tier:)` × bodyweight.
+    /// The ratio is resolved at draft time (suggested load) and at evaluation time (pass/fail).
+    /// `nil` for bodyweight-only stations. Never copy ratio values here — always resolve from
+    /// `StrengthStandards` so balance tuning is reflected automatically.
+    let strengthTier: RankTier?
     let movementOptions: [TrialMovementOption]
     let restRule: String
     let qualityFlags: Set<PerformanceQualityFlag>
@@ -233,6 +238,59 @@ struct TrialStation: Identifiable, Codable, Equatable, Sendable {
     func resolvedMinimum(forMovementId performedId: String) -> Int {
         movementOptions.first(where: { $0.movementId == performedId })?.floorOverride
             ?? standard.minimumValue
+    }
+
+    /// Resolves the strength load floor for this station against a given bodyweight.
+    /// Returns nil when `strengthTier` is nil or when `StrengthStandards` has no
+    /// ratio for the movement (unranked / unrecognized).
+    func resolvedStrikeLoadKg(bodyweightKg: Double, sex: BiologicalSex? = nil) -> Double? {
+        guard let tier = strengthTier else { return nil }
+        let movementKey = movementOptions.first?.movementId ?? standard.movementId
+        guard let ratio = StrengthStandards.ratio(exerciseKey: movementKey, tier: tier, sex: sex) else { return nil }
+        return ratio * bodyweightKg
+    }
+
+    init(
+        id: String,
+        title: String,
+        category: TrialMovementCategory,
+        standard: OverallRankTrialPerformanceStandard,
+        capSeconds: Int?,
+        loadPercentOfBodyweight: Double?,
+        strengthTier: RankTier? = nil,
+        movementOptions: [TrialMovementOption],
+        restRule: String,
+        qualityFlags: Set<PerformanceQualityFlag>
+    ) {
+        self.id = id
+        self.title = title
+        self.category = category
+        self.standard = standard
+        self.capSeconds = capSeconds
+        self.loadPercentOfBodyweight = loadPercentOfBodyweight
+        self.strengthTier = strengthTier
+        self.movementOptions = movementOptions
+        self.restRule = restRule
+        self.qualityFlags = qualityFlags
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case id, title, category, standard, capSeconds, loadPercentOfBodyweight, strengthTier
+        case movementOptions, restRule, qualityFlags
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        title = try c.decode(String.self, forKey: .title)
+        category = try c.decode(TrialMovementCategory.self, forKey: .category)
+        standard = try c.decode(OverallRankTrialPerformanceStandard.self, forKey: .standard)
+        capSeconds = try c.decodeIfPresent(Int.self, forKey: .capSeconds)
+        loadPercentOfBodyweight = try c.decodeIfPresent(Double.self, forKey: .loadPercentOfBodyweight)
+        strengthTier = try c.decodeIfPresent(RankTier.self, forKey: .strengthTier)
+        movementOptions = try c.decode([TrialMovementOption].self, forKey: .movementOptions)
+        restRule = try c.decode(String.self, forKey: .restRule)
+        qualityFlags = try c.decode(Set<PerformanceQualityFlag>.self, forKey: .qualityFlags)
     }
 }
 
@@ -469,9 +527,10 @@ struct OverallRankTrialDefinition: Identifiable, Codable, Equatable, Sendable {
                 let standard = station.standard
                 let movement = MovementCatalog.definition(for: selected.movementId)
                 let loadPercentOfBodyweight = station.station.loadPercentOfBodyweight
-                let suggestedWeightKg = loadPercentOfBodyweight.flatMap { percent in
+                // Prefer explicit loadPercent; fall back to StrengthStandards ratio for strike stations.
+                let suggestedWeightKg: Double? = loadPercentOfBodyweight.flatMap { percent in
                     bodyweightKg.map { $0 * percent }
-                }
+                } ?? station.station.resolvedStrikeLoadKg(bodyweightKg: bodyweightKg ?? 0)
                 let prescription = TrainingBlockPrescription(
                     exerciseName: selected.displayName,
                     movementId: selected.movementId,

@@ -541,3 +541,128 @@ extension OverallRankTrialServiceTests {
             "6 inverted-rows should pass when floorOverride is 6")
     }
 }
+
+// MARK: - Task 4: Strength-tier strike floors
+
+extension OverallRankTrialServiceTests {
+
+    private func makeStrikeStation(
+        id: String = "t-strike",
+        movementId: String = "exercise.barbell-romanian-deadlift",
+        reps: Int = 3,
+        strengthTier: RankTier
+    ) -> TrialStation {
+        let standard = OverallRankTrialPerformanceStandard(
+            movementId: movementId,
+            displayName: movementId,
+            metric: .reps,
+            minimumValue: reps,
+            minimumQualifyingSets: 1,
+            plannedSets: 3
+        )
+        return TrialStation(
+            id: id,
+            title: id,
+            category: .hingePower,
+            standard: standard,
+            capSeconds: nil,
+            loadPercentOfBodyweight: nil,
+            strengthTier: strengthTier,
+            movementOptions: [TrialMovementOption(movementId: movementId)],
+            restRule: "Strike station.",
+            qualityFlags: [.clean]
+        )
+    }
+
+    func testStrikeStationResolvesLoadFloorFromStrengthStandards() {
+        // Anchor to the engine — never hardcode the ratio (tests-anchor-to-curve-functions rule).
+        let movementId = "exercise.barbell-romanian-deadlift"
+        let expectedRatio = StrengthStandards.ratio(exerciseKey: movementId, tier: .forged, sex: nil)
+        XCTAssertNotNil(expectedRatio,
+            "StrengthStandards must resolve a ratio for barbell-romanian-deadlift at .forged tier")
+
+        let station = makeStrikeStation(movementId: movementId, reps: 3, strengthTier: .forged)
+        let bodyweightKg = 80.0
+        let resolved = station.resolvedStrikeLoadKg(bodyweightKg: bodyweightKg)
+
+        XCTAssertNotNil(resolved, "resolvedStrikeLoadKg must return a value for a strike station")
+        if let ratio = expectedRatio, let resolved = resolved {
+            XCTAssertEqual(resolved, ratio * bodyweightKg, accuracy: 0.5)
+        }
+    }
+
+    func testStrikeStationFailsWhenTopSetBelowLoadFloor() throws {
+        let movementId = "exercise.barbell-romanian-deadlift"
+        let bodyweightKg = 80.0
+        let station = makeStrikeStation(movementId: movementId, reps: 3, strengthTier: .forged)
+        let floorKg = try XCTUnwrap(station.resolvedStrikeLoadKg(bodyweightKg: bodyweightKg))
+
+        let testDef = OverallRankTrialDefinition(
+            id: "test-strike-gate",
+            targetRank: .forged,
+            displayName: "Strike Gate",
+            subtitle: "test",
+            estimatedMinutes: 10,
+            format: .theForging,
+            minOverallLevel: 1,
+            requiredEquipment: [.bodyweight],
+            performanceStandards: [station.standard],
+            loadoutVariants: [
+                TrialLoadoutVariant(
+                    loadout: .homeKit,
+                    requiredEquipment: [.bodyweight],
+                    promise: "test",
+                    stations: [station]
+                )
+            ]
+        )
+
+        func makeStrikeLog(reps: Int, weightKg: Double) -> PerformanceLog {
+            let exercise = PerformanceExercise(
+                name: movementId,
+                movementId: movementId,
+                plannedSets: 3,
+                plannedTarget: "\(reps) reps",
+                sets: [PerformanceSet(setNumber: 1, reps: reps, weightKg: weightKg)]
+            )
+            let block = PerformanceBlock(
+                kind: .bodyweight,
+                title: "t-strike",
+                exercises: [exercise]
+            )
+            return PerformanceLog(
+                userId: "u1",
+                source: .overallRankTrial,
+                title: "Strike Gate",
+                startedAt: Date(timeIntervalSince1970: 0),
+                completedAt: Date(timeIntervalSince1970: 60),
+                programId: "test-strike-gate",
+                blocks: [block]
+            )
+        }
+
+        // 5kg below floor → fail
+        let belowFloorLog = makeStrikeLog(reps: 3, weightKg: floorKg - 5)
+        let belowEval = OverallRankTrialRunner.shared.evaluateDetailed(
+            belowFloorLog,
+            against: testDef,
+            bodyweightKg: bodyweightKg,
+            enforceLoadPercent: false
+        )
+        XCTAssertFalse(belowEval.passed,
+            "Strike station should fail when top set is below the strength-tier load floor")
+        XCTAssertEqual(belowEval.failedStation?.failureReason,
+            "Top set did not meet the strength-tier load floor.")
+
+        // At or above floor → pass
+        let atFloorLog = makeStrikeLog(reps: 3, weightKg: floorKg)
+        let atEval = OverallRankTrialRunner.shared.evaluateDetailed(
+            atFloorLog,
+            against: testDef,
+            bodyweightKg: bodyweightKg,
+            enforceLoadPercent: false
+        )
+        XCTAssertTrue(atEval.passed,
+            "Strike station should pass when top set meets the strength-tier load floor")
+    }
+}

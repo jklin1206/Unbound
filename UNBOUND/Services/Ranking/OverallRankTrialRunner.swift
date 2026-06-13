@@ -439,6 +439,35 @@ final class OverallRankTrialRunner {
             }
         }
 
+        // Task 4: strength-tier strike floor check.
+        // A strike station passes only if at least one qualifying set meets the
+        // load floor resolved from StrengthStandards (ratio × bodyweight).
+        if station.strengthTier != nil {
+            guard let bw = bodyweightKg, bw > 0 else {
+                return stationResult(
+                    station,
+                    qualifyingSetsCompleted: 0,
+                    totalValue: values.reduce(0, +),
+                    failedQualityFlags: [],
+                    status: .failed,
+                    failureReason: "Bodyweight is required for the strength-tier load standard."
+                )
+            }
+            if let strikeLoadKg = station.resolvedStrikeLoadKg(bodyweightKg: bw), strikeLoadKg > 0 {
+                let loadedSetExists = cleanSets.contains { ($0.weightKg ?? 0) >= strikeLoadKg }
+                if !loadedSetExists {
+                    return stationResult(
+                        station,
+                        qualifyingSetsCompleted: 0,
+                        totalValue: values.reduce(0, +),
+                        failedQualityFlags: [],
+                        status: .failed,
+                        failureReason: "Top set did not meet the strength-tier load floor."
+                    )
+                }
+            }
+        }
+
         // Use effectiveMinimum (respects per-option floorOverride) instead of
         // raw standard.minimumValue so substitution options get correct floors.
         let qualifyingSetCount = values.filter { $0 >= effectiveMinimum }.count

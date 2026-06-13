@@ -62,6 +62,7 @@ enum OverallRankTrialDefinitions {
         restSeconds: Int? = nil,
         capSeconds: Int? = nil,
         loadPercentOfBodyweight: Double? = nil,
+        strengthTier: RankTier? = nil,
         movementOptions: [TrialMovementOption]? = nil,
         restRule: String? = nil
     ) -> TrialStation {
@@ -81,6 +82,7 @@ enum OverallRankTrialDefinitions {
             standard: standard,
             capSeconds: capSeconds,
             loadPercentOfBodyweight: loadPercentOfBodyweight,
+            strengthTier: strengthTier,
             movementOptions: movementOptions ?? [option(movementId, displayName)],
             restRule: restRule ?? "Clean reps only. Pain or form-break flags fail the station.",
             qualityFlags: [.clean]
