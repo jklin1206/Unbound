@@ -135,7 +135,7 @@ final class GateDefinitionTests: XCTestCase {
         let gate = OverallRankTrialDefinitions.deckOfProof
         XCTAssertEqual(gate.id, "gate-04-deck-of-proof")
         XCTAssertEqual(gate.format, .deckOfProof)
-        XCTAssertEqual(gate.displayName, "Deck of Proof")
+        XCTAssertEqual(gate.displayName, "The Reckoning")
         XCTAssertEqual(gate.targetRank, .veteran)
         XCTAssertTrue(gate.legacyIds.contains("overall-rank-trial-veteran-reckoning"))
         XCTAssertTrue(gate.legacyIds.contains("overall-rank-trial-forged-reckoning"))

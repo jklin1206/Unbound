@@ -44,7 +44,7 @@ enum TrialStandards {
         static let quenchCarryMeters = 40
     }
 
-    /// Gate IV — Deck of Proof (Forged → Veteran, .deckOfProof)
+    /// Gate IV — The Reckoning (Forged → Veteran, .deckOfProof)
     enum DeckOfProof {
         static let aceReps = 11
         static let faceCardReps = 10

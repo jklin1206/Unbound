@@ -246,7 +246,7 @@ extension OverallRankTrialServiceTests {
         XCTAssertEqual(readiness.currentRank, .forged)
         XCTAssertEqual(readiness.targetRank, .veteran)
         XCTAssertTrue(readiness.missingRequirements.isEmpty)
-        XCTAssertEqual(readiness.definition?.displayName, "Deck of Proof")
+        XCTAssertEqual(readiness.definition?.displayName, "The Reckoning")
     }
 
     func testVeteranReadinessTargetsMasterAndLocksWhenTheAscentRequirementsAreMissing() {

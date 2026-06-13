@@ -76,7 +76,7 @@ extension OverallRankTrialServiceTests {
         )
 
         XCTAssertEqual(definition.format, .deckOfProof)
-        XCTAssertEqual(draft.title, "Deck of Proof")
+        XCTAssertEqual(draft.title, "The Reckoning")
         XCTAssertEqual(draft.estimatedMinutes, 42)
         XCTAssertEqual(resolved.stations.count, 52)
         XCTAssertEqual(resolved.stations.filter { $0.category == .push }.count, 13)

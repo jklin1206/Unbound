@@ -24,7 +24,7 @@ final class OverallRankTrialFormatTests: XCTestCase {
         XCTAssertEqual(RankTrialFormat.firstLight.displayName, "First Light")
         XCTAssertEqual(RankTrialFormat.theCount.displayName, "The Count")
         XCTAssertEqual(RankTrialFormat.theForging.displayName, "The Forging")
-        XCTAssertEqual(RankTrialFormat.deckOfProof.displayName, "Deck of Proof")
+        XCTAssertEqual(RankTrialFormat.deckOfProof.displayName, "The Reckoning")
         XCTAssertEqual(RankTrialFormat.theAscent.displayName, "The Ascent")
         XCTAssertEqual(RankTrialFormat.sevenSeals.displayName, "The Seven Seals")
         XCTAssertEqual(RankTrialFormat.theThreshold.displayName, "The Threshold")

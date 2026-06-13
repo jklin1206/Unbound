@@ -1396,7 +1396,7 @@ enum OverallRankTrialDefinitions {
     static let deckOfProof = definition(
         id: "gate-04-deck-of-proof",
         targetRank: .veteran,
-        displayName: "Deck of Proof",
+        displayName: "The Reckoning",
         subtitle: "Forged to Veteran rank gate",
         estimatedMinutes: 42,
         format: .deckOfProof,

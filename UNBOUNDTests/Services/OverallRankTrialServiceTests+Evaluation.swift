@@ -479,7 +479,7 @@ extension OverallRankTrialServiceTests {
         session.toggleQualityFlag(.pain, exerciseIndex: 0, setIndex: 0)
         let log = session.assemblePerformanceLog(userId: "u1")
 
-        XCTAssertEqual(log.blocks.first?.exercises.first?.notes, "Home Kit rank trial station: Engine")
+        XCTAssertEqual(log.blocks.first?.exercises.first?.notes, "Home rank trial station: Engine")
         XCTAssertEqual(log.blocks.first?.exercises.first?.sets.first?.qualityFlags, Set([.pain]))
     }
 

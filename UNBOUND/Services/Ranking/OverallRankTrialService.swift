@@ -52,7 +52,7 @@ enum RankTrialFormat: String, Codable, CaseIterable, Equatable, Sendable {
         case .firstLight: return "First Light"
         case .theCount: return "The Count"
         case .theForging: return "The Forging"
-        case .deckOfProof: return "Deck of Proof"
+        case .deckOfProof: return "The Reckoning"
         case .theAscent: return "The Ascent"
         case .sevenSeals: return "The Seven Seals"
         case .theThreshold: return "The Threshold"
@@ -84,9 +84,9 @@ enum TrialLoadout: String, Codable, CaseIterable, Equatable, Sendable {
 
     var displayName: String {
         switch self {
-        case .noGymField: return "No-Gym Field"
-        case .homeKit: return "Home Kit"
-        case .gymHybrid: return "Gym Hybrid"
+        case .noGymField: return "Bodyweight"
+        case .homeKit: return "Home"
+        case .gymHybrid: return "Gym"
         }
     }
 }
