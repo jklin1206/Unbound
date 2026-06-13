@@ -35,8 +35,12 @@ struct GateWorld: Identifiable, Equatable, Sendable {
     var tint: Color { destinationRank.rewardTextTint }
     /// Saturated fill tint for sigils, progress fills, stamps.
     var fillTint: Color { destinationRank.rewardTint }
-    /// Existing rank banner (Plan 2). `profile_banner_<token>` exists for all 9 ranks.
-    var bannerAssetName: String { "profile_banner_\(destinationRank.token)" }
+    /// The gate's threshold art (Plan 3, bespoke anime-JRPG `gate_threshold_<token>`),
+    /// falling back to the rank banner cosmetic if a bespoke still is missing.
+    var bannerAssetName: String {
+        let threshold = "gate_threshold_\(destinationRank.token)"
+        return UIImage(named: threshold) != nil ? threshold : "profile_banner_\(destinationRank.token)"
+    }
 
     /// "FORGED → VETERAN" style transition label.
     func transitionLabel(from origin: RankTitle) -> String {

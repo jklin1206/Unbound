@@ -4,14 +4,14 @@ import UIKit
 
 final class CrossingAssetResolverTests: XCTestCase {
 
-    func test_fallsBackToRankBannerWhenNoBespokeArt() {
-        // Plan 3: no gate_threshold_* assets shipped yet → resolver returns the rank banner.
+    func test_resolvesToBespokeThresholdArtForEveryGate() {
+        // Plan 3: bespoke gate_threshold_<token> art now ships for all 8 gates.
         for c in GateCrossingCatalog.all {
             let still = CrossingAssetResolver.thresholdStill(for: c)
-            XCTAssertEqual(still, c.world.bannerAssetName,
-                           "\(c.id) should fall back to the rank banner until bespoke art lands")
-            XCTAssertNotNil(UIImage(named: still), "fallback banner \(still) must exist in the catalog")
-            XCTAssertFalse(CrossingAssetResolver.hasBespokeArt(for: c))
+            XCTAssertEqual(still, CrossingAssetResolver.bespokeStillName(for: c),
+                           "\(c.id) should resolve to its bespoke threshold still")
+            XCTAssertNotNil(UIImage(named: still), "threshold still \(still) must exist in the catalog")
+            XCTAssertTrue(CrossingAssetResolver.hasBespokeArt(for: c))
         }
     }
 
