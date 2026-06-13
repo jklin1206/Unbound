@@ -26,8 +26,8 @@ extension OverallRankTrialServiceTests {
         XCTAssertTrue(OverallRankTrialRunner.shared.evaluatePerformance(log, against: definition))
     }
 
-    func testOperatorScreenDraftMapsToResolvedStationFloors() throws {
-        let definition = OverallRankTrialDefinitions.calibration
+    func testTheCountDraftMapsToResolvedStationFloors() throws {
+        let definition = OverallRankTrialDefinitions.theCount
         let resolved = try XCTUnwrap(resolvedTrial(for: definition, loadout: .homeKit))
         let draft = OverallRankTrialRunner.shared.draft(
             for: definition,
@@ -37,9 +37,9 @@ extension OverallRankTrialServiceTests {
         )
 
         XCTAssertEqual(definition.format, .theCount)
-        XCTAssertEqual(draft.title, "Operator Screen")
+        XCTAssertEqual(draft.title, "The Count")
         XCTAssertEqual(draft.estimatedMinutes, 20)
-        XCTAssertEqual(resolved.stations.map(\.category), [.engine, .lower, .push, .pull, .carryCore])
+        XCTAssertEqual(resolved.stations.map(\.category), [.engine, .lower, .push, .pull, .carryCore, .mobilityControl])
         assertDraft(draft, matches: definition, resolvedTrial: resolved)
         assertDraftPassesAndFails(draft, against: definition)
     }

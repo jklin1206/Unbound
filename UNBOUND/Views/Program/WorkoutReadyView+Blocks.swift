@@ -34,7 +34,7 @@ extension WorkoutReadyView {
         case .firstLight:
             FirstLightTrialReadyPreview(blocks: draft.blocks, tint: tint)
         case .theCount:
-            OperatorScreenTrialReadyPreview(blocks: draft.blocks, tint: tint)
+            TheCountTrialReadyPreview(blocks: draft.blocks, tint: tint)
         case .theForging:
             FinisherTrialReadyPreview(blocks: draft.blocks, tint: tint)
         case .deckOfProof:

@@ -79,14 +79,14 @@ extension OverallRankTrialServiceTests {
         XCTAssertEqual(progress.attempts.count, 1)
     }
 
-    func testFailedCalibrationLogsAttemptAndReceiptButDoesNotAdvancePastNovice() async throws {
+    func testFailedTheCountLogsAttemptAndReceiptButDoesNotAdvancePastNovice() async throws {
         store.save(
             OverallRankTrialProgress(highestPassedRank: .novice, attempts: []),
             userId: "u1"
         )
         let database = MockDatabaseService()
         let services = makeServices(database: database)
-        let definition = OverallRankTrialDefinitions.calibration
+        let definition = OverallRankTrialDefinitions.theCount
         let draft = OverallRankTrialRunner.shared.draft(
             for: definition,
             userId: "u1",
@@ -121,14 +121,14 @@ extension OverallRankTrialServiceTests {
         XCTAssertEqual(store.load(userId: "u1").attempts.count, 1)
     }
 
-    func testPassedCalibrationAdvancesToApprenticeExactlyOnceForDuplicatePerformanceLogId() async throws {
+    func testPassedTheCountAdvancesToApprenticeExactlyOnceForDuplicatePerformanceLogId() async throws {
         store.save(
             OverallRankTrialProgress(highestPassedRank: .novice, attempts: []),
             userId: "u1"
         )
         let database = MockDatabaseService()
         let services = makeServices(database: database)
-        let definition = OverallRankTrialDefinitions.calibration
+        let definition = OverallRankTrialDefinitions.theCount
         let draft = OverallRankTrialRunner.shared.draft(
             for: definition,
             userId: "u1",

@@ -30,7 +30,7 @@ extension OverallRankTrialServiceTests {
     }
 
     func testMissingPullSolutionBlocksApprenticePlus() {
-        let definition = OverallRankTrialDefinitions.calibration
+        let definition = OverallRankTrialDefinitions.theCount
         let resolution = RankTrialLoadoutResolver.shared.resolve(
             definition: definition,
             userId: "u1",
@@ -66,7 +66,7 @@ extension OverallRankTrialServiceTests {
     }
 
     func testDetailedEvaluationFailsSkippedStationDespiteOtherOverperformance() throws {
-        let definition = OverallRankTrialDefinitions.calibration
+        let definition = OverallRankTrialDefinitions.theCount
         let resolved = try XCTUnwrap(resolvedTrial(for: definition, loadout: .homeKit))
         let draft = OverallRankTrialRunner.shared.draft(
             for: definition,
@@ -91,7 +91,7 @@ extension OverallRankTrialServiceTests {
     }
 
     func testDetailedEvaluationFailsPainAndFormBreakFlags() throws {
-        let definition = OverallRankTrialDefinitions.calibration
+        let definition = OverallRankTrialDefinitions.theCount
         let resolved = try XCTUnwrap(resolvedTrial(for: definition, loadout: .homeKit))
         let draft = OverallRankTrialRunner.shared.draft(
             for: definition,
@@ -121,7 +121,7 @@ extension OverallRankTrialServiceTests {
     }
 
     func testDetailedEvaluationReportsLoadPercentBodyweightBlockerWhenEnforced() throws {
-        let definition = OverallRankTrialDefinitions.calibration
+        let definition = OverallRankTrialDefinitions.theCount
         let resolved = try XCTUnwrap(resolvedTrial(for: definition, loadout: .homeKit))
         let draft = OverallRankTrialRunner.shared.draft(
             for: definition,
@@ -186,7 +186,7 @@ extension OverallRankTrialServiceTests {
     }
 
     func testDetailedEvaluationFailsTrialTimeCap() throws {
-        let definition = OverallRankTrialDefinitions.calibration
+        let definition = OverallRankTrialDefinitions.theCount
         let resolved = try XCTUnwrap(resolvedTrial(for: definition, loadout: .homeKit))
         let draft = OverallRankTrialRunner.shared.draft(
             for: definition,
@@ -240,7 +240,7 @@ extension OverallRankTrialServiceTests {
             OverallRankTrialProgress(highestPassedRank: .novice, attempts: []),
             userId: "u1"
         )
-        let definition = OverallRankTrialDefinitions.calibration
+        let definition = OverallRankTrialDefinitions.theCount
         let resolved = try XCTUnwrap(resolvedTrial(for: definition, loadout: .homeKit))
         let draft = OverallRankTrialRunner.shared.draft(
             for: definition,
@@ -273,7 +273,7 @@ extension OverallRankTrialServiceTests {
     }
 
     func testRecordCompletedAttemptEnforcesLoadPercentInProductionPath() throws {
-        let definition = OverallRankTrialDefinitions.calibration
+        let definition = OverallRankTrialDefinitions.theCount
         let resolved = try XCTUnwrap(resolvedTrial(for: definition, loadout: .homeKit))
         let draft = OverallRankTrialRunner.shared.draft(
             for: definition,
@@ -301,7 +301,7 @@ extension OverallRankTrialServiceTests {
     }
 
     func testActiveWorkoutSessionCarriesRankTrialLoadoutNotesAndQualityFlagsIntoPerformanceLog() throws {
-        let definition = OverallRankTrialDefinitions.calibration
+        let definition = OverallRankTrialDefinitions.theCount
         let resolved = try XCTUnwrap(resolvedTrial(for: definition, loadout: .homeKit))
         let draft = OverallRankTrialRunner.shared.draft(
             for: definition,
@@ -370,7 +370,7 @@ extension OverallRankTrialServiceTests {
     }
 
     func testRestoredRankTrialSessionKeepsOfficialSourceForAttemptRecording() throws {
-        let definition = OverallRankTrialDefinitions.calibration
+        let definition = OverallRankTrialDefinitions.theCount
         let resolved = try XCTUnwrap(resolvedTrial(for: definition, loadout: .homeKit))
         let draft = OverallRankTrialRunner.shared.draft(
             for: definition,
@@ -864,7 +864,7 @@ extension OverallRankTrialServiceTests {
 
     func testResolveDynamicStationsIsNoOpForDefinitionWithoutLanding6() {
         // A definition with no lastgate-landing-6-* stations is returned unchanged.
-        let definition = OverallRankTrialDefinitions.calibration
+        let definition = OverallRankTrialDefinitions.theCount
         let scores = makeAttributeProfile(overriding: .endurance, level: 10)
 
         let resolved = OverallRankTrialRunner.resolveDynamicStations(

@@ -23,7 +23,7 @@ final class OverallRankTrialServiceTests: XCTestCase {
     var allRankTrialCases: [RankTrialCase] {
         [
             RankTrialCase(sourceRank: .initiate, definition: OverallRankTrialDefinitions.firstLight),
-            RankTrialCase(sourceRank: .novice, definition: OverallRankTrialDefinitions.calibration),
+            RankTrialCase(sourceRank: .novice, definition: OverallRankTrialDefinitions.theCount),
             RankTrialCase(sourceRank: .apprentice, definition: OverallRankTrialDefinitions.forge),
             RankTrialCase(sourceRank: .forged, definition: OverallRankTrialDefinitions.reckoning),
             RankTrialCase(sourceRank: .veteran, definition: OverallRankTrialDefinitions.gauntlet),

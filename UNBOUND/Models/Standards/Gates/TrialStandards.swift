@@ -32,9 +32,6 @@ enum TrialStandards {
         static let carryCapSeconds = 3 * 60
         static let carryLoadPercent = 0.20
         static let stillnessHoldSeconds = 60
-
-        @available(*, deprecated, message: "TEMP shim")
-        static let coreHoldSeconds = stillnessHoldSeconds // TEMP shim
     }
 
     /// Gate III — The Forging (Apprentice → Forged, .theForging)
@@ -209,8 +206,6 @@ enum TrialStandards {
 
 // TEMPORARY shims — removed as gate definitions are rewritten (Plan Tasks 6–13).
 extension TrialStandards {
-    @available(*, deprecated, message: "TEMP shim")
-    typealias OperatorScreen = TheCount // TEMP shim
     @available(*, deprecated, message: "TEMP shim")
     typealias Finisher = TheForging // TEMP shim
     @available(*, deprecated, message: "TEMP shim")

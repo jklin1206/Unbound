@@ -272,17 +272,23 @@ enum OverallRankTrialDefinitions {
         ]
     }
 
-    private static func operatorStations(loadout: TrialLoadout) -> [TrialStation] {
+    private static func theCountStations(loadout: TrialLoadout) -> [TrialStation] {
         [
-            engineStation("operator-engine", title: "6-Minute Engine Floor", loadout: loadout, runMeters: TrialStandards.OperatorScreen.engineMeters, capSeconds: TrialStandards.OperatorScreen.engineCapSeconds),
+            engineStation(
+                "count-long-bell",
+                title: "The Long Bell",
+                loadout: loadout,
+                runMeters: TrialStandards.TheCount.engineMeters,
+                capSeconds: TrialStandards.TheCount.engineCapSeconds
+            ),
             station(
-                "operator-lower",
-                title: "2-Minute Lower Floor",
+                "count-second",
+                title: "The Second Count",
                 category: .lower,
                 movementId: loadout == .gymHybrid ? "exercise.leg-press" : loadout == .homeKit ? "exercise.goblet-squat" : "exercise.step-up",
                 metric: .reps,
-                minimumValue: TrialStandards.OperatorScreen.lowerReps,
-                capSeconds: TrialStandards.OperatorScreen.stationCapSeconds,
+                minimumValue: TrialStandards.TheCount.lowerReps,
+                capSeconds: TrialStandards.TheCount.stationCapSeconds,
                 movementOptions: movementSet(
                     loadout: loadout,
                     noGym: option("exercise.step-up"),
@@ -291,13 +297,13 @@ enum OverallRankTrialDefinitions {
                 )
             ),
             station(
-                "operator-push",
-                title: "2-Minute Push Floor",
+                "count-third",
+                title: "The Third Count",
                 category: .push,
                 movementId: loadout == .gymHybrid ? "exercise.machine-chest-press" : "exercise.pushup",
                 metric: .reps,
-                minimumValue: TrialStandards.OperatorScreen.pushReps,
-                capSeconds: TrialStandards.OperatorScreen.stationCapSeconds,
+                minimumValue: TrialStandards.TheCount.pushReps,
+                capSeconds: TrialStandards.TheCount.stationCapSeconds,
                 movementOptions: movementSet(
                     loadout: loadout,
                     noGym: option("exercise.pushup"),
@@ -306,13 +312,13 @@ enum OverallRankTrialDefinitions {
                 )
             ),
             station(
-                "operator-pull",
-                title: "2-Minute Pull Floor",
+                "count-fourth",
+                title: "The Fourth Count",
                 category: .pull,
                 movementId: loadout == .gymHybrid ? "exercise.cable-row-seated" : loadout == .homeKit ? "exercise.dumbbell-row" : "exercise.inverted-row",
                 metric: .reps,
-                minimumValue: TrialStandards.OperatorScreen.pullReps,
-                capSeconds: TrialStandards.OperatorScreen.stationCapSeconds,
+                minimumValue: TrialStandards.TheCount.pullReps,
+                capSeconds: TrialStandards.TheCount.stationCapSeconds,
                 movementOptions: movementSet(
                     loadout: loadout,
                     noGym: option("exercise.inverted-row"),
@@ -329,23 +335,33 @@ enum OverallRankTrialDefinitions {
                 )
             ),
             station(
-                "operator-carry-core",
-                title: "Carry / Core Floor",
+                "count-water-carry",
+                title: "The Water Carry",
                 category: .carryCore,
-                movementId: loadout == .noGymField ? "exercise.plank" : "carry.suitcase-carry",
-                metric: loadout == .noGymField ? .holdSeconds : .distanceMeters,
-                minimumValue: loadout == .noGymField ? TrialStandards.OperatorScreen.coreHoldSeconds : TrialStandards.OperatorScreen.carryMeters,
-                capSeconds: TrialStandards.OperatorScreen.carryCapSeconds,
-                loadPercentOfBodyweight: loadout == .noGymField ? nil : TrialStandards.OperatorScreen.carryLoadPercent,
+                movementId: loadout == .gymHybrid ? "carry.farmer-carry" : loadout == .homeKit ? "carry.suitcase-carry" : "carry.loaded-march",
+                metric: .distanceMeters,
+                minimumValue: TrialStandards.TheCount.carryMeters,
+                capSeconds: TrialStandards.TheCount.carryCapSeconds,
+                loadPercentOfBodyweight: TrialStandards.TheCount.carryLoadPercent,
                 movementOptions: movementSet(
                     loadout: loadout,
-                    noGym: option("exercise.plank"),
+                    noGym: option("carry.loaded-march", "Backpack Carry", requiredEquipment: [.openSpace]),
                     home: [
                         option("carry.suitcase-carry", requiredEquipment: [.dumbbell, .openSpace]),
                         option("carry.suitcase-carry", requiredEquipment: [.kettlebell, .openSpace])
                     ],
                     gym: [option("carry.farmer-carry", requiredEquipment: [.dumbbell, .openSpace])]
                 )
+            ),
+            station(
+                "count-stillness",
+                title: "Stillness",
+                category: .mobilityControl,
+                movementId: "exercise.plank",
+                metric: .holdSeconds,
+                minimumValue: TrialStandards.TheCount.stillnessHoldSeconds,
+                capSeconds: TrialStandards.TheCount.stationCapSeconds,
+                movementOptions: [option("exercise.plank")]
             )
         ]
     }
@@ -568,19 +584,22 @@ enum OverallRankTrialDefinitions {
         legacyIds: ["overall-rank-trial-novice-awakening", "overall-rank-trial-novice-foundation-proof"]
     )
 
-    static let calibration = definition(
-        id: "overall-rank-trial-apprentice-calibration",
+    static let theCount = OverallRankTrialDefinition(
+        id: "gate-02-the-count",
         targetRank: .apprentice,
-        displayName: "Operator Screen",
-        subtitle: "Novice to Apprentice rank gate",
+        displayName: "The Count",
+        subtitle: "Rank Gate II — answer the dojo bell",
         estimatedMinutes: 20,
         format: .theCount,
         minOverallLevel: 8,
+        requiredEquipment: [.bodyweight],
+        performanceStandards: theCountStations(loadout: .homeKit).map(\.standard),
         loadoutVariants: loadoutVariants(
-            noGym: operatorStations(loadout: .noGymField),
-            home: operatorStations(loadout: .homeKit),
-            gym: operatorStations(loadout: .gymHybrid)
-        )
+            noGym: theCountStations(loadout: .noGymField),
+            home: theCountStations(loadout: .homeKit),
+            gym: theCountStations(loadout: .gymHybrid)
+        ),
+        legacyIds: ["overall-rank-trial-apprentice-calibration"]
     )
 
     static let forge = definition(
@@ -679,7 +698,7 @@ enum OverallRankTrialDefinitions {
 
     static let all: [OverallRankTrialDefinition] = [
         firstLight,
-        calibration,
+        theCount,
         forge,
         reckoning,
         gauntlet,
@@ -700,7 +719,7 @@ enum OverallRankTrialDefinitions {
         case .initiate:
             return firstLight
         case .novice:
-            return calibration
+            return theCount
         case .apprentice:
             return forge
         case .forged:

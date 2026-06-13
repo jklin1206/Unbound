@@ -59,25 +59,28 @@ final class TrialStandardsSnapshotTests: XCTestCase {
         ST firstlight-banner cat=pull mov=exercise.cable-row-seated metric=reps min=20 qual=1 planned=1 rest=75 cap=840 load=-
         ST firstlight-steps cat=engine mov=exercise.step-up metric=reps min=20 qual=1 planned=1 rest=75 cap=120 load=-
         ST firstlight-door cat=carryCore mov=exercise.plank metric=holdSeconds min=25 qual=1 planned=1 rest=90 cap=840 load=-
-    DEF overall-rank-trial-apprentice-calibration rank=apprentice fmt=theCount min=20 lvl=8
+    DEF gate-02-the-count rank=apprentice fmt=theCount min=20 lvl=8
       VAR noGymField
-        ST operator-engine cat=engine mov=cardio.run metric=distanceMeters min=700 qual=1 planned=1 rest=45 cap=360 load=-
-        ST operator-lower cat=lower mov=exercise.step-up metric=reps min=30 qual=1 planned=1 rest=75 cap=120 load=-
-        ST operator-push cat=push mov=exercise.pushup metric=reps min=18 qual=1 planned=1 rest=75 cap=120 load=-
-        ST operator-pull cat=pull mov=exercise.inverted-row metric=reps min=24 qual=1 planned=1 rest=75 cap=120 load=-
-        ST operator-carry-core cat=carryCore mov=exercise.plank metric=holdSeconds min=60 qual=1 planned=1 rest=90 cap=180 load=-
+        ST count-long-bell cat=engine mov=cardio.run metric=distanceMeters min=700 qual=1 planned=1 rest=45 cap=360 load=-
+        ST count-second cat=lower mov=exercise.step-up metric=reps min=30 qual=1 planned=1 rest=75 cap=120 load=-
+        ST count-third cat=push mov=exercise.pushup metric=reps min=18 qual=1 planned=1 rest=75 cap=120 load=-
+        ST count-fourth cat=pull mov=exercise.inverted-row metric=reps min=24 qual=1 planned=1 rest=75 cap=120 load=-
+        ST count-water-carry cat=carryCore mov=carry.loaded-march metric=distanceMeters min=80 qual=1 planned=1 rest=75 cap=180 load=0.200
+        ST count-stillness cat=mobilityControl mov=exercise.plank metric=holdSeconds min=60 qual=1 planned=1 rest=90 cap=120 load=-
       VAR homeKit
-        ST operator-engine cat=engine mov=cardio.run metric=distanceMeters min=700 qual=1 planned=1 rest=45 cap=360 load=-
-        ST operator-lower cat=lower mov=exercise.goblet-squat metric=reps min=30 qual=1 planned=1 rest=75 cap=120 load=-
-        ST operator-push cat=push mov=exercise.pushup metric=reps min=18 qual=1 planned=1 rest=75 cap=120 load=-
-        ST operator-pull cat=pull mov=exercise.dumbbell-row metric=reps min=24 qual=1 planned=1 rest=75 cap=120 load=-
-        ST operator-carry-core cat=carryCore mov=carry.suitcase-carry metric=distanceMeters min=80 qual=1 planned=1 rest=75 cap=180 load=0.200
+        ST count-long-bell cat=engine mov=cardio.run metric=distanceMeters min=700 qual=1 planned=1 rest=45 cap=360 load=-
+        ST count-second cat=lower mov=exercise.goblet-squat metric=reps min=30 qual=1 planned=1 rest=75 cap=120 load=-
+        ST count-third cat=push mov=exercise.pushup metric=reps min=18 qual=1 planned=1 rest=75 cap=120 load=-
+        ST count-fourth cat=pull mov=exercise.dumbbell-row metric=reps min=24 qual=1 planned=1 rest=75 cap=120 load=-
+        ST count-water-carry cat=carryCore mov=carry.suitcase-carry metric=distanceMeters min=80 qual=1 planned=1 rest=75 cap=180 load=0.200
+        ST count-stillness cat=mobilityControl mov=exercise.plank metric=holdSeconds min=60 qual=1 planned=1 rest=90 cap=120 load=-
       VAR gymHybrid
-        ST operator-engine cat=engine mov=cardio.row metric=distanceMeters min=804 qual=1 planned=1 rest=45 cap=360 load=-
-        ST operator-lower cat=lower mov=exercise.leg-press metric=reps min=30 qual=1 planned=1 rest=75 cap=120 load=-
-        ST operator-push cat=push mov=exercise.machine-chest-press metric=reps min=18 qual=1 planned=1 rest=75 cap=120 load=-
-        ST operator-pull cat=pull mov=exercise.cable-row-seated metric=reps min=24 qual=1 planned=1 rest=75 cap=120 load=-
-        ST operator-carry-core cat=carryCore mov=carry.suitcase-carry metric=distanceMeters min=80 qual=1 planned=1 rest=75 cap=180 load=0.200
+        ST count-long-bell cat=engine mov=cardio.row metric=distanceMeters min=804 qual=1 planned=1 rest=45 cap=360 load=-
+        ST count-second cat=lower mov=exercise.leg-press metric=reps min=30 qual=1 planned=1 rest=75 cap=120 load=-
+        ST count-third cat=push mov=exercise.machine-chest-press metric=reps min=18 qual=1 planned=1 rest=75 cap=120 load=-
+        ST count-fourth cat=pull mov=exercise.cable-row-seated metric=reps min=24 qual=1 planned=1 rest=75 cap=120 load=-
+        ST count-water-carry cat=carryCore mov=carry.farmer-carry metric=distanceMeters min=80 qual=1 planned=1 rest=75 cap=180 load=0.200
+        ST count-stillness cat=mobilityControl mov=exercise.plank metric=holdSeconds min=60 qual=1 planned=1 rest=90 cap=120 load=-
     DEF overall-rank-trial-forged-forge rank=forged fmt=theForging min=30 lvl=15
       VAR noGymField
         ST finisher-r1-engine cat=engine mov=cardio.run metric=distanceMeters min=300 qual=1 planned=1 rest=45 cap=- load=-

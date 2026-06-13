@@ -104,7 +104,7 @@ struct RankTrialDemoRecorderView: View {
         case .firstLight:
             FirstLightTrialReadyPreview(blocks: context.draft.blocks, tint: tint)
         case .theCount:
-            OperatorScreenTrialReadyPreview(blocks: context.draft.blocks, tint: tint)
+            TheCountTrialReadyPreview(blocks: context.draft.blocks, tint: tint)
         case .theForging:
             FinisherTrialReadyPreview(blocks: context.draft.blocks, tint: tint)
         case .deckOfProof:
@@ -128,7 +128,7 @@ struct RankTrialDemoRecorderView: View {
                 RankTrialDemoStationCard(index: index, exercise: exercise, isCurrent: index == context.session.currentExerciseIndex, tint: tint)
             }
         case .theCount:
-            OperatorScreenTrialActiveView(definition: context.definition, session: context.session) { index, exercise in
+            TheCountTrialActiveView(definition: context.definition, session: context.session) { index, exercise in
                 RankTrialDemoStationCard(index: index, exercise: exercise, isCurrent: index == context.session.currentExerciseIndex, tint: tint)
             }
         case .theForging:
@@ -176,7 +176,7 @@ struct RankTrialDemoRecorderView: View {
             Text("All rank trials recorded")
                 .font(Font.unbound.titleM)
                 .foregroundStyle(Color.unbound.textPrimary)
-            Text("First Light, Operator Screen, Finisher, Deck of Proof, Tower, Boss Rush, Threshold Raid, and Final Exam.")
+            Text("First Light, The Count, Finisher, Deck of Proof, Tower, Boss Rush, Threshold Raid, and Final Exam.")
                 .font(Font.unbound.bodyS.weight(.semibold))
                 .foregroundStyle(Color.unbound.textSecondary)
         }

@@ -39,7 +39,7 @@ extension OverallRankTrialServiceTests {
         XCTAssertEqual(OverallRankTrialDefinitions.ceremonyTier(for: .novice), .benchmark)
         XCTAssertEqual(OverallRankTrialDefinitions.ceremonyTier(for: .apprentice), .benchmark)
 
-        for definition in [OverallRankTrialDefinitions.firstLight, OverallRankTrialDefinitions.calibration] {
+        for definition in [OverallRankTrialDefinitions.firstLight, OverallRankTrialDefinitions.theCount] {
             let draft = OverallRankTrialRunner.shared.draft(
                 for: definition,
                 userId: "u1",
@@ -52,8 +52,8 @@ extension OverallRankTrialServiceTests {
         }
     }
 
-    func testNoviceReadinessTargetsApprenticeAndLocksWhenCalibrationRequirementsAreMissing() {
-        let definition = OverallRankTrialDefinitions.calibration
+    func testNoviceReadinessTargetsApprenticeAndLocksWhenTheCountRequirementsAreMissing() {
+        let definition = OverallRankTrialDefinitions.theCount
         let readiness = TrialReadinessService.shared.evaluate(
             OverallRankTrialReadinessInput(
                 userId: "u1",
@@ -73,8 +73,8 @@ extension OverallRankTrialServiceTests {
         XCTAssertTrue(readiness.missingRequirements.contains { $0.kind == .equipment })
     }
 
-    func testNoviceReadinessBecomesReadyForCalibrationWhenRequirementsAreMet() {
-        let definition = OverallRankTrialDefinitions.calibration
+    func testNoviceReadinessBecomesReadyForTheCountWhenRequirementsAreMet() {
+        let definition = OverallRankTrialDefinitions.theCount
         let readiness = TrialReadinessService.shared.evaluate(
             OverallRankTrialReadinessInput(
                 userId: "u1",
@@ -89,7 +89,7 @@ extension OverallRankTrialServiceTests {
         XCTAssertEqual(readiness.currentRank, .novice)
         XCTAssertEqual(readiness.targetRank, .apprentice)
         XCTAssertTrue(readiness.missingRequirements.isEmpty)
-        XCTAssertEqual(readiness.definition?.displayName, "Operator Screen")
+        XCTAssertEqual(readiness.definition?.displayName, "The Count")
         XCTAssertEqual(readiness.resolvedTrial?.selectedLoadout, .gymHybrid)
     }
 

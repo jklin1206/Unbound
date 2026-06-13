@@ -122,7 +122,7 @@ struct WorkoutLogGridView: View {
                 exerciseCard(ei: index, ex: exercise, isCurrent: index == session.currentExerciseIndex)
             }
         case .theCount:
-            OperatorScreenTrialActiveView(definition: definition, session: session) { index, exercise in
+            TheCountTrialActiveView(definition: definition, session: session) { index, exercise in
                 exerciseCard(ei: index, ex: exercise, isCurrent: index == session.currentExerciseIndex)
             }
         case .theForging:
@@ -940,7 +940,7 @@ private struct RankTrialActiveFlowHeader: View {
     private var unitLabel: String {
         switch definition.format {
         case .firstLight: return "Set"
-        case .theCount: return "Card"
+        case .theCount: return "Count"
         case .theForging: return "Round"
         case .deckOfProof: return "Card"
         case .theAscent: return "Floor"

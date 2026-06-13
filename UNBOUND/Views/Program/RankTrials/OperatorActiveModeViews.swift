@@ -93,7 +93,7 @@ struct OperatorActiveFocusPanel: View {
             .frame(height: 58)
         }
         .accessibilityElement(children: .combine)
-        .accessibilityIdentifier("operatorScreen.activeFocus")
+        .accessibilityIdentifier("theCount.activeFocus")
     }
 
     private var movementDefinition: MovementDefinition? {
@@ -147,7 +147,7 @@ struct OperatorActiveLaneBoard: View {
                 }
             }
         }
-        .accessibilityIdentifier("operatorScreen.activeLanes")
+        .accessibilityIdentifier("theCount.activeLanes")
     }
 
     private var clearedCount: Int {
@@ -303,7 +303,7 @@ struct OperatorCalibrationTrack: View {
     }
 }
 
-struct OperatorScreenCompletePanel: View {
+struct TheCountCompletePanel: View {
     let definition: OverallRankTrialDefinition
     let tint: Color
     let progress: CGFloat
@@ -329,7 +329,7 @@ struct OperatorScreenCompletePanel: View {
                         .font(Font.unbound.captionS.weight(.heavy))
                         .tracking(1.4)
                         .foregroundStyle(tint)
-                    Text("Screen complete")
+                    Text("Count complete")
                         .font(Font.unbound.titleS)
                         .foregroundStyle(Color.unbound.textPrimary)
                     Text("Finish the trial to record the result.")
@@ -347,6 +347,6 @@ struct OperatorScreenCompletePanel: View {
             OperatorLanePlateShape()
                 .stroke(Color.rewardTeal.opacity(0.34), lineWidth: 1)
         )
-        .accessibilityIdentifier("operatorScreen.completePanel")
+        .accessibilityIdentifier("theCount.completePanel")
     }
 }

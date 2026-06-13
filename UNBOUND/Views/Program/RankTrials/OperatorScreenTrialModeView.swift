@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct OperatorScreenTrialReadyPreview: View {
+struct TheCountTrialReadyPreview: View {
     let blocks: [TrainingBlock]
     let tint: Color
 
@@ -34,7 +34,7 @@ struct OperatorScreenTrialReadyPreview: View {
 
                 VStack(alignment: .leading, spacing: 12) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("OPERATOR SCREEN")
+                        Text("THE COUNT")
                             .font(Font.unbound.captionS.weight(.heavy))
                             .tracking(1.7)
                             .foregroundStyle(tint)
@@ -61,7 +61,7 @@ struct OperatorScreenTrialReadyPreview: View {
                     OperatorReadyLaneRow(station: station, tint: tint)
                 }
             }
-            .accessibilityIdentifier("operatorScreen.readyLanes")
+            .accessibilityIdentifier("theCount.readyLanes")
         }
         .onAppear {
             guard !reduceMotion else { return }
@@ -72,7 +72,7 @@ struct OperatorScreenTrialReadyPreview: View {
     }
 }
 
-struct OperatorScreenTrialActiveView<CurrentStationCard: View>: View {
+struct TheCountTrialActiveView<CurrentStationCard: View>: View {
     let definition: OverallRankTrialDefinition
     @ObservedObject var session: ActiveWorkoutSession
     let currentStationCard: (Int, ActiveWorkoutSession.ActiveExercise) -> CurrentStationCard
@@ -112,7 +112,7 @@ struct OperatorScreenTrialActiveView<CurrentStationCard: View>: View {
                 tint: tint
             )
         } completedContent: {
-            OperatorScreenCompletePanel(
+            TheCountCompletePanel(
                 definition: definition,
                 tint: tint,
                 progress: progress
