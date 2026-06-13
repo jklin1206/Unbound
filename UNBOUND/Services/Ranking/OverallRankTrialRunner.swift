@@ -337,6 +337,49 @@ final class OverallRankTrialRunner {
         )
     }
 
+    // MARK: - Dynamic station resolution (Task 5)
+
+    /// Filters landing-6 attribute variants of Gate VIII (The Last Gate) to
+    /// the single station matching the user's weakest attribute axis.
+    ///
+    /// The six variants carry ids `lastgate-landing-6-<attribute>` (one per
+    /// `AttributeKey`). This method returns all stations from the requested
+    /// loadout variant with the five un-selected landing-6 stations removed,
+    /// leaving exactly one `lastgate-landing-6-<attribute>` entry (the weakest).
+    ///
+    /// Tie-breaking: earlier `AttributeKey.allCases` order wins (so ties are
+    /// deterministic and independent of dictionary iteration order).
+    ///
+    /// Safe for definitions that have no `lastgate-landing-6-*` stations at all:
+    /// the filter is a no-op and the full station list is returned unchanged.
+    static func resolveDynamicStations(
+        for definition: OverallRankTrialDefinition,
+        loadout: TrialLoadout,
+        attributeScores: AttributeProfile
+    ) -> [TrialStation] {
+        guard let variant = definition.loadoutVariants.first(where: { $0.loadout == loadout })
+              ?? definition.loadoutVariants.first else { return [] }
+        let stations = variant.stations
+
+        let prefix = "lastgate-landing-6-"
+        let landing6Ids = stations.map(\.id).filter { $0.hasPrefix(prefix) }
+        guard !landing6Ids.isEmpty else { return stations }
+
+        // Identify weakest axis in AttributeKey.allCases order for deterministic tie-breaking.
+        let weakestKey = AttributeKey.allCases.min { a, b in
+            attributeScores.level(for: a) < attributeScores.level(for: b)
+        }
+        let weakestSuffix = weakestKey?.rawValue ?? AttributeKey.allCases[0].rawValue
+        let keepId = prefix + weakestSuffix
+
+        return stations.filter { station in
+            if station.id.hasPrefix(prefix) {
+                return station.id == keepId
+            }
+            return true
+        }
+    }
+
     private func evaluateStation(
         _ station: TrialStation,
         blocks: [PerformanceBlock],

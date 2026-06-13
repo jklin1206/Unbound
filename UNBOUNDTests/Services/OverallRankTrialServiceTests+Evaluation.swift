@@ -666,3 +666,152 @@ extension OverallRankTrialServiceTests {
             "Strike station should pass when top set meets the strength-tier load floor")
     }
 }
+
+// MARK: - Task 5: Dynamic weakest-attribute station resolution
+
+extension OverallRankTrialServiceTests {
+
+    /// Builds a synthetic definition that contains all 6 `lastgate-landing-6-<attribute>`
+    /// station variants plus a fixed set of non-dynamic stations, for use in
+    /// `resolveDynamicStations` tests before Gate VIII's real definition lands.
+    private func syntheticLastGateDefinition() -> OverallRankTrialDefinition {
+        var stations: [TrialStation] = []
+
+        // Fixed stations (non-dynamic)
+        stations.append(TrialStation(
+            id: "lastgate-anchor",
+            title: "Anchor Station",
+            category: .engine,
+            standard: OverallRankTrialPerformanceStandard(
+                movementId: "exercise.pullup",
+                displayName: "Pull-up",
+                metric: .reps,
+                minimumValue: 5
+            ),
+            capSeconds: nil,
+            loadPercentOfBodyweight: nil,
+            movementOptions: [TrialMovementOption(movementId: "exercise.pullup")],
+            restRule: "test",
+            qualityFlags: []
+        ))
+
+        // One landing-6 station per attribute key
+        for key in AttributeKey.allCases {
+            stations.append(TrialStation(
+                id: "lastgate-landing-6-\(key.rawValue)",
+                title: "Landing 6 — \(key.rawValue)",
+                category: .mobilityControl,
+                standard: OverallRankTrialPerformanceStandard(
+                    movementId: "exercise.plank",
+                    displayName: "Plank",
+                    metric: .holdSeconds,
+                    minimumValue: 60
+                ),
+                capSeconds: nil,
+                loadPercentOfBodyweight: nil,
+                movementOptions: [TrialMovementOption(movementId: "exercise.plank")],
+                restRule: "test",
+                qualityFlags: []
+            ))
+        }
+
+        return OverallRankTrialDefinition(
+            id: "gate-08-the-last-gate",
+            targetRank: .unbound,
+            displayName: "The Last Gate",
+            subtitle: "test",
+            estimatedMinutes: 75,
+            format: .theLastGate,
+            minOverallLevel: 1,
+            requiredEquipment: [.bodyweight],
+            performanceStandards: stations.map(\.standard),
+            loadoutVariants: [
+                TrialLoadoutVariant(
+                    loadout: .homeKit,
+                    requiredEquipment: [.bodyweight],
+                    promise: "test",
+                    stations: stations
+                )
+            ]
+        )
+    }
+
+    private func makeAttributeProfile(overriding key: AttributeKey, level: Int, baseLevel: Int = 70) -> AttributeProfile {
+        let date = Date(timeIntervalSince1970: 0)
+        var profile = AttributeProfile.empty(userId: "u1", at: date)
+        // Set all axes to the base level's XP
+        let baseXP = AttributeLevelCurve.xpRequired(forLevel: baseLevel)
+        for axis in AttributeKey.allCases {
+            profile.set(axis, AttributeValue(xp: baseXP, lastContributionAt: date))
+        }
+        // Override the target axis to the given level
+        let overrideXP = AttributeLevelCurve.xpRequired(forLevel: level)
+        profile.set(key, AttributeValue(xp: overrideXP, lastContributionAt: date))
+        return profile
+    }
+
+    func testLastGateLanding6ResolvesToWeakestAttributeStation() {
+        let definition = syntheticLastGateDefinition()
+
+        // Make mobility the weakest (level 32 vs 70 for all others)
+        let scores = makeAttributeProfile(overriding: .mobility, level: 32)
+
+        let resolved = OverallRankTrialRunner.resolveDynamicStations(
+            for: definition,
+            loadout: .homeKit,
+            attributeScores: scores
+        )
+
+        let landing6Ids = resolved.map(\.id).filter { $0.hasPrefix("lastgate-landing-6-") }
+        XCTAssertEqual(landing6Ids.count, 1,
+            "Exactly one landing-6 station should survive dynamic resolution")
+        XCTAssertEqual(landing6Ids.first, "lastgate-landing-6-mobility",
+            "The weakest attribute's station should be kept")
+
+        let otherLanding6 = resolved.filter {
+            $0.id.hasPrefix("lastgate-landing-6-") && $0.id != "lastgate-landing-6-mobility"
+        }
+        XCTAssertTrue(otherLanding6.isEmpty,
+            "All non-weakest landing-6 stations must be removed")
+
+        // Fixed station is preserved
+        XCTAssertTrue(resolved.contains { $0.id == "lastgate-anchor" },
+            "Non-dynamic anchor station must survive resolution")
+    }
+
+    func testLastGateLanding6TieBreaksByAttributeKeyOrder() {
+        // When all attributes are equal, the first in AttributeKey.allCases order wins.
+        let definition = syntheticLastGateDefinition()
+        let equalScores = makeAttributeProfile(overriding: .power, level: 70)  // all equal at 70
+
+        let resolved = OverallRankTrialRunner.resolveDynamicStations(
+            for: definition,
+            loadout: .homeKit,
+            attributeScores: equalScores
+        )
+
+        let landing6Ids = resolved.map(\.id).filter { $0.hasPrefix("lastgate-landing-6-") }
+        XCTAssertEqual(landing6Ids.count, 1, "Exactly one landing-6 station in a tie")
+
+        // First case in AttributeKey.allCases is .power
+        let firstKey = AttributeKey.allCases.first!.rawValue
+        XCTAssertEqual(landing6Ids.first, "lastgate-landing-6-\(firstKey)",
+            "Tie should resolve to first AttributeKey.allCases entry")
+    }
+
+    func testResolveDynamicStationsIsNoOpForDefinitionWithoutLanding6() {
+        // A definition with no lastgate-landing-6-* stations is returned unchanged.
+        let definition = OverallRankTrialDefinitions.calibration
+        let scores = makeAttributeProfile(overriding: .endurance, level: 10)
+
+        let resolved = OverallRankTrialRunner.resolveDynamicStations(
+            for: definition,
+            loadout: .homeKit,
+            attributeScores: scores
+        )
+
+        let variant = definition.loadoutVariants.first { $0.loadout == .homeKit }!
+        XCTAssertEqual(resolved.map(\.id), variant.stations.map(\.id),
+            "Definition without landing-6 stations should be returned unchanged")
+    }
+}
