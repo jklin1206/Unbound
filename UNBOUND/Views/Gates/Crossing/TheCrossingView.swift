@@ -98,39 +98,44 @@ struct TheCrossingView: View {
         VStack(spacing: 0) {
             Spacer(minLength: 0)
 
-            if showsReveal && titleShown {
-                VStack(spacing: 14) {
-                    Text("RANK GATE \(crossing.world.numeral)")
-                        .font(Font.unbound.captionS.weight(.heavy)).tracking(4)
-                        .foregroundStyle(crossing.tint)
-                        .shadow(color: .black.opacity(0.85), radius: 4, y: 1)
-                    Image(crossing.world.destinationRank.assetName)
-                        .resizable().scaledToFit()
-                        .frame(width: 172, height: 172)
-                        .shadow(color: crossing.fillTint.opacity(0.85), radius: 34)
-                        .shadow(color: crossing.fillTint.opacity(0.45), radius: 72)
-                    Text(crossing.investitureTitle)
-                        .font(.system(size: 54, weight: .black)).tracking(6)
-                        .foregroundStyle(Color.unbound.textPrimary)
-                        .minimumScaleFactor(0.5).lineLimit(1)
-                        .shadow(color: .black.opacity(0.55), radius: 8, y: 2)
-                        .shadow(color: crossing.fillTint.opacity(0.7), radius: 34)
-                    Text(crossing.dwellLine)
-                        .font(Font.unbound.bodyMStrong).foregroundStyle(crossing.tint)
-                        .multilineTextAlignment(.center)
-                        .shadow(color: .black.opacity(0.7), radius: 4, y: 1)
+            // Hero + spoils centered as ONE group so the badge stays centered
+            // even after the card appears.
+            VStack(spacing: 22) {
+                if showsReveal && titleShown {
+                    VStack(spacing: 14) {
+                        Text("RANK GATE \(crossing.world.numeral)")
+                            .font(Font.unbound.captionS.weight(.heavy)).tracking(4)
+                            .foregroundStyle(crossing.tint)
+                            .shadow(color: .black.opacity(0.9), radius: 5, y: 1)
+                        Image(crossing.world.destinationRank.assetName)
+                            .resizable().scaledToFit()
+                            .frame(width: 168, height: 168)
+                            .shadow(color: .black.opacity(0.5), radius: 12, y: 3)
+                            .shadow(color: crossing.fillTint.opacity(0.85), radius: 34)
+                            .shadow(color: crossing.fillTint.opacity(0.45), radius: 72)
+                        Text(crossing.investitureTitle)
+                            .font(.system(size: 54, weight: .black)).tracking(6)
+                            .foregroundStyle(Color.unbound.textPrimary)
+                            .minimumScaleFactor(0.5).lineLimit(1)
+                            .shadow(color: .black.opacity(0.9), radius: 10, y: 2)
+                            .shadow(color: crossing.fillTint.opacity(0.6), radius: 30)
+                        Text(crossing.dwellLine)
+                            .font(Font.unbound.bodyMStrong).foregroundStyle(crossing.tint)
+                            .multilineTextAlignment(.center)
+                            .shadow(color: .black.opacity(0.9), radius: 5, y: 1)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .transition(reduceMotion ? .opacity : .scale(scale: 0.85).combined(with: .opacity))
                 }
-                .frame(maxWidth: .infinity)
-                .transition(reduceMotion ? .opacity : .scale(scale: 0.85).combined(with: .opacity))
+
+                if beat == .spoils {
+                    spoils.transition(.move(edge: .bottom).combined(with: .opacity))
+                }
             }
 
             Spacer(minLength: 0)
-
-            if beat == .spoils {
-                spoils.transition(.move(edge: .bottom).combined(with: .opacity))
-            }
         }
-        .padding(.horizontal, 24).padding(.bottom, 36)
+        .padding(.horizontal, 24).padding(.vertical, 40)
         .frame(maxWidth: .infinity, alignment: .center)
     }
 
@@ -141,6 +146,7 @@ struct TheCrossingView: View {
                 Text(crossing.unlockChip).font(Font.unbound.captionS.weight(.heavy)).tracking(1.4)
             }
             .foregroundStyle(crossing.tint)
+            .shadow(color: .black.opacity(0.6), radius: 3, y: 1)
             .padding(.horizontal, 14).padding(.vertical, 8)
             .background(Capsule().fill(Color.unbound.surface))
 
