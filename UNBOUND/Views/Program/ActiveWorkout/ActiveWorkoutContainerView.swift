@@ -30,6 +30,11 @@ struct ActiveWorkoutContainerView: View {
     // Reward state
     @State private var rewardSequence: WorkoutRewardSequenceSummary? = nil
     @State private var isFinishingRewardSequence = false
+    // A passed rank gate: The Crossing overrides the standard reward sequence as the
+    // rank-up moment, then chains into it so XP/badges still play.
+    @State private var pendingGateCrossing: GateCrossing? = nil
+    @State private var pendingGateDefiningNumber: String? = nil
+    @State private var stashedGateRewardSummary: WorkoutRewardSequenceSummary? = nil
 
     // Grid cell editor — shared bottom-docked keypad module (no modal). The model
     // owns the typed buffer + pristine state, so merely opening a cell never
@@ -259,6 +264,31 @@ struct ActiveWorkoutContainerView: View {
             }
             .interactiveDismissDisabled(true)
         }
+        .fullScreenCover(item: $pendingGateCrossing) { crossing in
+            TheCrossingView(
+                crossing: crossing,
+                definingNumber: pendingGateDefiningNumber,
+                onShare: {},
+                onReplay: {},
+                onDismiss: {
+                    pendingGateCrossing = nil
+                    if let stashed = stashedGateRewardSummary {
+                        stashedGateRewardSummary = nil
+                        rewardSequence = stashed   // chain into XP / badges
+                    } else {
+                        finishDismiss()
+                    }
+                }
+            )
+            .interactiveDismissDisabled(true)
+        }
+    }
+
+    /// "passed / scored" stations, e.g. "4/4", for the minted gate card.
+    private func gateDefiningNumber(_ evaluation: OverallRankTrialEvaluation) -> String {
+        let scored = evaluation.stationResults.filter(\.isScored)
+        let passed = scored.filter { $0.status == .passed }.count
+        return "\(passed)/\(scored.count)"
     }
 
     // MARK: - Draft autosave
@@ -759,14 +789,20 @@ struct ActiveWorkoutContainerView: View {
                 rankTrialResult: rankTrialResult,
                 weeklyVowReceipt: weeklyVowReceipt
             )
-            if totalLoggedWorkingSets > 0
+            let hasReward = totalLoggedWorkingSets > 0
                 || summary.progression?.hasContent == true
                 || summary.weeklyVowCallout != nil
-                || summary.rankTrialCallout != nil {
-                saving = false
+                || summary.rankTrialCallout != nil
+            saving = false
+            if let rt = rankTrialResult, rt.didAdvanceRank {
+                // The Crossing IS the gate's reward moment; chain into the reward
+                // sequence afterward so XP/badges still play.
+                pendingGateDefiningNumber = gateDefiningNumber(rt.evaluation)
+                stashedGateRewardSummary = hasReward ? summary : nil
+                pendingGateCrossing = GateCrossingCatalog.crossing(for: rt.definition.format)
+            } else if hasReward {
                 rewardSequence = summary
             } else {
-                saving = false
                 finishDismiss()
             }
         } catch {
