@@ -10,14 +10,15 @@ plan `docs/superpowers/plans/2026-06-12-rank-gates-engine.md`). All 8 destinatio
 station machinery, and Gate Keys eligibility — engine only, no new UI (UI is Plans 2–4). Built by Codex
 (GPT-5.5, xhigh) under orchestration; every step verified by me + an adversarial Codex review pass.
 
-16 commits (`6f66fe42..HEAD`):
+18 commits (`6f66fe42..HEAD`):
 - 6 machinery: gate-named `RankTrialFormat` + tolerant legacy decode; `TrialStandards` rebaseline;
   per-option `floorOverride`; strength-tier strike floors (reps+load same-set); dynamic weakest-attribute
   resolution; strike same-set fix.
 - 8 gate definitions: I First Light · II The Count · III The Forging · IV Deck of Proof · V The Ascent ·
   VI The Seven Seals · VII The Threshold · VIII The Last Gate.
 - 1 Gate Keys (named eligibility proofs auto-cleared from training history).
-- 1 review-fix (the adversarial-review findings below).
+- 1 adversarial-review fix (findings below).
+- 1 handoff doc + 1 balance-tweaks pass (jlin's four §14 calls, below).
 
 ## What each gate is (engine)
 Names/structures per spec §5. Old format raws + old definition ids preserved as `legacyIds` (tolerant
@@ -29,7 +30,7 @@ collapses the group to whichever was logged.
 ## Verification done
 - Trial/gate/keys suites green: GateDefinitionTests, GateKeysTests, OverallRankTrialFormatTests,
   OverallRankTrialServiceTests (+Completion/+DraftMapping/+Evaluation/+Readiness), TrialStandardsSnapshotTests
-  — 88 tests, 0 failures.
+  — 89 tests, 0 failures (incl. POWER-both-halves, MOBILITY, unscored-stoke behavioral, expanded-key satisfiability).
 - Full suite: only 3 failing tests (18 assertions) — ALL pre-existing, proven byte-identical on baseline
   `6f66fe42` (asset-PNG dupes, a weight-rounding test, a band-swap program-gen test; none touch rank trials).
   Gate branch introduces ZERO regressions.
