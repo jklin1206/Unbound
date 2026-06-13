@@ -344,12 +344,25 @@ final class OverallRankTrialRunner {
         enforceLoadPercent: Bool
     ) -> OverallRankTrialStationResult {
         let standard = station.standard
-        let matchingSets = blocks.flatMap(\.exercises)
+
+        // Collect matching exercises (retaining movementId for per-option floor resolution).
+        let matchingExercises = blocks.flatMap(\.exercises)
             .filter { exercise in
                 station.allowedMovementIds.contains(exercise.movementId ?? "")
                     || station.allowedMovementIds.contains(exercise.rankStandardMovementId ?? "")
                     || station.allowedMovementIds.contains(MovementResolver.resolve(exercise.name).movementId)
             }
+
+        // Derive the performed movement id from the first matched exercise so we can
+        // consult per-option floor overrides (Task 3: floorOverride on TrialMovementOption).
+        let performedMovementId: String = matchingExercises.first.map { ex in
+            ex.movementId
+                ?? ex.rankStandardMovementId
+                ?? MovementResolver.resolve(ex.name).movementId
+        } ?? standard.movementId
+        let effectiveMinimum = station.resolvedMinimum(forMovementId: performedMovementId)
+
+        let matchingSets = matchingExercises
             .flatMap(\.sets)
             .filter { !$0.isWarmup }
 
@@ -426,7 +439,9 @@ final class OverallRankTrialRunner {
             }
         }
 
-        let qualifyingSetCount = values.filter { $0 >= standard.minimumValue }.count
+        // Use effectiveMinimum (respects per-option floorOverride) instead of
+        // raw standard.minimumValue so substitution options get correct floors.
+        let qualifyingSetCount = values.filter { $0 >= effectiveMinimum }.count
         let status: OverallRankTrialStationStatus = qualifyingSetCount >= standard.minimumQualifyingSets ? .passed : .failed
         return stationResult(
             station,

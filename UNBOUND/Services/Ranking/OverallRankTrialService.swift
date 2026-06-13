@@ -178,16 +178,33 @@ struct TrialMovementOption: Codable, Equatable, Sendable {
     let movementId: String
     let displayName: String
     let requiredEquipment: Set<MovementEquipment>
+    /// When set, overrides the station's `standard.minimumValue` for this
+    /// specific movement option (e.g. inverted-row needs 18 reps vs. 12 for pull-ups).
+    let floorOverride: Int?
 
     init(
         movementId: String,
         displayName: String? = nil,
-        requiredEquipment: Set<MovementEquipment>? = nil
+        requiredEquipment: Set<MovementEquipment>? = nil,
+        floorOverride: Int? = nil
     ) {
         let definition = MovementCatalog.definition(for: movementId)
         self.movementId = movementId
         self.displayName = displayName ?? definition?.displayName ?? movementId
         self.requiredEquipment = requiredEquipment ?? Set(definition?.equipment ?? [.bodyweight])
+        self.floorOverride = floorOverride
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case movementId, displayName, requiredEquipment, floorOverride
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        movementId = try c.decode(String.self, forKey: .movementId)
+        displayName = try c.decode(String.self, forKey: .displayName)
+        requiredEquipment = try c.decode(Set<MovementEquipment>.self, forKey: .requiredEquipment)
+        floorOverride = try c.decodeIfPresent(Int.self, forKey: .floorOverride)
     }
 }
 
@@ -208,6 +225,14 @@ struct TrialStation: Identifiable, Codable, Equatable, Sendable {
 
     var primaryMovement: TrialMovementOption {
         movementOptions.first ?? TrialMovementOption(movementId: standard.movementId, displayName: standard.displayName)
+    }
+
+    /// Returns the effective minimum qualifying value for the movement that was
+    /// actually performed. If the option has a `floorOverride`, that takes
+    /// precedence; otherwise falls back to `standard.minimumValue`.
+    func resolvedMinimum(forMovementId performedId: String) -> Int {
+        movementOptions.first(where: { $0.movementId == performedId })?.floorOverride
+            ?? standard.minimumValue
     }
 }
 

@@ -4,7 +4,8 @@ enum OverallRankTrialDefinitions {
     private static func option(
         _ movementId: String,
         _ displayName: String? = nil,
-        requiredEquipment: Set<MovementEquipment>? = nil
+        requiredEquipment: Set<MovementEquipment>? = nil,
+        floorOverride: Int? = nil
     ) -> TrialMovementOption {
         let normalizedRequirement: Set<MovementEquipment>?
         if let requiredEquipment {
@@ -23,7 +24,8 @@ enum OverallRankTrialDefinitions {
         return TrialMovementOption(
             movementId: movementId,
             displayName: displayName,
-            requiredEquipment: normalizedRequirement
+            requiredEquipment: normalizedRequirement,
+            floorOverride: floorOverride
         )
     }
 

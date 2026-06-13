@@ -411,5 +411,133 @@ extension OverallRankTrialServiceTests {
 
         XCTAssertNil(OverallRankTrialDefinitions.nextTrial(after: .unbound))
     }
+}
 
+// MARK: - Task 3: Per-option floor overrides
+
+extension OverallRankTrialServiceTests {
+
+    // Lightweight factory: builds a TrialStation directly without going through
+    // the full Definitions builder so tests stay isolated from catalog availability.
+    private func makeTestStation(
+        id: String = "t-pull",
+        category: TrialMovementCategory = .pull,
+        movementId: String = "exercise.pullup",
+        metric: TrainingMetricKind = .reps,
+        minimumValue: Int = 12,
+        movementOptions: [TrialMovementOption] = []
+    ) -> TrialStation {
+        let standard = OverallRankTrialPerformanceStandard(
+            movementId: movementId,
+            displayName: movementId,
+            metric: metric,
+            minimumValue: minimumValue
+        )
+        return TrialStation(
+            id: id,
+            title: id,
+            category: category,
+            standard: standard,
+            capSeconds: nil,
+            loadPercentOfBodyweight: nil,
+            movementOptions: movementOptions.isEmpty
+                ? [TrialMovementOption(movementId: movementId)]
+                : movementOptions,
+            restRule: "Clean reps only.",
+            qualityFlags: [.clean]
+        )
+    }
+
+    func testPerOptionFloorOverridesStationMinimum() {
+        let station = makeTestStation(
+            id: "t-pull",
+            category: .pull,
+            movementId: "exercise.pullup",
+            metric: .reps,
+            minimumValue: 12,
+            movementOptions: [
+                TrialMovementOption(movementId: "exercise.pullup"),
+                TrialMovementOption(movementId: "exercise.inverted-row", floorOverride: 18)
+            ]
+        )
+        XCTAssertEqual(station.resolvedMinimum(forMovementId: "exercise.pullup"), 12,
+            "Primary option should use station minimum when no floorOverride")
+        XCTAssertEqual(station.resolvedMinimum(forMovementId: "exercise.inverted-row"), 18,
+            "Override option should use floorOverride value")
+        XCTAssertEqual(station.resolvedMinimum(forMovementId: "exercise.unknown"), 12,
+            "Unknown movement falls back to station minimum")
+    }
+
+    func testFloorOverrideIsUsedDuringEvaluation() throws {
+        // Station: pullup floor 3, inverted-row override 6.
+        // Logging 5 inverted-rows must FAIL (5 < 6) and 6 inverted-rows must PASS.
+        let station = makeTestStation(
+            id: "t-eval-floor",
+            category: .pull,
+            movementId: "exercise.pullup",
+            metric: .reps,
+            minimumValue: 3,
+            movementOptions: [
+                TrialMovementOption(movementId: "exercise.pullup"),
+                TrialMovementOption(movementId: "exercise.inverted-row", floorOverride: 6)
+            ]
+        )
+
+        func makeLog(reps: Int, movementId: String) -> PerformanceLog {
+            let exercise = PerformanceExercise(
+                name: movementId,
+                movementId: movementId,
+                plannedSets: 1,
+                plannedTarget: "\(reps) reps",
+                sets: [PerformanceSet(setNumber: 1, reps: reps)]
+            )
+            // Block title must match station title for evaluateDetailed to route blocks correctly.
+            let block = PerformanceBlock(
+                kind: .bodyweight,
+                title: "t-eval-floor",
+                exercises: [exercise]
+            )
+            return PerformanceLog(
+                userId: "u1",
+                source: .overallRankTrial,
+                title: "Test Gate",
+                startedAt: Date(timeIntervalSince1970: 0),
+                completedAt: Date(timeIntervalSince1970: 60),
+                programId: "test-gate",
+                blocks: [block]
+            )
+        }
+
+        // Build a minimal definition that contains only our test station.
+        let testDef = OverallRankTrialDefinition(
+            id: "test-gate",
+            targetRank: .novice,
+            displayName: "Test Gate",
+            subtitle: "test",
+            estimatedMinutes: 5,
+            format: .firstLight,
+            minOverallLevel: 1,
+            requiredEquipment: [.bodyweight],
+            performanceStandards: [station.standard],
+            loadoutVariants: [
+                TrialLoadoutVariant(
+                    loadout: .homeKit,
+                    requiredEquipment: [.bodyweight],
+                    promise: "test",
+                    stations: [station]
+                )
+            ]
+        )
+
+        let failLog = makeLog(reps: 5, movementId: "exercise.inverted-row")
+        let passLog = makeLog(reps: 6, movementId: "exercise.inverted-row")
+
+        let failEval = OverallRankTrialRunner.shared.evaluateDetailed(failLog, against: testDef)
+        let passEval = OverallRankTrialRunner.shared.evaluateDetailed(passLog, against: testDef)
+
+        XCTAssertFalse(failEval.passed,
+            "5 inverted-rows should fail when floorOverride is 6")
+        XCTAssertTrue(passEval.passed,
+            "6 inverted-rows should pass when floorOverride is 6")
+    }
 }
