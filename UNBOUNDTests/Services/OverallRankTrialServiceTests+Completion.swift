@@ -5,7 +5,7 @@ extension OverallRankTrialServiceTests {
     func testFailedTrialLogsAttemptAndReceiptButDoesNotAdvanceOverallRank() async throws {
         let database = MockDatabaseService()
         let services = makeServices(database: database)
-        let definition = OverallRankTrialDefinitions.foundationProof
+        let definition = OverallRankTrialDefinitions.firstLight
         let draft = OverallRankTrialRunner.shared.draft(
             for: definition,
             userId: "u1",
@@ -42,7 +42,7 @@ extension OverallRankTrialServiceTests {
     func testPassedTrialAdvancesOverallRankExactlyOnceForDuplicateAttemptId() async throws {
         let database = MockDatabaseService()
         let services = makeServices(database: database)
-        let definition = OverallRankTrialDefinitions.foundationProof
+        let definition = OverallRankTrialDefinitions.firstLight
         let draft = OverallRankTrialRunner.shared.draft(
             for: definition,
             userId: "u1",

@@ -233,80 +233,42 @@ enum OverallRankTrialDefinitions {
         DeckRankSpec(code: "K", reps: TrialStandards.DeckOfProof.faceCardReps)
     ]
 
-    private static func daily100Stations(loadout: TrialLoadout) -> [TrialStation] {
+    private static func firstLightStations(loadout: TrialLoadout) -> [TrialStation] {
         [
-            station(
-                "daily-lower",
-                title: "Lower Oath",
-                category: .lower,
+            station("firstlight-path", title: "The Path Lantern", category: .lower,
                 movementId: loadout == .gymHybrid ? "exercise.leg-press" : loadout == .homeKit ? "exercise.goblet-squat" : "exercise.bodyweight-squat",
-                metric: .reps,
-                minimumValue: TrialStandards.Daily100.lowerReps,
-                capSeconds: TrialStandards.Daily100.stationCapSeconds,
-                movementOptions: movementSet(
-                    loadout: loadout,
+                metric: .reps, minimumValue: TrialStandards.FirstLight.lowerReps,
+                capSeconds: TrialStandards.FirstLight.stationCapSeconds,
+                movementOptions: movementSet(loadout: loadout,
                     noGym: option("exercise.bodyweight-squat"),
                     home: [option("exercise.goblet-squat", requiredEquipment: [.dumbbell]), option("exercise.bodyweight-squat")],
-                    gym: [option("exercise.leg-press", requiredEquipment: [.machine]), option("exercise.goblet-squat", requiredEquipment: [.dumbbell])]
-                )
-            ),
-            station(
-                "daily-push",
-                title: "Push Oath",
-                category: .push,
+                    gym: [option("exercise.leg-press", requiredEquipment: [.machine]), option("exercise.goblet-squat", requiredEquipment: [.dumbbell])])),
+            station("firstlight-posts", title: "The Post Lantern", category: .push,
                 movementId: loadout == .gymHybrid ? "exercise.machine-chest-press" : loadout == .homeKit ? "exercise.pushup" : "exercise.incline-pushup",
-                metric: .reps,
-                minimumValue: TrialStandards.Daily100.pushReps,
-                capSeconds: TrialStandards.Daily100.stationCapSeconds,
-                movementOptions: movementSet(
-                    loadout: loadout,
+                metric: .reps, minimumValue: TrialStandards.FirstLight.pushReps,
+                capSeconds: TrialStandards.FirstLight.stationCapSeconds,
+                movementOptions: movementSet(loadout: loadout,
                     noGym: option("exercise.incline-pushup"),
                     home: [option("exercise.pushup"), option("exercise.dumbbell-bench-press", requiredEquipment: [.dumbbell])],
-                    gym: [option("exercise.machine-chest-press", requiredEquipment: [.machine]), option("exercise.pushup")]
-                )
-            ),
-            station(
-                "daily-pull",
-                title: "Posture Oath",
-                category: .pull,
+                    gym: [option("exercise.machine-chest-press", requiredEquipment: [.machine]), option("exercise.pushup")])),
+            station("firstlight-banner", title: "The Banner Lantern", category: .pull,
                 movementId: loadout == .gymHybrid ? "exercise.cable-row-seated" : loadout == .homeKit ? "exercise.dumbbell-row" : "exercise.inverted-row",
-                metric: .reps,
-                minimumValue: TrialStandards.Daily100.pullReps,
-                capSeconds: TrialStandards.Daily100.stationCapSeconds,
-                movementOptions: movementSet(
-                    loadout: loadout,
+                metric: .reps, minimumValue: TrialStandards.FirstLight.pullReps,
+                capSeconds: TrialStandards.FirstLight.stationCapSeconds,
+                movementOptions: movementSet(loadout: loadout,
                     noGym: option("exercise.inverted-row"),
-                    home: [
-                        option("exercise.dumbbell-row", requiredEquipment: [.dumbbell]),
-                        option("exercise.band-row", requiredEquipment: [.band]),
-                        option("exercise.inverted-row")
-                    ],
-                    gym: [
-                        option("exercise.cable-row-seated", requiredEquipment: [.cable]),
-                        option("exercise.machine-row", requiredEquipment: [.machine])
-                    ]
-                )
-            ),
-            station(
-                "daily-engine",
-                title: "Step Oath",
-                category: .engine,
-                movementId: "exercise.step-up",
-                metric: .reps,
-                minimumValue: TrialStandards.Daily100.engineReps,
-                capSeconds: TrialStandards.Daily100.stationCapSeconds,
-                movementOptions: [option("exercise.step-up")]
-            ),
-            station(
-                "daily-trunk",
-                title: "Trunk Oath",
-                category: .carryCore,
-                movementId: "exercise.plank",
-                metric: .holdSeconds,
-                minimumValue: TrialStandards.Daily100.trunkHoldSeconds,
-                capSeconds: TrialStandards.Daily100.stationCapSeconds,
-                movementOptions: [option("exercise.plank")]
-            )
+                    home: [option("exercise.dumbbell-row", requiredEquipment: [.dumbbell]), option("exercise.band-row", requiredEquipment: [.band]), option("exercise.inverted-row")],
+                    gym: [option("exercise.cable-row-seated", requiredEquipment: [.cable]), option("exercise.machine-row", requiredEquipment: [.machine])])),
+            station("firstlight-steps", title: "The Steps Lantern", category: .engine,
+                movementId: "exercise.step-up", metric: .reps,
+                minimumValue: TrialStandards.FirstLight.stepReps,
+                capSeconds: TrialStandards.FirstLight.stepWindowSeconds,
+                movementOptions: [option("exercise.step-up")]),
+            station("firstlight-door", title: "The Door Light", category: .carryCore,
+                movementId: "exercise.plank", metric: .holdSeconds,
+                minimumValue: TrialStandards.FirstLight.trunkHoldSeconds,
+                capSeconds: TrialStandards.FirstLight.stationCapSeconds,
+                movementOptions: [option("exercise.plank")])
         ]
     }
 
@@ -588,22 +550,22 @@ enum OverallRankTrialDefinitions {
         ]
     }
 
-    static let foundationProof = OverallRankTrialDefinition(
-        id: "overall-rank-trial-novice-awakening",
+    static let firstLight = OverallRankTrialDefinition(
+        id: "gate-01-first-light",
         targetRank: .novice,
-        displayName: "Daily 100",
-        subtitle: "Initiate to Novice rank gate",
-        estimatedMinutes: 14,
+        displayName: "First Light",
+        subtitle: "Rank Gate I — light the courtyard",
+        estimatedMinutes: 15,
         format: .firstLight,
         minOverallLevel: 1,
         requiredEquipment: [.bodyweight],
-        performanceStandards: daily100Stations(loadout: .homeKit).map(\.standard),
+        performanceStandards: firstLightStations(loadout: .homeKit).map(\.standard),
         loadoutVariants: loadoutVariants(
-            noGym: daily100Stations(loadout: .noGymField),
-            home: daily100Stations(loadout: .homeKit),
-            gym: daily100Stations(loadout: .gymHybrid)
+            noGym: firstLightStations(loadout: .noGymField),
+            home: firstLightStations(loadout: .homeKit),
+            gym: firstLightStations(loadout: .gymHybrid)
         ),
-        legacyIds: ["overall-rank-trial-novice-foundation-proof"]
+        legacyIds: ["overall-rank-trial-novice-awakening", "overall-rank-trial-novice-foundation-proof"]
     )
 
     static let calibration = definition(
@@ -716,7 +678,7 @@ enum OverallRankTrialDefinitions {
     )
 
     static let all: [OverallRankTrialDefinition] = [
-        foundationProof,
+        firstLight,
         calibration,
         forge,
         reckoning,
@@ -736,7 +698,7 @@ enum OverallRankTrialDefinitions {
     static func nextTrial(after rank: RankTitle) -> OverallRankTrialDefinition? {
         switch rank {
         case .initiate:
-            return foundationProof
+            return firstLight
         case .novice:
             return calibration
         case .apprentice:

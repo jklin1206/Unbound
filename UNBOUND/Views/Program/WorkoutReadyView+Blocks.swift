@@ -32,7 +32,7 @@ extension WorkoutReadyView {
         let tint = definition.targetRank.rewardTextTint
         switch definition.format {
         case .firstLight:
-            Daily100TrialReadyPreview(blocks: draft.blocks, tint: tint)
+            FirstLightTrialReadyPreview(blocks: draft.blocks, tint: tint)
         case .theCount:
             OperatorScreenTrialReadyPreview(blocks: draft.blocks, tint: tint)
         case .theForging:

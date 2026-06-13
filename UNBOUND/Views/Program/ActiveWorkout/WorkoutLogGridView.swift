@@ -118,7 +118,7 @@ struct WorkoutLogGridView: View {
     private func rankTrialModeFlow(for definition: OverallRankTrialDefinition) -> some View {
         switch definition.format {
         case .firstLight:
-            Daily100TrialActiveView(definition: definition, session: session) { index, exercise in
+            FirstLightTrialActiveView(definition: definition, session: session) { index, exercise in
                 exerciseCard(ei: index, ex: exercise, isCurrent: index == session.currentExerciseIndex)
             }
         case .theCount:

@@ -1,12 +1,12 @@
 import SwiftUI
 
-struct Daily100TrialReadyPreview: View {
+struct FirstLightTrialReadyPreview: View {
     let blocks: [TrainingBlock]
     let tint: Color
 
-    private var oathMarks: [Daily100ReadyMark] {
+    private var oathMarks: [FirstLightReadyMark] {
         blocks.prefix(5).enumerated().map { index, block in
-            Daily100ReadyMark(index: index, block: block)
+            FirstLightReadyMark(index: index, block: block)
         }
     }
 
@@ -17,7 +17,7 @@ struct Daily100TrialReadyPreview: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             HStack(alignment: .center, spacing: 16) {
-                Daily100ProofSeal(
+                FirstLightProofSeal(
                     progress: 1,
                     completedMarks: oathMarks.count,
                     totalMarks: max(5, oathMarks.count),
@@ -28,7 +28,7 @@ struct Daily100TrialReadyPreview: View {
                 .accessibilityHidden(true)
 
                 VStack(alignment: .leading, spacing: 10) {
-                    Text("DAILY 100")
+                    Text("FIRST LIGHT")
                         .font(Font.unbound.captionS.weight(.heavy))
                         .tracking(1.8)
                         .foregroundStyle(tint)
@@ -39,20 +39,20 @@ struct Daily100TrialReadyPreview: View {
                         .fixedSize(horizontal: false, vertical: true)
 
                     HStack(spacing: 8) {
-                        Daily100Chip("\(oathMarks.count) marks", icon: "seal.fill", tint: tint)
-                        Daily100Chip("\(targetTotal) proof", icon: "checkmark", tint: Color.unbound.coachCyan)
+                        FirstLightChip("\(oathMarks.count) marks", icon: "seal.fill", tint: tint)
+                        FirstLightChip("\(targetTotal) proof", icon: "checkmark", tint: Color.unbound.coachCyan)
                     }
                 }
                 .layoutPriority(1)
             }
 
-            Daily100EntryGate(marks: oathMarks, tint: tint)
+            FirstLightEntryGate(marks: oathMarks, tint: tint)
                 .frame(height: 164)
                 .accessibilityIdentifier("workoutReady.firstLightGate")
 
             VStack(spacing: 9) {
                 ForEach(oathMarks) { mark in
-                    Daily100ReadyMarkRow(mark: mark, tint: tint)
+                    FirstLightReadyMarkRow(mark: mark, tint: tint)
                 }
             }
             .accessibilityIdentifier("workoutReady.firstLightOathMarks")
@@ -60,7 +60,7 @@ struct Daily100TrialReadyPreview: View {
     }
 }
 
-struct Daily100TrialActiveView<CurrentStationCard: View>: View {
+struct FirstLightTrialActiveView<CurrentStationCard: View>: View {
     let definition: OverallRankTrialDefinition
     @ObservedObject var session: ActiveWorkoutSession
     let currentStationCard: (Int, ActiveWorkoutSession.ActiveExercise) -> CurrentStationCard
@@ -127,7 +127,7 @@ struct Daily100TrialActiveView<CurrentStationCard: View>: View {
 
     private func activeGate(pair: (index: Int, exercise: ActiveWorkoutSession.ActiveExercise)) -> some View {
         VStack(alignment: .leading, spacing: 14) {
-            Daily100EntryGate(
+            FirstLightEntryGate(
                 marks: stationMarks,
                 tint: tint,
                 activeIndex: markNumber(for: pair.index) - 1,
@@ -135,7 +135,7 @@ struct Daily100TrialActiveView<CurrentStationCard: View>: View {
             )
             .frame(height: 156)
             .overlay(alignment: .topTrailing) {
-                Daily100ProofSeal(
+                FirstLightProofSeal(
                     progress: stationProgress,
                     completedMarks: loggedStations,
                     totalMarks: totalStations,
@@ -148,7 +148,7 @@ struct Daily100TrialActiveView<CurrentStationCard: View>: View {
             }
             .accessibilityHidden(true)
 
-            Daily100CurrentStationHero(
+            FirstLightCurrentStationHero(
                 exercise: pair.exercise,
                 markNumber: markNumber(for: pair.index),
                 tint: tint,
@@ -158,19 +158,19 @@ struct Daily100TrialActiveView<CurrentStationCard: View>: View {
             .frame(height: 224)
 
             HStack(spacing: 8) {
-                Daily100Chip("Mark \(markLabel(for: pair.index))", icon: "line.3.horizontal.decrease", tint: tint)
-                Daily100Chip(targetText(for: pair.exercise), icon: metricIcon(for: pair.exercise), tint: Color.unbound.coachCyan)
+                FirstLightChip("Mark \(markLabel(for: pair.index))", icon: "line.3.horizontal.decrease", tint: tint)
+                FirstLightChip(targetText(for: pair.exercise), icon: metricIcon(for: pair.exercise), tint: Color.unbound.coachCyan)
                 Spacer(minLength: 0)
-                Daily100Chip("\(targetTotal) proof", icon: "checkmark", tint: Color.unbound.accent)
+                FirstLightChip("\(targetTotal) proof", icon: "checkmark", tint: Color.unbound.accent)
             }
         }
         .accessibilityElement(children: .combine)
-        .accessibilityIdentifier("daily100.activeGate")
+        .accessibilityIdentifier("firstLight.activeGate")
     }
 
     private var completedGate: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Daily100EntryGate(
+            FirstLightEntryGate(
                 marks: stationMarks,
                 tint: tint,
                 activeIndex: nil,
@@ -183,19 +183,19 @@ struct Daily100TrialActiveView<CurrentStationCard: View>: View {
                 Image(systemName: "checkmark.seal.fill")
                     .font(.system(size: 15, weight: .black))
                     .foregroundStyle(Color.unbound.accent)
-                Text("Daily 100 sealed. Finish the trial to record the result.")
+                Text("First Light sealed. Finish the trial to record the result.")
                     .font(Font.unbound.bodyS.weight(.semibold))
                     .foregroundStyle(Color.unbound.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .accessibilityIdentifier("daily100.completedGate")
+        .accessibilityIdentifier("firstLight.completedGate")
     }
 
-    private var stationMarks: [Daily100ReadyMark] {
+    private var stationMarks: [FirstLightReadyMark] {
         session.exercises.enumerated().compactMap { index, exercise in
             guard !exercise.skipped else { return nil }
-            return Daily100ReadyMark(
+            return FirstLightReadyMark(
                 id: exercise.id,
                 index: index,
                 title: exercise.blockTitle ?? oathTitle(for: index),
@@ -260,7 +260,7 @@ struct Daily100TrialActiveView<CurrentStationCard: View>: View {
     }
 
     private func oathTitle(for index: Int) -> String {
-        Daily100OathName.title(for: index)
+        FirstLightOathName.title(for: index)
     }
 
     private func metricIcon(for exercise: ActiveWorkoutSession.ActiveExercise) -> String {
@@ -273,7 +273,7 @@ struct Daily100TrialActiveView<CurrentStationCard: View>: View {
     }
 }
 
-private struct Daily100ReadyMark: Identifiable {
+private struct FirstLightReadyMark: Identifiable {
     let id: String
     let index: Int
     let title: String
@@ -288,7 +288,7 @@ private struct Daily100ReadyMark: Identifiable {
         let prescription = block.prescriptions.first
         id = block.id
         self.index = index
-        title = block.title.isEmpty ? Daily100OathName.title(for: index) : block.title
+        title = block.title.isEmpty ? FirstLightOathName.title(for: index) : block.title
         exerciseName = prescription?.exerciseName ?? title
         targetText = prescription.map { "\($0.sets) x \($0.displayTargetText)" } ?? "Official mark"
         targetValue = prescription?.target.firstLightValue ?? 0
@@ -337,11 +337,11 @@ private struct Daily100ReadyMark: Identifiable {
     }
 
     var fallbackIcon: String {
-        Daily100Visuals.fallbackIcon(for: kind)
+        FirstLightVisuals.fallbackIcon(for: kind)
     }
 }
 
-private struct Daily100ProofSeal: View {
+private struct FirstLightProofSeal: View {
     let progress: CGFloat
     let completedMarks: Int
     let totalMarks: Int
@@ -354,7 +354,7 @@ private struct Daily100ProofSeal: View {
 
     var body: some View {
         ZStack {
-            Daily100SealShape(sides: 12)
+            FirstLightSealShape(sides: 12)
                 .fill(
                     LinearGradient(
                         colors: [
@@ -366,7 +366,7 @@ private struct Daily100ProofSeal: View {
                         endPoint: .bottomTrailing
                     )
                 )
-                .overlay(Daily100SealShape(sides: 12).stroke(tint.opacity(0.48), lineWidth: 1.2))
+                .overlay(FirstLightSealShape(sides: 12).stroke(tint.opacity(0.48), lineWidth: 1.2))
                 .shadow(color: tint.opacity(pulse ? 0.30 : 0.14), radius: pulse ? 24 : 12, y: 8)
 
             Circle()
@@ -403,18 +403,18 @@ private struct Daily100ProofSeal: View {
             }
 
             VStack {
-                Daily100NotchRow(total: max(1, totalMarks), completed: completedMarks, tint: tint)
+                FirstLightNotchRow(total: max(1, totalMarks), completed: completedMarks, tint: tint)
                 Spacer()
             }
             .padding(.top, 14)
         }
-        .accessibilityLabel("Daily 100 proof seal")
+        .accessibilityLabel("First Light proof seal")
         .accessibilityValue("\(completedMarks) of \(max(1, totalMarks)) oath marks")
     }
 }
 
-private struct Daily100EntryGate: View {
-    let marks: [Daily100ReadyMark]
+private struct FirstLightEntryGate: View {
+    let marks: [FirstLightReadyMark]
     let tint: Color
     var activeIndex: Int? = nil
     var completedCount: Int = 0
@@ -422,7 +422,7 @@ private struct Daily100EntryGate: View {
     var body: some View {
         GeometryReader { proxy in
             ZStack(alignment: .bottom) {
-                Daily100GateShape()
+                FirstLightGateShape()
                     .fill(
                         LinearGradient(
                             colors: [
@@ -434,12 +434,12 @@ private struct Daily100EntryGate: View {
                             endPoint: .bottom
                         )
                     )
-                    .overlay(Daily100GateShape().stroke(tint.opacity(0.38), lineWidth: 1.2))
+                    .overlay(FirstLightGateShape().stroke(tint.opacity(0.38), lineWidth: 1.2))
 
                 VStack(spacing: 10) {
                     HStack(spacing: 7) {
                         ForEach(Array(marks.prefix(5).enumerated()), id: \.element.id) { index, mark in
-                            Daily100GateMark(
+                            FirstLightGateMark(
                                 mark: mark,
                                 isActive: activeIndex == index,
                                 isComplete: mark.isComplete || index < completedCount,
@@ -468,16 +468,16 @@ private struct Daily100EntryGate: View {
     }
 }
 
-private struct Daily100ReadyMarkRow: View {
-    let mark: Daily100ReadyMark
+private struct FirstLightReadyMarkRow: View {
+    let mark: FirstLightReadyMark
     let tint: Color
 
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
             ZStack {
-                Daily100MarkShape()
+                FirstLightMarkShape()
                     .fill(tint.opacity(0.12))
-                    .overlay(Daily100MarkShape().stroke(tint.opacity(0.42), lineWidth: 1))
+                    .overlay(FirstLightMarkShape().stroke(tint.opacity(0.42), lineWidth: 1))
                 Text(mark.markLabel)
                     .font(.system(size: 9, weight: .black, design: .monospaced))
                     .foregroundStyle(tint)
@@ -523,7 +523,7 @@ private struct Daily100ReadyMarkRow: View {
     }
 }
 
-private struct Daily100CurrentStationHero: View {
+private struct FirstLightCurrentStationHero: View {
     let exercise: ActiveWorkoutSession.ActiveExercise
     let markNumber: Int
     let tint: Color
@@ -540,7 +540,7 @@ private struct Daily100CurrentStationHero: View {
 
     var body: some View {
         ZStack(alignment: .bottomLeading) {
-            Daily100GateShape()
+            FirstLightGateShape()
                 .fill(
                     LinearGradient(
                         colors: [
@@ -552,7 +552,7 @@ private struct Daily100CurrentStationHero: View {
                         endPoint: .bottom
                     )
                 )
-                .overlay(Daily100GateShape().stroke(tint.opacity(0.42), lineWidth: 1.2))
+                .overlay(FirstLightGateShape().stroke(tint.opacity(0.42), lineWidth: 1.2))
 
             if let movementDefinition {
                 ExerciseVisualView(definition: movementDefinition, size: .thumbnail)
@@ -562,7 +562,7 @@ private struct Daily100CurrentStationHero: View {
                     .padding(.bottom, 62)
                     .accessibilityHidden(true)
             } else {
-                Image(systemName: Daily100Visuals.fallbackIcon(for: exercise.blockKind))
+                Image(systemName: FirstLightVisuals.fallbackIcon(for: exercise.blockKind))
                     .font(.system(size: 44, weight: .bold))
                     .foregroundStyle(tint)
                     .frame(maxWidth: .infinity, maxHeight: 128)
@@ -596,8 +596,8 @@ private struct Daily100CurrentStationHero: View {
     }
 }
 
-private struct Daily100GateMark: View {
-    let mark: Daily100ReadyMark
+private struct FirstLightGateMark: View {
+    let mark: FirstLightReadyMark
     let isActive: Bool
     let isComplete: Bool
     let tint: Color
@@ -605,9 +605,9 @@ private struct Daily100GateMark: View {
     var body: some View {
         VStack(spacing: 7) {
             ZStack {
-                Daily100MarkShape()
+                FirstLightMarkShape()
                     .fill(fill)
-                    .overlay(Daily100MarkShape().stroke(border, lineWidth: isActive ? 1.5 : 1))
+                    .overlay(FirstLightMarkShape().stroke(border, lineWidth: isActive ? 1.5 : 1))
                     .shadow(color: shadow, radius: isActive ? 12 : 0)
 
                 Image(systemName: isComplete ? "checkmark" : icon)
@@ -657,7 +657,7 @@ private struct Daily100GateMark: View {
     }
 }
 
-private struct Daily100Chip: View {
+private struct FirstLightChip: View {
     let text: String
     let icon: String
     let tint: Color
@@ -673,7 +673,7 @@ private struct Daily100Chip: View {
     }
 }
 
-private struct Daily100NotchRow: View {
+private struct FirstLightNotchRow: View {
     let total: Int
     let completed: Int
     let tint: Color
@@ -689,7 +689,7 @@ private struct Daily100NotchRow: View {
     }
 }
 
-private struct Daily100SealShape: Shape {
+private struct FirstLightSealShape: Shape {
     let sides: Int
 
     func path(in rect: CGRect) -> Path {
@@ -718,7 +718,7 @@ private struct Daily100SealShape: Shape {
     }
 }
 
-private struct Daily100GateShape: Shape {
+private struct FirstLightGateShape: Shape {
     func path(in rect: CGRect) -> Path {
         let capHeight = rect.height * 0.28
         let shoulder = rect.width * 0.14
@@ -743,7 +743,7 @@ private struct Daily100GateShape: Shape {
     }
 }
 
-private struct Daily100MarkShape: Shape {
+private struct FirstLightMarkShape: Shape {
     func path(in rect: CGRect) -> Path {
         let notch = rect.width * 0.18
         var path = Path()
@@ -757,7 +757,7 @@ private struct Daily100MarkShape: Shape {
     }
 }
 
-private enum Daily100OathName {
+private enum FirstLightOathName {
     static func title(for index: Int) -> String {
         switch index {
         case 0: return "Lower Oath"
@@ -769,7 +769,7 @@ private enum Daily100OathName {
     }
 }
 
-private enum Daily100Visuals {
+private enum FirstLightVisuals {
     static func fallbackIcon(for blockKind: TrainingBlockKind) -> String {
         switch blockKind {
         case .strength, .custom: return "dumbbell.fill"

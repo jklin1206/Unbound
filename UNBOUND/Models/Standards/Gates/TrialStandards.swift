@@ -17,9 +17,6 @@ enum TrialStandards {
         static let stepWindowSeconds = 120
         static let trunkHoldSeconds = 25
         static let stationCapSeconds = 14 * 60
-
-        @available(*, deprecated, message: "TEMP shim")
-        static let engineReps = stepReps // TEMP shim
     }
 
     /// Gate II — The Count (Novice → Apprentice, .theCount)
@@ -212,8 +209,6 @@ enum TrialStandards {
 
 // TEMPORARY shims — removed as gate definitions are rewritten (Plan Tasks 6–13).
 extension TrialStandards {
-    @available(*, deprecated, message: "TEMP shim")
-    typealias Daily100 = FirstLight // TEMP shim
     @available(*, deprecated, message: "TEMP shim")
     typealias OperatorScreen = TheCount // TEMP shim
     @available(*, deprecated, message: "TEMP shim")

@@ -436,7 +436,7 @@ extension DevBuildBootstrapper {
         // (fromLegacyToken would invert the two crown tokens).
         let targetRank = RankTier.allCases.first { $0.token == targetRankRawValue } ?? .novice
         let definition = OverallRankTrialDefinitions.all.first { $0.targetRank == targetRank }
-            ?? OverallRankTrialDefinitions.foundationProof
+            ?? OverallRankTrialDefinitions.firstLight
         OverallRankTrialStore.shared.save(
             OverallRankTrialProgress(highestPassedRank: sourceRank(before: definition.targetRank), attempts: []),
             userId: userId

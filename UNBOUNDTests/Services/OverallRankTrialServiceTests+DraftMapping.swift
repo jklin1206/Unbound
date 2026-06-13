@@ -3,7 +3,7 @@ import XCTest
 
 extension OverallRankTrialServiceTests {
     func testTrialRunnerDraftMapsToValidPerformanceLogBlocks() {
-        let definition = OverallRankTrialDefinitions.foundationProof
+        let definition = OverallRankTrialDefinitions.firstLight
         let draft = OverallRankTrialRunner.shared.draft(
             for: definition,
             userId: "u1",

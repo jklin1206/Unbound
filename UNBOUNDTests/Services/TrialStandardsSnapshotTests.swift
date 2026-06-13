@@ -40,25 +40,25 @@ final class TrialStandardsSnapshotTests: XCTestCase {
     }
 
     private static let golden = """
-    DEF overall-rank-trial-novice-awakening rank=novice fmt=firstLight min=14 lvl=1
+    DEF gate-01-first-light rank=novice fmt=firstLight min=15 lvl=1
       VAR noGymField
-        ST daily-lower cat=lower mov=exercise.bodyweight-squat metric=reps min=20 qual=1 planned=1 rest=75 cap=840 load=-
-        ST daily-push cat=push mov=exercise.incline-pushup metric=reps min=15 qual=1 planned=1 rest=75 cap=840 load=-
-        ST daily-pull cat=pull mov=exercise.inverted-row metric=reps min=20 qual=1 planned=1 rest=75 cap=840 load=-
-        ST daily-engine cat=engine mov=exercise.step-up metric=reps min=20 qual=1 planned=1 rest=75 cap=840 load=-
-        ST daily-trunk cat=carryCore mov=exercise.plank metric=holdSeconds min=25 qual=1 planned=1 rest=90 cap=840 load=-
+        ST firstlight-path cat=lower mov=exercise.bodyweight-squat metric=reps min=20 qual=1 planned=1 rest=75 cap=840 load=-
+        ST firstlight-posts cat=push mov=exercise.incline-pushup metric=reps min=15 qual=1 planned=1 rest=75 cap=840 load=-
+        ST firstlight-banner cat=pull mov=exercise.inverted-row metric=reps min=20 qual=1 planned=1 rest=75 cap=840 load=-
+        ST firstlight-steps cat=engine mov=exercise.step-up metric=reps min=20 qual=1 planned=1 rest=75 cap=120 load=-
+        ST firstlight-door cat=carryCore mov=exercise.plank metric=holdSeconds min=25 qual=1 planned=1 rest=90 cap=840 load=-
       VAR homeKit
-        ST daily-lower cat=lower mov=exercise.goblet-squat metric=reps min=20 qual=1 planned=1 rest=75 cap=840 load=-
-        ST daily-push cat=push mov=exercise.pushup metric=reps min=15 qual=1 planned=1 rest=75 cap=840 load=-
-        ST daily-pull cat=pull mov=exercise.dumbbell-row metric=reps min=20 qual=1 planned=1 rest=75 cap=840 load=-
-        ST daily-engine cat=engine mov=exercise.step-up metric=reps min=20 qual=1 planned=1 rest=75 cap=840 load=-
-        ST daily-trunk cat=carryCore mov=exercise.plank metric=holdSeconds min=25 qual=1 planned=1 rest=90 cap=840 load=-
+        ST firstlight-path cat=lower mov=exercise.goblet-squat metric=reps min=20 qual=1 planned=1 rest=75 cap=840 load=-
+        ST firstlight-posts cat=push mov=exercise.pushup metric=reps min=15 qual=1 planned=1 rest=75 cap=840 load=-
+        ST firstlight-banner cat=pull mov=exercise.dumbbell-row metric=reps min=20 qual=1 planned=1 rest=75 cap=840 load=-
+        ST firstlight-steps cat=engine mov=exercise.step-up metric=reps min=20 qual=1 planned=1 rest=75 cap=120 load=-
+        ST firstlight-door cat=carryCore mov=exercise.plank metric=holdSeconds min=25 qual=1 planned=1 rest=90 cap=840 load=-
       VAR gymHybrid
-        ST daily-lower cat=lower mov=exercise.leg-press metric=reps min=20 qual=1 planned=1 rest=75 cap=840 load=-
-        ST daily-push cat=push mov=exercise.machine-chest-press metric=reps min=15 qual=1 planned=1 rest=75 cap=840 load=-
-        ST daily-pull cat=pull mov=exercise.cable-row-seated metric=reps min=20 qual=1 planned=1 rest=75 cap=840 load=-
-        ST daily-engine cat=engine mov=exercise.step-up metric=reps min=20 qual=1 planned=1 rest=75 cap=840 load=-
-        ST daily-trunk cat=carryCore mov=exercise.plank metric=holdSeconds min=25 qual=1 planned=1 rest=90 cap=840 load=-
+        ST firstlight-path cat=lower mov=exercise.leg-press metric=reps min=20 qual=1 planned=1 rest=75 cap=840 load=-
+        ST firstlight-posts cat=push mov=exercise.machine-chest-press metric=reps min=15 qual=1 planned=1 rest=75 cap=840 load=-
+        ST firstlight-banner cat=pull mov=exercise.cable-row-seated metric=reps min=20 qual=1 planned=1 rest=75 cap=840 load=-
+        ST firstlight-steps cat=engine mov=exercise.step-up metric=reps min=20 qual=1 planned=1 rest=75 cap=120 load=-
+        ST firstlight-door cat=carryCore mov=exercise.plank metric=holdSeconds min=25 qual=1 planned=1 rest=90 cap=840 load=-
     DEF overall-rank-trial-apprentice-calibration rank=apprentice fmt=theCount min=20 lvl=8
       VAR noGymField
         ST operator-engine cat=engine mov=cardio.run metric=distanceMeters min=700 qual=1 planned=1 rest=45 cap=360 load=-

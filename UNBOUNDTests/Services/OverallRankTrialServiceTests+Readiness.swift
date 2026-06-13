@@ -19,7 +19,7 @@ extension OverallRankTrialServiceTests {
     }
 
     func testReadinessBecomesReadyWhenBothGatesAreMet() {
-        let definition = OverallRankTrialDefinitions.foundationProof
+        let definition = OverallRankTrialDefinitions.firstLight
         let readiness = TrialReadinessService.shared.evaluate(
             OverallRankTrialReadinessInput(
                 userId: "u1",
@@ -39,7 +39,7 @@ extension OverallRankTrialServiceTests {
         XCTAssertEqual(OverallRankTrialDefinitions.ceremonyTier(for: .novice), .benchmark)
         XCTAssertEqual(OverallRankTrialDefinitions.ceremonyTier(for: .apprentice), .benchmark)
 
-        for definition in [OverallRankTrialDefinitions.foundationProof, OverallRankTrialDefinitions.calibration] {
+        for definition in [OverallRankTrialDefinitions.firstLight, OverallRankTrialDefinitions.calibration] {
             let draft = OverallRankTrialRunner.shared.draft(
                 for: definition,
                 userId: "u1",
