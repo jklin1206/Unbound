@@ -7,11 +7,12 @@ import SwiftUI
 /// `UNBOUND_OPEN_GATE=<1…8>` and `UNBOUND_GATE_STAGE=<stage>`, or tap the controls.
 struct GateExperienceDemoView: View {
     enum Stage: String, CaseIterable {
-        case sealed, open, hall, active, beat, verdictPass, card, verdictFail, records
+        case sealed, open, hall, active, beat, verdictPass, card, verdictFail, records, crossing
     }
 
     @State private var format: RankTrialFormat = Self.initialFormat()
     @State private var stage: Stage = Self.initialStage()
+    @State private var showCrossing = false
 
     private var world: GateWorld { GateWorldCatalog.world(for: format) }
     private var definition: OverallRankTrialDefinition? {
@@ -47,7 +48,19 @@ struct GateExperienceDemoView: View {
         case .beat:
             GateBeatOverlay(world: world, stationTitle: currentStationTitle)
         case .verdictPass:
-            GateVerdictView(evaluation: fixtureEvaluation(passed: true), world: world)
+            GateVerdictView(evaluation: fixtureEvaluation(passed: true), world: world,
+                            onMintedCardTapped: { showCrossing = true })
+                .fullScreenCover(isPresented: $showCrossing) {
+                    TheCrossingView(crossing: GateCrossingCatalog.crossing(for: format),
+                                    dateText: "Jun 13, 2026",
+                                    definingNumber: "\(resolvedStations.count)/\(resolvedStations.count)",
+                                    onShare: {}, onReplay: {}, onDismiss: { showCrossing = false })
+                }
+        case .crossing:
+            TheCrossingView(crossing: GateCrossingCatalog.crossing(for: format),
+                            dateText: "Jun 13, 2026",
+                            definingNumber: "\(resolvedStations.count)/\(resolvedStations.count)",
+                            onShare: {}, onReplay: {}, onDismiss: {})
         case .card:
             scrolled { GateCardView(world: world, dateText: "Jun 13, 2026",
                                     definingNumber: "\(resolvedStations.count)/\(resolvedStations.count)", stamped: true) }
@@ -188,13 +201,16 @@ struct GateExperienceDemoView: View {
     }
 
     private static func initialFormat() -> RankTrialFormat {
-        if let raw = ProcessInfo.processInfo.environment["UNBOUND_OPEN_GATE"], let n = Int(raw),
+        let env = ProcessInfo.processInfo.environment
+        if let raw = env["UNBOUND_OPEN_GATE"] ?? env["UNBOUND_OPEN_CROSSING"], let n = Int(raw),
            (1...8).contains(n) { return RankTrialFormat.allCases[n - 1] }
         return .firstLight
     }
 
     private static func initialStage() -> Stage {
-        if let raw = ProcessInfo.processInfo.environment["UNBOUND_GATE_STAGE"], let s = Stage(rawValue: raw) { return s }
+        let env = ProcessInfo.processInfo.environment
+        if let raw = env["UNBOUND_GATE_STAGE"], let s = Stage(rawValue: raw) { return s }
+        if env["UNBOUND_OPEN_CROSSING"] != nil { return .crossing }
         return .sealed
     }
 }
