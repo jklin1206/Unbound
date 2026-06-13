@@ -3,6 +3,11 @@ import Foundation
 /// One `GateWorld` per `RankTrialFormat`. Values: spec §3 (world↔banner) + §5 (ladder).
 /// Copy is brand-safe and non-negging (CLAUDE.md Brand Language Guardrail).
 enum GateWorldCatalog {
+    /// All eight worlds in gate order (I…VIII) — used by the finale flashback montage.
+    static var allOrdered: [GateWorld] {
+        RankTrialFormat.allCases.map { world(for: $0) }.sorted { $0.order < $1.order }
+    }
+
     static func world(for format: RankTrialFormat) -> GateWorld {
         switch format {
         case .firstLight:
