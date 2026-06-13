@@ -245,7 +245,8 @@ struct TrialStation: Identifiable, Codable, Equatable, Sendable {
     /// ratio for the movement (unranked / unrecognized).
     func resolvedStrikeLoadKg(bodyweightKg: Double, sex: BiologicalSex? = nil) -> Double? {
         guard let tier = strengthTier else { return nil }
-        let movementKey = movementOptions.first?.movementId ?? standard.movementId
+        let movementId = movementOptions.first?.movementId ?? standard.movementId
+        let movementKey = MovementCatalog.definition(for: movementId)?.canonicalExerciseName ?? movementId
         guard let ratio = StrengthStandards.ratio(exerciseKey: movementKey, tier: tier, sex: sex) else { return nil }
         return ratio * bodyweightKg
     }
@@ -525,6 +526,9 @@ struct OverallRankTrialDefinition: Identifiable, Codable, Equatable, Sendable {
             blocks: stations.map { station in
                 let selected = station.selectedMovement
                 let standard = station.standard
+                let target = selected.floorOverride.map {
+                    trialTarget(metric: standard.metric, minimumValue: $0)
+                } ?? standard.target
                 let movement = MovementCatalog.definition(for: selected.movementId)
                 let loadPercentOfBodyweight = station.station.loadPercentOfBodyweight
                 // Prefer explicit loadPercent; fall back to StrengthStandards ratio for strike stations.
@@ -536,7 +540,7 @@ struct OverallRankTrialDefinition: Identifiable, Codable, Equatable, Sendable {
                     movementId: selected.movementId,
                     rankStandardMovementId: movement?.rankStandardMovementId ?? selected.movementId,
                     sets: standard.plannedSets,
-                    target: standard.target,
+                    target: target,
                     restSeconds: standard.restSeconds,
                     muscleGroups: movement?.muscleGroups ?? [],
                     rpe: 8,
@@ -556,6 +560,21 @@ struct OverallRankTrialDefinition: Identifiable, Codable, Equatable, Sendable {
                 )
             }
         )
+    }
+
+    private func trialTarget(metric: TrainingMetricKind, minimumValue: Int) -> TrainingTarget {
+        switch metric {
+        case .reps:
+            return .reps(minimumValue)
+        case .holdSeconds:
+            return .holdSeconds(minimumValue)
+        case .durationSeconds:
+            return .timedSeconds(minimumValue)
+        case .distanceMeters:
+            return .distanceMeters(minimumValue)
+        case .calories:
+            return .calories(minimumValue)
+        }
     }
 
     private func stationsForDraft(

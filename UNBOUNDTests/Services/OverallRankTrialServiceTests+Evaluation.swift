@@ -3,7 +3,7 @@ import XCTest
 
 extension OverallRankTrialServiceTests {
     func testResolverChoosesCleanOfficialLoadoutsForNoGymHomeAndGymUsers() throws {
-        let definition = OverallRankTrialDefinitions.forge
+        let definition = OverallRankTrialDefinitions.theForging
 
         let noGym = RankTrialLoadoutResolver.shared.resolve(
             definition: definition,

@@ -366,70 +366,88 @@ enum OverallRankTrialDefinitions {
         ]
     }
 
-    private static func finisherStations(loadout: TrialLoadout) -> [TrialStation] {
-        let reps = TrialStandards.Finisher.roundReps
-        return reps.enumerated().flatMap { index, count in
-            let round = index + 1
-            return [
-                engineStation("finisher-r\(round)-engine", title: "Round \(round) Engine Buy-In", loadout: loadout, runMeters: TrialStandards.Finisher.engineMeters),
-                station(
-                    "finisher-r\(round)-hinge",
-                    title: "Round \(round) Hinge \(count)",
-                    category: .hingePower,
-                    movementId: loadout == .gymHybrid ? "exercise.cable-pull-through" : loadout == .homeKit ? "exercise.kettlebell-swing" : "exercise.glute-bridge",
-                    metric: .reps,
-                    minimumValue: count,
-                    movementOptions: movementSet(
-                        loadout: loadout,
-                        noGym: option("exercise.glute-bridge"),
-                        home: [option("exercise.kettlebell-swing", requiredEquipment: [.kettlebell]), option("exercise.dumbbell-romanian-deadlift", requiredEquipment: [.dumbbell])],
-                        gym: [option("exercise.cable-pull-through", requiredEquipment: [.cable]), option("exercise.kettlebell-swing", requiredEquipment: [.kettlebell])]
-                    )
-                ),
-                station(
-                    "finisher-r\(round)-push",
-                    title: "Round \(round) Push \(count)",
-                    category: .push,
-                    movementId: loadout == .gymHybrid ? "exercise.machine-chest-press" : "exercise.pushup",
-                    metric: .reps,
-                    minimumValue: count,
-                    movementOptions: movementSet(
-                        loadout: loadout,
-                        noGym: option("exercise.pushup"),
-                        home: [option("exercise.pushup"), option("exercise.dumbbell-bench-press", requiredEquipment: [.dumbbell])],
-                        gym: [option("exercise.machine-chest-press", requiredEquipment: [.machine]), option("exercise.pushup")]
-                    )
-                ),
-                station(
-                    "finisher-r\(round)-pull",
-                    title: "Round \(round) Pull \(max(3, count / 3))",
-                    category: .pull,
-                    movementId: loadout == .gymHybrid ? "exercise.cable-row-seated" : loadout == .homeKit ? "exercise.dumbbell-row" : "exercise.inverted-row",
-                    metric: .reps,
-                    minimumValue: max(3, count / 3),
-                    movementOptions: movementSet(
-                        loadout: loadout,
-                        noGym: option("exercise.inverted-row"),
-                        home: [option("exercise.dumbbell-row", requiredEquipment: [.dumbbell]), option("exercise.band-row", requiredEquipment: [.band])],
-                        gym: [option("exercise.cable-row-seated", requiredEquipment: [.cable]), option("exercise.machine-row", requiredEquipment: [.machine])]
-                    )
-                ),
-                station(
-                    "finisher-r\(round)-carry",
-                    title: "Round \(round) Carry",
-                    category: .carryCore,
-                    movementId: loadout == .noGymField ? "carry.loaded-march" : "carry.suitcase-carry",
-                    metric: .distanceMeters,
-                    minimumValue: TrialStandards.Finisher.carryMeters,
-                    movementOptions: movementSet(
-                        loadout: loadout,
-                        noGym: option("carry.loaded-march", "Backpack Carry", requiredEquipment: [.openSpace]),
-                        home: [option("carry.suitcase-carry", requiredEquipment: [.dumbbell, .openSpace]), option("carry.suitcase-carry", requiredEquipment: [.kettlebell, .openSpace])],
-                        gym: [option("carry.farmer-carry", requiredEquipment: [.dumbbell, .openSpace])]
-                    )
-                )
+    private static func theForgingStations(loadout: TrialLoadout) -> [TrialStation] {
+        let loadedHingeOptions = [
+            option("exercise.dumbbell-romanian-deadlift", requiredEquipment: [.dumbbell]),
+            option("exercise.romanian-deadlift", requiredEquipment: [.barbell])
+        ]
+        let loadedPushOptions = loadout == .gymHybrid
+            ? [
+                option("exercise.machine-chest-press", requiredEquipment: [.machine]),
+                option("exercise.dumbbell-bench-press", requiredEquipment: [.dumbbell])
             ]
-        }
+            : [option("exercise.dumbbell-bench-press", requiredEquipment: [.dumbbell])]
+        let pullupOption = option("exercise.pullup", "Pull-Up", requiredEquipment: [.pullupBar])
+        let rowFallback = option("exercise.inverted-row", "Inverted Row", floorOverride: 5)
+
+        return [
+            engineStation(
+                "forging-stoke",
+                title: "Stoke the Fire",
+                loadout: loadout,
+                runMeters: TrialStandards.TheForging.stokeEngineMeters
+            ),
+            station(
+                "forging-strike-hinge",
+                title: "The Strikes - Hinge",
+                category: .hingePower,
+                movementId: loadout == .noGymField ? "exercise.single-leg-rdl" : "exercise.dumbbell-romanian-deadlift",
+                metric: .reps,
+                minimumValue: TrialStandards.TheForging.scoredStrikeReps,
+                minimumQualifyingSets: 1,
+                plannedSets: 3,
+                loadPercentOfBodyweight: loadout == .noGymField ? TrialStandards.TheForging.noGymHingeLoadPercent : nil,
+                strengthTier: loadout == .noGymField ? nil : .forged,
+                movementOptions: loadout == .noGymField
+                    ? [option("exercise.single-leg-rdl", "Backpack Single-Leg RDL", requiredEquipment: [.bodyweight, .openSpace])]
+                    : loadedHingeOptions
+            ),
+            station(
+                "forging-strike-push",
+                title: "The Strikes - Push",
+                category: .push,
+                movementId: loadout == .noGymField ? "exercise.pushup" : loadedPushOptions[0].movementId,
+                metric: .reps,
+                minimumValue: TrialStandards.TheForging.scoredStrikeReps,
+                minimumQualifyingSets: 1,
+                plannedSets: 3,
+                strengthTier: loadout == .noGymField ? nil : .forged,
+                movementOptions: loadout == .noGymField
+                    ? [option("exercise.pushup", "Tempo Push-Up", floorOverride: 3)]
+                    : loadedPushOptions
+            ),
+            station(
+                "forging-strike-pull",
+                title: "The Strikes - Pull",
+                category: .pull,
+                movementId: loadout == .noGymField ? "exercise.inverted-row" : "exercise.pullup",
+                metric: .reps,
+                minimumValue: TrialStandards.TheForging.scoredPullReps,
+                minimumQualifyingSets: 1,
+                plannedSets: 3,
+                movementOptions: loadout == .noGymField
+                    ? [option("exercise.inverted-row", "Elevated Inverted Row", floorOverride: 5)]
+                    : [pullupOption, rowFallback]
+            ),
+            station(
+                "forging-quench",
+                title: "The Quench",
+                category: .carryCore,
+                movementId: loadout == .gymHybrid ? "carry.farmer-carry" : loadout == .homeKit ? "carry.suitcase-carry" : "carry.loaded-march",
+                metric: .distanceMeters,
+                minimumValue: TrialStandards.TheForging.quenchCarryMeters,
+                loadPercentOfBodyweight: loadout == .noGymField ? 0.25 : 0.30,
+                movementOptions: movementSet(
+                    loadout: loadout,
+                    noGym: option("carry.loaded-march", "Backpack Carry", requiredEquipment: [.openSpace]),
+                    home: [
+                        option("carry.suitcase-carry", requiredEquipment: [.dumbbell, .openSpace]),
+                        option("carry.suitcase-carry", requiredEquipment: [.kettlebell, .openSpace])
+                    ],
+                    gym: [option("carry.farmer-carry", requiredEquipment: [.dumbbell, .openSpace])]
+                )
+            )
+        ]
     }
 
     private static func deckStations(loadout: TrialLoadout) -> [TrialStation] {
@@ -602,20 +620,24 @@ enum OverallRankTrialDefinitions {
         legacyIds: ["overall-rank-trial-apprentice-calibration"]
     )
 
-    static let forge = definition(
-        id: "overall-rank-trial-forged-forge",
+    static let theForging = definition(
+        id: "gate-03-the-forging",
         targetRank: .forged,
-        displayName: "The Finisher",
-        subtitle: "Apprentice to Forged rank gate",
+        displayName: "The Forging",
+        subtitle: "Rank Gate III - heavy strikes and quench",
         estimatedMinutes: 30,
         format: .theForging,
         minOverallLevel: 15,
         loadoutVariants: loadoutVariants(
-            noGym: finisherStations(loadout: .noGymField),
-            home: finisherStations(loadout: .homeKit),
-            gym: finisherStations(loadout: .gymHybrid)
+            noGym: theForgingStations(loadout: .noGymField),
+            home: theForgingStations(loadout: .homeKit),
+            gym: theForgingStations(loadout: .gymHybrid)
         ),
-        legacyIds: ["overall-rank-trial-honed-forge", "overall-rank-trial-master-forge"]
+        legacyIds: [
+            "overall-rank-trial-forged-forge",
+            "overall-rank-trial-honed-forge",
+            "overall-rank-trial-master-forge"
+        ]
     )
 
     static let reckoning = definition(
@@ -699,7 +721,7 @@ enum OverallRankTrialDefinitions {
     static let all: [OverallRankTrialDefinition] = [
         firstLight,
         theCount,
-        forge,
+        theForging,
         reckoning,
         gauntlet,
         crucible,
@@ -721,7 +743,7 @@ enum OverallRankTrialDefinitions {
         case .novice:
             return theCount
         case .apprentice:
-            return forge
+            return theForging
         case .forged:
             return reckoning
         case .veteran:

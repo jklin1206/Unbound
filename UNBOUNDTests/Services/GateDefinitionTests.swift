@@ -59,6 +59,75 @@ final class GateDefinitionTests: XCTestCase {
         XCTAssertEqual(home[4].capSeconds, TrialStandards.TheCount.carryCapSeconds)
         XCTAssertEqual(home[5].capSeconds, TrialStandards.TheCount.stationCapSeconds)
     }
+
+    func testGate3TheForgingStations() {
+        let gate = OverallRankTrialDefinitions.theForging
+        XCTAssertEqual(gate.id, "gate-03-the-forging")
+        XCTAssertEqual(gate.format, .theForging)
+        XCTAssertEqual(gate.displayName, "The Forging")
+        XCTAssertEqual(gate.targetRank, .forged)
+        XCTAssertTrue(gate.legacyIds.contains("overall-rank-trial-forged-forge"))
+        XCTAssertTrue(gate.legacyIds.contains("overall-rank-trial-honed-forge"))
+        XCTAssertTrue(gate.legacyIds.contains("overall-rank-trial-master-forge"))
+
+        for loadout in TrialLoadout.allCases {
+            let stations = gate.stations(for: loadout)
+            XCTAssertEqual(stations.map(\.id), [
+                "forging-stoke", "forging-strike-hinge", "forging-strike-push",
+                "forging-strike-pull", "forging-quench"
+            ], loadout.displayName)
+            XCTAssertTrue(stations.allSatisfy { !$0.movementOptions.isEmpty }, loadout.displayName)
+        }
+
+        let home = gate.stations(for: .homeKit)
+        XCTAssertEqual(home[0].standard.minimumValue, TrialStandards.TheForging.stokeEngineMeters)
+        XCTAssertEqual(home[0].standard.minimumQualifyingSets, 1)
+        XCTAssertNil(home[0].capSeconds)
+        XCTAssertEqual(home[1].standard.minimumValue, TrialStandards.TheForging.scoredStrikeReps)
+        XCTAssertEqual(home[1].standard.minimumQualifyingSets, 1)
+        XCTAssertEqual(home[1].standard.plannedSets, 3)
+        XCTAssertEqual(home[1].strengthTier, .forged)
+        XCTAssertEqual(home[2].standard.minimumValue, TrialStandards.TheForging.scoredStrikeReps)
+        XCTAssertEqual(home[2].standard.plannedSets, 3)
+        XCTAssertEqual(home[2].strengthTier, .forged)
+        XCTAssertEqual(home[3].standard.movementId, "exercise.pullup")
+        XCTAssertEqual(home[3].standard.minimumValue, TrialStandards.TheForging.scoredPullReps)
+        XCTAssertEqual(home[3].movementOptions.first { $0.movementId == "exercise.inverted-row" }?.floorOverride, 5)
+        XCTAssertEqual(home[4].standard.minimumValue, TrialStandards.TheForging.quenchCarryMeters)
+        XCTAssertEqual(home[4].loadPercentOfBodyweight, 0.30)
+
+        let noGym = gate.stations(for: .noGymField)
+        XCTAssertEqual(noGym[1].standard.movementId, "exercise.single-leg-rdl")
+        XCTAssertEqual(noGym[1].loadPercentOfBodyweight, TrialStandards.TheForging.noGymHingeLoadPercent)
+        XCTAssertNil(noGym[1].strengthTier)
+        XCTAssertEqual(noGym[2].standard.movementId, "exercise.pushup")
+        XCTAssertEqual(noGym[2].movementOptions.first?.floorOverride, 3)
+        XCTAssertEqual(noGym[3].standard.movementId, "exercise.inverted-row")
+        XCTAssertEqual(noGym[3].movementOptions.first?.floorOverride, 5)
+        XCTAssertEqual(noGym[4].loadPercentOfBodyweight, 0.25)
+    }
+
+    func testGate3TheForgingStrikeStationsResolveForgedStrengthRatios() {
+        let gate = OverallRankTrialDefinitions.theForging
+
+        for loadout in [TrialLoadout.homeKit, .gymHybrid] {
+            let strikeStations = gate.stations(for: loadout).filter { $0.strengthTier == .forged }
+            XCTAssertEqual(strikeStations.map(\.id), [
+                "forging-strike-hinge", "forging-strike-push"
+            ], loadout.displayName)
+
+            for station in strikeStations {
+                let movementId = station.primaryMovement.movementId
+                let movementKey = MovementCatalog.definition(for: movementId)?.canonicalExerciseName ?? movementId
+                let ratio = StrengthStandards.ratio(exerciseKey: movementKey, tier: .forged, sex: nil)
+                XCTAssertNotNil(ratio, "\(station.id) \(movementId) must resolve a Forged strength ratio")
+                XCTAssertNotNil(
+                    station.resolvedStrikeLoadKg(bodyweightKg: 80),
+                    "\(station.id) \(movementId) must resolve a strike load"
+                )
+            }
+        }
+    }
 }
 
 private extension OverallRankTrialDefinition {

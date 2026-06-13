@@ -42,13 +42,6 @@ enum TrialStandards {
         static let noGymHingeLoadPercent = 0.25
         static let scoredPullReps = 3
         static let quenchCarryMeters = 40
-
-        @available(*, deprecated, message: "TEMP shim")
-        static let roundReps = strikeReps // TEMP shim
-        @available(*, deprecated, message: "TEMP shim")
-        static let engineMeters = stokeEngineMeters // TEMP shim
-        @available(*, deprecated, message: "TEMP shim")
-        static let carryMeters = quenchCarryMeters // TEMP shim
     }
 
     /// Gate IV — Deck of Proof (Forged → Veteran, .deckOfProof)
@@ -206,8 +199,6 @@ enum TrialStandards {
 
 // TEMPORARY shims — removed as gate definitions are rewritten (Plan Tasks 6–13).
 extension TrialStandards {
-    @available(*, deprecated, message: "TEMP shim")
-    typealias Finisher = TheForging // TEMP shim
     @available(*, deprecated, message: "TEMP shim")
     typealias Tower = TheAscent // TEMP shim
     @available(*, deprecated, message: "TEMP shim")

@@ -24,7 +24,7 @@ final class OverallRankTrialServiceTests: XCTestCase {
         [
             RankTrialCase(sourceRank: .initiate, definition: OverallRankTrialDefinitions.firstLight),
             RankTrialCase(sourceRank: .novice, definition: OverallRankTrialDefinitions.theCount),
-            RankTrialCase(sourceRank: .apprentice, definition: OverallRankTrialDefinitions.forge),
+            RankTrialCase(sourceRank: .apprentice, definition: OverallRankTrialDefinitions.theForging),
             RankTrialCase(sourceRank: .forged, definition: OverallRankTrialDefinitions.reckoning),
             RankTrialCase(sourceRank: .veteran, definition: OverallRankTrialDefinitions.gauntlet),
             RankTrialCase(sourceRank: .master, definition: OverallRankTrialDefinitions.crucible),
@@ -122,6 +122,7 @@ extension OverallRankTrialServiceTests {
     func assertDraftPassesAndFails(
         _ draft: TrainingSessionDraft,
         against definition: OverallRankTrialDefinition,
+        bodyweightKg: Double? = nil,
         file: StaticString = #filePath,
         line: UInt = #line
     ) {
@@ -139,8 +140,16 @@ extension OverallRankTrialServiceTests {
             completedAt: Date(timeIntervalSince1970: 1_000),
             passing: false
         )
-        let passingEvaluation = OverallRankTrialRunner.shared.evaluateDetailed(passingLog, against: definition)
-        let failingEvaluation = OverallRankTrialRunner.shared.evaluateDetailed(failingLog, against: definition)
+        let passingEvaluation = OverallRankTrialRunner.shared.evaluateDetailed(
+            passingLog,
+            against: definition,
+            bodyweightKg: bodyweightKg
+        )
+        let failingEvaluation = OverallRankTrialRunner.shared.evaluateDetailed(
+            failingLog,
+            against: definition,
+            bodyweightKg: bodyweightKg
+        )
 
         XCTAssertTrue(passingEvaluation.passed, definition.displayName, file: file, line: line)
         XCTAssertFalse(failingEvaluation.passed, definition.displayName, file: file, line: line)

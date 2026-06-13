@@ -93,8 +93,8 @@ extension OverallRankTrialServiceTests {
         XCTAssertEqual(readiness.resolvedTrial?.selectedLoadout, .gymHybrid)
     }
 
-    func testApprenticeReadinessTargetsForgedAndLocksWhenForgeRequirementsAreMissing() {
-        let definition = OverallRankTrialDefinitions.forge
+    func testApprenticeReadinessTargetsForgedAndLocksWhenTheForgingRequirementsAreMissing() {
+        let definition = OverallRankTrialDefinitions.theForging
         let readiness = TrialReadinessService.shared.evaluate(
             OverallRankTrialReadinessInput(
                 userId: "u1",
@@ -114,8 +114,8 @@ extension OverallRankTrialServiceTests {
         XCTAssertTrue(readiness.missingRequirements.contains { $0.kind == .equipment })
     }
 
-    func testApprenticeReadinessBecomesReadyForForgeWhenRequirementsAreMet() {
-        let definition = OverallRankTrialDefinitions.forge
+    func testApprenticeReadinessBecomesReadyForTheForgingWhenRequirementsAreMet() {
+        let definition = OverallRankTrialDefinitions.theForging
         let readiness = TrialReadinessService.shared.evaluate(
             OverallRankTrialReadinessInput(
                 userId: "u1",
@@ -130,19 +130,19 @@ extension OverallRankTrialServiceTests {
         XCTAssertEqual(readiness.currentRank, .apprentice)
         XCTAssertEqual(readiness.targetRank, .forged)
         XCTAssertTrue(readiness.missingRequirements.isEmpty)
-        XCTAssertEqual(readiness.definition?.displayName, "The Finisher")
+        XCTAssertEqual(readiness.definition?.displayName, "The Forging")
     }
 
-    func testForgeReadinessReportsFailedAfterMissedAttemptWhenRequirementsRemainMet() {
-        let definition = OverallRankTrialDefinitions.forge
+    func testTheForgingReadinessReportsFailedAfterMissedAttemptWhenRequirementsRemainMet() {
+        let definition = OverallRankTrialDefinitions.theForging
         let attempt = OverallRankTrialAttempt(
-            id: "forge-log-1",
+            id: "forging-log-1",
             userId: "u1",
             definitionId: definition.id,
             targetRank: definition.targetRank,
             startedAt: Date(timeIntervalSince1970: 100),
             completedAt: Date(timeIntervalSince1970: 1_000),
-            performanceLogId: "forge-log-1",
+            performanceLogId: "forging-log-1",
             passed: false,
             movementAPGained: 0,
             overallLevelXPGained: 0

@@ -81,55 +81,25 @@ final class TrialStandardsSnapshotTests: XCTestCase {
         ST count-fourth cat=pull mov=exercise.cable-row-seated metric=reps min=24 qual=1 planned=1 rest=75 cap=120 load=-
         ST count-water-carry cat=carryCore mov=carry.farmer-carry metric=distanceMeters min=80 qual=1 planned=1 rest=75 cap=180 load=0.200
         ST count-stillness cat=mobilityControl mov=exercise.plank metric=holdSeconds min=60 qual=1 planned=1 rest=90 cap=120 load=-
-    DEF overall-rank-trial-forged-forge rank=forged fmt=theForging min=30 lvl=15
+    DEF gate-03-the-forging rank=forged fmt=theForging min=30 lvl=15
       VAR noGymField
-        ST finisher-r1-engine cat=engine mov=cardio.run metric=distanceMeters min=300 qual=1 planned=1 rest=45 cap=- load=-
-        ST finisher-r1-hinge cat=hingePower mov=exercise.glute-bridge metric=reps min=8 qual=1 planned=1 rest=75 cap=- load=-
-        ST finisher-r1-push cat=push mov=exercise.pushup metric=reps min=8 qual=1 planned=1 rest=75 cap=- load=-
-        ST finisher-r1-pull cat=pull mov=exercise.inverted-row metric=reps min=3 qual=1 planned=1 rest=75 cap=- load=-
-        ST finisher-r1-carry cat=carryCore mov=carry.loaded-march metric=distanceMeters min=40 qual=1 planned=1 rest=75 cap=- load=-
-        ST finisher-r2-engine cat=engine mov=cardio.run metric=distanceMeters min=300 qual=1 planned=1 rest=45 cap=- load=-
-        ST finisher-r2-hinge cat=hingePower mov=exercise.glute-bridge metric=reps min=5 qual=1 planned=1 rest=75 cap=- load=-
-        ST finisher-r2-push cat=push mov=exercise.pushup metric=reps min=5 qual=1 planned=1 rest=75 cap=- load=-
-        ST finisher-r2-pull cat=pull mov=exercise.inverted-row metric=reps min=3 qual=1 planned=1 rest=75 cap=- load=-
-        ST finisher-r2-carry cat=carryCore mov=carry.loaded-march metric=distanceMeters min=40 qual=1 planned=1 rest=75 cap=- load=-
-        ST finisher-r3-engine cat=engine mov=cardio.run metric=distanceMeters min=300 qual=1 planned=1 rest=45 cap=- load=-
-        ST finisher-r3-hinge cat=hingePower mov=exercise.glute-bridge metric=reps min=3 qual=1 planned=1 rest=75 cap=- load=-
-        ST finisher-r3-push cat=push mov=exercise.pushup metric=reps min=3 qual=1 planned=1 rest=75 cap=- load=-
-        ST finisher-r3-pull cat=pull mov=exercise.inverted-row metric=reps min=3 qual=1 planned=1 rest=75 cap=- load=-
-        ST finisher-r3-carry cat=carryCore mov=carry.loaded-march metric=distanceMeters min=40 qual=1 planned=1 rest=75 cap=- load=-
+        ST forging-stoke cat=engine mov=cardio.run metric=distanceMeters min=300 qual=1 planned=1 rest=45 cap=- load=-
+        ST forging-strike-hinge cat=hingePower mov=exercise.single-leg-rdl metric=reps min=3 qual=1 planned=3 rest=75 cap=- load=0.250
+        ST forging-strike-push cat=push mov=exercise.pushup metric=reps min=3 qual=1 planned=3 rest=75 cap=- load=-
+        ST forging-strike-pull cat=pull mov=exercise.inverted-row metric=reps min=3 qual=1 planned=3 rest=75 cap=- load=-
+        ST forging-quench cat=carryCore mov=carry.loaded-march metric=distanceMeters min=40 qual=1 planned=1 rest=75 cap=- load=0.250
       VAR homeKit
-        ST finisher-r1-engine cat=engine mov=cardio.run metric=distanceMeters min=300 qual=1 planned=1 rest=45 cap=- load=-
-        ST finisher-r1-hinge cat=hingePower mov=exercise.kettlebell-swing metric=reps min=8 qual=1 planned=1 rest=75 cap=- load=-
-        ST finisher-r1-push cat=push mov=exercise.pushup metric=reps min=8 qual=1 planned=1 rest=75 cap=- load=-
-        ST finisher-r1-pull cat=pull mov=exercise.dumbbell-row metric=reps min=3 qual=1 planned=1 rest=75 cap=- load=-
-        ST finisher-r1-carry cat=carryCore mov=carry.suitcase-carry metric=distanceMeters min=40 qual=1 planned=1 rest=75 cap=- load=-
-        ST finisher-r2-engine cat=engine mov=cardio.run metric=distanceMeters min=300 qual=1 planned=1 rest=45 cap=- load=-
-        ST finisher-r2-hinge cat=hingePower mov=exercise.kettlebell-swing metric=reps min=5 qual=1 planned=1 rest=75 cap=- load=-
-        ST finisher-r2-push cat=push mov=exercise.pushup metric=reps min=5 qual=1 planned=1 rest=75 cap=- load=-
-        ST finisher-r2-pull cat=pull mov=exercise.dumbbell-row metric=reps min=3 qual=1 planned=1 rest=75 cap=- load=-
-        ST finisher-r2-carry cat=carryCore mov=carry.suitcase-carry metric=distanceMeters min=40 qual=1 planned=1 rest=75 cap=- load=-
-        ST finisher-r3-engine cat=engine mov=cardio.run metric=distanceMeters min=300 qual=1 planned=1 rest=45 cap=- load=-
-        ST finisher-r3-hinge cat=hingePower mov=exercise.kettlebell-swing metric=reps min=3 qual=1 planned=1 rest=75 cap=- load=-
-        ST finisher-r3-push cat=push mov=exercise.pushup metric=reps min=3 qual=1 planned=1 rest=75 cap=- load=-
-        ST finisher-r3-pull cat=pull mov=exercise.dumbbell-row metric=reps min=3 qual=1 planned=1 rest=75 cap=- load=-
-        ST finisher-r3-carry cat=carryCore mov=carry.suitcase-carry metric=distanceMeters min=40 qual=1 planned=1 rest=75 cap=- load=-
+        ST forging-stoke cat=engine mov=cardio.run metric=distanceMeters min=300 qual=1 planned=1 rest=45 cap=- load=-
+        ST forging-strike-hinge cat=hingePower mov=exercise.dumbbell-romanian-deadlift metric=reps min=3 qual=1 planned=3 rest=75 cap=- load=-
+        ST forging-strike-push cat=push mov=exercise.dumbbell-bench-press metric=reps min=3 qual=1 planned=3 rest=75 cap=- load=-
+        ST forging-strike-pull cat=pull mov=exercise.pullup metric=reps min=3 qual=1 planned=3 rest=75 cap=- load=-
+        ST forging-quench cat=carryCore mov=carry.suitcase-carry metric=distanceMeters min=40 qual=1 planned=1 rest=75 cap=- load=0.300
       VAR gymHybrid
-        ST finisher-r1-engine cat=engine mov=cardio.row metric=distanceMeters min=345 qual=1 planned=1 rest=45 cap=- load=-
-        ST finisher-r1-hinge cat=hingePower mov=exercise.cable-pull-through metric=reps min=8 qual=1 planned=1 rest=75 cap=- load=-
-        ST finisher-r1-push cat=push mov=exercise.machine-chest-press metric=reps min=8 qual=1 planned=1 rest=75 cap=- load=-
-        ST finisher-r1-pull cat=pull mov=exercise.cable-row-seated metric=reps min=3 qual=1 planned=1 rest=75 cap=- load=-
-        ST finisher-r1-carry cat=carryCore mov=carry.suitcase-carry metric=distanceMeters min=40 qual=1 planned=1 rest=75 cap=- load=-
-        ST finisher-r2-engine cat=engine mov=cardio.row metric=distanceMeters min=345 qual=1 planned=1 rest=45 cap=- load=-
-        ST finisher-r2-hinge cat=hingePower mov=exercise.cable-pull-through metric=reps min=5 qual=1 planned=1 rest=75 cap=- load=-
-        ST finisher-r2-push cat=push mov=exercise.machine-chest-press metric=reps min=5 qual=1 planned=1 rest=75 cap=- load=-
-        ST finisher-r2-pull cat=pull mov=exercise.cable-row-seated metric=reps min=3 qual=1 planned=1 rest=75 cap=- load=-
-        ST finisher-r2-carry cat=carryCore mov=carry.suitcase-carry metric=distanceMeters min=40 qual=1 planned=1 rest=75 cap=- load=-
-        ST finisher-r3-engine cat=engine mov=cardio.row metric=distanceMeters min=345 qual=1 planned=1 rest=45 cap=- load=-
-        ST finisher-r3-hinge cat=hingePower mov=exercise.cable-pull-through metric=reps min=3 qual=1 planned=1 rest=75 cap=- load=-
-        ST finisher-r3-push cat=push mov=exercise.machine-chest-press metric=reps min=3 qual=1 planned=1 rest=75 cap=- load=-
-        ST finisher-r3-pull cat=pull mov=exercise.cable-row-seated metric=reps min=3 qual=1 planned=1 rest=75 cap=- load=-
-        ST finisher-r3-carry cat=carryCore mov=carry.suitcase-carry metric=distanceMeters min=40 qual=1 planned=1 rest=75 cap=- load=-
+        ST forging-stoke cat=engine mov=cardio.row metric=distanceMeters min=345 qual=1 planned=1 rest=45 cap=- load=-
+        ST forging-strike-hinge cat=hingePower mov=exercise.dumbbell-romanian-deadlift metric=reps min=3 qual=1 planned=3 rest=75 cap=- load=-
+        ST forging-strike-push cat=push mov=exercise.machine-chest-press metric=reps min=3 qual=1 planned=3 rest=75 cap=- load=-
+        ST forging-strike-pull cat=pull mov=exercise.pullup metric=reps min=3 qual=1 planned=3 rest=75 cap=- load=-
+        ST forging-quench cat=carryCore mov=carry.farmer-carry metric=distanceMeters min=40 qual=1 planned=1 rest=75 cap=- load=0.300
     DEF overall-rank-trial-veteran-reckoning rank=veteran fmt=deckOfProof min=42 lvl=22
       VAR noGymField
         ST deck-card-01 cat=push mov=exercise.pushup metric=reps min=11 qual=1 planned=1 rest=30 cap=- load=-

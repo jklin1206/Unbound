@@ -44,23 +44,25 @@ extension OverallRankTrialServiceTests {
         assertDraftPassesAndFails(draft, against: definition)
     }
 
-    func testFinisherDraftMapsToDescendingRoundStations() throws {
-        let definition = OverallRankTrialDefinitions.forge
+    func testTheForgingDraftMapsToStrikeStations() throws {
+        let definition = OverallRankTrialDefinitions.theForging
         let resolved = try XCTUnwrap(resolvedTrial(for: definition, loadout: .homeKit))
+        let bodyweightKg = 82.0
         let draft = OverallRankTrialRunner.shared.draft(
             for: definition,
             userId: "u1",
             date: Date(timeIntervalSince1970: 100),
-            resolvedTrial: resolved
+            resolvedTrial: resolved,
+            bodyweightKg: bodyweightKg
         )
 
         XCTAssertEqual(definition.format, .theForging)
-        XCTAssertEqual(draft.title, "The Finisher")
+        XCTAssertEqual(draft.title, "The Forging")
         XCTAssertEqual(draft.estimatedMinutes, 30)
-        XCTAssertEqual(resolved.stations.count, 15)
-        XCTAssertEqual(Array(resolved.stations.map(\.category).prefix(5)), [.engine, .hingePower, .push, .pull, .carryCore])
+        XCTAssertEqual(resolved.stations.count, 5)
+        XCTAssertEqual(resolved.stations.map(\.category), [.engine, .hingePower, .push, .pull, .carryCore])
         assertDraft(draft, matches: definition, resolvedTrial: resolved)
-        assertDraftPassesAndFails(draft, against: definition)
+        assertDraftPassesAndFails(draft, against: definition, bodyweightKg: bodyweightKg)
     }
 
     func testDeckOfProofDraftDealsRandomDrawOrder() throws {
@@ -173,7 +175,14 @@ extension OverallRankTrialServiceTests {
 
                 let progress = session.progressSummary
                 let performanceLog = session.assemblePerformanceLog(userId: "u1")
-                let evaluation = OverallRankTrialRunner.shared.evaluateDetailed(performanceLog, against: definition)
+                let evaluationBodyweightKg = definition.loadoutVariants
+                    .flatMap(\.stations)
+                    .contains { $0.strengthTier != nil } ? 80.0 : 82.0
+                let evaluation = OverallRankTrialRunner.shared.evaluateDetailed(
+                    performanceLog,
+                    against: definition,
+                    bodyweightKg: evaluationBodyweightKg
+                )
 
                 XCTAssertEqual(session.source, .overallRankTrial, definition.displayName)
                 XCTAssertEqual(session.programId, definition.id, definition.displayName)

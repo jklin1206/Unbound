@@ -616,7 +616,8 @@ final class OverallRankTrialRunner {
                         } ?? station?.standard
                         let setCount = max(1, standard?.minimumQualifyingSets ?? prescription.sets)
                         let achieved = passing ? target : max(0, target - 1)
-                        let loadKg = station?.loadPercentOfBodyweight == nil ? nil : 50.0
+                        let loadKg = prescription.suggestedWeightKg
+                            ?? (station?.loadPercentOfBodyweight == nil ? nil : 50.0)
                         return PerformanceExercise(
                             id: prescription.id,
                             name: prescription.exerciseName,
