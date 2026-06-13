@@ -70,11 +70,6 @@ enum TrialStandards {
         static let blendRowFallbackReps = 12
         static let bossHoldSeconds = 90
         static let bossHoldCapSeconds = 5 * 60
-
-        @available(*, deprecated, message: "TEMP shim")
-        static let pullReps = rowFallbackReps // TEMP shim
-        @available(*, deprecated, message: "TEMP shim")
-        static let blendPullReps = blendRowFallbackReps // TEMP shim
     }
 
     /// Gate VI — The Seven Seals (Master → Vessel, .sevenSeals)
@@ -199,8 +194,6 @@ enum TrialStandards {
 
 // TEMPORARY shims — removed as gate definitions are rewritten (Plan Tasks 6–13).
 extension TrialStandards {
-    @available(*, deprecated, message: "TEMP shim")
-    typealias Tower = TheAscent // TEMP shim
     @available(*, deprecated, message: "TEMP shim")
     typealias BossRush = SevenSeals // TEMP shim
     @available(*, deprecated, message: "TEMP shim")

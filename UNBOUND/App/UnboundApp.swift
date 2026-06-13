@@ -548,7 +548,7 @@ private struct TowerTrialDemoView: View {
     }
 
     init() {
-        let definition = OverallRankTrialDefinitions.gauntlet
+        let definition = OverallRankTrialDefinitions.theAscent
         let equipment: Set<MovementEquipment> = [.bodyweight, .openSpace, .dumbbell, .kettlebell, .pullupBar, .band]
         let resolution = RankTrialLoadoutResolver.shared.resolve(
             definition: definition,

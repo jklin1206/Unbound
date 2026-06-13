@@ -181,6 +181,69 @@ final class GateDefinitionTests: XCTestCase {
         XCTAssertEqual(tenValuePullCard.resolvedMinimum(forMovementId: "exercise.inverted-row"), 15)
         XCTAssertEqual(tenValuePullCard.resolvedMinimum(forMovementId: "exercise.dumbbell-row"), 15)
     }
+
+    func testGate5TheAscentStations() throws {
+        let gate = OverallRankTrialDefinitions.theAscent
+        XCTAssertEqual(gate.id, "gate-05-the-ascent")
+        XCTAssertEqual(gate.format, .theAscent)
+        XCTAssertEqual(gate.displayName, "The Ascent")
+        XCTAssertEqual(gate.targetRank, .master)
+        XCTAssertTrue(gate.legacyIds.contains("overall-rank-trial-master-gauntlet"))
+        XCTAssertTrue(gate.legacyIds.contains("overall-rank-trial-veteran-gauntlet"))
+
+        let expectedIds = [
+            "ascent-floor-01", "ascent-floor-02", "ascent-floor-03",
+            "ascent-floor-04", "ascent-floor-05", "ascent-floor-06",
+            "ascent-floor-07", "ascent-floor-08", "ascent-floor-09-push",
+            "ascent-floor-09-pull", "ascent-floor-10"
+        ]
+
+        for loadout in TrialLoadout.allCases {
+            let stations = gate.stations(for: loadout)
+            XCTAssertEqual(stations.count, 11, loadout.displayName)
+            XCTAssertEqual(stations.map(\.id), expectedIds, loadout.displayName)
+            XCTAssertTrue(stations.allSatisfy { !$0.movementOptions.isEmpty }, loadout.displayName)
+        }
+
+        let home = gate.stations(for: .homeKit)
+        XCTAssertEqual(home.map(\.title), [
+            "Floor 1 — The Path", "Floor 2 — The Work Floors", "Floor 3 — The Work Floors",
+            "Floor 4 — The Work Floors", "Floor 5 — The Work Floors", "Floor 6 — The Work Floors",
+            "Floor 7 — The Cloudline", "Floor 8 — Thin Air", "Floor 9 — Thin Air",
+            "Floor 9 — Thin Air", "Floor 10 — The Summit Gate"
+        ])
+        XCTAssertEqual(home[0].standard.minimumValue, TrialStandards.TheAscent.floor1Meters)
+        XCTAssertEqual(home[1].standard.minimumValue, TrialStandards.TheAscent.lowerReps)
+        XCTAssertEqual(home[2].standard.minimumValue, TrialStandards.TheAscent.pushReps)
+        XCTAssertEqual(home[4].standard.minimumValue, TrialStandards.TheAscent.hingeReps)
+        XCTAssertEqual(home[5].standard.minimumValue, TrialStandards.TheAscent.carryMeters)
+        XCTAssertEqual(home[5].loadPercentOfBodyweight, TrialStandards.TheAscent.carryLoadPercentLoaded)
+        XCTAssertEqual(home[6].standard.minimumValue, TrialStandards.TheAscent.longEngineMeters)
+        XCTAssertEqual(home[7].standard.minimumValue, TrialStandards.TheAscent.explosiveReps)
+        XCTAssertEqual(home[8].standard.minimumValue, TrialStandards.TheAscent.blendPushReps)
+        XCTAssertEqual(home[10].standard.minimumValue, TrialStandards.TheAscent.bossHoldSeconds)
+        XCTAssertEqual(home[10].capSeconds, TrialStandards.TheAscent.bossHoldCapSeconds)
+
+        let floor4 = try XCTUnwrap(home.first { $0.id == "ascent-floor-04" })
+        XCTAssertEqual(floor4.standard.movementId, "exercise.pullup")
+        XCTAssertEqual(floor4.standard.minimumValue, TrialStandards.TheAscent.pullUpReps)
+        let floor4Pullup = try XCTUnwrap(floor4.movementOptions.first { $0.movementId == "exercise.pullup" })
+        XCTAssertEqual(floor4Pullup.requiredEquipment, Set([.pullupBar]))
+        XCTAssertEqual(floor4.resolvedMinimum(forMovementId: "exercise.pullup"), TrialStandards.TheAscent.pullUpReps)
+        XCTAssertEqual(floor4.resolvedMinimum(forMovementId: "exercise.inverted-row"), TrialStandards.TheAscent.rowFallbackReps)
+        XCTAssertEqual(floor4.resolvedMinimum(forMovementId: "exercise.dumbbell-row"), TrialStandards.TheAscent.rowFallbackReps)
+
+        let floor9Pull = try XCTUnwrap(home.first { $0.id == "ascent-floor-09-pull" })
+        XCTAssertEqual(floor9Pull.standard.movementId, "exercise.pullup")
+        XCTAssertEqual(floor9Pull.standard.minimumValue, TrialStandards.TheAscent.blendPullUpReps)
+        XCTAssertEqual(floor9Pull.resolvedMinimum(forMovementId: "exercise.pullup"), TrialStandards.TheAscent.blendPullUpReps)
+        XCTAssertEqual(floor9Pull.resolvedMinimum(forMovementId: "exercise.inverted-row"), TrialStandards.TheAscent.blendRowFallbackReps)
+
+        let noGym = gate.stations(for: .noGymField)
+        let noGymFloor4 = try XCTUnwrap(noGym.first { $0.id == "ascent-floor-04" })
+        XCTAssertEqual(noGymFloor4.resolvedMinimum(forMovementId: "exercise.inverted-row"), TrialStandards.TheAscent.rowFallbackReps)
+        XCTAssertEqual(noGym.first { $0.id == "ascent-floor-06" }?.loadPercentOfBodyweight, TrialStandards.TheAscent.carryLoadPercentNoGym)
+    }
 }
 
 private extension OverallRankTrialDefinition {

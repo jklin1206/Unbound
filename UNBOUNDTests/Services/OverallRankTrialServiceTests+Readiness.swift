@@ -202,8 +202,8 @@ extension OverallRankTrialServiceTests {
         XCTAssertEqual(readiness.definition?.displayName, "Deck of Proof")
     }
 
-    func testVeteranReadinessTargetsMasterAndLocksWhenGauntletRequirementsAreMissing() {
-        let definition = OverallRankTrialDefinitions.gauntlet
+    func testVeteranReadinessTargetsMasterAndLocksWhenTheAscentRequirementsAreMissing() {
+        let definition = OverallRankTrialDefinitions.theAscent
         let readiness = TrialReadinessService.shared.evaluate(
             OverallRankTrialReadinessInput(
                 userId: "u1",
@@ -223,8 +223,8 @@ extension OverallRankTrialServiceTests {
         XCTAssertTrue(readiness.missingRequirements.contains { $0.kind == .equipment })
     }
 
-    func testVeteranReadinessBecomesReadyForGauntletWhenRequirementsAreMet() {
-        let definition = OverallRankTrialDefinitions.gauntlet
+    func testVeteranReadinessBecomesReadyForTheAscentWhenRequirementsAreMet() {
+        let definition = OverallRankTrialDefinitions.theAscent
         let readiness = TrialReadinessService.shared.evaluate(
             OverallRankTrialReadinessInput(
                 userId: "u1",
@@ -240,7 +240,7 @@ extension OverallRankTrialServiceTests {
         XCTAssertEqual(readiness.currentRank, .veteran)
         XCTAssertEqual(readiness.targetRank, .master)
         XCTAssertTrue(readiness.missingRequirements.isEmpty)
-        XCTAssertEqual(readiness.definition?.displayName, "The Tower")
+        XCTAssertEqual(readiness.definition?.displayName, "The Ascent")
     }
 
     func testUpperRankReadinessLocksAndReadiesForEveryNewDefinition() {

@@ -260,43 +260,43 @@ final class TrialStandardsSnapshotTests: XCTestCase {
         ST deck-card-50 cat=carryCore mov=exercise.decline-situp metric=reps min=10 qual=1 planned=1 rest=30 cap=- load=-
         ST deck-card-51 cat=carryCore mov=exercise.decline-situp metric=reps min=10 qual=1 planned=1 rest=30 cap=- load=-
         ST deck-card-52 cat=carryCore mov=exercise.decline-situp metric=reps min=10 qual=1 planned=1 rest=30 cap=- load=-
-    DEF overall-rank-trial-master-gauntlet rank=master fmt=theAscent min=50 lvl=40
+    DEF gate-05-the-ascent rank=master fmt=theAscent min=50 lvl=40
       VAR noGymField
-        ST tower-floor-01 cat=engine mov=cardio.run metric=distanceMeters min=300 qual=1 planned=1 rest=45 cap=- load=-
-        ST tower-floor-02 cat=lower mov=exercise.step-up metric=reps min=24 qual=1 planned=1 rest=75 cap=- load=-
-        ST tower-floor-03 cat=push mov=exercise.pushup metric=reps min=20 qual=1 planned=1 rest=75 cap=- load=-
-        ST tower-floor-04 cat=pull mov=exercise.inverted-row metric=reps min=18 qual=1 planned=1 rest=75 cap=- load=-
-        ST tower-floor-05 cat=hingePower mov=exercise.glute-bridge metric=reps min=30 qual=1 planned=1 rest=75 cap=- load=-
-        ST tower-floor-06 cat=carryCore mov=carry.loaded-march metric=distanceMeters min=100 qual=1 planned=1 rest=75 cap=- load=0.100
-        ST tower-floor-07 cat=engine mov=cardio.run metric=distanceMeters min=500 qual=1 planned=1 rest=45 cap=- load=-
-        ST tower-floor-08 cat=explosive mov=exercise.step-up metric=reps min=20 qual=1 planned=1 rest=75 cap=- load=-
-        ST tower-floor-09-push cat=push mov=exercise.pushup metric=reps min=15 qual=1 planned=1 rest=75 cap=- load=-
-        ST tower-floor-09-pull cat=pull mov=exercise.inverted-row metric=reps min=12 qual=1 planned=1 rest=75 cap=- load=-
-        ST tower-floor-10 cat=carryCore mov=exercise.plank metric=holdSeconds min=90 qual=1 planned=1 rest=90 cap=300 load=-
+        ST ascent-floor-01 cat=engine mov=cardio.run metric=distanceMeters min=300 qual=1 planned=1 rest=45 cap=- load=-
+        ST ascent-floor-02 cat=lower mov=exercise.step-up metric=reps min=24 qual=1 planned=1 rest=75 cap=- load=-
+        ST ascent-floor-03 cat=push mov=exercise.pushup metric=reps min=20 qual=1 planned=1 rest=75 cap=- load=-
+        ST ascent-floor-04 cat=pull mov=exercise.pullup metric=reps min=12 qual=1 planned=1 rest=75 cap=- load=-
+        ST ascent-floor-05 cat=hingePower mov=exercise.glute-bridge metric=reps min=30 qual=1 planned=1 rest=75 cap=- load=-
+        ST ascent-floor-06 cat=carryCore mov=carry.loaded-march metric=distanceMeters min=100 qual=1 planned=1 rest=75 cap=- load=0.100
+        ST ascent-floor-07 cat=engine mov=cardio.run metric=distanceMeters min=500 qual=1 planned=1 rest=45 cap=- load=-
+        ST ascent-floor-08 cat=explosive mov=exercise.step-up metric=reps min=20 qual=1 planned=1 rest=75 cap=- load=-
+        ST ascent-floor-09-push cat=push mov=exercise.pushup metric=reps min=15 qual=1 planned=1 rest=75 cap=- load=-
+        ST ascent-floor-09-pull cat=pull mov=exercise.pullup metric=reps min=8 qual=1 planned=1 rest=75 cap=- load=-
+        ST ascent-floor-10 cat=carryCore mov=exercise.plank metric=holdSeconds min=90 qual=1 planned=1 rest=90 cap=300 load=-
       VAR homeKit
-        ST tower-floor-01 cat=engine mov=cardio.run metric=distanceMeters min=300 qual=1 planned=1 rest=45 cap=- load=-
-        ST tower-floor-02 cat=lower mov=exercise.dumbbell-step-up metric=reps min=24 qual=1 planned=1 rest=75 cap=- load=-
-        ST tower-floor-03 cat=push mov=exercise.dumbbell-bench-press metric=reps min=20 qual=1 planned=1 rest=75 cap=- load=-
-        ST tower-floor-04 cat=pull mov=exercise.dumbbell-row metric=reps min=18 qual=1 planned=1 rest=75 cap=- load=-
-        ST tower-floor-05 cat=hingePower mov=exercise.dumbbell-romanian-deadlift metric=reps min=30 qual=1 planned=1 rest=75 cap=- load=-
-        ST tower-floor-06 cat=carryCore mov=carry.farmer-carry metric=distanceMeters min=100 qual=1 planned=1 rest=75 cap=- load=0.250
-        ST tower-floor-07 cat=engine mov=cardio.run metric=distanceMeters min=500 qual=1 planned=1 rest=45 cap=- load=-
-        ST tower-floor-08 cat=explosive mov=exercise.kettlebell-swing metric=reps min=20 qual=1 planned=1 rest=75 cap=- load=-
-        ST tower-floor-09-push cat=push mov=exercise.pushup metric=reps min=15 qual=1 planned=1 rest=75 cap=- load=-
-        ST tower-floor-09-pull cat=pull mov=exercise.dumbbell-row metric=reps min=12 qual=1 planned=1 rest=75 cap=- load=-
-        ST tower-floor-10 cat=carryCore mov=exercise.plank metric=holdSeconds min=90 qual=1 planned=1 rest=90 cap=300 load=-
+        ST ascent-floor-01 cat=engine mov=cardio.run metric=distanceMeters min=300 qual=1 planned=1 rest=45 cap=- load=-
+        ST ascent-floor-02 cat=lower mov=exercise.dumbbell-step-up metric=reps min=24 qual=1 planned=1 rest=75 cap=- load=-
+        ST ascent-floor-03 cat=push mov=exercise.dumbbell-bench-press metric=reps min=20 qual=1 planned=1 rest=75 cap=- load=-
+        ST ascent-floor-04 cat=pull mov=exercise.pullup metric=reps min=12 qual=1 planned=1 rest=75 cap=- load=-
+        ST ascent-floor-05 cat=hingePower mov=exercise.dumbbell-romanian-deadlift metric=reps min=30 qual=1 planned=1 rest=75 cap=- load=-
+        ST ascent-floor-06 cat=carryCore mov=carry.farmer-carry metric=distanceMeters min=100 qual=1 planned=1 rest=75 cap=- load=0.250
+        ST ascent-floor-07 cat=engine mov=cardio.run metric=distanceMeters min=500 qual=1 planned=1 rest=45 cap=- load=-
+        ST ascent-floor-08 cat=explosive mov=exercise.kettlebell-swing metric=reps min=20 qual=1 planned=1 rest=75 cap=- load=-
+        ST ascent-floor-09-push cat=push mov=exercise.pushup metric=reps min=15 qual=1 planned=1 rest=75 cap=- load=-
+        ST ascent-floor-09-pull cat=pull mov=exercise.pullup metric=reps min=8 qual=1 planned=1 rest=75 cap=- load=-
+        ST ascent-floor-10 cat=carryCore mov=exercise.plank metric=holdSeconds min=90 qual=1 planned=1 rest=90 cap=300 load=-
       VAR gymHybrid
-        ST tower-floor-01 cat=engine mov=cardio.row metric=distanceMeters min=345 qual=1 planned=1 rest=45 cap=- load=-
-        ST tower-floor-02 cat=lower mov=exercise.leg-press metric=reps min=24 qual=1 planned=1 rest=75 cap=- load=-
-        ST tower-floor-03 cat=push mov=exercise.machine-chest-press metric=reps min=20 qual=1 planned=1 rest=75 cap=- load=-
-        ST tower-floor-04 cat=pull mov=exercise.cable-row-seated metric=reps min=18 qual=1 planned=1 rest=75 cap=- load=-
-        ST tower-floor-05 cat=hingePower mov=exercise.cable-pull-through metric=reps min=30 qual=1 planned=1 rest=75 cap=- load=-
-        ST tower-floor-06 cat=carryCore mov=carry.farmer-carry metric=distanceMeters min=100 qual=1 planned=1 rest=75 cap=- load=0.250
-        ST tower-floor-07 cat=engine mov=cardio.row metric=distanceMeters min=575 qual=1 planned=1 rest=45 cap=- load=-
-        ST tower-floor-08 cat=explosive mov=exercise.kettlebell-swing metric=reps min=20 qual=1 planned=1 rest=75 cap=- load=-
-        ST tower-floor-09-push cat=push mov=exercise.machine-chest-press metric=reps min=15 qual=1 planned=1 rest=75 cap=- load=-
-        ST tower-floor-09-pull cat=pull mov=exercise.cable-row-seated metric=reps min=12 qual=1 planned=1 rest=75 cap=- load=-
-        ST tower-floor-10 cat=carryCore mov=exercise.plank metric=holdSeconds min=90 qual=1 planned=1 rest=90 cap=300 load=-
+        ST ascent-floor-01 cat=engine mov=cardio.row metric=distanceMeters min=345 qual=1 planned=1 rest=45 cap=- load=-
+        ST ascent-floor-02 cat=lower mov=exercise.leg-press metric=reps min=24 qual=1 planned=1 rest=75 cap=- load=-
+        ST ascent-floor-03 cat=push mov=exercise.machine-chest-press metric=reps min=20 qual=1 planned=1 rest=75 cap=- load=-
+        ST ascent-floor-04 cat=pull mov=exercise.pullup metric=reps min=12 qual=1 planned=1 rest=75 cap=- load=-
+        ST ascent-floor-05 cat=hingePower mov=exercise.cable-pull-through metric=reps min=30 qual=1 planned=1 rest=75 cap=- load=-
+        ST ascent-floor-06 cat=carryCore mov=carry.farmer-carry metric=distanceMeters min=100 qual=1 planned=1 rest=75 cap=- load=0.250
+        ST ascent-floor-07 cat=engine mov=cardio.row metric=distanceMeters min=575 qual=1 planned=1 rest=45 cap=- load=-
+        ST ascent-floor-08 cat=explosive mov=exercise.kettlebell-swing metric=reps min=20 qual=1 planned=1 rest=75 cap=- load=-
+        ST ascent-floor-09-push cat=push mov=exercise.machine-chest-press metric=reps min=15 qual=1 planned=1 rest=75 cap=- load=-
+        ST ascent-floor-09-pull cat=pull mov=exercise.pullup metric=reps min=8 qual=1 planned=1 rest=75 cap=- load=-
+        ST ascent-floor-10 cat=carryCore mov=exercise.plank metric=holdSeconds min=90 qual=1 planned=1 rest=90 cap=300 load=-
     DEF overall-rank-trial-vessel-ten-hundred rank=vessel fmt=sevenSeals min=58 lvl=55
       VAR noGymField
         ST boss-engine cat=engine mov=cardio.run metric=distanceMeters min=800 qual=1 planned=1 rest=45 cap=360 load=-

@@ -210,7 +210,7 @@ extension OverallRankTrialServiceTests {
     }
 
     func testDetailedEvaluationFailsStationTimeCapFromPerformanceBlockDuration() throws {
-        let definition = OverallRankTrialDefinitions.gauntlet
+        let definition = OverallRankTrialDefinitions.theAscent
         let resolved = try XCTUnwrap(resolvedTrial(for: definition, loadout: .homeKit))
         let draft = OverallRankTrialRunner.shared.draft(
             for: definition,
@@ -225,13 +225,13 @@ extension OverallRankTrialServiceTests {
             completedAt: Date(timeIntervalSince1970: 1_000),
             passing: true
         )
-        let cappedBlockIndex = try XCTUnwrap(log.blocks.firstIndex { $0.title == "Floor 10 Boss Hold" })
+        let cappedBlockIndex = try XCTUnwrap(log.blocks.firstIndex { $0.title == "Floor 10 — The Summit Gate" })
         log.blocks[cappedBlockIndex].durationSeconds = (5 * 60) + 1
 
         let evaluation = OverallRankTrialRunner.shared.evaluateDetailed(log, against: definition)
 
         XCTAssertFalse(evaluation.passed)
-        XCTAssertEqual(evaluation.failedStation?.id, "tower-floor-10")
+        XCTAssertEqual(evaluation.failedStation?.id, "ascent-floor-10")
         XCTAssertEqual(evaluation.failedStation?.failureReason, "Station exceeded the official time cap.")
     }
 
@@ -320,7 +320,7 @@ extension OverallRankTrialServiceTests {
     }
 
     func testActiveWorkoutSessionCarriesRankTrialStationDurationIntoPerformanceLog() throws {
-        let definition = OverallRankTrialDefinitions.gauntlet
+        let definition = OverallRankTrialDefinitions.theAscent
         let resolved = try XCTUnwrap(resolvedTrial(for: definition, loadout: .homeKit))
         let draft = OverallRankTrialRunner.shared.draft(
             for: definition,
@@ -338,7 +338,7 @@ extension OverallRankTrialServiceTests {
         session.exercises[0].completedAt = started.addingTimeInterval(301)
         let log = session.assemblePerformanceLog(userId: "u1")
 
-        XCTAssertEqual(log.blocks.first?.title, "Floor 1 Engine")
+        XCTAssertEqual(log.blocks.first?.title, "Floor 1 — The Path")
         XCTAssertEqual(log.blocks.first?.durationSeconds, 301)
     }
 
@@ -346,7 +346,7 @@ extension OverallRankTrialServiceTests {
         UserDefaults.standard.set(TrainingWeightUnit.kilograms.rawValue, forKey: WeightPlatePolicy.unitDefaultsKey)
         defer { UserDefaults.standard.removeObject(forKey: WeightPlatePolicy.unitDefaultsKey) }
 
-        let definition = OverallRankTrialDefinitions.gauntlet
+        let definition = OverallRankTrialDefinitions.theAscent
         let resolved = try XCTUnwrap(resolvedTrial(for: definition, loadout: .homeKit))
         let draft = OverallRankTrialRunner.shared.draft(
             for: definition,

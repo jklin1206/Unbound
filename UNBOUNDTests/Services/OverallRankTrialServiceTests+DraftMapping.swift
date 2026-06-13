@@ -99,8 +99,8 @@ extension OverallRankTrialServiceTests {
         assertDraftPassesAndFails(draft, against: definition)
     }
 
-    func testTowerDraftMapsToTenFloorProtocol() throws {
-        let definition = OverallRankTrialDefinitions.gauntlet
+    func testTheAscentDraftMapsToTenFloorProtocol() throws {
+        let definition = OverallRankTrialDefinitions.theAscent
         let resolved = try XCTUnwrap(resolvedTrial(for: definition, loadout: .homeKit))
         let draft = OverallRankTrialRunner.shared.draft(
             for: definition,
@@ -111,24 +111,24 @@ extension OverallRankTrialServiceTests {
 
         assertCatalogBacked(definition)
         XCTAssertEqual(definition.format, .theAscent)
-        XCTAssertEqual(draft.title, "The Tower")
+        XCTAssertEqual(draft.title, "The Ascent")
         XCTAssertEqual(draft.estimatedMinutes, 50)
         XCTAssertEqual(resolved.stations.count, 11)
-        XCTAssertEqual(resolved.stations.map(\.id).first, "tower-floor-01")
-        XCTAssertEqual(resolved.stations.map(\.id).last, "tower-floor-10")
-        XCTAssertTrue(resolved.stations.map(\.id).contains("tower-floor-09-push"))
-        XCTAssertTrue(resolved.stations.map(\.id).contains("tower-floor-09-pull"))
+        XCTAssertEqual(resolved.stations.map(\.id).first, "ascent-floor-01")
+        XCTAssertEqual(resolved.stations.map(\.id).last, "ascent-floor-10")
+        XCTAssertTrue(resolved.stations.map(\.id).contains("ascent-floor-09-push"))
+        XCTAssertTrue(resolved.stations.map(\.id).contains("ascent-floor-09-pull"))
         assertDraft(draft, matches: definition, resolvedTrial: resolved)
         assertDraftPassesAndFails(draft, against: definition)
     }
 
     func testEliteProtocolsScoreCompoundPushAndPullStationsSeparately() throws {
-        let tower = try XCTUnwrap(resolvedTrial(for: OverallRankTrialDefinitions.gauntlet, loadout: .homeKit))
+        let ascent = try XCTUnwrap(resolvedTrial(for: OverallRankTrialDefinitions.theAscent, loadout: .homeKit))
         let bossRush = try XCTUnwrap(resolvedTrial(for: OverallRankTrialDefinitions.crucible, loadout: .homeKit))
 
-        XCTAssertEqual(tower.stations.first { $0.id == "tower-floor-09-push" }?.category, .push)
-        XCTAssertEqual(tower.stations.first { $0.id == "tower-floor-09-pull" }?.category, .pull)
-        XCTAssertFalse(tower.stations.map(\.id).contains("tower-floor-09"))
+        XCTAssertEqual(ascent.stations.first { $0.id == "ascent-floor-09-push" }?.category, .push)
+        XCTAssertEqual(ascent.stations.first { $0.id == "ascent-floor-09-pull" }?.category, .pull)
+        XCTAssertFalse(ascent.stations.map(\.id).contains("ascent-floor-09"))
         XCTAssertEqual(bossRush.stations.first { $0.id == "boss-upper-push" }?.category, .push)
         XCTAssertEqual(bossRush.stations.first { $0.id == "boss-upper-pull" }?.category, .pull)
         XCTAssertFalse(bossRush.stations.map(\.id).contains("boss-upper"))

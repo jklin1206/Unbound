@@ -26,7 +26,7 @@ final class OverallRankTrialServiceTests: XCTestCase {
             RankTrialCase(sourceRank: .novice, definition: OverallRankTrialDefinitions.theCount),
             RankTrialCase(sourceRank: .apprentice, definition: OverallRankTrialDefinitions.theForging),
             RankTrialCase(sourceRank: .forged, definition: OverallRankTrialDefinitions.deckOfProof),
-            RankTrialCase(sourceRank: .veteran, definition: OverallRankTrialDefinitions.gauntlet),
+            RankTrialCase(sourceRank: .veteran, definition: OverallRankTrialDefinitions.theAscent),
             RankTrialCase(sourceRank: .master, definition: OverallRankTrialDefinitions.crucible),
             RankTrialCase(sourceRank: .vessel, definition: OverallRankTrialDefinitions.threshold),
             RankTrialCase(sourceRank: .ascendant, definition: OverallRankTrialDefinitions.ascension)

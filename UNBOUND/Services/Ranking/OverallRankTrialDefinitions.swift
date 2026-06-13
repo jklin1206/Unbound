@@ -558,19 +558,202 @@ enum OverallRankTrialDefinitions {
         ]
     }
 
-    private static func towerStations(loadout: TrialLoadout) -> [TrialStation] {
-        [
-            engineStation("tower-floor-01", title: "Floor 1 Engine", loadout: loadout, runMeters: TrialStandards.Tower.floor1Meters),
-            station("tower-floor-02", title: "Floor 2 Lower", category: .lower, movementId: loadout == .gymHybrid ? "exercise.leg-press" : loadout == .homeKit ? "exercise.dumbbell-step-up" : "exercise.step-up", metric: .reps, minimumValue: TrialStandards.Tower.lowerReps, movementOptions: movementSet(loadout: loadout, noGym: option("exercise.step-up"), home: [option("exercise.dumbbell-step-up", requiredEquipment: [.dumbbell]), option("exercise.goblet-squat", requiredEquipment: [.dumbbell])], gym: [option("exercise.leg-press", requiredEquipment: [.machine]), option("exercise.dumbbell-step-up", requiredEquipment: [.dumbbell])])),
-            station("tower-floor-03", title: "Floor 3 Push", category: .push, movementId: loadout == .gymHybrid ? "exercise.machine-chest-press" : loadout == .homeKit ? "exercise.dumbbell-bench-press" : "exercise.pushup", metric: .reps, minimumValue: TrialStandards.Tower.pushReps, movementOptions: movementSet(loadout: loadout, noGym: option("exercise.pushup"), home: [option("exercise.dumbbell-bench-press", requiredEquipment: [.dumbbell]), option("exercise.pushup")], gym: [option("exercise.machine-chest-press", requiredEquipment: [.machine]), option("exercise.dumbbell-bench-press", requiredEquipment: [.dumbbell])])),
-            station("tower-floor-04", title: "Floor 4 Pull", category: .pull, movementId: loadout == .gymHybrid ? "exercise.cable-row-seated" : loadout == .homeKit ? "exercise.dumbbell-row" : "exercise.inverted-row", metric: .reps, minimumValue: TrialStandards.Tower.pullReps, movementOptions: movementSet(loadout: loadout, noGym: option("exercise.inverted-row"), home: [option("exercise.dumbbell-row", requiredEquipment: [.dumbbell]), option("exercise.band-row", requiredEquipment: [.band])], gym: [option("exercise.cable-row-seated", requiredEquipment: [.cable]), option("exercise.machine-row", requiredEquipment: [.machine])])),
-            station("tower-floor-05", title: "Floor 5 Hinge / Power", category: .hingePower, movementId: loadout == .gymHybrid ? "exercise.cable-pull-through" : loadout == .homeKit ? "exercise.dumbbell-romanian-deadlift" : "exercise.glute-bridge", metric: .reps, minimumValue: TrialStandards.Tower.hingeReps, movementOptions: movementSet(loadout: loadout, noGym: option("exercise.glute-bridge"), home: [option("exercise.dumbbell-romanian-deadlift", requiredEquipment: [.dumbbell]), option("exercise.kettlebell-swing", requiredEquipment: [.kettlebell])], gym: [option("exercise.cable-pull-through", requiredEquipment: [.cable]), option("exercise.dumbbell-romanian-deadlift", requiredEquipment: [.dumbbell])])),
-            station("tower-floor-06", title: "Floor 6 Carry", category: .carryCore, movementId: loadout == .noGymField ? "carry.loaded-march" : "carry.farmer-carry", metric: .distanceMeters, minimumValue: TrialStandards.Tower.carryMeters, loadPercentOfBodyweight: loadout == .noGymField ? TrialStandards.Tower.carryLoadPercentNoGym : TrialStandards.Tower.carryLoadPercentLoaded, movementOptions: movementSet(loadout: loadout, noGym: option("carry.loaded-march", "Backpack Carry", requiredEquipment: [.openSpace]), home: [option("carry.farmer-carry", requiredEquipment: [.dumbbell, .openSpace]), option("carry.suitcase-carry", requiredEquipment: [.kettlebell, .openSpace])], gym: [option("carry.farmer-carry", requiredEquipment: [.dumbbell, .openSpace])])),
-            engineStation("tower-floor-07", title: "Floor 7 Long Engine", loadout: loadout, runMeters: TrialStandards.Tower.longEngineMeters),
-            station("tower-floor-08", title: "Floor 8 Explosive", category: .explosive, movementId: loadout == .gymHybrid ? "exercise.kettlebell-swing" : loadout == .homeKit ? "exercise.kettlebell-swing" : "exercise.step-up", metric: .reps, minimumValue: TrialStandards.Tower.explosiveReps, movementOptions: movementSet(loadout: loadout, noGym: option("exercise.step-up"), home: [option("exercise.kettlebell-swing", requiredEquipment: [.kettlebell]), option("exercise.step-up")], gym: [option("exercise.kettlebell-swing", requiredEquipment: [.kettlebell]), option("exercise.step-up")])),
-            station("tower-floor-09-push", title: "Floor 9 Push Blend", category: .push, movementId: loadout == .gymHybrid ? "exercise.machine-chest-press" : "exercise.pushup", metric: .reps, minimumValue: TrialStandards.Tower.blendPushReps, movementOptions: movementSet(loadout: loadout, noGym: option("exercise.pushup"), home: [option("exercise.pushup"), option("exercise.dumbbell-bench-press", requiredEquipment: [.dumbbell])], gym: [option("exercise.machine-chest-press", requiredEquipment: [.machine]), option("exercise.dumbbell-bench-press", requiredEquipment: [.dumbbell])])),
-            station("tower-floor-09-pull", title: "Floor 9 Pull Blend", category: .pull, movementId: loadout == .gymHybrid ? "exercise.cable-row-seated" : loadout == .homeKit ? "exercise.dumbbell-row" : "exercise.inverted-row", metric: .reps, minimumValue: TrialStandards.Tower.blendPullReps, movementOptions: movementSet(loadout: loadout, noGym: option("exercise.inverted-row"), home: [option("exercise.dumbbell-row", requiredEquipment: [.dumbbell]), option("exercise.band-row", requiredEquipment: [.band])], gym: [option("exercise.cable-row-seated", requiredEquipment: [.cable]), option("exercise.machine-row", requiredEquipment: [.machine])])),
-            station("tower-floor-10", title: "Floor 10 Boss Hold", category: .carryCore, movementId: "exercise.plank", metric: .holdSeconds, minimumValue: TrialStandards.Tower.bossHoldSeconds, capSeconds: TrialStandards.Tower.bossHoldCapSeconds, movementOptions: [option("exercise.plank")])
+    private static func theAscentPullOptions(loadout: TrialLoadout, rowFloor: Int) -> [TrialMovementOption] {
+        let pullup = option("exercise.pullup", "Pull-Up", requiredEquipment: [.pullupBar])
+        let invertedRow = option("exercise.inverted-row", "Inverted Row", floorOverride: rowFloor)
+
+        switch loadout {
+        case .noGymField:
+            return [pullup, invertedRow]
+        case .homeKit:
+            return [
+                pullup,
+                invertedRow,
+                option("exercise.dumbbell-row", requiredEquipment: [.dumbbell], floorOverride: rowFloor),
+                option("exercise.band-row", requiredEquipment: [.band], floorOverride: rowFloor)
+            ]
+        case .gymHybrid:
+            return [
+                pullup,
+                option("exercise.cable-row-seated", requiredEquipment: [.cable], floorOverride: rowFloor),
+                option("exercise.machine-row", requiredEquipment: [.machine], floorOverride: rowFloor),
+                invertedRow
+            ]
+        }
+    }
+
+    private static func theAscentStations(loadout: TrialLoadout) -> [TrialStation] {
+        let carryLoadPercent = loadout == .noGymField
+            ? TrialStandards.TheAscent.carryLoadPercentNoGym
+            : TrialStandards.TheAscent.carryLoadPercentLoaded
+
+        return [
+            engineStation(
+                "ascent-floor-01",
+                title: "Floor 1 — The Path",
+                loadout: loadout,
+                runMeters: TrialStandards.TheAscent.floor1Meters
+            ),
+            station(
+                "ascent-floor-02",
+                title: "Floor 2 — The Work Floors",
+                category: .lower,
+                movementId: loadout == .gymHybrid ? "exercise.leg-press" : loadout == .homeKit ? "exercise.dumbbell-step-up" : "exercise.step-up",
+                metric: .reps,
+                minimumValue: TrialStandards.TheAscent.lowerReps,
+                movementOptions: movementSet(
+                    loadout: loadout,
+                    noGym: option("exercise.step-up"),
+                    home: [
+                        option("exercise.dumbbell-step-up", requiredEquipment: [.dumbbell]),
+                        option("exercise.goblet-squat", requiredEquipment: [.dumbbell])
+                    ],
+                    gym: [
+                        option("exercise.leg-press", requiredEquipment: [.machine]),
+                        option("exercise.dumbbell-step-up", requiredEquipment: [.dumbbell])
+                    ]
+                )
+            ),
+            station(
+                "ascent-floor-03",
+                title: "Floor 3 — The Work Floors",
+                category: .push,
+                movementId: loadout == .gymHybrid ? "exercise.machine-chest-press" : loadout == .homeKit ? "exercise.dumbbell-bench-press" : "exercise.pushup",
+                metric: .reps,
+                minimumValue: TrialStandards.TheAscent.pushReps,
+                movementOptions: movementSet(
+                    loadout: loadout,
+                    noGym: option("exercise.pushup"),
+                    home: [
+                        option("exercise.dumbbell-bench-press", requiredEquipment: [.dumbbell]),
+                        option("exercise.pushup")
+                    ],
+                    gym: [
+                        option("exercise.machine-chest-press", requiredEquipment: [.machine]),
+                        option("exercise.dumbbell-bench-press", requiredEquipment: [.dumbbell])
+                    ]
+                )
+            ),
+            station(
+                "ascent-floor-04",
+                title: "Floor 4 — The Work Floors",
+                category: .pull,
+                movementId: "exercise.pullup",
+                displayName: "Pull-Up",
+                metric: .reps,
+                minimumValue: TrialStandards.TheAscent.pullUpReps,
+                movementOptions: theAscentPullOptions(
+                    loadout: loadout,
+                    rowFloor: TrialStandards.TheAscent.rowFallbackReps
+                )
+            ),
+            station(
+                "ascent-floor-05",
+                title: "Floor 5 — The Work Floors",
+                category: .hingePower,
+                movementId: loadout == .gymHybrid ? "exercise.cable-pull-through" : loadout == .homeKit ? "exercise.dumbbell-romanian-deadlift" : "exercise.glute-bridge",
+                metric: .reps,
+                minimumValue: TrialStandards.TheAscent.hingeReps,
+                movementOptions: movementSet(
+                    loadout: loadout,
+                    noGym: option("exercise.glute-bridge"),
+                    home: [
+                        option("exercise.dumbbell-romanian-deadlift", requiredEquipment: [.dumbbell]),
+                        option("exercise.kettlebell-swing", requiredEquipment: [.kettlebell])
+                    ],
+                    gym: [
+                        option("exercise.cable-pull-through", requiredEquipment: [.cable]),
+                        option("exercise.dumbbell-romanian-deadlift", requiredEquipment: [.dumbbell])
+                    ]
+                )
+            ),
+            station(
+                "ascent-floor-06",
+                title: "Floor 6 — The Work Floors",
+                category: .carryCore,
+                movementId: loadout == .noGymField ? "carry.loaded-march" : "carry.farmer-carry",
+                metric: .distanceMeters,
+                minimumValue: TrialStandards.TheAscent.carryMeters,
+                loadPercentOfBodyweight: carryLoadPercent,
+                movementOptions: movementSet(
+                    loadout: loadout,
+                    noGym: option("carry.loaded-march", "Backpack Carry", requiredEquipment: [.openSpace]),
+                    home: [
+                        option("carry.farmer-carry", requiredEquipment: [.dumbbell, .openSpace]),
+                        option("carry.suitcase-carry", requiredEquipment: [.kettlebell, .openSpace])
+                    ],
+                    gym: [option("carry.farmer-carry", requiredEquipment: [.dumbbell, .openSpace])]
+                )
+            ),
+            engineStation(
+                "ascent-floor-07",
+                title: "Floor 7 — The Cloudline",
+                loadout: loadout,
+                runMeters: TrialStandards.TheAscent.longEngineMeters
+            ),
+            station(
+                "ascent-floor-08",
+                title: "Floor 8 — Thin Air",
+                category: .explosive,
+                movementId: loadout == .gymHybrid ? "exercise.kettlebell-swing" : loadout == .homeKit ? "exercise.kettlebell-swing" : "exercise.step-up",
+                metric: .reps,
+                minimumValue: TrialStandards.TheAscent.explosiveReps,
+                movementOptions: movementSet(
+                    loadout: loadout,
+                    noGym: option("exercise.step-up"),
+                    home: [
+                        option("exercise.kettlebell-swing", requiredEquipment: [.kettlebell]),
+                        option("exercise.step-up")
+                    ],
+                    gym: [
+                        option("exercise.kettlebell-swing", requiredEquipment: [.kettlebell]),
+                        option("exercise.step-up")
+                    ]
+                )
+            ),
+            station(
+                "ascent-floor-09-push",
+                title: "Floor 9 — Thin Air",
+                category: .push,
+                movementId: loadout == .gymHybrid ? "exercise.machine-chest-press" : "exercise.pushup",
+                metric: .reps,
+                minimumValue: TrialStandards.TheAscent.blendPushReps,
+                movementOptions: movementSet(
+                    loadout: loadout,
+                    noGym: option("exercise.pushup"),
+                    home: [
+                        option("exercise.pushup"),
+                        option("exercise.dumbbell-bench-press", requiredEquipment: [.dumbbell])
+                    ],
+                    gym: [
+                        option("exercise.machine-chest-press", requiredEquipment: [.machine]),
+                        option("exercise.dumbbell-bench-press", requiredEquipment: [.dumbbell])
+                    ]
+                )
+            ),
+            station(
+                "ascent-floor-09-pull",
+                title: "Floor 9 — Thin Air",
+                category: .pull,
+                movementId: "exercise.pullup",
+                displayName: "Pull-Up",
+                metric: .reps,
+                minimumValue: TrialStandards.TheAscent.blendPullUpReps,
+                movementOptions: theAscentPullOptions(
+                    loadout: loadout,
+                    rowFloor: TrialStandards.TheAscent.blendRowFallbackReps
+                )
+            ),
+            station(
+                "ascent-floor-10",
+                title: "Floor 10 — The Summit Gate",
+                category: .carryCore,
+                movementId: "exercise.plank",
+                metric: .holdSeconds,
+                minimumValue: TrialStandards.TheAscent.bossHoldSeconds,
+                capSeconds: TrialStandards.TheAscent.bossHoldCapSeconds,
+                movementOptions: [option("exercise.plank")]
+            )
         ]
     }
 
@@ -683,20 +866,23 @@ enum OverallRankTrialDefinitions {
         ]
     )
 
-    static let gauntlet = definition(
-        id: "overall-rank-trial-master-gauntlet",
+    static let theAscent = definition(
+        id: "gate-05-the-ascent",
         targetRank: .master,
-        displayName: "The Tower",
+        displayName: "The Ascent",
         subtitle: "Veteran to Master rank gate",
         estimatedMinutes: 50,
         format: .theAscent,
         minOverallLevel: 40,
         loadoutVariants: loadoutVariants(
-            noGym: towerStations(loadout: .noGymField),
-            home: towerStations(loadout: .homeKit),
-            gym: towerStations(loadout: .gymHybrid)
+            noGym: theAscentStations(loadout: .noGymField),
+            home: theAscentStations(loadout: .homeKit),
+            gym: theAscentStations(loadout: .gymHybrid)
         ),
-        legacyIds: ["overall-rank-trial-veteran-gauntlet"]
+        legacyIds: [
+            "overall-rank-trial-master-gauntlet",
+            "overall-rank-trial-veteran-gauntlet"
+        ]
     )
 
     static let crucible = definition(
@@ -750,7 +936,7 @@ enum OverallRankTrialDefinitions {
         theCount,
         theForging,
         deckOfProof,
-        gauntlet,
+        theAscent,
         crucible,
         threshold,
         ascension
@@ -774,7 +960,7 @@ enum OverallRankTrialDefinitions {
         case .forged:
             return deckOfProof
         case .veteran:
-            return gauntlet
+            return theAscent
         case .master:
             return crucible
         case .vessel:
