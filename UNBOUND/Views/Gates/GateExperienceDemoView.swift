@@ -33,7 +33,8 @@ struct GateExperienceDemoView: View {
     var body: some View {
         ZStack(alignment: .bottom) {
             stageContent.id("\(format.rawValue)-\(stage.rawValue)")
-            if stage != .flow { controls }   // flow drives itself via the real CTAs
+            // Hide the demo controls during full-screen cinematics so layout reads true.
+            if stage != .flow && stage != .crossing { controls }
         }
         .accessibilityIdentifier("gateExperienceDemo")
     }
