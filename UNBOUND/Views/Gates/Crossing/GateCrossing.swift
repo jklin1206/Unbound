@@ -11,8 +11,8 @@ struct GateCrossing: Identifiable, Equatable, Sendable {
     var id: RankTrialFormat { world.format }
     var tier: CrossingTier { CrossingTier.forOrder(world.order) }
 
-    /// "FORGED." — the rank, spoken as arrival.
-    var investitureTitle: String { world.destinationRank.displayName.uppercased() + "." }
+    /// "FORGED" — the rank, spoken as arrival.
+    var investitureTitle: String { world.destinationRank.displayName.uppercased() }
 
     /// Color surface — all derive from the destination rank (Color Design Check §1).
     var tint: Color { world.tint }          // foreground-safe (rewardTextTint)

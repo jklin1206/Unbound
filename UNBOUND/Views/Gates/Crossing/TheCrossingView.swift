@@ -98,22 +98,29 @@ struct TheCrossingView: View {
 
             if beat == .arrival || beat == .investiture || beat == .spoils {
                 Text("RANK GATE \(crossing.world.numeral)")
-                    .font(Font.unbound.captionS.weight(.heavy)).tracking(3)
-                    .foregroundStyle(Color.unbound.textPrimary)
+                    .font(Font.unbound.captionS.weight(.heavy)).tracking(4)
+                    .foregroundStyle(crossing.tint)
                     .shadow(color: .black.opacity(0.85), radius: 4, y: 1)
             }
 
             if (beat == .investiture || beat == .spoils) && titleShown {
-                Text(crossing.investitureTitle)
-                    .font(.system(size: 52, weight: .black)).tracking(2)
-                    .foregroundStyle(Color.unbound.textPrimary)
-                    .minimumScaleFactor(0.5).lineLimit(1)
-                    .shadow(color: .black.opacity(0.6), radius: 8, y: 2)
-                    .shadow(color: crossing.fillTint.opacity(0.55), radius: 24)
-                    .transition(reduceMotion ? .opacity : .scale.combined(with: .opacity))
+                VStack(spacing: 18) {
+                    Image(crossing.world.destinationRank.assetName)
+                        .resizable().scaledToFit()
+                        .frame(width: 168, height: 168)
+                        .shadow(color: crossing.fillTint.opacity(0.85), radius: 34)
+                        .shadow(color: crossing.fillTint.opacity(0.45), radius: 70)
+                    Text(crossing.investitureTitle)
+                        .font(.system(size: 52, weight: .black)).tracking(5)
+                        .foregroundStyle(Color.unbound.textPrimary)
+                        .minimumScaleFactor(0.5).lineLimit(1)
+                        .shadow(color: .black.opacity(0.55), radius: 8, y: 2)
+                        .shadow(color: crossing.fillTint.opacity(0.7), radius: 32)
+                }
+                .transition(reduceMotion ? .opacity : .scale.combined(with: .opacity))
             }
 
-            if beat == .arrival || beat == .investiture {
+            if beat == .arrival {
                 Text(crossing.dwellLine)
                     .font(Font.unbound.titleS.weight(.semibold)).foregroundStyle(Color.unbound.textPrimary)
                     .multilineTextAlignment(.center)
@@ -172,7 +179,7 @@ struct TheCrossingView: View {
 
         withAnimation(.easeOut(duration: 0.4)) { beat = .walk }
         if !reduceMotion, clipURL != nil {
-            await sleep(3.1)   // the Seedance walk clip (~3s) plays, then we settle
+            await sleep(4.1)   // the Seedance walk clip (~4s) plays, then we settle
         } else if crossing.tier == .finale {
             await runMontage()
         } else if !reduceMotion {

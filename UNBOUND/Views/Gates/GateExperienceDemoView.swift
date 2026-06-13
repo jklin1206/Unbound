@@ -10,7 +10,8 @@ struct GateExperienceDemoView: View {
         case sealed, open, hall, active, beat, verdictPass, card, verdictFail, records, crossing, flow
     }
     /// The end-to-end user journey, simulated by tapping the real CTAs.
-    enum FlowStep { case discovery, hall, active, verdict, crossing }
+    /// Pass goes straight into the animation — no separate "verdict" screen.
+    enum FlowStep { case discovery, hall, active, crossing }
 
     @State private var format: RankTrialFormat = Self.initialFormat()
     @State private var stage: Stage = Self.initialStage()
@@ -94,16 +95,13 @@ struct GateExperienceDemoView: View {
                            stationsCleared: activeIndex, currentStationTitle: activeStationTitle) {
                 VStack(spacing: 16) {
                     sampleSurface
-                    Button { advance(.verdict) } label: {
+                    Button { advance(.crossing) } label: {
                         Text("COMPLETE TRIAL").font(Font.unbound.captionS.weight(.heavy)).tracking(1.5)
                             .foregroundStyle(Color.unbound.bg).frame(maxWidth: .infinity).padding(.vertical, 14)
                             .background(Capsule().fill(world.fillTint))
                     }.buttonStyle(.plain)
                 }
             }
-        case .verdict:
-            GateVerdictView(evaluation: fixtureEvaluation(passed: true), world: world,
-                            onMintedCardTapped: { advance(.crossing) })
         case .crossing:
             TheCrossingView(crossing: GateCrossingCatalog.crossing(for: format),
                             dateText: "Jun 13, 2026",
