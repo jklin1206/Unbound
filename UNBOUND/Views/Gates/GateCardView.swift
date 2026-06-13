@@ -43,6 +43,7 @@ struct GateCardView: View {
                 }
             }
             .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .frame(height: 220)
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))

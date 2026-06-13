@@ -30,15 +30,14 @@ struct GateHallView: View {
     }
 
     private var titleCard: some View {
-        ZStack {
-            Image(world.bannerAssetName).resizable().scaledToFill()
-                .frame(height: 320).clipped()
-                .overlay(RadialGradient(colors: [Color.black.opacity(0.1), Color.black.opacity(0.72)],
-                    center: .center, startRadius: 40, endRadius: 260))
-            GateEntryCeremony(world: world, onComplete: { ceremonyComplete = true })
-        }
-        .frame(height: 320)
-        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        Color.clear
+            .frame(height: 320)
+            .overlay(Image(world.bannerAssetName).resizable().scaledToFill())
+            .clipped()
+            .overlay(RadialGradient(colors: [Color.black.opacity(0.1), Color.black.opacity(0.72)],
+                center: .center, startRadius: 40, endRadius: 260))
+            .overlay(GateEntryCeremony(world: world, onComplete: { ceremonyComplete = true }))
+            .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
     }
 
     private var loadoutPicker: some View {
