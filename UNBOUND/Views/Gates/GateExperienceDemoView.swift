@@ -80,8 +80,12 @@ struct GateExperienceDemoView: View {
     @ViewBuilder private var flowContent: some View {
         switch flowStep {
         case .discovery:
-            scrolled { NextGateCard(readiness: fixtureReadiness(open: true), world: world,
-                                    onBegin: { advance(.hall) }) }
+            ZStack {
+                Color.unbound.bg.ignoresSafeArea()
+                NextGateCard(readiness: fixtureReadiness(open: true), world: world,
+                             onBegin: { advance(.hall) })
+                    .padding(.horizontal, 18)
+            }
         case .hall:
             GateHallView(world: world, resolvedTrial: fixtureResolved(),
                          latestAttempt: nil, loadout: .homeKit, onBegin: { _ in advance(.active) })

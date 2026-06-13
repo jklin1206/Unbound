@@ -12,35 +12,70 @@ struct GateVerdictView: View {
     private var model: GateVerdictModel { .init(evaluation: evaluation, world: world) }
 
     var body: some View {
-        ZStack {
+        ZStack(alignment: .bottom) {
             Color.unbound.bg.ignoresSafeArea()
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    headline
-                    accounting
-                    if model.outcome == .failed {
-                        standingBetween
-                        rematchButton
-                    } else {
-                        mintedCardSlot
+            GeometryReader { proxy in
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 18) {
+                        headline
+                        accounting
+                        if model.outcome == .failed {
+                            standingBetween
+                            Spacer(minLength: 0)
+                        } else {
+                            Spacer(minLength: 16)
+                            mintedCardSlot
+                            Spacer(minLength: 16)
+                        }
                     }
+                    .padding(18)
+                    .padding(.bottom, 108)   // clearance for the pinned CTA
+                    .frame(minHeight: proxy.size.height, alignment: .top)
                 }
-                .padding(18).padding(.bottom, 60)
             }
+            ctaBar
         }
         .accessibilityIdentifier("gate-verdict-view")
     }
 
     private var headline: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(model.outcome == .passed ? "THE GATE IS ANSWERED." : "THE GATE HOLDS.")
-                .font(Font.unbound.titleM.weight(.black))
-                .foregroundStyle(model.outcome == .passed ? world.tint : Color.unbound.textPrimary)
+            Text(model.outcome == .passed ? "THE GATE IS ANSWERED" : "THE GATE HOLDS")
+                .font(Font.unbound.titleL.weight(.black))
+                .foregroundStyle(Color.unbound.textPrimary)
             Text(model.outcome == .passed
-                 ? "\(world.trialName) cleared."
+                 ? "\(world.trialName.uppercased()) — CLEARED"
                  : "The gate isn't going anywhere.")
-                .font(Font.unbound.bodyMStrong).foregroundStyle(Color.unbound.textSecondary)
+                .font(model.outcome == .passed ? Font.unbound.captionS.weight(.heavy) : Font.unbound.bodyMStrong)
+                .tracking(model.outcome == .passed ? 2 : 0)
+                .foregroundStyle(model.outcome == .passed ? world.tint : Color.unbound.textSecondary)
         }
+    }
+
+    private var ctaBar: some View {
+        Button {
+            if model.outcome == .passed { UnboundHaptics.success(); onMintedCardTapped?() }
+            else { onRematch?() }
+        } label: {
+            HStack(spacing: 8) {
+                Text(model.outcome == .passed ? "ENTER THE CROSSING" : "ENTER AGAIN")
+                if model.outcome == .passed {
+                    Image(systemName: "arrow.right").font(.system(size: 14, weight: .heavy))
+                }
+            }
+            .font(Font.unbound.titleS.weight(.heavy)).tracking(1.5)
+            .foregroundStyle(Color.unbound.bg)
+            .frame(maxWidth: .infinity).padding(.vertical, 16)
+            .background(Capsule().fill(world.fillTint))
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal, 18).padding(.bottom, 28)
+        .background(
+            LinearGradient(colors: [Color.unbound.bg.opacity(0), Color.unbound.bg, Color.unbound.bg],
+                           startPoint: .top, endPoint: .bottom)
+                .ignoresSafeArea().allowsHitTesting(false)
+        )
+        .accessibilityIdentifier("verdict-cta")
     }
 
     private var accounting: some View {
@@ -71,14 +106,6 @@ struct GateVerdictView: View {
                     .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(world.tint.opacity(0.1)))
             }
         }
-    }
-
-    private var rematchButton: some View {
-        Button { onRematch?() } label: {
-            Text("ENTER AGAIN").font(Font.unbound.captionS.weight(.heavy)).tracking(1.6)
-                .foregroundStyle(Color.unbound.bg).frame(maxWidth: .infinity).padding(.vertical, 14)
-                .background(Capsule().fill(world.fillTint))
-        }.buttonStyle(.plain)
     }
 
     private var mintedCardSlot: some View {
