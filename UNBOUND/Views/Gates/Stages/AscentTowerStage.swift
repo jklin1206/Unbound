@@ -66,11 +66,11 @@ struct AscentTowerStage: View {
                     .font(Font.unbound.captionS.weight(.heavy)).tracking(2)
                     .foregroundStyle(world.tint)
                 Spacer(minLength: 0)
-                Text(atSummit ? "SUMMIT" : "\(climbed)/\(stationCount) CLIMBED")
+                Text(atSummit ? L10n.string(.gateAscentChipDone, defaultValue: "SUMMIT") : L10n.format(.gateAscentChipProgress, defaultValue: "%d/%d CLIMBED", climbed, stationCount))
                     .font(Font.unbound.monoS.weight(.bold))
                     .foregroundStyle(atSummit ? world.fillTint : Color.unbound.textSecondary)
             }
-            Text(atSummit ? "The temple opens." : currentStationTitle)
+            Text(atSummit ? L10n.string(.gateAscentTitleDone, defaultValue: "The temple opens.") : currentStationTitle)
                 .font(Font.unbound.titleM).foregroundStyle(Color.unbound.textPrimary)
                 .lineLimit(1).minimumScaleFactor(0.7)
                 .shadow(color: .black.opacity(0.8), radius: 7, y: 1)

@@ -57,11 +57,11 @@ struct GoldenStairStage: View {
                     .font(Font.unbound.captionS.weight(.heavy)).tracking(2)
                     .foregroundStyle(world.tint)
                 Spacer(minLength: 0)
-                Text(atTop ? "OPEN" : "\(climbed)/\(stationCount) CLIMBED")
+                Text(atTop ? L10n.string(.gateLandingsChipDone, defaultValue: "OPEN") : L10n.format(.gateLandingsChipProgress, defaultValue: "%d/%d CLIMBED", climbed, stationCount))
                     .font(Font.unbound.monoS.weight(.bold))
                     .foregroundStyle(atTop ? world.fillTint : Color.unbound.textSecondary)
             }
-            Text(atTop ? "The last gate opens." : currentStationTitle)
+            Text(atTop ? L10n.string(.gateLandingsTitleDone, defaultValue: "The last gate opens.") : currentStationTitle)
                 .font(Font.unbound.titleM).foregroundStyle(Color.unbound.textPrimary)
                 .lineLimit(1).minimumScaleFactor(0.7)
                 .shadow(color: .black.opacity(0.8), radius: 7, y: 1)

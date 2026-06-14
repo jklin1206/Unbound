@@ -149,11 +149,11 @@ struct LanternCourtyardStage: View {
                     .font(Font.unbound.captionS.weight(.heavy)).tracking(2)
                     .foregroundStyle(world.tint)
                 Spacer(minLength: 0)
-                Text(allLit ? "COURTYARD LIT" : "\(litCount)/\(stationCount) LIT")
+                Text(allLit ? L10n.string(.gateLanternsChipDone, defaultValue: "COURTYARD LIT") : L10n.format(.gateLanternsChipProgress, defaultValue: "%d/%d LIT", litCount, stationCount))
                     .font(Font.unbound.monoS.weight(.bold))
                     .foregroundStyle(allLit ? Color.unbound.emberGlow : Color.unbound.textSecondary)
             }
-            Text(allLit ? "The courtyard is lit." : currentStationTitle)
+            Text(allLit ? L10n.string(.gateLanternsTitleDone, defaultValue: "The courtyard is lit.") : currentStationTitle)
                 .font(Font.unbound.titleM)
                 .foregroundStyle(Color.unbound.textPrimary)
                 .lineLimit(1).minimumScaleFactor(0.7)

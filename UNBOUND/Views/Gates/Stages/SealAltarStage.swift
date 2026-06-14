@@ -57,11 +57,11 @@ struct SealAltarStage: View {
                     .font(Font.unbound.captionS.weight(.heavy)).tracking(2)
                     .foregroundStyle(world.tint)
                 Spacer(minLength: 0)
-                Text(allBroken ? "SEALED" : "\(brokenCount)/\(stationCount) BROKEN")
+                Text(allBroken ? L10n.string(.gateSealsChipDone, defaultValue: "SEALED") : L10n.format(.gateSealsChipProgress, defaultValue: "%d/%d BROKEN", brokenCount, stationCount))
                     .font(Font.unbound.monoS.weight(.bold))
                     .foregroundStyle(allBroken ? world.fillTint : Color.unbound.textSecondary)
             }
-            Text(allBroken ? "The vessel is filled." : currentStationTitle)
+            Text(allBroken ? L10n.string(.gateSealsTitleDone, defaultValue: "The vessel is filled.") : currentStationTitle)
                 .font(Font.unbound.titleM).foregroundStyle(Color.unbound.textPrimary)
                 .lineLimit(1).minimumScaleFactor(0.7)
                 .shadow(color: .black.opacity(0.8), radius: 7, y: 1)

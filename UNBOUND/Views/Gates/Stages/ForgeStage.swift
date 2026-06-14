@@ -173,11 +173,11 @@ struct ForgeStage: View {
                     .font(Font.unbound.captionS.weight(.heavy)).tracking(2)
                     .foregroundStyle(world.tint)
                 Spacer(minLength: 0)
-                Text(quenched ? "QUENCHED" : "\(litCount)/\(stationCount) STRUCK")
+                Text(quenched ? L10n.string(.gateForgeChipDone, defaultValue: "QUENCHED") : L10n.format(.gateForgeChipProgress, defaultValue: "%d/%d STRUCK", litCount, stationCount))
                     .font(Font.unbound.monoS.weight(.bold))
                     .foregroundStyle(quenched ? world.fillTint : Color.unbound.textSecondary)
             }
-            Text(quenched ? "The steel holds." : currentStationTitle)
+            Text(quenched ? L10n.string(.gateForgeTitleDone, defaultValue: "The steel holds.") : currentStationTitle)
                 .font(Font.unbound.titleM)
                 .foregroundStyle(Color.unbound.textPrimary)
                 .lineLimit(1).minimumScaleFactor(0.7)

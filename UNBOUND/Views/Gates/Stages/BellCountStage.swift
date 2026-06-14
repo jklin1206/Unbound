@@ -77,11 +77,11 @@ struct BellCountStage: View {
                     .font(Font.unbound.captionS.weight(.heavy)).tracking(2)
                     .foregroundStyle(world.tint)
                 Spacer(minLength: 0)
-                Text(allCounted ? "KEPT" : "\(counted)/\(stationCount) COUNTED")
+                Text(allCounted ? L10n.string(.gateBellChipDone, defaultValue: "KEPT") : L10n.format(.gateBellChipProgress, defaultValue: "%d/%d COUNTED", counted, stationCount))
                     .font(Font.unbound.monoS.weight(.bold))
                     .foregroundStyle(allCounted ? world.fillTint : Color.unbound.textSecondary)
             }
-            Text(allCounted ? "The count is kept." : currentStationTitle)
+            Text(allCounted ? L10n.string(.gateBellTitleDone, defaultValue: "The count is kept.") : currentStationTitle)
                 .font(Font.unbound.titleM).foregroundStyle(Color.unbound.textPrimary)
                 .lineLimit(1).minimumScaleFactor(0.7)
                 .shadow(color: .black.opacity(0.8), radius: 7, y: 1)
