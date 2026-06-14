@@ -52,6 +52,7 @@ struct ProfileView: View {
     @State private var overallRankTrialReadiness: OverallRankTrialReadiness?
     @State private var activeOverallRankTrialDraft: TrainingSessionDraft?
     @State private var gateHallWorld: GateWorld?
+    @State private var showTrialRecords = false
     @State private var profileEquipment: Set<MovementEquipment> = [.bodyweight, .openSpace]
     @State private var profileHeaderWidth: CGFloat = UIScreen.main.bounds.width
 
@@ -171,13 +172,18 @@ struct ProfileView: View {
         .sheet(isPresented: $showRankInfo) {
             RankInfoSheet(
                 currentTier: aggregateTier,
-                readiness: overallRankTrialReadiness
-            ) {
-                showRankInfo = false
-                if let definition = overallRankTrialReadiness?.definition {
-                    gateHallWorld = GateWorldCatalog.world(for: definition.format)
+                readiness: overallRankTrialReadiness,
+                onOpenGate: {
+                    showRankInfo = false
+                    if let definition = overallRankTrialReadiness?.definition {
+                        gateHallWorld = GateWorldCatalog.world(for: definition.format)
+                    }
+                },
+                onOpenRecords: {
+                    showRankInfo = false
+                    showTrialRecords = true
                 }
-            }
+            )
                 .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
         }
@@ -197,6 +203,20 @@ struct ProfileView: View {
                 onClose: { gateHallWorld = nil }
             )
             .environmentObject(services)
+        }
+        .fullScreenCover(isPresented: $showTrialRecords) {
+            ZStack(alignment: .topTrailing) {
+                TrialRecordsShelf(progress: OverallRankTrialStore.shared.load(userId: services.auth.currentUserId ?? ""))
+                Button { showTrialRecords = false } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(Color.unbound.textSecondary)
+                        .frame(width: 32, height: 32)
+                        .background(Circle().fill(Color.unbound.surfaceElevated))
+                }
+                .buttonStyle(.plain)
+                .padding(.top, 16).padding(.trailing, 16)
+            }
         }
         .fullScreenCover(isPresented: $showCamera) {
             CameraPicker { image in

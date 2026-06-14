@@ -36,6 +36,19 @@ struct ActiveWorkoutContainerView: View {
     @State private var pendingGateDefiningNumber: String? = nil
     @State private var stashedGateRewardSummary: WorkoutRewardSequenceSummary? = nil
 
+    /// Station-clear beat (spec §6.5): the world floods full-bleed when a rank-trial
+    /// station's first working set is logged, then recedes (`GateBeatOverlay`).
+    @State private var beatStationTitle: String? = nil
+
+    /// Fail verdict (spec §6.7): "THE GATE HOLDS" → ENTER AGAIN on a failed gate.
+    @State private var pendingGateVerdict: GateVerdictContext? = nil
+
+    private struct GateVerdictContext: Identifiable {
+        let id = UUID()
+        let evaluation: OverallRankTrialEvaluation
+        let world: GateWorld
+    }
+
     // Grid cell editor — shared bottom-docked keypad module (no modal). The model
     // owns the typed buffer + pristine state, so merely opening a cell never
     // commits the suggested value (the ✓ ring does that).
@@ -177,6 +190,20 @@ struct ActiveWorkoutContainerView: View {
             await services.squadPresence.markInWorkout(userId: uid, squadId: squadId)
         }
         .interactiveDismissDisabled(true)
+        .onChange(of: rankTrialClearedStations) { previous, current in
+            // A station just cleared — flood its world beat. Deck has its own flow.
+            guard isRankTrial, !isDeckTrial, current > previous else { return }
+            beatStationTitle = session.exercises.last { !$0.skipped && $0.hasLoggedRankTrialWorkingSet }?.name
+        }
+        .overlay {
+            if let beatStationTitle, let gateWorld {
+                GateBeatOverlay(world: gateWorld, stationTitle: beatStationTitle) {
+                    self.beatStationTitle = nil
+                }
+                .ignoresSafeArea()
+                .transition(.opacity)
+            }
+        }
         // Always-available escape hatch — the draft is autosaved on every
         // mutation, so leaving keeps the workout resumable. Without this the
         // user is trapped whenever saveLog fails.
@@ -278,6 +305,17 @@ struct ActiveWorkoutContainerView: View {
                     } else {
                         finishDismiss()
                     }
+                }
+            )
+            .interactiveDismissDisabled(true)
+        }
+        .fullScreenCover(item: $pendingGateVerdict) { context in
+            GateVerdictView(
+                evaluation: context.evaluation,
+                world: context.world,
+                onRematch: {
+                    pendingGateVerdict = nil
+                    finishDismiss()
                 }
             )
             .interactiveDismissDisabled(true)
@@ -476,6 +514,15 @@ struct ActiveWorkoutContainerView: View {
 
     private var isRankTrial: Bool {
         rankTrialDefinition != nil
+    }
+
+    private var gateWorld: GateWorld? {
+        rankTrialDefinition.map { GateWorldCatalog.world(for: $0.format) }
+    }
+
+    /// How many rank-trial stations have a logged working set — drives the beat.
+    private var rankTrialClearedStations: Int {
+        session.rankTrialLoggedStationCount { $0.hasLoggedRankTrialWorkingSet }
     }
 
     private var isDeckTrial: Bool {
@@ -851,6 +898,12 @@ struct ActiveWorkoutContainerView: View {
                 pendingGateDefiningNumber = gateDefiningNumber(rt.evaluation)
                 stashedGateRewardSummary = gateRewardTail(from: summary)
                 pendingGateCrossing = GateCrossingCatalog.crossing(for: rt.definition.format)
+            } else if let rt = rankTrialResult, !rt.evaluation.passed {
+                // Gate failed — "THE GATE HOLDS" verdict + ENTER AGAIN instead of the
+                // generic reward sheet. XP for the work done is already banked.
+                pendingGateVerdict = GateVerdictContext(
+                    evaluation: rt.evaluation,
+                    world: GateWorldCatalog.world(for: rt.definition.format))
             } else if hasReward {
                 rewardSequence = summary
             } else {

@@ -316,6 +316,7 @@ struct RankInfoSheet: View {
     let currentTier: SkillTier
     let readiness: OverallRankTrialReadiness?
     let onOpenGate: () -> Void
+    let onOpenRecords: () -> Void
 
     @Environment(\.dismiss) private var dismiss
 
@@ -364,6 +365,21 @@ struct RankInfoSheet: View {
                         .font(Font.unbound.bodyMStrong)
                         .foregroundStyle(Color.unbound.success)
                 }
+
+                Button { dismiss(); onOpenRecords() } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: "rectangle.stack.fill")
+                        Text("TRIAL RECORDS")
+                        Spacer()
+                        Image(systemName: "chevron.right").font(.system(size: 11, weight: .bold))
+                    }
+                    .font(Font.unbound.captionS.weight(.heavy)).tracking(1.2)
+                    .foregroundStyle(Color.unbound.textPrimary)
+                    .padding(.horizontal, 16).padding(.vertical, 14)
+                    .frame(maxWidth: .infinity)
+                    .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Color.unbound.surfaceElevated))
+                }
+                .buttonStyle(.plain)
             }
             .padding(20)
         }
