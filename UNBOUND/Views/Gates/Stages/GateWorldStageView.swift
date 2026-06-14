@@ -27,6 +27,27 @@ struct GateWorldStageView: View {
                 stationsCleared: stationsCleared,
                 currentStationTitle: currentStationTitle
             )
+        case .seals:
+            SealAltarStage(
+                world: world,
+                stationCount: stationCount,
+                stationsCleared: stationsCleared,
+                currentStationTitle: currentStationTitle
+            )
+        case .siege:
+            BreachGateStage(
+                world: world,
+                stationCount: stationCount,
+                stationsCleared: stationsCleared,
+                currentStationTitle: currentStationTitle
+            )
+        case .landings:
+            GoldenStairStage(
+                world: world,
+                stationCount: stationCount,
+                stationsCleared: stationsCleared,
+                currentStationTitle: currentStationTitle
+            )
         default:
             // Not-yet-bespoke gates keep the banner header (Plan 4 fills these in).
             GateActiveHeaderView(

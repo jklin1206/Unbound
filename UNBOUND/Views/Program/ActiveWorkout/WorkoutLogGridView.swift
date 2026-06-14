@@ -134,15 +134,15 @@ struct WorkoutLogGridView: View {
         case .theAscent:
             towerAscentFlow
         case .sevenSeals:
-            BossRushTrialActiveView(definition: definition, session: session) { index, exercise in
+            GateTrialActiveView(definition: definition, session: session) { index, exercise in
                 exerciseCard(ei: index, ex: exercise, isCurrent: index == session.currentExerciseIndex)
             }
         case .theThreshold:
-            ThresholdRaidTrialActiveView(definition: definition, session: session) { index, exercise in
+            GateTrialActiveView(definition: definition, session: session) { index, exercise in
                 exerciseCard(ei: index, ex: exercise, isCurrent: index == session.currentExerciseIndex)
             }
         case .theLastGate:
-            FinalExamTrialActiveView(definition: definition, session: session) { index, exercise in
+            GateTrialActiveView(definition: definition, session: session) { index, exercise in
                 exerciseCard(ei: index, ex: exercise, isCurrent: index == session.currentExerciseIndex)
             }
         }

@@ -154,15 +154,15 @@ struct RankTrialDemoRecorderView: View {
                 RankTrialDemoStationCard(index: index, exercise: exercise, isCurrent: index == context.session.currentExerciseIndex, tint: tint)
             }
         case .sevenSeals:
-            BossRushTrialActiveView(definition: context.definition, session: context.session) { index, exercise in
+            GateTrialActiveView(definition: context.definition, session: context.session) { index, exercise in
                 RankTrialDemoStationCard(index: index, exercise: exercise, isCurrent: index == context.session.currentExerciseIndex, tint: tint)
             }
         case .theThreshold:
-            ThresholdRaidTrialActiveView(definition: context.definition, session: context.session) { index, exercise in
+            GateTrialActiveView(definition: context.definition, session: context.session) { index, exercise in
                 RankTrialDemoStationCard(index: index, exercise: exercise, isCurrent: index == context.session.currentExerciseIndex, tint: tint)
             }
         case .theLastGate:
-            FinalExamTrialActiveView(definition: context.definition, session: context.session) { index, exercise in
+            GateTrialActiveView(definition: context.definition, session: context.session) { index, exercise in
                 RankTrialDemoStationCard(index: index, exercise: exercise, isCurrent: index == context.session.currentExerciseIndex, tint: tint)
             }
         }
