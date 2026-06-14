@@ -291,6 +291,31 @@ struct ActiveWorkoutContainerView: View {
         return "\(passed)/\(scored.count)"
     }
 
+    /// The Crossing IS the rank-up announcement, so the chained reward tail drops
+    /// the redundant rank-trial receipt beat and keeps only the rest of the spoils
+    /// (XP / badges / attributes / progression). Returns nil when nothing but the
+    /// rank-up itself remains, so the Crossing dismisses straight to done.
+    private func gateRewardTail(from summary: WorkoutRewardSequenceSummary) -> WorkoutRewardSequenceSummary? {
+        var tail = summary
+        tail.rankTrialCallout = nil
+        let hasTailReward = totalLoggedWorkingSets > 0
+            || tail.progression?.hasContent == true
+            || tail.weeklyVowCallout != nil
+            || !tail.badges.isEmpty
+            || tail.xp.total > 0
+        return hasTailReward ? tail : nil
+    }
+
+    #if DEBUG
+    /// DEBUG-only: forces the gate-pass branch in `complete()` so The Crossing →
+    /// reward chain can be verified on the real container. UNBOUND_FORCE_GATE_PASS=<1…8>.
+    static func forcedGateCrossing() -> GateCrossing? {
+        guard let raw = ProcessInfo.processInfo.environment["UNBOUND_FORCE_GATE_PASS"],
+              let n = Int(raw), (1...8).contains(n) else { return nil }
+        return GateCrossingCatalog.crossing(for: RankTrialFormat.allCases[n - 1])
+    }
+    #endif
+
     // MARK: - Draft autosave
 
     /// Single funnel for draft autosave. A failure here means kill/crash
@@ -748,6 +773,31 @@ struct ActiveWorkoutContainerView: View {
 
     private func complete() async {
         guard !saving else { return }
+        #if DEBUG
+        // Stage-A verification: force the gate-pass branch so the live wiring
+        // (The Crossing → chained reward sequence) can be seen on the REAL
+        // container without playing a full trial to a pass.
+        // Launch with UNBOUND_FORCE_GATE_PASS=<1…8> (the trial format / gate).
+        if let forced = Self.forcedGateCrossing() {
+            var demo = WorkoutRewardSequenceSummary.simpleReceipt(
+                workoutName: forced.world.trialName,
+                durationMinutes: 38,
+                workSets: 12,
+                xpTotal: 240,
+                xpLabel: "Gate cleared",
+                sourceName: "Rank Gate"
+            )
+            // A real pass carries this receipt — the gate tail must strip it so the
+            // verdict isn't re-announced after The Crossing.
+            demo.rankTrialCallout = RankTrialRewardCallout(
+                id: "debug", title: forced.world.trialName, subtitle: "Gate cleared",
+                statusLine: "4 / 4 stations", detailLine: "—", receiptLine: "Forged", passed: true)
+            pendingGateDefiningNumber = "4/4"
+            stashedGateRewardSummary = gateRewardTail(from: demo)
+            pendingGateCrossing = forced
+            return
+        }
+        #endif
         guard let uid = services.auth.currentUserId else {
             // No session — don't trap the user behind a disabled dismiss.
             dismiss()
@@ -795,10 +845,11 @@ struct ActiveWorkoutContainerView: View {
                 || summary.rankTrialCallout != nil
             saving = false
             if let rt = rankTrialResult, rt.didAdvanceRank {
-                // The Crossing IS the gate's reward moment; chain into the reward
-                // sequence afterward so XP/badges still play.
+                // The Crossing IS the gate's reward moment and rank-up announcement;
+                // chain the remaining spoils (XP/badges) afterward, minus the now-
+                // redundant rank-trial verdict beat.
                 pendingGateDefiningNumber = gateDefiningNumber(rt.evaluation)
-                stashedGateRewardSummary = hasReward ? summary : nil
+                stashedGateRewardSummary = gateRewardTail(from: summary)
                 pendingGateCrossing = GateCrossingCatalog.crossing(for: rt.definition.format)
             } else if hasReward {
                 rewardSequence = summary
