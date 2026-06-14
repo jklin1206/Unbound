@@ -48,6 +48,20 @@ struct GateWorldStageView: View {
                 stationsCleared: stationsCleared,
                 currentStationTitle: currentStationTitle
             )
+        case .bell:
+            BellCountStage(
+                world: world,
+                stationCount: stationCount,
+                stationsCleared: stationsCleared,
+                currentStationTitle: currentStationTitle
+            )
+        case .ascent:
+            AscentTowerStage(
+                world: world,
+                stationCount: stationCount,
+                stationsCleared: stationsCleared,
+                currentStationTitle: currentStationTitle
+            )
         default:
             // Not-yet-bespoke gates keep the banner header (Plan 4 fills these in).
             GateActiveHeaderView(

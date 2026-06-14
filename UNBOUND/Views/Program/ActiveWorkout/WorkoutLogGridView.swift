@@ -24,8 +24,6 @@ struct WorkoutLogGridView: View {
 
                 if isDeckTrial {
                     deckDrawFlow
-                } else if isTowerTrial {
-                    towerAscentFlow
                 } else if let rankTrialDefinition {
                     rankTrialModeFlow(for: rankTrialDefinition)
                 } else {
@@ -45,10 +43,6 @@ struct WorkoutLogGridView: View {
 
     private var isDeckTrial: Bool {
         rankTrialDefinition?.format == .deckOfProof
-    }
-
-    private var isTowerTrial: Bool {
-        rankTrialDefinition?.format == .theAscent
     }
 
     private func shouldShowSharedRankTrialHeader(for definition: OverallRankTrialDefinition) -> Bool {
@@ -106,15 +100,6 @@ struct WorkoutLogGridView: View {
     }
 
     @ViewBuilder
-    private var towerAscentFlow: some View {
-        if let definition = rankTrialDefinition {
-            TowerTrialAscentView(definition: definition, session: session) { index, exercise in
-                exerciseCard(ei: index, ex: exercise, isCurrent: index == session.currentExerciseIndex)
-            }
-        }
-    }
-
-    @ViewBuilder
     private func rankTrialModeFlow(for definition: OverallRankTrialDefinition) -> some View {
         switch definition.format {
         case .firstLight:
@@ -122,7 +107,7 @@ struct WorkoutLogGridView: View {
                 exerciseCard(ei: index, ex: exercise, isCurrent: index == session.currentExerciseIndex)
             }
         case .theCount:
-            TheCountTrialActiveView(definition: definition, session: session) { index, exercise in
+            GateTrialActiveView(definition: definition, session: session) { index, exercise in
                 exerciseCard(ei: index, ex: exercise, isCurrent: index == session.currentExerciseIndex)
             }
         case .theForging:
@@ -132,7 +117,9 @@ struct WorkoutLogGridView: View {
         case .deckOfProof:
             deckDrawFlow
         case .theAscent:
-            towerAscentFlow
+            GateTrialActiveView(definition: definition, session: session) { index, exercise in
+                exerciseCard(ei: index, ex: exercise, isCurrent: index == session.currentExerciseIndex)
+            }
         case .sevenSeals:
             GateTrialActiveView(definition: definition, session: session) { index, exercise in
                 exerciseCard(ei: index, ex: exercise, isCurrent: index == session.currentExerciseIndex)

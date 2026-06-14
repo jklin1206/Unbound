@@ -128,7 +128,7 @@ struct RankTrialDemoRecorderView: View {
                 RankTrialDemoStationCard(index: index, exercise: exercise, isCurrent: index == context.session.currentExerciseIndex, tint: tint)
             }
         case .theCount:
-            TheCountTrialActiveView(definition: context.definition, session: context.session) { index, exercise in
+            GateTrialActiveView(definition: context.definition, session: context.session) { index, exercise in
                 RankTrialDemoStationCard(index: index, exercise: exercise, isCurrent: index == context.session.currentExerciseIndex, tint: tint)
             }
         case .theForging:
@@ -150,7 +150,7 @@ struct RankTrialDemoRecorderView: View {
                 .zIndex(Double(pair.index + 1))
             }
         case .theAscent:
-            TowerTrialAscentView(definition: context.definition, session: context.session) { index, exercise in
+            GateTrialActiveView(definition: context.definition, session: context.session) { index, exercise in
                 RankTrialDemoStationCard(index: index, exercise: exercise, isCurrent: index == context.session.currentExerciseIndex, tint: tint)
             }
         case .sevenSeals:
