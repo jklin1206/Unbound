@@ -10,13 +10,18 @@ final class RankTrialLoadoutResolver {
         userId: String,
         equipment rawEquipment: Set<MovementEquipment>,
         generatedAt: Date = Date(),
-        attributeScores: AttributeProfile? = nil
+        attributeScores: AttributeProfile? = nil,
+        preferredLoadout: TrialLoadout? = nil
     ) -> RankTrialResolution {
         let equipment = normalizedEquipment(rawEquipment)
         let variants = definition.loadoutVariants.isEmpty
             ? [fallbackVariant(for: definition)]
             : definition.loadoutVariants
-        let preferred = preferredLoadouts(for: equipment)
+        // An explicit pick (the Hall loadout picker) jumps the queue; otherwise
+        // auto-rank by what the equipment best supports.
+        let autoPreferred = preferredLoadouts(for: equipment)
+        let preferred = preferredLoadout.map { picked in [picked] + autoPreferred.filter { $0 != picked } }
+            ?? autoPreferred
         let preferredVariants = preferred.compactMap { loadout in variants.first { $0.loadout == loadout } }
         let exactVariant = preferredVariants.first { variant in
             variant.requiredEquipment.isSubset(of: equipment) && stationEquipmentGaps(for: variant, equipment: equipment).isEmpty

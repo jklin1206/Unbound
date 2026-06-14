@@ -51,6 +51,8 @@ struct ProfileView: View {
     @State private var trialsState: TrialsState = .empty
     @State private var overallRankTrialReadiness: OverallRankTrialReadiness?
     @State private var activeOverallRankTrialDraft: TrainingSessionDraft?
+    @State private var gateHallWorld: GateWorld?
+    @State private var profileEquipment: Set<MovementEquipment> = [.bodyweight, .openSpace]
     @State private var profileHeaderWidth: CGFloat = UIScreen.main.bounds.width
 
     @ObservedObject private var photoStore = ProfilePhotoStore.shared
@@ -170,12 +172,31 @@ struct ProfileView: View {
             RankInfoSheet(
                 currentTier: aggregateTier,
                 readiness: overallRankTrialReadiness
-            ) { definition in
+            ) {
                 showRankInfo = false
-                startOverallRankTrial(definition)
+                if let definition = overallRankTrialReadiness?.definition {
+                    gateHallWorld = GateWorldCatalog.world(for: definition.format)
+                }
             }
                 .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
+        }
+        .fullScreenCover(item: $gateHallWorld) { world in
+            GateHallView(
+                world: world,
+                resolvedTrial: overallRankTrialReadiness?.resolvedTrial,
+                latestAttempt: overallRankTrialReadiness?.latestAttempt,
+                loadout: overallRankTrialReadiness?.resolvedTrial?.selectedLoadout ?? .noGymField,
+                resolveStations: { loadout in resolveStations(for: loadout) },
+                onBegin: { loadout in
+                    gateHallWorld = nil
+                    if let definition = overallRankTrialReadiness?.definition {
+                        startOverallRankTrial(definition, loadout: loadout)
+                    }
+                },
+                onClose: { gateHallWorld = nil }
+            )
+            .environmentObject(services)
         }
         .fullScreenCover(isPresented: $showCamera) {
             CameraPicker { image in
@@ -301,6 +322,7 @@ struct ProfileView: View {
 
         // Load trials state
         trialsState = services.trials.state(userId: userId)
+        profileEquipment = TrialReadinessService.movementEquipment(from: profile?.equipment ?? [.bodyweight])
         overallRankTrialReadiness = await TrialReadinessService.shared.readiness(userId: userId, services: services)
 
         isLoading = false
@@ -341,18 +363,43 @@ struct ProfileView: View {
         return eventUserId == (services.auth.currentUserId ?? "anonymous")
     }
 
-    private func startOverallRankTrial(_ definition: OverallRankTrialDefinition) {
+    private func startOverallRankTrial(_ definition: OverallRankTrialDefinition, loadout: TrialLoadout? = nil) {
         let userId = services.auth.currentUserId ?? "anonymous"
 
-        let resolvedTrial = overallRankTrialReadiness?.resolvedTrial?.definitionId == definition.id
-            ? overallRankTrialReadiness?.resolvedTrial
-            : nil
+        let resolvedTrial: ResolvedRankTrial?
+        if let loadout {
+            // Honor the Hall loadout pick: re-resolve the trial for it.
+            resolvedTrial = RankTrialLoadoutResolver.shared.resolve(
+                definition: definition,
+                userId: userId,
+                equipment: profileEquipment,
+                attributeScores: AttributeProfileStore.shared.load(userId: userId),
+                preferredLoadout: loadout
+            ).resolvedTrial
+        } else {
+            resolvedTrial = overallRankTrialReadiness?.resolvedTrial?.definitionId == definition.id
+                ? overallRankTrialReadiness?.resolvedTrial
+                : nil
+        }
         activeOverallRankTrialDraft = OverallRankTrialRunner.shared.draft(
             for: definition,
             userId: userId,
             resolvedTrial: resolvedTrial,
             bodyweightKg: profile?.weightKg
         )
+    }
+
+    /// Live station list for the Hall's loadout picker (spec §6.2).
+    private func resolveStations(for loadout: TrialLoadout) -> [ResolvedTrialStation] {
+        guard let definition = overallRankTrialReadiness?.definition else { return [] }
+        let userId = services.auth.currentUserId ?? "anonymous"
+        return RankTrialLoadoutResolver.shared.resolve(
+            definition: definition,
+            userId: userId,
+            equipment: profileEquipment,
+            attributeScores: AttributeProfileStore.shared.load(userId: userId),
+            preferredLoadout: loadout
+        ).resolvedTrial?.stations ?? []
     }
 
     @MainActor

@@ -72,7 +72,7 @@ final class TrialReadinessService {
 
         let aggregateRank = await services.rank.aggregateRank(userId: userId)
         let userProfile = try? await services.user.fetchProfile(userId: userId)
-        let equipment = movementEquipment(from: userProfile?.equipment ?? [.bodyweight])
+        let equipment = Self.movementEquipment(from: userProfile?.equipment ?? [.bodyweight])
         let workoutLogs = (try? await services.workoutLog.fetchLogs(userId: userId, programId: nil)) ?? []
         let attributeProfile = AttributeProfileStore.shared.load(userId: userId)
         let bodyweightKg = userProfile?.weightKg ?? 0
@@ -99,7 +99,7 @@ final class TrialReadinessService {
         )
     }
 
-    private func movementEquipment(from equipment: [Equipment]) -> Set<MovementEquipment> {
+    static func movementEquipment(from equipment: [Equipment]) -> Set<MovementEquipment> {
         var result: Set<MovementEquipment> = [.bodyweight, .openSpace]
         for item in equipment {
             switch item {

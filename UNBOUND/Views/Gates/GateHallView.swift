@@ -5,13 +5,20 @@ import SwiftUI
 /// attempt, BEGIN.
 struct GateHallView: View {
     let world: GateWorld
-    let resolvedTrial: ResolvedRankTrial?     // station list for the chosen loadout
+    let resolvedTrial: ResolvedRankTrial?     // station list for the default loadout
     let latestAttempt: OverallRankTrialAttempt?
     @State var loadout: TrialLoadout
+    /// Live re-resolve the station list when the picker changes (live flow). When
+    /// nil (demo fixtures) the preview falls back to `resolvedTrial`.
+    var resolveStations: ((TrialLoadout) -> [ResolvedTrialStation])? = nil
     var onBegin: (TrialLoadout) -> Void
     var onClose: (() -> Void)? = nil
 
     @State private var ceremonyComplete = false
+
+    private var previewStations: [ResolvedTrialStation] {
+        resolveStations?(loadout) ?? resolvedTrial?.stations ?? []
+    }
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -26,6 +33,19 @@ struct GateHallView: View {
                 .padding(.horizontal, 18).padding(.bottom, 120)
             }
             beginBar
+            if let onClose {
+                Button { onClose() } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(Color.unbound.textPrimary)
+                        .frame(width: 34, height: 34)
+                        .background(Circle().fill(Color.black.opacity(0.45)))
+                }
+                .buttonStyle(.plain)
+                .padding(.top, 8).padding(.leading, 18)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .accessibilityIdentifier("gate-hall-close")
+            }
         }
     }
 
@@ -60,7 +80,7 @@ struct GateHallView: View {
             Text("THE STATIONS").font(.system(size: 9, weight: .black, design: .monospaced))
                 .tracking(1.6).foregroundStyle(Color.unbound.textTertiary)
                 .frame(maxWidth: .infinity, alignment: .leading)
-            ForEach(Array((resolvedTrial?.stations ?? []).enumerated()), id: \.element.id) { idx, station in
+            ForEach(Array(previewStations.enumerated()), id: \.element.id) { idx, station in
                 HStack(spacing: 12) {
                     Text("\(idx + 1)").font(Font.unbound.monoS.weight(.bold))
                         .foregroundStyle(world.tint).frame(width: 20)

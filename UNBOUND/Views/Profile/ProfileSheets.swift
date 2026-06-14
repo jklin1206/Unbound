@@ -315,7 +315,7 @@ struct EditProfileSheet: View {
 struct RankInfoSheet: View {
     let currentTier: SkillTier
     let readiness: OverallRankTrialReadiness?
-    let onStart: (OverallRankTrialDefinition) -> Void
+    let onOpenGate: () -> Void
 
     @Environment(\.dismiss) private var dismiss
 
@@ -353,15 +353,16 @@ struct RankInfoSheet: View {
                     .buttonStyle(.plain)
                 }
 
-                if let readiness {
-                    RankTrialFlowStrip(readiness: readiness)
-
-                    VStack(alignment: .leading, spacing: 10) {
-                        OverallRankTrialReadinessCard(readiness: readiness) { definition in
-                            dismiss()
-                            onStart(definition)
-                        }
-                    }
+                if let readiness, let definition = readiness.definition {
+                    NextGateCard(
+                        readiness: readiness,
+                        world: GateWorldCatalog.world(for: definition.format),
+                        onBegin: { dismiss(); onOpenGate() }
+                    )
+                } else {
+                    Text("CURRENT GATE CLEARED")
+                        .font(Font.unbound.bodyMStrong)
+                        .foregroundStyle(Color.unbound.success)
                 }
             }
             .padding(20)
@@ -381,58 +382,3 @@ struct RankInfoSheet: View {
     }
 }
 
-struct RankTrialFlowStrip: View {
-    let readiness: OverallRankTrialReadiness
-
-    var body: some View {
-        let met = readiness.requirements.filter(\.isMet).count
-        let total = max(1, readiness.requirements.count)
-
-        return HStack(spacing: 8) {
-            step(icon: "list.bullet.clipboard.fill", label: "\(met)/\(total)", caption: "PROOFS", tint: Color.unbound.accent)
-            connector
-            step(icon: readiness.isReady ? "checkmark.seal.fill" : "lock.fill", label: readiness.isReady ? "READY" : "LOCKED", caption: "GATE", tint: readiness.targetRank?.rewardTextTint ?? Color.unbound.rankGold)
-            connector
-            step(icon: "play.fill", label: "TRIAL", caption: "WORKOUT", tint: Color.unbound.coachCyan)
-        }
-        .padding(12)
-        .frame(maxWidth: .infinity)
-        .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color.unbound.surface)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
-        )
-    }
-
-    private var connector: some View {
-        Capsule()
-            .fill(Color.unbound.borderSubtle)
-            .frame(width: 18, height: 2)
-    }
-
-    private func step(icon: String, label: String, caption: String, tint: Color) -> some View {
-        VStack(spacing: 6) {
-            Image(systemName: icon)
-                .font(.system(size: 12, weight: .bold))
-                .foregroundStyle(tint)
-                .frame(width: 28, height: 28)
-                .background(Circle().fill(tint.opacity(0.14)))
-                .overlay(Circle().strokeBorder(tint.opacity(0.32), lineWidth: 1))
-            VStack(spacing: 1) {
-                Text(label)
-                    .font(Font.unbound.monoS.weight(.heavy))
-                    .foregroundStyle(Color.unbound.textPrimary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.72)
-                Text(caption)
-                    .font(.system(size: 7, weight: .heavy, design: .monospaced))
-                    .tracking(0.8)
-                    .foregroundStyle(Color.unbound.textTertiary)
-            }
-        }
-        .frame(maxWidth: .infinity)
-    }
-}
