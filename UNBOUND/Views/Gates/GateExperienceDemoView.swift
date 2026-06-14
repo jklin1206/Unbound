@@ -33,10 +33,18 @@ struct GateExperienceDemoView: View {
     var body: some View {
         ZStack(alignment: .bottom) {
             stageContent.id("\(format.rawValue)-\(stage.rawValue)")
-            // Hide the demo controls during full-screen cinematics so layout reads true.
-            if stage != .flow && stage != .crossing { controls }
+            // Hide the demo controls during full-screen cinematics and full-game
+            // active stages so their bottom CTAs stay tappable / layout reads true.
+            if !hidesControls { controls }
         }
         .accessibilityIdentifier("gateExperienceDemo")
+    }
+
+    /// Full-screen cinematics + full-game active stages own the whole screen.
+    private var hidesControls: Bool {
+        if stage == .flow || stage == .crossing { return true }
+        if stage == .active && (world.element == .bell || world.element == .ascent || world.element == .seals || world.element == .siege || world.element == .landings) { return true }
+        return false
     }
 
     @ViewBuilder private var stageContent: some View {
@@ -49,8 +57,7 @@ struct GateExperienceDemoView: View {
             GateHallView(world: world, resolvedTrial: fixtureResolved(),
                          latestAttempt: fixtureAttempt(passed: false), loadout: .homeKit, onBegin: { _ in })
         case .active:
-            GateActiveView(world: world, stationIndex: activeIndex, stationCount: max(resolvedStations.count, 1),
-                           stationsCleared: activeIndex, currentStationTitle: activeStationTitle) { sampleSurface }
+            GateActiveDemoStage(world: world, stations: resolvedStations)
         case .beat:
             GateBeatOverlay(world: world, stationTitle: currentStationTitle)
         case .verdictPass:
@@ -268,6 +275,75 @@ struct GateExperienceDemoView: View {
         if env["UNBOUND_GATE_FLOW"] != nil { return .flow }
         if env["UNBOUND_OPEN_CROSSING"] != nil { return .crossing }
         return .sealed
+    }
+}
+
+/// Interactive harness for the in-trial world stage: tap to clear stations and
+/// watch the gate's living world react (lanterns igniting, the courtyard moving
+/// from night to dawn). Logging stays the calm surface beneath.
+private struct GateActiveDemoStage: View {
+    let world: GateWorld
+    let stations: [ResolvedTrialStation]
+    @State private var cleared = 0
+
+    private var count: Int { max(stations.count, 1) }
+    private var currentIndex: Int { min(cleared, count - 1) }
+    private var currentTitle: String {
+        stations.indices.contains(currentIndex) ? stations[currentIndex].station.title : world.trialName
+    }
+
+    var body: some View {
+        if world.element == .bell {
+            TheCountStage(world: world)
+        } else if world.element == .ascent {
+            AscentStage(world: world)
+        } else if world.element == .seals {
+            SevenSealsStage(world: world)
+        } else if world.element == .siege {
+            ThresholdStage(world: world)
+        } else if world.element == .landings {
+            LastGateStage(world: world)
+        } else {
+            stagedSurface
+        }
+    }
+
+    private var stagedSurface: some View {
+        GateActiveView(
+            world: world, stationIndex: currentIndex, stationCount: count,
+            stationsCleared: cleared, currentStationTitle: currentTitle
+        ) {
+            VStack(spacing: 12) {
+                ForEach(stations.prefix(2), id: \.id) { rs in
+                    GateDemoLogCard(movement: rs.selectedMovement.displayName,
+                                    target: "\(rs.standard.minimumValue)",
+                                    metric: metricLabel(rs.standard.metric))
+                }
+                Button {
+                    withAnimation(.easeOut(duration: 0.5)) {
+                        cleared = cleared >= count ? 0 : cleared + 1
+                    }
+                    UnboundHaptics.success()
+                } label: {
+                    Text(cleared >= count ? "RESET COURTYARD" : "LIGHT NEXT STATION  ·  \(cleared)/\(count)")
+                        .font(Font.unbound.captionS.weight(.heavy)).tracking(1.4)
+                        .foregroundStyle(Color.unbound.bg)
+                        .frame(maxWidth: .infinity).padding(.vertical, 14)
+                        .background(Capsule().fill(world.fillTint))
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("demo.lightNext")
+            }
+        }
+    }
+
+    private func metricLabel(_ m: TrainingMetricKind) -> String {
+        switch m {
+        case .reps: return "reps"
+        case .holdSeconds, .durationSeconds: return "sec"
+        case .distanceMeters: return "m"
+        case .calories: return "cal"
+        }
     }
 }
 

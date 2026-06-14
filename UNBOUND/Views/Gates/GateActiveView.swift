@@ -17,7 +17,7 @@ struct GateActiveView<LoggingSurface: View>: View {
             Color.unbound.bg.ignoresSafeArea()
             ScrollView {
                 VStack(spacing: 18) {
-                    GateActiveHeaderView(
+                    GateWorldStageView(
                         world: world, stationIndex: stationIndex, stationCount: stationCount,
                         stationsCleared: stationsCleared, currentStationTitle: currentStationTitle)
                     loggingSurface()

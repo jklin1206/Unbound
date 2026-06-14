@@ -39,6 +39,9 @@ struct GateWorld: Identifiable, Equatable, Sendable {
     /// (crops cleanly). The full-screen bespoke threshold art (`gate_threshold_<token>`)
     /// is full-bleed-only and lives in The Crossing via `CrossingAssetResolver`.
     var bannerAssetName: String { "profile_banner_\(destinationRank.token)" }
+    /// Bespoke in-trial world backdrop (Codex image_gen, style-locked to the rank
+    /// banner). Used by the live trial stage; falls back to the banner if missing.
+    var stageAssetName: String { "gate_stage_\(destinationRank.token)" }
 
     /// "FORGED → VETERAN" style transition label.
     func transitionLabel(from origin: RankTitle) -> String {

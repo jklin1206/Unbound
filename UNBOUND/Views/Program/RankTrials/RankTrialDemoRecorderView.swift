@@ -124,7 +124,7 @@ struct RankTrialDemoRecorderView: View {
     private var activePreview: some View {
         switch context.definition.format {
         case .firstLight:
-            FirstLightTrialActiveView(definition: context.definition, session: context.session) { index, exercise in
+            GateTrialActiveView(definition: context.definition, session: context.session) { index, exercise in
                 RankTrialDemoStationCard(index: index, exercise: exercise, isCurrent: index == context.session.currentExerciseIndex, tint: tint)
             }
         case .theCount:
@@ -132,7 +132,7 @@ struct RankTrialDemoRecorderView: View {
                 RankTrialDemoStationCard(index: index, exercise: exercise, isCurrent: index == context.session.currentExerciseIndex, tint: tint)
             }
         case .theForging:
-            FinisherTrialActiveView(definition: context.definition, session: context.session) { index, exercise in
+            GateTrialActiveView(definition: context.definition, session: context.session) { index, exercise in
                 RankTrialDemoStationCard(index: index, exercise: exercise, isCurrent: index == context.session.currentExerciseIndex, tint: tint)
             }
         case .deckOfProof:

@@ -12,7 +12,7 @@ struct GateActiveHeaderView: View {
 
     var body: some View {
         ZStack(alignment: .bottomLeading) {
-            Image(world.bannerAssetName).resizable().scaledToFill()
+            Image(world.stageAssetName).resizable().scaledToFill()
                 .frame(height: 240).clipped()
                 .overlay(LinearGradient(colors: [.clear, .clear, Color.unbound.bg],
                     startPoint: .top, endPoint: .bottom))
