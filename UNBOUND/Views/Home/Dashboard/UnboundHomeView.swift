@@ -85,7 +85,7 @@ struct UnboundHomeView: View {
                 subtitle: "Show up and log the work you actually complete.",
                 durationLabel: "~20 MIN",
                 category: .challenge,
-                spReward: 0,
+                difficultyWeight: 0,
                 steps: []
             )
     }()

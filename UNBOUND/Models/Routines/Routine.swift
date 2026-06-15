@@ -42,7 +42,7 @@ struct RoutineDef: Identifiable, Hashable {
     let durationLabel: String
     let category: RoutineCategory
     let difficultyTier: SkillTier
-    let spReward: Int
+    let difficultyWeight: Int
     var steps: [RoutineStep]
 
     init(
@@ -52,7 +52,7 @@ struct RoutineDef: Identifiable, Hashable {
         durationLabel: String,
         category: RoutineCategory,
         difficultyTier: SkillTier = .initiate,
-        spReward: Int,
+        difficultyWeight: Int,
         steps: [RoutineStep] = []
     ) {
         self.id = id
@@ -61,7 +61,7 @@ struct RoutineDef: Identifiable, Hashable {
         self.durationLabel = durationLabel
         self.category = category
         self.difficultyTier = difficultyTier
-        self.spReward = spReward
+        self.difficultyWeight = difficultyWeight
         self.steps = steps
     }
 }
@@ -78,7 +78,7 @@ enum RoutineLibrary {
         // ───────── Cardio ─────────
         RoutineDef(id: "z2-walk-20", title: "Zone 2 Walk",
             subtitle: "Keep HR in zone 2. Easy breathing, steady pace.",
-            durationLabel: "~20 MIN", category: .cardio, difficultyTier: .initiate, spReward: 25,
+            durationLabel: "~20 MIN", category: .cardio, difficultyTier: .initiate, difficultyWeight: 25,
             steps: [
                 .timed(label: "Warm-up walk", seconds: 120, style: .work),
                 .note(text: "Conversational pace — you can hold a sentence. Target HR 60–70% max (~180 − your age)."),
@@ -88,7 +88,7 @@ enum RoutineLibrary {
 
         RoutineDef(id: "intervals-15", title: "Heart Rate Intervals",
             subtitle: "5 × 1-min hard / 1-min easy. Build conditioning.",
-            durationLabel: "~15 MIN", category: .cardio, difficultyTier: .apprentice, spReward: 35,
+            durationLabel: "~15 MIN", category: .cardio, difficultyTier: .apprentice, difficultyWeight: 35,
             steps: [
                 .timed(label: "Warm-up", seconds: 180, style: .work),
                 .interval(label: "HR intervals", rounds: 5,
@@ -98,7 +98,7 @@ enum RoutineLibrary {
 
         RoutineDef(id: "easy-bike-30", title: "Easy Bike",
             subtitle: "Steady-state spin. Low impact recovery cardio.",
-            durationLabel: "~30 MIN", category: .cardio, difficultyTier: .novice, spReward: 30,
+            durationLabel: "~30 MIN", category: .cardio, difficultyTier: .novice, difficultyWeight: 30,
             steps: [
                 .note(text: "Seat: leg ~90% extended at bottom. RPM 80–90, light–moderate resistance. Nasal breathing if you can."),
                 .timed(label: "Easy bike", seconds: 1800, style: .work),
@@ -107,7 +107,7 @@ enum RoutineLibrary {
 
         RoutineDef(id: "incline-siege-walk", title: "Incline Siege Walk",
             subtitle: "Treadmill incline work with a controlled climb and reset.",
-            durationLabel: "~25 MIN", category: .cardio, difficultyTier: .initiate, spReward: 32,
+            durationLabel: "~25 MIN", category: .cardio, difficultyTier: .initiate, difficultyWeight: 32,
             steps: [
                 .timed(label: "Flat warm-up walk", seconds: 180, style: .work),
                 .instruction(text: "Set incline to 6-8%", cue: "Choose a grade where you can still breathe through the nose for short stretches."),
@@ -120,7 +120,7 @@ enum RoutineLibrary {
 
         RoutineDef(id: "stair-tower-climb", title: "Stair Tower Climb",
             subtitle: "Stair climber conditioning with steady pressure.",
-            durationLabel: "~18 MIN", category: .cardio, difficultyTier: .novice, spReward: 36,
+            durationLabel: "~18 MIN", category: .cardio, difficultyTier: .novice, difficultyWeight: 36,
             steps: [
                 .timed(label: "Easy stair climb", seconds: 180, style: .work),
                 .interval(label: "Stair pressure rounds", rounds: 6,
@@ -131,7 +131,7 @@ enum RoutineLibrary {
 
         RoutineDef(id: "rower-engine-intervals", title: "Rower Engine Intervals",
             subtitle: "Rowing intervals for legs, lungs, and pacing discipline.",
-            durationLabel: "~18 MIN", category: .cardio, difficultyTier: .apprentice, spReward: 44,
+            durationLabel: "~18 MIN", category: .cardio, difficultyTier: .apprentice, difficultyWeight: 44,
             steps: [
                 .timed(label: "Easy row warm-up", seconds: 240, style: .work),
                 .instruction(text: "Row technique reset", cue: "Legs drive first, body swings second, arms finish last."),
@@ -142,7 +142,7 @@ enum RoutineLibrary {
 
         RoutineDef(id: "jump-rope-footwork", title: "Jump Rope Footwork",
             subtitle: "Low-impact rope rounds with fast feet and clean rhythm.",
-            durationLabel: "~16 MIN", category: .cardio, difficultyTier: .apprentice, spReward: 42,
+            durationLabel: "~16 MIN", category: .cardio, difficultyTier: .apprentice, difficultyWeight: 42,
             steps: [
                 .timed(label: "Bounce prep without rope", seconds: 90, style: .work),
                 .interval(label: "Basic bounce rounds", rounds: 4,
@@ -155,7 +155,7 @@ enum RoutineLibrary {
         // ───────── Mobility ─────────
         RoutineDef(id: "mobility-10", title: "Morning Mobility",
             subtitle: "Spine, hips, shoulders. Wake the body up.",
-            durationLabel: "~10 MIN", category: .mobility, difficultyTier: .novice, spReward: 15,
+            durationLabel: "~10 MIN", category: .mobility, difficultyTier: .novice, difficultyWeight: 15,
             steps: [
                 .instruction(text: "Cat-cow x 10", cue: "Slow, full range. Let each vertebra move."),
                 .instruction(text: "World's greatest stretch x 5 / side", cue: "Long lunge, hand inside foot, rotate through the ribs."),
@@ -167,7 +167,7 @@ enum RoutineLibrary {
 
         RoutineDef(id: "stretch-8", title: "Evening Stretch",
             subtitle: "Cool-down flexibility. Hip openers, hamstring.",
-            durationLabel: "~8 MIN", category: .mobility, difficultyTier: .initiate, spReward: 10,
+            durationLabel: "~8 MIN", category: .mobility, difficultyTier: .initiate, difficultyWeight: 10,
             steps: [
                 .timed(label: "Hamstring fold — left", seconds: 60, style: .work),
                 .timed(label: "Hamstring fold — right", seconds: 60, style: .work),
@@ -182,7 +182,7 @@ enum RoutineLibrary {
 
         RoutineDef(id: "hip-flow-15", title: "Hip Flow",
             subtitle: "15-min mobility sequence targeting hip health.",
-            durationLabel: "~15 MIN", category: .mobility, difficultyTier: .forged, spReward: 20,
+            durationLabel: "~15 MIN", category: .mobility, difficultyTier: .forged, difficultyWeight: 20,
             steps: [
                 .instruction(text: "Hip circles × 10 each direction", cue: nil),
                 .timed(label: "Deep lunge hold — left", seconds: 45, style: .work),
@@ -197,7 +197,7 @@ enum RoutineLibrary {
 
         RoutineDef(id: "shoulder-spine-12", title: "Shoulder + Spine",
             subtitle: "Open the upper back, lats, chest, wrists.",
-            durationLabel: "~12 MIN", category: .mobility, difficultyTier: .apprentice, spReward: 18,
+            durationLabel: "~12 MIN", category: .mobility, difficultyTier: .apprentice, difficultyWeight: 18,
             steps: [
                 .instruction(text: "Shoulder CARs x 5 / side", cue: "Slow circles. Keep ribs down and neck relaxed."),
                 .instruction(text: "Thread the needle x 8 / side", cue: "Rotate through the rib cage, not the low back."),
@@ -211,7 +211,7 @@ enum RoutineLibrary {
 
         RoutineDef(id: "ankle-squat-10", title: "Ankle + Squat",
             subtitle: "Dorsiflexion, calves, squat depth.",
-            durationLabel: "~10 MIN", category: .mobility, difficultyTier: .novice, spReward: 16,
+            durationLabel: "~10 MIN", category: .mobility, difficultyTier: .novice, difficultyWeight: 16,
             steps: [
                 .instruction(text: "Knee-to-wall ankle rocks x 10 / side", cue: "Heel stays down, knee tracks middle toes."),
                 .timed(label: "Calf pedal", seconds: 60, style: .work),
@@ -223,7 +223,7 @@ enum RoutineLibrary {
 
         RoutineDef(id: "posterior-chain-12", title: "Posterior Chain",
             subtitle: "Hamstrings, calves, glutes, low-back decompression.",
-            durationLabel: "~12 MIN", category: .mobility, difficultyTier: .apprentice, spReward: 18,
+            durationLabel: "~12 MIN", category: .mobility, difficultyTier: .apprentice, difficultyWeight: 18,
             steps: [
                 .timed(label: "Hamstring fold — left", seconds: 60, style: .work),
                 .timed(label: "Hamstring fold — right", seconds: 60, style: .work),
@@ -237,7 +237,7 @@ enum RoutineLibrary {
 
         RoutineDef(id: "wrist-shoulder-prep-8", title: "Wrist + Shoulder Prep",
             subtitle: "Before pushups, handstands, dips, or planks.",
-            durationLabel: "~8 MIN", category: .mobility, difficultyTier: .novice, spReward: 14,
+            durationLabel: "~8 MIN", category: .mobility, difficultyTier: .novice, difficultyWeight: 14,
             steps: [
                 .instruction(text: "Wrist rocks x 12", cue: "Forward and back with full palm contact."),
                 .instruction(text: "Shoulder CARs x 5 / side", cue: "Big slow circles without rib flare."),
@@ -249,7 +249,7 @@ enum RoutineLibrary {
 
         RoutineDef(id: "desk-reset-6", title: "Desk Reset",
             subtitle: "Fast neck-free upper-body reset after sitting.",
-            durationLabel: "~6 MIN", category: .mobility, difficultyTier: .initiate, spReward: 10,
+            durationLabel: "~6 MIN", category: .mobility, difficultyTier: .initiate, difficultyWeight: 10,
             steps: [
                 .instruction(text: "Shoulder CARs x 4 / side", cue: "Slow and clean. No shrugging through the hard part."),
                 .instruction(text: "Thoracic rotation x 6 / side", cue: "Keep hips still and rotate through the upper back."),
@@ -261,7 +261,7 @@ enum RoutineLibrary {
 
         RoutineDef(id: "full-body-unlock-20", title: "Full-Body Mobility",
             subtitle: "A complete mobility pass for rest days.",
-            durationLabel: "~20 MIN", category: .mobility, difficultyTier: .veteran, spReward: 28,
+            durationLabel: "~20 MIN", category: .mobility, difficultyTier: .veteran, difficultyWeight: 28,
             steps: [
                 .instruction(text: "Cat-cow x 10", cue: "Start easy and let the spine warm up."),
                 .instruction(text: "World's greatest stretch x 5 / side", cue: "Lunge, elbow, rotate, switch."),
@@ -280,7 +280,7 @@ enum RoutineLibrary {
         // ───────── Challenges ─────────
         RoutineDef(id: "100-pushup", title: "100 Push-Up Trial",
             subtitle: "Clear 100 clean reps in as many sets as needed.",
-            durationLabel: "~15 MIN", category: .challenge, difficultyTier: .forged, spReward: 50,
+            durationLabel: "~15 MIN", category: .challenge, difficultyTier: .forged, difficultyWeight: 50,
             steps: [
                 .repTarget(name: "Push-ups", target: 100,
                            cue: "Chest to ~1 inch from floor, elbows ~45°. Rest as long as you need between bursts."),
@@ -289,7 +289,7 @@ enum RoutineLibrary {
 
         RoutineDef(id: "plank-ladder", title: "Plank Ladder",
             subtitle: "30s / 45s / 60s / 75s / 90s — rest 30s between.",
-            durationLabel: "~8 MIN", category: .challenge, difficultyTier: .novice, spReward: 40,
+            durationLabel: "~8 MIN", category: .challenge, difficultyTier: .novice, difficultyWeight: 40,
             steps: [
                 .timed(label: "Plank", seconds: 30, style: .work),
                 .timed(label: "Rest", seconds: 30, style: .rest),
@@ -305,7 +305,7 @@ enum RoutineLibrary {
 
         RoutineDef(id: "tabata-core", title: "Tabata Core",
             subtitle: "8 × 20s on / 10s off. 4 rotating moves.",
-            durationLabel: "~5 MIN", category: .challenge, difficultyTier: .apprentice, spReward: 45,
+            durationLabel: "~5 MIN", category: .challenge, difficultyTier: .apprentice, difficultyWeight: 45,
             steps: [
                 .interval(label: "Mountain climbers", rounds: 2,
                           segments: [IS("WORK", 20), IS("REST", 10)]),
@@ -319,7 +319,7 @@ enum RoutineLibrary {
 
         RoutineDef(id: "hero-entry-exam", title: "Hero Entry Exam",
             subtitle: "A small baseline: push, squat, sit-up, and short run.",
-            durationLabel: "~12 MIN", category: .challenge, difficultyTier: .initiate, spReward: 35,
+            durationLabel: "~12 MIN", category: .challenge, difficultyTier: .initiate, difficultyWeight: 35,
             steps: [
                 .repTarget(name: "Push-ups", target: 20, cue: "Clean reps, stop before form breaks."),
                 .repTarget(name: "Sit-ups", target: 20, cue: nil),
@@ -329,7 +329,7 @@ enum RoutineLibrary {
 
         RoutineDef(id: "ninja-academy-circuit", title: "Ninja Academy Circuit",
             subtitle: "Footwork, core, and bodyweight control in quick rounds.",
-            durationLabel: "~14 MIN", category: .challenge, difficultyTier: .novice, spReward: 42,
+            durationLabel: "~14 MIN", category: .challenge, difficultyTier: .novice, difficultyWeight: 42,
             steps: [
                 .circuit(rounds: 3, restBetweenSeconds: 40, steps: [
                     .instruction(text: "Bear crawl 10m forward + 10m back", cue: nil),
@@ -342,7 +342,7 @@ enum RoutineLibrary {
 
         RoutineDef(id: "spirit-shot-conditioning", title: "Spirit Shot Conditioning",
             subtitle: "Short stance holds, sharp pushes, and sprint bursts.",
-            durationLabel: "~16 MIN", category: .challenge, difficultyTier: .novice, spReward: 44,
+            durationLabel: "~16 MIN", category: .challenge, difficultyTier: .novice, difficultyWeight: 44,
             steps: [
                 .circuit(rounds: 3, restBetweenSeconds: 45, steps: [
                     .timed(label: "Horse stance hold", seconds: 35, style: .work),
@@ -355,7 +355,7 @@ enum RoutineLibrary {
 
         RoutineDef(id: "hunter-exam-roadwork", title: "Hunter Exam Roadwork",
             subtitle: "Roadwork with bodyweight checkpoints along the route.",
-            durationLabel: "~24 MIN", category: .challenge, difficultyTier: .apprentice, spReward: 58,
+            durationLabel: "~24 MIN", category: .challenge, difficultyTier: .apprentice, difficultyWeight: 58,
             steps: [
                 .timed(label: "Easy run or incline walk", seconds: 360, style: .work),
                 .instruction(text: "Push-ups × 12", cue: nil),
@@ -368,7 +368,7 @@ enum RoutineLibrary {
 
         RoutineDef(id: "pirate-crew-conditioning", title: "Pirate Crew Conditioning",
             subtitle: "Carries, core, and hill bursts for travel-ready stamina.",
-            durationLabel: "~22 MIN", category: .challenge, difficultyTier: .apprentice, spReward: 56,
+            durationLabel: "~22 MIN", category: .challenge, difficultyTier: .apprentice, difficultyWeight: 56,
             steps: [
                 .circuit(rounds: 3, restBetweenSeconds: 50, steps: [
                     .instruction(text: "Loaded carry 30m down + back", cue: "Backpack, dumbbells, or bags."),
@@ -382,7 +382,7 @@ enum RoutineLibrary {
 
         RoutineDef(id: "alchemy-gate-circuit", title: "Alchemy Gate Circuit",
             subtitle: "Trade upper and lower body work with strict rest.",
-            durationLabel: "~26 MIN", category: .challenge, difficultyTier: .forged, spReward: 68,
+            durationLabel: "~26 MIN", category: .challenge, difficultyTier: .forged, difficultyWeight: 68,
             steps: [
                 .circuit(rounds: 4, restBetweenSeconds: 60, steps: [
                     .instruction(text: "Push-ups × 12", cue: "Clean lockout."),
@@ -396,7 +396,7 @@ enum RoutineLibrary {
 
         RoutineDef(id: "saitama-protocol", title: "Everyday Hero Protocol",
             subtitle: "100 push-ups, sit-ups, squats, and a 10 km run.",
-            durationLabel: "~60–90 MIN", category: .challenge, difficultyTier: .master, spReward: 140,
+            durationLabel: "~60–90 MIN", category: .challenge, difficultyTier: .master, difficultyWeight: 140,
             steps: [
                 .repTarget(name: "Push-ups", target: 100, cue: nil),
                 .repTarget(name: "Sit-ups", target: 100, cue: "Full range, hands behind head"),
@@ -407,7 +407,7 @@ enum RoutineLibrary {
 
         RoutineDef(id: "8-gates-protocol", title: "Eight Gates",
             subtitle: "Eight escalating rounds where each gate adds work.",
-            durationLabel: "~45 MIN", category: .challenge, difficultyTier: .unbound, spReward: 150,
+            durationLabel: "~45 MIN", category: .challenge, difficultyTier: .unbound, difficultyWeight: 150,
             steps: [
                 .instruction(text: "Gate 1 — 10 push-ups", cue: nil),
                 .timed(label: "Rest", seconds: 75, style: .rest),
@@ -429,7 +429,7 @@ enum RoutineLibrary {
 
         RoutineDef(id: "beach-forge", title: "Beach Forge",
             subtitle: "Carries, sprints, pull-ups, and squats under steady pressure.",
-            durationLabel: "~40 MIN", category: .challenge, difficultyTier: .master, spReward: 90,
+            durationLabel: "~40 MIN", category: .challenge, difficultyTier: .master, difficultyWeight: 90,
             steps: [
                 .instruction(text: "Farmer carry — 2 × heaviest DBs/bags, 40m down & back × 4", cue: nil),
                 .timed(label: "Rest", seconds: 60, style: .rest),
@@ -445,7 +445,7 @@ enum RoutineLibrary {
 
         RoutineDef(id: "underground-grind", title: "Underground Calisthenics",
             subtitle: "Pull-ups, dips, push-ups, and core. Simple street-gym work.",
-            durationLabel: "~30 MIN", category: .challenge, difficultyTier: .veteran, spReward: 85,
+            durationLabel: "~30 MIN", category: .challenge, difficultyTier: .veteran, difficultyWeight: 85,
             steps: [
                 .circuit(rounds: 4, restBetweenSeconds: 45, steps: [
                     .instruction(text: "Pull-ups × max — strict form", cue: nil),
@@ -462,7 +462,7 @@ enum RoutineLibrary {
 
         RoutineDef(id: "3d-maneuver-conditioning", title: "Scout Maneuver Conditioning",
             subtitle: "Grip, core, pulling power, and jumps under fatigue.",
-            durationLabel: "~25 MIN", category: .challenge, difficultyTier: .veteran, spReward: 70,
+            durationLabel: "~25 MIN", category: .challenge, difficultyTier: .veteran, difficultyWeight: 70,
             steps: [
                 .circuit(rounds: 4, restBetweenSeconds: 45, steps: [
                     .timed(label: "Dead hang", seconds: 60, style: .work),
@@ -480,7 +480,7 @@ enum RoutineLibrary {
 
         RoutineDef(id: "daily-quest", title: "Daily Quest",
             subtitle: "A simple daily baseline to keep the work moving.",
-            durationLabel: "~20 MIN", category: .challenge, difficultyTier: .initiate, spReward: 50,
+            durationLabel: "~20 MIN", category: .challenge, difficultyTier: .initiate, difficultyWeight: 50,
             steps: [
                 .repTarget(name: "Push-ups", target: 30, cue: nil),
                 .repTarget(name: "Sit-ups", target: 30, cue: nil),
@@ -491,7 +491,7 @@ enum RoutineLibrary {
 
         RoutineDef(id: "thunder-circuit", title: "Thunder Sprint",
             subtitle: "Short explosive sets for speed and power.",
-            durationLabel: "~20 MIN", category: .challenge, difficultyTier: .forged, spReward: 65,
+            durationLabel: "~20 MIN", category: .challenge, difficultyTier: .forged, difficultyWeight: 65,
             steps: [
                 .circuit(rounds: 3, restBetweenSeconds: 45, steps: [
                     .instruction(text: "Broad jump × 6 — max distance", cue: nil),
@@ -509,7 +509,7 @@ enum RoutineLibrary {
 
         RoutineDef(id: "gravity-chamber", title: "Gravity Chamber",
             subtitle: "Weighted volume with steady pressure.",
-            durationLabel: "~50 MIN", category: .challenge, difficultyTier: .ascendant, spReward: 110,
+            durationLabel: "~50 MIN", category: .challenge, difficultyTier: .ascendant, difficultyWeight: 110,
             steps: [
                 .circuit(rounds: 5, restBetweenSeconds: 60, steps: [
                     .instruction(text: "Weighted push-ups × 20 (plate / loaded pack)", cue: nil)
@@ -528,7 +528,7 @@ enum RoutineLibrary {
 
         RoutineDef(id: "vessel-protocol", title: "Vessel Conditioning",
             subtitle: "Strength, speed, and carrying capacity.",
-            durationLabel: "~35 MIN", category: .challenge, difficultyTier: .vessel, spReward: 95,
+            durationLabel: "~35 MIN", category: .challenge, difficultyTier: .vessel, difficultyWeight: 95,
             steps: [
                 .circuit(rounds: 4, restBetweenSeconds: 60, steps: [
                     .instruction(text: "Clean & press × 8 — heavy", cue: nil)
@@ -552,7 +552,7 @@ enum RoutineLibrary {
         // ───────── Alt circuits ─────────
         RoutineDef(id: "bw-full-30", title: "Bodyweight Kit",
             subtitle: "No equipment. Balanced push, legs, hinge, pull option, core.",
-            durationLabel: "~30 MIN", category: .altCircuit, difficultyTier: .apprentice, spReward: 40,
+            durationLabel: "~30 MIN", category: .altCircuit, difficultyTier: .apprentice, difficultyWeight: 40,
             steps: [
                 .note(text: "Move smoothly. Stop each set with 1-2 clean reps left. Use a table/towel row only if the setup is stable."),
                 .timed(label: "Warm-up march + joint circles", seconds: 120, style: .work),
@@ -570,7 +570,7 @@ enum RoutineLibrary {
 
         RoutineDef(id: "db-full-25", title: "Dumbbell Pair",
             subtitle: "Pair of dumbbells. Simple strength circuit, easy to scale.",
-            durationLabel: "~25 MIN", category: .altCircuit, difficultyTier: .forged, spReward: 45,
+            durationLabel: "~25 MIN", category: .altCircuit, difficultyTier: .forged, difficultyWeight: 45,
             steps: [
                 .note(text: "Pick a load you can control for every rep. If form changes, reduce reps before adding rest."),
                 .timed(label: "Warm-up walkout + bodyweight squats", seconds: 120, style: .work),
@@ -587,7 +587,7 @@ enum RoutineLibrary {
 
         RoutineDef(id: "hotel-full-20", title: "Hotel Room Kit",
             subtitle: "Small-space workout for travel days. No equipment needed.",
-            durationLabel: "~20 MIN", category: .altCircuit, difficultyTier: .novice, spReward: 35,
+            durationLabel: "~20 MIN", category: .altCircuit, difficultyTier: .novice, difficultyWeight: 35,
             steps: [
                 .note(text: "Keep the room quiet: soft landings, controlled tempo, and a towel under hands if the floor is slick."),
                 .timed(label: "Warm-up march + hip circles", seconds: 120, style: .work),
@@ -604,7 +604,7 @@ enum RoutineLibrary {
 
         RoutineDef(id: "gym-full-45", title: "Gym Builder",
             subtitle: "Squat, press, hinge, pull, carry/core. A complete gym day.",
-            durationLabel: "~45 MIN", category: .altCircuit, difficultyTier: .master, spReward: 65,
+            durationLabel: "~45 MIN", category: .altCircuit, difficultyTier: .master, difficultyWeight: 65,
             steps: [
                 .note(text: "Use moderate loads today. Warm up the first lift with 2 lighter sets before the clock starts."),
                 .timed(label: "Warm-up bike or incline walk", seconds: 300, style: .work),
@@ -622,7 +622,7 @@ enum RoutineLibrary {
 
         RoutineDef(id: "athletic-full-28", title: "Athletic Circuit",
             subtitle: "Power, strength, and core in one fast circuit.",
-            durationLabel: "~28 MIN", category: .altCircuit, difficultyTier: .veteran, spReward: 50,
+            durationLabel: "~28 MIN", category: .altCircuit, difficultyTier: .veteran, difficultyWeight: 50,
             steps: [
                 .note(text: "Use a kettlebell, dumbbell, or loaded backpack where noted. Keep jumps crisp, not sloppy."),
                 .timed(label: "Warm-up walkout + shoulder CARs", seconds: 150, style: .work),
@@ -651,8 +651,8 @@ enum RoutineLibrary {
             if lhs.difficultyTier != rhs.difficultyTier {
                 return lhs.difficultyTier < rhs.difficultyTier
             }
-            if lhs.spReward != rhs.spReward {
-                return lhs.spReward < rhs.spReward
+            if lhs.difficultyWeight != rhs.difficultyWeight {
+                return lhs.difficultyWeight < rhs.difficultyWeight
             }
             let lhsRunCount = RoutineRun.build(lhs.steps).run.count
             let rhsRunCount = RoutineRun.build(rhs.steps).run.count

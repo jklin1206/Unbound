@@ -14,7 +14,7 @@ final class RoutineHistoryStoreTests: XCTestCase {
 
     private func routine(_ id: String, sp: Int = 25) -> RoutineDef {
         RoutineDef(id: id, title: id, subtitle: "", durationLabel: "~10 MIN",
-                   category: .challenge, spReward: sp, steps: [])
+                   category: .challenge, difficultyWeight: sp, steps: [])
     }
 
     func testCompleteThenCooldownBlocksWithin24h() {
