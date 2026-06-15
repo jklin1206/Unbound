@@ -400,7 +400,7 @@ struct SquadDetailView: View {
                     .minimumScaleFactor(0.7)
 
                 HStack(spacing: 10) {
-                    metaItem(icon: "person.2.fill", text: "\(state.roster.count)/8")
+                    metaItem(icon: "person.2.fill", text: "\(state.roster.count)/\(squad.maxSize)")
                     metaItem(icon: "flame.fill", text: "\(squad.squadStreakWeeks)W")
                     metaItem(icon: "trophy.fill", text: currentSeason.title)
                 }

@@ -10,7 +10,12 @@ extension SquadDetailView {
     }
 
     var squadBoardSection: some View {
-        SquadBoardView(rows: squadBoardRows, season: currentSeason)
+        SquadBoardView(
+            rows: squadBoardRows,
+            season: currentSeason,
+            capacity: state.currentSquad?.maxSize ?? 10,
+            inviteURL: state.currentSquad?.inviteURL
+        )
     }
 
     func seasonRewardsSection(squad: Squad) -> some View {
