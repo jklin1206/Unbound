@@ -320,6 +320,7 @@ struct RankInfoSheet: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var showRecords = false
+    @State private var pendingRedo: RankTrialFormat? = nil
 
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
@@ -379,11 +380,23 @@ struct RankInfoSheet: View {
             .padding(20)
         }
         .background(Color.unbound.bg.ignoresSafeArea())
-        .sheet(isPresented: $showRecords) {
+        .sheet(isPresented: $showRecords, onDismiss: {
+            // Records sheet is fully gone before we hand the redo up to Home, so
+            // the workout cover presents over a single dismissing sheet (the same
+            // path the NextGateCard "Begin" uses).
+            guard let format = pendingRedo,
+                  let definition = OverallRankTrialDefinitions.all.first(where: { $0.format == format })
+            else { return }
+            pendingRedo = nil
+            onStart(definition)
+        }) {
             if let progress {
-                TrialRecordsShelf(progress: progress)
-                    .presentationDetents([.large])
-                    .presentationDragIndicator(.visible)
+                TrialRecordsShelf(progress: progress, onSelectGate: { format in
+                    pendingRedo = format
+                    showRecords = false
+                })
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
             }
         }
     }
