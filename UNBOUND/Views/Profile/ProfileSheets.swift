@@ -315,9 +315,11 @@ struct EditProfileSheet: View {
 struct RankInfoSheet: View {
     let currentTier: SkillTier
     let readiness: OverallRankTrialReadiness?
+    var progress: OverallRankTrialProgress? = nil
     let onStart: (OverallRankTrialDefinition) -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @State private var showRecords = false
 
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
@@ -354,13 +356,11 @@ struct RankInfoSheet: View {
                 }
 
                 if let readiness {
-                    // Destination hero — every trial is a pilgrimage to the
-                    // next location in the journey, so the gate leads with the
-                    // target tier's banner art and place name.
-                    if let target = readiness.targetRank {
-                        trialDestinationHero(target: target)
-                    }
-
+                    // The NextGateCard is the single destination+gate hero — it
+                    // leads with the rank-banner art, the gate numeral/name, the
+                    // rank transition, and Begin. (The old standalone destination
+                    // hero duplicated this banner and named the same step a second,
+                    // conflicting way, so it was removed.)
                     RankTrialFlowStrip(readiness: readiness)
 
                     if let definition = readiness.definition {
@@ -371,59 +371,51 @@ struct RankInfoSheet: View {
                         )
                     }
                 }
+
+                if let progress {
+                    recordsButton(progress: progress)
+                }
             }
             .padding(20)
         }
         .background(Color.unbound.bg.ignoresSafeArea())
+        .sheet(isPresented: $showRecords) {
+            if let progress {
+                TrialRecordsShelf(progress: progress)
+                    .presentationDetents([.large])
+                    .presentationDragIndicator(.visible)
+            }
+        }
     }
 
     @ViewBuilder
-    private func trialDestinationHero(target: RankTitle) -> some View {
-        if let asset = RankCosmetics.profileHeaderBannerAsset(for: target),
-           let ui = UIImage(named: asset) {
-            ZStack(alignment: .bottomLeading) {
-                Image(uiImage: ui)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(height: 150)
-                    .frame(maxWidth: .infinity)
-                    .clipped()
-
-                LinearGradient(
-                    stops: [
-                        .init(color: .clear, location: 0),
-                        .init(color: Color.black.opacity(0.22), location: 0.45),
-                        .init(color: Color.black.opacity(0.78), location: 1)
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-
-                HStack(alignment: .bottom) {
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text("NEXT DESTINATION")
-                            .font(.system(size: 9, weight: .black, design: .monospaced))
-                            .tracking(1.7)
-                            .foregroundStyle(Color.unbound.textSecondary)
-                        Text(target.bannerLocationName)
-                            .font(Font.unbound.titleM)
-                            .foregroundStyle(Color.unbound.textPrimary)
-                    }
-                    Spacer()
-                    Image(target.assetName)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 40, height: 40)
-                        .shadow(color: target.rewardTint.opacity(0.5), radius: 10)
-                }
-                .padding(14)
+    private func recordsButton(progress: OverallRankTrialProgress) -> some View {
+        let passedGates = Set(progress.attempts.filter { $0.passed }.map { $0.targetRank }).count
+        Button { showRecords = true } label: {
+            HStack(spacing: 10) {
+                Image(systemName: "rosette")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(Color.unbound.rankGold)
+                Text("TRIAL RECORDS")
+                    .font(Font.unbound.captionS.weight(.heavy)).tracking(1.6)
+                    .foregroundStyle(Color.unbound.textPrimary)
+                Spacer(minLength: 0)
+                Text("\(passedGates)/\(RankTrialFormat.allCases.count) GATES")
+                    .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                    .tracking(1)
+                    .foregroundStyle(Color.unbound.textTertiary)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(Color.unbound.textSecondary)
             }
-            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .strokeBorder(target.rewardTint.opacity(0.30), lineWidth: 1)
-            )
+            .padding(14)
+            .frame(maxWidth: .infinity)
+            .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Color.unbound.surface))
+            .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1))
         }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("rank-info-records")
     }
 
     private var headerTier: RankTitle {

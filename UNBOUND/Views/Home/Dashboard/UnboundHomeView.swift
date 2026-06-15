@@ -317,7 +317,8 @@ struct UnboundHomeView: View {
             // ⓘ). Starting a trial reuses the home workout-ready cover.
             RankInfoSheet(
                 currentTier: model.aggregateTier,
-                readiness: model.overallRankTrialReadiness
+                readiness: model.overallRankTrialReadiness,
+                progress: OverallRankTrialStore.shared.load(userId: services.auth.currentUserId ?? "anonymous")
             ) { definition in
                 showRankInfo = false
                 let userId = services.auth.currentUserId ?? "anonymous"
