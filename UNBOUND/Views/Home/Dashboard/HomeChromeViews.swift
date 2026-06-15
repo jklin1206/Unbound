@@ -66,7 +66,7 @@ struct HomeIconCommand: View {
             VStack(spacing: 5) {
                 HomeCommandMiniGlyph(kind: artwork, tint: tint)
                     .frame(width: 30, height: 30)
-                    .shadow(color: tint.opacity(0.22), radius: 6)
+                    .shadow(color: tint.opacity(0.3), radius: 6)
 
                 Text(value.uppercased())
                     .font(.system(size: 11.5, weight: .black, design: .rounded))
@@ -80,7 +80,7 @@ struct HomeIconCommand: View {
                 Text(title.uppercased())
                     .font(.system(size: 8.7, weight: .black, design: .monospaced))
                     .tracking(0.65)
-                    .foregroundStyle(Color.unbound.textTertiary)
+                    .foregroundStyle(Color.unbound.textSecondary)
                     .lineLimit(2)
                     .multilineTextAlignment(.center)
                     .minimumScaleFactor(0.64)
@@ -88,13 +88,45 @@ struct HomeIconCommand: View {
                     .frame(height: 22, alignment: .top)
                     .frame(maxWidth: .infinity)
             }
-            .padding(.vertical, 4)
+            .padding(.vertical, 11)
             .frame(maxWidth: .infinity)
-            .frame(height: 79)
-            .contentShape(Rectangle())
+            .frame(height: 88)
+            // A real, pressable button body — a fill-only lifted tile with a
+            // breath of the command's tint, so each reads as a button, not a
+            // floating icon. (Press feedback + haptic live in the button style.)
+            .background(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(Color.unbound.surfaceElevated)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .fill(LinearGradient(colors: [tint.opacity(0.16), .clear],
+                                                 startPoint: .top, endPoint: .bottom))
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
+                    )
+            )
+            .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(HomeCommandButtonStyle())
         .accessibilityLabel(accessibilityLabel)
+    }
+}
+
+/// Makes the command tiles feel pressed, not just tapped: a quick scale-in +
+/// brighten with a soft haptic on touch-down (reduced-motion drops the scale).
+struct HomeCommandButtonStyle: ButtonStyle {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.95 : 1.0)
+            .brightness(configuration.isPressed ? 0.06 : 0)
+            .animation(.easeOut(duration: 0.14), value: configuration.isPressed)
+            .onChange(of: configuration.isPressed) { _, pressed in
+                if pressed { UnboundHaptics.soft() }
+            }
     }
 }
 

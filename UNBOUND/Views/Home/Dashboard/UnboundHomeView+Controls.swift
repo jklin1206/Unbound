@@ -57,7 +57,6 @@ extension UnboundHomeView {
                 tint: Color.skinHex("8B5CF6"),
                 accessibilityLabel: "Open cosmetics shop"
             ) {
-                UnboundHaptics.medium()
                 showingShop = true
             }
 
@@ -68,7 +67,6 @@ extension UnboundHomeView {
                 tint: equippedHomeBackdrop?.accent ?? Color.skinHex("2DD4BF"),
                 accessibilityLabel: "Change home backdrop"
             ) {
-                UnboundHaptics.medium()
                 showingBackdropPicker = true
             }
 
@@ -79,7 +77,6 @@ extension UnboundHomeView {
                 tint: model.aggregateTier.rewardTextTint,
                 accessibilityLabel: "Open rank library"
             ) {
-                UnboundHaptics.soft()
                 showRankLibrary = true
             }
 
