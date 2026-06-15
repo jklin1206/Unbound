@@ -292,34 +292,15 @@ private struct RoutineReadyFace: View {
                 .foregroundStyle(Color.unbound.textTertiary)
 
             VStack(alignment: .leading, spacing: 0) {
-                ForEach(Array(routine.steps.prefix(6).enumerated()), id: \.offset) { index, step in
-                    HStack(alignment: .top, spacing: 12) {
-                        Text("\(index + 1)")
-                            .font(Font.unbound.monoS.weight(.heavy))
-                            .foregroundStyle(routine.category.color)
-                            .frame(width: 20, alignment: .trailing)
-                            .padding(.top, 1)
+                ForEach(Array(routine.steps.enumerated()), id: \.offset) { index, step in
+                    stepRow(index: index, step: step)
+                        .padding(.vertical, 11)
 
-                        Text(routineStepPreview(step))
-                            .font(Font.unbound.bodyS)
-                            .foregroundStyle(Color.unbound.textPrimary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    .padding(.vertical, 11)
-
-                    if index < min(routine.steps.count, 6) - 1 {
+                    if index < routine.steps.count - 1 {
                         Divider()
                             .background(Color.unbound.borderSubtle)
                             .padding(.leading, 32)
                     }
-                }
-
-                if routine.steps.count > 6 {
-                    Text("+\(routine.steps.count - 6) more steps")
-                        .font(Font.unbound.captionS.weight(.bold))
-                        .foregroundStyle(Color.unbound.textTertiary)
-                        .padding(.top, 12)
-                        .padding(.leading, 32)
                 }
             }
             .padding(14)
@@ -332,6 +313,46 @@ private struct RoutineReadyFace: View {
                     .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
             )
         }
+    }
+
+    // Full detail: a circuit expands into its rounds + every move (no capping,
+    // no "+N more"), so the plan reads completely before you start.
+    @ViewBuilder
+    private func stepRow(index: Int, step: RoutineStep) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Text("\(index + 1)")
+                .font(Font.unbound.monoS.weight(.heavy))
+                .foregroundStyle(routine.category.color)
+                .frame(width: 20, alignment: .trailing)
+                .padding(.top, 1)
+
+            if case let .circuit(rounds, rest, moves) = step {
+                VStack(alignment: .leading, spacing: 7) {
+                    Text(rest > 0 ? "Circuit × \(rounds) rounds · \(rest)s rest" : "Circuit × \(rounds) rounds")
+                        .font(Font.unbound.bodyMStrong)
+                        .foregroundStyle(Color.unbound.textPrimary)
+
+                    ForEach(Array(moves.enumerated()), id: \.offset) { _, move in
+                        HStack(alignment: .top, spacing: 8) {
+                            Circle()
+                                .fill(routine.category.color.opacity(0.7))
+                                .frame(width: 4, height: 4)
+                                .padding(.top, 7)
+                            Text(routineStepPreview(move))
+                                .font(Font.unbound.bodyS)
+                                .foregroundStyle(Color.unbound.textSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                }
+            } else {
+                Text(routineStepPreview(step))
+                    .font(Font.unbound.bodyS)
+                    .foregroundStyle(Color.unbound.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var startDock: some View {
