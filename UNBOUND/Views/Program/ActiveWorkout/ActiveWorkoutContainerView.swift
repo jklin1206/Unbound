@@ -136,10 +136,11 @@ struct ActiveWorkoutContainerView: View {
                     onEditReps:   { ei, si in beginEdit(ei: ei, si: si, field: .metric) },
                     onPickRPE: { ei, si in beginEdit(ei: ei, si: si, field: .rpe) },
                     onConfirmAsPlanned: { ei, si in
-                        let shouldUseDeckFlow = isDeckTrial
                         session.confirmAsPlanned(exerciseIndex: ei, setIndex: si)
                         saveDraft()
-                        if shouldUseDeckFlow && !session.hasUnloggedWorkingSets {
+                        // Rank trials auto-finish into the verdict / Crossing once every
+                        // station is logged — no manual "Complete Trial" tap.
+                        if isRankTrial && !session.hasUnloggedWorkingSets {
                             restTimer.stop()
                             Task { await complete() }
                         } else {
@@ -162,8 +163,8 @@ struct ActiveWorkoutContainerView: View {
             // Hide the bottom footer while the keypad owns that space (matches the
             // pre-module behaviour where the dock floated over the footer).
             if !keypad.isActive {
-                if isDeckTrial {
-                    deckRestFooter
+                if isRankTrial {
+                    trialRestFooter
                 } else {
                     completionFooter
                 }
@@ -529,7 +530,7 @@ struct ActiveWorkoutContainerView: View {
         rankTrialDefinition?.format == .deckOfProof
     }
 
-    private var deckRestFooter: some View {
+    private var trialRestFooter: some View {
         RestTimerPill(
             model: restTimer,
             onAddThirty: { restTimer.addThirty() },

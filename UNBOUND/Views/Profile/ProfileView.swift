@@ -227,7 +227,9 @@ struct ProfileView: View {
         .fullScreenCover(item: $activeOverallRankTrialDraft, onDismiss: {
             Task { await load() }
         }) { draft in
-            WorkoutReadyView(draft: draft)
+            GateTrialLaunchView(draft: draft, services: services, onFinished: {
+                activeOverallRankTrialDraft = nil
+            })
                 .environmentObject(services)
         }
         .onChange(of: pickedItem) { _, item in

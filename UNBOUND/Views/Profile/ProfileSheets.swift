@@ -398,3 +398,35 @@ struct RankInfoSheet: View {
     }
 }
 
+/// Live rank-trial launch: the entrance cinematic (`GateEntranceView`, with a
+/// still-image fallback when the Plan-3 clip is absent) walks the user into the
+/// gate world, then crossfades into the real logging container. Replaces the
+/// legacy `WorkoutReadyView` explainer for trials — the Gate Hall already served
+/// the ready / loadout step.
+struct GateTrialLaunchView: View {
+    let draft: TrainingSessionDraft
+    let services: ServiceContainer
+    var onFinished: () -> Void
+
+    @State private var entered = false
+
+    private var crossing: GateCrossing? {
+        guard let definition = draft.programId.flatMap(OverallRankTrialDefinitions.definition) else { return nil }
+        return GateCrossingCatalog.crossing(for: definition.format)
+    }
+
+    var body: some View {
+        ZStack {
+            if let crossing, !entered {
+                GateEntranceView(crossing: crossing, onFinished: {
+                    withAnimation(.easeInOut(duration: 0.4)) { entered = true }
+                })
+                .transition(.opacity)
+            } else {
+                ActiveWorkoutContainerView(draft: draft, services: services, onFinished: onFinished)
+                    .transition(.opacity)
+            }
+        }
+    }
+}
+
