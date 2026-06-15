@@ -31,6 +31,25 @@ struct ActiveWorkoutContainerView: View {
     @State private var rewardSequence: WorkoutRewardSequenceSummary? = nil
     @State private var isFinishingRewardSequence = false
 
+    // A passed rank gate: The Crossing overrides the standard reward sequence as the
+    // rank-up moment, then chains into it so XP/badges still play.
+    @State private var pendingGateCrossing: GateCrossing? = nil
+    @State private var pendingGateDefiningNumber: String? = nil
+    @State private var stashedGateRewardSummary: WorkoutRewardSequenceSummary? = nil
+
+    /// Station-clear beat (spec §6.5): the world floods full-bleed when a rank-trial
+    /// station's first working set is logged, then recedes (`GateBeatOverlay`).
+    @State private var beatStationTitle: String? = nil
+
+    /// Fail verdict (spec §6.7): "THE GATE HOLDS" → ENTER AGAIN on a failed gate.
+    @State private var pendingGateVerdict: GateVerdictContext? = nil
+
+    private struct GateVerdictContext: Identifiable {
+        let id = UUID()
+        let evaluation: OverallRankTrialEvaluation
+        let world: GateWorld
+    }
+
     // Grid cell editor — shared bottom-docked keypad module (no modal). The model
     // owns the typed buffer + pristine state, so merely opening a cell never
     // commits the suggested value (the ✓ ring does that).
@@ -118,10 +137,11 @@ struct ActiveWorkoutContainerView: View {
                     onEditReps:   { ei, si in beginEdit(ei: ei, si: si, field: .metric) },
                     onPickRPE: { ei, si in beginEdit(ei: ei, si: si, field: .rpe) },
                     onConfirmAsPlanned: { ei, si in
-                        let shouldUseDeckFlow = isDeckTrial
                         session.confirmAsPlanned(exerciseIndex: ei, setIndex: si)
                         saveDraft()
-                        if shouldUseDeckFlow && !session.hasUnloggedWorkingSets {
+                        // Rank trials auto-finish into the verdict / Crossing once every
+                        // station is logged — no manual "Complete Trial" tap.
+                        if isRankTrial && !session.hasUnloggedWorkingSets {
                             restTimer.stop()
                             Task { await complete() }
                         } else {
@@ -144,8 +164,8 @@ struct ActiveWorkoutContainerView: View {
             // Hide the bottom footer while the keypad owns that space (matches the
             // pre-module behaviour where the dock floated over the footer).
             if !keypad.isActive {
-                if isDeckTrial {
-                    deckRestFooter
+                if isRankTrial {
+                    trialRestFooter
                 } else {
                     completionFooter
                 }
@@ -172,6 +192,20 @@ struct ActiveWorkoutContainerView: View {
             await services.squadPresence.markInWorkout(userId: uid, squadId: squadId)
         }
         .interactiveDismissDisabled(true)
+        .onChange(of: rankTrialClearedStations) { previous, current in
+            // A station just cleared — flood its world beat. Deck has its own flow.
+            guard isRankTrial, !isDeckTrial, current > previous else { return }
+            beatStationTitle = session.exercises.last { !$0.skipped && $0.hasLoggedRankTrialWorkingSet }?.name
+        }
+        .overlay {
+            if let beatStationTitle, let gateWorld {
+                GateBeatOverlay(world: gateWorld, stationTitle: beatStationTitle) {
+                    self.beatStationTitle = nil
+                }
+                .ignoresSafeArea()
+                .transition(.opacity)
+            }
+        }
         // Always-available escape hatch — the draft is autosaved on every
         // mutation, so leaving keeps the workout resumable. Without this the
         // user is trapped whenever saveLog fails.
@@ -259,6 +293,35 @@ struct ActiveWorkoutContainerView: View {
             }
             .interactiveDismissDisabled(true)
         }
+        .fullScreenCover(item: $pendingGateCrossing) { crossing in
+            TheCrossingView(
+                crossing: crossing,
+                definingNumber: pendingGateDefiningNumber,
+                onShare: {},
+                onReplay: {},
+                onDismiss: {
+                    pendingGateCrossing = nil
+                    if let stashed = stashedGateRewardSummary {
+                        stashedGateRewardSummary = nil
+                        rewardSequence = stashed   // chain into XP / badges
+                    } else {
+                        finishDismiss()
+                    }
+                }
+            )
+            .interactiveDismissDisabled(true)
+        }
+        .fullScreenCover(item: $pendingGateVerdict) { context in
+            GateVerdictView(
+                evaluation: context.evaluation,
+                world: context.world,
+                onRematch: {
+                    pendingGateVerdict = nil
+                    finishDismiss()
+                }
+            )
+            .interactiveDismissDisabled(true)
+        }
     }
 
     // MARK: - Draft autosave
@@ -281,7 +344,7 @@ struct ActiveWorkoutContainerView: View {
         }
     }
 
-    private var deckRestFooter: some View {
+    private var trialRestFooter: some View {
         RestTimerPill(
             model: restTimer,
             onAddThirty: { restTimer.addThirty() },
@@ -517,14 +580,25 @@ struct ActiveWorkoutContainerView: View {
                 rankTrialResult: rankTrialResult,
                 weeklyVowReceipt: weeklyVowReceipt
             )
-            if totalLoggedWorkingSets > 0
+            let hasReward = totalLoggedWorkingSets > 0
                 || summary.progression?.hasContent == true
                 || summary.weeklyVowCallout != nil
-                || summary.rankTrialCallout != nil {
-                saving = false
+                || summary.rankTrialCallout != nil
+            saving = false
+            if let rt = rankTrialResult, rt.didAdvanceRank {
+                // The Crossing IS the gate's reward moment and rank-up announcement;
+                // chain the remaining spoils afterward, minus the redundant verdict beat.
+                pendingGateDefiningNumber = gateDefiningNumber(rt.evaluation)
+                stashedGateRewardSummary = gateRewardTail(from: summary)
+                pendingGateCrossing = GateCrossingCatalog.crossing(for: rt.definition.format)
+            } else if let rt = rankTrialResult, !rt.evaluation.passed {
+                // Failed gate — "THE GATE HOLDS" verdict + ENTER AGAIN. XP is banked.
+                pendingGateVerdict = GateVerdictContext(
+                    evaluation: rt.evaluation,
+                    world: GateWorldCatalog.world(for: rt.definition.format))
+            } else if hasReward {
                 rewardSequence = summary
             } else {
-                saving = false
                 finishDismiss()
             }
         } catch {
@@ -532,6 +606,35 @@ struct ActiveWorkoutContainerView: View {
             saving = false
             saveError = true   // surface it + offer Retry / Leave — never trap
         }
+    }
+
+    private var gateWorld: GateWorld? {
+        rankTrialDefinition.map { GateWorldCatalog.world(for: $0.format) }
+    }
+
+    /// How many rank-trial stations have a logged working set — drives the beat.
+    private var rankTrialClearedStations: Int {
+        session.rankTrialLoggedStationCount { $0.hasLoggedRankTrialWorkingSet }
+    }
+
+    /// "passed / scored" stations, e.g. "4/4", for the minted gate card.
+    private func gateDefiningNumber(_ evaluation: OverallRankTrialEvaluation) -> String {
+        let scored = evaluation.stationResults.filter(\.isScored)
+        let passed = scored.filter { $0.status == .passed }.count
+        return "\(passed)/\(scored.count)"
+    }
+
+    /// The Crossing IS the rank-up announcement, so the chained reward tail drops
+    /// the redundant rank-trial receipt beat and keeps only the rest of the spoils.
+    private func gateRewardTail(from summary: WorkoutRewardSequenceSummary) -> WorkoutRewardSequenceSummary? {
+        var tail = summary
+        tail.rankTrialCallout = nil
+        let hasTailReward = totalLoggedWorkingSets > 0
+            || tail.progression?.hasContent == true
+            || tail.weeklyVowCallout != nil
+            || !tail.badges.isEmpty
+            || tail.xp.total > 0
+        return hasTailReward ? tail : nil
     }
 
     private func applyWeeklyVowBonus(
