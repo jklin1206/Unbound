@@ -3,77 +3,115 @@ import SwiftUI
 import UIKit
 
 extension UnboundHomeView {
+    var homeControlTint: Color {
+        Color.unbound.accent
+    }
+
     var homeControlSurface: some View {
         VStack(spacing: 12) {
-            weekPath
-            homeCommandCenter
+            homeMissionStatusBand
+            homeTrialKeyBand
+            homeUtilityDockBand
         }
-        .padding(.vertical, 8)
+        .padding(.top, 4)
+        .padding(.bottom, 14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .overlay(alignment: .top) {
-            Rectangle()
-                .fill(Color.unbound.borderSubtle.opacity(0.64))
-                .frame(height: 0.5)
-        }
-        .overlay(alignment: .bottom) {
-            Rectangle()
-                .fill(Color.unbound.borderSubtle.opacity(0.42))
-                .frame(height: 0.5)
+    }
+
+    var homeMissionStatusBand: some View {
+        HomeSurfaceBand(tint: homeControlTint, horizontalPadding: 0, verticalPadding: 14) {
+            weekPath
         }
     }
 
-    var homeCommandCenter: some View {
-        VStack(spacing: 14) {
-            HomeCommandSection(
-                title: "Progression",
-                palette: .progression,
-                commands: [
-                    HomeCommand(
-                        artwork: .rankTrial,
-                        title: "Gate Keys",
-                        detail: rankTrialCommandValue,
-                        accessibilityLabel: "Open rank trial"
-                    ) { handleRankTrialCommand() },
-                    HomeCommand(
-                        artwork: .vow,
-                        title: "Vows",
-                        detail: trialCommandValue,
-                        accessibilityLabel: "Open weekly vow"
-                    ) { handleTrialCommand() },
-                    HomeCommand(
-                        artwork: .rankLibrary,
-                        title: "Rank Library",
-                        detail: model.aggregateTier.displayName,
-                        accessibilityLabel: "Open rank library"
-                    ) { showRankLibrary = true }
-                ]
-            )
+    var homeTrialKeyBand: some View {
+        HomeSurfaceBand(tint: homeControlTint, verticalPadding: 10) {
+            VStack(alignment: .leading, spacing: 0) {
+                HomeBandHeader(title: "Trials", tint: homeControlTint)
+                    .padding(.bottom, 4)
 
-            HomeCommandSection(
-                title: "Cosmetics",
-                palette: .cosmetics,
-                commands: [
-                    HomeCommand(
-                        artwork: .shop,
-                        title: "Shop",
-                        detail: "\(shopInventoryStore.purchasedItemIDs.count) owned",
-                        accessibilityLabel: "Open cosmetics shop"
-                    ) { showingShop = true },
-                    HomeCommand(
-                        artwork: .backdrops,
-                        title: "Backdrops",
-                        detail: equippedHomeBackdrop?.name ?? "Default",
-                        accessibilityLabel: "Change home backdrop"
-                    ) { showingBackdropPicker = true },
-                    HomeCommand(
-                        artwork: .weight,
-                        title: "Weight",
-                        detail: bodyWeightCommandValue,
-                        accessibilityLabel: "Open bodyweight log"
-                    ) { handleBodyWeightCommand() }
-                ]
-            )
+                HomePriorityCommand(
+                    artwork: .trialKey,
+                    title: "Rank Trial",
+                    detail: rankTrialCommandDetail,
+                    value: rankTrialCommandValue,
+                    tint: homeControlTint,
+                    accessibilityLabel: "Open rank trial"
+                ) {
+                    handleRankTrialCommand()
+                }
+
+                UnboundNativeDivider(opacity: 0.42)
+                    .padding(.leading, 54)
+
+                HomePriorityCommand(
+                    artwork: .vow,
+                    title: "Binding Vow",
+                    detail: trialCommandDetail,
+                    value: trialCommandValue,
+                    tint: homeControlTint,
+                    accessibilityLabel: "Open binding vow"
+                ) {
+                    handleTrialCommand()
+                }
+            }
         }
+    }
+
+    var homeUtilityDockBand: some View {
+        homeCommandStrip
+        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .overlay(alignment: .top) {
+            UnboundNativeDivider(opacity: 0.54)
+        }
+        .overlay(alignment: .bottom) {
+            UnboundNativeDivider(opacity: 0.36)
+        }
+    }
+
+    var homeCommandStrip: some View {
+        HStack(alignment: .top, spacing: 0) {
+            HomeCommandStripButton(
+                artwork: .weight,
+                title: "Weight",
+                tint: bodyWeightStatusColor,
+                accessibilityLabel: "Open bodyweight log"
+            ) {
+                handleBodyWeightCommand()
+            }
+
+            HomeCommandStripButton(
+                artwork: .backdrops,
+                title: "Backdrops",
+                tint: equippedHomeBackdrop?.accent ?? Color.skinHex("2DD4BF"),
+                accessibilityLabel: "Change home backdrop"
+            ) {
+                UnboundHaptics.medium()
+                showingBackdropPicker = true
+            }
+
+            HomeCommandStripButton(
+                artwork: .rankLibrary,
+                title: "Ranks",
+                tint: model.aggregateTier.rewardTextTint,
+                accessibilityLabel: "Open rank library"
+            ) {
+                UnboundHaptics.soft()
+                showRankLibrary = true
+            }
+
+            HomeCommandStripButton(
+                artwork: .shop,
+                title: "Shop",
+                tint: Color.skinHex("8B5CF6"),
+                accessibilityLabel: "Open cosmetics shop"
+            ) {
+                UnboundHaptics.medium()
+                showingShop = true
+            }
+        }
+        .padding(.horizontal, 4)
         .frame(maxWidth: .infinity)
     }
 
@@ -82,9 +120,21 @@ extension UnboundHomeView {
             return capstoneStateLabel(for: activeTrial.capstoneState)
         }
         if !model.trialsState.skippedCurrentWeek && !model.trialsState.currentWeekCards.isEmpty {
-            return "PICK"
+            return "BIND"
         }
         return "IDLE"
+    }
+
+    var trialCommandTint: Color {
+        if let activeTrial = model.trialsState.currentTrial {
+            if activeTrial.capstoneState == .completed { return Color.unbound.success }
+            if activeTrial.capstoneState == .missed { return Color.unbound.alert }
+            return activeTrial.chosenCard.theme.tintColor
+        }
+        if !model.trialsState.skippedCurrentWeek && !model.trialsState.currentWeekCards.isEmpty {
+            return Color.unbound.accent
+        }
+        return Color.unbound.textTertiary
     }
 
     var rankTrialCommandValue: String {
@@ -96,6 +146,41 @@ extension UnboundHomeView {
         let metCount = readiness.requirements.filter(\.isMet).count
         let totalCount = max(1, readiness.requirements.count)
         return "\(metCount)/\(totalCount)"
+    }
+
+    var rankTrialCommandTint: Color {
+        guard let readiness = model.overallRankTrialReadiness,
+              readiness.definition != nil
+        else { return Color.unbound.textTertiary }
+        return rankGatePulseTint(readiness)
+    }
+
+    var rankTrialCommandDetail: String {
+        guard let readiness = model.overallRankTrialReadiness,
+              readiness.definition != nil
+        else { return "Rank gate locked" }
+        if readiness.isReady { return "Gate available" }
+        if readiness.status == .attempted { return "Reattempt gate" }
+        return "Rank gate progress"
+    }
+
+    var trialCommandDetail: String {
+        if let activeTrial = model.trialsState.currentTrial {
+            switch activeTrial.capstoneState {
+            case .pending:
+                return "Opens Sat · XP debt if missed"
+            case .windowOpen:
+                return "Save vow workout to seal"
+            case .completed:
+                return "Reward sealed this week"
+            case .missed:
+                return "Miss added XP debt"
+            }
+        }
+        if !model.trialsState.skippedCurrentWeek && !model.trialsState.currentWeekCards.isEmpty {
+            return "Pick one vow or skip free"
+        }
+        return "No binding vow active"
     }
 
     var bodyWeightCommandValue: String {
@@ -152,9 +237,9 @@ extension UnboundHomeView {
     func capstoneStateLabel(for state: WeeklyVowState) -> String {
         switch state {
         case .pending:
-            return "ARMED"
+            return "SAT"
         case .windowOpen:
-            return "OPEN"
+            return "TRAIN"
         case .completed:
             return "DONE"
         case .missed:
@@ -381,4 +466,150 @@ extension UnboundHomeView {
 
     // MARK: - Loading
 
+}
+
+private struct HomeSurfaceBand<Content: View>: View {
+    let tint: Color
+    var horizontalPadding: CGFloat = 14
+    var verticalPadding: CGFloat = 14
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            content()
+        }
+        .padding(.horizontal, horizontalPadding)
+        .padding(.vertical, verticalPadding)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color.unbound.surface.opacity(0.42),
+                            tint.opacity(0.06),
+                            Color.unbound.surface.opacity(0.22)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .strokeBorder(Color.unbound.borderSubtle.opacity(0.74), lineWidth: 0.5)
+        }
+    }
+}
+
+private struct HomeBandHeader: View {
+    let title: String
+    let tint: Color
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Rectangle()
+                .fill(tint)
+                .frame(width: 3, height: 10)
+
+            Text(title.uppercased())
+                .font(.system(size: 9, weight: .black, design: .monospaced))
+                .tracking(1.4)
+                .foregroundStyle(Color.unbound.textTertiary)
+                .lineLimit(1)
+
+            Rectangle()
+                .fill(Color.unbound.borderSubtle.opacity(0.58))
+                .frame(height: 0.5)
+        }
+    }
+}
+
+private struct HomePriorityCommand: View {
+    let artwork: HomeCommandArtworkKind
+    let title: String
+    let detail: String
+    let value: String
+    let tint: Color
+    let accessibilityLabel: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(alignment: .center, spacing: 12) {
+                HomeCommandMiniGlyph(kind: artwork, tint: tint)
+                    .frame(width: 42, height: 42)
+                    .shadow(color: tint.opacity(0.18), radius: 6)
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(title.uppercased())
+                        .font(.system(size: 12, weight: .black, design: .rounded))
+                        .foregroundStyle(Color.unbound.textPrimary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.72)
+
+                    Text(detail.uppercased())
+                        .font(.system(size: 8.5, weight: .bold, design: .monospaced))
+                        .tracking(0.9)
+                        .foregroundStyle(Color.unbound.textTertiary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.68)
+                }
+                .layoutPriority(1)
+
+                Spacer(minLength: 0)
+
+                Text(value.uppercased())
+                    .font(.system(size: 10, weight: .black, design: .monospaced))
+                    .tracking(0.5)
+                    .foregroundStyle(tint)
+                    .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.62)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 5)
+                    .background(Capsule().fill(tint.opacity(0.12)))
+                    .overlay(Capsule().strokeBorder(tint.opacity(0.26), lineWidth: 1))
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 10, weight: .black))
+                    .foregroundStyle(Color.unbound.textTertiary)
+            }
+            .padding(.vertical, 10)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(accessibilityLabel)
+    }
+}
+
+private struct HomeCommandStripButton: View {
+    let artwork: HomeCommandArtworkKind
+    let title: String
+    let tint: Color
+    let accessibilityLabel: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(alignment: .center, spacing: 6) {
+                HomeCommandMiniGlyph(kind: artwork, tint: tint)
+                    .frame(width: 30, height: 30)
+
+                Text(title.uppercased())
+                    .font(.system(size: 8.2, weight: .black, design: .monospaced))
+                    .tracking(0.7)
+                    .foregroundStyle(Color.unbound.textTertiary)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.center)
+                    .minimumScaleFactor(0.68)
+                    .frame(height: 20, alignment: .top)
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 62)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(accessibilityLabel)
+    }
 }
