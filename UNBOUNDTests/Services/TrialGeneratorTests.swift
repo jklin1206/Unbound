@@ -162,7 +162,7 @@ final class WeeklyVowGeneratorTests: XCTestCase {
 
         XCTAssertEqual(apex.capstone.displayName, "Pull Crucible")
         XCTAssertEqual(apex.capstone.evaluation, .manualClaim)
-        XCTAssertTrue(apex.blurb.localizedCaseInsensitiveContains("hard standalone workout"))
+        XCTAssertTrue(apex.blurb.localizedCaseInsensitiveContains("dedicated weekend session"))
         XCTAssertFalse(apex.capstone.description.localizedCaseInsensitiveContains("PR"))
     }
 
