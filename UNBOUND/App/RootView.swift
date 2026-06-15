@@ -33,9 +33,6 @@ struct RootView: View {
         } else if ProcessInfo.processInfo.arguments.contains("-rankTrialReadyReview")
             || ProcessInfo.processInfo.environment["RANK_TRIAL_READY_REVIEW"] == "1" {
             RankTrialReadyReviewView()
-        } else if ProcessInfo.processInfo.arguments.contains("-towerTrialDemo")
-            || ProcessInfo.processInfo.environment["TOWER_TRIAL_DEMO"] == "1" {
-            TowerTrialDemoView()
         } else if ProcessInfo.processInfo.arguments.contains("-activeWorkoutDemo") {
             ActiveWorkoutDemoHarness()
         } else if ProcessInfo.processInfo.arguments.contains("-sessionEditorDemo") {

@@ -23,11 +23,13 @@ final class TrialReadinessService {
         let resolution = RankTrialLoadoutResolver.shared.resolve(
             definition: definition,
             userId: input.userId,
-            equipment: input.equipment
+            equipment: input.equipment,
+            attributeScores: AttributeProfileStore.shared.load(userId: input.userId)
+                ?? AttributeProfile.empty(userId: input.userId, at: Date())
         )
         let requirements = requirementLines(for: definition, resolution: resolution, input: input)
         let latestAttempt = input.attempts
-            .filter { $0.definitionId == definition.id }
+            .filter { definition.matchesAttemptDefinitionId($0.definitionId) }
             .sorted { $0.completedAt > $1.completedAt }
             .first
         let allMet = requirements.allSatisfy(\.isMet)
@@ -70,7 +72,19 @@ final class TrialReadinessService {
 
         let aggregateRank = await services.rank.aggregateRank(userId: userId)
         let userProfile = try? await services.user.fetchProfile(userId: userId)
-        let equipment = movementEquipment(from: userProfile?.equipment ?? [.bodyweight])
+        let equipment = Self.movementEquipment(from: userProfile?.equipment ?? [.bodyweight])
+        let workoutLogs = (try? await services.workoutLog.fetchLogs(userId: userId, programId: nil)) ?? []
+        let attributeProfile = AttributeProfileStore.shared.load(userId: userId)
+        let bodyweightKg = userProfile?.weightKg ?? 0
+        let nextFormat = OverallRankTrialDefinitions.nextTrial(after: progress.currentRank)?.format
+        let history = WorkoutLogGateKeyHistory(
+            workoutLogs: workoutLogs,
+            attributeProfile: attributeProfile,
+            trialProgress: progress
+        )
+        let clearedGateKeys = nextFormat.map {
+            GateKeys.clearedKeys(for: $0, history: history, bodyweightKg: bodyweightKg)
+        } ?? []
 
         return evaluate(
             OverallRankTrialReadinessInput(
@@ -79,12 +93,13 @@ final class TrialReadinessService {
                 overallLevel: overallProgress?.level ?? 0,
                 aggregateRank: aggregateRank,
                 equipment: equipment,
+                clearedGateKeys: clearedGateKeys,
                 attempts: progress.attempts
             )
         )
     }
 
-    private func movementEquipment(from equipment: [Equipment]) -> Set<MovementEquipment> {
+    static func movementEquipment(from equipment: [Equipment]) -> Set<MovementEquipment> {
         var result: Set<MovementEquipment> = [.bodyweight, .openSpace]
         for item in equipment {
             switch item {
@@ -174,6 +189,20 @@ final class TrialReadinessService {
                 isMet: resolution.isReady
             )
         )
+
+        for key in GateKeys.keys(for: definition.format) {
+            let isMet = input.clearedGateKeys.contains(key.id)
+            lines.append(
+                OverallRankTrialRequirementLine(
+                    id: key.id,
+                    kind: .gateKey,
+                    label: key.label,
+                    current: isMet ? "Proven" : "Unproven",
+                    required: key.label,
+                    isMet: isMet
+                )
+            )
+        }
 
         return lines
     }

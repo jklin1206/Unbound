@@ -149,7 +149,7 @@ extension ActiveWorkoutContainerView {
     }
 
     var isDeckTrial: Bool {
-        rankTrialDefinition?.format == .fixedDeck
+        rankTrialDefinition?.format == .deckOfProof
     }
 
     static func elapsedSeconds(since startedAt: Date, now: Date = Date()) -> Int {

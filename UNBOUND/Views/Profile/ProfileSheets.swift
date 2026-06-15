@@ -363,11 +363,12 @@ struct RankInfoSheet: View {
 
                     RankTrialFlowStrip(readiness: readiness)
 
-                    VStack(alignment: .leading, spacing: 10) {
-                        OverallRankTrialReadinessCard(readiness: readiness) { definition in
-                            dismiss()
-                            onStart(definition)
-                        }
+                    if let definition = readiness.definition {
+                        NextGateCard(
+                            readiness: readiness,
+                            world: GateWorldCatalog.world(for: definition.format),
+                            onBegin: { dismiss(); onStart(definition) }
+                        )
                     }
                 }
             }

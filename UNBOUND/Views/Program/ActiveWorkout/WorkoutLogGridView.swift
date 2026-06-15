@@ -24,8 +24,6 @@ struct WorkoutLogGridView: View {
 
                 if isDeckTrial {
                     deckDrawFlow
-                } else if isTowerTrial {
-                    towerAscentFlow
                 } else if let rankTrialDefinition {
                     rankTrialModeFlow(for: rankTrialDefinition)
                 } else {
@@ -44,15 +42,11 @@ struct WorkoutLogGridView: View {
     }
 
     private var isDeckTrial: Bool {
-        rankTrialDefinition?.format == .fixedDeck
-    }
-
-    private var isTowerTrial: Bool {
-        rankTrialDefinition?.format == .tower
+        rankTrialDefinition?.format == .deckOfProof
     }
 
     private func shouldShowSharedRankTrialHeader(for definition: OverallRankTrialDefinition) -> Bool {
-        definition.format == .fixedDeck
+        definition.format == .deckOfProof
     }
 
     private var currentExercisePair: (index: Int, exercise: ActiveWorkoutSession.ActiveExercise)? {
@@ -106,43 +100,36 @@ struct WorkoutLogGridView: View {
     }
 
     @ViewBuilder
-    private var towerAscentFlow: some View {
-        if let definition = rankTrialDefinition {
-            TowerTrialAscentView(definition: definition, session: session) { index, exercise in
-                exerciseCard(ei: index, ex: exercise, isCurrent: index == session.currentExerciseIndex)
-            }
-        }
-    }
-
-    @ViewBuilder
     private func rankTrialModeFlow(for definition: OverallRankTrialDefinition) -> some View {
         switch definition.format {
-        case .daily100:
-            Daily100TrialActiveView(definition: definition, session: session) { index, exercise in
+        case .firstLight:
+            GateTrialActiveView(definition: definition, session: session) { index, exercise in
                 exerciseCard(ei: index, ex: exercise, isCurrent: index == session.currentExerciseIndex)
             }
-        case .operatorScreen:
-            OperatorScreenTrialActiveView(definition: definition, session: session) { index, exercise in
+        case .theCount:
+            GateTrialActiveView(definition: definition, session: session) { index, exercise in
                 exerciseCard(ei: index, ex: exercise, isCurrent: index == session.currentExerciseIndex)
             }
-        case .finisher:
-            FinisherTrialActiveView(definition: definition, session: session) { index, exercise in
+        case .theForging:
+            GateTrialActiveView(definition: definition, session: session) { index, exercise in
                 exerciseCard(ei: index, ex: exercise, isCurrent: index == session.currentExerciseIndex)
             }
-        case .fixedDeck:
+        case .deckOfProof:
             deckDrawFlow
-        case .tower:
-            towerAscentFlow
-        case .bossRush:
-            BossRushTrialActiveView(definition: definition, session: session) { index, exercise in
+        case .theAscent:
+            GateTrialActiveView(definition: definition, session: session) { index, exercise in
                 exerciseCard(ei: index, ex: exercise, isCurrent: index == session.currentExerciseIndex)
             }
-        case .raid:
-            ThresholdRaidTrialActiveView(definition: definition, session: session) { index, exercise in
+        case .sevenSeals:
+            GateTrialActiveView(definition: definition, session: session) { index, exercise in
                 exerciseCard(ei: index, ex: exercise, isCurrent: index == session.currentExerciseIndex)
             }
-        case .finalExam:
-            FinalExamTrialActiveView(definition: definition, session: session) { index, exercise in
+        case .theThreshold:
+            GateTrialActiveView(definition: definition, session: session) { index, exercise in
+                exerciseCard(ei: index, ex: exercise, isCurrent: index == session.currentExerciseIndex)
+            }
+        case .theLastGate:
+            GateTrialActiveView(definition: definition, session: session) { index, exercise in
                 exerciseCard(ei: index, ex: exercise, isCurrent: index == session.currentExerciseIndex)
             }
         }
@@ -240,7 +227,7 @@ private struct RankTrialActiveFlowHeader: View {
 
     @ViewBuilder
     var body: some View {
-        if definition.format == .fixedDeck {
+        if definition.format == .deckOfProof {
             floatingDeckHeader
         } else {
             standardHeader
@@ -357,7 +344,7 @@ private struct RankTrialActiveFlowHeader: View {
         let isLogged = exercise.sets.contains { $0.logged && !$0.isWarmup }
         let isCurrent = index == session.currentExerciseIndex
         return Group {
-            if definition.format == .fixedDeck {
+            if definition.format == .deckOfProof {
                 HStack(spacing: 6) {
                     Image(systemName: isLogged ? "checkmark.circle.fill" : (isCurrent ? "circle.dashed" : "circle"))
                         .font(.system(size: 12, weight: .bold))
@@ -385,7 +372,7 @@ private struct RankTrialActiveFlowHeader: View {
     }
 
     private func chipTitle(for exercise: ActiveWorkoutSession.ActiveExercise, index: Int) -> String {
-        if definition.format == .fixedDeck {
+        if definition.format == .deckOfProof {
             return "Draw \(numberString(index + 1))"
         }
         if let blockTitle = exercise.blockTitle, !blockTitle.isEmpty {
@@ -400,14 +387,14 @@ private struct RankTrialActiveFlowHeader: View {
 
     private var unitLabel: String {
         switch definition.format {
-        case .daily100: return "Set"
-        case .operatorScreen: return "Card"
-        case .finisher: return "Round"
-        case .fixedDeck: return "Card"
-        case .tower: return "Floor"
-        case .bossRush: return "Boss"
-        case .raid: return "Stage"
-        case .finalExam: return "Part"
+        case .firstLight: return "Set"
+        case .theCount: return "Count"
+        case .theForging: return "Round"
+        case .deckOfProof: return "Card"
+        case .theAscent: return "Floor"
+        case .sevenSeals: return "Boss"
+        case .theThreshold: return "Stage"
+        case .theLastGate: return "Part"
         }
     }
 }

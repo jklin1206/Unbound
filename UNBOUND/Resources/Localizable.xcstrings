@@ -1,6 +1,237 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "gate.ascent.chip.done" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SUMMIT"
+          }
+        }
+      }
+    },
+    "gate.ascent.chip.progress" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d/%d CLIMBED"
+          }
+        }
+      }
+    },
+    "gate.ascent.title.done" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The temple opens."
+          }
+        }
+      }
+    },
+    "gate.bell.chip.done" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "KEPT"
+          }
+        }
+      }
+    },
+    "gate.bell.chip.progress" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d/%d COUNTED"
+          }
+        }
+      }
+    },
+    "gate.bell.title.done" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The count is kept."
+          }
+        }
+      }
+    },
+    "gate.forge.chip.done" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "QUENCHED"
+          }
+        }
+      }
+    },
+    "gate.forge.chip.progress" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d/%d STRUCK"
+          }
+        }
+      }
+    },
+    "gate.forge.title.done" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The steel holds."
+          }
+        }
+      }
+    },
+    "gate.landings.chip.done" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OPEN"
+          }
+        }
+      }
+    },
+    "gate.landings.chip.progress" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d/%d CLIMBED"
+          }
+        }
+      }
+    },
+    "gate.landings.title.done" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The last gate opens."
+          }
+        }
+      }
+    },
+    "gate.lanterns.chip.done" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "COURTYARD LIT"
+          }
+        }
+      }
+    },
+    "gate.lanterns.chip.progress" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d/%d LIT"
+          }
+        }
+      }
+    },
+    "gate.lanterns.title.done" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The courtyard is lit."
+          }
+        }
+      }
+    },
+    "gate.seals.chip.done" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SEALED"
+          }
+        }
+      }
+    },
+    "gate.seals.chip.progress" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d/%d BROKEN"
+          }
+        }
+      }
+    },
+    "gate.seals.title.done" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The vessel is filled."
+          }
+        }
+      }
+    },
+    "gate.siege.chip.done" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OPEN"
+          }
+        }
+      }
+    },
+    "gate.siege.chip.progress" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d/%d BREACHED"
+          }
+        }
+      }
+    },
+    "gate.siege.title.done" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The portal stands open."
+          }
+        }
+      }
+    },
     " (%@)" : {
 
     },
@@ -1930,15 +2161,15 @@
     "D%@" : {
 
     },
-    "DAILY 100" : {
-      "comment" : "The title of the Daily 100 workout.",
+    "FIRST LIGHT" : {
+      "comment" : "The title of the First Light workout.",
       "isCommentAutoGenerated" : true
     },
-    "Daily 100 sealed. Finish the trial to record the result." : {
-      "comment" : "A message displayed below a checkmark icon in the \"Daily 100 sealed\" view.",
+    "First Light sealed. Finish the trial to record the result." : {
+      "comment" : "A message displayed below a checkmark icon in the \"First Light sealed\" view.",
       "isCommentAutoGenerated" : true
     },
-    "Daily 100, Operator Screen, Finisher, Deck of Proof, Tower, Boss Rush, Threshold Raid, and Final Exam." : {
+    "First Light, Operator Screen, Finisher, Deck of Proof, Tower, Boss Rush, Threshold Raid, and Final Exam." : {
 
     },
     "DAY %@" : {
@@ -2054,7 +2285,7 @@
 
     },
     "ENTRY GATE" : {
-      "comment" : "A label displayed below a gate in the Daily 100 entry view.",
+      "comment" : "A label displayed below a gate in the First Light entry view.",
       "isCommentAutoGenerated" : true
     },
     "Equip in Settings → Appearance." : {
@@ -2126,7 +2357,7 @@
 
     },
     "Five oath marks. One clean proof." : {
-      "comment" : "A description of the Daily 100 workout.",
+      "comment" : "A description of the First Light workout.",
       "isCommentAutoGenerated" : true
     },
     "FOCUS" : {

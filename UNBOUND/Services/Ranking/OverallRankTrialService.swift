@@ -12,28 +12,51 @@ enum OverallRankTrialRequirementKind: String, Codable, Equatable, Sendable {
     case overallLevel
     case rank
     case equipment
+    case gateKey
 }
 
 enum RankTrialFormat: String, Codable, CaseIterable, Equatable, Sendable {
-    case daily100
-    case operatorScreen
-    case finisher
-    case fixedDeck
-    case tower
-    case bossRush
-    case raid
-    case finalExam
+    case firstLight
+    case theCount
+    case theForging
+    case deckOfProof
+    case theAscent
+    case sevenSeals
+    case theThreshold
+    case theLastGate
+
+    init(from decoder: Decoder) throws {
+        let raw = try decoder.singleValueContainer().decode(String.self)
+        switch raw {
+        case "daily100": self = .firstLight
+        case "operatorScreen": self = .theCount
+        case "finisher": self = .theForging
+        case "fixedDeck": self = .deckOfProof
+        case "tower": self = .theAscent
+        case "bossRush": self = .sevenSeals
+        case "raid": self = .theThreshold
+        case "finalExam": self = .theLastGate
+        default:
+            guard let format = RankTrialFormat(rawValue: raw) else {
+                throw DecodingError.dataCorrupted(.init(
+                    codingPath: decoder.codingPath,
+                    debugDescription: "Unknown RankTrialFormat raw value: \(raw)"
+                ))
+            }
+            self = format
+        }
+    }
 
     var displayName: String {
         switch self {
-        case .daily100: return "Daily 100"
-        case .operatorScreen: return "Operator Screen"
-        case .finisher: return "Finisher"
-        case .fixedDeck: return "Random Deck"
-        case .tower: return "Tower"
-        case .bossRush: return "Boss Rush"
-        case .raid: return "Raid"
-        case .finalExam: return "Final Exam"
+        case .firstLight: return "First Light"
+        case .theCount: return "The Count"
+        case .theForging: return "The Forging"
+        case .deckOfProof: return "The Reckoning"
+        case .theAscent: return "The Ascent"
+        case .sevenSeals: return "The Seven Seals"
+        case .theThreshold: return "The Threshold"
+        case .theLastGate: return "The Last Gate"
         }
     }
 }
@@ -61,9 +84,9 @@ enum TrialLoadout: String, Codable, CaseIterable, Equatable, Sendable {
 
     var displayName: String {
         switch self {
-        case .noGymField: return "No-Gym Field"
-        case .homeKit: return "Home Kit"
-        case .gymHybrid: return "Gym Hybrid"
+        case .noGymField: return "Bodyweight"
+        case .homeKit: return "Home"
+        case .gymHybrid: return "Gym"
         }
     }
 }
@@ -156,16 +179,33 @@ struct TrialMovementOption: Codable, Equatable, Sendable {
     let movementId: String
     let displayName: String
     let requiredEquipment: Set<MovementEquipment>
+    /// When set, overrides the station's `standard.minimumValue` for this
+    /// specific movement option (e.g. inverted-row needs 18 reps vs. 12 for pull-ups).
+    let floorOverride: Int?
 
     init(
         movementId: String,
         displayName: String? = nil,
-        requiredEquipment: Set<MovementEquipment>? = nil
+        requiredEquipment: Set<MovementEquipment>? = nil,
+        floorOverride: Int? = nil
     ) {
         let definition = MovementCatalog.definition(for: movementId)
         self.movementId = movementId
         self.displayName = displayName ?? definition?.displayName ?? movementId
         self.requiredEquipment = requiredEquipment ?? Set(definition?.equipment ?? [.bodyweight])
+        self.floorOverride = floorOverride
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case movementId, displayName, requiredEquipment, floorOverride
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        movementId = try c.decode(String.self, forKey: .movementId)
+        displayName = try c.decode(String.self, forKey: .displayName)
+        requiredEquipment = try c.decode(Set<MovementEquipment>.self, forKey: .requiredEquipment)
+        floorOverride = try c.decodeIfPresent(Int.self, forKey: .floorOverride)
     }
 }
 
@@ -176,6 +216,16 @@ struct TrialStation: Identifiable, Codable, Equatable, Sendable {
     let standard: OverallRankTrialPerformanceStandard
     let capSeconds: Int?
     let loadPercentOfBodyweight: Double?
+    /// When set, the station requires a top set at ≥ `StrengthStandards.ratio(…, tier:)` × bodyweight.
+    /// The ratio is resolved at draft time (suggested load) and at evaluation time (pass/fail).
+    /// `nil` for bodyweight-only stations. Never copy ratio values here — always resolve from
+    /// `StrengthStandards` so balance tuning is reflected automatically.
+    let strengthTier: RankTier?
+    let dynamicGroupKey: String?
+    /// When false, the station is part of the prescribed work (warm-ups, ramps) but
+    /// does NOT gate pass/fail — evaluation still reports it but excludes it from the
+    /// overall verdict. Defaults true. Used by Gate III "Stoke the Fire" (unscored opener).
+    let isScored: Bool
     let movementOptions: [TrialMovementOption]
     let restRule: String
     let qualityFlags: Set<PerformanceQualityFlag>
@@ -186,6 +236,74 @@ struct TrialStation: Identifiable, Codable, Equatable, Sendable {
 
     var primaryMovement: TrialMovementOption {
         movementOptions.first ?? TrialMovementOption(movementId: standard.movementId, displayName: standard.displayName)
+    }
+
+    /// Returns the effective minimum qualifying value for the movement that was
+    /// actually performed. If the option has a `floorOverride`, that takes
+    /// precedence; otherwise falls back to `standard.minimumValue`.
+    func resolvedMinimum(forMovementId performedId: String) -> Int {
+        movementOptions.first(where: { $0.movementId == performedId })?.floorOverride
+            ?? standard.minimumValue
+    }
+
+    /// Resolves the strength load floor for this station against a given bodyweight.
+    /// Returns nil when `strengthTier` is nil or when `StrengthStandards` has no
+    /// ratio for the movement (unranked / unrecognized).
+    func resolvedStrikeLoadKg(bodyweightKg: Double, sex: BiologicalSex? = nil) -> Double? {
+        guard let tier = strengthTier else { return nil }
+        let movementId = movementOptions.first?.movementId ?? standard.movementId
+        let movementKey = MovementCatalog.definition(for: movementId)?.canonicalExerciseName ?? movementId
+        guard let ratio = StrengthStandards.ratio(exerciseKey: movementKey, tier: tier, sex: sex) else { return nil }
+        return ratio * bodyweightKg
+    }
+
+    init(
+        id: String,
+        title: String,
+        category: TrialMovementCategory,
+        standard: OverallRankTrialPerformanceStandard,
+        capSeconds: Int?,
+        loadPercentOfBodyweight: Double?,
+        strengthTier: RankTier? = nil,
+        dynamicGroupKey: String? = nil,
+        isScored: Bool = true,
+        movementOptions: [TrialMovementOption],
+        restRule: String,
+        qualityFlags: Set<PerformanceQualityFlag>
+    ) {
+        self.id = id
+        self.title = title
+        self.category = category
+        self.standard = standard
+        self.capSeconds = capSeconds
+        self.loadPercentOfBodyweight = loadPercentOfBodyweight
+        self.strengthTier = strengthTier
+        self.dynamicGroupKey = dynamicGroupKey
+        self.isScored = isScored
+        self.movementOptions = movementOptions
+        self.restRule = restRule
+        self.qualityFlags = qualityFlags
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case id, title, category, standard, capSeconds, loadPercentOfBodyweight, strengthTier, dynamicGroupKey
+        case isScored, movementOptions, restRule, qualityFlags
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        title = try c.decode(String.self, forKey: .title)
+        category = try c.decode(TrialMovementCategory.self, forKey: .category)
+        standard = try c.decode(OverallRankTrialPerformanceStandard.self, forKey: .standard)
+        capSeconds = try c.decodeIfPresent(Int.self, forKey: .capSeconds)
+        loadPercentOfBodyweight = try c.decodeIfPresent(Double.self, forKey: .loadPercentOfBodyweight)
+        strengthTier = try c.decodeIfPresent(RankTier.self, forKey: .strengthTier)
+        dynamicGroupKey = try c.decodeIfPresent(String.self, forKey: .dynamicGroupKey)
+        isScored = try c.decodeIfPresent(Bool.self, forKey: .isScored) ?? true
+        movementOptions = try c.decode([TrialMovementOption].self, forKey: .movementOptions)
+        restRule = try c.decode(String.self, forKey: .restRule)
+        qualityFlags = try c.decode(Set<PerformanceQualityFlag>.self, forKey: .qualityFlags)
     }
 }
 
@@ -275,6 +393,53 @@ struct OverallRankTrialStationResult: Identifiable, Codable, Equatable, Sendable
     let failedQualityFlags: Set<PerformanceQualityFlag>
     let status: OverallRankTrialStationStatus
     let failureReason: String?
+    /// When false, this station is reported but excluded from the overall pass/fail
+    /// verdict (unscored warm-ups/ramps, e.g. Gate III "Stoke the Fire"). Defaults true.
+    let isScored: Bool
+
+    init(
+        id: String,
+        title: String,
+        category: TrialMovementCategory,
+        movementId: String,
+        required: Int,
+        qualifyingSetsRequired: Int,
+        qualifyingSetsCompleted: Int,
+        totalValue: Int,
+        failedQualityFlags: Set<PerformanceQualityFlag>,
+        status: OverallRankTrialStationStatus,
+        failureReason: String?,
+        isScored: Bool = true
+    ) {
+        self.id = id
+        self.title = title
+        self.category = category
+        self.movementId = movementId
+        self.required = required
+        self.qualifyingSetsRequired = qualifyingSetsRequired
+        self.qualifyingSetsCompleted = qualifyingSetsCompleted
+        self.totalValue = totalValue
+        self.failedQualityFlags = failedQualityFlags
+        self.status = status
+        self.failureReason = failureReason
+        self.isScored = isScored
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        title = try c.decode(String.self, forKey: .title)
+        category = try c.decode(TrialMovementCategory.self, forKey: .category)
+        movementId = try c.decode(String.self, forKey: .movementId)
+        required = try c.decode(Int.self, forKey: .required)
+        qualifyingSetsRequired = try c.decode(Int.self, forKey: .qualifyingSetsRequired)
+        qualifyingSetsCompleted = try c.decode(Int.self, forKey: .qualifyingSetsCompleted)
+        totalValue = try c.decode(Int.self, forKey: .totalValue)
+        failedQualityFlags = try c.decode(Set<PerformanceQualityFlag>.self, forKey: .failedQualityFlags)
+        status = try c.decode(OverallRankTrialStationStatus.self, forKey: .status)
+        failureReason = try c.decodeIfPresent(String.self, forKey: .failureReason)
+        isScored = try c.decodeIfPresent(Bool.self, forKey: .isScored) ?? true
+    }
 }
 
 struct OverallRankTrialEvaluation: Codable, Equatable, Sendable {
@@ -283,7 +448,7 @@ struct OverallRankTrialEvaluation: Codable, Equatable, Sendable {
     let stationResults: [OverallRankTrialStationResult]
 
     var failedStation: OverallRankTrialStationResult? {
-        stationResults.first { $0.status != .passed }
+        stationResults.first { $0.isScored && $0.status != .passed }
     }
 }
 
@@ -299,6 +464,7 @@ struct OverallRankTrialDefinition: Identifiable, Codable, Equatable, Sendable {
     let performanceStandards: [OverallRankTrialPerformanceStandard]
     let loadoutVariants: [TrialLoadoutVariant]
     let legacyIds: Set<String>
+    let enforcesTotalTimeCap: Bool
 
     init(
         id: String,
@@ -306,12 +472,13 @@ struct OverallRankTrialDefinition: Identifiable, Codable, Equatable, Sendable {
         displayName: String,
         subtitle: String,
         estimatedMinutes: Int,
-        format: RankTrialFormat = .finisher,
+        format: RankTrialFormat = .theForging,
         minOverallLevel: Int,
         requiredEquipment: Set<MovementEquipment>,
         performanceStandards: [OverallRankTrialPerformanceStandard],
         loadoutVariants: [TrialLoadoutVariant] = [],
-        legacyIds: Set<String> = []
+        legacyIds: Set<String> = [],
+        enforcesTotalTimeCap: Bool = true
     ) {
         self.id = id
         self.targetRank = targetRank
@@ -324,13 +491,14 @@ struct OverallRankTrialDefinition: Identifiable, Codable, Equatable, Sendable {
         self.performanceStandards = performanceStandards
         self.loadoutVariants = loadoutVariants
         self.legacyIds = legacyIds
+        self.enforcesTotalTimeCap = enforcesTotalTimeCap
     }
 
     enum CodingKeys: String, CodingKey {
         case id, targetRank, displayName, subtitle, estimatedMinutes, format
         case minOverallLevel, requiredEquipment
         case performanceStandards
-        case loadoutVariants, legacyIds
+        case loadoutVariants, legacyIds, enforcesTotalTimeCap
     }
 
     init(from decoder: Decoder) throws {
@@ -346,16 +514,33 @@ struct OverallRankTrialDefinition: Identifiable, Codable, Equatable, Sendable {
         performanceStandards = try c.decode([OverallRankTrialPerformanceStandard].self, forKey: .performanceStandards)
         loadoutVariants = try c.decodeIfPresent([TrialLoadoutVariant].self, forKey: .loadoutVariants) ?? []
         legacyIds = try c.decodeIfPresent(Set<String>.self, forKey: .legacyIds) ?? []
+        enforcesTotalTimeCap = try c.decodeIfPresent(Bool.self, forKey: .enforcesTotalTimeCap) ?? true
     }
 
     func makeDraft(
         userId: String,
         date: Date = Date(),
         resolvedTrial: ResolvedRankTrial? = nil,
-        bodyweightKg: Double? = nil
+        bodyweightKg: Double? = nil,
+        attributeScores: AttributeProfile? = nil
     ) -> TrainingSessionDraft {
+        let scores = attributeScores ?? AttributeProfile.empty(userId: userId, at: date)
         if let resolvedTrial {
-            return makeStructuredDraft(userId: userId, date: date, resolvedTrial: resolvedTrial, bodyweightKg: bodyweightKg)
+            return makeStructuredDraft(
+                userId: userId,
+                date: date,
+                resolvedTrial: dynamicallyFilteredResolvedTrial(resolvedTrial, attributeScores: scores),
+                bodyweightKg: bodyweightKg
+            )
+        }
+
+        if let dynamicResolvedTrial = defaultDynamicResolvedTrial(userId: userId, date: date, attributeScores: scores) {
+            return makeStructuredDraft(
+                userId: userId,
+                date: date,
+                resolvedTrial: dynamicResolvedTrial,
+                bodyweightKg: bodyweightKg
+            )
         }
 
         var groupedPrescriptions: [(TrainingBlockKind, [(OverallRankTrialPerformanceStandard, TrainingBlockPrescription)])] = []
@@ -400,6 +585,75 @@ struct OverallRankTrialDefinition: Identifiable, Codable, Equatable, Sendable {
         )
     }
 
+    private func defaultDynamicResolvedTrial(
+        userId: String,
+        date: Date,
+        attributeScores: AttributeProfile
+    ) -> ResolvedRankTrial? {
+        let defaultVariant = loadoutVariants.first { $0.loadout == .homeKit } ?? loadoutVariants.first
+        let dynamicGroupKey = "lastgate-landing-6"
+        guard let defaultVariant,
+              defaultVariant.stations.contains(where: { $0.dynamicGroupKey == dynamicGroupKey })
+        else { return nil }
+
+        let stations = OverallRankTrialRunner.resolveDynamicStations(
+            for: self,
+            loadout: defaultVariant.loadout,
+            attributeScores: attributeScores
+        )
+        return ResolvedRankTrial(
+            id: "\(id):\(defaultVariant.loadout.rawValue):dynamic-default",
+            definitionId: id,
+            userId: userId,
+            selectedLoadout: defaultVariant.loadout,
+            stations: stations.map { station in
+                ResolvedTrialStation(
+                    id: station.id,
+                    station: station,
+                    selectedMovement: station.primaryMovement
+                )
+            },
+            generatedAt: date,
+            version: 1
+        )
+    }
+
+    private func dynamicallyFilteredResolvedTrial(
+        _ resolvedTrial: ResolvedRankTrial,
+        attributeScores: AttributeProfile
+    ) -> ResolvedRankTrial {
+        let dynamicGroupKey = "lastgate-landing-6"
+        let landing6Count = resolvedTrial.stations.filter {
+            $0.station.dynamicGroupKey == dynamicGroupKey
+        }.count
+        guard landing6Count > 1 else { return resolvedTrial }
+
+        let selectedByStationId = Dictionary(uniqueKeysWithValues: resolvedTrial.stations.map {
+            ($0.id, $0.selectedMovement)
+        })
+        let stations = OverallRankTrialRunner.resolveDynamicStations(
+            for: self,
+            loadout: resolvedTrial.selectedLoadout,
+            attributeScores: attributeScores
+        )
+
+        return ResolvedRankTrial(
+            id: resolvedTrial.id,
+            definitionId: resolvedTrial.definitionId,
+            userId: resolvedTrial.userId,
+            selectedLoadout: resolvedTrial.selectedLoadout,
+            stations: stations.map { station in
+                ResolvedTrialStation(
+                    id: station.id,
+                    station: station,
+                    selectedMovement: selectedByStationId[station.id] ?? station.primaryMovement
+                )
+            },
+            generatedAt: resolvedTrial.generatedAt,
+            version: resolvedTrial.version
+        )
+    }
+
     private func makeStructuredDraft(
         userId: String,
         date: Date,
@@ -420,17 +674,21 @@ struct OverallRankTrialDefinition: Identifiable, Codable, Equatable, Sendable {
             blocks: stations.map { station in
                 let selected = station.selectedMovement
                 let standard = station.standard
+                let target = selected.floorOverride.map {
+                    trialTarget(metric: standard.metric, minimumValue: $0)
+                } ?? standard.target
                 let movement = MovementCatalog.definition(for: selected.movementId)
                 let loadPercentOfBodyweight = station.station.loadPercentOfBodyweight
-                let suggestedWeightKg = loadPercentOfBodyweight.flatMap { percent in
+                // Prefer explicit loadPercent; fall back to StrengthStandards ratio for strike stations.
+                let suggestedWeightKg: Double? = loadPercentOfBodyweight.flatMap { percent in
                     bodyweightKg.map { $0 * percent }
-                }
+                } ?? station.station.resolvedStrikeLoadKg(bodyweightKg: bodyweightKg ?? 0)
                 let prescription = TrainingBlockPrescription(
                     exerciseName: selected.displayName,
                     movementId: selected.movementId,
                     rankStandardMovementId: movement?.rankStandardMovementId ?? selected.movementId,
                     sets: standard.plannedSets,
-                    target: standard.target,
+                    target: target,
                     restSeconds: standard.restSeconds,
                     muscleGroups: movement?.muscleGroups ?? [],
                     rpe: 8,
@@ -452,13 +710,28 @@ struct OverallRankTrialDefinition: Identifiable, Codable, Equatable, Sendable {
         )
     }
 
+    private func trialTarget(metric: TrainingMetricKind, minimumValue: Int) -> TrainingTarget {
+        switch metric {
+        case .reps:
+            return .reps(minimumValue)
+        case .holdSeconds:
+            return .holdSeconds(minimumValue)
+        case .durationSeconds:
+            return .timedSeconds(minimumValue)
+        case .distanceMeters:
+            return .distanceMeters(minimumValue)
+        case .calories:
+            return .calories(minimumValue)
+        }
+    }
+
     private func stationsForDraft(
         _ stations: [ResolvedTrialStation],
         draftId: String,
         userId: String,
         date: Date
     ) -> [ResolvedTrialStation] {
-        guard format == .fixedDeck, stations.count > 1 else { return stations }
+        guard format == .deckOfProof, stations.count > 1 else { return stations }
 
         var generator = DeckDrawRandomNumberGenerator(seed: deckDrawSeed(draftId: draftId, userId: userId, date: date))
         var dealt = stations.shuffled(using: &generator)

@@ -14,22 +14,22 @@ final class OverallRankTrialServiceTests: XCTestCase {
 
     var upperRankTrialCases: [RankTrialCase] {
         [
-            RankTrialCase(sourceRank: .master, definition: OverallRankTrialDefinitions.crucible),
-            RankTrialCase(sourceRank: .vessel, definition: OverallRankTrialDefinitions.threshold),
-            RankTrialCase(sourceRank: .ascendant, definition: OverallRankTrialDefinitions.ascension)
+            RankTrialCase(sourceRank: .master, definition: OverallRankTrialDefinitions.sevenSeals),
+            RankTrialCase(sourceRank: .vessel, definition: OverallRankTrialDefinitions.theThreshold),
+            RankTrialCase(sourceRank: .ascendant, definition: OverallRankTrialDefinitions.theLastGate)
         ]
     }
 
     var allRankTrialCases: [RankTrialCase] {
         [
-            RankTrialCase(sourceRank: .initiate, definition: OverallRankTrialDefinitions.foundationProof),
-            RankTrialCase(sourceRank: .novice, definition: OverallRankTrialDefinitions.calibration),
-            RankTrialCase(sourceRank: .apprentice, definition: OverallRankTrialDefinitions.forge),
-            RankTrialCase(sourceRank: .forged, definition: OverallRankTrialDefinitions.reckoning),
-            RankTrialCase(sourceRank: .veteran, definition: OverallRankTrialDefinitions.gauntlet),
-            RankTrialCase(sourceRank: .master, definition: OverallRankTrialDefinitions.crucible),
-            RankTrialCase(sourceRank: .vessel, definition: OverallRankTrialDefinitions.threshold),
-            RankTrialCase(sourceRank: .ascendant, definition: OverallRankTrialDefinitions.ascension)
+            RankTrialCase(sourceRank: .initiate, definition: OverallRankTrialDefinitions.firstLight),
+            RankTrialCase(sourceRank: .novice, definition: OverallRankTrialDefinitions.theCount),
+            RankTrialCase(sourceRank: .apprentice, definition: OverallRankTrialDefinitions.theForging),
+            RankTrialCase(sourceRank: .forged, definition: OverallRankTrialDefinitions.deckOfProof),
+            RankTrialCase(sourceRank: .veteran, definition: OverallRankTrialDefinitions.theAscent),
+            RankTrialCase(sourceRank: .master, definition: OverallRankTrialDefinitions.sevenSeals),
+            RankTrialCase(sourceRank: .vessel, definition: OverallRankTrialDefinitions.theThreshold),
+            RankTrialCase(sourceRank: .ascendant, definition: OverallRankTrialDefinitions.theLastGate)
         ]
     }
 
@@ -87,6 +87,10 @@ extension OverallRankTrialServiceTests {
         ).resolvedTrial
     }
 
+    func clearedGateKeyIds(for definition: OverallRankTrialDefinition) -> Set<String> {
+        Set(GateKeys.keys(for: definition.format).map(\.id))
+    }
+
     func assertDraft(
         _ draft: TrainingSessionDraft,
         matches definition: OverallRankTrialDefinition,
@@ -122,6 +126,7 @@ extension OverallRankTrialServiceTests {
     func assertDraftPassesAndFails(
         _ draft: TrainingSessionDraft,
         against definition: OverallRankTrialDefinition,
+        bodyweightKg: Double? = nil,
         file: StaticString = #filePath,
         line: UInt = #line
     ) {
@@ -139,8 +144,16 @@ extension OverallRankTrialServiceTests {
             completedAt: Date(timeIntervalSince1970: 1_000),
             passing: false
         )
-        let passingEvaluation = OverallRankTrialRunner.shared.evaluateDetailed(passingLog, against: definition)
-        let failingEvaluation = OverallRankTrialRunner.shared.evaluateDetailed(failingLog, against: definition)
+        let passingEvaluation = OverallRankTrialRunner.shared.evaluateDetailed(
+            passingLog,
+            against: definition,
+            bodyweightKg: bodyweightKg
+        )
+        let failingEvaluation = OverallRankTrialRunner.shared.evaluateDetailed(
+            failingLog,
+            against: definition,
+            bodyweightKg: bodyweightKg
+        )
 
         XCTAssertTrue(passingEvaluation.passed, definition.displayName, file: file, line: line)
         XCTAssertFalse(failingEvaluation.passed, definition.displayName, file: file, line: line)
