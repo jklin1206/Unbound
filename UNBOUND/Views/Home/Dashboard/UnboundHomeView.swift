@@ -171,8 +171,17 @@ struct UnboundHomeView: View {
             workoutReadyDraft = nil
             Task { await model.refreshWorkoutCompletionState() }
         }) { draft in
-            WorkoutReadyView(draft: draft)
+            // Rank trials walk in through the gate entrance; weekly vows keep the
+            // standard ready screen (this cover is shared by both).
+            if draft.source == .overallRankTrial {
+                GateTrialLaunchView(draft: draft, services: services, onFinished: {
+                    workoutReadyDraft = nil
+                })
                 .environmentObject(services)
+            } else {
+                WorkoutReadyView(draft: draft)
+                    .environmentObject(services)
+            }
         }
         .fullScreenCover(item: $captureMode) { mode in
             PhotoCaptureFlow(mode: mode) { outcome in
