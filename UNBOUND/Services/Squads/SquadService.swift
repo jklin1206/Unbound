@@ -98,7 +98,7 @@ final class SquadService: SquadServiceProtocol {
                     name: trimmed,
                     captainId: userUUID,
                     inviteCode: code,
-                    maxSize: 10
+                    maxSize: 8
                 )
                 squad = s
                 break

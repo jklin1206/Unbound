@@ -305,7 +305,7 @@ struct SquadDetailView: View {
                     HStack(spacing: 8) {
                         squadMetaPill(
                             icon: "person.2.fill",
-                            value: "\(state.roster.count)/\(squad.maxSize)",
+                            value: "\(state.roster.count)/8",
                             label: "CREW",
                             tint: Color.unbound.accent
                         )
@@ -428,12 +428,7 @@ struct SquadDetailView: View {
     }
 
     private var squadBoardSection: some View {
-        SquadBoardView(
-            rows: squadBoardRows,
-            season: currentSeason,
-            capacity: state.currentSquad?.maxSize ?? 10,
-            inviteURL: state.currentSquad?.inviteURL
-        )
+        SquadBoardView(rows: squadBoardRows, season: currentSeason)
     }
 
     private func seasonRewardsSection(squad: Squad) -> some View {

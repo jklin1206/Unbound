@@ -59,59 +59,14 @@ struct SquadStreakHeroView: View {
 
             if !rows.isEmpty {
                 VStack(spacing: 8) {
-                    ForEach(sortedRows) { row in
+                    ForEach(rows.prefix(6)) { row in
                         SquadStreakSupportRow(row: row)
                     }
                 }
-
-                accountabilitySummary
             }
         }
         .padding(16)
         .leaderboardPanel(tint: protectedToday ? Color.unbound.accent : Color.unbound.warnOrange)
-    }
-
-    // Surface who has trained, sinking the un-covered to the bottom where the
-    // warn styling reads as a callout rather than a wall of red.
-    private var sortedRows: [SquadBoardRow] {
-        rows.sorted { lhs, rhs in
-            let pl = supportPriority(lhs)
-            let pr = supportPriority(rhs)
-            if pl != pr { return pl < pr }
-            return lhs.weeklySessions > rhs.weeklySessions
-        }
-    }
-
-    private func supportPriority(_ row: SquadBoardRow) -> Int {
-        if let latest = row.latestWorkoutAt, Calendar.current.isDateInToday(latest) { return 0 }
-        if row.weeklySessions > 0 { return 1 }
-        return 2
-    }
-
-    private var behindCount: Int {
-        rows.filter { $0.weeklySessions == 0 }.count
-    }
-
-    private var accountabilitySummary: some View {
-        let allCovered = behindCount == 0
-        let tint = allCovered ? Color.unbound.success : Color.unbound.warnOrange
-        return HStack(spacing: 8) {
-            Image(systemName: allCovered ? "checkmark.shield.fill" : "exclamationmark.triangle.fill")
-                .font(.system(size: 12, weight: .black))
-                .foregroundStyle(tint)
-            Text(allCovered
-                 ? "Whole squad covered this week"
-                 : "\(behindCount) behind — protect the streak")
-                .font(.system(size: 11, weight: .heavy, design: .monospaced))
-                .tracking(0.5)
-                .foregroundStyle(tint)
-                .fixedSize(horizontal: false, vertical: true)
-            Spacer(minLength: 0)
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
-        .background(RoundedRectangle(cornerRadius: 13, style: .continuous).fill(tint.opacity(0.10)))
-        .overlay(RoundedRectangle(cornerRadius: 13, style: .continuous).strokeBorder(tint.opacity(0.28), lineWidth: 1))
     }
 
     private func supportPill(value: String, label: String, tint: Color) -> some View {
@@ -141,57 +96,35 @@ private struct SquadStreakSupportRow: View {
         guard let latest = row.latestWorkoutAt else { return false }
         return Calendar.current.isDateInToday(latest)
     }
-    private var isBehind: Bool { !supportedThisWeek }
-
-    private var icon: String {
-        workedToday ? "checkmark.seal.fill" : (supportedThisWeek ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
-    }
-    private var iconTint: Color {
-        workedToday ? Color.unbound.accent : (supportedThisWeek ? Color.unbound.textSecondary : Color.unbound.warnOrange)
-    }
-    private var statusText: String {
-        workedToday ? "TODAY" : (supportedThisWeek ? "COVERED" : "0 THIS WEEK")
-    }
-    private var statusTint: Color {
-        workedToday ? Color.unbound.accent : (supportedThisWeek ? Color.unbound.textTertiary : Color.unbound.warnOrange)
-    }
 
     var body: some View {
         HStack(spacing: 10) {
-            Image(systemName: icon)
+            Image(systemName: workedToday ? "checkmark.seal.fill" : (supportedThisWeek ? "checkmark.circle.fill" : "circle"))
                 .font(.system(size: 14, weight: .bold))
-                .foregroundStyle(iconTint)
+                .foregroundStyle(workedToday ? Color.unbound.accent : (supportedThisWeek ? Color.unbound.textSecondary : Color.unbound.warnOrange))
                 .frame(width: 22)
 
-            VStack(alignment: .leading, spacing: 1) {
-                Text(row.displayName)
-                    .font(Font.unbound.bodyMStrong)
-                    .foregroundStyle(Color.unbound.textPrimary)
-                    .lineLimit(1)
-                if isBehind {
-                    Text("streak at risk")
-                        .font(.system(size: 8, weight: .heavy, design: .monospaced))
-                        .tracking(0.8)
-                        .foregroundStyle(Color.unbound.warnOrange.opacity(0.9))
-                }
-            }
+            Text(row.displayName)
+                .font(Font.unbound.bodyMStrong)
+                .foregroundStyle(Color.unbound.textPrimary)
+                .lineLimit(1)
 
             Spacer(minLength: 0)
 
-            Text(statusText)
+            Text(workedToday ? "TODAY" : (supportedThisWeek ? "COVERED" : "NEEDED"))
                 .font(.system(size: 9, weight: .heavy, design: .monospaced))
                 .tracking(1.0)
-                .foregroundStyle(statusTint)
+                .foregroundStyle(workedToday ? Color.unbound.accent : (supportedThisWeek ? Color.unbound.textTertiary : Color.unbound.warnOrange))
         }
         .padding(.horizontal, 11)
-        .frame(minHeight: 40)
+        .frame(height: 38)
         .background(
             RoundedRectangle(cornerRadius: 13, style: .continuous)
-                .fill(isBehind ? Color.unbound.warnOrange.opacity(0.08) : Color.unbound.bg.opacity(0.38))
+                .fill(Color.unbound.bg.opacity(0.38))
         )
         .overlay(
             RoundedRectangle(cornerRadius: 13, style: .continuous)
-                .strokeBorder(isBehind ? Color.unbound.warnOrange.opacity(0.30) : Color.unbound.borderSubtle, lineWidth: 1)
+                .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
         )
     }
 }
@@ -199,12 +132,6 @@ private struct SquadStreakSupportRow: View {
 struct SquadBoardView: View {
     let rows: [SquadBoardRow]
     let season: SquadSeason
-    var capacity: Int = 10
-    var inviteURL: URL?
-
-    private var hasActivity: Bool { rows.contains { $0.boardScore > 0 } }
-    private var openSlots: Int { max(0, capacity - rows.count) }
-    private let maxVisibleOpenSlots = 3
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -217,130 +144,22 @@ struct SquadBoardView: View {
                     .foregroundStyle(Color.unbound.warnOrange)
             }
 
-            if rows.isEmpty {
-                SquadLeaderboardEmptyRow(text: "No one's on the board yet. First session sets the pace.", icon: "trophy")
-            } else if hasActivity, let leader = rows.first {
+            if let leader = rows.first {
                 leaderCard(leader)
-            } else {
-                boardOpenCard
             }
 
-            if !rows.isEmpty {
+            if rows.isEmpty {
+                SquadLeaderboardEmptyRow(text: "No season data yet.", icon: "trophy")
+            } else {
                 VStack(spacing: 8) {
                     ForEach(Array(rows.enumerated()), id: \.element.id) { index, row in
                         SquadBoardRowView(position: index + 1, row: row)
                     }
                 }
             }
-
-            if openSlots > 0 {
-                openSlotsSection
-            }
         }
         .padding(14)
         .leaderboardPanel(tint: Color.unbound.warnOrange)
-    }
-
-    // Just-formed / no-activity board — never crown a 0-pt leader.
-    private var boardOpenCard: some View {
-        HStack(alignment: .center, spacing: 14) {
-            ZStack {
-                Circle()
-                    .fill(Color.unbound.warnOrange.opacity(0.14))
-                Image(systemName: "flag.checkered")
-                    .font(.system(size: 18, weight: .black))
-                    .foregroundStyle(Color.unbound.warnOrange)
-            }
-            .frame(width: 50, height: 50)
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text("BOARD IS OPEN")
-                    .font(.system(size: 13, weight: .black, design: .monospaced))
-                    .tracking(0.8)
-                    .foregroundStyle(Color.unbound.textPrimary)
-                Text("First to log sets the pace — a workout day is 10 pts.")
-                    .font(Font.unbound.captionS)
-                    .foregroundStyle(Color.unbound.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
-            Spacer(minLength: 0)
-        }
-        .padding(13)
-        .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(Color.unbound.warnOrange.opacity(0.08))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .strokeBorder(Color.unbound.warnOrange.opacity(0.24), lineWidth: 1)
-        )
-    }
-
-    private var openSlotsSection: some View {
-        let visible = min(openSlots, maxVisibleOpenSlots)
-        let remainder = openSlots - visible
-        return VStack(spacing: 8) {
-            ForEach(0..<visible, id: \.self) { _ in
-                openSlotRow
-            }
-            if remainder > 0 {
-                Text("+\(remainder) more open \(remainder == 1 ? "slot" : "slots")")
-                    .font(.system(size: 9, weight: .heavy, design: .monospaced))
-                    .tracking(1.0)
-                    .foregroundStyle(Color.unbound.textTertiary)
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .padding(.top, 2)
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var openSlotRow: some View {
-        if let inviteURL {
-            ShareLink(item: inviteURL) { openSlotRowContent }
-                .buttonStyle(.plain)
-        } else {
-            openSlotRowContent
-        }
-    }
-
-    private var openSlotRowContent: some View {
-        HStack(spacing: 11) {
-            Image(systemName: "person.badge.plus")
-                .font(.system(size: 13, weight: .bold))
-                .foregroundStyle(Color.unbound.accent)
-                .frame(width: 28, height: 28)
-                .background(Circle().fill(Color.unbound.accent.opacity(0.10)))
-
-            VStack(alignment: .leading, spacing: 1) {
-                Text("OPEN SLOT")
-                    .font(.system(size: 11, weight: .heavy, design: .monospaced))
-                    .tracking(1.0)
-                    .foregroundStyle(Color.unbound.textSecondary)
-                Text("Invite a friend to the squad")
-                    .font(.system(size: 9, weight: .bold, design: .monospaced))
-                    .foregroundStyle(Color.unbound.textTertiary)
-            }
-
-            Spacer(minLength: 0)
-
-            if inviteURL != nil {
-                Image(systemName: "square.and.arrow.up")
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(Color.unbound.accent)
-            }
-        }
-        .padding(10)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color.unbound.surface.opacity(0.32))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(Color.unbound.border, style: StrokeStyle(lineWidth: 1, dash: [5, 4]))
-        )
     }
 
     private func leaderCard(_ row: SquadBoardRow) -> some View {
@@ -613,13 +432,11 @@ private struct SquadBoardRowView: View {
     let position: Int
     let row: SquadBoardRow
 
-    private var hasScore: Bool { row.boardScore > 0 }
-
     var body: some View {
         HStack(alignment: .center, spacing: 11) {
             Text("\(position)")
                 .font(.system(size: 14, weight: .black, design: .monospaced))
-                .foregroundStyle(position <= 3 && hasScore ? Color.unbound.warnOrange : Color.unbound.textTertiary)
+                .foregroundStyle(position <= 3 ? Color.unbound.warnOrange : Color.unbound.textTertiary)
                 .frame(width: 28, height: 28)
                 .background(Circle().fill(Color.unbound.bg.opacity(0.54)))
                 .overlay(Circle().strokeBorder(Color.unbound.borderSubtle, lineWidth: 1))
@@ -627,20 +444,13 @@ private struct SquadBoardRowView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(row.displayName)
                     .font(Font.unbound.bodyMStrong)
-                    .foregroundStyle(hasScore ? Color.unbound.textPrimary : Color.unbound.textSecondary)
+                    .foregroundStyle(Color.unbound.textPrimary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.72)
-                if hasScore {
-                    HStack(spacing: 8) {
-                        scoreChip(value: "\(row.seasonWorkoutDays)", label: "DAYS")
-                        scoreChip(value: "\(row.seasonChallengeWins)", label: "WINS")
-                        scoreChip(value: "\(row.seasonPRs)", label: "PRS")
-                    }
-                } else {
-                    Text("Hasn't logged this season")
-                        .font(.system(size: 9, weight: .heavy, design: .monospaced))
-                        .tracking(0.5)
-                        .foregroundStyle(Color.unbound.textTertiary)
+                HStack(spacing: 8) {
+                    scoreChip(value: "\(row.seasonWorkoutDays)", label: "DAYS")
+                    scoreChip(value: "\(row.seasonChallengeWins)", label: "WINS")
+                    scoreChip(value: "\(row.seasonPRs)", label: "PRS")
                 }
             }
 
@@ -649,7 +459,7 @@ private struct SquadBoardRowView: View {
             VStack(alignment: .trailing, spacing: 1) {
                 Text("\(row.boardScore)")
                     .font(.system(size: 18, weight: .black, design: .monospaced))
-                    .foregroundStyle(hasScore ? Color.unbound.textPrimary : Color.unbound.textTertiary)
+                    .foregroundStyle(Color.unbound.textPrimary)
                     .monospacedDigit()
                 Text("PTS")
                     .font(.system(size: 7, weight: .heavy, design: .monospaced))
@@ -661,11 +471,11 @@ private struct SquadBoardRowView: View {
         .padding(10)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color.unbound.surface.opacity(hasScore ? 0.78 : 0.40))
+                .fill(Color.unbound.surface.opacity(0.78))
         )
         .overlay(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(position == 1 && hasScore ? Color.unbound.warnOrange.opacity(0.35) : Color.unbound.borderSubtle, lineWidth: 1)
+                .strokeBorder(position == 1 ? Color.unbound.warnOrange.opacity(0.35) : Color.unbound.borderSubtle, lineWidth: 1)
         )
     }
 
