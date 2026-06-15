@@ -144,25 +144,35 @@ struct DeckOfProofDrawStage: View {
         }
     }
 
+    /// The draw table — a warm bloom with a summoning circle the deck rests inside.
     private var drawTableGlow: some View {
         ZStack {
             RadialGradient(
                 colors: [
-                    suitTint.opacity(isRevealed ? 0.26 : 0.18),
+                    suitTint.opacity(isRevealed ? 0.30 : 0.20),
                     Color.unbound.accent.opacity(isRevealed ? 0.11 : 0.08),
                     .clear
                 ],
                 center: .center,
-                startRadius: 24,
-                endRadius: 190
+                startRadius: 22,
+                endRadius: 200
             )
-            .frame(width: 330, height: 300)
-            .blur(radius: 8)
+            .frame(width: 340, height: 320)
+            .blur(radius: 9)
+
+            // ritual rings laid flat on the table beneath the deck
+            ForEach(0..<2, id: \.self) { ring in
+                Circle()
+                    .strokeBorder(suitTint.opacity(0.24 - Double(ring) * 0.09), lineWidth: 1)
+                    .frame(width: 250 + CGFloat(ring) * 64, height: 250 + CGFloat(ring) * 64)
+                    .scaleEffect(y: 0.32, anchor: .center)
+                    .offset(y: 120)
+            }
 
             Ellipse()
                 .fill(Color.black.opacity(0.34))
-                .frame(width: 294, height: 42)
-                .blur(radius: 12)
+                .frame(width: 300, height: 44)
+                .blur(radius: 13)
                 .offset(y: 146)
         }
         .allowsHitTesting(false)
@@ -192,6 +202,16 @@ struct DeckOfProofDrawStage: View {
                 .fill(Color(red: 0.965, green: 0.955, blue: 0.925))
             RoundedRectangle(cornerRadius: 22, style: .continuous)
                 .strokeBorder(cardInk.opacity(0.28), lineWidth: 1.4)
+
+            // large suit watermark for forged depth
+            Text(suitGlyph)
+                .font(.system(size: 150, weight: .bold, design: .serif))
+                .foregroundStyle(suitTint.opacity(0.08))
+
+            // ornate suit-tinted inner frame
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .strokeBorder(suitTint.opacity(0.34), lineWidth: 1)
+                .padding(10)
 
             VStack(spacing: 0) {
                 HStack(alignment: .top) {
@@ -258,149 +278,61 @@ struct DeckOfProofDrawStage: View {
         .frame(width: 34, alignment: .center)
     }
 
+    /// The card back — a forged crest: concentric sigil rings around the suit mark,
+    /// in the gate's arcane language rather than a generic playing-card back.
     private var cardBack: some View {
-        VStack(spacing: 14) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                Color.unbound.coachCyan.opacity(0.32),
-                                Color.unbound.accent.opacity(0.18),
-                                Color.unbound.bg.opacity(0.96)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
+        ZStack {
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [Color.unbound.surfaceElevated, Color.unbound.bg],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
                     )
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .strokeBorder(Color.unbound.coachCyan.opacity(0.42), lineWidth: 1)
-                    .padding(14)
-                VStack(spacing: 10) {
-                    Image(systemName: "rectangle.stack.fill")
-                        .font(.system(size: 46, weight: .bold))
-                        .foregroundStyle(Color.unbound.coachCyan)
-                    Text("DRAW CARD")
-                        .font(Font.unbound.captionS.weight(.heavy))
-                        .tracking(2.2)
-                        .foregroundStyle(Color.unbound.textPrimary)
-                    Text("DECK \(remainingDrawsText)")
-                        .font(.system(size: 9, weight: .heavy, design: .monospaced))
-                        .tracking(1.4)
-                        .foregroundStyle(Color.unbound.textTertiary)
-                }
-            }
-            .frame(width: cardWidth, height: cardHeight)
-        }
-    }
+                )
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(suitTint.opacity(0.55), lineWidth: 1.4)
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(suitTint.opacity(0.26), lineWidth: 1)
+                .padding(11)
 
-    private var revealedCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("DRAW \(drawNumber)")
-                        .font(Font.unbound.captionS.weight(.heavy))
-                        .tracking(1.4)
-                    Text("CARD \(cardNumber)")
-                        .font(.system(size: 8, weight: .heavy, design: .monospaced))
-                        .tracking(1.1)
-                        .foregroundStyle(Color.unbound.textTertiary)
+            // the forged crest
+            ZStack {
+                ForEach(0..<3, id: \.self) { r in
+                    Circle()
+                        .strokeBorder(suitTint.opacity(0.5 - Double(r) * 0.13), lineWidth: 1.1)
+                        .frame(width: 60 + CGFloat(r) * 28, height: 60 + CGFloat(r) * 28)
                 }
+                ForEach(0..<4, id: \.self) { s in
+                    Capsule()
+                        .fill(suitTint.opacity(0.30))
+                        .frame(width: 1.4, height: 18)
+                        .offset(y: -57)
+                        .rotationEffect(.degrees(Double(s) * 90))
+                }
+                Text(suitGlyph)
+                    .font(.system(size: 48, weight: .bold, design: .serif))
+                    .foregroundStyle(
+                        LinearGradient(colors: [.white.opacity(0.95), suitTint],
+                                       startPoint: .top, endPoint: .bottom)
+                    )
+                    .shadow(color: suitTint.opacity(0.7), radius: 10)
+            }
+            .offset(y: -10)
+
+            VStack(spacing: 3) {
                 Spacer()
-                Image(systemName: suitSymbol)
-                    .font(.system(size: 15, weight: .black))
+                Text("DRAW CARD")
+                    .font(Font.unbound.captionS.weight(.heavy))
+                    .tracking(2.4)
+                    .foregroundStyle(Color.unbound.textPrimary)
+                Text("DECK \(remainingDrawsText)")
+                    .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                    .tracking(1.4)
                     .foregroundStyle(suitTint)
             }
-            .foregroundStyle(suitTint)
-
-            if let definition = movementDefinition {
-                ExerciseVisualView(definition: definition, size: .thumbnail)
-                    .frame(height: 150)
-                    .frame(maxWidth: .infinity)
-                    .accessibilityHidden(true)
-            } else {
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(Color.unbound.surfaceElevated)
-                    .overlay(
-                        Image(systemName: "dumbbell.fill")
-                            .font(.system(size: 26, weight: .bold))
-                            .foregroundStyle(Color.unbound.textSecondary)
-                    )
-                    .frame(height: 150)
-                    .accessibilityHidden(true)
-            }
-
-            VStack(alignment: .leading, spacing: 3) {
-                Text(cardTitle.uppercased())
-                    .font(Font.unbound.captionS.weight(.heavy))
-                    .tracking(1)
-                    .foregroundStyle(Color.unbound.textTertiary)
-                    .lineLimit(1)
-                Text(exercise.name)
-                    .font(Font.unbound.bodyM.weight(.bold))
-                    .foregroundStyle(Color.unbound.textPrimary)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.72)
-                Text("\(exercise.plannedSets) x \(exercise.plannedReps)")
-                    .font(Font.unbound.captionS)
-                    .foregroundStyle(Color.unbound.textSecondary)
-                    .lineLimit(1)
-            }
+            .padding(.bottom, 30)
         }
-        .frame(width: 246, height: 330, alignment: .topLeading)
-        .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(Color.unbound.bg.opacity(0.92))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .strokeBorder(suitTint.opacity(0.44), lineWidth: 1)
-        )
-        .shadow(color: suitTint.opacity(0.20), radius: 20, y: 10)
-    }
-}
-
-private struct DeckExerciseHiddenPanel: View {
-    let drawIndex: Int
-    let remainingCount: Int
-
-    var body: some View {
-        HStack(spacing: 12) {
-            ZStack {
-                ForEach(0..<3, id: \.self) { offset in
-                    RoundedRectangle(cornerRadius: 7, style: .continuous)
-                        .fill(Color.unbound.surfaceElevated.opacity(0.76))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 7, style: .continuous)
-                                .strokeBorder(Color.unbound.coachCyan.opacity(0.24), lineWidth: 1)
-                        )
-                        .frame(width: 34, height: 46)
-                        .rotationEffect(.degrees(Double(offset - 1) * 7))
-                        .offset(x: CGFloat(offset - 1) * 5)
-                }
-            }
-            .frame(width: 54, height: 50)
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text("DRAW \(numberString(drawIndex + 1)) FACE DOWN")
-                    .font(Font.unbound.captionS.weight(.heavy))
-                    .tracking(1.2)
-                    .foregroundStyle(Color.unbound.textPrimary)
-                Text("\(remainingCount) cards remain after this draw")
-                    .font(Font.unbound.captionS)
-                    .foregroundStyle(Color.unbound.textSecondary)
-            }
-
-            Spacer(minLength: 0)
-        }
-        .padding(.horizontal, 4)
-        .padding(.top, -4)
-        .padding(.bottom, 6)
-        .accessibilityIdentifier("deck.hiddenExercise")
-    }
-
-    private func numberString(_ value: Int) -> String {
-        value < 10 ? "0\(value)" : "\(value)"
+        .frame(width: cardWidth, height: cardHeight)
     }
 }
