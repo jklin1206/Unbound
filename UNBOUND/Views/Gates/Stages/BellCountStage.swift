@@ -52,22 +52,38 @@ struct BellCountStage: View {
                                     startPoint: .top, endPoint: .bottom))
     }
 
+    /// The great bell already hangs in the bespoke hall art — so the stage treats
+    /// it as a living sound source: a warm bloom and concentric resonance waves
+    /// ring out from it, swelling with the count, instead of a flat glyph.
     private func bell(size: CGSize) -> some View {
         ZStack {
+            // Warm light blooming off the struck bell in the art.
+            RadialGradient(
+                colors: [world.fillTint.opacity(0.20 + 0.5 * fraction), .clear],
+                center: .center, startRadius: 4, endRadius: 150)
+                .frame(width: 300, height: 300)
+                .blendMode(.plusLighter)
+                .scaleEffect(pulse && !reduceMotion ? 1.06 : 0.94)
+
+            // The bell rings out — concentric resonance waves over the hall.
+            ForEach(0..<3, id: \.self) { ring in
+                Circle()
+                    .stroke(world.fillTint.opacity((0.55 - Double(ring) * 0.16) * (0.45 + 0.55 * fraction)),
+                            lineWidth: 1.4)
+                    .frame(width: 92 + CGFloat(ring) * 54, height: 92 + CGFloat(ring) * 54)
+                    .scaleEffect(pulse && !reduceMotion ? 1.0 + CGFloat(ring) * 0.05 : 0.9)
+                    .opacity(pulse && !reduceMotion ? 1 : 0.5)
+            }
+
+            // The discipline filling — count progress traced around the bell.
             Circle()
                 .trim(from: 0, to: allCounted ? 1 : fraction)
-                .stroke(world.fillTint.opacity(0.85), style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                .stroke(world.tint, style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
                 .rotationEffect(.degrees(-90))
-                .frame(width: 104, height: 104)
-            Circle().fill(world.fillTint)
-                .frame(width: 62, height: 62).blur(radius: 22)
-                .opacity(0.35 + 0.4 * fraction)
-            Image(systemName: "bell.fill").font(.system(size: 34, weight: .black))
-                .foregroundStyle(world.tint)
-                .shadow(color: world.fillTint.opacity(0.7), radius: 14)
-                .scaleEffect(pulse && !reduceMotion ? 1.05 : 1.0)
+                .frame(width: 126, height: 126)
+                .shadow(color: world.fillTint.opacity(0.8), radius: 10)
         }
-        .position(x: size.width * 0.5, y: size.height * 0.42)
+        .position(x: size.width * 0.5, y: size.height * 0.29)
     }
 
     private var chrome: some View {
