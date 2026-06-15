@@ -479,14 +479,14 @@ enum RoutineLibrary {
             ]),
 
         RoutineDef(id: "daily-quest", title: "Daily Quest",
-            subtitle: "A simple daily baseline that scales over time.",
+            subtitle: "A simple daily baseline to keep the work moving.",
             durationLabel: "~20 MIN", category: .challenge, difficultyTier: .initiate, spReward: 50,
             steps: [
                 .repTarget(name: "Push-ups", target: 30, cue: nil),
                 .repTarget(name: "Sit-ups", target: 30, cue: nil),
                 .repTarget(name: "Bodyweight squats", target: 30, cue: nil),
                 .instruction(text: "2 km run (or 12-min treadmill walk/jog)", cue: nil),
-                .note(text: "Initiate version. Daily for 2 weeks. Week 3: 50 reps + 5 km. Week 5: 100 reps + 10 km.")
+                .note(text: "Your everyday baseline — keep the reps clean and log it to hold your streak.")
             ]),
 
         RoutineDef(id: "thunder-circuit", title: "Thunder Sprint",
